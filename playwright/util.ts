@@ -3,6 +3,11 @@ import { Page } from '@playwright/test';
 async function login(page: Page) {
     await page.goto('http://localhost:8002/');
 
+    // Might already be logged in
+    if (await page.getByRole('button', { name: 'Logout(' }).isVisible()) {
+        await page.getByRole('button', { name: 'Logout(' }).click();
+    }
+
     // Might already be on the login page
     if (await page.getByRole('link', { name: 'Login' }).isVisible()) {
         await page.getByRole('link', { name: 'Login' }).click();
@@ -14,8 +19,29 @@ async function login(page: Page) {
     await page.getByRole('button', { name: 'Login as Registered User' }).click();
 }
 
+async function login_as(page: Page, username: string, password: string) {
+    await page.goto('http://localhost:8002/');
+
+    // Might already be logged in
+    if (await page.getByRole('button', { name: 'Logout(' }).isVisible()) {
+        await page.getByRole('button', { name: 'Logout(' }).click();
+    }
+
+
+    // Might already be on the login page
+    if (await page.getByRole('link', { name: 'Login' }).isVisible()) {
+        await page.getByRole('link', { name: 'Login' }).click();
+    }
+    await page.getByLabel('Username:').click();
+    await page.getByLabel('Username:').fill(username);
+    await page.getByLabel('Username:').press('Tab');
+    await page.getByLabel('Password:').fill(password);
+    await page.getByRole('button', { name: 'Login as Registered User' }).click();
+}
+
+
 async function logout(page: Page) {
-    await page.getByRole('button', { name: 'Logout(admin)' }).click();
+    await page.getByRole('button', { name: 'Logout(' }).click();
 }
 
 async function deleteModuleIfExist(page: Page, name: string) {
@@ -48,11 +74,11 @@ async function deleteModule(page: Page, name: string) {
 }
 
 async function makeTagPoint(page: Page, module: string, name: string) {
-    
+
     if (name[0] == '/') {
         name = name.substring(1);
     }
-    
+
     await page.getByRole('link', { name: 'Modules' }).click();
     await page.getByRole('link', { name: module }).click();
     await page.getByRole('link', { name: 'Tagpoint' }).click();
@@ -65,4 +91,4 @@ async function makeTagPoint(page: Page, module: string, name: string) {
     await page.getByRole('button', { name: 'Submit' }).click();
 }
 
-export { login, logout, makeModule, deleteModule, makeTagPoint};
+export { login, login_as, logout, makeModule, deleteModule, makeTagPoint };

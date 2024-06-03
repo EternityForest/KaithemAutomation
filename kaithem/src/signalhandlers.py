@@ -44,4 +44,5 @@ def stop(*args):
 
 
 signal.signal(signal.SIGINT, stop)
-signal.signal(signal.SIGTERM, stop)
+# Called by asyncio
+# signal.signal(signal.SIGTERM, stop)

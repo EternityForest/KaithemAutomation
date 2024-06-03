@@ -6,6 +6,7 @@ import json
 import logging
 import mimetypes
 import os
+import signal
 import sys
 import time
 import traceback
@@ -16,7 +17,7 @@ import quart
 import structlog
 from hypercorn.asyncio import serve
 from hypercorn.config import Config
-from hypercorn.middleware import AsyncioWSGIMiddleware, DispatcherMiddleware
+from hypercorn.middleware import AsyncioWSGIMiddleware
 from quart import Response, make_response, request, send_file
 
 from kaithem.api import web as webapi
@@ -37,6 +38,7 @@ from . import (
     quart_app,
     settings,
     settings_overrides,
+    signalhandlers,
     staticfiles,
     systasks,
     tagpoints,
@@ -314,27 +316,6 @@ def startServer():
     config2.bind = [f"{bindto}:{config['http_port']}"]  # As an example configuration setting
     config2.workers = 8
     config2.worker_class = "uvloop"
-    # if config["https_port"]:
-    #     if not os.path.exists(os.path.join(directories.ssldir, "certificate.key")):
-    #         raise RuntimeError("No SSL certificate found")
-    #     else:
-    #         https_server = tornado.httpserver.HTTPServer(
-    #             router,
-    #             ssl_options={
-    #                 "certfile": os.path.join(directories.ssldir, "certificate.cert"),
-    #                 "keyfile": os.path.join(directories.ssldir, "certificate.key"),
-    #             },
-    #         )
-    #         https_server.listen(config["https_port"], bindto)
-
-    asyncio.run(serve(dispatcher_app, config2))
-
-    logger.info("Engine stopped")
-
-    dispatcher_app = DispatcherMiddleware(hypercornapps)
-
-    config2 = Config()
-    config2.bind = [f"{bindto}:{config['http_port']}"]  # As an example configuration setting
 
     # if config["https_port"]:
     #     if not os.path.exists(os.path.join(directories.ssldir, "certificate.key")):
@@ -350,11 +331,12 @@ def startServer():
     #         https_server.listen(config["https_port"], bindto)
     shutdown_event = asyncio.Event()
 
-    def sd(*a):
+    def _signal_handler(*_) -> None:
         shutdown_event.set()
+        signalhandlers.stop()
 
-    messagebus.subscribe("/system/shutdown", sd)
-
-    asyncio.run(serve(ContentSizeLimitMiddleware(dispatcher_app), config2, shutdown_event=shutdown_event))
+    loop = asyncio.get_event_loop()
+    loop.add_signal_handler(signal.SIGTERM, _signal_handler)
+    loop.run_until_complete(serve(ContentSizeLimitMiddleware(dispatcher_app), config2, shutdown_trigger=shutdown_event.wait))
 
     logger.info("Engine stopped")

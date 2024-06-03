@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { login, logout } from './util';
+import { login, logout, login_as } from './util';
 
 test('test', async ({ page }) => {
     await login(page);
@@ -12,14 +12,14 @@ test('test', async ({ page }) => {
     await page.getByRole('button', { name: 'Create Group' }).click();
 
     // Add view status permission and maxbyttes limit
-    await page.getByRole('link', { name: 'testgroup' }).click();
+    await page.getByRole('link', { name: 'testgroup' , exact: true}).click();
     await page.locator('input[name="Permissionview_status"]').check();
     await page.locator('input[name="maxbytes"]').click();
     await page.locator('input[name="maxbytes"]').fill('123456');
     await page.getByRole('button', { name: 'Save Changes' }).click();
 
     // Check group settings
-    await page.getByRole('link', { name: 'testgroup' }).click();
+    await page.getByRole('link', { name: 'testgroup' , exact: true}).click();
     await page.locator('input[name="maxbytes"]').click();
     await expect(page.locator('input[name="maxbytes"]')).toHaveValue('123456');
     await page.getByRole('link', { name: 'Tools' }).click();
@@ -53,13 +53,8 @@ test('test', async ({ page }) => {
     await page.getByRole('button', { name: 'Save Changes' }).click();
 
     await logout(page);
-
-    // Login with that password
-    await page.getByLabel('Username').click();
-    await page.getByLabel('Username').fill('testgroupuser');
-    await page.getByLabel('Password').click();
-    await page.getByLabel('Password').fill('123');
-    await page.getByRole('button', { name: 'Login as Registered User' }).click();
+    await login_as(page, 'testgroupuser', '123');
+    
 
     // Should be logged in
     await expect(page.getByRole('banner')).toContainText('Logout');
@@ -71,11 +66,7 @@ test('test', async ({ page }) => {
     await expect(page.locator('h2')).toContainText('Please Log In');
 
     // So we login as admin when redirected to the login
-    await page.getByLabel('Username').click();
-    await page.getByLabel('Username').fill('admin');
-    await page.getByLabel('Username').press('Tab');
-    await page.getByLabel('Password').fill('test-admin-password');
-    await page.getByRole('button', { name: 'Login as Registered User' }).click();
+    await login(page);
 
     // Now we can give test group the own_account_settings permission
     await page.getByRole('link', { name: 'Tools' }).click();
@@ -88,14 +79,7 @@ test('test', async ({ page }) => {
 
 
     // Log back in as test user
-
-    await page.getByLabel('Username').click();
-    await page.getByLabel('Username').fill('testgroupuser');
-    await page.getByLabel('Username').fill('testgroupuser');
-    await page.getByLabel('Password').click();
-    await page.getByLabel('Password').fill('123');
-
-    await page.getByRole('button', { name: 'Login as Registered User' }).click();
+    await login_as(page, 'testgroupuser', '123');
 
     // Should now be able to go to account settings
     await page.getByRole('link', { name: 'Tools' }).click();
@@ -113,13 +97,8 @@ test('test', async ({ page }) => {
     // Logout and try password
     await logout(page);
 
-    // Should be at login page
-    await page.getByLabel('Username').click();
-    await page.getByLabel('Username').fill('testgroupuser');
-    await page.getByLabel('Password').click();
-    await page.getByLabel('Password').fill('1234');
-    await page.getByRole('button', { name: 'Login as Registered User' }).click();
-    
+    await login_as(page, 'testgroupuser', '1234');
+
     // New password should work
     await expect(page.getByRole('banner')).toContainText('Logout');
 
