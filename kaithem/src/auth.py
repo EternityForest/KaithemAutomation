@@ -188,7 +188,7 @@ def changePassword(user, newpassword, useSystem=False) -> None:
         dumpDatabase()
 
 
-def addUser(username, password, useSystem=False) -> None:
+def add_user(username, password, useSystem=False) -> None:
     global authchanged
     with lock:
         authchanged = True
@@ -237,7 +237,7 @@ def addGroup(groupname) -> None:
         dumpDatabase()
 
 
-def addUserToGroup(username, group) -> None:
+def add_user_to_group(username, group) -> None:
     global authchanged
     with lock:
         authchanged = True

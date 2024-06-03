@@ -115,7 +115,7 @@ async def newusertarget():
     except PermissionError:
         return pages.loginredirect("/")
     # create the new user
-    auth.addUser(
+    auth.add_user(
         kwargs["username"],
         kwargs["password"],
         useSystem="useSystemPassword" in kwargs,
@@ -185,7 +185,7 @@ async def updateuser(user):
     for i in kwargs:
         if i[:5] == "Group":
             if kwargs[i] == "true":
-                auth.addUserToGroup(user, i[5:])
+                auth.add_user_to_group(user, i[5:])
 
     if (not kwargs["password"] == "") or useSystem:
         auth.changePassword(user, kwargs["password"], useSystem=useSystem)

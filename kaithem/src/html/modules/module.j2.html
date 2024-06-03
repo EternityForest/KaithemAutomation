@@ -65,21 +65,21 @@
             {% endif %}
         </div>
         <div class="tool-bar w-full">
-            <a class="button"
+            <a class="button" data-testid="add-permission"
                 href="/modules/module/{{ url(name) }}/addresource/permission?dir={{ url('/'.join(path) ) }}"><i
                     class="mdi mdi-key"></i>Permission</a>
-            <a class="button"
+            <a class="button" data-testid="add-folder"
                 href="/modules/module/{{ url(name) }}/addresource/directory?dir={{ url('/'.join(path) ) }}"><i
                     class="mdi mdi-folder-outline"></i>Folder</a>
-            <a class="button"
+            <a class="button" data-testid="add-file"
                 href="/modules/module/{{ url(name) }}/addfileresource?dir={{ url('/'.join(path) ) }}"><i
                     class="mdi mdi-file-document"></i>File</a>
-            <a class="button"
+            <a class="button" data-testid="add-device"
                 href="/modules/module/{{ url(name) }}/addresource/device?dir={{ url('/'.join(path) ) }}"><i
                     class="mdi mdi-chip"></i>Device</a>
             {% for i in modules.additionalTypes %}
             {% if modules.additionalTypes[i].mdi_icon %}
-            <a class="button createbutton"
+            <a class="button" data-testid="add-{{ i }}"
                 href="/modules/module/{{ url(name) }}/addresource/{{ i| urlencode }}?dir={{ url('/'.join(path) ) }}">
                 <i
                     class="mdi mdi-{{modules.additionalTypes[i].mdi_icon}}"></i>{{ modules.additionalTypes[i].title or i.capitalize()| escape }}</a>
@@ -179,7 +179,7 @@
                 <div class="tool-bar w-full">
                     <h3>
                         <a class="deviceslink"
-                            href="/devices/device/{{module[i].get('device',{}).get('name','').replace('/','%2F')|escape}}">
+                            href="/device/{{module[i].get('device',{}).get('name','').replace('/','%2F')|escape}}/manage">
                             <i class="mdi mdi-chip"></i> {{ i.split("/")[-1] | escape }}</a>
                     </h3>
                     <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i

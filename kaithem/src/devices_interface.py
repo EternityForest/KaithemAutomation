@@ -7,7 +7,7 @@ import traceback
 import urllib.parse
 
 import colorzero
-from quart import Response, redirect, request
+from quart import Response, redirect
 
 from kaithem.src import devices, messagebus, modules_state, pages
 from kaithem.src.devices import (
@@ -256,18 +256,19 @@ def createDevice(**kwargs):
     return redirect("/devices")
 
 
-@app.route("/devices/createDevicePage/<name>/<module>/<resource>", methods=["POST"])
-def createDevicePage(name, module="", resource=""):
+@app.route("/devices/createDevicePage", methods=["POST"])
+@wrap_sync_route_handler
+def createDevicePage(module, resource, type):
     "Ether create a 'blank' device, or, if supported, show the custom page"
     try:
         pages.require("system_admin")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
 
-    tp = getDeviceType(request.args["type"])
+    tp = getDeviceType(type)
     assert tp
 
-    d = pages.get_template("devices/createpage.html").render(name=name, type=request.args["type"], module=module, resource=resource)
+    d = pages.get_template("devices/createpage.html").render(name=resource, type=type, module=module, resource=resource)
     return Response(d, mimetype="text/html", headers={"X-Frame-Options": "SAMEORIGIN"})
 
 

@@ -41,10 +41,11 @@ cfg = {
 # This object is the same as the "kaithem" object in pages and events
 api = kaithem.initialize_app(cfg)
 
-from kaithem.src import auth
+# This causes problems if imported before the app is initialized
+from kaithem.src import auth  # noqa
 
-auth.addUser("admin", "test-admin-password")
-auth.addUserToGroup("admin", "Administrators")
+auth.add_user("admin", "test-admin-password")
+auth.add_user_to_group("admin", "Administrators")
 
 
 kaithem.start_server()
