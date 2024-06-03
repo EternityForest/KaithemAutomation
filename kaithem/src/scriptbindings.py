@@ -360,6 +360,7 @@ class ScriptActionKeeper:
 
     def __init__(self):
         self.scriptcommands = weakref.WeakValueDictionary()
+        self.debug_refs = {}
 
     def __setitem__(self, key, value):
         if not isinstance(key, str):
@@ -376,6 +377,8 @@ class ScriptActionKeeper:
                 raise ValueError("All default values must be int, string, or bool, not " + str(p[i].default))
 
         self.scriptcommands[key] = value
+
+        self.debug_refs[key] = weakref.ref(value, lambda x: print(f"Chandler action {x} is no longer valid"))
 
     def __getitem__(self, key):
         return self.scriptcommands[key]

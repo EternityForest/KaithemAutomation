@@ -1,5 +1,10 @@
 import { test, expect } from '@playwright/test';
 
+/* Preconditions:
+Guest has view status permission and nothing else
+*/
+
+
 test('test', async ({ page }) => {
     await page.goto('http://localhost:8002/');
 
@@ -16,11 +21,18 @@ test('test', async ({ page }) => {
     await page.getByLabel('Password', { exact: true }).click();
     await page.getByLabel('Password', { exact: true }).fill('1234');
     await page.getByRole('button', { name: 'Submit' }).click();
+
+    // Add the user to guests
+    await page.getByRole('link', { name: 'test_user' }).click();
+    await page.getByLabel('Guests').check();
+    await page.getByRole('button', { name: 'Save Changes' }).click();
+
+
     await expect(page.getByRole('main')).toContainText('test_user');
     await page.getByRole('link', { name: 'test_user' }).click();
     await expect(page.locator('h2')).toContainText('test_user');
     await expect(page.getByLabel('Administrators')).not.toBeChecked();
-    await expect(page.getByLabel('Guests')).not.toBeChecked();
+    await expect(page.getByLabel('Guests')).toBeChecked();
     await page.getByRole('button', { name: 'Save Changes' }).click();
     await page.getByRole('button', { name: 'Logout(admin)' }).click();
 
@@ -39,6 +51,7 @@ test('test', async ({ page }) => {
         dialog.dismiss().catch(() => { });
     });
     await page.getByRole('link', { name: 'Modules' }).click();
+
     await expect(page.getByRole('heading')).toContainText('Permission Error');
 
     page.once('dialog', dialog => {
@@ -53,10 +66,10 @@ test('test', async ({ page }) => {
     });
 
     await page.getByRole('link', { name: 'System Settings' }).click()
-    await expect(page.getByRole('heading')).toContainText('Permission Error');
+    await expect(page.getByRole('heading')).toContainText('Log In');
 
     await page.getByRole('link', { name: 'Devices' }).click();
-    await expect(page.getByRole('heading')).toContainText('Permission Error');
+    await expect(page.getByRole('heading')).toContainText('Log In');
     page.once('dialog', dialog => {
         console.log(`Dialog message: ${dialog.message()}`);
         dialog.dismiss().catch(() => { });
@@ -83,5 +96,5 @@ test('test', async ({ page }) => {
     await page.getByLabel('Username:').press('Tab');
     await page.getByLabel('Password:').fill('1234');
     await page.getByRole('button', { name: 'Login as Registered User' }).click();
-    await expect(page.getByRole('heading')).toContainText('Permission Error');
+    await expect(page.getByRole('heading')).toContainText('Error');
 });

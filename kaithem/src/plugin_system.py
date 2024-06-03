@@ -41,6 +41,7 @@ def import_in_thread(m: str | importlib.machinery.ModuleSpec):
                 # when a module is imported or reloaded.
                 assert m.loader
                 m.loader.exec_module(foo)
+                plugins[m.name] = foo
 
             logger.info(f"Loaded plugin {m} in {round((time.monotonic()-t) * 1000,2)}ms")
         except Exception:

@@ -119,7 +119,7 @@ def legacy_route(f):
 
     p = inspect.signature(f).parameters
     for i in p:
-        if i not in ("a", "k"):
+        if i not in ("a", "k", "kwargs", "kw"):
             r += f"/<{i}>"
 
     async def f2(*a):
@@ -130,11 +130,13 @@ def legacy_route(f):
         def f3():
             return f(*a, **kwargs)
 
-        return await quart.utils.run_sync(f3)()
+        return await f3()
 
-    f2.__name__ = f.__name__ + str(os.urandom(8))
+    f2.__name__ = f.__name__ + str(os.urandom(8).hex())
+    f.f2 = f2
 
     quart_app.app.route(r, methods=["GET", "POST"])(f2)
+    return f
 
 
 @quart_app.app.route("/settings")

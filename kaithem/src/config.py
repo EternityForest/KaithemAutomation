@@ -56,7 +56,11 @@ def load(cfg: dict[str, Any]):
     _argp.add_argument("-d")
     _argp.add_argument("-p")
 
-    argcmd = _argp.parse_args(sys.argv[1:])
+    # Debig runners put weird stuff that breaks things
+    if "pytest" in sys.argv[0]:
+        argcmd = _argp.parse_args([])
+    else:
+        argcmd = _argp.parse_args(sys.argv[1:])
 
     # This can't bw gotten from directories or wed get a circular import
     with open(os.path.join(_dn, "default_configuration.yaml")) as f:

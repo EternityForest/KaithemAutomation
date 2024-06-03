@@ -7,6 +7,7 @@ import copy
 import datetime
 import hashlib
 import os
+import time
 import urllib
 import urllib.parse
 from collections.abc import Iterator
@@ -214,8 +215,12 @@ def save_resource(module: str, resource: str, resourceData: ResourceDictType, na
 
 @beartype.beartype
 def rawInsertResource(module: str, resource: str, resourceData: ResourceDictType):
+    resourceData: dict[str, Any] = copy.deepcopy(resourceData)  # type: ignore
     check_forbidden(resource)
     assert resource[0] != "/"
+
+    if "resource_timestamp" not in resourceData:
+        resourceData["resource_timestamp"] = int(time.time() * 1000000)
 
     # todo maybe we don't need os indepedence
     d = os.path.dirname(resource.replace("/", os.path.pathsep))

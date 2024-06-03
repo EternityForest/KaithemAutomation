@@ -1,15 +1,17 @@
+import copy
 import difflib
+import gc
 import io
 import json
 import os
+import sys
 import time
 import weakref
 
-import cherrypy
-
-from kaithem.api import tags
-from kaithem.src import modules, modules_state, webapproot
-from kaithem.src.plugins import CorePluginEventResources
+if "--collect-only" not in sys.argv:
+    from kaithem.api import tags
+    from kaithem.src import modules, modules_state
+    from kaithem.src.plugins import CorePluginEventResources
 
 dir = "/dev/shm/kaithem_tests/"
 
@@ -20,27 +22,25 @@ class testobj:
 
 def test_make_module_web():
     # Make module using the same API that the web frontend would
+
     n = "test" + str(time.time()).replace(".", "_")
 
-    try:
-        webapproot.root.modules.newmoduletarget(name=n)
-        raise RuntimeError("Newmoduletarget should redirect")
-    except cherrypy.HTTPRedirect:
-        pass
-
+    modules.newModule(n)
     assert n in modules_state.ActiveModules
 
-    assert n in webapproot.webapproot().modules.index()
+    # Todo we should probably have a cleaner interface for doing this programmatically
 
-    assert webapproot.webapproot().modules.module(n)
+    with modules_state.modulesLock:
+        type = "event"
+        rt = modules_state.additionalTypes[type]
+        # If create returns None, assume it doesn't want to insert a module or handles it by itself
+        r = rt.oncreaterequest(n, "testevt", {})
+        rt._validate(r)
+        if r:
+            modules_state.rawInsertResource(n, "testevt", r)
+            rt.onload(n, "testevt", r)
 
-    try:
-        webapproot.root.modules.module(n, "addresourcetarget", "event", name="testevt")
-        raise RuntimeError("Newmoduletarget should redirect")
-    except cherrypy.HTTPRedirect:
-        pass
-
-    assert webapproot.webapproot().modules.module(n, "resource", "testevt")
+    assert "testevt" in modules_state.ActiveModules[n]
 
     # Check file on disk and internal data structure
     assert os.path.exists(os.path.join(dir, "modules/data/" + n))
@@ -48,70 +48,57 @@ def test_make_module_web():
     assert os.path.exists(os.path.join(dir, "modules/data/", n, "testevt.py"))
     assert "testevt" in modules_state.ActiveModules[n]
 
-    try:
-        webapproot.root.modules.module(
-            n,
-            "updateresource",
-            "testevt",
-            newname="testevt",
-            setup="x = 8\n",
-            trigger="x>6",
-            action="global x\n\nx= 5",
-            priority="interactive",
-            ratelimit=1,
-            enable=True,
-        )
-        raise RuntimeError("Newmoduletarget should redirect")
-    except cherrypy.HTTPRedirect:
-        pass
+    d = dict(
+        setup="x = 8\n",
+        trigger="x>6",
+        action="global x\n\nx= 5",
+        priority="interactive",
+        ratelimit=1,
+        enable=True,
+    )
 
-    assert "x = 8" in webapproot.webapproot().modules.module(n, "resource", "testevt")
+    x = copy.deepcopy(modules_state.ActiveModules[n]["testevt"])
+    x.update(d)
+    modules_state.rawInsertResource(n, "testevt", x)
+    modules.handleResourceChange(n, "testevt")
+
+    assert "x = 8" in str(modules_state.ActiveModules[n]["testevt"])
 
     assert (n, "testevt") in CorePluginEventResources._events_by_module_resource
-
-    # Object browser thingy
-    assert webapproot.webapproot().modules.module(n, "obj", "module")
 
     x = CorePluginEventResources._events_by_module_resource[(n, "testevt")]
 
     x.pymodule.__dict__["test_obj"] = testobj()
     ref = weakref.ref(x.pymodule.__dict__["test_obj"])
 
-    # Event scope browser
-    assert webapproot.webapproot().modules.module(n, "obj", "event", "testevt")
-
     # Ensure the event actually worked
     time.sleep(1)
     assert x.pymodule.__dict__["x"] == 5
 
-    try:
-        webapproot.root.modules.module(n, "deleteresourcetarget", name="testevt")
-    except cherrypy.HTTPRedirect:
-        pass
+    modules.rmResource(n, "testevt")
 
     assert (n, "testevt") not in CorePluginEventResources._events_by_module_resource
 
     # The scope of the dynamically generated module should be gone now
     assert ref() is None
 
-    try:
-        webapproot.root.modules.module(
-            n,
-            "addresourcetarget",
-            "tagpoint",
-            name="testtag",
-            tag="test_tag_foo",
-            min="",
-            max="",
-            hi="",
-            lo="",
-            interval="",
-            default=99,
-            tag_type="numeric",
-        )
-        raise RuntimeError("Newmoduletarget should redirect")
-    except cherrypy.HTTPRedirect:
-        pass
+    type = "tagpoint"
+
+    d = dict(
+        tag="test_tag_foo",
+        min="",
+        max="",
+        hi="",
+        lo="",
+        interval="",
+        default=99,
+        tag_type="numeric",
+    )
+    rt = modules_state.additionalTypes[type]
+    r = rt.oncreaterequest(n, "testtag", d)
+
+    modules_state.rawInsertResource(n, "testtag", r)
+    modules.handleResourceChange(n, "testtag")
 
     assert tags.existing_tag("test_tag_foo").value == 99
 
@@ -121,18 +108,17 @@ def test_make_module_web():
 
     old_json = json.dumps(modules_state.ActiveModules[n], sort_keys=True, indent=4)
 
-    zf = webapproot.root.modules.yamldownload(n)
+    zf = modules_state.getModuleAsYamlZip(n)
     assert zf
     zf2 = io.BytesIO()
 
     for i in zf:
         zf2.write(i)
 
-    try:
-        webapproot.root.modules.deletemoduletarget(name=n)
-        raise RuntimeError("Newmoduletarget should redirect")
-    except cherrypy.HTTPRedirect:
-        pass
+    modules.rmModule(n)
+
+    if "/test_tag_foo" in tags.all_tags_raw():
+        gc.collect()
 
     assert "/test_tag_foo" not in tags.all_tags_raw()
 
@@ -148,3 +134,5 @@ def test_make_module_web():
     assert "/test_tag_foo" in tags.all_tags_raw()
     assert old_hash == modules_state.hashModule(n)
     assert old_hash == modules_state.getModuleHash(n)
+
+    modules.rmModule(n)

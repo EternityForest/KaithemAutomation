@@ -1,6 +1,9 @@
+import sys
+
 import pytest
 
-from .helpers import make_client
+if "--collect-only" not in sys.argv:
+    from .helpers import make_client
 
 
 @pytest.mark.asyncio

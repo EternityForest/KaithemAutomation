@@ -120,6 +120,10 @@ dev-playwright-ui: # Open playwright tests UI
 	@npx playwright test --ui
 
 
+.PHONY: dev-record-playwright
+dev-record-playwright: # Record playwright tests
+	@npx playwright codegen http://localhost:8002
+
 .PHONY: dev-file-lines
 dev-file-lines: # Show files sorted by line count
 	@poetry run pygount --merge-embedded-languages --names-to-skip="*.min.js,bip39.txt" --folders-to-skip="thirdparty,__pycache__,tests" kaithem/ scripts/ | sort -nr -
