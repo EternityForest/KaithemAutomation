@@ -43,6 +43,6 @@ def stop(*args):
     messagebus.post_message("/system/shutdown", "Recieved SIGINT or SIGTERM.")
 
 
-signal.signal(signal.SIGINT, stop)
+# signal.signal(signal.SIGINT, stop)
 # Called by asyncio
 # signal.signal(signal.SIGTERM, stop)
