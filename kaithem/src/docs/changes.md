@@ -18,6 +18,9 @@ Change Log
 - :sparkles: Move to the quart framework instead of cherrypy. Everything is fully ASGI based.
 - :boom: Logging out just logs out your client, not all clients on that user
 
+#### Fixed
+
+- :bug: Fix page XSS options
 
 ```
 ┏━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━┳━━━━━━━━━┳━━━━━━┓

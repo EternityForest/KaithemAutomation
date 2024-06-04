@@ -215,7 +215,7 @@ class CompiledPage:
             if "allow_xss" in resource:
                 self.xss = resource["allow_xss"]
             else:
-                self.xss = False
+                self.xss = len(resource.get("allow_origins", [])) > 0
 
             if "allow_origins" in resource:
                 self.origins = resource["allow_origins"]
@@ -792,10 +792,9 @@ class PageType(modules_state.ResourceType):
         resourceobj["mimetype"] = kwargs["mimetype"]
         resourceobj["template_engine"] = kwargs["template_engine"]
         resourceobj["no_navheader"] = "no_navheader" in kwargs
-        resourceobj["streaming_response"] = "streaming_response" in kwargs
 
         resourceobj["no_header"] = "no_header" in kwargs
-        resourceobj["allow_xss"] = "allow_xss" in kwargs
+
         resourceobj["allow_origins"] = [i.strip() for i in kwargs["allow_origins"].split(",")]
         # Method checkboxes
         resourceobj["require_method"] = []
@@ -841,18 +840,19 @@ class PageType(modules_state.ResourceType):
 
         d.selection("template_engine", title="Template Engine", default=resource_data.get("template_engine", "jinja2"), options=o)
         d.begin_section("Settings")
+
+        # These legacy options only matter wth Mako
         for i in (
-            ("streaming_response", "Stream file downloads"),
             ("no_navheader", "Hide nav header"),
             ("no_header", "No extra content at all"),
-            ("allow_xss", "Allow cross site requests"),
         ):
-            d.checkbox(i[0], title=i[1], default=resource_data.get(i[0], False))
+            if i[0] in resource_data:
+                d.checkbox(i[0], title=i[1], default=resource_data.get(i[0], False))
 
         d.checkbox("allow-GET", title="Allow GET", default="GET" in resource_data.get("require_method"))
         d.checkbox("allow-POST", title="Allow POST", default="POST" in resource_data.get("require_method"))
         d.text_input("mimetype", title="MIME", default=resource_data.get("mimetype", "text/html"))
-        d.text_input("allow_origins", title="XSS Origins", default=", ".join(resource_data.get("origins", "*")))
+        d.text_input("allow_origins", title="XSS Origins", default=", ".join(resource_data.get("allow_origins", "")))
         d.text_input(
             "themecss", title="Theme", default=resource_data.get("theme_css_url", ""), suggestions=[(i, i) for i in theming.cssthemes]
         )

@@ -10,7 +10,10 @@ properties:
 
   allow_xss:
     type: boolean
-    description: whether to allow XSS at all.
+    description: |
+      Whether to allow XSS at all.
+      If not present, defaults to true if allow_origins not blank.
+      Legacy use only.
 
   mimetype:
     type: string
