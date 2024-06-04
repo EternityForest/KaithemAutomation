@@ -119,28 +119,13 @@ def resource_page(module, resource):
         return modules_state.additionalTypes[resourceinquestion["resource_type"]].editpage(module, resource, resourceinquestion)
 
 
-@quart_app.app.route("/modules/module/<module>/uploadresource")
-async def uploadresourcedialog(module):
-    path = request.args.get("path", "")
-    try:
-        pages.require("system_admin")
-    except PermissionError:
-        return pages.loginredirect(pages.geturl())
-
-    d = dialogs.SimpleDialog(f"Upload resource in {module}")
-    d.file_input("file")
-    d.text_input("filename")
-    d.submit_button("Submit")
-    return d.render(f"/modules/module/{url(module)}/uploadresourcetarget", hidden_inputs={"path": path})
-
-
 @quart_app.app.route("/modules/module/<module>/addresource/<type>")
 def addresource(module, type):
     try:
         pages.require("system_admin")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
-    path = request.args.get("path", "")
+    path = request.args.get("dir", "")
 
     if type in ("permission", "directory"):
         d = dialogs.SimpleDialog(f"New {type.capitalize()} in {module}")
@@ -155,8 +140,10 @@ def addresource(module, type):
         return modules_state.additionalTypes[type].createpage(module, path)
 
 
+@quart_app.app.route("/modules/module/<module>/addresourcetarget/<rtype>/<path:path>", methods=["POST"])
 @quart_app.app.route("/modules/module/<module>/addresourcetarget/<rtype>", methods=["POST"])
-async def addresourcetarget(module, rtype):
+async def addresourcetarget(module, rtype, path=""):
+    """Path can be passed as the dir kwarg, or as path component in the url"""
     try:
         pages.require("system_admin")
     except PermissionError:
@@ -171,7 +158,7 @@ async def addresourcetarget(module, rtype):
     def f():
         type = rtype
         name = kwargs["name"]
-        path = kwargs.get("dir", "")
+        path = path = kwargs.get("dir", "")
 
         modules_state.recalcModuleHashes()
 

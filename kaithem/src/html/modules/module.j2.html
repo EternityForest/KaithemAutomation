@@ -79,7 +79,7 @@
             <form action="/modules/module/{{url(name)}}/scanfiles" method="POST">
                 <button type="submit" title="Scan any manually added files in __filedata__">Rescan Files</button>
             </form>
-            <a class="button" href="/modules/module/{{ url(name) }}/uploadresource/{{ url('/'.join(path) ) }}">
+            <a class="button" href="/modules/module/{{ url(name) }}/uploadresource/{{ '/'.join(path) }}">
                 <i class="mdi mdi-upload-box"></i>Upload</a>
 
             <form style="display:inline-flex;" action="/modules/search/{{ url(name) }}">
@@ -95,8 +95,8 @@
             <p>Location:</p>
             <a class="button" href="/modules/module/{{ url(name) }}#resources">{{ name| escape }}</a>
             {% if path %}
-            {% for i in breadcrumbs(path[0]) %}
-            <a class="button" href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}#resources">{{ i| escape }}</a>
+            {% for i in breadcrumbs('/'.join(path)) %}
+            <a class="button" href="/modules/module/{{ url(name) }}/resource/{{ i[1] }}#resources">{{ i[0]| escape }}</a>
             {% endfor %}
             {% endif %}
         </div>

@@ -73,7 +73,7 @@ def breadcrumbs(path):
     temp_p = ""
     for i in path.split("/"):
         temp_p += f"{i}/"
-        yield temp_p[:-1]
+        yield (i, temp_p[:-1])
 
 
 module_page_context = {
@@ -139,11 +139,23 @@ def searchModuleResources(modulename, search, max_results=100, start=0):
     return (results, pointer)
 
 
-# The class defining the interface to allow the user to perform generic create/delete/upload functionality.
+@quart_app.app.route("/modules/module/<module>/uploadresource/<path:path>")
+@quart_app.app.route("/modules/module/<module>/uploadresource")
+async def uploadresourcedialog(module, path=""):
+    try:
+        pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+
+    d = dialogs.SimpleDialog(f"Upload resource in {module}")
+    d.file_input("file")
+    d.text_input("filename")
+    d.submit_button("Submit")
+    return d.render(f"/modules/module/{url(module)}/uploadresourcetarget", hidden_inputs={"dir": path})
 
 
-@quart_app.app.route("/modules/module/<module>/uploadResource", methods=["POST"])
-async def uploadResource(module):
+@quart_app.app.route("/modules/module/<module>/uploadresourcetarget", methods=["POST"])
+async def uploadresourcetarget(module):
     try:
         pages.require("system_admin")
     except PermissionError:
@@ -160,7 +172,7 @@ async def uploadResource(module):
     def f():
         f = b""
 
-        path = kwargs["path"].split("/") + [kwargs["filename"].split(".")[0]]
+        path = kwargs["dir"].split("/") + [kwargs["filename"].split(".")[0]]
         path = "/".join([i for i in path if i])
 
         while True:
