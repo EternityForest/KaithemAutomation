@@ -135,6 +135,9 @@
                     <p>
                         {{ i[0] | escape }}
                     </p>
+
+                    <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i[1]) }}">
+                        <i class="mdi mdi-delete"></i>Delete</a>
                 </div>
             </dt>
 

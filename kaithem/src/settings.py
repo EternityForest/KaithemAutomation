@@ -248,34 +248,36 @@ def gcsweep():
     return quart.redirect("/settings")
 
 
-@quart_app.app.route("/settings/files/<path:path>")
-async def files(*args, **kwargs):
+@quart_app.app.route("/settings/files", methods=["GET", "POST"])
+@quart_app.app.route("/settings/files/<path:path>", methods=["GET", "POST"])
+async def files(path="", *args, **kwargs):
     """Return a file manager. Kwargs may contain del=file to delete a file. The rest of the path is the directory to look in."""
     try:
         pages.require("system_admin")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
+    dir = os.path.join("/", path)
 
-    if "file" in quart.request.files:
+    files = await quart.request.files
+    if "file" in files:
         pages.postOnly()
-        if os.path.exists(os.path.join(dir, kwargs["file"].filename)):
+        if os.path.exists(os.path.join(dir, files["file"].filename)):
             raise RuntimeError("Node with that name already exists")
-        with open(os.path.join(dir, kwargs["file"].filename), "wb") as f:
 
-            def f():
+        with open(os.path.join(dir, files["file"].filename), "wb") as f:
+
+            def bg_upload():
                 while True:
-                    data = quart.request.files["file"].read(8192)
+                    data = files["file"].read(8192)
                     if not data:
                         break
                     f.write(data)
 
-            await quart.utils.run_sync(f)()
+            await quart.utils.run_sync(bg_upload)()
 
     @copy_current_request_context
     def f():
         try:
-            dir = os.path.join("/", *args)
-
             if "del" in kwargs:
                 pages.postOnly()
                 node = os.path.join(dir, kwargs["del"])
@@ -307,7 +309,7 @@ async def files(*args, **kwargs):
         except Exception:
             return traceback.format_exc()
 
-    return await quart.utils.run_sync(f)()
+    return await f()
 
 
 @legacy_route

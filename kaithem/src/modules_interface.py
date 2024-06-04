@@ -178,7 +178,7 @@ async def uploadResource(module):
         modules.handleResourceChange(module, path)
         return quart.redirect(f"/modules/module/{util.url(module)}")
 
-    return await quart.utils.run_sync(f)()
+    return await f()
 
 
 @quart_app.app.route("/modules/module/<module>/download_resource/<obj>")
@@ -219,7 +219,7 @@ async def runevent(module):
         CorePluginEventResources.manualRun((module, kwargs["name"]))
         return quart.redirect(f"/modules/module/{util.url(module)}")
 
-    return await quart.utils.run_sync(f)()
+    return await f()
 
 
 @quart_app.app.route("/modules/module/<module>/runeventdialog/<evt>")
@@ -301,6 +301,9 @@ async def uploadfileresourcetarget(module):
             dataname = f"{path}/{dataname}"
 
         dataname = os.path.join(folder, dataname)
+        if os.path.exists(dataname):
+            if "overwrite" not in kwargs:
+                raise FileExistsError(f"File already exists: {dataname}")
 
         inputfile = file
 

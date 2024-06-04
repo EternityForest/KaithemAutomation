@@ -529,6 +529,12 @@ def mvResource(module: str, resource: str, toModule: str, toResource: str):
 def rmResource(module: str, resource: str, message: str = "Resource Deleted") -> None:
     "Delete one resource by name, message is an optional message explaining the change"
     with modulesLock:
+        if resource not in modules_state.ActiveModules[module]:
+            fr = os.path.join(getModuleDir(module), resource)
+            if os.path.isfile(fr):
+                os.remove(fr)
+            return
+
         r = modules_state.ActiveModules[module][resource]
 
     try:
