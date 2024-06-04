@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 
-import copy
 import logging
 import os
 import weakref
@@ -13,7 +12,7 @@ import structlog
 import yaml
 from quart import request
 from quart.ctx import copy_current_request_context
-from scullery import scheduling, workers
+from scullery import scheduling
 
 from . import auth, dialogs, directories, messagebus, module_actions, modules, modules_state, pages, quart_app, unitsofmeasure, util
 from .modules_state import in_folder
@@ -24,13 +23,6 @@ searchable = {"event": ["setup", "trigger", "action"], "page": ["body"]}
 
 
 prev_versions: dict[tuple, dict] = {}
-
-
-def get_f_size(name, i):
-    try:
-        return unitsofmeasure.si_format_number(os.path.getsize(modules_state.file_resource_paths[name, i]))
-    except Exception:
-        return "Could not get size"
 
 
 def urlForPath(module, path):
@@ -56,6 +48,27 @@ def sorted_module_path_list(name: str, path: list):
     )
 
 
+def sorted_module_file_list(name: str, path: list):
+    """Yields (name, full resourcename, mtime, size)"""
+
+    p = os.path.join(modules_state.getModuleDir(name), "__filedata__", "/".join(path))
+    if not os.path.isdir(p):
+        return []
+    lst = os.listdir(p)
+
+    lst = sorted(lst)
+
+    for i in lst:
+        f = os.path.join(p, i)
+        try:
+            rn = i
+            if path:
+                rn = "/".join(path) + "/" + i
+            yield (i, rn, os.path.getmtime(f), os.path.getsize(f))
+        except Exception:
+            logging.exception("Failed to get file info")
+
+
 def breadcrumbs(path):
     temp_p = ""
     for i in path.split("/"):
@@ -66,7 +79,6 @@ def breadcrumbs(path):
 module_page_context = {
     "si_format_number": unitsofmeasure.si_format_number,
     "url": util.url,
-    "file_resource_paths": modules.file_resource_paths,
     "external_module_locations": modules.external_module_locations,
     "getModuleHash": modules_state.getModuleHash,
     "getModuleWordHash": modules_state.getModuleWordHash,
@@ -82,7 +94,7 @@ module_page_context = {
     "in_folder": in_folder,
     "urlForPath": urlForPath,
     "sorted_module_path_list": sorted_module_path_list,
-    "get_f_size": get_f_size,
+    "sorted_module_file_list": sorted_module_file_list,
     "hasattr": hasattr,
     "breadcrumbs": breadcrumbs,
 }
@@ -186,7 +198,9 @@ def scanfiles(module):
         pages.require("system_admin")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
-    modules.autoGenerateFileRefResources(modules_state.ActiveModules[module], module)
+
+    modules_state.importFiledataFolderStructure(module)
+    modules_state.recalcModuleHashes()
     return quart.redirect(f"/modules/module/{util.url(module)}")
 
 
@@ -221,7 +235,7 @@ async def runeventdialog(module, evt):
     return d.render(f"/modules/module/{url(module)}/runevent")
 
 
-@quart_app.app.route("/modules/module/<module>/getfileresource/<resource>")
+@quart_app.app.route("/modules/module/<module>/getfileresource/<path:resource>")
 async def getfileresource(module, resource):
     try:
         pages.require("system_admin")
@@ -229,13 +243,12 @@ async def getfileresource(module, resource):
         return pages.loginredirect(pages.geturl())
 
     d = modules.getModuleDir(module)
-    folder = os.path.join(d, "__filedata__")
-    data_basename = modules_state.file_resource_paths[module, resource]
-    dataname = os.path.join(folder, data_basename)
-    if os.path.isfile(dataname):
-        return await quart.send_file(dataname)
+    f = os.path.join(d, "__filedata__", resource)
+
+    if os.path.isfile(f):
+        return await quart.send_file(f)
     else:
-        raise FileNotFoundError(f"File not found: {dataname}")
+        raise FileNotFoundError(f"File not found: {f}")
 
 
 @quart_app.app.route("/modules/module/<module>/action/<resource>")
@@ -247,11 +260,11 @@ async def action(module):
         m = module_actions.get_action(kwargs["action"], {"module": module, "path": kwargs["dir"]})
         return quart.redirect(f"/action_step/{m.id}")
 
-    return await quart.utils.run_sync(f)()
+    return await f()
 
 
-@quart_app.app.route("/modules/module/<module>/addfileresource/<target>")
-async def addfileresource(module, target):
+@quart_app.app.route("/modules/module/<module>/addfileresource")
+async def addfileresource(module):
     try:
         pages.require("system_admin")
     except PermissionError:
@@ -284,8 +297,8 @@ async def uploadfileresourcetarget(module):
         data_basename = kwargs["name"]
 
         dataname = data_basename
-        if len(path) > 1:
-            dataname = f"{path[1]}/{dataname}"
+        if path:
+            dataname = f"{path}/{dataname}"
 
         dataname = os.path.join(folder, dataname)
 
@@ -294,42 +307,20 @@ async def uploadfileresourcetarget(module):
         os.makedirs(os.path.dirname(dataname), exist_ok=True)
 
         syslog.info(f"User uploaded file resource to {dataname}")
+
         with open(dataname, "wb") as f:
             while True:
-                d = inputfile.file.read(8192)
+                d = inputfile.read(8192)
                 if not d:
                     break
                 f.write(d)
 
-        with modules_state.modulesLock:
-
-            def insertResource(r):
-                modules_state.rawInsertResource(module, data_basename, r)
-
-            # END BLOCK OF COPY PASTED CODE.
-
-            modules_state.file_resource_paths[module, data_basename] = dataname
-            d = {
-                "resource_type": "internal_fileref",
-                "serve": "serve" in kwargs,
-                "target": "$MODULERESOURCES/" + util.url(data_basename, modules.safeFnChars),
-            }
-
-            # Preserve existing metadata
-            if data_basename in modules_state.ActiveModules[module]:
-                d2 = copy.deepcopy(modules_state.ActiveModules[module])
-                d2.update(d)
-                d = d2
-
-            insertResource(d)
-            modules.handleResourceChange(module, data_basename)
-            modules_state.recalcModuleHashes()
-        if len(path) > 1:
-            return quart.redirect(f"/modules/module/{util.url(module)}/resource/{util.url(path[1])}")
+        if path:
+            return quart.redirect(f"/modules/module/{util.url(module)}/resource/{util.url(path)}")
         else:
             return quart.redirect(f"/modules/module/{util.url(module)}")
 
-    return await quart.utils.run_sync(f)()
+    return await f()
 
 
 @quart_app.app.route("/modules/actions/<module>")
@@ -373,7 +364,7 @@ async def search(module):
                 results=searchModules(kwargs["search"], 100, start, mstart),
             )
 
-    return await quart.utils.run_sync(f)()
+    return await f()
 
 
 # This lets the user download a module as a zip file with yaml encoded resources
@@ -422,7 +413,7 @@ async def uploadtarget():
             modules_state.recalcModuleHashes()
             modules.load_modules_from_zip(file, replace="replace" in request.args)
 
-        workers.do(f)
+        await f()
 
     messagebus.post_message("/system/modules/uploaded", {"user": pages.getAcessingUser()})
     return quart.redirect("/modules")
@@ -471,7 +462,7 @@ async def loadlibmodule(module):
         modules.saveModule(modules_state.ActiveModules[name], name)
         return quart.redirect("/modules")
 
-    return await quart.utils.run_sync(f)()
+    return await f()
 
 
 # def manual_run(self,module, resource):

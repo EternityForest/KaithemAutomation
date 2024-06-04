@@ -6,7 +6,6 @@ from __future__ import annotations
 import copy
 import gc
 import importlib
-import mimetypes
 import os
 import re
 import threading
@@ -32,6 +31,8 @@ from kaithem.api.web import add_asgi_app, render_jinja_template
 from kaithem.api.web.dialogs import SimpleDialog
 from kaithem.src import auth, directories, messagebus, modules_state, pages, settings_overrides, theming, util
 from kaithem.src.util import url
+
+from . import fileserver
 
 logger = structlog.get_logger("kaithem.userpages")
 
@@ -123,18 +124,29 @@ def markdownToSelfRenderingHTML(content, title):
 @util.lrucache(50)
 def lookup(module, args):
     resource_path = args
-    m = _pages_by_module_resource[module]
+    if module in _pages_by_module_resource:
+        m = _pages_by_module_resource[module]
+    else:
+        m = {}
 
-    if "/".join(resource_path) in m:
-        return _pages_by_module_resource[module]["/".join(resource_path)]
+    resourcename = "/".join(resource_path)
 
-    if "/".join(resource_path + ["__index__"]) in m:
+    # Since . cannot appear in a resource name, replace it with _
+    resourcename = resourcename.replace(".", "_")
+
+    if resourcename in m:
+        return _pages_by_module_resource[module][resourcename]
+
+    if "/".join(resource_path + ("__index__",)) in m:
         return _pages_by_module_resource[module]["/".join(resource_path + ["__index__"])]
-
+    resource_path = list(resource_path)
     while resource_path:
         resource_path.pop()
-        if "/".join(resource_path) in m:
-            return _pages_by_module_resource[module]["/".join(resource_path)]
+        if resourcename in m:
+            return _pages_by_module_resource[module][resourcename]
+        x = "/".join(resource_path)
+        if (module, x) in fileserver.by_module_resource:
+            return fileserver.by_module_resource[module, x]
 
         if "/".join(resource_path + ["__index__"]) in m:
             return _pages_by_module_resource[module]["/".join(resource_path + ["__index__"])]
@@ -142,6 +154,9 @@ def lookup(module, args):
         if "/".join(resource_path + ["__default__"]) in m:
             return m["/".join(resource_path + ["__default__"])]
     return None
+
+
+fileserver.lookup = lookup
 
 
 def url_for_resource(module, resource):
@@ -525,27 +540,6 @@ async def catch_all(module, path):
         rn = "/".join(args)
         x = modules_state.ActiveModules[module].get(rn, None)
 
-        if x and x["resource_type"] == "internal_fileref":
-            fn = modules_state.file_resource_paths[module, rn]
-            mime = str(x.get("mimetype", "").strip() or mimetypes.guess_type(fn)[0])  # type: ignore
-            if x.get("serve", False):
-                try:
-                    pages.require(x.get("require_permissions", []))
-                except PermissionError:
-                    return pages.loginredirect(pages.geturl())
-                if "Origin" in quart.request.headers:
-                    origins: list[str] = x["allow_origins"]  # type: ignore
-
-                    if not x["allow_xss"]:
-                        raise RuntimeError("Refusing XSS")
-
-                    if not (quart.request.headers["Origin"] in origins or "*" in origins):
-                        raise RuntimeError("Refusing XSS from this origin: " + quart.request.headers["Origin"])
-                    else:
-                        h["Access-Control-Allow-Origin"] = quart.request.headers["Origin"]
-
-                return await quart.send_file(fn, mimetype=mime)
-
         quart.abort(404)
 
     if "Origin" in quart.request.headers:
@@ -568,7 +562,15 @@ async def catch_all(module, path):
         try:
             pages.require(i)
         except PermissionError:
-            return pages.loginredirect(pages.geturl())
+            if quart.request.method == "GET":
+                return pages.loginredirect(quart.request.url)
+            else:
+                return pages.loginredirect("/")
+
+    if isinstance(page, fileserver.ServerObj):
+        fp = path[len(page.r) + 1 :]
+        fp = os.path.join(page.folder, fp)
+        return await quart.send_file(fp)
 
     h.update(_headers(page))
     # Check HTTP Method
@@ -865,7 +867,7 @@ class PageType(modules_state.ResourceType):
         if getPageErrors(module, resource):
             d.begin_section("Errors")
             for i in getPageErrors(module, resource):
-                d.text(i)
+                d.text(str(i))
             d.end_section()
 
         d.submit_button("Save Changes", value="Save and Go Back")

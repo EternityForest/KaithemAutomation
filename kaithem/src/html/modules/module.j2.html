@@ -49,21 +49,12 @@
 
             <details>
                 <summary><b>Quick Actions</b></summary>
-                <iframe
-                    src="/modules/actions/{{ url(name) }}?dir={{ url('/'.join(path) ) }}"></iframe>
+                <iframe src="/modules/actions/{{ url(name) }}?dir={{ url('/'.join(path) ) }}"></iframe>
             </details>
         </section>
     </section>
-    <section class="window padding">
-        <div class="pathnav tool-bar w-full">
 
-            <a class="button" href="/modules/module/{{ url(name) }}#resources">{{ name| escape }}</a>
-            {% if path %}
-            {% for i in breadcrumbs(path[0]) %}
-            <a class="button" href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}#resources">{{ i| escape }}</a>
-            {% endfor %}
-            {% endif %}
-        </div>
+    <section class="window padding">
         <div class="tool-bar w-full">
             <a class="button" data-testid="add-permission"
                 href="/modules/module/{{ url(name) }}/addresource/permission?dir={{ url('/'.join(path) ) }}"><i
@@ -71,12 +62,12 @@
             <a class="button" data-testid="add-folder"
                 href="/modules/module/{{ url(name) }}/addresource/directory?dir={{ url('/'.join(path) ) }}"><i
                     class="mdi mdi-folder-outline"></i>Folder</a>
-            <a class="button" data-testid="add-file"
-                href="/modules/module/{{ url(name) }}/addfileresource?dir={{ url('/'.join(path) ) }}"><i
-                    class="mdi mdi-file-document"></i>File</a>
             <a class="button" data-testid="add-device"
                 href="/modules/module/{{ url(name) }}/addresource/device?dir={{ url('/'.join(path) ) }}"><i
                     class="mdi mdi-chip"></i>Device</a>
+            <a class="button" data-testid="add-file"
+                href="/modules/module/{{ url(name) }}/addfileresource?dir={{ url('/'.join(path) ) }}"><i
+                    class="mdi mdi-file-document"></i>Add File</a>
             {% for i in modules.additionalTypes %}
             {% if modules.additionalTypes[i].mdi_icon %}
             <a class="button" data-testid="add-{{ i }}"
@@ -99,15 +90,68 @@
             </form>
 
         </div>
+        <hr>
+        <div class="pathnav tool-bar w-full">
+            <p>Location:</p>
+            <a class="button" href="/modules/module/{{ url(name) }}#resources">{{ name| escape }}</a>
+            {% if path %}
+            {% for i in breadcrumbs(path[0]) %}
+            <a class="button" href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}#resources">{{ i| escape }}</a>
+            {% endfor %}
+            {% endif %}
+        </div>
+
+        <h3>Folders</h3>
         <dl class="margin-top">
             {% if path and len(path[0].split("/"))>1 %}
             <dt class="specialentry">
                 <a href="urlForPath(module, path)#resources">..</a>
             </dt>
             {% endif %}
+
+            {% for i in sorted_module_path_list(name, path) %}
+            {% if module[i]['resource_type'] == 'directory' %}
+            <dt>
+                <div class="tool-bar w-full">
+                    <p>
+                        <a href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}#resources"><i
+                                class="mdi mdi-folder-outline"></i><b>{{ i.split('/')[-1] | escape }}</b></a>
+                    </p>
+                    <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}">
+                        <i class="mdi mdi-delete"></i>Delete</a>
+                </div>
+            </dt>
+            {% endif %}
+            {% endfor %}
+        </dl>
+
+
+        <h3>Files</h3>
+
+        <dl>
+            {% for i in sorted_module_file_list(name, path) %}
+            <dt>
+                <div class="tool-bar w-full inline">
+                    <p>
+                        {{ i[0] | escape }}
+                    </p>
+                </div>
+            </dt>
+
+            <dd>
+
+                <p><a href="/modules/module/{{ url(name) }}/getfileresource/{{i[1]}}">Download</a></p>
+            </dd>
+
+
+            {% endfor %}
+        </dl>
+
+        <h3>Resources</h3>
+        <dl class="margin-top">
             {% for i in sorted_module_path_list(name, path) %}
             {% if not 'resource_type' in module[i] %}
-            <p class=error>OBJECT {{ i| escape }} MISSING resource_type</p>
+            OBJECT {{ i| escape }} MISSING resource_type
             <%
                     continue
                     %>
@@ -116,34 +160,13 @@
             {% if module[i]['resource_type'] == 'permission' %}
             <dt>
                 <div class="tool-bar w-full inline">
-                    <h3>
+                    <p>
                         <a href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}"> <i class="mdi mdi-key"></i>
                             {{ i.split("/")[-1] | escape }}</a>
-                    </h3>
-
-                    <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
-                            class="mdi mdi-delete"></i>Delete</a>
-                </div>
-            </dt>
-            {% endif %}
-            {% if module[i]['resource_type'] == 'internal_fileref' %}
-            <dt>
-                <div class="tool-bar w-full inline">
-                    <h3>
-                        <a
-                            href="/modules/module/{{ url(name) }}/getfileresource/{{ url(i) }}">{{ i.split("/")[-1] | escape }}</a>
-                    </h3>
-                    <a class="settingsbuttton"
-                        href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}">Properties</a>
-
-                    <a class="button nogrow" href="/modules/module/{{ url(name) }}/moveresource/{{ url(i) }}"><span
-                            class="mdi mdi-folder-move"></span>
-                        Move</a>
-                    <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
-                            class="mdi mdi-delete"></i>Delete</a>
-                    <p>
-                        <span>Size: {{ get_f_size(name,i) }}</span>
                     </p>
+
+                    <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
+                            class="mdi mdi-delete"></i>Delete</a>
                 </div>
             </dt>
             {% endif %}
@@ -177,11 +200,11 @@
             {% if module[i]['resource_type'] == 'device' %}
             <dt>
                 <div class="tool-bar w-full">
-                    <h3>
+                    <p>
                         <a class="deviceslink"
                             href="/device/{{module[i].get('device',{}).get('name','').replace('/','%2F')|escape}}/manage">
                             <i class="mdi mdi-chip"></i> {{ i.split("/")[-1] | escape }}</a>
-                    </h3>
+                    </p>
                     <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
                             class="mdi mdi-delete"></i>Delete</a>
                     <br>
@@ -192,24 +215,10 @@
             </dd>
             {% endif %}
 
-            {% if module[i]['resource_type'] == 'directory' %}
-            <dt>
-                <div class="tool-bar w-full">
-                    <h3>
-                        <a href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}#resources"><i
-                                class="mdi mdi-folder-outline"></i><b></b>{{ i.split('/')[-1] | escape }}</b></a>
-                    </h3>
-                    <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}">
-                        <i class="mdi mdi-delete"></i>Delete</a>
-                </div>
-            </dt>
-            <dd>
-
-            </dd>
-            {% endif %}
             <hr>
             {% endfor %}
-            </div>
+        </dl>
+    </section>
 </main>
 
 <script>

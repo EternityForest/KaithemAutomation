@@ -8,10 +8,9 @@ def filename_for_resource(module: str, resource: str) -> str:
     """Given the module and resource, return the actual file for a file resource, or
     file data dir for directory resource"""
 
-    if (module, resource) in modules_state.file_resource_paths:
-        return modules_state.file_resource_paths[module, resource]
-    else:
-        return os.path.join(modules.getModuleDir(module), "__filedata__", resource)
+    resource = resource.replace(".", "_")
+
+    return os.path.join(modules.getModuleDir(module), "__filedata__", resource)
 
 
 def get_resource_data(module: str, resource: str) -> ResourceDictType:

@@ -91,10 +91,6 @@ def getModuleDir(module: str) -> str:
 
 # Note that the actual dict objects are directly passed, you can modify them in place but you still must return them.
 
-# This is a dict indexed by module/resource tuples that contains the absolute path to what
-# The system considers the current "loaded" version.
-file_resource_paths: dict[tuple[str, str], str] = {}
-
 # When a module is saved outside of the var dir, we put the folder in which it is saved in here.
 external_module_locations = {}
 
@@ -135,6 +131,23 @@ def serializeResource(name: str, obj: ResourceDictType) -> dict[str, str]:
 
     else:
         return {f"{name.split('/')[-1]}.yaml": yaml.dump(r)}
+
+
+def importFiledataFolderStructure(module: str) -> None:
+    with modulesLock:
+        folder = getModuleDir(module)
+        folder = os.path.join(folder, "__filedata__")
+
+        if os.path.exists(folder):
+            for root, dirs, files in os.walk(folder):
+                for i in dirs:
+                    if "." in i:
+                        continue
+
+                    relfn = os.path.relpath(os.path.join(root, i), folder)
+
+                    # Create a directory resource for the dirrctory
+                    ActiveModules[module][util.unurl(relfn)] = {"resource_type": "directory"}
 
 
 @beartype.beartype

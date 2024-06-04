@@ -14,7 +14,6 @@ import weakref
 import zipfile
 from collections.abc import Callable
 from io import BytesIO
-from typing import Any
 
 import beartype
 import structlog
@@ -27,16 +26,12 @@ from .modules_state import (
     additionalTypes,
     check_forbidden,
     external_module_locations,
-    file_resource_paths,
     getModuleDir,
     getModuleFn,
     modulesLock,
-    parseTarget,
-    safeFnChars,
     saveModule,
     scopes,
 )
-from .util import url
 
 logger = structlog.get_logger("system")
 
@@ -303,47 +298,6 @@ def load_one_yaml_resource(folder: str, relpath: str, module: str):
 
     handleResourceChange(module, resourcename)
 
-    if r["resource_type"] == "internal_fileref":
-        # Handle two separate ways of handling these file resources.
-        # One is to store them directly in the module data in a special folder.
-        # That's what we do if we are using an external folder
-        # For internal folders we don't want to store duplicate copies in the dumps,
-        # So we store them in one big folder that is shared between all loaded modules.
-        # Which is not exactly ideal, but all the per-module stuff is stored in dumps.
-
-        # Note that we handle things in library modules the same as in loaded vardir modules,
-        # Because things in vardir modules get copied to the vardir.
-
-        assert isinstance(r["target"], str)
-
-        if util.in_directory(os.path.join(folder, relpath), directories.vardir) or util.in_directory(
-            os.path.join(folder, relpath), directories.datadir
-        ):
-            t = parseTarget(r["target"], module)
-            d = getModuleDir(module)
-            target = os.path.normpath(os.path.join(d, "__filedata__", t))
-        else:
-            t = parseTarget(r["target"], module, True)
-            target = os.path.normpath(os.path.join(folder, "__filedata__", t))
-
-        if not os.path.exists(target):
-            logger.info(f"Missing file resource: {target}")
-
-            messagebus.post_message(
-                "/system/notifications",
-                f"File Resource: {target}Was deleted",
-            )
-
-            try:
-                del modules_state.ActiveModules[module][resourcename]
-
-                # Remove the no longer relevant internal fileref
-                os.remove(os.path.join(folder, relpath))
-            except Exception:
-                logger.exception("Error cleaning up old file ref")
-        else:
-            file_resource_paths[module, resourcename] = target
-
 
 def loadModule(folder: str, modulename: str, ignore_func: Callable[[str], bool] | None = None, resource_folder: str | None = None) -> None:
     "Load a single module but don't bookkeep it . Used by loadModules"
@@ -415,17 +369,6 @@ def loadModule(folder: str, modulename: str, ignore_func: Callable[[str], bool] 
                         if "resource_type" not in r:
                             logger.warning(f"No resource type found for {resourcename}")
                             continue
-                        if r["resource_type"] == "internal_fileref":
-                            file_resource_paths[modulename, resourcename] = os.path.join(
-                                folder, "__filedata__", url(resourcename, safeFnChars)
-                            )
-
-                            if not os.path.exists(file_resource_paths[modulename, resourcename]):
-                                logger.error("Missing file resource: " + file_resource_paths[modulename, resourcename])
-                                messagebus.post_message(
-                                    "/system/notifications/errors",
-                                    "Missing file resource: " + file_resource_paths[modulename, resourcename],
-                                )
 
                     except Exception:
                         messagebus.post_message(
@@ -445,75 +388,13 @@ def loadModule(folder: str, modulename: str, ignore_func: Callable[[str], bool] 
                 # Create a directory resource for the dirrctory
                 module[util.unurl(relfn)] = {"resource_type": "directory"}
 
-        # Make resource objects for anything missing one
-        # Don't save to disk since there's nothing we can't generate.
-        if resource_folder:
-            autoGenerateFileRefResources(module, modulename)
-
         scopes[modulename] = ModuleObject(modulename)
         modules_state.ActiveModules[modulename] = module
+        modules_state.importFiledataFolderStructure(modulename)
         messagebus.post_message("/system/modules/loaded", modulename)
 
         logger.info("Loaded module " + modulename)
         # bookkeeponemodule(name)
-
-
-@beartype.beartype
-def autoGenerateFileRefResources(module: dict[str, Any], modulename: str) -> bool | None:
-    "Return true if anything generared"
-    rt = False
-    with modulesLock:
-        resource_folder = os.path.join(getModuleDir(modulename), "__filedata__")
-        if not os.path.exists(resource_folder):
-            return
-
-        torm = []
-        for i in file_resource_paths:
-            if not os.path.exists(file_resource_paths[i]):
-                m, r = i
-                if m == modulename:
-                    if r in module:
-                        if module[r].get("ephemeral", False):
-                            torm.append(i)
-
-        for i in torm:
-            rt = True
-            file_resource_paths.pop(i)
-
-        s = set(file_resource_paths.values())
-        for root, dirs, files in os.walk(resource_folder):
-            for i in files:
-                f = os.path.join(root, i)
-                if not resource_folder.endswith("/"):
-                    resource_folder += "/"
-
-                data_basename = f[len(resource_folder) :]
-
-                if f not in s:
-                    rt = True
-                    module[util.unurl(data_basename)] = {
-                        "resource_type": "internal_fileref",
-                        "target": f"$MODULERESOURCES/{data_basename}",
-                        "ephemeral": True,
-                    }
-                file_resource_paths[modulename, data_basename] = f
-
-            for i in dirs:
-                f = os.path.join(root, i)
-                if not resource_folder.endswith("/"):
-                    resource_folder += "/"
-
-                data_basename = f[len(resource_folder) :]
-
-                if data_basename not in module:
-                    rt = True
-                    r = {
-                        "resource_type": "directory",
-                        "resource_timestamp": int(time.time() * 1000000),
-                        "ephemeral": True,
-                    }
-                    module[data_basename] = r
-    return rt
 
 
 def load_modules_from_zip(f: BytesIO, replace: bool = False) -> None:
@@ -622,21 +503,6 @@ def mvResource(module: str, resource: str, toModule: str, toResource: str):
 
     assert isinstance(rt, str)
 
-    if rt == "internal_fileref":
-        old = file_resource_paths[toModule, toResource]
-        m = getModuleDir(toModule)
-        m = os.path.join(m, "__filedata__", toResource)
-        if not os.path.exists(m):
-            shutil.move(old, m)
-        else:
-            raise FileExistsError(m)
-
-        modules_state.ActiveModules[toModule][toResource] = modules_state.ActiveModules[module][resource]
-        del modules_state.ActiveModules[module][resource]
-        file_resource_paths[toModule, toResource] = m
-        del file_resource_paths[module, resource]
-        return
-
     mp = []
     dir = modules_state.get_resource_save_location(toModule, toResource)
 
@@ -668,18 +534,6 @@ def rmResource(module: str, resource: str, message: str = "Resource Deleted") ->
     try:
         rt = r["resource_type"]
         assert isinstance(rt, str)
-
-        # Filerefs also handled by the pages object
-        if rt == "internal_fileref":
-            try:
-                os.remove(file_resource_paths[module, resource])
-            except Exception:
-                print(traceback.format_exc())
-
-            try:
-                del file_resource_paths[module, resource]
-            except KeyError:
-                pass
 
         if rt == "directory":
             # Directories are special, they can have the extra data file
@@ -805,9 +659,6 @@ def handleResourceChange(module: str, resource: str, obj: None = None, newly_add
 
         if t == "permission":
             auth.importPermissionsFromModules()  # sync auth's list of permissions
-
-        elif t == "internal_fileref":
-            pass
         else:
             if not newly_added:
                 additionalTypes[t].onupdate(module, resource, resourceobj)
