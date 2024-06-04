@@ -152,7 +152,7 @@ async def login():
 
 @quart_app.app.route("/login/logout", methods=["POST"])
 def logout():
-    # Change the security token to make the old one invalid and thus log user out.
+    # Delete token on client
     pages.postOnly()
     if quart.request.cookies["kaithem_auth"] in auth.Tokens:
         messagebus.post_message(
@@ -162,7 +162,6 @@ def logout():
                 quart.request.remote_addr,
             ],
         )
-        auth.assignNewToken(auth.whoHasToken(quart.request.cookies["kaithem_auth"]))
     r = quart.redirect("/index")
     r.set_cookie("kaithem_auth", "", samesite="Strict", path="/", httponly=True, secure=False)
     return r

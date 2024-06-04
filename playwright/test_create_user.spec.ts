@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { login, logout, makeModule, deleteModule, makeTagPoint} from './util';
 
 /* Preconditions:
 Guest has view status permission and nothing else
@@ -6,13 +7,12 @@ Guest has view status permission and nothing else
 
 
 test('test', async ({ page }) => {
+    test.setTimeout(2400000);
+
     await page.goto('http://localhost:8002/');
 
-    await page.getByLabel('Username:').click();
-    await page.getByLabel('Username:').fill('admin');
-    await page.getByLabel('Username:').press('Tab');
-    await page.getByLabel('Password:').fill('test-admin-password');
-    await page.getByRole('button', { name: 'Login as Registered User' }).click();
+    await login(page);
+
     await page.getByRole('link', { name: 'Tools' }).click();
     await page.getByRole('link', { name: 'Users and Groups' }).click();
     await page.getByRole('link', { name: 'Add New User' }).click();

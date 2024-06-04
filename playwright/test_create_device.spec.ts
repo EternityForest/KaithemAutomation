@@ -40,10 +40,12 @@ test('test', async ({ page }) => {
     await page.getByRole('link', { name: 'Modules' }).click();
     await page.locator('summary').filter({ hasText: 'devmodule' }).click();
     await page.getByRole('link', { name: 'devmodule' }).click();
-    await expect(page.locator('h3')).toContainText('testdevice');
+    await expect(page.getByRole('link', { name: 'testdevice' })).toBeVisible()
 
     // Delete it
-    await page.getByRole('link', { name: 'Delete' }).click();
+
+    await page.locator('div').filter({ hasText: 'testdevice Delete' }).getByRole('link', { name: 'Delete' }).click()
+
     await page.getByRole('button', { name: 'Submit' }).click();
     await page.getByRole('link', { name: 'Modules' }).click();
     await page.getByText('Modules Modules Add Delete').click();

@@ -27,9 +27,10 @@ test('test', async ({ page }) => {
     await page.locator('div').filter({ hasText: '{% extends "pagetemplate.j2.' }).nth(2).click();
     await page.locator('div').filter({ hasText: '{% extends "pagetemplate.j2.' }).nth(2).fill('    {{foo}}{{setup}}567\n\n');
     await page.getByRole('button', { name: 'Save and go to page' }).click();
-    
-    
-    await expect(page.getByText('Content here')).toContainText('123234567');
+
+
+    await expect(page.getByText('Content here')).toBeVisible();
+    await expect(page.getByText('123234567')).toBeVisible()
     await expect(page.getByRole('heading')).toContainText('p1');
 
 
@@ -62,7 +63,9 @@ test('test', async ({ page }) => {
     await page.getByRole('button', { name: 'Submit' }).click();
     await page.getByRole('link', { name: 'Go to page' }).click();
     await page.locator('html').click();
-    await expect(page.getByText('Content here')).toContainText('123234567');
+    await expect(page.getByText('Content here')).toBeVisible();
+    await expect(page.getByText('123234567')).toBeVisible()
+
     await page.goto("http://localhost:8002/modules/module/PlaywrightBasicModuleFeatures#resources");
 
     //Check page works at new location

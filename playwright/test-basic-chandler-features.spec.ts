@@ -50,7 +50,8 @@ test('test', async ({ page }) => {
     // Action params editor has a cue field
     // When we go into default cue it should redirect to c2
     await page.getByText('Block Inspector Type').getByRole('row', { name: 'cue' }).getByRole('textbox').fill('c2');
-    await page.getByRole('heading', { name: 'Docs' }).click();
+    //Dismiss popup selecter by clicking outside
+    await page.getByRole('heading', { name: 'Automation Logic' }).click();
 
     // Go on default cue
     await page.getByRole('button', { name: 'Go', exact: true }).first().click();
