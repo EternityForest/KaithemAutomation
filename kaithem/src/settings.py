@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ctypes  # Calm down, this has become standard library since 2.5
+import datetime
 import inspect
 import logging
 import os
@@ -478,14 +479,7 @@ def set_time_from_web(**kwargs):
         return pages.loginredirect(pages.geturl())
     pages.postOnly()
     t = float(kwargs["time"])
-    subprocess.call(
-        [
-            "date",
-            "-s",
-            time.strftime("%Y%m%d%H%M%S", time.gmtime(t - 0.05)),
-            "+%Y%m%d%H%M%S",
-        ]
-    )
+    subprocess.call(["date", "-s", datetime.datetime.fromtimestamp(t, tz=datetime.timezone.utc).isoformat()])
     try:
         subprocess.call(["sudo", "hwclock", "--systohc"])
     except Exception:

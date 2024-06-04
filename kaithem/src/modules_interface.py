@@ -441,15 +441,14 @@ def library():
     return pages.get_template("modules/library.html").render()
 
 
-@quart_app.app.route("/modules/loadlibmodule", methods=["POST"])
+@quart_app.app.route("/modules/loadlibmodule/<module>", methods=["POST"])
 async def loadlibmodule(module):
     "Load a module from the library"
     try:
         pages.require("system_admin")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
-    name = (await request.form)["name"]
-    name = name or module
+    name = module
 
     @copy_current_request_context
     def f():
@@ -458,11 +457,11 @@ async def loadlibmodule(module):
 
         modules.loadModule(os.path.join(directories.datadir, "modules", module), name)
 
-        modules_state.recalcModuleHashes()
-
-        modules.bookkeeponemodule(name)
+        modules.bookkeeponemodule(name, include_events=True)
         auth.importPermissionsFromModules()
         modules.saveModule(modules_state.ActiveModules[name], name)
+        modules_state.recalcModuleHashes()
+
         return quart.redirect("/modules")
 
     return await f()

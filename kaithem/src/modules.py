@@ -394,7 +394,6 @@ def loadModule(folder: str, modulename: str, ignore_func: Callable[[str], bool] 
         messagebus.post_message("/system/modules/loaded", modulename)
 
         logger.info("Loaded module " + modulename)
-        # bookkeeponemodule(name)
 
 
 def load_modules_from_zip(f: BytesIO, replace: bool = False) -> None:
