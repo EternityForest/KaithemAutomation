@@ -43,10 +43,10 @@ async def get_tile(x, y, z, map="openstreetmap"):
 
 
 @quart_app.app.route("/maptiles/tile/<z>/<x>/<y>.png")
-async def serve_map_tile(self, z, x, y):
+async def serve_map_tile(z, x, y):
     map = quart.request.args.get("map", "openstreetmap")
 
-    if pages.canUserDoThis("/users/maptiles.view", pages.getAcessingUser(self.request)):
+    if pages.canUserDoThis("/users/maptiles.view", pages.getAcessingUser()):
         if os.path.exists(get_fn(x, y, z, map)):
             return await quart.send_file(get_fn(x, y, z, map))
 
