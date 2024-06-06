@@ -20,9 +20,7 @@ class testobj:
     pass
 
 
-def test_make_module_web():
-    # Make module using the same API that the web frontend would
-
+def test_make_module():
     n = "test" + str(time.time()).replace(".", "_")
 
     modules.newModule(n)

@@ -584,10 +584,10 @@ class LoggerType(modules_state.ResourceType):
         d = dialogs.SimpleDialog("New Logger")
         d.text_input("name", title="Logger Name")
         d.text_input("tag", title="Tag Point to Log", suggestions=[(i, i) for i in tagsapi.all_tags_raw().keys()])
-        d.selection("logger-type", options=list(accumTypes.keys()), title="Accumulate Mode")
-        d.selection("log-target", options=["disk", "ram"])
-        d.text_input("interval", title="Interval(seconds)")
-        d.text_input("history-length", title="History Lenth(seconds)", default=str(24 * 30 * 3600))
+        d.selection("logger_type", options=list(accumTypes.keys()), title="Accumulate Mode")
+        d.selection("log_target", options=["disk", "ram"])
+        d.text_input("interval", title="Interval(seconds)", default=str(60))
+        d.text_input("history_length", title="History Length(seconds)", default=str(24 * 30 * 3600))
 
         d.submit_button("Save")
         return d.render(self.get_create_target(module, path))
@@ -595,10 +595,10 @@ class LoggerType(modules_state.ResourceType):
     def editpage(self, module, name, value):
         d = dialogs.SimpleDialog("Editing Logger")
         d.text_input("tag", title="Tag Point to Log", default=value["tag"], suggestions=[(i, i) for i in tagsapi.all_tags_raw().keys()])
-        d.selection("logger-type", options=list(accumTypes.keys()), default=value["logger_type"], title="Accumulate Mode")
-        d.selection("log-target", options=["disk", "ram"], default=value["log_target"])
+        d.selection("logger_type", options=list(accumTypes.keys()), default=value["logger_type"], title="Accumulate Mode")
+        d.selection("log_target", options=["disk", "ram"], default=value["log_target"])
         d.text_input("interval", title="Interval(seconds)", default=value["interval"])
-        d.text_input("history-length", title="History Lenth(seconds)", default=value["history_length"])
+        d.text_input("history_length", title="History Length(seconds)", default=value["history_length"])
 
         d.submit_button("Save")
         return d.render(self.get_update_target(module, name))
@@ -610,39 +610,40 @@ modules_state.additionalTypes["logger"] = drt
 
 t = os.path.join(os.path.dirname(__file__), "html", "logpage.html")
 
-quart_app.app.route("/plugin-tag-history", methods=["GET", "POST"])
-quart_app.app.route("/plugin-tag-history/<path:path>", methods=["GET", "POST"])
 
-
-def logpage(path: str = "", **data):
+@quart_app.app.route("/plugin-tag-history", methods=["GET", "POST"])
+@quart_app.app.route("/plugin-tag-history/<path:path>", methods=["GET", "POST"])
+@quart_app.wrap_sync_route_handler
+def logpage(path: str = "", **kwargs):
     pages.require("system_admin")
+    path = "/" + path
     # This page could be slow because of the db stuff, so we restrict it more
     if not quart.request.method.lower() == "post":
         raise RuntimeError("POST only")
 
-    if "exportRows" not in data:
-        return pages.get_template(t).render(tagName=path[0], data=data)
+    if "exportRows" not in kwargs:
+        return pages.get_template(t).render(tagName=path, data=kwargs)
     else:
-        tag = tagpoints.allTags[path[0]]()
+        tag = tagpoints.allTags[path]()
         if tag is None:
             raise RuntimeError("This tag seems to no longer exist")
 
         for key, i in tag.configLoggers.items():
-            if i.accumType == data["exportType"]:
+            if i.accumType == kwargs["exportType"]:
                 tz = pytz.timezone("Etc/UTC")
-                logtime = tz.localize(dateutil.parser.parse(data["logtime"])).timestamp()
-                raw = i.getDataRange(logtime, time.time() + 10000000, int(data["exportRows"]))
+                logtime = tz.localize(dateutil.parser.parse(kwargs["logtime"])).timestamp()
+                raw = i.getDataRange(logtime, time.time() + 10000000, int(kwargs["exportRows"]))
 
-                if data["exportFormat"] == "csv.iso":
+                if kwargs["exportFormat"] == "csv.iso":
                     filename = (
-                        path[0].replace("/", "_").replace(".", "_").replace(":", "_")[1:]
+                        path.replace("/", "_").replace(".", "_").replace(":", "_")[1:]
                         + "_"
-                        + data["exportType"]
-                        + tz.localize(dateutil.parser.parse(data["logtime"])).isoformat()
+                        + kwargs["exportType"]
+                        + tz.localize(dateutil.parser.parse(kwargs["logtime"])).isoformat()
                         + ".csv"
                     )
 
-                    d = ["Time(ISO), " + path[0].replace(",", "") + " <accum " + data["exportType"] + ">"]
+                    d = ["Time(ISO), " + path.replace(",", "") + " <accum " + kwargs["exportType"] + ">"]
                     for i in raw:
                         d.append(str(i[0]) + "," + str(i[1])[:128])
                     return quart.Response(
