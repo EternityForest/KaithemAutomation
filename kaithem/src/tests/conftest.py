@@ -37,6 +37,7 @@ if "--collect-only" not in sys.argv:
         # Prevent it from getting IP geolocation every time
         "location": "0,0",
         "log_format": "normal",
+        "local_access_only": True,
     }
 
     pp = """

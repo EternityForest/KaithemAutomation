@@ -15,7 +15,7 @@ if "--collect-only" not in sys.argv:
     board = core.boards["test_board"]
 
 
-async def test_fixtures():
+def test_fixtures():
     """Create a universe, a fixture type, and a fixture,
     add the fixture to a scene, check the universe vals
     """

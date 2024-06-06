@@ -47,5 +47,4 @@ from kaithem.src import auth  # noqa
 auth.add_user("admin", "test-admin-password")
 auth.add_user_to_group("admin", "Administrators")
 
-
 kaithem.start_server()

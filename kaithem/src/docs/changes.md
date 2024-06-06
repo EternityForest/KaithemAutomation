@@ -7,6 +7,8 @@ Change Log
 #### Added
 - :coffin: Fileserver resource types allow you to serve a directory of files as if it were at /pages/module/resourcename.  This replaces the old individual file permissions.
 
+- :sparkles: Lots of testing!
+
 #### Removed
 
 - :coffin: Web console removed due to lack of ASGI but may return later
@@ -43,6 +45,20 @@ Change Log
 ├───────────────┼───────┼───────┼───────┼──────┼─────────┼──────┤
 │ Sum           │   398 │ 100.0 │ 41173 │ 64.6 │    4506 │  7.1 │
 └───────────────┴───────┴───────┴───────┴──────┴─────────┴──────┘
+```
+
+Tests
+
+```
+┏━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━━━━┳━━━━━━┓
+┃ Language   ┃ Files ┃     % ┃ Code ┃    % ┃ Comment ┃    % ┃
+┡━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━━━━╇━━━━━━┩
+│ Python     │    10 │  38.5 │  689 │ 49.6 │     172 │ 12.4 │
+│ TypeScript │    15 │  57.7 │  662 │ 63.3 │     118 │ 11.3 │
+│ __empty__  │     1 │   3.8 │    0 │  0.0 │       0 │  0.0 │
+├────────────┼───────┼───────┼──────┼──────┼─────────┼──────┤
+│ Sum        │    26 │ 100.0 │ 1351 │ 55.5 │     290 │ 11.9 │
+└────────────┴───────┴───────┴──────┴──────┴─────────┴──────┘
 ```
 
 ### 0.83.0
