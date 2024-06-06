@@ -24,7 +24,7 @@ class ModuleAction:
         self.context = context
         self.last_interaction = time.time()
 
-    def step(self, **kwargs):
+    def step(self, **kwargs) -> str | None:
         self.last_interaction = time.time()
 
     def close(self):

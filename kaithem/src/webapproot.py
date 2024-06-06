@@ -39,7 +39,7 @@ from . import (
     settings,
     settings_overrides,
     signalhandlers,
-    staticfiles,
+    staticfiles,  # noqa: F401
     systasks,
     tagpoints,
     # TODO we gotta stop depending on import side effects
@@ -272,7 +272,6 @@ def license():
 
 def startServer():
     quart_app.app.config["MAX_CONTENT_LENGTH"] = 2**62
-    staticfiles.add_apps()
 
     hypercornapps = {}
     logger.info("Loaded core python code")

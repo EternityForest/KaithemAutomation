@@ -71,7 +71,7 @@ def markdownToSelfRenderingHTML(content, title):
     """
         + content
         + """</section>
-    <script src="/static/showdown.min.js"></script>
+    <script src="/static/js/thirdparty/showdown.min.js"></script>
     <link rel="stylesheet" type="text/css" href="/static/css/atelier-dune-light.css">
     <script src="/static/js/thirdparty/highlight.pack.js"></script>
     <script>
