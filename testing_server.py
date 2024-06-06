@@ -33,7 +33,7 @@ cfg = {
     "ssl_dir": "/dev/shm/kaithem_test_env/ssl",
     "site_data_dir": "/dev/shm/kaithem_test_env",
     # Prevent it from getting IP geolocation every time
-    "location": "0,0",
+    "location": "0.123,0.456",
     "log_format": "normal",
     "local_access_only": True,
 }

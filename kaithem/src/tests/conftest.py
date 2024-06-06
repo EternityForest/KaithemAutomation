@@ -35,7 +35,7 @@ if "--collect-only" not in sys.argv:
         "ssl_dir": "/dev/shm/kaithem_tests/ssl",
         "site_data_dir": "/dev/shm/kaithem_tests",
         # Prevent it from getting IP geolocation every time
-        "location": "0,0",
+        "location": "0.123,0.345",
         "log_format": "normal",
         "local_access_only": True,
     }

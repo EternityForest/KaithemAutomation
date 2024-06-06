@@ -132,7 +132,7 @@ async def user_static(*args):
 async def index_default(*path, **data):
     r = settings.redirects.get("/", {}).get("url", "")
     if r:
-        raise quart.redirect(r)
+        return quart.redirect(r)
 
     try:
         pages.require("view_status")

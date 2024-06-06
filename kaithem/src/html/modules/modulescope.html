@@ -16,7 +16,7 @@ result = ''
 <%
 if "cmd" in kwargs:
     if not quart.request.method=="POST":
-        raise quart.redirect("/errors/wrongmethod")
+        raise RuntimeError("/errors/wrongmethod")
     if re.match('([a-zA-Z_][a-zA-Z0-9_]* *=[^=])|(import )|(del )',kwargs['cmd']):
         exec(kwargs['cmd'], {"kaithem":kaithemobj.kaithem},obj.__dict__)
     else:
