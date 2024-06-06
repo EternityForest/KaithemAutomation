@@ -212,6 +212,7 @@ async def addresourcetarget(module, rtype, path=""):
 @quart_app.app.route("/modules/module/<module>/updateresource/<path:resource>", methods=["POST"])
 async def resource_update_handler(module, resource):
     kwargs = await request.form
+    kwargs = dict(kwargs)
     try:
         pages.require("system_admin")
     except PermissionError:

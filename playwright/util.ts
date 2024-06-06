@@ -41,13 +41,13 @@ async function login_as(page: Page, username: string, password: string) {
 
 
 async function logout(page: Page) {
-    await page.goto('http://localhost:8002/');
+    await page.goto('http://localhost:8002/index');
 
     await page.getByRole('button', { name: 'Logout(' }).click();
 }
 
 async function deleteModuleIfExist(page: Page, name: string) {
-    await page.goto('http://localhost:8002/');
+    await page.goto('http://localhost:8002/index');
 
     await page.getByRole('link', { name: 'Modules' }).click();
 
@@ -80,7 +80,7 @@ async function deleteModule(page: Page, name: string) {
 }
 
 async function makeTagPoint(page: Page, module: string, name: string) {
-    await page.goto('http://localhost:8002/');
+    await page.goto('http://localhost:8002/index');
 
     if (name[0] == '/') {
         name = name.substring(1);

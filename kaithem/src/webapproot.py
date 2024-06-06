@@ -194,13 +194,14 @@ def specific_tagpoint(path):
     return pages.get_template("settings/tagpoint.html").render(tagName=tn, data=request.args, show_advanced=True, module="", resource="")
 
 
-@quart_app.app.route("/action_step/<id>")
-def action_step(id):
+@quart_app.app.route("/action_step/<id>", methods=["POST"])
+@quart_app.wrap_sync_route_handler
+def action_step(id, **kwargs):
     try:
         pages.require("system_admin")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
-    return module_actions.actions[id].step(**request.args) or ""
+    return module_actions.actions[id].step(**kwargs) or quart.redirect("/modules")
 
 
 @quart_app.app.route("/tag_api/<cmd>/<path:path>")

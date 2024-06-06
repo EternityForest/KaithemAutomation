@@ -263,16 +263,15 @@ async def getfileresource(module, resource):
         raise FileNotFoundError(f"File not found: {f}")
 
 
-@quart_app.app.route("/modules/module/<module>/action/<resource>")
-async def action(module):
-    kwargs = await request.form
+@quart_app.app.route("/modules/module/<module>/action", methods=["POST"])
+@quart_app.wrap_sync_route_handler
+def action(module, action, dir):
+    m = module_actions.get_action(action, {"module": module, "path": dir})
 
-    @copy_current_request_context
-    def f():
-        m = module_actions.get_action(kwargs["action"], {"module": module, "path": kwargs["dir"]})
-        return quart.redirect(f"/action_step/{m.id}")
+    d = dialogs.SimpleDialog(m.title)
+    d.submit_button("Begin Action")
 
-    return await f()
+    return d.render(f"/action_step/{m.id}")
 
 
 @quart_app.app.route("/modules/module/<module>/addfileresource")
@@ -339,7 +338,8 @@ async def uploadfileresourcetarget(module):
 
 
 @quart_app.app.route("/modules/actions/<module>")
-def actions(module):
+@quart_app.wrap_sync_route_handler
+def actions(module, dir):
     try:
         pages.require("system_admin")
     except PermissionError:
@@ -348,6 +348,7 @@ def actions(module):
         "modules/module_actions.j2.html",
         name=module,
         module_actions=module_actions,
+        dir=dir,
     )
 
 
