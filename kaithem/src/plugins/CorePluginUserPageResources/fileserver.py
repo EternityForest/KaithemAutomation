@@ -29,7 +29,7 @@ class ServerObj:
         self.permissions = obj.get("require_permissions", [])
         self.folder = obj["folder"].replace("$MODULE", modules_state.getModuleDir(m))
 
-    def close():
+    def close(self):
         pass
 
 
@@ -41,12 +41,9 @@ class FileServerType(modules_state.ResourceType):
             lookup.invalidate_cache()
 
     def onmove(self, module, resource, toModule, toResource, resourceobj):
-        if module not in by_module_resource:
-            by_module_resource[toModule] = {}
-
-        x = by_module_resource[module].pop(resource, None)
+        x = by_module_resource.pop((module, resource), None)
         if x:
-            by_module_resource[toModule][toResource] = x
+            by_module_resource[toModule, toResource] = x
 
         if lookup:
             lookup.invalidate_cache()

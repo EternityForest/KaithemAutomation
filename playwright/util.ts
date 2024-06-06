@@ -41,10 +41,14 @@ async function login_as(page: Page, username: string, password: string) {
 
 
 async function logout(page: Page) {
+    await page.goto('http://localhost:8002/');
+
     await page.getByRole('button', { name: 'Logout(' }).click();
 }
 
 async function deleteModuleIfExist(page: Page, name: string) {
+    await page.goto('http://localhost:8002/');
+
     await page.getByRole('link', { name: 'Modules' }).click();
 
     if (await page.getByText(name).isVisible()) {
@@ -66,6 +70,8 @@ async function makeModule(page: Page, name: string) {
 }
 
 async function deleteModule(page: Page, name: string) {
+    await page.goto('http://localhost:8002/');
+
     await page.getByRole('link', { name: 'Modules' }).click();
     await page.getByRole('link', { name: 'Delete' }).click();
     await page.getByLabel('Name').click();
@@ -74,6 +80,7 @@ async function deleteModule(page: Page, name: string) {
 }
 
 async function makeTagPoint(page: Page, module: string, name: string) {
+    await page.goto('http://localhost:8002/');
 
     if (name[0] == '/') {
         name = name.substring(1);

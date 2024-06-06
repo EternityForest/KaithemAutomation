@@ -569,6 +569,8 @@ async def catch_all(module, path):
 
     if isinstance(page, fileserver.ServerObj):
         fp = path[len(page.r) + 1 :]
+        if fp.startswith("/"):
+            fp = fp[1:]
         fp = os.path.join(page.folder, fp)
         return await quart.send_file(fp)
 

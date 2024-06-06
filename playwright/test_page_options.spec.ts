@@ -1,8 +1,9 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, chromium} from '@playwright/test';
 import { login, logout, deleteModule } from './util';
 
 test('test', async ({ page }) => {
     await login(page);
+    const brows = await chromium.launch();
 
     await page.getByRole('link', { name: 'Modules' }).click();
     await page.getByRole('link', { name: '󰐕 Add' }).click();
@@ -40,10 +41,19 @@ test('test', async ({ page }) => {
     // We turned off template rendering, so this should have raw template syntax
     await expect(page.getByText('{% endblock %}')).toBeVisible();
 
+
+
+    // Ensure that it's accessible without login
+    const guestctx = await brows.newContext();
+    const guestpage = await guestctx.newPage();
+    await guestpage.goto('http://localhost:8002/pages/testpageoptions/test_options');
+    await expect(guestpage.getByText('{% endblock %}')).toBeVisible();
+    await guestctx.close();
+
     // Back to page editor
     await page.goBack()
 
-    // Back to jinja2, all permissions
+    // Back to jinja2, all permissions needed
     await page.getByText('Settings', { exact: true }).click();
 
     await page.getByLabel('Template Engine jinja2').selectOption('jinja2');
@@ -53,11 +63,20 @@ test('test', async ({ page }) => {
     await page.goBack()
     
     
+    // Make sure the data actually saved
     await expect(page.getByLabel('Template Engine jinja2')).toHaveValue('jinja2');
-
     await page.getByText('Require Permissions').click();
     await expect(page.getByLabel('__all_permissions__')).toBeChecked();
 
+
+    // Ensure that it's no longer accessible without login now
+    // That we set __all_permissions__
+    const guestctx2 = await brows.newContext();
+    const guestpage2 = await guestctx2.newPage();
+    await guestpage2.goto('http://localhost:8002/pages/testpageoptions/test_options');
+    await expect(guestpage2.locator('h2')).toContainText('Please Log In');
+    await guestctx2.close();
+    
 
     // Disallow POST, set alt banner text, set xss origins
     await page.getByText('Settings', { exact: true }).click();
@@ -80,6 +99,8 @@ test('test', async ({ page }) => {
 
 
     await deleteModule(page, 'testpageoptions');
+
+    await brows.close();
     await logout(page);
 
 })
