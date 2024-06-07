@@ -14,6 +14,7 @@
 ![Pytest](badges/pytest.png)
 ![Ruff](badges/ruff.png)
 ![Poetry](badges/poetry.png)
+
 > Amidst the mists and fiercest frosts,\
 > with stoutest wrists and loudest boasts,\
 > He thrusts his fists against the posts,\
@@ -45,12 +46,21 @@ git clone --depth 1 https://github.com/EternityForest/KaithemAutomation
 cd KaithemAutomation
 pipx install --verbose .
 
-sudo /home/pi/.local/bin/kaithem-scripts root-install-system-dependencies```
+kaithem-scripts root-install-system-dependencies
 
+```
 
 ### System Configuration
+
+> So, when the buckled girder\
+>  Lets down the grinding span,\
+> The blame of loss, or murder,\
+>  Is laid upon the man.\
+>    Not on the Stuff — the Man!
+
 kaithem-scripts provides some helpful utilities to set up the system.
-Note that these are also accessible as Make targets n the repo.
+
+Scripts starting with . need root.
 
 ```bash
 
@@ -80,88 +90,9 @@ kaithem-scripts root-uninstall-bloatware
 # On boot in a fullscreen kiosk
 kaithem-scripts root-install-kiosk
 
-
-
 ```
-
-
-
 
 ## Manual dev install
-
-See the [wiki page](https://github.com/EternityForest/KaithemAutomation/wiki/Development)
-
-
-Tips and Troubleshooting ⁉️
-========================
-> So, when the buckled girder\
->  Lets down the grinding span,\
-> The blame of loss, or murder,\
->  Is laid upon the man.\
->    Not on the Stuff — the Man!
-
-### Access from Anywhere 🌍
-
-See Wiki Tutorial
-(https://github.com/EternityForest/KaithemAutomation/wiki/Remote-Access)
-
-
-#### Still broken?
-
-Unfortunately, it doesn't work on pi, you'll need to prefix stuff that should use jack with pw-jack.
-
-```bash
-pw-jack poetry run python dev_run.py
-```
-Kaithem's installer does this automatically when you use
-
-### Sound Too Quiet?
-
-Some systems like to set volume to 40% at boot, at the ALSA mixer level. Try:
-
-```bash
-make user-max-volume-at-boot
-```
-as whatever user you plan to run kaithem under.
-
-You can also try setting volume to full and storing it
-```bash
-amixer set Master 100%
-sudo alsactl store
-```
-
-### Sound bad on the Pi?
-
-You might not have pipewire configured correctly.  The pi default config seems
-to set the buffer too low.
-
-Update kaithem and run `make user-set-global-pipewire-conf` as the user that will be doing this stuff, to get some reasonable defaults. `nano ~/.config/pipewire/pipewire.conf` to tweak further.
-
-### Install globally and run at boot
-
-To run as a systemd user service(Runs as soon as you log in or the desktop/kiosk starts)
-Expect the command to take about 15 minutes.
-
-
-```bash
-sudo make root-use-pipewire-jack
-make user-start-kaithem-at-boot
-```
-
-
-### Make sure the SD card stays fresh 🍃
-
-On a dedicated system, you probably want to disable a buch of
-stuff the Pi comes with that normally writes to the SD card all the time,
-disable auto update for most system packages(Assuming you're on a private network),
-and a few other tweaks.
-
-```bash
-sudo make root-install-linux-tweaks
-sudo make root-install-sd-protection
-```
-
-### Development 🖥️
 
 Info for devs here on the wiki (https://github.com/EternityForest/KaithemAutomation/wiki/Development)
 

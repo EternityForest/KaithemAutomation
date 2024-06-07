@@ -10,4 +10,7 @@ if sys.argv[1].startswith("root-"):
 
 
 def main():
-    return subprocess.call(["make"] + sys.argv[1:], cwd=os.path.dirname(os.path.realpath(__file__)))
+    if sys.argv[1].startswith("root-"):
+        return subprocess.call(["sudo", "make"] + sys.argv[1:], cwd=os.path.dirname(os.path.realpath(__file__)))
+    else:
+        return subprocess.call(["make"] + sys.argv[1:], cwd=os.path.dirname(os.path.realpath(__file__)))
