@@ -17,7 +17,7 @@ import structlog
 from hypercorn.asyncio import serve
 from hypercorn.config import Config
 from hypercorn.middleware import AsyncioWSGIMiddleware
-from quart import make_response, request, send_file
+from quart import request, send_file
 
 from kaithem.api import web as webapi
 from kaithem.src import (
@@ -131,7 +131,7 @@ async def user_static(*args):
 
 
 @quart_app.app.route("/")
-async def index_default(*path, **data):
+def index_default(*path, **data):
     r = settings.redirects.get("/", {}).get("url", "")
     if r:
         return quart.redirect(r)
@@ -141,19 +141,19 @@ async def index_default(*path, **data):
     except PermissionError:
         return pages.loginredirect(pages.geturl())
     r = pages.get_template("index.html").render(api=notifications.api, alertsapi=alerts.api)
-    r2 = await make_response(r)
+    r2 = quart.Response(r)
     r2.set_cookie("LastSawMainPage", str(time.time()))
     return r2
 
 
 @quart_app.app.route("/index", methods=["GET", "POST"])
-async def index_direct():
+def index_direct():
     try:
         pages.require("view_status")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
     r = pages.get_template("index.html").render(api=notifications.api, alertsapi=alerts.api)
-    r2 = await make_response(r)
+    r2 = quart.Response(r)
     r2.set_cookie("LastSawMainPage", str(time.time()))
     return r2
 
@@ -334,6 +334,15 @@ def startServer():
 
     wrapped_app = ContentSizeLimitMiddleware(dispatcher_app)
 
-    loop.run_until_complete(serve(wrapped_app, config2, shutdown_trigger=shutdown_event.wait))
+    async def f2():
+        from pyinstrument import Profiler
+
+        p = Profiler(async_mode="strict")
+        with p:
+            await serve(wrapped_app, config2, shutdown_trigger=shutdown_event.wait)
+
+        p.print(show_all=True)
+
+    loop.run_until_complete(f2())
     loop.stop()
     logger.info("Engine stopped")

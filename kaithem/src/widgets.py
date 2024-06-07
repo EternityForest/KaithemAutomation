@@ -516,36 +516,41 @@ def makeclosure(f, i, scope):
 async def app(scope, receive, send):
     websocket = WebSocket(scope=scope, receive=receive, send=send)
     await websocket.accept()
-
-    try:
-        user_agent = scope.headers["User-Agent"]
-    except Exception:
-        user_agent = ""
-    x = scope["client"][0]
-
-    if scope["scheme"] == "wss" or pages.isHTTPAllowed(x):
-        user = pages.getAcessingUser(asgi=scope)
-        cookie = scope.get("cookie", None)
-    else:
-        cookie = None
-        user = "__guest__"
-
     io_loop = asyncio.get_running_loop()
-    impl: WebSocketHandler = WebSocketHandler(websocket, user, io_loop)
-    impl.cookie = cookie
-    impl.user_agent = user_agent
-    impl.asgiscope = scope
 
-    impl.clientinfo = ClientInfo(impl.user, impl.cookie)
-    clients_info[impl.connection_id] = impl.clientinfo
+    def f():
+        try:
+            user_agent = scope.headers["User-Agent"]
+        except Exception:
+            user_agent = ""
+        x = scope["client"][0]
 
-    assert isinstance(x, str)
-    impl.peer_address = x
+        if scope["scheme"] == "wss" or pages.isHTTPAllowed(x):
+            user = pages.getAcessingUser(asgi=scope)
+            cookie = scope.get("cookie", None)
+        else:
+            cookie = None
+            user = "__guest__"
 
-    if user == "__guest__" and (not x.startswith("127.")) and (len(wsrunners) > 8):
-        runner = guestWSRunner
-    else:
-        runner = WSActionRunner()
+        impl: WebSocketHandler = WebSocketHandler(websocket, user, io_loop)
+        impl.cookie = cookie
+        impl.user_agent = user_agent
+        impl.asgiscope = scope
+
+        impl.clientinfo = ClientInfo(impl.user, impl.cookie)
+        clients_info[impl.connection_id] = impl.clientinfo
+
+        assert isinstance(x, str)
+        impl.peer_address = x
+
+        if user == "__guest__" and (not x.startswith("127.")) and (len(wsrunners) > 8):
+            runner = guestWSRunner
+        else:
+            runner = WSActionRunner()
+
+        return impl, runner
+
+    impl, runner = await asyncio.to_thread(f)
 
     while 1:
         try:
