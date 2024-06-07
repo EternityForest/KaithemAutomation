@@ -10,17 +10,26 @@ set -x
 set -e
 
 mkdir -p ~/kaithem
-pipx install poetry
-pipx install --force .
 
+
+if [ ! -f ~/.local/bin/kaithem ]; then
+    echo -e "\033[0;31mWarning: kaithem not found on path. Ensure that you have Kaithem installed.\033[0m"
+fi
+
+if [ ! -f ~/kaithem/config.yaml ]; then
 
 cat << EOF > ~/kaithem/config.yaml
 # Add your config here!
 
 EOF
 
+fi
+
 
 mkdir -p ~/.config/systemd/user/
+
+if [ ! -f ~/.config/systemd/user/kaithem.service ]; then
+
 cat << EOF > ~/.config/systemd/user/kaithem.service
 [Unit]
 Description=KaithemAutomation python based automation server
@@ -37,5 +46,7 @@ Type=simple
 [Install]
 WantedBy=default.target
 EOF
+
+fi
 
 systemctl --user enable --now kaithem.service

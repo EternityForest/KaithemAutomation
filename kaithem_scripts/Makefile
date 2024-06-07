@@ -99,6 +99,11 @@ user-restart-pipewire:
 user-kaithem-status: # Get the status of the running kaithem instance
 	@systemctl --user status kaithem.service
 
+.PHONY: user-restart-kaithem
+user-restart-kaithem: # Get the status of the running kaithem instance
+	@systemctl --user restart kaithem.service
+
+
 .PHONY: root-install-system-dependencies
 root-install-system-dependencies: # Install non-python libraries using apt
 	@sudo apt install mpv python3-opencv lm-sensors python3-gst-1.0  gstreamer1.0-plugins-good  gstreamer1.0-plugins-bad  swh-plugins  tap-plugins  caps   gstreamer1.0-plugins-ugly libfluidsynth3 gstreamer1.0-pocketsphinx x42-plugins gstreamer1.0-opencv  gstreamer1.0-vaapi gstreamer1.0-pipewire

@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # Crappy hack
-mkdir -p ~/bin
+mkdir -p ~/.local/bin
 
-cat << EOF >> ~/bin/maxvolume
+cat << EOF >> ~/.local/bin/_maxvolume_hack
 #!/bin/bash
 # Awful hacks. We don't know what sets the volume too low or when it happens.
 
@@ -45,7 +45,7 @@ sleep 60
 exit 0
 EOF
 
-chmod 755 ~/bin/maxvolume
+chmod 755 ~/.local/bin/maxvolume
 
 mkdir -p ~/.config/systemd/user/
 cat << "EOF" > ~/.config/systemd/user/maxvolume.service
@@ -54,7 +54,7 @@ After=wireplumber.service pipewire-media-session.service
 Description=Set pipewire audio level to 100%
 
 [Service]
-ExecStart=/bin/bash /home/%u/bin/maxvolume
+ExecStart=/bin/bash /home/%u/.local/bin/_maxvolume_hack
 Type=OneShot
 
 [Install]

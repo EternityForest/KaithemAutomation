@@ -33,7 +33,6 @@ sudo apt update
 
 sudo apt-get install -y git git-lfs python3 python3-pip
 
-git lfs pull
 
 ## User perms
 #####################################################################3
@@ -226,7 +225,7 @@ if [ `uname -m` == "aarch64" ]; then
 
 # This is the program that lets us get the SanDisk industrial health data.
 
-wget -nc  https://github.com/Ognian/sdmon/releases/download/v0.8.1/sdmon-arm64.tar.gz
+wget -nc  https://github.com/Ognian/sdmon/releases/download/v0.9.0/sdmon-arm64.tar.gz
 tar zxf sdmon-arm64.tar.gz
 mv sdmon /usr/bin
 chmod 755 /usr/bin/sdmon 
@@ -238,7 +237,7 @@ if [ `uname -m` == "armv7l" ]; then
 
 # This is the program that lets us get the SanDisk industrial health data.
 
-wget -nc  https://github.com/Ognian/sdmon/releases/download/v0.8.1/sdmon-armv7.tar.gz
+wget -nc  https://github.com/Ognian/sdmon/releases/download/v0.9.0/sdmon-armv7.tar.gz
 tar zxf sdmon-armv7.tar.gz
 mv sdmon /usr/bin
 chmod 755 /usr/bin/sdmon 
