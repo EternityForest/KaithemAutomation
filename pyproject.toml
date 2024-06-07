@@ -3,7 +3,7 @@ name = "kaithem"
 version = "0.83.0"
 description = "Home/commercial automation server"
 license = "GPL-3.0-only"
-packages = [{ include = "kaithem" }, { include = "kaithem_cli" }]
+packages = [{ include = "kaithem" }, { include = "kaithem_cli" }, { include = "kaithem_scripts" }]
 authors = ["Daniel Dunn"]
 readme = "README.md"
 
@@ -23,7 +23,7 @@ python = "^3.10.0, <3.13"
 # First party
 scullery = ">=0.1.17"
 iot-devices = "*"
-icemedia = ">=0.1.4"
+icemedia = ">=0.1.5"
 NVRChannel = ">=0.1.7"
 
 
@@ -109,6 +109,8 @@ starlette = "^0.37.2"
 [tool.poetry.scripts]
 "kaithem" = "kaithem:__main__"
 "kaithem-cli" = "kaithem_cli.cli:main"
+"kaithem-scripts" = "kaithem_scripts.makefile_runner:main"
+
 "kaithem._jackmanager_server" = "icemedia.jack_client_subprocess:main"
 "kaithem._iceflow_server" = "icemedia.iceflow_server:main"
 
