@@ -423,9 +423,9 @@ def getZone(s):
 def strftime(*arg) -> str:
     tz = getZone(auth.getUserSetting(pages.getAcessingUser(), "timezone"))
     if arg:
-        d = datetime.datetime.utcfromtimestamp(*arg).replace(tzinfo=pytz.utc)
+        d = datetime.datetime.fromtimestamp(*arg, tz=datetime.UTC).replace(tzinfo=pytz.utc)
     else:
-        d = datetime.datetime.utcfromtimestamp(time.time()).replace(tzinfo=pytz.utc)
+        d = datetime.datetime.fromtimestamp(time.time(), tz=datetime.UTC).replace(tzinfo=pytz.utc)
     if not ZoneInfo:
         return tz.normalize(d.astimezone(tz)).strftime(auth.getUserSetting(pages.getAcessingUser(), "strftime"))
     else:

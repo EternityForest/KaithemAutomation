@@ -1,4 +1,9 @@
+import gc
+import os
 import sys
+import time
+
+import yaml
 
 if "--collect-only" not in sys.argv:
     from kaithem.src import quart_app
@@ -9,78 +14,58 @@ if "--collect-only" not in sys.argv:
 
 
 def test_make_demo_device():
-    pass
-    # n = "test" + str(time.time()).replace(".", "_")
+    from kaithem.src import devices, devices_interface, modules, modules_state, tagpoints
 
-    # c = run(tc.post("/modules/newmoduletarget", data={"name": n}))
-    # assert c.status_code == 302
+    n = "test" + str(time.time()).replace(".", "_")
 
-    # assert n in modules_state.ActiveModules
+    modules.newModule(n)
 
-    # # Call methids the web normally would
-    # d = devices_interface.WebDevices()
+    assert n in modules_state.ActiveModules
 
-    # assert d.index()
+    devices_interface.create_device_from_kwargs(module=n, resource="devtest", type="DemoDevice", name="pytest_demo")
 
-    # try:
-    #     d.createDevice("pytest_demo", module=n, resource="devtest", type="DemoDevice")
-    # except cherrypy.HTTPRedirect:
-    #     pass
+    assert "pytest_demo" in devices.remote_devices
+    assert "pytest_demo" in devices.remote_devices_atomic
 
-    # assert "devtest" in webapproot.webapproot().modules.module(n)
+    assert tagpoints.allTagsAtomic["/devices/pytest_demo.random"]().value
+    assert tagpoints.allTagsAtomic["/devices/pytest_demo.random"]().value < 1
 
-    # assert d.index()
-    # assert d.device("pytest_demo", "manage")
+    assert tagpoints.allTagsAtomic["/devices/pytest_demo/subdevice.random"]().value
 
-    # assert "pytest_demo" in devices.remote_devices
-    # assert "pytest_demo" in devices.remote_devices_atomic
+    devices.updateDevice(
+        "pytest_demo",
+        {
+            "temp.kaithem.store_in_module": n,
+            "temp.kaithem.store_in_resource": "devtest",
+            "device.fixed_number_multiplier": "10000909000",
+            "type": "DemoDevice",
+        },
+    )
 
-    # assert tagpoints.allTagsAtomic["/devices/pytest_demo.random"]().value
-    # assert tagpoints.allTagsAtomic["/devices/pytest_demo.random"]().value < 1
+    assert os.path.exists(os.path.join(dir, "modules/data/", n, "devtest.yaml"))
 
-    # assert tagpoints.allTagsAtomic["/devices/pytest_demo/subdevice.random"]().value
+    with open(os.path.join(dir, "modules/data/", n, "devtest.yaml")) as f:
+        lr = f.read()
 
-    # try:
-    #     # Make the number really big, check that config takes effect
-    #     d.updateDevice(
-    #         "pytest_demo",
-    #         type="DemoDevice",
-    #         **{
-    #             "temp.kaithem.store_in_module": n,
-    #             "temp.kaithem.store_in_resource": "devtest",
-    #             "device.fixed_number_multiplier": "10000909000",
-    #         },
-    #     )
-    # except cherrypy.HTTPRedirect:
-    #     pass
+    assert "10000909000" in lr
 
-    # assert "10000909000" in d.device("pytest_demo", "manage")
+    assert str(yaml.load(lr, yaml.SafeLoader)["device"]["device.fixed_number_multiplier"]) == "10000909000"
 
-    # assert os.path.exists(os.path.join(dir, "modules/data/", n, "devtest.yaml"))
+    assert tagpoints.allTagsAtomic["/devices/pytest_demo.random"]().value > 1
 
-    # with open(os.path.join(dir, "modules/data/", n, "devtest.yaml")) as f:
-    #     lr = f.read()
+    devices_interface.delete_device("pytest_demo")
 
-    # assert str(yaml.load(lr, yaml.SafeLoader)["device"]["device.fixed_number_multiplier"]) == "10000909000"
+    gc.collect()
+    gc.collect()
+    time.sleep(0.2)
 
-    # assert tagpoints.allTagsAtomic["/devices/pytest_demo.random"]().value > 1
+    assert "/devices/pytest_demo.random" not in tagpoints.allTags
+    assert "/devices/pytest_demo/subdevice.random" not in tagpoints.allTagsAtomic
 
-    # try:
-    #     # Make the number really big, check that config takes effect
-    #     d.deletetarget(name="pytest_demo")
-    # except cherrypy.HTTPRedirect:
-    #     pass
+    assert "pytest_demo" not in devices.remote_devices
+    assert "pytest_demo" not in devices.remote_devices_atomic
 
-    # gc.collect()
-    # gc.collect()
-    # time.sleep(0.2)
+    assert len(devices.remote_devices) == 0
+    assert len(devices.remote_devices_atomic) == 0
 
-    # assert "/devices/pytest_demo.random" not in tagpoints.allTags
-    # assert "/devices/pytest_demo/subdevice.random" not in tagpoints.allTagsAtomic
-
-    # assert "devtest" not in webapproot.webapproot().modules.module(n)
-
-    # assert len(devices.remote_devices) == 0
-    # assert len(devices.remote_devices_atomic) == 0
-
-    # assert not os.path.exists(os.path.join(dir, "modules/data/", n, "devtest.yaml"))
+    assert not os.path.exists(os.path.join(dir, "modules/data/", n, "devtest.yaml"))

@@ -215,7 +215,11 @@ def createDevice(**kwargs):
         pages.require("system_admin")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
+    return create_device_from_kwargs(**kwargs)
 
+
+def create_device_from_kwargs(**kwargs):
+    """This pretty much exists so we can call it from a tests without going through the web"""
     name = kwargs.get("name", None)
     m = r = None
 
@@ -273,7 +277,7 @@ def createDevicePage(module, resource, type):
 
 
 @app.route("/devices/deleteDevice/<name>")
-def deleteDevice(name):
+def delete_device_dialog(name):
     try:
         pages.require("system_admin")
     except PermissionError:
@@ -361,10 +365,17 @@ def deletetarget(**kwargs):
     except PermissionError:
         return pages.loginredirect(pages.geturl())
     name = kwargs["name"]
+
+    delete_device(name, delete_conf_dir="delete_conf_dir" in kwargs)
+
+    return redirect("/devices")
+
+
+def delete_device(name, delete_conf_dir=False):
     with modules_state.modulesLock:
         x = devices.remote_devices[name]
         # Delete bookkeep removes it from device data if present
-        delete_bookkeep(name, "delete_conf_dir" in kwargs)
+        delete_bookkeep(name, delete_conf_dir)
 
         if x.parent_module:
             modules_state.rawDeleteResource(x.parent_module, x.parent_resource or name)
@@ -381,5 +392,3 @@ def deletetarget(**kwargs):
         gc.collect()
 
         messagebus.post_message("/devices/removed/", name)
-
-    return redirect("/devices")
