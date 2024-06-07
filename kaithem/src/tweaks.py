@@ -22,6 +22,11 @@ mimetypes.add_type("text/html", ".vue", strict=False)
 # ??????????
 mimetypes.add_type("application/javascript", ".js", strict=True)
 
+
+if not os.environ.get("VIRTUAL_ENV"):
+    if "pipx" in sys.executable:
+        os.environ["VIRTUAL_ENV"] = os.path.dirname(os.path.dirname(sys.executable))
+
 try:
     import typeguard  # noqa
 except Exception:
