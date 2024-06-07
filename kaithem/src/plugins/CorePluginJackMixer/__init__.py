@@ -42,6 +42,7 @@ log = structlog.get_logger("system.mixer")
 
 presetsDir = os.path.join(directories.mixerdir, "presets")
 
+dummy_src_lock = threading.Lock()
 
 recorder = None
 
@@ -59,19 +60,20 @@ ds = None
 
 
 def start_dummy_source_if_needed():
-    global ds
-    if ds:
-        return
-    try:
-        x = DummySource()
-        x.start()
-        ds = x
-        for i in range(25):
-            if [i.name for i in jacktools.get_ports() if i.name.startswith("SILENCE")]:
-                break
-            time.sleep(0.1)
-    except Exception:
-        log.exception("Dummy source")
+    with dummy_src_lock:
+        global ds
+        if ds:
+            return
+        try:
+            x = DummySource()
+            x.start()
+            ds = x
+            for i in range(25):
+                if [i.name for i in jacktools.get_ports() if i.name.startswith("SILENCE")]:
+                    break
+                time.sleep(0.1)
+        except Exception:
+            log.exception("Dummy source")
 
 
 def onPortAdd(t, m):
