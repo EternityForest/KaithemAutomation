@@ -335,13 +335,13 @@ def startServer():
     wrapped_app = ContentSizeLimitMiddleware(dispatcher_app)
 
     async def f2():
-        from pyinstrument import Profiler
+        # from pyinstrument import Profiler
 
-        p = Profiler(async_mode="strict")
-        with p:
-            await serve(wrapped_app, config2, shutdown_trigger=shutdown_event.wait)
+        # p = Profiler(async_mode="strict")
+        # with p:
+        await serve(wrapped_app, config2, shutdown_trigger=shutdown_event.wait)
 
-        p.print(show_all=True)
+        # p.print(show_all=True)
 
     loop.run_until_complete(f2())
     loop.stop()
