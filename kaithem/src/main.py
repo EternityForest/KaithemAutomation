@@ -101,8 +101,6 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
         messagelogging,  # noqa: F401
         module_object_inspector,  # noqa: F401
         modules,  # noqa: F401
-        modules_interface,  # noqa: F401
-        modules_interface_handlers,  # noqa: F401
         notifications,  # noqa: F401
         persist,  # noqa: F401
         plugin_system,  # noqa: F401

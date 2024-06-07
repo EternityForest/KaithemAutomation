@@ -37,6 +37,9 @@ logger = structlog.get_logger("system")
 external_module_locations: dict[str, str] = {}
 
 
+prev_versions: dict[tuple, dict] = {}
+
+
 @beartype.beartype
 def check_forbidden(s: str) -> None:
     if not s:

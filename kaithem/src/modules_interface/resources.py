@@ -14,41 +14,9 @@ from quart.ctx import copy_current_request_context
 from scullery import messagebus
 
 from kaithem.src import auth, dialogs, directories, module_actions, modules, modules_state, pages, quart_app, util
-from kaithem.src.modules_interface import module_page_context, prev_versions, url
-from kaithem.src.modules_state import ActiveModules, check_forbidden, external_module_locations
-
-
-@quart_app.app.route("/modules/newmodule")
-def newmodule():
-    try:
-        pages.require("system_admin")
-    except PermissionError:
-        return pages.loginredirect(pages.geturl())
-    d = dialogs.SimpleDialog("Add New Module")
-    d.text_input("name", title="Name of New Module")
-    d.text("Choose an existing dir to load that module.")
-    d.text_input("location", title="Save location(Blank: auto in kaithem dir)")
-    d.submit_button("Submit")
-    return d.render("/modules/newmoduletarget")
-
-
-@quart_app.app.route("/modules/module/<module>")
-def indvidual_module(module):
-    try:
-        pages.require("view_admin_info")
-    except PermissionError:
-        return pages.loginredirect(pages.geturl())
-    fullpath = module
-
-    return pages.render_jinja_template(
-        "modules/module.j2.html",
-        module=ActiveModules[module],
-        name=module,
-        path="",
-        fullpath=fullpath,
-        module_actions=module_actions,
-        **module_page_context,
-    )
+from kaithem.src.modules_interface.page_context import module_page_context
+from kaithem.src.modules_state import check_forbidden, external_module_locations, prev_versions
+from kaithem.src.util import url
 
 
 @quart_app.app.route("/modules/module/<module>/resource/<path:resource>")
@@ -469,27 +437,5 @@ async def module_update(module):
                 auth.importPermissionsFromModules()
 
         return quart.redirect(f"/modules/module/{util.url(kwargs['name'])}")
-
-    return await f()
-
-
-@quart_app.app.route("/modules/newmoduletarget", methods=["POST"])
-async def newmoduletarget():
-    try:
-        pages.require("system_admin")
-    except PermissionError:
-        return pages.loginredirect(pages.geturl())
-    kwargs = dict(await request.form)
-
-    @copy_current_request_context
-    def f():
-        check_forbidden(kwargs["name"])
-
-        # If there is no module by that name, create a blank template and the scope obj
-        with modules_state.modulesLock:
-            if kwargs["name"] in modules_state.ActiveModules:
-                return pages.get_template("error.html").render(info=" A module already exists by that name,")
-            modules.newModule(kwargs["name"], kwargs.get("location", None))
-            return quart.redirect(f"/modules/module/{util.url(kwargs['name'])}")
 
     return await f()

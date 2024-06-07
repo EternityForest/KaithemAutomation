@@ -21,7 +21,10 @@ from hypercorn.middleware import AsyncioWSGIMiddleware
 from quart import Response, make_response, request, send_file
 
 from kaithem.api import web as webapi
-from kaithem.src import devices_interface  # noqa: F401
+from kaithem.src import (
+    devices_interface,  # noqa: F401
+    modules_interface,  # noqa: F401
+)
 from kaithem.src.asgimiddleware.auth import SimpleUserAuthMiddleware
 from kaithem.src.asgimiddleware.contentsize import ContentSizeLimitMiddleware
 from kaithem.src.asgimiddleware.dispatcher import AsgiDispatcher
