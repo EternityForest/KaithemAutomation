@@ -619,7 +619,7 @@ def processes():
 @legacy_route
 def dmesg():
     try:
-        pages.require("view_admin_info")
+        pages.require("system_admin")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
     return pages.get_template("settings/dmesg.html").render()
@@ -628,7 +628,7 @@ def dmesg():
 @legacy_route
 def environment():
     try:
-        pages.require("view_admin_info")
+        pages.require("system_admin")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
     return pages.get_template("settings/environment.html").render()

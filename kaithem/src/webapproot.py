@@ -307,7 +307,6 @@ def startServer():
 
     config2 = Config()
     config2.bind = [f"{bindto}:{config['http_port']}"]  # As an example configuration setting
-    config2.workers = 8
     config2.worker_class = "uvloop"
 
     # if config["https_port"]:

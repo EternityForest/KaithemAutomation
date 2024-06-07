@@ -55,15 +55,23 @@ class DummySource(iceflow.GStreamerPipeline):
         self.add_element("pipewiresink", client_name="SILENCE")
 
 
-try:
-    ds = DummySource()
-    ds.start()
-    for i in range(25):
-        if [i.name for i in jacktools.get_ports() if i.name.startswith("SILENCE")]:
-            break
-        time.sleep(0.1)
-except Exception:
-    log.exception("Dummy source")
+ds = None
+
+
+def start_dummy_source_if_needed():
+    global ds
+    if ds:
+        return
+    try:
+        x = DummySource()
+        x.start()
+        ds = x
+        for i in range(25):
+            if [i.name for i in jacktools.get_ports() if i.name.startswith("SILENCE")]:
+                break
+            time.sleep(0.1)
+    except Exception:
+        log.exception("Dummy source")
 
 
 def onPortAdd(t, m):
@@ -262,6 +270,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
         try:
             self.name = name
             gstwrapper.Pipeline.__init__(self, name)
+            start_dummy_source_if_needed()
             self.board = board
             self.levelTag = tagpoints.Tag(f"/jackmixer/channels/{name}.level")
             self.levelTag.min = -90
