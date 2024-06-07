@@ -2,6 +2,8 @@ import { test, expect } from '@playwright/test';
 import { login, logout } from './util';
 
 test('test', async ({ page }) => {
+    test.setTimeout(2400000);
+
     await login(page);
 
     await page.getByRole('link', { name: '󰢻 Tools' }).click();

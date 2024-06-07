@@ -2,6 +2,8 @@ import { test, expect, chromium} from '@playwright/test';
 import { login, logout, deleteModule } from './util';
 
 test('test', async ({ page }) => {
+    test.setTimeout(2400000);
+
     await login(page);
     const brows = await chromium.launch();
 

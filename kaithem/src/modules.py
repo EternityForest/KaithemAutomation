@@ -664,6 +664,8 @@ def handleResourceChange(module: str, resource: str, obj: None = None, newly_add
 
         if t == "permission":
             auth.importPermissionsFromModules()  # sync auth's list of permissions
+        if t == "module-description":
+            pass
         else:
             if not newly_added:
                 additionalTypes[t].onupdate(module, resource, resourceobj)

@@ -141,7 +141,7 @@ about_box_banner: "This space can be customized with site specific data in the c
 #The URL from which to retrieve the CSS theme file
 #Classic
 #["theme_url /static/css/kaithem_scrapbook.css
-theme_url: /static/css/kaithem_minimal.css
+theme_url: /static/css/nord.css
 
 #If yes, is 1 Minute 29 Seconds instead of 1m 29s
 full_time_intervals: no

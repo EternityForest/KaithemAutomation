@@ -342,6 +342,8 @@ def startServer():
     loop.add_signal_handler(signal.SIGTERM, _signal_handler)
     loop.add_signal_handler(signal.SIGINT, _signal_handler)
 
-    loop.run_until_complete(serve(ContentSizeLimitMiddleware(dispatcher_app), config2, shutdown_trigger=shutdown_event.wait))
+    wrapped_app = ContentSizeLimitMiddleware(dispatcher_app)
+
+    loop.run_until_complete(serve(wrapped_app, config2, shutdown_trigger=shutdown_event.wait))
     loop.stop()
     logger.info("Engine stopped")

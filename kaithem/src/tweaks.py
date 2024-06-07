@@ -14,6 +14,9 @@ import sys
 import threading
 
 import structlog
+import uvloop
+
+uvloop.install()
 
 mimetypes.add_type("text/html", ".vue", strict=False)
 # ??????????

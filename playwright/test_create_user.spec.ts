@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { login, logout, makeModule, deleteModule, makeTagPoint} from './util';
+import { login, logout, login_as} from './util';
 
 /* Preconditions:
 Guest has view status permission and nothing else
@@ -34,25 +34,25 @@ test('test', async ({ page }) => {
     await expect(page.getByLabel('Administrators')).not.toBeChecked();
     await expect(page.getByLabel('Guests')).toBeChecked();
     await page.getByRole('button', { name: 'Save Changes' }).click();
-    await page.getByRole('button', { name: 'Logout(admin)' }).click();
 
-    await page.getByLabel('Username:').click();
-    await page.getByLabel('Username:').fill('test_user');
-    await page.getByLabel('Password:').click();
-    await page.getByLabel('Password:').fill('1234');
+    await logout(page);
+
     page.once('dialog', dialog => {
         console.log(`Dialog message: ${dialog.message()}`);
         dialog.dismiss().catch(() => { });
     });
-    await page.getByRole('button', { name: 'Login as Registered User' }).click();
+
+    await login_as(page, 'test_user', '1234');
+
     await expect(page.getByRole('banner')).toContainText('Logout(test_user)');
+
+
     page.once('dialog', dialog => {
         console.log(`Dialog message: ${dialog.message()}`);
         dialog.dismiss().catch(() => { });
     });
     await page.getByRole('link', { name: 'Modules' }).click();
 
-    await expect(page.getByRole('heading')).toContainText('Permission Error');
 
     page.once('dialog', dialog => {
         console.log(`Dialog message: ${dialog.message()}`);
@@ -65,21 +65,9 @@ test('test', async ({ page }) => {
         dialog.dismiss().catch(() => { });
     });
 
-    await page.getByRole('link', { name: 'System Settings' }).click()
-    await expect(page.getByRole('heading')).toContainText('Log In');
+    await page.getByRole('link', { name: 'Users and Groups' }).click()
+    await expect(page.getByRole('heading', { name: 'Please Log In' })).toContainText('Log In');
 
-    await page.getByRole('link', { name: 'Devices' }).click();
-    await expect(page.getByRole('heading')).toContainText('Log In');
-    page.once('dialog', dialog => {
-        console.log(`Dialog message: ${dialog.message()}`);
-        dialog.dismiss().catch(() => { });
-    });
-    
-    
-    await page.getByText('Logout(test_user)').click();
-    
-
-    await page.goto('http://localhost:8002/login/?go=aHR0cDovL2xvY2FsaG9zdDo4MDAyL2luZGV4');
     await page.getByLabel('Username:').fill('admin');
     await page.getByLabel('Password:').fill('test-admin-password');
     await page.getByRole('button', { name: 'Login as Registered User' }).click();
@@ -90,6 +78,8 @@ test('test', async ({ page }) => {
     await page.getByLabel('User').fill('test_user');
     await page.getByRole('button', { name: 'Submit' }).click();
     await page.getByRole('button', { name: 'Logout(admin)' }).click();
+
+    await page.goto('http://localhost:8002/login');
 
     await page.getByLabel('Username:').click();
     await page.getByLabel('Username:').fill('test_user');

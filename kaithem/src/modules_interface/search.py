@@ -44,9 +44,10 @@ def searchModuleResources(modulename, search, max_results=100, start=0):
     return (results, pointer)
 
 
-@quart_app.app.route("/modules/search/<module>")
+@quart_app.app.route("/modules/search/<module>", methods=["POST"])
 async def search(module):
-    kwargs = await quart.request.form
+    kwargs = dict(await quart.request.form)
+    kwargs.update(quart.request.args)
     start = mstart = 0
     if "mstart" in kwargs:
         mstart = int(kwargs["mstart"])

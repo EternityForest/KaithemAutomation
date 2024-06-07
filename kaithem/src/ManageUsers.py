@@ -21,8 +21,8 @@ def index():
 
 # The actual POST target to delete a user
 @quart_app.app.route("/auth/deluser", methods=["POST"])
-async def deluser():
-    kwargs = await quart.request.form
+@quart_app.wrap_sync_route_handler
+def deluser(**kwargs):
     try:
         pages.require("system_admin")
     except PermissionError:
@@ -37,8 +37,8 @@ async def deluser():
 
 # POST target for deleting a group
 @quart_app.app.route("/auth/delgroup", methods=["POST"])
-async def delgroup():
-    kwargs = await quart.request.form
+@quart_app.wrap_sync_route_handler
+def delgroup(**kwargs):
     try:
         pages.require("system_admin")
     except PermissionError:
@@ -54,7 +54,8 @@ async def delgroup():
 
 # INterface to select a user to delete
 @quart_app.app.route("/auth/deleteuser")
-async def deleteuser():
+@quart_app.wrap_sync_route_handler
+def deleteuser(**kwargs):
     try:
         pages.require("system_admin")
     except PermissionError:
@@ -68,7 +69,7 @@ async def deleteuser():
 
 # Interface to select a group to delete
 @quart_app.app.route("/auth/deletegroup")
-async def deletegroup():
+def deletegroup():
     try:
         pages.require("system_admin")
     except PermissionError:
@@ -105,8 +106,8 @@ def newgroup():
 
 @quart_app.app.route("/auth/newusertarget", methods=["POST"])
 # handler for the POST request to change user settings
-async def newusertarget():
-    kwargs = await quart.request.form
+@quart_app.wrap_sync_route_handler
+def newusertarget(**kwargs):
     # THIS IS A HACK TO PREVENT UNICODE STRINGS IN PY2.XX FROM GETTING THROUGH
     # BECAUSE QUOTE() IS USUALLY WHERE THEY CRASH. #AWFULHACK
     quote(kwargs["username"])
@@ -132,8 +133,8 @@ async def newusertarget():
 
 @quart_app.app.route("/auth/newgrouptarget", methods=["POST"])
 # handler for the POST request to change user settings
-async def newgrouptarget():
-    kwargs = await quart.request.form
+@quart_app.wrap_sync_route_handler
+def newgrouptarget(**kwargs):
     # THIS IS A HACK TO PREVENT UNICODE STRINGS IN PY2.XX FROM GETTING THROUGH
     # BECAUSE QUOTE() IS USUALLY WHERE THEY CRASH. #AWFULHACK
     quote(kwargs["groupname"])
@@ -154,9 +155,8 @@ async def newgrouptarget():
 
 @quart_app.app.route("/auth/updateuser/<user>", methods=["POST"])
 # handler for the POST request to change user settings
-async def updateuser(user):
-    kwargs = await quart.request.form
-
+@quart_app.wrap_sync_route_handler
+def updateuser(user, **kwargs):
     try:
         pages.require("system_admin")
     except PermissionError:
@@ -206,9 +206,8 @@ async def updateuser(user):
 
 @quart_app.app.route("/auth/updategroup/<group>", methods=["POST"])
 # handler for the POST request to change user settings
-async def updategroup(group):
-    kwargs = await quart.request.form
-
+@quart_app.wrap_sync_route_handler
+def updategroup(group, **kwargs):
     try:
         pages.require("system_admin")
     except PermissionError:

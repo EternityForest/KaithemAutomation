@@ -18,6 +18,12 @@ def handle_exception(e):
     return Response(r, status=500)
 
 
+@app.route("/errors/loginerror")
+def handle_login_exception():
+    r = pages.get_template("errors/loginerror.html").render()
+    return Response(r, status=500)
+
+
 @app.errorhandler(NotFound)
 def handle_404_exception(e):
     r = pages.get_template("errors/e404.html").render()

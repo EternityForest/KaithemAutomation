@@ -7,6 +7,8 @@ test('test', async ({ page }) => {
   await page.getByLabel('Username:').press('Tab');
   await page.getByLabel('Password:').fill('test-admin-password');
   await page.getByLabel('Password:').press('Enter');
+
+
   await page.getByRole('link', { name: '󰢻 Tools' }).click();
   await page.getByRole('link', { name: '󰀄 My Account' }).click();
   await expect(page.locator('h1')).toContainText('My Account');
@@ -18,4 +20,9 @@ test('test', async ({ page }) => {
   await page.locator('input[name="new2"]').click();
   await page.locator('input[name="new2"]').fill('test-admin-password');
   await page.getByRole('button', { name: 'Change Password' }).click();
+
+  // Should still be logged in at the main page
+  await expect(page.getByRole('banner')).toContainText('Logout(admin)');
+  await expect(page.locator('section')).toContainText('Kaithem is free software licensed');
+
 });

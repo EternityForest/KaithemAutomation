@@ -58,7 +58,8 @@ async def runevent(module):
 
 
 @quart_app.app.route("/modules/module/<module>/runeventdialog/<evt>")
-async def runeventdialog(module, evt):
+@quart_app.wrap_sync_route_handler
+def runeventdialog(module, evt):
     try:
         pages.require("system_admin")
     except PermissionError:
@@ -164,10 +165,9 @@ async def loadlibmodule(module):
 
         modules.loadModule(os.path.join(directories.datadir, "modules", module), name)
 
-        modules.bookkeeponemodule(name, include_events=True)
         auth.importPermissionsFromModules()
         modules.saveModule(modules_state.ActiveModules[name], name)
-        modules_state.recalcModuleHashes()
+        modules.bookkeeponemodule(name, include_events=True)
 
         return quart.redirect("/modules")
 

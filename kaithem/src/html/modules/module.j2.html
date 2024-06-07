@@ -82,7 +82,7 @@
             <a class="button" href="/modules/module/{{ url(name) }}/uploadresource/{{ '/'.join(path) }}">
                 <i class="mdi mdi-upload-box"></i>Upload</a>
 
-            <form style="display:inline-flex;" action="/modules/search/{{ url(name) }}">
+            <form style="display:inline-flex;" action="/modules/search/{{ url(name) }}" method="POST">
                 <input size="8" name="search" placeholder="Search this module" />
                 <button type="submit" value="search"> <i class="mdi mdi-search-web">
                     </i></button>

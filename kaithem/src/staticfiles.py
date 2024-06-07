@@ -26,6 +26,11 @@ async def static_css(path):
     return await quart.send_file(os.path.join(sdn, "css", path))
 
 
+@quart_app.app.route("/static/vue/<path:path>")
+async def static_vue(path):
+    return await quart.send_file(os.path.join(sdn, "vue", path))
+
+
 @quart_app.app.route("/static/docs/<path:path>")
 async def static_docs(path):
     return await quart.send_file(os.path.join(sdn, "docs", path))
@@ -37,6 +42,11 @@ async def static_icons(path):
     return await quart.send_file(os.path.join(ddn, "static", "mdicons", path))
 
 
+@quart_app.app.route("/static/fonts/<path:path>")
+async def static_fonts(path):
+    return await quart.send_file(os.path.join(ddn, "static", "fonts", path))
+
+
 @quart_app.app.route("/static/freeboardsounds/<path:path>")
 async def static_fbsounds(path):
     return await quart.send_file(os.path.join(ddn, "static", "freeboardsounds", path))
@@ -45,8 +55,3 @@ async def static_fbsounds(path):
 @quart_app.app.route("/static/img/<path:path>")
 async def static_img(path):
     return await quart.send_file(os.path.join(ddn, "static", "img", path))
-
-
-@quart_app.app.route("/static/fonts/<path:path>")
-async def static_fonts(path):
-    return await quart.send_file(os.path.join(ddn, "static", "fonts", path))

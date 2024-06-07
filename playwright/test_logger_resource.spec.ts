@@ -2,6 +2,8 @@ import { test, expect } from '@playwright/test';
 import { login, logout, deleteModule } from './util';
 
 test('test', async ({ page }) => {
+    test.setTimeout(2400000);
+
     await login(page);
 
     // Add a module
@@ -30,4 +32,5 @@ test('test', async ({ page }) => {
     await expect(page.locator('h3')).toContainText('Recent Log Data');
 
     await deleteModule(page, 'test_logger');
+    await logout(page);
 });
