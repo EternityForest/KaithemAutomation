@@ -4,7 +4,6 @@
 import asyncio
 import json
 import logging
-import mimetypes
 import os
 import signal
 import sys
@@ -18,7 +17,7 @@ import structlog
 from hypercorn.asyncio import serve
 from hypercorn.config import Config
 from hypercorn.middleware import AsyncioWSGIMiddleware
-from quart import Response, make_response, request, send_file
+from quart import make_response, request, send_file
 
 from kaithem.api import web as webapi
 from kaithem.src import (
@@ -233,18 +232,9 @@ def tag_api(cmd, path):
 
 # docs, helpmenu, and license are just static pages.
 @quart_app.app.route("/docs/<path:path>")
-def docs(*path):
+def docs(path):
+    path = path.split("/")
     if path:
-        if path[0] == "thirdparty":
-            p = os.path.normpath(os.path.join(directories.srcdir, "docs", "/".join(path)))
-            if not p.startswith(os.path.join(directories.srcdir, "docs")):
-                raise RuntimeError("Invalid URL")
-
-            with open(p, "rb") as f:
-                d = f.read()
-
-            return Response(d, mimetype=mimetypes.guess_type(p)[0])
-
         return pages.get_template("help/" + path[0] + ".html").render(path=path, data=request.args)
     return pages.get_template("help/help.html").render()
 
