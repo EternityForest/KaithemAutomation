@@ -10,7 +10,7 @@ from kaithem.api.web.dialogs import SimpleDialog
 from kaithem.src import auth, modules_state
 from kaithem.src.util import url
 
-logger = structlog.get_logger("kaithem.userpages")
+logger = structlog.get_logger(__name__)
 
 
 by_module_resource = {}

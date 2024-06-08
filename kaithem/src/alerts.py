@@ -20,7 +20,7 @@ from . import (
     workers,
 )
 
-logger = structlog.get_logger("system.alerts")
+logger = structlog.get_logger(__name__)
 lock = threading.RLock()
 
 

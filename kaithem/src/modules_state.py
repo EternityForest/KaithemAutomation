@@ -31,7 +31,7 @@ ResourceType = ResourceType
 safeFnChars = "~@*&()-_=+/ '"
 FORBID_CHARS = """\n\r\t@*&^%$#`"';:<>.,|{}+=[]\\"""
 
-logger = structlog.get_logger("system")
+logger = structlog.get_logger(__name__)
 
 # This lets us have some modules saved outside the var dir.
 external_module_locations: dict[str, str] = {}

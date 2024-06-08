@@ -15,7 +15,7 @@ approxtotallogentries = 0
 log = {}
 
 
-logger = structlog.get_logger("system.msgbus")
+logger = structlog.get_logger(__name__)
 
 
 def messagelistener(topic, message):

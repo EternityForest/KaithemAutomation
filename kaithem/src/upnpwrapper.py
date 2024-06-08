@@ -10,7 +10,7 @@ from urllib.parse import urlparse
 
 import structlog
 
-logger = structlog.get_logger("upnp")
+logger = structlog.get_logger(__name__)
 try:
     import upnpclient
 except ImportError:

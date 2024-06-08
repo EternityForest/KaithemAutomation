@@ -36,8 +36,7 @@ SUBDEVICE_SEPARATOR = "/"
 
 # Our lock to be the same lock as the modules lock otherwise there would be too may easy ways to make a deadlock, we have to be able to
 # edit the state because self modifying devices exist and can be saved in a module
-log = structlog.get_logger(__name__)
-
+logger = structlog.get_logger(__name__)
 
 remote_devices: dict[str, Device] = {}
 remote_devices_atomic: dict[str, weakref.ref[Device]] = {}
@@ -112,7 +111,7 @@ def delete_bookkeep(name, confdir=False):
 
                         shutil.rmtree(old_dev_conf_folder)
                 except Exception:
-                    syslogger.exception("Err deleting conf dir")
+                    logger.exception("Err deleting conf dir")
 
             # no zombie reference
             del x
@@ -149,8 +148,6 @@ def log_scanned_tag(v: str, *args):
         recent_scanned_tags.pop(next(iter(recent_scanned_tags)))
 
 
-syslogger = structlog.get_logger("system.devices")
-
 dbgd: weakref.WeakValueDictionary[str, Device] = weakref.WeakValueDictionary()
 
 
@@ -163,7 +160,7 @@ def closeAll(*a):
                 try:
                     x.close()
                 except Exception:
-                    syslogger.exception("Error in shutdown cleanup")
+                    logger.exception("Error in shutdown cleanup")
 
 
 finished_reading_resources = False
@@ -517,9 +514,9 @@ class Device(iot_devices.device.Device):
 
         if self.errors:
             if time.time() > self.errors[-1][0] + 15:
-                syslogger.error(f"in device: {self.name}\n{s}")
+                logger.error(f"in device: {self.name}\n{s}")
             else:
-                log.error(f"in device: {self.name}\n{s}")
+                logger.error(f"in device: {self.name}\n{s}")
 
         if len(self.errors) > 50:
             self.errors.pop(0)
@@ -527,7 +524,7 @@ class Device(iot_devices.device.Device):
         workers.do(makeBackgroundErrorFunction(textwrap.fill(s, 120), unitsofmeasure.strftime(time.time()), self))
         if len(self.errors) == 1:
             messagebus.post_message("/system/notifications/errors", f"First error in device: {self.name}")
-            syslogger.error(f"in device: {self.name}\n{s}")
+            logger.error(f"in device: {self.name}\n{s}")
 
     def onGenericUIMessage(self, u, v):
         if v[0] == "set":
@@ -562,9 +559,9 @@ class Device(iot_devices.device.Device):
                 try:
                     self.alerts[i].release()
                 except Exception:
-                    log.exception("Error releasing alerts")
+                    logger.exception("Error releasing alerts")
         except Exception:
-            log.exception("Error releasing alerts")
+            logger.exception("Error releasing alerts")
 
     def status(self):
         return "norm"
@@ -1243,7 +1240,7 @@ def makeDevice(name, data, cls=None):
             try:
                 desc = iot_devices.host.get_description(data["type"])
             except Exception:
-                log.exception("err getting description")
+                logger.exception("err getting description")
 
             dt = wrapCrossFramework(dt2, desc)
 
@@ -1257,9 +1254,9 @@ def makeDevice(name, data, cls=None):
         except Exception:
             dt = UnsupportedDevice
             dt = wrapCrossFramework(dt, "Placeholder device")
-            log.exception("Err creating device")
+            logger.exception("Err creating device")
             err = traceback.format_exc()
-            syslogger.exception("Error making device")
+            logger.exception("Error making device")
 
     new_data = copy.deepcopy(data)
     new_data.pop("framework_data", None)
@@ -1320,7 +1317,7 @@ def getDeviceType(t):
             t = iot_devices.host.get_class({"type": t})
             return t or UnsupportedDevice
         except Exception:
-            log.exception("Could not look up class")
+            logger.exception("Could not look up class")
             return UnsupportedDevice
 
 
@@ -1353,7 +1350,7 @@ def warnAboutUnsupportedDevices():
                     f"Device {str(i)} not supported",
                 )
             except Exception:
-                syslogger.exception(f"Error warning about missing device support device {str(i)}")
+                logger.exception(f"Error warning about missing device support device {str(i)}")
 
 
 def init_devices():
@@ -1362,7 +1359,7 @@ def init_devices():
         try:
             deferred_loaders.pop()()
         except Exception:
-            syslogger.exception("Err with device")
+            logger.exception("Err with device")
             messagebus.post_message("/system/notifications/errors", "Err with device")
 
 

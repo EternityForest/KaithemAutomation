@@ -34,7 +34,7 @@ from kaithem.src.util import url
 
 from . import fileserver
 
-logger = structlog.get_logger("kaithem.userpages")
+logger = structlog.get_logger(__name__)
 
 _jl = jinja2.FileSystemLoader(
     [directories.htmldir, os.path.join(directories.htmldir, "jinjatemplates")],

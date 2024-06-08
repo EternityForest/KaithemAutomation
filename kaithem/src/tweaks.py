@@ -61,7 +61,7 @@ sys.setrecursionlimit(256)
 faulthandler.enable()
 
 
-threadlogger = structlog.get_logger("system.threading")
+threadlogger = structlog.get_logger(__name__)
 
 
 class rtMidiFixer:

@@ -14,7 +14,7 @@ unsubscribe = messagebus.unsubscribe
 normalize_topic = messagebus.normalize_topic
 log = messagebus.log
 MessageBus = messagebus.MessageBus
-logger = structlog.get_logger("system.msgbus")
+logger = structlog.get_logger(__name__)
 
 
 def handleMsgbusError(f, topic, message):

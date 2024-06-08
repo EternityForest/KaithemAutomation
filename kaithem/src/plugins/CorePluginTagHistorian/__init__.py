@@ -29,13 +29,13 @@ logdir = directories.logdir
 ramdbfile = "/dev/shm/" + socket.gethostname() + "-" + getpass.getuser() + "-taghistory.sqlite"
 
 
-syslogger = structlog.get_logger("system")
+logger = structlog.get_logger(__name__)
 
 if not os.path.exists(logdir):
     try:
         os.makedirs(logdir)
     except Exception:
-        syslogger.exception("Can't make log dir")
+        logger.exception("Can't make log dir")
 
 # Build a filename including the hostname and user.   This is because SQLite may not be happy to be involved with SyncThing.
 # For that reason, should someone get the bright idea to sync a kaithem vardir, we must keep the history databases single-writer.

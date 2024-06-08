@@ -203,8 +203,7 @@ class LoggingHandler(logging.Handler):
         if self.doprint:
             if not self.exclude_print or (not (record.name == self.exclude_print or record.name.startswith(f"{self.exclude_print}."))):
                 print(raw)
-        if not (record.name == self.name or record.name.startswith(f"{self.name}.")) and not self.name == "":
-            return
+
         self.callback(record)
         with self.lock:
             if record.levelno >= self.contextlevel:
@@ -382,7 +381,7 @@ class LoggingHandler(logging.Handler):
 
 # Don't print, the root logger does that.
 syslogger = LoggingHandler(
-    "k_root_logger",
+    "root",
     fn="system",
     folder=os.path.join(directories.logdir, "dumps"),
     level=logging.INFO,

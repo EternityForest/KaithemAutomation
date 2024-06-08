@@ -103,7 +103,7 @@ def get_tag_meta(t):
 # only for tags where someone has requested a number.
 assigned_unique_numbers: dict[int, str] = {}
 
-logger = structlog.get_logger("tagpoints")
+logger = structlog.get_logger(__name__)
 
 exposedTags: weakref.WeakValueDictionary[str, GenericTagPointClass[Any]] = weakref.WeakValueDictionary()
 

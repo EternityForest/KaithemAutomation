@@ -61,7 +61,7 @@ class User(dict):
         self.token: str | None = None
 
 
-logger = structlog.get_logger("system.auth")
+logger = structlog.get_logger(__name__)
 # This maps raw tokens to users
 Tokens: dict[str, User] = {}
 

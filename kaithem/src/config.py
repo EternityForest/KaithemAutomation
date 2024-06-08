@@ -13,7 +13,7 @@ import structlog
 import yaml
 from scullery import snake_compat
 
-logger = structlog.get_logger("system")
+logger = structlog.get_logger(__name__)
 config: dict[str, Any] = {}
 
 ##########################################################

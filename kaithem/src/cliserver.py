@@ -13,7 +13,7 @@ from quart import request
 
 from . import config, quart_app
 
-logger = structlog.get_logger("system.cli")
+logger = structlog.get_logger(__name__)
 
 
 class Command:

@@ -13,7 +13,7 @@ import traceback
 import structlog
 from scullery import messagebus
 
-logger = structlog.get_logger("system.selftest")
+logger = structlog.get_logger(__name__)
 
 
 def memtest():

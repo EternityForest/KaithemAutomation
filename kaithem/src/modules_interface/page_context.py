@@ -8,7 +8,7 @@ from kaithem.src import modules, modules_state, pages, unitsofmeasure, util
 from kaithem.src.modules_state import in_folder
 from kaithem.src.util import url
 
-logger = structlog.get_logger("system")
+logger = structlog.get_logger(__name__)
 
 
 def urlForPath(module, path):

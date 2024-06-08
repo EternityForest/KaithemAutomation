@@ -33,7 +33,7 @@ from .modules_state import (
     scopes,
 )
 
-logger = structlog.get_logger("system")
+logger = structlog.get_logger(__name__)
 
 
 def new_empty_module():
