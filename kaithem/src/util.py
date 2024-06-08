@@ -77,7 +77,7 @@ def get_rrule_selector(s: str, ref: datetime.datetime | None = None):
 
 zeroconf = zeroconf.Zeroconf()
 
-logger = structlog.get_logger("system")
+logger = structlog.get_logger(__name__)
 
 min_time = 0
 

@@ -30,7 +30,7 @@ from .scene_context_commands import add_context_commands, rootContext
 from .scene_lighting import SceneLightingManager
 from .signage import MediaLinkManager
 
-logger = structlog.get_logger("kaithem.chandler")
+logger = structlog.get_logger(__name__)
 
 if TYPE_CHECKING:
     from . import ChandlerConsole

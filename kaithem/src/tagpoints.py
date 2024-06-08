@@ -32,7 +32,7 @@ from scullery import scheduling
 from . import alerts, messagebus, pages, widgets, workers
 from .unitsofmeasure import convert, unit_types
 
-logger = structlog.get_logger("system.cli")
+logger = structlog.get_logger(__name__)
 
 
 def to_sk(s: str):
@@ -104,7 +104,6 @@ def get_tag_meta(t):
 assigned_unique_numbers: dict[int, str] = {}
 
 logger = structlog.get_logger("tagpoints")
-syslogger = structlog.get_logger("system")
 
 exposedTags: weakref.WeakValueDictionary[str, GenericTagPointClass[Any]] = weakref.WeakValueDictionary()
 
@@ -1126,7 +1125,7 @@ class GenericTagPointClass(Generic[T]):
 
                 for i in self.subscribers:
                     if f == i():
-                        syslogger.warning(
+                        logger.warning(
                             "Double subscribe detected, same function subscribed to "
                             + self.name
                             + " more than once.  Only the first takes effect."
@@ -1347,7 +1346,7 @@ class GenericTagPointClass(Generic[T]):
                     # The system logger is the one kaithem actually logs to file.
                     if self.lastError < (time.monotonic() - (60 * 10)):
                         self.lastError = time.monotonic()
-                        syslogger.exception("Error getting tag value. This message will only be logged every ten minutes.")
+                        logger.exception("Error getting tag value. This message will only be logged every ten minutes.")
                     # If we can, try to send the exception back whence it came
                     try:
                         from .plugins import CorePluginEventResources

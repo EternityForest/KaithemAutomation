@@ -28,7 +28,7 @@ from beartype import beartype
 from . import auth, messagebus, pages, workers
 from http.cookies import SimpleCookie
 
-logger = structlog.get_logger("system.widgets")
+logger = structlog.get_logger(__name__)
 
 # Modify lock for any websocket's subscriptions
 subscriptionLock = threading.Lock()

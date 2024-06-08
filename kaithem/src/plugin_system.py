@@ -14,7 +14,7 @@ import structlog
 
 from . import directories, messagebus, pathsetup
 
-logger = structlog.get_logger("system")
+logger = structlog.get_logger(__name__)
 logger.setLevel(logging.INFO)
 
 plugins = {}

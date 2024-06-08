@@ -151,7 +151,7 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
 
     scheduling.function_error_hooks.append(handle_error)
 
-    logger = structlog.get_logger("system")
+    logger = structlog.get_logger(__name__)
     logger.setLevel(logging.INFO)
 
     os.makedirs(os.path.join(directories.vardir, "static"), exist_ok=True)

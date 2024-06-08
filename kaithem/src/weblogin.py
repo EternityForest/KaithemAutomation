@@ -12,7 +12,7 @@ import structlog
 
 from . import auth, kaithemobj, messagebus, pages, quart_app, util
 
-logger = structlog.get_logger("system.auth")
+logger = structlog.get_logger(__name__)
 failureRecords = collections.OrderedDict()
 recordslock = threading.RLock()
 

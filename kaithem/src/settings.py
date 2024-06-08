@@ -112,7 +112,7 @@ def ctype_async_raise(thread_obj, exception):
         raise SystemError("PyThreadState_SetAsyncExc failed")
 
 
-syslogger = structlog.get_logger("system")
+logger = structlog.get_logger(__name__)
 
 
 def legacy_route(f):

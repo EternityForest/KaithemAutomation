@@ -24,7 +24,7 @@ from . import (
     search,  # noqa: F401
 )
 
-syslog = structlog.get_logger("system")
+logger = structlog.get_logger(__name__)
 
 
 @quart_app.app.route("/modules/module/<module>/scanfiles", methods=["POST"])

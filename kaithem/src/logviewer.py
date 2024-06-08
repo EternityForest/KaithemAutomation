@@ -3,13 +3,11 @@
 
 
 import io
-import logging
 import os
 import re
 import textwrap
 
 import quart
-import structlog
 
 from . import directories, pages, pylogginghandler, quart_app, util, widgets
 
@@ -54,36 +52,6 @@ except Exception:
 
     def esc(t):
         return t
-
-
-class WidgetHandler(logging.Handler):
-    def __init__(self):
-        logging.Handler.__init__(self)
-        self.widget = widgets.ScrollingWindow(2500)
-
-    def handle(self, record):
-        r = self.filter(record)
-        if r:
-            self.emit(record)
-        return r
-
-    def emit(self, r):
-        if r:
-            t = textwrap.fill(strip_ansi_colour(pylogginghandler.syslogger.format(r)), 240)
-            t = esc(t)
-            if r.levelname in ["ERROR", "CRITICAL"]:
-                self.widget.write('<pre class="danger">' + t + "</pre>")
-            elif r.levelname in ["WARNING"]:
-                self.widget.write('<pre class="danger">' + t + "</pre>")
-            elif r.name == "system.notifications.important":
-                self.widget.write('<pre class="highlight">' + t + "</pre>")
-            else:
-                self.widget.write("<pre>" + t + "</pre>")
-
-
-dbg = WidgetHandler()
-
-structlog.get_logger().addHandler(dbg)
 
 
 def f(r):

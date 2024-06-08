@@ -59,7 +59,7 @@ def rl_log_exc(m: str):
 
 
 lock = threading.RLock()
-logger = structlog.get_logger("system.chandler")
+logger = structlog.get_logger(__name__)
 
 saveLocation = os.path.join(kaithem.misc.vardir, "chandler")
 

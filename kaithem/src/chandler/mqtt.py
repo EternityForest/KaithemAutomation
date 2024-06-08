@@ -8,7 +8,7 @@ import structlog
 
 from ..kaithemobj import kaithem
 
-logger = structlog.get_logger("system.chandler")
+logger = structlog.get_logger(__name__)
 
 testCrashOnce = False
 

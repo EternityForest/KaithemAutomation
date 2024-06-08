@@ -9,7 +9,7 @@ import sys
 
 import structlog
 
-logger = structlog.get_logger("system")
+logger = structlog.get_logger(__name__)
 
 setup = False
 

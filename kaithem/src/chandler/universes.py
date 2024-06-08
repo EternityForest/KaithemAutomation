@@ -22,7 +22,7 @@ from ..kaithemobj import kaithem
 from . import core
 from .core import disallow_special
 
-logger = structlog.get_logger("system.chandler")
+logger = structlog.get_logger(__name__)
 
 # Locals for performance... Is this still a thing??
 float = float

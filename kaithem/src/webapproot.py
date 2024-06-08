@@ -50,7 +50,7 @@ from . import (
 )
 from .config import config
 
-logger = structlog.get_logger("system")
+logger = structlog.get_logger(__name__)
 logger.setLevel(logging.INFO)
 
 

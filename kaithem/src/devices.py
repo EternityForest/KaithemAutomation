@@ -36,7 +36,7 @@ SUBDEVICE_SEPARATOR = "/"
 
 # Our lock to be the same lock as the modules lock otherwise there would be too may easy ways to make a deadlock, we have to be able to
 # edit the state because self modifying devices exist and can be saved in a module
-log = structlog.get_logger("system.devices")
+log = structlog.get_logger(__name__)
 
 
 remote_devices: dict[str, Device] = {}

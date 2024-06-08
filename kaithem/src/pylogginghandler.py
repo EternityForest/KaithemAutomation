@@ -382,7 +382,7 @@ class LoggingHandler(logging.Handler):
 
 # Don't print, the root logger does that.
 syslogger = LoggingHandler(
-    "system",
+    "k_root_logger",
     fn="system",
     folder=os.path.join(directories.logdir, "dumps"),
     level=logging.INFO,
@@ -392,7 +392,8 @@ syslogger = LoggingHandler(
     compress=config["log_compress"],
     doprint=False,
 )
-logging.getLogger("system").addHandler(syslogger)
+
+logging.getLogger().addHandler(syslogger)
 
 # Linux only way of recovering backups even if the
 if os.path.exists(f"/dev/shm/kaithemdbglog_{getpass.getuser()}"):

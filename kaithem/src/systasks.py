@@ -64,7 +64,7 @@ browser2 = ServiceBrowser(util.zeroconf, "_http._tcp.local.", handlers=[on_servi
 # Can't think of anywhere else to put this thing.
 systemStarted = time.time()
 
-logger = structlog.get_logger("system")
+logger = structlog.get_logger(__name__)
 
 lastsaved = time.time()
 
@@ -92,7 +92,7 @@ nminutepagecount = 0
 
 
 upnpMapping = None
-syslogger = structlog.get_logger("system")
+logger = structlog.get_logger(__name__)
 
 
 def doUPnP():
@@ -109,7 +109,7 @@ def doUPnP():
 
             upnpMapping = upnpwrapper.addMapping(p, "TCP", desc="KaithemAutomation web UI", register=True, WANPort=lp)
         except Exception:
-            syslogger.exception("Could not create mapping")
+            logger.exception("Could not create mapping")
     else:
         # Going to let GC handle this
         upnpMapping = None

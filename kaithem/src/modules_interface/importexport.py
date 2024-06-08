@@ -7,7 +7,7 @@ from scullery import messagebus
 from kaithem.src import dialogs, modules, modules_state, pages, quart_app, util
 from kaithem.src.util import url
 
-logger = structlog.get_logger("system")
+logger = structlog.get_logger(__name__)
 
 
 @quart_app.app.route("/modules/module/<module>/uploadresource/<path:path>")
