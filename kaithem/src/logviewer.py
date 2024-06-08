@@ -69,7 +69,7 @@ class WidgetHandler(logging.Handler):
 
     def emit(self, r):
         if r:
-            t = textwrap.fill(strip_ansi_colour(pylogginghandler.syslogger.format(r)), 120)
+            t = textwrap.fill(strip_ansi_colour(pylogginghandler.syslogger.format(r)), 240)
             t = esc(t)
             if r.levelname in ["ERROR", "CRITICAL"]:
                 self.widget.write('<pre class="danger">' + t + "</pre>")
@@ -87,7 +87,7 @@ structlog.get_logger().addHandler(dbg)
 
 
 def f(r):
-    t = textwrap.fill(strip_ansi_colour(pylogginghandler.syslogger.format(r)), 120)
+    t = textwrap.fill(strip_ansi_colour(pylogginghandler.syslogger.format(r)), 240)
     if r.levelname in ["ERROR", "CRITICAL"]:
         syslogwidget.write('<pre class="danger">' + t + "</pre>")
     elif r.levelname in ["WARNING"]:

@@ -101,29 +101,31 @@ run = [True]
 
 
 def loop():
+    global lastrendered
+
     # This function is apparently slightly slow?
     u_cache = universes.getUniverses()
-    u = universes.universes
-    u_id = id(u)
+    u_cache_time = time.time()
 
     while run[0]:
+        t = time.time()
         try:
-            if not u_id == id(universes.universes):
+            # Profiler says this needs a cache
+            if t - u_cache_time > 1:
                 u_cache = universes.getUniverses()
-                u = universes.universes
-                u_id = id(u)
+                u_cache_time = t
+
             do_gui_push = False
-            global lastrendered
-            if time.time() - lastrendered > 1 / 14.0:
+            if t - lastrendered > 1 / 14.0:
                 with core.lock:
                     pollsounds()
                 do_gui_push = True
-                lastrendered = time.time()
+                lastrendered = t
 
             with core.lock:
                 for b in core.iter_boards():
                     poll_board_scenes(b)
-                    scene_lighting.composite_layers_and_do_output(b)
+                    scene_lighting.composite_layers_and_do_output(b, u=u_cache)
 
                     if do_gui_push:
                         b.guiPush(u_cache)

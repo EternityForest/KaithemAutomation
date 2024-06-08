@@ -908,6 +908,7 @@ class ScrollingWindow(Widget):
                 d.removeChild(d.childNodes[0])
             }
             var n = document.createElement("div");
+            n.className="w-full";
             n.innerHTML= val;
             d.appendChild(n);
             //Scroll to bottom if user was already there.

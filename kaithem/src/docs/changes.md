@@ -23,6 +23,7 @@ Change Log
 #### Fixed
 
 - :bug: Fix page XSS options
+- :bug: Fix mixer level meters in new channels not immediately responding till you refresh the page
 
 ```
 ┏━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━┳━━━━━━━━━┳━━━━━━┓

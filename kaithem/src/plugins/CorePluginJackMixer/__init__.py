@@ -815,7 +815,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                 self.levelTag.value = rms
 
             self.doSoundFuse(rms)
-            if level < -45 or abs(level - self.lastLevel) < 3:
+            if abs(level - self.lastLevel) < 3:
                 if time.monotonic() - self.lastPushedLevel < 1:
                     return True
             else:
