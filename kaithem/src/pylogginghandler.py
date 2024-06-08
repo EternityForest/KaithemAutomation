@@ -7,6 +7,7 @@ import bz2
 import gc
 import getpass
 import gzip
+import io
 import logging
 import os
 import random
@@ -66,6 +67,30 @@ class KFormatter(logging.Formatter):
 
 
 lastRaisedLogFailError = [0.0]
+
+
+def _strip_ansi_colour(text: str):
+    """Strip ANSI colour sequences from a string.
+
+    Args:
+        text (str): Text string to be stripped.
+
+    Returns:
+        iter[str]: A generator for each returned character. Note,
+        this will include newline characters.
+
+    """
+    buff = io.StringIO(text)
+    while b := buff.read(1):
+        if b == "\x1b":
+            while (b := buff.read(1)) != "m":
+                continue
+        else:
+            yield b
+
+
+def strip_ansi_colour(text: str) -> str:
+    return "".join(_strip_ansi_colour(text))
 
 
 def rateLimitedRaise(e):
@@ -173,9 +198,11 @@ class LoggingHandler(logging.Handler):
 
     def emit(self, record):
         # We handle all logs that make it to the root logger, and do the filtering ourselves
+        raw = self.format(record)
+        txt = strip_ansi_colour(raw)
         if self.doprint:
             if not self.exclude_print or (not (record.name == self.exclude_print or record.name.startswith(f"{self.exclude_print}."))):
-                print(self.format(record))
+                print(raw)
         if not (record.name == self.name or record.name.startswith(f"{self.name}.")) and not self.name == "":
             return
         self.callback(record)
@@ -183,10 +210,10 @@ class LoggingHandler(logging.Handler):
             if record.levelno >= self.contextlevel:
                 self.logbuffer.extend(self.contextbuffer)
                 self.contextbuffer = []
-                self.logbuffer.append(self.format(record))
+                self.logbuffer.append(txt)
             # That truncation operation will actulally do nothing if the contextlen is 0
             elif self.contextlen:
-                self.contextbuffer.append(self.format(record))
+                self.contextbuffer.append(txt)
                 self.contextbuffer = self.contextbuffer[-self.contextlen :]
 
         if len(self.logbuffer) >= self.bufferlen:

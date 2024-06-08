@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 
+import io
 import logging
 import os
 import re
@@ -14,6 +15,30 @@ from . import directories, pages, pylogginghandler, quart_app, util, widgets
 
 syslogwidget = widgets.ScrollingWindow(2500)
 syslogwidget.require("view_admin_info")
+
+
+def _strip_ansi_colour(text: str):
+    """Strip ANSI colour sequences from a string.
+
+    Args:
+        text (str): Text string to be stripped.
+
+    Returns:
+        iter[str]: A generator for each returned character. Note,
+        this will include newline characters.
+
+    """
+    buff = io.StringIO(text)
+    while b := buff.read(1):
+        if b == "\x1b":
+            while (b := buff.read(1)) != "m":
+                continue
+        else:
+            yield b
+
+
+def strip_ansi_colour(text: str) -> str:
+    return "".join(_strip_ansi_colour(text))
 
 
 try:
@@ -44,7 +69,7 @@ class WidgetHandler(logging.Handler):
 
     def emit(self, r):
         if r:
-            t = textwrap.fill(pylogginghandler.syslogger.format(r), 120)
+            t = textwrap.fill(strip_ansi_colour(pylogginghandler.syslogger.format(r)), 120)
             t = esc(t)
             if r.levelname in ["ERROR", "CRITICAL"]:
                 self.widget.write('<pre class="danger">' + t + "</pre>")
@@ -62,7 +87,7 @@ structlog.get_logger().addHandler(dbg)
 
 
 def f(r):
-    t = textwrap.fill(pylogginghandler.syslogger.format(r), 120)
+    t = textwrap.fill(strip_ansi_colour(pylogginghandler.syslogger.format(r)), 120)
     if r.levelname in ["ERROR", "CRITICAL"]:
         syslogwidget.write('<pre class="danger">' + t + "</pre>")
     elif r.levelname in ["WARNING"]:

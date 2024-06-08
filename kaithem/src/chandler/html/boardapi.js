@@ -323,10 +323,11 @@ appMethods = {
             old_vue_set(this.scenecues[sc], v, undefined);
             this.recomputeformattedCues();
         };
+        const t = this
         setTimeout(function () {
-            old_vue_set(this.selectedCues,
+            old_vue_set(t.selectedCues,
                 sc, v)
-        }, 70)
+        }, 350)
     },
 
     'clonecue': function (sc, cue, v) {
@@ -337,8 +338,9 @@ appMethods = {
             old_vue_set(this.scenecues[sc], v, undefined);
             this.recomputeformattedCues();
         };
+        const t = this
         setTimeout(function () {
-            old_vue_set(this.selectedCues,
+            old_vue_set(t.selectedCues,
                 sc, v)
         }, 70)
 
@@ -1287,7 +1289,9 @@ function f(v) {
     }
 
     else if (c == 'scenetimers') {
-        vueapp.$data.scenemeta[v[1]].timers = v[2]
+        if (vueapp.$data.scenemeta[v[1]]) {
+            vueapp.$data.scenemeta[v[1]].timers = v[2]
+        }
     }
     else if (c == 'cuehistory') {
         vueapp.$data.scenemeta[v[1]].history = v[2]
@@ -1375,7 +1379,9 @@ function f(v) {
     }
 
     else if (c == "varchange") {
-        vueapp.$data.scenemeta[v[1]]['vars'][v[2]] = v[3]
+        if (vueapp.$data.scenemeta[v[1]]) {
+            vueapp.$data.scenemeta[v[1]]['vars'][v[2]] = v[3]
+        }
     }
     else if (c == "delcue") {
         c = vueapp.$data.cuemeta[v[1]]

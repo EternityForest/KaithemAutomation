@@ -815,8 +815,8 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                 self.levelTag.value = rms
 
             self.doSoundFuse(rms)
-            if level < -45 or abs(level - self.lastLevel) < 6:
-                if time.monotonic() - self.lastPushedLevel < 0.3:
+            if level < -45 or abs(level - self.lastLevel) < 3:
+                if time.monotonic() - self.lastPushedLevel < 1:
                     return True
             else:
                 if time.monotonic() - self.lastPushedLevel < 0.07:
@@ -1031,6 +1031,15 @@ class MixingBoard:
                 log.exception(f"Could not create channel {i}")
                 self.pushStatus(i, f"error {str(e)}")
 
+    def sendChannels(self):
+        c = copy.deepcopy(self.channels)
+
+        # Placeholder here to not mess up vue rendering
+        for i in c:
+            c[i]["level"] = -99
+
+        self.api.send(["channels", c])
+
     def sendState(self):
         if not self.running:
             return
@@ -1048,7 +1057,7 @@ class MixingBoard:
 
         if self.lock.acquire(timeout=5):
             try:
-                self.api.send(["channels", self.channels])
+                self.sendChannels()
 
                 for i in self.channels:
                     self.pushStatus(i)
@@ -1104,7 +1113,7 @@ class MixingBoard:
             return
         "Create a channel given the name and the data for it"
         self.channels[name] = data
-        self.api.send(["channels", self.channels])
+        self.sendChannels()
         for i in self.channels:
             self.pushStatus(i)
         self.pushStatus(name, "loading")
@@ -1175,7 +1184,7 @@ class MixingBoard:
             self.channelAlerts[name].release()
             del self.channelAlerts[name]
 
-        self.api.send(["channels", self.channels])
+        self.sendChannels()
         for i in self.channels:
             self.pushStatus(i)
 
@@ -1261,7 +1270,7 @@ class MixingBoard:
                 "Directly set the effects data of a channel"
                 with self.lock:
                     self.channels[data[1]]["effects"] = data[2]
-                    self.api.send(["channels", self.channels])
+                    self.sendChannels()
                     for i in self.channels:
                         self.pushStatus(i)
                     self._createChannel(data[1], self.channels[data[1]])
@@ -1313,7 +1322,7 @@ class MixingBoard:
 
                     fx["id"] = str(uuid.uuid4())
                     self.channels[data[1]]["effects"].append(fx)
-                    self.api.send(["channels", self.channels])
+                    self.sendChannels()
                     for i in self.channels:
                         self.pushStatus(i)
                     self._createChannel(data[1], self.channels[data[1]])

@@ -67,6 +67,8 @@ Scripts starting with . need root.
 # Currently, most distros don't have pipewire JACK enabled by default, which
 # is needed for the audio mixing features.
 kaithem-scripts root-use-pipewire-jack
+kaithem-scripts user-restart-pipewire
+
 
 # This activates a maxvolume service, which sets volume to full at boot.
 kaithem-scripts user-max-volume-at-boot

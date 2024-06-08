@@ -17,4 +17,4 @@ apt -y install pipewire-audio-client-libraries
 cp /usr/share/doc/pipewire/examples/ld.so.conf.d/pipewire-jack-*.conf /etc/ld.so.conf.d/
 ldconfig
 
-echo "Log out and in again, or do make restart-pipewire"
+echo "Log out and in again, or do 'kaithem-scripts user-restart-pipewire'"
