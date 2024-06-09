@@ -1,6 +1,13 @@
 <template id="smooth-range">
-    <input type="range" :value="_val" @input="onInput" @change="onInput"
-    :max="max" :min="min" :disabled="disabled"/>
+    <input type="range"
+    @input="onInput" 
+    @change="onInput"
+    :title="title"
+    :max="max" 
+    :min="min" 
+    :disabled="disabled"
+    v-model="_val" 
+    />
 </template>
 
 <script>
@@ -8,7 +15,7 @@
 export default {
   template: '#smooth-range',
   data: function () {
-    const v = this.modelValue
+    const v = parseFloat(this.modelValue)
     return ({
       _val: v,
       lastUserChange: 0,
@@ -28,18 +35,20 @@ export default {
     },
     disabled: {
       default: false
+    },
+    title: {
+      default: ""
     }
   },
   watch: {
     modelValue(newVal) {
       newVal=parseFloat(newVal)
-      if (newVal !== this._val) {
         this.trySetValue(newVal)
-      }
     }
   },
   methods: {
     trySetValue(newVal) {
+      newVal=parseFloat(newVal)
       if (this.bgWorker) {
           clearTimeout(this.bgWorker);
           this.bgWorker = null;
@@ -74,7 +83,7 @@ export default {
       // Otherwise, set 600ms after the last user interaction
       if (Date.now() - this.lastSend > 44) {
         this.lastSend = Date.now()
-        this.$emit('update:modelValue', this._val);
+        this.$emit('update:modelValue', parseFloat(this._val));
       }
       else {
 
@@ -89,7 +98,7 @@ export default {
     onInput(event) {
   
       this.lastUserChange = Date.now()
-      const newValue = event.target.value;
+      const newValue = parseFloat(event.target.value);
       this._val = newValue
       this.trySendVal()
     }

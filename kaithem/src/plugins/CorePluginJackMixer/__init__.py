@@ -268,12 +268,12 @@ class Recorder(gstwrapper.Pipeline):
 
 
 class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
-    def __init__(self, name, board=None, channels=2, input=None, outputs=[], soundFuse=3):
+    def __init__(self, name, board: MixingBoard, channels=2, input=None, outputs=[], soundFuse=3):
         try:
             self.name = name
             gstwrapper.Pipeline.__init__(self, name)
             start_dummy_source_if_needed()
-            self.board = board
+            self.board: MixingBoard = board
             self.levelTag = tagpoints.Tag(f"/jackmixer/channels/{name}.level")
             self.levelTag.min = -90
             self.levelTag.max = 3
@@ -906,17 +906,19 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
 
     def _faderTagHandler(self, level, t, a):
         # Note: We don't set the configured data fader level here.
-        if self.fader:
-            if self.mute:
-                self.fader.set_property("volume", 0)
-            else:
-                if level > -60:
-                    self.fader.set_property("volume", 10 ** (float(level) / 20))
-                else:
-                    self.fader.set_property("volume", 0)
+        self.board.api.send(["fader", self.name, level])
 
-        if self.board:
-            self.board.api.send(["fader", self.name, level])
+        if self.fader:
+            try:
+                if self.mute:
+                    self.fader.set_property("volume", 0)
+                else:
+                    if level > -60:
+                        self.fader.set_property("volume", 10 ** (float(level) / 20))
+                    else:
+                        self.fader.set_property("volume", 0)
+            except Exception:
+                self.board.reloadChannel(self.name)
 
     def setFader(self, level):
         # Let the _faderTagHandler handle it.
@@ -1208,9 +1210,6 @@ class MixingBoard:
             c = self.channelObjects[channel]
             c.setFader(level)
 
-            # Push the real current value, not just repeating what was sent
-            self.api.send(["fader", channel, c.faderTag.value])
-
             if c.faderTag.current_source == "default":
                 self.channels[channel]["fader"] = float(level)
 
@@ -1242,6 +1241,13 @@ class MixingBoard:
 
             self.loadedPreset = presetName
             self.api.send(["loadedPreset", self.loadedPreset])
+
+    def reloadChannel(self, name):
+        # disallow spamming
+        if not actionLockout.get(name, 0) > time.monotonic() - 10:
+            actionLockout[name] = time.monotonic()
+            self._createChannel(name, self.channels[name])
+            actionLockout.pop(name, None)
 
     def f(self, user, data):
         def f2():
@@ -1328,11 +1334,7 @@ class MixingBoard:
                     self._createChannel(data[1], self.channels[data[1]])
 
             if data[0] == "refreshChannel":
-                # disallow spamming
-                if not actionLockout.get(data[1], 0) > time.monotonic() - 10:
-                    actionLockout[data[1]] = time.monotonic()
-                    self._createChannel(data[1], self.channels[data[1]])
-                    actionLockout.pop(data[1], None)
+                self.reloadChannel(data[1])
 
             if data[0] == "rmChannel":
                 self.deleteChannel(data[1])
@@ -1456,14 +1458,14 @@ class MixingBoardType(modules_state.ResourceType):
         return d
 
     def createpage(self, module, path):
-        d = dialogs.SimpleDialog("New Config Entries")
+        d = dialogs.SimpleDialog("New Mixer")
         d.text_input("name", title="Resource Name")
 
         d.submit_button("Save")
         return d.render(self.get_create_target(module, path))
 
     def editpage(self, module, name, value):
-        d = dialogs.SimpleDialog("Editing Config Entries")
+        d = dialogs.SimpleDialog("Editing Mixer")
         d.text("Edit the board in the mixer UI")
 
         return d.render(self.get_update_target(module, name))

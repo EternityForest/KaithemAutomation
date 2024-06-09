@@ -434,6 +434,7 @@ Copyright (c) 2015 Yusuke Kawasaki
 	setTimeout(__kwidget_doBattery, 60)
 	setInterval(__kwidget_doBattery, 1800000)
 
-
-	setTimeout(function () { kaithemapi.connect() }, 100)
+	window.addEventListener('load', function () {
+		setTimeout(function () { kaithemapi.connect() }, 10)
+	})
 }

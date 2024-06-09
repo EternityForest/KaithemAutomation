@@ -623,7 +623,7 @@ effectTemplates_data = {
     },
     "3beqp": {
         "type": "3beqp",
-        "displayType": "3 Band Parametric EQ",
+        "displayType": "3 Band ParamEQ",
         "help": "Basic builtin paramentric EQ",
         "gstElement": "equalizer-nbands",
         "params": {

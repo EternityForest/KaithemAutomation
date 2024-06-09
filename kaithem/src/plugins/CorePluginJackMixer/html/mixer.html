@@ -29,6 +29,7 @@
 </style>
 
 <script type="text/javascript" src="/static/js/widget.js"></script>
+
 ${board.api.render("api")}
 ${global_api.render("gapi")}
 
@@ -186,7 +187,7 @@ ${global_api.render("gapi")}
 
                 </div>
             </header>
-            <div class="chain scroll h-24rem">
+            <div class="chain scroll h-24rem noselect">
               <div v-for="effect, index in channel.effects" class="effect">
                 <details class="undecorated">
                   <summary>
@@ -209,9 +210,10 @@ ${global_api.render("gapi")}
                     <tr v-for="param in sortedParams(effect.params)" class="param">
                       <template v-if="param.type=='float'">
                         <td>{{param.displayName}}</td>
-                        <td><input type="range" style="width:95%" v-model.number="param.value" v-bind:min="param.min"
+                        <td><smooth-range style="width:95%" v-model.number="param.value" v-bind:min="param.min"
                             v-bind:max="param.max" :step="(param.step)"
                             v-on:input="setParam(channelname,effect.id,param.name,parseFloat($event.target.value))">
+                            </smooth-range>
                         </td>
 
                         <td>{{param.value}}</td>
@@ -219,10 +221,12 @@ ${global_api.render("gapi")}
 
                       <template v-if="param.type=='int'">
                         <td>{{param.displayName}}</td>
-                        <td><input type="range" style="width:95%" v-model.number="param.value" v-bind:min="param.min"
+                        <td><smooth-range style="width:95%" v-model.number="param.value" v-bind:min="param.min"
                             v-bind:max="param.max" :step="(param.step)"
                             v-on:input="setParam(channelname,effect.id,param.name,parseInt($event.target.value))">
-                        </td>
+                          </smooth-range>
+
+                          </td>
 
                         <td>{{param.value}}</td>
                       </template>
@@ -282,23 +286,26 @@ ${global_api.render("gapi")}
                 <div class="tool-bar"><input v-model="fxSearch" placeholder="Search"><button
                     v-on:click="fxSearch=''"><i class="mdi mdi-backspace"></i></button></div>
                 <div style="height:8em;overflow: scroll;">
-                  <div v-for="i in effectTypes"
-                    v-if="canUseEffect(i, channel.channels) && (i.displayType+i.help).toLowerCase().includes(fxSearch)">
-                    <h4>{{i.displayType}}</h4>
-                    <p>{{i.help}}</p>
-                    <button v-on:click="api.send(['addEffect', channelname, i.type])">Add</button>
-                  </div>
+                  <template v-for="i in effectTypes">
+                    <div  v-if="canUseEffect(i, channel.channels) && (i.displayType+i.help).toLowerCase().includes(fxSearch)">
+                      <h4>{{i.displayType}}</h4>
+                      <p>{{i.help}}</p>
+                      <button v-on:click="api.send(['addEffect', channelname, i.type])">Add</button>
+                    </div>
+                  </template>
                 </div>
               </div>
 
             </div>
 
-            <footer class="padding">
+            <footer class="padding noselect">
               <p>{{channelname}} Level:</p>
               <div class="tool-bar">
-                <input v-model="channel.fader" v-on:input="setFader(channelname, parseFloat($event.target.value))"
-                  type="range" step="0.5" value="-60" min="-60" max="20"
-                  v-bind:title="channel.fader">
+                <smooth-range
+                  v-model="channel.fader"
+                  v-on:input="setFader(channelname, parseFloat($event.target.value))"
+                  step="0.5" min="-60" max="20"
+                  v-bind:title="channel.fader"></smooth-range>
 
                 <button v-on:click="setMute(channelname, !channel.mute)" title="Mute channel" type="checkbox">
                   <i v-if="channel.mute" class="mdi mdi-volume-mute" style="color: red; background-color:black"></i>
@@ -373,8 +380,8 @@ ${global_api.render("gapi")}
 </div>
 
 
-<script src="/static/js/thirdparty/vue2.js"></script>
-<script src="/static/js/thirdparty/sortable.min.js"></script>
+<script src="/static/js/thirdparty/vue3.js"></script>
+<script src="/static/js/thirdparty/vue3-sfc-loader.js"></script>
 
 
 <script>
@@ -396,32 +403,69 @@ ${global_api.render("gapi")}
   };
 
 
-  channels = {};
-  var app = new Vue({
-    el: '#app',
-    data: {
-      message: 'Hello Vue!',
-      fxSearch: '',
-      ui_ready: false,
-      inports: {},
-      outports: {},
-      channels: channels,
-      api: api,
-      newchannelname: "",
-      newpresetname: "",
-      neweffecttype: "",
-      activePane: "mixer",
-      effectTypes: {},
-      presets: [],
-      showAddEffect: false,
-      loadedPreset: '',
-      midiinports: [],
-      midioutports: [],
 
-      recordName: "mixer_",
-      recordChannels: 2,
-      recordStatus: "",
-      channelStatus: {},
+  const { loadModule } = window['vue3-sfc-loader'];
+
+
+  const options = {
+    moduleCache: {
+      vue: Vue
+    },
+    async getFile(url) {
+
+      const res = await fetch(url);
+      if (!res.ok)
+        throw Object.assign(new Error(res.statusText + ' ' + url), { res });
+      return {
+        getContentData: asBinary => asBinary ? res.arrayBuffer() : res.text(),
+      }
+    },
+    addStyle(textContent) {
+
+      const style = Object.assign(document.createElement('style'), { textContent });
+      const ref = document.head.getElementsByTagName('style')[0] || null;
+      document.head.insertBefore(style, ref);
+    },
+  }
+
+  function httpVueLoader(u) {
+    return Vue.defineAsyncComponent(() => loadModule(u, options))
+  }
+
+  channels = {};
+
+
+  var app = Vue.createApp({
+    data: function () {
+      return {
+        message: 'Hello Vue!',
+        fxSearch: '',
+        ui_ready: false,
+        inports: {},
+        outports: {},
+        channels: channels,
+        api: api,
+        newchannelname: "",
+        newpresetname: "",
+        neweffecttype: "",
+        activePane: "mixer",
+        effectTypes: {},
+        presets: [],
+        showAddEffect: false,
+        loadedPreset: '',
+        midiinports: [],
+        midioutports: [],
+        recordName: "mixer_",
+        recordChannels: 2,
+        recordStatus: "",
+        channelStatus: {}
+      }
+    },
+
+    components: {
+      'smooth-range': httpVueLoader('/static/vue/smoothrange.vue')
+    },
+    methods: {
 
       ding: function (c) {
         api.send(['test', c + "_in"]);
@@ -544,7 +588,10 @@ ${global_api.render("gapi")}
         return (l);
       }
     }
-  });
+  }
+  );
+
+  app = app.mount("#app");
 
 
   api.upd = function (msg) {
@@ -556,16 +603,16 @@ ${global_api.render("gapi")}
     if (msg[0] == "newport") {
 
       if (msg[3]) {
-        app.$data.inports[msg[1]] = msg[2];
+        app.inports[msg[1]] = msg[2];
       }
       else {
-        app.$data.outports[msg[1]] = msg[2];
+        app.outports[msg[1]] = msg[2];
       }
     }
 
     if (msg[0] == "rmport") {
-      delete app.$data.inports[msg[1]];
-      delete app.$data.outports[msg[1]]
+      delete app.inports[msg[1]];
+      delete app.outports[msg[1]]
     }
 
     if (msg[0] == "ui_ready") {
@@ -602,23 +649,23 @@ ${global_api.render("gapi")}
     }
 
     if (msg[0] == "lv") {
-      if (app.$data.channels[msg[1]]) {
-        app.$data.channels[msg[1]].level = msg[2];
+      if (app.channels[msg[1]]) {
+        app.channels[msg[1]].level = msg[2];
       }
     }
 
     if (msg[0] == "status") {
-      if (app.$data.channels[msg[1]]) {
-        Vue.set(app.$data.channelStatus, msg[1], msg[2])
+      if (app.channels[msg[1]]) {
+        app.channelStatus[msg[1]] = msg[2]
       }
     }
 
     if (msg[0] == "fader") {
-      app.$data.channels[msg[1]].fader = msg[2];
+      app.channels[msg[1]].fader = msg[2];
     }
 
     if (msg[0] == "mute") {
-      app.$data.channels[msg[1]].mute = msg[2];
+      app.channels[msg[1]].mute = msg[2];
     }
 
   };
