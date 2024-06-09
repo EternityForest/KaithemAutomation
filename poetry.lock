@@ -3093,20 +3093,20 @@ test = ["array-api-strict", "asv", "gmpy2", "hypothesis (>=6.30)", "mpmath", "po
 
 [[package]]
 name = "scullery"
-version = "0.1.18"
+version = "0.1.19"
 description = "A utility library based on KaithemAutomation featuring a GStreamer wrapper"
 optional = false
-python-versions = ">=3.6"
+python-versions = "<4.0,>=3.10"
 files = [
-    {file = "scullery-0.1.18-py3-none-any.whl", hash = "sha256:f92e699fcafe1b74d524fdf99ca5eb186677e5da3469102a9f7fa40f7042986c"},
-    {file = "scullery-0.1.18.tar.gz", hash = "sha256:468889d8678f509f918cc01a381bdff816df37b2101e05724a83f9875b5bc14c"},
+    {file = "scullery-0.1.19-py3-none-any.whl", hash = "sha256:b4e3630a842d1b74690aa863fbe13555880841ac34cda37fd595cce19c2737a6"},
+    {file = "scullery-0.1.19.tar.gz", hash = "sha256:6ec54dcfeb439580a680fa117eab5dcfa8ed9191889d0dd673124ba41731bd35"},
 ]
 
 [package.dependencies]
 beartype = "*"
 paho-mqtt = "*"
 pint = "*"
-pyyaml = "*"
+PyYAML = ">=6.0.1,<7.0.0"
 
 [[package]]
 name = "setproctitle"

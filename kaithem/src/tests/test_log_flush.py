@@ -18,4 +18,4 @@ def test_log_flush():
         d = f.read()
 
     # Make sure stuff is actually in the file
-    assert "INFO:" in d
+    assert "[info" in d
