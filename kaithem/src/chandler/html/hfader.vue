@@ -78,8 +78,6 @@
 
 
 <script>
-const { default: Smoothrange } = require('./smoothrange.vue');
-
 var hfaderdata =
 {
     'promptExactVal': function (cue, u, v) {
@@ -122,7 +120,7 @@ module.exports = {
         return (hfaderdata)
     },
     components: {
-        'smooth-range': httpVueLoader('../static/smoothrange.vue')
+        'smooth-range': httpVueLoader('/static/vue/smoothrange.vue')
     },
 }
 
