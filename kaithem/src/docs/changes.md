@@ -2,12 +2,13 @@ Change Log
 ----------
 
 
-### 0.84.0
+### 0.84.0b1
 
 #### Added
 - :coffin: Fileserver resource types allow you to serve a directory of files as if it were at /pages/module/resourcename.  This replaces the old individual file permissions.
 
 - :sparkles: Lots of testing!
+- :sparkles: Now available on pypi!
 
 #### Removed
 
