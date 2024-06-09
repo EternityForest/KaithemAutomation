@@ -35,16 +35,15 @@ You automate things by directly writing python and HTML via a web IDE, or by usi
 First you'll need to get [pipx](https://pipx.pypa.io/stable/installation/) if you haven't yet.
 
 ```bash
-sudo apt install pipx git
+sudo apt install pipx
 python3 -m pipx ensurepath
 ```
 
-Next you can clone the git repo and install
+Next you can just install it right from PyPi!
+Be aware that pipx takes a while on a raspberry pi.
 
 ```bash
-git clone --depth 1 https://github.com/EternityForest/KaithemAutomation
-cd KaithemAutomation
-pipx install --verbose .
+pipx install --verbose kaithem
 
 kaithem-scripts root-install-system-dependencies
 
