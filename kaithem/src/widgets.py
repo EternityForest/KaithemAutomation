@@ -943,9 +943,9 @@ class APIWidget(Widget):
             self.send(value)
 
     def render(self, htmlid: str) -> str:
-        return f"<script>{self._render(htmlid)}</script>"
+        return f"<script>{self.render_raw(htmlid)}</script>"
 
-    def _render(self, htmlid: str) -> str:
+    def render_raw(self, htmlid: str) -> str:
         return f"""
                 {htmlid} = {{}};
                 {htmlid}.value = "Waiting..."

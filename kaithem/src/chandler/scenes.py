@@ -1851,7 +1851,6 @@ class Scene:
         self.pushMeta(keys={"music_visualizations"})
 
     def setAlpha(self, val: float, sd: bool = False):
-        print(val)
         val = min(1, max(0, val))
         try:
             self.cueVolume = min(5, max(0, float(self.evalExpr(self.cue.sound_volume))))

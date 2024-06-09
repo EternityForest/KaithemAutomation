@@ -224,6 +224,9 @@ appMethods = {
 
 
     'selectcue': function (sc, cue) {
+        if (this.cueSelectTimeout) {
+            clearTimeout(this.cueSelectTimeout)
+        }
         this.selectedCues[sc] = cue
         this.getcuedata(this.scenecues[sc][cue])
     },
@@ -316,7 +319,10 @@ appMethods = {
             this.recomputeformattedCues();
         };
         const t = this
-        setTimeout(function () {
+        if (this.cueSelectTimeout) {
+            clearTimeout(this.cueSelectTimeout)
+        }
+        this.cueSelectTimeout = setTimeout(function () {
             old_vue_set(t.selectedCues,
                 sc, v)
         }, 350)
@@ -331,10 +337,13 @@ appMethods = {
             this.recomputeformattedCues();
         };
         const t = this
-        setTimeout(function () {
+        if (this.cueSelectTimeout) {
+            clearTimeout(this.cueSelectTimeout)
+        }
+        this.cueSelectTimeout = setTimeout(function () {
             old_vue_set(t.selectedCues,
                 sc, v)
-        }, 70)
+        }, 350)
 
     },
     'gotonext': function (currentcueid, scene) {
@@ -1164,6 +1173,9 @@ appData = {
     'selectedCues': {},
     'showPages': false,
     'uiAlertSounds': true,
+    // Used for things that auto select cues after a delay to set things
+    // up but also are cancelable.
+    'cueSelectTimeout': 0,
     //go from cue name to cue id
     //scenecues[sceneuuid][cuename]=cueid
     'scenecues': {},

@@ -319,7 +319,7 @@ Copyright (c) 2015 Yusuke Kawasaki
 					}
 
 					if (this.toSend && (this.toSend.length > 0)) {
-						window.setTimeout(this.poll_ratelimited, 120);
+						window.setTimeout(this.poll_ratelimited.bind(this), 120);
 					}
 
 				}

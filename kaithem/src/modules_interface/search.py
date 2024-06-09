@@ -46,6 +46,11 @@ def searchModuleResources(modulename, search, max_results=100, start=0):
 
 @quart_app.app.route("/modules/search/<module>", methods=["POST"])
 async def search(module):
+    try:
+        pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+
     kwargs = dict(await quart.request.form)
     kwargs.update(quart.request.args)
     start = mstart = 0
@@ -53,10 +58,6 @@ async def search(module):
         mstart = int(kwargs["mstart"])
     if "start" in kwargs:
         start = int(kwargs["start"])
-    try:
-        pages.require("system_admin")
-    except PermissionError:
-        return pages.loginredirect(pages.geturl())
 
     @quart.copy_current_request_context
     def f():

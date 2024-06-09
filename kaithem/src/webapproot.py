@@ -90,7 +90,21 @@ def apiwidget(widgetid):
         pages.require("enumerate_endpoints")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
-    return widgets.widgets[widgetid]._render(js_name)
+
+    if widgetid not in widgets.widgets:
+        raise KeyError("Does not exist or not APIWidget")
+
+    if not isinstance(widgets.widgets[widgetid], widgets.APIWidget):
+        raise KeyError("Does not exist or not APIWidget")
+
+    w = widgets.widgets[widgetid]
+    assert isinstance(w, widgets.APIWidget)
+
+    if w._read_perms:
+        for i in w._read_perms:
+            pages.require(i)
+
+    return w.render_raw(js_name)
 
 
 # Todo: is this to slow for async??
@@ -246,6 +260,11 @@ def themetest():
 
 @quart_app.app.route("/about")
 def about():
+    try:
+        pages.require("view_status")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+
     return pages.get_template("help/about.html").render()
 
 

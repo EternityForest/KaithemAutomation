@@ -74,6 +74,11 @@ def runeventdialog(module, evt):
 @quart_app.app.route("/modules/module/<module>/action", methods=["POST"])
 @quart_app.wrap_sync_route_handler
 def action(module, action, dir):
+    try:
+        pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+
     m = module_actions.get_action(action, {"module": module, "path": dir})
 
     d = dialogs.SimpleDialog(m.title)
