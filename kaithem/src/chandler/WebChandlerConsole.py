@@ -802,15 +802,16 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
             soundfolders = core.getSoundFolders()
             s = ""
-            for i in soundfolders:
-                s = msg[2]
-                # Make paths relative.
-                if not i.endswith("/"):
-                    i = i + "/"
-                if s.startswith(i):
-                    s = s[len(i) :]
-                    break
-            assert s
+            if msg[2]:
+                for i in soundfolders:
+                    s = msg[2]
+                    # Make paths relative.
+                    if not i.endswith("/"):
+                        i = i + "/"
+                    if s.startswith(i):
+                        s = s[len(i) :]
+                        break
+                assert s
 
             if s.strip() and cues[msg[1]].sound and cues[msg[1]].named_for_sound:
                 self.pushCueMeta(msg[1])

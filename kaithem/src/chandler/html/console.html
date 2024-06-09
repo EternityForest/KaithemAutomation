@@ -805,23 +805,6 @@ ${lists}
                             </table>
                         </div>
                     </div>
-
-
-
-
-                    <h3>Event Log</h3>
-                    <div class="max-h-12rem scroll border" style="height:6em">
-                        <div v-bind:class="{'evlisting': i[0]!=='error', 'evlisting_err': i[0].includes('error')}"
-                            v-for="i in evlog.filter((d) => d[1].search(editingScene.name) )">{{i[2]}}: <b>{{i[0]}}</b>
-                            at
-                            {{i[1]}}:
-
-                            <span v-if="!(typeof(i[3])=='string' && i[3].length>32)">{{i[3]}}</span>
-                            <pre v-if="(typeof(i[3])=='string' && i[3].length>32)">{{i[3]}}</pre>
-                            <pre v-if="i[4]">{{i[4]}}</pre>
-                        </div>
-                    </div>
-
                 </details>
 
 

@@ -83,7 +83,7 @@
             return []
 
         try:
-            m = rtmidi.MidiIn(rtmidi.API_UNIX_JACK, name="KaithemTemp"+str(random.random()))
+            m = rtmidi.MidiIn(name="KaithemTemp"+str(random.random()))
             x = [(m.get_port_name(i)) for i in range(m.get_port_count())]
 
             return x

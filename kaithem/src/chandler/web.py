@@ -35,9 +35,9 @@ def listRtmidi():
         return []
     try:
         try:
-            m = rtmidi.MidiIn(rtmidi.API_UNIX_JACK)
+            m = rtmidi.MidiIn()
         except Exception:
-            m = rtmidi.MidiIn(rtmidi.API_UNIX_JACK)
+            m = rtmidi.MidiIn()
 
         x = [(m.get_port_name(i)) for i in range(m.get_port_count())]
         m.close_port()

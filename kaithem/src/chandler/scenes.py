@@ -47,6 +47,16 @@ min = min
 scenes: weakref.WeakValueDictionary[str, Scene] = weakref.WeakValueDictionary()
 
 
+def normalize_midi_name(t):
+    "Same function as in the core plugin midi to tags"
+    t = t.lower().replace(":", "_").replace("[", "").replace("]", "").replace(" ", "_")
+    t = t.replace("-", "_")
+    for i in tagpoints.ILLEGAL_NAME_CHARS:
+        t = t.replace(i, "")
+
+    return t
+
+
 def is_static_media(s: str):
     "True if it's definitely media that does not have a length"
     for i in (".bmp", ".jpg", ".html", ".webp", ".php"):
@@ -1816,12 +1826,12 @@ class Scene:
 
         if not s:
             kaithem.message.unsubscribe(
-                "/midi/" + s.replace(":", "_").replace("[", "").replace("]", "").replace(" ", ""),
+                "/midi/" + normalize_midi_name(s),
                 self.onMidiMessage,
             )
         else:
             kaithem.message.subscribe(
-                "/midi/" + s.replace(":", "_").replace("[", "").replace("]", "").replace(" ", ""),
+                "/midi/" + normalize_midi_name(s),
                 self.onMidiMessage,
             )
 

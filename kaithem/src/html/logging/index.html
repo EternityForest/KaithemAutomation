@@ -64,9 +64,9 @@ function f(element)
     There are ${len(messagelogging.log)|h} recent topics. Sorting:[<a href="/logs?sort=topic">Alphabetical</a>|<a href="/logs?sort=time">Most Recently Active</a>]<br>
     %if messagelogging.log:
         %for i in sorted(messagelogging.log.keys(),key=sortkey,reverse = rev):
-            <div id="f_${i}">
+            <div id="f_${i}" class="card w-sm-double">
+                <header><h3>${i}</h3></header>
 
-                <p>
                     <table border=1>
                     <tr>
                     <td>Latest Value</td><td><pre style="margin:2px;">${dump(messagelogging.log[i][-1][1])|h}</pre></td>
@@ -79,7 +79,6 @@ function f(element)
                     <td>Total Messages Available: </td><td>${len(messagelogging.log[i])}<a href="/logs/viewall/${url(i)}">View History</a></td>
                     </tr>
                     </table>
-                </p>
             </div>
         %endfor
     </div>
