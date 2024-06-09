@@ -1029,7 +1029,7 @@ class GenericTagPointClass(Generic[T]):
 
             if pollStuff:
                 try:
-                    self.unsubscribe(pollStuff[2])
+                    scheduling.scheduler.unregister(pollStuff[1])
                 except Exception:
                     logger.exception("Maybe already unsubbed?")
 
