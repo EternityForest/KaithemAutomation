@@ -47,7 +47,7 @@ def onMidiMessage(m, d):
             ("cc", m.getChannel(), m.getControllerNumber(), m.getControllerValue()),
         )
         setTag(
-            f"/midi/{d}/{str(m.getChannel())}.cc[{str(m.getControllerNumber())}]",
+            f"/midi/{d}/{str(m.getChannel())}.cc.{str(m.getControllerNumber())}",
             m.getControllerValue(),
             a=0,
         )
@@ -91,7 +91,7 @@ def onMidiMessageTuple(m, d):
 
     elif code == 176:
         messagebus.post_message(f"/midi/{d}", ("cc", ch, a, b))
-        setTag(f"/midi/{d}/{str(ch)}.cc[{str(a)}]", b, a=0)
+        setTag(f"/midi/{d}/{str(ch)}.cc.{str(a)}", b, a=0)
 
 
 once = [0]

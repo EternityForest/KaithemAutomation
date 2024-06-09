@@ -180,6 +180,7 @@ def normalize_tag_name(name: str, replacementChar: str | None = None) -> str:
 
     # Special case, these tags are expression tags.
     if not name.startswith("="):
+        name = re.sub(r"\[(.*)\]", lambda x: f".{x.groups(1)[0]}", name)
         for i in ILLEGAL_NAME_CHARS:
             if i in name:
                 if replacementChar:
