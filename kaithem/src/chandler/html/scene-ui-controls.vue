@@ -24,7 +24,7 @@ input {
 
         <details v-on:toggle="sceneData.doSlideshowEmbed= $event.target.open" style="margin: 0px; padding: 0px;"
          v-if="sceneData.slideOverlayUrl || (cue && (cue.slide || cue.markdown) ) || sceneData.doSlideshowEmbed || sceneData.soundOutput=='scenewebplayer' || cue.soundOutput=='scenewebplayer'">
-            <summary>
+            <summary class="noselect">
                 <a 
                     :href="'/chandler/webmediadisplay?scene=' + sceneData.id">(slideshow)</a>
             </summary>
@@ -33,7 +33,7 @@ input {
                     :src="'/chandler/webmediadisplay?scene=' + sceneData.id"></iframe>
             </div>
         </details>
-        <div class="flex-row gaps" v-if="sceneData.displayTags.length > 0">
+        <div  class="noselect" class="flex-row gaps" v-if="sceneData.displayTags.length > 0">
 
             <div :style="{ 'min-width': v[2].width + 'rem' }" v-for="v in sceneData.displayTags">
                 <label><b>{{ v[0] }}</b></label>

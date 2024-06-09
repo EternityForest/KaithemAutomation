@@ -203,7 +203,6 @@ appMethods = {
     },
     'setCueVal': function (sc, u, ch, val) {
         val = isNaN(parseFloat(val)) ? val : parseFloat(val)
-        this.lockedFaders[sc + ":" + u + ":" + ch] = true;
         api_link.send(['scv', sc, u, ch, val]);
     },
 
@@ -222,9 +221,7 @@ appMethods = {
         val = isNaN(parseFloat(val)) ? val : parseFloat(val)
         api_link.send(['scv', sc, u, ch, val]);
     },
-    'unlockCueValFader': function (sc, u, ch) {
-        delete this.lockedFaders[sc + ":" + u + ":" + ch];
-    },
+
 
     'selectcue': function (sc, cue) {
         this.selectedCues[sc] = cue
@@ -283,14 +280,9 @@ appMethods = {
 
 
     'setalpha': function (sc, v) {
-        this.lockedFaders[sc] = true;
         api_link.send(['setalpha', sc, v]);
         this.alphas[sc] = v
     },
-    'unlockAlpha': function (sc) {
-        delete this.lockedFaders[sc];
-    },
-
 
     'setfade': function (sc, v) {
 
@@ -1181,9 +1173,6 @@ appData = {
     //same info as scenevals, indexed hierarchally, as [universe][channel]
     //Actual objs are shared too so changing one obj change in in the other.
 
-    //We must track faders the user is actively touching so new data doesn't
-    //Annoy you jumping them around
-    'lockedFaders': {},
     'presets': {},
 
     //All alarms active on server
@@ -1304,9 +1293,7 @@ function f(v) {
         }
 
         if (v[2].alpha != undefined) {
-            if (!vueapp.$data.lockedFaders[v[1]]) {
-                old_vue_set(vueapp.$data.alphas, v[1], v[2].alpha);
-            }
+            old_vue_set(vueapp.$data.alphas, v[1], v[2].alpha);
         }
 
         //Just update existing data if we can
@@ -1466,10 +1453,6 @@ function f(v) {
         universe = v[2]
         channel = v[3]
         value = v[4]
-
-        if (vueapp.$data.lockedFaders[cue + ":" + universe + ":" + channel] == true) {
-            return;
-        }
 
 
         var needRefresh = false;

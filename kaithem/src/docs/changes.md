@@ -19,11 +19,13 @@ Change Log
 
 - :sparkles: Move to the quart framework instead of cherrypy. Everything is fully ASGI based.
 - :boom: Logging out just logs out your client, not all clients on that user
-
+- :sparkles: Most loggers moved to \_\_name\_\_ instead of system
+-
 #### Fixed
 
 - :bug: Fix page XSS options
 - :bug: Fix mixer level meters in new channels not immediately responding till you refresh the page
+- :bug: Fix very old bug where widget messages could be one message behind if sent rapidly, and the newest wouldn't be sent till something else triggered send. Chandler sliders should be much smoother.
 
 ```
 ┏━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━┳━━━━━━━━━┳━━━━━━┓

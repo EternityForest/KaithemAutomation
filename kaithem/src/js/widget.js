@@ -322,11 +322,10 @@ Copyright (c) 2015 Yusuke Kawasaki
 						window.setTimeout(this.poll_ratelimited, 120);
 					}
 
-					this.pollWaiting = false
 				}
 
 				this.lastSend = 0
-				this.pollWaiting = false
+				this.pollWaiting = null
 
 				//Check if wpoll has ran in the last 44ms. If not run it.
 				//If it has, set a timeout to check again.
@@ -342,10 +341,9 @@ Copyright (c) 2015 Yusuke Kawasaki
 					//If we are already waiting on a poll, don't re-poll.
 					else {
 						if (this.pollWaiting) {
-							return
+							clearTimeout(this.pollWaiting)
 						}
-						this.pollWaiting = true;
-						window.setTimeout(this.poll_ratelimited, 50 - (n - this.lastSend))
+						this.pollWaiting = setTimeout(this.poll_ratelimited.bind(this), 50 - (n - this.lastSend))
 					}
 				}
 

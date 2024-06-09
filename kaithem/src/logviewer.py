@@ -5,7 +5,6 @@
 import io
 import os
 import re
-import textwrap
 
 import quart
 
@@ -55,7 +54,7 @@ except Exception:
 
 
 def f(r):
-    t = textwrap.fill(strip_ansi_colour(pylogginghandler.syslogger.format(r)), 240)
+    t = strip_ansi_colour(pylogginghandler.syslogger.format(r))
     if r.levelname in ["ERROR", "CRITICAL"]:
         syslogwidget.write('<pre class="danger">' + t + "</pre>")
     elif r.levelname in ["WARNING"]:

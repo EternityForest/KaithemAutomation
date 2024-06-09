@@ -58,11 +58,13 @@ atexit.register(at_exit)
 
 class KFormatter(logging.Formatter):
     def formatException(self, exc_info):
-        return textwrap.fill(
-            logging.Formatter.formatException(self, exc_info),
-            initial_indent="  ",
-            subsequent_indent="  ",
-            width=240,
+        return "\n".join(
+            textwrap.wrap(
+                logging.Formatter.formatException(self, exc_info),
+                initial_indent="  ",
+                subsequent_indent="  ",
+                width=80,
+            )
         )
 
 
@@ -171,7 +173,7 @@ class LoggingHandler(logging.Handler):
         # This callback is for when we want to use this handler as a filter.
         self.callback = lambda x: x
         logging.getLogger().addHandler(self)
-        formatter = KFormatter("%(levelname)s:%(asctime)s %(name)s %(message)s", "%Y%b%d %H:%M:%S %Z")
+        formatter = KFormatter("%(message)s", "%Y%b%d %H:%M:%S %Z")
         self.setFormatter(formatter)
         all_handlers[(time.time(), random.random(), self.name)] = self
 

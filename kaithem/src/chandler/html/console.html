@@ -238,7 +238,7 @@ ${lists}
                         <p class="warning" v-if="i[1].status">STATUS: {{i[1].status}}</p>
 
 
-                        <div class="tool-bar" v-if="!i[1].utility">
+                        <div class="tool-bar noselect" v-if="!i[1].utility">
                             <button type="button" :class="{'success':i[1].active, 'warning':i[1].status}" v-on:click="go(i[0])"><i
                                     class="mdi mdi-play"></i>Go!</button>
                             <button type="button" v-on:click="prevcue(i[0])"><i class="mdi mdi-skip-previous"></i>Prev</button>
@@ -248,15 +248,15 @@ ${lists}
                         </div>
                         <iframe v-if="showPages && i[1].infoDisplay.length>0" :src="i[1].infoDisplay"></iframe>
 
-                        <div class="tool-bar" v-if="i[1].eventButtons.length > 0">
+                        <div class="tool-bar noselect" v-if="i[1].eventButtons.length > 0">
                             <button type="button" v-for="v of i[1].eventButtons" v-on:click="sceneev(v[1],v[1])">{{v[0]}}</button>
                         </div>
 
 
-                        <input style="margin-left:0.4rem" v-if="!i[1].utility" type="range" max=1 step=0.01 min=0
+                        <smooth-range style="margin-left:0.4rem" v-if="!i[1].utility"
+                            max="1" step="0.01" min="0"
                             v-on:input="setalpha(i[0],parseFloat($event.target.value));"
-                            v-on:change="setalpha(i[0],parseFloat($event.target.value));unlockAlpha(i[0]);" :value="alphas[i[0]]"
-                            v-on:blur="setalpha(i[0],parseFloat($event.target.value));unlockAlpha(i[0]);">
+                            v-model="alphas[i[0]]"></smooth-range>
 
                         <scene-ui :unixtime="unixtime" v-bind:scene-data="i[1]" :cue="cuemeta[i[1].cue]"></scene-ui>
 
@@ -623,7 +623,7 @@ ${lists}
                         <template v-for="(h,uname) in cuevals[currentcueid]">
                             <article class="universe card flex-col gaps" v-if="uname[0]!='@'">
                                 <header>
-                                    <h3>{{uname}}</h3>
+                                    <h3 class="noselect">{{uname}}</h3>
                                 </header>
                                 <div class="scroll nomargin h-24rem">
                                     <h-fader :i="i" :chinfo="chnamelookup(i.u,i.ch)"
@@ -635,7 +635,7 @@ ${lists}
                         </template>
                         <template v-for="(h,fname) in cuevals[currentcueid]">
 
-                            <article class="fixture card flex-col gaps" v-if="fname[0]=='@'">
+                            <article class="fixture card flex-col gaps noselect" v-if="fname[0]=='@'">
                                 <header>
                                     <div class="tool-bar">
                                         <h4 :title="lookupFixtureType(fname)">{{fname}}</h4>
@@ -1250,7 +1250,7 @@ ${lists}
 
                             <p> <label>
                                     Alpha:<input type="number" max=1 step=0.01 min=0
-                                        v-on:change="setalpha(scenename,parseFloat($event.target.value));unlockAlpha(scenename);"
+                                        v-on:change="setalpha(scenename,parseFloat($event.target.value));"
                                         v-model="alphas[scenename]">
                                 </label>
 
@@ -1779,8 +1779,8 @@ ${lists}
                 "h-fader": httpVueLoader('../static/hfader.vue'),
                 'cue-countdown': httpVueLoader('../static/cue-countdown.vue'),
                 // Currently contains the timers and the display tags for the scenes overview
-                'scene-ui': httpVueLoader('../static/scene-ui-controls.vue')
-
+                'scene-ui': httpVueLoader('../static/scene-ui-controls.vue'),
+                'smooth-range': httpVueLoader('../static/smoothrange.vue')
             },
             computed: appComputed
         }).mount("#app")
