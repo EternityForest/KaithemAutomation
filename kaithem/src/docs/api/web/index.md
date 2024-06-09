@@ -9,8 +9,6 @@
     - [MyCache().dump_bytecode](#mycache()dump_bytecode)
     - [MyCache().load_bytecode](#mycache()load_bytecode)
   - [add_asgi_app](#add_asgi_app)
-  - [add_simple_cherrypy_handler](#add_simple_cherrypy_handler)
-  - [add_tornado_app](#add_tornado_app)
   - [add_wsgi_app](#add_wsgi_app)
   - [has_permission](#has_permission)
   - [render_jinja_template](#render_jinja_template)
@@ -65,35 +63,6 @@ def add_asgi_app(prefix: str, app, permission="system_admin"): ...
 
 
 
-## add_simple_cherrypy_handler
-
-[Show source in __init__.py:88](../../../../api/web/__init__.py#L88)
-
-#### Signature
-
-```python
-@_beartype.beartype
-def add_simple_cherrypy_handler(
-    prefix: str, permission: str, handler: Callable[..., str]
-): ...
-```
-
-
-
-## add_tornado_app
-
-[Show source in __init__.py:83](../../../../api/web/__init__.py#L83)
-
-Mount a Tornado application to handle all URLs matching the pattern regex
-
-#### Signature
-
-```python
-def add_tornado_app(pattern: str, app, args, permission="system_admin"): ...
-```
-
-
-
 ## add_wsgi_app
 
 [Show source in __init__.py:76](../../../../api/web/__init__.py#L76)
@@ -110,7 +79,7 @@ def add_wsgi_app(prefix: str, app, permission="system_admin"): ...
 
 ## has_permission
 
-[Show source in __init__.py:113](../../../../api/web/__init__.py#L113)
+[Show source in __init__.py:103](../../../../api/web/__init__.py#L103)
 
 Return True if the user accessing the current web request
 has the permssion specified
@@ -152,7 +121,7 @@ def render_jinja_template(template_filename: str, **kw): ...
 
 ## serve_file
 
-[Show source in __init__.py:93](../../../../api/web/__init__.py#L93)
+[Show source in __init__.py:83](../../../../api/web/__init__.py#L83)
 
 Call from within a Quart handler to server a file.
 
@@ -166,7 +135,7 @@ def serve_file(path, contenttype="", name=None): ...
 
 ## user
 
-[Show source in __init__.py:98](../../../../api/web/__init__.py#L98)
+[Show source in __init__.py:88](../../../../api/web/__init__.py#L88)
 
 asgi: The ASGI scope object that is currently active, required if
       this is called from outside a Quart context.

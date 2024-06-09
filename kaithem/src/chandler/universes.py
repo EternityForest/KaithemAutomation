@@ -16,6 +16,7 @@ import colorzero
 import numpy
 import structlog
 
+from kaithem.api import lifespan
 from kaithem.src import alerts
 
 from ..kaithemobj import kaithem
@@ -374,8 +375,9 @@ class Universe:
     def __del__(self):
         if not self.closed:
             if self.refresh_on_create:
-                # Do as little as possible in the undefined __del__ thread
-                kaithem.message.post("/chandler/command/refreshScenes", None)
+                if lifespan and not lifespan.shutdown:
+                    # Do as little as possible in the undefined __del__ thread
+                    kaithem.message.post("/chandler/command/refreshScenes", None)
 
     def channelsChanged(self):
         "Call this when fixtures are added, moved, or modified."

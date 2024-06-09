@@ -150,10 +150,10 @@ class ResourceType:
         """Called when object has been moved.  All additionaltypes must be movable."""
         return True
 
-    def ondelete(self, module, resource, obj):
+    def ondelete(self, module, resource, resourceobj):
         return True
 
-    def onupdate(self, module, resource, obj):
+    def onupdate(self, module, resource, resourceobj):
         """Called when something has updated the data.  Usually the web UI but could be anything."""
 
     def flush_unsaved(self, module, resource):

@@ -1,16 +1,12 @@
 import importlib as _importlib
 import os as _os
-from collections.abc import Callable
 
-import beartype as _beartype
 import jinja2 as _jinja2
-import structlog
 
 from kaithem.src import directories as _directories
 from kaithem.src import pages as _pages
 from kaithem.src import theming
 
-_logger = structlog.get_logger()
 theming = theming
 
 
@@ -18,8 +14,6 @@ nav_bar_plugins = _pages.nav_bar_plugins
 
 _asgi_apps = []
 _wsgi_apps = []
-
-_simple_handlers = {}
 
 
 # This is for plugins to use and extend pageheader.
@@ -78,16 +72,6 @@ def add_wsgi_app(prefix: str, app, permission="system_admin"):
     if prefix.endswith(".*"):
         prefix = prefix[:-2]
     _wsgi_apps.append((prefix, app, permission))
-
-
-def add_tornado_app(pattern: str, app, args, permission="system_admin"):
-    "Mount a Tornado application to handle all URLs matching the pattern regex"
-    _logger.error("add_tornado_app is deprecated, use an asgi or wsgi app instead")
-
-
-@_beartype.beartype
-def add_simple_cherrypy_handler(prefix: str, permission: str, handler: Callable[..., str]):
-    _logger.error("add_simple_cherrypy_handler is deprecated, use asgi or wsgi instead")
 
 
 def serve_file(path, contenttype="", name=None):
