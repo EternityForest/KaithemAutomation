@@ -364,3 +364,5 @@ def startServer():
     loop.run_until_complete(f2())
     loop.stop()
     logger.info("Engine stopped")
+    # Let background tasks finish
+    time.sleep(2)

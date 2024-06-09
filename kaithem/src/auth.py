@@ -261,7 +261,7 @@ def removeUserFromGroup(username, group) -> None:
 
 def tryToLoadFrom(d: str) -> bool:
     with lock:
-        with open(os.path.join(d, "users.json")) as f:
+        with open(d) as f:
             temp = json.load(f)
 
         loadFromData(temp)
@@ -305,43 +305,18 @@ def initializeAuthentication() -> None:
         "Load the saved users and groups, but not the permissions from the modules. "
         # If no file use default but set filename anyway so the dump function will work
         # Gets the highest numbered of all directories that are named after floating point values(i.e. most recent timestamp)
-        loaded = False
-        try:
-            tryToLoadFrom(os.path.join(directories.usersdir, "data"))
-            loaded = True
-        except Exception as e:
-            logger.exception("Error loading auth data, may be able to continue from old state")
-            messagebus.post_message(
-                "/system/notifications/errors",
-                "Error loading auth data, may be able to continue from old state:\n" + str(e),
-            )
 
+        if os.path.exists(os.path.join(directories.usersdir, "data", "users.json")):
             try:
-                dirname = util.getHighestNumberedTimeDirectory(directories.usersdir)
-                tryToLoadFrom(dirname)
-                loaded = True
-                messagebus.post_message(
-                    "/system/notifications/warnings",
-                    """Saving was interrupted. Using last version of users list.
-                This could create a secuirty issue if the old version allowes access to a malicious user.
-                To suppress this warning, please review your users and groups, and re-save the server state. You must make at least
-                one change to users and groups (Or click save on a user or group without making changes)
-                for them to actually be saved.
-                """,
-                )
-            except Exception:
-                messagebus.post_message(
-                    "/system/notifications/errors",
-                    "Could not load old state:\n" + str(e),
-                )
+                tryToLoadFrom(os.path.join(directories.usersdir, "data", "users.json"))
+            except Exception as e:
+                logger.exception("Error loading auth data, no users or groups loaded")
+                messagebus.post_message("/system/notifications/errors", "Error loading auth data, no users or groups loaded:\n" + str(e))
 
-        if not Groups and not Users:
+        else:
             loadFromData(default_data)
-
-        normalUsers = [i for i in Users if not i.startswith("__")]
-
-        if not loaded or not normalUsers:
-            addFloatingUser()
+            addLinuxSystemUser()
+            messagebus.post_message("/system/notifications/warnings", "No auth data found, using default admin user")
 
 
 def generateUserPermissions(username: None = None) -> None:
@@ -383,9 +358,9 @@ def generateUserPermissions(username: None = None) -> None:
             Users[i].permissions = set(newp)
 
 
-def addFloatingUser() -> None:
+def addLinuxSystemUser() -> None:
     """
-    Add a "floating" admin user, representing the Linux system user actually running the process, using the system
+    Add an admin user, representing the Linux system user actually running the process, using the system
     login mechanism.
 
     The rationale for this is that the system user has full acess to everything anyway.  Restrict to LAN for the obvious reason
