@@ -7,6 +7,15 @@ Change Log
 
 - :bug: Updated icemedia version fixes thread leak
 - :bug: Fix import resource from yaml
+- :bug: Sunrise and sunset times should be fixed
+
+#### Changed
+
+- :boom: Use pyephem instead of astral due to this [issue](https://github.com/sffjunkie/astral/issues/7)
+
+#### Removed
+
+- :coffin: Rahu calculations removed due to switching libraries
 
 
 ### 0.84.0b1

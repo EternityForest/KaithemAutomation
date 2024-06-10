@@ -291,30 +291,6 @@ class Kaithem:
             return sky.dawn(lat, lon, date)
 
         @staticmethod
-        def rahu_start(lat=None, lon=None, date=None):
-            if lon is None:
-                lat, lon = geolocation.getCoords()
-
-            else:
-                raise ValueError("You set lon, but not lst?")
-            if lat is None or lon is None:
-                raise RuntimeError("No server location set, fix this in system settings")
-
-            return sky.rahu(lat, lon, date)[0]
-
-        @staticmethod
-        def rahu_end(lat=None, lon=None, date=None):
-            if lon is None:
-                lat, lon = geolocation.getCoords()
-
-            else:
-                raise ValueError("You set lon, but not lst?")
-            if lat is None or lon is None:
-                raise RuntimeError("No server location set, fix this in system settings")
-
-            return sky.rahu(lat, lon, date)[1]
-
-        @staticmethod
         def is_dark(lat=None, lon=None):
             if lon is None:
                 lat, lon = geolocation.getCoords()
@@ -325,19 +301,6 @@ class Kaithem:
                 raise RuntimeError("No server location set, fix this in system settings")
 
             return sky.is_dark(lat, lon)
-
-        @staticmethod
-        def is_rahu(lat=None, lon=None):
-            if lat is None:
-                if lon is None:
-                    lat, lon = geolocation.getCoords()
-
-                else:
-                    raise ValueError("You set lon, but not lst?")
-                if lat is None or lon is None:
-                    raise RuntimeError("No server location set, fix this in system settings")
-
-            return sky.isRahu(lat, lon)
 
         @staticmethod
         def is_day(lat=None, lon=None):
@@ -370,17 +333,12 @@ class Kaithem:
             return sky.is_light(lat, lon)
 
         @staticmethod
-        def moon_phase():
-            return sky.moon()
+        def moon_age():
+            return sky.moon_age()
 
         @staticmethod
         def moon_percent():
-            x = sky.moon()
-            if x > 14:
-                x -= 14
-                x = 14 - x
-
-            return 100 * (x / 14.0)
+            return sky.moon_illumination()
 
     class sys:
         @staticmethod
