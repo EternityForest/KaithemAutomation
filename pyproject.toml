@@ -24,7 +24,7 @@ python = "^3.10.0, <3.13"
 # First party
 scullery = ">=0.1.17"
 iot-devices = "*"
-icemedia = ">=0.1.5"
+icemedia = ">=0.1.6"
 NVRChannel = ">=0.1.7"
 
 
