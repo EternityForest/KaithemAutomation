@@ -1,6 +1,13 @@
 Change Log
 ----------
 
+### 0.84.0b2
+
+#### Fixed
+
+- :bug: Updated icemedia version fixes thread leak
+- :bug: Fix import resource from yaml
+
 
 ### 0.84.0b1
 

@@ -1029,18 +1029,18 @@ files = [
 
 [[package]]
 name = "icemedia"
-version = "0.1.5"
-description = "A GStreamer wrapper with JACK connection management"
+version = "0.1.6"
+description = "Media handling library with GStreamer wrapper, sound player, and Jack manager"
 optional = false
-python-versions = ">=3.6"
+python-versions = "<4.0,>=3.10"
 files = [
-    {file = "icemedia-0.1.5-py3-none-any.whl", hash = "sha256:3e7b318930710707995f8d4ac29df7503b0371e6fe5a35d0005673fba523c7a4"},
-    {file = "icemedia-0.1.5.tar.gz", hash = "sha256:adc7ea6993037f0b5e8e4bef6e59a1be4ed042259af531487ac44786b5c88246"},
+    {file = "icemedia-0.1.6-py3-none-any.whl", hash = "sha256:42d48337f4a00fca0baa297119e33d3d5ed6578d66bb0a4dd133c668048ca1e0"},
+    {file = "icemedia-0.1.6.tar.gz", hash = "sha256:57203651f4e84bd0a1a293c02f34c1624c93e7ca4faace3f021f8efaf46dbd06"},
 ]
 
 [package.dependencies]
-JACK-Client = "*"
-scullery = "*"
+JACK-Client = ">=0.5.4,<0.6.0"
+scullery = ">=0.1.19,<0.2.0"
 
 [[package]]
 name = "idna"
@@ -1969,13 +1969,13 @@ signedtoken = ["cryptography (>=3.0.0)", "pyjwt (>=2.0.0,<3)"]
 
 [[package]]
 name = "packaging"
-version = "24.0"
+version = "24.1"
 description = "Core utilities for Python packages"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 files = [
-    {file = "packaging-24.0-py3-none-any.whl", hash = "sha256:2ddfb553fdf02fb784c234c7ba6ccc288296ceabec964ad2eae3777778130bc5"},
-    {file = "packaging-24.0.tar.gz", hash = "sha256:eb82c5e3e56209074766e6885bb04b8c38a0c015d0a30036ebe7ece34c9989e9"},
+    {file = "packaging-24.1-py3-none-any.whl", hash = "sha256:5b8f2217dbdbd2f7f384c41c628544e6d52f2d0f53c6d0c3ea61aa5d1d7ff124"},
+    {file = "packaging-24.1.tar.gz", hash = "sha256:026ed72c8ed3fcce5bf8950572258698927fd1dbda10a5e981cdf0ac37f4f002"},
 ]
 
 [[package]]
@@ -2200,6 +2200,20 @@ files = [
 [package.extras]
 dev = ["pre-commit", "tox"]
 testing = ["pytest", "pytest-benchmark"]
+
+[[package]]
+name = "poetry-lock-package"
+version = "0.5.1"
+description = "Poetry lock package generator"
+optional = false
+python-versions = "<4.0.0,>=3.8.0"
+files = [
+    {file = "poetry_lock_package-0.5.1-py3-none-any.whl", hash = "sha256:102c0b1921d28528e37aaf62b51c6a167cf569bdd72e978e9d19c743c7fe8a53"},
+    {file = "poetry_lock_package-0.5.1.tar.gz", hash = "sha256:9cdae3aaea6c22e05cbaec7f4d47f140cd1b0d314c7cc1714a21d963031a2a2f"},
+]
+
+[package.dependencies]
+toml = ">=0.10.1,<0.11.0"
 
 [[package]]
 name = "priority"
@@ -4096,4 +4110,4 @@ ifaddr = ">=0.1.7"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10.0, <3.13"
-content-hash = "4a4a5907092f01f9eb6fdde018bf17187a9d1b1dfb8a0650b4efc940e05b5b1a"
+content-hash = "51240691ad238931a34e022fa4b5f6a7c19f41dc0a06570d3b3025166956b90e"

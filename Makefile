@@ -87,3 +87,11 @@ dev-record-playwright: # Record playwright tests
 .PHONY: dev-file-lines
 dev-file-lines: # Show files sorted by line count
 	@poetry run pygount --merge-embedded-languages --names-to-skip="*.min.js,bip39.txt" --folders-to-skip="thirdparty,__pycache__,tests" kaithem/ scripts/ | sort -nr -
+
+
+
+.PHONY: dev-build
+dev-build: # Build for release
+	@poetry build
+	@poetry freeze-wheel
+

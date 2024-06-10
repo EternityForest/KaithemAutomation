@@ -79,7 +79,7 @@
             <form action="/modules/module/{{url(name)}}/scanfiles" method="POST">
                 <button type="submit" title="Scan any manually added files in __filedata__">Rescan Files</button>
             </form>
-            <a class="button" href="/modules/module/{{ url(name) }}/uploadresource/{{ '/'.join(path) }}">
+            <a class="button" href="/modules/module/{{ url(name) }}/uploadresource?dir={{ '/'.join(path) | urlencode | escape}}">
                 <i class="mdi mdi-upload-box"></i>Upload</a>
 
             <form style="display:inline-flex;" action="/modules/search/{{ url(name) }}" method="POST">

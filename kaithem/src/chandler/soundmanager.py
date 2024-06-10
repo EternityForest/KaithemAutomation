@@ -1,8 +1,9 @@
 import threading
-from . import core
-from ..kaithemobj import kaithem
 from functools import wraps
-from typing import List, Callable, Any, Optional
+from typing import Any, Callable, List, Optional
+
+from ..kaithemobj import kaithem
+from . import core
 
 soundActionSerializer = threading.RLock()
 
@@ -15,7 +16,7 @@ def doSoundAction(g: Callable[..., Any]):
     soundActionQueue.append(g)
 
     def f():
-        if soundActionSerializer.acquire(timeout=25):
+        if soundActionSerializer.acquire(timeout=5):
             try:
                 while soundActionQueue:
                     x = soundActionQueue.pop(False)

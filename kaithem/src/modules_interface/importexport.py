@@ -10,13 +10,14 @@ from kaithem.src.util import url
 logger = structlog.get_logger(__name__)
 
 
-@quart_app.app.route("/modules/module/<module>/uploadresource/<path:path>")
 @quart_app.app.route("/modules/module/<module>/uploadresource")
-async def uploadresourcedialog(module, path=""):
+async def uploadresourcedialog(module):
     try:
         pages.require("system_admin")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
+
+    path = quart.request.args.get("dir", "")
 
     d = dialogs.SimpleDialog(f"Upload resource in {module}")
     d.file_input("file")
