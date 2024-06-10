@@ -45,7 +45,7 @@ sleep 60
 exit 0
 EOF
 
-chmod 755 ~/.local/bin/maxvolume
+chmod 755 ~/.local/bin/_maxvolume_hack
 
 mkdir -p ~/.config/systemd/user/
 cat << "EOF" > ~/.config/systemd/user/maxvolume.service
