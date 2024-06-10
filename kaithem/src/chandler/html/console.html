@@ -1263,8 +1263,8 @@ ${lists}
                             <p>
                                 <label><span class="mdi mdi-lock-alert"></span>
                                     Require Confirmation for Cue Jumps
-                                    <input :disabled="no_edit" type="checkbox" v-model="currentcue.requireConfirm"
-                                    v-on:change="setSceneProperty(scenename,'requireConfirm', currentcue.requireConfirm)">
+                                    <input :disabled="no_edit" type="checkbox" v-model="editingScene.requireConfirm"
+                                    v-on:change="setSceneProperty(scenename,'requireConfirm', editingScene.requireConfirm)">
                                 </label>
 
                                 <label>Priority

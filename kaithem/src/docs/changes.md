@@ -8,6 +8,7 @@ Change Log
 - :bug: Updated icemedia version fixes thread leak
 - :bug: Fix import resource from yaml
 - :bug: Sunrise and sunset times should be fixed
+- :bug: Require confirm checkbox was showing incorrect value
 
 #### Changed
 
