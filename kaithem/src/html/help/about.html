@@ -163,7 +163,7 @@ except Exception:
 %>
 <script src="/static/thirdparty/js/qrcode.min.js"></script>
 
-    <%include file="/pageheader.html"/>
+<%include file="/pageheader.html"/>
     <title>About Kaithem </title>
     <h1>About</h1>
     <section style="text-align:center">
@@ -183,7 +183,7 @@ except Exception:
         <b>LAN access QR(${lanip[1]}):</b><br>
         <div id="lanqr"></div>
         <script>
-        new QRCode(document.getElementById("lanqr"), "https://${lanip[0]}:${config['https_port']}");
+            new QRCode(document.getElementById("lanqr"), "https://${lanip[0]}:${config['https_port']}");
         </script>
     </section>
     <br>
@@ -240,51 +240,6 @@ except Exception:
         <td>Moon Illumination(approx)</td>
         <td>${kaithemobj.kaithem.time.moon_percent()}%</td>
     </tr>
-
-
-    <tr>
-        <td>Civil Twilight Dusk Today</td>
-        %try:
-            <td>${unitsofmeasure.strftime(kaithemobj.kaithem.time.civil_dusk_time())}</td>
-        %except Exception as e:
-            ${e|h}</td>
-        %endtry
-
-
-    </tr>
-
-    <tr>
-        <td>Civil Twilight Dawn Today</td>
-        %try:
-            <td>${unitsofmeasure.strftime(kaithemobj.kaithem.time.civil_dawn_time())}</td>
-        %except Exception as e:
-            ${e|h}</td>
-        %endtry
-
-
-    </tr>
-
-    <tr>
-        <td>Sunrise</td>
-        %try:
-            <td>${unitsofmeasure.strftime(kaithemobj.kaithem.time.sunrise_time())}</td>
-        %except Exception as e:
-            ${e|h}</td>
-        %endtry
-
-
-    </tr>
-
-    <tr>
-        <td>Sunset</td>
-        %try:
-            <td>${unitsofmeasure.strftime(kaithemobj.kaithem.time.sunset_time())}</td>
-        %except Exception as e:
-            ${e|h}</td>
-        %endtry
-    </tr>
-
-
 </table>
 
 <h3>IP Data</h3>
@@ -378,94 +333,95 @@ except Exception:
                     return ""
         %>
 
-        <tr>
-            <td>System Load Average(UNIX only)</td>
-            <td>
-                1 min: <span ${makecpuspan(load[0])}><b>${load[0]}</b></span> 5 min: <span ${makecpuspan(load[1])}><b>${load[1]}</b></span>
-                15 min: <span ${makecpuspan(load[2])}><b>${load[2]}</b></span>
-            </td>
-        </tr>
+<tr>
+    <td>System Load Average(UNIX only)</td>
+    <td>
+        1 min: <span ${makecpuspan(load[0])}><b>${load[0]}</b></span> 5 min: <span
+            ${makecpuspan(load[1])}><b>${load[1]}</b></span>
+        15 min: <span ${makecpuspan(load[2])}><b>${load[2]}</b></span>
+    </td>
+</tr>
 
-        <tr>
-            <td>Memory Used By All Processes(UNIX only)</td>
-            <td>${used} MB (${usedp}%)</td>
-        </tr>
-        <tr>
-            <td>Tasks in thread pool queue</td>
-            <td>${sworkers.waitingtasks()}</td>
-        </tr>
-        </table>
+<tr>
+    <td>Memory Used By All Processes(UNIX only)</td>
+    <td>${used} MB (${usedp}%)</td>
+</tr>
+<tr>
+    <td>Tasks in thread pool queue</td>
+    <td>${sworkers.waitingtasks()}</td>
+</tr>
+</table>
 
-        </p>
-        <p>
-            <h3>System Info</h3>
-            <table border=1 class="w-full">
-                <tr>
-                    <td>CPU Type</td>
-                    <td>${platform.machine()|h}
-                </tr>
+</p>
+<p>
+<h3>System Info</h3>
+<table border=1 class="w-full">
+    <tr>
+        <td>CPU Type</td>
+        <td>${platform.machine()|h}
+    </tr>
 
-                <tr>
-                    <td>CPU Count</td>
-                    <td>${multiprocessing.cpu_count()|h}
-                </tr>
-                <tr>
-                    <td>CPU</td>
-                    <td>${platform.processor()|h}</td>
-                </tr>
+    <tr>
+        <td>CPU Count</td>
+        <td>${multiprocessing.cpu_count()|h}
+    </tr>
+    <tr>
+        <td>CPU</td>
+        <td>${platform.processor()|h}</td>
+    </tr>
 
-                <tr>
-                    <td>Total Availible RAM(UNIX Only)</td>
-                    <td>${total|h} MB</td>
-                </tr>
-                <tr>
-                    <td>OS Type</td>
-                    <td>${platform.system()|h}</td>
-                </tr>
+    <tr>
+        <td>Total Availible RAM(UNIX Only)</td>
+        <td>${total|h} MB</td>
+    </tr>
+    <tr>
+        <td>OS Type</td>
+        <td>${platform.system()|h}</td>
+    </tr>
 
-                <tr>
-                    <td>OS Version</td>
-                    <td>${platform.release()|h}</td>
-                </tr>
-                <tr>
-                    <td>Python Version</td>
-                    <td>${platform.python_version()|h}</td>
-                </tr>
-
-
-                <tr>
-                    <td>Audio Backend</td>
-                    <td>${sound.backend.backendname|h}</td>
-                </tr>
+    <tr>
+        <td>OS Version</td>
+        <td>${platform.release()|h}</td>
+    </tr>
+    <tr>
+        <td>Python Version</td>
+        <td>${platform.python_version()|h}</td>
+    </tr>
 
 
-                <tr>
-                    <td>System Time Zone</td>
-                    <td>${time.tzname[0]|h}</td>
-                </tr>
-            </table>
-            <h3>Python Path</h3>
-            <ul>
-                %for i in sys.path:
-                <li>${i|h}</li>
-                %endfor
-            </ul>
-
-            <h3>RTMidi Inputs</h3>
-            <ul>
-                %for i in listRtmidi():
-                <li>${i|h}</li>
-                %endfor
-            </ul>
+    <tr>
+        <td>Audio Backend</td>
+        <td>${sound.backend.backendname|h}</td>
+    </tr>
 
 
+    <tr>
+        <td>System Time Zone</td>
+        <td>${time.tzname[0]|h}</td>
+    </tr>
+</table>
+<h3>Python Path</h3>
+<ul>
+    %for i in sys.path:
+    <li>${i|h}</li>
+    %endfor
+</ul>
 
-            <h3>lm_sensors output(Requires lm_sensors to be installed)</h3>
-            <pre>
+<h3>RTMidi Inputs</h3>
+<ul>
+    %for i in listRtmidi():
+    <li>${i|h}</li>
+    %endfor
+</ul>
+
+
+
+<h3>lm_sensors output(Requires lm_sensors to be installed)</h3>
+<pre>
 
 ${kaithemobj.kaithem.sys.sensors()|h}
 </pre>
-            <%
+<%
 def module_version(m, name):
     try:
         v = version(name)
@@ -489,51 +445,23 @@ def module_version(m, name):
     return None
 %>
 
-                <h2>Imported Module Versions</h2>
-                <details>
-                    <summary>Click to expand</summary>
-                <table border=1 class="w-full">
-                    <tr>
-                        <th>Module</th>
-                        <th>Version</th>
-                    </tr>
-                    %for i in sorted(sys.modules):
-                     %if module_version(sys.modules[i], i):
-                    <tr>
-                        <td>${i|h}</td>
-                        <td>${module_version(sys.modules[i], i)|h}</td>
-                    </tr>
-                    %endif
-                    %endfor
-                </table>
-            </details>
-                </div>
-
-
-<h2>Acknowledgements</h2>
-<div class="window paper margin">
-    <h3>General</h3>
-    Kaithem is powered by ASGI and too many libs to list here!
-    See the source code for full info!
-
-    <h3>Tools</h3>
-    <p>Kaithem is developed using open source tools.></p>
-    <ul>
-        <li><a href="http://www.gimp.org/">GIMP(Image Editor)</a></li>
-        <li><a href="https://code.visualstudio.com/">Visual Studio Code</a></li>
-        <li><a href="https://www.python.org/">Python</a></li>
-        <li><a href="https://ubuntu.com/">Ubuntu</a></li>
-    </ul>
-    <h3>Other</h3>
-    <ul>
-        <li><a href="http://stackoverflow.com/">Stack Overflow</a></li>
-        <li><a href="http://www.raspberrypi.org/">Raspberry Pi</a></li>
-        <li><a href="https://github.com/">GitHub</a></li>
-        <li><a href="http://en.wikipedia.org/wiki/Harvard_sentences">The Harvard Sentences(Some of the quotes
-                in the login screen)</a></li>
-        <li><a href="https://freesound.org/people/fins/">fins</a> and <a href="https://freesound.org/people/KIZILSUNGUR"
-            />KIZILSUNGUR</a> of <a href="https://freesound.org/">freesound.org</a></li>
-    </ul>
-
+<h2>Imported Module Versions</h2>
+<details>
+    <summary>Click to expand</summary>
+    <table border=1 class="w-full">
+        <tr>
+            <th>Module</th>
+            <th>Version</th>
+        </tr>
+        %for i in sorted(sys.modules):
+        %if module_version(sys.modules[i], i):
+        <tr>
+            <td>${i|h}</td>
+            <td>${module_version(sys.modules[i], i)|h}</td>
+        </tr>
+        %endif
+        %endfor
+    </table>
+</details>
 </div>
 <%include file="/pagefooter.html"/>
