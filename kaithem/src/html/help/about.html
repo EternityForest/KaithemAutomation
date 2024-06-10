@@ -161,7 +161,7 @@ except Exception:
     print(traceback.format_exc())
     disks = {}
 %>
-<script src="/static/thirdparty/js/qrcode.min.js"></script>
+<script src="/static/js/thirdparty/qrcode.min.js"></script>
 
 <%include file="/pageheader.html"/>
     <title>About Kaithem </title>
@@ -183,7 +183,7 @@ except Exception:
         <b>LAN access QR(${lanip[1]}):</b><br>
         <div id="lanqr"></div>
         <script>
-            new QRCode(document.getElementById("lanqr"), "https://${lanip[0]}:${config['https_port']}");
+            new QRCode(document.getElementById("lanqr"), "http://${lanip[0]}:${config['http_port']}");
         </script>
     </section>
     <br>
