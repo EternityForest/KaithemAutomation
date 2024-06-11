@@ -1467,13 +1467,16 @@ function f(v) {
         value = v[4]
 
 
-        var needRefresh = false;
-        //Empty universe dict
-        if (!vueapp.$data.cuevals[cue][universe]) {
 
-            old_vue_set(vueapp.$data.cuevals[cue], universe, {})
-            needRefresh = 1;
+        //Empty universe dict, we are not set up to listen to this yet
+        if (!vueapp.$data.cuevals[cue]) {
+            return
         }
+        if (!vueapp.$data.cuevals[cue][universe]) {
+            return
+        }
+
+        var needRefresh = false;
 
         if (v[4] !== null) {
 
@@ -1488,6 +1491,10 @@ function f(v) {
         else {
             old_vue_delete(vueapp.$data.cuevals[cue][universe], channel)
             needRefresh = 1;
+        }
+
+        if(Object.entries(vueapp.$data.cuevals[cue][universe]).length == 0){
+            old_vue_delete(vueapp.$data.cuevals[cue], universe)
         }
     }
 

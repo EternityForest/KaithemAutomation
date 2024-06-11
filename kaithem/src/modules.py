@@ -431,7 +431,7 @@ def load_modules_from_zip(f: BytesIO, replace: bool = False) -> None:
                         rmModule(i)
                     try:
                         loadModule(temp_module_folder, i)
-                        bookkeeponemodule(i, include_events=True)
+                        bookkeeponemodule(i)
                         shutil.move(temp_module_folder, os.path.join(directories.vardir, "modules", "data"))
                     except Exception:
                         if old_module_dir and m_backup:
@@ -443,7 +443,7 @@ def load_modules_from_zip(f: BytesIO, replace: bool = False) -> None:
 
                             shutil.move(m_backup, os.path.dirname(old_module_dir))
                             loadModule(old_module_dir, i)
-                            bookkeeponemodule(i, include_events=True)
+                            bookkeeponemodule(i)
                         raise
 
     finally:
@@ -455,11 +455,10 @@ def load_modules_from_zip(f: BytesIO, replace: bool = False) -> None:
     z.close()
 
 
-def bookkeeponemodule(module: str, update: bool = False, include_events: bool = False) -> None:
+def bookkeeponemodule(module: str, update: bool = False) -> None:
     """Given the name of one module that has been copied to
     modules_state.ActiveModules but nothing else,
     let the rest of the system know the module is there."""
-    # TODO why does this normally not do events?
 
     if module not in scopes:
         scopes[module] = ModuleObject(module)
@@ -467,13 +466,12 @@ def bookkeeponemodule(module: str, update: bool = False, include_events: bool = 
     for i in modules_state.ActiveModules[module]:
         # Handle events separately due to dependency resolution logic
         rt = modules_state.ActiveModules[module][i]["resource_type"]
-        assert isinstance("rt", str)
+        assert isinstance(rt, str)
 
-        if include_events or (rt not in ("event",)):
-            try:
-                handleResourceChange(module, i, newly_added=not update)
-            except Exception:
-                messagebus.post_message("/system/notifications/errors", f"Failed to load  resource: {i}")
+        try:
+            handleResourceChange(module, i, newly_added=not update)
+        except Exception:
+            messagebus.post_message("/system/notifications/errors", f"Failed to load  resource: {i}")
 
     for i in modules_state.additionalTypes:
         modules_state.additionalTypes[i].onfinishedloading(module)

@@ -1937,10 +1937,6 @@ class Scene:
             self.poll_again_flag = True
             self.lighting_manager.should_rerender_onto_universes = True
 
-        # TODO: We absolutely should not have to do this every time we rerender.
-        # Bugfix is in order!
-        # self.canvas.paint(fadePosition,vals=self.cue_cached_vals_as_arrays, alphas=self.cue_cached_alphas_as_arrays)
-
         # Remember, we can and do the next cue thing and still need to repaint, because sometimes the next cue thing does nothing
         if force_repaint or (not self.fade_in_completed):
             self.lighting_manager.paint_canvas(fadePosition)

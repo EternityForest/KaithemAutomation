@@ -102,12 +102,6 @@ var hfaderdata =
             ch,
             null
         ])
-        Vue.delete(appData.cuevals[appData.selectedCues[appData
-            .scenename]][appData.newcueu],
-            ch)
-        Vue.delete(appData.cuevals[appData.selectedCues[appData
-            .scenename]][appData.newcueu],
-            ch)
     },
 }
 

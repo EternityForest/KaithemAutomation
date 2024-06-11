@@ -172,7 +172,7 @@ async def loadlibmodule(module):
 
         auth.importPermissionsFromModules()
         modules.saveModule(modules_state.ActiveModules[name], name)
-        modules.bookkeeponemodule(name, include_events=True)
+        modules.bookkeeponemodule(name)
 
         return quart.redirect("/modules")
 
