@@ -378,7 +378,34 @@ def test_commands():
     assert "TestingScene6" not in board.scenes_by_name
 
 
-def test_lighting_value_set_tag():
+def test_tag_backtrack_feature():
+    s = scenes.Scene(board, name="TestingScene7", id="TEST")
+    board.addScene(s)
+
+    s.go()
+
+    # Set values and check that tags change
+    s.cues["default"].set_value("/test_bt", "value", 1)
+    time.sleep(0.1)
+    if not tagpoints.Tag("/test_bt").value == 1:
+        time.sleep(1)
+    assert tagpoints.Tag("/test_bt").value == 1
+
+    c2 = s.add_cue("c2")
+    c2.set_value("/test_bt", "value", 5)
+
+    s.add_cue("c3")
+
+    # c3 has no lighting values, however as c2 is between default and c3 in sequence,
+    # Skipping should backtrack.
+    s.goto_cue("c3")
+    time.sleep(0.1)
+    if not tagpoints.Tag("/test_bt").value == 5:
+        time.sleep(1)
+    assert tagpoints.Tag("/test_bt").value == 5
+
+
+def test_lighting_value_set_tag_flicker():
     s = scenes.Scene(board, name="TestingScene5", id="TEST")
     s2 = scenes.Scene(board, name="TestingScene6", id="TEST2")
     board.addScene(s)

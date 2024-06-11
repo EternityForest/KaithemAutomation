@@ -349,7 +349,7 @@ class Universe:
             self.preFrame = alreadyClosed
             self.save_prerendered = alreadyClosed
 
-        kaithem.message.post("/chandler/command/refreshScenes", None)
+        kaithem.message.post("/chandler/command/refresh_scene_lighting", None)
         self.closed = True
 
     def setStatus(self, s: str, ok: bool):
@@ -370,14 +370,14 @@ class Universe:
         """Stop and restart all active scenes, because some caches might need to be updated
         when a new universes is added
         """
-        kaithem.message.post("/chandler/command/refreshScenes", None)
+        kaithem.message.post("/chandler/command/refresh_scene_lighting", None)
 
     def __del__(self):
         if not self.closed:
             if self.refresh_on_create:
                 if lifespan and not lifespan.shutdown:
                     # Do as little as possible in the undefined __del__ thread
-                    kaithem.message.post("/chandler/command/refreshScenes", None)
+                    kaithem.message.post("/chandler/command/refresh_scene_lighting", None)
 
     def channelsChanged(self):
         "Call this when fixtures are added, moved, or modified."
@@ -1188,6 +1188,7 @@ def getUniverses() -> dict[str, Universe]:
 
 
 def rerenderUniverse(i: str):
+    """Set full_rerender to true on a given universe, if it exists"""
     universe = getUniverse(i)
     if universe:
         universe.full_rerender = True

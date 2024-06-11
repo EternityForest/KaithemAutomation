@@ -137,7 +137,7 @@ class DebugScriptContext(kaithem.chandlerscript.ChandlerScriptContext):
                 if not k == "_" and scene.rerenderOnVarChange:
                     scene.lighting_manager.recalc_cue_vals()
                     scene.poll_again_flag = True
-                    scene.lighting_manager.should_rerender = True
+                    scene.lighting_manager.should_rerender_onto_universes = True
 
             except Exception:
                 core.rl_log_exc("Error handling var set notification")
@@ -1071,7 +1071,7 @@ class Scene:
 
                 # Instead we set the flag
                 self.poll_again_flag = True
-                self.lighting_manager.should_rerender = True
+                self.lighting_manager.should_rerender_onto_universes = True
                 self.pushMeta(statusOnly=True)
 
                 self.preload_next_cue_sound()
@@ -1594,7 +1594,7 @@ class Scene:
 
             # Minor inefficiency rendering twice the first frame
             self.poll_again_flag = True
-            self.lighting_manager.should_rerender = True
+            self.lighting_manager.should_rerender_onto_universes = True
             # self.render()
 
     def is_active(self):
@@ -1699,7 +1699,7 @@ class Scene:
             self.goto_cue(self.cue.name)
             self.entered_cue = x
             self.poll_again_flag = True
-            self.lighting_manager.should_rerender = True
+            self.lighting_manager.should_rerender_onto_universes = True
 
         self.metadata_already_pushed_by = {}
 
@@ -1883,7 +1883,7 @@ class Scene:
         else:
             self.pushMeta(keys={"alpha", "default_alpha"})
         self.poll_again_flag = True
-        self.lighting_manager.should_rerender = True
+        self.lighting_manager.should_rerender_onto_universes = True
 
         self.media_link_socket.send(["volume", val])
 
@@ -1935,7 +1935,7 @@ class Scene:
 
         if fadePosition < 1:
             self.poll_again_flag = True
-            self.lighting_manager.should_rerender = True
+            self.lighting_manager.should_rerender_onto_universes = True
 
         # TODO: We absolutely should not have to do this every time we rerender.
         # Bugfix is in order!

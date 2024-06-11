@@ -1,7 +1,9 @@
+import copy
+from typing import Any, Dict, Iterable
+
 import numpy
 import numpy.typing
-import copy
-from typing import Dict, Any, Iterable
+
 from . import universes
 
 
@@ -20,8 +22,8 @@ class FadeCanvas:
     def __init__(self):
         """Handles calculating the effect of one scene over a background.
         This doesn't do blend modes, it just interpolates."""
-        self.v: Dict[str, numpy.typing.NDArray[Any]] = {}
-        self.a: Dict[str, numpy.typing.NDArray[Any]] = {}
+        self.background_v: Dict[str, numpy.typing.NDArray[Any]] = {}
+        self.background_a: Dict[str, numpy.typing.NDArray[Any]] = {}
         self.v2: Dict[str, numpy.typing.NDArray[Any]] = {}
         self.a2: Dict[str, numpy.typing.NDArray[Any]] = {}
 
@@ -56,10 +58,10 @@ class FadeCanvas:
             if not obj:
                 continue
             # Add existing universes to canvas, skip non existing ones
-            if i not in self.v:
+            if i not in self.background_v:
                 size = len(obj.values)
-                self.v[i] = makeBlankArray(size)
-                self.a[i] = makeBlankArray(size)
+                self.background_v[i] = makeBlankArray(size)
+                self.background_a[i] = makeBlankArray(size)
                 self.v2[i] = makeBlankArray(size)
                 self.a2[i] = makeBlankArray(size)
 
@@ -72,17 +74,17 @@ class FadeCanvas:
             # We don't want to fade any values that have 0 alpha in the scene,
             # because that's how we mark "not present", and we want to track the old val.
             # faded = self.v[i]*(1-(fade*alphas[i]))+ (alphas[i]*fade)*vals[i]
-            faded = self.v[i] * (1 - effectiveFade) + (effectiveFade * vals[i])
+            faded = self.background_v[i] * (1 - effectiveFade) + (effectiveFade * vals[i])
 
             # We always want to jump straight to the value if alpha was previously 0.
             # That's because a 0 alpha would mean the last scene released that channel, and there's
             # nothing to fade from, so we want to fade in from transparent not from black
-            is_new = self.a == 0
+            is_new = self.background_a[i] == 0
             self.v2[i] = numpy.where(is_new, vals[i], faded)
 
         # Now we calculate the alpha values. Including for
         # Universes the cue doesn't affect.
-        for i in self.a:
+        for i in self.background_a:
             effectiveFade = fade
             obj = universes.getUniverse(i)
             # TODO ?
@@ -94,24 +96,24 @@ class FadeCanvas:
                 aset = 0
             else:
                 aset = alphas[i]
-            self.a2[i] = self.a[i] * (1 - effectiveFade) + effectiveFade * aset
+            self.a2[i] = self.background_a[i] * (1 - effectiveFade) + effectiveFade * aset
 
-    def save(self):
-        self.v = copy.deepcopy(self.v2)
-        self.a = copy.deepcopy(self.a2)
+    def save_current_as_background(self):
+        self.background_v = copy.deepcopy(self.v2)
+        self.background_a = copy.deepcopy(self.a2)
 
     def clean(self, affect: Iterable[str]):
-        for i in list(self.a.keys()):
+        for i in list(self.background_a.keys()):
             if i not in affect:
-                del self.a[i]
+                del self.background_a[i]
 
         for i in list(self.a2.keys()):
             if i not in affect:
                 del self.a2[i]
 
-        for i in list(self.v.keys()):
+        for i in list(self.background_v.keys()):
             if i not in affect:
-                del self.v[i]
+                del self.background_v[i]
 
         for i in list(self.v2.keys()):
             if i not in affect:

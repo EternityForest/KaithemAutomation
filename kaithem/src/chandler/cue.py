@@ -251,7 +251,7 @@ class Cue:
     def setTrack(self, val):
         self.track = bool(val)
         self.getScene().poll_again_flag = True
-        self.getScene().lighting_manager.should_rerender = True
+        self.getScene().lighting_manager.should_rerender_onto_universes = True
 
     def setNumber(self, n):
         "Can take a string representing a decimal number for best accuracy, saves as *1000 fixed point"
@@ -396,7 +396,7 @@ class Cue:
 
             if scene.cue == self and scene.is_active():
                 scene.poll_again_flag = True
-                scene.lighting_manager.should_rerender = True
+                scene.lighting_manager.should_rerender_onto_universes = True
 
                 # If we change something in a pattern effect we just do a full recalc since those are complicated.
                 if unmappeduniverse in self.values and "__length__" in self.values[unmappeduniverse]:
@@ -432,7 +432,7 @@ class Cue:
                     scene.poll(force_repaint=True)
 
             scene.poll_again_flag = True
-            scene.lighting_manager.should_rerender = True
+            scene.lighting_manager.should_rerender_onto_universes = True
 
             # For blend modes that don't like it when you
             # change the list of values without resetting

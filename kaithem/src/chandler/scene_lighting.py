@@ -24,7 +24,10 @@ class SceneLightingManager:
         self.affect: list[str] = []
         self.canvas = FadeCanvas()
 
-        self.should_rerender = False
+        self.should_rerender_onto_universes = False
+
+        # Track this so we can repaint
+        self.last_fade_position = 1
 
         # Lets us cache the lists of values as numpy arrays with 0 alpha for not present vals
         # which are faster that dicts for some operations
@@ -42,12 +45,10 @@ class SceneLightingManager:
         self.blend_args: dict[str, float | int | bool | str] = scene.blend_args or {}
 
     def refresh(self):
-        "Rerender all universes this affects"
-        try:
-            for i in self.affect:
-                universes.rerenderUniverse(i)
-        except Exception:
-            print(traceback.format_exc())
+        "Recalculate all the lighting stuff"
+        if self.cue:
+            self.next(self.cue)
+            self.paint_canvas(self.last_fade_position)
 
     def recalc_cue_vals(self):
         """Call when you change a value in the cue"""
@@ -57,18 +58,25 @@ class SceneLightingManager:
     def next(self, cue: Cue):
         """Handle lighting related cue transition stuff"""
 
-        self.canvas.save()
+        self.canvas.save_current_as_background()
 
         # There might be universes we affect that we don't anymore,
         # We need to mark to rerender those because otherwise the system might think absolutely nothing has changed.
         # A full rerender on every cue change isn't the most efficient, but it shouldn't be too bad
         # since most frames don't have a cue change in them
-        self.refresh()
+        try:
+            for i in self.affect:
+                universes.rerenderUniverse(i)
+        except Exception:
+            print(traceback.format_exc())
+
+        reentering = self.cue is cue
 
         self.cue = cue
 
-        if cue.track:
-            self.apply_tracked_values(cue)
+        if not reentering:
+            if cue.track:
+                self.apply_tracked_values(cue)
 
         # Recalc what universes are affected by this scene.
         # We don't clear the old universes, we do that when we're done fading in.
@@ -194,8 +202,9 @@ class SceneLightingManager:
                     if isinstance(cuev, str) and cuev.startswith("="):
                         self.rerenderOnVarChange = True
 
-    def paint_canvas(self, fade_position: float = 0.0, force_repaint: bool = False):
+    def paint_canvas(self, fade_position: float = 0.0):
         assert self.cue
+        self.last_fade_position = fade_position
 
         self.canvas.paint(
             fade_position,
@@ -223,7 +232,7 @@ class SceneLightingManager:
             # Remove unused universes from the cue
             self.canvas.clean(self.cue_cached_vals_as_arrays)
             self.fade_in_completed = True
-            self.should_rerender = True
+            self.should_rerender_onto_universes = True
 
     def apply_tracked_values(self, cobj: Cue) -> dict[str, Any]:
         # When jumping to a cue that isn't directly the next one, apply and "parent" cues.
@@ -300,7 +309,7 @@ class SceneLightingManager:
             self.blend_args = self.blend_args or {}
             self._blend = blendmodes.HardcodedBlendMode(self)
             self.blendClass = blendmodes.HardcodedBlendMode
-        self.should_rerender = True
+        self.should_rerender_onto_universes = True
 
     def setBlendArg(self, key: str, val: float | bool | str):
         if not hasattr(self.blendClass, "parameters") or key not in self.blendClass.parameters:
@@ -315,7 +324,7 @@ class SceneLightingManager:
                 pass
             self.blend_args[key] = val
             self._blend.blend_args[key] = val
-        self.should_rerender = True
+        self.should_rerender_onto_universes = True
 
 
 def _composite(background, values, alphas, alpha):
@@ -394,7 +403,7 @@ def pre_render(board: ChandlerConsole, universes: dict[str, universes.Universe])
             if u in universes:
                 universe = universes[u]
                 universe.all_static = True
-                if i.lighting_manager.should_rerender or i.lighting_manager.blendClass.always_rerender:
+                if i.lighting_manager.should_rerender_onto_universes or i.lighting_manager.blendClass.always_rerender:
                     changedUniverses[u] = (0, 0)
 
                     # We are below the cached layer, we need to fully reset
@@ -464,12 +473,12 @@ def composite_layers_and_do_output(board: ChandlerConsole, t=None, u=None):
 
                 # If this is the first nonstatic layer, meaning it's render function requested a rerender next frame
                 # or if this is the last one, mark it as the one we should save just before
-                if i.lighting_manager.should_rerender or (i is board.active_scenes[-1]):
+                if i.lighting_manager.should_rerender_onto_universes or (i is board.active_scenes[-1]):
                     if universeObject.all_static:
                         # Copy it and set to none as a flag that we already found it
                         universeObject.all_static = False
                         universeObject.save_before_layer = universeObject.top_layer
-        i.lighting_manager.should_rerender = False
+        i.lighting_manager.should_rerender_onto_universes = False
 
     for i in changedUniverses:
         try:

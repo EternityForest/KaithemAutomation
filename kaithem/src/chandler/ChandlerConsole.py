@@ -125,6 +125,8 @@ class ChandlerConsole(console_abc.Console_ABC):
                 logger.exception("Error creating universes")
                 print(traceback.format_exc(6))
 
+            self.refresh_fixtures()
+
         if "scenes" in data:
             d = data["scenes"]
 
@@ -134,7 +136,6 @@ class ChandlerConsole(console_abc.Console_ABC):
     def setup(self, project: dict[str, Any]):
         console_abc.Console_ABC.setup(self, project)
         self.load_project(project)
-        self.refresh_fixtures()
         self.initialized = True
 
     def refresh_fixtures(self):
@@ -401,7 +402,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                     if x:
                         s.go()
                         s.poll_again_flag = True
-                        s.lighting_manager.should_rerender = True
+                        s.lighting_manager.should_rerender_onto_universes = True
                 except Exception:
                     if not errs:
                         logger.exception("Failed to load scene " + str(i) + " " + str(data[i].get("name", "")))

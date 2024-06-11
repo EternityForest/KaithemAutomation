@@ -20,26 +20,14 @@ min = min
 
 
 def refresh_scenes(t, v):
-    """Stop and restart all active scenes, because some caches might need to be updated
-    when a new universes is added
-    """
+    """Tell scenes the set of universes has changed"""
     with core.lock:
         for b in core.iter_boards():
             for i in b.active_scenes:
-                # Attempt to restart all scenes.
-                # Try to put them back in the same state
-                # A lot of things are written assuming the list stays constant,
-                # this is needed for refreshing.
-                x = i.started
-                y = i.entered_cue
-                i.stop()
-                i.go()
-                i.poll()
-                i.started = x
-                i.entered_cue = y
+                i.lighting_manager.refresh()
 
 
-messagebus.subscribe("/chandler/command/refreshScenes", refresh_scenes)
+messagebus.subscribe("/chandler/command/refresh_scene_lighting", refresh_scenes)
 
 
 def refreshFixtures(topic, val):

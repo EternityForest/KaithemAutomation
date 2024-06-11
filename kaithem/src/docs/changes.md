@@ -10,6 +10,7 @@ Change Log
 - :bug: Sunrise and sunset times should be fixed
 - :bug: Require confirm checkbox was showing incorrect value
 - :bug: Missing file for lair.css theme
+- :bug: Fixture values were not applied on boot until the first cue transition
 
 #### Changed
 
@@ -18,7 +19,6 @@ Change Log
 #### Removed
 
 - :coffin: Rahu calculations removed due to switching libraries
-
 
 ### 0.84.0b1
 
