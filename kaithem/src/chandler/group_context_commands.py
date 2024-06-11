@@ -8,33 +8,33 @@ rootContext = kaithem.chandlerscript.ChandlerScriptContext()
 
 # Dummies just for the introspection
 # TODO use the context commands thingy so we don't repeat this
-def gotoCommand(scene: str = "=SCENE", cue: str = ""):
-    "Triggers a scene to go to a cue.  Ends handling of any further bindings on the current event"
+def gotoCommand(group: str = "=GROUP", cue: str = ""):
+    "Triggers a group to go to a cue.  Ends handling of any further bindings on the current event"
 
 
 def codeCommand(code: str = ""):
-    "Activates any cues with the matching shortcut code in any scene"
+    "Activates any cues with the matching shortcut code in any group"
 
 
 gotoCommand.completionTags = {  # type: ignore
-    "scene": "gotoSceneNamesCompleter",
-    "cue": "gotoSceneCuesCompleter",
+    "group": "gotoGroupNamesCompleter",
+    "cue": "gotoGroupCuesCompleter",
 }
 
 
-def setAlphaCommand(scene: str = "=SCENE", alpha: float = 1):
-    "Set the alpha value of a scene"
+def setAlphaCommand(group: str = "=GROUP", alpha: float = 1):
+    "Set the alpha value of a group"
 
 
-def ifCueCommand(scene: str, cue: str):
-    "True if the scene is running that cue"
+def ifCueCommand(group: str, cue: str):
+    "True if the group is running that cue"
 
 
-def eventCommand(scene: str = "=SCENE", ev: str = "DummyEvent", value: str = ""):
-    "Send an event to a scene, or to all scenes if scene is __global__"
+def eventCommand(group: str = "=GROUP", ev: str = "DummyEvent", value: str = ""):
+    "Send an event to a group, or to all groups if group is __global__"
 
 
-def setWebVarCommand(scene: str = "=SCENE", key: str = "varFoo", value: str = ""):
+def setWebVarCommand(group: str = "=GROUP", key: str = "varFoo", value: str = ""):
     "Set a slideshow variable. These can be used in the slideshow text as {{var_name}}"
 
 
@@ -52,17 +52,17 @@ rootContext.commands["console_notification"] = uiNotificationCommand
 
 
 def sendMqttMessage(topic: str, message: str):
-    "JSON encodes message, and publishes it to the scene's MQTT server"
+    "JSON encodes message, and publishes it to the group's MQTT server"
 
 
 rootContext.commands["send_mqtt"] = sendMqttMessage
 
 
-def add_context_commands(context_scene):
+def add_context_commands(context_group):
     cc = {}
 
-    def gotoCommand(scene: str = "=SCENE", cue: str = ""):
-        "Triggers a scene to go to a cue.  Ends handling of any further bindings on the current event"
+    def gotoCommand(group: str = "=GROUP", cue: str = ""):
+        "Triggers a group to go to a cue.  Ends handling of any further bindings on the current event"
 
         # Ignore empty
         if not cue.strip():
@@ -82,45 +82,45 @@ def add_context_commands(context_scene):
             elif cause == "script.2":
                 raise RuntimeError("More than 3 layers of redirects in cue.enter or cue.exit")
 
-        # We don't want to handle other bindings after a goto, leaving a scene stops execution.
-        context_scene.board.scenes_by_name[scene].script_context.stopAfterThisHandler()
-        context_scene.board.scenes_by_name[scene].goto_cue(cue, cause=newcause)
+        # We don't want to handle other bindings after a goto, leaving a group stops execution.
+        context_group.board.groups_by_name[group].script_context.stopAfterThisHandler()
+        context_group.board.groups_by_name[group].goto_cue(cue, cause=newcause)
         return True
 
     def codeCommand(code: str = ""):
-        "Activates any cues with the matching shortcut code in any scene"
+        "Activates any cues with the matching shortcut code in any group"
         shortcutCode(code)
         return True
 
     gotoCommand.completionTags = {  # type: ignore
-        "scene": "gotoSceneNamesCompleter",
-        "cue": "gotoSceneCuesCompleter",
+        "group": "gotoGroupNamesCompleter",
+        "cue": "gotoGroupCuesCompleter",
     }
 
-    def setAlphaCommand(scene: str = "=SCENE", alpha: float = 1):
-        "Set the alpha value of a scene"
-        context_scene.board.scenes_by_name[scene].setAlpha(float(alpha))
+    def setAlphaCommand(group: str = "=GROUP", alpha: float = 1):
+        "Set the alpha value of a group"
+        context_group.board.groups_by_name[group].setAlpha(float(alpha))
         return True
 
-    def ifCueCommand(scene: str, cue: str):
-        "True if the scene is running that cue"
+    def ifCueCommand(group: str, cue: str):
+        "True if the group is running that cue"
         return (
-            True if context_scene.board.scenes_by_name[scene].active and context_scene.board.scenes_by_name[scene].cue.name == cue else None
+            True if context_group.board.groups_by_name[group].active and context_group.board.groups_by_name[group].cue.name == cue else None
         )
 
-    def eventCommand(scene: str = "=SCENE", ev: str = "DummyEvent", value: str = ""):
-        "Send an event to a scene, or to all scenes if scene is __global__"
-        if scene == "__global__":
+    def eventCommand(group: str = "=GROUP", ev: str = "DummyEvent", value: str = ""):
+        "Send an event to a group, or to all groups if group is __global__"
+        if group == "__global__":
             event(ev, value)
         else:
-            context_scene.board.scenes_by_name[scene].event(ev, value)
+            context_group.board.groups_by_name[group].event(ev, value)
         return True
 
-    def setWebVarCommand(scene: str = "=SCENE", key: str = "varFoo", value: str = ""):
+    def setWebVarCommand(group: str = "=GROUP", key: str = "varFoo", value: str = ""):
         "Set a slideshow variable. These can be used in the slideshow text as {{var_name}}"
         if not key.startswith("var"):
             raise ValueError("Custom slideshow variable names for slideshow must start with 'var' ")
-        context_scene.board.scenes_by_name[scene].media_link.set_slideshow_variable(key, value)
+        context_group.board.groups_by_name[group].media_link.set_slideshow_variable(key, value)
         return True
 
     def uiNotificationCommand(text: str):
@@ -140,11 +140,11 @@ def add_context_commands(context_scene):
     # cc["set_tag"].completionTags = {"tagName": "tagPointsCompleter"}
 
     def sendMqttMessage(topic: str, message: str):
-        "JSON encodes message, and publishes it to the scene's MQTT server"
-        raise RuntimeError("This was supposed to be overridden by a scene specific version")
+        "JSON encodes message, and publishes it to the group's MQTT server"
+        raise RuntimeError("This was supposed to be overridden by a group specific version")
 
     cc["send_mqtt"] = sendMqttMessage
     for i in cc:
-        context_scene.script_context.commands[i] = cc[i]
+        context_group.script_context.commands[i] = cc[i]
 
-    context_scene.command_refs = cc
+    context_group.command_refs = cc

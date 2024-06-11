@@ -81,7 +81,7 @@ properties:
 
   slideshow_layout:
     type: string
-    description: Customize the scene web player view
+    description: Customize the group web player view
     default: |
         <style>
             slideshow-app {

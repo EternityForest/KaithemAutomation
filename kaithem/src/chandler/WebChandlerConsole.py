@@ -1,5 +1,5 @@
 """Don't waste too much time cleaning this.
-The way forward is moving individual setters to setCueProperty and setSceneProperty"""
+The way forward is moving individual setters to setCueProperty and setGroupProperty"""
 
 from __future__ import annotations
 
@@ -15,11 +15,11 @@ from tinytag import TinyTag
 from ..alerts import getAlertState
 from ..auth import canUserDoThis
 from ..kaithemobj import kaithem
-from . import ChandlerConsole, core, scenes, universes
+from . import ChandlerConsole, core, groups, universes
 from .core import disallow_special
 from .cue import fnToCueName
 from .global_actions import event
-from .scenes import Scene, cues
+from .groups import Group, cues
 
 
 def listsoundfolder(path: str):
@@ -157,17 +157,17 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             self.linkSend(["alerts", getAlertState()])
             self.linkSend(["soundfolders", core.config.get("sound_folders")])
 
-            for i in self.scenes:
-                s = self.scenes[i]
+            for i in self.groups:
+                s = self.groups[i]
                 self.pushCueList(s.id)
                 self.pushMeta(i)
-                if self.scenes[i].cue:
+                if self.groups[i].cue:
                     try:
-                        self.pushCueMeta(self.scenes[i].cue.id)
+                        self.pushCueMeta(self.groups[i].cue.id)
                     except Exception:
                         print(traceback.format_exc())
                 try:
-                    self.pushCueMeta(self.scenes[i].cues["default"].id)
+                    self.pushCueMeta(self.groups[i].cues["default"].id)
                 except Exception:
                     print(traceback.format_exc())
 
@@ -182,14 +182,14 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                     print(traceback.format_exc())
 
                 try:
-                    for j in self.scenes[i].cues:
-                        self.pushCueMeta(self.scenes[i].cues[j].id)
+                    for j in self.groups[i].cues:
+                        self.pushCueMeta(self.groups[i].cues[j].id)
                 except Exception:
                     print(traceback.format_exc())
 
-            for i in self.active_scenes:
+            for i in self.active_groups:
                 # Tell clients about any changed alpha values and stuff.
-                if i.id not in self.scenes:
+                if i.id not in self.groups:
                     self.pushMeta(i.id)
             self.pushConfiguredUniverses()
             self.linkSend(["serports", getSerPorts()])
@@ -221,9 +221,9 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         if cmd_name == "gsd":
             # Could be long-running, so we offload to a workerthread
-            # Used to be get scene data, Now its a general get everything to show pags thing
+            # Used to be get group data, Now its a general get everything to show pags thing
             def f():
-                s = scenes.scenes[msg[1]]
+                s = groups.groups[msg[1]]
                 self.pushCueList(s.id)
                 self.pushMeta(msg[1])
                 self.push_setup()
@@ -234,8 +234,8 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         elif cmd_name == "getallcuemeta":
 
             def f():
-                for i in scenes.scenes[msg[1]].cues:
-                    self.pushCueMeta(scenes.scenes[msg[1]].cues[i].id)
+                for i in groups.groups[msg[1]].cues:
+                    self.pushCueMeta(groups.groups[msg[1]].cues[i].id)
 
             kaithem.misc.do(f)
             return
@@ -261,7 +261,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             return
 
         elif cmd_name == "gasd":
-            # Get All State Data, used to get all scene data
+            # Get All State Data, used to get all group data
             self.send_everything(sessionid)
             return
 
@@ -276,7 +276,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             return
 
         elif cmd_name == "getCommands":
-            c = scenes.rootContext.commands.scriptcommands
+            c = groups.rootContext.commands.scriptcommands
             commandInfo = {}
             for i in c:
                 f = c[i]
@@ -289,7 +289,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             return
 
         elif cmd_name == "getcuehistory":
-            self.linkSend(["cuehistory", msg[1], scenes.scenes[msg[1]].cueHistory])
+            self.linkSend(["cuehistory", msg[1], groups.groups[msg[1]].cueHistory])
             return
 
         elif cmd_name == "getfixtureassg":
@@ -307,7 +307,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         # User level runtime stuff that can't change config
 
         if cmd_name == "jumptocue":
-            sc = cues[msg[1]].scene()
+            sc = cues[msg[1]].group()
             assert sc
 
             if not sc.active:
@@ -317,36 +317,36 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             return
 
         elif cmd_name == "jumpbyname":
-            self.scenes_by_name[msg[1]].goto_cue(msg[2], cause="manual")
+            self.groups_by_name[msg[1]].goto_cue(msg[2], cause="manual")
             return
 
         elif cmd_name == "nextcue":
-            scenes.scenes[msg[1]].next_cue(cause="manual")
+            groups.groups[msg[1]].next_cue(cause="manual")
             return
 
         elif cmd_name == "prevcue":
-            scenes.scenes[msg[1]].prev_cue(cause="manual")
+            groups.groups[msg[1]].prev_cue(cause="manual")
             return
 
         elif cmd_name == "nextcuebyname":
-            self.scenes_by_name[msg[1]].next_cue(cause="manual")
+            self.groups_by_name[msg[1]].next_cue(cause="manual")
             return
 
         elif cmd_name == "shortcut":
-            scenes.shortcutCode(msg[1])
+            groups.shortcutCode(msg[1])
             return
 
-        elif cmd_name == "addTimeToScene":
+        elif cmd_name == "addTimeToGroup":
             "Just this time, add a little extra"
-            if scenes.scenes[msg[1]].cuelen:
-                scenes.scenes[msg[1]].cuelen += float(msg[2]) * 60
+            if groups.groups[msg[1]].cuelen:
+                groups.groups[msg[1]].cuelen += float(msg[2]) * 60
                 self.pushMeta(msg[1])
             return
 
         elif cmd_name == "gotonext":
             if cues[msg[1]].next_cue:
                 try:
-                    s = cues[msg[1]].scene()
+                    s = cues[msg[1]].group()
                     if s:
                         s.next_cue(cause="manual")
                 except Exception:
@@ -354,22 +354,22 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             return
 
         elif cmd_name == "go":
-            scenes.scenes[msg[1]].go()
+            groups.groups[msg[1]].go()
             self.pushMeta(msg[1])
             return
 
         elif cmd_name == "gobyname":
-            self.scenes_by_name[msg[1]].go()
-            self.pushMeta(self.scenes_by_name[msg[1]].id)
+            self.groups_by_name[msg[1]].go()
+            self.pushMeta(self.groups_by_name[msg[1]].id)
             return
 
         elif cmd_name == "stopbyname":
-            self.scenes_by_name[msg[1]].stop()
+            self.groups_by_name[msg[1]].stop()
             self.pushMeta(msg[1], statusOnly=True)
             return
 
         elif cmd_name == "stop":
-            x = scenes.scenes[msg[1]]
+            x = groups.groups[msg[1]]
             x.stop()
             self.pushMeta(msg[1], statusOnly=True)
             return
@@ -379,7 +379,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             return
 
         elif cmd_name == "setalpha":
-            scenes.scenes[msg[1]].setAlpha(msg[2])
+            groups.groups[msg[1]].setAlpha(msg[2])
             return
 
         elif cmd_name == "getcnames":
@@ -413,9 +413,9 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             if msg[2] == "setup":
                 self.loadSetupFile(msg[1])
 
-        elif cmd_name == "addscene":
-            sc = Scene(self, msg[1].strip())
-            self.scenes[sc.id] = sc
+        elif cmd_name == "addgroup":
+            sc = Group(self, msg[1].strip())
+            self.groups[sc.id] = sc
             self.pushMeta(sc.id)
 
         elif cmd_name == "setconfuniverses":
@@ -494,27 +494,27 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             self.pushCueMeta(msg[1])
 
         elif cmd_name == "seteventbuttons":
-            scenes.scenes[msg[1]].event_buttons = msg[2]
+            groups.groups[msg[1]].event_buttons = msg[2]
             self.pushMeta(msg[1], keys={"event_buttons"})
 
         elif cmd_name == "sethide":
-            scenes.scenes[msg[1]].hide = msg[2]
+            groups.groups[msg[1]].hide = msg[2]
             self.pushMeta(msg[1], keys={"hide"})
 
         elif cmd_name == "setinfodisplay":
-            scenes.scenes[msg[1]].info_display = msg[2]
+            groups.groups[msg[1]].info_display = msg[2]
             self.pushMeta(msg[1], keys={"info_display"})
 
         elif cmd_name == "setutility":
-            scenes.scenes[msg[1]].utility = msg[2]
+            groups.groups[msg[1]].utility = msg[2]
             self.pushMeta(msg[1], keys={"utility"})
 
         elif cmd_name == "setdisplaytags":
-            scenes.scenes[msg[1]].set_display_tags(msg[2])
+            groups.groups[msg[1]].set_display_tags(msg[2])
             self.pushMeta(msg[1], keys={"display_tags"})
 
         elif cmd_name == "inputtagvalue":
-            for i in scenes.scenes[msg[1]].display_tags:
+            for i in groups.groups[msg[1]].display_tags:
                 # Defensive programming, don't set a tag that wasn't ever actually configured
                 if msg[2] == i[1]:
                     kaithem.tags.all_tags_raw[msg[2]]().value = msg[3]
@@ -522,11 +522,11 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         elif cmd_name == "setMqttServer":
             if kaithem.users.check_permission(user, "system_admin"):
-                scenes.scenes[msg[1]].setMqttServer(msg[2])
+                groups.groups[msg[1]].setMqttServer(msg[2])
                 self.pushMeta(msg[1], keys={"mqtt_server"})
 
         elif cmd_name == "add_cueval":
-            sc = cues[msg[1]].scene()
+            sc = cues[msg[1]].group()
             assert sc
 
             if hasattr(sc.lighting_manager.blendClass, "default_channel_value"):
@@ -557,7 +557,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             # Channels are stored by name and not by number.
             for i in x.channels:
                 if i[1] not in ("unused", "fixed"):
-                    sc = cue.scene()
+                    sc = cue.group()
                     assert sc
                     if hasattr(sc.lighting_manager.blendClass, "default_channel_value"):
                         val = sc.lighting_manager.blendClass.default_channel_value
@@ -574,7 +574,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 # The __dest__ channels represet the color at the end of the channel
                 for i in x.channels:
                     if i[1] not in ("unused", "fixed"):
-                        sc = cue.scene()
+                        sc = cue.group()
                         assert sc
                         if hasattr(sc.lighting_manager.blendClass, "default_channel_value"):
                             val = sc.lighting_manager.blendClass.default_channel_value
@@ -624,25 +624,25 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 self.pushCueMeta(msg[1])
 
         elif cmd_name == "setMusicVisualizations":
-            scenes.scenes[msg[1]].setMusicVisualizations(msg[2])
+            groups.groups[msg[1]].setMusicVisualizations(msg[2])
 
         elif cmd_name == "setDefaultNext":
-            scenes.scenes[msg[1]].default_next = str(msg[2])[:256]
+            groups.groups[msg[1]].default_next = str(msg[2])[:256]
         elif cmd_name == "tap":
-            scenes.scenes[msg[1]].tap(msg[2])
+            groups.groups[msg[1]].tap(msg[2])
         elif cmd_name == "setbpm":
-            scenes.scenes[msg[1]].setBPM(msg[2])
+            groups.groups[msg[1]].setBPM(msg[2])
 
         elif cmd_name == "setcrossfade":
-            scenes.scenes[msg[1]].crossfade = float(msg[2] or 0)
+            groups.groups[msg[1]].crossfade = float(msg[2] or 0)
 
         elif cmd_name == "setdalpha":
-            scenes.scenes[msg[1]].setAlpha(msg[2], sd=True)
+            groups.groups[msg[1]].setAlpha(msg[2], sd=True)
 
         elif cmd_name == "add_cue":
             n = msg[2].strip()
-            if msg[2] not in scenes.scenes[msg[1]].cues:
-                scenes.scenes[msg[1]].add_cue(n)
+            if msg[2] not in groups.groups[msg[1]].cues:
+                groups.groups[msg[1]].add_cue(n)
 
         elif cmd_name == "rename_cue":
             if not msg[3]:
@@ -651,7 +651,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             n = msg[2].strip()
             n2 = msg[3].strip()
 
-            scenes.scenes[msg[1]].rename_cue(n, n2)
+            groups.groups[msg[1]].rename_cue(n, n2)
 
         elif cmd_name == "searchsounds":
             self.linkSend(
@@ -663,7 +663,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             )
 
         elif cmd_name == "mediaLinkCommand":
-            self.scenes_by_name[msg[1]].media_link_socket.send_to(msg[3], msg[2])
+            self.groups_by_name[msg[1]].media_link_socket.send_to(msg[3], msg[2])
             return
 
         elif cmd_name == "newFromSound":
@@ -677,10 +677,10 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 print(traceback.format_exc())
 
             bn = disallow_special(bn, "_~", replaceMode=" ")
-            if bn not in scenes.scenes[msg[1]].cues:
-                scenes.scenes[msg[1]].add_cue(bn)
-                scenes.scenes[msg[1]].cues[bn].rel_length = True
-                scenes.scenes[msg[1]].cues[bn].length = 0.01
+            if bn not in groups.groups[msg[1]].cues:
+                groups.groups[msg[1]].add_cue(bn)
+                groups.groups[msg[1]].cues[bn].rel_length = True
+                groups.groups[msg[1]].cues[bn].length = 0.01
 
                 soundfolders = core.getSoundFolders()
                 s = None
@@ -694,18 +694,18 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                         break
                 if not s:
                     raise RuntimeError("Unknown, linter said was possible")
-                scenes.scenes[msg[1]].cues[bn].sound = s
-                scenes.scenes[msg[1]].cues[bn].named_for_sound = True
+                groups.groups[msg[1]].cues[bn].sound = s
+                groups.groups[msg[1]].cues[bn].named_for_sound = True
 
-                self.pushCueMeta(scenes.scenes[msg[1]].cues[bn].id)
+                self.pushCueMeta(groups.groups[msg[1]].cues[bn].id)
 
         elif cmd_name == "newFromSlide":
             bn = os.path.basename(msg[2])
             bn = fnToCueName(bn)
 
             bn = disallow_special(bn, "_~", replaceMode=" ")
-            if bn not in scenes.scenes[msg[1]].cues:
-                scenes.scenes[msg[1]].add_cue(bn)
+            if bn not in groups.groups[msg[1]].cues:
+                groups.groups[msg[1]].add_cue(bn)
                 soundfolders = core.getSoundFolders()
                 assert soundfolders
                 s = ""
@@ -718,17 +718,17 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                         s = s[len(i) :]
                         break
                 assert s
-                scenes.scenes[msg[1]].cues[bn].slide = s
+                groups.groups[msg[1]].cues[bn].slide = s
 
-                if not scenes.is_static_media(s):
-                    scenes.scenes[msg[1]].cues[bn].rel_length = True
-                    scenes.scenes[msg[1]].cues[bn].length = 0.01
+                if not groups.is_static_media(s):
+                    groups.groups[msg[1]].cues[bn].rel_length = True
+                    groups.groups[msg[1]].cues[bn].length = 0.01
 
-                self.pushCueMeta(scenes.scenes[msg[1]].cues[bn].id)
+                self.pushCueMeta(groups.groups[msg[1]].cues[bn].id)
 
         elif cmd_name == "rmcue":
             c = cues[msg[1]]
-            c.scene().rmCue(c.id)
+            c.group().rmCue(c.id)
 
         elif cmd_name == "setCueTriggerShortcut":
             v = msg[2]
@@ -758,7 +758,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 v = msg[2]
             cues[msg[1]].sound_volume = v
             self.pushCueMeta(msg[1])
-            sc = cues[msg[1]].scene()
+            sc = cues[msg[1]].group()
             assert sc
             sc.setAlpha(sc.alpha)
 
@@ -770,7 +770,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             cues[msg[1]].sound_loops = v if (not v == -1) else 99999999999999999
 
             self.pushCueMeta(msg[1])
-            sc = cues[msg[1]].scene()
+            sc = cues[msg[1]].group()
             assert sc
             sc.setAlpha(sc.alpha)
 
@@ -864,14 +864,14 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             self.pushCueMeta(msg[1])
 
         # TODO: Almost everything should go through these two functions!!
-        elif cmd_name == "setSceneProperty":
+        elif cmd_name == "setGroupProperty":
             prop = snake_compat.camel_to_snake(msg[2])
             # Generic setter for things that are just simple value sets.
 
             # Try to get the attr, to ensure that it actually exists.
-            old = getattr(scenes.scenes[msg[1]], prop)
+            old = getattr(groups.groups[msg[1]], prop)
 
-            setattr(scenes.scenes[msg[1]], prop, msg[3])
+            setattr(groups.groups[msg[1]], prop, msg[3])
 
             if not old == msg[3]:
                 self.pushMeta(msg[1], keys={prop})
@@ -889,19 +889,19 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 self.pushCueMeta(msg[1])
 
         elif cmd_name == "setmqttfeature":
-            scenes.scenes[msg[1]].setMQTTFeature(msg[2], msg[3])
+            groups.groups[msg[1]].setMQTTFeature(msg[2], msg[3])
             self.pushMeta(msg[1], keys={"mqtt_sync_features"})
 
-        elif cmd_name == "setscenesoundout":
-            scenes.scenes[msg[1]].sound_output = msg[2]
+        elif cmd_name == "setgroupsoundout":
+            groups.groups[msg[1]].sound_output = msg[2]
             self.pushMeta(msg[1], keys={"sound_output"})
 
-        elif cmd_name == "setsceneslideoverlay":
-            scenes.scenes[msg[1]].slide_overlay_url = msg[2]
+        elif cmd_name == "setgroupslideoverlay":
+            groups.groups[msg[1]].slide_overlay_url = msg[2]
             self.pushMeta(msg[1], keys={"slide_overlay_url"})
 
-        elif cmd_name == "setscenecommandtag":
-            scenes.scenes[msg[1]].set_command_tag(msg[2])
+        elif cmd_name == "setgroupcommandtag":
+            groups.groups[msg[1]].set_command_tag(msg[2])
 
             self.pushMeta(msg[1], keys={"command_tag"})
 
@@ -911,7 +911,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             except Exception:
                 v = msg[2][:256]
             cues[msg[1]].length = v
-            sc = cues[msg[1]].scene()
+            sc = cues[msg[1]].group()
             assert sc
             sc.recalc_cue_len()
             self.pushCueMeta(msg[1])
@@ -922,7 +922,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             except Exception:
                 v = msg[2][:256]
             cues[msg[1]].length_randomize = v
-            sc = cues[msg[1]].scene()
+            sc = cues[msg[1]].group()
             assert sc
             sc.recalc_randomize_modifier()
             self.pushCueMeta(msg[1])
@@ -940,20 +940,20 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             self.pushCueMeta(msg[1])
 
         elif cmd_name == "setblend":
-            scenes.scenes[msg[1]].setBlend(msg[2])
+            groups.groups[msg[1]].setBlend(msg[2])
         elif cmd_name == "setblendarg":
-            scenes.scenes[msg[1]].setBlendArg(msg[2], msg[3])
+            groups.groups[msg[1]].setBlendArg(msg[2], msg[3])
 
-        elif cmd_name == "setscenename":
-            scenes.scenes[msg[1]].setName(msg[2])
+        elif cmd_name == "setgroupname":
+            groups.groups[msg[1]].setName(msg[2])
 
         elif cmd_name == "del":
-            # X is there in case the active_scenes listing was the last string reference, we want to be able to push the data still
-            x = scenes.scenes[msg[1]]
-            scenes.checkPermissionsForSceneData(x.toDict(), user)
+            # X is there in case the active_groups listing was the last string reference, we want to be able to push the data still
+            x = groups.groups[msg[1]]
+            groups.checkPermissionsForGroupData(x.toDict(), user)
 
             x.stop()
-            self.delscene(msg[1])
+            self.delgroup(msg[1])
 
         elif cmd_name == "setsoundfolders":
             # Set the global sound folders list

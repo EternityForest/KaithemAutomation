@@ -20,11 +20,11 @@ def getUniverse(u: str):
 
 def getblenddesc(mode: str):
     if mode == "gel" or mode == "multiply":
-        return "Values in this scene act as a virtual gel filter over the layers below it, the final value is produced by multiplying the values together"
+        return "Values in this group act as a virtual gel filter over the layers below it, the final value is produced by multiplying the values together"
     elif mode == "inhibit":
-        return "Values in this scene act to limit the max value, the final value is the lower of the value in this scene and the rendered value below it"
+        return "Values in this group act to limit the max value, the final value is the lower of the value in this group and the rendered value below it"
     elif mode == "HTP":
-        return "The highest of the this scene's values and the values below it take effect, as in a traditional HTP lighting console"
+        return "The highest of the this group's values and the values below it take effect, as in a traditional HTP lighting console"
 
     try:
         return blendmodes[mode].description
@@ -41,7 +41,7 @@ class BlendMode:
     parameters: Dict[str, Tuple[str, str, str, str | bool | float]] = {}
     autoStop = True
 
-    def __init__(self, scene) -> None:
+    def __init__(self, group) -> None:
         self.blend_args: Dict[str, int | float | str] = {}
 
         if hasattr(self.__class__, "parameters"):
@@ -85,9 +85,9 @@ class flicker_blendmode(BlendMode):
     To use this, add a layer below containing the base colors.
     The flicker layer will randomly darken them according to it's simulation algorithm."""
 
-    def __init__(self, scene):
-        BlendMode.__init__(self, scene)
-        self.scene = scene
+    def __init__(self, group):
+        BlendMode.__init__(self, group)
+        self.group = group
 
         self.wind = 1
         self.wind_gust_chance = 0.01
@@ -97,7 +97,7 @@ class flicker_blendmode(BlendMode):
         self.last_per = {}
 
         # dicts of np arrays by universe name
-        # Don't worry about garbage collection, this all gets reset when a scene is stopped and started
+        # Don't worry about garbage collection, this all gets reset when a group is stopped and started
         self.heights = {}
         self.heights_lp = {}
 
@@ -212,11 +212,11 @@ class vary_blendmode_np(BlendMode):
         ),
     }
 
-    def __init__(self, scene):
-        BlendMode.__init__(self, scene)
+    def __init__(self, group):
+        BlendMode.__init__(self, group)
         self.vals = {}
         self.vals_lp = {}
-        self.scene = scene
+        self.group = group
         self.ntt = 0
         self.last = time.time()
         self.last_per = {}
@@ -254,7 +254,7 @@ class vary_blendmode_np(BlendMode):
                 uobj.interpolationTime = (1 / 60) / self.blend_args["speed"]
 
         self.vals_lp[u] = self.vals_lp[u] * (1 - lp) + self.vals[u] * lp
-        old *= numpy.minimum((self.scene.alpha * self.vals_lp[u]) + 1 - self.scene.alpha, 255)
+        old *= numpy.minimum((self.group.alpha * self.vals_lp[u]) + 1 - self.group.alpha, 255)
         return old
 
 
@@ -264,11 +264,11 @@ blendmodes["vary"] = vary_blendmode_np
 class exp_blendmode_np(BlendMode):
     default_channel_value = 165
 
-    def __init__(self, scene):
-        BlendMode.__init__(self, scene)
-        self.scene = scene
-        # for i in self.scene.values:
-        #     self.affect[i] = sorted(self.scene.values[i].keys())
+    def __init__(self, group):
+        BlendMode.__init__(self, group)
+        self.group = group
+        # for i in self.group.values:
+        #     self.affect[i] = sorted(self.group.values[i].keys())
         self.last = time.time()
 
     def frame(self, u, below, values, alphas, alpha):
@@ -279,7 +279,7 @@ blendmodes["gamma"] = exp_blendmode_np
 
 
 class sparks_blendmode(BlendMode):
-    """Randomly jump to some of the values in this scene then fade
+    """Randomly jump to some of the values in this group then fade
     back to what they were. Works in groups of 3 channels"""
 
     always_rerender = True
@@ -301,11 +301,11 @@ class sparks_blendmode(BlendMode):
         ),
     }
 
-    def __init__(self, scene):
-        BlendMode.__init__(self, scene)
+    def __init__(self, group):
+        BlendMode.__init__(self, group)
         self.vals_lp = {}
         self.sparktimes = {}
-        self.scene = scene
+        self.group = group
         self.last = time.time()
         self.last_per = {}
 
@@ -349,7 +349,7 @@ class sparks_blendmode(BlendMode):
         # Exponential decay equation.
         self.vals_lp[u] *= y
 
-        # The vals_lp are actually alphas that spark up and then fade out and control how much of the scene shows up
+        # The vals_lp are actually alphas that spark up and then fade out and control how much of the group shows up
         # in that channel
         return values * (self.vals_lp[u] * alpha * alphas) + old * (1 - (self.vals_lp[u] * alpha * alphas))
 

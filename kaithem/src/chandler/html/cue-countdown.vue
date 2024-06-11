@@ -3,12 +3,12 @@
 
 <template id="cue-cd">
     <div style="position: relative; width: fit-content;">
-        <meter style="height: calc(var(--control-height) * 1.5);" v-bind:high=" (cue.length>30)?(scene.cuelen*(60/scene.bpm))-10:(scene.cuelen*(60/scene.bpm))"
-            v-if="scene.active && cue && cue.length" min=0 v-bind:max="scene.cuelen*(60/scene.bpm)"
-            v-bind:data-meter-ref="scene.enteredCue"></meter>
-        <span class="outline-text" style="position: absolute; left:2px; top:calc(var(--control-height) * 0.25)" v-if="scene.active && cue && cue.length"
-        :data-count-ref="scene.enteredCue"
-        :data-count-len="scene.cuelen">
+        <meter style="height: calc(var(--control-height) * 1.5);" v-bind:high=" (cue.length>30)?(group.cuelen*(60/group.bpm))-10:(group.cuelen*(60/group.bpm))"
+            v-if="group.active && cue && cue.length" min=0 v-bind:max="group.cuelen*(60/group.bpm)"
+            v-bind:data-meter-ref="group.enteredCue"></meter>
+        <span class="outline-text" style="position: absolute; left:2px; top:calc(var(--control-height) * 0.25)" v-if="group.active && cue && cue.length"
+        :data-count-ref="group.enteredCue"
+        :data-count-len="group.cuelen">
         </span>
     </div>
 </template>
@@ -44,7 +44,7 @@ formatInterval = function (seconds) {
 
 module.exports = {
     template: '#cue-cd',
-    props: ['cue', 'scene'],
+    props: ['cue', 'group'],
     data: function () {
         return ({ 'formatInterval': formatInterval })
     }

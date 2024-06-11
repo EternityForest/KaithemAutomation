@@ -21,13 +21,13 @@ from beartype import beartype
 
 from .. import schemas, tagpoints, util
 from ..kaithemobj import kaithem
-from . import core, mqtt, persistance, scene_media
+from . import core, group_media, mqtt, persistance
 from .core import disallow_special
 from .cue import Cue, allowedCueNameSpecials, cues
 from .global_actions import shortcutCode
+from .group_context_commands import add_context_commands, rootContext
+from .group_lighting import GroupLightingManager
 from .mathutils import dt_to_ts, ease, number_to_note
-from .scene_context_commands import add_context_commands, rootContext
-from .scene_lighting import SceneLightingManager
 from .signage import MediaLinkManager
 
 logger = structlog.get_logger(__name__)
@@ -44,7 +44,7 @@ min = min
 
 
 # Indexed by ID
-scenes: weakref.WeakValueDictionary[str, Scene] = weakref.WeakValueDictionary()
+groups: weakref.WeakValueDictionary[str, Group] = weakref.WeakValueDictionary()
 
 
 def normalize_midi_name(t):
@@ -71,7 +71,7 @@ def is_static_media(s: str):
     return False
 
 
-def makeWrappedConnectionClass(parent: Scene):
+def makeWrappedConnectionClass(parent: Group):
     self_closure_ref = parent
 
     class Connection(mqtt.MQTTConnection):
@@ -124,20 +124,20 @@ def doTransitionRateLimit():
 
 
 class DebugScriptContext(kaithem.chandlerscript.ChandlerScriptContext):
-    def __init__(self, sceneObj: Scene, *a, **k):
-        self.sceneObj = weakref.ref(sceneObj)
-        self.sceneName: str = sceneObj.name
-        self.sceneId = sceneObj.id
+    def __init__(self, groupObj: Group, *a, **k):
+        self.groupObj = weakref.ref(groupObj)
+        self.groupName: str = groupObj.name
+        self.groupId = groupObj.id
         super().__init__(*a, **k)
 
     def onVarSet(self, k, v):
-        scene = self.sceneObj()
-        if scene:
+        group = self.groupObj()
+        if group:
             try:
-                if not k == "_" and scene.rerenderOnVarChange:
-                    scene.lighting_manager.recalc_cue_vals()
-                    scene.poll_again_flag = True
-                    scene.lighting_manager.should_rerender_onto_universes = True
+                if not k == "_" and group.rerenderOnVarChange:
+                    group.lighting_manager.recalc_cue_vals()
+                    group.poll_again_flag = True
+                    group.lighting_manager.should_rerender_onto_universes = True
 
             except Exception:
                 core.rl_log_exc("Error handling var set notification")
@@ -148,13 +148,13 @@ class DebugScriptContext(kaithem.chandlerscript.ChandlerScriptContext):
                     for board in core.iter_boards():
                         if board:
                             if isinstance(v, (str, int, float, bool)):
-                                board.linkSend(["varchange", self.sceneId, k, v])
+                                board.linkSend(["varchange", self.groupId, k, v])
                             elif isinstance(v, collections.defaultdict):
                                 v = json.dumps(v)[:160]
-                                board.linkSend(["varchange", self.sceneId, k, v])
+                                board.linkSend(["varchange", self.groupId, k, v])
                             else:
                                 v = str(v)[:160]
-                                board.linkSend(["varchange", self.sceneId, k, v])
+                                board.linkSend(["varchange", self.groupId, k, v])
             except Exception:
                 core.rl_log_exc("Error handling var set notification")
                 print(traceback.format_exc())
@@ -163,30 +163,30 @@ class DebugScriptContext(kaithem.chandlerscript.ChandlerScriptContext):
         kaithem.chandlerscript.ChandlerScriptContext.event(self, evt, val)
         try:
             for board in core.iter_boards():
-                board.pushEv(evt, self.sceneName, time.time(), value=val)
+                board.pushEv(evt, self.groupName, time.time(), value=val)
         except Exception:
             core.rl_log_exc("error handling event")
             print(traceback.format_exc())
 
     def onTimerChange(self, timer, nextRunTime):
-        scene = self.sceneObj()
-        if scene:
-            scene.runningTimers[timer] = nextRunTime
+        group = self.groupObj()
+        if group:
+            group.runningTimers[timer] = nextRunTime
             try:
                 for board in core.iter_boards():
-                    board.linkSend(["scenetimers", scene.id, scene.runningTimers])
+                    board.linkSend(["grouptimers", group.id, group.runningTimers])
             except Exception:
                 core.rl_log_exc("Error handling timer set notification")
                 print(traceback.format_exc())
 
     def canGetTagpoint(self, t):
         if t not in self.tagpoints and len(self.tagpoints) > 128:
-            raise RuntimeError("Too many tagpoints in one scene")
+            raise RuntimeError("Too many tagpoints in one group")
         return t
 
 
-def checkPermissionsForSceneData(data: dict[str, Any], user: str):
-    """Check if used can upload or edit the scene, ekse raise an
+def checkPermissionsForGroupData(data: dict[str, Any], user: str):
+    """Check if used can upload or edit the group, ekse raise an
       error if
         it uses advanced features that would prevent that action.
     We disallow delete because we don't want unprivelaged users
@@ -196,16 +196,16 @@ def checkPermissionsForSceneData(data: dict[str, Any], user: str):
     if "mqtt_server" in data and data["mqtt_server"].strip():
         if not kaithem.users.check_permission(user, "system_admin"):
             raise ValueError(
-                "You cannot do this action on this scene without system_admin, because it uses advanced features: MQTT:"
+                "You cannot do this action on this group without system_admin, because it uses advanced features: MQTT:"
                 + str(kaithem.web.user(None))
             )
 
 
-scene_schema = schemas.get_schema("chandler/scene")
+group_schema = schemas.get_schema("chandler/group")
 
 
-class Scene:
-    "An objecting representing one scene. If noe default cue present one is made"
+class Group:
+    "An objecting representing one group. If noe default cue present one is made"
 
     def __init__(
         self,
@@ -248,8 +248,8 @@ class Scene:
         """
         self.board = chandler_board
 
-        if name and name in self.board.scenes_by_name:
-            raise RuntimeError("Cannot have 2 scenes sharing a name: " + name)
+        if name and name in self.board.groups_by_name:
+            raise RuntimeError("Cannot have 2 groups sharing a name: " + name)
 
         if not name.strip():
             raise ValueError("Invalid Name")
@@ -257,8 +257,8 @@ class Scene:
         # Used by blend modes
         self.blend_args: dict[str, float | int | bool | str] = blend_args or {}
 
-        self.media_player = scene_media.SceneMediaPlayer(self)
-        self.lighting_manager = SceneLightingManager(self)
+        self.media_player = group_media.GroupMediaPlayer(self)
+        self.lighting_manager = GroupLightingManager(self)
 
         self.mqttConnection = None
         self.mqttSubscribed: dict[str, bool]
@@ -282,7 +282,7 @@ class Scene:
         self.slide_overlay_url: str = slide_overlay_url
 
         # Kind of long so we do it in the external file
-        self.slideshow_layout: str = slideshow_layout.strip() or scene_schema["properties"]["slideshow_layout"]["default"]
+        self.slideshow_layout: str = slideshow_layout.strip() or group_schema["properties"]["slideshow_layout"]["default"]
 
         # Audio visualizations
         self.music_visualizations = music_visualizations
@@ -300,17 +300,17 @@ class Scene:
         self.default_next = str(default_next).strip()
 
         # TagPoint for managing the current cue
-        self.cueTag = kaithem.tags.StringTag("/chandler/scenes/" + name + ".cue")
+        self.cueTag = kaithem.tags.StringTag("/chandler/groups/" + name + ".cue")
         self.cueTag.expose("view_status", "chandler_operator")
 
-        self.cueTagClaim = self.cueTag.claim("__stopped__", "Scene", 50, annotation="SceneObject")
+        self.cueTagClaim = self.cueTag.claim("__stopped__", "Group", 50, annotation="GroupObject")
 
         self.cueVolume = 1.0
 
         # Allow goto_cue
         def cueTagHandler(val, timestamp, annotation):
             # We generated this event, that means we don't have to respond to it
-            if annotation == "SceneObject":
+            if annotation == "GroupObject":
                 return
 
             if val == "__stopped__":
@@ -324,16 +324,16 @@ class Scene:
         self.cueTag.subscribe(cueTagHandler)
 
         # This is used to expose the state of the music cue mostly.
-        self.cueInfoTag = kaithem.tags.ObjectTag("/chandler/scenes/" + name + ".cueInfo")
+        self.cueInfoTag = kaithem.tags.ObjectTag("/chandler/groups/" + name + ".cueInfo")
         self.cueInfoTag.value = {"audio.meta": {}}
         self.cueInfoTag.expose("view_status", "chandler_operator")
 
-        self.albumArtTag = kaithem.tags.StringTag("/chandler/scenes/" + name + ".albumArt")
+        self.albumArtTag = kaithem.tags.StringTag("/chandler/groups/" + name + ".albumArt")
         self.albumArtTag.expose("view_status")
 
         # Used to determine the numbering of added cues
         self.topCueNumber = 0
-        # Only used for monitor scenes
+        # Only used for monitor groups
 
         self.alpha = alpha
         self.crossfade = crossfade
@@ -341,17 +341,17 @@ class Scene:
         self.cuelen = 0.0
 
         # TagPoint for managing the current alpha
-        self.alphaTag = kaithem.tags["/chandler/scenes/" + name + ".alpha"]
+        self.alphaTag = kaithem.tags["/chandler/groups/" + name + ".alpha"]
         self.alphaTag.min = 0
         self.alphaTag.max = 1
         self.alphaTag.expose("view_status", "chandler_operator")
 
-        self.alphaTagClaim = self.alphaTag.claim(self.alpha, "Scene", 50, annotation="SceneObject")
+        self.alphaTagClaim = self.alphaTag.claim(self.alpha, "Group", 50, annotation="GroupObject")
 
         # Allow setting the alpha
         def alphaTagHandler(val, timestamp, annotation):
             # We generated this event, that means we don't have to respond to it
-            if annotation == "SceneObject":
+            if annotation == "GroupObject":
                 return
             self.setAlpha(val)
 
@@ -394,7 +394,7 @@ class Scene:
         # happened since the cue started
         self.media_ended_at = 0
 
-        self.cueTagClaim.set(self.cue.name, annotation="SceneObject")
+        self.cueTagClaim.set(self.cue.name, annotation="GroupObject")
 
         # Used to avoid an excessive number of repeats in random cues
         self.cueHistory: list[tuple[str, float]] = []
@@ -411,28 +411,28 @@ class Scene:
         self.setBlend(blend)
         self.default_active = default_active
 
-        # Used to indicate that the most recent frame has changed something about the scene
+        # Used to indicate that the most recent frame has changed something about the group
         # Metadata that GUI clients need to know about.
 
         # An entry here means the board with that ID is all good
         # Clear this to indicate everything needs to be sent to web.
         self.metadata_already_pushed_by: dict[str, bool] = {}
 
-        # Set to true every time the alpha value changes or a scene value changes
+        # Set to true every time the alpha value changes or a group value changes
         # set to false at end of rendering
         self.poll_again_flag = False
 
-        # Last time the scene was started. Not reset when stopped
+        # Last time the group was started. Not reset when stopped
         self.started = 0.0
 
         # Script engine variable space
         self.chandler_vars: dict[str, Any] = {}
 
         if name:
-            self.board.scenes_by_name[self.name] = self
+            self.board.groups_by_name[self.name] = self
         if not name:
             name = self.id
-        scenes[self.id] = self
+        groups[self.id] = self
 
         # The bindings for script commands that might be in the cue metadata
         # Used to be made on demand, now we just always have it
@@ -470,7 +470,7 @@ class Scene:
                 self.started = time.time() - active
 
         else:
-            self.cueTagClaim.set("__stopped__", annotation="SceneObject")
+            self.cueTagClaim.set("__stopped__", annotation="GroupObject")
 
         self.subscribe_command_tags()
 
@@ -484,11 +484,11 @@ class Scene:
             "uuid": self.id,
         }
 
-        for i in scene_schema["properties"]:
+        for i in group_schema["properties"]:
             if i not in d:
                 d[i] = getattr(self, i)
 
-        schemas.validate("chandler/scene", d)
+        schemas.validate("chandler/group", d)
 
         return d
 
@@ -503,18 +503,18 @@ class Scene:
         return x
 
     def close(self):
-        "Unregister the scene and delete it from the lists"
+        "Unregister the group and delete it from the lists"
         with core.lock:
             self.stop()
             self.mqtt_server = ""
             x = self.mqttConnection
             if x:
                 x.disconnect()
-            if self.board.scenes_by_name.get(self.name, None) is self:
-                del self.board.scenes_by_name[self.name]
+            if self.board.groups_by_name.get(self.name, None) is self:
+                del self.board.groups_by_name[self.name]
 
-            if scenes.get(self.id, None) is self:
-                del scenes[self.id]
+            if groups.get(self.id, None) is self:
+                del groups[self.id]
 
     def evalExprFloat(self, s: str | int | float) -> float:
         f = self.evalExpr(s)
@@ -592,7 +592,7 @@ class Scene:
     def rmCue(self, cue: str):
         with core.lock:
             if not len(self.cues) > 1:
-                raise RuntimeError("Cannot have scene with no cues")
+                raise RuntimeError("Cannot have group with no cues")
 
             if cue in cues:
                 if cues[cue].name == "default":
@@ -743,7 +743,7 @@ class Scene:
 
             # Avoid confusing stuff even though we technically could impleent it.
             if self.default_next.strip():
-                raise RuntimeError("Scene's default next is not empty, __schedule__ doesn't work here.")
+                raise RuntimeError("Group's default next is not empty, __schedule__ doesn't work here.")
 
             def processlen(raw_length) -> str:
                 # Return length but always a string and empty if it was 0
@@ -974,7 +974,7 @@ class Scene:
                     # Act like we actually we in the default cue, but allow reenter no matter what since
                     # We weren't in any cue
                     self.cue = self.cues["default"]
-                    self.cueTagClaim.set(self.cue.name, annotation="SceneObject")
+                    self.cueTagClaim.set(self.cue.name, annotation="GroupObject")
 
                 self.entered_cue = cue_entered_time
 
@@ -1059,7 +1059,7 @@ class Scene:
                     if not cause == "start":
                         persistance.set_checkpoint(self.id, self.cue.name)
 
-                self.cueTagClaim.set(self.cues[cue].name, annotation="SceneObject")
+                self.cueTagClaim.set(self.cues[cue].name, annotation="GroupObject")
 
                 self.recalc_randomize_modifier()
                 self.recalc_cue_len()
@@ -1235,7 +1235,9 @@ class Scene:
 
             self.script_context.clearBindings()
 
+            self.script_context.setVar("GROUP", self.name)
             self.script_context.setVar("SCENE", self.name)
+
             self.runningTimers = {}
 
             if self.active:
@@ -1270,7 +1272,7 @@ class Scene:
 
             try:
                 for board in core.iter_boards():
-                    board.linkSend(["scenetimers", self.id, self.runningTimers])
+                    board.linkSend(["grouptimers", self.id, self.runningTimers])
             except Exception:
                 core.rl_log_exc("Error handling timer set notification")
 
@@ -1343,7 +1345,7 @@ class Scene:
                 del self.mqttSubscribed[i]
 
     def sendMqttMessage(self, topic, message):
-        "JSON encodes message, and publishes it to the scene's MQTT server"
+        "JSON encodes message, and publishes it to the group's MQTT server"
         if self.mqttConnection:
             self.mqttConnection.publish(topic, json.dumps(message))
 
@@ -1561,13 +1563,13 @@ class Scene:
                 self.goto_cue(c, cause=cause)
 
     def __repr__(self):
-        return f"<Scene {self.name}>"
+        return f"<Group {self.name}>"
 
     def go(self, nohandoff=False):
         self.set_display_tags(self.display_tags)
 
         with core.lock:
-            if self in self.board.active_scenes:
+            if self in self.board.active_groups:
                 return
 
             self.active = True
@@ -1585,10 +1587,10 @@ class Scene:
             self.metadata_already_pushed_by = {}
             self.started = time.time()
 
-            if self not in self.board._active_scenes:
-                self.board._active_scenes.append(self)
-            self.board._active_scenes = sorted(self.board._active_scenes, key=lambda k: (k.priority, k.started))
-            self.board.active_scenes = self.board._active_scenes[:]
+            if self not in self.board._active_groups:
+                self.board._active_groups.append(self)
+            self.board._active_groups = sorted(self.board._active_groups, key=lambda k: (k.priority, k.started))
+            self.board.active_groups = self.board._active_groups[:]
 
             self.setMqttServer(self.mqtt_server)
 
@@ -1609,8 +1611,8 @@ class Scene:
         self.metadata_already_pushed_by = {}
         self._priority = p
         with core.lock:
-            self.board._active_scenes = sorted(self.board._active_scenes, key=lambda k: (k.priority, k.started))
-            self.board.active_scenes = self.board._active_scenes[:]
+            self.board._active_groups = sorted(self.board._active_groups, key=lambda k: (k.priority, k.started))
+            self.board.active_groups = self.board._active_groups[:]
             self.lighting_manager.refresh()
 
     def mqttStatusEvent(self, value: str, timestamp: float, annotation: Any):
@@ -1643,7 +1645,7 @@ class Scene:
                 self.mqttConnection = None
 
             if mqtt_server:
-                if self in self.board.active_scenes:
+                if self in self.board.active_groups:
                     self.mqttConnection = makeWrappedConnectionClass(self)(
                         server,
                         port,
@@ -1663,18 +1665,18 @@ class Scene:
     def setName(self, name: str):
         disallow_special(name)
         if self.name == "":
-            raise ValueError("Cannot name scene an empty string")
+            raise ValueError("Cannot name group an empty string")
         if not isinstance(name, str):
             raise TypeError("Name must be str")
         with core.lock:
-            if name in self.board.scenes_by_name:
+            if name in self.board.groups_by_name:
                 raise ValueError("Name in use")
-            if self.name in self.board.scenes_by_name:
-                del self.board.scenes_by_name[self.name]
+            if self.name in self.board.groups_by_name:
+                del self.board.groups_by_name[self.name]
             self.name = name
-            self.board.scenes_by_name[name] = self
+            self.board.groups_by_name[name] = self
             self.metadata_already_pushed_by = {}
-            self.script_context.setVar("SCENE", self.name)
+            self.script_context.setVar("GROUP", self.name)
 
     def setMQTTFeature(self, feature: str, state):
         if state:
@@ -1773,9 +1775,9 @@ class Scene:
             self.metadata_already_pushed_by = {}
 
             self.lighting_manager.stop()
-            if self in self.board._active_scenes:
-                self.board._active_scenes.remove(self)
-                self.board.active_scenes = self.board._active_scenes[:]
+            if self in self.board._active_groups:
+                self.board._active_groups.remove(self)
+                self.board.active_groups = self.board._active_groups[:]
 
             self.active = False
 
@@ -1784,7 +1786,7 @@ class Scene:
 
             try:
                 for board in core.iter_boards():
-                    board.linkSend(["scenetimers", self.id, self.runningTimers])
+                    board.linkSend(["grouptimers", self.id, self.runningTimers])
             except Exception:
                 core.rl_log_exc("Error handling timer set notification")
                 print(traceback.format_exc())
@@ -1792,7 +1794,7 @@ class Scene:
             self.cue = self.cues.get("default", list(self.cues.values())[0])
             # the real thing that means we aren't really in a cue
             self.entered_cue = 0
-            self.cueTagClaim.set("__stopped__", annotation="SceneObject")
+            self.cueTagClaim.set("__stopped__", annotation="GroupObject")
             self.doMqttSubscriptions(keepUnused=0)
 
             self.media_link.stop()
@@ -1876,7 +1878,7 @@ class Scene:
         if not self.is_active() and val > 0:
             self.go()
         self.alpha = val
-        self.alphaTagClaim.set(val, annotation="SceneObject")
+        self.alphaTagClaim.set(val, annotation="GroupObject")
         if sd:
             self.default_alpha = val
             self.pushMeta(keys={"alpha", "default_alpha"})

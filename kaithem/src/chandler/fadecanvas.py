@@ -20,7 +20,7 @@ def makeBlankArray(size: int):
 
 class FadeCanvas:
     def __init__(self):
-        """Handles calculating the effect of one scene over a background.
+        """Handles calculating the effect of one group over a background.
         This doesn't do blend modes, it just interpolates."""
         self.background_v: Dict[str, numpy.typing.NDArray[Any]] = {}
         self.background_a: Dict[str, numpy.typing.NDArray[Any]] = {}
@@ -35,7 +35,7 @@ class FadeCanvas:
     ):
         """
         Makes v2 and a2 equal to the current background overlayed
-        with values from scene which is any object that has dicts of dicts of vals and and
+        with values from group which is any object that has dicts of dicts of vals and and
         alpha.
 
         Should you have cached dicts of arrays vals and
@@ -71,13 +71,13 @@ class FadeCanvas:
             if not obj.localFading:
                 effectiveFade = 1
 
-            # We don't want to fade any values that have 0 alpha in the scene,
+            # We don't want to fade any values that have 0 alpha in the group,
             # because that's how we mark "not present", and we want to track the old val.
             # faded = self.v[i]*(1-(fade*alphas[i]))+ (alphas[i]*fade)*vals[i]
             faded = self.background_v[i] * (1 - effectiveFade) + (effectiveFade * vals[i])
 
             # We always want to jump straight to the value if alpha was previously 0.
-            # That's because a 0 alpha would mean the last scene released that channel, and there's
+            # That's because a 0 alpha would mean the last group released that channel, and there's
             # nothing to fade from, so we want to fade in from transparent not from black
             is_new = self.background_a[i] == 0
             self.v2[i] = numpy.where(is_new, vals[i], faded)

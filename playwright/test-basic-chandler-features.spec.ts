@@ -24,10 +24,10 @@ test('test', async ({ page }) => {
     await page.getByRole('link', { name: module }).click();
     await page.getByRole('link', { name: 'Editor' }).click();
 
-    // Create scene
-    await page.getByPlaceholder('New scene name').click();
-    await page.getByPlaceholder('New scene name').fill('tst1');
-    await page.getByTestId('add-scene-button').click();
+    // Create group
+    await page.getByPlaceholder('New group name').click();
+    await page.getByPlaceholder('New group name').fill('tst1');
+    await page.getByTestId('add-group-button').click();
     await page.getByRole('button', { name: 'tst1' }).click();
 
     // make cue c2
@@ -44,7 +44,7 @@ test('test', async ({ page }) => {
 
     // Add rule and edit the default example action
     await page.getByRole('button', { name: 'Add Rule' }).click();
-    await page.getByRole('button', { name: 'goto =SCENE' }).click();
+    await page.getByRole('button', { name: 'goto =GROUP' }).click();
 
     
     // Action params editor has a cue field
@@ -105,7 +105,7 @@ test('test', async ({ page }) => {
     await page.getByRole('row', { name: 'alert' }).getByRole('button', { name: 'Go', exact: true }).click();
    
    
-    //Select the scene box in the sidebar that tells us what the cue is
+    //Select the group box in the sidebar that tells us what the cue is
     await expect(page.getByText('tst1alert')).toContainText('alert');
     await page.getByText('Cue Channel Values').click();
     // Channel adding tab

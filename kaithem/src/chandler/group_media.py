@@ -11,15 +11,15 @@ from tinytag import TinyTag
 from .soundmanager import fadeSound, play_sound, stop_sound
 
 if TYPE_CHECKING:
-    from . import scenes
+    from . import groups
 
 
-class SceneMediaPlayer:
-    def __init__(self, scene: scenes.Scene):
-        self.scene = scene
+class GroupMediaPlayer:
+    def __init__(self, group: groups.Group):
+        self.group = group
         self.cue = None
 
-    def next(self, cue: scenes.Cue):
+    def next(self, cue: groups.Cue):
         "Call this whenever the media changes"
 
         if self.cue:
@@ -27,103 +27,103 @@ class SceneMediaPlayer:
         else:
             oldSoundOut = None
         if not oldSoundOut:
-            oldSoundOut = self.scene.sound_output
+            oldSoundOut = self.group.sound_output
 
         self.cue = cue
 
         if not cue.sound == "__keep__":
             # Don't stop audio of we're about to crossfade to the next track
-            if not (self.scene.crossfade and cue.sound):
-                if self.scene.cue.sound_fade_out or self.scene.cue.media_wind_down:
+            if not (self.group.crossfade and cue.sound):
+                if self.group.cue.sound_fade_out or self.group.cue.media_wind_down:
                     fadeSound(
                         None,
-                        length=self.scene.cue.sound_fade_out,
-                        handle=str(self.scene.id),
-                        winddown=self.scene.evalExprFloat(self.scene.cue.media_wind_down or 0),
+                        length=self.group.cue.sound_fade_out,
+                        handle=str(self.group.id),
+                        winddown=self.group.evalExprFloat(self.group.cue.media_wind_down or 0),
                     )
                 else:
-                    stop_sound(str(self.scene.id))
+                    stop_sound(str(self.group.id))
             # There is no next sound so crossfade to silence
-            if self.scene.crossfade and (not cue.sound):
-                if self.scene.cue.sound_fade_out or self.scene.cue.media_wind_down:
+            if self.group.crossfade and (not cue.sound):
+                if self.group.cue.sound_fade_out or self.group.cue.media_wind_down:
                     fadeSound(
                         None,
-                        length=self.scene.cue.sound_fade_out,
-                        handle=str(self.scene.id),
-                        winddown=self.scene.evalExprFloat(self.scene.cue.media_wind_down or 0),
+                        length=self.group.cue.sound_fade_out,
+                        handle=str(self.group.id),
+                        winddown=self.group.evalExprFloat(self.group.cue.media_wind_down or 0),
                     )
                 else:
-                    stop_sound(str(self.scene.id))
+                    stop_sound(str(self.group.id))
 
-            self.scene.media_link.allowed_remote_media_url = None
+            self.group.media_link.allowed_remote_media_url = None
 
             out: str | None = cue.sound_output
 
             if not out:
-                out = self.scene.sound_output
+                out = self.group.sound_output
             if not out:
                 out = None
 
-            if oldSoundOut == "scenewebplayer" and not out == "scenewebplayer":
-                self.scene.media_link_socket.send(["volume", self.scene.alpha])
-                self.scene.media_link_socket.send(
+            if oldSoundOut == "groupwebplayer" and not out == "groupwebplayer":
+                self.group.media_link_socket.send(["volume", self.group.alpha])
+                self.group.media_link_socket.send(
                     [
                         "mediaURL",
                         None,
-                        self.scene.entered_cue,
-                        max(0, cue.fade_in or self.scene.crossfade),
+                        self.group.entered_cue,
+                        max(0, cue.fade_in or self.group.crossfade),
                     ]
                 )
 
-            if cue.sound and self.scene.active:
+            if cue.sound and self.group.active:
                 sound = cue.sound
                 try:
-                    self.scene.cueVolume = min(
+                    self.group.cueVolume = min(
                         5,
                         max(
                             0,
-                            self.scene.evalExprFloat(cue.sound_volume or 1),
+                            self.group.evalExprFloat(cue.sound_volume or 1),
                         ),
                     )
                 except Exception:
-                    self.scene.event(
+                    self.group.event(
                         "script.error",
-                        self.scene.name + " in cueVolume eval:\n" + traceback.format_exc(),
+                        self.group.name + " in cueVolume eval:\n" + traceback.format_exc(),
                     )
-                    self.scene.cueVolume = 1
+                    self.group.cueVolume = 1
                 try:
-                    sound = self.scene.resolve_sound(sound)
+                    sound = self.group.resolve_sound(sound)
                 except Exception:
                     print(traceback.format_exc())
 
                 if os.path.isfile(sound):
-                    if not out == "scenewebplayer":
+                    if not out == "groupwebplayer":
                         # Always fade in if the face in time set.
                         # Also fade in for crossfade,
                         # but in that case we only do it if there is something to fade in from.
 
-                        spd = self.scene.script_context.preprocessArgument(cue.media_speed)
+                        spd = self.group.script_context.preprocessArgument(cue.media_speed)
                         spd = spd or 1
                         spd = float(spd)
 
                         if not (
-                            (((self.scene.crossfade > 0) and not (cue.sound_fade_in < 0)) and sound_player.is_playing(str(self.scene.id)))
+                            (((self.group.crossfade > 0) and not (cue.sound_fade_in < 0)) and sound_player.is_playing(str(self.group.id)))
                             or (cue.fade_in > 0)
                             or (cue.sound_fade_in > 0)
                             or cue.media_wind_up
-                            or self.scene.cue.media_wind_down
+                            or self.group.cue.media_wind_down
                         ):
                             play_sound(
                                 sound,
-                                handle=str(self.scene.id),
-                                volume=self.scene.alpha * self.scene.cueVolume,
+                                handle=str(self.group.id),
+                                volume=self.group.alpha * self.group.cueVolume,
                                 output=out,
                                 loop=cue.sound_loops,
-                                start=self.scene.evalExprFloat(cue.sound_start_position or 0),
+                                start=self.group.evalExprFloat(cue.sound_start_position or 0),
                                 speed=spd,
                             )
                         else:
-                            fade = cue.fade_in or cue.sound_fade_in or self.scene.crossfade
+                            fade = cue.fade_in or cue.sound_fade_in or self.group.crossfade
                             # Odd cases where there's a wind up but specifically disabled fade
                             if cue.sound_fade_in < 0:
                                 fade = 0.1
@@ -131,25 +131,25 @@ class SceneMediaPlayer:
                             fadeSound(
                                 sound,
                                 length=max(fade, 0.1),
-                                handle=str(self.scene.id),
-                                volume=self.scene.alpha * self.scene.cueVolume,
+                                handle=str(self.group.id),
+                                volume=self.group.alpha * self.group.cueVolume,
                                 output=out,
                                 loop=cue.sound_loops,
-                                start=self.scene.evalExprFloat(cue.sound_start_position or 0),
-                                windup=self.scene.evalExprFloat(cue.media_wind_up or 0),
-                                winddown=self.scene.evalExprFloat(self.scene.cue.media_wind_down or 0),
+                                start=self.group.evalExprFloat(cue.sound_start_position or 0),
+                                windup=self.group.evalExprFloat(cue.media_wind_up or 0),
+                                winddown=self.group.evalExprFloat(self.group.cue.media_wind_down or 0),
                                 speed=spd,
                             )
 
                     else:
-                        self.scene.media_link.allowed_remote_media_url = sound
-                        self.scene.media_link_socket.send(["volume", self.scene.alpha])
-                        self.scene.media_link_socket.send(
+                        self.group.media_link.allowed_remote_media_url = sound
+                        self.group.media_link_socket.send(["volume", self.group.alpha])
+                        self.group.media_link_socket.send(
                             [
                                 "mediaURL",
                                 sound,
-                                self.scene.entered_cue,
-                                max(0, cue.fade_in or self.scene.crossfade),
+                                self.group.entered_cue,
+                                max(0, cue.fade_in or self.group.crossfade),
                             ]
                         )
 
@@ -167,7 +167,7 @@ class SceneMediaPlayer:
                         # Not support, but it might just be an unsupported type.
                         # if mp3, its a real error, we should alert
                         if sound.endswith(".mp3"):
-                            self.scene.event(
+                            self.group.event(
                                 "error",
                                 "Reading metadata for: " + sound + traceback.format_exc(),
                             )
@@ -179,26 +179,26 @@ class SceneMediaPlayer:
                             "year": "",
                         }
 
-                    self.scene.cueInfoTag.value = {"audio.meta": currentAudioMetadata}
+                    self.group.cueInfoTag.value = {"audio.meta": currentAudioMetadata}
 
                     if album_art and len(album_art) < 3 * 10**6:
-                        self.scene.albumArtTag.value = "data:image/jpeg;base64," + base64.b64encode(album_art).decode()
+                        self.group.albumArtTag.value = "data:image/jpeg;base64," + base64.b64encode(album_art).decode()
                     else:
-                        self.scene.albumArtTag.value = ""
+                        self.group.albumArtTag.value = ""
 
                 else:
-                    self.scene.event("error", "File does not exist: " + sound)
+                    self.group.event("error", "File does not exist: " + sound)
             else:
-                if oldSoundOut == "scenewebplayer" or out == "scenewebplayer":
-                    self.scene.media_link.allowed_remote_media_url = None
-                    self.scene.media_link_socket.send(
+                if oldSoundOut == "groupwebplayer" or out == "groupwebplayer":
+                    self.group.media_link.allowed_remote_media_url = None
+                    self.group.media_link_socket.send(
                         [
                             "mediaURL",
                             None,
-                            self.scene.entered_cue,
-                            max(0, cue.fade_in or self.scene.crossfade),
+                            self.group.entered_cue,
+                            max(0, cue.fade_in or self.group.crossfade),
                         ]
                     )
 
     def stop(self):
-        stop_sound(str(self.scene.id))
+        stop_sound(str(self.group.id))

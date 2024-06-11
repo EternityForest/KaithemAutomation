@@ -104,7 +104,7 @@ BasePermissions: dict[str, str] = {
     "view_devices": "The default permission used to expose device points for reading, but devices can be configured to use others.",
     "write_devices": "The default permission used to expose device points for writing, but devices can be configured to use others.",
     "own_account_settings": "Edit ones own account preferences",
-    "chandler_operator": "Access the Chandler console, jump to cues, change input fields.  Does not allow editing settings or scenes.",
+    "chandler_operator": "Access the Chandler console, jump to cues, change input fields.  Does not allow editing settings or groups.",
     "__guest__": "Everyone always has this permission even when not logged in",
     "__all_permissions__": "Special universal permission that grants all permissions in the system. Use with care.",
 }

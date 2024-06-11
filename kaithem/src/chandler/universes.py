@@ -273,11 +273,11 @@ class Universe:
         self.fine_channels: dict[int, int] = {}
 
         # Map fixed channel numbers to values.
-        # We implemet that here so they are fixed no matter what the scenes and blend modes say
+        # We implemet that here so they are fixed no matter what the groups and blend modes say
         self.fixed_channels: dict[int, float] = {}
 
         # Used for the caching. It's the layer we want to save as the background state before we apply.
-        # Calculated as either the last scene rendered in the stack or the first scene that requests a rerender that affects the universe
+        # Calculated as either the last group rendered in the stack or the first group that requests a rerender that affects the universe
         self.save_before_layer = (0.0, 0.0)
         # Reset in pre_render, indicates if we've not rendered a layer that we think is going to change soon
         # so far in this frame
@@ -301,10 +301,10 @@ class Universe:
                 _universes[name] = weakref.ref(self)
                 universes = {i: _universes[i] for i in _universes if _universes[i]()}
 
-        # flag to apply all scenes, even ones not marked as neding rerender
+        # flag to apply all groups, even ones not marked as neding rerender
         self.full_rerender = False
 
-        # The priority, started of the top layer layer that's been applied to this scene.
+        # The priority, started of the top layer layer that's been applied to this group.
         self.top_layer = (0, 0)
 
         # This is the priority, started of the "saved" layer that's been cached so we don't
@@ -327,7 +327,7 @@ class Universe:
 
         if self.refresh_on_create:
             kaithem.message.post("/chandler/command/refreshFixtures", self.name)
-            self.refresh_scenes()
+            self.refresh_groups()
 
     def close(self):
         global universes
@@ -343,13 +343,13 @@ class Universe:
 
             self.onFrame = alreadyClosed
             self.setStatus = alreadyClosed
-            self.refresh_scenes = alreadyClosed
+            self.refresh_groups = alreadyClosed
             self.reset_to_cache = alreadyClosed
             self.reset = alreadyClosed
             self.preFrame = alreadyClosed
             self.save_prerendered = alreadyClosed
 
-        kaithem.message.post("/chandler/command/refresh_scene_lighting", None)
+        kaithem.message.post("/chandler/command/refresh_group_lighting", None)
         self.closed = True
 
     def setStatus(self, s: str, ok: bool):
@@ -366,18 +366,18 @@ class Universe:
         self.ok = ok
         self.statusChanged = {}
 
-    def refresh_scenes(self):
-        """Stop and restart all active scenes, because some caches might need to be updated
+    def refresh_groups(self):
+        """Stop and restart all active groups, because some caches might need to be updated
         when a new universes is added
         """
-        kaithem.message.post("/chandler/command/refresh_scene_lighting", None)
+        kaithem.message.post("/chandler/command/refresh_group_lighting", None)
 
     def __del__(self):
         if not self.closed:
             if self.refresh_on_create:
                 if lifespan and not lifespan.shutdown:
                     # Do as little as possible in the undefined __del__ thread
-                    kaithem.message.post("/chandler/command/refresh_scene_lighting", None)
+                    kaithem.message.post("/chandler/command/refresh_group_lighting", None)
 
     def channelsChanged(self):
         "Call this when fixtures are added, moved, or modified."

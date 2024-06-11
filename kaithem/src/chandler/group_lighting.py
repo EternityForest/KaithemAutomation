@@ -11,14 +11,14 @@ from . import blendmodes, universes
 
 if TYPE_CHECKING:
     from .ChandlerConsole import ChandlerConsole
-    from .scenes import Cue, Scene
+    from .groups import Cue, Group
 
 from .fadecanvas import FadeCanvas
 
 
-class SceneLightingManager:
-    def __init__(self, scene: Scene):
-        self.scene = scene
+class GroupLightingManager:
+    def __init__(self, group: Group):
+        self.group = group
         # List of universes we should be affecting right now
         # Based on what values are in the cue and what values are inherited
         self.affect: list[str] = []
@@ -42,7 +42,7 @@ class SceneLightingManager:
         # have hardcoded logic there
         self._blend: blendmodes.BlendMode = blendmodes.HardcodedBlendMode(self)
         self.blendClass: type[blendmodes.BlendMode] = blendmodes.HardcodedBlendMode
-        self.blend_args: dict[str, float | int | bool | str] = scene.blend_args or {}
+        self.blend_args: dict[str, float | int | bool | str] = group.blend_args or {}
 
     def refresh(self):
         "Recalculate all the lighting stuff"
@@ -78,7 +78,7 @@ class SceneLightingManager:
             if cue.track:
                 self.apply_tracked_values(cue)
 
-        # Recalc what universes are affected by this scene.
+        # Recalc what universes are affected by this group.
         # We don't clear the old universes, we do that when we're done fading in.
         for i in cue.values:
             i = universes.mapUniverse(i)
@@ -134,14 +134,14 @@ class SceneLightingManager:
             if "__length__" in cuex.values[i]:
                 s = cuex.values[i]["__length__"]
                 assert s
-                repeats = int(self.scene.evalExprFloat(s))
+                repeats = int(self.group.evalExprFloat(s))
             else:
                 repeats = 1
 
             if "__spacing__" in cuex.values[i]:
                 s = cuex.values[i]["__spacing__"]
                 assert s
-                chCount = int(self.scene.evalExprFloat(s))
+                chCount = int(self.group.evalExprFloat(s))
 
             uobj = universes.getUniverse(universe)
 
@@ -167,7 +167,7 @@ class SceneLightingManager:
 
             for j in cuex.values[i]:
                 if isinstance(j, str) and j.startswith("__dest__."):
-                    dest[j[9:]] = self.scene.evalExpr(cuex.values[i][j] if cuex.values[i][j] is not None else 0)
+                    dest[j[9:]] = self.group.evalExpr(cuex.values[i][j] if cuex.values[i][j] is not None else 0)
 
             for idx in range(repeats):
                 for j in cuex.values[i]:
@@ -176,7 +176,7 @@ class SceneLightingManager:
 
                     cuev = cuex.values[i][j]
 
-                    evaled = self.scene.evalExpr(cuev if cuev is not None else 0)
+                    evaled = self.group.evalExpr(cuev if cuev is not None else 0)
                     # This should always be a float
                     evaled = float(evaled)
 
@@ -194,9 +194,9 @@ class SceneLightingManager:
                             self.cue_cached_vals_as_arrays[universe][channel + (idx * chCount)] = evaled
                         except Exception:
                             print("err", traceback.format_exc())
-                            self.scene.event(
+                            self.group.event(
                                 "script.error",
-                                self.scene.name + " cue " + cuex.name + " Val " + str((universe, channel)) + "\n" + traceback.format_exc(),
+                                self.group.name + " cue " + cuex.name + " Val " + str((universe, channel)) + "\n" + traceback.format_exc(),
                             )
 
                     if isinstance(cuev, str) and cuev.startswith("="):
@@ -249,15 +249,15 @@ class SceneLightingManager:
         vars: dict[str, Any] = {}
 
         if (
-            self.scene.backtrack
+            self.group.backtrack
             # Track whenever the cue we are going to is not the next one in the numbering sequence
-            and not cue == (self.scene.getDefaultNext())
+            and not cue == (self.group.getDefaultNext())
             and cobj.track
         ):
             to_apply = []
             seen = {}
             safety = 10000
-            x = self.scene.getParent(cue)
+            x = self.group.getParent(cue)
             while x:
                 # No l00ps
                 if x in seen:
@@ -267,9 +267,9 @@ class SceneLightingManager:
                 if x is self.cue:
                     break
 
-                to_apply.append(self.scene.cues[x])
+                to_apply.append(self.group.cues[x])
                 seen[x] = True
-                x = self.scene.getParent(x)
+                x = self.group.getParent(x)
                 safety -= 1
                 if not safety:
                     break
@@ -301,7 +301,7 @@ class SceneLightingManager:
         blend = str(blend)[:256]
         self.blend = blend
         if blend in blendmodes.blendmodes:
-            if self.scene.is_active():
+            if self.group.is_active():
                 self._blend = blendmodes.blendmodes[blend](self)
             self.blendClass = blendmodes.blendmodes[blend]
             self.setup_blend_args()
@@ -333,57 +333,57 @@ def _composite(background, values, alphas, alpha):
     return background
 
 
-def composite_rendered_layer_onto_universe(universe, uvalues, scene, uobj):
+def composite_rendered_layer_onto_universe(universe, uvalues, group, uobj):
     "May happen in place, or not, but always returns the new version"
 
-    if universe not in scene.lighting_manager.canvas.v2:
+    if universe not in group.lighting_manager.canvas.v2:
         return uvalues
 
-    vals = scene.lighting_manager.canvas.v2[universe]
-    alphas = scene.lighting_manager.canvas.a2[universe]
+    vals = group.lighting_manager.canvas.v2[universe]
+    alphas = group.lighting_manager.canvas.a2[universe]
 
     # The universe may need to know when it's current fade should end,
     # if it handles fading in a different way.
     # This will look really bad for complex things, to try and reduce them to a series of fades,
-    # but we just do the best we can, and assume there's mostly only 1 scene at a time affecting things
-    uobj.fadeEndTime = max(uobj.fadeEndTime, scene.cue.fade_in + scene.entered_cue)
+    # but we just do the best we can, and assume there's mostly only 1 group at a time affecting things
+    uobj.fadeEndTime = max(uobj.fadeEndTime, group.cue.fade_in + group.entered_cue)
 
     ualphas = uobj.alphas
 
-    bm = scene.lighting_manager.blend
+    bm = group.lighting_manager.blend
 
     if bm == "normal":
         # todo: is it bad to multiply by bool?
         unsetVals = ualphas == 0.0
-        fade = numpy.maximum(scene.alpha, unsetVals & uobj.hueBlendMask)
+        fade = numpy.maximum(group.alpha, unsetVals & uobj.hueBlendMask)
 
         uvalues = _composite(uvalues, vals, alphas, fade)
         # Essetially calculate remaining light percent, then multiply layers and convert back to alpha
         ualphas = 1 - ((1 - (alphas * fade)) * (1 - (ualphas)))
 
     elif bm == "HTP":
-        uvalues = numpy.maximum(uvalues, vals * (alphas * scene.alpha))
-        ualphas = (alphas * scene.alpha) > 0
+        uvalues = numpy.maximum(uvalues, vals * (alphas * group.alpha))
+        ualphas = (alphas * group.alpha) > 0
 
     elif bm == "inhibit":
-        uvalues = numpy.minimum(uvalues, vals * (alphas * scene.alpha))
-        ualphas = (alphas * scene.alpha) > 0
+        uvalues = numpy.minimum(uvalues, vals * (alphas * group.alpha))
+        ualphas = (alphas * group.alpha) > 0
 
     elif bm == "gel" or bm == "multiply":
-        if scene.alpha:
+        if group.alpha:
             # precompute constants
-            c = 255 / scene.alpha
-            uvalues = (uvalues * (1 - alphas * scene.alpha)) + (uvalues * vals) / c
+            c = 255 / group.alpha
+            uvalues = (uvalues * (1 - alphas * group.alpha)) + (uvalues * vals) / c
 
             # COMPLETELY incorrect, but we don't use alpha for that much, and the real math
             # Is compliccated. #TODO
-            ualphas = (alphas * scene.alpha) > 0
+            ualphas = (alphas * group.alpha) > 0
 
-    elif scene.lighting_manager._blend:
+    elif group.lighting_manager._blend:
         try:
-            uvalues = scene.lighting_manager._blend.frame(universe, uvalues, vals, alphas, scene.alpha)
+            uvalues = group.lighting_manager._blend.frame(universe, uvalues, vals, alphas, group.alpha)
             # Also incorrect-ish, but treating modified vals as fully opaque is good enough.
-            ualphas = (alphas * scene.alpha) > 0
+            ualphas = (alphas * group.alpha) > 0
         except Exception:
             print("Error in blend function")
             print(traceback.format_exc())
@@ -402,8 +402,8 @@ def pre_render(board: ChandlerConsole, universes: dict[str, universes.Universe])
     changedUniverses = {}
     to_reset = {}
 
-    # Important to reverse, that way scenes that need a full reset come after and don't get overwritten
-    for i in reversed(board.active_scenes):
+    # Important to reverse, that way groups that need a full reset come after and don't get overwritten
+    for i in reversed(board.active_groups):
         for u in i.lighting_manager.affect:
             if u in universes:
                 universe = universes[u]
@@ -449,14 +449,14 @@ def composite_layers_from_board(board: ChandlerConsole, t=None, u=None):
     # Getting list of universes is apparently slow, so we pass it as a param
     t = t or time.time()
 
-    # Remember that scenes get rendered in ascending priority order here
-    for i in board.active_scenes:
+    # Remember that groups get rendered in ascending priority order here
+    for i in board.active_groups:
         if i.blend == "monitor":
             continue
 
         data = i.lighting_manager.affect
 
-        # Loop over universes the scene affects
+        # Loop over universes the group affects
         for u in data:
             if u.startswith("__") and u.endswith("__"):
                 continue
@@ -479,7 +479,7 @@ def composite_layers_from_board(board: ChandlerConsole, t=None, u=None):
 
                 # If this is the first nonstatic layer, meaning it's render function requested a rerender next frame
                 # or if this is the last one, mark it as the one we should save just before
-                if i.lighting_manager.should_rerender_onto_universes or (i is board.active_scenes[-1]):
+                if i.lighting_manager.should_rerender_onto_universes or (i is board.active_groups[-1]):
                     if universeObject.all_static:
                         # Copy it and set to none as a flag that we already found it
                         universeObject.all_static = False

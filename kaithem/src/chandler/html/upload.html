@@ -6,14 +6,14 @@ __doc__= ""
 <%
 if 'yaml' in kwargs:
    x = kwargs['yaml'].file.read()
-   module.board.loadSceneFile(x, filename=kwargs['yaml'].filename,errs=True, clear_old=False)
+   module.board.loadGroupFile(x, filename=kwargs['yaml'].filename,errs=True, clear_old=False)
 
 %>
-<h2>Upload a scene file</h2>
+<h2>Upload a group file</h2>
 <div class="window paper">
     <form method=POST enctype="multipart/form-data">
 
-        You can upload a YAML scene file here. Any scenes in the file will replace any with the same name that are loaded.</br>
+        You can upload a YAML group file here. Any groups in the file will replace any with the same name that are loaded.</br>
         <input type="file" name="yaml"></input>
         <input type="submit"></input>
     </form>

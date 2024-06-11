@@ -19,60 +19,60 @@ input {
 </style>
 
 
-<template id="scene-ui">
+<template id="group-ui">
     <div>
 
-        <details v-on:toggle="sceneData.doSlideshowEmbed= $event.target.open" style="margin: 0px; padding: 0px;"
-         v-if="sceneData.slideOverlayUrl || (cue && (cue.slide || cue.markdown) ) || sceneData.doSlideshowEmbed || sceneData.soundOutput=='scenewebplayer' || cue.soundOutput=='scenewebplayer'">
+        <details v-on:toggle="groupData.doSlideshowEmbed= $event.target.open" style="margin: 0px; padding: 0px;"
+         v-if="groupData.slideOverlayUrl || (cue && (cue.slide || cue.markdown) ) || groupData.doSlideshowEmbed || groupData.soundOutput=='groupwebplayer' || cue.soundOutput=='groupwebplayer'">
             <summary class="noselect">
                 <a 
-                    :href="'/chandler/webmediadisplay?scene=' + sceneData.id">(slideshow)</a>
+                    :href="'/chandler/webmediadisplay?group=' + groupData.id">(slideshow)</a>
             </summary>
             <div class="preview-frame-wrapper">
-            <iframe v-if="sceneData.doSlideshowEmbed" class="preview-frame"
-                    :src="'/chandler/webmediadisplay?scene=' + sceneData.id"></iframe>
+            <iframe v-if="groupData.doSlideshowEmbed" class="preview-frame"
+                    :src="'/chandler/webmediadisplay?group=' + groupData.id"></iframe>
             </div>
         </details>
-        <div  class="noselect" class="flex-row gaps" v-if="sceneData.displayTags.length > 0">
+        <div  class="noselect" class="flex-row gaps" v-if="groupData.displayTags.length > 0">
 
-            <div :style="{ 'min-width': v[2].width + 'rem' }" v-for="v in sceneData.displayTags">
+            <div :style="{ 'min-width': v[2].width + 'rem' }" v-for="v in groupData.displayTags">
                 <label><b>{{ v[0] }}</b></label>
 
                 <template v-if="v[2].type == 'meter'">
                     <div>
-                        <meter v-if="sceneData.displayTagMeta[v[1]]" :min="sceneData.displayTagMeta[v[1]].min"
-                            :max="sceneData.displayTagMeta[v[1]].max" :high="sceneData.displayTagMeta[v[1]].hi"
-                            :lo="sceneData.displayTagMeta[v[1]].lo" :value="sceneData.displayTagValues[v[1]]"></meter>
+                        <meter v-if="groupData.displayTagMeta[v[1]]" :min="groupData.displayTagMeta[v[1]].min"
+                            :max="groupData.displayTagMeta[v[1]].max" :high="groupData.displayTagMeta[v[1]].hi"
+                            :lo="groupData.displayTagMeta[v[1]].lo" :value="groupData.displayTagValues[v[1]]"></meter>
 
-                        <span class="numval">{{ sceneData.displayTagValues[v[1]] }}</span>
+                        <span class="numval">{{ groupData.displayTagValues[v[1]] }}</span>
                     </div>
                 </template>
 
                 <template v-if="v[2].type == 'text'">
                     <div>
-                        {{ sceneData.displayTagValues[v[1]] }}
+                        {{ groupData.displayTagValues[v[1]] }}
                     </div>
                 </template>
 
                 <template v-if="v[2].type == 'led'">
                     <div style="min-width: 4em">
-                        <span class="numval"><small>{{ sceneData.displayTagValues[v[1]].toFixed(1) }}<small></small></span><input type="checkbox" 
+                        <span class="numval"><small>{{ groupData.displayTagValues[v[1]].toFixed(1) }}<small></small></span><input type="checkbox" 
                         :class="{ 'led': 1, 'led-red':v[2].color=='red', 'led-yellow':v[2].color=='yellow', 'led-green':v[2].color=='green', 'led-blue':v[2].color=='blue',  'led-purple':v[2].color=='purple'}"
-                            v-bind:checked="sceneData.displayTagValues[v[1]]" disabled>
+                            v-bind:checked="groupData.displayTagValues[v[1]]" disabled>
                     </div>
                 </template>
 
                 <template v-if="v[2].type == 'string_input'">
                     <div>
-                        <input type="text" v-model="sceneData.displayTagValues[v[1]]"
-                            v-on:change="setTagInputValue(sceneData.id, v[1], sceneData.displayTagValues[v[1]])">
+                        <input type="text" v-model="groupData.displayTagValues[v[1]]"
+                            v-on:change="setTagInputValue(groupData.id, v[1], groupData.displayTagValues[v[1]])">
                     </div>
                 </template>
 
                 <template v-if="v[2].type == 'numeric_input'">
                     <div>
-                        <input type="number" v-model="sceneData.displayTagValues[v[1]]"
-                            v-on:change="setTagInputValue(sceneData.id, v[1], sceneData.displayTagValues[v[1]])">
+                        <input type="number" v-model="groupData.displayTagValues[v[1]]"
+                            v-on:change="setTagInputValue(groupData.id, v[1], groupData.displayTagValues[v[1]])">
                     </div>
                 </template>
 
@@ -80,8 +80,8 @@ input {
                 <template v-if="v[2].type == 'switch_input'">
                     <div>
                         <input type="checkbox" class="toggle"
-                            v-bind:value="sceneData.displayTagValues[v[1]] ? true : false"
-                            v-on:change="setTagInputValue(sceneData.id, v[1], sceneData.displayTagValues[v[1]])">
+                            v-bind:value="groupData.displayTagValues[v[1]] ? true : false"
+                            v-on:change="setTagInputValue(groupData.id, v[1], groupData.displayTagValues[v[1]])">
                     </div>
                 </template>
 
@@ -91,7 +91,7 @@ input {
 
         <table border="0">
             <tbody>
-                <tr v-for="(v, i) in sceneData.timers">
+                <tr v-for="(v, i) in groupData.timers">
                     <td>{{ i }}</td>
                     <td style="width:8em;" v-bind:class="{ warning: (v - unixtime) < 60, blinking: (v - unixtime) < 5 }">
                         {{ formatInterval((v - unixtime)) }}
@@ -123,8 +123,8 @@ formatInterval = function (seconds) {
 
 
 module.exports = {
-    template: '#scene-ui',
-    props: ['unixtime', 'sceneData', 'cue'],
+    template: '#group-ui',
+    props: ['unixtime', 'groupData', 'cue'],
     data: function () {
         return ({ 'formatInterval': formatInterval })
     },

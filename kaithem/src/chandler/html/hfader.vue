@@ -81,7 +81,7 @@
 var hfaderdata =
 {
     'promptExactVal': function (cue, u, v) {
-        var x = prompt("Enter new value for scene")
+        var x = prompt("Enter new value for group")
 
         if (x != null) {
 
@@ -96,8 +96,8 @@ var hfaderdata =
     'getValueRange': getValueRange,
 
     'rmValFromCue': function (universe, ch) {
-        api_link.send(['scv', appData.scenecues[appData.scenename]
-        [appData.selectedCues[appData.scenename]],
+        api_link.send(['scv', appData.groupcues[appData.groupname]
+        [appData.selectedCues[appData.groupname]],
             universe,
             ch,
             null

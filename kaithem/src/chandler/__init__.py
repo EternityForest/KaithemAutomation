@@ -5,7 +5,7 @@ import time
 import icemedia.sound_player
 from scullery import messagebus
 
-from . import ChandlerConsole, core, scene_lighting, universes
+from . import ChandlerConsole, core, group_lighting, universes
 
 logger = core.logger
 soundLock = threading.Lock()
@@ -19,15 +19,15 @@ max = max
 min = min
 
 
-def refresh_scenes(t, v):
-    """Tell scenes the set of universes has changed"""
+def refresh_groups(t, v):
+    """Tell groups the set of universes has changed"""
     with core.lock:
         for b in core.iter_boards():
-            for i in b.active_scenes:
+            for i in b.active_groups:
                 i.lighting_manager.refresh()
 
 
-messagebus.subscribe("/chandler/command/refresh_scene_lighting", refresh_scenes)
+messagebus.subscribe("/chandler/command/refresh_group_lighting", refresh_groups)
 
 
 def refreshFixtures(topic, val):
@@ -52,7 +52,7 @@ messagebus.subscribe("/chandler/command/refreshFixtures", refreshFixtures)
 
 def pollsounds():
     for b in core.iter_boards():
-        for i in b.active_scenes:
+        for i in b.active_groups:
             # If the cuelen isn't 0 it means we are using the newer version that supports randomizing lengths.
             # We keep this in case we get a sound format we can'r read the length of in advance
             if i.cuelen == 0:
@@ -66,13 +66,13 @@ def pollsounds():
                             i.next_cue(cause="sound")
 
 
-def poll_board_scenes(board: ChandlerConsole.ChandlerConsole, t=None):
-    "Poll scenes in the board"
+def poll_board_groups(board: ChandlerConsole.ChandlerConsole, t=None):
+    "Poll groups in the board"
     t = t or time.time()
 
-    # Remember that scenes get rendered in ascending priority order here
-    for i in board.active_scenes:
-        # We don't need to call render() if the frame is a static scene and the opacity
+    # Remember that groups get rendered in ascending priority order here
+    for i in board.active_groups:
+        # We don't need to call render() if the frame is a static group and the opacity
         # and all that is the same, we can just re-layer it on top of the values
         if i.poll_again_flag or (i.cue.length and ((time.time() - i.entered_cue) > i.cuelen * (60 / i.bpm))):
             i.poll_again_flag = False
@@ -117,17 +117,17 @@ def loop():
                 # happen before we start compositing on the layers
 
                 for b in core.iter_boards():
-                    poll_board_scenes(b)
-                    changed.update(scene_lighting.pre_render(b, u_cache))
+                    poll_board_groups(b)
+                    changed.update(group_lighting.pre_render(b, u_cache))
 
                 for b in core.iter_boards():
-                    c = scene_lighting.composite_layers_from_board(b, u=u_cache)
+                    c = group_lighting.composite_layers_from_board(b, u=u_cache)
                     changed.update(c)
 
                     if do_gui_push:
                         b.guiPush(u_cache)
 
-                scene_lighting.do_output(changed, u_cache)
+                group_lighting.do_output(changed, u_cache)
 
             time.sleep(1 / 60)
         except Exception:

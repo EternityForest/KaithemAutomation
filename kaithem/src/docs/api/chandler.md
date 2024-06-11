@@ -43,7 +43,7 @@ def shortcut(s: str): ...
 
 [Show source in chandler.py:15](../../../api/chandler.py#L15)
 
-Trigger an event in all scenes
+Trigger an event in all groups
 
 #### Signature
 

@@ -5,7 +5,7 @@ from kaithem.src.chandler import m3u_io
 <%
 if 'file' in kwargs:
    x = kwargs['file'].file.read().decode()
-   m3u_io.import_m3u(module.board.scenememory[kwargs['id']], x)
+   m3u_io.import_m3u(module.board.groupmemory[kwargs['id']], x)
 
 %>
 <h2>Upload a setup file</h2>

@@ -39,6 +39,7 @@ class ConfigType(modules_state.ResourceType):
         """
 
     def onload(self, module, resourcename, value):
+        value = copy.deepcopy(value)
         x = entries.pop((module, resourcename), None)
         entries[module, resourcename] = WebChandlerConsole.WebConsole(f"{module}:{resourcename}")
         set_save_cb(entries[module, resourcename], module, resourcename)

@@ -16,7 +16,7 @@ ${lists}
 
 
 <datalist name="specialcues" id="specialcues">
-    <option value="__rules__">All other cues in the scene will inherit rules</option>
+    <option value="__rules__">All other cues in the group will inherit rules</option>
 </datalist>
 
 
@@ -54,7 +54,7 @@ ${lists}
         float: right;
     }
 
-    p.scene {
+    p.group {
         border-style: solid;
         border-width: 1px;
     }
@@ -191,8 +191,8 @@ ${lists}
                     <button type="button" v-on:click="shortcut()">Go!</button>
                 </div>
                 <div class="tool-bar">
-                    <input v-model="scenefilter" placeholder="Search" list="tracks" /><button
-                        v-on:click="scenefilter=''"><i class="mdi mdi-backspace"></i>
+                    <input v-model="groupfilter" placeholder="Search" list="tracks" /><button
+                        v-on:click="groupfilter=''"><i class="mdi mdi-backspace"></i>
                     </button>
                     <button type="button" v-on:click="showPages=!showPages">Compact</button>
 
@@ -201,20 +201,20 @@ ${lists}
 
             <div class="h-24rem scroll">
                 <div class="flex-col gaps">
-                    <article v-for="i in formatAllScenes" style="position:relative;"
-                        v-bind:class="{'scene':1, card:1, 'grey':i[1].doingHandoff, 'run':i[1].active &(!i[1].doingHandoff)}"
+                    <article v-for="i in formatAllGroups" style="position:relative;"
+                        v-bind:class="{'group':1, card:1, 'grey':i[1].doingHandoff, 'run':i[1].active &(!i[1].doingHandoff)}"
                         style="border-style:solid; border-width:1px;">
                         <header>
                             <div>
                                 <h4>
-                                    <button type="button" v-bind:class="{highlight:i[0]==scenename}"
-                                        v-on:click="selectscene(i[1],i[0])" style="width: 100%">
+                                    <button type="button" v-bind:class="{highlight:i[0]==groupname}"
+                                        v-on:click="selectgroup(i[1],i[0])" style="width: 100%">
 
                                         <span style="font-size: 150%;">{{i[1].name}}</span><span v-if="i[1].ext"
                                             class="grey">
                                             (external)</span>
 
-                                        <i class="mdi mdi-wifi" v-if="i[1].mqttServer" title="This scene uses MQTT"></i>
+                                        <i class="mdi mdi-wifi" v-if="i[1].mqttServer" title="This group uses MQTT"></i>
                                     </button>
                                 </h4>
 
@@ -228,11 +228,11 @@ ${lists}
 
 
                             <span v-if="cuemeta[i[1].cue].inheritRules" title="This cue has rules inherited"
-                                v-on:click="selectcue(scenename,cuemeta[i[1].cue].name)"><i
+                                v-on:click="selectcue(groupname,cuemeta[i[1].cue].name)"><i
                                     class="mdi mdi-script-text-outline"></i></span>
                             <span v-if="cuemeta[i[1].cue].rules && cuemeta[i[1].cue].rules.length>0"
                                 title="This cue has rules attatched"
-                                v-on:click="selectcue(scenename,cuemeta[i[1].cue].name)"><i
+                                v-on:click="selectcue(groupname,cuemeta[i[1].cue].name)"><i
                                     class="mdi mdi-script-text-outline"></i></span>
                         </p>
                         <p class="warning" v-if="i[1].status">STATUS: {{i[1].status}}</p>
@@ -249,7 +249,7 @@ ${lists}
                         <iframe v-if="showPages && i[1].infoDisplay.length>0" :src="i[1].infoDisplay"></iframe>
 
                         <div class="tool-bar noselect" v-if="i[1].eventButtons.length > 0">
-                            <button type="button" v-for="v of i[1].eventButtons" v-on:click="sceneev(v[1],v[1])">{{v[0]}}</button>
+                            <button type="button" v-for="v of i[1].eventButtons" v-on:click="groupev(v[1],v[1])">{{v[0]}}</button>
                         </div>
 
 
@@ -258,11 +258,11 @@ ${lists}
                             v-on:input="setalpha(i[0],parseFloat($event.target.value));"
                             v-model="alphas[i[0]]"></smooth-range>
 
-                        <scene-ui :unixtime="unixtime" v-bind:scene-data="i[1]" :cue="cuemeta[i[1].cue]"></scene-ui>
+                        <group-ui :unixtime="unixtime" v-bind:group-data="i[1]" :cue="cuemeta[i[1].cue]"></group-ui>
 
 
                         <div class="w-full flex">
-                            <cue-countdown :scene="i[1]" :cue="cuemeta[i[1].cue]"></cue-countdown>
+                            <cue-countdown :group="i[1]" :cue="cuemeta[i[1].cue]"></cue-countdown>
                             <small><span v-if="(i[1].active && (''+cuemeta[i[1].cue].length).indexOf('@')>-1)"><i
                                         class="mdi mdi-clock-outline"></i>{{cuemeta[i[1].cue].length.substring(1)}}</span></small>
                         </div>
@@ -283,8 +283,8 @@ ${lists}
 
             <footer class="padding">
                 <div class="tool-bar">
-                    <input :disabled="no_edit" v-model="newscenename" placeholder="New scene name" size="4">
-                    <button type="button" data-testid="add-scene-button" v-on:click="addScene()"><i class="mdi mdi-plus"></i>Add</button>
+                    <input :disabled="no_edit" v-model="newgroupname" placeholder="New group name" size="4">
+                    <button type="button" data-testid="add-group-button" v-on:click="addGroup()"><i class="mdi mdi-plus"></i>Add</button>
                 </div>
             </footer>
 
@@ -336,7 +336,7 @@ ${lists}
                 </div>
             </header>
                 <p>This table shows the slideshow displays that are active or seen recently.</p>
-                <p>Only one display per IP/scene can be shown.  Battery status only works in Chrome</p>
+                <p>Only one display per IP/group can be shown.  Battery status only works in Chrome</p>
                 <p>Ding plays a tone to identify and test the display.  You can assign displays friendly names to help identify them.</p>
                 <p>Be careful with refresh! Some browsers may respond badly if the network is messed up.</p>
 
@@ -360,9 +360,9 @@ ${lists}
                     <td>{{formatTime(v.ts)}}</td>
                     <td :class="{'error': (v.battery||{}).charging == false}">{{v.battery || ''}}</td>
                     <td>
-                        <button type="button" @click="mediaLinkCommand(v.scene, v.id, ['testAudio'])">Ding</button>
-                        <button type="button" @click="promptRenameDisplay(v.scene, v.id)">Rename</button>
-                        <button type="button" @click="mediaLinkCommand(v.scene, v.id, ['refresh'])">Refresh</button>
+                        <button type="button" @click="mediaLinkCommand(v.group, v.id, ['testAudio'])">Ding</button>
+                        <button type="button" @click="promptRenameDisplay(v.group, v.id)">Rename</button>
+                        <button type="button" @click="mediaLinkCommand(v.group, v.id, ['refresh'])">Refresh</button>
                     </td>
 
                 </tr>
@@ -384,14 +384,14 @@ ${lists}
 
             <div class="tool-bar" style="padding:0.25em; border-width:2px;">
                 <p>Download:</p>
-                <button type="button" @click="downloadSetup()" title="Download your scenes as a file"><i
+                <button type="button" @click="downloadSetup()" title="Download your groups as a file"><i
                         class="mdi mdi-content-save"></i>Setup</button>
             </div>
 
             <div class="tool-bar" style="padding:0.25em; border-width:2px;">
                 <p>Load Setup:</p>
                 <input type="file" id="setupfile">
-                <button type="button" @click="uploadFileFromElement('setupfile', 'setup')" title="Upload a scenes file"><i
+                <button type="button" @click="uploadFileFromElement('setupfile', 'setup')" title="Upload a groups file"><i
                         class="mdi mdi-folder-open"></i>Go</button>
             </div>
         </section>
@@ -437,31 +437,31 @@ ${lists}
         </dialog>
 
 
-        <section class="flex-item window paper margin padding" v-if="!(editingScene && cuemeta[editingScene.cue])"
+        <section class="flex-item window paper margin padding" v-if="!(editingGroup && cuemeta[editingGroup.cue])"
             style="display:inline-block;  max-width:98vw; resize:both; overflow:auto;">
-            <h2>No Scene selected</h2>
+            <h2>No Group selected</h2>
         </section>
 
 
-        <section class="window paper margin" v-if="editingScene && cuemeta[editingScene.cue]">
+        <section class="window paper margin" v-if="editingGroup && cuemeta[editingGroup.cue]">
             <header>
 
-                <p class="warning" v-if="editingScene.status">STATUS: {{editingScene.status}}</p>
+                <p class="warning" v-if="editingGroup.status">STATUS: {{editingGroup.status}}</p>
                 <div class="tool-bar">
-                    <h3><span v-on:dblclick="promptRename(scenename)" title="Double click to set scene name">
-                            {{editingScene.name}}</span>
-                        <small class="success" v-if="editingScene.active"> (running)</small>
+                    <h3><span v-on:dblclick="promptRename(groupname)" title="Double click to set group name">
+                            {{editingGroup.name}}</span>
+                        <small class="success" v-if="editingGroup.active"> (running)</small>
 
 
                     </h3>
-                    <button type="button" v-if="editingScene.cuelen" v-on:click="addTimeToScene(editingScene.id)"><i class="mdi mdi-clock"></i></i><i class="mdi mdi-plus"></i>Add Time</button>
+                    <button type="button" v-if="editingGroup.cuelen" v-on:click="addTimeToGroup(editingGroup.id)"><i class="mdi mdi-clock"></i></i><i class="mdi mdi-plus"></i>Add Time</button>
 
                     <p>
                         <input v-model="cuefilter" placeholder="Search Cues" />
                         <button type="button" v-on:click="cuefilter=''"><i class="mdi mdi-backspace"></i></button>
                     </p>
 
-                    <button type="button" v-on:click="delscene(scenename)"><i class="mdi mdi-delete"></i>Delete Scene</button>
+                    <button type="button" v-on:click="delgroup(groupname)"><i class="mdi mdi-delete"></i>Delete Group</button>
 
 
                 </div>
@@ -487,12 +487,12 @@ ${lists}
 
                         <tbody>
                             <tr v-for="i in formatCues"
-                                v-bind:class="{'highlight' : selectedCues[scenename]==i[1].name}">
+                                v-bind:class="{'highlight' : selectedCues[groupname]==i[1].name}">
                                 <td class="rowname" data-label="Cue: " style=" user-select: none;"
                                     title="Click the cue name to edit that cue"
-                                    v-on:click="selectcue(scenename,i[1].name)">
+                                    v-on:click="selectcue(groupname,i[1].name)">
 
-                                    <i v-if="cuemeta[editingScene.cue].name==i[1].name"
+                                    <i v-if="cuemeta[editingGroup.cue].name==i[1].name"
                                         class="mdi mdi-arrow-right-bold-outline nomargin"></i>
 
 
@@ -504,7 +504,7 @@ ${lists}
 
                                     <span  title="Checkpoint Cue" v-if="i[1].checkpoint" class="mdi mdi-star-four-points-outline"></span>
 
-                                    <span v-if="selectedCues[scenename]==i[1].name"><i
+                                    <span v-if="selectedCues[groupname]==i[1].name"><i
                                             class="mdi mdi-pencil nomargin"></i></span>
 
                                     <i class="mdi mdi-light-bulb nomargin" v-if="i[1].hasLightingData"
@@ -520,7 +520,7 @@ ${lists}
                                         title="This cue has rules attatched"><i
                                             class="mdi mdi-script-text-outline nomargin"></i></span>
 
-                                    <i v-if="cuemeta[editingScene.cue].name==i[1].name"
+                                    <i v-if="cuemeta[editingGroup.cue].name==i[1].name"
                                             class="mdi mdi-arrow-left-bold-outline nomargin"></i>
 
                                 </td>
@@ -549,7 +549,7 @@ ${lists}
 
                                 <td data-label="Next Cue:">
                                     <select style="width:98%" v-model="i[1].next"  :disabled="no_edit"
-                                        v-if="Object.keys(scenecues[scenename]).length<600" autocomplete=off
+                                        v-if="Object.keys(groupcues[groupname]).length<600" autocomplete=off
                                         title="Select a cue to activate when this one ends"
                                         v-on:change="setnext(i[1].id,$event.target.value)">
                                         <option value="">&gt&gt&gt</option>
@@ -563,8 +563,8 @@ ${lists}
 
                                     </select>
 
-                                    <input :disabled="no_edit" v-if="Object.keys(scenecues[scenename]).length>40" autocomplete=off
-                                        list="cues_in_scene" title="Select a cue to activate when this one ends"
+                                    <input :disabled="no_edit" v-if="Object.keys(groupcues[groupname]).length>40" autocomplete=off
+                                        list="cues_in_group" title="Select a cue to activate when this one ends"
                                         v-on:change="setnext(i[1].id,$event.target.value)" v-model="i[1].next"
                                         v-bind:placeholder="i[1].defaultnext">
                                     </input>
@@ -577,7 +577,7 @@ ${lists}
                                         title="Track values from previous cue? If false, values not present are always transparent">
                                 </td>
                                 <td data-label="Goto:">
-                                    <button type="button" style="min-width: 90%;" v-on:click="jumptocue(i[1].id,  editingScene.id)">Go</button>
+                                    <button type="button" style="min-width: 90%;" v-on:click="jumptocue(i[1].id,  editingGroup.id)">Go</button>
                                 </td>
 
                             </tr>
@@ -588,9 +588,9 @@ ${lists}
 
                 <div class="tool-bar">
                     <input :disabled="no_edit" v-model="newcuename" placeholder="New cue name" list="specialcues">
-                    <button type="button" v-on:click="add_cue(scenename,newcuename)">
+                    <button type="button" v-on:click="add_cue(groupname,newcuename)">
                         <i class="mdi mdi-plus"></i>Add Cue</button>
-                    <button type="button" v-on:click="clonecue(scenename,currentcueid,newcuename)">
+                    <button type="button" v-on:click="clonecue(groupname,currentcueid,newcuename)">
                         <i class="mdi mdi-content-copy"></i>Clone Cue</button>
                     <button type="button" v-on:click="rmcue(currentcueid)">
                         <i class="mdi mdi-delete"></i>Delete Current</button>
@@ -607,16 +607,16 @@ ${lists}
                     They are never chosen in random selections or as the default next cue and may have predefined system functions attatched.</p>
 
 
-                <span class="help" v-if="editingScene.ext">This is an external scene that is defined somewhere in code.
+                <span class="help" v-if="editingGroup.ext">This is an external group that is defined somewhere in code.
                     Any
                     changes made here may be overwritten by the code at any time.</span>
 
                 <details open class="undecorated">
                     <summary>Cue Channel Values</summary>
                     <div class="tool-bar">
-                        <button type="button" v-bind:class="{highlight:scenetab=='cue'}" v-on:click="scenetab='cue'"><i
+                        <button type="button" v-bind:class="{highlight:grouptab=='cue'}" v-on:click="grouptab='cue'"><i
                                 class="mdi mdi-cog-outline"></i>Normal View</button>
-                        <button type="button" v-bind:class="{highlight:scenetab=='channels'}" v-on:click="scenetab='channels'"><i
+                        <button type="button" v-bind:class="{highlight:grouptab=='channels'}" v-on:click="grouptab='channels'"><i
                                 class="mdi mdi-list-box-outline"></i>Channels</button>
                     </div>
                     <div style="overflow: auto; max-height:30em;" class="fadersbox">
@@ -628,7 +628,7 @@ ${lists}
                                 <div class="scroll nomargin h-24rem">
                                     <h-fader :i="i" :chinfo="chnamelookup(i.u,i.ch)"
                                         :currentcueid="currentcueid"
-                                        :showdelete="scenetab=='channels'" v-for="i in h">
+                                        :showdelete="grouptab=='channels'" v-for="i in h">
                                     </h-fader>
                                 </div>
                             </article>
@@ -648,19 +648,19 @@ ${lists}
                                         </select>
                                         <button type="button" v-on:click="savePreset(h)">Save</button>
                                     </div>
-                                    <button type="button" v-if="scenetab=='channels'" v-on:click="rmFixCue(currentcueid, fname)">
+                                    <button type="button" v-if="grouptab=='channels'" v-on:click="rmFixCue(currentcueid, fname)">
                                         <i class="mdi mdi-delete"></i>
                                     </button>
                                 </header>
                                 <div class="scroll nomargin h-24rem padding-bottom">
                                     <h-fader :i="i" :chinfo="chnamelookup(i.u,i.ch)"
                                         :currentcueid="currentcueid"
-                                        :showdelete="scenetab=='channels'" v-for="i in h">
+                                        :showdelete="grouptab=='channels'" v-for="i in h">
                                     </h-fader>
                                 </div>
                             </article>
                         </template>
-                        <div v-if="scenetab=='channels'" class="flex-row gaps">
+                        <div v-if="grouptab=='channels'" class="flex-row gaps">
                             <div class="card margin">
                                 <header>
                                     <h4>Add Raw Channel</h4>
@@ -739,7 +739,7 @@ ${lists}
                             <summary><i class="mdi mdi-help-circle-outline"></i></summary>
                             <p>
                                 Here you can create rules that
-                                apply whenever the scene is in this cue, to
+                                apply whenever the group is in this cue, to
                                 do things like trigger other cues when
                                 this one enters or exits.
                             </p>
@@ -758,9 +758,9 @@ ${lists}
                     <div class="card w-sm-full" style="overflow: visible;">
                         <label>Inherit rules from
                             <div style="overflow: visible;">
-                                <combo-box  :disabled="no_edit" v-model="currentcue.inheritRules" :disabled="editingScene.name =='__rules__'"
+                                <combo-box  :disabled="no_edit" v-model="currentcue.inheritRules" :disabled="editingGroup.name =='__rules__'"
                                     v-on:change="setCueInheritRules(currentcueid, currentcue.inheritRules)"
-                                    :options="useBlankDescriptions(scenecues[scenename])"></combo-box>
+                                    :options="useBlankDescriptions(groupcues[groupname])"></combo-box>
                             </div>
                             <p>Inherited rules run after directly set rules.</p>
                             <p>If a cue names __rules__ exists, <br> all cues will additionally inherit from that cue.</p>
@@ -772,19 +772,19 @@ ${lists}
 
                     <script-editor :completers="completers" v-bind:example_events="example_events"
                         v-model="currentcue.rules" @update:model-value="setCueRules(currentcueid, $event);"
-                        v-bind:commands="availableCommands" v-bind:scenes="cueNamesBySceneName()"
-                        v-bind:pinnedvars="specialvars" v-bind:vars="editingScene.vars"
-                        v-bind:parentscene="editingScene.name"
+                        v-bind:commands="availableCommands" v-bind:groups="cueNamesByGroupName()"
+                        v-bind:pinnedvars="specialvars" v-bind:vars="editingGroup.vars"
+                        v-bind:parentgroup="editingGroup.name"
                         :disabled="no_edit"
                         >
                     </script-editor>
 
                     <div style="display:flex;flex-wrap:wrap;">
                         <div style="border-style:solid;flex-grow:3;margin:0.5em;padding:0.5em;">
-                            <h3>Scene Variables</h3>
+                            <h3>Group Variables</h3>
                             <table border="1">
 
-                                <tr v-for="(v,i) in editingScene.vars">
+                                <tr v-for="(v,i) in editingGroup.vars">
                                     <td>{{i}}</td>
                                     <td>{{v}}</td>
                                 </tr>
@@ -795,7 +795,7 @@ ${lists}
                             <h3>Timers</h3>
                             <table border="1" style="width:98%">
 
-                                <tr v-for="(v,i) in editingScene.timers">
+                                <tr v-for="(v,i) in editingGroup.timers">
                                     <td>{{i}}</td>
                                     <td style="width:8em;"
                                         v-bind:class="{warning:(v-unixtime)<60, blinking:(v-unixtime)<5}">
@@ -815,7 +815,7 @@ ${lists}
                     <details class="undecorated">
                         <summary>Cue Sound/Media</summary>
 
-                        <p><a :href="'../webmediadisplay?scene='+editingScene.id">Web Media Display</a></p>
+                        <p><a :href="'../webmediadisplay?group='+editingGroup.id">Web Media Display</a></p>
 
                         <div class="flex-row gaps">
 
@@ -863,7 +863,7 @@ ${lists}
                                     <label>Device
 
                                         <datalist id="soundcards">
-                                            <option value="scenewebplayer">Play media file in web player</option>
+                                            <option value="groupwebplayer">Play media file in web player</option>
                                             <option v-for="i of soundCards" v-bind:value="i"></option>
                                             <option value="@auto"></option>
                                             <option value="@pulse:hw:0,0"></option>
@@ -903,7 +903,7 @@ ${lists}
                                             <input :disabled="no_edit" type="number"
                                                 v-on:change="setSoundFadeIn(currentcueid,$event.target.value)" min=-1
                                                 v-model="currentcue.soundFadeIn"
-                                                title="Sound should fade in if starting from, taking this long. Use -1 to override and disable a global scene crossfade.">
+                                                title="Sound should fade in if starting from, taking this long. Use -1 to override and disable a global group crossfade.">
 
                                         </label>
 
@@ -948,13 +948,13 @@ ${lists}
                                                     <td><button
                                                             v-on:click="setSoundfile(currentcueid,(soundsearch.length ? '': soundfilesdir)+i[1])">Set(sound)</button>
                                                         <button
-                                                            v-on:click="newCueFromSound(scenename,(soundsearch.length ? '': soundfilesdir)+i[1])">New(sound)</button>
+                                                            v-on:click="newCueFromSound(groupname,(soundsearch.length ? '': soundfilesdir)+i[1])">New(sound)</button>
                                                         <button
                                                             v-on:click="previewSound((soundsearch.length ? '': soundfilesdir)+i[1])">Preview</button>
                                                         <button
                                                             v-on:click="setCueSlide(currentcueid,(soundsearch.length ? '': soundfilesdir)+i[1])">Set(slide)</button>
                                                         <button
-                                                            v-on:click="newCueFromSlide(scenename,(soundsearch.length ? '': soundfilesdir)+i[1])">New(slide)</button>
+                                                            v-on:click="newCueFromSlide(groupname,(soundsearch.length ? '': soundfilesdir)+i[1])">New(slide)</button>
 
 
 
@@ -998,13 +998,13 @@ ${lists}
                                                     <td><button
                                                             v-on:click="setSoundfile(currentcueid,soundfilesdir+i)">Set</button>
                                                         <button
-                                                            v-on:click="newCueFromSound(scenename,soundfilesdir+i)">New</button>
+                                                            v-on:click="newCueFromSound(groupname,soundfilesdir+i)">New</button>
                                                         <button
                                                             v-on:click="previewSound(soundfilesdir+i)">Preview</button>
                                                         <button
                                                             v-on:click="setCueSlide(currentcueid,(soundsearch.length ? '': soundfilesdir)+i)">Set(slide)</button>
                                                         <button
-                                                            v-on:click="newCueFromSlide(scenename,(soundsearch.length ? '': soundfilesdir)+i)">New(slide)</button>
+                                                            v-on:click="newCueFromSlide(groupname,(soundsearch.length ? '': soundfilesdir)+i)">New(slide)</button>
 
                                                     </td>
                                                 </tr>
@@ -1031,13 +1031,13 @@ ${lists}
                                             <dd>
                                                 <div class="tool-bar">
                                                     <button
-                                                        v-on:click="setSoundOutput(currentcueid,'scenewebplayer')">Set
+                                                        v-on:click="setSoundOutput(currentcueid,'groupwebplayer')">Set
                                                         for
                                                         Cue</button>
                                                     <button
-                                                        v-on:click="setSceneSoundOutput(scenename,'scenewebplayer')">Set
+                                                        v-on:click="setGroupSoundOutput(groupname,'groupwebplayer')">Set
                                                         as
-                                                        Scene Default</button>
+                                                        Group Default</button>
                                                 </div>
                                             </dd>
 
@@ -1048,8 +1048,8 @@ ${lists}
                                                     <div class="tool-bar">
                                                         <button type="button" v-on:click="setSoundOutput(currentcueid,i)">Set for
                                                             Cue</button>
-                                                        <button type="button" v-on:click="setSceneSoundOutput(scenename,i)">Set as
-                                                            Scene
+                                                        <button type="button" v-on:click="setGroupSoundOutput(groupname,i)">Set as
+                                                            Group
                                                             Default</button>
                                                         <button type="button" v-on:click="testSoundCard(i,0,48000)">Test</button>
                                                     </div>
@@ -1082,7 +1082,7 @@ ${lists}
                                     <legend>Basic</legend>
                                     <label>Action</label>
                                     <div class="tool-bar">
-                                        <button type="button" v-on:click="promptRenameCue(scenename,currentcue.name)"><i class="mdi mdi-rename-box-outline"></i>Rename
+                                        <button type="button" v-on:click="promptRenameCue(groupname,currentcue.name)"><i class="mdi mdi-rename-box-outline"></i>Rename
                                             Cue</button>
 
                                     </div>
@@ -1126,7 +1126,7 @@ ${lists}
 
                                         <label><span><i class="mdi mdi-arrow-right-circle-outline"></i>
                                             Trigger Shortcut</span>
-                                            <input :disabled="no_edit" title="When entering this cue, trigger the shortcut in other scenes"
+                                            <input :disabled="no_edit" title="When entering this cue, trigger the shortcut in other groups"
                                                 size="8"
                                                 v-on:change="settriggershortcut(currentcueid,$event.target.value)"
                                                 v-model="currentcue.triggerShortcut">
@@ -1176,20 +1176,20 @@ ${lists}
                                         <div>
                                             <combo-box v-model="cuemeta[currentcueid].next"  :disabled="no_edit"
                                                 v-on:change="setnext(currentcueid,cuemeta[currentcueid].next)"
-                                                :options="useBlankDescriptions(scenecues[scenename],{'__random__':'','__shuffle__':'Avoid Recent','*':'Wildcard match'})"></combo-box>
+                                                :options="useBlankDescriptions(groupcues[groupname],{'__random__':'','__shuffle__':'Avoid Recent','*':'Wildcard match'})"></combo-box>
                                         </div>
                                     </label>
                                     <p>
-                                        <button type="button" v-on:click="gotonext(currentcueid,scenename)">
+                                        <button type="button" v-on:click="gotonext(currentcueid,groupname)">
                                             <i class="mdi mdi-arrow-right"></i>Edit Next</button>
                                         <button
                                             title="If this cue's next does not exist, clone the current cue to be the next, and edit that cue"
-                                            v-on:click="clonecue(scenename,currentcueid,currentcue.next)">
+                                            v-on:click="clonecue(groupname,currentcueid,currentcue.next)">
                                             <i class="mdi mdi-content-copy"></i>Clone to Next</button>
                                     </p>
 
-                                    <datalist id="cues_in_scene" v-if="Object.keys(scenecues[scenename]).length<50">
-                                        <option v-for="i in Object.keys(scenecues[scenename]).sort()" v-bind:value="i">
+                                    <datalist id="cues_in_group" v-if="Object.keys(groupcues[groupname]).length<50">
+                                        <option v-for="i in Object.keys(groupcues[groupname]).sort()" v-bind:value="i">
                                             {{i}}</option>
                                     </datalist>
                                 </fieldset>
@@ -1202,25 +1202,25 @@ ${lists}
 
             </div>
             <details class="undecorated">
-                <summary>Scene Notes</summary>
+                <summary>Group Notes</summary>
 
 
 
                 <div style="overflow: auto; max-height:30em;">
-                    <h4>Scene Notes</h4>
-                    <textarea v-model="editingScene.notes"
-                        @change="setSceneProperty(editingScene.id, 'notes', $event.target.value)"
-                        @input="setScenePropertyDeferred(editingScene.id, 'notes', $event.target.value)"></textarea>
+                    <h4>Group Notes</h4>
+                    <textarea v-model="editingGroup.notes"
+                        @change="setGroupProperty(editingGroup.id, 'notes', $event.target.value)"
+                        @input="setGroupPropertyDeferred(editingGroup.id, 'notes', $event.target.value)"></textarea>
                 </div>
             </details>
 
             <details class="undecorated">
-                <summary>Scene Settings</summary>
+                <summary>Group Settings</summary>
 
                 <!-- <details>
                     <summary>Music Visualization Presets</summary>
-                    <textarea v-on:change="setvisualization(scenename,$event.target.value);"
-                        v-model="editingScene.musicVisualizations"></textarea>
+                    <textarea v-on:change="setvisualization(groupname,$event.target.value);"
+                        v-model="editingGroup.musicVisualizations"></textarea>
                 </details> -->
                 <div class="flex-row gaps">
 
@@ -1233,23 +1233,23 @@ ${lists}
 
                             <p> <label>
                                     Alpha:<input type="number" max=1 step=0.01 min=0
-                                        v-on:change="setalpha(scenename,parseFloat($event.target.value));"
-                                        v-model="alphas[scenename]">
+                                        v-on:change="setalpha(groupname,parseFloat($event.target.value));"
+                                        v-model="alphas[groupname]">
                                 </label>
 
                                 <label>Default Alpha
                                     <input :disabled="no_edit" type="number" max=1 step=0.01 min=0
-                                        v-on:change="setdalpha(scenename,parseFloat($event.target.value))"
-                                        v-model="editingScene.defaultAlpha"></input>
+                                        v-on:change="setdalpha(groupname,parseFloat($event.target.value))"
+                                        v-model="editingGroup.defaultAlpha"></input>
                                 </label>
                             </p>
 
                             <label>Blend Mode
-                                <select  :disabled="no_edit" title="This setting controls blending multiple scenes together"
-                                    v-on:input="setblend(scenename,$event.target.value)" v-model="editingScene.blend"
-                                    data-testid="scene_blend_mode">
+                                <select  :disabled="no_edit" title="This setting controls blending multiple groups together"
+                                    v-on:input="setblend(groupname,$event.target.value)" v-model="editingGroup.blend"
+                                    data-testid="group_blend_mode">
 
-                                    <option title="Alpha blend with scenes below">normal</option>
+                                    <option title="Alpha blend with groups below">normal</option>
                                     <option
                                         title="Highest Takes Priority, only affect lights if the value is higher than the others">
                                         HTP</option>
@@ -1264,45 +1264,45 @@ ${lists}
                             <p>
                                 <label><span class="mdi mdi-lock-alert"></span>
                                     Require Confirmation for Cue Jumps
-                                    <input :disabled="no_edit" type="checkbox" v-model="editingScene.requireConfirm"
-                                    v-on:change="setSceneProperty(scenename,'requireConfirm', editingScene.requireConfirm)">
+                                    <input :disabled="no_edit" type="checkbox" v-model="editingGroup.requireConfirm"
+                                    v-on:change="setGroupProperty(groupname,'requireConfirm', editingGroup.requireConfirm)">
                                 </label>
 
                                 <label>Priority
                                     <input :disabled="no_edit" type='number' min=0 max=100
-                                        v-on:change="setSceneProperty(scenename,'priority', parseFloat($event.target.value))"
-                                        v-model="editingScene.priority">
+                                        v-on:change="setGroupProperty(groupname,'priority', parseFloat($event.target.value))"
+                                        v-model="editingGroup.priority">
                                 </label>
                                 <label>BPM
                                     <input :disabled="no_edit" type='number' min=0 max=100
-                                        v-on:change="setbpm(scenename,parseFloat($event.target.value))"
-                                        v-model="editingScene.bpm">
+                                        v-on:change="setbpm(groupname,parseFloat($event.target.value))"
+                                        v-model="editingGroup.bpm">
                                 </label>
-                                <button type="button" v-on:click="tap(scenename)" class="grow">
+                                <button type="button" v-on:click="tap(groupname)" class="grow">
                                     <i class="mdi mdi-gesture-tap"></i>Tap
                                 </button>
                             </p>
 
                             <p>
-                                <label title="Check this box to make the scene active at startup">Active By
+                                <label title="Check this box to make the group active at startup">Active By
                                     Default
                                     <input :disabled="no_edit" type="checkbox"
-                                        v-on:change="setSceneProperty(scenename,'defaultActive',$event.target.checked)"
-                                        v-model="editingScene.defaultActive"></input>
+                                        v-on:change="setGroupProperty(groupname,'defaultActive',$event.target.checked)"
+                                        v-model="editingGroup.defaultActive"></input>
                                 </label>
 
                                 <label
-                                    title="Scenes inherit from previous scenes even if you jump directly to them">Backtrack
+                                    title="Groups inherit from previous groups even if you jump directly to them">Backtrack
                                     <input :disabled="no_edit" type="checkbox"
-                                        v-on:change="setSceneProperty(scenename,'backtrack', $event.target.checked)"
-                                        v-model="editingScene.backtrack"></input>
+                                        v-on:change="setGroupProperty(groupname,'backtrack', $event.target.checked)"
+                                        v-model="editingGroup.backtrack"></input>
                                 </label>
                             </p>
 
 
                             <label>Slideshow Overlay:
-                                <input :disabled="no_edit" v-on:change="setSceneProperty(scenename,'slideOverlayUrl',$event.target.value)"
-                                    v-model="editingScene.slideOverlayUrl"></input>
+                                <input :disabled="no_edit" v-on:change="setGroupProperty(groupname,'slideOverlayUrl',$event.target.value)"
+                                    v-model="editingGroup.slideOverlayUrl"></input>
                             </label>
 
 
@@ -1310,20 +1310,20 @@ ${lists}
                             <label title="Recieve note events from a MIDI input device">MIDI
                                 Source:
                                 <input :disabled="no_edit" list="midiinputs"
-                                    v-on:change="setSceneProperty(scenename,'midiSource', $event.target.value)"
-                                    v-model="editingScene.midiSource"></input>
+                                    v-on:change="setGroupProperty(groupname,'midiSource', $event.target.value)"
+                                    v-model="editingGroup.midiSource"></input>
                             </label>
 
                             <label title="Recieve shortcut codes from a command-type tag">
                                 Command Tag:<input :disabled="no_edit" placeholder="Tagpoint"
-                                    v-on:change="setcommandtag(scenename,$event.target.value)"
-                                    v-model="editingScene.commandTag" list="commandtagslisting">
+                                    v-on:change="setcommandtag(groupname,$event.target.value)"
+                                    v-model="editingGroup.commandTag" list="commandtagslisting">
                             </label>
 
                             <label title="You can use this with __random__ to create a shuffle effect.">Default
                                 cue advance:
-                                <input :disabled="no_edit" list="nextcueoptions" v-on:change="setdefaultnext(scenename,$event.target.value)"
-                                    v-model="editingScene.defaultNext" placeholder="Next cue in list"></input>
+                                <input :disabled="no_edit" list="nextcueoptions" v-on:change="setdefaultnext(groupname,$event.target.value)"
+                                    v-model="editingGroup.defaultNext" placeholder="Next cue in list"></input>
                             </label>
                         </div>
                     </div>
@@ -1335,16 +1335,16 @@ ${lists}
                         </header>
                         <div class="stacked-form">
                             <label> Sound Output<input
-                                    title="If not set by a cue, the global setting for the scene is used"
-                                    v-on:change="setSceneSoundOutput(scenename,$event.target.value)"
-                                    v-model="editingScene.soundOutput" placeholder="default"
+                                    title="If not set by a cue, the global setting for the group is used"
+                                    v-on:change="setGroupSoundOutput(groupname,$event.target.value)"
+                                    v-model="editingGroup.soundOutput" placeholder="default"
                                     list="soundcards"></input></label>
 
                             <label>
                                 Crossfade for non-silent Sounds
                                 <input :disabled="no_edit" type="number" max=1 step=0.01 min=0
-                                    v-on:change="setcrossfade(scenename,parseFloat($event.target.value))"
-                                    v-model="editingScene.crossfade"></input>
+                                    v-on:change="setcrossfade(groupname,parseFloat($event.target.value))"
+                                    v-model="editingGroup.crossfade"></input>
                             </label>
                         </div>
                         <h5>Outputs</h5>
@@ -1353,9 +1353,9 @@ ${lists}
                                 <dt>Web Player</dt>
                                 <dd>
                                     <div class="tool-bar">
-                                        <button type="button" v-on:click="setSceneSoundOutput(scenename,'scenewebplayer')">Set
+                                        <button type="button" v-on:click="setGroupSoundOutput(groupname,'groupwebplayer')">Set
                                             as
-                                            Scene
+                                            Group
                                             Default</button>
                                     </div>
                                 </dd>
@@ -1364,7 +1364,7 @@ ${lists}
                                     <dt>{{i || "UNSET"}}</dt>
                                     <dd>
                                         <div class="tool-bar">
-                                            <button type="button" v-on:click="setSceneSoundOutput(scenename,i)">Set as Scene
+                                            <button type="button" v-on:click="setGroupSoundOutput(groupname,i)">Set as Group
                                                 Default</button>
                                             <button type="button" v-on:click="testSoundCard(i,0,48000)">Test</button>
                                         </div>
@@ -1380,15 +1380,15 @@ ${lists}
                         </header>
                         <div class="stacked-form">
                             <label>MQTT Server:
-                                <input :disabled="no_edit" v-on:change="setmqtt(scenename,$event.target.value)"
-                                    v-model="editingScene.mqttServer"></input>
+                                <input :disabled="no_edit" v-on:change="setmqtt(groupname,$event.target.value)"
+                                    v-model="editingGroup.mqttServer"></input>
                             </label>
 
                             <label
                                 title="Cue transitions on the same MQTT server sharing a group name will sync if cue names match.">Sync
                                 Group Name
-                                <input :disabled="no_edit" v-on:change="setmqttfeature(scenename,'syncGroup',$event.target.value)"
-                                    v-model="editingScene.mqttSyncFeatures.syncGroup"></input>
+                                <input :disabled="no_edit" v-on:change="setmqttfeature(groupname,'syncGroup',$event.target.value)"
+                                    v-model="editingGroup.mqttSyncFeatures.syncGroup"></input>
                             </label>
                         </div>
                     </div>
@@ -1399,17 +1399,17 @@ ${lists}
                             <h4>Import/Export</h4>
                         </header>
                         <div class="stacked-form">
-                            <label>Download just this scene
+                            <label>Download just this group
                                 <a class="button"
-                                    v-bind:href="'downloadOneScene?id='+scenename+'&name='+editingScene.name"
-                                    title="Download your scene as a file"><i class="mdi mdi-download"></i>Download
-                                    Scene</a>
+                                    v-bind:href="'downloadOneGroup?id='+groupname+'&name='+editingGroup.name"
+                                    title="Download your group as a file"><i class="mdi mdi-download"></i>Download
+                                    Group</a>
                             </label>
 
                             <label>Download audio playlist as m3u
                                 <a class="button"
-                                    v-bind:href="'downloadm3u?id='+scenename+'&rel=&name='+editingScene.name"
-                                    title="Download your scene as a file"><i class="mdi mdi-download"></i>Download
+                                    v-bind:href="'downloadm3u?id='+groupname+'&rel=&name='+editingGroup.name"
+                                    title="Download your group as a file"><i class="mdi mdi-download"></i>Download
                                     Playlist</a>
                             </label>
 
@@ -1419,7 +1419,7 @@ ${lists}
                             </p>
 
                             <label>Add new cues from playlist
-                                <a class="button" v-bind:href="'uploadm3u?id='+scenename" title="Upload a playlist"><i
+                                <a class="button" v-bind:href="'uploadm3u?id='+groupname" title="Upload a playlist"><i
                                         class="mdi mdi-folder-open"></i>Upload M3U Playlist</a>
                             </label>
 
@@ -1432,7 +1432,7 @@ ${lists}
 
 
 
-                    <div class="card w-sm-full" v-if="editingScene.blend!='normal'">
+                    <div class="card w-sm-full" v-if="editingGroup.blend!='normal'">
                         <header>
                             <h4>Send event</h4>
                         </header>
@@ -1455,23 +1455,23 @@ ${lists}
                                 </select>
                             </label>
 
-                            <button type="button" v-on:click="sendev(scenename)">Send</button>
+                            <button type="button" v-on:click="sendev(groupname)">Send</button>
                             </label>
                         </div>
                     </div>
 
 
-                    <div class="card w-sm-full" v-if="editingScene.blend!='normal'">
+                    <div class="card w-sm-full" v-if="editingGroup.blend!='normal'">
                         <header>
                             <h4>Blend Mode</h4>
                         </header>
                         <div class="stacked-form">
-                            <p>{{editingScene.blendDesc}}</p>
+                            <p>{{editingGroup.blendDesc}}</p>
                             <p>
-                                <label v-for="(j,k) in editingScene.blendParams">{{j[0]}}:
+                                <label v-for="(j,k) in editingGroup.blendParams">{{j[0]}}:
                                     <input :disabled="no_edit" type="number" style="width:5em" step=0.01 v-bind:title="j[2]"
-                                        v-on:change="setblendparam(scenename,k,parseFloat($event.target.value))"
-                                        v-model="editingScene.blendArgs[k]"></input>
+                                        v-on:change="setblendparam(groupname,k,parseFloat($event.target.value))"
+                                        v-model="editingGroup.blendArgs[k]"></input>
 
                                 </label>
                             </p>
@@ -1489,22 +1489,22 @@ ${lists}
 
                         <div class="stacked-form">
                             <p>
-                                <label>Utility Scene(No controls)
-                                    <input :disabled="no_edit" type="checkbox" v-on:change="setutility(scenename,editingScene.utility)"
-                                        v-model="editingScene.utility"
-                                        title="If checked, the scene is a utility scene without sidebar controls. Use for embedding CCTV, or basic state machines.">
+                                <label>Utility Group(No controls)
+                                    <input :disabled="no_edit" type="checkbox" v-on:change="setutility(groupname,editingGroup.utility)"
+                                        v-model="editingGroup.utility"
+                                        title="If checked, the group is a utility group without sidebar controls. Use for embedding CCTV, or basic state machines.">
                                 </label>
 
                                 <label>Hide in Runtime Mode
-                                    <input :disabled="no_edit" type="checkbox" v-on:change="setHide(scenename,editingScene.hide)"
-                                        v-model="editingScene.hide"
-                                        title="If checked, the scene is a utility scene without sidebar controls. Use for embedding CCTV, or basic state machines.">
+                                    <input :disabled="no_edit" type="checkbox" v-on:change="setHide(groupname,editingGroup.hide)"
+                                        v-model="editingGroup.hide"
+                                        title="If checked, the group is a utility group without sidebar controls. Use for embedding CCTV, or basic state machines.">
                                 </label>
                             </p>
 
                             <label title="This URL is shown in a mini window in the sidebar">Sidebar info URL
-                                <input :disabled="no_edit" v-on:change="setinfodisplay(scenename,$event.target.value)"
-                                    v-model="editingScene.infoDisplay"></input>
+                                <input :disabled="no_edit" v-on:change="setinfodisplay(groupname,$event.target.value)"
+                                    v-model="editingGroup.infoDisplay"></input>
                             </label>
                         </div>
                         <h5>Event Buttons</h5>
@@ -1514,15 +1514,15 @@ ${lists}
                                 <th>Event</th>
                                 <th>Acton</th>
                             </tr>
-                            <tr v-for="(v,i) in editingScene.eventButtons">
+                            <tr v-for="(v,i) in editingGroup.eventButtons">
                                 <td><input :disabled="no_edit" v-model="v[0]" class="w-6rem" data-testid="event_button_label"
-                                        v-on:change="setEventButtons(scenename, editingScene.eventButtons);">
+                                        v-on:change="setEventButtons(groupname, editingGroup.eventButtons);">
                                 </td>
                                 <td><input :disabled="no_edit" v-model="v[1]" class="w-6rem" data-testid="event_button_event"
-                                        v-on:change="setEventButtons(scenename, editingScene.eventButtons);">
+                                        v-on:change="setEventButtons(groupname, editingGroup.eventButtons);">
                                 </td>
                                 <td><button data-testid="event_button_delete"
-                                        v-on:click="editingScene.eventButtons.splice(i, 1); setEventButtons(scenename, editingScene.eventButtons);">Delete</button>
+                                        v-on:click="editingGroup.eventButtons.splice(i, 1); setEventButtons(groupname, editingGroup.eventButtons);">Delete</button>
                             </tr>
 
 
@@ -1530,7 +1530,7 @@ ${lists}
                                 <td></td>
                                 <td></td>
                                 <td><button
-                                        v-on:click="editingScene.eventButtons.push(['','']); setEventButtons(scenename, editingScene.eventButtons);">Add
+                                        v-on:click="editingGroup.eventButtons.push(['','']); setEventButtons(groupname, editingGroup.eventButtons);">Add
                                         Button</button>
                             </tr>
                         </table>
@@ -1543,14 +1543,14 @@ ${lists}
                                 points
                                 in
                                 the
-                                scene overview.</p>
+                                group overview.</p>
 
                             <p>Tags will be created if they do not exist. Use the tag settings page to configure
                                 defaults an limits</p>
 
                             <p>Expression tags are allowed, =tv('tag1') + 6 will display 6 plus the tag 'tv'</p>
 
-                            <p>You can also add inputs to the scene overview. You can then respond to these inputs
+                            <p>You can also add inputs to the group overview. You can then respond to these inputs
                                 in the cue logic.
                             </p>
 
@@ -1565,25 +1565,25 @@ ${lists}
                                 <th>Type</th>
                                 <th>Action</th>
                             </tr>
-                            <tr v-for="(v,i) in editingScene.displayTags">
+                            <tr v-for="(v,i) in editingGroup.displayTags">
                                 <td><input :disabled="no_edit" v-model="v[0]" class="w-6rem" data-testid="display_tag_label"
-                                        v-on:change="setDisplayTags(scenename, editingScene.displayTags);">
+                                        v-on:change="setDisplayTags(groupname, editingGroup.displayTags);">
                                 </td>
 
                                 <td><input type="number" :disabled="no_edit" v-model="v[2].width" class="w-4rem"
                                     data-testid="display_tag_width"
-                                    v-on:change="setDisplayTags(scenename, editingScene.displayTags);">
+                                    v-on:change="setDisplayTags(groupname, editingGroup.displayTags);">
                                 </td>
 
                                 <td><input :disabled="no_edit" list="tagslisting" v-model="v[1]"
                                     data-testid="display_tag_tag"
-                                        v-on:change="setDisplayTags(scenename, editingScene.displayTags);">
+                                        v-on:change="setDisplayTags(groupname, editingGroup.displayTags);">
                                 </td>
 
 
                                 <td><select v-model="v[2].type" class="w-6rem"
                                     data-testid="display_tag_type"
-                                        v-on:change="setDisplayTags(scenename, editingScene.displayTags);">
+                                        v-on:change="setDisplayTags(groupname, editingGroup.displayTags);">
                                         <option value="meter">Meter</option>
                                         <option value="text">Text</option>
                                         <option value="led">LED</option>
@@ -1596,7 +1596,7 @@ ${lists}
 
                                     <template v-if="v[2].type == 'led'">
                                         <select :disabled="no_edit" v-model="v[2].color" data-testid="display_tag_led_color"
-                                            v-on:change="setDisplayTags(scenename, editingScene.displayTags);">
+                                            v-on:change="setDisplayTags(groupname, editingGroup.displayTags);">
                                             <option value="red">Red</option>
                                             <option value="yellow">Yel</option>
                                             <option value="green">Grn</option>
@@ -1608,7 +1608,7 @@ ${lists}
                                 </td>
 
                                 <td><button data-testid="display_tag_delete"
-                                        v-on:click="editingScene.displayTags.splice(i, 1); setDisplayTags(scenename, editingScene.displayTags);">Delete</button>
+                                        v-on:click="editingGroup.displayTags.splice(i, 1); setDisplayTags(groupname, editingGroup.displayTags);">Delete</button>
 
                                     <a v-bind:href="'/tagpoints/'+encodeURIComponent(v[1])"><i
                                             class="mdi mdi-gear"></i></a>
@@ -1622,7 +1622,7 @@ ${lists}
                                 <td></td>
                                 <td></td>
                                 <td><button
-                                        v-on:click="editingScene.displayTags.push(['Label','=1', {'type':'auto'}]); setDisplayTags(scenename, editingScene.displayTags);">Add
+                                        v-on:click="editingGroup.displayTags.push(['Label','=1', {'type':'auto'}]); setDisplayTags(groupname, editingGroup.displayTags);">Add
                                         Tag</button>
                             </tr>
                         </table>
@@ -1657,10 +1657,10 @@ ${lists}
                         <details>
                             <summary>Custom layout for slideshow</summary>
                             <div class="stacked-form">
-                                <textarea v-model="editingScene.slideshowLayout" class="w-full h-16rem"
+                                <textarea v-model="editingGroup.slideshowLayout" class="w-full h-16rem"
                                     data-testid="slideshow_layout"
-                                    @change="setSceneProperty(editingScene.id, 'slideshowLayout', $event.target.value)"
-                                    @input="setScenePropertyDeferred(editingScene.id, 'slideshowLayout', $event.target.value)"></textarea>
+                                    @change="setGroupProperty(editingGroup.id, 'slideshowLayout', $event.target.value)"
+                                    @input="setGroupPropertyDeferred(editingGroup.id, 'slideshowLayout', $event.target.value)"></textarea>
                             </div>
                         </details>
                     </div>
@@ -1673,14 +1673,14 @@ ${lists}
             <details class="undecorated">
                 <summary>Cue History</summary>
                 <div>
-                    <button type="button" v-on:click="refreshhistory(scenename)">Refresh</button>
+                    <button type="button" v-on:click="refreshhistory(groupname)">Refresh</button>
                     <h3>Cue History</h3>
-                    <table border="1" v-if="scenemeta[scenename].history">
+                    <table border="1" v-if="groupmeta[groupname].history">
                         <tr>
                             <th>Cue</th>
                             <th>Time</th>
                         </tr>
-                        <tr v-for="v,i of scenemeta[scenename].history">
+                        <tr v-for="v,i of groupmeta[groupname].history">
                             <td>{{v[0]}}</td>
                             <td>{{(new Date(v[1]*1000)).toLocaleString() }}</td>
                         </tr>
@@ -1690,7 +1690,7 @@ ${lists}
             </details>
 
             <div
-                v-if="scenecues[scenename][selectedCues[scenename]]==undefined || cuemeta[scenecues[scenename][selectedCues[scenename]]]==undefined">
+                v-if="groupcues[groupname][selectedCues[groupname]]==undefined || cuemeta[groupcues[groupname][selectedCues[groupname]]]==undefined">
                 Cue data not found...
             </div>
             <div v-if="showevents" style="height:25em">
@@ -1766,8 +1766,8 @@ ${lists}
                 "script-editor": httpVueLoader('../static/ScriptEditor.vue'),
                 "h-fader": httpVueLoader('../static/hfader.vue'),
                 'cue-countdown': httpVueLoader('../static/cue-countdown.vue'),
-                // Currently contains the timers and the display tags for the scenes overview
-                'scene-ui': httpVueLoader('../static/scene-ui-controls.vue'),
+                // Currently contains the timers and the display tags for the groups overview
+                'group-ui': httpVueLoader('../static/group-ui-controls.vue'),
                 'smooth-range': httpVueLoader('/static/vue/smoothrange.vue')
             },
             computed: appComputed

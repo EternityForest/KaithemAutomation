@@ -42,11 +42,11 @@ test('test', async ({ page }) => {
 
 
     // Now on the editor
-    await page.getByPlaceholder('New scene name').dblclick();
-    await page.getByPlaceholder('New scene name').fill('ts1');
-    await page.getByTestId('add-scene-button').click();
+    await page.getByPlaceholder('New group name').dblclick();
+    await page.getByPlaceholder('New group name').fill('ts1');
+    await page.getByTestId('add-group-button').click();
     await page.getByRole('button', { name: 'ts1' }).click();
-    await page.getByText('Scene Settings').click();
+    await page.getByText('Group Settings').click();
     await page.getByLabel('Slideshow Overlay:').click();
     await page.getByLabel('Slideshow Overlay:').fill('overlay');
     await page.getByLabel('MIDI Source:').click();
@@ -77,17 +77,17 @@ test('test', async ({ page }) => {
     await page.getByLabel('MQTT Server:').fill('ppp');
     await page.getByLabel('Sync Group Name').click();
     await page.getByLabel('Sync Group Name').fill('grp');
-    await page.getByText('ts1 (running)Delete SceneNameShortcutFadeinLengthNextTrackJump to5defaultGEN>>>').click();
+    await page.getByText('ts1 (running)Delete GroupNameShortcutFadeinLengthNextTrackJump to5defaultGEN>>>').click();
     await page.getByPlaceholder('Tagpoint').click();
     await page.getByPlaceholder('Tagpoint').fill('cmdtag');
-    await page.getByText('Scene Settings').click();
-    await page.getByText('Scene Settings').click();
+    await page.getByText('Group Settings').click();
+    await page.getByText('Group Settings').click();
 
     // Check that the stuff is there
     await page.goto('http://localhost:8002/chandler/editor/testchandlerproperties:b1');
     await expect(page.getByRole('main')).toContainText('STATUS: MQTT');
     await page.getByRole('button', { name: 'ts1' }).click();
-    await page.getByText('Scene Settings').click();
+    await page.getByText('Group Settings').click();
 
     await expect(page.getByLabel('Priority')).toHaveValue('42');
 
@@ -109,14 +109,14 @@ test('test', async ({ page }) => {
     // More settings
     await page.goto('http://localhost:8002/chandler/editor/testchandlerproperties:b1');
     await page.getByRole('button', { name: 'ts1' }).click();
-    await page.getByText('Scene Settings').click();
-    await page.getByTestId('scene_blend_mode').selectOption('HTP');
+    await page.getByText('Group Settings').click();
+    await page.getByTestId('group_blend_mode').selectOption('HTP');
     await expect(page.getByLabel('Alpha:')).toHaveValue('0.25');
     await page.getByLabel('Default Alpha').click();
 
     await page.getByLabel('Sidebar info URL').click();
     await page.getByLabel('Sidebar info URL').fill('foourl');
-    await page.getByLabel('Utility Scene(No controls)').check();
+    await page.getByLabel('Utility Group(No controls)').check();
     await page.getByLabel('Hide in Runtime Mode').check();
 
     // Waste time
@@ -127,12 +127,12 @@ test('test', async ({ page }) => {
     // More checking
     await page.goto('http://localhost:8002/chandler/editor/testchandlerproperties:b1');
     await page.getByRole('button', { name: 'ts1' }).click();
-    await page.getByText('Scene Settings').click();
-    await expect(page.getByLabel('Utility Scene(No controls)')).toBeChecked();
+    await page.getByText('Group Settings').click();
+    await expect(page.getByLabel('Utility Group(No controls)')).toBeChecked();
     await expect(page.getByLabel('Hide in Runtime Mode')).toBeChecked();
     await expect(page.getByLabel('Sidebar info URL')).toHaveValue('foourl');
 
-    await expect(page.getByTestId('scene_blend_mode')).toHaveValue('HTP');
+    await expect(page.getByTestId('group_blend_mode')).toHaveValue('HTP');
 
     // Now lets do the display tags and action buttons    
     await page.getByRole('button', { name: 'Add Button' }).click();
@@ -163,7 +163,7 @@ test('test', async ({ page }) => {
 
     await page.goto('http://localhost:8002/chandler/editor/testchandlerproperties:b1');
     await page.getByRole('button', { name: 'ts1' }).click();
-    await page.getByText('Scene Settings').click();
+    await page.getByText('Group Settings').click();
     await expect(page.getByRole('article')).toContainText('tg1');
 
     await expect(page.getByTestId('event_button_label')).toHaveValue('btn1');
@@ -185,7 +185,7 @@ test('test', async ({ page }) => {
 
     await page.goto('http://localhost:8002/chandler/editor/testchandlerproperties:b1');
     await page.getByRole('button', { name: 'ts1' }).click();
-    await page.getByText('Scene Settings').click();
+    await page.getByText('Group Settings').click();
 
     await expect(page.getByLabel('Require Confirmation for Cue')).toBeChecked();
 
@@ -222,7 +222,7 @@ test('test', async ({ page }) => {
     await page.getByPlaceholder('Tagpoint').fill('');
     await page.getByPlaceholder('Next cue in list').dblclick();
     await page.getByPlaceholder('Next cue in list').fill('');
-    await page.getByLabel('Utility Scene(No controls)').uncheck();
+    await page.getByLabel('Utility Group(No controls)').uncheck();
     await page.getByLabel('Hide in Runtime Mode').uncheck();
     await page.getByLabel('Backtrack').uncheck();
     await page.getByLabel('Active By Default').uncheck();
@@ -234,7 +234,7 @@ test('test', async ({ page }) => {
     // Check that it worked
     await page.goto('http://localhost:8002/chandler/editor/testchandlerproperties:b1');
     await page.getByRole('button', { name: 'ts1' }).click();
-    await page.getByText('Scene Settings').click();
+    await page.getByText('Group Settings').click();
 
     await expect(page.getByLabel('MQTT Server:')).toBeEmpty();
     await expect(page.getByLabel('Sync Group Name')).toBeEmpty();
@@ -244,7 +244,7 @@ test('test', async ({ page }) => {
     await expect(page.getByPlaceholder('Next cue in list')).toBeEmpty();
     await expect(page.getByLabel('Crossfade for non-silent')).toHaveValue('0');
     await expect(page.getByLabel('Sound Output')).toBeEmpty();
-    await expect(page.getByLabel('Utility Scene(No controls)')).not.toBeChecked();
+    await expect(page.getByLabel('Utility Group(No controls)')).not.toBeChecked();
     await expect(page.getByLabel('Hide in Runtime Mode')).not.toBeChecked();
     await expect(page.getByLabel('Require Confirmation for Cue')).not.toBeChecked();
     await expect(page.getByLabel('Active By Default')).not.toBeChecked();
@@ -260,7 +260,7 @@ test('test', async ({ page }) => {
 
     await page.goto('http://localhost:8002/chandler/editor/testchandlerproperties:b1');
     await page.getByRole('button', { name: 'ts1' }).click();
-    await page.getByText('Scene Settings').click();
+    await page.getByText('Group Settings').click();
     await page.getByText('Custom layout for slideshow').click();
     await expect(page.getByTestId('slideshow_layout')).toHaveValue('LayoutPlaceholder');
 

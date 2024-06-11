@@ -8,7 +8,7 @@ from kaithem.src import quart_app, tagpoints
 
 from .. import directories, pages
 from ..kaithemobj import kaithem
-from . import blendmodes, core, scenes
+from . import blendmodes, core, groups
 
 _Lookup = TemplateLookup(
     directories=[
@@ -85,17 +85,17 @@ def scriptheader(v):
     return get_template("global_vars_maker.js").render(__jsvars__=v)
 
 
-# @quart_app.app.route("/chandler/downloadOneScene")
-# def download_one_scene():
+# @quart_app.app.route("/chandler/downloadOneGroup")
+# def download_one_group():
 #     kwargs = quart.request.args
-#     r=yaml.dump({kwargs['name']:board.scenememory[kwargs['id']].toDict()})
+#     r=yaml.dump({kwargs['name']:board.groupmemory[kwargs['id']].toDict()})
 #     return quart.Response(r, mimetype="text/yaml", headers={"Content-Disposition": "attachment; filename="+kwargs['name']+".yaml"})
 
 
 # @quart_app.app.route("/chandler/downloadm3u")
-# def download_one_scene():
+# def download_one_group():
 #     kwargs = quart.request.args
-#     r=m3u_io.get_m3u(module.board.scenememory[kwargs['id']] ,kwargs['rel'])
+#     r=m3u_io.get_m3u(module.board.groupmemory[kwargs['id']] ,kwargs['rel'])
 #     return quart.Response(r, mimetype="text/yaml",  headers={"Content-Disposition": "attachment; filename="+kwargs['name']+".m3u"})
 
 
@@ -206,7 +206,7 @@ async def default(path):
                 module=core,
                 kaithem=kaithem,
                 kwargs=kwargs,
-                scenes=scenes,
+                groups=groups,
                 request=quart.request,
             )
             if isinstance(r, str):

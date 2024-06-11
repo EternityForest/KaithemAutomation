@@ -13,10 +13,10 @@ from scullery import scheduling, snake_compat
 # The frontend's ephemeral state is using CamelCase conventions for now
 from .. import schemas
 from ..kaithemobj import kaithem
-from . import blendmodes, console_abc, core, fixtureslib, persistance, scenes, universes
+from . import blendmodes, console_abc, core, fixtureslib, groups, persistance, universes
 from .core import logger
 from .global_actions import event
-from .scenes import Scene, cues
+from .groups import Group, cues
 from .universes import getUniverse, getUniverses
 
 
@@ -40,16 +40,16 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         self.name = name
 
-        # mutable and immutable versions of the active scenes list.
-        self.scenes_by_name: weakref.WeakValueDictionary[str, Scene] = weakref.WeakValueDictionary()
+        # mutable and immutable versions of the active groups list.
+        self.groups_by_name: weakref.WeakValueDictionary[str, Group] = weakref.WeakValueDictionary()
 
-        self._active_scenes: list[Scene] = []
-        self.active_scenes: list[Scene] = []
+        self._active_groups: list[Group] = []
+        self.active_groups: list[Group] = []
 
-        # This light board's scene memory, or the set of scenes 'owned' by this board.
-        self.scenes: Dict[str, Scene] = {}
+        # This light board's group memory, or the set of groups 'owned' by this board.
+        self.groups: Dict[str, Group] = {}
 
-        # For change etection in scenes. Tuple is folder, file indicating where it should go,
+        # For change etection in groups. Tuple is folder, file indicating where it should go,
         # as would be passed to saveasfiles
         self.last_saved_version: dict[str, Any] = {}
 
@@ -89,10 +89,10 @@ class ChandlerConsole(console_abc.Console_ABC):
         self.save_callback = dummy
 
     def close(self):
-        for i in self.scenes:
-            self.scenes[i].stop()
-            self.scenes[i].close()
-        self.scenes = {}
+        for i in self.groups:
+            self.groups[i].stop()
+            self.groups[i].close()
+        self.groups = {}
 
         for i in self.configured_universes:
             self.configured_universes[i].close()
@@ -103,10 +103,10 @@ class ChandlerConsole(console_abc.Console_ABC):
             print(traceback.format_exc())
 
     def load_project(self, data: dict):
-        for i in self.scenes:
-            self.scenes[i].stop()
-            self.scenes[i].close()
-        self.scenes = {}
+        for i in self.groups:
+            self.groups[i].stop()
+            self.groups[i].close()
+        self.groups = {}
 
         for i in self.configured_universes:
             self.configured_universes[i].close()
@@ -128,7 +128,10 @@ class ChandlerConsole(console_abc.Console_ABC):
             self.refresh_fixtures()
 
         if "scenes" in data:
-            d = data["scenes"]
+            data["groups"] = data.pop("scenes")
+
+        if "groups" in data:
+            d = data["groups"]
 
             self.loadDict(d)
             self.linkSend(["refreshPage", self.fixture_assignments])
@@ -314,13 +317,13 @@ class ChandlerConsole(console_abc.Console_ABC):
                 "fixture_presets": self.fixture_presets,
             }
 
-    def loadSceneFile(self, data, filename: str, errs=False, clear_old=True):
+    def loadGroupFile(self, data, filename: str, errs=False, clear_old=True):
         data = yaml.load(data, Loader=yaml.SafeLoader)
 
         data = snake_compat.snakify_dict_keys(data)
 
-        # Detect if the user is trying to upload a single scenefile,
-        # if so, wrap it in a multi-dict of scenes to keep the reading code
+        # Detect if the user is trying to upload a single groupfile,
+        # if so, wrap it in a multi-dict of groups to keep the reading code
         # The same for both
         if "uuid" in data and isinstance(data["uuid"], str):
             # Remove the .yaml
@@ -328,12 +331,12 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         with core.lock:
             if clear_old:
-                for i in self.scenes:
+                for i in self.groups:
                     if clear_old or (i in data):
-                        self.scenes[i].stop()
-                        self.scenes[i].close()
+                        self.groups[i].stop()
+                        self.groups[i].close()
 
-                self.scenes = {}
+                self.groups = {}
             self.loadDict(data, errs)
 
     def loadDict(self, data: dict[str, Any], errs: bool = False):
@@ -344,9 +347,9 @@ class ChandlerConsole(console_abc.Console_ABC):
         # Note that validation could include integer keys, but we handle that
         for i in data:
             try:
-                schemas.validate("chandler/scene", data[i])
+                schemas.validate("chandler/group", data[i])
             except Exception:
-                logger.exception(f"Error Validating scene {i}, loading anyway")
+                logger.exception(f"Error Validating group {i}, loading anyway")
 
             cues = data[i].get("cues", {})
             for j in cues:
@@ -364,19 +367,19 @@ class ChandlerConsole(console_abc.Console_ABC):
                     data[i]["name"] = i
                 n = data[i]["name"]
 
-                # Delete existing scenes we own
-                if n in self.scenes_by_name:
-                    old_id = self.scenes_by_name[n].id
-                    if old_id in self.scenes:
-                        self.scenes[old_id].stop()
-                        self.scenes[old_id].close()
+                # Delete existing groups we own
+                if n in self.groups_by_name:
+                    old_id = self.groups_by_name[n].id
+                    if old_id in self.groups:
+                        self.groups[old_id].stop()
+                        self.groups[old_id].close()
                         try:
-                            del self.scenes[old_id]
+                            del self.groups[old_id]
                         except KeyError:
                             pass
                     else:
                         raise ValueError(
-                            "Scene " + i + " already exists. We cannot overwrite, because it was not created through this board"
+                            "Group " + i + " already exists. We cannot overwrite, because it was not created through this board"
                         )
                 try:
                     x = False
@@ -396,28 +399,28 @@ class ChandlerConsole(console_abc.Console_ABC):
                     else:
                         uuid = i
 
-                    s = Scene(self, id=uuid, default_active=x, **data[i])
+                    s = Group(self, id=uuid, default_active=x, **data[i])
 
-                    self.scenes[uuid] = s
+                    self.groups[uuid] = s
                     if x:
                         s.go()
                         s.poll_again_flag = True
                         s.lighting_manager.should_rerender_onto_universes = True
                 except Exception:
                     if not errs:
-                        logger.exception("Failed to load scene " + str(i) + " " + str(data[i].get("name", "")))
-                        print("Failed to load scene " + str(i) + " " + str(data[i].get("name", "")) + ": " + traceback.format_exc(3))
+                        logger.exception("Failed to load group " + str(i) + " " + str(data[i].get("name", "")))
+                        print("Failed to load group " + str(i) + " " + str(data[i].get("name", "")) + ": " + traceback.format_exc(3))
                     else:
                         raise
 
-    def addScene(self, scene):
-        if not isinstance(scene, Scene):
-            raise ValueError("Arg must be a Scene")
-        self.scenes[scene.id] = scene
+    def addGroup(self, group):
+        if not isinstance(group, Group):
+            raise ValueError("Arg must be a Group")
+        self.groups[group.id] = group
 
-    def rmScene(self, scene):
+    def rmGroup(self, group):
         try:
-            del self.scenes[scene.id]
+            del self.groups[group.id]
         except Exception:
             print(traceback.format_exc())
 
@@ -474,12 +477,12 @@ class ChandlerConsole(console_abc.Console_ABC):
             ]
         )
 
-    def getScenes(self):
-        "Return serializable version of scenes list"
+    def getGroups(self):
+        "Return serializable version of groups list"
         with core.lock:
             sd = {}
-            for i in self.scenes:
-                x = self.scenes[i]
+            for i in self.groups:
+                x = self.groups[i]
                 sd[x.name] = x.toDict()
 
             return sd
@@ -489,9 +492,9 @@ class ChandlerConsole(console_abc.Console_ABC):
             self.save_project_data()
 
     def get_project_data(self):
-        sd = copy.deepcopy(self.getScenes())
+        sd = copy.deepcopy(self.getGroups())
 
-        project_file: dict[str, Any] = {"scenes": sd, "setup": self.getSetupFile()}
+        project_file: dict[str, Any] = {"groups": sd, "setup": self.getSetupFile()}
         return project_file
 
     def save_project_data(self):
@@ -534,21 +537,21 @@ class ChandlerConsole(console_abc.Console_ABC):
             self.linkSend(["cnames", u, d])
 
     def pushMeta(
-        self, sceneid: str, statusOnly: bool = False, keys: Optional[List[Any] | Set[Any] | Dict[Any, Any] | Iterable[str]] = None
+        self, groupid: str, statusOnly: bool = False, keys: Optional[List[Any] | Set[Any] | Dict[Any, Any] | Iterable[str]] = None
     ):
         "Statusonly=only the stuff relevant to a cue change. Keys is iterabe of what to send, or None for all"
-        scene = self.scenes.get(sceneid, None)
-        # Race condition of deleted scenes
-        if not scene:
+        group = self.groups.get(groupid, None)
+        # Race condition of deleted groups
+        if not group:
             return
 
         v = {}
-        if scene.script_context:
+        if group.script_context:
             try:
-                for j in scene.script_context.variables:
+                for j in group.script_context.variables:
                     if not j == "_":
-                        if isinstance(scene.script_context.variables[j], (int, float, str, bool)):
-                            v[j] = scene.script_context.variables[j]
+                        if isinstance(group.script_context.variables[j], (int, float, str, bool)):
+                            v[j] = group.script_context.variables[j]
 
                         else:
                             v[j] = "__PYTHONDATA__"
@@ -558,50 +561,50 @@ class ChandlerConsole(console_abc.Console_ABC):
         if not statusOnly:
             data: Dict[str, Any] = {
                 # These dynamic runtime vars aren't part of the schema for stuff that gets saved
-                "status": scene.getStatusString(),
-                "blendParams": scene.lighting_manager.blendClass.parameters
-                if hasattr(scene.lighting_manager.blendClass, "parameters")
+                "status": group.getStatusString(),
+                "blendParams": group.lighting_manager.blendClass.parameters
+                if hasattr(group.lighting_manager.blendClass, "parameters")
                 else {},
-                "blendDesc": blendmodes.getblenddesc(scene.blend),
-                "cue": scene.cue.id if scene.cue else scene.cues["default"].id,
-                "ext": sceneid not in self.scenes,
-                "id": sceneid,
-                "uuid": sceneid,
+                "blendDesc": blendmodes.getblenddesc(group.blend),
+                "cue": group.cue.id if group.cue else group.cues["default"].id,
+                "ext": groupid not in self.groups,
+                "id": groupid,
+                "uuid": groupid,
                 "vars": v,
-                "timers": scene.runningTimers,
-                "entered_cue": scene.entered_cue,
-                "displayTagValues": scene.display_tag_values,
-                "displayTagMeta": scene.display_tag_meta,
-                "cuelen": scene.cuelen,
-                "name": scene.name,
+                "timers": group.runningTimers,
+                "entered_cue": group.entered_cue,
+                "displayTagValues": group.display_tag_values,
+                "displayTagMeta": group.display_tag_meta,
+                "cuelen": group.cuelen,
+                "name": group.name,
                 # Placeholder because cues are separate in the web thing.
                 "cues": {},
-                "started": scene.started,
+                "started": group.started,
                 # TODO ?? this is confusing because in the files and schemas alpha means
                 # default but everywhere else it means the current.  Maybe unify them.
                 # Maybe unify active default too
-                "alpha": scene.alpha,
-                "default_alpha": scene.default_alpha,
-                "default_active": scene.default_active,
-                "active": scene.is_active(),
+                "alpha": group.alpha,
+                "default_alpha": group.default_alpha,
+                "default_active": group.default_active,
+                "active": group.is_active(),
             }
 
             # Everything else should by as it is in the schema
-            for i in scenes.scene_schema["properties"]:
+            for i in groups.group_schema["properties"]:
                 if i not in data:
-                    data[i] = getattr(scene, i)
+                    data[i] = getattr(group, i)
 
         else:
             data = {
-                "alpha": scene.alpha,
-                "id": sceneid,
-                "active": scene.is_active(),
-                "default_active": scene.default_active,
-                "displayTagValues": scene.display_tag_values,
-                "entered_cue": scene.entered_cue,
-                "cue": scene.cue.id if scene.cue else scene.cues["default"].id,
-                "cuelen": scene.cuelen,
-                "status": scene.getStatusString(),
+                "alpha": group.alpha,
+                "id": groupid,
+                "active": group.is_active(),
+                "default_active": group.default_active,
+                "displayTagValues": group.display_tag_values,
+                "entered_cue": group.entered_cue,
+                "cue": group.cue.id if group.cue else group.cues["default"].id,
+                "cuelen": group.cuelen,
+                "status": group.getStatusString(),
             }
 
         # TODO this do everything then filter approach seems excessively slow.
@@ -614,26 +617,26 @@ class ChandlerConsole(console_abc.Console_ABC):
         d = {i: data[i] for i in data if (not keys or (i in keys))}
         d = snake_compat.camelify_dict_keys(d)
 
-        self.linkSend(["scenemeta", sceneid, d])
+        self.linkSend(["groupmeta", groupid, d])
 
     def pushCueMeta(self, cueid: str):
         try:
             cue = cues[cueid]
 
-            scene = cue.scene()
-            if not scene:
-                raise RuntimeError("Cue belongs to nonexistant scene")
+            group = cue.group()
+            if not group:
+                raise RuntimeError("Cue belongs to nonexistant group")
 
             # Stuff that never gets saved, it's runtime UI stuff
             d2 = {
                 "id": cueid,
                 "name": cue.name,
                 "next": cue.next_cue if cue.next_cue else "",
-                "scene": scene.id,
+                "group": group.id,
                 "number": cue.number / 1000.0,
-                "prev": scene.getParent(cue.name),
+                "prev": group.getParent(cue.name),
                 "hasLightingData": len(cue.values),
-                "default_next": scene.getAfter(cue.name),
+                "default_next": group.getAfter(cue.name),
             }
 
             d = {}
@@ -668,28 +671,28 @@ class ChandlerConsole(console_abc.Console_ABC):
     def pushConfiguredUniverses(self):
         self.linkSend(["confuniverses", self.configured_universes])
 
-    def pushCueList(self, scene: str):
-        s = self.scenes[scene]
+    def pushCueList(self, group: str):
+        s = self.groups[group]
         x = list(s.cues.keys())
         # split list into messages of 100 because we don't want to exceed the widget send limit
         while x:
             self.linkSend(
                 [
-                    "scenecues",
-                    scene,
+                    "groupcues",
+                    group,
                     {i: (s.cues[i].id, s.cues[i].number / 1000.0) for i in x[:100]},
                 ]
             )
             x = x[100:]
 
-    def delscene(self, sc):
+    def delgroup(self, sc):
         i = None
         with core.lock:
-            if sc in self.scenes:
-                i = self.scenes.pop(sc)
+            if sc in self.groups:
+                i = self.groups.pop(sc)
         if i:
             i.stop()
-            self.scenes_by_name.pop(i.name)
+            self.groups_by_name.pop(i.name)
             self.linkSend(["del", i.id])
             persistance.del_checkpoint(i.id)
 
@@ -712,13 +715,13 @@ class ChandlerConsole(console_abc.Console_ABC):
                     )
                     universes_snapshot[i].statusChanged[self.id] = True
 
-            for i in self.scenes:
+            for i in self.groups:
                 # Tell clients about any changed alpha values and stuff.
-                if self.id not in self.scenes[i].metadata_already_pushed_by:
+                if self.id not in self.groups[i].metadata_already_pushed_by:
                     self.pushMeta(i, statusOnly=True)
-                    self.scenes[i].metadata_already_pushed_by[self.id] = False
+                    self.groups[i].metadata_already_pushed_by[self.id] = False
 
-            for i in self.active_scenes:
+            for i in self.active_groups:
                 # Tell clients about any changed alpha values and stuff.
                 if self.id not in i.metadata_already_pushed_by:
                     self.pushMeta(i.id)

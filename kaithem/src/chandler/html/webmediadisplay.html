@@ -83,13 +83,13 @@
 
 
 
-${scenes.scenes[kwargs['scene']].media_link_socket.render('link')}
+${groups.groups[kwargs['group']].media_link_socket.render('link')}
 
 <script src="/static/js/thirdparty/vue3.js"></script>
 <script src="/static/js/thirdparty/handlebars.js"></script>
 
 
-${scenes.scenes[kwargs['scene']].slideshow_layout}
+${groups.groups[kwargs['group']].slideshow_layout}
 
 <script>
     var conv = new showdown.Converter({ metadata: true });
@@ -158,8 +158,8 @@ ${scenes.scenes[kwargs['scene']].slideshow_layout}
 
 
 
-    player = new makePlayer(document.getElementById('player1'), "${kwargs['scene']}")
-    player2 = new makePlayer(document.getElementById('player2'), "${kwargs['scene']}")
+    player = new makePlayer(document.getElementById('player1'), "${kwargs['group']}")
+    player2 = new makePlayer(document.getElementById('player2'), "${kwargs['group']}")
 
 
     function renderCueText() {

@@ -24,7 +24,7 @@ Last active note event. Annotation is velocity.  noteOff represents a 0.
 
 You cannot use this for polyphonic input as noteOff just sets everything to 0 and doesn't tell you what note specifically it was.
 
-It only exists for convenient use of keyboards to trigger lighting scenes and the like.
+It only exists for convenient use of keyboards to trigger lighting groups and the like.
 
 
 

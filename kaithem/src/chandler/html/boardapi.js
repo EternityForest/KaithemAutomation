@@ -126,20 +126,20 @@ appMethods = {
         api_link.send(["mediaLinkCommand", sc, linkid, data])
     },
 
-    'promptRenameDisplay': function (scene, link) {
+    'promptRenameDisplay': function (group, link) {
         var x = prompt("Name?")
         if (x) {
-            api_link.send(["mediaLinkCommand", scene, link, ['setFriendlyName', x]])
+            api_link.send(["mediaLinkCommand", group, link, ['setFriendlyName', x]])
         }
     },
     // Slowly we want to migrate to these two generic setters
-    'setSceneProperty': function (scene, property, value) {
-        var x = cueSetData[scene + property]
+    'setGroupProperty': function (group, property, value) {
+        var x = cueSetData[group + property]
         if (x) {
             clearTimeout(x);
-            delete cueSetData[scene + property]
+            delete cueSetData[group + property]
         }
-        api_link.send(['setSceneProperty', scene, property, value])
+        api_link.send(['setGroupProperty', group, property, value])
 
     },
     'setCueProperty': function (cue, property, value) {
@@ -168,17 +168,17 @@ appMethods = {
 
     },
 
-    'setScenePropertyDeferred': function (scene, property, value) {
+    'setGroupPropertyDeferred': function (group, property, value) {
         //Set the property in 5 seconds, unless we get another command to set
         //it to something else
-        var x = cueSetData[scene + property]
+        var x = cueSetData[group + property]
         if (x) {
             clearTimeout(x);
         }
 
         cueSetData[cue + property] = setTimeout(function () {
-            api_link.send(['setSceneProperty', scene, property, value])
-            delete cueSetData[scene + property]
+            api_link.send(['setGroupProperty', group, property, value])
+            delete cueSetData[group + property]
         }, 3000)
 
     },
@@ -192,8 +192,8 @@ appMethods = {
         api_link.send(['event', this.evtosend, this.evval, this.evtypetosend, where])
     },
 
-    'sceneev': function (evt, where) {
-        if (confirm_for_scene(where)) {
+    'groupev': function (evt, where) {
+        if (confirm_for_group(where)) {
             api_link.send(['event', evt, '', 'str', where])
         }
     },
@@ -228,23 +228,23 @@ appMethods = {
             clearTimeout(this.cueSelectTimeout)
         }
         this.selectedCues[sc] = cue
-        this.getcuedata(this.scenecues[sc][cue])
+        this.getcuedata(this.groupcues[sc][cue])
     },
     'getallcuemeta': function (sn) {
         api_link.send(['getallcuemeta', sn]);
 
     },
-    'selectscene': function (sc, sn) {
-        this.getcuedata(this.scenecues[sn][this.selectedCues[
+    'selectgroup': function (sc, sn) {
+        this.getcuedata(this.groupcues[sn][this.selectedCues[
             sc] || 'default'])
-        this.editingScene = sc;
-        this.scenename = sn;
+        this.editingGroup = sc;
+        this.groupname = sn;
         api_link.send(['gsd', sn]);
         api_link.send(['getallcuemeta', sn]);
         this.recomputeformattedCues();
     },
-    'delscene': function (sc) {
-        var r = confirm("Really delete scene?");
+    'delgroup': function (sc) {
+        var r = confirm("Really delete group?");
         if (r == true) {
             api_link.send(['del', sc]);
         }
@@ -273,7 +273,7 @@ appMethods = {
 
     'stop': function (sc, sn) {
         var x = confirm(
-            "Really stop scene? The cue and all variables will be reset."
+            "Really stop group? The cue and all variables will be reset."
         )
 
         if (x) {
@@ -299,13 +299,13 @@ appMethods = {
     },
 
     'nextcue': function (sc) {
-        if (confirm_for_scene(sc)) {
+        if (confirm_for_group(sc)) {
             api_link.send(['nextcue', sc]);
         }
     },
 
     'prevcue': function (sc) {
-        if (confirm_for_scene(sc)) {
+        if (confirm_for_group(sc)) {
             api_link.send(['prevcue', sc]);
         }
     },
@@ -313,9 +313,9 @@ appMethods = {
     'add_cue': function (sc, v) {
         api_link.send(['add_cue', sc, v]);
         //There's a difference between "not there" undefined and actually set to undefined....
-        if (this.scenecues[sc][v] == undefined) {
+        if (this.groupcues[sc][v] == undefined) {
             //Placeholder so we can at least show a no cue found message till it arrives
-            old_vue_set(this.scenecues[sc], v, undefined);
+            old_vue_set(this.groupcues[sc], v, undefined);
             this.recomputeformattedCues();
         };
         const t = this
@@ -331,9 +331,9 @@ appMethods = {
     'clonecue': function (sc, cue, v) {
         api_link.send(['clonecue', cue, v]);
         //There's a difference between "not there" undefined and actually set to undefined....
-        if (this.scenecues[sc][v] == undefined) {
+        if (this.groupcues[sc][v] == undefined) {
             //Placeholder so we can at least show a no cue found message till it arrives
-            old_vue_set(this.scenecues[sc], v, undefined);
+            old_vue_set(this.groupcues[sc], v, undefined);
             this.recomputeformattedCues();
         };
         const t = this
@@ -346,8 +346,8 @@ appMethods = {
         }, 350)
 
     },
-    'gotonext': function (currentcueid, scene) {
-        if (!confirm_for_scenes(scene)) {
+    'gotonext': function (currentcueid, group) {
+        if (!confirm_for_groups(group)) {
             return
         }
         nextcue = this.cuemeta[currentcueid].next
@@ -356,18 +356,18 @@ appMethods = {
         if (!cue) {
             return
         }
-        api_link.send(['add_cue', this.scenename, nextcue]);
+        api_link.send(['add_cue', this.groupname, nextcue]);
         api_link.send(['getcuedata', cue]);
 
         //There's a difference between "not there" undefined and actually set to undefined....
-        if (this.scenecues[cue] == undefined) {
+        if (this.groupcues[cue] == undefined) {
             //Placeholder so we can at least show a no cue found message till it arrives
-            set(this.scenecues[this.scenename], cue,
+            set(this.groupcues[this.groupname], cue,
                 undefined);
         }
         setTimeout(function () {
             old_vue_set(this.selectedCues,
-                this.scenename, cue)
+                this.groupname, cue)
         },
             30)
     },
@@ -375,7 +375,7 @@ appMethods = {
         if (!confirm("Delete cue?")) {
             return;
         }
-        this.selectedCues[this.scenename] = 'default'
+        this.selectedCues[this.groupname] = 'default'
         api_link.send(['rmcue', cue]);
     },
 
@@ -396,8 +396,8 @@ appMethods = {
         appData.downloadReqId = Math.random().toString();
         api_link.send(['downloadSetup', appData.downloadReqId]);
     },
-    'jumptocue': function (cue, scene) {
-        if (confirm_for_scene(scene)) {
+    'jumptocue': function (cue, group) {
+        if (confirm_for_group(group)) {
             api_link.send(['jumptocue', cue]);
         }
     },
@@ -506,19 +506,19 @@ appMethods = {
 
     'setdalpha': function (sc, v) {
 
-        this.scenemeta[sc].alpha = v;
+        this.groupmeta[sc].alpha = v;
         api_link.send(['setdalpha', sc, v]);
     },
 
 
     'setcrossfade': function (sc, v) {
 
-        this.scenemeta[sc].crossfade = v;
+        this.groupmeta[sc].crossfade = v;
         api_link.send(['setcrossfade', sc, v]);
     },
     'setmqtt': function (sc, v) {
 
-        this.scenemeta[sc].mqttServer = v;
+        this.groupmeta[sc].mqttServer = v;
         api_link.send(['setMqttServer', sc, v]);
     },
 
@@ -528,29 +528,29 @@ appMethods = {
 
     'setvisualization': function (sc, v) {
 
-        this.scenemeta[sc].musicVisualizations = v;
+        this.groupmeta[sc].musicVisualizations = v;
         api_link.send(['setMusicVisualizations', sc, v]);
     },
 
     'setcommandtag': function (sc, v) {
 
-        this.scenemeta[sc].commandTag = v;
-        api_link.send(['setscenecommandtag', sc, v]);
+        this.groupmeta[sc].commandTag = v;
+        api_link.send(['setgroupcommandtag', sc, v]);
     },
 
     'setdefaultnext': function (sc, v) {
 
-        this.scenemeta[sc].defaultNext = v;
+        this.groupmeta[sc].defaultNext = v;
         api_link.send(['setDefaultNext', sc, v]);
     },
     'setinfodisplay': function (sc, v) {
 
-        this.scenemeta[sc].infoDisplay = v;
+        this.groupmeta[sc].infoDisplay = v;
         api_link.send(['setinfodisplay', sc, v]);
     },
     'setutility': function (sc, v) {
 
-        this.scenemeta[sc].utility = v;
+        this.groupmeta[sc].utility = v;
         api_link.send(['setutility', sc, v]);
     },
     'setbpm': function (sc, v) {
@@ -564,12 +564,12 @@ appMethods = {
     },
 
 
-    'addScene': function () {
-        api_link.send(['addscene', this.newscenename]);
+    'addGroup': function () {
+        api_link.send(['addgroup', this.newgroupname]);
     },
 
-    'addMonitorScene': function () {
-        api_link.send(['addmonitor', this.newscenename]);
+    'addMonitorGroup': function () {
+        api_link.send(['addmonitor', this.newgroupname]);
     },
 
 
@@ -590,9 +590,9 @@ appMethods = {
 
         }
 
-        api_link.send(['add_cuef', this.scenecues[
-            this.scenename]
-        [this.selectedCues[this.scenename]],
+        api_link.send(['add_cuef', this.groupcues[
+            this.groupname]
+        [this.selectedCues[this.groupname]],
             fix, idx, len, spacing
         ]);
 
@@ -606,9 +606,9 @@ appMethods = {
         if (!this.newcueu) {
             return
         }
-        api_link.send(['add_cueval', this.scenecues[
-            this.scenename]
-        [this.selectedCues[this.scenename]],
+        api_link.send(['add_cueval', this.groupcues[
+            this.groupname]
+        [this.selectedCues[this.groupname]],
             this.newcueu, this.newcuevnumber
         ]);
         if (parseInt(this.newcuevnumber) != NaN) {
@@ -621,9 +621,9 @@ appMethods = {
         if (!this.newcuetag) {
             return
         }
-        api_link.send(['add_cueval', this.scenecues[
-            this.scenename]
-        [this.selectedCues[this.scenename]],
+        api_link.send(['add_cueval', this.groupcues[
+            this.groupname]
+        [this.selectedCues[this.groupname]],
             this.newcuetag, "value"
         ]);
 
@@ -693,9 +693,9 @@ appMethods = {
 
         api_link.send(['setcuesound', cueid, i])
     },
-    'setSceneSoundOutput': function (cueid, i) {
+    'setGroupSoundOutput': function (cueid, i) {
 
-        api_link.send(['setscenesoundout', cueid, i])
+        api_link.send(['setgroupsoundout', cueid, i])
     },
 
     'newCueFromSlide': function (sc, i) {
@@ -732,14 +732,14 @@ appMethods = {
 
 appComputed = {
     "currentcue": function () {
-        return (this.cuemeta[this.scenecues[this.scenename]
-        [this.selectedCues[this.scenename]]
+        return (this.cuemeta[this.groupcues[this.groupname]
+        [this.selectedCues[this.groupname]]
         ])
     },
     "currentcueid": function () {
-        return (this.scenecues[this.scenename][this
+        return (this.groupcues[this.groupname][this
             .selectedCues[
-            this.scenename]
+            this.groupname]
         ])
     },
 
@@ -747,8 +747,8 @@ appComputed = {
         z = {}
         var filt = true
         //list cue objects
-        for (i in this.scenecues[this.scenename]) {
-            m = this.cuemeta[this.scenecues[this.scenename]
+        for (i in this.groupcues[this.groupname]) {
+            m = this.cuemeta[this.groupcues[this.groupname]
             [i]]
             if (m !== undefined) {
                 if ((!filt) | i.includes(this.cuefilter)) {
@@ -765,10 +765,10 @@ appComputed = {
         }
     },
 
-    'formatAllScenes': function () {
-        /*Sorted list of scene objects*/
-        var flt = this.scenefilter
-        var x = this.dictView(this.scenemeta, [
+    'formatAllGroups': function () {
+        /*Sorted list of group objects*/
+        var flt = this.groupfilter
+        var x = this.dictView(this.groupmeta, [
             '!priority', '!started', 'name'
         ]).filter(
             function (x) {
@@ -779,10 +779,10 @@ appComputed = {
 
     },
 
-    'formatScenes': function () {
-        var flt = this.scenefilter
+    'formatGroups': function () {
+        var flt = this.groupfilter
 
-        return this.dictView(this.scenemeta, [
+        return this.dictView(this.groupmeta, [
             '!priority', '!started', 'name'
         ]).filter(
             function (x) {
@@ -818,7 +818,7 @@ appData = {
     'newcueu': '',
     'newcuetag': '',
     'newcuevnumber': '',
-    'newscenename': '',
+    'newgroupname': '',
     'nuisianceRateLimit': [10, Date.now()],
     'specialvars': [
         ["_", "Output of the previous action"]
@@ -834,7 +834,7 @@ appData = {
     'fixtureassg': '',
     'showevents': false,
 
-    'example_events': [['now', "Run when script loads"], ['cue.exit', 'When exiting the cue'], ['cue.enter', 'When entering a cue'], ['button.a', 'A button in scenes sidebar']
+    'example_events': [['now', "Run when script loads"], ['cue.exit', 'When exiting the cue'], ['cue.enter', 'When entering a cue'], ['button.a', 'A button in groups sidebar']
     ['keydown.a', "When a lowercase A is pressed in the Send Events mode on the console"], ["=log(90)", 'Example polled expression. =Expressions are polled every few seconds or on certain triggers.'],
     ['@january 5th', "Run every jan 5 at midnight"], ['@every day at 2am US/Pacific', 'Time zones supported'],
     ['@every 10 seconds', 'Simple repeating trigger'],
@@ -848,11 +848,11 @@ appData = {
     'availableTags': availableTags,
     'completers': {
 
-        'gotoSceneNamesCompleter': function (a) {
+        'gotoGroupNamesCompleter': function (a) {
             var c = []
 
 
-            var x = this.scenemeta
+            var x = this.groupmeta
 
             if (!x) {
                 return []
@@ -864,15 +864,15 @@ appData = {
             return c;
         },
 
-        'gotoSceneCuesCompleter': function (a) {
+        'gotoGroupCuesCompleter': function (a) {
             var c = []
             var n = a[1]
-            if (n.indexOf('=SCENE') > -1) {
-                n = this.scenename
+            if (n.indexOf('=GROUP') > -1) {
+                n = this.groupname
             }
             else {
-                for (i in this.scenemeta) {
-                    var s = this.scenemeta[i]
+                for (i in this.groupmeta) {
+                    var s = this.groupmeta[i]
                     if (s.name == n) {
                         n = i
                         break
@@ -881,7 +881,7 @@ appData = {
             }
 
 
-            var x = this.scenecues[n]
+            var x = this.groupcues[n]
 
             if (!x) {
                 return []
@@ -910,7 +910,7 @@ appData = {
                 ['=tv("TagName")', 'Get the value of TagName(0 if nonexistant)'],
                 ['=stv("TagName")', 'Get the value of a string tagpoint(empty if nonexistant)'],
                 ['=random()', 'Random from 0 to 1'],
-                ['=SCENE', 'Name of the scene']
+                ['=GROUP', 'Name of the group']
             ];
             for (i of this.availableTags) {
                 c.push(['=tv("' + i + '")', ''])
@@ -925,7 +925,7 @@ appData = {
     'evtypetosend': 'float',
     'evval': '',
     'savedThisSession': false,
-    'scenetab': 'cue',
+    'grouptab': 'cue',
     'showPresets': false,
     'configuredUniverses':
     {
@@ -939,8 +939,8 @@ appData = {
         [],
         []
     ],
-    //Filter which scenes are shown in the list
-    'scenefilter': '',
+    //Filter which groups are shown in the list
+    'groupfilter': '',
     'cuefilter': '',
     'soundsearch': '',
     'soundsearchresults': [],
@@ -948,8 +948,8 @@ appData = {
     'localStorage': localStorage,
     'keybindmode': 'edit',
     'showAddChannels': false,
-    //Keep track of what timers are running in a scene
-    'scenetimers': {},
+    //Keep track of what timers are running in a group
+    'grouptimers': {},
     //Formatted for display
     'cuevals': {},
     'useBlankDescriptions': useBlankDescriptions,
@@ -1091,13 +1091,13 @@ appData = {
 
 
 
-    'cueNamesBySceneName': function () {
+    'cueNamesByGroupName': function () {
         var d = {}
-        for (i in this.scenemeta) {
-            d[this.scenemeta[i].name] = []
+        for (i in this.groupmeta) {
+            d[this.groupmeta[i].name] = []
 
-            for (j in this.scenecues[i]) {
-                d[this.scenemeta[i].name].push(j)
+            for (j in this.groupcues[i]) {
+                d[this.groupmeta[i].name].push(j)
             }
         }
         return d;
@@ -1114,12 +1114,12 @@ appData = {
     },
     'promptRename'(s) {
         var x = prompt(
-            "Enter new name for scene(May break existing references to scene)"
+            "Enter new name for group(May break existing references to group)"
         )
 
         if (x != null) {
 
-            api_link.send(['setscenename', s, x])
+            api_link.send(['setgroupname', s, x])
         }
     },
 
@@ -1160,11 +1160,11 @@ appData = {
         api_link.send(["searchsounds", s])
     },
 
-    //Current per scene alpha channel
+    //Current per group alpha channel
     'alphas': {},
-    'scenemeta': {},
-    'scenename': null,
-    'editingScene': null,
+    'groupmeta': {},
+    'groupname': null,
+    'editingGroup': null,
     'universes': {},
     'cues': {},
     'newcuename': '',
@@ -1177,12 +1177,12 @@ appData = {
     // up but also are cancelable.
     'cueSelectTimeout': 0,
     //go from cue name to cue id
-    //scenecues[sceneuuid][cuename]=cueid
-    'scenecues': {},
+    //groupcues[groupuuid][cuename]=cueid
+    'groupcues': {},
     'formattedCues': [],
     //Indexed by universe then channel number
     'channelNames': {},
-    //same info as scenevals, indexed hierarchally, as [universe][channel]
+    //same info as groupvals, indexed hierarchally, as [universe][channel]
     //Actual objs are shared too so changing one obj change in in the other.
 
     'presets': {},
@@ -1201,10 +1201,10 @@ appData = {
     },
 
 
-    'addTimeToScene': function (scene) {
+    'addTimeToGroup': function (group) {
         var t = prompt("Add minutes?")
         if (t) {
-            api_link.send(["addTimeToScene", scene, t])
+            api_link.send(["addTimeToGroup", group, t])
         }
     },
 
@@ -1289,15 +1289,15 @@ function f(v) {
         }
     }
 
-    else if (c == 'scenetimers') {
-        if (vueapp.$data.scenemeta[v[1]]) {
-            vueapp.$data.scenemeta[v[1]].timers = v[2]
+    else if (c == 'grouptimers') {
+        if (vueapp.$data.groupmeta[v[1]]) {
+            vueapp.$data.groupmeta[v[1]].timers = v[2]
         }
     }
     else if (c == 'cuehistory') {
-        vueapp.$data.scenemeta[v[1]].history = v[2]
+        vueapp.$data.groupmeta[v[1]].history = v[2]
     }
-    else if (c == "scenemeta") {
+    else if (c == "groupmeta") {
         if (v[2].cue) {
             if (vueapp.$data.cuemeta[v[2].cue] == undefined) {
                 appMethods.getcuemeta(v[2].cue)
@@ -1309,29 +1309,29 @@ function f(v) {
         }
 
         //Just update existing data if we can
-        if (vueapp.$data.scenemeta[v[1]]) {
-            set(vueapp.$data.scenemeta, v[1], v[2])
+        if (vueapp.$data.groupmeta[v[1]]) {
+            set(vueapp.$data.groupmeta, v[1], v[2])
         }
         else {
             var meta = v[2];
-            set(vueapp.$data.scenemeta, v[1], meta);
+            set(vueapp.$data.groupmeta, v[1], meta);
         }
 
         if (vueapp.$data.selectedCues[v[1]] == undefined) {
             old_vue_set(vueapp.$data.selectedCues, v[1], 'default')
         }
         //Make an empty list of cues as a placeholder till the real data arrives
-        if (vueapp.$data.scenecues[v[1]] == undefined) {
-            old_vue_set(vueapp.$data.scenecues, v[1], {});
+        if (vueapp.$data.groupcues[v[1]] == undefined) {
+            old_vue_set(vueapp.$data.groupcues, v[1], {});
         };
     }
 
     else if (c == "cuemeta") {
         //Make an empty list of cues if it's not there yet
-        if (vueapp.$data.scenecues[v[2].scene] == undefined) {
-            old_vue_set(vueapp.$data.scenecues, v[2].scene, {});
+        if (vueapp.$data.groupcues[v[2].group] == undefined) {
+            old_vue_set(vueapp.$data.groupcues, v[2].group, {});
         };
-        old_vue_set(vueapp.$data.scenecues[v[2].scene], v[2].name, v[1]);
+        old_vue_set(vueapp.$data.groupcues[v[2].group], v[2].name, v[1]);
 
 
         //Make an empty list of cues as a placeholder till the real data arrives
@@ -1378,15 +1378,15 @@ function f(v) {
     }
 
     else if (c == "varchange") {
-        if (vueapp.$data.scenemeta[v[1]]) {
-            vueapp.$data.scenemeta[v[1]]['vars'][v[2]] = v[3]
+        if (vueapp.$data.groupmeta[v[1]]) {
+            vueapp.$data.groupmeta[v[1]]['vars'][v[2]] = v[3]
         }
     }
     else if (c == "delcue") {
         c = vueapp.$data.cuemeta[v[1]]
         old_vue_delete(vueapp.$data.cuemeta, v[1]);
         old_vue_delete(vueapp.$data.cuevals, v[1]);
-        old_vue_delete(vueapp.$data.scenecues[c.scene], c.name);
+        old_vue_delete(vueapp.$data.groupcues[c.group], c.name);
         vueapp.$data.recomputeformattedCues();
     }
 
@@ -1405,8 +1405,8 @@ function f(v) {
             vueapp.$data.soundsearchresults = v[2]
         }
     }
-    else if (c == 'scenecues') {
-        //Scenecues only gives us cue number and id info.
+    else if (c == 'groupcues') {
+        //Groupcues only gives us cue number and id info.
         //So if the data isn't in cuemeta, fill in what we can
         d = v[2]
         for (i in v[2]) {
@@ -1420,12 +1420,12 @@ function f(v) {
             }
 
             //Make the empty list
-            if (vueapp.$data.scenecues[v[1]] == undefined) {
-                old_vue_set(vueapp.$data.scenecues, v[1], {});
+            if (vueapp.$data.groupcues[v[1]] == undefined) {
+                old_vue_set(vueapp.$data.groupcues, v[1], {});
             };
 
 
-            old_vue_set(vueapp.$data.scenecues[v[1]], i, d[i][0])
+            old_vue_set(vueapp.$data.groupcues[v[1]], i, d[i][0])
         }
         vueapp.$data.recomputeformattedCues();
     }
@@ -1501,7 +1501,7 @@ function f(v) {
 
     else if (c == "go") {
 
-        old_vue_set(vueapp.$data.scenemeta[v[1]], 'active', true)
+        old_vue_set(vueapp.$data.groupmeta[v[1]], 'active', true)
 
     }
 
@@ -1511,7 +1511,7 @@ function f(v) {
 
     else if (c == "stop") {
 
-        old_vue_set(vueapp.$data.scenemeta[v[1]], 'active', false)
+        old_vue_set(vueapp.$data.groupmeta[v[1]], 'active', false)
 
     }
     else if (c == "ferrs") {
@@ -1535,9 +1535,9 @@ function f(v) {
 
     else if (c == "del") {
         old_vue_delete(vueapp.$data.selectedCues, v[1])
-        old_vue_delete(vueapp.$data.scenemeta, v[1])
+        old_vue_delete(vueapp.$data.groupmeta, v[1])
         old_vue_delete(vueapp.$data.mtimes, v[1])
-        vueapp.$data.editingScene = null
+        vueapp.$data.editingGroup = null
 
     }
 
@@ -1605,9 +1605,9 @@ init_api_link = function () {
     setInterval(update_meters, 200)
 }
 
-var confirm_for_scene = function (sc) {
-    if (vueapp.$data.scenemeta[sc].requireConfirm) {
-        if (confirm("Confirm Action for Scene: " + vueapp.$data.scenemeta[sc].name)) {
+var confirm_for_group = function (sc) {
+    if (vueapp.$data.groupmeta[sc].requireConfirm) {
+        if (confirm("Confirm Action for Group: " + vueapp.$data.groupmeta[sc].name)) {
             return true
         }
     }

@@ -21,8 +21,8 @@ setInterval(
 
 
 class makePlayer {
-    constructor(c, scene) {
-        this.scene = scene
+    constructor(c, group) {
+        this.group = group
         this.presets = {}
         this.isSound = function (fn) {
             for (i of atypes) {
@@ -386,7 +386,7 @@ class makePlayer {
                 f = f.split("milkdrop:")[1]
             }
 
-            var x = "WebMediaServer?scene=" + this.scene + "&file=" + encodeURIComponent(f);
+            var x = "WebMediaServer?group=" + this.group + "&file=" + encodeURIComponent(f);
 
 
             if (this.isHTML(f)) {

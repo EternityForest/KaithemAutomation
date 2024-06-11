@@ -1,9 +1,9 @@
 import os
 
-from . import core, global_actions, scenes, utils
+from . import core, global_actions, groups, utils
 
 
-def import_m3u(scene: scenes.Scene, d):
+def import_m3u(group: groups.Group, d):
     d = d.replace("\r", "").split("\n")
 
     info = None
@@ -16,13 +16,13 @@ def import_m3u(scene: scenes.Scene, d):
             i = os.path.expanduser(i)
             try:
                 if os.path.exists(i.strip()):
-                    utils.new_cue_from_sound(scene, i.strip())
+                    utils.new_cue_from_sound(group, i.strip())
                 else:
                     # Try to find it wherever it may be.
                     # This is a fuzzy match that could in theory make mistakes.
                     i2 = core.resolve_sound_fuzzy(i)
                     if os.path.exists(i2):
-                        utils.new_cue_from_sound(scene, i2, name=info)
+                        utils.new_cue_from_sound(group, i2, name=info)
                     else:
                         global_actions.event("board.error", "Error locating " + str(i))
             except Exception:
@@ -31,14 +31,14 @@ def import_m3u(scene: scenes.Scene, d):
             info = None
 
 
-def get_m3u(scene: scenes.Scene, rel=None):
+def get_m3u(group: groups.Group, rel=None):
     "Convert the sounds mentioned in cues to m3u files."
     o = "#EXTM3U\r\n\r\n"
 
-    for i in scene.cues_ordered:
+    for i in group.cues_ordered:
         if i.sound:
             try:
-                c = scene.resolve_sound(i.sound)
+                c = group.resolve_sound(i.sound)
 
                 d = core.get_audio_duration(c)
 

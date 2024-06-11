@@ -22,7 +22,7 @@ __doc__= "#Python Code here runs every page load"
 
 if 'albumArt' in kwargs:
 
-  sound = scenes.cues[kwargs['albumArt']].sound
+  sound = groups.cues[kwargs['albumArt']].sound
 
 
   if not sound:
@@ -44,7 +44,7 @@ if 'albumArt' in kwargs:
 
 
 if 'slideAlbumArt' in kwargs:
-  sound = scenes.cues[kwargs['albumArt']].slide or scenes.cues[kwargs['albumArt']].sound
+  sound = groups.cues[kwargs['albumArt']].slide or groups.cues[kwargs['albumArt']].sound
 
   if not sound:
     return ''
@@ -65,18 +65,18 @@ if 'slideAlbumArt' in kwargs:
 
 
 else:
-  if 'scene' in kwargs and scenes.scenes[kwargs['scene']].media_link.allowed_remote_media_url == kwargs['file']:
+  if 'group' in kwargs and groups.groups[kwargs['group']].media_link.allowed_remote_media_url == kwargs['file']:
     kaithem.web.serve_file(kwargs['file'],name= os.path.basename(kwargs['file']))
-  elif 'scene' in kwargs and scenes.scenes[kwargs['scene']].cue.slide == kwargs['file']:
-    kaithem.web.serve_file(scenes.scenes[kwargs['scene']].resolve_sound(kwargs['file']),name= os.path.basename(kwargs['file']))
-  elif 'scene' in kwargs and kwargs['file'] in scenes.scenes[kwargs['scene']].musicVisualizations:
+  elif 'group' in kwargs and groups.groups[kwargs['group']].cue.slide == kwargs['file']:
+    kaithem.web.serve_file(groups.groups[kwargs['group']].resolve_sound(kwargs['file']),name= os.path.basename(kwargs['file']))
+  elif 'group' in kwargs and kwargs['file'] in groups.groups[kwargs['group']].musicVisualizations:
     kaithem.web.serve_file(kwargs['file'],name= os.path.basename(kwargs['file']))
   else:
     # Todo this should be a global api
-    for i in scenes.scenes:
+    for i in groups.groups:
       x = i
       break
-    f = scenes.scenes[x].resolve_sound(kwargs['file'])
+    f = groups.groups[x].resolve_sound(kwargs['file'])
     if kaithem.web.has_permission("view_admin_info"):
       for i in module.getSoundFolders():
         if not i.endswith("/"):

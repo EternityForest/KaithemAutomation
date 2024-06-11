@@ -5,10 +5,10 @@ from tinytag import TinyTag
 
 from .core import disallow_special, getSoundFolders
 from .cue import fnToCueName
-from .scenes import Scene
+from .groups import Group
 
 
-def new_cue_from_sound(scene: Scene, snd: str, name=None):
+def new_cue_from_sound(group: Group, snd: str, name=None):
     bn = os.path.basename(snd)
     bn = fnToCueName(bn)
     try:
@@ -19,10 +19,10 @@ def new_cue_from_sound(scene: Scene, snd: str, name=None):
         print(traceback.format_exc())
 
     bn = disallow_special(bn, "_~", replaceMode=" ")
-    if bn not in scene.cues:
-        scene.add_cue(bn)
-        scene.cues[bn].rel_length = True
-        scene.cues[bn].length = 0.01
+    if bn not in group.cues:
+        group.add_cue(bn)
+        group.cues[bn].rel_length = True
+        group.cues[bn].length = 0.01
 
         soundfolders = getSoundFolders()
         s = None
@@ -36,5 +36,5 @@ def new_cue_from_sound(scene: Scene, snd: str, name=None):
                 break
         if not s:
             raise RuntimeError("Unknown, linter said was possible")
-        scene.cues[bn].sound = s
-        scene.cues[bn].named_for_sound = True
+        group.cues[bn].sound = s
+        group.cues[bn].named_for_sound = True

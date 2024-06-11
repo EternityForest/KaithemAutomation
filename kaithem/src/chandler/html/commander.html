@@ -139,16 +139,16 @@
                 </article>
 
 
-                <template v-for="i in formatScenes">
+                <template v-for="i in formatGroups">
 
 
                     <article v-if="i" style="position:relative"
-                        v-bind:class="{'card':1, 'w-sm-full': 1, 'margin': 1,  'scene':1, 'flex-col': 1, 'min-h-18rem':1, 'max-h-24rem':1}">
+                        v-bind:class="{'card':1, 'w-sm-full': 1, 'margin': 1,  'group':1, 'flex-col': 1, 'min-h-18rem':1, 'max-h-24rem':1}">
 
 
                         <header class="flex-row gaps">
-                            <h3><button :disabled="i[1].utility" v-bind:class="{highlight:i[0]==scenename}"
-                                    v-on:click="selectscene(i[1],i[0])" style="font-weight:bold; width:100%">
+                            <h3><button :disabled="i[1].utility" v-bind:class="{highlight:i[0]==groupname}"
+                                    v-on:click="selectgroup(i[1],i[0])" style="font-weight:bold; width:100%">
                                     {{i[1].name}}<span v-if="i[1].ext" class="grey"> (external)</span>
 
 
@@ -161,7 +161,7 @@
                                         title="This cue has rules attatched"><i
                                             class="mdi mdi-script-text-outline"></i></span>
                                 </button></h3>
-                            <cue-countdown :scene="i[1]" :cue="cuemeta[i[1].cue]"></cue-countdown>
+                            <cue-countdown :group="i[1]" :cue="cuemeta[i[1].cue]"></cue-countdown>
 
                         </header>
                         <div class="flex-col nogaps" style="text-align: center;">
@@ -193,7 +193,7 @@
                             <iframe style="flex-grow:1" v-if="showPages && i[1].infoDisplay.length>0"
                                 :src="i[1].infoDisplay"></iframe>
 
-                            <scene-ui :unixtime="unixtime" v-bind:scene-data="i[1]" :cue="cuemeta[i[1].cue]"></scene-ui>
+                            <group-ui :unixtime="unixtime" v-bind:group-data="i[1]" :cue="cuemeta[i[1].cue]"></group-ui>
 
 
                             </table>
@@ -218,7 +218,7 @@
                             </div>
 
                             <div class="tool-bar nogrow" v-if="i[1].eventButtons.length > 0">
-                                <button v-for="v of i[1].eventButtons" v-on:click="sceneev(v[1],v[1])">{{v[0]}}</button>
+                                <button v-for="v of i[1].eventButtons" v-on:click="groupev(v[1],v[1])">{{v[0]}}</button>
                             </div>
                         </footer>
                     </article>
@@ -228,14 +228,14 @@
     </div>
 
     <div class="flex-row w-full">
-        <div class="window paper margin col-10 h-max-content" v-if="editingScene && cuemeta[editingScene.cue]"
+        <div class="window paper margin col-10 h-max-content" v-if="editingGroup && cuemeta[editingGroup.cue]"
             style="display:inline-block;" class="scroll">
             <header>
                 <div class="tool-bar">
-                    <h3>{{editingScene.name}}
-                        <span class="highlight" v-if="editingScene.active&(!editingScene.doingHandoff)">(running)</span>
+                    <h3>{{editingGroup.name}}
+                        <span class="highlight" v-if="editingGroup.active&(!editingGroup.doingHandoff)">(running)</span>
                     </h3>
-                    <button v-if="editingScene.cuelen" v-on:click="addTimeToScene(editingScene.id)"><i
+                    <button v-if="editingGroup.cuelen" v-on:click="addTimeToGroup(editingGroup.id)"><i
                             class="mdi mdi-clock"></i></i><i class="mdi mdi-plus"></i>Add Time</button>
                 </div>
             </header>
@@ -244,10 +244,10 @@
                 <div class="flex-row align-left">
 
                     <article class="w-sm-full margin flex-col h-18rem" v-for="i in formatCues"
-                        v-bind:class="{'card': 1, 'highlight' : cuemeta[editingScene.cue].name==i[1].name}">
+                        v-bind:class="{'card': 1, 'highlight' : cuemeta[editingGroup.cue].name==i[1].name}">
 
                         <header>
-                            <button class="h-4rem w-full" v-on:click="jumptocue(i[1].id, editingScene.id)"
+                            <button class="h-4rem w-full" v-on:click="jumptocue(i[1].id, editingGroup.id)"
                                 class="cuebutton">
                                 <div v-if="i[1].shortcut.length>0"> ({{i[1].shortcut}})</div>
                                 {{i[1].name}}
@@ -259,9 +259,9 @@
 
 
                             <div
-                                :class="{'success': cuemeta[editingScene.cue].name==i[1].name,'grow': 1, 'h-min-content': 1}">
-                                <cue-countdown v-if="cuemeta[editingScene.cue].name==i[1].name" :scene="editingScene"
-                                    :cue="cuemeta[editingScene.cue]"></cue-countdown>
+                                :class="{'success': cuemeta[editingGroup.cue].name==i[1].name,'grow': 1, 'h-min-content': 1}">
+                                <cue-countdown v-if="cuemeta[editingGroup.cue].name==i[1].name" :group="editingGroup"
+                                    :cue="cuemeta[editingGroup.cue]"></cue-countdown>
                                 <div v-if="i[1].notes.length>0" style="max-width: 10em;">({{i[1].notes}})</div>
                             </div>
 
@@ -347,8 +347,8 @@
             components: {
                 "combo-box": httpVueLoader('../static/vue/ComboBox.vue'),
                 'cue-countdown': httpVueLoader('../static/cue-countdown.vue'),
-                // Currently contains the timers and the display tags for the scenes overview
-                'scene-ui': httpVueLoader('../static/scene-ui-controls.vue')
+                // Currently contains the timers and the display tags for the groups overview
+                'group-ui': httpVueLoader('../static/group-ui-controls.vue')
             }
         }).mount("#app")
         var script = document.createElement('script');

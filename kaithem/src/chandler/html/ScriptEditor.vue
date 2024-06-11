@@ -174,8 +174,8 @@ p.small {
                         </div>
                     </div>
                     <button style="width: 95%; margin-top: 0.5em;" :disabled="disabled"
-                        title="Add a rule that the scene should do something when an event fires"
-                        v-on:click="rules.push(['cue.enter', [['goto', '=SCENE', '']]]); $emit('update:modelValue', rules);"><b>Add
+                        title="Add a rule that the group should do something when an event fires"
+                        v-on:click="rules.push(['cue.enter', [['goto', '=GROUP', '']]]); $emit('update:modelValue', rules);"><b>Add
                         Rule</b></button>
 
                 </div>
@@ -204,9 +204,9 @@ module.exports = {
     },
 
     computed: {
-        "sceneNames": function () {
+        "groupNames": function () {
             var l = [];
-            for (i in this.scenes) {
+            for (i in this.groups) {
                 l.push([i, ''])
             }
             return l;

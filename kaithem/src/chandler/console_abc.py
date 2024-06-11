@@ -20,9 +20,9 @@ class Console_ABC:
         "Push lighting values for cue to clients"
 
     def pushMeta(
-        self, sceneid: str, statusOnly: bool = False, keys: Optional[List[Any] | Set[Any] | Dict[Any, Any] | Iterable[str]] = None
+        self, groupid: str, statusOnly: bool = False, keys: Optional[List[Any] | Set[Any] | Dict[Any, Any] | Iterable[str]] = None
     ):
-        "Push scene metadata"
+        "Push group metadata"
 
     def pushEv(self, event: str, target, time_unix=None, value=None, info=""):
         "Tell frontend about event"

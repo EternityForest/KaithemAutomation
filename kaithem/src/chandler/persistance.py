@@ -17,8 +17,38 @@ os.makedirs(os.path.dirname(fn), exist_ok=True)
 con = sqlite3.connect(fn)
 cur = con.cursor()
 
-cur.execute("CREATE TABLE IF NOT EXISTS checkpoint(sceneid, cuename, timestamp)")
+cur.execute("CREATE TABLE IF NOT EXISTS checkpoint(groupid, cuename, timestamp)")
 con.commit()
+
+
+def get_table_schema(table_name, conn):
+    cursor = conn.cursor()
+    cursor.execute(f"PRAGMA table_info({table_name})")
+    columns = cursor.fetchall()
+
+    schema = []
+    for column in columns:
+        column_name = column[1]
+        data_type = column[2]
+        nullable = "NOT NULL" if column[4] == 0 else "NULL"
+        schema.append(f"{column_name} {data_type} {nullable}")
+
+    return ", ".join(schema)
+
+
+if "sceneid" in get_table_schema("checkpoint", con):
+    renamer = [
+        """
+    CREATE TABLE checkpoint_new AS
+    SELECT sceneid AS groupid, cuename, timestamp
+    FROM checkpoint;
+               """,
+        "DROP TABLE checkpoint;",
+        "ALTER TABLE checkpoint_new RENAME TO checkpoint;",
+    ]
+    for i in renamer:
+        con.execute(i)
+    con.commit()
 
 connections = threading.local()
 
@@ -34,27 +64,27 @@ def get_con():
 rl = RateLimiter(hz=1 / 20, burst=300)
 
 
-def del_checkpoint(sceneid: str):
+def del_checkpoint(groupid: str):
     c = get_con()
-    c.execute("DELETE FROM checkpoint WHERE sceneid=?", (sceneid,))
+    c.execute("DELETE FROM checkpoint WHERE groupid=?", (groupid,))
     c.commit()
 
 
-def set_checkpoint(sceneid: str, cuename: str):
+def set_checkpoint(groupid: str, cuename: str):
     if not rl.limit():
-        raise RuntimeError("Rate limit exceeded for entering checkpoint scenes")
+        raise RuntimeError("Rate limit exceeded for entering checkpoint groups")
 
     c = get_con()
-    c.execute("DELETE FROM checkpoint WHERE sceneid=?", (sceneid,))
-    c.execute("INSERT INTO checkpoint VALUES (?,?,?)", (sceneid, cuename, time.time()))
+    c.execute("DELETE FROM checkpoint WHERE groupid=?", (groupid,))
+    c.execute("INSERT INTO checkpoint VALUES (?,?,?)", (groupid, cuename, time.time()))
     c.commit()
 
 
-def get_checkpoint(sceneid: str):
+def get_checkpoint(groupid: str):
     if not rl.limit():
-        raise RuntimeError("Rate limit exceeded for entering checkpoint scenes")
+        raise RuntimeError("Rate limit exceeded for entering checkpoint groups")
 
     c = get_con()
     c2 = c.cursor()
-    for i in c2.execute("SELECT * FROM checkpoint WHERE sceneid=?", (sceneid,)):
+    for i in c2.execute("SELECT * FROM checkpoint WHERE groupid=?", (groupid,)):
         return (i[1], i[2])

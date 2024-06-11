@@ -1,7 +1,7 @@
 """
 This is largely a data class and indexing for Cue objects.
-Cues always belongs to scenes, they are very much tightly coupled.
-Be aware of the circular import with scenes.py
+Cues always belongs to groups, they are very much tightly coupled.
+Be aware of the circular import with groups.py
 
 The class loads its __slots__ from a schema at runtime.
 
@@ -10,6 +10,7 @@ The class loads its __slots__ from a schema at runtime.
 from __future__ import annotations
 
 import copy
+import json
 import logging
 import random
 import traceback
@@ -28,7 +29,7 @@ from .global_actions import normalize_shortcut, shortcut_codes
 from .universes import get_on_demand_universe, getUniverse, mapChannel
 
 if TYPE_CHECKING:
-    from .scenes import Scene
+    from .groups import Group
 
 
 cues: weakref.WeakValueDictionary[str, Cue] = weakref.WeakValueDictionary()
@@ -43,7 +44,7 @@ slots = list(cue_schema["properties"].keys()) + [
     "changed",
     "next_ll",
     "name",
-    "scene",
+    "group",
     "inherit",
     "onEnter",
     "onExit",
@@ -116,7 +117,7 @@ class Cue:
 
     def __init__(
         self,
-        parent: Scene,
+        parent: Group,
         name: str,
         number: int | None = None,
         forceAdd: bool = False,
@@ -189,6 +190,8 @@ class Cue:
             if i not in cue_schema["properties"]:
                 logging.error("Unknown cue data key " + str(i) + " loading anyway but data may be lost")
 
+        self.rules = self.validate_rules(self.rules)
+
         # Now unused
         # self.script = script
         self.onEnter = onEnter
@@ -199,7 +202,7 @@ class Cue:
         self.next_ll: Cue | None = None
         parent._add_cue(self, forceAdd=forceAdd)
 
-        self.scene: weakref.ref[Scene] = weakref.ref(parent)
+        self.group: weakref.ref[Group] = weakref.ref(parent)
         self.setShortcut(shortcut, False)
 
         self.push()
@@ -214,10 +217,10 @@ class Cue:
 
         return x2
 
-    def getScene(self):
-        s = self.scene()
+    def getGroup(self):
+        s = self.group()
         if not s:
-            raise RuntimeError("Scene must have been deleted")
+            raise RuntimeError("Group must have been deleted")
         return s
 
     def push(self):
@@ -230,11 +233,11 @@ class Cue:
         core.add_data_pusher_to_all_boards(lambda s: s.linkSend(["scv", self.id, u, ch, v]))
 
     def clone(self, name: str):
-        if name in self.getScene().cues:
-            raise RuntimeError("Cannot duplicate cue names in one scene")
+        if name in self.getGroup().cues:
+            raise RuntimeError("Cannot duplicate cue names in one group")
 
         c = Cue(
-            self.getScene(),
+            self.getGroup(),
             name,
             fade_in=self.fade_in,
             length=self.length,
@@ -250,8 +253,8 @@ class Cue:
 
     def setTrack(self, val):
         self.track = bool(val)
-        self.getScene().poll_again_flag = True
-        self.getScene().lighting_manager.should_rerender_onto_universes = True
+        self.getGroup().poll_again_flag = True
+        self.getGroup().lighting_manager.should_rerender_onto_universes = True
 
     def setNumber(self, n):
         "Can take a string representing a decimal number for best accuracy, saves as *1000 fixed point"
@@ -260,7 +263,7 @@ class Cue:
         self.number = int((Decimal(n) * Decimal(1000)).quantize(1))
 
         # re-sort the cuelist
-        self.getScene().insertSorted(None)
+        self.getGroup().insertSorted(None)
 
         self.push()
 
@@ -274,22 +277,30 @@ class Cue:
         if not s == self._markdown:
             self._markdown = s
             self.push()
-            scene = self.scene()
-            if scene:
-                scene.media_link_socket.send(
+            group = self.group()
+            if group:
+                group.media_link_socket.send(
                     [
                         "text",
                         self._markdown,
                     ]
                 )
 
+    def validate_rules(self, r: list[list[str | list[list[str]]]]):
+        r = r or []
+        s = json.dumps(r, ensure_ascii=False)
+        # Legacy name fix
+        s = s.replace('"=SCENE"', '"=GROUP"')
+        return json.loads(s)
+
     def setRules(self, r: list[list[str | list[list[str]]]]):
+        r = self.validate_rules(r)
         self.rules = r or []
-        self.getScene().refresh_rules()
+        self.getGroup().refresh_rules()
 
     def setInheritRules(self, r):
         self.inherit_rules = r
-        self.getScene().refresh_rules()
+        self.getGroup().refresh_rules()
 
     def setShortcut(self, code: str, push: bool = True):
         code = normalize_shortcut(code)
@@ -315,7 +326,7 @@ class Cue:
                         torm.append(i)
                     else:
                         for j in list(shortcut_codes[i]):
-                            if not j.scene():
+                            if not j.group():
                                 shortcut_codes[i].remove(j)
                 for i in torm:
                     del shortcut_codes[i]
@@ -335,10 +346,10 @@ class Cue:
         # Allow [] for range effects
         disallow_special(universe, allow="_@./[]")
 
-        scene = self.getScene()
+        group = self.getGroup()
 
-        if not scene:
-            raise RuntimeError("The scene doesn't exist")
+        if not group:
+            raise RuntimeError("The group doesn't exist")
         if value is not None:
             try:
                 value = float(value)
@@ -370,7 +381,7 @@ class Cue:
         with core.lock:
             if universe == "__variables__":
                 assert isinstance(channel, str)
-                scene.script_context.setVar(channel, scene.evalExpr(value))
+                group.script_context.setVar(channel, group.evalExpr(value))
 
             reset = False
             if value is not None:
@@ -395,16 +406,16 @@ class Cue:
 
             mapped_channel = mapChannel(universe, channel)
 
-            if scene.cue == self and scene.is_active():
-                scene.poll_again_flag = True
-                scene.lighting_manager.should_rerender_onto_universes = True
+            if group.cue == self and group.is_active():
+                group.poll_again_flag = True
+                group.lighting_manager.should_rerender_onto_universes = True
 
                 # If we change something in a pattern effect we just do a full recalc since those are complicated.
                 if unmappeduniverse in self.values and "__length__" in self.values[unmappeduniverse]:
-                    scene.lighting_manager.cue_vals_to_numpy_cache(self, False)
+                    group.lighting_manager.cue_vals_to_numpy_cache(self, False)
 
                     # The FadeCanvas needs to know about this change
-                    scene.poll(force_repaint=True)
+                    group.poll(force_repaint=True)
 
                 # Otherwise if we are changing a simple mapped channel we optimize
                 elif mapped_channel:
@@ -414,28 +425,28 @@ class Cue:
 
                     if universe.startswith("/"):
                         uobj = get_on_demand_universe(universe)
-                        scene.lighting_manager.on_demand_universes[universe] = uobj
+                        group.lighting_manager.on_demand_universes[universe] = uobj
 
-                    if (universe not in scene.lighting_manager.cue_cached_alphas_as_arrays) and value is not None:
+                    if (universe not in group.lighting_manager.cue_cached_alphas_as_arrays) and value is not None:
                         uobj = getUniverse(universe)
                         if uobj:
-                            scene.lighting_manager.cue_cached_vals_as_arrays[universe] = numpy.array([0.0] * len(uobj.values), dtype="f4")
-                            scene.lighting_manager.cue_cached_alphas_as_arrays[universe] = numpy.array([0.0] * len(uobj.values), dtype="f4")
-                    if universe in scene.lighting_manager.cue_cached_alphas_as_arrays:
-                        scene.lighting_manager.cue_cached_alphas_as_arrays[universe][channel] = 1 if value is not None else 0
-                        scene.lighting_manager.cue_cached_vals_as_arrays[universe][channel] = scene.evalExpr(
+                            group.lighting_manager.cue_cached_vals_as_arrays[universe] = numpy.array([0.0] * len(uobj.values), dtype="f4")
+                            group.lighting_manager.cue_cached_alphas_as_arrays[universe] = numpy.array([0.0] * len(uobj.values), dtype="f4")
+                    if universe in group.lighting_manager.cue_cached_alphas_as_arrays:
+                        group.lighting_manager.cue_cached_alphas_as_arrays[universe][channel] = 1 if value is not None else 0
+                        group.lighting_manager.cue_cached_vals_as_arrays[universe][channel] = group.evalExpr(
                             value if value is not None else 0
                         )
-                    if universe not in scene.lighting_manager.affect:
-                        scene.lighting_manager.affect.append(universe)
+                    if universe not in group.lighting_manager.affect:
+                        group.lighting_manager.affect.append(universe)
 
                     # The FadeCanvas needs to know about this change
-                    scene.poll(force_repaint=True)
+                    group.poll(force_repaint=True)
 
-            scene.poll_again_flag = True
-            scene.lighting_manager.should_rerender_onto_universes = True
+            group.poll_again_flag = True
+            group.lighting_manager.should_rerender_onto_universes = True
 
             # For blend modes that don't like it when you
             # change the list of values without resetting
             if reset:
-                scene.setBlend(scene.blend)
+                group.setBlend(group.blend)
