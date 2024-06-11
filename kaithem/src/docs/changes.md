@@ -9,6 +9,7 @@ Change Log
 - :bug: Fix import resource from yaml
 - :bug: Sunrise and sunset times should be fixed
 - :bug: Require confirm checkbox was showing incorrect value
+- :bug: Missing file for lair.css theme
 
 #### Changed
 
