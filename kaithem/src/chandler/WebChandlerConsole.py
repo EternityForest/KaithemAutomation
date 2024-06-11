@@ -634,7 +634,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             scenes.scenes[msg[1]].setBPM(msg[2])
 
         elif cmd_name == "setcrossfade":
-            scenes.scenes[msg[1]].crossfade = float(msg[2])
+            scenes.scenes[msg[1]].crossfade = float(msg[2] or 0)
 
         elif cmd_name == "setdalpha":
             scenes.scenes[msg[1]].setAlpha(msg[2], sd=True)
@@ -737,7 +737,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         elif cmd_name == "setfadein":
             try:
-                v = float(msg[2])
+                v = float(msg[2] or 0)
             except Exception:
                 v = msg[2]
             cues[msg[1]].fade_in = v
@@ -745,7 +745,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         elif cmd_name == "setSoundFadeOut":
             try:
-                v = float(msg[2])
+                v = float(msg[2] or 0)
             except Exception:
                 v = msg[2]
             cues[msg[1]].sound_fade_out = v
@@ -753,7 +753,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         elif cmd_name == "setCueVolume":
             try:
-                v = float(msg[2])
+                v = float(msg[2] or 1)
             except Exception:
                 v = msg[2]
             cues[msg[1]].sound_volume = v
@@ -776,7 +776,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         elif cmd_name == "setSoundFadeIn":
             try:
-                v = float(msg[2])
+                v = float(msg[2] or 0)
             except Exception:
                 v = msg[2]
             cues[msg[1]].sound_fade_in = v
@@ -844,19 +844,19 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             self.pushCueMeta(msg[1])
 
         elif cmd_name == "setcuesoundstartposition":
-            cues[msg[1]].sound_start_position = float(msg[2].strip())
+            cues[msg[1]].sound_start_position = float(msg[2].strip() or 0)
             self.pushCueMeta(msg[1])
 
         elif cmd_name == "setcuemediaspeed":
-            cues[msg[1]].media_speed = float(str(msg[2]).strip())
+            cues[msg[1]].media_speed = float(str(msg[2]).strip() or 1)
             self.pushCueMeta(msg[1])
 
         elif cmd_name == "setcuemediawindup":
-            cues[msg[1]].media_wind_up = float(str(msg[2]).strip())
+            cues[msg[1]].media_wind_up = float(str(msg[2]).strip() or 0)
             self.pushCueMeta(msg[1])
 
         elif cmd_name == "setcuemediawinddown":
-            cues[msg[1]].media_wind_down = float(str(msg[2]).strip())
+            cues[msg[1]].media_wind_down = float(str(msg[2]).strip() or 0)
             self.pushCueMeta(msg[1])
 
         elif cmd_name == "settrack":

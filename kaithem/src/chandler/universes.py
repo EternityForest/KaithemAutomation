@@ -580,7 +580,7 @@ class DMXSender:
         except Exception as e:
             try:
                 self.port = None
-                self.setStatus("dis_connected, " + str(e)[:100] + "...", False)
+                self.setStatus("disconnected, " + str(e)[:100] + "...", False)
             except Exception:
                 pass
 
@@ -611,7 +611,7 @@ class DMXSender:
                     if self.data is None:
                         return
                     if self.port:
-                        self.setStatus("dis_connected, " + str(e)[:100] + "...", False)
+                        self.setStatus("disconnected, " + str(e)[:100] + "...", False)
                     self.port = None
                     # I don't remember why we retry twice here. But reusing the port list should reduce CPU a lot.
                     time.sleep(3)
@@ -925,7 +925,7 @@ class RawDMXSender:
 
         except Exception as e:
             try:
-                self.setStatus("dis_connected, " + str(e)[:100] + "...", False)
+                self.setStatus("disconnected, " + str(e)[:100] + "...", False)
             except Exception:
                 pass
 
@@ -961,7 +961,7 @@ class RawDMXSender:
                     if self.data is None:
                         return
                     if self.port:
-                        self.setStatus("dis_connected, " + str(e)[:100] + "...", False)
+                        self.setStatus("disconnected, " + str(e)[:100] + "...", False)
                     self.port = None
                     # reconnect is designed not to raise Exceptions, so if there's0
                     # an error here it's probably because the whole scope is being cleaned

@@ -70,9 +70,9 @@ def getWeakrefHandlers(self):
         try:
             if not self():
                 return
-            logger.info("Dis_connected from MQTT server: " + self().name)
+            logger.info("Disconnected from MQTT server: " + self().name)
             self().on_disconnect()
-            logger.info("Dis_connected from MQTT server: " + self().name)
+            logger.info("Disconnected from MQTT server: " + self().name)
         except Exception:
             logging.exception("MQTT")
 

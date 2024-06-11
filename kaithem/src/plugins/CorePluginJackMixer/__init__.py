@@ -48,7 +48,7 @@ recorder = None
 
 
 class DummySource(iceflow.GStreamerPipeline):
-    "Nasty hack. When gstreamer is dis_connected it stops.  So we have a special silent thing to always connect to"
+    "Nasty hack. When gstreamer is disconnected it stops.  So we have a special silent thing to always connect to"
 
     def __init__(self):
         iceflow.GStreamerPipeline.__init__(self)

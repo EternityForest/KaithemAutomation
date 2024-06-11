@@ -81,10 +81,10 @@ def makeWrappedConnectionClass(parent: Scene):
             return super().on_connect()
 
         def on_disconnect(self):
-            self_closure_ref.event("board.mqtt.dis_connected")
+            self_closure_ref.event("board.mqtt.disconnected")
             self_closure_ref.pushMeta(statusOnly=True)
             if self_closure_ref.mqtt_server:
-                self_closure_ref.event("board.mqtt.error", "Dis_connected")
+                self_closure_ref.event("board.mqtt.error", "Disconnected")
             return super().on_disconnect()
 
         def on_message(self, t: str, m: str | bytes):
@@ -499,7 +499,7 @@ class Scene:
         x = ""
         if self.mqttConnection:
             if not self.mqttConnection.is_connected:
-                x += "MQTT Dis_connected "
+                x += "MQTT Disconnected "
         return x
 
     def close(self):
