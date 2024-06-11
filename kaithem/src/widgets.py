@@ -454,6 +454,7 @@ class RawWidgetDataHandler:
         self.usedPermissions = collections.defaultdict(int)
         self.loop = loop
         self.asgi = asgiscope
+        self.batteryStatus = None
 
         assert isinstance(widgetName, str)
         with subscriptionLock:
