@@ -24,4 +24,4 @@ datasette_application = Datasette(
         "base_url": "/datasette/",
     },
 ).app()
-webapi.add_asgi_app("/datasette/?(/.*)?", datasette_application)
+webapi.add_asgi_app("/datasette", datasette_application)

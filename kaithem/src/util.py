@@ -7,7 +7,6 @@ import datetime
 import difflib
 import getpass
 import hashlib
-import logging
 import os
 import reprlib
 import shutil
@@ -26,6 +25,7 @@ from urllib.request import urlopen  # noqa
 
 import dateutil.rrule
 import recurrent
+import structlog
 import yaml
 import zeroconf
 
@@ -77,7 +77,7 @@ def get_rrule_selector(s: str, ref: datetime.datetime | None = None):
 
 zeroconf = zeroconf.Zeroconf()
 
-logger = logging.getLogger("system")
+logger = structlog.get_logger(__name__)
 
 min_time = 0
 

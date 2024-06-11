@@ -11,25 +11,24 @@ import base64
 import collections
 import copy
 import json
-import logging
+import logging, structlog, asyncio
 import os
 import threading
 import time
 import traceback
 import weakref
+import asyncio
 from collections.abc import Callable
 from typing import Optional, Any
-
+from starlette.requests import Request
+from quart.ctx import copy_current_request_context
 import msgpack
-import tornado.websocket
-from tornado.httputil import HTTPServerRequest
-from tornado.web import Application
 from beartype import beartype
 
 from . import auth, messagebus, pages, workers
 from http.cookies import SimpleCookie
 
-logger = logging.getLogger("system.widgets")
+logger = structlog.get_logger(__name__)
 
 # Modify lock for any websocket's subscriptions
 subscriptionLock = threading.Lock()
@@ -130,7 +129,7 @@ lastLoggedUserError = 0
 lastPrintedUserError = 0
 
 
-def subsc_closure(self: websocket_impl, widgetid: str, widget: Widget):
+def subsc_closure(self: WebSocketHandler, widgetid: str, widget: Widget):
     def f(msg: bytes | str, raw: Any = None):
         try:
             self.send(msg)
@@ -147,12 +146,12 @@ def subsc_closure(self: websocket_impl, widgetid: str, widget: Widget):
                 )
                 logger.exception("Error sending data from widget " + repr(widget) + " via websocket")
             else:
-                logging.exception("Error sending data from websocket")
+                logger.exception("Error sending data from websocket")
 
     return f
 
 
-def raw_subsc_closure(self: rawwebsocket_impl, widgetid: str, widget: Widget):
+def raw_subsc_closure(self: RawWidgetDataHandler, widgetid: str, widget: Widget):
     def f(msg: Any, raw: Any):
         try:
             if isinstance(raw, bytes):
@@ -175,17 +174,17 @@ def raw_subsc_closure(self: rawwebsocket_impl, widgetid: str, widget: Widget):
                 )
                 logger.exception("Error sending data from widget " + repr(widget) + " via websocket")
             else:
-                logging.exception("Error sending data from websocket")
+                logger.exception("Error sending data from websocket")
 
     return f
 
 
 clients_info = weakref.WeakValueDictionary()
 
-ws_connections: weakref.WeakValueDictionary[str, websocket_impl | rawwebsocket_impl] = weakref.WeakValueDictionary()
+ws_connections: weakref.WeakValueDictionary[str, WebSocketHandler | RawWidgetDataHandler] = weakref.WeakValueDictionary()
 
 
-def get_connectionRefForID(id: str, deleteCallback: Callable[[weakref.ref[websocket_impl | rawwebsocket_impl]], None] | None = None):
+def get_connectionRefForID(id: str, deleteCallback: Callable[[weakref.ref[WebSocketHandler | RawWidgetDataHandler]], None] | None = None):
     try:
         return weakref.ref(ws_connections[id], deleteCallback)
     except KeyError:
@@ -209,7 +208,7 @@ def send_toAll(d):
                     x[j] = True
             break
         except Exception:
-            logging.exception("Error in global broadcast")
+            logger.exception("Error in global broadcast")
 
 
 def sendGlobalAlert(msg: str, duration=60.0):
@@ -232,8 +231,8 @@ def send_to(topic: str, value: Any, target: str):
 userBatteryAlerts = {}
 
 
-class websocket_impl:
-    def __init__(self, parent: tornado.websocket.WebSocketHandler, user: str, *args: Any, **kwargs: Any):
+class WebSocketHandler:
+    def __init__(self, parent: WebSocket, user: str, loop: asyncio.AbstractEventLoop) -> None:
         self.subscriptions: list[str] = []
         self.lastPushedNewData = 0
         self.connection_id = "id" + base64.b64encode(os.urandom(16)).decode().replace("/", "").replace("-", "").replace("+", "")[:-2]
@@ -243,6 +242,10 @@ class websocket_impl:
         self.subCount = 0
         self.peer_address = ""
         self.batteryStatus = None
+        self.cookie = dict[str, Any] | None
+
+        self.loop = loop
+
         ws_connections[self.connection_id] = self
         messagebus.subscribe("/system/permissions/rmfromuser", self.onPermissionRemoved)
 
@@ -272,7 +275,14 @@ class websocket_impl:
 
     def send(self, b: bytes | str):
         with self.widget_wslock:
-            self.parent.send_data(b, binary=isinstance(b, bytes))
+
+            async def f():
+                if isinstance(b, str):
+                    await self.parent.send_text(b)
+                else:
+                    await self.parent.send_bytes(b)
+
+            asyncio.run_coroutine_threadsafe(f(), self.loop)
 
     def closed(self, *a: Any) -> None:
         with subscriptionLock:
@@ -290,7 +300,7 @@ class websocket_impl:
             with self.widget_wslock:
                 self.close()
 
-    def received_message(self, message: bytes | str):
+    def received_message(self, message: bytes | str, asgi):
         global lastLoggedUserError
         global lastPrintedUserError
         try:
@@ -306,7 +316,7 @@ class websocket_impl:
             upd = o["upd"]
             for i in upd:
                 if i[0] in widgets:
-                    widgets[i[0]]._on_update(user, i[1], self.connection_id)
+                    widgets[i[0]]._on_update(user, i[1], self.connection_id, asgi)
                 elif i[0] == "__url__":
                     self.pageURL = i[1]
 
@@ -322,7 +332,7 @@ class websocket_impl:
                             elif i[1]["level"] > 0.4 and i[1]["charging"]:
                                 userBatteryAlerts[self.user].release()
                         except Exception:
-                            logging.exception("Error in battery status telemetry")
+                            logger.exception("Error in battery status telemetry")
 
                 elif i[0] == "__USERIDLE__":
                     self.userState = i[1]["userState"]
@@ -369,7 +379,7 @@ class websocket_impl:
                     with subscriptionLock:
                         if i in widgets:
                             for p in widgets[i]._read_perms:
-                                if not pages.canUserDoThis(p, user):
+                                if not pages.canUserDoThis(p, user, self.asgiscope):
                                     # We have to be very careful about this, because
                                     self.send(
                                         json.dumps(
@@ -389,7 +399,7 @@ class websocket_impl:
 
                             self.subscriptions.append(i)
                             if not widgets[i].noOnConnectData:
-                                x = widgets[i]._on_request(user, self.connection_id)
+                                x = widgets[i]._on_request(user, self.connection_id, asgi)
                                 if x is not None:
                                     widgets[i].send(x)
                             self.subCount += 1
@@ -420,74 +430,16 @@ class websocket_impl:
             self.send(json.dumps({"__WIDGETERROR__": repr(e)}))
 
         except Exception as e:
-            logging.exception("Error in widget, responding to " + str(d))
+            logger.exception("Error in widget, responding to " + str(d))
             messagebus.post_message("system/errors/widgets/websocket", traceback.format_exc(6))
             self.send(json.dumps({"__WIDGETERROR__": repr(e)}))
 
 
-def makeTornadoSocket(wsimpl=websocket_impl) -> tornado.websocket.WebSocketHandler:
-    class WS(tornado.websocket.WebSocketHandler):
-        def __init__(self, application: Application, request: HTTPServerRequest, **kwargs: Any) -> None:
-            self.is_closed = False
-            super().__init__(application, request, **kwargs)
-
-        def open(self, *args, **kwargs):
-            x = self.request.remote_ip
-
-            try:
-                user_agent = self.request.headers["User-Agent"]
-            except Exception:
-                user_agent = ""
-
-            if self.request.protocol == "https" or pages.isHTTPAllowed(x):
-                user = pages.getAcessingUser(self.request)
-                cookie = self.request.cookies
-            else:
-                cookie = None
-                user = "__guest__"
-
-            self.io_loop = tornado.ioloop.IOLoop.current()
-            q = self.request.arguments
-            impl = wsimpl(self, user, **{i: q[i][0].decode() for i in q})
-            impl.cookie = cookie
-            impl.user_agent = user_agent
-
-            impl.clientinfo = ClientInfo(impl.user, impl.cookie)
-            clients_info[impl.connection_id] = impl.clientinfo
-            self.impl = impl
-
-            impl.peer_address = x
-
-            if user == "__guest__" and (not x.startswith("127.")) and (len(wsrunners) > 8):
-                self.runner = guestWSRunner
-            else:
-                self.runner = WSActionRunner()
-
-        def on_message(self, message: str | bytes):
-            def doFunction():
-                self.impl.received_message(message)
-
-            self.runner.dowsAction(doFunction)
-
-        def send_data(self, message: str | bytes, binary: bool = False):
-            def f():
-                if not self.is_closed:
-                    try:
-                        self.write_message(message, binary=binary)
-                    except tornado.websocket.WebSocketClosedError:
-                        self.on_close()
-
-            self.io_loop.add_callback(f)
-
-        def on_close(self):
-            self.is_closed = True
-            self.impl.closed()
-
-    return WS
+from starlette.websockets import WebSocket
 
 
-class rawwebsocket_impl:
-    def __init__(self, parent, user, *args, **kwargs):
+class RawWidgetDataHandler:
+    def __init__(self, parent, user, loop, widgetName: str, asgiscope) -> None:
         self.subscriptions: list[str] = []
         self.lastPushedNewData = 0
         self.connection_id = "id" + base64.b64encode(os.urandom(16)).decode().replace("/", "").replace("-", "").replace("+", "")[:-2]
@@ -497,15 +449,18 @@ class rawwebsocket_impl:
         messagebus.subscribe("/system/permissions/rmfromuser", self.onPermissionRemoved)
         self.user = user
         self.parent = parent
+        self.peer_address = ""
 
         self.usedPermissions = collections.defaultdict(int)
+        self.loop = loop
+        self.asgi = asgiscope
+        self.batteryStatus = None
 
-        widgetName: str = kwargs["widgetid"]
         assert isinstance(widgetName, str)
         with subscriptionLock:
             if widgetName in widgets:
                 for p in widgets[widgetName]._read_perms:
-                    if not pages.canUserDoThis(p, self.user):
+                    if not pages.canUserDoThis(p, self.user, asgi=self.asgi):
                         raise RuntimeError(self.user + " missing permission: " + str(p))
                     self.usedPermissions[p] += 1
 
@@ -532,11 +487,19 @@ class rawwebsocket_impl:
 
     def send(self, b: bytes | str):
         with self.widget_wslock:
-            self.parent.send_data(b, binary=isinstance(b, bytes))
 
-    def closed(self, *a):
+            async def f():
+                if isinstance(b, str):
+                    await self.parent.send_text(b)
+                else:
+                    await self.parent.send_bytes(b)
+
+            asyncio.run_coroutine_threadsafe(f(), self.loop)
+
+    def close(self, *a):
         with subscriptionLock:
-            for i in self.subscriptions:
+            while self.subscriptions:
+                i = self.subscriptions.pop(0)
                 try:
                     widgets[i].subscriptions.pop(self.uuid)
                     widgets[i].subscriptions_atomic = widgets[i].subscriptions.copy()
@@ -544,8 +507,115 @@ class rawwebsocket_impl:
                     pass
 
 
-def makeRawTornadoSocket():
-    return makeTornadoSocket(rawwebsocket_impl)
+def makeclosure(f, i, scope):
+    def g():
+        return f(i, scope)
+
+    return g
+
+
+async def app(scope, receive, send):
+    websocket = WebSocket(scope=scope, receive=receive, send=send)
+    await websocket.accept()
+    io_loop = asyncio.get_running_loop()
+
+    def f():
+        try:
+            user_agent = scope.headers["User-Agent"]
+        except Exception:
+            user_agent = ""
+        x = scope["client"][0]
+
+        if scope["scheme"] == "wss" or pages.isHTTPAllowed(x):
+            user = pages.getAcessingUser(asgi=scope)
+            cookie = scope.get("cookie", None)
+        else:
+            cookie = None
+            user = "__guest__"
+
+        impl: WebSocketHandler = WebSocketHandler(websocket, user, io_loop)
+        impl.cookie = cookie
+        impl.user_agent = user_agent
+        impl.asgiscope = scope
+
+        impl.clientinfo = ClientInfo(impl.user, impl.cookie)
+        clients_info[impl.connection_id] = impl.clientinfo
+
+        assert isinstance(x, str)
+        impl.peer_address = x
+
+        if user == "__guest__" and (not x.startswith("127.")) and (len(wsrunners) > 8):
+            runner = guestWSRunner
+        else:
+            runner = WSActionRunner()
+
+        return impl, runner
+
+    impl, runner = await asyncio.to_thread(f)
+
+    while 1:
+        try:
+            x = await websocket.receive()
+        except Exception:
+            break
+
+        if "text" in x:
+            i = x["text"]
+        elif "bytes" in x:
+            i = x["bytes"]
+        else:
+            continue
+
+        f = makeclosure(impl.received_message, i, scope)
+        runner.dowsAction(f)
+
+
+async def rawapp(scope, receive, send):
+    websocket = WebSocket(scope=scope, receive=receive, send=send)
+    await websocket.accept()
+
+    try:
+        user_agent = scope.headers["User-Agent"]
+    except Exception:
+        user_agent = ""
+    x = scope["client"][0]
+
+    if scope["scheme"] == "wss" or pages.isHTTPAllowed(x):
+        user = pages.getAcessingUser(asgi=scope)
+        cookie = scope.get("cookie", None)
+    else:
+        cookie = None
+        user = "__guest__"
+
+    io_loop = asyncio.get_running_loop()
+    impl = RawWidgetDataHandler(websocket, user, io_loop, websocket.query_params["widgetid"], scope)
+    impl.cookie = cookie
+    impl.user_agent = user_agent
+
+    impl.clientinfo = ClientInfo(impl.user, impl.cookie)
+    clients_info[impl.connection_id] = impl.clientinfo
+
+    assert isinstance(x, str)
+    impl.peer_address = x
+
+    if user == "__guest__" and (not x.startswith("127.")) and (len(wsrunners) > 8):
+        runner = guestWSRunner
+    else:
+        runner = WSActionRunner()
+
+    while 1:
+        try:
+            x = await websocket.receive()
+        except Exception:
+            break
+
+        if "text" in x:
+            i = x["text"]
+        elif "bytes" in x:
+            i = x["bytes"]
+        else:
+            continue
+        # runner.dowsAction(lambda: impl.received_message(i))
 
 
 def randID() -> str:
@@ -610,7 +680,7 @@ class Widget:
             callback(clients_info[i])
 
     # This function is called by the web interface code
-    def _on_request(self, user, uuid):
+    def _on_request(self, user, uuid, asgi):
         """Widgets on the client side send AJAX requests for the new value.
           This function must
         return the value for the widget. For example a slider might request the
@@ -628,7 +698,7 @@ class Widget:
                 the username of the user who is tring to access things.
         """
         for i in self._read_perms:
-            if not pages.canUserDoThis(i, user):
+            if not pages.canUserDoThis(i, user, asgi=asgi):
                 return "PERMISSIONDENIED"
         try:
             return self.on_request(user, uuid)
@@ -653,15 +723,15 @@ class Widget:
         return self.value
 
     # This function is called by the web interface whenever this widget is written to
-    def _on_update(self, user, value, uuid):
+    def _on_update(self, user, value, uuid, asgi):
         """Called internally to write a value to the widget. Responisble for
         verifying permissions. Returns if user does not have permission"""
         for i in self._read_perms:
-            if not pages.canUserDoThis(i, user):
+            if not pages.canUserDoThis(i, user, asgi):
                 return
 
         for i in self._write_perms:
-            if not pages.canUserDoThis(i, user):
+            if not pages.canUserDoThis(i, user, asgi):
                 return
 
         self.on_update(user, value, uuid)
@@ -839,6 +909,7 @@ class ScrollingWindow(Widget):
                 d.removeChild(d.childNodes[0])
             }
             var n = document.createElement("div");
+            n.className="w-full";
             n.innerHTML= val;
             d.appendChild(n);
             //Scroll to bottom if user was already there.
@@ -873,9 +944,9 @@ class APIWidget(Widget):
             self.send(value)
 
     def render(self, htmlid: str) -> str:
-        return f"<script>{self._render(htmlid)}</script>"
+        return f"<script>{self.render_raw(htmlid)}</script>"
 
-    def _render(self, htmlid: str) -> str:
+    def render_raw(self, htmlid: str) -> str:
         return f"""
                 {htmlid} = {{}};
                 {htmlid}.value = "Waiting..."

@@ -1,8 +1,10 @@
+import sys
 import time
 import weakref
 
-from kaithem.src import messagebus, modules_state
-from kaithem.src.plugins import CorePluginEventResources
+if "--collect-only" not in sys.argv:
+    from kaithem.src import messagebus, modules_state
+    from kaithem.src.plugins import CorePluginEventResources
 
 
 def test_events():

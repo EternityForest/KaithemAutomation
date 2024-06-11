@@ -11,7 +11,9 @@ import socket
 import threading
 import time
 
-import cherrypy
+import quart
+import scullery.workers
+import structlog
 from scullery import scheduling
 from zeroconf import ServiceBrowser, ServiceStateChange
 
@@ -62,7 +64,7 @@ browser2 = ServiceBrowser(util.zeroconf, "_http._tcp.local.", handlers=[on_servi
 # Can't think of anywhere else to put this thing.
 systemStarted = time.time()
 
-logger = logging.getLogger("system")
+logger = structlog.get_logger(__name__)
 
 lastsaved = time.time()
 
@@ -90,7 +92,7 @@ nminutepagecount = 0
 
 
 upnpMapping = None
-syslogger = logging.getLogger("system")
+logger = structlog.get_logger(__name__)
 
 
 def doUPnP():
@@ -107,7 +109,7 @@ def doUPnP():
 
             upnpMapping = upnpwrapper.addMapping(p, "TCP", desc="KaithemAutomation web UI", register=True, WANPort=lp)
         except Exception:
-            syslogger.exception("Could not create mapping")
+            logger.exception("Could not create mapping")
     else:
         # Going to let GC handle this
         upnpMapping = None
@@ -121,7 +123,7 @@ def aPageJustLoaded():
     if config["log_http"]:
         messagebus.post_message(
             "/system/http/access",
-            {"ip": cherrypy.request.remote.ip, "req": cherrypy.request.request_line},
+            {"ip": quart.request.remote.ip, "req": quart.request.request_line},
             synchronous=True,
         )
 
@@ -206,6 +208,13 @@ def logstats():
             raise e
 
 
+def stop_workers(*a):
+    scullery.workers.stop()
+
+
+messagebus.subscribe("/system/shutdown", stop_workers)
+
+
 def sd():
     messagebus.post_message("/system/shutdown", "System about to shut down or restart")
     messagebus.post_message("/system/notifications/important", "System shutting down now")
@@ -213,7 +222,6 @@ def sd():
 
 sd.priority = 25
 atexit.register(sd)
-cherrypy.engine.subscribe("stop", sd)
 
 
 if time.time() < 1420070400:

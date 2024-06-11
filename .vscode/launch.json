@@ -28,6 +28,25 @@
             ],
             "justMyCode": false,
             "subProcess": true,
+        },
+
+        {
+            "name": "Python3 debug test",
+            "purpose": ["debug-test"],
+            "type": "python",
+            "request": "launch",
+            "stopOnEntry": true,
+            "program": "${file}",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "GST_DEBUG": "*:3"
+            },
+            "envFile": "${workspaceFolder}/.env",
+            "debugOptions": [
+                "RedirectOutput"
+            ],
+            "justMyCode": false,
+            "subProcess": true,
         }
     ]
 }

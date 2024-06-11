@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 import os
 import random
 import threading
@@ -8,6 +7,7 @@ import time
 import weakref
 from typing import Any
 
+import structlog
 from beartype import beartype
 from scullery import persist, scheduling, statemachines
 
@@ -20,7 +20,7 @@ from . import (
     workers,
 )
 
-logger = logging.getLogger("system.alerts")
+logger = structlog.get_logger(__name__)
 lock = threading.RLock()
 
 
@@ -361,7 +361,10 @@ class Alert:
         }
 
     def API_ack(self):
-        pages.require(self.ackPermissions)
+        try:
+            pages.require(self.ackPermissions)
+        except PermissionError:
+            return pages.loginredirect(pages.geturl())
         pages.postOnly()
         self.acknowledge()
 

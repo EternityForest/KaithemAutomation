@@ -238,7 +238,7 @@ ${lists}
                         <p class="warning" v-if="i[1].status">STATUS: {{i[1].status}}</p>
 
 
-                        <div class="tool-bar" v-if="!i[1].utility">
+                        <div class="tool-bar noselect" v-if="!i[1].utility">
                             <button type="button" :class="{'success':i[1].active, 'warning':i[1].status}" v-on:click="go(i[0])"><i
                                     class="mdi mdi-play"></i>Go!</button>
                             <button type="button" v-on:click="prevcue(i[0])"><i class="mdi mdi-skip-previous"></i>Prev</button>
@@ -248,15 +248,15 @@ ${lists}
                         </div>
                         <iframe v-if="showPages && i[1].infoDisplay.length>0" :src="i[1].infoDisplay"></iframe>
 
-                        <div class="tool-bar" v-if="i[1].eventButtons.length > 0">
+                        <div class="tool-bar noselect" v-if="i[1].eventButtons.length > 0">
                             <button type="button" v-for="v of i[1].eventButtons" v-on:click="sceneev(v[1],v[1])">{{v[0]}}</button>
                         </div>
 
 
-                        <input style="margin-left:0.4rem" v-if="!i[1].utility" type="range" max=1 step=0.01 min=0
+                        <smooth-range style="margin-left:0.4rem" v-if="!i[1].utility"
+                            max="1" step="0.01" min="0"
                             v-on:input="setalpha(i[0],parseFloat($event.target.value));"
-                            v-on:change="setalpha(i[0],parseFloat($event.target.value));unlockAlpha(i[0]);" :value="alphas[i[0]]"
-                            v-on:blur="setalpha(i[0],parseFloat($event.target.value));unlockAlpha(i[0]);">
+                            v-model="alphas[i[0]]"></smooth-range>
 
                         <scene-ui :unixtime="unixtime" v-bind:scene-data="i[1]" :cue="cuemeta[i[1].cue]"></scene-ui>
 
@@ -284,8 +284,7 @@ ${lists}
             <footer class="padding">
                 <div class="tool-bar">
                     <input :disabled="no_edit" v-model="newscenename" placeholder="New scene name" size="4">
-                    <button type="button" v-on:click="addScene()"><i class="mdi mdi-plus"></i>Add</button>
-                    <button type="button" v-on:click="addMonitorScene()"><i class="mdi mdi-binoculars"></i>Add Monitor</button>
+                    <button type="button" data-testid="add-scene-button" v-on:click="addScene()"><i class="mdi mdi-plus"></i>Add</button>
                 </div>
             </footer>
 
@@ -379,24 +378,21 @@ ${lists}
                 </div>
             </header>
 
+            <p>Setup files include all fixture types,
+                fixture assignments, configured universes,
+                and color presets.</p>
+
             <div class="tool-bar" style="padding:0.25em; border-width:2px;">
                 <p>Download:</p>
-                <a class="button" href="download" title="Download your scenes as a file"><i
-                        class="mdi mdi-content-save"></i>Scenes</a>
-                <a class="button" href="downloadSetup" title="Download your scenes as a file"><i
-                        class="mdi mdi-content-save"></i>Setup</a>
-                <a class="button" href="downloadLibrary" title="Download your scenes as a file"><i
-                        class="mdi mdi-content-save"></i>Fixture Lib</a>
+                <button type="button" @click="downloadSetup()" title="Download your scenes as a file"><i
+                        class="mdi mdi-content-save"></i>Setup</button>
             </div>
 
             <div class="tool-bar" style="padding:0.25em; border-width:2px;">
-                <p>Upload:</p>
-                <a class="button" href="upload" title="Upload a scenes file"><i
-                        class="mdi mdi-folder-open"></i>Scenes</a>
-                <a class="button" href="uploadSetup" title="Upload a scenes file"><i
-                        class="mdi mdi-folder-open"></i>Setup</a>
-                <a class="button" href="uploadLibrary" title="Upload a scenes file"><i
-                        class="mdi mdi-folder-open"></i>Fixture Lib</a>
+                <p>Load Setup:</p>
+                <input type="file" id="setupfile">
+                <button type="button" @click="uploadFileFromElement('setupfile', 'setup')" title="Upload a scenes file"><i
+                        class="mdi mdi-folder-open"></i>Go</button>
             </div>
         </section>
 
@@ -453,7 +449,6 @@ ${lists}
                 <p class="warning" v-if="editingScene.status">STATUS: {{editingScene.status}}</p>
                 <div class="tool-bar">
                     <h3><span v-on:dblclick="promptRename(scenename)" title="Double click to set scene name">
-                            <span v-if="editingScene.blend=='monitor'">Monitor</span>
                             {{editingScene.name}}</span>
                         <small class="success" v-if="editingScene.active"> (running)</small>
 
@@ -628,11 +623,11 @@ ${lists}
                         <template v-for="(h,uname) in cuevals[currentcueid]">
                             <article class="universe card flex-col gaps" v-if="uname[0]!='@'">
                                 <header>
-                                    <h3>{{uname}}</h3>
+                                    <h3 class="noselect">{{uname}}</h3>
                                 </header>
                                 <div class="scroll nomargin h-24rem">
                                     <h-fader :i="i" :chinfo="chnamelookup(i.u,i.ch)"
-                                        :monitor="editingScene.blend=='monitor'" :currentcueid="currentcueid"
+                                        :currentcueid="currentcueid"
                                         :showdelete="scenetab=='channels'" v-for="i in h">
                                     </h-fader>
                                 </div>
@@ -640,9 +635,9 @@ ${lists}
                         </template>
                         <template v-for="(h,fname) in cuevals[currentcueid]">
 
-                            <article class="fixture card flex-col gaps" v-if="fname[0]=='@'">
+                            <article class="fixture card flex-col gaps noselect" v-if="fname[0]=='@'">
                                 <header>
-                                    <div class="tool-bar" v-if="editingScene.blend!='monitor'">
+                                    <div class="tool-bar">
                                         <h4 :title="lookupFixtureType(fname)">{{fname}}</h4>
                                         <select  :disabled="no_edit"
                                             v-on:change="setFixturePreset(currentcueid, fname, presets[$event.target.value]);$event.target.value='__dummy__'">
@@ -659,7 +654,7 @@ ${lists}
                                 </header>
                                 <div class="scroll nomargin h-24rem padding-bottom">
                                     <h-fader :i="i" :chinfo="chnamelookup(i.u,i.ch)"
-                                        :monitor="editingScene.blend=='monitor'" :currentcueid="currentcueid"
+                                        :currentcueid="currentcueid"
                                         :showdelete="scenetab=='channels'" v-for="i in h">
                                     </h-fader>
                                 </div>
@@ -810,23 +805,6 @@ ${lists}
                             </table>
                         </div>
                     </div>
-
-
-
-
-                    <h3>Event Log</h3>
-                    <div class="max-h-12rem scroll border" style="height:6em">
-                        <div v-bind:class="{'evlisting': i[0]!=='error', 'evlisting_err': i[0].includes('error')}"
-                            v-for="i in evlog.filter((d) => d[1].search(editingScene.name) )">{{i[2]}}: <b>{{i[0]}}</b>
-                            at
-                            {{i[1]}}:
-
-                            <span v-if="!(typeof(i[3])=='string' && i[3].length>32)">{{i[3]}}</span>
-                            <pre v-if="(typeof(i[3])=='string' && i[3].length>32)">{{i[3]}}</pre>
-                            <pre v-if="i[4]">{{i[4]}}</pre>
-                        </div>
-                    </div>
-
                 </details>
 
 
@@ -882,7 +860,7 @@ ${lists}
                                         </label>
                                     </p>
 
-                                    <label>Device:<a target="_blank" href="/settings/mixer">(mixer)</a>
+                                    <label>Device
 
                                         <datalist id="soundcards">
                                             <option value="scenewebplayer">Play media file in web player</option>
@@ -1255,7 +1233,7 @@ ${lists}
 
                             <p> <label>
                                     Alpha:<input type="number" max=1 step=0.01 min=0
-                                        v-on:change="setalpha(scenename,parseFloat($event.target.value));unlockAlpha(scenename);"
+                                        v-on:change="setalpha(scenename,parseFloat($event.target.value));"
                                         v-model="alphas[scenename]">
                                 </label>
 
@@ -1268,14 +1246,14 @@ ${lists}
 
                             <label>Blend Mode
                                 <select  :disabled="no_edit" title="This setting controls blending multiple scenes together"
-                                    v-on:input="setblend(scenename,$event.target.value)" v-model="editingScene.blend">
+                                    v-on:input="setblend(scenename,$event.target.value)" v-model="editingScene.blend"
+                                    data-testid="scene_blend_mode">
 
                                     <option title="Alpha blend with scenes below">normal</option>
                                     <option
                                         title="Highest Takes Priority, only affect lights if the value is higher than the others">
                                         HTP</option>
                                     <option title="Limit maximum level">inhibit</option>
-                                    <option title="Transparently monitor values">monitor</option>
 
                                     <option v-for="i in ${[i for i in blendmodes.blendmodes.keys()]}">{{i}}
                                     </option>
@@ -1286,8 +1264,8 @@ ${lists}
                             <p>
                                 <label><span class="mdi mdi-lock-alert"></span>
                                     Require Confirmation for Cue Jumps
-                                    <input :disabled="no_edit" type="checkbox" v-model="currentcue.requireConfirm"
-                                    v-on:change="setSceneProperty(scenename,'requireConfirm', currentcue.requireConfirm)">
+                                    <input :disabled="no_edit" type="checkbox" v-model="editingScene.requireConfirm"
+                                    v-on:change="setSceneProperty(scenename,'requireConfirm', editingScene.requireConfirm)">
                                 </label>
 
                                 <label>Priority
@@ -1537,13 +1515,13 @@ ${lists}
                                 <th>Acton</th>
                             </tr>
                             <tr v-for="(v,i) in editingScene.eventButtons">
-                                <td><input :disabled="no_edit" v-model="v[0]" class="w-6rem"
+                                <td><input :disabled="no_edit" v-model="v[0]" class="w-6rem" data-testid="event_button_label"
                                         v-on:change="setEventButtons(scenename, editingScene.eventButtons);">
                                 </td>
-                                <td><input :disabled="no_edit" v-model="v[1]" class="w-6rem"
+                                <td><input :disabled="no_edit" v-model="v[1]" class="w-6rem" data-testid="event_button_event"
                                         v-on:change="setEventButtons(scenename, editingScene.eventButtons);">
                                 </td>
-                                <td><button
+                                <td><button data-testid="event_button_delete"
                                         v-on:click="editingScene.eventButtons.splice(i, 1); setEventButtons(scenename, editingScene.eventButtons);">Delete</button>
                             </tr>
 
@@ -1588,20 +1566,23 @@ ${lists}
                                 <th>Action</th>
                             </tr>
                             <tr v-for="(v,i) in editingScene.displayTags">
-                                <td><input :disabled="no_edit" v-model="v[0]" class="w-6rem"
+                                <td><input :disabled="no_edit" v-model="v[0]" class="w-6rem" data-testid="display_tag_label"
                                         v-on:change="setDisplayTags(scenename, editingScene.displayTags);">
                                 </td>
 
                                 <td><input type="number" :disabled="no_edit" v-model="v[2].width" class="w-4rem"
+                                    data-testid="display_tag_width"
                                     v-on:change="setDisplayTags(scenename, editingScene.displayTags);">
                                 </td>
 
                                 <td><input :disabled="no_edit" list="tagslisting" v-model="v[1]"
+                                    data-testid="display_tag_tag"
                                         v-on:change="setDisplayTags(scenename, editingScene.displayTags);">
                                 </td>
 
 
                                 <td><select v-model="v[2].type" class="w-6rem"
+                                    data-testid="display_tag_type"
                                         v-on:change="setDisplayTags(scenename, editingScene.displayTags);">
                                         <option value="meter">Meter</option>
                                         <option value="text">Text</option>
@@ -1614,7 +1595,7 @@ ${lists}
                                     </select>
 
                                     <template v-if="v[2].type == 'led'">
-                                        <select :disabled="no_edit" v-model="v[2].color"
+                                        <select :disabled="no_edit" v-model="v[2].color" data-testid="display_tag_led_color"
                                             v-on:change="setDisplayTags(scenename, editingScene.displayTags);">
                                             <option value="red">Red</option>
                                             <option value="yellow">Yel</option>
@@ -1626,7 +1607,7 @@ ${lists}
 
                                 </td>
 
-                                <td><button
+                                <td><button data-testid="display_tag_delete"
                                         v-on:click="editingScene.displayTags.splice(i, 1); setDisplayTags(scenename, editingScene.displayTags);">Delete</button>
 
                                     <a v-bind:href="'/tagpoints/'+encodeURIComponent(v[1])"><i
@@ -1677,6 +1658,7 @@ ${lists}
                             <summary>Custom layout for slideshow</summary>
                             <div class="stacked-form">
                                 <textarea v-model="editingScene.slideshowLayout" class="w-full h-16rem"
+                                    data-testid="slideshow_layout"
                                     @change="setSceneProperty(editingScene.id, 'slideshowLayout', $event.target.value)"
                                     @input="setScenePropertyDeferred(editingScene.id, 'slideshowLayout', $event.target.value)"></textarea>
                             </div>
@@ -1785,8 +1767,8 @@ ${lists}
                 "h-fader": httpVueLoader('../static/hfader.vue'),
                 'cue-countdown': httpVueLoader('../static/cue-countdown.vue'),
                 // Currently contains the timers and the display tags for the scenes overview
-                'scene-ui': httpVueLoader('../static/scene-ui-controls.vue')
-
+                'scene-ui': httpVueLoader('../static/scene-ui-controls.vue'),
+                'smooth-range': httpVueLoader('/static/vue/smoothrange.vue')
             },
             computed: appComputed
         }).mount("#app")
@@ -1798,8 +1780,7 @@ ${lists}
 
     script.src = "/apiwidget/WebChandlerConsole:"+appData.boardname+"?js_name=api_link";
 
-    document.head.appendChild(script); //or something of the likes
-
+    document.head.appendChild(script);
 
 </script>
 

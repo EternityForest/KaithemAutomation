@@ -9,9 +9,11 @@ import os
 import time
 import weakref
 
-import cherrypy
 import jinja2
+import quart
 from mako.lookup import TemplateLookup
+from starlette.requests import Request
+from starlette.websockets import WebSocket
 
 from . import auth, directories, settings_overrides
 
@@ -19,6 +21,12 @@ _Lookup = TemplateLookup(directories=[directories.htmldir, os.path.join(director
 get_template = _Lookup.get_template
 
 _varLookup = TemplateLookup(directories=[directories.vardir])
+
+
+class HTTPRedirect(Exception):
+    def __init__(self, url):
+        Exception.__init__(self)
+        self.url = url
 
 
 class MyCache(jinja2.BytecodeCache):
@@ -108,7 +116,7 @@ def isHTTPAllowed(ip):
 
 
 def getSubdomain():
-    x = cherrypy.request.base.split("://", 1)[-1]
+    x = quart.request.base_url.split("://", 1)[-1]
 
     sdpath = x.split(".")
 
@@ -130,15 +138,15 @@ def getSubdomain():
 
 def postOnly():
     """Redirect user to main page if the request is anything but POST"""
-    if not cherrypy.request.method == "POST":
+    if not quart.request.method == "POST":
         user = getAcessingUser()
         # This is not a web request, this is the server itself
         if user == "__no_request__":
             return
-        raise cherrypy.HTTPRedirect("/errors/wrongmethod")
+        return quart.redirect("/errors/wrongmethod")
 
 
-def require(permission, noautoreturn=False):
+def require(permission):
     """Get the user that is making the request bound to this thread,
     and then raise an interrupt if he does not have the permission specified.
 
@@ -178,84 +186,107 @@ def require(permission, noautoreturn=False):
                 return
 
         # Anything guest can't do needs https
-        if not cherrypy.request.scheme == "https":
-            x = cherrypy.request.remote.ip
+        if not quart.request.scheme == "https":
+            x = quart.request.remote_addr
             # Allow localhost, and Yggdrasil mesh.
             # This check is really just to be sure nobody accidentally uses HTTP,
             # But localhost and encrypted mesh are legitamate uses of HTTP.
             if not isHTTPAllowed(x):
-                raise cherrypy.HTTPRedirect("/errors/gosecure")
-
-        if user == "__guest__":
-            # The login page can auto return people to what they were doing before logging in
-            # Don't autoreturn users that came here from a POST call.
-            if noautoreturn or cherrypy.request.method == "POST":
-                noautoreturn = True
-            # Default to taking them to the main page.
-            if noautoreturn:
-                url = "/"
-            else:
-                url = cherrypy.url()
-            # User has 5 minutes to log in.  Any more time
-            # than that and it takes him back to the main page.
-            # This is so it can't auto redirect
-            # To something you forgot about and no longer want.
-            raise cherrypy.HTTPRedirect("/login?go=" + base64.b64encode(url.encode()).decode() + "&maxgotime-" + str(time.time() + 300))
+                raise PermissionError(permission)
 
         if not auth.canUserDoThis(user, permission):
-            raise cherrypy.HTTPRedirect("/errors/permissionerror?")
+            raise PermissionError(permission)
 
 
-def canUserDoThis(permissions, user=None):
+def loginredirect(url):
+    if quart.request and not quart.request.method == "GET":
+        return quart.redirect("/login")
+
+    return quart.redirect("/login?go=" + base64.b64encode(url.encode()).decode() + "&maxgotime-" + str(time.time() + 300))
+
+
+def geturl():
+    return quart.request.url
+
+
+def canUserDoThis(permissions, user=None, asgi=None):
     "None means get the user from the request context"
 
+    # If we are in context aware mode also check for cross site permissions
+    # As an extra layer of protection in case SameSite=Strict
+    # and any other protections wasn't enough
+    if (not user) or asgi:
+        for permission in permissions:
+            if permission in auth.crossSiteRestrictedPermissions:
+                noCrossSite(asgi)
+
     # If a disallowed CORS post is detected here, we get __guest__
-    user = user or getAcessingUser()
+    user = user or getAcessingUser(asgi=asgi)
 
     if not isinstance(permissions, (list, tuple)):
         permissions = (permissions,)
 
     for permission in permissions:
-        if permission in auth.crossSiteRestrictedPermissions:
-            noCrossSite()
         if not auth.canUserDoThis(user, permission):
             return False
     return True
 
 
-def noCrossSite():
-    if cherrypy.request.headers.get("Origin", ""):
-        if not cherrypy.request.base == cherrypy.request.headers.get("Origin", ""):
-            raise PermissionError("Cannot make this request from a different origin")
+def noCrossSite(asgi=None):
+    if asgi:
+        if asgi:
+            try:
+                r = Request(asgi)
+            except Exception:
+                r = WebSocket(asgi, None, None)
+
+            headers = asgi["headers"]
+            headers = {i.decode(): j.decode() for i, j in headers}
+            if headers.get("Origin", ""):
+                if not r.base_url == headers.get("Origin", ""):
+                    raise PermissionError("Cannot make this request from a different origin")
+
+    else:
+        if quart.request.headers.get("Origin", ""):
+            # Remove trailing slash
+            if not quart.request.host_url[:-1] == quart.request.headers.get("Origin", ""):
+                raise PermissionError("Cannot make this request from a different origin")
 
 
 def strictNoCrossSite():
-    if not cherrypy.request.base == cherrypy.request.headers.get("Origin", ""):
+    if not quart.request.base_url == quart.request.headers.get("Origin", ""):
         raise PermissionError("Cannot make this request from a different origin, or from a requester that does not provide an origin")
 
 
-def getAcessingUser(tornado_mode=None):
+def getAcessingUser(asgi=None, quart_req=None):
     """Return the username of the user making the request bound to this thread or __guest__ if not logged in.
     The result of this function can be trusted because it uses the authentication token.
     """
     # Handle HTTP Basic Auth
 
-    # Directly pass tornado request. Normally not needed, just for websocket stuff
-    if tornado_mode:
-        headers = tornado_mode.headers
-        scheme = tornado_mode.protocol
-        remote_ip = tornado_mode.remote_ip
-        cookie = tornado_mode.cookies
-        base = tornado_mode.host
+    if asgi:
+        try:
+            r = Request(asgi)
+        except Exception:
+            r = WebSocket(asgi, None, None)
+
+        headers = asgi["headers"]
+        headers = {i.decode(): j.decode() for i, j in headers}
+        scheme = asgi["scheme"]
+        remote_ip = asgi["client"][0]
+        cookie = r.cookies
+        host = headers["host"]
 
     else:
-        if (not cherrypy.request.request_line) and (not cherrypy.request.app) and (not cherrypy.request.config):
+        quart_req = quart_req or quart.request
+        if not quart_req:
             return "__no_request__"
-        headers = cherrypy.request.headers
-        scheme = cherrypy.request.scheme
-        remote_ip = cherrypy.request.remote.ip
-        cookie = cherrypy.request.cookie
-        base = cherrypy.request.base
+
+        headers = dict(quart_req.headers)
+        scheme = quart_req.scheme
+        remote_ip = quart_req.remote_addr
+        cookie = quart_req.cookies
+        host = quart_req.host
 
     if "Authorization" in headers:
         x = headers["Authorization"].split("Basic ")
@@ -268,12 +299,12 @@ def getAcessingUser(tornado_mode=None):
                 # Basic auth over http is not secure at all, so we raise an error if we catch it.
                 x = remote_ip
                 if not isHTTPAllowed(x):
-                    raise cherrypy.HTTPRedirect("/errors/gosecure")
+                    raise PermissionError("Cannot make this request from plain http")
             # Get token using username and password
             auth.userLogin(b[0], b[1])
             # Check the credentials of that token
             try:
-                return auth.whoHasToken(cookie["kaithem_auth"].value)
+                return auth.whoHasToken(cookie["kaithem_auth"])
             except KeyError:
                 return "__guest__"
             except Exception:
@@ -281,16 +312,16 @@ def getAcessingUser(tornado_mode=None):
                 return "__guest__"
 
     # Handle token based auth
-    if "kaithem_auth" not in cookie or (not cookie["kaithem_auth"].value):
+    if "kaithem_auth" not in cookie or (not cookie["kaithem_auth"]):
         return "__guest__"
     try:
-        user = auth.whoHasToken(cookie["kaithem_auth"].value)
+        user = auth.whoHasToken(cookie["kaithem_auth"])
         if not auth.getUserSetting(user, "allow-cors"):
             if headers.get("Origin", ""):
                 x = headers.get("Origin", "").replace("http://", "").replace("https://", "").replace("ws://", "").replace("wss://", "")
                 x2 = headers.get("Origin", "")
                 # Cherrypy and tornado compatibility
-                if base not in (x, x2):
+                if host not in (x, x2):
                     return "__guest__"
         return user
 

@@ -6,8 +6,8 @@ import base64
 import copy
 import datetime
 import hashlib
-import logging
 import os
+import time
 import urllib
 import urllib.parse
 from collections.abc import Iterator
@@ -15,6 +15,7 @@ from threading import RLock
 from typing import Any, Callable
 
 import beartype
+import structlog
 import yaml
 from stream_zip import ZIP_64, stream_zip
 
@@ -28,11 +29,31 @@ ResourceType = ResourceType
 # / is there because we just forbid use of that char for anything but dirs,
 # So there is no confusion
 safeFnChars = "~@*&()-_=+/ '"
+FORBID_CHARS = """\n\r\t@*&^%$#`"';:<>.,|{}+=[]\\"""
 
-logger = logging.getLogger("system")
+logger = structlog.get_logger(__name__)
 
 # This lets us have some modules saved outside the var dir.
 external_module_locations: dict[str, str] = {}
+
+
+prev_versions: dict[tuple, dict] = {}
+
+
+@beartype.beartype
+def check_forbidden(s: str) -> None:
+    if not s:
+        raise ValueError("Resource or module name cannot be empty")
+
+    if len(s) > 255:
+        raise ValueError(f"Excessively long name {s[:128]}...")
+
+    for i in s:
+        if i in FORBID_CHARS:
+            raise ValueError(f"{s} contains {i}")
+
+    if s[0] == "/":
+        raise ValueError("Resource or module name cannot start with /")
 
 
 def getModuleDir(module: str) -> str:
@@ -72,10 +93,6 @@ def getModuleDir(module: str) -> str:
 # TWhich must return the JSON object of the module. Onload will be automatically called for newly created resources.
 
 # Note that the actual dict objects are directly passed, you can modify them in place but you still must return them.
-
-# This is a dict indexed by module/resource tuples that contains the absolute path to what
-# The system considers the current "loaded" version.
-file_resource_paths: dict[tuple[str, str], str] = {}
 
 # When a module is saved outside of the var dir, we put the folder in which it is saved in here.
 external_module_locations = {}
@@ -117,6 +134,23 @@ def serializeResource(name: str, obj: ResourceDictType) -> dict[str, str]:
 
     else:
         return {f"{name.split('/')[-1]}.yaml": yaml.dump(r)}
+
+
+def importFiledataFolderStructure(module: str) -> None:
+    with modulesLock:
+        folder = getModuleDir(module)
+        folder = os.path.join(folder, "__filedata__")
+
+        if os.path.exists(folder):
+            for root, dirs, files in os.walk(folder):
+                for i in dirs:
+                    if "." in i:
+                        continue
+
+                    relfn = os.path.relpath(os.path.join(root, i), folder)
+
+                    # Create a directory resource for the dirrctory
+                    ActiveModules[module][util.unurl(relfn)] = {"resource_type": "directory"}
 
 
 @beartype.beartype
@@ -197,8 +231,23 @@ def save_resource(module: str, resource: str, resourceData: ResourceDictType, na
 
 @beartype.beartype
 def rawInsertResource(module: str, resource: str, resourceData: ResourceDictType):
+    resourceData: dict[str, Any] = copy.deepcopy(resourceData)  # type: ignore
+    check_forbidden(resource)
+    assert resource[0] != "/"
+
+    if "resource_timestamp" not in resourceData:
+        resourceData["resource_timestamp"] = int(time.time() * 1000000)
+
+    # todo maybe we don't need os indepedence
+    d = os.path.dirname(resource.replace("/", os.path.pathsep))
+    while d:
+        if d not in ActiveModules[module]:
+            ActiveModules[module][d.replace(os.path.pathsep, "/")] = {"resource_type": "directory"}
+        d = os.path.dirname(d)
+
     ActiveModules[module][resource] = resourceData
     save_resource(module, resource, resourceData)
+    recalcModuleHashes()
 
 
 @beartype.beartype
@@ -219,6 +268,8 @@ def rawDeleteResource(m: str, r: str, type: str | None = None) -> None:
     for i in os.listdir(dir):
         if i.startswith(r + "."):
             os.remove(os.path.join(dir, i))
+
+    recalcModuleHashes()
 
 
 def getModuleFn(modulename: str) -> str:
@@ -324,7 +375,7 @@ def getModuleWordHash(m: str) -> str:
     return modulewordhashes[m].upper()
 
 
-def modulesHaveChanged() -> None:
+def recalcModuleHashes() -> None:
     global moduleshash, modulehashes, modulewordhashes
     moduleshash = hashModules()
     modulehashes = {}

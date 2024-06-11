@@ -74,6 +74,8 @@ from beartype import beartype
 from scullery import workers
 from scullery.scheduling import scheduler
 
+from kaithem.api import lifespan
+
 from . import astrallibwrapper as sky
 from . import geolocation, settings_overrides, tagpoints, util
 
@@ -261,6 +263,7 @@ globalUsrFunctions = {
     "cfg": cfg,
 }
 
+
 globalConstants = {"e": math.e, "pi": math.pi}
 
 
@@ -360,6 +363,7 @@ class ScriptActionKeeper:
 
     def __init__(self):
         self.scriptcommands = weakref.WeakValueDictionary()
+        self.debug_refs = {}
 
     def __setitem__(self, key, value):
         if not isinstance(key, str):
@@ -376,6 +380,13 @@ class ScriptActionKeeper:
                 raise ValueError("All default values must be int, string, or bool, not " + str(p[i].default))
 
         self.scriptcommands[key] = value
+
+        def warn_chandler_gc(x):
+            # Lifespan will be None during system exit
+            if lifespan and not lifespan.shutdown:
+                print(f"Chandler action {x} is no longer valid")
+
+        self.debug_refs[key] = weakref.ref(value, warn_chandler_gc)
 
     def __getitem__(self, key):
         return self.scriptcommands[key]

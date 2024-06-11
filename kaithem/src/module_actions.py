@@ -5,7 +5,7 @@ import time
 import uuid
 from typing import Any
 
-import cherrypy
+import quart
 
 from kaithem.api.web.dialogs import SimpleDialog
 
@@ -24,13 +24,13 @@ class ModuleAction:
         self.context = context
         self.last_interaction = time.time()
 
-    def step(self, **kwargs):
+    def step(self, **kwargs) -> str | None:
         self.last_interaction = time.time()
 
     def close(self):
         with lock:
             actions.pop(self.id, None)
-        raise cherrypy.HTTPRedirect(f"/modules/module/{self.context['module']}/")
+        return quart.redirect(f"/modules/module/{self.context['module']}/")
 
     def get_step_target(self):
         return f"/action_step/{self.id}"

@@ -1,5 +1,6 @@
 from typing import Any, Callable
 
+from kaithem.src.chandler import global_actions as _global_actions
 from kaithem.src.chandler import scenes as _scenes
 
 
@@ -13,9 +14,9 @@ def add_command(name: str, f: Callable):
 
 def trigger_event(event: str, value: Any = None):
     "Trigger an event in all scenes"
-    _scenes.event(event, value)
+    _global_actions.event(event, value)
 
 
 def shortcut(s: str):
     """Trigger a shortcut code.  All matching cues will be jumped to."""
-    _scenes.shortcutCode(s)
+    _global_actions.shortcutCode(s)

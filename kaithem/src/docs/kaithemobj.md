@@ -248,16 +248,6 @@ Return true if it is not past civil twilight given lat-lon location. If
 no coordinates are supplied, the server location configured in the
 settings page is used. If no location is configured, an error is raised.
 
-#### kaithem.time.is\_rahu(llat=None,lon=None)
-
-Return true if it is currently Rahukalaam (A period during each day that
-is considered inauspicious for new ventures in Indian astrology) in the
-given lat-lon location. For more info see the [wiki
-article.](http://en.wikipedia.org/wiki/Rahukaalam) If no coordinates are
-supplied, the server location configured in the settings page is used.
-If no location is configured, an error is raised.
-
-
 ### kaithem.users
 
 This namespace contains features for working with kaithem's user

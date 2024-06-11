@@ -1,12 +1,11 @@
 # SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
-import logging
 import time
 from collections import deque
 
-import cherrypy
+import structlog
 
-from . import messagebus, pages
+from . import messagebus, pages, quart_app
 from .config import config
 from .messagebus import normalize_topic
 
@@ -16,7 +15,7 @@ approxtotallogentries = 0
 log = {}
 
 
-logger = logging.getLogger("system.msgbus")
+logger = structlog.get_logger(__name__)
 
 
 def messagelistener(topic, message):
@@ -34,20 +33,26 @@ def messagelistener(topic, message):
         if len(log[topic]) > config["non_logged_topic_limit"]:
             log[topic].popleft()
             approxtotallogentries -= 1
-    except Exception as e:
-        print(e)
+    except Exception:
+        logger.exception("Error in messagebus logger")
 
 
 messagebus.subscribe("/#", messagelistener)
 
 
-class WebInterface:
-    @cherrypy.expose
-    def index(self, *args, **kwargs):
+@quart_app.app.route("/logs")
+def logs_index():
+    try:
         pages.require("view_admin_info")
-        return pages.get_template("logging/index.html").render()
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    return pages.get_template("logging/index.html").render()
 
-    @cherrypy.expose
-    def viewall(self, topic, page=1):
+
+@quart_app.app.route("/logs/viewall")
+def viewall(topic, page=1):
+    try:
         pages.require("view_admin_info")
-        return pages.get_template("logging/topic.html").render(topicname=normalize_topic(topic), page=int(page))
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    return pages.get_template("logging/topic.html").render(topicname=normalize_topic(topic), page=int(page))

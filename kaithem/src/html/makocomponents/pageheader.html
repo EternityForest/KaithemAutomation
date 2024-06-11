@@ -1,7 +1,7 @@
 <%!
 from kaithem.src.config import config
 from kaithem.src import auth,util,notifications,pages,modules,modules_state,theming,devices,persist
-import cherrypy,socket,base64
+import quart,socket,base64
 %>
 
 <!DOCTYPE html>
@@ -89,7 +89,7 @@ import cherrypy,socket,base64
 
 <body id="page">
 
-  %if not cherrypy.request.params.get("kaithem_disable_header",0):
+  %if not quart.request.args.get("kaithem_disable_header",0):
   <header class="undecorated">
 
     <div class="tool-bar" style="position: relative;">
@@ -110,7 +110,7 @@ import cherrypy,socket,base64
       ${i}
       %endfor
 
-      <a href="/modules/"><i class="mdi mdi-briefcase-variant-outline"></i>
+      <a href="/modules"><i class="mdi mdi-briefcase-variant-outline"></i>
         Modules</a>
 
         <a  href="/devices"><i class="mdi mdi-chip"></i>
@@ -140,19 +140,13 @@ import cherrypy,socket,base64
 Tools</a>
 
 
-        %if "kaithem_auth" in cherrypy.request.cookie:
-        %if cherrypy.request.cookie['kaithem_auth'].value in auth.Tokens:
+        %if pages.getAcessingUser() != "__guest__":
         <form style="flex-grow: 0.05;" method="POST" action="/login/logout">
         <button href="/login/logout"><i class="mdi mdi-key"></i>Logout(${pages.getAcessingUser()[:10]|h})</button>
         </form>
 
         %else:
-        <a  style="flex-grow: 0.05;" href="/login?go=${base64.b64encode(cherrypy.url().encode()).decode()}"><i class="mdi mdi-key"></i>Login</a>
-        %endif
-
-
-        %else:
-        <a  style="flex-grow: 0.05;" href="/login?go=${base64.b64encode(cherrypy.url().encode()).decode()}"><i class="mdi mdi-key"></i>Login</a>
+        <a  style="flex-grow: 0.05;" href="/login?go=${base64.b64encode(quart.request.url.encode()).decode()}"><i class="mdi mdi-key"></i>Login</a>
         %endif
 
 

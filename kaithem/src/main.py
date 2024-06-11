@@ -8,12 +8,18 @@ import threading
 import time
 from typing import Any, Dict, Optional
 
+import structlog
+
 from kaithem import __version__
 
 from . import config
 
 __version_info__ = __version__.__version_info__
 __version__ = __version__.__version__
+
+structlog.stdlib.recreate_defaults()
+cr = structlog.dev.ConsoleRenderer()
+structlog.configure(processors=structlog.get_config()["processors"][:-1] + [cr])
 
 
 def import_in_thread(m):
@@ -33,14 +39,11 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
 
     # Paralellize slow imports
     for i in [
-        "tornado",
         "sqlite3",
         "pytz",
         "mako",
         "mako.lookup",
         "jinja2",
-        "tornado.websocket",
-        "tornado.routing",
         "typeguard",
         "multiprocessing",
         "glob",
@@ -49,7 +52,6 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
         "numpy",
         "zeroconf",
         "msgpack",
-        "cherrypy",
         "dateutil.rrule",
         "psutil",
         "kaithem.src.jackmanager",
@@ -97,8 +99,8 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
         kaithemobj,  # noqa: F401
         logviewer,  # noqa: F401
         messagelogging,  # noqa: F401
+        module_object_inspector,  # noqa: F401
         modules,  # noqa: F401
-        modules_interface,  # noqa: F401
         notifications,  # noqa: F401
         persist,  # noqa: F401
         plugin_system,  # noqa: F401
@@ -149,7 +151,7 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
 
     scheduling.function_error_hooks.append(handle_error)
 
-    logger = logging.getLogger("system")
+    logger = structlog.get_logger(__name__)
     logger.setLevel(logging.INFO)
 
     os.makedirs(os.path.join(directories.vardir, "static"), exist_ok=True)

@@ -7,6 +7,7 @@ import bz2
 import gc
 import getpass
 import gzip
+import io
 import logging
 import os
 import random
@@ -57,15 +58,41 @@ atexit.register(at_exit)
 
 class KFormatter(logging.Formatter):
     def formatException(self, exc_info):
-        return textwrap.fill(
-            logging.Formatter.formatException(self, exc_info),
-            initial_indent="  ",
-            subsequent_indent="  ",
-            width=240,
+        return "\n".join(
+            textwrap.wrap(
+                logging.Formatter.formatException(self, exc_info),
+                initial_indent="  ",
+                subsequent_indent="  ",
+                width=80,
+            )
         )
 
 
 lastRaisedLogFailError = [0.0]
+
+
+def _strip_ansi_colour(text: str):
+    """Strip ANSI colour sequences from a string.
+
+    Args:
+        text (str): Text string to be stripped.
+
+    Returns:
+        iter[str]: A generator for each returned character. Note,
+        this will include newline characters.
+
+    """
+    buff = io.StringIO(text)
+    while b := buff.read(1):
+        if b == "\x1b":
+            while (b := buff.read(1)) != "m":
+                continue
+        else:
+            yield b
+
+
+def strip_ansi_colour(text: str) -> str:
+    return "".join(_strip_ansi_colour(text))
 
 
 def rateLimitedRaise(e):
@@ -91,7 +118,7 @@ class LoggingHandler(logging.Handler):
         entries_per_file=25000,
         keep=10,
         compress="none",
-        doprint=True,
+        doprint=False,
         exclude_print="",
     ):
         """Implements a memory-buffered context logger with automatic log rotation.
@@ -146,7 +173,7 @@ class LoggingHandler(logging.Handler):
         # This callback is for when we want to use this handler as a filter.
         self.callback = lambda x: x
         logging.getLogger().addHandler(self)
-        formatter = KFormatter("%(levelname)s:%(asctime)s %(name)s %(message)s", "%Y%b%d %H:%M:%S %Z")
+        formatter = KFormatter("%(message)s", "%Y%b%d %H:%M:%S %Z")
         self.setFormatter(formatter)
         all_handlers[(time.time(), random.random(), self.name)] = self
 
@@ -173,20 +200,21 @@ class LoggingHandler(logging.Handler):
 
     def emit(self, record):
         # We handle all logs that make it to the root logger, and do the filtering ourselves
+        raw = self.format(record)
+        txt = strip_ansi_colour(raw)
         if self.doprint:
             if not self.exclude_print or (not (record.name == self.exclude_print or record.name.startswith(f"{self.exclude_print}."))):
-                print(self.format(record))
-        if not (record.name == self.name or record.name.startswith(f"{self.name}.")) and not self.name == "":
-            return
+                print(raw)
+
         self.callback(record)
         with self.lock:
             if record.levelno >= self.contextlevel:
                 self.logbuffer.extend(self.contextbuffer)
                 self.contextbuffer = []
-                self.logbuffer.append(self.format(record))
+                self.logbuffer.append(txt)
             # That truncation operation will actulally do nothing if the contextlen is 0
             elif self.contextlen:
-                self.contextbuffer.append(self.format(record))
+                self.contextbuffer.append(txt)
                 self.contextbuffer = self.contextbuffer[-self.contextlen :]
 
         if len(self.logbuffer) >= self.bufferlen:
@@ -355,7 +383,7 @@ class LoggingHandler(logging.Handler):
 
 # Don't print, the root logger does that.
 syslogger = LoggingHandler(
-    "system",
+    "root",
     fn="system",
     folder=os.path.join(directories.logdir, "dumps"),
     level=logging.INFO,
@@ -365,7 +393,8 @@ syslogger = LoggingHandler(
     compress=config["log_compress"],
     doprint=False,
 )
-logging.getLogger("system").addHandler(syslogger)
+
+logging.getLogger().addHandler(syslogger)
 
 # Linux only way of recovering backups even if the
 if os.path.exists(f"/dev/shm/kaithemdbglog_{getpass.getuser()}"):
@@ -420,8 +449,7 @@ if os.path.exists("/dev/shm"):
         bufferlen=0,
         keep=10**6,
         compress="none",
-        doprint=True,
-        exclude_print="system",
+        doprint=False,
     )
     shmhandler.isShmHandler = True
     logging.getLogger().addHandler(shmhandler)

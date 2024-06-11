@@ -1,9 +1,6 @@
 import importlib as _importlib
 import os as _os
-from collections.abc import Callable
 
-import beartype as _beartype
-import cherrypy as _cherrypy
 import jinja2 as _jinja2
 
 from kaithem.src import directories as _directories
@@ -17,9 +14,6 @@ nav_bar_plugins = _pages.nav_bar_plugins
 
 _asgi_apps = []
 _wsgi_apps = []
-_tornado_apps = []
-
-_simple_handlers = {}
 
 
 # This is for plugins to use and extend pageheader.
@@ -66,49 +60,29 @@ def render_jinja_template(template_filename: str, **kw):
     return _jl.load(_env, template_filename, _env.globals).render(imp0rt=_importlib.import_module, **kw)
 
 
-def add_asgi_app(pattern: str, app, permission="system_admin"):
-    "Mount an ASGI application to handle all URLs matching the pattern regex"
-    _asgi_apps.append((pattern, app, permission))
+def add_asgi_app(prefix: str, app, permission="system_admin"):
+    "Mount an ASGI application to handle all URLs matching the prefix"
+    if prefix.endswith(".*"):
+        prefix = prefix[:-2]
+    _asgi_apps.append((prefix, app, permission))
 
 
-def add_wsgi_app(pattern: str, app, permission="system_admin"):
-    "Mount a WSGI application to handle all URLs matching the pattern regex"
-    _wsgi_apps.append((pattern, app, permission))
-
-
-def add_tornado_app(pattern: str, app, args, permission="system_admin"):
-    "Mount a Tornado application to handle all URLs matching the pattern regex"
-    _tornado_apps.append((pattern, app, args, permission))
-
-
-@_beartype.beartype
-def add_simple_cherrypy_handler(prefix: str, permission: str, handler: Callable[..., str]):
-    """
-    Register handler for all requests that look like /prefix.
-    handler must look like:
-    f(*path, **kwargs)
-
-    It will by in a cherrypy context.
-
-    This function is alpha.
-
-    """
-
-    _simple_handlers[prefix] = (permission, handler)
-
-
-def goto(url):
-    "Call from within a CherryPy handler to raise an exception to go to another URL"
-    raise _cherrypy.HTTPRedirect(url)
+def add_wsgi_app(prefix: str, app, permission="system_admin"):
+    "Mount a WSGI application to handle all URLs matching the prefix"
+    if prefix.endswith(".*"):
+        prefix = prefix[:-2]
+    _wsgi_apps.append((prefix, app, permission))
 
 
 def serve_file(path, contenttype="", name=None):
-    "Call from within a CherryPy handler to server a file."
+    "Call from within a Quart handler to server a file."
     _pages.serveFile(path=path, contenttype=contenttype, name=name)
 
 
-def user() -> str:
+def user(asgi=None) -> str:
     """
+    asgi: The ASGI scope object that is currently active, required if
+          this is called from outside a Quart context.
 
     Returns:
         str: Username of this active web request, or empty string if unknown
@@ -120,7 +94,7 @@ def user() -> str:
         return ""
 
 
-def has_permission(permission: str):
+def has_permission(permission: str, asgi=None) -> bool:
     """Return True if the user accessing the current web request
     has the permssion specified"""
-    return _pages.canUserDoThis(permission)
+    return _pages.canUserDoThis(permission, asgi)

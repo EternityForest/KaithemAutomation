@@ -40,6 +40,8 @@
             "**/.buildozer/**",
             "**/.venv/**",
             "**/.isolated_venv/**"
-            ]
+            ],
+            "python.testing.pytestEnabled": true,
+            "python.testing.cwd": ""
 
 }

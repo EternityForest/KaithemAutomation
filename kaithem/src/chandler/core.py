@@ -10,6 +10,7 @@ import weakref
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
+import structlog
 import textdistance
 from tinytag import TinyTag
 
@@ -58,7 +59,7 @@ def rl_log_exc(m: str):
 
 
 lock = threading.RLock()
-logger = logging.getLogger("system.chandler")
+logger = structlog.get_logger(__name__)
 
 saveLocation = os.path.join(kaithem.misc.vardir, "chandler")
 
@@ -127,7 +128,7 @@ def getSoundFolders() -> dict[str, str]:
 
     modulesdata = os.path.join(kaithem.misc.vardir, "modules", "data")
     if os.path.exists(modulesdata):
-        for i in os.listdir():
+        for i in os.listdir(modulesdata):
             soundfolders[os.path.join(kaithem.misc.vardir, "modules", "data", i, "__filedata__", "media")] = "Module:" + i + "/media"
     return soundfolders
 

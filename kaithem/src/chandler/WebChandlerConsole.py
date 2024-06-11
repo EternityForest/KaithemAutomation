@@ -8,6 +8,7 @@ import time
 import traceback
 from typing import Any
 
+import yaml
 from scullery import snake_compat
 from tinytag import TinyTag
 
@@ -16,7 +17,9 @@ from ..auth import canUserDoThis
 from ..kaithemobj import kaithem
 from . import ChandlerConsole, core, scenes, universes
 from .core import disallow_special
-from .scenes import Scene, cues, event
+from .cue import fnToCueName
+from .global_actions import event
+from .scenes import Scene, cues
 
 
 def listsoundfolder(path: str):
@@ -149,8 +152,8 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
     def send_everything(self, sessionid: str):
         with core.lock:
-            self.pushUniverses()
-            self.pushfixtures()
+            self.push_setup()
+            self.push_setup()
             self.linkSend(["alerts", getAlertState()])
             self.linkSend(["soundfolders", core.config.get("sound_folders")])
 
@@ -169,10 +172,10 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                     print(traceback.format_exc())
 
                 try:
-                    for j in s.slideshow_telemetry:
+                    for j in s.media_link.slideshow_telemetry:
                         # TODO send more stuff to just the target
                         self.linkSendTo(
-                            ["slideshow_telemetry", j, s.slideshow_telemetry[j]],
+                            ["slideshow_telemetry", j, s.media_link.slideshow_telemetry[j]],
                             sessionid,
                         )
                 except Exception:
@@ -223,7 +226,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 s = scenes.scenes[msg[1]]
                 self.pushCueList(s.id)
                 self.pushMeta(msg[1])
-                self.pushfixtures()
+                self.push_setup()
 
             kaithem.misc.do(f)
             return
@@ -265,7 +268,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         # There's such a possibility for an iteration error if universes changes.
         # I'm not going to worry about it, this is only for the GUI list of universes.
         elif cmd_name == "getuniverses":
-            self.pushUniverses()
+            self.push_setup()
             return
 
         elif cmd_name == "getserports":
@@ -291,7 +294,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         elif cmd_name == "getfixtureassg":
             self.linkSend(["fixtureAssignments", self.fixture_assignments])
-            self.pushfixtures()
+            self.push_setup()
             return
 
         else:
@@ -304,10 +307,13 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         # User level runtime stuff that can't change config
 
         if cmd_name == "jumptocue":
-            if not cues[msg[1]].scene().active:
-                cues[msg[1]].scene().go()
+            sc = cues[msg[1]].scene()
+            assert sc
 
-            cues[msg[1]].scene().goto_cue(cues[msg[1]].name, cause="manual")
+            if not sc.active:
+                sc.go()
+
+            sc.goto_cue(cues[msg[1]].name, cause="manual")
             return
 
         elif cmd_name == "jumpbyname":
@@ -389,9 +395,10 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         if cmd_name == "preset":
             if msg[2] is None:
-                self.presets.pop(msg[2], None)
+                self.fixture_presets.pop(msg[1], None)
             else:
-                self.presets[msg[1]] = msg[2]
+                self.fixture_presets[msg[1]] = msg[2]
+            self.linkSend(["fixturePresets", self.fixture_presets])
 
         elif cmd_name == "saveState":
             self.check_autosave()
@@ -399,17 +406,17 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         elif cmd_name == "loadShow":
             self.load_show(msg[1])
 
-        elif cmd_name == "saveLibrary":
-            self.save_project_data("fixturetypes", self.fixture_classes, "lighting/fixtureclasses")
+        elif cmd_name == "downloadSetup":
+            self.linkSendTo(["fileDownload", msg[1], yaml.dump(self.getLibraryFile())], sessionid)
+
+        elif cmd_name == "fileUpload":
+            if msg[2] == "setup":
+                self.loadSetupFile(msg[1])
 
         elif cmd_name == "addscene":
             sc = Scene(self, msg[1].strip())
             self.scenes[sc.id] = sc
             self.pushMeta(sc.id)
-
-        elif cmd_name == "addmonitor":
-            sc = Scene(self, msg[1].strip(), blend="monitor", priority=100, active=True)
-            self.scenes[sc.id] = sc
 
         elif cmd_name == "setconfuniverses":
             if kaithem.users.check_permission(user, "system_admin"):
@@ -518,17 +525,12 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 scenes.scenes[msg[1]].setMqttServer(msg[2])
                 self.pushMeta(msg[1], keys={"mqtt_server"})
 
-        elif cmd_name == "namechannel":
-            if msg[3]:
-                u = universes.universes[msg[1]]()
-                if u:
-                    u.channels[msg[2]] = msg[3]
-            else:
-                del universes.universes[msg[1]]().channels[msg[2]]
-
         elif cmd_name == "add_cueval":
-            if hasattr(cues[msg[1]].scene().blendClass, "default_channel_value"):
-                val = cues[msg[1]].scene().blendClass.default_channel_value
+            sc = cues[msg[1]].scene()
+            assert sc
+
+            if hasattr(sc.lighting_manager.blendClass, "default_channel_value"):
+                val = sc.lighting_manager.blendClass.default_channel_value
             else:
                 val = 0
 
@@ -555,8 +557,10 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             # Channels are stored by name and not by number.
             for i in x.channels:
                 if i[1] not in ("unused", "fixed"):
-                    if hasattr(cue.scene().blendClass, "default_channel_value"):
-                        val = cue.scene().blendClass.default_channel_value
+                    sc = cue.scene()
+                    assert sc
+                    if hasattr(sc.lighting_manager.blendClass, "default_channel_value"):
+                        val = sc.lighting_manager.blendClass.default_channel_value
                     else:
                         val = 0
                     # i[0] is the name of the channel
@@ -570,8 +574,10 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 # The __dest__ channels represet the color at the end of the channel
                 for i in x.channels:
                     if i[1] not in ("unused", "fixed"):
-                        if hasattr(cue.scene().blendClass, "default_channel_value"):
-                            val = cue.scene().blendClass.default_channel_value
+                        sc = cue.scene()
+                        assert sc
+                        if hasattr(sc.lighting_manager.blendClass, "default_channel_value"):
+                            val = sc.lighting_manager.blendClass.default_channel_value
                         else:
                             val = 0
                         # i[0] is the name of the channel
@@ -628,7 +634,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             scenes.scenes[msg[1]].setBPM(msg[2])
 
         elif cmd_name == "setcrossfade":
-            scenes.scenes[msg[1]].crossfade = float(msg[2])
+            scenes.scenes[msg[1]].crossfade = float(msg[2] or 0)
 
         elif cmd_name == "setdalpha":
             scenes.scenes[msg[1]].setAlpha(msg[2], sd=True)
@@ -662,7 +668,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         elif cmd_name == "newFromSound":
             bn = os.path.basename(msg[2])
-            bn = scenes.fnToCueName(bn)
+            bn = fnToCueName(bn)
             try:
                 tags = TinyTag.get(msg[2])
                 if tags.artist and tags.title:
@@ -695,13 +701,14 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         elif cmd_name == "newFromSlide":
             bn = os.path.basename(msg[2])
-            bn = scenes.fnToCueName(bn)
+            bn = fnToCueName(bn)
 
             bn = disallow_special(bn, "_~", replaceMode=" ")
             if bn not in scenes.scenes[msg[1]].cues:
                 scenes.scenes[msg[1]].add_cue(bn)
                 soundfolders = core.getSoundFolders()
-
+                assert soundfolders
+                s = ""
                 for i in soundfolders:
                     s = msg[2]
                     # Make paths relative.
@@ -710,6 +717,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                     if s.startswith(i):
                         s = s[len(i) :]
                         break
+                assert s
                 scenes.scenes[msg[1]].cues[bn].slide = s
 
                 if not scenes.is_static_media(s):
@@ -729,7 +737,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         elif cmd_name == "setfadein":
             try:
-                v = float(msg[2])
+                v = float(msg[2] or 0)
             except Exception:
                 v = msg[2]
             cues[msg[1]].fade_in = v
@@ -737,7 +745,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         elif cmd_name == "setSoundFadeOut":
             try:
-                v = float(msg[2])
+                v = float(msg[2] or 0)
             except Exception:
                 v = msg[2]
             cues[msg[1]].sound_fade_out = v
@@ -745,12 +753,14 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         elif cmd_name == "setCueVolume":
             try:
-                v = float(msg[2])
+                v = float(msg[2] or 1)
             except Exception:
                 v = msg[2]
             cues[msg[1]].sound_volume = v
             self.pushCueMeta(msg[1])
-            cues[msg[1]].scene().setAlpha(cues[msg[1]].scene().alpha)
+            sc = cues[msg[1]].scene()
+            assert sc
+            sc.setAlpha(sc.alpha)
 
         elif cmd_name == "setCueLoops":
             try:
@@ -760,11 +770,13 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             cues[msg[1]].sound_loops = v if (not v == -1) else 99999999999999999
 
             self.pushCueMeta(msg[1])
-            cues[msg[1]].scene().setAlpha(cues[msg[1]].scene().alpha)
+            sc = cues[msg[1]].scene()
+            assert sc
+            sc.setAlpha(sc.alpha)
 
         elif cmd_name == "setSoundFadeIn":
             try:
-                v = float(msg[2])
+                v = float(msg[2] or 0)
             except Exception:
                 v = msg[2]
             cues[msg[1]].sound_fade_in = v
@@ -789,15 +801,17 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             kaithem.assetpacks.ensure_file(msg[2])
 
             soundfolders = core.getSoundFolders()
-
-            for i in soundfolders:
-                s = msg[2]
-                # Make paths relative.
-                if not i.endswith("/"):
-                    i = i + "/"
-                if s.startswith(i):
-                    s = s[len(i) :]
-                    break
+            s = ""
+            if msg[2]:
+                for i in soundfolders:
+                    s = msg[2]
+                    # Make paths relative.
+                    if not i.endswith("/"):
+                        i = i + "/"
+                    if s.startswith(i):
+                        s = s[len(i) :]
+                        break
+                assert s
 
             if s.strip() and cues[msg[1]].sound and cues[msg[1]].named_for_sound:
                 self.pushCueMeta(msg[1])
@@ -830,19 +844,19 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             self.pushCueMeta(msg[1])
 
         elif cmd_name == "setcuesoundstartposition":
-            cues[msg[1]].sound_start_position = float(msg[2].strip())
+            cues[msg[1]].sound_start_position = float(msg[2].strip() or 0)
             self.pushCueMeta(msg[1])
 
         elif cmd_name == "setcuemediaspeed":
-            cues[msg[1]].media_speed = float(str(msg[2]).strip())
+            cues[msg[1]].media_speed = float(str(msg[2]).strip() or 1)
             self.pushCueMeta(msg[1])
 
         elif cmd_name == "setcuemediawindup":
-            cues[msg[1]].media_wind_up = float(str(msg[2]).strip())
+            cues[msg[1]].media_wind_up = float(str(msg[2]).strip() or 0)
             self.pushCueMeta(msg[1])
 
         elif cmd_name == "setcuemediawinddown":
-            cues[msg[1]].media_wind_down = float(str(msg[2]).strip())
+            cues[msg[1]].media_wind_down = float(str(msg[2]).strip() or 0)
             self.pushCueMeta(msg[1])
 
         elif cmd_name == "settrack":
@@ -897,7 +911,9 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             except Exception:
                 v = msg[2][:256]
             cues[msg[1]].length = v
-            cues[msg[1]].scene().recalc_cue_len()
+            sc = cues[msg[1]].scene()
+            assert sc
+            sc.recalc_cue_len()
             self.pushCueMeta(msg[1])
 
         elif cmd_name == "setrandomize":
@@ -906,7 +922,9 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             except Exception:
                 v = msg[2][:256]
             cues[msg[1]].length_randomize = v
-            cues[msg[1]].scene().recalc_randomize_modifier()
+            sc = cues[msg[1]].scene()
+            assert sc
+            sc.recalc_randomize_modifier()
             self.pushCueMeta(msg[1])
 
         elif cmd_name == "setnext":

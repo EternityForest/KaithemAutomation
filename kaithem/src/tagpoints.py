@@ -6,7 +6,6 @@ from __future__ import annotations
 import copy
 import functools
 import json
-import logging
 import math
 import random
 import re
@@ -27,10 +26,13 @@ from typing import (
 import beartype
 import dateutil
 import dateutil.parser
+import structlog
 from scullery import scheduling
 
 from . import alerts, messagebus, pages, widgets, workers
 from .unitsofmeasure import convert, unit_types
+
+logger = structlog.get_logger(__name__)
 
 
 def to_sk(s: str):
@@ -61,7 +63,10 @@ def get_tag_meta(t):
     t = allTagsAtomic[t]()
     assert t
 
-    pages.require(t.get_effective_permissions()[0])
+    try:
+        pages.require(t.get_effective_permissions()[0])
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
     if not t:
         raise RuntimeError("Tag not found")
 
@@ -98,8 +103,7 @@ def get_tag_meta(t):
 # only for tags where someone has requested a number.
 assigned_unique_numbers: dict[int, str] = {}
 
-logger = logging.getLogger("tagpoints")
-syslogger = logging.getLogger("system")
+logger = structlog.get_logger(__name__)
 
 exposedTags: weakref.WeakValueDictionary[str, GenericTagPointClass[Any]] = weakref.WeakValueDictionary()
 
@@ -176,6 +180,7 @@ def normalize_tag_name(name: str, replacementChar: str | None = None) -> str:
 
     # Special case, these tags are expression tags.
     if not name.startswith("="):
+        name = re.sub(r"\[(.*)\]", lambda x: f".{x.groups(1)[0]}", name)
         for i in ILLEGAL_NAME_CHARS:
             if i in name:
                 if replacementChar:
@@ -1024,7 +1029,7 @@ class GenericTagPointClass(Generic[T]):
 
             if pollStuff:
                 try:
-                    self.unsubscribe(pollStuff[2])
+                    scheduling.scheduler.unregister(pollStuff[1])
                 except Exception:
                     logger.exception("Maybe already unsubbed?")
 
@@ -1108,7 +1113,7 @@ class GenericTagPointClass(Generic[T]):
 
         def errcheck(*a: Any):
             if time.monotonic() < timestamp - 0.5:
-                logging.warning("Function: " + desc + " was deleted 0.5s after being subscribed.  This is probably not what you wanted.")
+                logger.warning("Function: " + desc + " was deleted 0.5s after being subscribed.  This is probably not what you wanted.")
 
         if self.lock.acquire(timeout=20):
             try:
@@ -1121,7 +1126,7 @@ class GenericTagPointClass(Generic[T]):
 
                 for i in self.subscribers:
                     if f == i():
-                        syslogger.warning(
+                        logger.warning(
                             "Double subscribe detected, same function subscribed to "
                             + self.name
                             + " more than once.  Only the first takes effect."
@@ -1311,7 +1316,7 @@ class GenericTagPointClass(Generic[T]):
                         # We extend the idea that cache is allowed to also
                         # mean we can fall back to cache in case of a timeout.
                         else:
-                            logging.error("tag point:" + self.name + " took too long getting lock to get value, falling back to cache")
+                            logger.error("tag point:" + self.name + " took too long getting lock to get value, falling back to cache")
                             return self.last_value
                     try:
                         # None means no new data
@@ -1342,7 +1347,7 @@ class GenericTagPointClass(Generic[T]):
                     # The system logger is the one kaithem actually logs to file.
                     if self.lastError < (time.monotonic() - (60 * 10)):
                         self.lastError = time.monotonic()
-                        syslogger.exception("Error getting tag value. This message will only be logged every ten minutes.")
+                        logger.exception("Error getting tag value. This message will only be logged every ten minutes.")
                     # If we can, try to send the exception back whence it came
                     try:
                         from .plugins import CorePluginEventResources
@@ -1368,7 +1373,7 @@ class GenericTagPointClass(Generic[T]):
             try:
                 self.onSourceChanged(name)
             except Exception:
-                logging.exception("Error handling changed source")
+                logger.exception("Error handling changed source")
 
     def add_alias(self, alias: str):
         """Adds an alias of this tag, allowing access by another name."""

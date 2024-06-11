@@ -4,7 +4,7 @@ from kaithem.src import messagelogging
 from kaithem.src import messagebus
 from kaithem.src.unitsofmeasure import format_time_interval,strftime
 import time
-import cherrypy
+import quart
 from kaithem.src.util import url,saferepr
 from kaithem.src.config import config
 
@@ -50,8 +50,8 @@ function f(element)
     <div id="ListOfTopics">
     <%
         rev = False
-        if 'sort' in cherrypy.request.params:
-            if cherrypy.request.params['sort'] == 'time':
+        if 'sort' in quart.request.args:
+            if quart.request.args['sort'] == 'time':
                 sortkey = lambda x: messagelogging.log[x][-1][0]
                 rev = True
             else:
@@ -64,9 +64,9 @@ function f(element)
     There are ${len(messagelogging.log)|h} recent topics. Sorting:[<a href="/logs?sort=topic">Alphabetical</a>|<a href="/logs?sort=time">Most Recently Active</a>]<br>
     %if messagelogging.log:
         %for i in sorted(messagelogging.log.keys(),key=sortkey,reverse = rev):
-            <div id="f_${i}">
+            <div id="f_${i}" class="card w-sm-double">
+                <header><h3>${i}</h3></header>
 
-                <p>
                     <table border=1>
                     <tr>
                     <td>Latest Value</td><td><pre style="margin:2px;">${dump(messagelogging.log[i][-1][1])|h}</pre></td>
@@ -79,7 +79,6 @@ function f(element)
                     <td>Total Messages Available: </td><td>${len(messagelogging.log[i])}<a href="/logs/viewall/${url(i)}">View History</a></td>
                     </tr>
                     </table>
-                </p>
             </div>
         %endfor
     </div>

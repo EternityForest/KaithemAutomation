@@ -1,40 +1,154 @@
 Change Log
 ----------
-### 0.83.0
+
+### 0.84.0b2
+
+#### Fixed
+
+- :bug: Updated icemedia version fixes thread leak
+- :bug: Fix import resource from yaml
+- :bug: Sunrise and sunset times should be fixed
+- :bug: Require confirm checkbox was showing incorrect value
+- :bug: Missing file for lair.css theme
+- :bug: Fixture values were not applied on boot until the first cue transition
+- :bug: Fix issue where all black frames could get inserted in DMX output
+- :bug: Improve the UI for hthe fxture assignments setup
 
 #### Changed
-- :boom: Schema for tag history changed for daasette compatibility.
+
+- :boom: Use pyephem instead of astral due to this [issue](https://github.com/sffjunkie/astral/issues/7)
 
 #### Removed
 
-- :coffin: Experimental sqlite browser that didn't get much interest.
-- :coffin: yt-dlp integration removed.
+- :coffin: Rahu calculations removed due to switching libraries
+
+### 0.84.0b1
 
 #### Added
-- :sparkles: Usable RTP Opus listener to stream over network.
-- :sparkles: kaithem.api.web.add_asgi_app
+- :coffin: Fileserver resource types allow you to serve a directory of files as if it were at /pages/module/resourcename.  This replaces the old individual file permissions.
 
+- :sparkles: Lots of testing!
+- :sparkles: Now available on pypi!
+
+#### Removed
+
+- :coffin: Web console removed due to lack of ASGI but may return later
+- :coffin: BREAKING. The internal fileref system.  Instead, files in modules are just simple files under \_\_filedata\_\_
+
+
+#### Changed
+
+- :sparkles: Move to the quart framework instead of cherrypy. Everything is fully ASGI based.
+- :boom: Logging out just logs out your client, not all clients on that user
+- :sparkles: Most loggers moved to \_\_name\_\_ instead of system
+- :boom: Tag point name normalization replaces x\[foo\] with x.foo for consistency.
+
+#### Fixed
+
+- :bug: Fix page XSS options
+- :bug: Fix mixer level meters in new channels not immediately responding till you refresh the page
+- :bug: Fix very old bug where widget messages could be one message behind if sent rapidly, and the newest wouldn't be sent till something else triggered send. Chandler sliders should be much smoother.
+- :bug: Fix ancient race condition where widgets would subscribe before page load, and then the onpageload data happened before there was anything to recieve it.
+- :bug: Fix MIDI integration
 
 ```
 ┏━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━┳━━━━━━━━━┳━━━━━━┓
 ┃ Language      ┃ Files ┃     % ┃  Code ┃    % ┃ Comment ┃    % ┃
 ┡━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━╇━━━━━━━━━╇━━━━━━┩
-│ Python        │   121 │  29.2 │ 22471 │ 62.1 │    3988 │ 11.0 │
-│ HTML          │    54 │  13.0 │  5227 │ 74.4 │     141 │  2.0 │
-│ RHTML         │    62 │  15.0 │  5077 │ 74.4 │      27 │  0.4 │
-│ Markdown      │    33 │   8.0 │  4046 │ 69.4 │      19 │  0.3 │
-│ CSS           │    17 │   4.1 │  3115 │ 56.5 │     268 │  4.9 │
-│ JavaScript    │     6 │   1.4 │  1386 │ 51.5 │     142 │  5.3 │
-│ YAML          │    11 │   2.7 │   822 │ 74.7 │      83 │  7.5 │
-│ Bash          │    12 │   2.9 │   328 │ 29.2 │     147 │ 13.1 │
-│ Text only     │     1 │   0.2 │   109 │ 90.1 │       0 │  0.0 │
-│ JSON          │     1 │   0.2 │     4 │ 57.1 │       0 │  0.0 │
-│ __unknown__   │    18 │   4.3 │     0 │  0.0 │       0 │  0.0 │
-│ __empty__     │     1 │   0.2 │     0 │  0.0 │       0 │  0.0 │
-│ __duplicate__ │    12 │   2.9 │     0 │  0.0 │       0 │  0.0 │
-│ __binary__    │    65 │  15.7 │     0 │  0.0 │       0 │  0.0 │
+│ Python        │   127 │  32.5 │ 21987 │ 62.7 │    3809 │ 10.9 │
+│ HTML          │    53 │  13.6 │  4992 │ 75.0 │      89 │  1.3 │
+│ RHTML         │    58 │  14.8 │  4910 │ 74.4 │      25 │  0.4 │
+│ Markdown      │    33 │   8.4 │  4084 │ 68.1 │      19 │  0.3 │
+│ CSS           │    14 │   3.6 │  2578 │ 57.0 │     222 │  4.9 │
+│ JavaScript    │     6 │   1.5 │  1399 │ 51.8 │     141 │  5.2 │
+│ YAML          │    11 │   2.8 │   822 │ 74.8 │      81 │  7.4 │
+│ Text only     │     1 │   0.3 │   109 │ 90.1 │       0 │  0.0 │
+│ Bash          │     1 │   0.3 │    72 │ 59.0 │      25 │ 20.5 │
+│ JSON          │     1 │   0.3 │     4 │ 57.1 │       0 │  0.0 │
+│ __unknown__   │    18 │   4.6 │     0 │  0.0 │       0 │  0.0 │
+│ __empty__     │     1 │   0.3 │     0 │  0.0 │       0 │  0.0 │
+│ __duplicate__ │    11 │   2.8 │     0 │  0.0 │       0 │  0.0 │
+│ __binary__    │    56 │  14.3 │     0 │  0.0 │       0 │  0.0 │
 ├───────────────┼───────┼───────┼───────┼──────┼─────────┼──────┤
-│ Sum           │   414 │ 100.0 │ 42585 │ 64.1 │    4815 │  7.3 │
+│ Sum           │   391 │ 100.0 │ 40957 │ 65.2 │    4411 │  7.0 │
+└───────────────┴───────┴───────┴───────┴──────┴─────────┴──────┘
+```
+
+Tests
+
+```
+┏━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━┳━━━━━━┳━━━━━━━━━┳━━━━━━┓
+┃ Language   ┃ Files ┃     % ┃ Code ┃    % ┃ Comment ┃    % ┃
+┡━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━╇━━━━━━╇━━━━━━━━━╇━━━━━━┩
+│ Python     │    10 │  38.5 │  689 │ 49.6 │     172 │ 12.4 │
+│ TypeScript │    15 │  57.7 │  662 │ 63.3 │     118 │ 11.3 │
+│ __empty__  │     1 │   3.8 │    0 │  0.0 │       0 │  0.0 │
+├────────────┼───────┼───────┼──────┼──────┼─────────┼──────┤
+│ Sum        │    26 │ 100.0 │ 1351 │ 55.5 │     290 │ 11.9 │
+└────────────┴───────┴───────┴──────┴──────┴─────────┴──────┘
+```
+
+### 0.83.0
+
+Barring unforseen events, this will be the last release using
+CherryPy and Tornado.  Any APIs that reference them are deprecated.
+
+Future versions will use Quart and will be fully ASGI-based.
+
+#### Fixed
+
+- :bug: Bring back displaying errors on page editing UI
+- :bug: Fix moving a page resource
+- :bug: Static .vue files served with bad MIME type breaking tests
+- :bug: Guard against module or resource starting with /
+- :bug: Fix hashing new modules
+- :bug: :security: User page permissions were being removed on re-save.
+- :bug: :security: Because of this, please update to the new version of the Beholder module
+
+
+#### Changed
+
+- :boom: Schema for tag history changed for daasette compatibility.
+- :lipstick: LoC count excludes tests.
+
+#### Removed
+
+- :coffin: Experimental sqlite browser that didn't get much interest.
+- :coffin: yt-dlp integration removed.
+- :coffin: Monitor scenes removed
+
+#### Added
+
+- :sparkles: Usable RTP Opus listener to stream over network.
+- :sparkles: kaithem.api.web.add_asgi_app
+- :sparkles: e2e tests with [Playwright](https://playwright.dev/docs/intro)
+- :sparkles: Colorful log output with structlog
+
+#### Dev Info
+
+New pytest tests: 1
+New Playwright tests: 4
+
+```
+┏━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━┳━━━━━━━━━┳━━━━━━┓
+┃ Language      ┃ Files ┃     % ┃  Code ┃    % ┃ Comment ┃    % ┃
+┡━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━╇━━━━━━━━━╇━━━━━━┩
+│ Python        │   118 │  29.8 │ 21947 │ 62.6 │    3870 │ 11.0 │
+│ HTML          │    54 │  13.6 │  5225 │ 74.4 │     141 │  2.0 │
+│ RHTML         │    61 │  15.4 │  5036 │ 74.4 │      27 │  0.4 │
+│ Markdown      │    33 │   8.3 │  4060 │ 69.0 │      19 │  0.3 │
+│ CSS           │    14 │   3.5 │  2578 │ 57.0 │     222 │  4.9 │
+│ JavaScript    │     6 │   1.5 │  1406 │ 51.8 │     143 │  5.3 │
+│ YAML          │    11 │   2.8 │   822 │ 74.7 │      83 │  7.5 │
+│ Bash          │    12 │   3.0 │   328 │ 29.2 │     147 │ 13.1 │
+│ Text only     │     1 │   0.3 │   109 │ 90.1 │       0 │  0.0 │
+│ JSON          │     1 │   0.3 │     4 │ 57.1 │       0 │  0.0 │
+│ __unknown__   │    18 │   4.5 │     0 │  0.0 │       0 │  0.0 │
+│ __empty__     │     1 │   0.3 │     0 │  0.0 │       0 │  0.0 │
+│ __duplicate__ │    10 │   2.5 │     0 │  0.0 │       0 │  0.0 │
+│ __binary__    │    56 │  14.1 │     0 │  0.0 │       0 │  0.0 │
+├───────────────┼───────┼───────┼───────┼──────┼─────────┼──────┤
+│ Sum           │   396 │ 100.0 │ 41515 │ 64.5 │    4652 │  7.2 │
 └───────────────┴───────┴───────┴───────┴──────┴─────────┴──────┘
 ```
 
@@ -75,6 +189,7 @@ This release brings compatibility with Python 3.12 and Ubuntu 24.04
 - :coffin: The module[resource] APIs are removed. Use kaithem.api.modules instead.
 
 #### Line Counts
+
 (Note, pygount doesn't detect languages perfectly, the HTML is atually only Mako and Jinja2)
 ```
 ┏━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━━━┳━━━━━━┓
@@ -128,9 +243,11 @@ This release brings compatibility with Python 3.12 and Ubuntu 24.04
 ### 0.80.1 (Apr 27)
 
 #### Fixed
+
 - :bug: Even more sneaky camelcase and tag name normalization bugs!
 
 #### Added
+
 - :sparkles: LED element for chandler tag display.
 
 ### 0.80.0 (Apr 24)
@@ -371,10 +488,12 @@ Some may return in iot_devices later.
 
 
 ### 0.76.1
+
 - :bug: Critical Bug: Fix chandler universes not being saved correctly
 
 
 ### 0.76.0
+
 - :bug: Fix utility scene checkbox in chandler not showing correct value
 - :bug: Fix Chandler relative length with web slides
 - :bug: Fix iot_devices not setting the default
@@ -396,6 +515,7 @@ Some may return in iot_devices later.
 
 
 ### 0.75.1
+
 - :bug: Fix chandler scenes sometimes sharing all data for the default cues
 - :bug: Fix makefile install process
 - :bug: More reliable max-volume-at-boot script
@@ -403,6 +523,7 @@ Some may return in iot_devices later.
 - :sparkles: Settings page link to set ALSA mixer volume to full
 
 ### 0.75.0
+
 - :sparkles: Default page title is now the hostname
 - :sparkles: Devices report feature lets you print out all the device settings
 - :bug: Nuisance gstreamer output
@@ -411,6 +532,7 @@ Some may return in iot_devices later.
 - :sparkles: Chandler shows time at which each scene entered the current cue
 
 ### 0.74.0
+
 - :sparkles: Use Terminado and xterm.js to finally provide a proper system console shell!!!
 - :bug: Fix recursion issue in device.handle_error
 - :bug: Fix chatty logs from aioesphomeapi
@@ -422,14 +544,17 @@ Some may return in iot_devices later.
 
 
 ### 0.73.2
+
 - :bug: Fix crackling audio on some systems by using the system suggested PipeWire quantum
 
 ### 0.73.1
+
 - :bug: Fix chandler not liking cues with empty strings for some settings
 - :bug: Fix incredibly dumb bug where I forgot that isinstance doesn't consider int  subtype of float. :facepalm:
 - :lipstick: Snake-casifying internals
 
 ### 0.73.0
+
 - :bug: Fix chandler cue slide set button
 - :bug: Fix mixer channel not changing after refresh button until changing the slider
 - :lipstick: autoAck and tripDelay are snake_case now
@@ -442,12 +567,14 @@ Some may return in iot_devices later.
 
 
 ### 0.71.2
+
 - :bug: Fix contextInfo > context_info snake case bug
 - :bug: Pipewire stuttering in some cases
 - :bug: Fix page editors
 
 
 ### 0.71.1
+
 - :bug: Further minor CSS work
 - :bug: Fix mixing board not working on Firefox
 
@@ -463,6 +590,7 @@ Some may return in iot_devices later.
 
 
 ### 0.70.0
+
 This release has some big changes to the install process, but not many to the
 functionality.  Expect a few bugs in the next few versions as we rewrite old code to be more in line with best practices.
 
@@ -517,6 +645,7 @@ functionality.  Expect a few bugs in the next few versions as we rewrite old cod
 - :coffin: Simplify locking in Chandler to only use one lock.
 
 ### 0.69.1
+
 Moving to Tornado was a rather large change, this release is mostly cleanup.
 
 - :sparkles: Alt top banner HTML option in user pages
@@ -534,6 +663,7 @@ Moving to Tornado was a rather large change, this release is mostly cleanup.
 - :coffin: We no longer support starting as root and dropping permissions. Use systemd features for port 80.
 
 ### 0.68.48
+
 - :coffin: Remove the Chandler tag permissions system, as it is too complex to properly assess the security model. It can now access any tag.
 - :sparkles: JACK mixer has a noise gate now
 - :sparkles: Link on settings page to take screenshot of server(Useful for checking on signage)
@@ -557,17 +687,21 @@ Moving to Tornado was a rather large change, this release is mostly cleanup.
 - :sparkles: Work on a proper theme chooser engine
 -
 ### 0.68.46
+
 - :bug: Video signage auto restart fixes
 -
 ### 0.68.45
+
 - :sparkles: Digital signage chrome error resillience
 - :bug: New versions of NumPy needed a fix for the NVR labels file loading
 
 ### 0.68.44
+
 - :bug: Faster and more reliable jackmixer startup
 - :sparkles: Improve kioskify
 
 ### 0.68.43
+
 - :bug: Remove notification for tripped->normal transition
 - :sparkles: Show tripped alerts on main page
 - :sparkles: Thread start/stop logging now shows thread ID
@@ -607,6 +741,7 @@ This release is all about making the custom HTML pages more maintainable.
 
 
 ### 0.68.40
+
 - :bug: Don't spam notifications from inactive alerts
 - :bug: Use nmcli for wifi status instead of outdated dbus
 - :bug: Fix settings and theming page not loading
@@ -639,9 +774,11 @@ This release is all about making the custom HTML pages more maintainable.
 
 
 ### 0.68.38
+
 - :arrow_up: Update tinytag
 
 ### 0.68.37
+
 - :coffin: Schema validation removed from registry as the registry is deprecated anyway
 - :coffin: Remove the validictory module, it doesn't work in new python
 - :coffin: Remove the DrayerDB plugin as per the Decustomization philosophy
@@ -649,17 +786,20 @@ This release is all about making the custom HTML pages more maintainable.
 
 
 ### 0.68.36
+
 - :sparkles: Builtin video downloader does not use the largely incompatible webm
 - :sparkles: Chandler supports gradient effects over multiple identical fixtures
 - :sparkles: Chandler scenes list for the goto action block has a dropdown.
 - :sparkles: Chandler sound file browser has a refresh button
 
 ### 0.68.35
+
 - :sparkles: Mixer channels have a mute button
 - :sparkles: Simple dark theme
 
 
 ### 0.68.34
+
 - :bug: Fix alarms that reference other tagpoints
 - :bug: Fix use of ~ in config file directories
 - :bug: Chandler visual bugs
@@ -682,6 +822,7 @@ This release is all about making the custom HTML pages more maintainable.
 
 
 ### 0.68.33
+
 - :bug: Compatibility with older sdmon versions that gave bad JSON
 - :bug: Fix illegal character errors that were blocking showing low disk space alerts
 - :sparkles: Notifications are now posted to the system notifications, if you have plyer
@@ -689,6 +830,7 @@ This release is all about making the custom HTML pages more maintainable.
 
 
 ### 0.68.32
+
 - :fire: Roku ECP device app improved. API breaking.
 - :sparkles: Chandler scenes understand Roku commands like VolumeUp and Play
 - :sparkles: Better display for readme attribute of devices
@@ -696,12 +838,14 @@ This release is all about making the custom HTML pages more maintainable.
 
 
 ### 0.68.31
+
 - :sparkles: Module descriptions on the index page.
 - :sparkles: Module descriptions are now Markdown
 - :coffin: Broken years-old JookBawkse module removed
 - :bug: Un-break  creating new YeelightRGB devices
 
 ### 0.68.30
+
 - :bug: Object tags could get in an invalit state and prevent page load
 - :bug: Correctly detect NVR failure if snapshotting fails
 - :sparkles: Chandler scenes now have a "Command Tag", that allows you to accept shortcut codes from any event tag(Like to Roku Launch button)
@@ -710,10 +854,12 @@ This release is all about making the custom HTML pages more maintainable.
 
 
 ### 0.68.29
+
 - :bug: Print less log info and silently drop some records if we are running out of disk space, so as not to worsen the problem by logging it.
 
 
 ### 0.68.28
+
 - :lock: :coffin: Default admin:password credentials have been eliminated.
 - :sparkles: If there are no users, one is created using the login credentials of the Linux user actually running the Kaithem service
 - :sparkles: Any user can be set to use the system authentication.  Using Kaithem's weaker internal login is not suggested.
@@ -724,6 +870,7 @@ This release is all about making the custom HTML pages more maintainable.
 
 
 ### 0.68.27
+
 - :bug: Avoid useless logging client side errors caused by Firefox not supporting idle status at all
 - :bug: NVRChannel auto reconnect used to never retry again if the very first attempt was a failure.
 - :bug: Avoid rare bug that killed the WS manager thread
@@ -752,15 +899,18 @@ on switching to PipeWire.  The next EmberOS will have Pipewire running by defaul
 
 
 ### 0.68.24
+
 - :bug: Fix missing platformdirs.version
 - :sparkles: NVRChannel discovery for Amcrest cameras, because that's what I've got lying around.
 - :monocle_face: Please be aware: Many major CCTV manufactures are rebrands of just a few firms that may be supporting things you may find morally abhorrent.
 
 ### 0.68.23
+
 - :zap: JSON RPC performance boost with select polling
 
 
 ### 0.68.22
+
 - :sparkles: NVRChannels can now act as open SRT servers
 - :sparkles: NVRChannels can play SRT URLs as long as they are h264/AAC in an MPEG-TS codec.
 - Boost the no-motion detection interval for spotting sneaky people far away.
@@ -768,6 +918,7 @@ on switching to PipeWire.  The next EmberOS will have Pipewire running by defaul
 - :sparkles: New CSS class section class=fancy(BG Image by West of OGA)
 
 ### 0.68.21 Security Matters!
+
 - :coffin: Remove a lot of dead code
 - :coffin: :fire: BREAKING: Remove the entire VirtualResource mechanism. I think it was too complicated to use anyway.
 - As a result, getting a Device object will give a Weak Proxy to the device instead of a VirtualResourceInterface.
@@ -784,6 +935,7 @@ on switching to PipeWire.  The next EmberOS will have Pipewire running by defaul
 
 
 ### 0.68.20
+
 - :lock: SECURITY: Can no longer do certain things in a cross-origin iframe, as extra protection.
 - :lock: SECURITY/BREAKING: Now you need a POST request for Chandler's sendevent API
 - :lock: :sparkles:SECURITY: User pages show at a glance whether they accept GET
@@ -791,35 +943,42 @@ on switching to PipeWire.  The next EmberOS will have Pipewire running by defaul
 - :sparkles: This file uses GitMoji now! Gitmoji chosen because it is the first Google result.
 
 ### 0.68.19
+
 - SECURITY/SEMI-BREAKING: No CORS requests from any other domain allowed as a user, regardless of permissions needed, unless enabled in user settings.
 - SECURITY: Fix bug where an attack from my.org could be accepted as matching your domain at my.org.fooo.com
 - Fix old code that was looking for YOLOv3.txt
 
 ### 0.68.18
+
 - kaithem.web.serveFile streaming response
 - SECURITY: Beholder no longer allows unauthorized access to camera snapshots
 - Correctly finalize M3U8 files with the end playlist tag
 
 ### 0.68.17
+
 - Clean up a process leak with the IceFlow servers
 
 ### 0.68.16
 - Correctly compute width and height of deteted objects
 
 ### 0.68.15
+
 - kaithem.web.serveFile now can serve a bytesIO object if mime and filename are provided.
 - Object Detection in NVRChannel!!! You just need opencv and tflite_runtime!! Future cleanup may not need opencv
 - Fix bug where deleting a tag point logger would not save.
 - We use git-lfs now.  If you are missing files it's probably because that isn't set up.
 
 ### 0.68.14
+
 - Fix bug where NVRChannel would carry over record sessions and thereby crash and not be able to recover from connection failure
 - Improve nvr time search
 
 ### 0.68.13
+
 - NVRChannel can now use scipy for way better performance on erosion operations.
 -
 ### 0.68.12
+
 - NVRChannel can now auto reconnect after a network problem.
 
 ### 0.68.11

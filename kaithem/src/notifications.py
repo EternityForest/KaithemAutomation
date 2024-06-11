@@ -7,17 +7,18 @@ import os
 import threading
 import time
 
-import cherrypy
+import quart
+import structlog
 from scullery import scheduling
 
-from . import directories, messagebus, pages, persist, widgets, workers
+from . import directories, messagebus, pages, persist, quart_app, widgets, workers
 from .config import config
 from .unitsofmeasure import strftime
 
-mlogger = logging.getLogger("system.msgbuslog")
+mlogger = structlog.get_logger("system.msgbuslog")
 
-logger = logging.getLogger("system.notifications")
-ilogger = logging.getLogger("system.notifications.important")
+logger = structlog.get_logger("system.notifications")
+ilogger = structlog.get_logger("system.notifications.important")
 
 notificationslog = []
 
@@ -70,16 +71,24 @@ def countnew(since):
     return [total, normal, warnings, errors]
 
 
-class WI:
-    @cherrypy.expose
-    def countnew(self, **kwargs):
+@quart_app.app.route("/notifications/countnew")
+def countnew_target():
+    kwargs = quart.request.args
+    try:
         pages.require("view_status")
-        return json.dumps(countnew(float(kwargs["since"])))
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    return json.dumps(countnew(float(kwargs["since"])))
 
-    @cherrypy.expose
-    def mostrecent(self, **kwargs):
+
+@quart_app.app.route("/notifications/mostrecent")
+def mostrecent_target():
+    kwargs = quart.request.args
+    try:
         pages.require("view_status")
-        return json.dumps(notificationslog[-int(kwargs["count"]) :])
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    return json.dumps(notificationslog[-int(kwargs["count"]) :])
 
 
 epochAndRemaining = [0, 15]

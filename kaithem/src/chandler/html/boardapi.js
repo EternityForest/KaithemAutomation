@@ -22,20 +22,20 @@ ${ vars }
 function playAlert(m) {
     if (vueapp.$data.uiAlertSounds) {
         var mp3_url = '/static/freeboardsounds/Information_Bell.opus';
-        (new Audio(mp3_url)).play().catch(() =>{})
+        (new Audio(mp3_url)).play().catch(() => { })
     }
     if (m) {
-        KaithemWidgetApiSnackbar(m,60)
+        KaithemWidgetApiSnackbar(m, 60)
     }
 }
 
 function errorTone(m) {
     if (vueapp.$data.uiAlertSounds) {
         var mp3_url = '/static/freeboardsounds/423166__plasterbrain__minimalist-sci-fi-ui-error.opus';
-        (new Audio(mp3_url)).play().catch(() =>{})
+        (new Audio(mp3_url)).play().catch(() => { })
     }
     if (m) {
-        KaithemWidgetApiSnackbar(m,60)
+        KaithemWidgetApiSnackbar(m, 60)
     }
 }
 // Legacy compatibility equivalents for the old vue2 apis. TODO get rid of this
@@ -135,8 +135,7 @@ appMethods = {
     // Slowly we want to migrate to these two generic setters
     'setSceneProperty': function (scene, property, value) {
         var x = cueSetData[scene + property]
-        if (x)
-        {
+        if (x) {
             clearTimeout(x);
             delete cueSetData[scene + property]
         }
@@ -145,8 +144,7 @@ appMethods = {
     },
     'setCueProperty': function (cue, property, value) {
         var x = cueSetData[cue + property]
-        if (x)
-        {
+        if (x) {
             clearTimeout(x);
             delete cueSetData[cue + property]
         }
@@ -159,8 +157,7 @@ appMethods = {
         //Set the property in 5 seconds, unless we get another command to set
         //it to something else
         var x = cueSetData[cue + property]
-        if (x)
-        {
+        if (x) {
             clearTimeout(x);
         }
 
@@ -175,8 +172,7 @@ appMethods = {
         //Set the property in 5 seconds, unless we get another command to set
         //it to something else
         var x = cueSetData[scene + property]
-        if (x)
-        {
+        if (x) {
             clearTimeout(x);
         }
 
@@ -192,10 +188,6 @@ appMethods = {
         api_link.send(['saveState'])
     },
 
-    'saveLibrary': function () {
-
-        api_link.send(['saveLibrary'])
-    },
     'sendev': function (where) {
         api_link.send(['event', this.evtosend, this.evval, this.evtypetosend, where])
     },
@@ -211,7 +203,6 @@ appMethods = {
     },
     'setCueVal': function (sc, u, ch, val) {
         val = isNaN(parseFloat(val)) ? val : parseFloat(val)
-        this.lockedFaders[sc + ":" + u + ":" + ch] = true;
         api_link.send(['scv', sc, u, ch, val]);
     },
 
@@ -230,11 +221,12 @@ appMethods = {
         val = isNaN(parseFloat(val)) ? val : parseFloat(val)
         api_link.send(['scv', sc, u, ch, val]);
     },
-    'unlockCueValFader': function (sc, u, ch) {
-        delete this.lockedFaders[sc + ":" + u + ":" + ch];
-    },
+
 
     'selectcue': function (sc, cue) {
+        if (this.cueSelectTimeout) {
+            clearTimeout(this.cueSelectTimeout)
+        }
         this.selectedCues[sc] = cue
         this.getcuedata(this.scenecues[sc][cue])
     },
@@ -291,14 +283,9 @@ appMethods = {
 
 
     'setalpha': function (sc, v) {
-        this.lockedFaders[sc] = true;
         api_link.send(['setalpha', sc, v]);
         this.alphas[sc] = v
     },
-    'unlockAlpha': function (sc) {
-        delete this.lockedFaders[sc];
-    },
-
 
     'setfade': function (sc, v) {
 
@@ -331,10 +318,14 @@ appMethods = {
             old_vue_set(this.scenecues[sc], v, undefined);
             this.recomputeformattedCues();
         };
-        setTimeout(function () {
-            old_vue_set(this.selectedCues,
+        const t = this
+        if (this.cueSelectTimeout) {
+            clearTimeout(this.cueSelectTimeout)
+        }
+        this.cueSelectTimeout = setTimeout(function () {
+            old_vue_set(t.selectedCues,
                 sc, v)
-        }, 70)
+        }, 350)
     },
 
     'clonecue': function (sc, cue, v) {
@@ -345,15 +336,18 @@ appMethods = {
             old_vue_set(this.scenecues[sc], v, undefined);
             this.recomputeformattedCues();
         };
-        setTimeout(function () {
-            old_vue_set(this.selectedCues,
+        const t = this
+        if (this.cueSelectTimeout) {
+            clearTimeout(this.cueSelectTimeout)
+        }
+        this.cueSelectTimeout = setTimeout(function () {
+            old_vue_set(t.selectedCues,
                 sc, v)
-        }, 70)
+        }, 350)
 
     },
     'gotonext': function (currentcueid, scene) {
-        if (!confirm_for_scenes(scene))
-        {
+        if (!confirm_for_scenes(scene)) {
             return
         }
         nextcue = this.cuemeta[currentcueid].next
@@ -383,6 +377,24 @@ appMethods = {
         }
         this.selectedCues[this.scenename] = 'default'
         api_link.send(['rmcue', cue]);
+    },
+
+    'uploadFileFromElement': function (e, type) {
+        // Type says what to do with it
+        let t = document.getElementById(e)
+
+        async function readText(target) {
+            const file = target.files.item(0)
+            const text = await file.text();
+
+            api_link.send(['fileUpload', text, type]);
+        }
+
+        readText(t)
+    },
+    'downloadSetup': function () {
+        appData.downloadReqId = Math.random().toString();
+        api_link.send(['downloadSetup', appData.downloadReqId]);
     },
     'jumptocue': function (cue, scene) {
         if (confirm_for_scene(scene)) {
@@ -789,7 +801,7 @@ appComputed = {
 appData = {
     //https://stackoverflow.com/questions/6312993/javascript-seconds-to-time-string-with-format-hhmmss
     'formatInterval': formatInterval,
-    'clock':'time_should_be_here',
+    'clock': 'time_should_be_here',
     'console': console,
     'sc_code': "",
     'unixtime': 0,
@@ -807,7 +819,7 @@ appData = {
     'newcuetag': '',
     'newcuevnumber': '',
     'newscenename': '',
-    'nuisianceRateLimit': [10,Date.now()],
+    'nuisianceRateLimit': [10, Date.now()],
     'specialvars': [
         ["_", "Output of the previous action"]
     ],
@@ -986,8 +998,7 @@ appData = {
     'doRateLimit': function () {
         this.nuisianceRateLimit[0] += (Date.now() - this.nuisianceRateLimit[1]) / 180000
         this.nuisianceRateLimit[0] = Math.min(12, this.nuisianceRateLimit[0])
-        if (this.nuisianceRateLimit[0] > 0)
-        {
+        if (this.nuisianceRateLimit[0] > 0) {
             this.nuisianceRateLimit[0] -= 1
             return true;
         }
@@ -1162,6 +1173,9 @@ appData = {
     'selectedCues': {},
     'showPages': false,
     'uiAlertSounds': true,
+    // Used for things that auto select cues after a delay to set things
+    // up but also are cancelable.
+    'cueSelectTimeout': 0,
     //go from cue name to cue id
     //scenecues[sceneuuid][cuename]=cueid
     'scenecues': {},
@@ -1171,9 +1185,6 @@ appData = {
     //same info as scenevals, indexed hierarchally, as [universe][channel]
     //Actual objs are shared too so changing one obj change in in the other.
 
-    //We must track faders the user is actively touching so new data doesn't
-    //Annoy you jumping them around
-    'lockedFaders': {},
     'presets': {},
 
     //All alarms active on server
@@ -1184,7 +1195,7 @@ appData = {
     'deletePreset': function (p) {
         if (confirm("Really Delete")) {
             delete this.presets[p];
-            api_link.send(['preset', p, None]);
+            api_link.send(['preset', p, null]);
 
         }
     },
@@ -1204,7 +1215,7 @@ appData = {
             var b = this.presets[p]
             if (b) {
                 delete this.presets[p];
-                api_link.send(['preset', p, None]);
+                api_link.send(['preset', p, null]);
 
                 this.presets[n] = b;
                 api_link.send(['preset', n, b]);
@@ -1274,12 +1285,14 @@ function f(v) {
                 }
             }
 
-            vueapp.$data.slideshow_telemetry[v[1]] =v[2]
+            vueapp.$data.slideshow_telemetry[v[1]] = v[2]
         }
     }
 
     else if (c == 'scenetimers') {
-        vueapp.$data.scenemeta[v[1]].timers = v[2]
+        if (vueapp.$data.scenemeta[v[1]]) {
+            vueapp.$data.scenemeta[v[1]].timers = v[2]
+        }
     }
     else if (c == 'cuehistory') {
         vueapp.$data.scenemeta[v[1]].history = v[2]
@@ -1287,14 +1300,12 @@ function f(v) {
     else if (c == "scenemeta") {
         if (v[2].cue) {
             if (vueapp.$data.cuemeta[v[2].cue] == undefined) {
-               appMethods.getcuemeta(v[2].cue)
+                appMethods.getcuemeta(v[2].cue)
             }
         }
 
         if (v[2].alpha != undefined) {
-            if (!vueapp.$data.lockedFaders[v[1]]) {
-                old_vue_set(vueapp.$data.alphas, v[1], v[2].alpha);
-            }
+            old_vue_set(vueapp.$data.alphas, v[1], v[2].alpha);
         }
 
         //Just update existing data if we can
@@ -1336,7 +1347,7 @@ function f(v) {
 
         vueapp.$data.evlog.unshift(v[1])
         if (vueapp.$data.evlog.length > 250) {
-            vueapp.$data.evlog = vueapp.$data.evlog.slice(0,250)
+            vueapp.$data.evlog = vueapp.$data.evlog.slice(0, 250)
         }
 
         if (v[1][0].includes("error")) {
@@ -1349,8 +1360,7 @@ function f(v) {
     }
 
     else if (c == 'alerts') {
-        if (JSON.stringify(vueapp.$data.sys_alerts) != JSON.stringify(v[1]))
-        {
+        if (JSON.stringify(vueapp.$data.sys_alerts) != JSON.stringify(v[1])) {
             if (v[1]) {
                 errorTone()
             }
@@ -1368,7 +1378,9 @@ function f(v) {
     }
 
     else if (c == "varchange") {
-        vueapp.$data.scenemeta[v[1]]['vars'][v[2]] = v[3]
+        if (vueapp.$data.scenemeta[v[1]]) {
+            vueapp.$data.scenemeta[v[1]]['vars'][v[2]] = v[3]
+        }
     }
     else if (c == "delcue") {
         c = vueapp.$data.cuemeta[v[1]]
@@ -1454,18 +1466,17 @@ function f(v) {
         channel = v[3]
         value = v[4]
 
-        if (vueapp.$data.lockedFaders[cue + ":" + universe + ":" + channel] == true) {
-            return;
-        }
 
+
+        //Empty universe dict, we are not set up to listen to this yet
+        if (!vueapp.$data.cuevals[cue]) {
+            return
+        }
+        if (!vueapp.$data.cuevals[cue][universe]) {
+            return
+        }
 
         var needRefresh = false;
-        //Empty universe dict
-        if (!vueapp.$data.cuevals[cue][universe]) {
-
-            old_vue_set(vueapp.$data.cuevals[cue], universe, {})
-            needRefresh = 1;
-        }
 
         if (v[4] !== null) {
 
@@ -1480,6 +1491,10 @@ function f(v) {
         else {
             old_vue_delete(vueapp.$data.cuevals[cue][universe], channel)
             needRefresh = 1;
+        }
+
+        if(Object.entries(vueapp.$data.cuevals[cue][universe]).length == 0){
+            old_vue_delete(vueapp.$data.cuevals[cue], universe)
         }
     }
 
@@ -1532,8 +1547,28 @@ function f(v) {
         }
     }
 
-    else if (c == 'presets') {
+    else if (c == 'fixturePresets') {
         vueapp.$data.presets = v[1]
+    }
+
+    else if (c == 'fileDownload') {
+
+        if (v[1] == vueapp.$data.downloadReqId) {
+            const file = new File([v[2]], v[3], {
+                type: 'text/plain',
+            })
+
+            const link = document.createElement('a')
+            const url = URL.createObjectURL(file)
+
+            link.href = url
+            link.download = file.name
+            document.body.appendChild(link)
+            link.click()
+
+            document.body.removeChild(link)
+            window.URL.revokeObjectURL(url)
+        }
     }
 }
 
@@ -1547,7 +1582,7 @@ init_api_link = function () {
         vueapp.$data.clock = new Date(api_link.now()).toLocaleTimeString()
         vueapp.$data.unixtime = api_link.now() / 1000
         setTimeout(unix_time_upd,
-            1000-(api_link.now()%1000) )
+            1000 - (api_link.now() % 1000))
     }
 
     unix_time_upd()
@@ -1555,17 +1590,15 @@ init_api_link = function () {
     var update_meters = function () {
         var u = api_link.now() / 1000
 
-        for (i of document.querySelectorAll('[data-meter-ref]'))
-        {
+        for (i of document.querySelectorAll('[data-meter-ref]')) {
             i.value = u - parseFloat(i.dataset.meterRef)
         }
 
-        for (i of document.querySelectorAll('[data-count-ref]'))
-        {
+        for (i of document.querySelectorAll('[data-count-ref]')) {
             l = parseFloat(i.dataset.countLen)
             e = parseFloat(i.dataset.countRef) + l
 
-            i.innerHTML = formatInterval(e -u)
+            i.innerHTML = formatInterval(e - u)
         }
 
     }
@@ -1578,8 +1611,7 @@ var confirm_for_scene = function (sc) {
             return true
         }
     }
-    else
-    {
+    else {
         return true
     }
 }

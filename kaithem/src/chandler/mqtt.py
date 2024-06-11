@@ -1,12 +1,14 @@
 import logging
+import threading
+import time
 import traceback
 import weakref
-import time
-import threading
+
+import structlog
+
 from ..kaithemobj import kaithem
 
-
-logger = logging.getLogger("system.chandler")
+logger = structlog.get_logger(__name__)
 
 testCrashOnce = False
 
@@ -14,13 +16,7 @@ testCrashOnce = False
 def checkIfConnected(c, delay):
     time.sleep(delay)
     if not c.is_connected:
-        logging.warning(
-            "An MQTT connection to : "
-            + str(c.name)
-            + " was not connected after "
-            + str(delay)
-            + " seconds of waiting"
-        )
+        logging.warning("An MQTT connection to : " + str(c.name) + " was not connected after " + str(delay) + " seconds of waiting")
 
 
 def waitConnected(c):
@@ -56,9 +52,7 @@ def getWeakrefHandlers(self):
                 return
             self().on_connect()
 
-            logger.info(
-                "Connected to MQTT server: " + self().name + "result code " + str(rc)
-            )
+            logger.info("Connected to MQTT server: " + self().name + "result code " + str(rc))
             # Don't block the network thread too long
 
             def subscriptionRefresh():
@@ -76,9 +70,9 @@ def getWeakrefHandlers(self):
         try:
             if not self():
                 return
-            logger.info("Dis_connected from MQTT server: " + self().name)
+            logger.info("Disconnected from MQTT server: " + self().name)
             self().on_disconnect()
-            logger.info("Dis_connected from MQTT server: " + self().name)
+            logger.info("Disconnected from MQTT server: " + self().name)
         except Exception:
             logging.exception("MQTT")
 
@@ -127,9 +121,7 @@ class MQTTConnection:
             # if self.username:
             #     self.username_pw_set(self.username, self.password)
 
-            self.connection.connect_async(
-                host, port=port, keepalive=10, bind_address=""
-            )
+            self.connection.connect_async(host, port=port, keepalive=10, bind_address="")
 
             self.connection.on_connect = on_connect
             self.connection.on_disconnect = on_disconnect
@@ -170,9 +162,7 @@ class MQTTConnection:
                 self.connection.subscribe(t, 0)
                 self.sucessful_subscriptions.append(t)
             except Exception:
-                logger.exception(
-                    "Could not subscribe to MQTT message but can retry later"
-                )
+                logger.exception("Could not subscribe to MQTT message but can retry later")
 
     def on_message(self, t, m):
         pass

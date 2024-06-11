@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import ctypes  # Calm down, this has become standard library since 2.5
+import datetime
+import inspect
 import logging
 import os
 import shutil
@@ -10,20 +12,13 @@ import subprocess
 import threading
 import time
 import traceback
-import zipfile
 
-import cherrypy
-from cherrypy.lib.static import serve_file
+import quart
+import quart.utils
+import structlog
+from quart.ctx import copy_current_request_context
 
-from . import (
-    auth,
-    directories,
-    kaithemobj,
-    messagebus,
-    pages,
-    persist,
-    weblogin,
-)
+from . import auth, directories, kaithemobj, messagebus, pages, persist, quart_app, weblogin
 
 notificationsfn = os.path.join(directories.vardir, "core.settings", "pushnotifications.toml")
 
@@ -117,126 +112,173 @@ def ctype_async_raise(thread_obj, exception):
         raise SystemError("PyThreadState_SetAsyncExc failed")
 
 
-syslogger = logging.getLogger("system")
+logger = structlog.get_logger(__name__)
 
 
-page_plugins: dict[str, PagePlugin] = {}
+def legacy_route(f):
+    r = f"/settings/{f.__name__}"
+
+    p = inspect.signature(f).parameters
+    for i in p:
+        if i not in ("a", "k", "kwargs", "kw"):
+            r += f"/<{i}>"
+
+    async def f2(*a):
+        kwargs = dict(await quart.request.form)
+        kwargs.update(quart.request.args)
+
+        @copy_current_request_context
+        def f3():
+            return f(*a, **kwargs)
+
+        return await f3()
+
+    f2.__name__ = f.__name__ + str(os.urandom(8).hex())
+    f.f2 = f2
+
+    quart_app.app.route(r, methods=["GET", "POST"])(f2)
+    return f
 
 
-class PagePlugin:
-    def __init__(self, name: str, perms=("system_admin",), title=""):
-        page_plugins[name] = self
-        self.perms = perms
-        self.title = title
-
-    def handle(self, *a, **k):
-        raise NotImplementedError()
+@quart_app.app.route("/settings")
+@quart_app.app.route("/settings/index")
+@quart_app.app.route("/settings/")
+def index_settings():
+    """Index page for web interface"""
+    return pages.get_template("settings/index.html").render()
 
 
-class Settings:
-    @cherrypy.expose
-    def index(self):
-        """Index page for web interface"""
-        cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
-        return pages.get_template("settings/index.html").render()
-
-    @cherrypy.expose
-    def default(self, plugin: str, *a, **k):
-        pages.require(page_plugins[plugin].perms)
-        cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
-        return page_plugins[plugin].handle(*a, **k)
-
-    @cherrypy.expose
-    def loginfailures(self, **kwargs):
+@legacy_route
+def loginfailures():
+    try:
         pages.require("system_admin")
-        with weblogin.recordslock:
-            fr = weblogin.failureRecords.items()
-        return pages.get_template("settings/security.html").render(history=fr)
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    with weblogin.recordslock:
+        fr = weblogin.failureRecords.items()
+    return pages.get_template("settings/security.html").render(history=fr)
 
-    @cherrypy.expose
-    def threads(self, *a, **k):
-        """Return a page showing all of kaithem's current running threads"""
-        pages.require("view_admin_info", noautoreturn=True)
-        return pages.get_template("settings/threads.html").render()
 
-    @cherrypy.expose
-    def killThread(self, a):
-        pages.require("system_admin", noautoreturn=True)
+@legacy_route
+def threads():
+    """Return a page showing all of kaithem's current running threads"""
+    try:
+        pages.require("view_admin_info")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    return pages.get_template("settings/threads.html").render()
+
+
+@legacy_route
+def killThread(a):
+    try:
+        pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    pages.postOnly()
+
+    for i in threading.enumerate():
+        if str(id(i)) == a:
+            ctype_async_raise(i, SystemExit)
+    return quart.redirect("/settings/threads")
+
+
+@legacy_route
+def fix_alsa_volume():
+    pages.require(
+        "system_admin",
+    )
+    subprocess.check_call(fix_alsa, shell=True)
+    return quart.redirect("/settings")
+
+
+@legacy_route
+def mdns():
+    """Return a page showing all of the discovered stuff on the LAN"""
+    try:
+        pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    return pages.get_template("settings/mdns.html").render()
+
+
+@legacy_route
+def upnp():
+    """Return a page showing all of the discovered stuff on the LAN"""
+    try:
+        pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    return pages.get_template("settings/upnp.html").render()
+
+
+@legacy_route
+def stopsounds():
+    """Used to stop all sounds currently being played via kaithem's sound module"""
+    try:
+        pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    pages.postOnly()
+    kaithemobj.kaithem.sound.stop_all()
+    return quart.redirect("/settings")
+
+
+@legacy_route
+def gcsweep():
+    """Used to do a garbage collection. I think this is safe and doesn't need xss protection"""
+    try:
+        pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    import gc
+
+    # I don't think we can return right away anyway or people would think it was broken and not doing anything,
+    # Might as well retry a few times in case we have  cleanups that have to propagate through the thread pool or some
+    # other crazy unusual case
+    gc.collect()
+    gc.collect()
+    time.sleep(0.1)
+    gc.collect()
+    time.sleep(0.3)
+    gc.collect()
+    time.sleep(0.1)
+    gc.collect()
+    gc.collect()
+
+    return quart.redirect("/settings")
+
+
+@quart_app.app.route("/settings/files", methods=["GET", "POST"])
+@quart_app.app.route("/settings/files/<path:path>", methods=["GET", "POST"])
+async def files(path="", *args, **kwargs):
+    """Return a file manager. Kwargs may contain del=file to delete a file. The rest of the path is the directory to look in."""
+    try:
+        pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    dir = os.path.join("/", path)
+
+    files = await quart.request.files
+    if "file" in files:
         pages.postOnly()
+        if os.path.exists(os.path.join(dir, files["file"].filename)):
+            raise RuntimeError("Node with that name already exists")
 
-        for i in threading.enumerate():
-            if str(id(i)) == a:
-                ctype_async_raise(i, SystemExit)
-        raise cherrypy.HTTPRedirect("/settings/threads")
+        with open(os.path.join(dir, files["file"].filename), "wb") as f:
 
-    @cherrypy.expose
-    def fix_alsa_volume(self, *a, **k):
-        pages.require(
-            "system_admin",
-        )
-        subprocess.check_call(fix_alsa, shell=True)
-        raise cherrypy.HTTPRedirect("/settings")
+            def bg_upload():
+                while True:
+                    data = files["file"].read(8192)
+                    if not data:
+                        break
+                    f.write(data)
 
-    @cherrypy.expose
-    def mdns(self, *a, **k):
-        """Return a page showing all of the discovered stuff on the LAN"""
-        pages.require("system_admin", noautoreturn=True)
-        return pages.get_template("settings/mdns.html").render()
+            await quart.utils.run_sync(bg_upload)()
 
-    @cherrypy.expose
-    def screenshot(self):
-        pages.require("system_admin")
+    @copy_current_request_context
+    def f():
         try:
-            os.remove("/dev/shm/kaithem_temp_screenshot.jpg")
-        except Exception:
-            pass
-
-        os.system("scrot /dev/shm/kaithem_temp_screenshot.jpg")
-        return serve_file("/dev/shm/kaithem_temp_screenshot.jpg")
-
-    @cherrypy.expose
-    def upnp(self, *a, **k):
-        """Return a page showing all of the discovered stuff on the LAN"""
-        pages.require("system_admin", noautoreturn=True)
-        return pages.get_template("settings/upnp.html").render()
-
-    @cherrypy.expose
-    def stopsounds(self, *args, **kwargs):
-        """Used to stop all sounds currently being played via kaithem's sound module"""
-        pages.require("system_admin", noautoreturn=True)
-        pages.postOnly()
-        kaithemobj.kaithem.sound.stop_all()
-        raise cherrypy.HTTPRedirect("/settings")
-
-    @cherrypy.expose
-    def gcsweep(self, *args, **kwargs):
-        """Used to do a garbage collection. I think this is safe and doesn't need xss protection"""
-        pages.require("system_admin")
-        import gc
-
-        # I don't think we can return right away anyway or people would think it was broken and not doing anything,
-        # Might as well retry a few times in case we have  cleanups that have to propagate through the thread pool or some
-        # other crazy unusual case
-        gc.collect()
-        gc.collect()
-        time.sleep(0.1)
-        gc.collect()
-        time.sleep(0.3)
-        gc.collect()
-        time.sleep(0.1)
-        gc.collect()
-        gc.collect()
-
-        raise cherrypy.HTTPRedirect("/settings")
-
-    @cherrypy.expose
-    @cherrypy.config(**{"response.timeout": 7200})
-    def files(self, *args, **kwargs):
-        """Return a file manager. Kwargs may contain del=file to delete a file. The rest of the path is the directory to look in."""
-        pages.require("system_admin")
-        try:
-            dir = os.path.join("/", *args)
-
             if "del" in kwargs:
                 pages.postOnly()
                 node = os.path.join(dir, kwargs["del"])
@@ -244,328 +286,426 @@ class Settings:
                     os.remove(node)
                 else:
                     shutil.rmtree(node)
-                raise cherrypy.HTTPRedirect(cherrypy.request.path_info.split("?")[0])
+                return quart.redirect(quart.request.url.split("?")[0])
 
-            if "file" in kwargs:
-                pages.postOnly()
-                if os.path.exists(os.path.join(dir, kwargs["file"].filename)):
-                    raise RuntimeError("Node with that name already exists")
-                with open(os.path.join(dir, kwargs["file"].filename), "wb") as f:
-                    while True:
-                        data = kwargs["file"].file.read(8192)
-                        if not data:
-                            break
-                        f.write(data)
-
-            if "zipfile" in kwargs:
-                # Unpack all zip members directly right here,
-                # Without creating a subfolder.
-                pages.postOnly()
-                with zipfile.ZipFile(kwargs["zipfile"].file) as zf:
-                    for i in zf.namelist():
-                        with open(os.path.join(dir, i), "wb") as outf:
-                            f = zf.open(i)
-                            while True:
-                                data = f.read(8192)
-                                if not data:
-                                    break
-                                outf.write(data)
-                            f.close()
+            # if "zipfile" in kwargs:
+            #     # Unpack all zip members directly right here,
+            #     # Without creating a subfolder.
+            #     pages.postOnly()
+            #     with zipfile.ZipFile(kwargs["zipfile"].file) as zf:
+            #         for i in zf.namelist():
+            #             with open(os.path.join(dir, i), "wb") as outf:
+            #                 f = zf.open(i)
+            #                 while True:
+            #                     data = f.read(8192)
+            #                     if not data:
+            #                         break
+            #                     outf.write(data)
+            #                 f.close()
 
             if os.path.isdir(dir):
                 return pages.get_template("settings/files.html").render(dir=dir)
             else:
-                return serve_file(dir)
+                return quart.send_file(dir)
         except Exception:
             return traceback.format_exc()
 
-    @cherrypy.expose
-    def hlsplayer(self, *args, **kwargs):
-        """Return a file manager. Kwargs may contain del=file to delete a file. The rest of the path is the directory to look in."""
-        pages.require("system_admin")
-        try:
-            dir = os.path.join("/", *args)
-            return pages.get_template("settings/hlsplayer.html").render(play=dir)
-        except Exception:
-            return traceback.format_exc()
+    return await f()
 
-    @cherrypy.expose
-    def cnfdel(self, *args, **kwargs):
-        pages.require("system_admin")
-        path = os.path.join("/", *args)
-        return pages.get_template("settings/cnfdel.html").render(path=path)
 
-    @cherrypy.expose
-    def broadcast(self, **kwargs):
+@legacy_route
+def cnfdel(
+    *args,
+):
+    try:
         pages.require("system_admin")
-        return pages.get_template("settings/broadcast.html").render()
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    path = os.path.join("/", *args)
+    return pages.get_template("settings/cnfdel.html").render(path=path)
 
-    @cherrypy.expose
-    def snackbar(self, msg, duration):
+
+@legacy_route
+def broadcast():
+    try:
         pages.require("system_admin")
-        pages.postOnly()
-        kaithemobj.widgets.sendGlobalAlert(msg, float(duration))
-        return pages.get_template("settings/broadcast.html").render()
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    return pages.get_template("settings/broadcast.html").render()
 
-    @cherrypy.expose
-    def account(self):
+
+@legacy_route
+def snackbar(msg, duration):
+    try:
+        pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    pages.postOnly()
+    kaithemobj.widgets.sendGlobalAlert(msg, float(duration))
+    return pages.get_template("settings/broadcast.html").render()
+
+
+@legacy_route
+def account():
+    try:
         pages.require("own_account_settings")
-        return pages.get_template("settings/user_settings.html").render()
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    return pages.get_template("settings/user_settings.html").render()
 
-    @cherrypy.expose
-    def leaflet(self, *a, **k):
+
+@legacy_route
+def leaflet():
+    try:
         pages.require("view_status")
-        return pages.render_jinja_template("settings/util/leaflet.html")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    return pages.render_jinja_template("settings/util/leaflet.html")
 
-    @cherrypy.expose
-    def refreshuserpage(self, target):
+
+@legacy_route
+def refreshuserpage(target):
+    try:
         pages.require("own_account_settings")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    try:
         pages.require("/users/settings.edit")
-        pages.postOnly()
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    pages.postOnly()
 
-        from . import widgets
+    from . import widgets
 
-        widgets.send_to("__FORCEREFRESH__", "", target)
-        raise cherrypy.HTTPRedirect("/settings/account")
+    widgets.send_to("__FORCEREFRESH__", "", target)
+    return quart.redirect("/settings/account")
 
-    @cherrypy.expose
-    def changeprefs(self, **kwargs):
+
+@legacy_route
+def changeprefs(**kwargs):
+    try:
         pages.require("own_account_settings")
-        cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
-        pages.postOnly()
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    pages.postOnly()
 
-        if "tabtospace" in kwargs:
-            auth.setUserSetting(pages.getAcessingUser(), "tabtospace", True)
+    if "tabtospace" in kwargs:
+        auth.setUserSetting(pages.getAcessingUser(), "tabtospace", True)
+    else:
+        auth.setUserSetting(pages.getAcessingUser(), "tabtospace", False)
+
+    for i in kwargs:
+        if i.startswith("pref_"):
+            if i not in ["pref_strftime", "pref_timezone", "email"]:
+                continue
+            # Filter too long values
+            auth.setUserSetting(pages.getAcessingUser(), i[5:], kwargs[i][:200])
+
+    auth.setUserSetting(pages.getAcessingUser(), "allow-cors", "allowcors" in kwargs)
+
+    return quart.redirect("/settings/account")
+
+
+@legacy_route
+def changeinfo(**kwargs):
+    try:
+        pages.require("own_account_settings")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    pages.postOnly()
+    if len(kwargs["email"]) > 120:
+        raise RuntimeError("Limit 120 chars for email address")
+    auth.setUserSetting(pages.getAcessingUser(), "email", kwargs["email"])
+    messagebus.post_message("/system/auth/user/changedemail", pages.getAcessingUser())
+    return quart.redirect("/settings/account")
+
+
+@legacy_route
+def changepwd(**kwargs):
+    try:
+        pages.require("own_account_settings")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    pages.postOnly()
+    t = quart.request.cookies["kaithem_auth"]
+    u = auth.whoHasToken(t)
+    if len(kwargs["new"]) > 100:
+        raise RuntimeError("Limit 100 chars for password")
+    auth.resist_timing_attack((u + kwargs["old"]).encode("utf8"))
+    if not auth.userLogin(u, kwargs["old"]) == "failure":
+        if kwargs["new"] == kwargs["new2"]:
+            auth.changePassword(u, kwargs["new"])
         else:
-            auth.setUserSetting(pages.getAcessingUser(), "tabtospace", False)
+            return quart.redirect("/errors/mismatch")
+    else:
+        return quart.redirect("/errors/loginerror")
+    messagebus.post_message("/system/auth/user/selfchangedepassword", pages.getAcessingUser())
 
-        for i in kwargs:
-            if i.startswith("pref_"):
-                if i not in ["pref_strftime", "pref_timezone", "email"]:
-                    continue
-                # Filter too long values
-                auth.setUserSetting(pages.getAcessingUser(), i[5:], kwargs[i][:200])
+    return quart.redirect("/")
 
-        auth.setUserSetting(pages.getAcessingUser(), "allow-cors", "allowcors" in kwargs)
 
-        raise cherrypy.HTTPRedirect("/settings/account")
-
-    @cherrypy.expose
-    def changeinfo(self, **kwargs):
-        pages.require("own_account_settings")
-        pages.postOnly()
-        cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
-        if len(kwargs["email"]) > 120:
-            raise RuntimeError("Limit 120 chars for email address")
-        auth.setUserSetting(pages.getAcessingUser(), "email", kwargs["email"])
-        messagebus.post_message("/system/auth/user/changedemail", pages.getAcessingUser())
-        raise cherrypy.HTTPRedirect("/settings/account")
-
-    @cherrypy.expose
-    def changepwd(self, **kwargs):
-        pages.require("own_account_settings")
-        pages.postOnly()
-        cherrypy.response.headers["X-Frame-Options"] = "SAMEORIGIN"
-        t = cherrypy.request.cookie["kaithem_auth"].value
-        u = auth.whoHasToken(t)
-        if len(kwargs["new"]) > 100:
-            raise RuntimeError("Limit 100 chars for password")
-        auth.resist_timing_attack((u + kwargs["old"]).encode("utf8"))
-        if not auth.userLogin(u, kwargs["old"]) == "failure":
-            if kwargs["new"] == kwargs["new2"]:
-                auth.changePassword(u, kwargs["new"])
-            else:
-                raise cherrypy.HTTPRedirect("/errors/mismatch")
-        else:
-            raise cherrypy.HTTPRedirect("/errors/loginerror")
-        messagebus.post_message("/system/auth/user/selfchangedepassword", pages.getAcessingUser())
-
-        raise cherrypy.HTTPRedirect("/")
-
-    @cherrypy.expose
-    def system(self):
+@legacy_route
+def system():
+    try:
         pages.require("view_admin_info")
-        return pages.get_template("settings/global_settings.html").render()
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    return pages.get_template("settings/global_settings.html").render()
 
-    @cherrypy.expose
-    def theming(self):
+
+@legacy_route
+def theming():
+    try:
         pages.require("system_admin")
-        return pages.get_template("settings/theming.html").render()
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    return pages.get_template("settings/theming.html").render()
 
-    @cherrypy.expose
-    def settime(self):
+
+@legacy_route
+def settime():
+    try:
         pages.require("system_admin")
-        return pages.get_template("settings/settime.html").render()
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    return pages.get_template("settings/settime.html").render()
 
-    @cherrypy.expose
-    def set_time_from_web(self, **kwargs):
-        pages.require("system_admin", noautoreturn=True)
-        pages.postOnly()
-        t = float(kwargs["time"])
-        subprocess.call(
-            [
-                "date",
-                "-s",
-                time.strftime("%Y%m%d%H%M%S", time.gmtime(t - 0.05)),
-                "+%Y%m%d%H%M%S",
-            ]
-        )
+
+@legacy_route
+def set_time_from_web(**kwargs):
+    try:
+        pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    pages.postOnly()
+    t = float(kwargs["time"])
+    subprocess.call(["date", "-s", datetime.datetime.fromtimestamp(t, tz=datetime.timezone.utc).isoformat()])
+    try:
+        subprocess.call(["sudo", "hwclock", "--systohc"])
+    except Exception:
+        pass
+
+    return quart.redirect("/settings/system")
+
+
+@legacy_route
+def changealertsettingstarget(**kwargs):
+    try:
+        pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    pages.postOnly()
+    from . import alerts
+
+    alerts.file["warning"]["interval"] = float(kwargs["warningbeeptime"])
+    alerts.file["error"]["interval"] = float(kwargs["errorbeeptime"])
+    alerts.file["critical"]["interval"] = float(kwargs["critbeeptime"])
+    alerts.file["warning"]["file"] = kwargs["warningsound"]
+    alerts.file["error"]["file"] = kwargs["errorsound"]
+    alerts.file["critical"]["file"] = kwargs["critsound"]
+    alerts.file["all"]["soundcard"] = kwargs["soundcard"]
+    alerts.saveSettings()
+
+    return quart.redirect("/settings/system")
+
+
+@legacy_route
+def changesettingstarget(**kwargs):
+    try:
+        pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    pages.postOnly()
+    from . import geolocation
+
+    geolocation.setDefaultLocation(
+        float(kwargs["lat"]),
+        float(kwargs["lon"]),
+        kwargs["city"],
+        country=kwargs["country"],
+        region=kwargs["region"],
+        timezone=kwargs["timezone"],
+    )
+
+    messagebus.post_message("/system/settings/changedelocation", pages.getAcessingUser())
+    return quart.redirect("/settings/system")
+
+
+@legacy_route
+def changepushsettings(**kwargs):
+    try:
+        pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    pages.postOnly()
+
+    t = kwargs["apprise_target"]
+
+    pushsettings.set("apprise_target", t.strip())
+
+    messagebus.post_message("/system/notifications/important", "Push notification config was changed")
+
+    return quart.redirect("/settings/system")
+
+
+@legacy_route
+def changeredirecttarget(**kwargs):
+    try:
+        pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    pages.postOnly()
+    setRedirect(kwargs["url"])
+    return quart.redirect("/settings/system")
+
+
+@legacy_route
+def changerotationtarget(**kwargs):
+    try:
+        pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    pages.postOnly()
+    setScreenRotate(kwargs["rotate"])
+    return quart.redirect("/settings/system")
+
+
+@legacy_route
+def settheming(**kwargs):
+    try:
+        pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    pages.postOnly()
+    from . import theming
+
+    theming.file["web"]["csstheme"] = kwargs["cssfile"]
+    theming.saveTheme()
+    return quart.redirect("/settings/theming")
+
+
+@legacy_route
+def ip_geolocate():
+    try:
+        pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    pages.postOnly()
+    from . import geolocation
+
+    discovered_location = geolocation.ip_geolocate()
+    geolocation.setDefaultLocation(
+        discovered_location["lat"],
+        discovered_location["lon"],
+        discovered_location["city"],
+        discovered_location["timezone"],
+        discovered_location["regionName"],
+        discovered_location["countryCode"],
+    )
+
+    messagebus.post_message("/system/settings/changedelocation", pages.getAcessingUser())
+    return quart.redirect("/settings/system")
+
+
+@legacy_route
+def processes():
+    try:
+        pages.require("view_admin_info")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    return pages.get_template("settings/processes.html").render()
+
+
+@legacy_route
+def dmesg():
+    try:
+        pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    return pages.get_template("settings/dmesg.html").render()
+
+
+@legacy_route
+def environment():
+    try:
+        pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    return pages.get_template("settings/environment.html").render()
+
+
+def legacy_route_prf(f):
+    r = f"/settings/profiler/{f.__name__}"
+
+    p = inspect.signature(f).parameters
+    for i in p:
+        if i not in ("a", "k"):
+            r += f"/<{i}>"
+
+    quart_app.app.route(r, methods=["GET", "POST"])(f)
+
+
+@quart_app.app.route("/settings/profiler")
+def prf_index():
+    try:
+        pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    return pages.get_template("settings/profiler/index.html").render(sort="")
+
+
+@legacy_route_prf
+def bytotal():
+    try:
+        pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    return pages.get_template("settings/profiler/index.html").render(sort="total")
+
+
+@legacy_route_prf
+def start():
+    try:
+        pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    pages.postOnly()
+    import yappi
+
+    if not yappi.is_running():
+        yappi.start()
         try:
-            subprocess.call(["sudo", "hwclock", "--systohc"])
+            yappi.set_clock_type("cpu")
         except Exception:
-            pass
+            logging.exception("CPU time profiling not supported")
 
-        raise cherrypy.HTTPRedirect("/settings/system")
+    time.sleep(0.5)
+    messagebus.post_message("/system/settings/activatedprofiler", pages.getAcessingUser())
+    return quart.redirect("/settings/profiler")
 
-    @cherrypy.expose
-    def changealertsettingstarget(self, **kwargs):
-        pages.require("system_admin", noautoreturn=True)
-        pages.postOnly()
-        from . import alerts
 
-        alerts.file["warning"]["interval"] = float(kwargs["warningbeeptime"])
-        alerts.file["error"]["interval"] = float(kwargs["errorbeeptime"])
-        alerts.file["critical"]["interval"] = float(kwargs["critbeeptime"])
-        alerts.file["warning"]["file"] = kwargs["warningsound"]
-        alerts.file["error"]["file"] = kwargs["errorsound"]
-        alerts.file["critical"]["file"] = kwargs["critsound"]
-        alerts.file["all"]["soundcard"] = kwargs["soundcard"]
-        alerts.saveSettings()
+@legacy_route_prf
+def stop():
+    try:
+        pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    pages.postOnly()
+    import yappi
 
-        raise cherrypy.HTTPRedirect("/settings/system")
+    if yappi.is_running():
+        yappi.stop()
+    return quart.redirect("/settings/profiler")
 
-    @cherrypy.expose
-    def changesettingstarget(self, **kwargs):
-        pages.require("system_admin", noautoreturn=True)
-        pages.postOnly()
-        from . import geolocation
 
-        geolocation.setDefaultLocation(
-            float(kwargs["lat"]),
-            float(kwargs["lon"]),
-            kwargs["city"],
-            country=kwargs["country"],
-            region=kwargs["region"],
-            timezone=kwargs["timezone"],
-        )
+@legacy_route_prf
+def clear():
+    try:
+        pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    pages.postOnly()
+    import yappi
 
-        messagebus.post_message("/system/settings/changedelocation", pages.getAcessingUser())
-        raise cherrypy.HTTPRedirect("/settings/system")
-
-    @cherrypy.expose
-    def changepushsettings(self, **kwargs):
-        pages.require("system_admin", noautoreturn=True)
-        pages.postOnly()
-
-        t = kwargs["apprise_target"]
-
-        pushsettings.set("apprise_target", t.strip())
-
-        messagebus.post_message("/system/notifications/important", "Push notification config was changed")
-
-        raise cherrypy.HTTPRedirect("/settings/system")
-
-    @cherrypy.expose
-    def changeredirecttarget(self, **kwargs):
-        pages.require("system_admin", noautoreturn=True)
-        pages.postOnly()
-        setRedirect(kwargs["url"])
-        raise cherrypy.HTTPRedirect("/settings/system")
-
-    @cherrypy.expose
-    def changerotationtarget(self, **kwargs):
-        pages.require("system_admin", noautoreturn=True)
-        pages.postOnly()
-        setScreenRotate(kwargs["rotate"])
-        raise cherrypy.HTTPRedirect("/settings/system")
-
-    @cherrypy.expose
-    def settheming(self, **kwargs):
-        pages.require("system_admin", noautoreturn=True)
-        pages.postOnly()
-        from . import theming
-
-        theming.file["web"]["csstheme"] = kwargs["cssfile"]
-        theming.saveTheme()
-        raise cherrypy.HTTPRedirect("/settings/theming")
-
-    @cherrypy.expose
-    def ip_geolocate(self, **kwargs):
-        pages.require("system_admin", noautoreturn=True)
-        pages.postOnly()
-        from . import geolocation
-
-        discovered_location = geolocation.ip_geolocate()
-        geolocation.setDefaultLocation(
-            discovered_location["lat"],
-            discovered_location["lon"],
-            discovered_location["city"],
-            discovered_location["timezone"],
-            discovered_location["regionName"],
-            discovered_location["countryCode"],
-        )
-
-        messagebus.post_message("/system/settings/changedelocation", pages.getAcessingUser())
-        raise cherrypy.HTTPRedirect("/settings/system")
-
-    @cherrypy.expose
-    def processes(self):
-        pages.require("view_admin_info")
-        return pages.get_template("settings/processes.html").render()
-
-    @cherrypy.expose
-    def dmesg(self):
-        pages.require("view_admin_info")
-        return pages.get_template("settings/dmesg.html").render()
-
-    @cherrypy.expose
-    def environment(self):
-        pages.require("view_admin_info")
-        return pages.get_template("settings/environment.html").render()
-
-    class profiler:
-        @cherrypy.expose
-        def index():
-            pages.require("system_admin")
-            return pages.get_template("settings/profiler/index.html").render(sort="")
-
-        @cherrypy.expose
-        def bytotal():
-            pages.require("system_admin")
-            return pages.get_template("settings/profiler/index.html").render(sort="total")
-
-        @cherrypy.expose
-        def start():
-            pages.require("system_admin", noautoreturn=True)
-            pages.postOnly()
-            import yappi
-
-            if not yappi.is_running():
-                yappi.start()
-                try:
-                    yappi.set_clock_type("cpu")
-                except Exception:
-                    logging.exception("CPU time profiling not supported")
-
-            time.sleep(0.5)
-            messagebus.post_message("/system/settings/activatedprofiler", pages.getAcessingUser())
-            raise cherrypy.HTTPRedirect("/settings/profiler")
-
-        @cherrypy.expose
-        def stop():
-            pages.require("system_admin", noautoreturn=True)
-            pages.postOnly()
-            import yappi
-
-            if yappi.is_running():
-                yappi.stop()
-            raise cherrypy.HTTPRedirect("/settings/profiler")
-
-        @cherrypy.expose
-        def clear():
-            pages.require("system_admin", noautoreturn=True)
-            pages.postOnly()
-            import yappi
-
-            yappi.clear_stats()
-            raise cherrypy.HTTPRedirect("/settings/profiler/")
+    yappi.clear_stats()
+    return quart.redirect("/settings/profiler")

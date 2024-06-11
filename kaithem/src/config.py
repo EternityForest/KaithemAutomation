@@ -4,16 +4,16 @@
 """This file handles the big configuration file, provides access to it, and handles default settings"""
 
 import argparse
-import logging
 import os
 import sys
 from typing import Any
 
 import jsonschema
+import structlog
 import yaml
 from scullery import snake_compat
 
-logger = logging.getLogger("system")
+logger = structlog.get_logger(__name__)
 config: dict[str, Any] = {}
 
 ##########################################################
@@ -56,7 +56,11 @@ def load(cfg: dict[str, Any]):
     _argp.add_argument("-d")
     _argp.add_argument("-p")
 
-    argcmd = _argp.parse_args(sys.argv[1:])
+    # Debig runners put weird stuff that breaks things
+    if "pytest" in sys.argv[0]:
+        argcmd = _argp.parse_args([])
+    else:
+        argcmd = _argp.parse_args(sys.argv[1:])
 
     # This can't bw gotten from directories or wed get a circular import
     with open(os.path.join(_dn, "default_configuration.yaml")) as f:

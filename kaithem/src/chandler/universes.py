@@ -14,14 +14,16 @@ from typing import Any
 
 import colorzero
 import numpy
+import structlog
 
+from kaithem.api import lifespan
 from kaithem.src import alerts
 
 from ..kaithemobj import kaithem
 from . import core
 from .core import disallow_special
 
-logger = logging.getLogger("system.chandler")
+logger = structlog.get_logger(__name__)
 
 # Locals for performance... Is this still a thing??
 float = float
@@ -276,7 +278,7 @@ class Universe:
 
         # Used for the caching. It's the layer we want to save as the background state before we apply.
         # Calculated as either the last scene rendered in the stack or the first scene that requests a rerender that affects the universe
-        self.save_before_layer = (0, 0)
+        self.save_before_layer = (0.0, 0.0)
         # Reset in pre_render, indicates if we've not rendered a layer that we think is going to change soon
         # so far in this frame
         self.all_static = True
@@ -318,12 +320,10 @@ class Universe:
         # Maybe there might be an iteration error. But it's just a GUI convienence that
         # A simple refresh solves, so ignore it.
         try:
-            for i in core.boards:
-                x = i()
-                if x:
-                    x.pushUniverses()
-        except Exception as e:
-            print(e)
+            for i in core.iter_boards():
+                i.push_setup()
+        except Exception:
+            logger.exception("Exception in push_setup")
 
         if self.refresh_on_create:
             kaithem.message.post("/chandler/command/refreshFixtures", self.name)
@@ -349,7 +349,7 @@ class Universe:
             self.preFrame = alreadyClosed
             self.save_prerendered = alreadyClosed
 
-        kaithem.message.post("/chandler/command/refreshScenes", None)
+        kaithem.message.post("/chandler/command/refresh_scene_lighting", None)
         self.closed = True
 
     def setStatus(self, s: str, ok: bool):
@@ -370,13 +370,14 @@ class Universe:
         """Stop and restart all active scenes, because some caches might need to be updated
         when a new universes is added
         """
-        kaithem.message.post("/chandler/command/refreshScenes", None)
+        kaithem.message.post("/chandler/command/refresh_scene_lighting", None)
 
     def __del__(self):
         if not self.closed:
             if self.refresh_on_create:
-                # Do as little as possible in the undefined __del__ thread
-                kaithem.message.post("/chandler/command/refreshScenes", None)
+                if lifespan and not lifespan.shutdown:
+                    # Do as little as possible in the undefined __del__ thread
+                    kaithem.message.post("/chandler/command/refresh_scene_lighting", None)
 
     def channelsChanged(self):
         "Call this when fixtures are added, moved, or modified."
@@ -579,7 +580,7 @@ class DMXSender:
         except Exception as e:
             try:
                 self.port = None
-                self.setStatus("dis_connected, " + str(e)[:100] + "...", False)
+                self.setStatus("disconnected, " + str(e)[:100] + "...", False)
             except Exception:
                 pass
 
@@ -610,7 +611,7 @@ class DMXSender:
                     if self.data is None:
                         return
                     if self.port:
-                        self.setStatus("dis_connected, " + str(e)[:100] + "...", False)
+                        self.setStatus("disconnected, " + str(e)[:100] + "...", False)
                     self.port = None
                     # I don't remember why we retry twice here. But reusing the port list should reduce CPU a lot.
                     time.sleep(3)
@@ -924,7 +925,7 @@ class RawDMXSender:
 
         except Exception as e:
             try:
-                self.setStatus("dis_connected, " + str(e)[:100] + "...", False)
+                self.setStatus("disconnected, " + str(e)[:100] + "...", False)
             except Exception:
                 pass
 
@@ -960,7 +961,7 @@ class RawDMXSender:
                     if self.data is None:
                         return
                     if self.port:
-                        self.setStatus("dis_connected, " + str(e)[:100] + "...", False)
+                        self.setStatus("disconnected, " + str(e)[:100] + "...", False)
                     self.port = None
                     # reconnect is designed not to raise Exceptions, so if there's0
                     # an error here it's probably because the whole scope is being cleaned
@@ -1187,6 +1188,7 @@ def getUniverses() -> dict[str, Universe]:
 
 
 def rerenderUniverse(i: str):
+    """Set full_rerender to true on a given universe, if it exists"""
     universe = getUniverse(i)
     if universe:
         universe.full_rerender = True

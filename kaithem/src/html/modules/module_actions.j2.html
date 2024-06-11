@@ -1,6 +1,7 @@
 <div class="scroll h-12rem">
-    <form action="/modules/module/{{name}}/action/"  target="_PARENT">
+    <form action="/modules/module/{{name}}/action" method="POST"  target="_PARENT">
     {% for i in module_actions.action_types %}
+    <input type="hidden"  value="{{dir|escape}}" name="dir">
     <button type="submit" value="{{i}}" name="action">{{module_actions.action_types[i].title}}</button><br>
     {% endfor %}
     </form>

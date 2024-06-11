@@ -1,11 +1,10 @@
 # SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
 
-import logging
 import traceback
 import weakref
 
-import cherrypy
+import structlog
 from scullery import messagebus
 
 post_message = messagebus.post_message
@@ -15,6 +14,7 @@ unsubscribe = messagebus.unsubscribe
 normalize_topic = messagebus.normalize_topic
 log = messagebus.log
 MessageBus = messagebus.MessageBus
+logger = structlog.get_logger(__name__)
 
 
 def handleMsgbusError(f, topic, message):
@@ -33,7 +33,7 @@ def handleMsgbusError(f, topic, message):
                 x = hasattr(f, "_kaithemAlreadyPostedNotificatonError")
                 f._kaithemAlreadyPostedNotificatonError = True
                 if not x:
-                    logging.exception("Message subscriber error for " + str(topic))
+                    logger.exception("Message subscriber error for " + str(topic))
             except Exception:
                 print(traceback.format_exc())
 
@@ -43,8 +43,8 @@ def handleMsgbusError(f, topic, message):
 
 
 def _shouldReRaiseAttrErr():
-    "Check if we actually need to notify about errors during cherrypy shutdown, to avoid annoyance"
-    return cherrypy.engine.state == cherrypy.engine.states.STARTED
+    "Check if we actually need to notify about errors during shutdown, to avoid annoyance"
+    return True
 
 
 messagebus.subscriber_error_handlers = [handleMsgbusError]

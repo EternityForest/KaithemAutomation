@@ -14,7 +14,7 @@
 
 ## delete_resource
 
-[Show source in modules.py:44](../../../api/modules.py#L44)
+[Show source in modules.py:43](../../../api/modules.py#L43)
 
 #### Signature
 
@@ -41,7 +41,7 @@ def filename_for_resource(module: str, resource: str) -> str: ...
 
 ## get_resource_data
 
-[Show source in modules.py:17](../../../api/modules.py#L17)
+[Show source in modules.py:16](../../../api/modules.py#L16)
 
 Get the dict data for a resource
 
@@ -55,7 +55,7 @@ def get_resource_data(module: str, resource: str) -> ResourceDictType: ...
 
 ## insert_resource
 
-[Show source in modules.py:22](../../../api/modules.py#L22)
+[Show source in modules.py:21](../../../api/modules.py#L21)
 
 Create a new resource, if it doesn't already exist,
 and initializing it as appropriate for it's resource type
@@ -70,7 +70,7 @@ def insert_resource(module: str, resource: str, resourceData: ResourceDictType):
 
 ## list_resources
 
-[Show source in modules.py:48](../../../api/modules.py#L48)
+[Show source in modules.py:47](../../../api/modules.py#L47)
 
 #### Signature
 
@@ -82,7 +82,7 @@ def list_resources(module: str) -> list[str]: ...
 
 ## update_resource
 
-[Show source in modules.py:34](../../../api/modules.py#L34)
+[Show source in modules.py:33](../../../api/modules.py#L33)
 
 Update an existing resource
 

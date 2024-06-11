@@ -47,7 +47,7 @@ def onMidiMessage(m, d):
             ("cc", m.getChannel(), m.getControllerNumber(), m.getControllerValue()),
         )
         setTag(
-            f"/midi/{d}/{str(m.getChannel())}.cc[{str(m.getControllerNumber())}]",
+            f"/midi/{d}/{str(m.getChannel())}.cc.{str(m.getControllerNumber())}",
             m.getControllerValue(),
             a=0,
         )
@@ -61,7 +61,8 @@ def onMidiMessage(m, d):
         )
 
 
-def normalizetag(t):
+def normalize_midi_name(t):
+    t = t.lower().replace(":", "_").replace("[", "").replace("]", "").replace(" ", "_")
     t = t.replace("-", "_")
     for i in tagpoints.ILLEGAL_NAME_CHARS:
         t = t.replace(i, "")
@@ -78,19 +79,19 @@ def onMidiMessageTuple(m, d):
 
     if code == 144:
         messagebus.post_message(f"/midi/{d}", ("noteon", ch, a, b))
-        setTag(f"/midi/{normalizetag(d)}/{str(ch)}.note", a, a=b)
+        setTag(f"/midi/{d}/{str(ch)}.note", a, a=b)
 
     elif code == 128:
         messagebus.post_message(f"/midi/{d}", ("noteoff", ch, a, b))
-        setTag(f"/midi/{normalizetag(d)}/{str(ch)}.note", 0, a=0)
+        setTag(f"/midi/{d}/{str(ch)}.note", 0, a=0)
 
     elif code == 224:
         messagebus.post_message(f"/midi/{d}", ("pitch", ch, a, b))
-        setTag14(f"/midi/{normalizetag(d)}/{str(ch)}.pitch", a + b * 128, a=0)
+        setTag14(f"/midi/{d}/{str(ch)}.pitch", a + b * 128, a=0)
 
     elif code == 176:
         messagebus.post_message(f"/midi/{d}", ("cc", ch, a, b))
-        setTag(f"/midi/{normalizetag(d)}/{str(ch)}.cc[{str(a)}]", b, a=0)
+        setTag(f"/midi/{d}/{str(ch)}.cc.{str(a)}", b, a=0)
 
 
 once = [0]
@@ -116,10 +117,7 @@ def doScan():
 
     if not scanning_connection:
         # Support versions of rtmidi where it does not work the first time
-        try:
-            scanning_connection = rtmidi.MidiIn(rtmidi.API_UNIX_JACK, name=f"Kaithem{str(ctr)}")
-        except Exception:
-            scanning_connection = rtmidi.MidiIn(rtmidi.API_UNIX_JACK, name=f"Kaithem{str(ctr)}")
+        scanning_connection = rtmidi.MidiIn(name=f"Kaithem{str(ctr)}")
         ctr += 1
     torm = []
     try:
@@ -138,13 +136,13 @@ def doScan():
     for i in present:
         if i not in allInputs:
             try:
-                m = rtmidi.MidiIn(rtmidi.API_UNIX_JACK)
+                m = rtmidi.MidiIn()
                 m.open_port(i[0])
 
                 def f(
                     x,
                     *a,
-                    d=i[1].replace(":", "_").replace("[", "").replace("]", "").replace(" ", ""),
+                    d=normalize_midi_name(i[1]),
                 ):
                     if isinstance(x, tuple):
                         try:
@@ -170,3 +168,6 @@ def init():
     global s
     s = scheduling.RepeatingEvent(doScan, 10)
     s.register()
+
+
+init()

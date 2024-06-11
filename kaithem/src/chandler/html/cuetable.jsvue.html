@@ -1,6 +1,6 @@
 ---
-allow-origins: ['*']
-allow-xss: false
+allow_origins: ['*']
+allow_xss: false
 auto-reload: false
 auto-reload-interval: 5.0
 code: ''
@@ -34,22 +34,12 @@ var t = `
                   <b v-if="chnamelookup(i.u,i.ch)==undefined">{{i.u}}:{{i.ch}}</b>
                   <b v-if="chnamelookup(i.u,i.ch)" v-bind:title="'Actual channel:'+i.u+':'+i.ch">{{channelNames[i.u][i.ch][1]}}</b>
                 </span>
-                <span v-if="i.v !== null">
-                  <input v-bind:disabled="chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='fine'"
-                      v-if="(editingScene.blend!=='monitor')"
-                      type="range" v-bind:step="(chnamelookup(i.u,i.ch)&&chnamelookup(i.u,i.ch)[2]=='fine')? 0.01:1"
-                        :min="getValueRange(chnamelookup(i.u,i.ch),i.v)[0]"
-                        :max="getValueRange(chnamelookup(i.u,i.ch),i.v)[1]"
-                      v-on:input="setCueVal(currentcueid,i.u,parseInt(i.ch),parseFloat($event.target.value))" v-model="i.v">
 
-
-                  <meter v-if="editingScene.blend=='monitor'" type="range" max=255 v-bind:value="i.v"></meter>
-                </span>
-                <span v-if="i.v== null" class=grey>Released</span>
+                <span v-if="i.v== null" class="grey">Released</span>
 
                 <span v-if="!(channelNames[i.u]&&channelNames[i.u][i.ch]&&channelNames[i.u][i.ch][2]=='fine')" title="Double click to set exact value"
                     v-on:dblclick="promptExactVal(currentcueid,i.u,parseInt(i.ch))" style="font-size:80%">{{Number(i.v).toPrecision(4)}}</span>
-                <span class=grey title="Double click to set exact value" v-if="channelNames[i.u]&&channelNames[i.u][i.ch]&&channelNames[i.u][i.ch][2]=='fine'"
+                <span class="grey" title="Double click to set exact value" v-if="channelNames[i.u]&&channelNames[i.u][i.ch]&&channelNames[i.u][i.ch][2]=='fine'"
                     v-on:dblclick="promptExactVal(currentcueid,i.u,parseInt(i.ch))">auto</span>
                 <span v-if="chnamelookup(i.u,i.ch)&&(chnamelookup(i.u,i.ch)[2]=='red')" v-bind:style="{'background-color': 'rgb('+i.v+ ',0,0)' , 'border-color':'red'}"
                     class="indicator"></span>

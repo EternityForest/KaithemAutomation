@@ -24,14 +24,12 @@ from beartype import beartype
 from .. import schemas
 from . import core
 from .core import disallow_special
+from .global_actions import normalize_shortcut, shortcut_codes
 from .universes import get_on_demand_universe, getUniverse, mapChannel
 
 if TYPE_CHECKING:
     from .scenes import Scene
 
-
-# Index Cues by codes that we use to jump to them. This is a dict of lists of cues with that short code,
-shortcut_codes: dict[str, list[Cue]] = {}
 
 cues: weakref.WeakValueDictionary[str, Cue] = weakref.WeakValueDictionary()
 
@@ -61,21 +59,6 @@ slots = s2
 
 
 allowedCueNameSpecials = "_~."
-
-
-def normalize_shortcut(code: str | int | float) -> str:
-    # Normalize away any trailing zeroes if it's a float
-    try:
-        code = round(float(code), 4)
-        c2 = int(code)
-
-        if code == c2:
-            code = c2
-        code = str(code)
-    except Exception:
-        pass
-
-    return str(code)
 
 
 def number_to_shortcut(number: int | float | str):
@@ -267,7 +250,8 @@ class Cue:
 
     def setTrack(self, val):
         self.track = bool(val)
-        self.getScene().rerender = True
+        self.getScene().poll_again_flag = True
+        self.getScene().lighting_manager.should_rerender_onto_universes = True
 
     def setNumber(self, n):
         "Can take a string representing a decimal number for best accuracy, saves as *1000 fixed point"
@@ -348,7 +332,8 @@ class Cue:
 
     @beartype
     def set_value(self, universe: str, channel: str | int, value: str | int | float | None):
-        disallow_special(universe, allow="_@./")
+        # Allow [] for range effects
+        disallow_special(universe, allow="_@./[]")
 
         scene = self.getScene()
 
@@ -411,14 +396,15 @@ class Cue:
             mapped_channel = mapChannel(universe, channel)
 
             if scene.cue == self and scene.is_active():
-                scene.rerender = True
+                scene.poll_again_flag = True
+                scene.lighting_manager.should_rerender_onto_universes = True
 
                 # If we change something in a pattern effect we just do a full recalc since those are complicated.
                 if unmappeduniverse in self.values and "__length__" in self.values[unmappeduniverse]:
-                    scene.cue_vals_to_numpy_cache(self, False)
+                    scene.lighting_manager.cue_vals_to_numpy_cache(self, False)
 
                     # The FadeCanvas needs to know about this change
-                    scene.render(force_repaint=True)
+                    scene.poll(force_repaint=True)
 
                 # Otherwise if we are changing a simple mapped channel we optimize
                 elif mapped_channel:
@@ -428,23 +414,26 @@ class Cue:
 
                     if universe.startswith("/"):
                         uobj = get_on_demand_universe(universe)
-                        scene.on_demand_universes[universe] = uobj
+                        scene.lighting_manager.on_demand_universes[universe] = uobj
 
-                    if (universe not in scene.cue_cached_alphas_as_arrays) and value is not None:
+                    if (universe not in scene.lighting_manager.cue_cached_alphas_as_arrays) and value is not None:
                         uobj = getUniverse(universe)
                         if uobj:
-                            scene.cue_cached_vals_as_arrays[universe] = numpy.array([0.0] * len(uobj.values), dtype="f4")
-                            scene.cue_cached_alphas_as_arrays[universe] = numpy.array([0.0] * len(uobj.values), dtype="f4")
-                    if universe in scene.cue_cached_alphas_as_arrays:
-                        scene.cue_cached_alphas_as_arrays[universe][channel] = 1 if value is not None else 0
-                        scene.cue_cached_vals_as_arrays[universe][channel] = scene.evalExpr(value if value is not None else 0)
-                    if universe not in scene.affect:
-                        scene.affect.append(universe)
+                            scene.lighting_manager.cue_cached_vals_as_arrays[universe] = numpy.array([0.0] * len(uobj.values), dtype="f4")
+                            scene.lighting_manager.cue_cached_alphas_as_arrays[universe] = numpy.array([0.0] * len(uobj.values), dtype="f4")
+                    if universe in scene.lighting_manager.cue_cached_alphas_as_arrays:
+                        scene.lighting_manager.cue_cached_alphas_as_arrays[universe][channel] = 1 if value is not None else 0
+                        scene.lighting_manager.cue_cached_vals_as_arrays[universe][channel] = scene.evalExpr(
+                            value if value is not None else 0
+                        )
+                    if universe not in scene.lighting_manager.affect:
+                        scene.lighting_manager.affect.append(universe)
 
                     # The FadeCanvas needs to know about this change
-                    scene.render(force_repaint=True)
+                    scene.poll(force_repaint=True)
 
-            scene.rerender = True
+            scene.poll_again_flag = True
+            scene.lighting_manager.should_rerender_onto_universes = True
 
             # For blend modes that don't like it when you
             # change the list of values without resetting

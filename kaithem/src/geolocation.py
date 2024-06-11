@@ -1,14 +1,15 @@
 # SPDX-FileCopyrightText: Copyright 2022 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
 
+import json
 import logging
 import os
-from . import directories, messagebus, config
-from scullery import persist
 from urllib.request import urlopen
-import json
 
 import iot_devices.host
+from scullery import persist
+
+from . import config, directories, messagebus
 
 
 def ip_geolocate():
@@ -41,12 +42,12 @@ def use_api_if_needed():
 
     if not file["default"].get("lat", None) and not file["default"].get("lon", None):
         try:
-            l = ip_geolocate()
+            location = ip_geolocate()
             messagebus.post_message(
                 "/system/notifications/important",
                 "Got server location by IP geolocation.  You can change this in settings.",
             )
-            file["default"] = l
+            file["default"] = location
 
             try:
                 persist.save(file, fn, private=True)
@@ -60,7 +61,7 @@ def getCoords():
     return file["default"]["lat"], file["default"]["lon"]
 
 
-def getLocation(l="default"):
+def getLocation(location="default"):
     file["default"] = file.get("default", {})
     file["default"]["lat"] = file["default"].get("lat", None)
     file["default"]["lon"] = file["default"].get("lon", None)
@@ -69,7 +70,7 @@ def getLocation(l="default"):
     file["default"]["regionName"] = file["default"].get("regionName", "")
     file["default"]["countryCode"] = file["default"].get("countryCode", "")
 
-    return file[l]
+    return file[location]
 
 
 def setDefaultLocation(lat, lon, city="", timezone="", region="", country=""):

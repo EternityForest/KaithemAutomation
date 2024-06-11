@@ -4,7 +4,8 @@
 import html
 import traceback
 import weakref
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 from urllib.parse import quote
 
 import beartype
@@ -85,10 +86,10 @@ class ResourceType:
         """
 
     def get_create_target(self, module, folder):
-        return f"/modules/module/{module}/addresourcetarget/{self.type}/{quote(folder,safe='')}"
+        return f"/modules/module/{module}/addresourcetarget/{self.type}?dir={quote(folder,safe='')}"
 
     def get_update_target(self, module, resource):
-        return f"/modules/module/{quote(module)}/updateresource/{quote(resource,safe='')}"
+        return f"/modules/module/{quote(module)}/updateresource/{resource}"
 
     def _blurb(self, module, resource, object):
         try:
@@ -109,7 +110,7 @@ class ResourceType:
         """
         return f"""
 
-        <form method=POST action="/modules/module/{module}/addresourcetarget/example/{path}">
+        <form method=POST action="/modules/module/{module}/addresourcetarget/example?dir={quote(path, safe='')}">
         <input name="name">
         <input type="submit">
         </form>
@@ -149,11 +150,14 @@ class ResourceType:
         """Called when object has been moved.  All additionaltypes must be movable."""
         return True
 
-    def ondelete(self, module, resource, obj):
+    def ondelete(self, module, resource, resourceobj):
         return True
 
-    def onupdate(self, module, resource, obj):
+    def onupdate(self, module, resource, resourceobj):
         """Called when something has updated the data.  Usually the web UI but could be anything."""
+
+    def flush_unsaved(self, module, resource):
+        """Called when the resource should save any unsaved data it has back to the resource."""
 
 
 additionalTypes: weakref.WeakValueDictionary[str, ResourceType] = weakref.WeakValueDictionary()

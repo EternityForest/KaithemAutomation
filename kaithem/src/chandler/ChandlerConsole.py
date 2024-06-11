@@ -15,7 +15,8 @@ from .. import schemas
 from ..kaithemobj import kaithem
 from . import blendmodes, console_abc, core, fixtureslib, persistance, scenes, universes
 from .core import logger
-from .scenes import Scene, cues, event
+from .global_actions import event
+from .scenes import Scene, cues
 from .universes import getUniverse, getUniverses
 
 
@@ -56,6 +57,8 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         self.configured_universes: Dict[str, Any] = {}
         self.fixture_assignments: Dict[str, Any] = {}
+        self.fixture_presets: Dict[str, dict[int | str, float | int | str]] = {}
+
         self.fixtures = {}
 
         self.universe_objects: Dict[str, universes.Universe] = {}
@@ -94,6 +97,11 @@ class ChandlerConsole(console_abc.Console_ABC):
         for i in self.configured_universes:
             self.configured_universes[i].close()
 
+        try:
+            self.autosave_checker.unregister()
+        except Exception:
+            print(traceback.format_exc())
+
     def load_project(self, data: dict):
         for i in self.scenes:
             self.scenes[i].stop()
@@ -109,6 +117,7 @@ class ChandlerConsole(console_abc.Console_ABC):
             self.configured_universes = data2["configured_universes"]
             self.fixture_classes = data2["fixture_types"]
             self.fixture_assignments = data2["fixture_assignments"]
+            self.fixture_presets = data2.get("fixture_presets", {})
 
             try:
                 self.create_universes(self.configured_universes)
@@ -116,17 +125,17 @@ class ChandlerConsole(console_abc.Console_ABC):
                 logger.exception("Error creating universes")
                 print(traceback.format_exc(6))
 
+            self.refresh_fixtures()
+
         if "scenes" in data:
             d = data["scenes"]
 
             self.loadDict(d)
-
             self.linkSend(["refreshPage", self.fixture_assignments])
 
     def setup(self, project: dict[str, Any]):
         console_abc.Console_ABC.setup(self, project)
         self.load_project(project)
-        self.refresh_fixtures()
         self.initialized = True
 
     def refresh_fixtures(self):
@@ -141,14 +150,15 @@ class ChandlerConsole(console_abc.Console_ABC):
                 print(traceback.format_exc())
 
             try:
-                del i
+                del i  # type: ignore
             except Exception:
                 pass
 
             self.fixtures = {}
-
-            for i in self.fixture_assignments.values():
+            for key, i in self.fixture_assignments.items():
                 try:
+                    if not i["name"] == key:
+                        raise RuntimeError("Name does not match key?")
                     x = universes.Fixture(i["name"], self.fixture_classes[i["type"]])
                     self.fixtures[i["name"]] = x
                     self.fixtures[i["name"]].assign(i["universe"], int(i["addr"]))
@@ -167,7 +177,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                         self.pushChannelNames("@" + f)
 
             self.ferrs = self.ferrs or "No Errors!"
-            self.pushfixtures()
+            self.push_setup()
 
     def create_universes(self, data: dict):
         assert isinstance(data, Dict)
@@ -213,7 +223,7 @@ class ChandlerConsole(console_abc.Console_ABC):
             event("system.error", traceback.format_exc())
             print(traceback.format_exc())
 
-        self.pushUniverses()
+        self.push_setup()
 
     def load_show(self, showName):
         saveLocation = os.path.join(kaithem.misc.vardir, "chandler", "shows", showName)
@@ -233,14 +243,13 @@ class ChandlerConsole(console_abc.Console_ABC):
             "fixture_types": self.fixture_classes,
             "universes": self.configured_universes,
             "fixture_assignments": self.fixture_assignments,
+            "fixture_presets": self.fixture_presets,
             #'config':
         }
 
         return copy.deepcopy(d)
 
-    def loadSetupFile(self, data, _asuser=False, filename=None, errs=False):
-        if not kaithem.users.check_permission(kaithem.web.user(), "system_admin"):
-            raise ValueError("You cannot change the setup without system_admin")
+    def loadSetupFile(self, data):
         data = yaml.load(data, Loader=yaml.SafeLoader)
         data = snake_compat.snakify_dict_keys(data)
 
@@ -265,12 +274,18 @@ class ChandlerConsole(console_abc.Console_ABC):
             self.fixture_assignments = data["fixure_assignments"]
             self.refresh_fixtures()
 
+        if "fixture_presets" in data:
+            self.fixture_presets = data["fixture_presets"]
+
+        self.push_setup()
+
     def getSetupFile(self):
         with core.lock:
             return {
                 "fixture_types": self.fixture_classes,
                 "configured_universes": self.configured_universes,
                 "fixture_assignments": self.fixture_assignments,
+                "fixture_presets": self.fixture_presets,
             }
 
     def loadLibraryFile(
@@ -296,6 +311,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                 "fixture_types": self.fixture_classes,
                 "universes": self.configured_universes,
                 "fixure_assignments": self.fixture_assignments,
+                "fixture_presets": self.fixture_presets,
             }
 
     def loadSceneFile(self, data, filename: str, errs=False, clear_old=True):
@@ -385,7 +401,8 @@ class ChandlerConsole(console_abc.Console_ABC):
                     self.scenes[uuid] = s
                     if x:
                         s.go()
-                        s.rerender = True
+                        s.poll_again_flag = True
+                        s.lighting_manager.should_rerender_onto_universes = True
                 except Exception:
                     if not errs:
                         logger.exception("Failed to load scene " + str(i) + " " + str(data[i].get("name", "")))
@@ -434,12 +451,12 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         kaithem.misc.do(f)
 
-    def pushfixtures(self):
+    def push_setup(self):
         "Errors in fixture list"
         self.linkSend(["ferrs", self.ferrs])
         self.linkSend(["fixtureAssignments", self.fixture_assignments])
+        self.linkSend(["fixturePresets", self.fixture_presets])
 
-    def pushUniverses(self):
         snapshot = getUniverses()
 
         self.linkSend(
@@ -471,10 +488,14 @@ class ChandlerConsole(console_abc.Console_ABC):
         if self.initialized:
             self.save_project_data()
 
-    def save_project_data(self):
+    def get_project_data(self):
         sd = copy.deepcopy(self.getScenes())
 
         project_file: dict[str, Any] = {"scenes": sd, "setup": self.getSetupFile()}
+        return project_file
+
+    def save_project_data(self):
+        project_file = self.get_project_data()
 
         if self.last_saved_version == project_file:
             return
@@ -538,7 +559,9 @@ class ChandlerConsole(console_abc.Console_ABC):
             data: Dict[str, Any] = {
                 # These dynamic runtime vars aren't part of the schema for stuff that gets saved
                 "status": scene.getStatusString(),
-                "blendParams": scene.blendClass.parameters if hasattr(scene.blendClass, "parameters") else {},
+                "blendParams": scene.lighting_manager.blendClass.parameters
+                if hasattr(scene.lighting_manager.blendClass, "parameters")
+                else {},
                 "blendDesc": blendmodes.getblenddesc(scene.blend),
                 "cue": scene.cue.id if scene.cue else scene.cues["default"].id,
                 "ext": sceneid not in self.scenes,
@@ -670,46 +693,30 @@ class ChandlerConsole(console_abc.Console_ABC):
             self.linkSend(["del", i.id])
             persistance.del_checkpoint(i.id)
 
-    def guiPush(self, snapshot):
+    def guiPush(self, universes_snapshot):
         "Snapshot is a list of all universes because the getter for that is slow"
         with core.lock:
             for i in self.newDataFunctions:
                 i(self)
             self.newDataFunctions = []
-            for i in snapshot:
-                if self.id not in snapshot[i].statusChanged:
+            for i in universes_snapshot:
+                if self.id not in universes_snapshot[i].statusChanged:
                     self.linkSend(
                         [
                             "universe_status",
                             i,
-                            snapshot[i].status,
-                            snapshot[i].ok,
-                            snapshot[i].telemetry,
+                            universes_snapshot[i].status,
+                            universes_snapshot[i].ok,
+                            universes_snapshot[i].telemetry,
                         ]
                     )
-                    snapshot[i].statusChanged[self.id] = True
+                    universes_snapshot[i].statusChanged[self.id] = True
 
             for i in self.scenes:
                 # Tell clients about any changed alpha values and stuff.
                 if self.id not in self.scenes[i].metadata_already_pushed_by:
                     self.pushMeta(i, statusOnly=True)
                     self.scenes[i].metadata_already_pushed_by[self.id] = False
-
-                # special case the monitor scenes.
-                if (
-                    self.scenes[i].blend == "monitor"
-                    and self.scenes[i].is_active()
-                    and self.id not in self.scenes[i].monitor_values_already_pushed_by
-                ):
-                    self.scenes[i].monitor_values_already_pushed_by[self.id] = True
-                    # Numpy scalars aren't serializable, so we have to un-numpy them in case
-                    self.linkSend(
-                        [
-                            "cuedata",
-                            self.scenes[i].cue.id,
-                            self.scenes[i].cue.values,
-                        ]
-                    )
 
             for i in self.active_scenes:
                 # Tell clients about any changed alpha values and stuff.

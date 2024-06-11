@@ -84,7 +84,7 @@ class TagType(modules_state.ResourceType):
         for i in ["hi", "lo", "min", "max", "interval"]:
             if d.get(i, ""):
                 d[i] = float(d[i])  # type: ignore
-        d.pop("name")
+        d.pop("name", None)
         d.pop("Save", None)
 
         return d

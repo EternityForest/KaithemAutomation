@@ -3,7 +3,7 @@
 {% set auth = imp0rt( 'kaithem.src.auth' ) %}
 {% set persist = imp0rt( 'kaithem.src.persist' ) %}
 {% set socket = imp0rt( 'socket' ) %}
-{% set cherrypy = imp0rt( 'cherrypy' ) %}
+{% set quart = imp0rt( 'quart' ) %}
 {% set base64 = imp0rt( 'base64' ) %}
 {% set pages = imp0rt( 'kaithem.src.pages' ) %}
 {% set list = imp0rt( 'kaithem.src.pages' ).list %}
@@ -94,7 +94,7 @@
 
 <body id="pagebody">
 
-  {% if not cherrypy.request.params.get("kaithem_disable_header",0) %}
+  {% if not quart.request.args.get("kaithem_disable_header",0) %}
   <header class="undecorated noprint">
 
     <div class="tool-bar w-full" style="position: relative;">
@@ -117,7 +117,7 @@
 
 
 
-      <a href="/modules/"><i class="mdi mdi-briefcase-variant-outline"></i>
+      <a href="/modules"><i class="mdi mdi-briefcase-variant-outline"></i>
         Modules</a>
 
       <a href="/devices"><i class="mdi mdi-chip"></i>
@@ -148,21 +148,15 @@
 
       <a href="/helpmenu"><i class="mdi mdi-book-open-blank-variant-outline"></i>Help</a>
 
-      {% if "kaithem_auth" in cherrypy.request.cookie %}
-      {% if cherrypy.request.cookie['kaithem_auth'].value in auth.Tokens %}
+      {% if pages.getAcessingUser() != "__guest__" %}
       <form style="flex-grow: 0.05;" method="POST" action="/login/logout">
         <button href="/login/logout"><i
             class="mdi mdi-key"></i>Logout({{ pages.getAcessingUser()[:10]| escape }})</button>
       </form>
 
-      {% else %}
-      <a style="flex-grow: 0.05;" href="/login?go={{ base64.b64encode(cherrypy.url().encode()).decode() }}"><i
-          class="mdi mdi-key"></i>Login</a>
-      {% endif %}
-
 
       {% else %}
-      <a style="flex-grow: 0.05;" href="/login?go={{ base64.b64encode(cherrypy.url().encode()).decode() }}"><i
+      <a style="flex-grow: 0.05;" href="/login?go={{ base64.b64encode(quart.request.url.encode()).decode() }}"><i
           class="mdi mdi-key"></i>Login</a>
       {% endif %}
 

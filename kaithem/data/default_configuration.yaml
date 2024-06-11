@@ -105,9 +105,6 @@ notifications_to_keep: 250
 #can also be "never"
 autosave_logs: never
 
-#Set to no to turn off most of cherrypy's access logging.
-#It normally prints a line to stdout for every single page access.
-cherrypy_log_stdout: no
 
 #List of topic that will be printed to stdout if anything is published to them
 print_topics:
@@ -144,7 +141,7 @@ about_box_banner: "This space can be customized with site specific data in the c
 #The URL from which to retrieve the CSS theme file
 #Classic
 #["theme_url /static/css/kaithem_scrapbook.css
-theme_url: /static/css/kaithem_minimal.css
+theme_url: /static/css/nord.css
 
 #If yes, is 1 Minute 29 Seconds instead of 1m 29s
 full_time_intervals: no

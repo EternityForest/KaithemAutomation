@@ -12,7 +12,7 @@
     --box-bg: rgb(219 229 201 / 64%);
     --3d-highlight: rgb(219 229 201);
     --3d-shadow: rgb(202 211 186);
-    --hover-color: rgba(150, 255, 250, 0.2);
+    --hover-color: rgb(184 213 165);
 }
 
 ::selection {

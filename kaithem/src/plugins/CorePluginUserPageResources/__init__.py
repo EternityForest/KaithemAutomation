@@ -1,12 +1,11 @@
 # SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
-
+from __future__ import annotations
 
 # This file handles the display of user-created pages
 import copy
 import gc
 import importlib
-import mimetypes
 import os
 import re
 import threading
@@ -15,21 +14,27 @@ import traceback
 import types
 
 import beartype
-import cherrypy
-import cherrypy.lib.static
 import jinja2
 import mako
 import mako.template
+import quart
+import quart.utils
+import structlog
 import yaml
 
 # import tornado.exceptions
 from mako.lookup import TemplateLookup
+from quart.ctx import copy_current_request_context
 from scullery import snake_compat
 
-from kaithem.api.web import render_jinja_template
+from kaithem.api.web import add_asgi_app, render_jinja_template
 from kaithem.api.web.dialogs import SimpleDialog
 from kaithem.src import auth, directories, messagebus, modules_state, pages, settings_overrides, theming, util
 from kaithem.src.util import url
+
+from . import fileserver
+
+logger = structlog.get_logger(__name__)
 
 _jl = jinja2.FileSystemLoader(
     [directories.htmldir, os.path.join(directories.htmldir, "jinjatemplates")],
@@ -42,7 +47,7 @@ env = jinja2.Environment(loader=_jl, autoescape=False)
 
 errors = {}
 
-_pages_by_module_resource = {}
+_pages_by_module_resource: dict[str, dict[str, CompiledPage]] = {}
 _page_list_lock = threading.Lock()
 
 # Used for including builtin components
@@ -66,7 +71,7 @@ def markdownToSelfRenderingHTML(content, title):
     """
         + content
         + """</section>
-    <script src="/static/showdown.min.js"></script>
+    <script src="/static/js/thirdparty/showdown.min.js"></script>
     <link rel="stylesheet" type="text/css" href="/static/css/atelier-dune-light.css">
     <script src="/static/js/thirdparty/highlight.pack.js"></script>
     <script>
@@ -118,19 +123,30 @@ def markdownToSelfRenderingHTML(content, title):
 
 @util.lrucache(50)
 def lookup(module, args):
-    resource_path = [i.replace("\\", "\\\\").replace("/", "\\/") for i in args]
-    m = _pages_by_module_resource[module]
+    resource_path = args
+    if module in _pages_by_module_resource:
+        m = _pages_by_module_resource[module]
+    else:
+        m = {}
 
-    if "/".join(resource_path) in m:
-        return _pages_by_module_resource[module]["/".join(resource_path)]
+    resourcename = "/".join(resource_path)
 
-    if "/".join(resource_path + ["__index__"]) in m:
+    # Since . cannot appear in a resource name, replace it with _
+    resourcename = resourcename.replace(".", "_")
+
+    if resourcename in m:
+        return _pages_by_module_resource[module][resourcename]
+
+    if "/".join(resource_path + ("__index__",)) in m:
         return _pages_by_module_resource[module]["/".join(resource_path + ["__index__"])]
-
+    resource_path = list(resource_path)
     while resource_path:
         resource_path.pop()
-        if "/".join(resource_path) in m:
-            return _pages_by_module_resource[module]["/".join(resource_path)]
+        if resourcename in m:
+            return _pages_by_module_resource[module][resourcename]
+        x = "/".join(resource_path)
+        if (module, x) in fileserver.by_module_resource:
+            return fileserver.by_module_resource[module, x]
 
         if "/".join(resource_path + ["__index__"]) in m:
             return _pages_by_module_resource[module]["/".join(resource_path + ["__index__"])]
@@ -138,6 +154,9 @@ def lookup(module, args):
         if "/".join(resource_path + ["__default__"]) in m:
             return m["/".join(resource_path + ["__default__"])]
     return None
+
+
+fileserver.lookup = lookup
 
 
 def url_for_resource(module, resource):
@@ -150,36 +169,9 @@ class CompiledPageAPIObject:
         self.page = p
         self.url = url_for_resource(p.module, p.resourceName)
 
-    # def setContent(self, c):
-    #     """This allows self-modifying pages, as many things
-    #       are best edited directly.  The intended use is for
-    #       replacing the contents of custom html-elements with
-    #       a simple regex.
-
-    #     One must be careful to use elements that actually
-    #     can be replaced like that, which only have one instance.
-
-    #     """
-
-    #     pages.require("system_admin")
-    #     pages.postOnly()
-
-    #     if not isinstance(c, str):
-    #         raise RuntimeError("Content must be a string")
-    #     modules_state.modulesHaveChanged()
-
-    #     self.page.resource["body"] = c
-    #     self.page.refreshFromResource()
-
-    #     modules_state.saveResource(self.page.module, self.page.resourceName, self.page.resource)
-
-    # def getContent(self):
-    #     return self.page.resource["body"]
-
 
 class CompiledPage:
     def __init__(self, resource, m="unknown", r="unknown"):
-        self.errors = []
         self.printoutput = ""
 
         self.resource = resource
@@ -199,6 +191,7 @@ class CompiledPage:
         self.origins: list[str]
         self.methods: list[str]
         self.theme: str
+        self.errors: list[tuple[float, str, str]] = []
 
         # This API is available as 'page' from within
         # Mako template code.   It's main use is for self modifying pages
@@ -222,7 +215,7 @@ class CompiledPage:
             if "allow_xss" in resource:
                 self.xss = resource["allow_xss"]
             else:
-                self.xss = False
+                self.xss = len(resource.get("allow_origins", [])) > 0
 
             if "allow_origins" in resource:
                 self.origins = resource["allow_origins"]
@@ -367,11 +360,13 @@ def getPageErrors(module, resource):
     try:
         return _pages_by_module_resource[module][resource].errors
     except KeyError:
-        return (
-            0,
-            "No Error list available for page that was not compiled or loaded",
-            "Page has not been compiled or loaded and does not exist in compiled page list",
-        )
+        return [
+            (
+                0,
+                "No Error list available for page that was not compiled or loaded",
+                "Page has not been compiled or loaded and does not exist in compiled page list",
+            )
+        ]
 
 
 def getPageOutput(module, resource):
@@ -487,8 +482,8 @@ def getPagesFromModules():
                             )
                             try:
                                 messagebus.post_message(f"system/errors/pages/{i}/{m}", str(tb))
-                            except Exception as e:
-                                print(e)
+                            except Exception:
+                                logger.exception("Could not post message")
                             # Keep only the most recent 25 errors
 
                             # If this is the first error(high level: transition from ok to not ok)
@@ -515,120 +510,91 @@ def streamGen(e):
         yield x
 
 
-# kaithem.py has come config option that cause this file to use the method dispatcher.
-class KaithemPage:
-    # Class encapsulating one request to a user-defined page
-    exposed = True
+app = quart.Quart(__name__)
 
-    def __init__(self) -> None:
-        from ... import kaithemobj
 
-        self.kaithemobj = kaithemobj
+@app.before_request
+def handle_preflight():
+    if quart.request.method == "OPTIONS":
+        res = quart.Response()
+        # Remove /pages/
+        p = quart.request.path.split("/")[1:]
+        res.headers.update(lookup(p[0], p[1:]))
+        return res
 
-    def GET(self, module, *args, **kwargs):
-        # Workaround for cherrypy decoding unicode as if it is latin 1
-        # Because of some bizzare wsgi thing i think.
-        module = module.encode("latin-1").decode("utf-8")
-        args = [i.encode("latin-1").decode("utf-8") for i in args]
-        return self._serve(module, *args, **kwargs)
 
-    def POST(self, module, *args, **kwargs):
-        # Workaround for cherrypy decoding unicode as if it is latin 1
-        # Because of some bizzare wsgi thing i think.
-        module = module.encode("latin-1").decode("utf-8")
-        args = [i.encode("latin-1").decode("utf-8") for i in args]
-        return self._serve(module, *args, **kwargs)
+@app.route("/pages/<module>/<path:path>")
+async def catch_all(module, path):
+    kwargs = dict(await quart.request.form)
+    kwargs.update(quart.request.args)
 
-    def OPTION(self, module, resource, *args, **kwargs):
-        # Workaround for cherrypy decoding unicode as if it is latin 1
-        # Because of some bizzare wsgi thing i think.
-        module = module.encode("latin-1").decode("utf-8")
-        args = [i.encode("latin-1").decode("utf-8") for i in args]
-        self._headers(lookup(module, args))
-        return ""
+    args = tuple(path.split("/"))
+    page = lookup(module, args)
+    h = {}
 
-    def _headers(self, page):
-        x = ""
-        for i in page.methods:
-            x += f"{i}, "
-        x = x[:-2]
+    if page is None:
+        messagebus.post_message(
+            "/system/errors/http/nonexistant",
+            f"Someone tried to access a page that did not exist in module {module} with path {args}",
+        )
+        rn = "/".join(args)
+        x = modules_state.ActiveModules[module].get(rn, None)
 
-        cherrypy.response.headers["Allow"] = f"{x}, HEAD, OPTIONS"
-        if page.xss:
-            if "Origin" in cherrypy.request.headers:
-                if cherrypy.request.headers["Origin"] in page.origins or "*" in page.origins:
-                    cherrypy.response.headers["Access-Control-Allow-Origin"] = cherrypy.request.headers["Origin"]
-                cherrypy.response.headers["Access-Control-Allow-Methods"] = x
+        quart.abort(404)
 
-    def _serve(self, module, *args, **kwargs):
-        page = lookup(module, args)
+    if "Origin" in quart.request.headers:
+        if not page.xss:
+            raise RuntimeError("Refusing XSS")
+        if not (quart.request.headers["Origin"] in page.origins or "*" in page.origins):
+            raise RuntimeError("Refusing XSS from this origin: " + quart.request.headers["Origin"])
+        else:
+            h["Access-Control-Allow-Origin"] = quart.request.headers["Origin"]
 
-        if page is None:
-            messagebus.post_message(
-                "/system/errors/http/nonexistant",
-                f"Someone tried to access a page that did not exist in module {module} with path {args}",
-            )
-            rn = "/".join(args)
-            x = modules_state.ActiveModules[module].get(rn, None)
+    x = ""
+    for i in page.methods:
+        x += f"{i}, "
+    x = x[:-2]
+    h["Access-Control-Allow-Methods"] = x
 
-            if x and x["resource_type"] == "internal_fileref":
-                fn = modules_state.file_resource_paths[module, rn]
-                mime = str(x.get("mimetype", "").strip() or mimetypes.guess_type(fn)[0])  # type: ignore
-                if x.get("serve", False):
-                    pages.require(x.get("require_permissions", []))
-                    if "Origin" in cherrypy.request.headers:
-                        origins: list[str] = x["allow_origins"]  # type: ignore
-
-                        if not x["allow_xss"]:
-                            raise RuntimeError("Refusing XSS")
-
-                        if not (cherrypy.request.headers["Origin"] in origins or "*" in origins):
-                            raise RuntimeError("Refusing XSS from this origin: " + cherrypy.request.headers["Origin"])
-                        else:
-                            cherrypy.response.headers["Access-Control-Allow-Origin"] = cherrypy.request.headers["Origin"]
-
-                    return cherrypy.lib.static.serve_file(
-                        fn,
-                        mime,
-                        os.path.basename(fn),
-                    )
-            raise cherrypy.NotFound()
-
-        if "Origin" in cherrypy.request.headers:
-            if not page.xss:
-                raise RuntimeError("Refusing XSS")
-            if not (cherrypy.request.headers["Origin"] in page.origins or "*" in page.origins):
-                raise RuntimeError("Refusing XSS from this origin: " + cherrypy.request.headers["Origin"])
-            else:
-                cherrypy.response.headers["Access-Control-Allow-Origin"] = cherrypy.request.headers["Origin"]
-
-        x = ""
-        for i in page.methods:
-            x += f"{i}, "
-        x = x[:-2]
-        cherrypy.response.headers["Access-Control-Allow-Methods"] = x
-
-        page.lastaccessed = time.time()
-        # Check user permissions
-        for i in page.permissions:
-            pages.require(i)
-
-        self._headers(page)
-        # Check HTTP Method
-        if cherrypy.request.method not in page.methods:
-            # Raise a redirect the the wrongmethod error page
-            raise cherrypy.HTTPRedirect("/errors/wrongmethod")
+    page.lastaccessed = time.time()
+    # Check user permissions
+    for i in page.permissions:
         try:
-            cherrypy.response.headers["Content-Type"] = page.mime
+            pages.require(i)
+        except PermissionError:
+            if quart.request.method == "GET":
+                return pages.loginredirect(quart.request.url)
+            else:
+                return pages.loginredirect("/")
+
+    if isinstance(page, fileserver.ServerObj):
+        fp = path[len(page.r) + 1 :]
+        if fp.startswith("/"):
+            fp = fp[1:]
+        fp = os.path.join(page.folder, fp)
+        return await quart.send_file(fp)
+
+    h.update(_headers(page))
+    # Check HTTP Method
+    if quart.request.method not in page.methods:
+        # Raise a redirect the the wrongmethod error page
+        return quart.redirect("/errors/wrongmethod")
+    try:
+
+        @copy_current_request_context
+        def serve():
+            h["Content-Type"] = page.mime
 
             t = page.theme
             if t in theming.cssthemes:
                 t = theming.cssthemes[t].css_url
 
+            from kaithem.src import kaithemobj
+
             if hasattr(page, "template"):
                 s = {
-                    "kaithem": self.kaithemobj.kaithem,
-                    "request": cherrypy.request,
+                    "kaithem": kaithemobj.kaithem,
+                    "request": quart.request,
                     "module": modules_state.scopes[module],
                     "path": args,
                     "kwargs": kwargs,
@@ -638,64 +604,76 @@ class KaithemPage:
                     "_k_alt_top_banner": page.alt_top_banner,
                 }
                 if not page.useJinja:
-                    return page.template.render(**s).encode("utf-8")
+                    r = page.template.render(**s).encode("utf-8")
                 else:
                     s.update(page.scope)
 
                     if page.code_obj:
                         exec(page.code_obj, s, s)
 
-                    return page.template.render(**s)
+                    r = page.template.render(**s)
 
             else:
-                return page.text.encode("utf-8")
+                r = page.text.encode("utf-8")
+            return r
 
-        except self.kaithemobj.ServeFileInsteadOfRenderingPageException as e:
-            if page.streaming and hasattr(e.f_filepath, "read"):
-                cherrypy.response.headers["Content-Type"] = e.f_MIME
-                cherrypy.response.headers["Content-Disposition"] = f'attachment ; filename = "{e.f_name}"'
-                return streamGen(e.f_filepath)
+        r = await serve()
+        return quart.Response(r, headers=h)
 
-            if hasattr(e.f_filepath, "getvalue"):
-                cherrypy.response.headers["Content-Type"] = e.f_MIME
-                cherrypy.response.headers["Content-Disposition"] = f'attachment ; filename = "{e.f_name}"'
-                return e.f_filepath.getvalue()
+    except pages.ServeFileInsteadOfRenderingPageException as e:
+        if hasattr(e.f_filepath, "getvalue"):
+            h["Content-Type"] = e.f_MIME
+            h["Content-Disposition"] = f'attachment ; filename = "{e.f_name}"'
+            return quart.Response(e.f_filepath.getvalue(), headers=h)
+        else:
+            h["Content-Type"] = e.f_MIME
+            h["Content-Disposition"] = f'attachment ; filename = "{e.f_name}"'
+            return await quart.send_file(e.f_filepath)
 
-            return cherrypy.lib.static.serve_file(e.f_filepath, e.f_MIME, e.f_name)
+    except Exception as e:
+        # The HTTPRedirect is NOT an error, and should not be handled like one.
+        # So we just reraise it unchanged
+        if isinstance(e, pages.HTTPRedirect):
+            return quart.redirect(e.url)
 
+        tb = traceback.format_exc(chain=True)
+        # tb = tornado.exceptions.text_error_template().render()
+        data = "Request from: " + str(quart.request.remote_addr) + "(" + pages.getAcessingUser() + ")\n" + quart.request.request_line + "\n"
+        # When an error happens, log it and save the time
+        # Note that we are logging to the compiled event object
+        page.errors.append([time.strftime(settings_overrides.get_val("core/strftime_string")), tb, data])
+        try:
+            messagebus.post_message(f"system/errors/pages/{module}/{'/'.join(args)}", str(tb))
         except Exception as e:
-            # The HTTPRedirect is NOT an error, and should not be handled like one.
-            # So we just reraise it unchanged
-            if isinstance(e, cherrypy.HTTPRedirect):
-                raise e
+            logger.exception("Could not post message")
 
-            # The way we let users securely serve static files is to simply
-            # Give them a function that raises this special exception
-            if isinstance(e, self.kaithemobj.ServeFileInsteadOfRenderingPageException):
-                return cherrypy.lib.static.serve_file(e.f_filepath, e.f_MIME, e.f_name)
+        # Keep only the most recent 25 errors
 
-            tb = traceback.format_exc(chain=True)
-            # tb = tornado.exceptions.text_error_template().render()
-            data = (
-                "Request from: " + cherrypy.request.remote.ip + "(" + pages.getAcessingUser() + ")\n" + cherrypy.request.request_line + "\n"
+        # If this is the first error(high level: transition from ok to not ok)
+        # send a global system messsage that will go to the front page.
+        if len(page.errors) == 1:
+            messagebus.post_message(
+                "/system/notifications/errors",
+                'Page "' + "/".join(args) + '" of module "' + module + '" may need attention',
             )
-            # When an error happens, log it and save the time
-            # Note that we are logging to the compiled event object
-            page.errors.append([time.strftime(settings_overrides.get_val("core/strftime_string")), tb, data])
-            try:
-                messagebus.post_message(f"system/errors/pages/{module}/{'/'.join(args)}", str(tb))
-            except Exception as e:
-                print(e)
-            # Keep only the most recent 25 errors
+        raise (e)
 
-            # If this is the first error(high level: transition from ok to not ok)
-            # send a global system messsage that will go to the front page.
-            if len(page.errors) == 1:
-                messagebus.post_message(
-                    "/system/notifications/errors",
-                    'Page "' + "/".join(args) + '" of module "' + module + '" may need attention',
-                )
-            raise (e)
+
+def _headers(page):
+    h = {}
+    x = ""
+    for i in page.methods:
+        x += f"{i}, "
+    x = x[:-2]
+
+    h["Allow"] = f"{x}, HEAD, OPTIONS"
+    if page.xss:
+        if "Origin" in quart.request.headers:
+            if quart.request.headers["Origin"] in page.origins or "*" in page.origins:
+                h["Access-Control-Allow-Origin"] = quart.request.headers["Origin"]
+            h["Access-Control-Allow-Methods"] = x
+
+    return h
 
 
 def rsc_from_html(fn: str):
@@ -772,9 +750,12 @@ class PageType(modules_state.ResourceType):
         updateOnePage(resourcename, module, value)
 
     def onmove(self, module, resource, toModule, toResource, resourceobj):
-        x = _pages_by_module_resource.pop((module, resource), None)
+        if module not in _pages_by_module_resource:
+            _pages_by_module_resource[toModule] = {}
+
+        x = _pages_by_module_resource[module].pop(resource, None)
         if x:
-            _pages_by_module_resource[toModule, toResource] = x
+            _pages_by_module_resource[toModule][toResource] = x
 
     def onupdate(self, module, resource, obj):
         self.onload(module, resource, obj)
@@ -813,10 +794,9 @@ class PageType(modules_state.ResourceType):
         resourceobj["mimetype"] = kwargs["mimetype"]
         resourceobj["template_engine"] = kwargs["template_engine"]
         resourceobj["no_navheader"] = "no_navheader" in kwargs
-        resourceobj["streaming_response"] = "streaming_response" in kwargs
 
         resourceobj["no_header"] = "no_header" in kwargs
-        resourceobj["allow_xss"] = "allow_xss" in kwargs
+
         resourceobj["allow_origins"] = [i.strip() for i in kwargs["allow_origins"].split(",")]
         # Method checkboxes
         resourceobj["require_method"] = []
@@ -830,7 +810,7 @@ class PageType(modules_state.ResourceType):
             # Since HTTP args don't have namespaces we prefix all the permission
             # checkboxes with permission
             if i[:10] == "Permission":
-                if kwargs[i] == "true":
+                if kwargs[i] in ("true", "on"):
                     resourceobj["require_permissions"].append(i[10:])
 
         return resourceobj
@@ -841,7 +821,7 @@ class PageType(modules_state.ResourceType):
         d.selection("template", options=["default"])
 
         d.submit_button("Create")
-        return d.render(f"/modules/module/{url(module)}/addresourcetarget/{self.type}/{url(path)}")
+        return d.render(f"/modules/module/{url(module)}/addresourcetarget/{self.type}", hidden_inputs={"dir": path})
 
     def editpage(self, module, resource, resource_data):
         if "require_permissions" in resource_data:
@@ -852,9 +832,9 @@ class PageType(modules_state.ResourceType):
         d = SimpleDialog(f"{module}: {resource}")
         d.submit_button("GoNow", title="Save and go to page")
 
-        d.code_editor("code", language="python", default=resource_data.get("code", ""))
-        d.code_editor("body", language="html", default=resource_data["body"])
-        d.code_editor("setupcode", language="python", default=resource_data.get("setupcode", ""))
+        d.code_editor("code", title="Handler Code", language="python", default=resource_data.get("code", ""))
+        d.code_editor("body", title="Page Body", language="html", default=resource_data["body"])
+        d.code_editor("setupcode", title="Setup Code", language="python", default=resource_data.get("setupcode", ""))
 
         o = ["jinja2", "markdown", "none"]
         if resource_data.get("template_engine", "jinja2") == "mako":
@@ -862,18 +842,19 @@ class PageType(modules_state.ResourceType):
 
         d.selection("template_engine", title="Template Engine", default=resource_data.get("template_engine", "jinja2"), options=o)
         d.begin_section("Settings")
+
+        # These legacy options only matter wth Mako
         for i in (
-            ("streaming_response", "Stream file downloads"),
             ("no_navheader", "Hide nav header"),
             ("no_header", "No extra content at all"),
-            ("allow_xss", "Allow cross site requests"),
         ):
-            d.checkbox(i[0], title=i[1], default=resource_data.get(i[0], False))
+            if i[0] in resource_data:
+                d.checkbox(i[0], title=i[1], default=resource_data.get(i[0], False))
 
         d.checkbox("allow-GET", title="Allow GET", default="GET" in resource_data.get("require_method"))
         d.checkbox("allow-POST", title="Allow POST", default="POST" in resource_data.get("require_method"))
         d.text_input("mimetype", title="MIME", default=resource_data.get("mimetype", "text/html"))
-        d.text_input("allow_origins", title="XSS Origins", default=", ".join(resource_data.get("origins", "*")))
+        d.text_input("allow_origins", title="XSS Origins", default=", ".join(resource_data.get("allow_origins", "")))
         d.text_input(
             "themecss", title="Theme", default=resource_data.get("theme_css_url", ""), suggestions=[(i, i) for i in theming.cssthemes]
         )
@@ -885,6 +866,12 @@ class PageType(modules_state.ResourceType):
             d.checkbox(f"Permission{i}", title=i, default=i in requiredpermissions)
         d.end_section()
 
+        if getPageErrors(module, resource):
+            d.begin_section("Errors")
+            for i in getPageErrors(module, resource):
+                d.text(str(i))
+            d.end_section()
+
         d.submit_button("Save Changes", value="Save and Go Back")
 
         return d.render(self.get_update_target(module, resource))
@@ -892,3 +879,5 @@ class PageType(modules_state.ResourceType):
 
 p = PageType("page", mdi_icon="web", schema=schema)
 modules_state.additionalTypes["page"] = p
+
+add_asgi_app("/pages", app, "__guest__")

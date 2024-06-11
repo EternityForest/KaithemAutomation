@@ -1,7 +1,9 @@
 import os
+import sys
 
-import kaithem.src.pylogginghandler
-from kaithem.src import directories
+if "--collect-only" not in sys.argv:
+    import kaithem.src.pylogginghandler
+    from kaithem.src import directories
 
 
 def test_log_flush():
@@ -16,4 +18,4 @@ def test_log_flush():
         d = f.read()
 
     # Make sure stuff is actually in the file
-    assert "INFO:" in d
+    assert "[info" in d

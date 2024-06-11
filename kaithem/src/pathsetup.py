@@ -4,11 +4,12 @@
 
 # This file deals with configuring the way python's import mechanism works.
 
-import logging
 import os
 import sys
 
-logger = logging.getLogger("system")
+import structlog
+
+logger = structlog.get_logger(__name__)
 
 setup = False
 

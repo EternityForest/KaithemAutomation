@@ -57,6 +57,7 @@ class ConfigType(modules_state.ResourceType):
         del entries[module, name]
 
     def oncreaterequest(self, module, name, kwargs):
+        kwargs = dict(kwargs)
         pr = kwargs.pop("config_priority", "50")
         d = {"resource_type": self.type, "data": {kwargs["key"]: kwargs["value"]}}
         d["config_priority"] = float(pr.strip())
@@ -65,6 +66,7 @@ class ConfigType(modules_state.ResourceType):
 
     def onupdaterequest(self, module, resource, resourceobj, kwargs):
         d = resourceobj
+        kwargs = dict(kwargs)
         kwargs.pop("name", None)
         kwargs.pop("Save", None)
 

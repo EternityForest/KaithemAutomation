@@ -31,12 +31,6 @@ def sigquit(*a):
 
     except Exception:
         raise
-    import cherrypy
-    import tornado
-
-    ioloop = tornado.ioloop.IOLoop.instance()
-    ioloop.add_callback(ioloop.stop)
-    cherrypy.bus.exit()
 
 
 signal.signal(signal.SIGQUIT, sigquit)
@@ -44,18 +38,11 @@ signal.signal(signal.SIGUSR1, dumpThreads)
 
 
 def stop(*args):
-    import cherrypy
-
     threading.Thread(target=icemedia.sound_player.stop_all_sounds, daemon=True).start()
     messagebus.post_message("/system/notifications/shutdown", "Recieved SIGINT or SIGTERM.")
     messagebus.post_message("/system/shutdown", "Recieved SIGINT or SIGTERM.")
 
-    import tornado
 
-    ioloop = tornado.ioloop.IOLoop.instance()
-    ioloop.add_callback(ioloop.stop)
-    cherrypy.engine.exit()
-
-
-signal.signal(signal.SIGINT, stop)
-signal.signal(signal.SIGTERM, stop)
+# signal.signal(signal.SIGINT, stop)
+# Called by asyncio
+# signal.signal(signal.SIGTERM, stop)

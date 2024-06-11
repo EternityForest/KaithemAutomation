@@ -3,13 +3,14 @@
 
 
 import atexit
-import threading
 import socket
+import threading
 import time
 from urllib.parse import urlparse
-import logging
 
-logger = logging.getLogger("upnp")
+import structlog
+
+logger = structlog.get_logger(__name__)
 try:
     import upnpclient
 except ImportError:
@@ -48,9 +49,7 @@ def getWANAddresses():
             for k in j.actions:
                 if k.name == "GetExternalIPAddress":
                     if "WAN" in j.service_type:
-                        addresses.append(
-                            j.GetExternalIPAddress()["NewExternalIPAddress"]
-                        )
+                        addresses.append(j.GetExternalIPAddress()["NewExternalIPAddress"])
     return addresses
 
 
@@ -88,9 +87,7 @@ def getDevicesWithDefault(deviceURL):
 
 
 # Asks them to open port from the outside world directly to us.
-def addMapping(
-    port, proto, desc="Description here", deviceURL=0, register=True, WANPort=None
-):
+def addMapping(port, proto, desc="Description here", deviceURL=0, register=True, WANPort=None):
     """
     Add a mapping between the outside world and a certain port on the local machine.
     Proto can be UDP or TCP. The mapping will expire in 20 minutes unless autorenew is used.
@@ -213,9 +210,7 @@ def listMappings(deviceURL=None, cacheTime=1):
                             start = time.time()
                             while time.time() - start < 100:
                                 try:
-                                    x = j.GetGenericPortMappingEntry(
-                                        NewPortMappingIndex=ind
-                                    )
+                                    x = j.GetGenericPortMappingEntry(NewPortMappingIndex=ind)
                                     mappings.append(
                                         {
                                             "external": (
@@ -227,9 +222,7 @@ def listMappings(deviceURL=None, cacheTime=1):
                                                 x["NewInternalPort"],
                                             ),
                                             "protocol": x["NewProtocol"],
-                                            "description": x[
-                                                "NewPortMappingDescription"
-                                            ],
+                                            "description": x["NewPortMappingDescription"],
                                             "duration": x["NewLeaseDuration"],
                                             "remotehost": x["NewRemoteHost"],
                                         }
@@ -249,12 +242,7 @@ def detectShortcut(addr, protocol="UDP"):
     This function also resolves DNS names
     """
     # No shortcut needed for these ar all
-    if (
-        addr[0].startswith("192.")
-        or addr[0].startswith("10.")
-        or addr[0].startswith("127.")
-        or addr[0].endswith(".local")
-    ):
+    if addr[0].startswith("192.") or addr[0].startswith("10.") or addr[0].startswith("127.") or addr[0].endswith(".local"):
         return
 
     addr = (socket.gethostbyname_ex(addr[0])[2][0], addr[1])

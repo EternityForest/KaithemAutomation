@@ -1,0 +1,25 @@
+:root {
+    color-scheme: light dark;
+    --red: rgb(255, 0, 119);
+    --fg: #927c6b;
+    --graphical-fg: #1a091a;
+    --accent-color: rgb(151 41 102);
+    --bg: #3a0418;
+    --box-bg: #0f0a08;
+    --padding: 2px;
+    --gap: 2px;
+    --border-color: #1a091a;
+    --border-radius: 0rem;
+    --control-border-radius: 0px;
+    --control-border-width: 1px;
+    --control-border-color: black;
+    --3d-highlight: #8b053d;
+    --3d-shadow: #73043d;
+    --concave-item-bg: linear-gradient(180deg, var(--3d-shadow) 12%, var(--3d-highlight) 88%);
+    --convex-item-bg: linear-gradient(180deg, var(--3d-highlight) 0%, var(--3d-shadow) 96%);
+    --convex-item-active-bg: var(--concave-item-bg);
+    --concave-item-box-shadow: #17161659;
+    --control-bg: #482155;
+    --alt-control-bg: #620d38;
+    --control-fg: #a18275;
+}

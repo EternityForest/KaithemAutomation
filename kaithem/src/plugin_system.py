@@ -10,9 +10,11 @@ import threading
 import time
 import traceback
 
+import structlog
+
 from . import directories, messagebus, pathsetup
 
-logger = logging.getLogger("system")
+logger = structlog.get_logger(__name__)
 logger.setLevel(logging.INFO)
 
 plugins = {}
@@ -39,6 +41,7 @@ def import_in_thread(m: str | importlib.machinery.ModuleSpec):
                 # when a module is imported or reloaded.
                 assert m.loader
                 m.loader.exec_module(foo)
+                plugins[m.name] = foo
 
             logger.info(f"Loaded plugin {m} in {round((time.monotonic()-t) * 1000,2)}ms")
         except Exception:
@@ -99,7 +102,7 @@ def load_user_plugins():
                         assert spec
                         import_in_thread(spec)
                     except Exception:
-                        logging.exception("Error in user plugin")
+                        logger.exception("Error in user plugin")
 
         for i in range(240000):
             time.sleep(0.001)

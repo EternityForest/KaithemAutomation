@@ -7,9 +7,15 @@ kaithem.egg-info*
 dist/**
 out/**
 **.snap
+**.coverage
 # This is for when building under nix
 result/**
 **/.directory
 .venv/**
 
 poetry.toml
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

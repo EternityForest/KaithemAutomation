@@ -25,7 +25,7 @@ import os%>
 <dt><a href="/settings/system"><i class="mdi mdi-cog-outline"></i>System Settings</a></dt>
 <dd>View and edit system global settings</dd>
 <p class="warning">WARNING: Yappi has High CPU use, may crash on rasPi or similar.</p>
-<dt><a href="/auth/"><i class="mdi mdi-account-group"></i>Users and Groups</a></dt>
+<dt><a href="/auth"><i class="mdi mdi-account-group"></i>Users and Groups</a></dt>
 <dd>Manage users, Groups, and Permissions</dd>
 <dt><a href="/settings/theming"><i class="mdi mdi-palette"></i>Appearance and Theming</a></dt>
 <dd>Manage theming    <a href=""><i class="mdi mdi-game-controller"></i></a></dd>
@@ -72,8 +72,6 @@ import os%>
 
 <dt><a href="/settings/profiler"><i class="mdi mdi-pie-chart"></i>Profiler</a></dt>
 <dd>Measure and profile the application performance(Depends on the module yappi.)</dd>
-<dt><a href="/settings/screenshot"><i class="mdi mdi-camera"></i>Server Screenshot</a></dt>
-<dd>Get a screenshot of what's on the server</dd>
 
 <dt><a href="/settings/settime">Set Time</a></dt>
 <dd>Set time based on time reported by browser(Kaithem must run as a user with passwordless sudo)
@@ -83,12 +81,6 @@ import os%>
 <h3><i class="mdi mdi-tools"></i>Utilities</h3>
 <dl>
 
-% for i in settings.page_plugins:
-
-
-<dt><a href="/settings/${i}">${settings.page_plugins[i].title|h}</a></dt>
-<dd>Plugin</dd>
-%endfor
 
 <dt>Object Inspector(Explore starting from the list of modules)</dt>
 

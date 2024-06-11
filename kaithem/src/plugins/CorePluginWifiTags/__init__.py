@@ -3,11 +3,12 @@
 
 import logging
 
+import structlog
 from scullery import scheduling, util
 
 from kaithem.src import tagpoints, workers
 
-log = logging.getLogger("system.wifi")
+log = structlog.get_logger("system.wifi")
 
 
 modes = {3: "AP", 2: "STA"}

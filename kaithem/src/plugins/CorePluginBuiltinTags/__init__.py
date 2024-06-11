@@ -1,11 +1,13 @@
 import logging
 
+import structlog
+
 from kaithem.src import alerts, geolocation, messagebus, tagpoints
 from kaithem.src import astrallibwrapper as sky
 
 refs = []
 
-log = logging.getLogger("system")
+log = structlog.get_logger("system")
 
 
 def is_dark():

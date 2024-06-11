@@ -1379,7 +1379,7 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
     flex-grow: 1;
 
     &:is(.margin) {
-        max-width: calc(calc(min(215px, 50vw)) - calc(var(--gap) * 2));
+        max-width: calc(calc(min(28cm, 100vw)) - calc(var(--gap) * 2));
     }
 }
 

@@ -21,7 +21,7 @@ def size(f):
 "foo" in the zip becomes "DIR/foo".  If a destination file exists, it is overwritten.</p>
 
 
-<form enctype="multipart/form-data" action="/settings/files/${util.url(dir)}" method="POST">
+<form enctype="multipart/form-data" action="/settings/files/${dir[1:]}" method="POST">
 
 <p class="menubar">
 Upload File:
@@ -30,7 +30,7 @@ Upload File:
 </p>
 </form>
 
-<form enctype="multipart/form-data" action="/settings/files/${util.url(dir)}" method="POST">
+<form enctype="multipart/form-data" action="/settings/files/${dir[1:]}" method="POST">
 <p class="menubar">
 Upload zip and unpack:
 <input type="file" name="zipfile">

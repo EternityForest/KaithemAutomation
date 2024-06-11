@@ -1,11 +1,13 @@
 # SPDX-FileCopyrightText: Copyright 2019 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
 
-from scullery.mqtt import Connection as BaseConnection
-from scullery import mqtt
-from . import tagpoints
 import threading
 import weakref
+
+from scullery import mqtt
+from scullery.mqtt import Connection as BaseConnection
+
+from . import tagpoints
 
 allConnections = {}
 allConnectionsLock = threading.Lock()
@@ -29,10 +31,8 @@ class EnhancedConnection(BaseConnection):
         message_bus_name=None,
         **kw,
     ):
-        self.statusTag = tagpoints.StringTag(
-            "/system/mqtt/" + (message_bus_name or server + ":" + str(port)) + "/status"
-        )
-        self.statusTagClaim = self.statusTag.claim("dis_connected", "status", 90)
+        self.statusTag = tagpoints.StringTag("/system/mqtt/" + (message_bus_name or server + ":" + str(port)) + "/status")
+        self.statusTagClaim = self.statusTag.claim("disconnected", "status", 90)
         BaseConnection.__init__(
             self,
             server=server,
@@ -59,11 +59,11 @@ class EnhancedConnection(BaseConnection):
 
     def on_disconnected(self):
         BaseConnection.on_disconnected(self)
-        self.statusTagClaim.set("dis_connected")
+        self.statusTagClaim.set("disconnected")
 
     def configure_alert(self, alert_priority, alert_ack):
         self.statusTag.set_alarm(
-            "dis_connected",
+            "disconnected",
             "value != 'connected'",
             priority=alert_priority,
             auto_ack="yes" if alert_ack else "no",

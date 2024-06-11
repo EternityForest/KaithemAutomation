@@ -1,14 +1,11 @@
+import atexit
 import threading
 import time
-import traceback
 
-import cherrypy
 import icemedia.sound_player
-import numpy
 from scullery import messagebus
 
-from . import ChandlerConsole, core, universes
-from .universes import getUniverses
+from . import ChandlerConsole, core, scene_lighting, universes
 
 logger = core.logger
 soundLock = threading.Lock()
@@ -23,26 +20,14 @@ min = min
 
 
 def refresh_scenes(t, v):
-    """Stop and restart all active scenes, because some caches might need to be updated
-    when a new universes is added
-    """
+    """Tell scenes the set of universes has changed"""
     with core.lock:
         for b in core.iter_boards():
             for i in b.active_scenes:
-                # Attempt to restart all scenes.
-                # Try to put them back in the same state
-                # A lot of things are written assuming the list stays constant,
-                # this is needed for refreshing.
-                x = i.started
-                y = i.entered_cue
-                i.stop()
-                i.go()
-                i.render()
-                i.started = x
-                i.entered_cue = y
+                i.lighting_manager.refresh()
 
 
-messagebus.subscribe("/chandler/command/refreshScenes", refresh_scenes)
+messagebus.subscribe("/chandler/command/refresh_scene_lighting", refresh_scenes)
 
 
 def refreshFixtures(topic, val):
@@ -81,175 +66,17 @@ def pollsounds():
                             i.next_cue(cause="sound")
 
 
-def composite(background, values, alphas, alpha):
-    "In place compositing of one universe as a numpy array on a background.  Returns background."
-    background = background * (1 - (alphas * alpha)) + values * alphas * alpha
-    return background
-
-
-def applyLayer(universe, uvalues, scene, uobj):
-    "May happen in place, or not, but always returns the new version"
-
-    if universe not in scene.canvas.v2:
-        return uvalues
-
-    vals = scene.canvas.v2[universe]
-    alphas = scene.canvas.a2[universe]
-
-    # The universe may need to know when it's current fade should end,
-    # if it handles fading in a different way.
-    # This will look really bad for complex things, to try and reduce them to a series of fades,
-    # but we just do the best we can, and assume there's mostly only 1 scene at a time affecting things
-    uobj.fadeEndTime = max(uobj.fadeEndTime, scene.cue.fade_in + scene.entered_cue)
-
-    ualphas = uobj.alphas
-
-    if scene.blend == "normal":
-        # todo: is it bad to multiply by bool?
-        unsetVals = ualphas == 0.0
-        fade = numpy.maximum(scene.alpha, unsetVals & uobj.hueBlendMask)
-
-        uvalues = composite(uvalues, vals, alphas, fade)
-        # Essetially calculate remaining light percent, then multiply layers and convert back to alpha
-        ualphas = 1 - ((1 - (alphas * fade)) * (1 - (ualphas)))
-
-    elif scene.blend == "HTP":
-        uvalues = numpy.maximum(uvalues, vals * (alphas * scene.alpha))
-        ualphas = (alphas * scene.alpha) > 0
-
-    elif scene.blend == "inhibit":
-        uvalues = numpy.minimum(uvalues, vals * (alphas * scene.alpha))
-        ualphas = (alphas * scene.alpha) > 0
-
-    elif scene.blend == "gel" or scene.blend == "multiply":
-        if scene.alpha:
-            # precompute constants
-            c = 255 / scene.alpha
-            uvalues = (uvalues * (1 - alphas * scene.alpha)) + (uvalues * vals) / c
-
-            # COMPLETELY incorrect, but we don't use alpha for that much, and the real math
-            # Is compliccated. #TODO
-            ualphas = (alphas * scene.alpha) > 0
-
-    elif scene._blend:
-        try:
-            uvalues = scene._blend.frame(universe, uvalues, vals, alphas, scene.alpha)
-            # Also incorrect-ish, but treating modified vals as fully opaque is good enough.
-            ualphas = (alphas * scene.alpha) > 0
-        except Exception:
-            print("Error in blend function")
-            print(traceback.format_exc())
-    uobj.alphas = ualphas
-    return uvalues
-
-
-def pre_render(board: ChandlerConsole.ChandlerConsole, universes: dict[str, universes.Universe]):
-    "Reset all universes to either the all 0s background or the cached layer, depending on if the cache layer is still valid"
-    # Here we find out what universes can be reset to a cached layer and which need to be fully rerendered.
-    changedUniverses = {}
-    to_reset = {}
-
-    # Important to reverse, that way scenes that need a full reset come after and don't get overwritten
-    for i in reversed(board.active_scenes):
-        for u in i.affect:
-            if u in universes:
-                universe = universes[u]
-                universe.all_static = True
-                if i.rerender:
-                    changedUniverses[u] = (0, 0)
-
-                    # We are below the cached layer, we need to fully reset
-                    if (i.priority, i.started) <= universe.prerendered_layer:
-                        to_reset[u] = 1
-                    else:
-                        # We are stacking on another layer or changing the top layer. We don't need
-                        # To rerender the entire stack, we just start from the prerendered_layer
-                        # Set the universe to the state it was in just after the prerendered layer was rendered.
-                        # Since the values are mutable, we need to set this back every frame
-
-                        # Don't overwrite a request to reset the entire thing
-                        if not to_reset.get(u, 0) == 1:
-                            to_reset[u] = 2
-    for u in universes:
-        if universes[u].full_rerender:
-            to_reset[u] = 1
-
-        universes[u].fadeEndTime = 0
-        universes[u].interpolationTime = 0
-
-    for u in to_reset:
-        if (to_reset[u] == 1) or not universes[u].prerendered_layer[1]:
-            universes[u].reset()
-            changedUniverses[u] = (0, 0)
-        else:
-            universes[u].reset_to_cache()
-            changedUniverses[u] = (0, 0)
-    return changedUniverses
-
-
-def render(board: ChandlerConsole.ChandlerConsole, t=None, u=None):
-    "This is the primary rendering function"
-    universesSnapshot = u or getUniverses()
-    # Getting list of universes is apparently slow, so we pass it as a param
-    changedUniverses = pre_render(board, universesSnapshot)
-
+def poll_board_scenes(board: ChandlerConsole.ChandlerConsole, t=None):
+    "Poll scenes in the board"
     t = t or time.time()
 
     # Remember that scenes get rendered in ascending priority order here
     for i in board.active_scenes:
         # We don't need to call render() if the frame is a static scene and the opacity
         # and all that is the same, we can just re-layer it on top of the values
-        if i.rerender or (i.cue.length and ((time.time() - i.entered_cue) > i.cuelen * (60 / i.bpm))):
-            i.rerender = False
-            i.render()
-
-        if i.blend == "monitor":
-            i.updateMonitorValues()
-            continue
-
-        data = i.affect
-
-        # Loop over universes the scene affects
-        for u in data:
-            if u.startswith("__") and u.endswith("__"):
-                continue
-
-            if u not in universesSnapshot:
-                continue
-
-            universeObject = universesSnapshot[u]
-
-            # If this is above the prerendered stuff we try to avoid doing every frame
-            if (i.priority, i.started) > universeObject.top_layer:
-                # If this layer we are about to render was found to be the highest layer that likely won't need rerendering,
-                # Save the state just befor we apply that layer.
-                if (universeObject.save_before_layer == (i.priority, i.started)) and not ((i.priority, i.started) == (0, 0)):
-                    universeObject.save_prerendered(universeObject.top_layer[0], universeObject.top_layer[1])
-
-                changedUniverses[u] = (i.priority, i.started)
-                universeObject.values = applyLayer(u, universeObject.values, i, universeObject)
-                universeObject.top_layer = (i.priority, i.started)
-
-                # If this is the first nonstatic layer, meaning it's render function requested a rerender next frame
-                # or if this is the last one, mark it as the one we should save just before
-                if i.rerender or (i is board.active_scenes[-1]):
-                    if universeObject.all_static:
-                        # Copy it and set to none as a flag that we already found it
-                        universeObject.all_static = False
-                        universeObject.save_before_layer = universeObject.top_layer
-
-    for i in changedUniverses:
-        try:
-            if i in universesSnapshot:
-                x = universesSnapshot[i]
-                x.preFrame()
-                x.onFrame()
-        except Exception:
-            raise
-
-    for un in universesSnapshot:
-        universesSnapshot[un].full_rerender = False
-    changedUniverses = {}
+        if i.poll_again_flag or (i.cue.length and ((time.time() - i.entered_cue) > i.cuelen * (60 / i.bpm))):
+            i.poll_again_flag = False
+            i.poll()
 
 
 lastrendered = 0
@@ -262,30 +89,46 @@ run = [True]
 
 
 def loop():
+    global lastrendered
+
     # This function is apparently slightly slow?
     u_cache = universes.getUniverses()
-    u = universes.universes
-    u_id = id(u)
+    u_cache_time = time.time()
 
     while run[0]:
+        t = time.time()
         try:
-            if not u_id == id(universes.universes):
+            # Profiler says this needs a cache
+            if t - u_cache_time > 1:
                 u_cache = universes.getUniverses()
-                u = universes.universes
-                u_id = id(u)
+                u_cache_time = t
 
-            with core.lock:
-                for b in core.iter_boards():
-                    render(b, u=u_cache)
-
-            global lastrendered
-            if time.time() - lastrendered > 1 / 14.0:
+            do_gui_push = False
+            if t - lastrendered > 1 / 14.0:
                 with core.lock:
                     pollsounds()
-                    for b in core.iter_boards():
+                do_gui_push = True
+                lastrendered = t
+
+            with core.lock:
+                changed = {}
+
+                # The pre-render step has to
+                # happen before we start compositing on the layers
+
+                for b in core.iter_boards():
+                    poll_board_scenes(b)
+                    changed.update(scene_lighting.pre_render(b, u_cache))
+
+                for b in core.iter_boards():
+                    c = scene_lighting.composite_layers_from_board(b, u=u_cache)
+                    changed.update(c)
+
+                    if do_gui_push:
                         b.guiPush(u_cache)
 
-                lastrendered = time.time()
+                scene_lighting.do_output(changed, u_cache)
+
             time.sleep(1 / 60)
         except Exception:
             logger.exception("Wat")
@@ -295,8 +138,9 @@ thread = threading.Thread(target=loop, name="ChandlerThread", daemon=True)
 thread.start()
 
 
-def STOP():
+def STOP(*a):
     run[0] = False
 
 
-cherrypy.engine.subscribe("stop", STOP, priority=10)
+atexit.register(STOP)
+messagebus.subscribe("/system/shutdown", STOP)

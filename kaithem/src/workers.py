@@ -7,7 +7,6 @@
 import atexit
 import traceback
 
-import cherrypy
 from scullery import workers
 from scullery.workers import (
     EXIT,
@@ -54,5 +53,3 @@ workers.start(count, qsize, wait)
 # Only now do we do the import, as we will actually have everything loaded
 
 atexit.register(EXIT)
-# Don't do this till after everything else because it blocks
-cherrypy.engine.subscribe("exit", EXIT, priority=1)
