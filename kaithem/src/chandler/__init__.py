@@ -111,12 +111,23 @@ def loop():
                 lastrendered = t
 
             with core.lock:
+                changed = {}
+
+                # The pre-render step has to
+                # happen before we start compositing on the layers
+
                 for b in core.iter_boards():
                     poll_board_scenes(b)
-                    scene_lighting.composite_layers_and_do_output(b, u=u_cache)
+                    changed.update(scene_lighting.pre_render(b, u_cache))
+
+                for b in core.iter_boards():
+                    c = scene_lighting.composite_layers_from_board(b, u=u_cache)
+                    changed.update(c)
 
                     if do_gui_push:
                         b.guiPush(u_cache)
+
+                scene_lighting.do_output(changed, u_cache)
 
             time.sleep(1 / 60)
         except Exception:

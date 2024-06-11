@@ -11,6 +11,8 @@ Change Log
 - :bug: Require confirm checkbox was showing incorrect value
 - :bug: Missing file for lair.css theme
 - :bug: Fixture values were not applied on boot until the first cue transition
+- :bug: Fix issue where all black frames could get inserted in DMX output
+- :bug: Improve the UI for hthe fxture assignments setup
 
 #### Changed
 

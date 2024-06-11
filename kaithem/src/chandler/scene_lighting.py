@@ -186,7 +186,7 @@ class SceneLightingManager:
                         divider = idx / (max(repeats - 1, 1))
                         evaled = (evaled * (1 - divider)) + (dest[j] * divider)
 
-                    x = universes.mapChannel(i, j)
+                    x = universes.mapChannel(i.split("[")[0], j)
                     if x:
                         universe, channel = x[0], x[1]
                         try:
@@ -392,7 +392,12 @@ def composite_rendered_layer_onto_universe(universe, uvalues, scene, uobj):
 
 
 def pre_render(board: ChandlerConsole, universes: dict[str, universes.Universe]):
-    "Reset all universes to either the all 0s background or the cached layer, depending on if the cache layer is still valid"
+    """
+    Reset all universes to either the all 0s background or the cached layer, depending on if the cache layer is still valid
+    This needs to happen before we start compositing on the layers.
+
+    Here is also where we figure out what universes need to be fully rerendered
+    """
     # Here we find out what universes can be reset to a cached layer and which need to be fully rerendered.
     changedUniverses = {}
     to_reset = {}
@@ -435,12 +440,13 @@ def pre_render(board: ChandlerConsole, universes: dict[str, universes.Universe])
     return changedUniverses
 
 
-def composite_layers_and_do_output(board: ChandlerConsole, t=None, u=None):
-    "This is the primary rendering function"
+def composite_layers_from_board(board: ChandlerConsole, t=None, u=None):
+    """This is the primary rendering function.
+    Returns dict of universes we know changes
+    """
     universesSnapshot = u or universes.getUniverses()
+    changedUniverses = {}
     # Getting list of universes is apparently slow, so we pass it as a param
-    changedUniverses = pre_render(board, universesSnapshot)
-
     t = t or time.time()
 
     # Remember that scenes get rendered in ascending priority order here
@@ -480,6 +486,14 @@ def composite_layers_and_do_output(board: ChandlerConsole, t=None, u=None):
                         universeObject.save_before_layer = universeObject.top_layer
         i.lighting_manager.should_rerender_onto_universes = False
 
+    return changedUniverses
+
+
+def do_output(changedUniverses, universesSnapshot):
+    """Trigger all universes to actually ouptu the frames.
+    Need a snapshot list of universes because getting
+    it is expensive according to profiler
+    """
     for i in changedUniverses:
         try:
             if i in universesSnapshot:
@@ -491,4 +505,3 @@ def composite_layers_and_do_output(board: ChandlerConsole, t=None, u=None):
 
     for un in universesSnapshot:
         universesSnapshot[un].full_rerender = False
-    changedUniverses = {}

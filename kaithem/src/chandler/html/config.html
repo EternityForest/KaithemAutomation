@@ -142,7 +142,7 @@ ${lists}
             </div>
         </section>
 
-        <div v-if="showDMXSetup" class="window margin flex-item">
+        <div v-if="showDMXSetup" class="window margin flex-item w-sm-double">
             <header>
                 <div class="tool-bar">
 
@@ -161,9 +161,6 @@ ${lists}
 
             <div class="flex-row gaps margin">
                 <div class="card">
-                    <header>
-                        <h4>Universe Status</h4>
-                    </header>
                     <table border="1" class="paper">
                         <tr>
                             <th>Universe</th>
@@ -177,13 +174,14 @@ ${lists}
                 </div>
 
 
-                <div class="card">
+                <div class="card max-h-24rem scroll">
                     <header>
                         <h4>Serial Ports</h4>
 
                     </header>
-                    <span v-for="i in serports">{{i}}<br></span>
-
+                    <ul>
+                        <li v-for="i in serports">{{i}}</li>
+                    </ul>
                 </div>
             </div>
             <details class="help">
@@ -193,12 +191,6 @@ ${lists}
                 use "save setup" Configuring these universes requires system_admin.
             </details>
             <h4>Configure Universes</h4>
-            <p>If tag point universes do nothing, check that the priority is not just being overrriden. It should be at
-                least 50. Also note that you should avoid using this to create new tags,
-                as they may be destroyed and recreated as cues come and go, which could cause odd behavior. To add tags
-                to a
-                universe, use the extra options button.
-            </p>
 
             <datalist id="artnettargets">
             </datalist>
@@ -218,17 +210,16 @@ ${lists}
                     <th>Universe</th>
                     <th>Type</th>
                     <th>Interface</th>
-                    <th>Framerate</th>
+                    <th>FPS</th>
                     <th>Channels</th>
-                    <th>Number(artnet)/Priority(tags)</th>
-                    <th>Actions</th>
+                    <th>Number</th>
                     <th>Actions</th>
 
                 </tr>
                 <tr v-for="(v,i) in configuredUniverses">
                     <td>{{i}}</td>
                     <td>
-                        <input list="utypes" v-model="v.type" title="The type of universe. Usually enttec or artnet">
+                        <input list="utypes" class="w-6rem" v-model="v.type" title="The type of universe. Usually enttec or artnet">
                     </td>
 
                     <td v-if="v.type!='artnet'">
@@ -243,22 +234,17 @@ ${lists}
 
 
                     <td>
-                        <input type=number min=0 max=480 step=0.1 v-model="v.framerate" title="The max frame rate">
+                        <input type=number min=0 max=480  class="w-4rem" step=0.1 v-model="v.framerate" title="The max frame rate">
                     </td>
 
                     <td>
-                        <input type=number min=0 max=512 v-model="v.channels" title="The number of channels to send">
+                        <input type=number min=0 max=512  class="w-4rem"
+                        v-model="v.channels" title="The number of channels to send">
                     </td>
 
                     <td>
-                        <input type=number min=0 max=65535 v-model="v.number"
+                        <input type=number min=0 max=65535 v-model="v.number" class="w-6rem"
                             title="The universe number. Mostly used for ArtNet">
-                    </td>
-
-
-
-                    <td>
-                        <button v-on:click="universeFullSettings=i">More Options</button>
                     </td>
 
                     <td>
@@ -280,7 +266,7 @@ ${lists}
 
 
 
-        <section v-if="showFixtureSetup" class="flex-item window margin min-h-24rem">
+        <section v-if="showFixtureSetup" class="flex-item window margin min-h-36rem w-sm-full" style="max-height: 80vh;">
 
             <header>
                 <div class="tool-bar">
@@ -291,17 +277,24 @@ ${lists}
             </header>
 
 
+
+            <div class="tool-bar">
+                <button v-on:click="addfixturetype"><i class="mdi mdi-plus"></i>New</button>
+                <a class="button" href="UseOPZDMX">Import from OP-Z format</a>
+            </div>
+            <hr>
             <combo-box v-model="selectedFixtureClass" v-on:change="getfixtureclass(selectedFixtureClass)"
                 :options="useBlankDescriptions(fixtureClasses)"></combo-box>
-            <button v-on:click="addfixturetype"><i class="mdi mdi-plus"></i>Add fixture type</button>
-            <a class="button" href="UseOPZDMX">Import from OP-Z format library</a>
+
 
             <div v-if="selectedFixtureClass">
                 <h4>{{selectedFixtureClass}}</h4>
 
-                <button v-on:click="delfixturetype"><i class="mdi mdi-delete"></i>Delete Fixture Type</button>
+                <div class="tool-bar">
+                    <button v-on:click="delfixturetype"><i class="mdi mdi-delete"></i>Delete Fixture Type</button>
+                    <button>Rename</button>
+                </div>
 
-                <button>Rename</button>
                 <h3>Channels in Fixture Type</h3>
                 <div v-for="(v,i) in fixtureClasses[selectedFixtureClass]">
                     <h4>{{i}}.</h4>
@@ -309,9 +302,10 @@ ${lists}
                         <input v-on:change="pushfixture(selectedFixtureClass)"
                             v-model="fixtureClasses[selectedFixtureClass][i][0]">
                     </label>
+
                     <label>Type:
                         <select v-on:change="pushfixture(selectedFixtureClass)"
-                            v-model="fixtureClasses[selectedFixtureClass][i][1]" v-on:change="chTypeChanged(i)">
+                            v-model="fixtureClasses[selectedFixtureClass][i][1]" v-on:change="fixtureClasses[selectedFixtureClass][i][0]=chTypeChanged(i)">
                             <option>red</option>
                             <option>green</option>
                             <option>blue</option>
@@ -322,7 +316,6 @@ ${lists}
                             <option>fine</option>
                             <option>unused</option>
                             <option>fixed</option>
-
                         </select>
                     </label>
 
@@ -423,6 +416,8 @@ ${lists}
                     <td><button v-on:click="rmFixtureAssignment(i[1].name)">Delete</button></td>
                 </tr>
             </table>
+
+            <h4>Add Assignment</h4>
 
             <table border="1">
 

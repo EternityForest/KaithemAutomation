@@ -332,7 +332,8 @@ class Cue:
 
     @beartype
     def set_value(self, universe: str, channel: str | int, value: str | int | float | None):
-        disallow_special(universe, allow="_@./")
+        # Allow [] for range effects
+        disallow_special(universe, allow="_@./[]")
 
         scene = self.getScene()
 
