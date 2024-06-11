@@ -87,14 +87,20 @@ def user(asgi=None) -> str:
     Returns:
         str: Username of this active web request, or empty string if unknown
     """
-    x = _pages.getAcessingUser()
+    x = _pages.getAcessingUser(asgi)
     if x:
         return x
     else:
         return ""
 
 
-def has_permission(permission: str, asgi=None) -> bool:
+def has_permission(permission: str, asgi=None, user=None) -> bool:
     """Return True if the user accessing the current web request
-    has the permssion specified"""
+    has the permssion specified.
+
+    If not running in a Quart context, you must use the asgi parameter
+    and specify a scope, or specify a user directly.
+    """
+    if user:
+        return _pages.canUserDoThis(permission, user)
     return _pages.canUserDoThis(permission, asgi)
