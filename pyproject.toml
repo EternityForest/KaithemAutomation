@@ -16,6 +16,7 @@ handsdown = "^2.1.0"
 pytest-cov = "^5.0.0"
 pytest-asyncio = "^0.23.7"
 poetry-lock-package = "^0.5.1"
+
 [tool.ruff]
 line-length = 140
 
@@ -23,7 +24,7 @@ line-length = 140
 python = "^3.10.0, <3.13"
 # First party
 scullery = ">=0.1.17"
-iot-devices = "*"
+iot-devices = ">=0.1.19"
 icemedia = ">=0.1.6"
 NVRChannel = ">=0.1.7"
 

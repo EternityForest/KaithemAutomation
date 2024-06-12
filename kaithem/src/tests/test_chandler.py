@@ -2,6 +2,7 @@
 
 
 import datetime
+import subprocess
 import sys
 import time
 
@@ -13,6 +14,46 @@ if "--collect-only" not in sys.argv:
     core.boards["test_board"] = WebChandlerConsole.WebConsole()
 
     board = core.boards["test_board"]
+
+
+def test_mqtt():
+    """Spins up mosquitto and tests that the MQTT feature works"""
+
+    cfg = """
+persistence false
+allow_anonymous true
+listener 7801
+"""
+    with open("/dev/shm/kaithem_tests/mosquitto.conf", "w") as f:
+        f.write(cfg)
+
+    pr = subprocess.Popen(["mosquitto", "-c", "/dev/shm/kaithem_tests/mosquitto.conf"])
+    time.sleep(0.5)
+    assert pr.poll() is None
+
+    try:
+        s = scenes.Scene(board, "TestingSceneMQTT")
+        # Must add scenes to the board so we can save them and test the saving
+        board.addScene(s)
+        s.go()
+
+        s.setMqttServer("localhost:7801")
+        s.setMQTTFeature("syncGroup", True)
+        s.add_cue("c2")
+
+        s2 = scenes.Scene(board, "TestingSceneMQTT2")
+        s2.go()
+        board.addScene(s2)
+        s2.setMqttServer("localhost:7801")
+        s2.setMQTTFeature("syncGroup", True)
+        s2.add_cue("c2")
+
+        s.goto_cue("c2")
+        time.sleep(0.5)
+
+        assert s2.cue.name == "c2"
+    finally:
+        pr.kill()
 
 
 def test_fixtures():
