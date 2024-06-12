@@ -91,7 +91,7 @@ dev-file-lines: # Show files sorted by line count
 
 
 .PHONY: dev-build
-dev-build: # Build for release
+dev-build: dev-build-docs # Build for release
 	@poetry build
 	@poetry freeze-wheel
 

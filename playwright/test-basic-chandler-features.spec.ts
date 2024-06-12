@@ -1,6 +1,10 @@
 import { test, expect } from '@playwright/test';
 import { login, logout, makeModule, deleteModule, makeTagPoint} from './util';
 
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 /*
 Create a module, make a chandler board, test very simple logic,
 make sure tag output features work.
@@ -154,6 +158,11 @@ test('test', async ({ page }) => {
     
     // Go back and make sure it actually worked
     await page.getByRole('link', { name: 'Tags' }).click();
+
+    // Do this twice to give it time to render
+    await sleep(300);
+    await page.getByRole('link', { name: 'Tags' }).click();
+
     await expect(page.getByRole('row', { name: '/test_chandler_tag' })).toContainText('130');
     await page.getByRole('link', { name: 'Modules' }).click();
     await page.getByRole('link', { name: module }).click();

@@ -412,7 +412,7 @@ class Cue:
 
                 # If we change something in a pattern effect we just do a full recalc since those are complicated.
                 if unmappeduniverse in self.values and "__length__" in self.values[unmappeduniverse]:
-                    group.lighting_manager.cue_vals_to_numpy_cache(self, False)
+                    group.lighting_manager.update_state_from_cue_vals(self, False)
 
                     # The FadeCanvas needs to know about this change
                     group.poll(force_repaint=True)
@@ -427,18 +427,14 @@ class Cue:
                         uobj = get_on_demand_universe(universe)
                         group.lighting_manager.on_demand_universes[universe] = uobj
 
-                    if (universe not in group.lighting_manager.cue_cached_alphas_as_arrays) and value is not None:
+                    if (universe not in group.lighting_manager.state_alphas) and value is not None:
                         uobj = getUniverse(universe)
                         if uobj:
-                            group.lighting_manager.cue_cached_vals_as_arrays[universe] = numpy.array([0.0] * len(uobj.values), dtype="f4")
-                            group.lighting_manager.cue_cached_alphas_as_arrays[universe] = numpy.array([0.0] * len(uobj.values), dtype="f4")
-                    if universe in group.lighting_manager.cue_cached_alphas_as_arrays:
-                        group.lighting_manager.cue_cached_alphas_as_arrays[universe][channel] = 1 if value is not None else 0
-                        group.lighting_manager.cue_cached_vals_as_arrays[universe][channel] = group.evalExpr(
-                            value if value is not None else 0
-                        )
-                    if universe not in group.lighting_manager.affect:
-                        group.lighting_manager.affect.append(universe)
+                            group.lighting_manager.state_vals[universe] = numpy.array([0.0] * len(uobj.values), dtype="f4")
+                            group.lighting_manager.state_alphas[universe] = numpy.array([0.0] * len(uobj.values), dtype="f4")
+                    if universe in group.lighting_manager.state_alphas:
+                        group.lighting_manager.state_alphas[universe][channel] = 1 if value is not None else 0
+                        group.lighting_manager.state_vals[universe][channel] = group.evalExpr(value if value is not None else 0)
 
                     # The FadeCanvas needs to know about this change
                     group.poll(force_repaint=True)

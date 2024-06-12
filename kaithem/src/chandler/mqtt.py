@@ -1,12 +1,18 @@
+from __future__ import annotations
+
 import logging
 import threading
 import time
 import traceback
+import typing
 import weakref
 
-import structlog
+from scullery import workers
 
-from ..kaithemobj import kaithem
+if typing.TYPE_CHECKING:
+    import paho.mqtt.client
+
+import structlog
 
 logger = structlog.get_logger(__name__)
 
@@ -46,33 +52,41 @@ def getWeakrefHandlers(self):
     self = weakref.ref(self)
 
     def on_connect(client, userdata=None, flags=None, rc=0, *a):
+        obj = self()
+        if not obj:
+            return
+
         try:
             if not rc == 0:
-                self().on_disconnect()
+                obj.on_disconnect()
                 return
-            self().on_connect()
+            obj.on_connect()
 
-            logger.info("Connected to MQTT server: " + self().name + "result code " + str(rc))
+            logger.info("Connected to MQTT server: " + obj.name + "result code " + str(rc))
             # Don't block the network thread too long
 
             def subscriptionRefresh():
                 try:
-                    for i in self().subscriptions:
-                        self().connection.subscribe(i[1], 0)
+                    for i in obj.subscriptions:
+                        obj.connection.subscribe(i[1], 0)
                 except Exception:
                     logger.exception("Error subscription refresh")
 
-            kaithem.misc.do(subscriptionRefresh)
+            workers.do(subscriptionRefresh)
         except Exception:
             logging.exception("MQTT")
 
     def on_disconnect(client, *a):
+        obj = self()
+        if not obj:
+            return
+
         try:
-            if not self():
+            if not obj:
                 return
-            logger.info("Disconnected from MQTT server: " + self().name)
-            self().on_disconnect()
-            logger.info("Disconnected from MQTT server: " + self().name)
+            logger.info("Disconnected from MQTT server: " + obj.name)
+            obj.on_disconnect()
+            logger.info("Disconnected from MQTT server: " + obj.name)
         except Exception:
             logging.exception("MQTT")
 
@@ -89,7 +103,7 @@ def getWeakrefHandlers(self):
 
 
 class MQTTConnection:
-    def __init__(self, host, port) -> None:
+    def __init__(self, host, port, username=None, password=None) -> None:
         import paho.mqtt.client as mqtt
 
         # Ok so the connection is supposed to do this by itself. Some condition can
@@ -102,6 +116,19 @@ class MQTTConnection:
         self.lock = threading.RLock()
 
         self.is_connected = False
+
+        self.connection: None | paho.mqtt.client.Client = None
+
+        self._thread: None | threading.Thread = None
+
+        x = host.split("@")
+        if len(x) == 2:
+            host = x[1]
+            assert not username
+            username = x[0]
+
+        name = host + ":" + str(port)
+        self.name = name
 
         def reconnect():
             try:
@@ -127,9 +154,6 @@ class MQTTConnection:
             self.connection.on_disconnect = on_disconnect
             self.connection.on_message = on_message
 
-            name = host + ":" + str(port)
-            self.name = name
-
             self._thread = threading.Thread(
                 target=makeThread(self.connection, weakref.ref(self)),
                 name=name,
@@ -146,7 +170,7 @@ class MQTTConnection:
         def f():
             checkIfConnected(self, 5)
 
-        kaithem.misc.do(f)
+        workers.do(f)
 
         # Block so the rest of the code doesn't do nuisance warnings
         # and stuff working on a not yet connected thing.
@@ -159,6 +183,7 @@ class MQTTConnection:
             # Atomic.  Also add to list happens before subscribe because of race if not connected
             self.subscriptions = list(self.subscriptions) + [t]
             try:
+                assert self.connection
                 self.connection.subscribe(t, 0)
                 self.sucessful_subscriptions.append(t)
             except Exception:
@@ -175,6 +200,7 @@ class MQTTConnection:
 
     def publish(self, topic, message):
         try:
+            assert self.connection
             self.connection.publish(
                 topic,
                 payload=message,
@@ -186,15 +212,24 @@ class MQTTConnection:
 
     def disconnect(self):
         try:
-            self.connection.disconnect()
+            if self.connection:
+                self.connection.disconnect()
         except Exception:
             logging.exception("Err in MQTT")
+
+    def close(self):
+        self.disconnect()
+
+    def __del__(self):
+        logging.warning("MQTT Connection closed automatically: " + self.name)
+        self.close()
 
     def unsubscribe(self, topic):
         with self.lock:
             try:
                 self.subscriptions.remove(topic)
-                self.connection.unsubscribe(topic)
+                if self.connection:
+                    self.connection.unsubscribe(topic)
                 self.sucessful_subscriptions.remove(topic)
             except Exception:
                 logging.exception("Err in MQTT")

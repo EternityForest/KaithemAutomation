@@ -1618,7 +1618,7 @@ def getEventsFromModules(only: str | None = None):
         devices.warnAboutUnsupportedDevices()
     except Exception:
         logger.info("Error checking validity of device instances")
-    logger.exception("Created events from modules")
+    logger.info("Created events from modules")
 
 
 def make_event_from_resource(module: str, resource: str, subst: modules_state.ResourceDictType | None = None):

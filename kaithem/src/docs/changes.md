@@ -9,6 +9,10 @@ Change Log
 
 ### 0.84.0b2
 
+#### Added
+
+- :sparkles: More YoLink devices
+
 #### Fixed
 
 - :bug: Updated icemedia version fixes thread leak
@@ -18,7 +22,9 @@ Change Log
 - :bug: Missing file for lair.css theme
 - :bug: Fixture values were not applied on boot until the first cue transition
 - :bug: Fix issue where all black frames could get inserted in DMX output
-- :bug: Improve the UI for hthe fxture assignments setup
+- :bug: Improve the UI for the fxture assignments setup
+- :bug: Fix fading from a cue that has a fixture to a non-tracking one that doesn't
+- :bug: Fix inability to access manage page for subdevices
 
 #### Changed
 
@@ -27,6 +33,10 @@ Change Log
 #### Removed
 
 - :coffin: Rahu calculations removed due to switching libraries
+
+
+Internally, the separate "affect" variabl used in lighting rendering has been refactored away.
+
 
 ### 0.84.0b1
 

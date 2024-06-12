@@ -1942,6 +1942,8 @@ class Group:
         # Remember, we can and do the next cue thing and still need to repaint, because sometimes the next cue thing does nothing
         if force_repaint or (not self.fade_in_completed):
             self.lighting_manager.paint_canvas(fadePosition)
+            if fadePosition >= 1.0:
+                self.lighting_manager.fade_complete()
 
         if self.cuelen and (time.time() - self.entered_cue) > self.cuelen * (60 / self.bpm):
             # rel_length cues end after the sound in a totally different part of code

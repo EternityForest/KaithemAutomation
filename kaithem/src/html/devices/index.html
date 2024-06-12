@@ -60,7 +60,7 @@ else:
         <div class="tool-bar">
         <h3 title="${devObj.device_type_name}">
 
-            <a href="device/${url(i)}/manage">${devObj.title|h}
+            <a href="device/${i|h}/manage">${devObj.title|h}
 
                 %if hasattr(devObj,'errors') and len(devObj.errors):
                 <span style="color: ${'red' if len(devObj.errors) else 'inherit' };">
