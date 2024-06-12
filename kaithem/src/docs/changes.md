@@ -1,5 +1,11 @@
 Change Log
 ----------
+### 0.85.0
+
+#### Changed
+
+- :boom: Chandler "Scenes" have been renamed to "Groups" to disambiguate from "Cues" and follow stage lighting practice.  This should not be a breaking change, anything user facing gets migrated automatically.
+
 
 ### 0.84.0b2
 
