@@ -45,7 +45,7 @@ def test_fixtures():
     board._onmsg("__admin__", ["scv", cid, "@testFixture", "red", 39], "test")
 
     time.sleep(0.1)
-    time.sleep(0.1)
+    time.sleep(0.3)
 
     assert universes.universes["dmx"]().values[0] == 0
     assert universes.universes["dmx"]().values[1] == 39

@@ -612,7 +612,7 @@ appMethods = {
             this.newcueu, this.newcuevnumber
         ]);
         if (parseInt(this.newcuevnumber) != NaN) {
-            this.newcuevnumber = parseInt(this.newcuevnumber) + 1
+            this.newcuevnumber = (parseInt(this.newcuevnumber) + 1).toString()
         }
 
     },
@@ -1473,7 +1473,7 @@ function f(v) {
             return
         }
         if (!vueapp.$data.cuevals[cue][universe]) {
-            return
+            vueapp.$data.cuevals[cue][universe] = {}
         }
 
         var needRefresh = false;
