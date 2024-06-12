@@ -19,9 +19,6 @@ from .fadecanvas import FadeCanvas
 class SceneLightingManager:
     def __init__(self, scene: Scene):
         self.scene = scene
-        # List of universes we should be affecting right now
-        # Based on what values are in the cue and what values are inherited
-        self.affect: list[str] = []
         self.canvas = FadeCanvas()
 
         self.should_rerender_onto_universes = False
@@ -31,8 +28,8 @@ class SceneLightingManager:
 
         # Lets us cache the lists of values as numpy arrays with 0 alpha for not present vals
         # which are faster that dicts for some operations
-        self.cue_cached_vals_as_arrays: dict[str, numpy.typing.NDArray[Any]] = {}
-        self.cue_cached_alphas_as_arrays: dict[str, numpy.typing.NDArray[Any]] = {}
+        self.state_vals: dict[str, numpy.typing.NDArray[Any]] = {}
+        self.state_alphas: dict[str, numpy.typing.NDArray[Any]] = {}
         self.on_demand_universes: dict[str, universes.Universe] = {}
 
         self.cue: Cue | None = None
@@ -53,7 +50,7 @@ class SceneLightingManager:
     def recalc_cue_vals(self):
         """Call when you change a value in the cue"""
         assert self.cue
-        self.cue_vals_to_numpy_cache(self.cue, not self.cue.track)
+        self.update_state_from_cue_vals(self.cue, not self.cue.track)
 
     def next(self, cue: Cue):
         """Handle lighting related cue transition stuff"""
@@ -65,7 +62,7 @@ class SceneLightingManager:
         # A full rerender on every cue change isn't the most efficient, but it shouldn't be too bad
         # since most frames don't have a cue change in them
         try:
-            for i in self.affect:
+            for i in self.state_vals:
                 universes.rerenderUniverse(i)
         except Exception:
             print(traceback.format_exc())
@@ -76,41 +73,41 @@ class SceneLightingManager:
 
         if not reentering:
             if cue.track:
-                self.apply_tracked_values(cue)
+                self.apply_backtracked_values(cue)
 
         # Recalc what universes are affected by this scene.
         # We don't clear the old universes, we do that when we're done fading in.
         for i in cue.values:
             i = universes.mapUniverse(i)
-            if i and i in universes.universes:
-                if i not in self.affect:
-                    self.affect.append(i)
 
             if i and i.startswith("/"):
                 self.on_demand_universes[i] = universes.get_on_demand_universe(i)
 
-        self.cue_vals_to_numpy_cache(cue, not cue.track)
+        self.update_state_from_cue_vals(cue, not cue.track)
         self.fade_in_completed = False
 
     def stop(self):
         try:
-            for i in self.affect:
+            for i in self.state_vals:
                 universes.rerenderUniverse(i)
         except Exception:
             print(traceback.format_exc())
 
-        self.affect = []
+        self.state_vals = {}
+        self.state_alphas = {}
+        self.canvas.clean([])
         self.on_demand_universes = {}
 
         # Just using this to get rid of prev value
         self._blend = blendmodes.HardcodedBlendMode(self)
 
-    def cue_vals_to_numpy_cache(self, cuex: Cue, clearBefore=False):
+    def update_state_from_cue_vals(self, cuex: Cue, clearBefore=False):
         """Apply everything from the cue to the fade canvas"""
         # Loop over universes in the cue
         if clearBefore:
-            self.cue_cached_vals_as_arrays = {}
-            self.cue_cached_alphas_as_arrays = {}
+            # self.cue_cached_vals_as_arrays = {}
+            for i in self.state_alphas:
+                self.state_alphas[i] = numpy.zeros(self.state_alphas[i].shape)
 
         for i in cuex.values:
             universe = universes.mapUniverse(i)
@@ -152,13 +149,10 @@ class SceneLightingManager:
             if not uobj:
                 continue
 
-            if universe not in self.cue_cached_vals_as_arrays:
+            if universe not in self.state_vals:
                 size = len(uobj.values)
-                self.cue_cached_vals_as_arrays[universe] = numpy.array([0.0] * size, dtype="f4")
-                self.cue_cached_alphas_as_arrays[universe] = numpy.array([0.0] * size, dtype="f4")
-
-            if universe not in self.affect:
-                self.affect.append(universe)
+                self.state_vals[universe] = numpy.array([0.0] * size, dtype="f4")
+                self.state_alphas[universe] = numpy.array([0.0] * size, dtype="f4")
 
             self.rerenderOnVarChange = False
 
@@ -190,8 +184,8 @@ class SceneLightingManager:
                     if x:
                         universe, channel = x[0], x[1]
                         try:
-                            self.cue_cached_alphas_as_arrays[universe][channel + (idx * chCount)] = 1.0 if cuev is not None else 0
-                            self.cue_cached_vals_as_arrays[universe][channel + (idx * chCount)] = evaled
+                            self.state_alphas[universe][channel + (idx * chCount)] = 1.0 if cuev is not None else 0
+                            self.state_vals[universe][channel + (idx * chCount)] = evaled
                         except Exception:
                             print("err", traceback.format_exc())
                             self.scene.event(
@@ -208,33 +202,56 @@ class SceneLightingManager:
 
         self.canvas.paint(
             fade_position,
-            vals=self.cue_cached_vals_as_arrays,
-            alphas=self.cue_cached_alphas_as_arrays,
+            vals=self.state_vals,
+            alphas=self.state_alphas,
         )
-        if fade_position >= 1:
-            # We no longer affect universes from the previous cue we are fading from
 
-            # But we *do* still keep tracked and backtracked values.
-            self.affect = []
-            odu = {}
+    def fade_complete(self):
+        """Called when the fade is complete, to clean up leftover stuff we don't need"""
+        # We no longer affect universes from the previous cue we are fading from
 
-            for i in self.cue_cached_vals_as_arrays:
-                u = universes.mapUniverse(i)
-                if u and u in universes.universes:
-                    if u not in self.affect:
-                        self.affect.append(u)
+        # We did the fade, now if this is not a tracking
+        # cue, we are going to no longer affect anything
+        # That isn't directly in the cue
+        if self.cue and not self.cue.track:
+            current_affected = {}
+            for i in self.cue.values:
+                m = universes.mapUniverse(i)
+                current_affected[m] = True
 
-                if u and u.startswith("/"):
-                    odu[u] = universes.get_on_demand_universe(u)
+            to_delete = []
+            for i in self.state_alphas:
+                if i not in current_affected:
+                    to_delete.append(i)
 
-            self.on_demand_universes = odu
+            # These arrays should never be out of sync, this is just defensive
+            for i in to_delete:
+                if i in self.state_alphas:
+                    del self.state_alphas[i]
+                if i in self.state_vals:
+                    del self.state_vals[i]
 
-            # Remove unused universes from the cue
-            self.canvas.clean(self.cue_cached_vals_as_arrays)
-            self.fade_in_completed = True
-            self.should_rerender_onto_universes = True
+        # Clean up on demand universes
 
-    def apply_tracked_values(self, cobj: Cue) -> dict[str, Any]:
+        odu = {}
+
+        for i in self.state_vals:
+            u = universes.mapUniverse(i)
+
+            if u and u.startswith("/"):
+                odu[u] = universes.get_on_demand_universe(u)
+
+        self.on_demand_universes = odu
+
+        # Remove unused stuff from the canvas
+        # State vals has all the tracked stuff already
+        self.canvas.clean(self.state_vals)
+
+        # One last rerender, this was some kind of bug workaround
+        self.fade_in_completed = True
+        self.should_rerender_onto_universes = True
+
+    def apply_backtracked_values(self, cobj: Cue) -> dict[str, Any]:
         # When jumping to a cue that isn't directly the next one, apply and "parent" cues.
         # We go backwards until we find a cue that has no parent. A cue has a parent if and only if it has either
         # an explicit parent or the previous cue in the numbered list either has the default next cue or explicitly
@@ -276,7 +293,7 @@ class SceneLightingManager:
 
             # Apply all the lighting changes we would have seen if we had gone through the list one at a time.
             for cuex in reversed(to_apply):
-                self.cue_vals_to_numpy_cache(cuex)
+                self.update_state_from_cue_vals(cuex)
 
                 # cuevars = self.cues[cue].values.get("__variables__", {})
                 # for i in cuevars:
@@ -404,7 +421,7 @@ def pre_render(board: ChandlerConsole, universes: dict[str, universes.Universe])
 
     # Important to reverse, that way scenes that need a full reset come after and don't get overwritten
     for i in reversed(board.active_scenes):
-        for u in i.lighting_manager.affect:
+        for u in i.lighting_manager.canvas.v2:
             if u in universes:
                 universe = universes[u]
                 universe.all_static = True
@@ -454,7 +471,7 @@ def composite_layers_from_board(board: ChandlerConsole, t=None, u=None):
         if i.blend == "monitor":
             continue
 
-        data = i.lighting_manager.affect
+        data = i.lighting_manager.canvas.v2
 
         # Loop over universes the scene affects
         for u in data:

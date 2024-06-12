@@ -81,7 +81,6 @@ setproctitle = "*"
 psutil = "*"
 netifaces = "*"
 JACK-Client = "*"
-aioesphomeapi = "*"
 sf2utils = "*"
 pynput = "*"
 
@@ -107,6 +106,7 @@ colorama = "^0.4.6"
 starlette = "^0.37.2"
 
 ephem = "^4.1.5"
+
 [tool.poetry.scripts]
 "kaithem" = "kaithem:__main__"
 "kaithem-cli" = "kaithem_cli.cli:main"

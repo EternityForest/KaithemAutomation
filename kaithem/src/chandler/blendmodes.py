@@ -267,8 +267,6 @@ class exp_blendmode_np(BlendMode):
     def __init__(self, scene):
         BlendMode.__init__(self, scene)
         self.scene = scene
-        # for i in self.scene.values:
-        #     self.affect[i] = sorted(self.scene.values[i].keys())
         self.last = time.time()
 
     def frame(self, u, below, values, alphas, alpha):

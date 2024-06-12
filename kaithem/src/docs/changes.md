@@ -13,6 +13,7 @@ Change Log
 - :bug: Fixture values were not applied on boot until the first cue transition
 - :bug: Fix issue where all black frames could get inserted in DMX output
 - :bug: Improve the UI for hthe fxture assignments setup
+- :bug: Fix fading from a cue that has a fixture to a non-tracking one that doesn't
 
 #### Changed
 
