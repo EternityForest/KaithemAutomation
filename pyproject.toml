@@ -1,6 +1,11 @@
 [tool.poetry]
+
+# You need the freeze plugin to build this for release! 
+# https://github.com/cloud-custodian/poetry-plugin-freeze
+# Use poetry self add poetry-plugin-freeze
+
 name = "kaithem"
-version = "0.84.0b1"
+version = "0.84.0b2"
 description = "Home/commercial automation server"
 license = "GPL-3.0-only"
 packages = [{ include = "kaithem" }, { include = "kaithem_cli" }, { include = "kaithem_scripts" }]
@@ -15,7 +20,6 @@ handsdown = "^2.1.0"
 
 pytest-cov = "^5.0.0"
 pytest-asyncio = "^0.23.7"
-poetry-lock-package = "^0.5.1"
 
 [tool.ruff]
 line-length = 140

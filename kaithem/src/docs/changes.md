@@ -3,6 +3,10 @@ Change Log
 
 ### 0.84.0b2
 
+#### Added
+
+- :sparkles: More YoLink devices
+
 #### Fixed
 
 - :bug: Updated icemedia version fixes thread leak
@@ -14,6 +18,7 @@ Change Log
 - :bug: Fix issue where all black frames could get inserted in DMX output
 - :bug: Improve the UI for the fxture assignments setup
 - :bug: Fix fading from a cue that has a fixture to a non-tracking one that doesn't
+- :bug: Fix inability to access manage page for subdevices
 
 #### Changed
 

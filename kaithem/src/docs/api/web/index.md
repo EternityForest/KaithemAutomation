@@ -18,7 +18,7 @@
 
 ## MyCache
 
-[Show source in __init__.py:33](../../../../api/web/__init__.py#L33)
+[Show source in __init__.py:27](../../../../api/web/__init__.py#L27)
 
 #### Signature
 
@@ -29,7 +29,7 @@ class MyCache(_jinja2.BytecodeCache):
 
 ### MyCache().dump_bytecode
 
-[Show source in __init__.py:42](../../../../api/web/__init__.py#L42)
+[Show source in __init__.py:36](../../../../api/web/__init__.py#L36)
 
 #### Signature
 
@@ -39,7 +39,7 @@ def dump_bytecode(self, bucket): ...
 
 ### MyCache().load_bytecode
 
-[Show source in __init__.py:37](../../../../api/web/__init__.py#L37)
+[Show source in __init__.py:31](../../../../api/web/__init__.py#L31)
 
 #### Signature
 
@@ -51,7 +51,7 @@ def load_bytecode(self, bucket): ...
 
 ## add_asgi_app
 
-[Show source in __init__.py:69](../../../../api/web/__init__.py#L69)
+[Show source in __init__.py:63](../../../../api/web/__init__.py#L63)
 
 Mount an ASGI application to handle all URLs matching the prefix
 
@@ -65,7 +65,7 @@ def add_asgi_app(prefix: str, app, permission="system_admin"): ...
 
 ## add_wsgi_app
 
-[Show source in __init__.py:76](../../../../api/web/__init__.py#L76)
+[Show source in __init__.py:70](../../../../api/web/__init__.py#L70)
 
 Mount a WSGI application to handle all URLs matching the prefix
 
@@ -79,7 +79,7 @@ def add_wsgi_app(prefix: str, app, permission="system_admin"): ...
 
 ## has_permission
 
-[Show source in __init__.py:103](../../../../api/web/__init__.py#L103)
+[Show source in __init__.py:97](../../../../api/web/__init__.py#L97)
 
 Return True if the user accessing the current web request
 has the permssion specified
@@ -94,7 +94,7 @@ def has_permission(permission: str, asgi=None) -> bool: ...
 
 ## render_jinja_template
 
-[Show source in __init__.py:50](../../../../api/web/__init__.py#L50)
+[Show source in __init__.py:44](../../../../api/web/__init__.py#L44)
 
 Given the filename of a template, render it in a context where it has
 access to certain Kaithm standard templates
@@ -121,7 +121,7 @@ def render_jinja_template(template_filename: str, **kw): ...
 
 ## serve_file
 
-[Show source in __init__.py:83](../../../../api/web/__init__.py#L83)
+[Show source in __init__.py:77](../../../../api/web/__init__.py#L77)
 
 Call from within a Quart handler to server a file.
 
@@ -135,7 +135,7 @@ def serve_file(path, contenttype="", name=None): ...
 
 ## user
 
-[Show source in __init__.py:88](../../../../api/web/__init__.py#L88)
+[Show source in __init__.py:82](../../../../api/web/__init__.py#L82)
 
 asgi: The ASGI scope object that is currently active, required if
       this is called from outside a Quart context.
