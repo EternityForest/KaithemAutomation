@@ -101,7 +101,7 @@ def report():
     )
 
 
-@app.route("/device/<name>/manage")
+@app.route("/device/<path:name>/manage")
 def device_manage(name):
     try:
         pages.require("enumerate_endpoints")
