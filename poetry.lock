@@ -2281,20 +2281,6 @@ dev = ["pre-commit", "tox"]
 testing = ["pytest", "pytest-benchmark"]
 
 [[package]]
-name = "poetry-lock-package"
-version = "0.5.1"
-description = "Poetry lock package generator"
-optional = false
-python-versions = "<4.0.0,>=3.8.0"
-files = [
-    {file = "poetry_lock_package-0.5.1-py3-none-any.whl", hash = "sha256:102c0b1921d28528e37aaf62b51c6a167cf569bdd72e978e9d19c743c7fe8a53"},
-    {file = "poetry_lock_package-0.5.1.tar.gz", hash = "sha256:9cdae3aaea6c22e05cbaec7f4d47f140cd1b0d314c7cc1714a21d963031a2a2f"},
-]
-
-[package.dependencies]
-toml = ">=0.10.1,<0.11.0"
-
-[[package]]
 name = "priority"
 version = "2.0.0"
 description = "A pure-Python implementation of the HTTP/2 priority tree"
@@ -4178,4 +4164,4 @@ ifaddr = ">=0.1.7"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10.0, <3.13"
-content-hash = "27811d0d87e7a6f27928265c81921531136e56e88e062183826889a68c3a8ddf"
+content-hash = "cf082be59d7a20f34ce106e58cf909590e2afb8084c07df8a780165f51e50159"
