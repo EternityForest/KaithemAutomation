@@ -49,6 +49,8 @@ class ChandlerConsole(console_abc.Console_ABC):
         # This light board's group memory, or the set of groups 'owned' by this board.
         self.groups: Dict[str, Group] = {}
 
+        self.media_folders = []
+
         # For change etection in groups. Tuple is folder, file indicating where it should go,
         # as would be passed to saveasfiles
         self.last_saved_version: dict[str, Any] = {}
@@ -118,6 +120,16 @@ class ChandlerConsole(console_abc.Console_ABC):
             self.fixture_classes = data2["fixture_types"]
             self.fixture_assignments = data2["fixture_assignments"]
             self.fixture_presets = data2.get("fixture_presets", {})
+            default_media_folders = []
+
+            if os.path.exists(os.path.expanduser("~/Music")):
+                default_media_folders.append(os.path.expanduser("~/Music"))
+            if os.path.exists(os.path.expanduser("~/Videos")):
+                default_media_folders.append(os.path.expanduser("~/Videos"))
+            if os.path.exists(os.path.expanduser("~/Pictures")):
+                default_media_folders.append(os.path.expanduser("~/Pictures"))
+
+            self.media_folders = data2.get("media_folders", default_media_folders) or []
 
             try:
                 self.create_universes(self.configured_universes)
@@ -289,6 +301,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                 "configured_universes": self.configured_universes,
                 "fixture_assignments": self.fixture_assignments,
                 "fixture_presets": self.fixture_presets,
+                "media_folders": self.media_folders,
             }
 
     def loadLibraryFile(

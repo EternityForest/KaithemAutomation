@@ -82,14 +82,6 @@ def disallow_special(s: str, allow: str = "", replaceMode: str | None = None) ->
     return s
 
 
-config = {
-    "sound_folders": [],
-}
-
-
-if os.path.exists(os.path.join(saveLocation, "config.yaml")):
-    config.update(kaithem.persist.load(os.path.join(saveLocation, "config.yaml")))
-
 musicLocation = os.path.join(kaithem.misc.vardir, "chandler", "music")
 
 boards: dict[str, ChandlerConsole.ChandlerConsole] = {}
@@ -117,7 +109,7 @@ if not os.path.exists(musicLocation):
 
 def getSoundFolders() -> dict[str, str]:
     "path:displayname dict"
-    soundfolders: dict[str, str] = {i.strip(): i.strip() for i in config["sound_folders"]}
+    soundfolders: dict[str, str] = {}
 
     soundfolders[kaithem.assetpacks.assetlib] = "Online Assets Library"
 
