@@ -2,7 +2,9 @@ import os
 
 import quart
 import quart.utils
+import vignette
 from mako.lookup import TemplateLookup
+from tinytag import TinyTag
 
 from kaithem.src import quart_app, tagpoints
 
@@ -185,6 +187,71 @@ def dyn_js(file):
             vars=scriptheader(vars),
         )
     raise RuntimeError("File not found")
+
+
+@quart_app.app.route("/chandler/WebMediaServer")
+async def media():
+    pages.require("chandler_operator")
+    pages.require("enumerate_endpoints")
+
+    kwargs = quart.request.args
+
+    @quart.ctx.copy_current_request_context
+    def get_file():
+        if "albumArt" in kwargs:
+            sound = groups.cues[kwargs["albumArt"]].sound
+            if not sound:
+                return ""
+
+            sound = groups.cues[kwargs["albumArt"]].group().resolve_sound(sound)
+
+            if vignette:
+                t = vignette.try_get_thumbnail(sound)
+                if t:
+                    return t
+
+            soundMeta = TinyTag.get(sound, image=True)
+            t = soundMeta.get_image()
+            if not t:
+                return os.path.join(directories.datadir, "static", "img", "ai_default_album_art.jpg")
+
+            return t
+
+        else:
+            if "group" in kwargs and groups.groups[kwargs["group"]].media_link.allowed_remote_media_url == kwargs["file"]:
+                return kwargs["file"]
+            elif "group" in kwargs and groups.groups[kwargs["group"]].cue.slide == kwargs["file"]:
+                return groups.groups[kwargs["group"]].resolve_sound(kwargs["file"])
+            # elif 'group' in kwargs and kwargs['file'] in groups.groups[kwargs['group']].musicVisualizations:
+            #     return(kwargs['file'],name= os.path.basename(kwargs['file']))
+            else:
+                # Todo this should be a global api
+                x = None
+                for i in groups.groups:
+                    x = i
+                    break
+                assert x
+                f = groups.groups[x].resolve_sound(kwargs["file"])
+                if kaithem.web.has_permission("view_admin_info"):
+                    for i in core.getSoundFolders(groups.groups[x].board.media_folders):
+                        if not i.endswith("/"):
+                            i = i + "/"
+                        if os.path.normpath(f).startswith(i):
+                            # If this is a cloud asset pack asset, get it.
+                            # Only do this under the chandler admin permission
+                            if not os.path.isfile(f):
+                                pages.require("system_admin")
+
+                            kaithem.assetpacks.ensure_file(f)
+                            return f
+
+    r = await get_file()
+    if isinstance(r, str):
+        return await quart.send_file(r)
+    elif isinstance(r, bytes):
+        return r
+    else:
+        raise RuntimeError("???")
 
 
 @quart_app.app.route("/chandler/<path:path>")

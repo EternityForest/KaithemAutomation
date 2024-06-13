@@ -22,10 +22,13 @@ from .global_actions import event
 from .groups import Group, cues
 
 
-def listsoundfolder(path: str):
+def listsoundfolder(path: str, extra_folders: list[str] = []):
     "return format [ [subfolderfolder,displayname],[subfolder2,displayname]  ], [file,file2,etc]"
     soundfolders = core.getSoundFolders()
 
+    if extra_folders:
+        for i in extra_folders:
+            soundfolders[i] = i
     if not path:
         return [
             [[i + ("/" if not i.endswith("/") else ""), soundfolders[i]] for i in soundfolders],
@@ -597,7 +600,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             self.pushCueMeta(msg[1])
 
         elif cmd_name == "listsoundfolder":
-            self.linkSend(["soundfolderlisting", msg[1], listsoundfolder(msg[1])])
+            self.linkSend(["soundfolderlisting", msg[1], listsoundfolder(msg[1], add=self.media_folders)])
 
         elif cmd_name == "scv":
             ch = msg[3]
@@ -658,7 +661,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 [
                     "soundsearchresults",
                     msg[1],
-                    searchPaths(msg[1], core.getSoundFolders()),
+                    searchPaths(msg[1], core.getSoundFolders(self.media_folders)),
                 ]
             )
 
@@ -682,7 +685,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 groups.groups[msg[1]].cues[bn].rel_length = True
                 groups.groups[msg[1]].cues[bn].length = 0.01
 
-                soundfolders = core.getSoundFolders()
+                soundfolders = core.getSoundFolders(extra_folders=self.media_folders)
                 s = None
                 for i in soundfolders:
                     s = msg[2]
@@ -706,7 +709,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             bn = disallow_special(bn, "_~", replaceMode=" ")
             if bn not in groups.groups[msg[1]].cues:
                 groups.groups[msg[1]].add_cue(bn)
-                soundfolders = core.getSoundFolders()
+                soundfolders = core.getSoundFolders(extra_folders=self.media_folders)
                 assert soundfolders
                 s = ""
                 for i in soundfolders:
@@ -800,7 +803,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             # If it's a cloud asset, get it first
             kaithem.assetpacks.ensure_file(msg[2])
 
-            soundfolders = core.getSoundFolders()
+            soundfolders = core.getSoundFolders(extra_folders=self.media_folders)
             s = ""
             if msg[2]:
                 for i in soundfolders:
@@ -825,7 +828,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         elif cmd_name == "setcueslide":
             kaithem.assetpacks.ensure_file(msg[2])
-            soundfolders = core.getSoundFolders()
+            soundfolders = core.getSoundFolders(extra_folders=self.media_folders)
 
             for i in soundfolders:
                 s = msg[2]

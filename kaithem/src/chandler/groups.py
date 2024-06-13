@@ -1113,7 +1113,7 @@ class Group:
                     print(traceback.format_exc())
 
     def resolve_sound(self, sound) -> str:
-        return core.resolve_sound(sound)
+        return core.resolve_sound(sound, extra_folders=self.board.media_folders)
 
     def recalc_randomize_modifier(self):
         "Recalculate the random variance to apply to the length"

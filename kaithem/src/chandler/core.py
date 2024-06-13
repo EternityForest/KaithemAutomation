@@ -107,7 +107,7 @@ if not os.path.exists(musicLocation):
         logger.exception("Could not make music dir")
 
 
-def getSoundFolders() -> dict[str, str]:
+def getSoundFolders(extra_folders: list[str] | None = None) -> dict[str, str]:
     "path:displayname dict"
     soundfolders: dict[str, str] = {}
 
@@ -121,14 +121,21 @@ def getSoundFolders() -> dict[str, str]:
     modulesdata = os.path.join(kaithem.misc.vardir, "modules", "data")
     if os.path.exists(modulesdata):
         for i in os.listdir(modulesdata):
-            soundfolders[os.path.join(kaithem.misc.vardir, "modules", "data", i, "__filedata__", "media")] = "Module:" + i + "/media"
+            x = os.path.join(kaithem.misc.vardir, "modules", "data", i, "__filedata__", "media")
+            if os.path.exists(x):
+                soundfolders[x] = "Module:" + i + "/media"
+
+    if extra_folders:
+        for i in extra_folders:
+            soundfolders[i] = i
+
     return soundfolders
 
 
-def resolve_sound(sound: str) -> str:
+def resolve_sound(sound: str, extra_folders: list[str] | None = None) -> str:
     # Allow relative paths
     if not sound.startswith("/"):
-        for i in getSoundFolders():
+        for i in getSoundFolders(extra_folders):
             if os.path.isfile(os.path.join(i, sound)):
                 sound = os.path.join(i, sound)
     if not sound.startswith("/"):
@@ -155,7 +162,7 @@ def simplify_name(n):
     return n.lower()
 
 
-def resolve_sound_fuzzy(sound: str) -> str:
+def resolve_sound_fuzzy(sound: str, extra_folders: list[str] | None = None) -> str:
     try:
         s = resolve_sound(sound)
         if s and os.path.exists(s):
@@ -167,7 +174,7 @@ def resolve_sound_fuzzy(sound: str) -> str:
 
     # Allow relative paths
     if not os.path.exists(sound):
-        for i in getSoundFolders():
+        for i in getSoundFolders(extra_folders):
             if os.path.isfile(os.path.join(i, sound)):
                 sound = os.path.join(i, sound)
             else:

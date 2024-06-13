@@ -474,7 +474,7 @@ appMethods = {
         var t = ['.mp3', '.ogg', '.wav', '.oga', '.opus', '.aac', '.flac']
         for (let i of t) {
             if (s.endsWith(i)) {
-                document.getElementById("soundpreview").src = "WebMediaServer?file=" + encodeURIComponent(s);
+                document.getElementById("soundpreview").src = "../WebMediaServer?file=" + encodeURIComponent(s);
                 document.getElementById("soundpreview").currentTime = 0;
                 document.getElementById("soundpreview").play();
                 document.getElementById("textpreview").src = "";
@@ -483,7 +483,7 @@ appMethods = {
                 return
             }
         }
-        document.getElementById("textpreview").src = "WebMediaServer?file=" + encodeURIComponent(s);
+        document.getElementById("textpreview").src = "../WebMediaServer?file=" + encodeURIComponent(s);
         document.getElementById("soundpreview").src = ""
         document.getElementById("textpreview").style.display = 'block'
         document.getElementById("soundpreview").style.display = 'none'

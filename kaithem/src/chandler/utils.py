@@ -24,7 +24,7 @@ def new_cue_from_sound(group: Group, snd: str, name=None):
         group.cues[bn].rel_length = True
         group.cues[bn].length = 0.01
 
-        soundfolders = getSoundFolders()
+        soundfolders = getSoundFolders(group.board.media_folders)
         s = None
         for i in soundfolders:
             s = snd
