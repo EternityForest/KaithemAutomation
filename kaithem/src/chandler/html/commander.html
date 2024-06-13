@@ -243,26 +243,27 @@
             <div id="cuesbox">
                 <div class="flex-row align-left">
 
-                    <article class="w-sm-full margin flex-col h-18rem" v-for="i in formatCues"
+                    <article class="w-sm-full margin flex-col h-16rem" v-for="i in formatCues"
                         v-bind:class="{'card': 1, 'highlight' : cuemeta[editingGroup.cue].name==i[1].name}">
 
                         <header>
                             <button class="h-4rem w-full" v-on:click="jumptocue(i[1].id, editingGroup.id)"
                                 class="cuebutton">
-                                <div v-if="i[1].shortcut.length>0"> ({{i[1].shortcut}})</div>
+                                <span v-if="i[1].shortcut.length>0"> ({{i[1].shortcut}})</span>
                                 {{i[1].name}}
                             </button>
                         </header>
 
 
-                        <div class="flex-row nogaps nogrow min-h-6em w-full">
+                        <div class="flex-row nogaps nogrow min-h-6em  w-full">
 
 
                             <div
-                                :class="{'success': cuemeta[editingGroup.cue].name==i[1].name,'grow': 1, 'h-min-content': 1}">
+                                :class="{'max-w-12rem': 1, 'success': cuemeta[editingGroup.cue].name==i[1].name,'grow': 1, 'h-min-content': 1}">
                                 <cue-countdown v-if="cuemeta[editingGroup.cue].name==i[1].name" :group="editingGroup"
                                     :cue="cuemeta[editingGroup.cue]"></cue-countdown>
-                                <div v-if="i[1].notes.length>0" style="max-width: 10em;">({{i[1].notes}})</div>
+
+                                <div v-if="i[1].notes.length>0" style="max-width: 10em;">{{i[1].notes}}</div>
                             </div>
 
                             <img style="border:none; height: fit-content;" class="w-2rem grow"

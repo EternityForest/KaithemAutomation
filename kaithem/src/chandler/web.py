@@ -202,8 +202,10 @@ async def media():
             sound = groups.cues[kwargs["albumArt"]].sound
             if not sound:
                 return ""
+            grp = groups.cues[kwargs["albumArt"]].group()
 
-            sound = groups.cues[kwargs["albumArt"]].group().resolve_sound(sound)
+            if grp:
+                sound = grp.resolve_sound(sound)
 
             if vignette:
                 t = vignette.try_get_thumbnail(sound)

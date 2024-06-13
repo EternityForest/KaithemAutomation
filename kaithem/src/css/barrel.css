@@ -172,6 +172,7 @@ dd {
     --success-fg: color-mix(in srgb, var(--success-color) 30%, var(--fg));
     --warning-fg: color-mix(in srgb, var(--warning-color) 30%, var(--fg));
     --danger-fg: color-mix(in srgb, var(--danger-color) 30%, var(--fg));
+    --contrasting-bg-color: var(--control-bg);
 }
 
 
@@ -1469,6 +1470,62 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
     height: var(--control-height)
 }
 
+
+.max-w-1rem {
+    max-width: 1rem;
+}
+
+.max-w-2rem {
+    max-width: 2rem;
+}
+
+.max-w-4rem {
+    max-width: 4rem;
+}
+
+.max-w-6rem {
+    max-width: 6rem;
+}
+
+.max-w-8rem {
+    max-width: 8rem;
+}
+
+.max-w-12rem {
+    max-width: 12rem;
+}
+
+.max-w-16rem {
+    max-width: 16rem;
+}
+
+.max-w-18rem {
+    max-width: 18rem;
+}
+
+.max-w-20rem {
+    max-width: 20rem;
+}
+
+.max-w-24rem {
+    max-width: 24rem;
+}
+
+.max-w-36rem {
+    max-width: 36rem;
+}
+
+.max-w-48rem {
+    max-width: 48rem;
+}
+
+.max-w-60rem {
+    max-width: 60rem;
+}
+
+
+
+
 .max-h-1rem {
     max-height: 1rem;
 }
@@ -1757,9 +1814,14 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
     background: var(--box-bg);
 }
 
-.outline-text {
-    text-shadow: 0px 0px 1px var(--control-bg);
+.readability-outline {
+    text-shadow:
+        1px 1px 2px var(--contrasting-bg-color),
+        -1px 1px 2px var(--contrasting-bg-color),
+        -1px -1px 2px var(--contrasting-bg-color),
+        1px -1px 2px var(--contrasting-bg-color);
 }
+
 
 pre {
     width: fit-content;
