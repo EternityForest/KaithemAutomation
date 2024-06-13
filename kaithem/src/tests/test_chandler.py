@@ -34,7 +34,7 @@ listener 7801
     try:
         s = groups.Group(board, "TestingSceneMQTT")
         # Must add scenes to the board so we can save them and test the saving
-        board.addScene(s)
+        board.addGroup(s)
         s.go()
 
         s.setMqttServer("localhost:7801")
@@ -43,7 +43,7 @@ listener 7801
 
         s2 = groups.Group(board, "TestingSceneMQTT2")
         s2.go()
-        board.addScene(s2)
+        board.addGroup(s2)
         s2.setMqttServer("localhost:7801")
         s2.setMQTTFeature("syncGroup", True)
         s2.add_cue("c2")

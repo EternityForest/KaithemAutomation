@@ -2059,16 +2059,17 @@ files = [
 
 [[package]]
 name = "paho-mqtt"
-version = "1.6.0"
+version = "2.1.0"
 description = "MQTT version 5.0/3.1.1 client class"
 optional = false
-python-versions = "*"
+python-versions = ">=3.7"
 files = [
-    {file = "paho-mqtt-1.6.0.tar.gz", hash = "sha256:4b34b07ee45925ecbdddecc862ff68d9a9999d78d8876e23f8f54985dd9ed5d1"},
+    {file = "paho_mqtt-2.1.0-py3-none-any.whl", hash = "sha256:6db9ba9b34ed5bc6b6e3812718c7e06e2fd7444540df2455d2c51bd58808feee"},
+    {file = "paho_mqtt-2.1.0.tar.gz", hash = "sha256:12d6e7511d4137555a3f6ea167ae846af2c7357b10bc6fa4f7c3968fc1723834"},
 ]
 
 [package.extras]
-proxy = ["PySocks"]
+proxy = ["pysocks"]
 
 [[package]]
 name = "pam"
@@ -4164,4 +4165,4 @@ ifaddr = ">=0.1.7"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10.0, <3.13"
-content-hash = "cf082be59d7a20f34ce106e58cf909590e2afb8084c07df8a780165f51e50159"
+content-hash = "1e9d894e62f6840613078eb148abf6f2ae3770401d8af72f854680a41b967e7a"

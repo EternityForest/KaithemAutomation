@@ -14,7 +14,6 @@ from typing import Any, Callable, Dict, List, Optional
 from icemedia import sound_player as sound
 from scullery import persist as sculleryPersist
 
-from kaithem import __version__
 from kaithem.api import util as apiutil
 from kaithem.api import web as webapi
 
@@ -168,9 +167,6 @@ class Kaithem:
             pylogginghandler.syslogger.flush()
 
     class misc:
-        version = __version__.__version__
-        version_info = __version__.__version_info__
-
         @staticmethod
         def lorem() -> str:
             return apiutil.lorem()

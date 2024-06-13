@@ -10,12 +10,7 @@ from typing import Any, Dict, Optional
 
 import structlog
 
-from kaithem import __version__
-
 from . import config
-
-__version_info__ = __version__.__version_info__
-__version__ = __version__.__version__
 
 structlog.stdlib.recreate_defaults()
 cr = structlog.dev.ConsoleRenderer()
