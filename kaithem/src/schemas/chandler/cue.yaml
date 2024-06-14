@@ -53,6 +53,12 @@ properties:
     type: string
     default: ''
 
+  label_image:
+    type: string
+    default: ''
+    description: An image to represent the cue in the control UI
+
+
   notes:
     type: string
     default: ''

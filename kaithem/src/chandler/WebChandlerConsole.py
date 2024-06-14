@@ -600,7 +600,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             self.pushCueMeta(msg[1])
 
         elif cmd_name == "listsoundfolder":
-            self.linkSend(["soundfolderlisting", msg[1], listsoundfolder(msg[1], add=self.media_folders)])
+            self.linkSend(["soundfolderlisting", msg[1], listsoundfolder(msg[1], extra_folders=self.media_folders)])
 
         elif cmd_name == "scv":
             ch = msg[3]

@@ -38,7 +38,7 @@ def get_m3u(group: groups.Group, rel=None):
     for i in group.cues_ordered:
         if i.sound:
             try:
-                c = group.resolve_sound(i.sound)
+                c = group.resolve_media(i.sound)
 
                 d = core.get_audio_duration(c)
 

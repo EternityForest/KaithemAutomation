@@ -829,8 +829,20 @@ ${lists}
                                             v-on:change="setSoundfile(currentcueid,currentcue.sound)">
                                     </label>
                                     <label>Web player slide
-                                        <input :disabled="no_edit" placeholder="No picture file" v-model="currentcue.slide"
+                                        <input :disabled="no_edit" placeholder="No media file" v-model="currentcue.slide"
                                             v-on:change="setCueSlide(currentcueid,currentcue.slide)">
+                                    </label>
+
+                                    <label>Label Image
+                                        <input :disabled="no_edit" placeholder="No picture file" v-model="currentcue.labelImage"
+                                            v-on:change="setCueProperty(currentcueid,'labelImage',currentcue.labelImage)">
+
+                                    </label>
+                                    <label  v-if="currentcue.labelImage.length>0">Label Image Preview
+                                    <img
+                                    :src="'../WebMediaServer?labelImg='+encodeURIComponent(currentcueid)+'&file='+encodeURIComponent(currentcue.labelImage)"
+                                    class="h-center"
+                                    style="max-height: 4em">
                                     </label>
 
                                     <p>
@@ -956,6 +968,9 @@ ${lists}
                                                         <button
                                                             v-on:click="newCueFromSlide(groupname,(soundsearch.length ? '': soundfilesdir)+i[1])">New(slide)</button>
 
+                                                        <button v-on:click="setCueProperty(currentcueid,'labelImage',(soundsearch.length ? '': soundfilesdir)+i[1])"
+                                                            v-if="i[1].endsWith('.jpg') || i[1].endsWith('.svg') || i[1].endsWith('.png') || i[1].endsWith('.gif') || i[1].endsWith('.jpeg') || i[1].endsWith('.avif')"
+                                                        >Set Label</button>
 
 
                                                     </td>

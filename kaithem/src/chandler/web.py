@@ -198,6 +198,13 @@ async def media():
 
     @quart.ctx.copy_current_request_context
     def get_file():
+        if "labelImg" in kwargs:
+            label_image = groups.cues[kwargs["labelImg"]].label_image
+            grp = groups.cues[kwargs["labelImg"]].group()
+
+            if grp:
+                return grp.resolve_media(label_image)
+
         if "albumArt" in kwargs:
             sound = groups.cues[kwargs["albumArt"]].sound
             if not sound:
@@ -205,7 +212,7 @@ async def media():
             grp = groups.cues[kwargs["albumArt"]].group()
 
             if grp:
-                sound = grp.resolve_sound(sound)
+                sound = grp.resolve_media(sound)
 
             if vignette:
                 t = vignette.try_get_thumbnail(sound)
@@ -223,7 +230,7 @@ async def media():
             if "group" in kwargs and groups.groups[kwargs["group"]].media_link.allowed_remote_media_url == kwargs["file"]:
                 return kwargs["file"]
             elif "group" in kwargs and groups.groups[kwargs["group"]].cue.slide == kwargs["file"]:
-                return groups.groups[kwargs["group"]].resolve_sound(kwargs["file"])
+                return groups.groups[kwargs["group"]].resolve_media(kwargs["file"])
             # elif 'group' in kwargs and kwargs['file'] in groups.groups[kwargs['group']].musicVisualizations:
             #     return(kwargs['file'],name= os.path.basename(kwargs['file']))
             else:
@@ -233,7 +240,7 @@ async def media():
                     x = i
                     break
                 assert x
-                f = groups.groups[x].resolve_sound(kwargs["file"])
+                f = groups.groups[x].resolve_media(kwargs["file"])
                 if kaithem.web.has_permission("view_admin_info"):
                     for i in core.getSoundFolders(groups.groups[x].board.media_folders):
                         if not i.endswith("/"):

@@ -1097,7 +1097,7 @@ class Group:
             c = self.cues[next_cue]
             sound = c.sound
             try:
-                sound = self.resolve_sound(sound)
+                sound = self.resolve_media(sound)
             except Exception:
                 return
             if os.path.isfile(sound):
@@ -1112,7 +1112,7 @@ class Group:
                 except Exception:
                     print(traceback.format_exc())
 
-    def resolve_sound(self, sound) -> str:
+    def resolve_media(self, sound) -> str:
         return core.resolve_sound(sound, extra_folders=self.board.media_folders)
 
     def recalc_randomize_modifier(self):
@@ -1145,7 +1145,7 @@ class Group:
         else:
             v = float(v)
             if len(self.cue.sound) and self.cue.rel_length:
-                path = self.resolve_sound(self.cue.sound or self.cue.slide)
+                path = self.resolve_media(self.cue.sound or self.cue.slide)
                 if core.is_img_file(path):
                     v = 0
                 else:
@@ -1187,7 +1187,7 @@ class Group:
                         return
 
             if len(self.cue.slide) and self.cue.rel_length:
-                path = self.resolve_sound(self.cue.slide)
+                path = self.resolve_media(self.cue.slide)
                 if core.is_img_file(path):
                     pass
                 else:

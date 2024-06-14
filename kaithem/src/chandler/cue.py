@@ -157,6 +157,7 @@ class Cue:
         self.probability: float | str
         self.values: dict[str, dict[str | int, str | int | float | None]]
         self.checkpoint: bool
+        self.label_image: str
 
         self._markdown: str = kw.get("markdown", "").strip()
 

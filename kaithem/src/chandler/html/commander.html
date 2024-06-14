@@ -13,6 +13,10 @@
         color: grey;
         font-size: 70%;
     }
+    .gradient-bg{
+        background:
+        linear-gradient(175deg, rgb(61 61 61 / 27%) 0%, rgb(0 0 0 / 30%) 100%);
+    }
 
     div.hfader {
         border-style: solid;
@@ -251,6 +255,13 @@
                                 class="cuebutton">
                                 <span v-if="i[1].shortcut.length>0"> ({{i[1].shortcut}})</span>
                                 {{i[1].name}}
+
+                                <span  v-if="i[1].sound.length>0" class="mdi mdi-music"></span>
+                                <span v-if="i[1].slide.length>0" class="mdi mdi-projector-screen-outline"></span>
+                                <span  v-if="!i[1].track" class="mdi mdi-arrow-expand-right" title="Cue Only"></span>
+                                <span  v-if="i[1].hasLightingData || !i[1].track" class="mdi mdi-track-light" title="Cue Only"></span>
+
+
                             </button>
                         </header>
 
@@ -266,9 +277,16 @@
                                 <div v-if="i[1].notes.length>0" style="max-width: 10em;">{{i[1].notes}}</div>
                             </div>
 
-                            <img style="border:none; height: fit-content;" class="w-2rem grow"
-                                onerror='this.style.display = "none"' v-if="i[1].sound"
-                                :src="'../WebMediaServer?albumArt='+encodeURIComponent(i[1].id)"></img>
+                            <div class="w-2rem grow flex-col gradient-bg" style="align-items: center;">
+                                <img style="border:none; height: fit-content; object-fit: contain" class="v-center"
+                                    onerror='this.style.display = "none"' v-if="i[1].sound &&(!i[1].labelImage)"
+                                    :src="'../WebMediaServer?albumArt='+encodeURIComponent(i[1].id)">
+
+                                <img style="border:none; height: fit-content; object-fit: contain" class="v-center"
+                                    style="max-height: 100%"
+                                    onerror='this.style.display = "none"' v-if="i[1].labelImage"
+                                    :src="'../WebMediaServer?labelImg='+encodeURIComponent(i[1].id)+'&albumArt='+'cacheid='+encodeURIComponent(i[1].labelImage)">
+                            </div>
 
                             <span v-if="(i[1].active && (''+i[1].length).indexOf('@')>-1)"><i
                                     class="mdi mdi-clock-outline"></i>{{i[1].cue.length.substring(1)}}</span>
