@@ -937,6 +937,7 @@ ${lists}
                             </div>
                             <div class="w-sm-double flex-col gaps">
                                 <media-browser :no_edit="no_edit">
+                                    <template v-slot="slotProps">
                                     <button
                                         v-on:click="setSoundfile(currentcueid, slotProps.filename)">Set(sound)</button>
                                     <button
