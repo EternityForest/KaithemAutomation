@@ -413,10 +413,10 @@ ${lists}
             </h3>
             <details class="help">
                 <summary>Help</summary>
-               <p> A preset is a set of values that may be quickly applied to any feature.
-                Create them in the cue values section. They are loaded and saved with the "setup" file.
-                Empty fields in a preset have no effect, they leave that value alone, so you can, for example,
-                make a preset that sets the color without setting the XY values.
+                <p> A preset is a set of values that may be quickly applied to any feature.
+                    Create them in the cue values section. They are loaded and saved with the "setup" file.
+                    Empty fields in a preset have no effect, they leave that value alone, so you can, for example,
+                    make a preset that sets the color without setting the XY values.
                 </p>
 
                 <p>Presets named presetname@fixture are scoped to that fixture or fixture type only.
@@ -454,12 +454,44 @@ ${lists}
 
 
 
-
         <dialog id='soundpreviewdialog'>
             <iframe id="textpreview" style="height:24em; width: 24em;"></iframe>
             <audio controls id="soundpreview"></audio>
             <button type="button" v-on:click="closePreview">OK</button>
         </dialog>
+
+
+
+        <div v-if="selectingPresetFor" class="card paper flex-col"
+            style="position: fixed; width:90vw; height: 90vh; top:5vh; left:5vw; z-index: 100">
+            <header>Presets for {{selectingPresetFor}}</header>
+            <button @click="selectingPresetFor=null" class="w-full nogrow">
+                <i class="mdi mdi-close"></i>Close
+            </button>
+            <div class="flex-row nogrow max-h-12rem"
+                style="background: var(--alt-control-bg); align-items:flex-start;align-content:flex-start">
+                <template v-for="ps of recentPresets">
+                    <button
+                        v-if="!ps.includes('@') ||ps.endsWith(selectingPresetFor) || ps.endsWith('@' + lookupFixtureType(selectingPresetFor))"
+                        @click="setFixturePreset(currentcueid,selectingPresetFor, ps);selectingPresetFor=null"
+                        :disabled="no_edit" style="aspect-ratio: 16/9; flex-basis:8rem;height:auto;flex-grow:0">
+                        {{ps.split('@')[0]}}</button>
+
+                    </template>
+
+            </div>
+            <hr>
+
+            <div class="flex-row grow"
+                style="background: var(--alt-control-bg); align-items:flex-start;align-content:flex-start">
+                <button
+                    v-for="ps of dictView(presets,[], function(k,v){if(((!k.includes('@')) || k.endsWith(selectingPresetFor) || k.endsWith('@' + lookupFixtureType(selectingPresetFor)) )){return 1}})"
+                    @click="setFixturePreset(currentcueid,selectingPresetFor, ps[0]);selectingPresetFor=null"
+                    :disabled="no_edit"
+                    style="aspect-ratio: 16/9; flex-basis:8rem;height:auto;flex-grow:1">{{ps[0].split('@')[0]}}</button>
+            </div>
+
+        </div>
 
 
         <section class="flex-item window paper margin padding" v-if="!(editingGroup && cuemeta[editingGroup.cue])"
@@ -650,6 +682,7 @@ ${lists}
                         <button type="button" v-bind:class="{highlight:grouptab=='channels'}"
                             v-on:click="grouptab='channels'"><i class="mdi mdi-list-box-outline"></i>Channels</button>
                     </div>
+
                     <div style="overflow: auto; max-height:30em;" class="fadersbox">
                         <template v-for="(h,uname) in cuevals[currentcueid]">
                             <article class="universe card flex-col gaps" v-if="uname[0]!='@'">
@@ -664,25 +697,24 @@ ${lists}
                                 </div>
                             </article>
                         </template>
+
+
+
                         <template v-for="(h,fname) in cuevals[currentcueid]">
 
                             <article class="fixture card flex-col gaps noselect" v-if="fname[0]=='@'">
                                 <header>
                                     <div class="tool-bar">
                                         <h4 :title="lookupFixtureType(fname)">{{fname}}</h4>
-                                        <select :disabled="no_edit" class="w-6rem"
-                                            v-on:change="setFixturePreset(currentcueid, fname, $event.target.value);$event.target.value='__dummy__'">
-                                            <option value="__dummy__">Presets</option>
-                                            <option
-                                                v-for="ps of dictView(presets,[], function(k,v){if(((!k.includes('@')) || k.endsWith(fname) || k.endsWith('@' + lookupFixtureType(fname)) )){return 1}})"
-                                                :value="ps[0]">{{ps[0].split('@')[0]}}</option>
-                                        </select>
+                                        <button type="button" @click="showPresetDialog(fname)">Presets</button>
 
                                         <select :disabled="no_edit" class="w-4rem" style="flex-basis: 2rem;"
                                             v-on:change="savePreset(h, $event.target.value);$event.target.value='__dummy__'">
                                             <option value="__dummy__">Save</option>
-                                            <option :value="'name' + fname" title="Save for use with this fixture">For This</option>
-                                            <option :value="'name@' + lookupFixtureType(fname)" title="Save for use with fixtures of this type">For Type</option>
+                                            <option :value="'name' + fname" title="Save for use with this fixture">For
+                                                This</option>
+                                            <option :value="'name@' + lookupFixtureType(fname)"
+                                                title="Save for use with fixtures of this type">For Type</option>
                                             <option value="">For Any</option>
                                         </select>
                                     </div>
@@ -1721,6 +1753,11 @@ ${lists}
 <script>
 
 
+    appMethods.showPresetDialog = function (fixture) {
+        vueapp.$data.selectingPresetFor = fixture
+    }
+
+    appData.selectingPresetFor = null
 
     // Add console specific stuff to the appdata
     appData.formatTime = function (t) {

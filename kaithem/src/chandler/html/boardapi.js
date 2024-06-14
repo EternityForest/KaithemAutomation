@@ -207,6 +207,9 @@ appMethods = {
     },
 
     'setFixturePreset': function (sc, fix, preset) {
+        this.recentPresets = this.recentPresets.slice(-8);
+        this.recentPresets.push(preset);
+
         // Use a fixture specific preset if available
         var selectedPreset =  this.presets[preset + '@' + fix]
 
@@ -1180,7 +1183,7 @@ appData = {
     //Actual objs are shared too so changing one obj change in in the other.
 
     'presets': {},
-
+    'recentPresets': [],
     //All alarms active on server
     'sys_alerts': {},
 

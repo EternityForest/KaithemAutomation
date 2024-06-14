@@ -312,7 +312,7 @@ main {
     margin: auto;
     width: calc(min(45em, 100vw, 100%));
     max-width: 100%;
-    min-width: min-content
+    min-width: calc(min(min-content,100vw));
 }
 
 html {
@@ -1192,6 +1192,9 @@ it usable.  Remove when FF fully supports :has()*/
     and in behaves badly in edge cases, so no wrap*/
     flex-wrap: nowrap;
     flex-direction: column;
+    &>hr{
+        flex-grow: 0;
+    }
 
     /*Nicer input stacking*/
     &>label:has(+input) {
@@ -1343,9 +1346,6 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
 .w-sm-full {
     width: min(min(430px, 100%), 100vw);
     max-width: calc(min(430px, 100vw));
-    flex-basis: 300px;
-    flex-shrink: 1;
-    flex-grow: 1;
 
     &:is(.margin) {
         max-width: calc(calc(min(430px, 100vw)) - calc(var(--gap) * 2));
@@ -1355,8 +1355,6 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
 .w-sm-quarter {
     width: 80px;
     max-width: calc(min(160px, 25vw));
-    flex-basis: 70px;
-
     &:is(.margin) {
         max-width: calc(calc(min(160, 25vw)) - calc(var(--gap) * 2));
     }
@@ -1365,7 +1363,6 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
 .w-sm-half {
     width: 175px;
     max-width: calc(min(215px, 50vw));
-    flex-basis: 160px;
     flex-grow: 1;
 
     &:is(.margin) {
@@ -1376,9 +1373,6 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
 .w-sm-double {
     width: min(min(28cm, 96vw), 100%);
     max-width: min(28cm, 96vw);
-    flex-basis: 16cm;
-    flex-shrink: 1;
-    flex-grow: 1;
 
     &:is(.margin) {
         max-width: calc(calc(min(28cm, 100vw)) - calc(var(--gap) * 2));
@@ -1396,7 +1390,6 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
 .w-full {
     width: 100%;
     max-width: 100%;
-    flex-basis: 100%;
 }
 
 .h-full {
@@ -1796,6 +1789,33 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
     &>.w-min-content {
         flex-basis: min-content;
     }
+
+    &>.w-full {
+        flex-basis: 100%;
+    }
+
+    .w-sm-full {
+        flex-basis: 300px;
+        flex-shrink: 1;
+        flex-grow: 1;
+    }
+    
+    .w-sm-quarter {
+        flex-basis: 70px;
+    }
+    
+    .w-sm-half {
+        flex-basis: 160px;
+        flex-grow: 1;
+    
+    }
+    
+    .w-sm-double {
+        flex-basis: 16cm;
+        flex-shrink: 1;
+        flex-grow: 1;
+    }
+    
 }
 
 
