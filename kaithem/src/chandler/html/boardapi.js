@@ -207,31 +207,34 @@ appMethods = {
     },
 
     'setFixturePreset': function (sc, fix, preset) {
+        const deleteIndex =  this.recentPresets.indexOf(preset);
+
+        if (deleteIndex > -1) {
+            this.recentPresets =  this.recentPresets.toSpliced(deleteIndex, 1);
+        }
         this.recentPresets = this.recentPresets.slice(-8);
         this.recentPresets.push(preset);
 
+
         // Use a fixture specific preset if available
-        var selectedPreset =  this.presets[preset + '@' + fix]
+        var selectedPreset = this.presets[preset + '@' + fix]
 
         // Else use a type specific preset
-        if (selectedPreset == undefined)
-        {
-                selectedPreset = this.presets[preset + '@' +this.lookupFixtureType(fix)]
+        if (selectedPreset == undefined) {
+            selectedPreset = this.presets[preset + '@' + this.lookupFixtureType(fix)]
         }
 
-        if (selectedPreset == undefined)
-        {
+        if (selectedPreset == undefined) {
             selectedPreset = this.presets[preset]
         }
 
-        if (selectedPreset == undefined)
-        {
+        if (selectedPreset == undefined) {
             return
         }
 
         for (i in this.cuevals[sc][fix]) {
             if (i != '__metadata__') {
-                if ( selectedPreset[i] != undefined)  {
+                if (selectedPreset[i] != undefined) {
                     api_link.send(['scv', sc, fix, i, selectedPreset[i]]);
                     this.cuevals[sc][fix][i].v = selectedPreset[i]
                 }
@@ -1229,7 +1232,7 @@ appData = {
             v2[i] = v[i].v
         }
 
-        var n = prompt("Preset Name?", suggestedname||"")
+        var n = prompt("Preset Name?", suggestedname || "")
 
         if (n && n.length) {
             this.presets[n] = v2;

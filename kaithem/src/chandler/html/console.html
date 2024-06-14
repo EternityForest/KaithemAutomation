@@ -470,7 +470,7 @@ ${lists}
             </button>
             <div class="flex-row nogrow max-h-12rem"
                 style="background: var(--alt-control-bg); align-items:flex-start;align-content:flex-start">
-                <template v-for="ps of recentPresets">
+                <template v-for="ps of recentPresets.toReversed()">
                     <button
                         v-if="!ps.includes('@') ||ps.endsWith(selectingPresetFor) || ps.endsWith('@' + lookupFixtureType(selectingPresetFor))"
                         @click="setFixturePreset(currentcueid,selectingPresetFor, ps);selectingPresetFor=null"
