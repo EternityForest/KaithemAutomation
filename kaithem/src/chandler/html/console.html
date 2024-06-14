@@ -135,12 +135,13 @@ ${lists}
     <section id="optionsblock" class="multibar undecorated w-full">
 
         <div class="menubar tool-bar">
-            <p>{{clock}} </p><p><b>{{boardname}}</b></p>
-            <button type="button" v-on:click="saveToDisk()"  :disabled="no_edit"
+            <p>{{clock}} </p>
+            <p><b>{{boardname}}</b></p>
+            <button type="button" v-on:click="saveToDisk()" :disabled="no_edit"
                 title="Save the current state now.  If not manually saved, autosave happens every 10min"><i
                     class="mdi mdi-content-save"></i>Save</button>
             <button type="button" v-on:click="showimportexport=!showimportexport"><i
-                        class="mdi mdi-folder-open"></i>Import/Export</button>
+                    class="mdi mdi-folder-open"></i>Import/Export</button>
         </div>
 
 
@@ -149,12 +150,13 @@ ${lists}
             <button type="button" v-on:click="showevents=!showevents"><i class="mdi mdi-flag"></i>Events</button>
 
             <button type="button" v-on:click="showslideshowtelemetry=!showslideshowtelemetry"><i
-                        class="mdi mdi-monitor"></i>Displays</button>
-            <a class="button" href="/chandler/config/${boardname}"><i class="mdi mdi-cog-outline"></i>Settings</a><label>
-            <i class="mdi mdi-volume-medium"></i><input type="checkbox" class="toggle" v-model="uiAlertSounds">
+                    class="mdi mdi-monitor"></i>Displays</button>
+            <a class="button" href="/chandler/config/${boardname}"><i
+                    class="mdi mdi-cog-outline"></i>Settings</a><label>
+                <i class="mdi mdi-volume-medium"></i><input type="checkbox" class="toggle" v-model="uiAlertSounds">
             </label>
             <button type="button" onclick="document.documentElement.requestFullscreen()"><i
-                class="mdi mdi-arrow-expand-all"></i></button>
+                    class="mdi mdi-arrow-expand-all"></i></button>
         </div>
 
         <div class="menubar tool-bar">
@@ -239,22 +241,24 @@ ${lists}
 
 
                         <div class="tool-bar noselect" v-if="!i[1].utility">
-                            <button type="button" :class="{'success':i[1].active, 'warning':i[1].status}" v-on:click="go(i[0])"><i
-                                    class="mdi mdi-play"></i>Go!</button>
-                            <button type="button" v-on:click="prevcue(i[0])"><i class="mdi mdi-skip-previous"></i>Prev</button>
-                            <button type="button" v-on:click="nextcue(i[0])">Next<i class="mdi mdi-skip-next"></i></button>
+                            <button type="button" :class="{'success':i[1].active, 'warning':i[1].status}"
+                                v-on:click="go(i[0])"><i class="mdi mdi-play"></i>Go!</button>
+                            <button type="button" v-on:click="prevcue(i[0])"><i
+                                    class="mdi mdi-skip-previous"></i>Prev</button>
+                            <button type="button" v-on:click="nextcue(i[0])">Next<i
+                                    class="mdi mdi-skip-next"></i></button>
                             <button type="button" class="stopbutton" v-on:click="stop(i[0])"><i
                                     class="mdi mdi-stop-circle-outline"></i>Stop</button>
                         </div>
                         <iframe v-if="showPages && i[1].infoDisplay.length>0" :src="i[1].infoDisplay"></iframe>
 
                         <div class="tool-bar noselect" v-if="i[1].eventButtons.length > 0">
-                            <button type="button" v-for="v of i[1].eventButtons" v-on:click="groupev(v[1],v[1])">{{v[0]}}</button>
+                            <button type="button" v-for="v of i[1].eventButtons"
+                                v-on:click="groupev(v[1],v[1])">{{v[0]}}</button>
                         </div>
 
 
-                        <smooth-range style="margin-left:0.4rem" v-if="!i[1].utility"
-                            max="1" step="0.01" min="0"
+                        <smooth-range style="margin-left:0.4rem" v-if="!i[1].utility" max="1" step="0.01" min="0"
                             v-on:input="setalpha(i[0],parseFloat($event.target.value));"
                             v-model="alphas[i[0]]"></smooth-range>
 
@@ -284,7 +288,8 @@ ${lists}
             <footer class="padding">
                 <div class="tool-bar">
                     <input :disabled="no_edit" v-model="newgroupname" placeholder="New group name" size="4">
-                    <button type="button" data-testid="add-group-button" v-on:click="addGroup()"><i class="mdi mdi-plus"></i>Add</button>
+                    <button type="button" data-testid="add-group-button" v-on:click="addGroup()"><i
+                            class="mdi mdi-plus"></i>Add</button>
                 </div>
             </footer>
 
@@ -310,10 +315,12 @@ ${lists}
             </div>
 
             <label>Send Global Event:
-                <input :disabled="no_edit" v-model="evtosend" v-on:keydown.enter="sendev" placeholder="Event Name" title="Event Name">
+                <input :disabled="no_edit" v-model="evtosend" v-on:keydown.enter="sendev" placeholder="Event Name"
+                    title="Event Name">
             </label>
 
-            <input :disabled="no_edit" v-model="evval" v-on:keydown.enter="sendev" title="Event Value" placeholder="value">
+            <input :disabled="no_edit" v-model="evval" v-on:keydown.enter="sendev" title="Event Value"
+                placeholder="value">
 
             <select v-model="evtypetosend">
                 <option value="int">Integer</option>
@@ -332,15 +339,17 @@ ${lists}
             <header>
                 <div class="tool-bar">
                     <h3>Slideshow Players</h3>
-                    <button type="button" v-on:click="showslideshowtelemetry=!showslideshowtelemetry"><i class="mdi mdi-close"></i>Close</button>
+                    <button type="button" v-on:click="showslideshowtelemetry=!showslideshowtelemetry"><i
+                            class="mdi mdi-close"></i>Close</button>
                 </div>
             </header>
-                <p>This table shows the slideshow displays that are active or seen recently.</p>
-                <p>Only one display per IP/group can be shown.  Battery status only works in Chrome</p>
-                <p>Ding plays a tone to identify and test the display.  You can assign displays friendly names to help identify them.</p>
-                <p>Be careful with refresh! Some browsers may respond badly if the network is messed up.</p>
+            <p>This table shows the slideshow displays that are active or seen recently.</p>
+            <p>Only one display per IP/group can be shown. Battery status only works in Chrome</p>
+            <p>Ding plays a tone to identify and test the display. You can assign displays friendly names to help
+                identify them.</p>
+            <p>Be careful with refresh! Some browsers may respond badly if the network is messed up.</p>
 
-                <table>
+            <table>
                 <tr>
                     <th>
                         Connection
@@ -356,7 +365,8 @@ ${lists}
                 <tr v-for="v,i of slideshow_telemetry" :class="{'error': v.ts<(unixtime-70)}">
                     <td>{{i}}</td>
                     <td>{{v.name}}</td>
-                    <td :class="{'error': v.status.includes('FAIL')}">{{v.ts<(unixtime-70)?'LOST CONNECTION':v.status}}</td>
+                    <td :class="{'error': v.status.includes('FAIL')}">{{v.ts<(unixtime-70)?'LOST CONNECTION':v.status}}
+                    </td>
                     <td>{{formatTime(v.ts)}}</td>
                     <td :class="{'error': (v.battery||{}).charging == false}">{{v.battery || ''}}</td>
                     <td>
@@ -373,7 +383,8 @@ ${lists}
             <header>
                 <div class="tool-bar">
                     <h3>Import/Export controls</h3>
-                    <button type="button" v-on:click="showimportexport=!showimportexport"><i class="mdi mdi-close"></i>Close</button>
+                    <button type="button" v-on:click="showimportexport=!showimportexport"><i
+                            class="mdi mdi-close"></i>Close</button>
 
                 </div>
             </header>
@@ -391,8 +402,8 @@ ${lists}
             <div class="tool-bar" style="padding:0.25em; border-width:2px;">
                 <p>Load Setup:</p>
                 <input type="file" id="setupfile">
-                <button type="button" @click="uploadFileFromElement('setupfile', 'setup')" title="Upload a groups file"><i
-                        class="mdi mdi-folder-open"></i>Go</button>
+                <button type="button" @click="uploadFileFromElement('setupfile', 'setup')"
+                    title="Upload a groups file"><i class="mdi mdi-folder-open"></i>Go</button>
             </div>
         </section>
 
@@ -402,25 +413,39 @@ ${lists}
             </h3>
             <details class="help">
                 <summary>Help</summary>
-                A preset is a set of values that may be quickly applied to any feature.
+               <p> A preset is a set of values that may be quickly applied to any feature.
                 Create them in the cue values section. They are loaded and saved with the "setup" file.
                 Empty fields in a preset have no effect, they leave that value alone, so you can, for example,
                 make a preset that sets the color without setting the XY values.
+                </p>
+
+                <p>Presets named presetname@fixture are scoped to that fixture or fixture type only.
+                    They only appear for fixture or fixture type.
+                    They will override any generic "presetname" preset for that fixture.
+
+                </p>
             </details>
             <dl>
                 <template v-for="ps, i of dictView(presets,[])">
                     <dt>
                         <div class="tool-bar">
                             <h4>{{ps[0]}}</h4>
-                            <button type="button" v-on:click="deletePreset(ps[0])"><i class="mdi mdi-delete"></i>Delete</button>
-                            <button type="button" v-on:click="renamePreset(ps[0])"><i class="mdi mdi-pencil"></i>Rename</button>
+                            <button type="button" v-on:click="deletePreset(ps[0])"><i
+                                    class="mdi mdi-delete"></i>Delete</button>
+                            <button type="button" v-on:click="renamePreset(ps[0])"><i
+                                    class="mdi mdi-pencil"></i>Rename</button>
                         </div>
                     </dt>
                     <dd style="display: flex; flex-wrap: wrap;">
-                        <label v-for="val, field of ps[1]">
-                            {{field}}<input :disabled="no_edit" v-model="ps[1][field]"
-                                v-on:change="ps[1][field]=$event.target.value.trim();updatePreset(ps[0],ps[1]);">
-                        </label>
+                        <details>
+                            <summary>Values</summary>
+                            <div class="stacked-form">
+                                <label v-for="val, field of ps[1]">
+                                    {{field}}<input :disabled="no_edit" v-model="ps[1][field]"
+                                        v-on:change="ps[1][field]=$event.target.value.trim();updatePreset(ps[0],ps[1]);">
+                                </label>
+                            </div>
+                        </details>
                     </dd>
                 </template>
 
@@ -454,14 +479,16 @@ ${lists}
 
 
                     </h3>
-                    <button type="button" v-if="editingGroup.cuelen" v-on:click="addTimeToGroup(editingGroup.id)"><i class="mdi mdi-clock"></i></i><i class="mdi mdi-plus"></i>Add Time</button>
+                    <button type="button" v-if="editingGroup.cuelen" v-on:click="addTimeToGroup(editingGroup.id)"><i
+                            class="mdi mdi-clock"></i></i><i class="mdi mdi-plus"></i>Add Time</button>
 
                     <p>
                         <input v-model="cuefilter" placeholder="Search Cues" />
                         <button type="button" v-on:click="cuefilter=''"><i class="mdi mdi-backspace"></i></button>
                     </p>
 
-                    <button type="button" v-on:click="delgroup(groupname)"><i class="mdi mdi-delete"></i>Delete Group</button>
+                    <button type="button" v-on:click="delgroup(groupname)"><i class="mdi mdi-delete"></i>Delete
+                        Group</button>
 
 
                 </div>
@@ -502,7 +529,8 @@ ${lists}
 
                                     <span>{{i[1].name}}</span>
 
-                                    <span  title="Checkpoint Cue" v-if="i[1].checkpoint" class="mdi mdi-star-four-points-outline"></span>
+                                    <span title="Checkpoint Cue" v-if="i[1].checkpoint"
+                                        class="mdi mdi-star-four-points-outline"></span>
 
                                     <span v-if="selectedCues[groupname]==i[1].name"><i
                                             class="mdi mdi-pencil nomargin"></i></span>
@@ -521,7 +549,7 @@ ${lists}
                                             class="mdi mdi-script-text-outline nomargin"></i></span>
 
                                     <i v-if="cuemeta[editingGroup.cue].name==i[1].name"
-                                            class="mdi mdi-arrow-left-bold-outline nomargin"></i>
+                                        class="mdi mdi-arrow-left-bold-outline nomargin"></i>
 
                                 </td>
 
@@ -538,17 +566,18 @@ ${lists}
                                 </td>
 
                                 <td class="desktop-only" data-label="Fade In:">
-                                    <input :disabled="no_edit" type="number" v-on:change="setfadein(i[1].id,$event.target.value)"
-                                        style="width:3em" min=0 v-model="i[1].fadeIn">
+                                    <input :disabled="no_edit" type="number"
+                                        v-on:change="setfadein(i[1].id,$event.target.value)" style="width:3em" min=0
+                                        v-model="i[1].fadeIn">
                                 </td>
 
                                 <td class="desktop-only" data-label="Length:">
-                                    <input :disabled="no_edit" v-on:change="setlength(i[1].id,$event.target.value)" class="w-12rem"
-                                        list="lenoptions" v-model="i[1].length">
+                                    <input :disabled="no_edit" v-on:change="setlength(i[1].id,$event.target.value)"
+                                        class="w-12rem" list="lenoptions" v-model="i[1].length">
                                 </td>
 
                                 <td data-label="Next Cue:">
-                                    <select style="width:98%" v-model="i[1].next"  :disabled="no_edit"
+                                    <select style="width:98%" v-model="i[1].next" :disabled="no_edit"
                                         v-if="Object.keys(groupcues[groupname]).length<600" autocomplete=off
                                         title="Select a cue to activate when this one ends"
                                         v-on:change="setnext(i[1].id,$event.target.value)">
@@ -563,8 +592,9 @@ ${lists}
 
                                     </select>
 
-                                    <input :disabled="no_edit" v-if="Object.keys(groupcues[groupname]).length>40" autocomplete=off
-                                        list="cues_in_group" title="Select a cue to activate when this one ends"
+                                    <input :disabled="no_edit" v-if="Object.keys(groupcues[groupname]).length>40"
+                                        autocomplete=off list="cues_in_group"
+                                        title="Select a cue to activate when this one ends"
                                         v-on:change="setnext(i[1].id,$event.target.value)" v-model="i[1].next"
                                         v-bind:placeholder="i[1].defaultnext">
                                     </input>
@@ -572,12 +602,13 @@ ${lists}
 
 
                                 <td class="desktop-only" data-label="Track vals from prev: ">
-                                    <input :disabled="no_edit" type="checkbox" v-on:change="settrack(i[1].id,i[1].track)"
-                                        v-model="i[1].track"
+                                    <input :disabled="no_edit" type="checkbox"
+                                        v-on:change="settrack(i[1].id,i[1].track)" v-model="i[1].track"
                                         title="Track values from previous cue? If false, values not present are always transparent">
                                 </td>
                                 <td data-label="Goto:">
-                                    <button type="button" style="min-width: 90%;" v-on:click="jumptocue(i[1].id,  editingGroup.id)">Go</button>
+                                    <button type="button" style="min-width: 90%;"
+                                        v-on:click="jumptocue(i[1].id,  editingGroup.id)">Go</button>
                                 </td>
 
                             </tr>
@@ -601,10 +632,10 @@ ${lists}
 
 
             <div v-if="currentcue">
-                <h3><i
-                    class="mdi mdi-pencil nomargin"></i>Editing Cue: {{currentcue.name}}</h3>
+                <h3><i class="mdi mdi-pencil nomargin"></i>Editing Cue: {{currentcue.name}}</h3>
                 <p v-if="currentcue.name.startsWith('__')" class="highlight">Cues starting with __ are special cues.
-                    They are never chosen in random selections or as the default next cue and may have predefined system functions attatched.</p>
+                    They are never chosen in random selections or as the default next cue and may have predefined system
+                    functions attatched.</p>
 
 
                 <span class="help" v-if="editingGroup.ext">This is an external group that is defined somewhere in code.
@@ -616,8 +647,8 @@ ${lists}
                     <div class="tool-bar">
                         <button type="button" v-bind:class="{highlight:grouptab=='cue'}" v-on:click="grouptab='cue'"><i
                                 class="mdi mdi-cog-outline"></i>Normal View</button>
-                        <button type="button" v-bind:class="{highlight:grouptab=='channels'}" v-on:click="grouptab='channels'"><i
-                                class="mdi mdi-list-box-outline"></i>Channels</button>
+                        <button type="button" v-bind:class="{highlight:grouptab=='channels'}"
+                            v-on:click="grouptab='channels'"><i class="mdi mdi-list-box-outline"></i>Channels</button>
                     </div>
                     <div style="overflow: auto; max-height:30em;" class="fadersbox">
                         <template v-for="(h,uname) in cuevals[currentcueid]">
@@ -626,9 +657,9 @@ ${lists}
                                     <h3 class="noselect">{{uname}}</h3>
                                 </header>
                                 <div class="scroll nomargin h-24rem">
-                                    <h-fader :i="i" :chinfo="chnamelookup(i.u,i.ch)"
-                                        :currentcueid="currentcueid"
-                                        :showdelete="grouptab=='channels'" v-for="i in h">
+                                    <h-fader :i="i[1]" :chinfo="chnamelookup(i[1].u,i[1].ch)"
+                                        :currentcueid="currentcueid" :showdelete="grouptab=='channels'"
+                                        v-for="i in dictView(h,[])">
                                     </h-fader>
                                 </div>
                             </article>
@@ -639,23 +670,31 @@ ${lists}
                                 <header>
                                     <div class="tool-bar">
                                         <h4 :title="lookupFixtureType(fname)">{{fname}}</h4>
-                                        <select  :disabled="no_edit"
-                                            v-on:change="setFixturePreset(currentcueid, fname, presets[$event.target.value]);$event.target.value='__dummy__'">
+                                        <select :disabled="no_edit" class="w-6rem"
+                                            v-on:change="setFixturePreset(currentcueid, fname, $event.target.value);$event.target.value='__dummy__'">
                                             <option value="__dummy__">Presets</option>
                                             <option
-                                                v-for="ps of dictView(presets,[], function(k,v){if((!k.includes('.') || k.includes(''))){return 1}})"
-                                                :value="ps[0]">{{ps[0]}}</option>
+                                                v-for="ps of dictView(presets,[], function(k,v){if(((!k.includes('@')) || k.endsWith(fname) || k.endsWith('@' + lookupFixtureType(fname)) )){return 1}})"
+                                                :value="ps[0]">{{ps[0].split('@')[0]}}</option>
                                         </select>
-                                        <button type="button" v-on:click="savePreset(h)">Save</button>
+
+                                        <select :disabled="no_edit" class="w-4rem" style="flex-basis: 2rem;"
+                                            v-on:change="savePreset(h, $event.target.value);$event.target.value='__dummy__'">
+                                            <option value="__dummy__">Save</option>
+                                            <option :value="'name' + fname" title="Save for use with this fixture">For This</option>
+                                            <option :value="'name@' + lookupFixtureType(fname)" title="Save for use with fixtures of this type">For Type</option>
+                                            <option value="">For Any</option>
+                                        </select>
                                     </div>
-                                    <button type="button" v-if="grouptab=='channels'" v-on:click="rmFixCue(currentcueid, fname)">
+                                    <button type="button" v-if="grouptab=='channels'"
+                                        v-on:click="rmFixCue(currentcueid, fname)">
                                         <i class="mdi mdi-delete"></i>
                                     </button>
                                 </header>
                                 <div class="scroll nomargin h-24rem padding-bottom">
-                                    <h-fader :i="i" :chinfo="chnamelookup(i.u,i.ch)"
-                                        :currentcueid="currentcueid"
-                                        :showdelete="grouptab=='channels'" v-for="i in h">
+                                    <h-fader :i="i[1]" :chinfo="chnamelookup(i[1].u,i[1].ch)"
+                                        :currentcueid="currentcueid" :showdelete="grouptab=='channels'"
+                                        v-for="i in dictView(h,[])">
                                     </h-fader>
                                 </div>
                             </article>
@@ -679,7 +718,8 @@ ${lists}
                                         </combo-box>
                                     </label>
 
-                                    <button type="button"  :disabled="no_edit" v-on:click="addValToCue()"><i class="mdi mdi-plus"></i>Add Channel to
+                                    <button type="button" :disabled="no_edit" v-on:click="addValToCue()"><i
+                                            class="mdi mdi-plus"></i>Add Channel to
                                         Cue</button>
                                 </div>
 
@@ -692,12 +732,12 @@ ${lists}
 
                                 <div class="stacked-form w-24rem">
                                     <label>Tag
-                                        <input
-                                            v-model="newcuetag" list="tagslisting"></input>
+                                        <input v-model="newcuetag" list="tagslisting"></input>
                                     </label>
 
 
-                                    <button type="button"  :disabled="no_edit" v-on:click="addTagToCue()"><i class="mdi mdi-plus"></i>Add Channel to
+                                    <button type="button" :disabled="no_edit" v-on:click="addTagToCue()"><i
+                                            class="mdi mdi-plus"></i>Add Channel to
                                         Cue</button>
                                 </div>
 
@@ -758,12 +798,14 @@ ${lists}
                     <div class="card w-sm-full" style="overflow: visible;">
                         <label>Inherit rules from
                             <div style="overflow: visible;">
-                                <combo-box  :disabled="no_edit" v-model="currentcue.inheritRules" :disabled="editingGroup.name =='__rules__'"
+                                <combo-box :disabled="no_edit" v-model="currentcue.inheritRules"
+                                    :disabled="editingGroup.name =='__rules__'"
                                     v-on:change="setCueInheritRules(currentcueid, currentcue.inheritRules)"
                                     :options="useBlankDescriptions(groupcues[groupname])"></combo-box>
                             </div>
                             <p>Inherited rules run after directly set rules.</p>
-                            <p>If a cue names __rules__ exists, <br> all cues will additionally inherit from that cue.</p>
+                            <p>If a cue names __rules__ exists, <br> all cues will additionally inherit from that cue.
+                            </p>
 
                         </label>
                     </div>
@@ -774,9 +816,7 @@ ${lists}
                         v-model="currentcue.rules" @update:model-value="setCueRules(currentcueid, $event);"
                         v-bind:commands="availableCommands" v-bind:groups="cueNamesByGroupName()"
                         v-bind:pinnedvars="specialvars" v-bind:vars="editingGroup.vars"
-                        v-bind:parentgroup="editingGroup.name"
-                        :disabled="no_edit"
-                        >
+                        v-bind:parentgroup="editingGroup.name" :disabled="no_edit">
                     </script-editor>
 
                     <div style="display:flex;flex-wrap:wrap;">
@@ -825,24 +865,25 @@ ${lists}
                                 </header>
                                 <div class="stacked-form">
                                     <label>Sound
-                                        <input :disabled="no_edit" placeholder="No sound file" v-model="currentcue.sound"
+                                        <input :disabled="no_edit" placeholder="No sound file"
+                                            v-model="currentcue.sound"
                                             v-on:change="setSoundfile(currentcueid,currentcue.sound)">
                                     </label>
                                     <label>Web player slide
-                                        <input :disabled="no_edit" placeholder="No media file" v-model="currentcue.slide"
+                                        <input :disabled="no_edit" placeholder="No media file"
+                                            v-model="currentcue.slide"
                                             v-on:change="setCueSlide(currentcueid,currentcue.slide)">
                                     </label>
 
                                     <label>Label Image
-                                        <input :disabled="no_edit" placeholder="No picture file" v-model="currentcue.labelImage"
+                                        <input :disabled="no_edit" placeholder="No picture file"
+                                            v-model="currentcue.labelImage"
                                             v-on:change="setCueProperty(currentcueid,'labelImage',currentcue.labelImage)">
 
                                     </label>
-                                    <label  v-if="currentcue.labelImage.length>0">Label Image Preview
-                                    <img
-                                    :src="'../WebMediaServer?labelImg='+encodeURIComponent(currentcueid)+'&file='+encodeURIComponent(currentcue.labelImage)"
-                                    class="h-center"
-                                    style="max-height: 4em">
+                                    <label v-if="currentcue.labelImage.length>0">Label Image Preview
+                                        <img :src="'../WebMediaServer?labelImg='+encodeURIComponent(currentcueid)+'&file='+encodeURIComponent(currentcue.labelImage)"
+                                            class="h-center" style="max-height: 4em">
                                     </label>
 
                                     <p>
@@ -868,7 +909,7 @@ ${lists}
 
                                         <label>Winddown
                                             <input :disabled="no_edit" type="number" v-model="currentcue.mediaWindDown"
-                                            v-on:change="setCueProperty(currentcueid,'mediaWindDown', currentcue.mediaWindDown)">
+                                                v-on:change="setCueProperty(currentcueid,'mediaWindDown', currentcue.mediaWindDown)">
                                         </label>
                                     </p>
 
@@ -893,7 +934,8 @@ ${lists}
 
                                     <p>
                                         <label>Relative length
-                                            <input :disabled="no_edit" type="checkbox" title="Cause length to be an offset after sound ends"
+                                            <input :disabled="no_edit" type="checkbox"
+                                                title="Cause length to be an offset after sound ends"
                                                 v-on:change="setrellen(currentcueid,currentcue.relLength)"
                                                 v-model="currentcue.relLength"
                                                 title="If checked, the length parameter is interpreted as a delay after the sound cue ends.">
@@ -920,7 +962,8 @@ ${lists}
                                         </label>
 
                                         <label>Cue Volume
-                                            <input :disabled="no_edit" v-on:change="setCueVolume(currentcueid,$event.target.value)" min=0
+                                            <input :disabled="no_edit"
+                                                v-on:change="setCueVolume(currentcueid,$event.target.value)" min=0
                                                 v-model="currentcue.soundVolume">
                                         </label>
 
@@ -938,21 +981,20 @@ ${lists}
                             <div class="w-sm-double flex-col gaps">
                                 <media-browser :no_edit="no_edit">
                                     <template v-slot="slotProps">
-                                    <button
-                                        v-on:click="setSoundfile(currentcueid, slotProps.filename)">Set(sound)</button>
-                                    <button
-                                        v-on:click="newCueFromSound(groupname, slotProps.filename)">New(sound)</button>
-                                    <button
-                                        v-on:click="previewSound(slotProps.filename)">Preview</button>
-                                    <button
-                                        v-on:click="setCueSlide(currentcueid, slotProps.filename)">Set(slide)</button>
-                                    <button
-                                        v-on:click="newCueFromSlide(groupname, slotProps.filename)">New(slide)</button>
+                                        <button
+                                            v-on:click="setSoundfile(currentcueid, slotProps.filename)">Set(sound)</button>
+                                        <button
+                                            v-on:click="newCueFromSound(groupname, slotProps.filename)">New(sound)</button>
+                                        <button v-on:click="previewSound(slotProps.filename)">Preview</button>
+                                        <button
+                                            v-on:click="setCueSlide(currentcueid, slotProps.filename)">Set(slide)</button>
+                                        <button
+                                            v-on:click="newCueFromSlide(groupname, slotProps.filename)">New(slide)</button>
 
-                                    <button
-                                        v-on:click="setCueProperty(currentcueid, 'labelImage', slotProps.filename)"
-                                        v-if="slotProps.filename.endsWith('.jpg') || slotProps.filename.endsWith('.svg') || slotProps.filename.endsWith('.png') || slotProps.filename.endsWith('.gif') || slotProps.filename.endsWith('.jpeg') || slotProps.filename.endsWith('.avif')">Set
-                                        Label</button>
+                                        <button
+                                            v-on:click="setCueProperty(currentcueid, 'labelImage', slotProps.filename)"
+                                            v-if="slotProps.filename.endsWith('.jpg') || slotProps.filename.endsWith('.svg') || slotProps.filename.endsWith('.png') || slotProps.filename.endsWith('.gif') || slotProps.filename.endsWith('.jpeg') || slotProps.filename.endsWith('.avif')">Set
+                                            Label</button>
                                     </template>
 
                                 </media-browser>
@@ -961,7 +1003,8 @@ ${lists}
                                         <h4>Sound Outputs</h4>
                                     </header>
                                     <details class="help">
-                                        <summary><i class="mdi mdi-help-circle-outline"></i></summary>To use play videos,
+                                        <summary><i class="mdi mdi-help-circle-outline"></i></summary>To use play
+                                        videos,
                                         you
                                         must
                                         use the web remote display feature. Cue
@@ -990,12 +1033,15 @@ ${lists}
                                                 <dt>{{i || "UNSET" }}</dt>
                                                 <dd>
                                                     <div class="tool-bar">
-                                                        <button type="button" v-on:click="setSoundOutput(currentcueid,i)">Set for
+                                                        <button type="button"
+                                                            v-on:click="setSoundOutput(currentcueid,i)">Set for
                                                             Cue</button>
-                                                        <button type="button" v-on:click="setGroupSoundOutput(groupname,i)">Set as
+                                                        <button type="button"
+                                                            v-on:click="setGroupSoundOutput(groupname,i)">Set as
                                                             Group
                                                             Default</button>
-                                                        <button type="button" v-on:click="testSoundCard(i,0,48000)">Test</button>
+                                                        <button type="button"
+                                                            v-on:click="testSoundCard(i,0,48000)">Test</button>
                                                     </div>
                                                 </dd>
                                             </template>
@@ -1026,13 +1072,14 @@ ${lists}
                                     <legend>Basic</legend>
                                     <label>Action</label>
                                     <div class="tool-bar">
-                                        <button type="button" v-on:click="promptRenameCue(groupname,currentcue.name)"><i class="mdi mdi-rename-box-outline"></i>Rename
+                                        <button type="button" v-on:click="promptRenameCue(groupname,currentcue.name)"><i
+                                                class="mdi mdi-rename-box-outline"></i>Rename
                                             Cue</button>
 
                                     </div>
 
                                     <label><span><i class="mdi mdi-pound-box-outline"></i>
-                                    Number</span>
+                                            Number</span>
                                         <input :disabled="no_edit" type="number" title="Cue number"
                                             v-on:change="setnumber(currentcueid,$event.target.value)" min=0 step=0.1
                                             v-model="currentcue.number">
@@ -1040,22 +1087,25 @@ ${lists}
 
                                     <label><i class="mdi mdi-star-four-points-outline"></i>Checkpoint
                                         <input :disabled="no_edit" type="checkbox" v-model="currentcue.checkpoint"
-                                        title="At startup, jump to the last checkpoint cue you were in."
-                                        v-on:change="setCueProperty(currentcueid,'checkpoint', currentcue.checkpoint)">
+                                            title="At startup, jump to the last checkpoint cue you were in."
+                                            v-on:change="setCueProperty(currentcueid,'checkpoint', currentcue.checkpoint)">
                                     </label>
-                                </p>
+                                    </p>
                                     <p>
                                         <label>
-                                            <input :disabled="no_edit" type="checkbox" v-on:change="settrack(currentcueid,currentcue.track)"
+                                            <input :disabled="no_edit" type="checkbox"
+                                                v-on:change="settrack(currentcueid,currentcue.track)"
                                                 v-model="currentcue.track"
                                                 title="Track values from previous cue? If false, values not present are always transparent">
-                                                <span><i class="mdi mdi-arrow-expand-right"></i>Track</span>
+                                            <span><i class="mdi mdi-arrow-expand-right"></i>Track</span>
                                         </label>
 
-                                        <label><input :disabled="no_edit" title="If false, dissallow entering cue if it's already running"
+                                        <label><input :disabled="no_edit"
+                                                title="If false, dissallow entering cue if it's already running"
                                                 type="checkbox"
                                                 v-on:change="setreentrant(currentcueid,currentcue.reentrant)"
-                                                v-model="currentcue.reentrant"><span><i class="mdi mdi-replay"></i>Reentrant</span></label>
+                                                v-model="currentcue.reentrant"><span><i
+                                                    class="mdi mdi-replay"></i>Reentrant</span></label>
                                     </p>
 
 
@@ -1063,14 +1113,16 @@ ${lists}
 
                                         <label><span><i class="mdi mdi-arrow-down-circle-outline"></i>Shortcut
                                             </span>
-                                            <input :disabled="no_edit" title="Shortcut code used to quickly activate a cue" size="8"
+                                            <input :disabled="no_edit"
+                                                title="Shortcut code used to quickly activate a cue" size="8"
                                                 v-on:change="apiCommand(i[1].id,'setshortcut',$event.target.value)"
                                                 v-model="currentcue.shortcut">
                                         </label>
 
                                         <label><span><i class="mdi mdi-arrow-right-circle-outline"></i>
-                                            Trigger Shortcut</span>
-                                            <input :disabled="no_edit" title="When entering this cue, trigger the shortcut in other groups"
+                                                Trigger Shortcut</span>
+                                            <input :disabled="no_edit"
+                                                title="When entering this cue, trigger the shortcut in other groups"
                                                 size="8"
                                                 v-on:change="settriggershortcut(currentcueid,$event.target.value)"
                                                 v-model="currentcue.triggerShortcut">
@@ -1079,21 +1131,22 @@ ${lists}
                                     <p>
                                         <label>
                                             <span><i class="mdi mdi-clock-outline"></i>
-                                            Fadein</span>
+                                                Fadein</span>
                                             <input :disabled="no_edit" type="number"
                                                 v-on:change="setfadein(currentcueid,$event.target.value)" min=0
                                                 v-model="currentcue.fadeIn">
                                         </label>
                                         <label><span><i class="mdi mdi-clock-outline"></i>
-                                            Length</span>
-                                            <input :disabled="no_edit" v-on:change="setlength(currentcueid,$event.target.value)"
+                                                Length</span>
+                                            <input :disabled="no_edit"
+                                                v-on:change="setlength(currentcueid,$event.target.value)"
                                                 v-model="cuemeta[currentcueid].length" min=0></input>
                                         </label>
                                     </p>
 
                                     <p>
                                         <label><span><i class="mdi mdi-dice-multiple-outline"></i>
-                                         Randomize Length</span>
+                                                Randomize Length</span>
                                             <input :disabled="no_edit" type="number"
                                                 v-on:change="setrandomize(currentcueid,$event.target.value)"
                                                 title="Randomize the cue length +- this amount"
@@ -1108,7 +1161,8 @@ ${lists}
 
                                     </p>
                                     <label><span><i class="mdi mdi-text"></i>Notes</span>
-                                        <input :disabled="no_edit" v-on:change="setCueProperty(currentcueid, 'notes', $event.target.value)"
+                                        <input :disabled="no_edit"
+                                            v-on:change="setCueProperty(currentcueid, 'notes', $event.target.value)"
                                             v-model="cuemeta[currentcueid].notes" min=0></input>
                                     </label>
 
@@ -1118,7 +1172,7 @@ ${lists}
                                     <legend>Cue Advance</legend>
                                     <label>Next Cue
                                         <div>
-                                            <combo-box v-model="cuemeta[currentcueid].next"  :disabled="no_edit"
+                                            <combo-box v-model="cuemeta[currentcueid].next" :disabled="no_edit"
                                                 v-on:change="setnext(currentcueid,cuemeta[currentcueid].next)"
                                                 :options="useBlankDescriptions(groupcues[groupname],{'__random__':'','__shuffle__':'Avoid Recent','*':'Wildcard match'})"></combo-box>
                                         </div>
@@ -1189,7 +1243,8 @@ ${lists}
                             </p>
 
                             <label>Blend Mode
-                                <select  :disabled="no_edit" title="This setting controls blending multiple groups together"
+                                <select :disabled="no_edit"
+                                    title="This setting controls blending multiple groups together"
                                     v-on:input="setblend(groupname,$event.target.value)" v-model="editingGroup.blend"
                                     data-testid="group_blend_mode">
 
@@ -1209,7 +1264,7 @@ ${lists}
                                 <label><span class="mdi mdi-lock-alert"></span>
                                     Require Confirmation for Cue Jumps
                                     <input :disabled="no_edit" type="checkbox" v-model="editingGroup.requireConfirm"
-                                    v-on:change="setGroupProperty(groupname,'requireConfirm', editingGroup.requireConfirm)">
+                                        v-on:change="setGroupProperty(groupname,'requireConfirm', editingGroup.requireConfirm)">
                                 </label>
 
                                 <label>Priority
@@ -1245,7 +1300,8 @@ ${lists}
 
 
                             <label>Slideshow Overlay:
-                                <input :disabled="no_edit" v-on:change="setGroupProperty(groupname,'slideOverlayUrl',$event.target.value)"
+                                <input :disabled="no_edit"
+                                    v-on:change="setGroupProperty(groupname,'slideOverlayUrl',$event.target.value)"
                                     v-model="editingGroup.slideOverlayUrl"></input>
                             </label>
 
@@ -1266,7 +1322,8 @@ ${lists}
 
                             <label title="You can use this with __random__ to create a shuffle effect.">Default
                                 cue advance:
-                                <input :disabled="no_edit" list="nextcueoptions" v-on:change="setdefaultnext(groupname,$event.target.value)"
+                                <input :disabled="no_edit" list="nextcueoptions"
+                                    v-on:change="setdefaultnext(groupname,$event.target.value)"
                                     v-model="editingGroup.defaultNext" placeholder="Next cue in list"></input>
                             </label>
                         </div>
@@ -1297,7 +1354,8 @@ ${lists}
                                 <dt>Web Player</dt>
                                 <dd>
                                     <div class="tool-bar">
-                                        <button type="button" v-on:click="setGroupSoundOutput(groupname,'groupwebplayer')">Set
+                                        <button type="button"
+                                            v-on:click="setGroupSoundOutput(groupname,'groupwebplayer')">Set
                                             as
                                             Group
                                             Default</button>
@@ -1308,7 +1366,8 @@ ${lists}
                                     <dt>{{i || "UNSET"}}</dt>
                                     <dd>
                                         <div class="tool-bar">
-                                            <button type="button" v-on:click="setGroupSoundOutput(groupname,i)">Set as Group
+                                            <button type="button" v-on:click="setGroupSoundOutput(groupname,i)">Set as
+                                                Group
                                                 Default</button>
                                             <button type="button" v-on:click="testSoundCard(i,0,48000)">Test</button>
                                         </div>
@@ -1331,7 +1390,8 @@ ${lists}
                             <label
                                 title="Cue transitions on the same MQTT server sharing a group name will sync if cue names match.">Sync
                                 Group Name
-                                <input :disabled="no_edit" v-on:change="setmqttfeature(groupname,'syncGroup',$event.target.value)"
+                                <input :disabled="no_edit"
+                                    v-on:change="setmqttfeature(groupname,'syncGroup',$event.target.value)"
                                     v-model="editingGroup.mqttSyncFeatures.syncGroup"></input>
                             </label>
                         </div>
@@ -1382,14 +1442,14 @@ ${lists}
                         </header>
                         <div class="stacked-form">
                             <label>Event name:
-                                <input :disabled="no_edit" v-model="evtosend" v-on:keydown.enter="sendev" placeholder="Event Name"
-                                    title="Event Name">
+                                <input :disabled="no_edit" v-model="evtosend" v-on:keydown.enter="sendev"
+                                    placeholder="Event Name" title="Event Name">
 
                             </label>
 
                             <label>Value
-                                <input :disabled="no_edit" v-model="evval" v-on:keydown.enter="sendev" title="Event Value"
-                                    placeholder="value">
+                                <input :disabled="no_edit" v-model="evval" v-on:keydown.enter="sendev"
+                                    title="Event Value" placeholder="value">
                             </label>
                             <label>Type
                                 <select v-model="evtypetosend">
@@ -1413,7 +1473,8 @@ ${lists}
                             <p>{{editingGroup.blendDesc}}</p>
                             <p>
                                 <label v-for="(j,k) in editingGroup.blendParams">{{j[0]}}:
-                                    <input :disabled="no_edit" type="number" style="width:5em" step=0.01 v-bind:title="j[2]"
+                                    <input :disabled="no_edit" type="number" style="width:5em" step=0.01
+                                        v-bind:title="j[2]"
                                         v-on:change="setblendparam(groupname,k,parseFloat($event.target.value))"
                                         v-model="editingGroup.blendArgs[k]"></input>
 
@@ -1434,14 +1495,15 @@ ${lists}
                         <div class="stacked-form">
                             <p>
                                 <label>Utility Group(No controls)
-                                    <input :disabled="no_edit" type="checkbox" v-on:change="setutility(groupname,editingGroup.utility)"
+                                    <input :disabled="no_edit" type="checkbox"
+                                        v-on:change="setutility(groupname,editingGroup.utility)"
                                         v-model="editingGroup.utility"
                                         title="If checked, the group is a utility group without sidebar controls. Use for embedding CCTV, or basic state machines.">
                                 </label>
 
                                 <label>Hide in Runtime Mode
-                                    <input :disabled="no_edit" type="checkbox" v-on:change="setHide(groupname,editingGroup.hide)"
-                                        v-model="editingGroup.hide"
+                                    <input :disabled="no_edit" type="checkbox"
+                                        v-on:change="setHide(groupname,editingGroup.hide)" v-model="editingGroup.hide"
                                         title="If checked, the group is a utility group without sidebar controls. Use for embedding CCTV, or basic state machines.">
                                 </label>
                             </p>
@@ -1459,10 +1521,12 @@ ${lists}
                                 <th>Acton</th>
                             </tr>
                             <tr v-for="(v,i) in editingGroup.eventButtons">
-                                <td><input :disabled="no_edit" v-model="v[0]" class="w-6rem" data-testid="event_button_label"
+                                <td><input :disabled="no_edit" v-model="v[0]" class="w-6rem"
+                                        data-testid="event_button_label"
                                         v-on:change="setEventButtons(groupname, editingGroup.eventButtons);">
                                 </td>
-                                <td><input :disabled="no_edit" v-model="v[1]" class="w-6rem" data-testid="event_button_event"
+                                <td><input :disabled="no_edit" v-model="v[1]" class="w-6rem"
+                                        data-testid="event_button_event"
                                         v-on:change="setEventButtons(groupname, editingGroup.eventButtons);">
                                 </td>
                                 <td><button data-testid="event_button_delete"
@@ -1510,23 +1574,23 @@ ${lists}
                                 <th>Action</th>
                             </tr>
                             <tr v-for="(v,i) in editingGroup.displayTags">
-                                <td><input :disabled="no_edit" v-model="v[0]" class="w-6rem" data-testid="display_tag_label"
+                                <td><input :disabled="no_edit" v-model="v[0]" class="w-6rem"
+                                        data-testid="display_tag_label"
                                         v-on:change="setDisplayTags(groupname, editingGroup.displayTags);">
                                 </td>
 
                                 <td><input type="number" :disabled="no_edit" v-model="v[2].width" class="w-4rem"
-                                    data-testid="display_tag_width"
-                                    v-on:change="setDisplayTags(groupname, editingGroup.displayTags);">
+                                        data-testid="display_tag_width"
+                                        v-on:change="setDisplayTags(groupname, editingGroup.displayTags);">
                                 </td>
 
                                 <td><input :disabled="no_edit" list="tagslisting" v-model="v[1]"
-                                    data-testid="display_tag_tag"
+                                        data-testid="display_tag_tag"
                                         v-on:change="setDisplayTags(groupname, editingGroup.displayTags);">
                                 </td>
 
 
-                                <td><select v-model="v[2].type" class="w-6rem"
-                                    data-testid="display_tag_type"
+                                <td><select v-model="v[2].type" class="w-6rem" data-testid="display_tag_type"
                                         v-on:change="setDisplayTags(groupname, editingGroup.displayTags);">
                                         <option value="meter">Meter</option>
                                         <option value="text">Text</option>
@@ -1539,7 +1603,8 @@ ${lists}
                                     </select>
 
                                     <template v-if="v[2].type == 'led'">
-                                        <select :disabled="no_edit" v-model="v[2].color" data-testid="display_tag_led_color"
+                                        <select :disabled="no_edit" v-model="v[2].color"
+                                            data-testid="display_tag_led_color"
                                             v-on:change="setDisplayTags(groupname, editingGroup.displayTags);">
                                             <option value="red">Red</option>
                                             <option value="yellow">Yel</option>
@@ -1669,7 +1734,7 @@ ${lists}
 
     appData.keyboardJS = keyboardJS
 
-    appData.no_edit = ${'false' if kaithem.web.has_permission('system_admin') else 'true'}
+    appData.no_edit = ${ 'false' if kaithem.web.has_permission('system_admin') else 'true' }
 
     const options = {
         moduleCache: {
@@ -1724,7 +1789,7 @@ ${lists}
         init_api_link()
     };
 
-    script.src = "/apiwidget/WebChandlerConsole:"+appData.boardname+"?js_name=api_link";
+    script.src = "/apiwidget/WebChandlerConsole:" + appData.boardname + "?js_name=api_link";
 
     document.head.appendChild(script);
 

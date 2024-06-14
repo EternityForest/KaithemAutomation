@@ -207,12 +207,32 @@ appMethods = {
     },
 
     'setFixturePreset': function (sc, fix, preset) {
-        for (i in this.cuevals[sc][fix]) {
-            if ((!(preset[i] == undefined)) && preset[i].toString().length) {
-                api_link.send(['scv', sc, fix, i, preset[i]]);
-                this.cuevals[sc][fix][i].v = preset[i]
-            }
+        // Use a fixture specific preset if available
+        var selectedPreset =  this.presets[preset + '@' + fix]
 
+        // Else use a type specific preset
+        if (selectedPreset == undefined)
+        {
+                selectedPreset = this.presets[preset + '@' +this.lookupFixtureType(fix)]
+        }
+
+        if (selectedPreset == undefined)
+        {
+            selectedPreset = this.presets[preset]
+        }
+
+        if (selectedPreset == undefined)
+        {
+            return
+        }
+
+        for (i in this.cuevals[sc][fix]) {
+            if (i != '__metadata__') {
+                if ( selectedPreset[i] != undefined)  {
+                    api_link.send(['scv', sc, fix, i, selectedPreset[i]]);
+                    this.cuevals[sc][fix][i].v = selectedPreset[i]
+                }
+            }
         }
     },
 
@@ -1197,7 +1217,7 @@ appData = {
         }
     },
 
-    'savePreset': function (v) {
+    'savePreset': function (v, suggestedname) {
         /*Prompt saving data from the cuevals dict as a preset*/
         var v2 = {}
 
@@ -1206,7 +1226,7 @@ appData = {
             v2[i] = v[i].v
         }
 
-        var n = prompt("Preset Name?")
+        var n = prompt("Preset Name?", suggestedname||"")
 
         if (n && n.length) {
             this.presets[n] = v2;
@@ -1467,7 +1487,7 @@ function f(v) {
             needRefresh = 1;
         }
 
-        if(Object.entries(vueapp.$data.cuevals[cue][universe]).length == 0){
+        if (Object.entries(vueapp.$data.cuevals[cue][universe]).length == 0) {
             old_vue_delete(vueapp.$data.cuevals[cue], universe)
         }
     }

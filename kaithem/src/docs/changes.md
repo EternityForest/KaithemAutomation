@@ -6,6 +6,7 @@ Change Log
 #### Added
 
 - :sparkles: Can now set a label image for a cue
+- :sparkles: Presets named foo@fixture are only usable for that fixture or fixture type.
 
 
 #### Changed

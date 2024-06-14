@@ -280,11 +280,11 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         elif cmd_name == "getCommands":
             c = groups.rootContext.commands.scriptcommands
-            commandInfo = {}
+            ch_info = {}
             for i in c:
                 f = c[i]
-                commandInfo[i] = kaithem.chandlerscript.get_function_info(f)
-            self.linkSend(["commands", commandInfo])
+                ch_info[i] = kaithem.chandlerscript.get_function_info(f)
+            self.linkSend(["commands", ch_info])
             return
 
         elif cmd_name == "getconfuniverses":
@@ -429,13 +429,19 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 raise RuntimeError("User does not have permission")
 
         elif cmd_name == "setfixtureclass":
-            commandInfo = []
+            ch_info = []
+
             for i in msg[2]:
                 if i[1] not in ["custom", "fine", "fixed"]:
-                    commandInfo.append(i[:2])
+                    # Filter empty extra data we don't need
+                    ch_info.append(i[:2])
                 else:
-                    commandInfo.append(i)
-            self.fixture_classes[msg[1]] = commandInfo
+                    ch_info.append(i)
+
+            # data = dict(msg[2])
+            # data['channels'] = ch_info
+
+            self.fixture_classes[msg[1]] = ch_info
             self.refresh_fixtures()
 
         elif cmd_name == "setfixtureclassopz":
@@ -451,13 +457,13 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 elif i == "color":
                     x.append(["hue", "hue"])
 
-            commandInfo = []
+            ch_info = []
             for i in x:
                 if i[1] not in ["custom", "fine", "fixed"]:
-                    commandInfo.append(i[:2])
+                    ch_info.append(i[:2])
                 else:
-                    commandInfo.append(i)
-            self.fixture_classes[msg[1].replace("-", " ").replace("/", " ")] = commandInfo
+                    ch_info.append(i)
+            self.fixture_classes[msg[1].replace("-", " ").replace("/", " ")] = ch_info
             self.refresh_fixtures()
 
         elif cmd_name == "rmfixtureclass":
