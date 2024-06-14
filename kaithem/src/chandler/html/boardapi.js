@@ -643,21 +643,6 @@ appMethods = {
         api_link.send(['setconfuniverses', this.configuredUniverses])
     },
 
-
-    'setSoundfileDir': function (i) {
-
-        if (!((i == '') | (i[0] == '/'))) {
-            this.soundfilesdir += i;
-        }
-        else {
-            this.soundfilesdir = i;
-        }
-        this.soundfileslisting = [
-            [],
-            []
-        ]
-        api_link.send(['listsoundfolder', i])
-    },
     'setSoundOutput': function (cueid, i) {
 
         api_link.send(['setcuesoundoutput', cueid, i])
@@ -932,18 +917,10 @@ appData = {
         'blah': { 'type': 'enttec', 'interface': 'xyz' }
     },
     'fixtureClasses': { 'dfjlkdjf': [] },
-    //The selected dir and [[folders][files]] in that dir, for the
-    //sound file browser
-    'soundfilesdir': '',
-    'soundfileslisting': [
-        [],
-        []
-    ],
+
     //Filter which groups are shown in the list
     'groupfilter': '',
     'cuefilter': '',
-    'soundsearch': '',
-    'soundsearchresults': [],
     'currentBindingBank': 'default',
     'localStorage': localStorage,
     'keybindmode': 'edit',
@@ -1156,9 +1133,6 @@ appData = {
         api_link.send(['setCueRules', c, r])
     },
 
-    'doSoundSearch': function (s) {
-        api_link.send(["searchsounds", s])
-    },
 
     //Current per group alpha channel
     'alphas': {},
@@ -1401,9 +1375,9 @@ function f(v) {
     }
 
     else if (c == 'soundsearchresults') {
-        if (vueapp.$data.soundsearch == v[1]) {
-            vueapp.$data.soundsearchresults = v[2]
-        }
+        const event = new Event("onsoundsearchresults");
+        event.data = [v[1], v[2]]
+        window.dispatchEvent(event)
     }
     else if (c == 'groupcues') {
         //Groupcues only gives us cue number and id info.
@@ -1542,9 +1516,10 @@ function f(v) {
     }
 
     else if (c == 'soundfolderlisting') {
-        if (v[1] == vueapp.$data.soundfilesdir) {
-            vueapp.$data.soundfileslisting = v[2]
-        }
+        // Handled in media-browser.vue
+        const event = new Event("onsoundfolderlisting");
+        event.data = [v[1], v[2]]
+        window.dispatchEvent(event)
     }
 
     else if (c == 'fixturePresets') {

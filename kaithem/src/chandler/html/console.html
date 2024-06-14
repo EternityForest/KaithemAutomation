@@ -936,97 +936,25 @@ ${lists}
                                 </div>
                             </div>
                             <div class="w-sm-double flex-col gaps">
-                                <div class="card w-full flex-col gaps">
-                                    <header>
-                                        <h3>Media browser</h3>
-                                    </header>
-                                    <div class="tool-bar">
-                                        <input :disabled="no_edit" v-model="soundsearch" v-on:change="soundsearchresults=[]"
-                                            v-on:keyup.enter="doSoundSearch(soundsearch)" placeholder="Filter Sounds"
-                                            style="width:60%;">
-                                        <button type="button" v-on:click="doSoundSearch(soundsearch)">Search</button>
-                                        <button type="button" v-on:click="soundsearch=''">Clear Search</button>
-                                    </div>
-                                    <div class="scroll h-24rem w-full padding">
+                                <media-browser :no_edit="no_edit">
+                                    <button
+                                        v-on:click="setSoundfile(currentcueid, slotProps.filename)">Set(sound)</button>
+                                    <button
+                                        v-on:click="newCueFromSound(groupname, slotProps.filename)">New(sound)</button>
+                                    <button
+                                        v-on:click="previewSound(slotProps.filename)">Preview</button>
+                                    <button
+                                        v-on:click="setCueSlide(currentcueid, slotProps.filename)">Set(slide)</button>
+                                    <button
+                                        v-on:click="newCueFromSlide(groupname, slotProps.filename)">New(slide)</button>
 
-                                        <div v-if="soundsearch" class="w-full">
-                                            <table border="1" class="w-full">
-                                                <tr>
-                                                    <th>File</th>
-                                                    <th>Action</th>
-                                                </tr>
-                                                <tr v-for="i in soundsearchresults">
-                                                    <td v-bind:title="'Found in'+i[0]">{{i[1]}}</td>
-                                                    <td><button
-                                                            v-on:click="setSoundfile(currentcueid,(soundsearch.length ? '': soundfilesdir)+i[1])">Set(sound)</button>
-                                                        <button
-                                                            v-on:click="newCueFromSound(groupname,(soundsearch.length ? '': soundfilesdir)+i[1])">New(sound)</button>
-                                                        <button
-                                                            v-on:click="previewSound((soundsearch.length ? '': soundfilesdir)+i[1])">Preview</button>
-                                                        <button
-                                                            v-on:click="setCueSlide(currentcueid,(soundsearch.length ? '': soundfilesdir)+i[1])">Set(slide)</button>
-                                                        <button
-                                                            v-on:click="newCueFromSlide(groupname,(soundsearch.length ? '': soundfilesdir)+i[1])">New(slide)</button>
+                                    <button
+                                        v-on:click="setCueProperty(currentcueid, 'labelImage', slotProps.filename)"
+                                        v-if="slotProps.filename.endsWith('.jpg') || slotProps.filename.endsWith('.svg') || slotProps.filename.endsWith('.png') || slotProps.filename.endsWith('.gif') || slotProps.filename.endsWith('.jpeg') || slotProps.filename.endsWith('.avif')">Set
+                                        Label</button>
+                                    </template>
 
-                                                        <button v-on:click="setCueProperty(currentcueid,'labelImage',(soundsearch.length ? '': soundfilesdir)+i[1])"
-                                                            v-if="i[1].endsWith('.jpg') || i[1].endsWith('.svg') || i[1].endsWith('.png') || i[1].endsWith('.gif') || i[1].endsWith('.jpeg') || i[1].endsWith('.avif')"
-                                                        >Set Label</button>
-
-
-                                                    </td>
-                                                </tr>
-                                            </table>
-                                        </div>
-
-                                        <div v-if="soundsearch==''">
-                                            <h4>
-                                                <a title="View in file manager"
-                                                    v-bind:href="'/settings/files'+encodeURI(soundfilesdir)"
-                                                    target="_blank">{{soundfilesdir}}</a>
-                                            </h4>
-
-                                            <ul class="w-full">
-                                                <li v-on:click="setSoundfileDir('')"><a>&ltTOP DIRECTORY&gt</a></li>
-                                                <li v-on:click="setSoundfileDir(soundfilesdir)">
-                                                    <a><i class="mdi mdi-refresh"></i>Refresh</a>
-                                                </li>
-                                                <li v-if="soundfilesdir"
-                                                    v-on:click="setSoundfileDir(((soundfilesdir.match(/(.*)[\/\\]/)[1]||'').match(/(.*)[\/\\]/)[1]||'')+'/')">
-                                                    <a>..</a>
-                                                </li>
-                                                <li v-on:click="setSoundfileDir(i[0])"
-                                                    v-for="i in soundfileslisting[0]">
-                                                    <a>{{i[1] || i[0]}}</a>
-                                                </li>
-                                            </ul>
-
-                                            <table border="1" class="w-full">
-                                                <thead>
-                                                    <tr>
-                                                        <th style="width: 40%;">File</th>
-                                                        <th>Action</th>
-
-                                                    </tr>
-                                                </thead>
-                                                <tr v-for="i in soundfileslisting[1]">
-                                                    <td class="w-12rem">{{i}}</td>
-                                                    <td><button
-                                                            v-on:click="setSoundfile(currentcueid,soundfilesdir+i)">Set</button>
-                                                        <button
-                                                            v-on:click="newCueFromSound(groupname,soundfilesdir+i)">New</button>
-                                                        <button
-                                                            v-on:click="previewSound(soundfilesdir+i)">Preview</button>
-                                                        <button
-                                                            v-on:click="setCueSlide(currentcueid,(soundsearch.length ? '': soundfilesdir)+i)">Set(slide)</button>
-                                                        <button
-                                                            v-on:click="newCueFromSlide(groupname,(soundsearch.length ? '': soundfilesdir)+i)">New(slide)</button>
-
-                                                    </td>
-                                                </tr>
-                                            </table>
-                                        </div>
-                                    </div>
-                                </div>
+                                </media-browser>
                                 <div class="max-h-12rem flex-col border card">
                                     <header>
                                         <h4>Sound Outputs</h4>
@@ -1783,7 +1711,9 @@ ${lists}
                 'cue-countdown': httpVueLoader('../static/cue-countdown.vue'),
                 // Currently contains the timers and the display tags for the groups overview
                 'group-ui': httpVueLoader('../static/group-ui-controls.vue'),
-                'smooth-range': httpVueLoader('/static/vue/smoothrange.vue')
+                'smooth-range': httpVueLoader('/static/vue/smoothrange.vue'),
+                'media-browser': httpVueLoader('../static/media-browser.vue')
+
             },
             computed: appComputed
         }).mount("#app")
