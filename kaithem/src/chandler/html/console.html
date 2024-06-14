@@ -474,21 +474,24 @@ ${lists}
                     <button
                         v-if="!ps.includes('@') ||ps.endsWith(selectingPresetFor) || ps.endsWith('@' + lookupFixtureType(selectingPresetFor))"
                         @click="setFixturePreset(currentcueid,selectingPresetFor, ps);selectingPresetFor=null"
-                        :disabled="no_edit" style="aspect-ratio: 16/9; flex-basis:8rem;height:auto;flex-grow:0">
+                        :disabled="no_edit" style="aspect-ratio: 16/9; flex-basis:8rem;height:auto;flex-grow:0; max-width:12rem;">
                         {{ps.split('@')[0]}}</button>
 
                     </template>
 
             </div>
             <hr>
-
+            <div class="tool-bar">
+            <input v-model="presetFilter" placeholder="Search Presets..." />
+            <button @click="presetFilter=''" class="nogrow"><i class="mdi mdi-backspace"></i></button>
+        </div>
             <div class="flex-row grow"
                 style="background: var(--alt-control-bg); align-items:flex-start;align-content:flex-start">
                 <button
-                    v-for="ps of dictView(presets,[], function(k,v){if(((!k.includes('@')) || k.endsWith(selectingPresetFor) || k.endsWith('@' + lookupFixtureType(selectingPresetFor)) )){return 1}})"
+                    v-for="ps of dictView(presets,[], function(k,v){if((((!k.includes('@')) || k.endsWith(selectingPresetFor) || k.endsWith('@' + lookupFixtureType(selectingPresetFor)) )) && k.includes(presetFilter)){return 1}})"
                     @click="setFixturePreset(currentcueid,selectingPresetFor, ps[0]);selectingPresetFor=null"
                     :disabled="no_edit"
-                    style="aspect-ratio: 16/9; flex-basis:8rem;height:auto;flex-grow:1">{{ps[0].split('@')[0]}}</button>
+                    style="aspect-ratio: 16/9; flex-basis:8rem;height:auto;flex-grow:1; max-width:16rem">{{ps[0].split('@')[0]}}</button>
             </div>
 
         </div>
@@ -1758,7 +1761,7 @@ ${lists}
     }
 
     appData.selectingPresetFor = null
-
+    appData.presetFilter = ''
     // Add console specific stuff to the appdata
     appData.formatTime = function (t) {
         var date = new Date(t * 1000);
