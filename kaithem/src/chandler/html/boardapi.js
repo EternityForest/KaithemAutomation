@@ -1031,7 +1031,7 @@ appData = {
 
     'lookupFixtureType': function (f) {
         for (i in this.fixtureAssignments) {
-            if (this.fixtureAssignments[i].name = f) {
+            if (("@"+this.fixtureAssignments[i].name) == f) {
                 return this.fixtureAssignments[i].type;
             }
         }

@@ -457,14 +457,30 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             x = []
 
             for i in msg[2]["channels"]:
-                if i in ("red", "green", "blue", "intensity", "white", "fog"):
+                i = str(i)
+                if i in ("red", "green", "blue", "white", "fog", "uv"):
                     x.append([i, i])
 
-                elif i.isnumeric:
-                    x.append(["fixed", "fixed", i])
+                elif i.startswith("knob"):
+                    x.append([i, "generic"])
+
+                elif i == "intensity":
+                    x.append(["dim", "intensity"])
+
+                elif i == "off":
+                    x.append(["fixed", "fixed", 0])
+
+                elif i == "on":
+                    x.append(["fixed", "fixed", 255])
+
+                elif i.isnumeric():
+                    x.append(["fixed", "fixed", int(i)])
 
                 elif i == "color":
                     x.append(["hue", "hue"])
+
+                else:
+                    raise RuntimeError("Unknown channel type: " + i)
 
             ch_info = []
             for i in x:

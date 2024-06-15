@@ -280,7 +280,7 @@ ${lists}
 
             <div class="tool-bar">
                 <button v-on:click="addfixturetype"><i class="mdi mdi-plus"></i>New</button>
-                <a class="button" href="UseOPZDMX">Import from OP-Z format</a>
+                <a class="button" href="/chandler/config/opzimport/${boardname}">Import from OP-Z format</a>
             </div>
             <hr>
             <combo-box v-model="selectedFixtureClass" v-on:change="getfixtureclass(selectedFixtureClass)"
@@ -312,6 +312,7 @@ ${lists}
                             <option>uv</option>
                             <option>white</option>
                             <option>intensity</option>
+                            <option>generic</option>
                             <option>custom</option>
                             <option>fine</option>
                             <option>unused</option>
@@ -598,6 +599,7 @@ ${core.boards[boardname].link.render('api_link')}
         var date = new Date(t * 1000);
         return date.strftime("%I:%M:%S%p")
     }
+    appData.boardname = '${boardname}'
 
     const options = {
         moduleCache: {

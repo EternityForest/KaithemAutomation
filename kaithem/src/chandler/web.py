@@ -197,6 +197,16 @@ def config(board: str):
     )
 
 
+@quart_app.app.route("/chandler/config/opzimport/<board>")
+def opz_import(board: str):
+    pages.require("system_admin")
+    link = core.boards[board].link
+    return get_template("UseOPZDMX.html").render(
+        boardname=board,
+        api_link=link,
+    )
+
+
 @quart_app.app.route("/chandler/dyn_js/<file>")
 def dyn_js(file):
     if file == "boardapi.js":

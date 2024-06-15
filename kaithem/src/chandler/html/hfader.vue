@@ -54,6 +54,9 @@
             <span v-if="chinfo && chinfo[2] == 'intensity'"
                 v-bind:style="{ 'background-color': 'rgb(' + i.v + ',' + i.v + ',' + i.v + ')' }"
                 class="indicator"></span>
+            <span v-if="chinfo && chinfo[2] == 'generic'"
+                v-bind:style="{ 'background-color': 'rgb(' + i.v + ',' + i.v + ',' + i.v + ')' }"
+                class="indicator"></span>
             <span v-if="chinfo && chinfo[2] == 'white'"
                 v-bind:style="{ 'background-color': 'rgb(' + i.v + ',' + i.v + ',' + i.v + ')' }"
                 class="indicator"></span>

@@ -1,23 +1,23 @@
 :root {
     --black-1: black;
-    --black-2: #0e0903;
-    --black-3: #060d11;
+    --black-2: #0f0902;
+    --black-3: #16425c;
     --black-4: #272626;
-    --grey-1: #494732;
-    --grey-2: #52503a;
-    --grey-3: #535e5b;
+    --grey-1: #686443;
+    --grey-2: #dfd9a3;
+    --grey-3: #bef1e2;
     --warning-color: #836f1f;
     --danger-color: #962c2c;
     --highlight-color: #102142;
     --success-color: #165316;
-    --accent-color: rgb(48 62 102);    
+    --accent-color: rgb(107, 133, 206);    
 
     --bg: var(--black-1);
     --box-bg: var(--black-1);
     --control-bg: var(--black-1);
     --alt-control-bg: var(--black-2);
 
-    --fg: var(--grey-1);
+    --fg: var(--grey-2);
     --graphical-fg: var(--grey-1);
     --control-fg: var(--grey-2);
 
