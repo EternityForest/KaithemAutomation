@@ -58,6 +58,18 @@
         max-width: 32em;
     }
 
+    .cue-button-album-art{
+        border:none; height: 100%;
+        object-fit: contain;
+        max-width: 4em;
+        object-position: top;
+        z-index: 3;
+    }
+    .cue-button-body{
+        aspect-ratio: 16/9;
+        flex-grow: 1;
+    }
+
     .blinking {
         animation: blinkingText 1s infinite;
     }
@@ -106,6 +118,7 @@
             <header>
                 <div class="tool-bar">
                     <button>{{clock}}</button>
+                    <a class="button" :href="'/chandler/editor/'+boardname"><i class="mdi mdi-pencil"></i></a>
 
                     <button type="button" @click="showUtils = !showUtils"><i class="mdi mdi-calculator"></i></button>
                     <input size=8
@@ -168,40 +181,44 @@
                             <cue-countdown :group="i[1]" :cue="cuemeta[i[1].cue]"></cue-countdown>
 
                         </header>
-                        <div class="flex-col nogaps" style="text-align: center;">
+                        <div class="flex-col nogaps scene-data-area readability-outline" style="text-align: center; position:relative">
+                            <img
+                            style="border:none; opacity: 0.4; height: 100%; width: 100%; object-fit: cover; position: absolute" class="v-center"
+                            onerror='this.style.display = "none"' v-if="cuemeta[i[1].cue].labelImage"
+                            :src="'../WebMediaServer?labelImg='+encodeURIComponent(cuemeta[i[1].cue].id)">
 
-                            <p class="warning" v-if="i[1].status">STATUS: {{i[1].status}}</p>
+                                <div style="height: 100%; width: 100%; z-index: 1">
+                                    <p class="warning" v-if="i[1].status">STATUS: {{i[1].status}}</p>
 
 
-                            <div class="flex-row nogaps nogrow w-full h-min-content" style="align-items: stretch;">
+                                    <div class="flex-row nogaps nogrow w-full h-min-content" style="align-items: stretch;">
 
 
-                                <div :class="{'success':i[1].active, 'grow': 1}" v-if="i[1].active && cuemeta[i[1].cue]">
-                                    {{cuemeta[i[1].cue].name}} <small>{{formatTime(i[1].enteredCue)}}</small>
+                                        <div :class="{'success':i[1].active, 'grow': 1}" v-if="i[1].active && cuemeta[i[1].cue]">
+                                            {{cuemeta[i[1].cue].name}} <small>{{formatTime(i[1].enteredCue)}}</small>
 
-                                </div>
+                                        </div>
 
-                                <img style="border:none; height: fit-content;" class="w-4rem"
-                                    onerror='this.style.display = "none"' v-if="cuemeta[i[1].cue].sound"
-                                    :src="'../WebMediaServer?albumArt='+encodeURIComponent(i[1].cue)"></img>
+                                        <img style="border:none; height: fit-content;" class="w-4rem"
+                                            onerror='this.style.display = "none"' v-if="cuemeta[i[1].cue].sound"
+                                            :src="'../WebMediaServer?albumArt='+encodeURIComponent(i[1].cue)">
 
-                                <span v-if="(i[1].active && (''+cuemeta[i[1].cue].length).indexOf('@')>-1)"><i
-                                        class="mdi mdi-clock-outline"></i>{{cuemeta[i[1].cue].length.substring(1)}}</span>
+                                        <span v-if="(i[1].active && (''+cuemeta[i[1].cue].length).indexOf('@')>-1)"><i
+                                                class="mdi mdi-clock-outline"></i>{{cuemeta[i[1].cue].length.substring(1)}}</span>
+
+                                    </div>
+
+                                    <small v-if="i[1].active&&(cuemeta[i[1].cue].next||cuemeta[i[1].cue].defaultNext)">
+                                        Next: {{(cuemeta[i[1].cue].next||cuemeta[i[1].cue].defaultNext||'').split('?')[0]}}
+                                    </small>
+
+                                    <iframe style="flex-grow:1" v-if="showPages && i[1].infoDisplay.length>0"
+                                        :src="i[1].infoDisplay"></iframe>
+
+                                    <group-ui :unixtime="unixtime" v-bind:group-data="i[1]" :cue="cuemeta[i[1].cue]"></group-ui>
+
 
                             </div>
-
-                            <small v-if="i[1].active&&(cuemeta[i[1].cue].next||cuemeta[i[1].cue].defaultNext)">
-                                Next: {{(cuemeta[i[1].cue].next||cuemeta[i[1].cue].defaultNext||'').split('?')[0]}}
-                            </small>
-
-                            <iframe style="flex-grow:1" v-if="showPages && i[1].infoDisplay.length>0"
-                                :src="i[1].infoDisplay"></iframe>
-
-                            <group-ui :unixtime="unixtime" v-bind:group-data="i[1]" :cue="cuemeta[i[1].cue]"></group-ui>
-
-
-                            </table>
-
 
                         </div>
 
@@ -247,8 +264,8 @@
             <div id="cuesbox">
                 <div class="flex-row align-left">
 
-                    <article class="w-sm-full margin flex-col h-16rem" v-for="i in formatCues"
-                        v-bind:class="{'card': 1, 'highlight' : cuemeta[editingGroup.cue].name==i[1].name}">
+                    <article class="w-sm-full margin flex-col" v-for="i in formatCues"
+                        v-bind:class="{'card': 1, 'success' : cuemeta[editingGroup.cue].name==i[1].name}">
 
                         <header>
                             <button class="h-4rem w-full" v-on:click="jumptocue(i[1].id, editingGroup.id)"
@@ -266,30 +283,32 @@
                         </header>
 
 
-                        <div class="flex-row nogaps nogrow min-h-6em  w-full">
+                        <div class="flex-row nogaps nogrow h-12rem w-full cue-button-body" style="position: relative;">
+                            <img style="border:none; height:100%; width:100%; position: absolute; object-fit: cover" class="v-center"
+                            onerror='this.style.display = "none"' v-if="i[1].labelImage"
+                            :src="'../WebMediaServer?labelImg='+encodeURIComponent(i[1].id)+'&cacheid='+encodeURIComponent(i[1].labelImage)">
 
 
                             <div
-                                :class="{'max-w-12rem': 1, 'success': cuemeta[editingGroup.cue].name==i[1].name,'grow': 1, 'h-min-content': 1}">
+                            style="z-index: 1; height:2rem;"
+                                :class="{'success': cuemeta[editingGroup.cue].name==i[1].name,'grow':1,'readability-outline':1}">
                                 <cue-countdown v-if="cuemeta[editingGroup.cue].name==i[1].name" :group="editingGroup"
                                     :cue="cuemeta[editingGroup.cue]"></cue-countdown>
 
                                 <div v-if="i[1].notes.length>0" style="max-width: 10em;">{{i[1].notes}}</div>
+
+                                <span v-if="(i[1].active && (''+i[1].length).indexOf('@')>-1)"><i
+                                    class="mdi mdi-clock-outline"></i>{{i[1].cue.length.substring(1)}}</span>
                             </div>
 
-                            <div class="w-2rem grow flex-col gradient-bg" style="align-items: center;">
-                                <img style="border:none; height: fit-content; object-fit: contain" class="v-center"
-                                    onerror='this.style.display = "none"' v-if="i[1].sound &&(!i[1].labelImage)"
+
+
+
+                            <img class="v-center cue-button-album-art"
+                                    onerror='this.style.display = "none"' v-if="i[1].sound"
                                     :src="'../WebMediaServer?albumArt='+encodeURIComponent(i[1].id)">
 
-                                <img style="border:none; height: fit-content; object-fit: contain" class="v-center"
-                                    style="max-height: 100%"
-                                    onerror='this.style.display = "none"' v-if="i[1].labelImage"
-                                    :src="'../WebMediaServer?labelImg='+encodeURIComponent(i[1].id)+'&albumArt='+'cacheid='+encodeURIComponent(i[1].labelImage)">
-                            </div>
 
-                            <span v-if="(i[1].active && (''+i[1].length).indexOf('@')>-1)"><i
-                                    class="mdi mdi-clock-outline"></i>{{i[1].cue.length.substring(1)}}</span>
 
                         </div>
 
@@ -370,15 +389,15 @@
                 'group-ui': httpVueLoader('../static/group-ui-controls.vue')
             }
         }).mount("#app")
-        var script = document.createElement('script');
+    var script = document.createElement('script');
 
-        script.onload = function () {
-            init_api_link()
-        };
+    script.onload = function () {
+        init_api_link()
+    };
 
-        script.src = "/apiwidget/WebChandlerConsole:"+appData.boardname+"?js_name=api_link";
+    script.src = "/apiwidget/WebChandlerConsole:" + appData.boardname + "?js_name=api_link";
 
-        document.head.appendChild(script);
+    document.head.appendChild(script);
 
 </script>
 

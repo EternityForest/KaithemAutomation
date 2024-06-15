@@ -23,7 +23,12 @@ from .groups import Group, cues
 
 
 def listsoundfolder(path: str, extra_folders: list[str] = []):
-    "return format [ [subfolderfolder,displayname],[subfolder2,displayname]  ], [file,file2,etc]"
+    """return format [ [subfolderfolder,displayname],[subfolder2,displayname]  ],
+    [[fn, fn_relative_to_its_configured_folder]...]
+
+    Note we store things as relative paths exculding the folder,
+    so users can move things around
+    """
     soundfolders = core.getSoundFolders()
 
     if extra_folders:
@@ -43,7 +48,7 @@ def listsoundfolder(path: str, extra_folders: list[str] = []):
         if not i.endswith("/"):
             i = i + "/"
         if path.startswith(i):
-            match = True
+            match = i
     if not match:
         return [
             [[i + ("/" if not i.endswith("/") else ""), soundfolders[i]] for i in soundfolders],
@@ -58,11 +63,15 @@ def listsoundfolder(path: str, extra_folders: list[str] = []):
 
     return (
         sorted([[os.path.join(path, i), os.path.join(path, i)] for i in x if i.endswith("/")]),
-        sorted([i for i in x if not i.endswith("/")]),
+        sorted([[i, os.path.join(path, i)[len(match) :]] for i in x if not i.endswith("/")]),
     )
 
 
 def searchPaths(s: str, paths: list[str]):
+    """return is [[path, relpath]...]
+    Where repath appended to path is the full path to the file
+    and path is one of the input folder
+    """
     if not len(s) > 2:
         return []
 
@@ -606,7 +615,8 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             self.pushCueMeta(msg[1])
 
         elif cmd_name == "listsoundfolder":
-            self.linkSend(["soundfolderlisting", msg[1], listsoundfolder(msg[1], extra_folders=self.media_folders)])
+            lst = listsoundfolder(msg[1], extra_folders=self.media_folders)
+            self.linkSend(["soundfolderlisting", msg[1], lst])
 
         elif cmd_name == "scv":
             ch = msg[3]

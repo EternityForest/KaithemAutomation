@@ -20,6 +20,13 @@ from .groups import Group, cues
 from .universes import getUniverse, getUniverses
 
 
+def from_legacy_preset_format(d: Dict[str, Any]) -> dict[str, dict[int | str, float | int | str]]:
+    if "values" not in d:
+        return {"values": d}  # type: ignore
+    else:
+        return d
+
+
 def from_legacy(d: Dict[str, Any]) -> Dict[str, Any]:
     if "mediaWindup" in d:
         d["media_wind_up"] = d.pop("mediaWindup")
@@ -59,7 +66,7 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         self.configured_universes: Dict[str, Any] = {}
         self.fixture_assignments: Dict[str, Any] = {}
-        self.fixture_presets: Dict[str, dict[int | str, float | int | str]] = {}
+        self.fixture_presets: Dict[str, dict[str, dict[int | str, float | int | str]]] = {}
 
         self.fixtures = {}
 
@@ -119,7 +126,10 @@ class ChandlerConsole(console_abc.Console_ABC):
             self.configured_universes = data2["configured_universes"]
             self.fixture_classes = data2["fixture_types"]
             self.fixture_assignments = data2["fixture_assignments"]
-            self.fixture_presets = data2.get("fixture_presets", {})
+
+            x = data2.get("fixture_presets", {})
+            self.fixture_presets = {i: from_legacy_preset_format(x[i]) for i in x}
+
             default_media_folders = []
 
             if os.path.exists(os.path.expanduser("~/Music")):
@@ -290,7 +300,8 @@ class ChandlerConsole(console_abc.Console_ABC):
             self.refresh_fixtures()
 
         if "fixture_presets" in data:
-            self.fixture_presets = data["fixture_presets"]
+            x = data["fixture_presets"]
+            self.fixture_presets = {i: from_legacy_preset_format(x[i]) for i in x}
 
         self.push_setup()
 

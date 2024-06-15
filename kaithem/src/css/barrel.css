@@ -1837,10 +1837,10 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
 
 .readability-outline {
     text-shadow:
-        1px 1px 2px var(--contrasting-bg-color),
-        -1px 1px 2px var(--contrasting-bg-color),
-        -1px -1px 2px var(--contrasting-bg-color),
-        1px -1px 2px var(--contrasting-bg-color);
+    2px 2px 2px var(--contrasting-bg-color),
+    -2px 2px 3px var(--contrasting-bg-color),
+    -2px -2px 3px var(--contrasting-bg-color),
+    2px -2px 2px var(--contrasting-bg-color)
 }
 
 

@@ -1,3 +1,4 @@
+import datetime
 import os
 
 import quart
@@ -6,7 +7,7 @@ import vignette
 from mako.lookup import TemplateLookup
 from tinytag import TinyTag
 
-from kaithem.src import quart_app, tagpoints
+from kaithem.src import modules_state, quart_app, tagpoints
 
 from .. import directories, pages
 from ..kaithemobj import kaithem
@@ -101,6 +102,32 @@ def scriptheader(v):
 #     return quart.Response(r, mimetype="text/yaml",  headers={"Content-Disposition": "attachment; filename="+kwargs['name']+".m3u"})
 
 
+@quart_app.app.route("/chandler/quickuploadlabel/<board>")
+async def quick_upload_label(board: str):
+    try:
+        pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    files = await quart.request.files
+
+    @quart.ctx.copy_current_request_context
+    def f():
+        dir = modules_state.getModuleDir(board.split(":")[0])
+        dir = os.path.join(dir, "__filedata__/media/chandler/labels")
+
+        fn = files["file"].filename
+        fn = fn.split(".", 1)
+        d = datetime.datetime.now().isoformat()
+        fn = f"{fn[0]}{d}.{fn[1]}"
+
+        with open(os.path.join(dir, fn), "wb") as f:
+            f.write(files["file"].read())
+
+        return os.path.join("media/chandler/labels", fn)
+
+    return await f()
+
+
 @quart_app.app.route("/chandler/editor/<board>")
 def editor(board: str):
     """Index page for web interface"""
@@ -191,7 +218,6 @@ def dyn_js(file):
 
 @quart_app.app.route("/chandler/WebMediaServer")
 async def media():
-    pages.require("chandler_operator")
     pages.require("enumerate_endpoints")
 
     kwargs = quart.request.args
@@ -199,6 +225,8 @@ async def media():
     @quart.ctx.copy_current_request_context
     def get_file():
         if "labelImg" in kwargs:
+            pages.require("chandler_operator")
+
             label_image = groups.cues[kwargs["labelImg"]].label_image
             grp = groups.cues[kwargs["labelImg"]].group()
 
@@ -206,6 +234,8 @@ async def media():
                 return grp.resolve_media(label_image)
 
         if "albumArt" in kwargs:
+            pages.require("chandler_operator")
+
             sound = groups.cues[kwargs["albumArt"]].sound
             if not sound:
                 return ""
@@ -266,7 +296,7 @@ async def media():
 @quart_app.app.route("/chandler/<path:path>")
 async def default(path):
     kwargs = quart.request.args
-    if path in ("webmediadisplay", "WebMediaServer"):
+    if path in ("webmediadisplay",):
         pass
     else:
         try:

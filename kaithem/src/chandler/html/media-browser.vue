@@ -25,7 +25,7 @@ It takes a set of action button slots that get passed "filename"
                     <tr v-for="i in soundsearchresults">
                         <td v-bind:title="'Found in' + i[0]">{{ i[1] }}</td>
                         <td>
-                            <slot :filename="soundfilesdir + i[1]">
+                            <slot :filename="soundfilesdir + i[1]" :relfilename="i[1]">
                             </slot>
 
                         </td>
@@ -49,7 +49,7 @@ It takes a set of action button slots that get passed "filename"
                         <a>..</a>
                     </li>
                     <li v-on:click="setSoundfileDir(i[0])" v-for="i in soundfileslisting[0]">
-                        <a>{{ i[1] || i[0] }}</a>
+                        <a>{{i[0] }}</a>
                     </li>
                 </ul>
 
@@ -61,10 +61,10 @@ It takes a set of action button slots that get passed "filename"
 
                         </tr>
                     </thead>
-                    <tr v-for="i in soundfileslisting[1]">
-                        <td class="w-12rem">{{ i }}</td>
+                    <tr v-for="i of soundfileslisting[1]">
+                        <td class="w-12rem">{{ i[0] }}</td>
                         <td>
-                            <slot :filename="soundfilesdir + i">
+                            <slot :filename="soundfilesdir + i[0]" :relfilename="i[1]">
                             </slot>
                         </td>
                     </tr>

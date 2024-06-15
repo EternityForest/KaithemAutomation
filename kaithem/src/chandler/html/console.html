@@ -93,6 +93,52 @@ ${lists}
         flex-wrap: wrap;
     }
 
+    .preset-button {
+        aspect-ratio: 16/9;
+        overflow: hidden;
+        flex-basis: 8rem;
+        height: auto;
+        flex-grow: 1;
+        max-width: 12rem;
+        padding: 0px;
+        position: relative;
+        z-index: 1001;
+        box-shadow: 4px 5px 3px #00000069;
+        margin: 3px;
+
+
+        &>img {
+            position: absolute;
+            object-fit: cover;
+            width: 100%;
+            height: 100%;
+            margin: auto;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1002;
+
+        }
+
+
+        &>div {
+            width: 100%;
+            height: 100%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-shadow:
+                1px 1px 2px var(--contrasting-bg-color),
+                -1px 1px 2px var(--contrasting-bg-color),
+                -1px -1px 2px var(--contrasting-bg-color),
+                1px -1px 2px var(--contrasting-bg-color);
+            position: absolute;
+            z-index: 1002;
+            background: radial-gradient(circle, rgb(255 255 255 / 20%) 58%, rgb(0 0 0 / 0%) 85%, rgba(0, 0, 0, 0.363) 100%)
+            !important;
+        }
+    }
+
     .break {
         flex-basis: 100%;
         height: 0;
@@ -407,6 +453,33 @@ ${lists}
             </div>
         </section>
 
+
+        <div v-if="selectingImageLabelForPreset" class="card paper flex-col"
+            style="position: fixed; width:90vw; height: 90vh; top:5vh; left:5vw; z-index: 100">
+            <header>Label for {{selectingImageLabelForPreset}}</header>
+            <button @click="selectingImageLabelForPreset=null" class="w-full nogrow">
+                <i class="mdi mdi-close"></i>Close
+            </button>
+
+            <input class="w-full h-2rem nogrow" type="text"
+                @change="updatePreset(selectingImageLabelForPreset,presets[selectingImageLabelForPreset])"
+                v-model="presets[selectingImageLabelForPreset].image_label">
+
+            <div style="background-color: var(--alt-control-bg);">
+                <media-browser :no_edit="no_edit">
+                    <template v-slot="slotProps">
+                        <button
+                            v-if="slotProps.filename.endsWith('.jpg') || slotProps.filename.endsWith('.svg') || slotProps.filename.endsWith('.png') || slotProps.filename.endsWith('.gif') || slotProps.filename.endsWith('.jpeg') || slotProps.filename.endsWith('.avif')"
+                            @click="presets[selectingImageLabelForPreset].image_label=slotProps.relfilename;updatePreset(selectingImageLabelForPreset,presets[selectingImageLabelForPreset])">
+                            Use
+                        </button>
+                    </template>
+                </media-browser>
+
+            </div>
+        </div>
+
+
         <section v-if="showPresets" class="flex-item window paper" style="width: 32em;">
             <h3>Presets<button type="button" v-on:click="showPresets=0">
                     <i class="mdi mdi-close"></i>Close</button>
@@ -430,22 +503,28 @@ ${lists}
                     <dt>
                         <div class="tool-bar">
                             <h4>{{ps[0]}}</h4>
+                            <button type="button" v-on:click="selectingImageLabelForPreset=ps[0];">Image</button>
+
                             <button type="button" v-on:click="deletePreset(ps[0])"><i
                                     class="mdi mdi-delete"></i>Delete</button>
                             <button type="button" v-on:click="renamePreset(ps[0])"><i
                                     class="mdi mdi-pencil"></i>Rename</button>
                         </div>
                     </dt>
-                    <dd style="display: flex; flex-wrap: wrap;">
+                    <dd style="">
+
+                        <img v-if="ps[1].image_label" style="max-height: 8em; max-width: 8em;"
+                            :src="'../WebMediaServer?file='+encodeURIComponent(ps[1].image_label)">
                         <details>
                             <summary>Values</summary>
                             <div class="stacked-form">
-                                <label v-for="val, field of ps[1]">
-                                    {{field}}<input :disabled="no_edit" v-model="ps[1][field]"
-                                        v-on:change="ps[1][field]=$event.target.value.trim();updatePreset(ps[0],ps[1]);">
+                                <label v-for="val, field of ps[1].values">
+                                    {{field}}<input :disabled="no_edit" v-model="ps[1].values[field]"
+                                        v-on:change="ps[1].values[field]=$event.target.value.trim();updatePreset(ps[0],ps[1]);">
                                 </label>
                             </div>
                         </details>
+
                     </dd>
                 </template>
 
@@ -463,35 +542,43 @@ ${lists}
 
 
         <div v-if="selectingPresetFor" class="card paper flex-col"
-            style="position: fixed; width:90vw; height: 90vh; top:5vh; left:5vw; z-index: 100">
+            style="background: var(--alt-control-bg); position: fixed; width:90vw; height: 90vh; top:5vh; left:5vw; z-index: 100">
             <header>Presets for {{selectingPresetFor}}</header>
             <button @click="selectingPresetFor=null" class="w-full nogrow">
                 <i class="mdi mdi-close"></i>Close
             </button>
-            <div class="flex-row nogrow max-h-12rem"
-                style="background: var(--alt-control-bg); align-items:flex-start;align-content:flex-start">
+            <div class="flex-row nogrow max-h-12rem scroll"
+                style="align-items:flex-start;align-content:flex-start">
                 <template v-for="ps of recentPresets.toReversed()">
                     <button
                         v-if="!ps.includes('@') ||ps.endsWith(selectingPresetFor) || ps.endsWith('@' + lookupFixtureType(selectingPresetFor))"
                         @click="setFixturePreset(currentcueid,selectingPresetFor, ps);selectingPresetFor=null"
-                        :disabled="no_edit" style="aspect-ratio: 16/9; flex-basis:8rem;height:auto;flex-grow:0; max-width:12rem;">
-                        {{ps.split('@')[0]}}</button>
+                        :disabled="no_edit" class="preset-button">
 
-                    </template>
+                        <img v-if="presets[ps].image_label"
+                        :src="'../WebMediaServer?file='+encodeURIComponent(presets[ps].image_label)">
+                        <div>{{ps.split('@')[0]}}<div>
+                    </button>
+
+                </template>
 
             </div>
-            <hr>
+
             <div class="tool-bar">
-            <input v-model="presetFilter" placeholder="Search Presets..." />
-            <button @click="presetFilter=''" class="nogrow"><i class="mdi mdi-backspace"></i></button>
-        </div>
+                <input v-model="presetFilter" placeholder="Search Presets..." />
+                <button @click="presetFilter=''" class="nogrow"><i class="mdi mdi-backspace"></i></button>
+            </div>
             <div class="flex-row grow"
                 style="background: var(--alt-control-bg); align-items:flex-start;align-content:flex-start">
                 <button
                     v-for="ps of dictView(presets,[], function(k,v){if((((!k.includes('@')) || k.endsWith(selectingPresetFor) || k.endsWith('@' + lookupFixtureType(selectingPresetFor)) )) && k.includes(presetFilter)){return 1}})"
                     @click="setFixturePreset(currentcueid,selectingPresetFor, ps[0]);selectingPresetFor=null"
-                    :disabled="no_edit"
-                    style="aspect-ratio: 16/9; flex-basis:8rem;height:auto;flex-grow:1; max-width:16rem">{{ps[0].split('@')[0]}}</button>
+                    :disabled="no_edit" class="preset-button">
+                    <img v-if="ps[1].image_label"
+                        :src="'../WebMediaServer?file='+encodeURIComponent(ps[1].image_label)">
+
+                    <div>{{ps[0].split('@')[0]}}</div>
+                </button>
             </div>
 
         </div>
@@ -1027,7 +1114,7 @@ ${lists}
                                             v-on:click="newCueFromSlide(groupname, slotProps.filename)">New(slide)</button>
 
                                         <button
-                                            v-on:click="setCueProperty(currentcueid, 'labelImage', slotProps.filename)"
+                                            v-on:click="setCueProperty(currentcueid, 'labelImage', slotProps.relfilename)"
                                             v-if="slotProps.filename.endsWith('.jpg') || slotProps.filename.endsWith('.svg') || slotProps.filename.endsWith('.png') || slotProps.filename.endsWith('.gif') || slotProps.filename.endsWith('.jpeg') || slotProps.filename.endsWith('.avif')">Set
                                             Label</button>
                                     </template>
@@ -1759,6 +1846,9 @@ ${lists}
     appMethods.showPresetDialog = function (fixture) {
         vueapp.$data.selectingPresetFor = fixture
     }
+
+    appData.selectingImageLabelForPreset = null
+
 
     appData.selectingPresetFor = null
     appData.presetFilter = ''

@@ -234,9 +234,9 @@ appMethods = {
 
         for (i in this.cuevals[sc][fix]) {
             if (i != '__metadata__') {
-                if (selectedPreset[i] != undefined) {
-                    api_link.send(['scv', sc, fix, i, selectedPreset[i]]);
-                    this.cuevals[sc][fix][i].v = selectedPreset[i]
+                if (selectedPreset.values[i] != undefined) {
+                    api_link.send(['scv', sc, fix, i, selectedPreset.values[i]]);
+                    this.cuevals[sc][fix][i].v = selectedPreset.values[i]
                 }
             }
         }
