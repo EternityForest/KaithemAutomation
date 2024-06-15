@@ -463,14 +463,14 @@ ${lists}
 
             <input class="w-full h-2rem nogrow" type="text"
                 @change="updatePreset(selectingImageLabelForPreset,presets[selectingImageLabelForPreset])"
-                v-model="presets[selectingImageLabelForPreset].image_label">
+                v-model="presets[selectingImageLabelForPreset].label_image">
 
             <div style="background-color: var(--alt-control-bg);">
                 <media-browser :no_edit="no_edit">
                     <template v-slot="slotProps">
                         <button
                             v-if="slotProps.filename.endsWith('.jpg') || slotProps.filename.endsWith('.svg') || slotProps.filename.endsWith('.png') || slotProps.filename.endsWith('.gif') || slotProps.filename.endsWith('.jpeg') || slotProps.filename.endsWith('.avif')"
-                            @click="presets[selectingImageLabelForPreset].image_label=slotProps.relfilename;updatePreset(selectingImageLabelForPreset,presets[selectingImageLabelForPreset])">
+                            @click="presets[selectingImageLabelForPreset].label_image=slotProps.relfilename;updatePreset(selectingImageLabelForPreset,presets[selectingImageLabelForPreset])">
                             Use
                         </button>
                     </template>
@@ -515,8 +515,8 @@ ${lists}
                     </dt>
                     <dd style="">
 
-                        <img v-if="ps[1].image_label" style="max-height: 8em; max-width: 8em;"
-                            :src="'../WebMediaServer?file='+encodeURIComponent(ps[1].image_label)">
+                        <img v-if="getPresetImage(ps[0])" style="max-height: 8em; max-width: 8em;"
+                            :src="'../WebMediaServer?file='+encodeURIComponent(getPresetImage(ps[0]))">
                         <details>
                             <summary>Values</summary>
                             <div class="stacked-form">
@@ -555,10 +555,11 @@ ${lists}
                     <button
                         v-if="!ps.includes('@') ||ps.endsWith(selectingPresetFor) || ps.endsWith('@' + lookupFixtureType(selectingPresetFor))"
                         @click="setFixturePreset(currentcueid,selectingPresetFor, ps);selectingPresetFor=null"
-                        :disabled="no_edit" class="preset-button">
+                        :disabled="no_edit" class="preset-button"
+                        >
 
-                        <img v-if="presets[ps].image_label"
-                        :src="'../WebMediaServer?file='+encodeURIComponent(presets[ps].image_label)">
+                        <img v-if="getPresetImage(ps)"
+                        :src="'../WebMediaServer?file='+encodeURIComponent(getPresetImage(ps))">
                         <div>{{ps.split('@')[0]}}<div>
                     </button>
 
@@ -576,8 +577,8 @@ ${lists}
                     v-for="ps of dictView(presets,[], function(k,v){if((((!k.includes('@')) || k.endsWith(selectingPresetFor) || k.endsWith('@' + lookupFixtureType(selectingPresetFor)) )) && k.includes(presetFilter)){return 1}})"
                     @click="setFixturePreset(currentcueid,selectingPresetFor, ps[0]);selectingPresetFor=null"
                     :disabled="no_edit" class="preset-button">
-                    <img v-if="ps[1].image_label"
-                        :src="'../WebMediaServer?file='+encodeURIComponent(ps[1].image_label)">
+                    <img v-if="getPresetImage(ps[0])"
+                        :src="'../WebMediaServer?file='+encodeURIComponent(getPresetImage(ps[0]))">
 
                     <div>{{ps[0].split('@')[0]}}</div>
                 </button>
@@ -1847,6 +1848,20 @@ ${lists}
 
     appMethods.showPresetDialog = function (fixture) {
         vueapp.$data.selectingPresetFor = fixture
+    }
+
+    appMethods.getPresetImage = function (preset) {
+        // Can use generic preset image if specific not available
+        if(vueapp.$data.presets[preset]?.label_image)
+        {
+            return(vueapp.$data.presets[preset]?.label_image)
+        }
+
+        if(vueapp.$data.presets[preset.split('@')[0]]?.label_image)
+        {
+            return(vueapp.$data.presets[preset.split('@')[0]]?.label_image)
+        }
+        return null
     }
 
     appData.selectingImageLabelForPreset = null

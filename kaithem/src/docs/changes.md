@@ -20,6 +20,7 @@ Change Log
 #### Fixed
 
 - :bug: Fix setting media folders
+- :bug: Fix beholder media playback and other things using subfolders of user pages
 
 
 ### 0.84.0b2

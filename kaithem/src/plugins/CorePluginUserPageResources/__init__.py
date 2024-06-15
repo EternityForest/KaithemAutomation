@@ -129,19 +129,15 @@ def lookup(module, args):
     else:
         m = {}
 
-    resourcename = "/".join(resource_path)
-
-    # Since . cannot appear in a resource name, replace it with _
-    resourcename = resourcename.replace(".", "_")
-
-    if resourcename in m:
-        return _pages_by_module_resource[module][resourcename]
-
     if "/".join(resource_path + ("__index__",)) in m:
         return _pages_by_module_resource[module]["/".join(resource_path + ["__index__"])]
     resource_path = list(resource_path)
     while resource_path:
-        resource_path.pop()
+        resourcename = "/".join(resource_path)
+
+        # Since . cannot appear in a resource name, replace it with _
+        resourcename = resourcename.replace(".", "_")
+
         if resourcename in m:
             return _pages_by_module_resource[module][resourcename]
         x = "/".join(resource_path)
@@ -153,6 +149,9 @@ def lookup(module, args):
 
         if "/".join(resource_path + ["__default__"]) in m:
             return m["/".join(resource_path + ["__default__"])]
+
+        resource_path.pop()
+
     return None
 
 
