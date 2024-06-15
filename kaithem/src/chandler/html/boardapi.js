@@ -215,6 +215,7 @@ appMethods = {
         this.recentPresets = this.recentPresets.slice(-8);
         this.recentPresets.push(preset);
 
+        var generic = false
 
         // Use a fixture specific preset if available
         var selectedPreset = this.presets[preset + '@' + fix]
@@ -226,19 +227,40 @@ appMethods = {
 
         if (selectedPreset == undefined) {
             selectedPreset = this.presets[preset]
+            // Could not find fixture or type specific preset.
+            if (preset.indexOf('@') == -1) {
+                generic = true
+            }
         }
 
         if (selectedPreset == undefined) {
             return
         }
 
+        selectedPreset = JSON.parse(JSON.stringify(selectedPreset))
+
+        // if (generic) {
+        //     // If using a generic preset, we want to apply the white
+        //     // balance correction if at all possible.
+        //     var cal_white = this.presets['cal.white@' + fix]
+        //     var cal_white = cal_white || this.presets['cal.white@' + this.lookupFixtureType(fix)]
+        //     if (cal_white) {
+        //         for(i of ['red', 'green', 'blue', 'white']) {
+        //             if (cal_white.values[i] != undefined) {
+        //                 if(selectedPreset.values[i] != undefined) {
+        //                     selectedPreset.values[i] *= (cal_white.values[i] / 255)
+        //                     selectedPreset.values[i] = parseInt(selectedPreset.values[i])
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
+
         for (i in this.cuevals[sc][fix]) {
-            if (i != '__metadata__') {
                 if (selectedPreset.values[i] != undefined) {
                     api_link.send(['scv', sc, fix, i, selectedPreset.values[i]]);
                     this.cuevals[sc][fix][i].v = selectedPreset.values[i]
                 }
-            }
         }
     },
 
@@ -1223,6 +1245,18 @@ appData = {
         }
     },
 
+    'copyPreset': function (p) {
+        var n = prompt("Copy to name?")
+
+        if (n && n.length) {
+            var b = this.presets[p]
+            if (b) {
+                this.presets[n] = JSON.parse(JSON.stringify(b));
+                api_link.send(['preset', n, b]);
+            }
+        }
+    },
+
     'savePreset': function (v, suggestedname) {
         /*Prompt saving data from the cuevals dict as a preset*/
         var v2 = {}
@@ -1236,7 +1270,7 @@ appData = {
 
         if (n && n.length) {
             this.presets[n] = v2;
-            api_link.send(['preset', n, v2]);
+            api_link.send(['preset', n, { values: v2 }]);
 
         }
     },

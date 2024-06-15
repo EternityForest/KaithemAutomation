@@ -7,6 +7,10 @@ Change Log
 
 - :sparkles: Can now set a label image for a cue
 - :sparkles: Presets named foo@fixture are only usable for that fixture or fixture type.
+- :sparkles: Improved preset picker UI
+- :sparkles: Can set images for presets
+- :sparkles: Preset and cue images specified as 16/9
+
 
 
 #### Changed

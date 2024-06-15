@@ -509,6 +509,8 @@ ${lists}
                                     class="mdi mdi-delete"></i>Delete</button>
                             <button type="button" v-on:click="renamePreset(ps[0])"><i
                                     class="mdi mdi-pencil"></i>Rename</button>
+                            <button type="button" v-on:click="copyPreset(ps[0])"><i
+                                        class="mdi mdi-copy"></i>Copy</button>
                         </div>
                     </dt>
                     <dd style="">
@@ -636,7 +638,7 @@ ${lists}
 
                         <tbody>
                             <tr v-for="i in formatCues"
-                                v-bind:class="{'highlight' : selectedCues[groupname]==i[1].name}">
+                                v-bind:class="{'highlight' : selectedCues[groupname]==i[1].name, 'success':cuemeta[editingGroup.cue].name==i[1].name}">
                                 <td class="rowname" data-label="Cue: " style=" user-select: none;"
                                     title="Click the cue name to edit that cue"
                                     v-on:click="selectcue(groupname,i[1].name)">
