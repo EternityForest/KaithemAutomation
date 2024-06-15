@@ -17,9 +17,10 @@
 
     --fg: var(--grey-3);
     --graphical-fg: var(--grey-1);
+    --control-fg: var(--grey-1);
 
-    --concave-item-bg: none;
-    --convex-item-bg: none;
+    --concave-item-bg: var(--control-bg);
+    --convex-item-bg: var(--control-bg);
     --convex-item-active-bg: var(--grey-1);
     --concave-item-box-shadow: none;
 }

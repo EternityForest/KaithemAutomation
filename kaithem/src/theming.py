@@ -52,6 +52,7 @@ nord = Theme("nord", "/static/css/nord.css")
 blast = Theme("blast", "/static/css/blast.css")
 lair = Theme("lair", "/static/css/lair.css")
 steam = Theme("steam", "/static/css/steam.css")
+show_black = Theme("show_black", "/static/css/show_black.css")
 
 
 def getCSSTheme():
