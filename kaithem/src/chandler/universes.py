@@ -225,7 +225,7 @@ class Universe:
 
         # If local fading is disabled, the rendering tries to compress everything down to a set of fade commands.
         # This is the time at which the current fade is supposed to end.
-        self.fadeEndTime = 0
+        self.fadeEndTime = 0.0
 
         # If False, lighting values don't fade in, they just jump straight to the target,
         # For things like smart bulbs where we want to use the remote fade instead.
@@ -244,7 +244,7 @@ class Universe:
         if not hasattr(self, "ok"):
             self.ok = True
 
-        # name:weakref(fixture) for every ficture that is mapped to this universe
+        # name:weakref(fixture) for every fixture that is mapped to this universe
         self.fixtures = {}
 
         # Represents the telemetry data back from the physical device of this universe.
@@ -315,7 +315,7 @@ class Universe:
         # and start from there without rerendering lower layers.
 
         # The format is values,alphas
-        self.prerendered_data = ([0.0] * count, [0.0] * count)
+        self.prerendered_data = (numpy.array([0.0] * count, dtype="f4"), numpy.array([0.0] * count, dtype="f4"))
 
         # Maybe there might be an iteration error. But it's just a GUI convienence that
         # A simple refresh solves, so ignore it.
@@ -701,25 +701,6 @@ class ArtNetSender:
         self.running = 1
         # The last telemetry we didn't ignore
         self.lastTelemetry = 0
-        if self.scheme == "pavillion":
-
-            def onBatteryStatus(v):
-                self.universe().telemetry["battery"] = v
-                if self.lastTelemetry < (time.time() - 10):
-                    self.universe().statusChanged = {}
-
-            def onConnectionStatus(v):
-                self.universe().telemetry["rssi"] = v
-                if self.lastTelemetry < (time.time() - 10):
-                    self.universe().statusChanged = {}
-
-            self.connectionTag = kaithem.tags["/devices/" + addr + ".rssi"]
-            self._oncs = onConnectionStatus
-            self.connectionTag.subscribe(onConnectionStatus)
-
-            self.batteryTag = kaithem.tags["/devices/" + addr + ".battery"]
-            self._onb = onBatteryStatus
-            self.batteryTag.subscribe(onBatteryStatus)
 
         def run():
             import time
@@ -741,16 +722,8 @@ class ArtNetSender:
                         if self.data is None:
                             print("Stopping ArtNet Sender for " + self.addr)
                             return
-                        # Here we have the option to use a Pavillion device
-                        if self.scheme == "pavillion":
-                            try:
-                                addr = kaithem.devices[self.addr].data["address"]
-                            except Exception:
-                                time.sleep(3)
-                                continue
-                        else:
-                            addr = self.addr
 
+                        addr = self.addr
                         self.frame.clear()
                     try:
                         self.sock.sendto(self.data, (addr, self.port))
@@ -808,7 +781,7 @@ class ArtNetSender:
 
 class EnttecOpenUniverse(Universe):
     # Thanks to https://github.com/c0z3n/pySimpleDMX
-    # I didn't actually use the code, but it was a very useful resouurce
+    # I didn't actually use the code, but it was a very useful resource
     # For protocol documentation.
     def __init__(self, name, channels=128, portname="", framerate=44.0, number=0):
         self.ok = False

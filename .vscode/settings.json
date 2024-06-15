@@ -42,6 +42,17 @@
             "**/.isolated_venv/**"
             ],
             "python.testing.pytestEnabled": true,
-            "python.testing.cwd": ""
+            "python.testing.cwd": "",
+            "cSpell.allowCompoundWords": true,
+            "cSpell.words": [
+                "bytesio",
+                "damerau",
+                "dtype",
+                "kaithem",
+                "kaithemobj",
+                "Mqtt",
+                "recalc",
+                "rtmidi"
+            ]
 
 }

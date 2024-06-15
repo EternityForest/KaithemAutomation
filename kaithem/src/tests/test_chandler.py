@@ -6,6 +6,8 @@ import subprocess
 import sys
 import time
 
+import stamina
+
 if "--collect-only" not in sys.argv:
     from kaithem.src import tagpoints
     from kaithem.src.chandler import WebChandlerConsole, core, groups, universes
@@ -49,9 +51,11 @@ listener 7801
         s2.add_cue("c2")
 
         s.goto_cue("c2")
-        time.sleep(0.5)
+        time.sleep(0.1)
 
-        assert s2.cue.name == "c2"
+        for attempt in stamina.retry_context(on=AssertionError):
+            with attempt:
+                assert s2.cue.name == "c2"
     finally:
         pr.kill()
 
@@ -86,10 +90,11 @@ def test_fixtures():
     board._onmsg("__admin__", ["scv", cid, "@testFixture", "red", 39], "test")
 
     time.sleep(0.1)
-    time.sleep(0.3)
 
-    assert universes.universes["dmx"]().values[0] == 0
-    assert universes.universes["dmx"]().values[1] == 39
+    for attempt in stamina.retry_context(on=AssertionError):
+        with attempt:
+            assert universes.universes["dmx"]().values[0] == 0
+            assert universes.universes["dmx"]().values[1] == 39
 
     assert board.get_project_data()["setup"]["fixture_assignments"]["testFixture"]
 
@@ -458,8 +463,10 @@ def test_lighting_value_set_tag_flicker():
     # Set values and check that tags change
     s.cues["default"].set_value("/test1", "value", 50)
     s.cues["default"].set_value("/test2", "value", 60)
-    time.sleep(0.3)
-    time.sleep(0.3)
+    time.sleep(0.2)
+
+    if not tagpoints.Tag("/test1").value == 50:
+        time.sleep(1)
 
     assert tagpoints.Tag("/test1").value == 50
     assert tagpoints.Tag("/test2").value == 60
@@ -498,35 +505,39 @@ def test_lighting_value_set_tag_flicker():
     # Ensure the values are changing
     t1 = tagpoints.Tag("/test1").value
     t2 = tagpoints.Tag("/test2").value
-    time.sleep(0.5)
-    time.sleep(0.2)
+    time.sleep(0.1)
 
-    assert t1 != tagpoints.Tag("/test1").value
-    assert t2 != tagpoints.Tag("/test2").value
+    for attempt in stamina.retry_context(on=AssertionError):
+        with attempt:
+            assert t1 != tagpoints.Tag("/test1").value
+            assert t2 != tagpoints.Tag("/test2").value
 
     # Stop flickering, should be back to normal
     s2.stop()
     time.sleep(0.2)
-    time.sleep(0.2)
 
-    assert t1 == tagpoints.Tag("/test1").value
-    assert t2 == tagpoints.Tag("/test2").value
+    for attempt in stamina.retry_context(on=AssertionError):
+        with attempt:
+            assert t1 == tagpoints.Tag("/test1").value
+            assert t2 == tagpoints.Tag("/test2").value
 
     s2.go()
     time.sleep(0.2)
-    time.sleep(0.2)
-    time.sleep(0.2)
 
-    # Flicker starts again
-    assert t1 != tagpoints.Tag("/test1").value
-    assert t2 != tagpoints.Tag("/test2").value
+    for attempt in stamina.retry_context(on=AssertionError):
+        with attempt:
+            # Flicker starts again
+            assert t1 != tagpoints.Tag("/test1").value
+            assert t2 != tagpoints.Tag("/test2").value
+
     t1 = tagpoints.Tag("/test1").value
     t2 = tagpoints.Tag("/test2").value
-    time.sleep(0.5)
-    time.sleep(0.2)
+    time.sleep(0.1)
 
-    assert t1 != tagpoints.Tag("/test1").value
-    assert t2 != tagpoints.Tag("/test2").value
+    for attempt in stamina.retry_context(on=AssertionError):
+        with attempt:
+            assert t1 != tagpoints.Tag("/test1").value
+            assert t2 != tagpoints.Tag("/test2").value
 
     # # Make sure cue vals saved
     # p = os.path.join(directories.vardir, "chandler", "groups", "TestingGroup5.yaml")

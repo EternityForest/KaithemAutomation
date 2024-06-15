@@ -49,6 +49,9 @@ class BlendMode:
                 if i not in self.blend_args:
                     self.blend_args[i] = self.__class__.parameters[i][3]
 
+    def frame(self, u, old, values, alphas, alpha):
+        return old
+
 
 class HardcodedBlendMode(BlendMode):
     # True of blend mode is dynamic
@@ -243,7 +246,7 @@ class vary_blendmode_np(BlendMode):
             interval = self.blend_args["interval"]
             rnd = self.blend_args["rinterval"]
             avg = self.blend_args["mode"]
-            nv = numpy.random.triangular(0, max(min(1, 1 - avg), 0), 1, values.shape)
+            nv = numpy.random.default_rng().triangular(0, max(min(1, 1 - avg), 0), 1, values.shape)
             self.vals[u] = 1 - (nv * (values / 255.0))
             self.ntt = time.time() + random.triangular(interval - rnd, interval + rnd, interval)
 

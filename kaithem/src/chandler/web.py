@@ -197,11 +197,11 @@ def config(board: str):
     )
 
 
-@quart_app.app.route("/chandler/config/opzimport/<board>")
+@quart_app.app.route("/chandler/config/opz_import/<board>")
 def opz_import(board: str):
     pages.require("system_admin")
     link = core.boards[board].link
-    return get_template("UseOPZDMX.html").render(
+    return get_template("opz_import.html").render(
         boardname=board,
         api_link=link,
     )

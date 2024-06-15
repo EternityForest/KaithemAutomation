@@ -101,7 +101,7 @@ class GroupLightingManager:
         # Just using this to get rid of prev value
         self._blend = blendmodes.HardcodedBlendMode(self)
 
-    def update_state_from_cue_vals(self, cuex: Cue, clearBefore=False):
+    def update_state_from_cue_vals(self, source_cue: Cue, clearBefore=False):
         """Apply everything from the cue to the fade canvas"""
         # Loop over universes in the cue
         if clearBefore:
@@ -109,7 +109,7 @@ class GroupLightingManager:
             for i in self.state_alphas:
                 self.state_alphas[i] = numpy.zeros(self.state_alphas[i].shape)
 
-        for i in cuex.values:
+        for i in source_cue.values:
             universe = universes.mapUniverse(i)
             if not universe:
                 continue
@@ -128,29 +128,29 @@ class GroupLightingManager:
             if fixture:
                 chCount = len(fixture.channels)
 
-            if "__length__" in cuex.values[i]:
-                s = cuex.values[i]["__length__"]
+            if "__length__" in source_cue.values[i]:
+                s = source_cue.values[i]["__length__"]
                 assert s
                 repeats = int(self.group.evalExprFloat(s))
             else:
                 repeats = 1
 
-            if "__spacing__" in cuex.values[i]:
-                s = cuex.values[i]["__spacing__"]
+            if "__spacing__" in source_cue.values[i]:
+                s = source_cue.values[i]["__spacing__"]
                 assert s
                 chCount = int(self.group.evalExprFloat(s))
 
-            uobj = universes.getUniverse(universe)
+            universe_object = universes.getUniverse(universe)
 
             if universe.startswith("/"):
                 self.on_demand_universes[i] = universes.get_on_demand_universe(universe)
-                uobj = self.on_demand_universes[i]
+                universe_object = self.on_demand_universes[i]
 
-            if not uobj:
+            if not universe_object:
                 continue
 
             if universe not in self.state_vals:
-                size = len(uobj.values)
+                size = len(universe_object.values)
                 self.state_vals[universe] = numpy.array([0.0] * size, dtype="f4")
                 self.state_alphas[universe] = numpy.array([0.0] * size, dtype="f4")
 
@@ -159,18 +159,18 @@ class GroupLightingManager:
             # TODO stronger type
             dest: dict[str | int, Any] = {}
 
-            for j in cuex.values[i]:
+            for j in source_cue.values[i]:
                 if isinstance(j, str) and j.startswith("__dest__."):
-                    dest[j[9:]] = self.group.evalExpr(cuex.values[i][j] if cuex.values[i][j] is not None else 0)
+                    dest[j[9:]] = self.group.evalExpr(source_cue.values[i][j] if source_cue.values[i][j] is not None else 0)
 
             for idx in range(repeats):
-                for j in cuex.values[i]:
+                for j in source_cue.values[i]:
                     if isinstance(j, str) and j.startswith("__"):
                         continue
 
-                    cuev = cuex.values[i][j]
+                    cue_values = source_cue.values[i][j]
 
-                    evaled = self.group.evalExpr(cuev if cuev is not None else 0)
+                    evaled = self.group.evalExpr(cue_values if cue_values is not None else 0)
                     # This should always be a float
                     evaled = float(evaled)
 
@@ -184,16 +184,22 @@ class GroupLightingManager:
                     if x:
                         universe, channel = x[0], x[1]
                         try:
-                            self.state_alphas[universe][channel + (idx * chCount)] = 1.0 if cuev is not None else 0
+                            self.state_alphas[universe][channel + (idx * chCount)] = 1.0 if cue_values is not None else 0
                             self.state_vals[universe][channel + (idx * chCount)] = evaled
                         except Exception:
                             print("err", traceback.format_exc())
                             self.group.event(
                                 "script.error",
-                                self.group.name + " cue " + cuex.name + " Val " + str((universe, channel)) + "\n" + traceback.format_exc(),
+                                self.group.name
+                                + " cue "
+                                + source_cue.name
+                                + " Val "
+                                + str((universe, channel))
+                                + "\n"
+                                + traceback.format_exc(),
                             )
 
-                    if isinstance(cuev, str) and cuev.startswith("="):
+                    if isinstance(cue_values, str) and cue_values.startswith("="):
                         self.rerenderOnVarChange = True
 
     def paint_canvas(self, fade_position: float = 0.0):
@@ -251,7 +257,7 @@ class GroupLightingManager:
         self.fade_in_completed = True
         self.should_rerender_onto_universes = True
 
-    def apply_backtracked_values(self, cobj: Cue) -> dict[str, Any]:
+    def apply_backtracked_values(self, destination_cue: Cue) -> dict[str, Any]:
         # When jumping to a cue that isn't directly the next one, apply and "parent" cues.
         # We go backwards until we find a cue that has no parent. A cue has a parent if and only if it has either
         # an explicit parent or the previous cue in the numbered list either has the default next cue or explicitly
@@ -261,20 +267,20 @@ class GroupLightingManager:
         # the script context that should be set when entering
         # this cue, but that is nit supported yet
 
-        cue = cobj.name
+        intermediate_cue = destination_cue.name
 
         vars: dict[str, Any] = {}
 
         if (
             self.group.backtrack
             # Track whenever the cue we are going to is not the next one in the numbering sequence
-            and not cue == (self.group.getDefaultNext())
-            and cobj.track
+            and not intermediate_cue == (self.group.getDefaultNext())
+            and destination_cue.track
         ):
             to_apply = []
             seen = {}
             safety = 10000
-            x = self.group.getParent(cue)
+            x = self.group.getParent(intermediate_cue)
             while x:
                 # No l00ps
                 if x in seen:
@@ -292,8 +298,8 @@ class GroupLightingManager:
                     break
 
             # Apply all the lighting changes we would have seen if we had gone through the list one at a time.
-            for cuex in reversed(to_apply):
-                self.update_state_from_cue_vals(cuex)
+            for intermediate_cue in reversed(to_apply):
+                self.update_state_from_cue_vals(intermediate_cue)
 
                 # cuevars = self.cues[cue].values.get("__variables__", {})
                 # for i in cuevars:
@@ -350,11 +356,13 @@ def _composite(background, values, alphas, alpha):
     return background
 
 
-def composite_rendered_layer_onto_universe(universe, uvalues, group, uobj):
+def composite_rendered_layer_onto_universe(universe: str, group: Group, universe_object: universes.Universe):
     "May happen in place, or not, but always returns the new version"
 
+    universe_values = universe_object.values
+
     if universe not in group.lighting_manager.canvas.v2:
-        return uvalues
+        return universe_values
 
     vals = group.lighting_manager.canvas.v2[universe]
     alphas = group.lighting_manager.canvas.a2[universe]
@@ -363,49 +371,49 @@ def composite_rendered_layer_onto_universe(universe, uvalues, group, uobj):
     # if it handles fading in a different way.
     # This will look really bad for complex things, to try and reduce them to a series of fades,
     # but we just do the best we can, and assume there's mostly only 1 group at a time affecting things
-    uobj.fadeEndTime = max(uobj.fadeEndTime, group.cue.fade_in + group.entered_cue)
+    universe_object.fadeEndTime = max(universe_object.fadeEndTime, group.cue.fade_in + group.entered_cue)
 
-    ualphas = uobj.alphas
+    universe_alphas = universe_object.alphas
 
     bm = group.lighting_manager.blend
 
     if bm == "normal":
         # todo: is it bad to multiply by bool?
-        unsetVals = ualphas == 0.0
-        fade = numpy.maximum(group.alpha, unsetVals & uobj.hueBlendMask)
+        unsetVals = universe_alphas == 0.0
+        fade = numpy.maximum(group.alpha, unsetVals & universe_object.hueBlendMask)
 
-        uvalues = _composite(uvalues, vals, alphas, fade)
-        # Essetially calculate remaining light percent, then multiply layers and convert back to alpha
-        ualphas = 1 - ((1 - (alphas * fade)) * (1 - (ualphas)))
+        universe_values = _composite(universe_values, vals, alphas, fade)
+        # Essentially calculate remaining light percent, then multiply layers and convert back to alpha
+        universe_alphas = 1 - ((1 - (alphas * fade)) * (1 - (universe_alphas)))
 
     elif bm == "HTP":
-        uvalues = numpy.maximum(uvalues, vals * (alphas * group.alpha))
-        ualphas = (alphas * group.alpha) > 0
+        universe_values = numpy.maximum(universe_values, vals * (alphas * group.alpha))
+        universe_alphas = (alphas * group.alpha) > 0
 
     elif bm == "inhibit":
-        uvalues = numpy.minimum(uvalues, vals * (alphas * group.alpha))
-        ualphas = (alphas * group.alpha) > 0
+        universe_values = numpy.minimum(universe_values, vals * (alphas * group.alpha))
+        universe_alphas = (alphas * group.alpha) > 0
 
     elif bm == "gel" or bm == "multiply":
         if group.alpha:
             # precompute constants
             c = 255 / group.alpha
-            uvalues = (uvalues * (1 - alphas * group.alpha)) + (uvalues * vals) / c
+            universe_values = (universe_values * (1 - alphas * group.alpha)) + (universe_values * vals) / c
 
             # COMPLETELY incorrect, but we don't use alpha for that much, and the real math
-            # Is compliccated. #TODO
-            ualphas = (alphas * group.alpha) > 0
+            # Is complicated. #TODO
+            universe_alphas = (alphas * group.alpha) > 0
 
     elif group.lighting_manager._blend:
         try:
-            uvalues = group.lighting_manager._blend.frame(universe, uvalues, vals, alphas, group.alpha)
+            universe_values = group.lighting_manager._blend.frame(universe, universe_values, vals, alphas, group.alpha)
             # Also incorrect-ish, but treating modified vals as fully opaque is good enough.
-            ualphas = (alphas * group.alpha) > 0
+            universe_alphas = (alphas * group.alpha) > 0
         except Exception:
             print("Error in blend function")
             print(traceback.format_exc())
-    uobj.alphas = ualphas
-    return uvalues
+    universe_object.alphas = universe_alphas
+    return universe_values
 
 
 def pre_render(board: ChandlerConsole, universes: dict[str, universes.Universe]):
@@ -486,12 +494,12 @@ def composite_layers_from_board(board: ChandlerConsole, t=None, u=None):
             # If this is above the prerendered stuff we try to avoid doing every frame
             if (i.priority, i.started) > universeObject.top_layer:
                 # If this layer we are about to render was found to be the highest layer that likely won't need rerendering,
-                # Save the state just befor we apply that layer.
+                # Save the state just before we apply that layer.
                 if (universeObject.save_before_layer == (i.priority, i.started)) and not ((i.priority, i.started) == (0, 0)):
                     universeObject.save_prerendered(universeObject.top_layer[0], universeObject.top_layer[1])
 
                 changedUniverses[u] = (i.priority, i.started)
-                universeObject.values = composite_rendered_layer_onto_universe(u, universeObject.values, i, universeObject)
+                universeObject.values = composite_rendered_layer_onto_universe(u, i, universeObject)
                 universeObject.top_layer = (i.priority, i.started)
 
                 # If this is the first nonstatic layer, meaning it's render function requested a rerender next frame
@@ -507,7 +515,7 @@ def composite_layers_from_board(board: ChandlerConsole, t=None, u=None):
 
 
 def do_output(changedUniverses, universesSnapshot):
-    """Trigger all universes to actually ouptu the frames.
+    """Trigger all universes to actually output the frames.
     Need a snapshot list of universes because getting
     it is expensive according to profiler
     """

@@ -72,7 +72,7 @@ def add_context_commands(context_group):
         newcause = "script.0"
         if kaithem.chandlerscript.context_info.event[0] in ("cue.enter", "cue.exit"):
             cause = kaithem.chandlerscript.context_info.event[1][1]
-            # Nast hack, but i don't thing we need more layers and parsing might be slower.
+            # Nasty hack, but i don't thing we need more layers and parsing might be slower.
             if cause == "script.0":
                 newcause = "script.1"
 

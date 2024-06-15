@@ -26,7 +26,7 @@ class MediaLinkManager:
         self.allowed_remote_media_url: str | None = None
 
         class APIWidget(widgets.APIWidget):
-            # Ignore badly named s param because it need to not conflic with outer self
+            # Ignore badly named s param because it need to not conflict with outer self
             def on_new_subscriber(s, user, cid, **kw):  # type: ignore
                 self.send_all_media_link_info()
 

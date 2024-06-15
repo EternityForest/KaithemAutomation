@@ -574,7 +574,7 @@ ${lists}
                 <input v-model="presetFilter" placeholder="Search Presets..." />
                 <button @click="presetFilter=''" class="nogrow"><i class="mdi mdi-backspace"></i></button>
             </div>
-            <div class="flex-row grow"
+            <div class="flex-row grow scroll"
                 style="background: var(--alt-control-bg); align-items:flex-start;align-content:flex-start">
                 <button
                     v-for="ps of dictView(presets,[], function(k,v){if((((!k.includes('@')) || k.endsWith(selectingPresetFor) || k.endsWith('@' + lookupFixtureType(selectingPresetFor)) )) && k.includes(presetFilter)){return 1}})"

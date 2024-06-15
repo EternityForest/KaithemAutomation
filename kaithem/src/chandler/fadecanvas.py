@@ -65,7 +65,7 @@ class FadeCanvas:
                 self.v2[i] = makeBlankArray(size)
                 self.a2[i] = makeBlankArray(size)
 
-            # Some universes can disable local fading, like smart bulbs wehere we have remote fading.
+            # Some universes can disable local fading, like smart bulbs where we have remote fading.
             # And we would rather use that. Of course, the disadvantage is we can't properly handle
             # Multiple things fading all at once.
             if not obj.localFading:

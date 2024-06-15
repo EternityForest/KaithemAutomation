@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Any
 
 import structlog
 import textdistance
+from icemedia import sound_player
 from tinytag import TinyTag
 
 from ..kaithemobj import kaithem
@@ -21,7 +22,7 @@ if TYPE_CHECKING:
     from . import ChandlerConsole
 
 # when the last time we logged an error, so we can ratelimit
-lastSysloggedError = 0
+last_logged_error = 0
 
 
 def is_img_file(path: str):
@@ -52,10 +53,10 @@ def get_audio_duration(path: str) -> float | None:
 
 def rl_log_exc(m: str):
     print(m)
-    global lastSysloggedError
-    if lastSysloggedError < time.monotonic() - 5 * 60:
+    global last_logged_error
+    if last_logged_error < time.monotonic() - 5 * 60:
         logging.exception(m)
-    lastSysloggedError = time.monotonic()
+    last_logged_error = time.monotonic()
 
 
 lock = threading.RLock()
@@ -65,7 +66,7 @@ saveLocation = os.path.join(kaithem.misc.vardir, "chandler")
 
 
 # Shared info that other modules use, it's here to avoid circular dependencies
-# Store the fictures info
+# Store the fixtures info
 
 
 fixtureschanged = {}
@@ -88,8 +89,12 @@ boards: dict[str, ChandlerConsole.ChandlerConsole] = {}
 
 
 def iter_boards():
-    for i in boards:
-        yield boards[i]
+    try:
+        for i in boards:
+            yield boards[i]
+    except RuntimeError:
+        # TODO should we actually handle this?
+        pass
 
 
 def add_data_pusher_to_all_boards(func: Callable[[console_abc.Console_ABC], Any]):
@@ -139,7 +144,7 @@ def resolve_sound(sound: str, extra_folders: list[str] | None = None) -> str:
             if os.path.isfile(os.path.join(i, sound)):
                 sound = os.path.join(i, sound)
     if not sound.startswith("/"):
-        sound = kaithem.sound.resolve_sound(sound)
+        sound = sound_player.resolve_sound(sound)
     return sound
 
 
@@ -184,7 +189,7 @@ def resolve_sound_fuzzy(sound: str, extra_folders: list[str] | None = None) -> s
                             sound = os.path.join(dirpath, j)
 
     if not sound.startswith("/"):
-        sound = kaithem.sound.resolve_sound(sound)
+        sound = sound_player.resolve_sound(sound)
     return sound
 
 
