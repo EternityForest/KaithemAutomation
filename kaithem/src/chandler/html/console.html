@@ -46,7 +46,7 @@ ${lists}
         border-width: 2px;
         border-color: rgba(0, 0, 0, 0.1);
         margin: 3px;
-        min-width: 13.5em;
+        min-width: 8em;
         min-height: 4em;
     }
 
@@ -68,15 +68,18 @@ ${lists}
         border-color: grey;
         margin: 3px;
         width: 95%;
-        min-width: 16em;
+        min-width: 9em;
         flex-basis: fit-content;
+        max-width: max-content;
+        flex-grow: 2
     }
 
     article.fixture {
         margin: 3px;
-        max-width: 32em;
+        max-width: 16em;
         flex-basis: min-content;
-        min-width: 16em;
+        min-width: 9em;
+        flex-grow: 1;
     }
 
     .indicator {
@@ -767,7 +770,7 @@ ${lists}
                     Any
                     changes made here may be overwritten by the code at any time.</span>
 
-                <details open class="undecorated">
+                <details open class="undecorated nopadding nomargin">
                     <summary>Cue Channel Values</summary>
                     <div class="tool-bar">
                         <button type="button" v-bind:class="{highlight:grouptab=='cue'}" v-on:click="grouptab='cue'"><i
@@ -776,7 +779,7 @@ ${lists}
                             v-on:click="grouptab='channels'"><i class="mdi mdi-list-box-outline"></i>Channels</button>
                     </div>
 
-                    <div style="overflow: auto; max-height:30em;" class="fadersbox">
+                    <div  class="fadersbox flex-row nopadding" style="max-width: 100%">
                         <template v-for="(h,uname) in cuevals[currentcueid]">
                             <article class="universe card flex-col gaps" v-if="uname[0]!='@'">
                                 <header>
@@ -797,8 +800,9 @@ ${lists}
 
                             <article class="fixture card flex-col gaps noselect" v-if="fname[0]=='@'">
                                 <header>
+                                    <h4 :title="lookupFixtureType(fname)">{{fname}}</h4>
+
                                     <div class="tool-bar">
-                                        <h4 :title="lookupFixtureType(fname)">{{fname}}</h4>
                                         <button type="button" @click="showPresetDialog(fname)">Presets</button>
 
                                         <select :disabled="no_edit" class="w-4rem" style="flex-basis: 2rem;"
