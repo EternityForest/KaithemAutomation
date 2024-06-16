@@ -165,10 +165,14 @@ ${lists}
                         <tr>
                             <th>Universe</th>
                             <th>Status</th>
+                            <th>Action</th>
+
                         </tr>
                         <tr v-for="(v,i) in universes">
                             <td>{{i}}</td>
                             <td v-bind:class="{'success':v.ok, 'danger':!v.ok}">{{v.status}}</td>
+
+                            <td><a class="button" :href="'/chandler/universe_info/'+i">Values</a></td>
                         </tr>
                     </table>
                 </div>

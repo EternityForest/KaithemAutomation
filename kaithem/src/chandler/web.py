@@ -11,7 +11,7 @@ from kaithem.src import modules_state, quart_app, tagpoints
 
 from .. import directories, pages
 from ..kaithemobj import kaithem
-from . import blendmodes, core, groups
+from . import blendmodes, core, groups, universes
 
 _Lookup = TemplateLookup(
     directories=[
@@ -100,6 +100,15 @@ def scriptheader(v):
 #     kwargs = quart.request.args
 #     r=m3u_io.get_m3u(module.board.groupmemory[kwargs['id']] ,kwargs['rel'])
 #     return quart.Response(r, mimetype="text/yaml",  headers={"Content-Disposition": "attachment; filename="+kwargs['name']+".m3u"})
+
+
+@quart_app.app.route("/chandler/universe_info/<universe>")
+def debug_universe_values(universe):
+    pages.require("chandler_operator")
+    u = universes.universes[universe]
+    if u:
+        return get_template("universe_status.html").render(universe=u)
+    return "Universe not found"
 
 
 @quart_app.app.route("/chandler/quickuploadlabel/<board>")

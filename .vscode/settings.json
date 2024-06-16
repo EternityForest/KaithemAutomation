@@ -45,10 +45,13 @@
             "python.testing.cwd": "",
             "cSpell.allowCompoundWords": true,
             "cSpell.words": [
+                "astype",
                 "bytesio",
                 "currentcueid",
                 "damerau",
+                "DGRAM",
                 "dtype",
+                "enttec",
                 "Fadein",
                 "goto",
                 "hfader",
@@ -57,8 +60,10 @@
                 "mqtt",
                 "Mqtt",
                 "recalc",
+                "REUSEADDR",
                 "rtmidi",
                 "testid",
+                "tobytes",
                 "Vals",
                 "vueapp"
             ]

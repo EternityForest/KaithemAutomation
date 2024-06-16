@@ -276,7 +276,7 @@ class Universe:
         self.fine_channels: dict[int, int] = {}
 
         # Map fixed channel numbers to values.
-        # We implemet that here so they are fixed no matter what the groups and blend modes say
+        # We implemnet that here so they are fixed no matter what the groups and blend modes say
         self.fixed_channels: dict[int, float] = {}
 
         # Used for the caching. It's the layer we want to save as the background state before we apply.
@@ -320,7 +320,7 @@ class Universe:
         # The format is values,alphas
         self.prerendered_data = (numpy.array([0.0] * count, dtype="f4"), numpy.array([0.0] * count, dtype="f4"))
 
-        # Maybe there might be an iteration error. But it's just a GUI convienence that
+        # Maybe there might be an iteration error. But it's just a GUI convenience that
         # A simple refresh solves, so ignore it.
         try:
             for i in core.iter_boards():
@@ -362,7 +362,7 @@ class Universe:
         else:
             self.error_alert.trip(message=str(s))
 
-        # avoid pushing unneded statuses
+        # avoid pushing unnecessary statuses
         if (self.status == s) and (self.ok == ok):
             return
         self.status = s
@@ -460,7 +460,7 @@ def rawmessage(data):
 
 class EnttecUniverse(Universe):
     # Thanks to https://github.com/c0z3n/pySimpleDMX
-    # I didn't actually use the code, but it was a very useful resouurce
+    # I didn't actually use the code, but it was a very useful resource
     # For protocol documentation.
     def __init__(
         self,
@@ -566,7 +566,7 @@ class DMXSender:
                 pass
             self.port = serial.Serial(p, 57600, timeout=1.0, write_timeout=1.0)
 
-            # This is a flush to try to re-sync recievers that don't have any kind of time out detection
+            # This is a flush to try to re-sync receivers that don't have any kind of time out detection
             # We do this by sending a frame where each value is the packet end code,
             # Hoping that it lines up with the end of whatever unfinished data we don't know about.
             self.setStatus("Found port, writing sync data", True)
@@ -984,7 +984,7 @@ def discoverColorTagDevices():
 
     u = {}
 
-    # Devices may have "subdevices" represented by tag heirarchy, like:
+    # Devices may have "subdevices" represented by tag hierarchy, like:
     # /devices/devname/subdevice.color
 
     def handleSubdevice(dev, sd, c, ft):
@@ -1222,6 +1222,9 @@ def mapChannel(u: str, c: str | int) -> tuple[str, int] | None:
         return None
     x = f.assignment
     if not x:
+        return
+
+    if c not in f.nameToOffset:
         return
 
     # Index advance @fixture[5] means assume @fixture is the first of 5 identical fixtures and you want #5
