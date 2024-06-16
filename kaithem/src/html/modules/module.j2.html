@@ -1,5 +1,6 @@
 {% extends "pagetemplate.j2.html" %}
 {% set time = imp0rt( 'time' ) %}
+{% set webapi = imp0rt( 'kaithem.api.web' ) %}
 
 {% block body %}
 <style>
@@ -76,6 +77,11 @@
                     class="mdi mdi-{{modules.additionalTypes[i].mdi_icon}}"></i>{{ modules.additionalTypes[i].title or i.capitalize()| escape }}</a>
             {% endif %}
             {% endfor %}
+
+            {% for i in webapi._module_plugin_links %}
+            <a class="button" href="{{ i[1] }}?module={{ url(name) }}&dir={{ url('/'.join(path) ) }}">{{ i[0] }}</a>
+            {% endfor %}
+
             <form action="/modules/module/{{url(name)}}/scanfiles" method="POST">
                 <button type="submit" title="Scan any manually added files in __filedata__">Rescan Files</button>
             </form>
@@ -135,6 +141,12 @@
                     <p>
                         {{ i[0] | escape }}
                     </p>
+
+                    {% for j in webapi._file_resource_links %}
+                    {% if j(name,  i[1]) %}
+                    <a class="button" href="{{j(name,  i[1])[1] }}">{{ j(name,  i[1])[0] }}</a>
+                    {% endif %}
+                    {% endfor %}
 
                     <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i[1]) }}">
                         <i class="mdi mdi-delete"></i>Delete</a>

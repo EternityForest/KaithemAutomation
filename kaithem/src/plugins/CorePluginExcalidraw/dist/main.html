@@ -16,10 +16,108 @@
 
 <body>
     <div class="container">
-        <h1>Excalidraw Embed Example</h1>
+        <h1 id="title">placeholder</h1>
         <div id="app"></div>
     </div>
     <script>
+        const queryString = window.location.search;
+        const urlParams = new URLSearchParams(queryString);
+        document.getElementById("title").innerHTML = 'Editing ' + urlParams.get('resource');
+        var excalidrawAPI, setExcalidrawAPI;
+
+        function appStateDefault() {
+            return {
+                currentItemStrokeColor: '#000000',
+                currentItemStrokeStyle: 'solid',
+                currentItemStrokeWidth: 1,
+                currentItemBackgroundColor: 'transparent',
+                currentItemFillStyle: 'solid',
+                currentItemFontFamily: 1,
+                currentItemFontSize: 20,
+                currentItemTextAlign: 'left',
+                currentItemRoughness: 0,         //Sloppiness
+                currentItemRoundness: 'sharp',   //Edges
+                currentItemOpacity: 100,
+                currentItemEndArrowhead: 'triangle',
+                currentChartType: 'line'
+            };
+        }
+
+        function appStateOpt() {
+            return {
+                exportBackground: true,
+                viewBackgroundColor: '#fff',
+                exportWithDarkMode: false,
+                exportEmbedScene: true,
+            };
+        };
+
+        function post(url, dat, cb) {
+            let data = new FormData();
+            for (var k in dat) { data.append(k, dat[k]) };
+
+            let head = new Headers();
+            head.append('Access-Control-Allow-Origin', '*')
+
+            let options = { method: 'post', headers: head, mode: 'cors', body: data };
+            fetch(url, options)
+                .then(e => e.text())
+                .then(text => {
+                    let s;
+                    try { s = JSON.parse(text) }
+                    catch (err) { s = '' }
+                    if (cb) cb(s);
+                });
+        }
+
+        function OptEXPORT(w = 0, h = 0, s = 1) {
+
+            const elements = excalidrawAPI.getSceneElements();
+            if (!elements || !elements.length) return false;
+
+            const files = excalidrawAPI.getFiles();
+
+            const appState = {
+                ...excalidrawAPI.getAppState(),
+                ...appStateDefault(),
+                ...appStateOpt()
+            };
+
+            return {
+                elements: elements,
+                files: files,
+                appState: appState,
+                getDimensions: w == 0 ? null : () => { return { width: w, height: h, scale: s } }
+            }
+        }
+
+        function EXPORT() {
+
+            const OptExport = OptEXPORT();
+            if (!OptExport) return;
+
+            const OptJPG = { exportPadding: 10, mimeType: 'image/jpeg', quality: 0.85 };
+            const OptPNG = { exportPadding: 10, mimeType: 'image/png' };
+
+            const queryString = window.location.search;
+            const urlParams = new URLSearchParams(queryString);
+
+            ExcalidrawLib.exportToBlob({ ...OptExport, ...OptPNG })
+                .then(e => {
+                    const url = ('/plugin-excalidraw/quick_save?' +
+                        'module=' + encodeURIComponent(urlParams.get('module')) +
+                        '&resource=' + encodeURIComponent(urlParams.get('resource')));
+
+                    const data = { do: 'save', name: name, mode: 'image', data: e };
+                    post(url, data, null);
+                    if (urlParams.get('callbackurl')) {
+                        post(urlParams.get('callbackurl'), '', null);
+                    }
+
+                });
+
+        };
+
 
         function MainMenu() {
 
@@ -37,8 +135,8 @@
 
             const Menu = [
                 React.createElement(ExcalidrawLib.MainMenu.DefaultItems.LoadScene),
-                React.createElement(ExcalidrawLib.MainMenu.Item, { icon: iconExport, onClick: () => SAVE() }, 'Save to Server'),
-                React.createElement( ExcalidrawLib.MainMenu.DefaultItems.SaveAsImage),
+                React.createElement(ExcalidrawLib.MainMenu.Item, { icon: iconExport, onClick: () => EXPORT() }, 'Save to Server'),
+                React.createElement(ExcalidrawLib.MainMenu.DefaultItems.SaveAsImage),
                 React.createElement(ExcalidrawLib.MainMenu.DefaultItems.ClearCanvas),
                 React.createElement(ExcalidrawLib.MainMenu.Separator),
                 React.createElement(ExcalidrawLib.MainMenu.DefaultItems.ToggleTheme),
@@ -48,53 +146,88 @@
             return Menu;
         }
 
-        function LOADCB(e){ 
-                  
+        function LOADCB(e) {
+
             const library = e.library == '' ? '' : JSON.parse(e.library);
-           
+
             const SCENE = e.scene;
-            const type  = SCENE.type;
-            const ext   = SCENE.ext;
-            let scene    = SCENE.content;                     
- 
+            const type = SCENE.type;
+            const ext = SCENE.ext;
+            let scene = SCENE.content;
+
             //Open SCENE from PNG medata
-            if( type == 'image' ) {
-            
-                const blob = b64ToBlob( scene, ext );        //base64 png data -> blob
-                 
-                ExcalidrawLib.loadFromBlob(blob)              //extract scene from png metadata 
-                .then( scene => INIT( library, scene ) );
+            if (type == 'image') {
+
+                const blob = b64ToBlob(scene, ext);        //base64 png data -> blob
+
+                ExcalidrawLib.loadFromBlob(blob)              //extract scene from png metadata
+                    .then(scene => INIT(library, scene));
             }
             //Open SCENE from JSON file.excalidraw
             else {
-            
-                if( type == 'scene' ) scene = JSON.parse(scene); 
+
+                if (type == 'scene') scene = JSON.parse(scene);
                 else scene = {};                              //no Scene, just open Excalidraw empty
-                
-                INIT( library, scene );
+
+                INIT(library, scene);
             }
-         }
+        }
+
 
 
         const App = () => {
-   
+
             [excalidrawAPI, setExcalidrawAPI] = React.useState(null);
-   
-             return React.createElement(
-                       React.Fragment, null,
-                         React.createElement( 'div', { style: { height: "100vh" } },
-                           React.createElement( ExcalidrawLib.Excalidraw, {}, 
-                              React.createElement( ExcalidrawLib.MainMenu, {}, MainMenu() ), 
-                           ),   
-                         ),
-                       );
-          };
+            const options = {
+                excalidrawAPI: (api) => { setExcalidrawAPI(api); },
+
+            }
+            return React.createElement(
+                React.Fragment, null,
+                React.createElement('div', { style: { height: "100vh" } },
+                    React.createElement(ExcalidrawLib.Excalidraw, options,
+                        React.createElement(ExcalidrawLib.MainMenu, {}, MainMenu()),
+                    ),
+                ),
+            );
+        };
+
+        function FETCH(url, dat, cb) {
+            let data = new FormData();
+            for (var k in dat) { data.append(k, dat[k]) };
+
+            let head = new Headers();
+            head.append('Access-Control-Allow-Origin', '*')
+
+            let options = { method: 'post', headers: head, mode: 'cors', body: data };
+            fetch(url, options)
+                .then(e => e.text())
+                .then(text => {
+                    let s;
+                    try { s = JSON.parse(text) }
+                    catch (err) { s = '' }
+                    if (cb) cb(s);
+                });
+        }
 
         const excalidrawWrapper = document.getElementById("app");
         const root = ReactDOM.createRoot(excalidrawWrapper);
         root.render(React.createElement(App));
 
+        if (urlParams.get('load_file') != null) {
+
+
+
+
+            const data = { do: 'get' };
+
+            //Load Backend JSON or PNG SCENE File
+            FETCH(urlParams.get('load_file'), data, e => LOADCB(e));
+        }
+
+
 
     </script>
 </body>
+
 </html>

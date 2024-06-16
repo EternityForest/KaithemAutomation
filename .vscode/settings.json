@@ -45,6 +45,7 @@
             "python.testing.cwd": "",
             "cSpell.allowCompoundWords": true,
             "cSpell.words": [
+                "asgi",
                 "astype",
                 "bytesio",
                 "currentcueid",

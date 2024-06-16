@@ -87,11 +87,12 @@ class SimpleDialog:
     to serve to the user.
     """
 
-    def __init__(self, title: str) -> None:
+    def __init__(self, title: str, method="POST") -> None:
         # List of title, inputhtml pairs
         self.items: list[tuple[str, str]] = []
         self.title = title
         self.datalists: dict[str, list[tuple[str, str]]] = {}
+        self.method = method
 
         self.using_uploads = False
         self.using_ace = False
@@ -270,4 +271,5 @@ class SimpleDialog:
             title=self.title,
             datalists=self.datalists,
             extracode=self.extracode,
+            method=self.method,
         )

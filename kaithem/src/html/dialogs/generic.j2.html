@@ -17,7 +17,7 @@
         </datalist>
 
         {% endfor %}
-        <form class="stacked-form" action="{{target}}" method="POST" enctype="multipart/form-data">
+        <form class="stacked-form" action="{{target}}" method="{{method}}" enctype="multipart/form-data">
         {% for i in items %}
             {% if i[0] %}
                 <label>{{i[0]}} {{i[1]}}
