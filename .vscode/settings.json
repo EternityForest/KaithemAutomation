@@ -46,13 +46,21 @@
             "cSpell.allowCompoundWords": true,
             "cSpell.words": [
                 "bytesio",
+                "currentcueid",
                 "damerau",
                 "dtype",
+                "Fadein",
+                "goto",
+                "hfader",
                 "kaithem",
                 "kaithemobj",
+                "mqtt",
                 "Mqtt",
                 "recalc",
-                "rtmidi"
+                "rtmidi",
+                "testid",
+                "Vals",
+                "vueapp"
             ]
 
 }

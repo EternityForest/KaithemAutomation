@@ -459,36 +459,45 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             for i in msg[2]["channels"]:
                 i = str(i)
                 if i in ("red", "green", "blue", "white", "fog", "uv"):
-                    x.append([i, i])
+                    x.append(
+                        {
+                            "name": i,
+                            "type": i,
+                        }
+                    )
 
                 elif i.startswith("knob"):
-                    x.append([i, "generic"])
+                    x.append(
+                        {
+                            "name": i,
+                            "type": "generic",
+                        }
+                    )
 
                 elif i == "intensity":
-                    x.append(["dim", "intensity"])
-
+                    x.append(
+                        {
+                            "name": "dim",
+                            "type": "intensity",
+                        }
+                    )
                 elif i == "off":
-                    x.append(["fixed", "fixed", 0])
-
+                    x.append({"name": i, "type": "fixed", "value": 0})
                 elif i == "on":
-                    x.append(["fixed", "fixed", 255])
-
+                    x.append({"name": i, "type": "fixed", "value": 255})
                 elif i.isnumeric():
-                    x.append(["fixed", "fixed", int(i)])
-
+                    x.append({"name": i, "type": "fixed", "value": int(i)})
                 elif i == "color":
-                    x.append(["hue", "hue"])
-
+                    x.append(
+                        {
+                            "name": "hue",
+                            "type": "hue",
+                        }
+                    )
                 else:
                     raise RuntimeError("Unknown channel type: " + i)
 
-            ch_info = []
-            for i in x:
-                if i[1] not in ["custom", "fine", "fixed"]:
-                    ch_info.append(i[:2])
-                else:
-                    ch_info.append(i)
-            fix = {"channels": ch_info}
+            fix = {"channels": x}
 
             self.fixture_classes[msg[1].replace("-", " ").replace("/", " ")] = fix
             self.refresh_fixtures()

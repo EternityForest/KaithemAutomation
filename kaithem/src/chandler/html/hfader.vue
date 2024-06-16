@@ -29,40 +29,10 @@
 
             <span v-if="i.v == null" class=grey>Released</span>
 
-
-
             <span v-if="!(chinfo && chinfo.type == 'fine')" title="Double click to set exact value" class="noselect"
                 v-on:dblclick="promptExactVal(currentcueid, i.u, i.ch)"
                 style="font-size:80%">{{ Number(i.v).toPrecision(4) }}</span>
             <span class=grey v-if="chinfo && chinfo.type == 'fine'">auto</span>
-
-            <span v-if="chinfo && (chinfo.type == 'red')"
-                v-bind:style="{ 'background-color': 'rgb(' + i.v + ',0,0)', 'border-color': 'red' }"
-                class="indicator"></span>
-            <span v-if="chinfo && (chinfo.type == 'green')"
-                v-bind:style="{ 'background-color': 'rgb(0,' + i.v + ',0)', 'border-color': 'green' }"
-                class="indicator"></span>
-            <span v-if="chinfo && (chinfo.type == 'blue')"
-                v-bind:style="{ 'background-color': 'rgb(0,0,' + i.v + ')', 'border-color': 'blue' }"
-                class="indicator"></span>
-            <span v-if="chinfo && chinfo.type == 'uv'"
-                v-bind:style="{ 'background-color': 'rgb(i.v,0,' + i.v + ')', 'border-color': 'blue' }"
-                class="indicator"></span>
-            <span v-if="chinfo && chinfo.type == 'custom'"
-                v-bind:style="{ 'background-color': 'rgb(' + i.v + ',' + i.v + ',' + i.v + ')' }"
-                class="indicator"></span>
-            <span v-if="chinfo && chinfo.type == 'intensity'"
-                v-bind:style="{ 'background-color': 'rgb(' + i.v + ',' + i.v + ',' + i.v + ')' }"
-                class="indicator"></span>
-            <span v-if="chinfo && chinfo.type == 'generic'"
-                v-bind:style="{ 'background-color': 'rgb(' + i.v + ',' + i.v + ',' + i.v + ')' }"
-                class="indicator"></span>
-            <span v-if="chinfo && chinfo.type == 'white'"
-                v-bind:style="{ 'background-color': 'rgb(' + i.v + ',' + i.v + ',' + i.v + ')' }"
-                class="indicator"></span>
-            <span v-if="chinfo && chinfo.type == 'fog'"
-                v-bind:style="{ 'background-color': 'rgb(' + i.v + ',' + i.v + ',' + i.v + ')' }"
-                class="indicator"></span>
 
             <span v-if="chinfo && chinfo == undefined"
                 v-bind:style="{ 'background-color': 'rgb(' + i.v + ',' + i.v + ',' + i.v + ')' }"
@@ -99,6 +69,7 @@ var hfaderdata =
     //Returns new value mapped into the range when user clicks to change the range of a custom val
     //Given current val, list of all ranges,  and old range info
     'mapvaluerange': function (oldv, d, newrange) {
+        const newd = d.ranges.find(x => x.name == newrange)
         return newd.min
     },
     'getValueRange': function (d, v) {
@@ -112,7 +83,7 @@ var hfaderdata =
             }
         }
 
-        return ([0, 255, "Unknown"])
+        return ({min:0, max:255, name:""})
     },
 
 
