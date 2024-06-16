@@ -65,7 +65,16 @@ def test_fixtures():
     add the fixture to a group, check the universe vals
     """
     u = {"dmx": {"channels": 512, "framerate": 44, "number": 1, "type": "enttecopen"}}
-    fixtypes = {"3ch RGB": [["red", "red"], ["green", "green"], ["blue", "blue"]]}
+    fixtypes = {
+        "3ch RGB": {
+            "channels": [
+                {"name": "red", "type": "red"},
+                {"name": "green", "type": "green"},
+                {"name": "blue", "type": "blue"},
+            ]
+        }
+    }
+
     # fixps = {"tst": {"blue": 42, "dim": 0, "green": 0, "red": 0}}
     fixas = {"testFixture": {"addr": 1, "name": "testFixture", "type": "3ch RGB", "universe": "dmx"}}
 
@@ -75,7 +84,7 @@ def test_fixtures():
     assert board.get_project_data()["setup"]["configured_universes"]["dmx"]
 
     board._onmsg("__admin__", ["setfixtureclass", "3ch RGB", fixtypes["3ch RGB"]], "test")
-    assert board.get_project_data()["setup"]["fixture_types"]["3ch RGB"][0][0] == "red"
+    assert board.get_project_data()["setup"]["fixture_types"]["3ch RGB"]["channels"][0]["name"] == "red"
     board._onmsg("__admin__", ["setFixtureAssignment", "testFixture", fixas["testFixture"]], "test")
 
     s = groups.Group(board, "TestingGroup1", id="TEST")

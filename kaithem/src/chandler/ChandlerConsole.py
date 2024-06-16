@@ -27,6 +27,28 @@ def from_legacy_preset_format(d: Dict[str, Any]) -> dict[str, dict[int | str, fl
         return d
 
 
+def from_legacy_fixture_class_format(d):
+    if "channels" not in d:
+        c = d
+        a = []
+        for i in c:
+            o = {}
+            o["name"] = i[0]
+            o["type"] = i[1]
+
+            if o["type"] == "fine":
+                o["coarse"] = i[2]
+
+            elif o["type"] == "fixed":
+                o["value"] = i[2]
+
+            a.append(o)
+
+        return {"channels": a}  # type: ignore
+    else:
+        return d
+
+
 def from_legacy(d: Dict[str, Any]) -> Dict[str, Any]:
     if "mediaWindup" in d:
         d["media_wind_up"] = d.pop("mediaWindup")
@@ -71,7 +93,11 @@ class ChandlerConsole(console_abc.Console_ABC):
         self.fixtures = {}
 
         self.universe_objects: Dict[str, universes.Universe] = {}
-        self.fixture_classes: Dict[str, Any] = copy.deepcopy(fixtureslib.genericFixtureClasses)
+        self.fixture_classes: Dict[str, Any] = {}
+        c = copy.deepcopy(fixtureslib.genericFixtureClasses)
+
+        for i in c:
+            self.fixture_classes[i] = from_legacy_fixture_class_format(c[i])
 
         self.initialized = False
 
@@ -124,7 +150,11 @@ class ChandlerConsole(console_abc.Console_ABC):
             data2 = data["setup"]
 
             self.configured_universes = data2["configured_universes"]
-            self.fixture_classes = data2["fixture_types"]
+            self.fixture_classes = {}
+            ft = data2["fixture_types"]
+            for i in ft:
+                self.fixture_classes[i] = from_legacy_fixture_class_format(ft[i])
+
             self.fixture_assignments = data2["fixture_assignments"]
 
             x = data2.get("fixture_presets", {})
@@ -194,12 +224,12 @@ class ChandlerConsole(console_abc.Console_ABC):
                     self.ferrs += str(i) + "\n" + traceback.format_exc()
 
             for u in universes.universes:
-                self.pushChannelNames(u)
+                self.pushchannelInfoByUniverseAndNumber(u)
 
             with core.lock:
                 for f in universes.fixtures:
                     if f:
-                        self.pushChannelNames("@" + f)
+                        self.pushchannelInfoByUniverseAndNumber("@" + f)
 
             self.ferrs = self.ferrs or "No Errors!"
             self.push_setup()
@@ -531,7 +561,7 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         self.save_callback(project_file)
 
-    def pushChannelNames(self, u):
+    def pushchannelInfoByUniverseAndNumber(self, u):
         "This has expanded to push more data than names"
         if not u[0] == "@":
             uobj = getUniverse(u)
@@ -544,11 +574,12 @@ class ChandlerConsole(console_abc.Console_ABC):
             for i in uobj.channels:
                 fixture = uobj.channels[i]()
                 if not fixture:
-                    return
+                    continue
 
                 if not fixture.startAddress:
-                    return
-                data = [fixture.name] + fixture.channels[i - fixture.startAddress]
+                    continue
+
+                data = [fixture.name, fixture.channels[i - fixture.startAddress]]
                 d[i] = data
             self.linkSend(["cnames", u, d])
         else:
@@ -557,7 +588,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                 f = universes.fixtures[u[1:]]()
                 if f:
                     for i in range(len(f.channels)):
-                        d[f.channels[i][0]] = [u[1:]] + f.channels[i]
+                        d[f.channels[i]["name"]] = [u[1:], f.channels[i]]
             self.linkSend(["cnames", u, d])
 
     def pushMeta(

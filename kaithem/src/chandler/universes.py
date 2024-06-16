@@ -55,12 +55,12 @@ def get_on_demand_universe(name: str) -> Universe:
             pass
 
     t = OneTagpoint(name)
-    core.add_data_pusher_to_all_boards(lambda s: s.pushChannelNames(name))  # type: ignore
+    core.add_data_pusher_to_all_boards(lambda s: s.pushchannelInfoByUniverseAndNumber(name))  # type: ignore
     return t
 
 
 class Fixture:
-    def __init__(self, name: str, data: list[list[Any]] | dict[str, Any] | None = None):
+    def __init__(self, name: str, data: dict[str, Any] | None = None):
         """Represents a contiguous range of channels each with a defined role in one universe.
 
         data is the definition of the type of fixture. It can be a list of channels, or
@@ -86,14 +86,17 @@ class Fixture:
         use the first argument to specify the number of the coarse channel,
         with 0 being the fixture's first channel.
         """
-        self.channels: list[list[Any]]
 
         if data:
-            # Normalize and raise errors on nonsense
-            channels: list[list[Any]] | dict[str, Any] = json.loads(json.dumps(data))
+            channel_data = data.get("channels", None)
+        else:
+            channel_data = None
 
-            if not isinstance(channels, list):
-                channels = channels["channels"]
+        self.channels: list[dict[str, Any]]
+
+        if channel_data:
+            # Normalize and raise errors on nonsense
+            channels: list[dict[str, Any]] = json.loads(json.dumps(channel_data))
 
             assert isinstance(channels, list)
             self.channels = channels
@@ -111,7 +114,7 @@ class Fixture:
 
         # Used for looking up channel by name
         for i in range(len(channels)):
-            self.nameToOffset[channels[i][0]] = i
+            self.nameToOffset[channels[i]["name"]] = i
 
         with core.lock:
             if name in fixtures:
@@ -202,7 +205,7 @@ class Fixture:
             cPointer = 0
             for i in range(channel, channel + len(self.channels)):
                 universeObj.channels[i] = weakref.ref(self)
-                if self.channels[cPointer][1] in ("hue", "sat", "custom"):
+                if self.channels[cPointer]["type"] in ("hue", "sat", "custom"):
                     # Mark it as a hue channel that blends slightly differently
                     universeObj.hueBlendMask[i] = 1
                     cPointer += 1
@@ -255,8 +258,8 @@ class Universe:
         self.channels: dict[int, weakref.ref[Fixture]] = {}
 
         # Maps names to numbers, mostly for tagpoint universes.
-        if not hasattr(self, "channelNames"):
-            self.channelNames = {}
+        if not hasattr(self, "channelInfoByUniverseAndNumber"):
+            self.channelInfoByUniverseAndNumber = {}
 
         self.groups = {}
         self.values = numpy.array([0.0] * count, dtype="f4")
@@ -392,17 +395,17 @@ class Universe:
                 if not fixture.startAddress:
                     continue
                 data = fixture.channels[i - fixture.startAddress]
-                if (data[1] == "fine") and (i > 1):
+                if (data["type"] == "fine") and (i > 1):
                     if len(data) == 2:
                         self.fine_channels[i] = i - 1
                     else:
-                        self.fine_channels[i] = fixture.startAddress + data[2]
+                        self.fine_channels[i] = fixture.startAddress + data["coarse"]
 
-                if data[1] == "fixed":
+                if data["type"] == "fixed":
                     if len(data) == 2:
                         self.fixed_channels[i] = 0
                     else:
-                        self.fixed_channels[i] = data[2]
+                        self.fixed_channels[i] = data["value"]
 
     def reset_to_cache(self):
         "Remove all changes since the prerendered layer."
@@ -1107,7 +1110,7 @@ class OneTagpoint(Universe):
 
         self.prev = (-1, -1)
 
-        self.channelNames = {"value": 1}
+        self.channelInfoByUniverseAndNumber = {"value": 1}
 
         # Sender needs the values to be there for setup
         self.values = numpy.array([0.0] * (self.count), dtype="f4")
@@ -1202,7 +1205,7 @@ def mapChannel(u: str, c: str | int) -> tuple[str, int] | None:
 
             universe = getUniverse(u)
             if universe:
-                c = universe.channelNames.get(c, None)
+                c = universe.channelInfoByUniverseAndNumber.get(c, None)
                 if not c:
                     return None
                 else:

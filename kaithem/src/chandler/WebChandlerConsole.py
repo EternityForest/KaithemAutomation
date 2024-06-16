@@ -3,6 +3,7 @@ The way forward is moving individual setters to setCueProperty and setGroupPrope
 
 from __future__ import annotations
 
+import copy
 import os
 import time
 import traceback
@@ -263,8 +264,8 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             return
 
         elif cmd_name == "getfixtureclasses":
-            # Send placeholder lists
-            self.linkSend(["fixtureclasses", {i: [] for i in self.fixture_classes.keys()}])
+            # Send placeholder dicts for all fixture classes.
+            self.linkSend(["fixtureclasses", {i: {} for i in self.fixture_classes.keys()}])
             return
 
         elif cmd_name == "getcuemeta":
@@ -395,7 +396,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             return
 
         elif cmd_name == "getcnames":
-            self.pushChannelNames(msg[1])
+            self.pushchannelInfoByUniverseAndNumber(msg[1])
             return
 
         else:
@@ -439,18 +440,17 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         elif cmd_name == "setfixtureclass":
             ch_info = []
+            d = copy.deepcopy(msg[2])
 
-            for i in msg[2]:
-                if i[1] not in ["custom", "fine", "fixed"]:
-                    # Filter empty extra data we don't need
-                    ch_info.append(i[:2])
-                else:
-                    ch_info.append(i)
+            for i in d["channels"]:
+                assert isinstance(i, dict)
+                assert "name" in i
+                assert "type" in i
+                ch_info.append(i)
 
-            # data = dict(msg[2])
-            # data['channels'] = ch_info
+            d["channels"] = ch_info
 
-            self.fixture_classes[msg[1]] = ch_info
+            self.fixture_classes[msg[1]] = d
             self.refresh_fixtures()
 
         elif cmd_name == "setfixtureclassopz":
@@ -488,7 +488,9 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                     ch_info.append(i[:2])
                 else:
                     ch_info.append(i)
-            self.fixture_classes[msg[1].replace("-", " ").replace("/", " ")] = ch_info
+            fix = {"channels": ch_info}
+
+            self.fixture_classes[msg[1].replace("-", " ").replace("/", " ")] = fix
             self.refresh_fixtures()
 
         elif cmd_name == "rmfixtureclass":
@@ -590,15 +592,14 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             # Are stored as if they are their own universe, starting with an @ sign.
             # Channels are stored by name and not by number.
             for i in x.channels:
-                if i[1] not in ("unused", "fixed"):
+                if i["type"] not in ("unused", "fixed"):
                     sc = cue.group()
                     assert sc
                     if hasattr(sc.lighting_manager.blendClass, "default_channel_value"):
                         val = sc.lighting_manager.blendClass.default_channel_value
                     else:
                         val = 0
-                    # i[0] is the name of the channel
-                    cue.set_value("@" + msg[2], i[0], val)
+                    cue.set_value("@" + msg[2], i["name"], val)
 
             if length > 1:
                 # Set the length as if it were a ficture property
@@ -607,7 +608,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
                 # The __dest__ channels represet the color at the end of the channel
                 for i in x.channels:
-                    if i[1] not in ("unused", "fixed"):
+                    if i["type"] not in ("unused", "fixed"):
                         sc = cue.group()
                         assert sc
                         if hasattr(sc.lighting_manager.blendClass, "default_channel_value"):
@@ -615,7 +616,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                         else:
                             val = 0
                         # i[0] is the name of the channel
-                        cue.set_value("@" + msg[2], "__dest__." + str(i[0]), val)
+                        cue.set_value("@" + msg[2], "__dest__." + str(i["name"]), val)
 
             self.linkSend(["cuedata", msg[1], cue.values])
             self.pushCueMeta(msg[1])

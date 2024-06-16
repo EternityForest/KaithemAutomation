@@ -287,7 +287,7 @@ ${lists}
                 :options="useBlankDescriptions(fixtureClasses)"></combo-box>
 
 
-            <div v-if="selectedFixtureClass">
+            <div v-if="selectedFixtureClass" class="margin">
                 <h4>{{selectedFixtureClass}}</h4>
 
                 <div class="tool-bar">
@@ -296,16 +296,16 @@ ${lists}
                 </div>
 
                 <h3>Channels in Fixture Type</h3>
-                <div v-for="(v,i) in fixtureClasses[selectedFixtureClass]">
+                <div v-for="(v,i) in fixtureClasses[selectedFixtureClass].channels||[]">
                     <h4>{{i}}.</h4>
                     <label>Name:
                         <input v-on:change="pushfixture(selectedFixtureClass)"
-                            v-model="fixtureClasses[selectedFixtureClass][i][0]">
+                            v-model="fixtureClasses[selectedFixtureClass].channels[i].name">
                     </label>
 
                     <label>Type:
-                        <select v-on:change="pushfixture(selectedFixtureClass)"
-                            v-model="fixtureClasses[selectedFixtureClass][i][1]" v-on:change="fixtureClasses[selectedFixtureClass][i][0]=chTypeChanged(i)">
+                        <select v-on:change="chTypeChanged(i);pushfixture(selectedFixtureClass)"
+                            v-model="fixtureClasses[selectedFixtureClass].channels[i].type">
                             <option>red</option>
                             <option>green</option>
                             <option>blue</option>
@@ -320,20 +320,20 @@ ${lists}
                         </select>
                     </label>
 
-                    <label v-if="fixtureClasses[selectedFixtureClass][i][1]=='fine'">
+                    <label v-if="fixtureClasses[selectedFixtureClass].channels[i].type=='fine'">
                         Matching Coarse:
                         <input v-on:change="pushfixture(selectedFixtureClass)"
                             title="The corresponding coarse channel for this fine channel" min=0 max=64 type="number"
-                            v-model="fixtureClasses[selectedFixtureClass][i][2]">
+                            v-model="fixtureClasses[selectedFixtureClass].channels[i].coarse">
                     </label>
 
-                    <label v-if="fixtureClasses[selectedFixtureClass][i][1]=='fixed'">
+                    <label v-if="fixtureClasses[selectedFixtureClass].channels[i].type=='fixed'">
                         Fixed Value:
                         <input v-on:change="pushfixture(selectedFixtureClass)" title="The fixed DMX channel value" min=0
-                            max=256 type="number" v-model="fixtureClasses[selectedFixtureClass][i][2]">
+                            max=256 type="number" v-model="fixtureClasses[selectedFixtureClass].channels[i].value">
                     </label>
 
-                    <div v-if="fixtureClasses[selectedFixtureClass][i][1]=='custom'">
+                    <div v-if="fixtureClasses[selectedFixtureClass].channels[i].type=='custom'">
                         <details class="help">
                             <summary><i class="mdi mdi-help-circle-outline"></i></summary>
                             The custom channel type allows you to define a different meaning for a channel depending on
@@ -353,32 +353,35 @@ ${lists}
                                 <th>Option Name</th>
                                 <th>Actions</th>
                             </tr>
-                            <tr v-for="(w,j) in fixtureClasses[selectedFixtureClass][i].slice(2)">
+                            <tr v-for="(w,j) in fixtureClasses[selectedFixtureClass].channels[i].ranges">
                                 <td>
-                                    <input v-on:change="pushfixture(selectedFixtureClass)"
-                                        v-model.number="fixtureClasses[selectedFixtureClass][i][j+2][0]" type="number">
+                                    <input v-on:change="pushfixture(selectedFixtureClass)" class="w-4rem"
+                                        v-model.number="fixtureClasses[selectedFixtureClass].channels[i].ranges[j].min" type="number">
                                 </td>
                                 <td>
-                                    <input v-on:change="pushfixture(selectedFixtureClass)"
-                                        v-model.number="fixtureClasses[selectedFixtureClass][i][j+2][1]" type="number">
+                                    <input v-on:change="pushfixture(selectedFixtureClass)"  class="w-4rem"
+                                        v-model.number="fixtureClasses[selectedFixtureClass].channels[i].ranges[j].max" type="number">
                                 </td>
                                 <td>
-                                    <input v-on:change="pushfixture(selectedFixtureClass)"
-                                        v-model.number="fixtureClasses[selectedFixtureClass][i][j+2][2]">
+                                    <input v-on:change="pushfixture(selectedFixtureClass)"  class="w-6rem"
+                                        v-model.number="fixtureClasses[selectedFixtureClass].channels[i].ranges[j].name">
                                 </td>
                                 <td>
                                     <button
-                                        v-on:click="del(fixtureClasses[selectedFixtureClass][i],j+2);pushfixture(selectedFixtureClass)">Del</button>
+                                        v-on:click="fixtureClasses[selectedFixtureClass].channels[i].ranges.splice(j,1);pushfixture(selectedFixtureClass)">Del</button>
                                 </td>
                             </tr>
                         </table>
                         <button
-                            v-on:click="fixtureClasses[selectedFixtureClass][i].push([0,0,'optionName']);pushfixture(selectedFixtureClass)">Add
+                            v-on:click="fixtureClasses[selectedFixtureClass].channels[i].ranges.push({'min':0,'max':0,'name':'name'});pushfixture(selectedFixtureClass)">Add
                             Range</button>
+
+
                     </div>
+                    <button v-on:click="fixtureClasses[selectedFixtureClass].channels.splice(i,1) ;pushfixture(selectedFixtureClass)">Del</button>
                 </div>
                 <button
-                    v-on:click="fixtureClasses[selectedFixtureClass].push(['red','red',0]);pushfixture(selectedFixtureClass);">Add
+                    v-on:click="fixtureClasses[selectedFixtureClass].channels.push({'name':'red','type':'red'});pushfixture(selectedFixtureClass);">Add
                     Channel</button>
             </div>
         </section>
@@ -506,28 +509,30 @@ ${core.boards[boardname].link.render('api_link')}
 
     m = {
         'chTypeChanged': function (i) {
-            if (this.fixtureClasses[this.selectedFixtureClass]
-            [i][1] == 'fine') {
-                old_vue_set(this.fixtureClasses[this.selectedFixtureClass]
-                [i], 2, i - 1)
-                old_vue_set(this.fixtureClasses[this.selectedFixtureClass]
-                [i], 3, undefined)
+            const chType = this.fixtureClasses[this.selectedFixtureClass].channels[i].type
+
+            this.fixtureClasses[this.selectedFixtureClass].channels[i].name = chType
+            // Set up the  data options param for each channel
+
+            if (chType == 'fine') {
+                this.fixtureClasses[this.selectedFixtureClass].channels[i].coarse = 0
             }
 
-            else if (this.fixtureClasses[this.selectedFixtureClass]
-            [i][1] == 'fixed') {
-                var v = this.fixtureClasses[this.selectedFixtureClass][i]
-                old_vue_set(this.fixtureClasses[this.selectedFixtureClass]
-                    , i, [v[0], v[1], 0, {}])
+
+            else if (chType == 'custom') {
+                this.fixtureClasses[this.selectedFixtureClass].channels[i].ranges = []
+            }
+
+            else if (chType == 'fixed') {
+                this.fixtureClasses[this.selectedFixtureClass].channels[i].value = 0
             }
             else {
-                old_vue_set(this.fixtureClasses[this.selectedFixtureClass]
-                [i], 2, 0)
-                old_vue_set(this.fixtureClasses[this.selectedFixtureClass]
-                [i], 3, undefined)
+                this.fixtureClasses[this.selectedFixtureClass].channels[i].coarse = undefined
+                this.fixtureClasses[this.selectedFixtureClass].channels[i].value = undefined
+                this.fixtureClasses[this.selectedFixtureClass].channels[i].ranges = undefined
 
             }
-            this.pushfixture(i)
+            this.pushfixture(this.selectedFixtureClass)
         },
 
         'showhidefixtures': function () {
@@ -553,7 +558,7 @@ ${core.boards[boardname].link.render('api_link')}
         'addfixturetype': function () {
             x = prompt("New Fixture Type Name:", this.selectedFixtureType)
             if (x) {
-                old_vue_set(this.fixtureClasses, x, [])
+                old_vue_set(this.fixtureClasses, x, {channels: []})
                 this.selectedFixtureType = x
                 api_link.send(['setfixtureclass', x, this.fixtureClasses[x]])
                 api_link.send(['getfixtureclass', x])

@@ -786,7 +786,7 @@ ${lists}
                                     <h3 class="noselect">{{uname}}</h3>
                                 </header>
                                 <div class="scroll nomargin h-24rem">
-                                    <h-fader :i="i[1]" :chinfo="chnamelookup(i[1].u,i[1].ch)"
+                                    <h-fader :i="i[1]" :chinfo="channelInfoForUniverseChannel(i[1].u,i[1].ch)"
                                         :currentcueid="currentcueid" :showdelete="grouptab=='channels'"
                                         v-for="i in dictView(h,[])">
                                     </h-fader>
@@ -821,7 +821,7 @@ ${lists}
                                     </button>
                                 </header>
                                 <div class="scroll nomargin h-24rem padding-bottom">
-                                    <h-fader :i="i[1]" :chinfo="chnamelookup(i[1].u,i[1].ch)"
+                                    <h-fader :i="i[1]" :chinfo="channelInfoForUniverseChannel(i[1].u,i[1].ch)"
                                         :currentcueid="currentcueid" :showdelete="grouptab=='channels'"
                                         v-for="i in dictView(h,[])">
                                     </h-fader>

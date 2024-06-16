@@ -111,7 +111,7 @@ var filebrowserdata = {
 module.exports = {
     template: '#mediabrowser',
     //I is a data object having u,ch, and v, the universe channel and value.
-    //Chinfo is the channel info list from the fixtues that you get with chnamelookup
+    //Chinfo is the channel info list from the fixtues that you get with channelInfoForUniverseChannel
     props: ['no_edit'],
     data: function () {
         function onsoundfolderlisting(e) {

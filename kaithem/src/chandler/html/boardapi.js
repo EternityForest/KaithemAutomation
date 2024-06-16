@@ -97,24 +97,6 @@ formatInterval = function (seconds) {
 }
 
 
-getValueRange = function (d, v) {
-    //Given a channel info list structure thing and a value, return the [min,max,name] of the range
-    //that the value is in
-    if (d == undefined) { return ([0, 255, "Unknown"]) }
-    var c = 0
-    for (i of d) {
-        if (c > 2) {
-            if (i[1] >= v) {
-                //Better to return Unknown then bad data
-                if (i.length == 3) {
-                    return (i)
-                }
-            }
-        }
-        c += 1
-    }
-    return ([0, 255, "Unknown"])
-}
 
 
 cueSetData = {}
@@ -263,13 +245,6 @@ appMethods = {
                 }
         }
     },
-
-
-    'setCueValNolock': function (sc, u, ch, val) {
-        val = isNaN(parseFloat(val)) ? val : parseFloat(val)
-        api_link.send(['scv', sc, u, ch, val]);
-    },
-
 
     'selectcue': function (sc, cue) {
         if (this.cueSelectTimeout) {
@@ -997,29 +972,6 @@ appData = {
         old_vue_delete(a, b)
     },
 
-    'getValueRange': getValueRange,
-    //Returns new value mapped into the range when user clicks to change the range of a custom val
-    //Given current val, new range info and old range info
-    'mapvaluerange': function (oldv, d, newrange) {
-        for (i of d) {
-            if (i[2] == newrange) {
-                var newd = i
-                break;
-            }
-        }
-        var d = this.getValueRange(d, oldv)
-
-        try {
-            var asfraction = (oldv - d[0]) / ((d[1] - d[0]) +
-                1)
-            return Math.round(asfraction * (newd[1] - newd[
-                0] + 1) + newd[0])
-        }
-        catch (e) {
-            return newd[0]
-        }
-    },
-
     'doRateLimit': function () {
         this.nuisianceRateLimit[0] += (Date.now() - this.nuisianceRateLimit[1]) / 180000
         this.nuisianceRateLimit[0] = Math.min(12, this.nuisianceRateLimit[0])
@@ -1131,10 +1083,10 @@ appData = {
 
     'toggleTransparent': function (cue, u, c, v) {
         if (v != null) {
-            this.setCueValNolock(cue, u, c, null)
+            this.setCueVal(cue, u, c, null)
         }
         else {
-            this.setCueValNolock(cie, u, c, null)
+            this.setCueVal(cue, u, c, null)
         }
     },
     'promptRename'(s) {
@@ -1203,7 +1155,7 @@ appData = {
     'groupcues': {},
     'formattedCues': [],
     //Indexed by universe then channel number
-    'channelNames': {},
+    'channelInfoByUniverseAndNumber': {},
     //same info as groupvals, indexed hierarchally, as [universe][channel]
     //Actual objs are shared too so changing one obj change in in the other.
 
@@ -1283,12 +1235,15 @@ appData = {
     'recomputeformattedCues': function () {
 
     },
-    'chnamelookup': function (u, c) {
-        if (this.channelNames[u] == undefined) {
+    'channelInfoForUniverseChannel': function (u, c) {
+        if (this.channelInfoByUniverseAndNumber[u] == undefined) {
+            return undefined
+        }
+        if (this.channelInfoByUniverseAndNumber[u][c]== undefined) {
             return undefined
         }
 
-        return this.channelNames[u][c]
+        return this.channelInfoByUniverseAndNumber[u][c][1]
     },
 
     'prompt': prompt,
@@ -1425,7 +1380,7 @@ function f(v) {
     }
 
     else if (c == "cnames") {
-        old_vue_set(vueapp.$data.channelNames, v[1], v[2])
+        old_vue_set(vueapp.$data.channelInfoByUniverseAndNumber, v[1], v[2])
     }
     else if (c == "universes") {
         vueapp.$data.universes = v[1]
@@ -1469,7 +1424,7 @@ function f(v) {
 
         for (i in v[2]) {
 
-            if (!(i in vueapp.$data.channelNames)) {
+            if (!(i in vueapp.$data.channelInfoByUniverseAndNumber)) {
                 api_link.send(['getcnames', i])
             }
             old_vue_set(vueapp.$data.cuevals[v[1]], i, {})

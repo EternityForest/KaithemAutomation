@@ -10,57 +10,57 @@
         </div>
 
         <span v-if="typeof (i.v) == 'string'">
-            <input v-bind:disabled="chinfo && chinfo[2] == 'fine'" v-on:input="setCueVal(currentcueid, i.u, i.ch, i.v)"
-                v-model.lazy="i.v" v-on:change="setCueValNolock(currentcueid, i.u, i.ch, $event.target.value)">
+            <input v-bind:disabled="chinfo && chinfo.type == 'fine'"
+                v-on:input="setCueVal(currentcueid, i.u, i.ch, i.v)" v-model.lazy="i.v"
+                v-on:change="setCueVal(currentcueid, i.u, i.ch, $event.target.value)">
 
         </span>
 
         <span v-if="typeof (i.v) == 'number'">
             <span v-if="i.v !== null">
-                <smooth-range v-bind:disabled="chinfo && chinfo[2] == 'fine'"
+                <smooth-range v-bind:disabled="chinfo && chinfo.type == 'fine'"
                     v-if="(!(i.ch == '__length__' || i.ch == '__spacing__'))"
-                    v-bind:step="(chinfo && chinfo[2] == 'fine') ? 0.01 : 1" :min="getValueRange(chinfo, i.v)[0]"
-                    :max="getValueRange(chinfo, i.v)[1]"
-                    @update:modelValue="setCueVal(currentcueid, i.u, i.ch, parseFloat($event))"
-                    v-model.number="i.v">
+                    v-bind:step="(chinfo && chinfo.type == 'fine') ? 0.01 : 1" :min="getValueRange(chinfo, i.v).min"
+                    :max="getValueRange(chinfo, i.v).max"
+                    @update:modelValue="setCueVal(currentcueid, i.u, i.ch, parseFloat($event))" v-model.number="i.v">
                 </smooth-range>
-                
+
             </span>
 
             <span v-if="i.v == null" class=grey>Released</span>
 
 
 
-            <span v-if="!(chinfo && chinfo[2] == 'fine')" title="Double click to set exact value" class="noselect"
+            <span v-if="!(chinfo && chinfo.type == 'fine')" title="Double click to set exact value" class="noselect"
                 v-on:dblclick="promptExactVal(currentcueid, i.u, i.ch)"
                 style="font-size:80%">{{ Number(i.v).toPrecision(4) }}</span>
-            <span class=grey v-if="chinfo && chinfo[2] == 'fine'">auto</span>
+            <span class=grey v-if="chinfo && chinfo.type == 'fine'">auto</span>
 
-            <span v-if="chinfo && (chinfo[2] == 'red')"
+            <span v-if="chinfo && (chinfo.type == 'red')"
                 v-bind:style="{ 'background-color': 'rgb(' + i.v + ',0,0)', 'border-color': 'red' }"
                 class="indicator"></span>
-            <span v-if="chinfo && (chinfo[2] == 'green')"
+            <span v-if="chinfo && (chinfo.type == 'green')"
                 v-bind:style="{ 'background-color': 'rgb(0,' + i.v + ',0)', 'border-color': 'green' }"
                 class="indicator"></span>
-            <span v-if="chinfo && (chinfo[2] == 'blue')"
+            <span v-if="chinfo && (chinfo.type == 'blue')"
                 v-bind:style="{ 'background-color': 'rgb(0,0,' + i.v + ')', 'border-color': 'blue' }"
                 class="indicator"></span>
-            <span v-if="chinfo && chinfo[2] == 'uv'"
+            <span v-if="chinfo && chinfo.type == 'uv'"
                 v-bind:style="{ 'background-color': 'rgb(i.v,0,' + i.v + ')', 'border-color': 'blue' }"
                 class="indicator"></span>
-            <span v-if="chinfo && chinfo[2] == 'custom'"
+            <span v-if="chinfo && chinfo.type == 'custom'"
                 v-bind:style="{ 'background-color': 'rgb(' + i.v + ',' + i.v + ',' + i.v + ')' }"
                 class="indicator"></span>
-            <span v-if="chinfo && chinfo[2] == 'intensity'"
+            <span v-if="chinfo && chinfo.type == 'intensity'"
                 v-bind:style="{ 'background-color': 'rgb(' + i.v + ',' + i.v + ',' + i.v + ')' }"
                 class="indicator"></span>
-            <span v-if="chinfo && chinfo[2] == 'generic'"
+            <span v-if="chinfo && chinfo.type == 'generic'"
                 v-bind:style="{ 'background-color': 'rgb(' + i.v + ',' + i.v + ',' + i.v + ')' }"
                 class="indicator"></span>
-            <span v-if="chinfo && chinfo[2] == 'white'"
+            <span v-if="chinfo && chinfo.type == 'white'"
                 v-bind:style="{ 'background-color': 'rgb(' + i.v + ',' + i.v + ',' + i.v + ')' }"
                 class="indicator"></span>
-            <span v-if="chinfo && chinfo[2] == 'fog'"
+            <span v-if="chinfo && chinfo.type == 'fog'"
                 v-bind:style="{ 'background-color': 'rgb(' + i.v + ',' + i.v + ',' + i.v + ')' }"
                 class="indicator"></span>
 
@@ -69,10 +69,10 @@
                 class="indicator"></span>
 
 
-            <span v-if="chinfo && chinfo[2] == 'custom'"><br>
-                <select :value="getValueRange(chinfo, i.v)[2]"
-                    v-on:change="setCueValNolock(currentcueid, i.u, i.ch, mapvaluerange(i.v, chinfo, $event.target.value))">
-                    <option v-for="i of chinfo.slice(3)" :value="i[2]">{{ i[2] }}({{ i[0] }} to {{ i[1] }})</option>
+            <span v-if="chinfo && chinfo.type == 'custom'"><br>
+                <select :value="getValueRange(chinfo, i.v).name"
+                    v-on:change="setCueVal(currentcueid, i.u, i.ch, mapvaluerange(i.v, chinfo, $event.target.value))">
+                    <option v-for="i of chinfo.ranges" :value="i.name">{{ i.name }}({{ i.min }} to {{ i.max }})</option>
                 </select>
             </span>
         </span>
@@ -88,7 +88,7 @@ var hfaderdata =
 
         if (x != null) {
 
-            this.setCueValNolock(cue, u, v, x);
+            this.setCueVal(cue, u, v, x);
         }
     },
     'setCueVal': function (sc, u, ch, val) {
@@ -96,7 +96,25 @@ var hfaderdata =
         api_link.send(['scv', sc, u, ch, val]);
     },
 
-    'getValueRange': getValueRange,
+    //Returns new value mapped into the range when user clicks to change the range of a custom val
+    //Given current val, list of all ranges,  and old range info
+    'mapvaluerange': function (oldv, d, newrange) {
+        return newd.min
+    },
+    'getValueRange': function (d, v) {
+        //Given a channel info structure thing and a value, return the [min,max,name] of the range
+        //that the value is in
+        if (d?.ranges) {
+            for (i of d.ranges) {
+                if ((v >= i.min) && (v <= i.max)) {
+                    return (i)
+                }
+            }
+        }
+
+        return ([0, 255, "Unknown"])
+    },
+
 
     'rmValFromCue': function (universe, ch) {
         api_link.send(['scv', appData.groupcues[appData.groupname]
@@ -111,7 +129,7 @@ var hfaderdata =
 module.exports = {
     template: '#h-fader',
     //I is a data object having u,ch, and v, the universe channel and value.
-    //Chinfo is the channel info list from the fixtues that you get with chnamelookup
+    //Chinfo is the channel info list from the fixtues that you get with channelInfoForUniverseChannel
     props: ['i', 'chinfo', 'currentcueid', 'showdelete'],
     data: function () {
         return (hfaderdata)
