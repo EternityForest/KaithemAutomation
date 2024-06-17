@@ -10,7 +10,7 @@
     --danger-color: #962c2c;
     --highlight-color: #102142;
     --success-color: #165316;
-    --accent-color: rgb(107, 133, 206);    
+    --accent-color: rgb(107, 133, 206);
 
     --bg: var(--black-1);
     --box-bg: var(--black-1);
@@ -25,14 +25,20 @@
     --convex-item-bg: var(--control-bg);
     --convex-item-active-bg: var(--grey-1);
     --concave-item-box-shadow: none;
+    --control-border-color: #49451b;
 
     --3d-highlight: var(--control-bg);
     --3d-shadow: var(--control-bg);
 }
 
-*{
+input[type="range"] {
+   --slider-thumb: var(--graphical-fg);
+}
+
+* {
     scrollbar-color: #2b2b2b var(--control-bg);
 }
-img{
-    filter:brightness(0.16);
+
+img {
+    filter: brightness(70%) contrast(140%);
 }

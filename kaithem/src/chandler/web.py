@@ -1,4 +1,3 @@
-import datetime
 import os
 
 import quart
@@ -7,7 +6,7 @@ import vignette
 from mako.lookup import TemplateLookup
 from tinytag import TinyTag
 
-from kaithem.src import modules_state, quart_app, tagpoints
+from kaithem.src import quart_app, tagpoints
 
 from .. import directories, pages
 from ..kaithemobj import kaithem
@@ -111,28 +110,30 @@ def debug_universe_values(universe):
     return "Universe not found"
 
 
-@quart_app.app.route("/chandler/quickuploadlabel/<board>")
-async def quick_upload_label(board: str):
+@quart_app.app.route("/chandler/label_image_update_callback/<path:path>", methods=["POST"])
+async def label_update_callback(path: str):
     try:
         pages.require("system_admin")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
-    files = await quart.request.files
+
+    kwargs = dict(await quart.request.form)
+    kwargs.update(quart.request.args)
 
     @quart.ctx.copy_current_request_context
     def f():
-        dir = modules_state.getModuleDir(board.split(":")[0])
-        dir = os.path.join(dir, "__filedata__/media/chandler/labels")
+        path2 = path.split("/")
 
-        fn = files["file"].filename
-        fn = fn.split(".", 1)
-        d = datetime.datetime.now().isoformat()
-        fn = f"{fn[0]}{d}.{fn[1]}"
-
-        with open(os.path.join(dir, fn), "wb") as f:
-            f.write(files["file"].read())
-
-        return os.path.join("media/chandler/labels", fn)
+        if path2[0] == "cue":
+            cue = groups.cues[path2[1]]
+            cue.label_image = kwargs["resource"][len("media/") :]
+            gr = cue.group()
+            if gr:
+                gr.board.pushCueMeta(path2[1])
+        elif path2[0] == "preset":
+            preset = core.boards[path2[1]].fixture_presets[path2[2]]
+            preset["label_image"] = kwargs["resource"][len("media/") :]
+            core.boards[path2[1]].pushPreset(path2[2])
 
     return await f()
 

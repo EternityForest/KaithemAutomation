@@ -112,7 +112,7 @@ ${lists}
 
         &>img {
             position: absolute;
-            object-fit: cover;
+            object-fit: contain;
             width: 100%;
             height: 100%;
             margin: auto;
@@ -545,6 +545,14 @@ ${lists}
         </dialog>
 
 
+        <div v-if="iframeDialog" class="card paper flex-col"
+            style="background: var(--alt-control-bg); position: fixed; width:90vw; height: 90vh; top:5vh; left:5vw; z-index: 100">
+            <header>
+            <button @click="iframeDialog=null" class="w-full nogrow">
+                <i class="mdi mdi-close"></i>Close
+            </header>
+            <iframe :src="iframeDialog"></iframe>
+        </div>
 
         <div v-if="selectingPresetFor" class="card paper flex-col"
             style="background: var(--alt-control-bg); position: fixed; width:90vw; height: 90vh; top:5vh; left:5vw; z-index: 100">
@@ -1008,6 +1016,8 @@ ${lists}
                                         <input :disabled="no_edit" placeholder="No picture file"
                                             v-model="currentcue.labelImage"
                                             v-on:change="setCueProperty(currentcueid,'labelImage',currentcue.labelImage)">
+                                            <button class="button"
+                                             @click="iframeDialog=getExcalidrawCueLink(editingGroup.name,currentcue)">Draw</button>
 
                                     </label>
                                     <label v-if="currentcue.labelImage.length>0">Label Image Preview
@@ -1869,6 +1879,17 @@ ${lists}
     }
 
     appData.selectingImageLabelForPreset = null
+    appData.iframeDialog = null
+    const session_time= new Date().toISOString()
+
+    appData.getExcalidrawCueLink = function (group, cue) {
+        return '/plugin-excalidraw/edit?module='+
+        encodeURIComponent(this.boardname.split(":")[0]) +
+        '&resource=' + encodeURIComponent("media/chandler/sketches/" + group + "_" + cue.name + "_"+
+
+        session_time + ".excalidraw.png")+
+        "&callback="+ encodeURIComponent("/chandler/label_image_update_callback/cue/"+cue.id)
+    }
 
 
 

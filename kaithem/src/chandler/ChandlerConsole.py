@@ -88,7 +88,7 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         self.configured_universes: Dict[str, Any] = {}
         self.fixture_assignments: Dict[str, Any] = {}
-        self.fixture_presets: Dict[str, dict[str, dict[int | str, float | int | str]]] = {}
+        self.fixture_presets: Dict[str, dict[str, Any]] = {}
 
         self.fixtures = {}
 
@@ -335,6 +335,21 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         self.push_setup()
 
+    def get_file_timestamp_if_exists(self, filename: str) -> str:
+        try:
+            if not filename:
+                return ""
+            filename = core.resolve_sound(filename, extra_folders=self.media_folders)
+            if not filename:
+                return ""
+            if os.path.isfile(filename):
+                return str(os.stat(filename).st_mtime * 10)
+            else:
+                return ""
+        except Exception:
+            logger.exception("Failed to get file timestamp")
+            return ""
+
     def getSetupFile(self):
         with core.lock:
             return {
@@ -509,10 +524,13 @@ class ChandlerConsole(console_abc.Console_ABC):
         kaithem.misc.do(f)
 
     def push_setup(self):
+        ps = copy.deepcopy(self.fixture_presets)
+        for i in ps:
+            ps[i]["label_image_timestamp"] = self.get_file_timestamp_if_exists(ps[i].get("label_image", ""))
         "Errors in fixture list"
         self.linkSend(["ferrs", self.ferrs])
         self.linkSend(["fixtureAssignments", self.fixture_assignments])
-        self.linkSend(["fixturePresets", self.fixture_presets])
+        self.linkSend(["fixturePresets", ps])
 
         snapshot = getUniverses()
 
@@ -591,10 +609,15 @@ class ChandlerConsole(console_abc.Console_ABC):
                         d[f.channels[i]["name"]] = [u[1:], f.channels[i]]
             self.linkSend(["cnames", u, d])
 
+    def pushPreset(self, preset):
+        preset_data = copy.deepcopy(self.fixture_presets.get(preset, {}))
+        preset_data["label_image_timestamp"] = self.get_file_timestamp_if_exists(preset_data.get("label_image", ""))
+        self.linkSend(["preset", preset_data])
+
     def pushMeta(
         self, groupid: str, statusOnly: bool = False, keys: Optional[List[Any] | Set[Any] | Dict[Any, Any] | Iterable[str]] = None
     ):
-        "Statusonly=only the stuff relevant to a cue change. Keys is iterabe of what to send, or None for all"
+        "Statusonly=only the stuff relevant to a cue change. Keys is iterable of what to send, or None for all"
         group = self.groups.get(groupid, None)
         # Race condition of deleted groups
         if not group:
@@ -692,6 +715,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                 "prev": group.getParent(cue.name),
                 "hasLightingData": len(cue.values),
                 "default_next": group.getAfter(cue.name),
+                "imgLabelTimestamp": self.get_file_timestamp_if_exists(cue.label_image),
             }
 
             d = {}

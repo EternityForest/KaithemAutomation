@@ -183,7 +183,7 @@
                         </header>
                         <div class="flex-col nogaps scene-data-area readability-outline" style="text-align: center; position:relative">
                             <img
-                            style="border:none; opacity: 0.4; height: 100%; width: 100%; object-fit: cover; position: absolute" class="v-center"
+                            style="border:none; opacity: 0.4; height: 100%; width: 100%; object-fit: contain; position: absolute" class="v-center"
                             onerror='this.style.display = "none"' v-if="cuemeta[i[1].cue].labelImage"
                             :src="'../WebMediaServer?labelImg='+encodeURIComponent(cuemeta[i[1].cue].id)">
 
@@ -284,7 +284,7 @@
 
 
                         <div class="flex-row nogaps nogrow h-12rem w-full cue-button-body" style="position: relative;">
-                            <img style="border:none; height:100%; width:100%; position: absolute; object-fit: cover" class="v-center"
+                            <img style="border:none; height:100%; width:100%; position: absolute; object-fit: contain" class="v-center"
                             onerror='this.style.display = "none"' v-if="i[1].labelImage"
                             :src="'../WebMediaServer?labelImg='+encodeURIComponent(i[1].id)+'&cacheid='+encodeURIComponent(i[1].labelImage)">
 

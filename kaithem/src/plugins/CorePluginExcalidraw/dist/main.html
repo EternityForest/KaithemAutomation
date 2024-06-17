@@ -2,6 +2,8 @@
 <html lang="en">
 
 <head>
+    `<meta name="viewport" content="width=device-width, initial-scale=1.0">`
+
     <title>Excalidraw in browser</title>
     <script>
         window.EXCALIDRAW_ASSET_PATH = "/plugin-excalidraw/dist/";
@@ -11,23 +13,31 @@
     <script src="./react-dom.production.min.js"></script>
 
     <script src="./excalidraw.production.min.js"></script>
+    <style>
+        body{
+            margin: 0px;
+            height: 100vh;
+        }
+        h1{
+            font-size: small;
+
+        }
+    </style>
 
 </head>
 
 <body>
     <div class="container">
-        <h1 id="title">placeholder</h1>
         <div id="app"></div>
     </div>
     <script>
         const queryString = window.location.search;
         const urlParams = new URLSearchParams(queryString);
-        document.getElementById("title").innerHTML = 'Editing ' + urlParams.get('resource');
         var excalidrawAPI, setExcalidrawAPI;
 
         function appStateDefault() {
             return {
-                currentItemStrokeColor: '#000000',
+                currentItemStrokeColor: '#739f99',
                 currentItemStrokeStyle: 'solid',
                 currentItemStrokeWidth: 1,
                 currentItemBackgroundColor: 'transparent',
@@ -35,17 +45,18 @@
                 currentItemFontFamily: 1,
                 currentItemFontSize: 20,
                 currentItemTextAlign: 'left',
-                currentItemRoughness: 0,         //Sloppiness
-                currentItemRoundness: 'sharp',   //Edges
+                currentItemRoughness: 1,         //Sloppiness
+                currentItemRoundness: 'round',   //Edges
                 currentItemOpacity: 100,
                 currentItemEndArrowhead: 'triangle',
-                currentChartType: 'line'
+                currentChartType: 'line',
+                viewBackgroundColor: '#2b4b47'
             };
         }
 
         function appStateOpt() {
             return {
-                exportBackground: true,
+                exportBackground:  false,
                 viewBackgroundColor: '#fff',
                 exportWithDarkMode: false,
                 exportEmbedScene: true,
@@ -110,8 +121,10 @@
 
                     const data = { do: 'save', name: name, mode: 'image', data: e };
                     post(url, data, null);
-                    if (urlParams.get('callbackurl')) {
-                        post(urlParams.get('callbackurl'), '', null);
+                    if (urlParams.get('callback')) {
+                        post(urlParams.get('callback')+'?resource='+encodeURIComponent(urlParams.get('resource'))+
+                        '&module='+encodeURIComponent(urlParams.get('module'))
+                        , '', null);
                     }
 
                 });
@@ -195,6 +208,9 @@
             [excalidrawAPI, setExcalidrawAPI] = React.useState(null);
             const options = {
                 excalidrawAPI: (api) => { setExcalidrawAPI(api); },
+                initialData: {
+                    appState: { ...appStateDefault() },
+                }
 
             }
             return React.createElement(
@@ -224,7 +240,7 @@
         }
 
 
-        if (urlParams.get('load_file') != null) {
+        if (urlParams.get('load_file')) {
 
 
             const excalidrawWrapper = document.getElementById("app");
@@ -236,6 +252,13 @@
 
             //Load Backend JSON or PNG SCENE File
             FETCH(urlParams.get('load_file'), data, e => LOADCB(e));
+        }
+        else{
+
+            const excalidrawWrapper = document.getElementById("app");
+            const root = ReactDOM.createRoot(excalidrawWrapper);
+            root.render(React.createElement(App));
+
         }
 
 

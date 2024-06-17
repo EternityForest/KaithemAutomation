@@ -6,6 +6,7 @@ import os
 from urllib.parse import quote_plus
 
 import quart
+import quart.utils
 
 from kaithem.api.modules import admin_url_for_file_resource, filename_for_resource
 from kaithem.api.web import add_file_resource_link, add_module_plugin_link, quart_app, require
@@ -38,6 +39,31 @@ async def excalidraw_quick_save():
     return "OK"
 
 
+@quart_app.route("/plugin-excalidraw/edit", methods=["GET", "POST"])
+async def excalidraw_edit():
+    require("system_admin")
+    kwargs = dict(await quart.request.form)
+    kwargs.update(quart.request.args)
+
+    def f():
+        url = admin_url_for_file_resource(quart.request.args["module"], quart.request.args["resource"])
+        fn = filename_for_resource(quart.request.args["module"], quart.request.args["resource"])
+        if not os.path.isfile(fn):
+            url = ""
+        return quart.redirect(
+            "/plugin-excalidraw/dist/main.html?resource="
+            + quote_plus(quart.request.args["resource"], safe="")
+            + "&module="
+            + quote_plus(quart.request.args["module"], safe="")
+            + "&callback="
+            + quote_plus(quart.request.args.get("callback", ""), safe="")
+            + "&load_file="
+            + quote_plus(url, safe="")
+        )
+
+    return await quart.utils.run_sync(f)()
+
+
 @quart_app.route("/plugin-excalidraw/module_plugin", methods=["GET", "POST"])
 def excalidraw_plugin_link():
     require("system_admin")
@@ -47,10 +73,10 @@ def excalidraw_plugin_link():
         dir = dir + "/"
 
     d.text("Name must end with .excalidraw.png, and if the resource already exists, it will be overwritten")
-    d.text_input("resource", default=dir + f"new_drawing_{datetime.datetime.now().isoformat}.excalidraw.png")
+    d.text_input("resource", default=dir + f"new_drawing_{datetime.datetime.now().isoformat()}.excalidraw.png")
     d.text_input("module", default=quart.request.args["module"])
     d.submit_button("Create")
-    return d.render("/plugin-excalidraw/dist/main.html")
+    return d.render("/plugin-excalidraw/edit")
 
 
 add_module_plugin_link('<span class="mdi mdi-fountain-pen-tip"></span>Excalidraw', "/plugin-excalidraw/module_plugin")

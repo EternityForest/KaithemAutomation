@@ -3,6 +3,7 @@ import os
 import quart
 import quart.utils
 import structlog
+import vignette
 from quart import request
 from quart.ctx import copy_current_request_context
 
@@ -25,6 +26,23 @@ async def getfileresource(module, resource):
         return await quart.send_file(f)
     else:
         raise FileNotFoundError(f"File not found: {f}")
+
+
+@quart_app.app.route("/modules/module/<module>/getfileresourcethumb/<path:resource>")
+async def getfileresourcethumb(module, resource):
+    try:
+        pages.require("view_admin_info")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+
+    d = modules.getModuleDir(module)
+    f = os.path.join(d, "__filedata__", resource)
+    t = vignette.get_thumbnail(f)
+
+    if t and os.path.isfile(t):
+        return await quart.send_file(t)
+    else:
+        return quart.Response('<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0"/>', mimetype="image/svg+xml")
 
 
 @quart_app.app.route("/modules/module/<module>/addfileresource")
