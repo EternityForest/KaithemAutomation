@@ -526,7 +526,7 @@ class ChandlerConsole(console_abc.Console_ABC):
     def push_setup(self):
         ps = copy.deepcopy(self.fixture_presets)
         for i in ps:
-            ps[i]["label_image_timestamp"] = self.get_file_timestamp_if_exists(ps[i].get("label_image", ""))
+            ps[i]["labelImageTimestamp"] = self.get_file_timestamp_if_exists(ps[i].get("label_image", ""))
         "Errors in fixture list"
         self.linkSend(["ferrs", self.ferrs])
         self.linkSend(["fixtureAssignments", self.fixture_assignments])
@@ -611,8 +611,8 @@ class ChandlerConsole(console_abc.Console_ABC):
 
     def pushPreset(self, preset):
         preset_data = copy.deepcopy(self.fixture_presets.get(preset, {}))
-        preset_data["label_image_timestamp"] = self.get_file_timestamp_if_exists(preset_data.get("label_image", ""))
-        self.linkSend(["preset", preset_data])
+        preset_data["labelImageTimestamp"] = self.get_file_timestamp_if_exists(preset_data.get("label_image", ""))
+        self.linkSend(["preset", preset, preset_data])
 
     def pushMeta(
         self, groupid: str, statusOnly: bool = False, keys: Optional[List[Any] | Set[Any] | Dict[Any, Any] | Iterable[str]] = None
@@ -715,7 +715,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                 "prev": group.getParent(cue.name),
                 "hasLightingData": len(cue.values),
                 "default_next": group.getAfter(cue.name),
-                "imgLabelTimestamp": self.get_file_timestamp_if_exists(cue.label_image),
+                "labelImageTimestamp": self.get_file_timestamp_if_exists(cue.label_image),
             }
 
             d = {}

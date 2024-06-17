@@ -20,12 +20,13 @@ import mako.template
 import quart
 import quart.utils
 import structlog
+import vignette
 import yaml
 
 # import tornado.exceptions
 from mako.lookup import TemplateLookup
 from quart.ctx import copy_current_request_context
-from scullery import snake_compat
+from scullery import snake_compat, units
 
 from kaithem.api.web import add_asgi_app, render_jinja_template
 from kaithem.api.web.dialogs import SimpleDialog
@@ -568,10 +569,55 @@ async def catch_all(module, path):
 
     if isinstance(page, fileserver.ServerObj):
         fp = path[len(page.r) + 1 :]
+        if fp.endswith("/"):
+            fp = fp[:-1]
+
         if fp.startswith("/"):
             fp = fp[1:]
+
         fp = os.path.join(page.folder, fp)
-        return await quart.send_file(fp)
+        if os.path.isdir(fp):
+            if quart.request.args.get("thumbnail", "") == "true":
+                return quart.Response('<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0"/>', mimetype="image/svg+xml")
+
+            # We rely on folders having the trailing slash
+            if not quart.request.url.split("?")[0].endswith("/"):
+                return quart.redirect(quart.request.url.split("?")[0] + "/")
+
+            def get_listing():
+                entries = []
+                folders = []
+                for i in os.listdir(fp):
+                    fn = os.path.join(fp, i)
+
+                    if os.path.isdir(os.path.join(fp, i)):
+                        i = i + "/"
+                        folders.append((i, units.si_format_number(os.path.getsize(fn))))
+                    else:
+                        entries.append((i, units.si_format_number(os.path.getsize(fn))))
+                entries = sorted(folders) + sorted(entries)
+                return render_jinja_template(
+                    os.path.join(os.path.dirname(__file__), "html", "file_listing.j2.html"),
+                    entries=entries,
+                )
+
+            return await quart.utils.run_sync(get_listing)()
+
+        else:
+            if quart.request.args.get("thumbnail", "") == "true":
+
+                def f():
+                    try:
+                        x = vignette.get_thumbnail(fp)
+                        if x:
+                            return x
+                    except Exception:
+                        return quart.Response('<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0"/>', mimetype="image/svg+xml")
+
+                t = await quart.utils.run_sync(f)()
+                return await quart.send_file(t)
+            else:
+                return await quart.send_file(fp)
 
     h.update(_headers(page))
     # Check HTTP Method

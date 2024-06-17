@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: GPL-3.0-only
 from __future__ import annotations
 
+from urllib.parse import quote
+
 # This file handles the display of user-created pages
 import beartype
 import structlog
@@ -35,6 +37,9 @@ class ServerObj:
 
 class FileServerType(modules_state.ResourceType):
     @beartype.beartype
+    def blurb(self, m, r, value):
+        return f'<a href="/pages/{url(m)}/{quote(r)}">Browse</a>'
+
     def onload(self, module: str, resourcename: str, value: modules_state.ResourceDictType):
         by_module_resource[module, resourcename] = ServerObj(module, resourcename, value)
         if lookup:

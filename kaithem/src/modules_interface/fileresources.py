@@ -37,7 +37,10 @@ async def getfileresourcethumb(module, resource):
 
     d = modules.getModuleDir(module)
     f = os.path.join(d, "__filedata__", resource)
-    t = vignette.get_thumbnail(f)
+    try:
+        t = vignette.get_thumbnail(f)
+    except Exception:
+        t = None
 
     if t and os.path.isfile(t):
         return await quart.send_file(t)

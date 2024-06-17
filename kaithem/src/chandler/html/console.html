@@ -137,8 +137,7 @@ ${lists}
                 1px -1px 2px var(--contrasting-bg-color);
             position: absolute;
             z-index: 1002;
-            background: radial-gradient(circle, rgba(255, 255, 255, 0.082) 58%, rgb(0 0 0 / 0%) 85%, rgba(0, 0, 0, 0.363) 100%)
-            !important;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.082) 58%, rgb(0 0 0 / 0%) 85%, rgba(0, 0, 0, 0.363) 100%) !important;
         }
     }
 
@@ -464,6 +463,8 @@ ${lists}
                 <i class="mdi mdi-close"></i>Close
             </button>
 
+
+            <hr>
             <input class="w-full h-2rem nogrow" type="text"
                 @change="updatePreset(selectingImageLabelForPreset,presets[selectingImageLabelForPreset])"
                 v-model="presets[selectingImageLabelForPreset].label_image">
@@ -506,14 +507,19 @@ ${lists}
                     <dt>
                         <div class="tool-bar">
                             <h4>{{ps[0]}}</h4>
-                            <button type="button" v-on:click="selectingImageLabelForPreset=ps[0];">Image</button>
+                            <button type="button" v-on:click="selectingImageLabelForPreset=ps[0];">
+                                <span class="mdi mdi-image-edit-outline"></span>
+                                Image</button>
+                            <button class="button" @click="iframeDialog=getExcalidrawPresetLink(ps[0])">
+                                <span class="mdi mdi-fountain-pen-tip"></span>
+                                Draw</button>
 
                             <button type="button" v-on:click="deletePreset(ps[0])"><i
                                     class="mdi mdi-delete"></i>Delete</button>
                             <button type="button" v-on:click="renamePreset(ps[0])"><i
                                     class="mdi mdi-pencil"></i>Rename</button>
                             <button type="button" v-on:click="copyPreset(ps[0])"><i
-                                        class="mdi mdi-copy"></i>Copy</button>
+                                    class="mdi mdi-copy"></i>Copy</button>
                         </div>
                     </dt>
                     <dd style="">
@@ -548,8 +554,8 @@ ${lists}
         <div v-if="iframeDialog" class="card paper flex-col"
             style="background: var(--alt-control-bg); position: fixed; width:90vw; height: 90vh; top:5vh; left:5vw; z-index: 100">
             <header>
-            <button @click="iframeDialog=null" class="w-full nogrow">
-                <i class="mdi mdi-close"></i>Close
+                <button @click="iframeDialog=null" class="w-full nogrow">
+                    <i class="mdi mdi-close"></i>Close
             </header>
             <iframe :src="iframeDialog"></iframe>
         </div>
@@ -560,17 +566,15 @@ ${lists}
             <button @click="selectingPresetFor=null" class="w-full nogrow">
                 <i class="mdi mdi-close"></i>Close
             </button>
-            <div class="flex-row nogrow max-h-12rem scroll"
-                style="align-items:flex-start;align-content:flex-start">
+            <div class="flex-row nogrow max-h-12rem scroll" style="align-items:flex-start;align-content:flex-start">
                 <template v-for="ps of recentPresets.toReversed()">
                     <button
                         v-if="!ps.includes('@') ||ps.endsWith(selectingPresetFor) || ps.endsWith('@' + lookupFixtureType(selectingPresetFor))"
                         @click="setFixturePreset(currentcueid,selectingPresetFor, ps);selectingPresetFor=null"
-                        :disabled="no_edit" class="preset-button"
-                        >
+                        :disabled="no_edit" class="preset-button">
 
                         <img v-if="getPresetImage(ps)"
-                        :src="'../WebMediaServer?file='+encodeURIComponent(getPresetImage(ps))">
+                            :src="'../WebMediaServer?file='+encodeURIComponent(getPresetImage(ps))">
                         <div>{{ps.split('@')[0]}}<div>
                     </button>
 
@@ -787,7 +791,7 @@ ${lists}
                             v-on:click="grouptab='channels'"><i class="mdi mdi-list-box-outline"></i>Channels</button>
                     </div>
 
-                    <div  class="fadersbox flex-row nopadding" style="max-width: 100%">
+                    <div class="fadersbox flex-row nopadding" style="max-width: 100%">
                         <template v-for="(h,uname) in cuevals[currentcueid]">
                             <article class="universe card flex-col gaps" v-if="uname[0]!='@'">
                                 <header>
@@ -1016,12 +1020,12 @@ ${lists}
                                         <input :disabled="no_edit" placeholder="No picture file"
                                             v-model="currentcue.labelImage"
                                             v-on:change="setCueProperty(currentcueid,'labelImage',currentcue.labelImage)">
-                                            <button class="button"
-                                             @click="iframeDialog=getExcalidrawCueLink(editingGroup.name,currentcue)">Draw</button>
+                                        <button class="button"
+                                            @click="iframeDialog=getExcalidrawCueLink(editingGroup.name,currentcue)">Draw</button>
 
                                     </label>
                                     <label v-if="currentcue.labelImage.length>0">Label Image Preview
-                                        <img :src="'../WebMediaServer?labelImg='+encodeURIComponent(currentcueid)+'&file='+encodeURIComponent(currentcue.labelImage)"
+                                        <img :src="'../WebMediaServer?labelImg='+encodeURIComponent(currentcueid)+'&timestamp='+encodeURIComponent(currentcue.labelImageTimestamp)"
                                             class="h-center" style="max-height: 4em">
                                     </label>
 
@@ -1866,30 +1870,38 @@ ${lists}
 
     appMethods.getPresetImage = function (preset) {
         // Can use generic preset image if specific not available
-        if(vueapp.$data.presets[preset]?.label_image)
-        {
-            return(vueapp.$data.presets[preset]?.label_image)
+        if (vueapp.$data.presets[preset]?.label_image) {
+            return (vueapp.$data.presets[preset]?.label_image)
         }
 
-        if(vueapp.$data.presets[preset.split('@')[0]]?.label_image)
-        {
-            return(vueapp.$data.presets[preset.split('@')[0]]?.label_image)
+        if (vueapp.$data.presets[preset.split('@')[0]]?.label_image) {
+            return (vueapp.$data.presets[preset.split('@')[0]]?.label_image)
         }
         return null
     }
 
     appData.selectingImageLabelForPreset = null
     appData.iframeDialog = null
-    const session_time= new Date().toISOString()
+    const session_time = new Date().toISOString()
 
     appData.getExcalidrawCueLink = function (group, cue) {
-        return '/plugin-excalidraw/edit?module='+
-        encodeURIComponent(this.boardname.split(":")[0]) +
-        '&resource=' + encodeURIComponent("media/chandler/sketches/" + group + "_" + cue.name + "_"+
-
-        session_time + ".excalidraw.png")+
-        "&callback="+ encodeURIComponent("/chandler/label_image_update_callback/cue/"+cue.id)
+        return '/plugin-excalidraw/edit?module=' +
+            encodeURIComponent(this.boardname.split(":")[0]) +
+            '&resource=' + encodeURIComponent("media/chandler/sketches/" + this.boardname.split(":")[0] + "_" +
+                group + "_" + cue.name + "_" +
+                session_time + ".excalidraw.png") +
+            "&callback=" + encodeURIComponent("/chandler/label_image_update_callback/cue/" + cue.id)
     }
+
+    appData.getExcalidrawPresetLink = function (preset) {
+        return '/plugin-excalidraw/edit?module=' +
+            encodeURIComponent(this.boardname.split(":")[0]) +
+            '&resource=' + encodeURIComponent("media/chandler/sketches/preset_" + this.boardname.split(":")[0] + "_" +
+                preset + "_" +
+                session_time + ".excalidraw.png") +
+            "&callback=" + encodeURIComponent("/chandler/label_image_update_callback/preset/" + this.boardname + "/" + preset)
+    }
+
 
 
 

@@ -10,7 +10,10 @@ Change Log
 - :sparkles: Improved preset picker UI
 - :sparkles: Can set images for presets
 - :sparkles: Preset and cue images specified as 16/9
-
+- :sparkles: File server resources are browsable
+- :sparkles: File resource thumbnails
+- :sparkles: File resource audio previews
+- :sparkles: Excalidraw integration to draw labels and add documentation to modules
 
 
 #### Changed

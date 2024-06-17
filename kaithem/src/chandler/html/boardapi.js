@@ -1541,6 +1541,10 @@ function f(v) {
         vueapp.$data.presets = v[1]
     }
 
+    else if (c == 'preset') {
+        vueapp.$data.presets[v[1]] = v[2]
+    }
+
     else if (c == 'fileDownload') {
 
         if (v[1] == vueapp.$data.downloadReqId) {

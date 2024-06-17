@@ -156,7 +156,11 @@
             <dd>
 
                 <p><a href="/modules/module/{{ url(name) }}/getfileresource/{{i[1]}}">Download</a></p>
-                <img alt="thumbnail" src="/modules/module/{{ url(name) }}/getfileresourcethumb/{{i[1]}}">
+                {% if i[1].split(".")[-1] in ('mp3', 'opus','wav', 'm4a','flac') %}
+                <audio controls preload="none" src="/modules/module/{{ url(name) }}/getfileresource/{{i[1]}}"></audio>
+                {% endif %}
+
+                <img alt="thumbnail" style="max-width: 32em; max-height: 32em" src="/modules/module/{{ url(name) }}/getfileresourcethumb/{{i[1]}}">
 
             </dd>
 
