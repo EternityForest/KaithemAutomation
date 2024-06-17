@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: Copyright Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
 
+import datetime
 import os
 from urllib.parse import quote_plus
 
@@ -45,7 +46,8 @@ def excalidraw_plugin_link():
     if dir:
         dir = dir + "/"
 
-    d.text_input("resource", default=dir + "new-drawing.excalidraw.png")
+    d.text("Name must end with .excalidraw.png, and if the resource already exists, it will be overwritten")
+    d.text_input("resource", default=dir + f"new_drawing_{datetime.datetime.now().isoformat}.excalidraw.png")
     d.text_input("module", default=quart.request.args["module"])
     d.submit_button("Create")
     return d.render("/plugin-excalidraw/dist/main.html")

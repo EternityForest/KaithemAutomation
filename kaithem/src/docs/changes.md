@@ -23,6 +23,8 @@ Change Log
 - :bug: Fix beholder media playback and other things using subfolders of user pages
 - :bug: Fix OPZ DMX Definition import
 - :bug: Fix incorrect fixture type mouseover display
+- :bug: Fix deleting file resources
+- :bug: Fix get file resource path API
 
 
 ### 0.84.0b2
