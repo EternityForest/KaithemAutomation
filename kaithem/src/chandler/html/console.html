@@ -1882,12 +1882,13 @@ ${lists}
 
     appData.selectingImageLabelForPreset = null
     appData.iframeDialog = null
-    const session_time = new Date().toISOString()
+    const session_time = new Date().toISOString().slice(0, -8)
 
     appData.getExcalidrawCueLink = function (group, cue) {
         return '/plugin-excalidraw/edit?module=' +
             encodeURIComponent(this.boardname.split(":")[0]) +
-            '&resource=' + encodeURIComponent("media/chandler/sketches/" + this.boardname.split(":")[0] + "_" +
+            '&resource=' + encodeURIComponent("media/chandler/sketches/cue_" + this.boardname.split(":")[0] + "_" +
+                this.boardname.split(":")[0] + "_" +
                 group + "_" + cue.name + "_" +
                 session_time + ".excalidraw.png") +
             "&callback=" + encodeURIComponent("/chandler/label_image_update_callback/cue/" + cue.id)

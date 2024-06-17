@@ -41,6 +41,14 @@ test('test', async ({ page }) => {
     await expect(page.getByRole('img')).toBeVisible();
     await page.goto('http://localhost:8002/');
 
+    // Ensure browsing it works
+    await page.getByRole('link', { name: '󱒕 Modules' }).click();
+    await page.getByRole('link', { name: 'test_static_server' }).click();
+    await page.getByRole('link', { name: 'Browse' }).click();
+    await expect(page.locator('dl')).toContainText('linux.png');
+    await page.getByRole('link', { name: 'linux.png (4.59K)' }).click();
+    await expect(page.getByRole('img')).toBeVisible();
+    await page.goto('http://localhost:8002/');
 
 
     // Ensure that it is accessible by guests
@@ -50,7 +58,7 @@ test('test', async ({ page }) => {
     await expect(guestpage1.getByRole('img')).toBeVisible();
     await guestpage1.goto('http://localhost:8002/');
     await guestctx1.close();
-    
+
 
     // Go add the __all_permissions__ permission
     await page.getByRole('link', { name: '󱒕 Modules' }).click();

@@ -6,6 +6,8 @@
             <h2>Files</h2>
         </header>
         <dl>
+            <dt><span class="mdi mdi-folder"></span><a href="..">..</a></dt>
+            <dd></dd>
             {% for i in entries %}
             <dt>
                 {% if i[0].endswith("/") %}
@@ -14,13 +16,13 @@
                 <span class="mdi mdi-file-outline"></span>
                 {% endif %}
 
-                <a href="./{{i[0]}}">{{i[0]}} ({{i[1]}})</a>
+                <a href="./{{i[0]}}?timestamp={{i[2]}}">{{i[0]}} ({{i[1]}})</a>
             </dt>
             <dd>
                 {% if i[0].split(".")[-1] in ('mp3', 'opus','wav', 'm4a','flac') %}
-                <audio controls preload="none" src="./{{i[0]}}"></audio>
+                <audio controls preload="none" src="./{{i[0]}}?timestamp={{i[2]}}"></audio>
                 {% endif %}
-                <img src="./{{i[0]}}?thumbnail=true" alt="thumbnail">
+                <img src="./{{i[0]}}?thumbnail=true&timestamp={{i[2]}}" alt="thumbnail">
             </dd>
             {% endfor %}
         </dl>

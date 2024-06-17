@@ -592,9 +592,9 @@ async def catch_all(module, path):
 
                     if os.path.isdir(os.path.join(fp, i)):
                         i = i + "/"
-                        folders.append((i, units.si_format_number(os.path.getsize(fn))))
+                        folders.append((i, units.si_format_number(os.path.getsize(fn)), os.path.getmtime(fn)))
                     else:
-                        entries.append((i, units.si_format_number(os.path.getsize(fn))))
+                        folders.append((i, units.si_format_number(os.path.getsize(fn)), os.path.getmtime(fn)))
                 entries = sorted(folders) + sorted(entries)
                 return render_jinja_template(
                     os.path.join(os.path.dirname(__file__), "html", "file_listing.j2.html"),
@@ -606,16 +606,24 @@ async def catch_all(module, path):
         else:
             if quart.request.args.get("thumbnail", "") == "true":
 
+                @copy_current_request_context
                 def f():
                     try:
                         x = vignette.get_thumbnail(fp)
                         if x:
                             return x
+                        else:
+                            return None
                     except Exception:
-                        return quart.Response('<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0"/>', mimetype="image/svg+xml")
+                        return None
 
-                t = await quart.utils.run_sync(f)()
-                return await quart.send_file(t)
+                x = await f()
+
+                if x:
+                    return await quart.send_file(x)
+                else:
+                    return quart.Response('<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0"/>', mimetype="image/svg+xml")
+
             else:
                 return await quart.send_file(fp)
 
