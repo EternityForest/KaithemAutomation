@@ -6,7 +6,7 @@ from urllib.parse import quote_plus
 
 import quart
 
-from kaithem.api.modules import filename_for_resource
+from kaithem.api.modules import admin_url_for_file_resource, filename_for_resource
 from kaithem.api.web import add_file_resource_link, add_module_plugin_link, quart_app, require
 from kaithem.api.web.dialogs import SimpleDialog
 
@@ -59,7 +59,7 @@ def filter_excalidraw_resources(module: str, resource: str) -> tuple[str, str] |
         s = (
             f"/plugin-excalidraw/dist/main.html?module={quote_plus(module, safe='')}"
             + f"&resource={quote_plus(resource, safe='')}"
-            + f"&load_file={quote_plus(filename_for_resource(module, resource), safe='')}"
+            + f"&load_file={quote_plus(admin_url_for_file_resource(module, resource), safe='')}"
         )
 
         return ('<span class="mdi mdi-fountain-pen-tip"></span>Edit Excalidraw', s)

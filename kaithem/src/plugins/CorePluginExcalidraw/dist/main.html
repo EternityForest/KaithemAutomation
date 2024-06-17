@@ -146,31 +146,46 @@
             return Menu;
         }
 
+        //Start EXCALIDRAW with custom LIBRARY & ELEMENTS
+        function INIT(library, scene) {
+
+            const options = {
+                langCode: 'en-US',
+                name: name,
+                excalidrawAPI: (api) => { setExcalidrawAPI(api); },
+                initialData: {
+                    libraryItems: library.libraryItems,
+                    elements: scene.elements,
+                    files: scene.files,
+                    appState: { ...scene.appState, ...appStateDefault() },
+                }
+            }
+
+            const App = () => {
+
+                [excalidrawAPI, setExcalidrawAPI] = React.useState(null);
+
+                return React.createElement(
+                    React.Fragment, null,
+                    React.createElement('div', { style: { height: "100vh" } },
+                        React.createElement(ExcalidrawLib.Excalidraw, options,
+                            React.createElement(ExcalidrawLib.MainMenu, {}, MainMenu()),
+                        ),
+                    ),
+                );
+            };
+
+            const excali = document.getElementById('app');
+            const root = ReactDOM.createRoot(excali);
+            root.render(React.createElement(App));
+
+        }
         function LOADCB(e) {
 
-            const library = e.library == '' ? '' : JSON.parse(e.library);
+            ExcalidrawLib.loadFromBlob(new Blob([e], { type: 'image/png' }))              //extract scene from png metadata
+                .then(scene => INIT('', scene));
 
-            const SCENE = e.scene;
-            const type = SCENE.type;
-            const ext = SCENE.ext;
-            let scene = SCENE.content;
 
-            //Open SCENE from PNG medata
-            if (type == 'image') {
-
-                const blob = b64ToBlob(scene, ext);        //base64 png data -> blob
-
-                ExcalidrawLib.loadFromBlob(blob)              //extract scene from png metadata
-                    .then(scene => INIT(library, scene));
-            }
-            //Open SCENE from JSON file.excalidraw
-            else {
-
-                if (type == 'scene') scene = JSON.parse(scene);
-                else scene = {};                              //no Scene, just open Excalidraw empty
-
-                INIT(library, scene);
-            }
         }
 
 
@@ -193,30 +208,28 @@
         };
 
         function FETCH(url, dat, cb) {
+            url=url+'?cache_fix='+Date.now();
             let data = new FormData();
             for (var k in dat) { data.append(k, dat[k]) };
 
             let head = new Headers();
             head.append('Access-Control-Allow-Origin', '*')
 
-            let options = { method: 'post', headers: head, mode: 'cors', body: data };
+            let options = { method: 'get', headers: head, mode: 'cors' };
             fetch(url, options)
-                .then(e => e.text())
+                .then(e => e.blob())
                 .then(text => {
-                    let s;
-                    try { s = JSON.parse(text) }
-                    catch (err) { s = '' }
-                    if (cb) cb(s);
+                    if (cb) cb(text);
                 });
         }
 
-        const excalidrawWrapper = document.getElementById("app");
-        const root = ReactDOM.createRoot(excalidrawWrapper);
-        root.render(React.createElement(App));
 
         if (urlParams.get('load_file') != null) {
 
 
+            const excalidrawWrapper = document.getElementById("app");
+            const root = ReactDOM.createRoot(excalidrawWrapper);
+            root.render(React.createElement(App));
 
 
             const data = { do: 'get' };
