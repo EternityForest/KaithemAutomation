@@ -107,11 +107,12 @@
             const OptExport = OptEXPORT();
             if (!OptExport) return;
 
-            const OptJPG = { exportPadding: 10, mimeType: 'image/jpeg', quality: 0.85 };
-            const OptPNG = { exportPadding: 10, mimeType: 'image/png' };
+            const OptJPG = { exportPadding: 0, mimeType: 'image/jpeg', quality: 0.85 };
+            const OptPNG = { exportPadding: 0, mimeType: 'image/png' };
 
             const queryString = window.location.search;
             const urlParams = new URLSearchParams(queryString);
+
 
             ExcalidrawLib.exportToBlob({ ...OptExport, ...OptPNG })
                 .then(e => {

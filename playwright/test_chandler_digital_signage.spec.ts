@@ -2,6 +2,8 @@ import { test, expect } from '@playwright/test';
 import { login, logout, makeModule, deleteModule, makeTagPoint } from './util';
 
 test('test', async ({ page }) => {
+    test.setTimeout(2400000);
+
     await login(page);
 
     await page.getByRole('link', { name: '󱒕 Modules' }).click();

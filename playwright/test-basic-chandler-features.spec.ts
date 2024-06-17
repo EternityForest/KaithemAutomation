@@ -95,7 +95,7 @@ test('test', async ({ page }) => {
     // Make a new cue from the alert sound    
     await page.getByText('Cue Sound/Media').click();
     await page.getByRole('list').getByText('Refresh').click();
-    await page.getByText('Builtin').click();
+    await page.getByText('/kaithem/data/sounds/').click();
 
     // It must exisr
     await page.getByRole('button', { name: 'New' }).first().click();
