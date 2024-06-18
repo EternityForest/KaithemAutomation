@@ -99,10 +99,10 @@ ${lists}
     .preset-button {
         aspect-ratio: 16/9;
         overflow: hidden;
-        flex-basis: 8rem;
+        flex-basis: 10rem;
         height: auto;
-        flex-grow: 1;
-        max-width: 12rem;
+        flex-grow: 0;
+        max-width: 10rem;
         padding: 0px;
         position: relative;
         z-index: 1001;
@@ -484,7 +484,7 @@ ${lists}
         </div>
 
 
-        <section v-if="showPresets" class="flex-item window paper" style="width: 32em;">
+        <section v-if="showPresets" class="flex-item window paper" style="width: 32em; max-height: 90vh">
             <h3>Presets<button type="button" v-on:click="showPresets=0">
                     <i class="mdi mdi-close"></i>Close</button>
             </h3>
@@ -502,44 +502,51 @@ ${lists}
 
                 </p>
             </details>
-            <dl>
-                <template v-for="ps, i of dictView(presets,[])">
-                    <dt>
-                        <div class="tool-bar">
-                            <h4>{{ps[0]}}</h4>
-                            <button type="button" v-on:click="selectingImageLabelForPreset=ps[0];">
-                                <span class="mdi mdi-image-edit-outline"></span>
-                                Image</button>
-                            <button class="button" @click="iframeDialog=getExcalidrawPresetLink(ps[0])">
-                                <span class="mdi mdi-fountain-pen-tip"></span>
-                                Draw</button>
+            <div class="tool-bar">
+                <input type="text" v-model="filterPresets" placeholder="Filter">
+                <button type="button" class="nogrow" @click="filterPresets=''"><span
+                        class="mdi mdi-backspace"></span></button>
+            </div>
+            <div class="scroll" style="max-height: 36rem; margin-bottom: 0.5em">
+                <dl>
+                    <template v-for="ps, i of dictView(presets,[])">
+                        <dt v-if="ps[0].toLowerCase().includes(filterPresets.toLowerCase())">
+                            <div class="tool-bar">
+                                <h4>{{ps[0]}}</h4>
+                                <button type="button" v-on:click="selectingImageLabelForPreset=ps[0];">
+                                    <span class="mdi mdi-image-edit-outline"></span>
+                                    Image</button>
+                                <button class="button" @click="iframeDialog=getExcalidrawPresetLink(ps[0])">
+                                    <span class="mdi mdi-fountain-pen-tip"></span>
+                                    Draw</button>
 
-                            <button type="button" v-on:click="deletePreset(ps[0])"><i
-                                    class="mdi mdi-delete"></i>Delete</button>
-                            <button type="button" v-on:click="renamePreset(ps[0])"><i
-                                    class="mdi mdi-pencil"></i>Rename</button>
-                            <button type="button" v-on:click="copyPreset(ps[0])"><i
-                                    class="mdi mdi-copy"></i>Copy</button>
-                        </div>
-                    </dt>
-                    <dd style="">
-
-                        <img v-if="getPresetImage(ps[0])" style="max-height: 8em; max-width: 8em;"
-                            :src="'../WebMediaServer?file='+encodeURIComponent(getPresetImage(ps[0]))">
-                        <details>
-                            <summary>Values</summary>
-                            <div class="stacked-form">
-                                <label v-for="val, field of ps[1].values">
-                                    {{field}}<input :disabled="no_edit" v-model="ps[1].values[field]"
-                                        v-on:change="ps[1].values[field]=$event.target.value.trim();updatePreset(ps[0],ps[1]);">
-                                </label>
+                                <button type="button" v-on:click="deletePreset(ps[0])"><i
+                                        class="mdi mdi-delete"></i>Delete</button>
+                                <button type="button" v-on:click="renamePreset(ps[0])"><i
+                                        class="mdi mdi-pencil"></i>Rename</button>
+                                <button type="button" v-on:click="copyPreset(ps[0]); presetFilter=''"><i
+                                        class="mdi mdi-copy"></i>Copy</button>
                             </div>
-                        </details>
+                        </dt>
+                        <dd v-if="ps[0].toLowerCase().includes(filterPresets.toLowerCase())">
 
-                    </dd>
-                </template>
+                            <img v-if="getPresetImage(ps[0])" style="max-height: 8em; max-width: 8em;"
+                                :src="'../WebMediaServer?file='+encodeURIComponent(getPresetImage(ps[0]))">
+                            <details>
+                                <summary>Values</summary>
+                                <div class="stacked-form">
+                                    <label v-for="val, field of ps[1].values">
+                                        {{field}}<input :disabled="no_edit" v-model="ps[1].values[field]"
+                                            v-on:change="ps[1].values[field]=$event.target.value.trim();updatePreset(ps[0],ps[1]);">
+                                    </label>
+                                </div>
+                            </details>
 
-            </dl>
+                        </dd>
+                    </template>
+
+                </dl>
+            </div>
         </section>
 
 
@@ -579,6 +586,7 @@ ${lists}
                     </button>
 
                 </template>
+                <div style="flex-grow: 2;"></div>
 
             </div>
 
@@ -1882,6 +1890,7 @@ ${lists}
 
     appData.selectingImageLabelForPreset = null
     appData.iframeDialog = null
+    appData.filterPresets = ''
     const session_time = new Date().toISOString().slice(0, -8)
 
     appData.getExcalidrawCueLink = function (group, cue) {
@@ -1891,7 +1900,8 @@ ${lists}
                 this.boardname.split(":")[0] + "_" +
                 group + "_" + cue.name + "_" +
                 session_time + ".excalidraw.png") +
-            "&callback=" + encodeURIComponent("/chandler/label_image_update_callback/cue/" + cue.id)
+            "&callback=" + encodeURIComponent("/chandler/label_image_update_callback/cue/" + cue.id) +
+            "&ratio_guide=16_9"
     }
 
     appData.getExcalidrawPresetLink = function (preset) {
@@ -1900,7 +1910,8 @@ ${lists}
             '&resource=' + encodeURIComponent("media/chandler/sketches/preset_" + this.boardname.split(":")[0] + "_" +
                 preset + "_" +
                 session_time + ".excalidraw.png") +
-            "&callback=" + encodeURIComponent("/chandler/label_image_update_callback/preset/" + this.boardname + "/" + preset)
+            "&callback=" + encodeURIComponent("/chandler/label_image_update_callback/preset/" + this.boardname + "/" + preset) +
+            "&ratio_guide=16_9"
     }
 
 

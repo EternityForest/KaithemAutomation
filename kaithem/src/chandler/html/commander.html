@@ -185,7 +185,7 @@
                             <img
                             style="border:none; opacity: 0.4; height: 100%; width: 100%; object-fit: contain; position: absolute" class="v-center"
                             onerror='this.style.display = "none"' v-if="cuemeta[i[1].cue].labelImage"
-                            :src="'../WebMediaServer?labelImg='+encodeURIComponent(cuemeta[i[1].cue].id)+'&timestamp='+encodeURIComponent((cuemeta[i[1].cue].labelImageTimestamp)">
+                            :src="'../WebMediaServer?labelImg='+encodeURIComponent(cuemeta[i[1].cue].id)+'&timestamp='+encodeURIComponent(cuemeta[i[1].cue].labelImageTimestamp)">
 
                                 <div style="height: 100%; width: 100%; z-index: 1">
                                     <p class="warning" v-if="i[1].status">STATUS: {{i[1].status}}</p>

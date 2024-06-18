@@ -59,6 +59,8 @@ async def excalidraw_edit():
             + quote_plus(quart.request.args.get("callback", ""), safe="")
             + "&load_file="
             + quote_plus(url, safe="")
+            + "&ratio_guide="
+            + quote_plus(quart.request.args.get("ratio_guide", ""), safe="")
         )
 
     return await quart.utils.run_sync(f)()

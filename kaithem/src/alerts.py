@@ -23,6 +23,14 @@ from . import (
 logger = structlog.get_logger(__name__)
 lock = threading.RLock()
 
+system_shutdown = threading.Event()
+
+
+def shutdown(*a: tuple[Any], **k: dict[str, Any]):
+    system_shutdown.set()
+
+
+messagebus.subscribe("/system/shutdown", shutdown)
 
 fn = os.path.join(directories.vardir, "core.settings", "alertsounds.toml")
 
@@ -505,11 +513,12 @@ class Alert:
         pushAlertState()
 
     def __del__(self):
-        self.acknowledge("<DELETED>")
-        self.clear()
-        cleanup()
-        sendMessage()
-        pushAlertState()
+        if not system_shutdown.is_set():
+            self.acknowledge("<DELETED>")
+            self.clear()
+            cleanup()
+            sendMessage()
+            pushAlertState()
 
     def acknowledge(self, by="unknown", notes=""):
         notes = notes[:64]

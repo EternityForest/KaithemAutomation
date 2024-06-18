@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-    `<meta name="viewport" content="width=device-width, initial-scale=1.0">`
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>Excalidraw in browser</title>
     <script>
@@ -14,13 +14,25 @@
 
     <script src="./excalidraw.production.min.js"></script>
     <style>
-        body{
+        body {
             margin: 0px;
             height: 100vh;
         }
-        h1{
-            font-size: small;
 
+        #guide {
+            position: fixed;
+            min-height: 24vh;
+            /* max-width: 55em; */
+            top: 35vh;
+            left: 15vw;
+            z-index: 100;
+            border: 2px dotted;
+            box-sizing: content-box;
+            aspect-ratio: 16/9;
+            pointer-events: none;
+            display: none;
+            color: #97979770;
+            border-radius: 5px;
         }
     </style>
 
@@ -28,11 +40,19 @@
 
 <body>
     <div class="container">
+        <div id="guide">
+        </div>
         <div id="app"></div>
     </div>
     <script>
         const queryString = window.location.search;
         const urlParams = new URLSearchParams(queryString);
+
+        if (urlParams.get('ratio_guide')) {
+            const guide = document.getElementById('guide');
+            guide.style.display = 'block';
+            guide.style.aspectRatio = urlParams.get('ratio_guide').replace("_", "/");
+        }
         var excalidrawAPI, setExcalidrawAPI;
 
         function appStateDefault() {
@@ -56,7 +76,7 @@
 
         function appStateOpt() {
             return {
-                exportBackground:  false,
+                exportBackground: false,
                 viewBackgroundColor: '#fff',
                 exportWithDarkMode: false,
                 exportEmbedScene: true,
@@ -110,8 +130,6 @@
             const OptJPG = { exportPadding: 0, mimeType: 'image/jpeg', quality: 0.85 };
             const OptPNG = { exportPadding: 0, mimeType: 'image/png' };
 
-            const queryString = window.location.search;
-            const urlParams = new URLSearchParams(queryString);
 
 
             ExcalidrawLib.exportToBlob({ ...OptExport, ...OptPNG })
@@ -123,9 +141,9 @@
                     const data = { do: 'save', name: name, mode: 'image', data: e };
                     post(url, data, null);
                     if (urlParams.get('callback')) {
-                        post(urlParams.get('callback')+'?resource='+encodeURIComponent(urlParams.get('resource'))+
-                        '&module='+encodeURIComponent(urlParams.get('module'))
-                        , '', null);
+                        post(urlParams.get('callback') + '?resource=' + encodeURIComponent(urlParams.get('resource')) +
+                            '&module=' + encodeURIComponent(urlParams.get('module'))
+                            , '', null);
                     }
 
                 });
@@ -225,7 +243,7 @@
         };
 
         function FETCH(url, dat, cb) {
-            url=url+'?cache_fix='+Date.now();
+            url = url + '?cache_fix=' + Date.now();
             let data = new FormData();
             for (var k in dat) { data.append(k, dat[k]) };
 
@@ -254,7 +272,7 @@
             //Load Backend JSON or PNG SCENE File
             FETCH(urlParams.get('load_file'), data, e => LOADCB(e));
         }
-        else{
+        else {
 
             const excalidrawWrapper = document.getElementById("app");
             const root = ReactDOM.createRoot(excalidrawWrapper);
