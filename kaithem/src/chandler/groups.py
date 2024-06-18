@@ -186,10 +186,10 @@ class DebugScriptContext(kaithem.chandlerscript.ChandlerScriptContext):
 
 
 def checkPermissionsForGroupData(data: dict[str, Any], user: str):
-    """Check if used can upload or edit the group, ekse raise an
+    """Check if used can upload or edit the group, else raise an
       error if
         it uses advanced features that would prevent that action.
-    We disallow delete because we don't want unprivelaged users
+    We disallow delete because we don't want unprivileged users
     to delete something important that they can't fix.
 
     """
@@ -236,7 +236,7 @@ class Group:
         slide_overlay_url: str = "",
         slideshow_layout: str = "",
         music_visualizations: str = "",
-        requre_confirm: bool = False,
+        require_confirm: bool = False,
         mqtt_sync_features: dict[str, Any] | None = None,
         **ignoredParams,
     ):
@@ -263,7 +263,7 @@ class Group:
         self.mqttConnection = None
         self.mqttSubscribed: dict[str, bool]
 
-        self.require_confirm = requre_confirm
+        self.require_confirm = require_confirm
 
         disallow_special(name)
 
@@ -741,7 +741,7 @@ class Group:
         elif cue_name == "__schedule__":
             # Fast forward through scheduled @time endings.
 
-            # Avoid confusing stuff even though we technically could impleent it.
+            # Avoid confusing stuff even though we technically could implement it.
             if self.default_next.strip():
                 raise RuntimeError("Group's default next is not empty, __schedule__ doesn't work here.")
 
@@ -1229,7 +1229,7 @@ class Group:
 
     def refresh_rules(self, rulesFrom: Cue | None = None):
         with core.lock:
-            # We copy over the event recursion depth so that we can detct infinite loops
+            # We copy over the event recursion depth so that we can detect infinite loops
             if not self.script_context:
                 self.script_context = self.make_script_context()
 
@@ -1325,7 +1325,7 @@ class Group:
                         self.mqttSubscribed[x[1]] = True
 
             # Unsubscribe from no longer used things
-            torm = []
+            to_rm = []
 
             for i in self.mqttSubscribed:
                 if "$mqtt:" + i not in self.script_context.event_listeners:
@@ -1336,12 +1336,12 @@ class Group:
                         continue
                     self.mqttConnection.unsubscribe(i)
                     del self.unusedMqttTopics[i]
-                    torm.append(i)
+                    to_rm.append(i)
                 else:
                     if i in self.unusedMqttTopics:
                         del self.unusedMqttTopics[i]
 
-            for i in torm:
+            for i in to_rm:
                 del self.mqttSubscribed[i]
 
     def sendMqttMessage(self, topic, message):
@@ -1565,7 +1565,7 @@ class Group:
     def __repr__(self):
         return f"<Group {self.name}>"
 
-    def go(self, nohandoff=False):
+    def go(self):
         self.set_display_tags(self.display_tags)
 
         with core.lock:
@@ -1729,7 +1729,7 @@ class Group:
             self.tapSequence = 0
 
         # If we are more than 5 percent off from where the beat is expected,
-        # Start agaon
+        # Start again
         if self.tapSequence > 1:
             if abs(x - time_per_beat) > time_per_beat * 0.05:
                 self.tapSequence = 0
