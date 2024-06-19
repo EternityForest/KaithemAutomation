@@ -189,8 +189,6 @@ class Fixture:
 
             core.fixtureschanged = {}
 
-            universeObj.channelsChanged()
-
             if not channel:
                 return
             # 2 separate loops, first is just to check, so that we don't have half-completed stuff
@@ -209,6 +207,8 @@ class Fixture:
                     # Mark it as a hue channel that blends slightly differently
                     universeObj.hueBlendMask[i] = 1
                     cPointer += 1
+
+            universeObj.channelsChanged()
 
 
 class Universe:
@@ -395,17 +395,16 @@ class Universe:
                 if not fixture.startAddress:
                     continue
                 data = fixture.channels[i - fixture.startAddress]
-                if (data["type"] == "fine") and (i > 1):
-                    if len(data) == 2:
-                        self.fine_channels[i] = i - 1
-                    else:
+                if data["type"] == "fine":
+                    if isinstance(data["coarse"], int):
                         self.fine_channels[i] = fixture.startAddress + data["coarse"]
+                    else:
+                        for num, ch in enumerate(fixture.channels):
+                            if ch.get("name", "") == data["coarse"]:
+                                self.fine_channels[i] = fixture.startAddress + num
 
                 if data["type"] == "fixed":
-                    if len(data) == 2:
-                        self.fixed_channels[i] = 0
-                    else:
-                        self.fixed_channels[i] = data["value"]
+                    self.fixed_channels[i] = data["value"]
 
     def reset_to_cache(self):
         "Remove all changes since the prerendered layer."

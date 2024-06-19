@@ -1870,7 +1870,7 @@ class EventType(modules_state.ResourceType):
             getEventCompleted=getEventCompleted,
         )
 
-    def onfinishedloading(self, module: str | None):
+    def on_finished_loading(self, module: str | None):
         with _event_list_lock:
             global init_done
             if module is None:
@@ -1880,29 +1880,29 @@ class EventType(modules_state.ResourceType):
                 getEventsFromModules(module)
 
     @beartype.beartype
-    def onload(self, module: str, resourcename: str, value: modules_state.ResourceDictType):
+    def on_load(self, module: str, resourcename: str, value: modules_state.ResourceDictType):
         global init_done
         with _event_list_lock:
             event_resources[module, resourcename] = copy.deepcopy(value)
             if init_done:
                 updateOneEvent(module, resourcename)
 
-    def onmove(self, module, resource, toModule, toResource, resourceobj):
+    def on_move(self, module, resource, to_module, to_resource, resourceobj):
         with _event_list_lock:
             x = event_resources.pop((module, resource), None)
             if x:
                 removeOneEvent(module, resource)
-                event_resources[toModule, toResource] = x
-                updateOneEvent(toModule, toResource)
+                event_resources[to_module, to_resource] = x
+                updateOneEvent(to_module, to_resource)
 
-    def onupdate(self, module, resource, obj):
-        self.onload(module, resource, obj)
+    def on_update(self, module, resource, obj):
+        self.on_load(module, resource, obj)
 
-    def ondelete(self, module, name, value):
+    def on_delete(self, module, name, value):
         del event_resources[module, name]
         removeOneEvent(module, name)
 
-    def oncreaterequest(self, module, name, kwargs):
+    def on_create_request(self, module, name, kwargs):
         d = {
             "resource_type": "event",
             "setup": "# This code runs once when the event loads.\n__doc__=''",
@@ -1914,7 +1914,7 @@ class EventType(modules_state.ResourceType):
 
         return d
 
-    def onupdaterequest(self, module, resource, resourceobj, kwargs):
+    def on_update_request(self, module, resource, resourceobj, kwargs):
         with _event_list_lock:
             compiled_object = None
             # Test compile, throw error on fail.
@@ -1977,13 +1977,13 @@ class EventType(modules_state.ResourceType):
 
                 return r2
 
-    def createpage(self, module, path):
+    def create_page(self, module, path):
         d = SimpleDialog(f"New {self.type.capitalize()} in {module}")
         d.text_input("name")
         d.submit_button("Create")
         return d.render(self.get_create_target(module, path))
 
-    def editpage(self, module, resource, event):
+    def edit_page(self, module, resource, event):
         x = 0
         c = 0
         avg_time = 0

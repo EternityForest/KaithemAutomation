@@ -111,7 +111,7 @@ class MQTTConnection:
         self.subscriptions = []
 
         # We want to track this so we do not double subscribe.
-        self.sucessful_subscriptions = []
+        self.successful_subscriptions = []
 
         self.lock = threading.RLock()
 
@@ -142,7 +142,7 @@ class MQTTConnection:
             except TypeError:
                 self.connection = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1)
 
-            # We don't want the connection to stringly reference us, that would interfere with GC
+            # We don't want the connection to strongly reference us, that would interfere with GC
             on_connect, on_disconnect, on_message = getWeakrefHandlers(self)
 
             # if self.username:
@@ -178,14 +178,14 @@ class MQTTConnection:
 
     def subscribe(self, t):
         with self.lock:
-            if t in self.sucessful_subscriptions:
+            if t in self.successful_subscriptions:
                 return
             # Atomic.  Also add to list happens before subscribe because of race if not connected
             self.subscriptions = list(self.subscriptions) + [t]
             try:
                 assert self.connection
                 self.connection.subscribe(t, 0)
-                self.sucessful_subscriptions.append(t)
+                self.successful_subscriptions.append(t)
             except Exception:
                 logger.exception("Could not subscribe to MQTT message but can retry later")
 
@@ -230,6 +230,6 @@ class MQTTConnection:
                 self.subscriptions.remove(topic)
                 if self.connection:
                     self.connection.unsubscribe(topic)
-                self.sucessful_subscriptions.remove(topic)
+                self.successful_subscriptions.remove(topic)
             except Exception:
                 logging.exception("Err in MQTT")

@@ -799,30 +799,30 @@ class PageType(modules_state.ResourceType):
         )
 
     @beartype.beartype
-    def onload(self, module: str, resourcename: str, value: modules_state.ResourceDictType):
+    def on_load(self, module: str, resourcename: str, value: modules_state.ResourceDictType):
         updateOnePage(resourcename, module, value)
 
-    def onmove(self, module, resource, toModule, toResource, resourceobj):
+    def on_move(self, module, resource, to_module, to_resource, resourceobj):
         if module not in _pages_by_module_resource:
-            _pages_by_module_resource[toModule] = {}
+            _pages_by_module_resource[to_module] = {}
 
         x = _pages_by_module_resource[module].pop(resource, None)
         if x:
-            _pages_by_module_resource[toModule][toResource] = x
+            _pages_by_module_resource[to_module][to_resource] = x
 
-    def onupdate(self, module, resource, obj):
-        self.onload(module, resource, obj)
+    def on_update(self, module, resource, obj):
+        self.on_load(module, resource, obj)
 
-    def ondelete(self, module, name, value):
+    def on_delete(self, module, name, value):
         removeOnePage(module, name)
 
-    def oncreaterequest(self, module, name, kwargs):
+    def on_create_request(self, module, name, kwargs):
         from . import pageresourcetemplates
 
         template = kwargs["template"]
         return pageresourcetemplates.templates[template](name)
 
-    def onupdaterequest(self, module, resource, resourceobj, kwargs):
+    def on_update_request(self, module, resource, resourceobj, kwargs):
         if "tabtospace" in kwargs:
             body = kwargs["body"].replace("\t", "    ")
         else:
@@ -868,7 +868,7 @@ class PageType(modules_state.ResourceType):
 
         return resourceobj
 
-    def createpage(self, module, path):
+    def create_page(self, module, path):
         d = SimpleDialog(f"New page in {module}")
         d.text_input("name")
         d.selection("template", options=["default"])
@@ -876,7 +876,7 @@ class PageType(modules_state.ResourceType):
         d.submit_button("Create")
         return d.render(f"/modules/module/{url(module)}/addresourcetarget/{self.type}", hidden_inputs={"dir": path})
 
-    def editpage(self, module, resource, resource_data):
+    def edit_page(self, module, resource, resource_data):
         if "require_permissions" in resource_data:
             requiredpermissions = resource_data["require_permissions"]
         else:

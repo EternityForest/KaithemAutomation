@@ -117,7 +117,7 @@ def runtest():
         t = threading.Thread(target=memtest, daemon=True)
         t.daemon = True
         t.start()
-        logger.info("Self test was sucessful")
+        logger.info("Self test was successful")
     except Exception:
         messagebus.post_message(
             "/system/notifications/errors",

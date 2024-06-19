@@ -297,18 +297,20 @@ class makePlayer {
                         var st = this.intended_start_pos - ((link.now() / 1000) - this.intended_start_ts)
                         st = Math.max(st, 0)
                         p.currentTime = st;
+
+                        if (this.butterchurn) {
+                            var n = this.butterchurncontext.createMediaElementSource(this.deffered_play)
+                            this.connectNewButterchurnSource(n)
+                        }
+                        this.deffered_play = false
+                        clearInterval(this.pli)
+                        this.pli = false
                     }
                     catch {
                         this.alertTimeout("Must click page to play, unless you enable autoplay in browser settings.", 1000)
                     }
 
-                    if (this.butterchurn) {
-                        var n = this.butterchurncontext.createMediaElementSource(this.deffered_play)
-                        this.connectNewButterchurnSource(n)
-                    }
-                    this.deffered_play = false
-                    clearInterval(this.pli)
-                    this.pli = false
+
                 }
             }, 1000)
         }

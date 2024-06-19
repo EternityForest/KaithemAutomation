@@ -28,6 +28,7 @@ Change Log
 - :bug: Fix incorrect fixture type mouseover display
 - :bug: Fix deleting file resources
 - :bug: Fix get file resource path API
+- :bug: Fix coarse/fine channels
 
 
 ### 0.84.0b2

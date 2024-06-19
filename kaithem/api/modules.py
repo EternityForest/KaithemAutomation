@@ -49,3 +49,11 @@ def delete_resource(module: str, resource: str):
 def list_resources(module: str) -> list[str]:
     with modules_state.modulesLock:
         return list(modules_state.ActiveModules[module].keys())
+
+
+def scan_file_resources(module: str):
+    """Scan the resources in the filedata folder for the specified module.
+    Call if you directly change something, to update the UI.
+    """
+    modules_state.importFiledataFolderStructure(module)
+    modules_state.recalcModuleHashes()

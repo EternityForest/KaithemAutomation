@@ -1421,7 +1421,7 @@ boards: dict[str, MixingBoard] = {}
 
 
 class MixingBoardType(modules_state.ResourceType):
-    def blurb(self, module, resource, object):
+    def blurb(self, module, resource, data):
         return f"""
         <div class="tool-bar">
             <a href="/settings/mixer/{module}:{resource}">
@@ -1429,42 +1429,42 @@ class MixingBoardType(modules_state.ResourceType):
         </div>
         """
 
-    def onload(self, module, resourcename, value):
-        x = boards.pop(f"{module}:{resourcename}", None)
-        boards[f"{module}:{resourcename}"] = MixingBoard(module, resourcename, value)
+    def on_load(self, module, resource, data):
+        x = boards.pop(f"{module}:{resource}", None)
+        boards[f"{module}:{resource}"] = MixingBoard(module, resource, data)
         if x:
             x.stop()
 
-    def onmove(self, module, resource, toModule, toResource, resourceobj):
+    def on_move(self, module, resource, to_module, to_resource, data):
         x = boards.pop(f"{module}:{resource}", None)
         if x:
-            boards[f"{toModule}:{toResource}"] = x
+            boards[f"{to_module}:{to_resource}"] = x
 
-    def onupdate(self, module, resource, obj):
-        self.onload(module, resource, obj)
+    def on_update(self, module, resource, data):
+        self.on_load(module, resource, data)
 
-    def ondelete(self, module, name, value):
+    def on_delete(self, module, name, value):
         boards[f"{module}:{name}"].stop()
         del boards[f"{module}:{name}"]
 
-    def oncreaterequest(self, module, name, kwargs):
+    def on_create_request(self, module, name, kwargs):
         d = {"resource_type": self.type}
         return d
 
-    def onupdaterequest(self, module, resource, resourceobj, kwargs):
+    def on_update_request(self, module, resource, resourceobj, kwargs):
         d = resourceobj
         kwargs.pop("name", None)
         kwargs.pop("Save", None)
         return d
 
-    def createpage(self, module, path):
+    def create_page(self, module, path):
         d = dialogs.SimpleDialog("New Mixer")
         d.text_input("name", title="Resource Name")
 
         d.submit_button("Save")
         return d.render(self.get_create_target(module, path))
 
-    def editpage(self, module, name, value):
+    def edit_page(self, module, name, value):
         d = dialogs.SimpleDialog("Editing Mixer")
         d.text("Edit the board in the mixer UI")
 

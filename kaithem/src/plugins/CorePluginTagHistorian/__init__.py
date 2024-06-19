@@ -529,7 +529,7 @@ class LoggerType(modules_state.ResourceType):
         </div>
         """
 
-    def onload(self, module, resourcename, value):
+    def on_load(self, module, resourcename, value):
         cls = accumTypes[value["logger_type"]]
 
         def f(v=None):
@@ -554,18 +554,18 @@ class LoggerType(modules_state.ResourceType):
             # Do it later when ye olde tag existe.
             messagebus.subscribe("/system/tags/created", f)
 
-    def onmove(self, module, resource, toModule, toResource, resourceobj):
+    def on_move(self, module, resource, to_module, to_resource, resourceobj):
         x = loggers.pop((module, resource), None)
         if x:
-            loggers[toModule, toResource] = x
+            loggers[to_module, to_resource] = x
 
-    def onupdate(self, module, resource, obj):
-        self.onload(module, resource, obj)
+    def on_update(self, module, resource, obj):
+        self.on_load(module, resource, obj)
 
-    def ondelete(self, module, name, value):
+    def on_delete(self, module, name, value):
         del loggers[module, name]
 
-    def oncreaterequest(self, module, name, kwargs):
+    def on_create_request(self, module, name, kwargs):
         d = {"resource_type": self.type}
         d.update(kwargs)
         d.pop("name")
@@ -573,14 +573,14 @@ class LoggerType(modules_state.ResourceType):
 
         return d
 
-    def onupdaterequest(self, module, resource, resourceobj, kwargs):
+    def on_update_request(self, module, resource, resourceobj, kwargs):
         d = resourceobj
         d.update(kwargs)
         d.pop("name", None)
         d.pop("Save", None)
         return d
 
-    def createpage(self, module, path):
+    def create_page(self, module, path):
         d = dialogs.SimpleDialog("New Logger")
         d.text_input("name", title="Logger Name")
         d.text_input("tag", title="Tag Point to Log", suggestions=[(i, i) for i in tagsapi.all_tags_raw().keys()])
@@ -592,7 +592,7 @@ class LoggerType(modules_state.ResourceType):
         d.submit_button("Save")
         return d.render(self.get_create_target(module, path))
 
-    def editpage(self, module, name, value):
+    def edit_page(self, module, name, value):
         d = dialogs.SimpleDialog("Editing Logger")
         d.text_input("tag", title="Tag Point to Log", default=value["tag"], suggestions=[(i, i) for i in tagsapi.all_tags_raw().keys()])
         d.selection("logger_type", options=list(accumTypes.keys()), default=value["logger_type"], title="Accumulate Mode")

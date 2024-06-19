@@ -1136,11 +1136,11 @@ class GenericTagPointClass(Generic[T]):
 
                 self.subscribers.append(ref)
 
-                torm = []
+                to_rm = []
                 for i in self.subscribers:
                     if not i():
-                        torm.append(i)
-                for i in torm:
+                        to_rm.append(i)
+                for i in to_rm:
                     self.subscribers.remove(i)
                 messagebus.post_message(
                     f"/system/tags/subscribers{self.name}",

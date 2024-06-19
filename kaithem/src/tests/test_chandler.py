@@ -66,25 +66,28 @@ def test_fixtures():
     """
     u = {"dmx": {"channels": 512, "framerate": 44, "number": 1, "type": "enttecopen"}}
     fixtypes = {
-        "3ch RGB": {
+        "TestFixtureType": {
             "channels": [
                 {"name": "red", "type": "red"},
                 {"name": "green", "type": "green"},
                 {"name": "blue", "type": "blue"},
+                {"name": "dim", "type": "intensity"},
+                {"name": "dim_fine", "type": "fine", "coarse": "dim"},
+                {"name": "mode", "type": "fixed", "value": 4},
             ]
         }
     }
 
     # fixps = {"tst": {"blue": 42, "dim": 0, "green": 0, "red": 0}}
-    fixas = {"testFixture": {"addr": 1, "name": "testFixture", "type": "3ch RGB", "universe": "dmx"}}
+    fixas = {"testFixture": {"addr": 1, "name": "testFixture", "type": "TestFixtureType", "universe": "dmx"}}
 
     board._onmsg("__admin__", ["setconfuniverses", u], "test")
     board.check_autosave()
 
     assert board.get_project_data()["setup"]["configured_universes"]["dmx"]
 
-    board._onmsg("__admin__", ["setfixtureclass", "3ch RGB", fixtypes["3ch RGB"]], "test")
-    assert board.get_project_data()["setup"]["fixture_types"]["3ch RGB"]["channels"][0]["name"] == "red"
+    board._onmsg("__admin__", ["setfixtureclass", "TestFixtureType", fixtypes["TestFixtureType"]], "test")
+    assert board.get_project_data()["setup"]["fixture_types"]["TestFixtureType"]["channels"][0]["name"] == "red"
     board._onmsg("__admin__", ["setFixtureAssignment", "testFixture", fixas["testFixture"]], "test")
 
     s = groups.Group(board, "TestingGroup1", id="TEST")
@@ -97,6 +100,7 @@ def test_fixtures():
     board._onmsg("__admin__", ["add_cuef", cid, "testFixture", 0, 0, 0], "test")
 
     board._onmsg("__admin__", ["scv", cid, "@testFixture", "red", 39], "test")
+    board._onmsg("__admin__", ["scv", cid, "@testFixture", "dim", 64.5], "test")
 
     time.sleep(0.1)
 
@@ -104,6 +108,10 @@ def test_fixtures():
         with attempt:
             assert universes.universes["dmx"]().values[0] == 0
             assert universes.universes["dmx"]().values[1] == 39
+
+            assert int(universes.universes["dmx"]().values[4]) == 64
+            assert int(universes.universes["dmx"]().values[5]) == 127
+            assert int(universes.universes["dmx"]().values[6]) == 4
 
     assert board.get_project_data()["setup"]["fixture_assignments"]["testFixture"]
 

@@ -32,11 +32,11 @@ def test_make_module():
         type = "event"
         rt = modules_state.additionalTypes[type]
         # If create returns None, assume it doesn't want to insert a module or handles it by itself
-        r = rt.oncreaterequest(n, "testevt", {})
+        r = rt.on_create_request(n, "testevt", {})
         rt._validate(r)
         if r:
             modules_state.rawInsertResource(n, "testevt", r)
-            rt.onload(n, "testevt", r)
+            rt.on_load(n, "testevt", r)
 
     assert "testevt" in modules_state.ActiveModules[n]
 
@@ -93,7 +93,7 @@ def test_make_module():
         tag_type="numeric",
     )
     rt = modules_state.additionalTypes[type]
-    r = rt.oncreaterequest(n, "testtag", d)
+    r = rt.on_create_request(n, "testtag", d)
 
     modules_state.rawInsertResource(n, "testtag", r)
     modules.handleResourceChange(n, "testtag")

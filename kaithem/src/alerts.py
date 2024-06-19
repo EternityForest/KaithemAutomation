@@ -183,7 +183,7 @@ def alarmBeep():
             return
         if s:
             try:
-                # Ondemand to avoid circular import
+                # On-demand to avoid circular import
                 from icemedia import sound_player as sound
 
                 sound.play_sound(s, handle="kaithem_sys_main_alarm", output=beepDevice)
@@ -434,7 +434,7 @@ class Alert:
         pushAlertState()
 
     def _on_normal(self):
-        "Mostly defensivem but also cleans up if the autoclear occurs and we skip the acknowledged state"
+        "Mostly defensive but also cleans up if the autoclear occurs and we skip the acknowledged state"
         global unacknowledged, active, tripped
         if not self.sm.prev_state == "tripped":
             if self.priority in ("info", "warning", "error", "critical", "important"):

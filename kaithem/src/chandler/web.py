@@ -134,6 +134,10 @@ async def label_update_callback(path: str):
             preset = core.boards[path2[1]].fixture_presets[path2[2]]
             preset["label_image"] = kwargs["resource"][len("media/") :]
             core.boards[path2[1]].pushPreset(path2[2])
+        elif path2[0] == "fixture":
+            fixture = core.boards[path2[1]].fixture_assignments[path2[2]]
+            fixture["label_image"] = kwargs["resource"][len("media/") :]
+            core.boards[path2[1]].pushPreset(path2[2])
         return ""
 
     return await f()

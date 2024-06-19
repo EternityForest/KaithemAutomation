@@ -8,7 +8,7 @@ from urllib.parse import quote_plus
 import quart
 import quart.utils
 
-from kaithem.api.modules import admin_url_for_file_resource, filename_for_resource
+from kaithem.api.modules import admin_url_for_file_resource, filename_for_resource, scan_file_resources
 from kaithem.api.web import add_file_resource_link, add_module_plugin_link, quart_app, require
 from kaithem.api.web.dialogs import SimpleDialog
 
@@ -35,6 +35,8 @@ async def excalidraw_quick_save():
 
         with open(fn, "wb") as f:
             f.write(files[i].read())
+
+    scan_file_resources(kw["module"])
 
     return "OK"
 

@@ -168,16 +168,16 @@ deferred_loaders = []
 
 
 class DeviceResourceType(ResourceType):
-    def onfinishedloading(self, module):
+    def on_finished_loading(self, module):
         if module is None:
             init_devices()
             global finished_reading_resources
             finished_reading_resources = True
 
-    def onload(self, module, resource, resourceobj):
+    def on_load(self, module, resource, data):
         cls = None
 
-        dev_data = resourceobj["device"]
+        dev_data = data["device"]
         assert isinstance(dev_data, dict)
 
         # It's a subdevice, we don't actually make the real thing
@@ -237,23 +237,23 @@ class DeviceResourceType(ResourceType):
         else:
             deferred_loaders.append(load_closure)
 
-    def ondelete(self, module, resource, obj):
+    def on_delete(self, module, resource, data):
         with modules_state.modulesLock:
             n = resource.split(SUBDEVICE_SEPARATOR)[-1]
-            if "name" in obj["device"]:
-                n = obj["device"]["name"]
+            if "name" in data["device"]:
+                n = data["device"]["name"]
 
             delete_bookkeep(n, True)
 
-    def oncreaterequest(self, module, name, kwargs):
+    def on_create_request(self, module, resource, kwargs):
         raise RuntimeError("Not implemented, devices uses it's own create page")
 
-    def createpage(self, module, path):
-        return pages.get_template("devices/deviceintomodule.html").render(module=module, path=path)
+    def create_page(self, module, path):
+        return pages.get_template("devices/deviceinto_module.html").render(module=module, path=path)
 
-    def editpage(self, module, name, value):
+    def edit_page(self, module, resource, value):
         with modules_state.modulesLock:
-            n = name.split(SUBDEVICE_SEPARATOR)[-1]
+            n = resource.split(SUBDEVICE_SEPARATOR)[-1]
             if "name" in value["device"]:
                 n = value["device"]["name"]
         return pages.get_template("devices/device.html").render(data=remote_devices[n].config, obj=remote_devices[n], name=n)
@@ -1111,7 +1111,7 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
             remote_devices[name].update_config(k)
 
         # Only actually update data structures
-        # after updating the device runtime sucessfully
+        # after updating the device runtime successfully
 
         # Delete and then recreate because we may be renaming to a different name
 

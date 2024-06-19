@@ -66,7 +66,7 @@ def loadAllCustomResourceTypes() -> None:
                             rt = r["resource_type"]
                             assert isinstance(rt, str)
                             additionalTypes[rt]._validate(r)
-                            additionalTypes[rt].onload(i, j, r)
+                            additionalTypes[rt].on_load(i, j, r)
                         except Exception:
                             messagebus.post_message(
                                 "/system/notifications/errors",
@@ -77,7 +77,7 @@ def loadAllCustomResourceTypes() -> None:
                     logger.warning(f"Loader tried to modify resource object {i}:{j} during load")
 
     for i in additionalTypes:
-        additionalTypes[i].onfinishedloading(None)
+        additionalTypes[i].on_finished_loading(None)
 
 
 class ModuleObject:
@@ -474,25 +474,25 @@ def bookkeeponemodule(module: str, update: bool = False) -> None:
             messagebus.post_message("/system/notifications/errors", f"Failed to load  resource: {i}")
 
     for i in modules_state.additionalTypes:
-        modules_state.additionalTypes[i].onfinishedloading(module)
+        modules_state.additionalTypes[i].on_finished_loading(module)
 
     if not update:
         messagebus.post_message("/system/modules/loaded", module)
 
 
-def mvResource(module: str, resource: str, toModule: str, toResource: str):
+def mvResource(module: str, resource: str, to_module: str, to_resource: str):
     # Raise an error if the user ever tries to move something somewhere that does not exist.
-    new = toResource.split("/")
+    new = to_resource.split("/")
     for i in new:
         check_forbidden(i)
 
-    if not ("/".join(new[:-1]) in modules_state.ActiveModules[toModule] or len(new) < 2):
+    if not ("/".join(new[:-1]) in modules_state.ActiveModules[to_module] or len(new) < 2):
         raise ValueError("Invalid destination")
-    if toModule not in modules_state.ActiveModules:
+    if to_module not in modules_state.ActiveModules:
         raise ValueError("Invalid destination")
     # If something by the name of the directory we are moving to exists but it is not a directory.
     # short circuit evaluating the len makes this clause ignore moves that are to the root of a module.
-    if not (len(new) < 2 or modules_state.ActiveModules[toModule]["/".join(new[:-1])]["resource_type"] == "directory"):
+    if not (len(new) < 2 or modules_state.ActiveModules[to_module]["/".join(new[:-1])]["resource_type"] == "directory"):
         raise ValueError("Invalid destination")
 
     obj: modules_state.ResourceDictType = modules_state.ActiveModules[module][resource]
@@ -501,20 +501,20 @@ def mvResource(module: str, resource: str, toModule: str, toResource: str):
     assert isinstance(rt, str)
 
     mp = []
-    dir = modules_state.get_resource_save_location(toModule, toResource)
+    dir = modules_state.get_resource_save_location(to_module, to_resource)
 
     for i in os.listdir(dir):
         if i.split(".", 1)[0] == resource:
-            newfn = os.path.join(dir, i.replace(resource, toResource))
+            newfn = os.path.join(dir, i.replace(resource, to_resource))
             oldfn = os.path.join(dir, i)
             mp.append((oldfn, newfn))
             if os.path.exists(newfn):
                 raise FileExistsError(newfn)
 
-    modules_state.ActiveModules[toModule][toResource] = modules_state.ActiveModules[module][resource]
+    modules_state.ActiveModules[to_module][to_resource] = modules_state.ActiveModules[module][resource]
     del modules_state.ActiveModules[module][resource]
     if rt in modules_state.additionalTypes:
-        modules_state.additionalTypes[rt].onmove(module, resource, toModule, toResource, obj)
+        modules_state.additionalTypes[rt].on_move(module, resource, to_module, to_resource, obj)
 
     os.makedirs(dir, exist_ok=True)
 
@@ -550,7 +550,7 @@ def rmResource(module: str, resource: str, message: str = "Resource Deleted") ->
             auth.importPermissionsFromModules()  # sync auth's list of permissions
 
         else:
-            additionalTypes[rt].ondelete(module, resource, r)
+            additionalTypes[rt].on_delete(module, resource, r)
 
         modules_state.rawDeleteResource(module, resource)
 
@@ -606,7 +606,7 @@ def rmModule(module: str, message: str = "deleted") -> None:
         scopes.pop(module)
 
     for i in additionalTypes:
-        additionalTypes[i].ondeletemodule(module)
+        additionalTypes[i].on_delete_module(module)
 
     # Delete any custom resource types hanging around.
     for k in j:
@@ -614,7 +614,7 @@ def rmModule(module: str, message: str = "deleted") -> None:
             try:
                 rt = j[k]["resource_type"]
                 assert isinstance(rt, str)
-                additionalTypes[rt].ondelete(module, k, j[k])
+                additionalTypes[rt].on_delete(module, k, j[k])
             except Exception:
                 messagebus.post_message(
                     "/system/modules/errors/unloading",
@@ -666,6 +666,6 @@ def handleResourceChange(module: str, resource: str, obj: None = None, newly_add
             pass
         else:
             if not newly_added:
-                additionalTypes[t].onupdate(module, resource, resourceobj)
+                additionalTypes[t].on_update(module, resource, resourceobj)
             else:
-                additionalTypes[t].onload(module, resource, resourceobj)
+                additionalTypes[t].on_load(module, resource, resourceobj)

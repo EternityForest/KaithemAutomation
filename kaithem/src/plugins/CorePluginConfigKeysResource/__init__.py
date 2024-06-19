@@ -38,25 +38,25 @@ entries: dict[tuple[str, str], Entries] = {}
 
 
 class ConfigType(modules_state.ResourceType):
-    def onload(self, module, resourcename, value):
+    def on_load(self, module, resourcename, value):
         x = entries.pop((module, resourcename), None)
         x2 = Entries((module, resourcename), value["data"], float(value.get("config_priority", 50)))
         if x:
             x.close()
         entries[module, resourcename] = x2
 
-    def onmove(self, module, resource, toModule, toResource, resourceobj):
+    def on_move(self, module, resource, to_module, to_resource, resourceobj):
         x = entries.pop((module, resource), None)
         if x:
-            entries[toModule, toResource] = x
+            entries[to_module, to_resource] = x
 
-    def onupdate(self, module, resource, obj):
-        self.onload(module, resource, obj)
+    def on_update(self, module, resource, obj):
+        self.on_load(module, resource, obj)
 
-    def ondelete(self, module, name, value):
+    def on_delete(self, module, name, value):
         del entries[module, name]
 
-    def oncreaterequest(self, module, name, kwargs):
+    def on_create_request(self, module, name, kwargs):
         kwargs = dict(kwargs)
         pr = kwargs.pop("config_priority", "50")
         d = {"resource_type": self.type, "data": {kwargs["key"]: kwargs["value"]}}
@@ -64,7 +64,7 @@ class ConfigType(modules_state.ResourceType):
 
         return d
 
-    def onupdaterequest(self, module, resource, resourceobj, kwargs):
+    def on_update_request(self, module, resource, resourceobj, kwargs):
         d = resourceobj
         kwargs = dict(kwargs)
         kwargs.pop("name", None)
@@ -91,7 +91,7 @@ class ConfigType(modules_state.ResourceType):
         d["config_priority"] = float(pr.strip())
         return d
 
-    def createpage(self, module, path):
+    def create_page(self, module, path):
         d = dialogs.SimpleDialog("New Config Entries")
         d.text_input("name", title="Resource Name", suggestions=[(i, i) for i in settings_overrides.list_keys()])
         d.text_input("key", title="Config Key")
@@ -101,7 +101,7 @@ class ConfigType(modules_state.ResourceType):
         d.submit_button("Save")
         return d.render(self.get_create_target(module, path))
 
-    def editpage(self, module, name, value):
+    def edit_page(self, module, name, value):
         d = dialogs.SimpleDialog("Editing Config Entries")
 
         d.text("Empty the key field to delete an entry")

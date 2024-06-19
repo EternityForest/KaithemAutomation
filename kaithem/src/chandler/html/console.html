@@ -383,7 +383,7 @@ ${lists}
 
 
 
-        <section v-if="showslideshowtelemetry" class="flex-item window paper h-24rem">
+        <section v-if="showslideshowtelemetry" class="flex-item window paper h-24rem margin">
             <header>
                 <div class="tool-bar">
                     <h3>Slideshow Players</h3>
@@ -805,12 +805,15 @@ ${lists}
                                 <header>
                                     <h3 class="noselect">{{uname}}</h3>
                                 </header>
-                                <div class="scroll nomargin h-24rem">
-                                    <h-fader :i="i[1]" :chinfo="channelInfoForUniverseChannel(i[1].u,i[1].ch)"
-                                        :currentcueid="currentcueid" :showdelete="grouptab=='channels'"
-                                        v-for="i in dictView(h,[])">
-                                    </h-fader>
-                                </div>
+                                <details class="undecorated nopadding nomargin">
+                                    <summary>Channels</summary>
+                                    <div class="scroll nomargin h-24rem">
+                                        <h-fader :i="i[1]" :chinfo="channelInfoForUniverseChannel(i[1].u,i[1].ch)"
+                                            :currentcueid="currentcueid" :showdelete="grouptab=='channels'"
+                                            v-for="i in dictView(h,[])">
+                                        </h-fader>
+                                    </div>
+                                </details>
                             </article>
                         </template>
 
@@ -840,12 +843,18 @@ ${lists}
                                         <i class="mdi mdi-delete"></i>
                                     </button>
                                 </header>
-                                <div class="scroll nomargin h-24rem padding-bottom">
-                                    <h-fader :i="i[1]" :chinfo="channelInfoForUniverseChannel(i[1].u,i[1].ch)"
-                                        :currentcueid="currentcueid" :showdelete="grouptab=='channels'"
-                                        v-for="i in dictView(h,[])">
-                                    </h-fader>
-                                </div>
+                                <details class="undecorated nopadding nomargin">
+                                    <summary>Channels</summary>
+                                    <div class="scroll nomargin h-24rem padding-bottom">
+                                        <h-fader :i="i[1]" :chinfo="channelInfoForUniverseChannel(i[1].u,i[1].ch)"
+                                            :currentcueid="currentcueid" :showdelete="grouptab=='channels'"
+                                            v-for="i in dictView(h,[])">
+                                        </h-fader>
+                                    </div>
+                                </details>
+                                <img v-if="fixtureAssignments[fname.slice(1)]?.label_image" style="max-height: 4em;"
+                                :src="'../WebMediaServer?file='+encodeURIComponent(fixtureAssignments[fname.slice(1)]?.label_image)">
+                                >
                             </article>
                         </template>
                         <div v-if="grouptab=='channels'" class="flex-row gaps">

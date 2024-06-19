@@ -58,6 +58,35 @@ ${lists}
 
 
 <div id="app" v-cloak class="flex-row gaps">
+
+    <div v-if="selectingImageLabelForFixture" class="card paper flex-col"
+        style="position: fixed; width:90vw; height: 90vh; top:5vh; left:5vw; z-index: 100">
+        <header>Label for {{selectingImageLabelForFixture.name}}</header>
+        <button @click="selectingImageLabelForFixture=null" class="w-full nogrow">
+            <i class="mdi mdi-close"></i>Close
+        </button>
+
+
+        <hr>
+        <input class="w-full h-2rem nogrow" type="text"
+            @change="setFixtureAssignment(selectingImageLabelForFixture.name, selectingImageLabelForFixture)"
+            v-model="selectingImageLabelForFixture.label_image">
+
+        <div style="background-color: var(--alt-control-bg);">
+            <media-browser :no_edit="no_edit">
+                <template v-slot="slotProps">
+                    <button
+                        v-if="slotProps.filename.endsWith('.jpg') || slotProps.filename.endsWith('.svg') || slotProps.filename.endsWith('.png') || slotProps.filename.endsWith('.gif') || slotProps.filename.endsWith('.jpeg') || slotProps.filename.endsWith('.avif')"
+                        @click="selectingImageLabelForFixture.label_image=slotProps.relfilename;setFixtureAssignment(selectingImageLabelForFixture.name, selectingImageLabelForFixture)">
+                        Use
+                    </button>
+                </template>
+            </media-browser>
+
+        </div>
+    </div>
+
+
     <section id="optionsblock" class="multibar undecorated" style="flex-basis: 98%;">
 
         <div class="menubar tool-bar">
@@ -82,8 +111,6 @@ ${lists}
     </section>
 
     <main class="w-full flex-row">
-
-
 
         <datalist id="serports">
             <option v-for="i of serports" v-bind:value="i"></option>
@@ -126,7 +153,8 @@ ${lists}
         </section>
 
 
-        <section v-if="showMediaFolders" class="flex-item window paper w-56rem nogrow margin" style="flex-basis: 56rem;">
+        <section v-if="showMediaFolders" class="flex-item window paper w-56rem nogrow margin"
+            style="flex-basis: 56rem;">
             <header>
                 <div class="tool-bar">
                     <h3>Media Folders</h3>
@@ -135,10 +163,9 @@ ${lists}
 
             <p>Enter your sound folder paths here, one per line</p>
             <div class="scroll">
-                <textarea class="h-36rem"  style="width: 80rem;" v-bind:value="soundfolders.join('\r\n')"
-                v-on:change="setSoundFolders($event.target.value.replace('\r',''))"
-                v-on:blur="setSoundFolders($event.target.value.replace('\r',''))"
-                ></textarea>
+                <textarea class="h-36rem" style="width: 80rem;" v-bind:value="soundfolders.join('\r\n')"
+                    v-on:change="setSoundFolders($event.target.value.replace('\r',''))"
+                    v-on:blur="setSoundFolders($event.target.value.replace('\r',''))"></textarea>
             </div>
         </section>
 
@@ -223,7 +250,8 @@ ${lists}
                 <tr v-for="(v,i) in configuredUniverses">
                     <td>{{i}}</td>
                     <td>
-                        <input list="utypes" class="w-6rem" v-model="v.type" title="The type of universe. Usually enttec or artnet">
+                        <input list="utypes" class="w-6rem" v-model="v.type"
+                            title="The type of universe. Usually enttec or artnet">
                     </td>
 
                     <td v-if="v.type!='artnet'">
@@ -238,12 +266,13 @@ ${lists}
 
 
                     <td>
-                        <input type=number min=0 max=480  class="w-4rem" step=0.1 v-model="v.framerate" title="The max frame rate">
+                        <input type=number min=0 max=480 class="w-4rem" step=0.1 v-model="v.framerate"
+                            title="The max frame rate">
                     </td>
 
                     <td>
-                        <input type=number min=0 max=512  class="w-4rem"
-                        v-model="v.channels" title="The number of channels to send">
+                        <input type=number min=0 max=512 class="w-4rem" v-model="v.channels"
+                            title="The number of channels to send">
                     </td>
 
                     <td>
@@ -270,7 +299,8 @@ ${lists}
 
 
 
-        <section v-if="showFixtureSetup" class="flex-item window margin min-h-36rem w-sm-full" style="max-height: 80vh;">
+        <section v-if="showFixtureSetup" class="flex-item window margin min-h-36rem w-sm-full"
+            style="max-height: 80vh;">
 
             <header>
                 <div class="tool-bar">
@@ -362,14 +392,16 @@ ${lists}
                             <tr v-for="(w,j) in fixtureClasses[selectedFixtureClass].channels[i].ranges">
                                 <td>
                                     <input v-on:change="pushfixture(selectedFixtureClass)" class="w-4rem"
-                                        v-model.number="fixtureClasses[selectedFixtureClass].channels[i].ranges[j].min" type="number">
+                                        v-model.number="fixtureClasses[selectedFixtureClass].channels[i].ranges[j].min"
+                                        type="number">
                                 </td>
                                 <td>
-                                    <input v-on:change="pushfixture(selectedFixtureClass)"  class="w-4rem"
-                                        v-model.number="fixtureClasses[selectedFixtureClass].channels[i].ranges[j].max" type="number">
+                                    <input v-on:change="pushfixture(selectedFixtureClass)" class="w-4rem"
+                                        v-model.number="fixtureClasses[selectedFixtureClass].channels[i].ranges[j].max"
+                                        type="number">
                                 </td>
                                 <td>
-                                    <input v-on:change="pushfixture(selectedFixtureClass)"  class="w-6rem"
+                                    <input v-on:change="pushfixture(selectedFixtureClass)" class="w-6rem"
                                         v-model.number="fixtureClasses[selectedFixtureClass].channels[i].ranges[j].name">
                                 </td>
                                 <td>
@@ -384,7 +416,8 @@ ${lists}
 
 
                     </div>
-                    <button v-on:click="fixtureClasses[selectedFixtureClass].channels.splice(i,1) ;pushfixture(selectedFixtureClass)">Del</button>
+                    <button
+                        v-on:click="fixtureClasses[selectedFixtureClass].channels.splice(i,1) ;pushfixture(selectedFixtureClass)">Del</button>
                 </div>
                 <button
                     v-on:click="fixtureClasses[selectedFixtureClass].channels.push({'name':'red','type':'red'});pushfixture(selectedFixtureClass);">Add
@@ -402,7 +435,8 @@ ${lists}
             </header>
             <details class="help">
 
-                <summary><i class="mdi mdi-help-circle-outline"></i></summary>Here is where you actually assign fixtures to
+                <summary><i class="mdi mdi-help-circle-outline"></i></summary>Here is where you actually assign fixtures
+                to
                 channels after creating the desired fixture types.
                 Clicking Update will cause the new assignments to take effect immediately. Use the save settings button
                 to
@@ -414,16 +448,18 @@ ${lists}
                     <th>Name</th>
                     <th>Type</th>
                     <th>Universe</th>
-                    <th>Start Address</th>
-                    <th>Delete</th>
+                    <th>Address</th>
+                    <th>Action</th>
                 </tr>
 
                 <tr v-for="i in dictView(fixtureAssignments,['universe', 'channel'])">
                     <td>{{i[1].name}}</td>
                     <td>{{i[1].type}}</td>
-                    <td><input v-on:change="setFixtureAssignment(i[1].name, i[1])" v-model="i[1].universe"></td>
-                    <td><input v-on:change="setFixtureAssignment(i[1].name, i[1])" v-model="i[1].addr"></td>
-                    <td><button v-on:click="rmFixtureAssignment(i[1].name)">Delete</button></td>
+                    <td><input class="w-6rem" v-on:change="setFixtureAssignment(i[1].name, i[1])" v-model="i[1].universe"></td>
+                    <td><input class="w-4rem" v-on:change="setFixtureAssignment(i[1].name, i[1])" v-model="i[1].addr"></td>
+                    <td><button v-on:click="rmFixtureAssignment(i[1].name)">Delete</button>
+                        <button v-on:click="selectingImageLabelForFixture=i[1]">Image</button>
+                    </td>
                 </tr>
             </table>
 
@@ -496,7 +532,7 @@ ${core.boards[boardname].link.render('api_link')}
     // Blur the active element to cause Onchange events
     window.visibilitychange = function () {
         document.activeElement.blur();
-        };
+    };
 
     // Add page specific stuff to boardapi which is shared between all
     // the chandler apps
@@ -564,7 +600,7 @@ ${core.boards[boardname].link.render('api_link')}
         'addfixturetype': function () {
             x = prompt("New Fixture Type Name:", this.selectedFixtureType)
             if (x) {
-                old_vue_set(this.fixtureClasses, x, {channels: []})
+                old_vue_set(this.fixtureClasses, x, { channels: [] })
                 this.selectedFixtureType = x
                 api_link.send(['setfixtureclass', x, this.fixtureClasses[x]])
                 api_link.send(['getfixtureclass', x])
@@ -597,7 +633,7 @@ ${core.boards[boardname].link.render('api_link')}
         },
 
         'setSoundFolders': function (folders) {
-            api_link.send(['setsoundfolders',folders]);
+            api_link.send(['setsoundfolders', folders]);
 
         },
 
@@ -611,6 +647,7 @@ ${core.boards[boardname].link.render('api_link')}
         return date.strftime("%I:%M:%S%p")
     }
     appData.boardname = '${boardname}'
+    appData.selectingImageLabelForFixture = null
 
     const options = {
         moduleCache: {
@@ -648,6 +685,7 @@ ${core.boards[boardname].link.render('api_link')}
             methods: appMethods,
             components: {
                 "combo-box": httpVueLoader('/static/vue/ComboBox.vue'),
+                'media-browser': httpVueLoader('../static/media-browser.vue')
             },
             computed: appComputed
         }).mount("#app")

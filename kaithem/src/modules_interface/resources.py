@@ -84,7 +84,7 @@ def resource_page(module, resource):
             )
 
         # This is for the custom resource types interface stuff.
-        return modules_state.additionalTypes[resourceinquestion["resource_type"]].editpage(module, resource, resourceinquestion)
+        return modules_state.additionalTypes[resourceinquestion["resource_type"]].edit_page(module, resource, resourceinquestion)
 
 
 @quart_app.app.route("/modules/module/<module>/addresource/<type>")
@@ -105,7 +105,7 @@ def addresource(module, type):
         d.submit_button("Create")
         return d.render(f"/modules/module/{url(module)}/addresourcetarget/{type}", hidden_inputs={"dir": path})
     else:
-        return modules_state.additionalTypes[type].createpage(module, path)
+        return modules_state.additionalTypes[type].create_page(module, path)
 
 
 @quart_app.app.route("/modules/module/<module>/addresourcetarget/<rtype>/<path:path>", methods=["POST"])
@@ -160,11 +160,11 @@ async def addresourcetarget(module, rtype, path=""):
             else:
                 rt = modules_state.additionalTypes[type]
                 # If create returns None, assume it doesn't want to insert a module or handles it by itself
-                r = rt.oncreaterequest(module, name, kwargs)
+                r = rt.on_create_request(module, name, kwargs)
                 rt._validate(r)
                 if r:
                     insertResource(r)
-                    rt.onload(module, name_with_path, r)
+                    rt.on_load(module, name_with_path, r)
 
             messagebus.post_message(
                 "/system/notifications",
@@ -203,7 +203,7 @@ async def resource_update_handler(module, resource):
             resourceobj["resource_timestamp"] = int(time.time() * 1000000)
 
             if t in modules_state.additionalTypes:
-                n = modules_state.additionalTypes[t].onupdaterequest(module, resource, old_resource, kwargs)
+                n = modules_state.additionalTypes[t].on_update_request(module, resource, old_resource, kwargs)
                 modules_state.additionalTypes[t].validate(n)
 
                 if n:
@@ -422,14 +422,14 @@ async def module_update(module):
                 modules_state.ActiveModules[kwargs["name"]] = modules_state.ActiveModules.pop(module)
 
                 for rt in modules_state.additionalTypes:
-                    modules_state.additionalTypes[rt].ondeletemodule(module)
+                    modules_state.additionalTypes[rt].on_delete_module(module)
 
                 # Calll the deleter
                 for r, obj in modules_state.ActiveModules[kwargs["name"]].items():
                     rt = modules_state.ActiveModules[kwargs["name"]]["resource_type"]
                     assert isinstance(rt, str)
                     if rt in modules_state.additionalTypes:
-                        modules_state.additionalTypes[rt].ondelete(module, r, obj)
+                        modules_state.additionalTypes[rt].on_delete(module, r, obj)
 
                 # And calls this function the generate the new cache
                 modules.bookkeeponemodule(kwargs["name"], update=True)

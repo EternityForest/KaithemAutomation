@@ -119,7 +119,7 @@ def doScan():
         # Support versions of rtmidi where it does not work the first time
         scanning_connection = rtmidi.MidiIn(name=f"Kaithem{str(ctr)}")
         ctr += 1
-    torm = []
+    to_rm = []
     try:
         present = [(i, scanning_connection.get_port_name(i)) for i in range(scanning_connection.get_port_count())]
         scanning_connection.close_port()
@@ -129,8 +129,8 @@ def doScan():
 
     for i in allInputs:
         if i not in present:
-            torm.append(i)
-    for i in torm:
+            to_rm.append(i)
+    for i in to_rm:
         del allInputs[i]
 
     for i in present:

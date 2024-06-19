@@ -321,15 +321,15 @@ class Cue:
 
             if random.random() < 1:
                 # Do a full GC pass of the shortcut codes list
-                torm = []
+                to_rm = []
                 for i in shortcut_codes:
                     if not shortcut_codes[i]:
-                        torm.append(i)
+                        to_rm.append(i)
                     else:
                         for j in list(shortcut_codes[i]):
                             if not j.group():
                                 shortcut_codes[i].remove(j)
-                for i in torm:
+                for i in to_rm:
                     del shortcut_codes[i]
 
             if code:

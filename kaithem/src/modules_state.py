@@ -70,10 +70,10 @@ def getModuleDir(module: str) -> str:
 
 # The key update must also be defined.
 # This must take a module, a resource, the current resource object, and a dict created from a form
-# POST, and returing a new updated resource object.
+# POST, and returning a new updated resource object.
 
 
-# If you want to be able to move the module, you must define a function 'onmove' that takes(module,resource,newmodule,newresource,object)
+# If you want to be able to move the module, you must define a function 'on_move' that takes(module,resource,newmodule,newresource,object)
 # The update function will always run under a lock.
 
 
@@ -149,7 +149,7 @@ def importFiledataFolderStructure(module: str) -> None:
 
                     relfn = os.path.relpath(os.path.join(root, i), folder)
 
-                    # Create a directory resource for the dirrctory
+                    # Create a directory resource for the directory
                     ActiveModules[module][util.unurl(relfn)] = {"resource_type": "directory"}
 
 
@@ -454,7 +454,7 @@ def hashModule(module: str) -> str:
 
 
 def in_folder(n: str, folder_name: str) -> bool:
-    """Return true if name r represents a kaihem resource in folder f"""
+    """Return true if name r represents a kaithem resource in folder f"""
     # Note: this is about kaithem resources and folders, not actual filesystem dirs.
     if not n.startswith(folder_name):
         return False
@@ -484,11 +484,11 @@ def ls_folder(m: str, d: str) -> list[str]:
 modulesLock = RLock()
 
 
-# For passing thigs to that owning thread
+# For passing things to that owning thread
 mlockFunctionQueue: list[Callable[[], Any]] = []
 
 
-# Define a place to keep the module private scope obects.
+# Define a place to keep the module private scope objects.
 # Every module has a object of class object that is used so user code can share state between resources in
 # a module
 scopes: dict[str, Any] = {}

@@ -45,11 +45,11 @@ class EnhancedConnection(BaseConnection):
         )
 
         with allConnectionsLock:
-            torm = []
+            to_rm = []
             for i in allConnections:
                 if not allConnections[i]():
-                    torm.append(i)
-            for i in torm:
+                    to_rm.append(i)
+            for i in to_rm:
                 allConnections.pop(i)
             allConnections[message_bus_name] = weakref.ref(self)
 
