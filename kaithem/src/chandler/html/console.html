@@ -559,7 +559,7 @@ ${lists}
 
 
         <div v-if="iframeDialog" class="card paper flex-col"
-            style="background: var(--alt-control-bg); position: fixed; width:90vw; height: 90vh; top:5vh; left:5vw; z-index: 100">
+            style="background: var(--alt-control-bg); position: fixed; width:90vw; max-width: 48rem; height: 90vh; top:5vh; left:5vw; z-index: 100">
             <header>
                 <button @click="iframeDialog=null" class="w-full nogrow">
                     <i class="mdi mdi-close"></i>Close
@@ -853,8 +853,8 @@ ${lists}
                                     </div>
                                 </details>
                                 <img v-if="fixtureAssignments[fname.slice(1)]?.label_image" style="max-height: 4em;"
-                                :src="'../WebMediaServer?file='+encodeURIComponent(fixtureAssignments[fname.slice(1)]?.label_image)">
-                                >
+                                    :src="'../WebMediaServer?file='+encodeURIComponent(fixtureAssignments[fname.slice(1)]?.label_image)">
+
                             </article>
                         </template>
                         <div v-if="grouptab=='channels'" class="flex-row gaps">
