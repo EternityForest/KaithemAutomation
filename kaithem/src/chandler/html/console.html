@@ -514,10 +514,10 @@ ${lists}
                             <div class="tool-bar">
                                 <h4>{{ps[0]}}</h4>
                                 <button type="button" v-on:click="selectingImageLabelForPreset=ps[0];">
-                                    <span class="mdi mdi-image-edit-outline"></span>
+                                    <i class="mdi mdi-image-edit-outline"></i>
                                     Image</button>
                                 <button class="button" @click="iframeDialog=getExcalidrawPresetLink(ps[0])">
-                                    <span class="mdi mdi-fountain-pen-tip"></span>
+                                    <i class="mdi mdi-fountain-pen-tip"></i>
                                     Draw</button>
 
                                 <button type="button" v-on:click="deletePreset(ps[0])"><i
@@ -1382,112 +1382,121 @@ ${lists}
                 </details> -->
                 <div class="flex-row gaps">
 
-                    <div class="w-sm-full card">
+                    <fieldset class="stacked-form w-sm-full">
 
-                        <header>
-                            <h4>Basic</h4>
-                        </header>
-                        <div class="stacked-form">
+                        <legend>Basic</legend>
+                        <p> <label><span><i class="mdi mdi-circle-opacity"></i>
 
-                            <p> <label>
-                                    Alpha:<input type="number" max=1 step=0.01 min=0
-                                        v-on:change="setalpha(groupname,parseFloat($event.target.value));"
-                                        v-model="alphas[groupname]">
-                                </label>
-
-                                <label>Default Alpha
-                                    <input :disabled="no_edit" type="number" max=1 step=0.01 min=0
-                                        v-on:change="setdalpha(groupname,parseFloat($event.target.value))"
-                                        v-model="editingGroup.defaultAlpha"></input>
-                                </label>
-                            </p>
-
-                            <label>Blend Mode
-                                <select :disabled="no_edit"
-                                    title="This setting controls blending multiple groups together"
-                                    v-on:input="setblend(groupname,$event.target.value)" v-model="editingGroup.blend"
-                                    data-testid="group_blend_mode">
-
-                                    <option title="Alpha blend with groups below">normal</option>
-                                    <option
-                                        title="Highest Takes Priority, only affect lights if the value is higher than the others">
-                                        HTP</option>
-                                    <option title="Limit maximum level">inhibit</option>
-
-                                    <option v-for="i in ${[i for i in blendmodes.blendmodes.keys()]}">{{i}}
-                                    </option>
-
-                                </select>
+                                    Alpha</span><input type="number" max=1 step=0.01 min=0
+                                    v-on:change="setalpha(groupname,parseFloat($event.target.value));"
+                                    v-model="alphas[groupname]">
                             </label>
 
-                            <p>
-                                <label><span class="mdi mdi-lock-alert"></span>
-                                    Require Confirmation for Cue Jumps
-                                    <input :disabled="no_edit" type="checkbox" v-model="editingGroup.requireConfirm"
-                                        v-on:change="setGroupProperty(groupname,'requireConfirm', editingGroup.requireConfirm)">
-                                </label>
+                            <label><span><i class="mdi mdi-circle-opacity"></i>
+                                    Default Alpha</span>
+                                <input :disabled="no_edit" type="number" max=1 step=0.01 min=0
+                                    v-on:change="setdalpha(groupname,parseFloat($event.target.value))"
+                                    v-model="editingGroup.defaultAlpha"></input>
+                            </label>
+                        </p>
 
-                                <label>Priority
-                                    <input :disabled="no_edit" type='number' min=0 max=100
-                                        v-on:change="setGroupProperty(groupname,'priority', parseFloat($event.target.value))"
-                                        v-model="editingGroup.priority">
-                                </label>
-                                <label>BPM
-                                    <input :disabled="no_edit" type='number' min=0 max=100
-                                        v-on:change="setbpm(groupname,parseFloat($event.target.value))"
-                                        v-model="editingGroup.bpm">
-                                </label>
-                                <button type="button" v-on:click="tap(groupname)" class="grow">
-                                    <i class="mdi mdi-gesture-tap"></i>Tap
-                                </button>
-                            </p>
+                        <label><span><i class="mdi mdi-layers-triple"></i>
+                                Blend Mode</span>
+                            <select :disabled="no_edit" title="This setting controls blending multiple groups together"
+                                v-on:input="setblend(groupname,$event.target.value)" v-model="editingGroup.blend"
+                                data-testid="group_blend_mode">
 
-                            <p>
-                                <label title="Check this box to make the group active at startup">Active By
-                                    Default
-                                    <input :disabled="no_edit" type="checkbox"
-                                        v-on:change="setGroupProperty(groupname,'defaultActive',$event.target.checked)"
-                                        v-model="editingGroup.defaultActive"></input>
-                                </label>
+                                <option title="Alpha blend with groups below">normal</option>
+                                <option
+                                    title="Highest Takes Priority, only affect lights if the value is higher than the others">
+                                    HTP</option>
+                                <option title="Limit maximum level">inhibit</option>
 
-                                <label
-                                    title="Groups inherit from previous groups even if you jump directly to them">Backtrack
-                                    <input :disabled="no_edit" type="checkbox"
-                                        v-on:change="setGroupProperty(groupname,'backtrack', $event.target.checked)"
-                                        v-model="editingGroup.backtrack"></input>
-                                </label>
-                            </p>
+                                <option v-for="i in ${[i for i in blendmodes.blendmodes.keys()]}">{{i}}
+                                </option>
+
+                            </select>
+                        </label>
+
+                        <label><span><i class="mdi mdi-lock-alert"></i>
+                                Require Confirmation for Cue Jumps</span>
+                            <input :disabled="no_edit" type="checkbox" v-model="editingGroup.requireConfirm"
+                                v-on:change="setGroupProperty(groupname,'requireConfirm', editingGroup.requireConfirm)">
+                        </label>
+
+                        <p>
 
 
-                            <label>Slideshow Overlay:
-                                <input :disabled="no_edit"
-                                    v-on:change="setGroupProperty(groupname,'slideOverlayUrl',$event.target.value)"
-                                    v-model="editingGroup.slideOverlayUrl"></input>
+                            <label><span><i class="mdi mdi-numeric"></i>
+                                    Priority</span>
+                                <input :disabled="no_edit" type='number' min=0 max=100
+                                    v-on:change="setGroupProperty(groupname,'priority', parseFloat($event.target.value))"
+                                    v-model="editingGroup.priority">
                             </label>
 
+                        </p>
+                        <p>
+                            <label><span><i class="mdi mdi-metronome"></i>
+                                    BPM</span>
+                                <input :disabled="no_edit" type='number' min=0 max=100
+                                    v-on:change="setbpm(groupname,parseFloat($event.target.value))"
+                                    v-model="editingGroup.bpm">
+                            </label>
+                            <button type="button" v-on:click="tap(groupname)" class="grow">
+                                <i class="mdi mdi-gesture-tap"></i>Tap
+                            </button>
+                        </p>
 
-
-                            <label title="Recieve note events from a MIDI input device">MIDI
-                                Source:
-                                <input :disabled="no_edit" list="midiinputs"
-                                    v-on:change="setGroupProperty(groupname,'midiSource', $event.target.value)"
-                                    v-model="editingGroup.midiSource"></input>
+                        <p>
+                            <label title="Check this box to make the group active at startup">
+                                <span><i class="mdi mdi-refresh-auto"></i>
+                                    Active By Default</span>
+                                <input :disabled="no_edit" type="checkbox"
+                                    v-on:change="setGroupProperty(groupname,'defaultActive',$event.target.checked)"
+                                    v-model="editingGroup.defaultActive"></input>
                             </label>
 
-                            <label title="Recieve shortcut codes from a command-type tag">
-                                Command Tag:<input :disabled="no_edit" placeholder="Tagpoint"
-                                    v-on:change="setcommandtag(groupname,$event.target.value)"
-                                    v-model="editingGroup.commandTag" list="commandtagslisting">
+                            <label title="Groups inherit from previous groups even if you jump directly to them">
+                                <span><i class="mdi mdi-skip-forward-outline"></i>
+                                    Backtrack</span>
+                                <input :disabled="no_edit" type="checkbox"
+                                    v-on:change="setGroupProperty(groupname,'backtrack', $event.target.checked)"
+                                    v-model="editingGroup.backtrack"></input>
                             </label>
+                        </p>
 
-                            <label title="You can use this with __random__ to create a shuffle effect.">Default
-                                cue advance:
-                                <input :disabled="no_edit" list="nextcueoptions"
-                                    v-on:change="setdefaultnext(groupname,$event.target.value)"
-                                    v-model="editingGroup.defaultNext" placeholder="Next cue in list"></input>
-                            </label>
-                        </div>
-                    </div>
+
+                        <label><span><i class="mdi mdi-layers-outline"></i>
+                                Slideshow Overlay</span>
+                            <input :disabled="no_edit"
+                                v-on:change="setGroupProperty(groupname,'slideOverlayUrl',$event.target.value)"
+                                v-model="editingGroup.slideOverlayUrl"></input>
+                        </label>
+
+
+
+                        <label title="Recieve note events from a MIDI input device">
+                            <span><i class="mdi mdi-midi-port"></i>
+                                MIDI Source:</span>
+                            <input :disabled="no_edit" list="midiinputs"
+                                v-on:change="setGroupProperty(groupname,'midiSource', $event.target.value)"
+                                v-model="editingGroup.midiSource"></input>
+                        </label>
+
+                        <label title="Recieve shortcut codes from a command-type tag">
+                            Command Tag:<input :disabled="no_edit" placeholder="Tagpoint"
+                                v-on:change="setcommandtag(groupname,$event.target.value)"
+                                v-model="editingGroup.commandTag" list="commandtagslisting">
+                        </label>
+
+                        <label title="You can use this with __random__ to create a shuffle effect.">Default
+                            cue advance:
+                            <input :disabled="no_edit" list="nextcueoptions"
+                                v-on:change="setdefaultnext(groupname,$event.target.value)"
+                                v-model="editingGroup.defaultNext" placeholder="Next cue in list"></input>
+                        </label>
+                    </fieldset>
+
 
 
                     <div class="card w-sm-full">

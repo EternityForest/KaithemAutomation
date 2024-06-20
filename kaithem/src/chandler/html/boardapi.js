@@ -1589,7 +1589,7 @@ init_api_link = function () {
         }
 
         for (i of document.querySelectorAll('[data-count-ref]')) {
-            l = parseFloat(i.dataset.countLen)
+            l = parseFloat(i.dataset.countLen) * (60/parseFloat(i.dataset.countBpm))
             e = parseFloat(i.dataset.countRef) + l
 
             i.innerHTML = formatInterval(e - u)
