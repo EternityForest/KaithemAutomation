@@ -853,7 +853,7 @@ ${lists}
                                     </div>
                                 </details>
                                 <img v-if="fixtureAssignments[fname.slice(1)]?.label_image" style="max-height: 4em;"
-                                    :src="'../WebMediaServer?file='+encodeURIComponent(fixtureAssignments[fname.slice(1)]?.label_image)">
+                                    :src="'../WebMediaServer?file='+encodeURIComponent(fixtureAssignments[fname.slice(1)]?.label_image)+'&ts='+fixtureAssignments[fname.slice(1)]?.labelImageTimestamp">
 
                             </article>
                         </template>

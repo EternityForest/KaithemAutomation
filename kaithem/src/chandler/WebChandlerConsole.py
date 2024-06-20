@@ -163,6 +163,22 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         if self.link:
             return self.link.send_to(data, target)
 
+    def send_fixture_assignments(self):
+        f = copy.deepcopy(self.fixture_assignments)
+        for i in f:
+            ts = 0
+            x = f[i].get("label_image", "")
+            if x:
+                try:
+                    x = core.resolve_sound(x, self.media_folders)
+                    ts = self.get_file_timestamp_if_exists(x)
+                except Exception:
+                    pass
+                if ts:
+                    f[i]["labelImageTimestamp"] = ts
+
+        self.linkSend(["fixtureAssignments", f])
+
     def send_everything(self, sessionid: str):
         with core.lock:
             self.push_setup()
@@ -306,7 +322,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             return
 
         elif cmd_name == "getfixtureassg":
-            self.linkSend(["fixtureAssignments", self.fixture_assignments])
+            self.send_fixture_assignments()
             self.push_setup()
             return
 
@@ -508,14 +524,13 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         elif cmd_name == "setFixtureAssignment":
             self.fixture_assignments[msg[1]] = msg[2]
-            self.linkSend(["fixtureAssignments", self.fixture_assignments])
+            self.send_fixture_assignments()
             self.refresh_fixtures()
 
         elif cmd_name == "rmFixtureAssignment":
             del self.fixture_assignments[msg[1]]
 
-            self.linkSend(["fixtureAssignments", self.fixture_assignments])
-            self.linkSend(["fixtureAssignments", self.fixture_assignments])
+            self.send_fixture_assignments()
 
             self.refresh_fixtures()
 
