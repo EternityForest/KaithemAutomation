@@ -2,7 +2,9 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 
+import copy
 import os
+import time
 
 import quart
 import quart.utils
@@ -210,6 +212,41 @@ def indvidual_module(module):
         module_actions=module_actions,
         **module_page_context,
     )
+
+
+@quart_app.app.route("/modules/label_image/<module>/<path:path>/")
+async def get_resource_label_image(module: str, path: str):
+    pages.require("view_admin_info")
+
+    @quart.ctx.copy_current_request_context
+    def f():
+        data = modules_state.ActiveModules[module][path]
+
+        mf = modules_state.getModuleDir(module)
+        mf = os.path.join(mf, "__filedata__/media")
+
+        if os.path.isfile(os.path.join(mf, data["resource_label_image"])):
+            return os.path.join(mf, data["resource_label_image"])
+
+    fn = await f()
+    return await quart.send_file(fn)
+
+
+@quart_app.app.route("/modules/set_label_image/<module>/<path:path>", methods=["POST"])
+async def set_resource_label(module: str, path: str):
+    pages.require("system_admin")
+    kw = dict(await quart.request.form)
+    kw.update(quart.request.args)
+    data = modules_state.ActiveModules[module][path]
+
+    mf = modules_state.getModuleDir(module)
+    mf = os.path.join(mf, "__filedata__/media")
+
+    data = modules_state.ActiveModules[module][path]
+    data2 = dict(copy.deepcopy(data))
+    data2["resource_label_image"] = kw["resource"][len("media/") :] + "?ts=" + str(time.time())
+    modules_state.rawInsertResource(module, path, data2)
+    return "OK"
 
 
 # def manual_run(self,module, resource):

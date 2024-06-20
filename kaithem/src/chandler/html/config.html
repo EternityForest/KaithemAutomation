@@ -667,7 +667,7 @@ ${core.boards[boardname].link.render('api_link')}
     appData.iframeDialog = null
 
     appData.getExcalidrawFixtureLink = function (fixture) {
-        return '/plugin-excalidraw/edit?module=' +
+        return '/excalidraw-plugin/edit?module=' +
             encodeURIComponent(this.boardname.split(":")[0]) +
             '&resource=' + encodeURIComponent("media/chandler/sketches/fixture_" + this.boardname.split(":")[0] + "_" +
             fixture + ".excalidraw.png") +

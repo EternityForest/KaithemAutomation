@@ -160,7 +160,6 @@
                 <audio controls preload="none" src="/modules/module/{{ url(name) }}/getfileresource/{{i[1]}}?timestamp={{i[2]}}"></audio>
                 {% endif %}
 
-                <img alt="thumbnail" style="max-width: 32em; max-height: 32em" src="/modules/module/{{ url(name) }}/getfileresourcethumb/{{i[1]}}?timestamp={{i[2]}}">
 
             </dd>
 
@@ -201,17 +200,24 @@
                                 class="mdi mdi-{{modules.additionalTypes[module[i]['resource_type']].mdi_icon}}"></i>
                             {{ i.split("/")[-1] | escape }} ({{module[i]['resource_type']}})</a>
                     </h3>
+
                     <a class="button nogrow" href="/modules/module/{{ url(name) }}/download_resource/{{ url(i) }}"><span
                             class="mdi mdi-download-box"></span>
                         Export</a>
                     <a class="button nogrow" href="/modules/module/{{ url(name) }}/moveresource/{{ url(i) }}"><span
                             class="mdi mdi-folder-move"></span>
                         Move</a>
+                    <a class="button nogrow" href="/excalidraw-plugin/edit?module={{ url(name) }}&resource=media/resource_labels/{{ url(i) }}.excalidraw.png&callback=/modules/set_label_image/{{ url(name) }}/{{ url(i) }}">
+                            <i class="mdi mdi-image"></i></a>
                     <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
                             class="mdi mdi-delete"></i>Delete</a>
                 </div>
             </dt>
             <dd>
+                {% if module[i].get('resource_label_image') %}
+                <img alt="thumbnail" style="max-width: 32em; max-height: 32em"
+                src="/modules/label_image/{{ url(name) }}/{{ url(i) }}">
+                {% endif %}
                 {{modules.additionalTypes[module[i]['resource_type']]._blurb(name,i,module[i] )}}
             </dd>
             {% endif %}
@@ -226,17 +232,21 @@
                             href="/device/{{module[i].get('device',{}).get('name','').replace('/','%2F')|escape}}/manage">
                             <i class="mdi mdi-chip"></i> {{ i.split("/")[-1] | escape }}</a>
                     </p>
+                    <a class="button nogrow" href="/excalidraw-plugin/edit?module={{ url(name) }}&resource=media/resource_labels/{{ url(i) }}.excalidraw.png&callback=/modules/set_label_image/{{ url(name) }}/{{ url(i) }}">
+                        <i class="mdi mdi-image"></i></a>
                     <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
                             class="mdi mdi-delete"></i>Delete</a>
                     <br>
                 </div>
             </dt>
             <dd>
-
+                {% if module[i].get('resource_label_image') %}
+                <img alt="thumbnail" style="max-width: 32em; max-height: 8em"
+                src="/modules/label_image/{{ url(name) }}/{{ url(i) }}">
+                {% endif %}
             </dd>
             {% endif %}
 
-            <hr>
             {% endfor %}
         </dl>
     </section>

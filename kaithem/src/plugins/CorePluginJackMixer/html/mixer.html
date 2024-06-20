@@ -504,7 +504,7 @@ ${global_api.render("gapi")}
     methods: {
 
     getExcalidrawLink : function (channel) {
-          return '/plugin-excalidraw/edit?module=' +
+          return '/excalidraw-plugin/edit?module=' +
               encodeURIComponent(this.boardname.split(":")[0]) +
               '&resource=' + encodeURIComponent("media/mixers/sketches/channel_"  +
                   this.boardname.split(":")[1] +".excalidraw.png") +

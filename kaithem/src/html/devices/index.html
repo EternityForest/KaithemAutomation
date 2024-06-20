@@ -114,6 +114,11 @@ else:
         %endif
         %endif
 
+        %if devObj.parent_module and modules_state.ActiveModules[devObj.parent_module][devObj.parent_resource].get('resource_label_image'):
+        <img alt="thumbnail" style="max-width: 32em; max-height: 8em"
+        src="/modules/label_image/${ url(devObj.parent_module) }/${ url(devObj.parent_resource) }">
+        %endif %}
+
 
     <div class="stacked-form margin-top">
         %if hasattr(devObj, 'tagPoints') and devObj.tagPoints:

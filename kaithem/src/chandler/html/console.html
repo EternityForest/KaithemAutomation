@@ -1903,7 +1903,7 @@ ${lists}
     const session_time = new Date().toISOString().slice(0, -8)
 
     appData.getExcalidrawCueLink = function (group, cue) {
-        return '/plugin-excalidraw/edit?module=' +
+        return '/excalidraw-plugin/edit?module=' +
             encodeURIComponent(this.boardname.split(":")[0]) +
             '&resource=' + encodeURIComponent("media/chandler/sketches/cue_" + this.boardname.split(":")[1] + "_" +
                 "_" +
@@ -1913,7 +1913,7 @@ ${lists}
     }
 
     appData.getExcalidrawPresetLink = function (preset) {
-        return '/plugin-excalidraw/edit?module=' +
+        return '/excalidraw-plugin/edit?module=' +
             encodeURIComponent(this.boardname.split(":")[0]) +
             '&resource=' + encodeURIComponent("media/chandler/sketches/preset_" + this.boardname.split(":")[1] + "_" +
                 preset + "_" +

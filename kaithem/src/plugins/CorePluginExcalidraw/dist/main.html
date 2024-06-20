@@ -6,7 +6,7 @@
 
     <title>Excalidraw in browser</title>
     <script>
-        window.EXCALIDRAW_ASSET_PATH = "/plugin-excalidraw/dist/";
+        window.EXCALIDRAW_ASSET_PATH = "/excalidraw-plugin/dist/";
 
     </script>
     <script src="./react.production.min.js"></script>
@@ -134,7 +134,7 @@
 
             ExcalidrawLib.exportToBlob({ ...OptExport, ...OptPNG })
                 .then(e => {
-                    const url = ('/plugin-excalidraw/quick_save?' +
+                    const url = ('/excalidraw-plugin/quick_save?' +
                         'module=' + encodeURIComponent(urlParams.get('module')) +
                         '&resource=' + encodeURIComponent(urlParams.get('resource')));
 
