@@ -13,6 +13,7 @@ import time
 import traceback
 import uuid
 
+import quart
 import structlog
 from icemedia import iceflow
 from scullery import jacktools, scheduling, workers
@@ -1034,11 +1035,18 @@ class MixingBoard:
                 self.pushStatus(i, f"error {str(e)}")
 
     def sendChannels(self):
+        m = self.module
+        mf = modules_state.getModuleDir(m)
+        mf = os.path.join(mf, "__filedata__/media")
+
         c = copy.deepcopy(self.channels)
 
         # Placeholder here to not mess up vue rendering
         for i in c:
             c[i]["level"] = -99
+            resolved = os.path.join(mf, c[i].get("label_image", ""))
+            if os.path.isfile(resolved):
+                c[i]["labelImageTimestamp"] = os.path.getmtime(resolved)
 
         self.api.send(["channels", c])
 
@@ -1255,12 +1263,12 @@ class MixingBoard:
             if data[0] == "refresh":
                 self.sendState()
 
-            if data[0] == "test":
+            elif data[0] == "test":
                 from icemedia import sound_player as sound
 
                 sound.test(output=data[1])
 
-            if data[0] == "addChannel":
+            elif data[0] == "addChannel":
                 # No overwrite
                 if data[1] in self.channels:
                     return
@@ -1272,7 +1280,7 @@ class MixingBoard:
                 c["channels"] = data[2]
                 self.createChannel(data[1], c)
 
-            if data[0] == "setEffects":
+            elif data[0] == "setEffects":
                 "Directly set the effects data of a channel"
                 with self.lock:
                     self.channels[data[1]]["effects"] = data[2]
@@ -1281,34 +1289,34 @@ class MixingBoard:
                         self.pushStatus(i)
                     self._createChannel(data[1], self.channels[data[1]])
 
-            if data[0] == "setFuse":
+            elif data[0] == "setFuse":
                 self.channels[data[1]]["soundFuse"] = float(data[2])
                 self.channelObjects[data[1]].soundFuseSetting = float(data[2])
 
-            if data[0] == "setInput":
+            elif data[0] == "setInput":
                 self.channels[data[1]]["input"] = data[2]
                 if not self.running:
                     return
                 self.channelObjects[data[1]].setInput(data[2])
 
-            if data[0] == "setMute":
+            elif data[0] == "setMute":
                 self.channels[data[1]]["mute"] = bool(data[2])
                 if not self.running:
                     return
                 self.channelObjects[data[1]].setMute(data[2])
 
-            if data[0] == "setOutput":
+            elif data[0] == "setOutput":
                 self.channels[data[1]]["output"] = data[2]
 
                 if not self.running:
                     return
                 self.channelObjects[data[1]].setOutputs(data[2].split(","))
 
-            if data[0] == "setFader":
+            elif data[0] == "setFader":
                 "Directly set the effects data of a channel"
                 self.setFader(data[1], data[2])
 
-            if data[0] == "setParam":
+            elif data[0] == "setParam":
                 "Directly set the effects data of a channel. Packet is channel, effectID, paramname, val"
 
                 for i in self.channels[data[1]]["effects"]:
@@ -1322,7 +1330,7 @@ class MixingBoard:
                 if [data[3]] == "bypass":
                     self._createChannel(data[1], self.channels[data[1]])
 
-            if data[0] == "addEffect":
+            elif data[0] == "addEffect":
                 with self.lock:
                     fx = copy.deepcopy(effectTemplates[data[2]])
 
@@ -1333,24 +1341,24 @@ class MixingBoard:
                         self.pushStatus(i)
                     self._createChannel(data[1], self.channels[data[1]])
 
-            if data[0] == "refreshChannel":
+            elif data[0] == "refreshChannel":
                 self.reloadChannel(data[1])
 
-            if data[0] == "rmChannel":
+            elif data[0] == "rmChannel":
                 self.deleteChannel(data[1])
 
-            if data[0] == "savePreset":
+            elif data[0] == "savePreset":
                 self.savePreset(data[1])
                 self.sendPresets()
 
-            if data[0] == "loadPreset":
+            elif data[0] == "loadPreset":
                 self.loadPreset(data[1])
 
-            if data[0] == "deletePreset":
+            elif data[0] == "deletePreset":
                 self.deletePreset(data[1])
                 self.sendPresets()
 
-            if data[0] == "record":
+            elif data[0] == "record":
                 with self.lock:
                     if not recorder:
                         try:
@@ -1362,7 +1370,7 @@ class MixingBoard:
 
                     self.api.send(["recordingStatus", "recording"])
 
-            if data[0] == "stopRecord":
+            elif data[0] == "stopRecord":
                 with self.lock:
                     try:
                         recorder.sendEOS()
@@ -1375,6 +1383,13 @@ class MixingBoard:
                         pass
                     recorder = None
                     self.api.send(["recordingStatus", "off"])
+
+            elif data[0] == "set_label_image":
+                self.channels[data[1]]["label_image"] = data[2]
+                self.sendChannels()
+
+            else:
+                raise ValueError("Unknown command: " + data[0])
 
         workers.do(f2)
 
@@ -1409,8 +1424,41 @@ messagebus.subscribe("/system/shutdown", STOP)
 td = os.path.join(os.path.dirname(__file__), "html", "mixer.html")
 
 
+@quart_app.app.route("/settings/mixer/<boardname>/<channel>/image")
+async def get_label_image(boardname: str, channel: int):
+    pages.require("system_admin")
+
+    @quart.ctx.copy_current_request_context
+    def f():
+        c = boards[boardname].channels[channel].get("label_image", "")
+        m = boards[boardname].module
+        mf = modules_state.getModuleDir(m)
+        mf = os.path.join(mf, "__filedata__/media")
+
+        if os.path.isfile(os.path.join(mf, c)):
+            return os.path.join(mf, c)
+
+    fn = await f()
+    return await quart.send_file(fn)
+
+
+@quart_app.app.route("/settings/mixer/<boardname>/<channel>/set_channel_img", methods=["POST"])
+async def set_mixer_channel_label(boardname: str, channel: int):
+    pages.require("system_admin")
+    kw = dict(await quart.request.form)
+    kw.update(quart.request.args)
+
+    fn = kw["resource"][len("media/") :]
+
+    boards[boardname].channels[channel]["label_image"] = fn
+
+    workers.do(boards[boardname].sendChannels)
+
+    return "OK"
+
+
 @quart_app.app.route("/settings/mixer/<boardname>")
-def handle(boardname: str):
+def handle_mixer_plugin(boardname: str):
     from kaithem.src import directories
 
     pages.require("system_admin")

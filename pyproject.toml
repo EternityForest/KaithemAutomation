@@ -12,6 +12,12 @@ packages = [{ include = "kaithem" }, { include = "kaithem_cli" }, { include = "k
 authors = ["Daniel Dunn"]
 readme = "README.md"
 
+# These are dev documents that don't need to be in the final package
+exclude = [
+    "*.dev.excalidraw.svg"
+]
+
+
 [tool.poetry.group.dev.dependencies]
 infer-types = "^1.0.0"
 monkeytype = "^23.3.0"

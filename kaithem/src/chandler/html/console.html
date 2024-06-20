@@ -1905,10 +1905,9 @@ ${lists}
     appData.getExcalidrawCueLink = function (group, cue) {
         return '/plugin-excalidraw/edit?module=' +
             encodeURIComponent(this.boardname.split(":")[0]) +
-            '&resource=' + encodeURIComponent("media/chandler/sketches/cue_" + this.boardname.split(":")[0] + "_" +
-                this.boardname.split(":")[0] + "_" +
-                group + "_" + cue.name + "_" +
-                session_time + ".excalidraw.png") +
+            '&resource=' + encodeURIComponent("media/chandler/sketches/cue_" + this.boardname.split(":")[1] + "_" +
+                "_" +
+                group + "_" + cue.name + ".excalidraw.png") +
             "&callback=" + encodeURIComponent("/chandler/label_image_update_callback/cue/" + cue.id) +
             "&ratio_guide=16_9"
     }
@@ -1916,7 +1915,7 @@ ${lists}
     appData.getExcalidrawPresetLink = function (preset) {
         return '/plugin-excalidraw/edit?module=' +
             encodeURIComponent(this.boardname.split(":")[0]) +
-            '&resource=' + encodeURIComponent("media/chandler/sketches/preset_" + this.boardname.split(":")[0] + "_" +
+            '&resource=' + encodeURIComponent("media/chandler/sketches/preset_" + this.boardname.split(":")[1] + "_" +
                 preset + "_" +
                 session_time + ".excalidraw.png") +
             "&callback=" + encodeURIComponent("/chandler/label_image_update_callback/preset/" + this.boardname + "/" + preset) +

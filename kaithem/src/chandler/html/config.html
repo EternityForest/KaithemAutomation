@@ -665,14 +665,12 @@ ${core.boards[boardname].link.render('api_link')}
     appData.boardname = '${boardname}'
     appData.selectingImageLabelForFixture = null
     appData.iframeDialog = null
-    const session_time = new Date().toISOString().slice(0, -8)
 
     appData.getExcalidrawFixtureLink = function (fixture) {
         return '/plugin-excalidraw/edit?module=' +
             encodeURIComponent(this.boardname.split(":")[0]) +
             '&resource=' + encodeURIComponent("media/chandler/sketches/fixture_" + this.boardname.split(":")[0] + "_" +
-            fixture + "_" +
-                session_time + ".excalidraw.png") +
+            fixture + ".excalidraw.png") +
             "&callback=" + encodeURIComponent("/chandler/label_image_update_callback/fixture/" + this.boardname + "/" + fixture) +
             "&ratio_guide=16_9"
     }
