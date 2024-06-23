@@ -362,7 +362,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             return
 
         elif cmd_name == "shortcut":
-            groups.shortcutCode(msg[1])
+            groups.trigger_shortcut_code(msg[1])
             return
 
         elif cmd_name == "addTimeToGroup":

@@ -1,7 +1,7 @@
 from kaithem.src.kaithemobj import kaithem
 
 from . import core
-from .global_actions import event, shortcutCode
+from .global_actions import event, trigger_shortcut_code
 
 rootContext = kaithem.chandlerscript.ChandlerScriptContext()
 
@@ -89,7 +89,7 @@ def add_context_commands(context_group):
 
     def codeCommand(code: str = ""):
         "Activates any cues with the matching shortcut code in any group"
-        shortcutCode(code)
+        trigger_shortcut_code(code)
         return True
 
     gotoCommand.completionTags = {  # type: ignore

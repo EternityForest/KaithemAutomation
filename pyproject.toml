@@ -38,8 +38,10 @@ iot-devices = ">=0.1.19"
 icemedia = ">=0.1.6"
 NVRChannel = ">=0.1.7"
 
+# New numpy needs new opencv
+numpy = ">=2.0.0"
+opencv-python = ">=4.10.0.84"
 
-numpy = ">1.26.1"
 cheroot = "*"
 mako = "*"
 jinja2 = "*"

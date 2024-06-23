@@ -95,3 +95,8 @@ dev-build: dev-build-docs # Build for release
 	@poetry build
 	@poetry freeze-wheel
 
+
+.PHONY: dev-publish-to-pypi
+dev-publish-to-pypi: # Publish to PyPi.  Can't use poetry because of freeze-wheel
+	@twine upload dist/*.whl
+

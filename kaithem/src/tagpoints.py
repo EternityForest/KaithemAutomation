@@ -254,7 +254,7 @@ class GenericTagPointClass(Generic[T]):
         # Where we store a ref for the widget
         self._gui_updateSubscriber: Callable[[T, float, Any], Any]
 
-        # Dependancy tracking, if a tag depends on other tags, such as =expression based ones
+        # Dependency tracking, if a tag depends on other tags, such as =expression based ones
         self.source_tags: dict[str, GenericTagPointClass[Any]] = {}
 
         self._value: Callable[[], T | None] | T
@@ -301,7 +301,7 @@ class GenericTagPointClass(Generic[T]):
 
         self.unreliable: bool = False
 
-        # Track the recalc function used by the poller, the poller itself, and the recalc alarm subscrie
+        # Track the recalc function used by the poller, the poller itself, and the recalc alarm subscribe
         # function subscribed to us, respectively
 
         # The last is a function that is used as a subscriber which just causes the tag to be recalced.
@@ -758,7 +758,7 @@ class GenericTagPointClass(Generic[T]):
             t = StringTag(n)
             obj.source_tags[n] = weakref.ref(t)
             # When any source tag updates, we want to recalculate.
-            obj.source_tags[n].subscribe(obj.recalcFunction)
+            obj.source_tags[n]().subscribe(obj.recalcFunction)
             return t.value
 
         context["tv"] = _context_get_numeric_tag_value
@@ -998,7 +998,7 @@ class GenericTagPointClass(Generic[T]):
 
     @property
     def current_source(self) -> str:
-        # Avoid the lock by using retru in case claim disappears
+        # Avoid the lock by using retry in case claim disappears
         for i in range(10000):
             try:
                 if self.active_claim:
@@ -1480,7 +1480,7 @@ class GenericTagPointClass(Generic[T]):
             claim.priority = priority
             claim.vta = value, timestamp, annotation
 
-            # If we have priortity on them, or if we have the same priority but are newer
+            # If we have priority on them, or if we have the same priority but are newer
             if (ac is None) or (priority > oldAcPriority) or ((priority == oldAcPriority) and (timestamp > oldAcTimestamp)):
                 self.active_claim = self.claims[name]
                 self.handleSourceChanged(name)
@@ -1631,9 +1631,6 @@ class GenericTagPointClass(Generic[T]):
             raise RuntimeError("Could not get lock!")
 
         try:
-            # Ifid lets us filter by ID, so that a claim object that has
-            # Long since been overriden can't delete one with the same name
-            # When it gets GCed
             if name not in self.claims:
                 return
 
@@ -2112,7 +2109,7 @@ class Claim(Generic[T]):
         try:
             # Stop any weirdness with an old claim double releasing and thus releasing a new claim
             if self.tag.claims[self.name] is not self:
-                # If the old replaced claim is somehow the active omne we acrtuallty should handle that
+                # If the old replaced claim is somehow the active omne we actually should handle that
                 if self.tag.active_claim is not self:
                     return
         except KeyError:

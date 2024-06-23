@@ -12,6 +12,7 @@ import subprocess
 import threading
 import time
 import traceback
+from typing import Coroutine
 
 import quart
 import quart.utils
@@ -310,7 +311,11 @@ async def files(path="", *args, **kwargs):
         except Exception:
             return traceback.format_exc()
 
-    return await f()
+    x = await f()
+    if isinstance(x, Coroutine):
+        x = await x
+
+    return x
 
 
 @legacy_route

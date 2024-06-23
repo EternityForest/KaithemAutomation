@@ -52,7 +52,9 @@ th {
 
 
 
-/*This handles the old style "section box", but also top level HTML section elements. It's basicattly for independant sections of content.*/
+/*This handles the old style "section box", 
+but also top level HTML section elements. 
+It's basically for independent sections of content.*/
 
 .window {
     background: var(--box-bg);

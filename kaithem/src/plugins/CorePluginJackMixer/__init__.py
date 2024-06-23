@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import copy
+import datetime
 import json
 import logging
 import os
@@ -246,16 +247,14 @@ class Recorder(gstwrapper.Pipeline):
         gstwrapper.Pipeline.__init__(self, name, realtime=70)
 
         self.src = self.add_element(
-            "pipewiresrc", port_pattern="fgfcghfhftyrtw5ew453xvrt", client_name="krecorder", connect=0, slave_method=0
+            "pipewiresrc",
+            client_name=name,
+            do_timestamp=True,
+            always_copy=True,
         )
         self.capsfilter = self.add_element("capsfilter", caps=f"audio/x-raw,channels={str(channels)}")
 
-        filename = os.path.join(
-            directories.vardir,
-            "recordings",
-            "mixer",
-            f"{pattern + time.strftime('%Y%b%d%a%H%M%S', time.localtime())}.ogg",
-        )
+        filename = os.path.join(directories.vardir, "recordings", "mixer", f"{pattern + datetime.datetime.now().isoformat()}.opus")
 
         if not os.path.exists(os.path.join(directories.vardir, "recordings", "mixer")):
             os.makedirs(os.path.join(directories.vardir, "recordings", "mixer"))
@@ -1362,7 +1361,9 @@ class MixingBoard:
                 with self.lock:
                     if not recorder:
                         try:
-                            recorder = Recorder(pattern=data[1], channels=int(data[2]))
+                            recorder = Recorder(
+                                name="recorder_" + self.module + "_" + self.resource, pattern=data[1], channels=int(data[2])
+                            )
                             recorder.start()
                         except Exception as e:
                             self.api.send(["recordingStatus", str(e)])

@@ -24,7 +24,7 @@ from ..kaithemobj import kaithem
 from . import core, group_media, mqtt, persistance
 from .core import disallow_special
 from .cue import Cue, allowedCueNameSpecials, cues
-from .global_actions import shortcutCode
+from .global_actions import trigger_shortcut_code
 from .group_context_commands import add_context_commands, rootContext
 from .group_lighting import GroupLightingManager
 from .mathutils import dt_to_ts, ease, number_to_note
@@ -1052,7 +1052,7 @@ class Group:
 
                 sc = self.cues[cue].trigger_shortcut.strip()
                 if sc:
-                    shortcutCode(sc, exclude=self)
+                    trigger_shortcut_code(sc, exclude=self)
                 self.cue = self.cues[cue]
 
                 if self.cue.checkpoint:
@@ -1458,7 +1458,7 @@ class Group:
             v = v[0]
 
             if v.startswith("launch:"):
-                shortcutCode(str(v[len("launch:") :]), self)
+                trigger_shortcut_code(str(v[len("launch:") :]), self)
 
             elif v == "Rev":
                 self.prev_cue(cause="ECP")

@@ -39,6 +39,8 @@ cssthemes = weakref.WeakValueDictionary()
 
 class Theme:
     def __init__(self, name, css_url: str = "") -> None:
+        if name in cssthemes:
+            raise ValueError(f"Theme {name} already exists")
         self.css_url = css_url
         cssthemes[name] = self
 

@@ -60,13 +60,17 @@
                 "goto",
                 "groupid",
                 "hfader",
+                "id",
+                "insta",
                 "kaithem",
                 "kaithemobj",
                 "mqtt",
                 "Mqtt",
                 "nord",
                 "olde",
+                "onchange",
                 "paho",
+                "py",
                 "pymodule",
                 "recalc",
                 "REUSEADDR",
@@ -76,11 +80,13 @@
                 "stringly",
                 "testid",
                 "tobytes",
+                "tz",
                 "unitsofmeasure",
                 "unurl",
                 "urandom",
                 "Vals",
-                "vueapp"
+                "vueapp",
+                "webp"
             ]
 
 }

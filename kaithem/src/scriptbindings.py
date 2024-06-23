@@ -19,8 +19,8 @@ ctx.event("event")
 
 You can add an action by simply adding it as a function to the weak dict ctx.commands
 
-Arguments are preprocessed before being supplied as positionals. However, the dict based
-variant supplies args as keywords, so be aware.
+Arguments are preprocessed before being supplied as positional args.
+However, the dict based variant supplies args as keywords, so be aware.
 
 Anything beginning with $ is considered a variable, it is expanded based on variables
 in the context.
@@ -441,7 +441,7 @@ class BaseChandlerScriptContext:
 
         # Used for detecting loops.  .d Must be 0 whenever we are not CURRENTLY,
         # as in right now, in this thread, executing an event. Not a pure stack
-        # or semaphor, when you queue up an event, that event will run at one
+        # or semaphore, when you queue up an event, that event will run at one
         # higher than the event that created it, And always return to 0 when it
         # is not actively executing event code, to ensure that things not caused
         # directly by an event Don't have a nonzero depth.
@@ -606,7 +606,7 @@ class BaseChandlerScriptContext:
         pass
 
     def _runCommand(self, c):
-        # ContextCommands take precendence
+        # ContextCommands take precedence
         a = self.commands.get(c[0], None)
         a = self.context_commands.get(c[0], a)
 

@@ -10,9 +10,8 @@ entries: dict[tuple[str, str], WebChandlerConsole.WebConsole] = {}
 
 def set_save_cb(c: WebChandlerConsole.WebConsole, module: str, resource: str):
     def save(data: dict[str, Any]):
-        x = modules_state.ActiveModules[module][resource]
-
-        x = copy.deepcopy(x)
+        r = modules_state.ActiveModules[module][resource]
+        x: dict = copy.deepcopy(r)  # type: ignore
         if not data == x.get("project", {}):
             x["project"] = data
             modules_state.rawInsertResource(module, resource, x)
@@ -65,11 +64,11 @@ class ConfigType(modules_state.ResourceType):
     def on_update(self, module, resource, data):
         self.on_load(module, resource, data)
 
-    def on_delete(self, module, name, data):
-        entries[module, name].close()
-        core.boards.pop(f"{module}:{name}", None)
+    def on_delete(self, module, resource, data):
+        entries[module, resource].close()
+        core.boards.pop(f"{module}:{resource}", None)
 
-        del entries[module, name]
+        del entries[module, resource]
 
     def on_create_request(self, module, resource, kwargs):
         d = {"resource_type": self.type}

@@ -19,4 +19,4 @@ def trigger_event(event: str, value: Any = None):
 
 def shortcut(s: str):
     """Trigger a shortcut code.  All matching cues will be jumped to."""
-    _global_actions.shortcutCode(s)
+    _global_actions.trigger_shortcut_code(s)
