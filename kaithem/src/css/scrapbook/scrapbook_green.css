@@ -13,6 +13,7 @@
     --3d-highlight: rgb(219 229 201);
     --3d-shadow: rgb(202 211 186);
     --hover-color: rgb(184 213 165);
+    --alt-control-bg: color-mix(in srgb, var(--control-bg) 65%, #9da47c);
 }
 
 ::selection {
