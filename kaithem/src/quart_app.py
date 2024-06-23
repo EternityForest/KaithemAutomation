@@ -1,3 +1,5 @@
+import mimetypes
+import os
 import traceback
 
 import quart
@@ -50,3 +52,39 @@ def wrap_sync_route_handler(f):
     f2.__name__ = f.__name__ + "_wrapped"
 
     return f2
+
+
+async def send_file_range(file_path: str):
+    try:
+
+        @quart.ctx.copy_current_request_context
+        def f():
+            range_header = quart.request.headers.get("Range", "").replace("bytes=", "")
+            if "-" in range_header:
+                r = range_header.split("-")
+                start = int(r[0])
+                fs = os.path.getsize(file_path)
+                if len(r) > 1 and r[1]:
+                    end = int(r[1])
+                else:
+                    end = fs - 1
+
+                end = min(end, fs - 1)
+            else:
+                start = 0
+                end = os.path.getsize(file_path) - 1
+
+            with open(file_path, "rb") as file:
+                file.seek(start)
+                data = file.read(end - start + 1)
+
+            response = quart.Response(data, mimetype=mimetypes.guess_type(file_path)[0])
+            response.headers["Content-Range"] = f"bytes {start}-{end}/{os.path.getsize(file_path)}"
+            response.headers["Content-Length"] = str(end - start + 1)
+            response.status_code = 206
+            return response
+
+        return await f()
+
+    except FileNotFoundError:
+        return "File not found", 404

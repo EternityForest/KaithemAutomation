@@ -185,6 +185,8 @@ ${lists}
         <div class="menubar tool-bar">
             <p>{{clock}} </p>
             <p><b>{{boardname}}</b></p>
+            <a class="button" :href="'/chandler/commander/'+boardname"><i class="mdi mdi-ballroom-dance"></i></a>
+
             <button type="button" v-on:click="saveToDisk()" :disabled="no_edit"
                 title="Save the current state now.  If not manually saved, autosave happens every 10min"><i
                     class="mdi mdi-content-save"></i>Save</button>
@@ -828,7 +830,7 @@ ${lists}
                                     <div class="tool-bar">
                                         <button type="button" @click="showPresetDialog(fname)">Presets</button>
 
-                                        <select :disabled="no_edit" class="w-4rem" style="flex-basis: 2rem;"
+                                        <select :disabled="no_edit" class="w-4rem nogrow" style="flex-basis: 2rem;"
                                             v-on:change="savePreset(h, $event.target.value);$event.target.value='__dummy__'">
                                             <option value="__dummy__">Save</option>
                                             <option :value="'name' + fname" title="Save for use with this fixture">For

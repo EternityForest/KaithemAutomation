@@ -14,7 +14,7 @@ Change Log
 - :sparkles: File resource thumbnails
 - :sparkles: File resource audio previews
 - :sparkles: Excalidraw integration to draw labels and add documentation to modules
-
+- :sparkles: Excalidraw labeling for presets, resources, fixtures, cues, and mixer channels
 
 #### Changed
 
@@ -29,7 +29,10 @@ Change Log
 - :bug: Fix deleting file resources
 - :bug: Fix get file resource path API
 - :bug: Fix coarse/fine channels
-
+- :bug: Use a cache busting value in urls so the browser knows to refresh
+- :bug: Fix countdown timers with unusual bpm values
+- :bug: Fix digital signage permission issue
+- :bug: Fix digital signage unable to start midway through media
 
 ### 0.84.0b2
 

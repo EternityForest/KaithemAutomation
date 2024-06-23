@@ -1,4 +1,6 @@
+import hashlib
 import os
+import time
 
 import quart
 import quart.utils
@@ -243,13 +245,12 @@ def dyn_js(file):
 
 @quart_app.app.route("/chandler/WebMediaServer")
 async def media():
-    pages.require("enumerate_endpoints")
-
     kwargs = quart.request.args
 
     @quart.ctx.copy_current_request_context
     def get_file():
         if "labelImg" in kwargs:
+            pages.require("enumerate_endpoints")
             pages.require("chandler_operator")
 
             label_image = groups.cues[kwargs["labelImg"]].label_image
@@ -259,6 +260,7 @@ async def media():
                 return grp.resolve_media(label_image)
 
         if "albumArt" in kwargs:
+            pages.require("enumerate_endpoints")
             pages.require("chandler_operator")
 
             sound = groups.cues[kwargs["albumArt"]].sound
@@ -282,6 +284,8 @@ async def media():
             return t
 
         else:
+            # TODO: Is the timing attack resistance here enough?
+
             if "group" in kwargs and groups.groups[kwargs["group"]].media_link.allowed_remote_media_url == kwargs["file"]:
                 return kwargs["file"]
             elif "group" in kwargs and groups.groups[kwargs["group"]].cue.slide == kwargs["file"]:
@@ -309,9 +313,13 @@ async def media():
                             kaithem.assetpacks.ensure_file(f)
                             return f
 
+                # Resist discovering what scenes exist
+                time.sleep(hashlib.md5(kwargs["group"].encode("utf-8")).digest()[0] / 1000)
+                return f
+
     r = await get_file()
     if isinstance(r, str):
-        return await quart.send_file(r)
+        return await quart_app.send_file_range(r)
     elif isinstance(r, bytes):
         return r
     else:

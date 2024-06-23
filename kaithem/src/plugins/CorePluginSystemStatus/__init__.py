@@ -4,8 +4,7 @@ import random
 import subprocess
 import threading
 
-import structlog
-from scullery import scheduling
+from scullery import scheduling, workers
 
 from kaithem.src import alerts, messagebus, tagpoints, util
 
@@ -321,8 +320,7 @@ def checkDmesg():
         errtag.value = 1
 
 
-checkDmesg()
-
+workers.do(checkDmesg)
 
 ram_alert = alerts.Alert(
     "Bitflip Error Detected",

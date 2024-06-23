@@ -594,6 +594,7 @@ select {
 
 select {
     padding: 3px;
+    padding-bottom: 0px;
 }
 
 
@@ -948,7 +949,6 @@ table {
     /* bottom-left border-radius */
     &:not(:has(tfoot)) {
 
-        &>thead>tr:last-child>:first-child:is(td, th),
         &>tbody>tr:last-child>:first-child:is(td, th) {
             border-bottom-left-radius: var(--border-radius);
         }
