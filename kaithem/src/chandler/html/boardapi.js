@@ -21,7 +21,7 @@ ${ vars }
 
 function playAlert(m) {
     if (vueapp.$data.uiAlertSounds) {
-        var mp3_url = '/static/freeboardsounds/Information_Bell.opus';
+        var mp3_url = '/static/sounds/72127__kizilsungur__sweetalertsound3.opus';
         (new Audio(mp3_url)).play().catch(() => { })
     }
     if (m) {
@@ -31,7 +31,7 @@ function playAlert(m) {
 
 function errorTone(m) {
     if (vueapp.$data.uiAlertSounds) {
-        var mp3_url = '/static/freeboardsounds/423166__plasterbrain__minimalist-sci-fi-ui-error.opus';
+        var mp3_url = '/static/sounds/423166__plasterbrain__minimalist-sci-fi-ui-error.opus';
         (new Audio(mp3_url)).play().catch(() => { })
     }
     if (m) {

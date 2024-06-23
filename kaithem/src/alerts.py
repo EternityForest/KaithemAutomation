@@ -120,7 +120,7 @@ illegalCharsInName = "[]{}|\\<>,?-=+)(*&^%$#@!~`\n\r\t\0"
 
 
 nextbeep = 10**10
-sfile = "alert.ogg"
+sfile_default = "alert.ogg"
 
 
 def formatAlerts():
@@ -148,7 +148,7 @@ api.attach(handleApiCall)
 
 def calcNextBeep():
     global nextbeep
-    global sfile
+    sfile = sfile_default
     x = _highestUnacknowledged(excludeSilent=True)
     if not x:
         x = 0
@@ -177,7 +177,7 @@ def calcNextBeep():
 def alarmBeep():
     if time.time() > nextbeep:
         calcNextBeep()
-        s = (sfile or "").strip()
+        s = (sfile_default or "").strip()
         beepDevice = file["all"]["soundcard"]
         if beepDevice == "__disable__":
             return

@@ -118,7 +118,7 @@ def getSoundFolders(extra_folders: list[str] | None = None) -> dict[str, str]:
 
     soundfolders[kaithem.assetpacks.assetlib] = "Online Assets Library"
 
-    soundfolders[os.path.join(kaithem.misc.datadir, "sounds")] = "Builtin"
+    soundfolders[os.path.join(kaithem.misc.datadir, "static")] = "Builtin"
     soundfolders[musicLocation] = "Chandler music folder"
     for i in [i for i in kaithem.sound.directories if not i.startswith("__")]:
         soundfolders[i] = i

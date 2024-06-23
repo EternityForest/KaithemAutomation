@@ -47,9 +47,9 @@ async def static_fonts(path):
     return await quart.send_file(os.path.join(ddn, "static", "fonts", path))
 
 
-@quart_app.app.route("/static/freeboardsounds/<path:path>")
+@quart_app.app.route("/static/sounds/<path:path>")
 async def static_fbsounds(path):
-    return await quart.send_file(os.path.join(ddn, "static", "freeboardsounds", path))
+    return await quart.send_file(os.path.join(ddn, "static", "sounds", path))
 
 
 @quart_app.app.route("/static/img/<path:path>")

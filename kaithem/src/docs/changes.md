@@ -15,6 +15,9 @@ Change Log
 - :sparkles: File resource audio previews
 - :sparkles: Excalidraw integration to draw labels and add documentation to modules
 - :sparkles: Excalidraw labeling for presets, resources, fixtures, cues, and mixer channels
+- :sparkles: Retire the original error.ogg file.  alert.ogg and error.ogg are now aliases for new files.
+- :sparkles: All the core web UI sounds are available in chandler
+
 
 #### Changed
 
