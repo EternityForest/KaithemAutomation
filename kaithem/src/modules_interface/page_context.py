@@ -64,6 +64,16 @@ def breadcrumbs(path):
         yield (i, temp_p[:-1])
 
 
+def get_resource_label_image_url(module: str, path: str):
+    data = modules_state.ActiveModules[module][path]
+
+    mf = modules_state.getModuleDir(module)
+    mf = os.path.join(mf, "__filedata__/media")
+    fn = os.path.join(mf, data["resource_label_image"])
+    if os.path.isfile(fn):
+        return f"/modules/label_image/{url(module)}/{url(path)}?ts={os.path.getmtime(fn)}"
+
+
 module_page_context = {
     "si_format_number": unitsofmeasure.si_format_number,
     "url": util.url,
@@ -85,4 +95,5 @@ module_page_context = {
     "sorted_module_file_list": sorted_module_file_list,
     "hasattr": hasattr,
     "breadcrumbs": breadcrumbs,
+    "get_resource_label_image_url": get_resource_label_image_url,
 }
