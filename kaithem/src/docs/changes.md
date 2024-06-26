@@ -21,6 +21,7 @@ Change Log
 - :sparkles: Excalidraw labeling for presets, resources, fixtures, cues, and mixer channels
 - :sparkles: Retire the original error.ogg file.  alert.ogg and error.ogg are now aliases for new files.
 - :sparkles: All the core web UI sounds are available in chandler
+- :sparkles: New "Enable Default Alerts" option to disable all the alerts a device sets.
 
 
 #### Changed

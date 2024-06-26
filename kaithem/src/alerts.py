@@ -107,6 +107,7 @@ def pushAlertState():
 
 priorities = {
     None: 0,
+    "": 0,
     "none": 0,
     "debug": 10,
     "info": 20,

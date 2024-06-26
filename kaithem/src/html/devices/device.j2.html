@@ -281,6 +281,20 @@
                         </td>
                     </tr>
                     {% endfor %}
+
+                    <tr>
+                        <td><b>Enable Default Alerts</b></td>
+                        <td>
+
+                            <select name="kaithem.use_default_alerts">
+
+                                <option value="no">False/Off</option>
+                                <option
+                                    {{ 'selected' if data.get('kaithem.use_default_alerts','true') in ('true','yes','on','enable','active','enabled','1') else ''  }}
+                                    value="yes">True/On</option>
+                            </select>
+                        </td>
+                    </tr>
                 </table>
 
 

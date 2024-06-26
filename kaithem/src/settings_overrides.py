@@ -16,9 +16,16 @@ lock = threading.RLock()
 settings_meta: dict[str, dict[str, Any]] = {}
 
 
+@functools.lru_cache(256)
 def normalize_key(key: str) -> str:
     if key.startswith("/"):
         key = key[1:]
+    key = key.lower()
+    key = key.replace("  ", " ")
+    key = key.replace("  ", " ")
+    key = key.replace(" ", "_")
+    key = key.replace("-", "_")
+
     return key
 
 

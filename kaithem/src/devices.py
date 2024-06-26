@@ -409,6 +409,8 @@ class Device(iot_devices.device.Device):
         except Exception:
             self.title = name
 
+        self.k_use_default_alerts = data.get("kaithem.use_default_alerts", "true").lower() in ("yes", "on", "true", "1")
+
         # Which points to show in overview
         self.dashboard_datapoints = {}
 
@@ -860,6 +862,9 @@ class Device(iot_devices.device.Device):
         release_condition: str | None = None,
         **kw,
     ):
+        if not self.k_use_default_alerts:
+            return
+
         x = self.tagPoints[datapoint].set_alarm(
             name,
             condition=expression,
