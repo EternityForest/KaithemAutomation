@@ -40,6 +40,7 @@ Change Log
 - :bug: Fix countdown timers with unusual bpm values
 - :bug: Fix digital signage permission issue
 - :bug: Fix digital signage unable to start midway through media
+- :bug: Fix delete button in file manager
 
 ### 0.84.0b2
 

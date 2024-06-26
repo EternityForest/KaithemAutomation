@@ -17,6 +17,7 @@ from typing import Coroutine
 import quart
 import quart.utils
 import structlog
+import vignette
 from quart.ctx import copy_current_request_context
 
 from . import auth, directories, kaithemobj, messagebus, pages, persist, quart_app, weblogin
@@ -252,13 +253,16 @@ def gcsweep():
 
 @quart_app.app.route("/settings/files", methods=["GET", "POST"])
 @quart_app.app.route("/settings/files/<path:path>", methods=["GET", "POST"])
-async def files(path="", *args, **kwargs):
+async def files(path=""):
     """Return a file manager. Kwargs may contain del=file to delete a file. The rest of the path is the directory to look in."""
     try:
         pages.require("system_admin")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
     dir = os.path.join("/", path)
+
+    kwargs = dict(await quart.request.form)
+    kwargs.update(quart.request.args)
 
     files = await quart.request.files
     if "file" in files:
@@ -307,6 +311,13 @@ async def files(path="", *args, **kwargs):
             if os.path.isdir(dir):
                 return pages.get_template("settings/files.html").render(dir=dir)
             else:
+                if "thumbnail" in kwargs:
+                    t = vignette.try_get_thumbnail(dir)
+                    if t:
+                        return quart.send_file(t)
+                    else:
+                        return ""
+
                 return quart.send_file(dir)
         except Exception:
             return traceback.format_exc()
@@ -318,15 +329,14 @@ async def files(path="", *args, **kwargs):
     return x
 
 
-@legacy_route
+@quart_app.app.route("/settings/cnfdel/<path:path>")
 def cnfdel(
-    *args,
+    path,
 ):
     try:
         pages.require("system_admin")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
-    path = os.path.join("/", *args)
     return pages.get_template("settings/cnfdel.html").render(path=path)
 
 
