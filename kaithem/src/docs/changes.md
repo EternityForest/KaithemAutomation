@@ -3,9 +3,13 @@ Change Log
 ### 0.85.0
 
 
-#### deprecated
+#### Deprecated
 
 - :coffin: The alert sounds system may be removed. It is suggested to use an automation rule on /sys/alerts.level for more control
+
+#### Removed
+
+- :coffin: control and \_\_variables\_\_ chandler universes
 
 #### Added
 

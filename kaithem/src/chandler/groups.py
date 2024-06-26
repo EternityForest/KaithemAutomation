@@ -1031,18 +1031,6 @@ class Group:
                 # Even if we are't tracking, we still need to know to rerender them without the old effects,
                 # And the fade means we might still affect them for a brief time.
 
-                # TODO backtracking these variables?
-                cuevars = self.cues[cue].values.get("__variables__", {})
-                for var_name in cuevars:
-                    if isinstance(var_name, int):
-                        print("Bad cue variable name, it's not a string", var_name)
-                        continue
-                    try:
-                        self.script_context.setVar(var_name, self.evalExpr(cuevars[var_name]))
-                    except Exception:
-                        print(traceback.format_exc())
-                        core.rl_log_exc("Error with cue variable " + str(var_name))
-
                 # optimization, try to se if we can just increment if we are going to the next cue, else
                 # we have to actually find the index of the new cue
                 if self.cuePointer < (len(self.cues_ordered) - 1) and self.cues[cue] is self.cues_ordered[self.cuePointer + 1]:

@@ -301,14 +301,6 @@ class GroupLightingManager:
             for intermediate_cue in reversed(to_apply):
                 self.update_state_from_cue_vals(intermediate_cue)
 
-                # cuevars = self.cues[cue].values.get("__variables__", {})
-                # for i in cuevars:
-                #     try:
-                #         vars[i] = (i, self.evalExpr(cuevars[i]))
-                #     except Exception:
-                #         print(traceback.format_exc())
-                #         core.rl_log_exc("Error with cue variable " + i)
-
         return vars
 
     def setup_blend_args(self):

@@ -81,10 +81,6 @@ def poll_board_groups(board: ChandlerConsole.ChandlerConsole, t=None):
 
 lastrendered = 0
 
-
-controluniverse = universes.Universe("control")
-varsuniverse = universes.Universe("__variables__")
-
 run = [True]
 
 

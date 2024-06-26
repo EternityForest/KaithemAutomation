@@ -380,10 +380,6 @@ class Cue:
                 pass
 
         with core.lock:
-            if universe == "__variables__":
-                assert isinstance(channel, str)
-                group.script_context.setVar(channel, group.evalExpr(value))
-
             reset = False
             if value is not None:
                 if universe not in self.values:
