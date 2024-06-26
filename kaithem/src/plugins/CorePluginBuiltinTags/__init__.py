@@ -1,5 +1,3 @@
-import logging
-
 import structlog
 
 from kaithem.src import alerts, geolocation, messagebus, tagpoints
@@ -60,7 +58,7 @@ def create():
     refs.append(atm)
 
     messagebus.subscribe("/system/alerts/level", atm)
-    alertTag.value = alerts.priorities[alerts._highestUnacknowledged()]
+    alertTag.value = alerts.priorities[alerts.highest_unacknowledged_alert_level()]
 
     def night():
         try:

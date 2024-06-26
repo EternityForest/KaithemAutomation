@@ -1,4 +1,5 @@
 All CC0
-Thanks to Kenney  and dustyroom games, and many others!
+
+Most sources can be found on freesound
 
 tang.opus was converted from http://www.nigelk.org/shipsbells/ which is public domain

@@ -3,6 +3,10 @@ Change Log
 ### 0.85.0
 
 
+#### deprecated
+
+- :coffin: The alert sounds system may be removed. It is suggested to use an automation rule on /sys/alerts.level for more control
+
 #### Added
 
 - :sparkles: Can now set a label image for a cue

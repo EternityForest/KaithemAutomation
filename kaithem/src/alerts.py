@@ -76,10 +76,10 @@ priority_to_class = {
 }
 
 
-def getAlertState() -> dict[str, dict[str, Any]]:
+def getAlertState() -> dict[str, str | dict[str, Any]]:
     try:
         with lock:
-            d: dict[str, dict[str, Any]] = {}
+            d: dict[str, str | dict[str, Any]] = {}
 
             for i in (active, unacknowledged):
                 for j in i:
@@ -98,7 +98,7 @@ def getAlertState() -> dict[str, dict[str, Any]]:
 
     except Exception:
         logger.exception("Error pushing alert state on msg bus")
-        return {"Alerts": {"priority": "error", "state": "active"}}
+        return {"Alerts": {"priority": "error", "state": "active"}, "unacknowledged_level": highest_unacknowledged_alert_level()}
 
 
 def pushAlertState():
@@ -128,7 +128,7 @@ def formatAlerts():
 
 
 class API(widgets.APIWidget):
-    def on_new_subscriber(self, user, cid, **kw):
+    def on_new_subscriber(self, user, connection_id, **kw):
         with lock:
             self.send(["all", formatAlerts()])
 
@@ -149,7 +149,7 @@ api.attach(handleApiCall)
 def calcNextBeep():
     global nextbeep
     sfile = sfile_default
-    x = _highestUnacknowledged(excludeSilent=True)
+    x = highest_unacknowledged_alert_level(excludeSilent=True)
     if not x:
         x = 0
     else:
@@ -191,10 +191,10 @@ def alarmBeep():
                 logger.exception("ERROR PLAYING ALERT SOUND")
 
 
-def _highestUnacknowledged(excludeSilent=False):
+def highest_unacknowledged_alert_level(excludeSilent=False) -> str:
     # Pre check outside lock for efficiency.
     if not unacknowledged:
-        return
+        return ""
     level = "debug"
     for i in unacknowledged.values():
         i = i()
@@ -209,7 +209,7 @@ def _highestUnacknowledged(excludeSilent=False):
 
 
 def sendMessage():
-    x = _highestUnacknowledged()
+    x = highest_unacknowledged_alert_level()
     messagebus.post_message("/system/alerts/level", x)
 
 

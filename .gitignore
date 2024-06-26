@@ -19,3 +19,6 @@ node_modules/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+button_images_pack
+sounds_pack

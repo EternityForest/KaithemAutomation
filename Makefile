@@ -100,3 +100,6 @@ dev-build: dev-build-docs # Build for release
 dev-publish-to-pypi: # Publish to PyPi.  Can't use poetry because of freeze-wheel
 	@twine upload dist/*.whl
 
+.PHONY: dev-import-16_9_buttons
+dev-import-16_9_buttons: 
+	@bash scripts/import_16x9_buttons.sh
