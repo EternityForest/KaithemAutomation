@@ -310,7 +310,8 @@ class Cue:
 
         if code == "__generate__from__number__":
             code = number_to_shortcut(self.number)
-        with core.lock:
+
+        def f():
             if self.shortcut in shortcut_codes:
                 try:
                     shortcut_codes[self.shortcut].remove(self)
@@ -338,9 +339,11 @@ class Cue:
                 else:
                     shortcut_codes[code] = [self]
 
-            self.shortcut = code
-            if push:
-                self.push()
+        core.async_with_core_lock(f)
+
+        self.shortcut = code
+        if push:
+            self.push()
 
     @beartype
     def set_value(self, universe: str, channel: str | int, value: str | int | float | None):
@@ -379,7 +382,7 @@ class Cue:
             except ValueError:
                 pass
 
-        with core.lock:
+        with self.getGroup().lock:
             reset = False
             if value is not None:
                 if universe not in self.values:

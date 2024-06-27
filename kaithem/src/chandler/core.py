@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Any
 import structlog
 import textdistance
 from icemedia import sound_player
+from scullery import workers
 from tinytag import TinyTag
 
 from ..kaithemobj import kaithem
@@ -215,3 +216,11 @@ class RateLimiter:
 
 
 ratelimit = RateLimiter()
+
+
+def async_with_core_lock(f):
+    def g():
+        with lock:
+            f()
+
+    workers.do(g)

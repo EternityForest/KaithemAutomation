@@ -177,7 +177,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                 logger.exception("Error creating universes")
                 print(traceback.format_exc(6))
 
-            self.refresh_fixtures()
+            self.reload_fixture_assignment_data()
 
         if "scenes" in data:
             data["groups"] = data.pop("scenes")
@@ -193,7 +193,7 @@ class ChandlerConsole(console_abc.Console_ABC):
         self.load_project(project)
         self.initialized = True
 
-    def refresh_fixtures(self):
+    def reload_fixture_assignment_data(self):
         with core.lock:
             self.ferrs = ""
             try:
@@ -226,10 +226,9 @@ class ChandlerConsole(console_abc.Console_ABC):
             for u in universes.universes:
                 self.pushchannelInfoByUniverseAndNumber(u)
 
-            with core.lock:
-                for f in universes.fixtures:
-                    if f:
-                        self.pushchannelInfoByUniverseAndNumber("@" + f)
+            for f in universes.fixtures:
+                if f:
+                    self.pushchannelInfoByUniverseAndNumber("@" + f)
 
             self.ferrs = self.ferrs or "No Errors!"
             self.push_setup()
@@ -291,7 +290,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                     d[i[: -len(".yaml")]] = kaithem.persist.load(fn)
 
         self.loadDict(d)
-        self.refresh_fixtures()
+        self.reload_fixture_assignment_data()
 
     def get_setup_data(self, force=True):
         d = {
@@ -327,7 +326,7 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         if "fixure_assignments" in data:
             self.fixture_assignments = data["fixure_assignments"]
-            self.refresh_fixtures()
+            self.reload_fixture_assignment_data()
 
         if "fixture_presets" in data:
             x = data["fixture_presets"]
@@ -399,14 +398,17 @@ class ChandlerConsole(console_abc.Console_ABC):
             data = {filename[:-5]: data}
 
         with core.lock:
-            if clear_old:
-                for i in self.groups:
-                    if clear_old or (i in data):
-                        self.groups[i].stop()
-                        self.groups[i].close()
+            g = copy.copy(self.groups)
 
-                self.groups = {}
-            self.loadDict(data, errs)
+        if clear_old:
+            for i in g:
+                if clear_old or (i in data):
+                    g[i].stop()
+                    g[i].close()
+
+            self.groups = {}
+
+        self.loadDict(data, errs)
 
     def loadDict(self, data: dict[str, Any], errs: bool = False):
         data = copy.deepcopy(data)
@@ -774,6 +776,25 @@ class ChandlerConsole(console_abc.Console_ABC):
             self.groups_by_name.pop(i.name)
             self.linkSend(["del", i.id])
             persistance.del_checkpoint(i.id)
+
+    def add_to_active_groups(self, group: Group):
+        with core.lock:
+            if group not in self._active_groups:
+                self._active_groups.append(group)
+
+            self._active_groups = sorted(self._active_groups, key=lambda k: (k.priority, k.started))
+            self.active_groups = self._active_groups[:]
+
+    def rm_from_active_groups(self, group: Group):
+        with core.lock:
+            if group in self.board._active_groups:
+                self.board._active_groups.remove(group)
+                self.board.active_groups = self.board._active_groups[:]
+
+    def update_group_priorities(self):
+        with core.lock:
+            self.board._active_groups = sorted(self.board._active_groups, key=lambda k: (k.priority, k.started))
+            self.board.active_groups = self.board._active_groups[:]
 
     def guiPush(self, universes_snapshot):
         "Snapshot is a list of all universes because the getter for that is slow"

@@ -467,7 +467,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             d["channels"] = ch_info
 
             self.fixture_classes[msg[1]] = d
-            self.refresh_fixtures()
+            self.reload_fixture_assignment_data()
 
         elif cmd_name == "setfixtureclassopz":
             x = []
@@ -516,23 +516,23 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             fix = {"channels": x}
 
             self.fixture_classes[msg[1].replace("-", " ").replace("/", " ")] = fix
-            self.refresh_fixtures()
+            self.reload_fixture_assignment_data()
 
         elif cmd_name == "rmfixtureclass":
             del self.fixture_classes[msg[1]]
-            self.refresh_fixtures()
+            self.reload_fixture_assignment_data()
 
         elif cmd_name == "setFixtureAssignment":
             self.fixture_assignments[msg[1]] = msg[2]
             self.send_fixture_assignments()
-            self.refresh_fixtures()
+            self.reload_fixture_assignment_data()
 
         elif cmd_name == "rmFixtureAssignment":
             del self.fixture_assignments[msg[1]]
 
             self.send_fixture_assignments()
 
-            self.refresh_fixtures()
+            self.reload_fixture_assignment_data()
 
         elif cmd_name == "clonecue":
             cues[msg[1]].clone(msg[2])

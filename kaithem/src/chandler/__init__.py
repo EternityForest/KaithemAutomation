@@ -21,9 +21,9 @@ min = min
 
 def refresh_groups(t, v):
     """Tell groups the set of universes has changed"""
-    with core.lock:
-        for b in core.iter_boards():
-            for i in b.active_groups:
+    for b in core.iter_boards():
+        for i in b.active_groups:
+            with i.lock:
                 i.lighting_manager.refresh()
 
 
@@ -114,7 +114,7 @@ def loop():
 
                 for b in core.iter_boards():
                     poll_board_groups(b)
-                    changed.update(group_lighting.pre_render(b, u_cache))
+                    changed.update(group_lighting.mark_and_reset_changed_universes(b, u_cache))
 
                 for b in core.iter_boards():
                     c = group_lighting.composite_layers_from_board(b, u=u_cache)
