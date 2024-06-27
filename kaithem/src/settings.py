@@ -46,14 +46,6 @@ def setRedirect(url):
     persist.save(redirects, redirectsfn)
 
 
-displayfn = os.path.join(directories.vardir, "core.settings", "display.toml")
-
-if os.path.exists(displayfn):
-    display = persist.load(displayfn)
-else:
-    display = {"__first__": {"rotate": ""}}
-
-
 fix_alsa = """
 /bin/amixer set Master 100%
 /bin/amixer -c 1 set PCM 100%
@@ -62,27 +54,6 @@ fix_alsa = """
 /bin/amixer set Speaker 100%
 exit 0
 """
-
-
-def setScreenRotate(direction):
-    if direction not in ("", "left", "right", "normal", "invert"):
-        raise RuntimeError("Security!!!")
-    os.system(
-        """DISPLAY=:0 xrandr --output $(DISPLAY=:0 xrandr | grep -oP  -m 1 '^(.*) (.*)connected' | cut -d" " -f1) --rotate """ + direction
-    )
-    display["__first__"]["rotate"] = direction
-    persist.save(display, displayfn, private=True)
-
-
-if display.get("__first__", {}).get("rotate", ""):
-    try:
-        os.system(
-            "DISPLAY=:0 xrandr --output $(DISPLAY=:0 xrandr | grep -oP  -m 1 '^(.*) (.*)connected' | cut -d"
-            " -f1) --rotate " + display.get("__first__", {}).get("rotate", "")
-        )
-    except Exception:
-        pass
-
 
 NULL = 0
 
@@ -571,17 +542,6 @@ def changeredirecttarget(**kwargs):
         return pages.loginredirect(pages.geturl())
     pages.postOnly()
     setRedirect(kwargs["url"])
-    return quart.redirect("/settings/system")
-
-
-@legacy_route
-def changerotationtarget(**kwargs):
-    try:
-        pages.require("system_admin")
-    except PermissionError:
-        return pages.loginredirect(pages.geturl())
-    pages.postOnly()
-    setScreenRotate(kwargs["rotate"])
     return quart.redirect("/settings/system")
 
 

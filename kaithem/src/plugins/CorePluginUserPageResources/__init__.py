@@ -823,20 +823,9 @@ class PageType(modules_state.ResourceType):
         return pageresourcetemplates.templates[template](name)
 
     def on_update_request(self, module, resource, resourceobj, kwargs):
-        if "tabtospace" in kwargs:
-            body = kwargs["body"].replace("\t", "    ")
-        else:
-            body = kwargs["body"]
-
-        if "tabtospace" in kwargs:
-            code = kwargs["code"].replace("\t", "    ")
-        else:
-            code = kwargs["code"]
-
-        if "tabtospace" in kwargs:
-            setupcode = kwargs["setupcode"].replace("\t", "    ")
-        else:
-            setupcode = kwargs["setupcode"]
+        body = kwargs["body"].replace("\t", "    ")
+        code = kwargs["code"].replace("\t", "    ")
+        setupcode = kwargs["setupcode"].replace("\t", "    ")
 
         resourceobj["body"] = body
         resourceobj["theme_css_url"] = kwargs["themecss"].strip()

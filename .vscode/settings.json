@@ -45,6 +45,7 @@
             "python.testing.cwd": "",
             "cSpell.allowCompoundWords": true,
             "cSpell.words": [
+                "amixer",
                 "asgi",
                 "astype",
                 "asuser",
@@ -77,6 +78,7 @@
                 "rrule",
                 "rtmidi",
                 "snakify",
+                "strftime",
                 "stringly",
                 "testid",
                 "tobytes",

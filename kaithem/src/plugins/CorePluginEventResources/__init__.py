@@ -1919,12 +1919,8 @@ class EventType(modules_state.ResourceType):
             compiled_object = None
             # Test compile, throw error on fail.
 
-            if "tabtospace" in kwargs:
-                actioncode = kwargs["action"].replace("\t", "    ")
-                setupcode = kwargs["setup"].replace("\t", "    ")
-            else:
-                actioncode = kwargs["action"]
-                setupcode = kwargs["setup"]
+            actioncode = kwargs["action"].replace("\t", "    ")
+            setupcode = kwargs["setup"].replace("\t", "    ")
 
             if "enable" in kwargs:
                 try:

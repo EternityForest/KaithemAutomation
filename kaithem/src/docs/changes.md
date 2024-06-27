@@ -10,6 +10,9 @@ Change Log
 #### Removed
 
 - :coffin: control and \_\_variables\_\_ chandler universes
+- :coffin: Tab to space option: Spaces are always used
+- :coffin: Screen rotate setting that didn't work on Wayland
+
 
 #### Added
 
