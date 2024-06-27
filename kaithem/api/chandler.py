@@ -1,5 +1,7 @@
 from typing import Any, Callable
 
+from scullery import workers
+
 from kaithem.src.chandler import global_actions as _global_actions
 from kaithem.src.chandler import groups as _groups
 
@@ -14,9 +16,17 @@ def add_command(name: str, f: Callable):
 
 def trigger_event(event: str, value: Any = None):
     "Trigger an event in all groups"
-    _global_actions.event(event, value)
+
+    def f():
+        _global_actions.cl_event(event, value)
+
+    workers.do(f)
 
 
 def shortcut(s: str):
     """Trigger a shortcut code.  All matching cues will be jumped to."""
-    _global_actions.trigger_shortcut_code(s)
+
+    def f():
+        _global_actions.cl_trigger_shortcut_code(s)
+
+    workers.do(f)

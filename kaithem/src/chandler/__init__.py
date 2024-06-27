@@ -30,7 +30,7 @@ def refresh_groups(t, v):
 messagebus.subscribe("/chandler/command/refresh_group_lighting", refresh_groups)
 
 
-def refreshFixtures(topic, val):
+def cl_refresh_fixtures(topic, val):
     # Deal with fixtures in this universe that aren't actually attached to this object yet.
     for i in range(5):
         try:
@@ -40,14 +40,14 @@ def refreshFixtures(topic, val):
                     if not f:
                         continue
                     if f.universe == val or val is None:
-                        f.assign(f.universe, f.startAddress)
+                        f.cl_assign(f.universe, f.startAddress)
             break
         except RuntimeError:
             # Should there be some kind of dict changed size problem, retry
             time.sleep(0.1)
 
 
-messagebus.subscribe("/chandler/command/refreshFixtures", refreshFixtures)
+messagebus.subscribe("/chandler/command/refreshFixtures", cl_refresh_fixtures)
 
 
 def pollsounds():
@@ -84,7 +84,7 @@ lastrendered = 0
 run = [True]
 
 
-def loop():
+def cl_loop():
     global lastrendered
 
     # This function is apparently slightly slow?
@@ -121,7 +121,7 @@ def loop():
                     changed.update(c)
 
                     if do_gui_push:
-                        b.guiPush(u_cache)
+                        b.cl_gui_push(u_cache)
 
                 group_lighting.do_output(changed, u_cache)
 
@@ -130,7 +130,7 @@ def loop():
             logger.exception("Wat")
 
 
-thread = threading.Thread(target=loop, name="ChandlerThread", daemon=True)
+thread = threading.Thread(target=cl_loop, name="ChandlerThread", daemon=True)
 thread.start()
 
 

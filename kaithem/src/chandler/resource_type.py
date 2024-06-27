@@ -47,7 +47,7 @@ class ConfigType(modules_state.ResourceType):
         if x:
             x.close()
 
-        core.boards[f"{module}:{resource}"].setup(data.get("project", {}))
+        core.boards[f"{module}:{resource}"].cl_setup(data.get("project", {}))
 
     def on_move(self, module, resource, to_module, to_resource, data):
         x = entries.pop((module, resource), None)
@@ -94,7 +94,7 @@ class ConfigType(modules_state.ResourceType):
         return d.render(self.get_update_target(module, resource))
 
     def flush_unsaved(self, module, resource):
-        entries[module, resource].check_autosave()
+        entries[module, resource].cl_check_autosave()
         return super().flush_unsaved(module, resource)
 
 

@@ -25,7 +25,7 @@ from ..kaithemobj import kaithem
 from . import core, group_media, mqtt, persistance
 from .core import disallow_special
 from .cue import Cue, allowedCueNameSpecials, cues
-from .global_actions import trigger_shortcut_code
+from .global_actions import cl_trigger_shortcut_code
 from .group_context_commands import add_context_commands, rootContext
 from .group_lighting import GroupLightingManager
 from .mathutils import dt_to_ts, ease, number_to_note
@@ -1049,7 +1049,11 @@ class Group:
 
             sc = self.cues[cue].trigger_shortcut.strip()
             if sc:
-                trigger_shortcut_code(sc, exclude=self)
+
+                def f():
+                    cl_trigger_shortcut_code(sc, exclude=self)
+
+                workers.do(f)
             self.cue = self.cues[cue]
 
             if self.cue.checkpoint:
@@ -1454,7 +1458,11 @@ class Group:
             v = v[0]
 
             if v.startswith("launch:"):
-                trigger_shortcut_code(str(v[len("launch:") :]), self)
+
+                def f():
+                    cl_trigger_shortcut_code(str(v[len("launch:") :]), self)
+
+                workers.do(f)
 
             elif v == "Rev":
                 self.prev_cue(cause="ECP")
@@ -1590,7 +1598,10 @@ class Group:
             self.poll_again_flag = True
             self.lighting_manager.should_rerender_onto_universes = True
 
-            self.board.add_to_active_groups(self)
+            def f():
+                self.board.cl_add_to_active_groups(self)
+
+            workers.do(f)
 
     def is_active(self):
         return self.active
@@ -1606,7 +1617,7 @@ class Group:
         with self.lock:
             self.lighting_manager.refresh()
 
-        self.board.update_group_priorities()
+        workers.do(self.board.cl_update_group_priorities)
 
     def mqttStatusEvent(self, value: str, timestamp: float, annotation: Any):
         if value == "connected":
@@ -1778,8 +1789,6 @@ class Group:
 
             self.lighting_manager.stop()
 
-            self.board.rm_from_active_groups(self)
-
             self.active = False
 
             self.media_player.stop()
@@ -1791,6 +1800,12 @@ class Group:
             except Exception:
                 core.rl_log_exc("Error handling timer set notification")
                 print(traceback.format_exc())
+
+            def f():
+                self.board.cl_rm_from_active_groups(self)
+
+            workers.do(f)
+
             # fALLBACK
             self.cue = self.cues.get("default", list(self.cues.values())[0])
             # the real thing that means we aren't really in a cue

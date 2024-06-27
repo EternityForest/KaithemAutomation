@@ -19,7 +19,7 @@ from ..kaithemobj import kaithem
 from . import ChandlerConsole, core, groups, universes
 from .core import disallow_special
 from .cue import fnToCueName
-from .global_actions import event
+from .global_actions import cl_event
 from .groups import Group, cues
 
 
@@ -125,7 +125,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
             def on_subscriber_disconnected(s, user: str, connection_id: str, **kw: Any) -> None:
                 if canUserDoThis(user, "system_admin"):
-                    self.check_autosave()
+                    self.cl_check_autosave()
                 return super().on_subscriber_disconnected(user, connection_id, **kw)
 
         self.link = WrappedLink(id=f"WebChandlerConsole:{self.name}", echo=False)
@@ -362,7 +362,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             return
 
         elif cmd_name == "shortcut":
-            groups.trigger_shortcut_code(msg[1])
+            groups.cl_trigger_shortcut_code(msg[1])
             return
 
         elif cmd_name == "addTimeToGroup":
@@ -430,17 +430,17 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             self.linkSend(["fixturePresets", self.fixture_presets])
 
         elif cmd_name == "saveState":
-            self.check_autosave()
+            self.cl_check_autosave()
 
         elif cmd_name == "loadShow":
-            self.load_show(msg[1])
+            self.cl_load_show(msg[1])
 
         elif cmd_name == "downloadSetup":
-            self.linkSendTo(["fileDownload", msg[1], yaml.dump(self.getLibraryFile())], sessionid)
+            self.linkSendTo(["fileDownload", msg[1], yaml.dump(self.cl_get_library_file())], sessionid)
 
         elif cmd_name == "fileUpload":
             if msg[2] == "setup":
-                self.loadSetupFile(msg[1])
+                self.cl_load_setup_file(msg[1])
 
         elif cmd_name == "addgroup":
             sc = Group(self, msg[1].strip())
@@ -450,7 +450,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         elif cmd_name == "setconfuniverses":
             if kaithem.users.check_permission(user, "system_admin"):
                 self.configured_universes = msg[1]
-                self.create_universes(self.configured_universes)
+                self.cl_create_universes(self.configured_universes)
             else:
                 raise RuntimeError("User does not have permission")
 
@@ -467,7 +467,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             d["channels"] = ch_info
 
             self.fixture_classes[msg[1]] = d
-            self.reload_fixture_assignment_data()
+            self.cl_reload_fixture_assignment_data()
 
         elif cmd_name == "setfixtureclassopz":
             x = []
@@ -516,29 +516,29 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             fix = {"channels": x}
 
             self.fixture_classes[msg[1].replace("-", " ").replace("/", " ")] = fix
-            self.reload_fixture_assignment_data()
+            self.cl_reload_fixture_assignment_data()
 
         elif cmd_name == "rmfixtureclass":
             del self.fixture_classes[msg[1]]
-            self.reload_fixture_assignment_data()
+            self.cl_reload_fixture_assignment_data()
 
         elif cmd_name == "setFixtureAssignment":
             self.fixture_assignments[msg[1]] = msg[2]
             self.send_fixture_assignments()
-            self.reload_fixture_assignment_data()
+            self.cl_reload_fixture_assignment_data()
 
         elif cmd_name == "rmFixtureAssignment":
             del self.fixture_assignments[msg[1]]
 
             self.send_fixture_assignments()
 
-            self.reload_fixture_assignment_data()
+            self.cl_reload_fixture_assignment_data()
 
         elif cmd_name == "clonecue":
             cues[msg[1]].clone(msg[2])
 
         elif cmd_name == "event":
-            event(msg[1], msg[2])
+            cl_event(msg[1], msg[2])
 
         elif cmd_name == "setshortcut":
             cues[msg[1]].setShortcut(msg[2][:128])
@@ -1013,7 +1013,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             groups.checkPermissionsForGroupData(x.toDict(), user)
 
             x.stop()
-            self.delgroup(msg[1])
+            self.cl_del_group(msg[1])
 
         elif cmd_name == "setsoundfolders":
             self.media_folders = [i.strip().replace("\r", "").replace("\t", " ") for i in msg[1].split("\n") if i]

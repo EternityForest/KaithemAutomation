@@ -4,6 +4,8 @@ from __future__ import annotations
 import traceback
 from typing import TYPE_CHECKING, Any
 
+from scullery import workers
+
 from . import core
 
 if TYPE_CHECKING:
@@ -29,13 +31,13 @@ def normalize_shortcut(code: str | int | float) -> str:
     return str(code)
 
 
-def trigger_shortcut_code(code: str, limitGroup: Group | None = None, exclude: Group | None = None):
+def cl_trigger_shortcut_code(code: str, limitGroup: Group | None = None, exclude: Group | None = None):
     "API to activate a cue by it's shortcut code"
 
     code = normalize_shortcut(code)
 
     if not limitGroup:
-        event("shortcut." + str(code)[:64], None)
+        cl_event("shortcut." + str(code)[:64], None)
 
     go_list = []
     event_list = []
@@ -71,7 +73,7 @@ def trigger_shortcut_code(code: str, limitGroup: Group | None = None, exclude: G
         i[0].event("shortcut." + i[1], None)
 
 
-def event(s: str, value: Any = None, info: str = "") -> None:
+def cl_event(s: str, value: Any = None, info: str = "") -> None:
     "THIS IS THE ONLY TIME THE INFO THING DOES ANYTHING"
     # disallow_special(s, allow=".")
     event_list = []
@@ -82,3 +84,10 @@ def event(s: str, value: Any = None, info: str = "") -> None:
 
     for i in event_list:
         i._event(s, value=value, info=info)
+
+
+def async_event(s: str, value: Any = None, info: str = "") -> None:
+    def f():
+        cl_event(s, value, info)
+
+    workers.do(f)

@@ -3,7 +3,7 @@ import os
 from . import core, global_actions, groups, utils
 
 
-def import_m3u(group: groups.Group, d):
+def cl_import_m3u(group: groups.Group, d):
     d = d.replace("\r", "").split("\n")
 
     info = None
@@ -24,9 +24,9 @@ def import_m3u(group: groups.Group, d):
                     if os.path.exists(i2):
                         utils.new_cue_from_sound(group, i2, name=info)
                     else:
-                        global_actions.event("board.error", "Error locating " + str(i))
+                        global_actions.cl_event("board.error", "Error locating " + str(i))
             except Exception:
-                global_actions.event("board.error", "Error locating " + str(i))
+                global_actions.cl_event("board.error", "Error locating " + str(i))
 
             info = None
 
