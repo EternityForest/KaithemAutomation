@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import os
-import random
 import threading
 import time
 import weakref
@@ -9,15 +7,13 @@ from typing import Any
 
 import structlog
 from beartype import beartype
-from scullery import persist, scheduling, statemachines
+from scullery import statemachines
 
 from . import (
-    directories,
     messagebus,
     pages,
     unitsofmeasure,
     widgets,
-    workers,
 )
 
 logger = structlog.get_logger(__name__)
@@ -31,23 +27,6 @@ def shutdown(*a: tuple[Any], **k: dict[str, Any]):
 
 
 messagebus.subscribe("/system/shutdown", shutdown)
-
-fn = os.path.join(directories.vardir, "core.settings", "alertsounds.toml")
-
-if os.path.exists(fn):
-    file: dict[str, Any] = persist.load(fn)
-else:
-    file = {
-        "all": {"soundcard": "__disable__"},
-        "critical": {"file": "error.ogg", "interval": 36.0},
-        "error": {"file": "", "interval": 3600.0},
-        "warning": {"file": "", "interval": 3600.0},
-    }
-
-
-def saveSettings(*a: tuple[Any], **k: dict[str, Any]):
-    persist.save(file, fn, private=True)
-    persist.unsavedFiles.pop(fn, "")
 
 
 # This is a dict of all alerts that have not yet been acknowledged.
@@ -120,10 +99,6 @@ priorities = {
 illegalCharsInName = "[]{}|\\<>,?-=+)(*&^%$#@!~`\n\r\t\0"
 
 
-nextbeep = 10**10
-sfile_default = "alert.ogg"
-
-
 def formatAlerts():
     return {i: active[i]().format() for i in active if active[i]() and pages.canUserDoThis(active[i]().permissions)}
 
@@ -145,51 +120,6 @@ def handleApiCall(u: str, v: list):
 
 
 api.attach(handleApiCall)
-
-
-def calcNextBeep():
-    global nextbeep
-    sfile = sfile_default
-    x = highest_unacknowledged_alert_level(excludeSilent=True)
-    if not x:
-        x = 0
-    else:
-        x = priorities.get(x, 40)
-    if x >= 30 and x < 40:
-        nextbeep = file["warning"]["interval"] + time.time() + (random.random() * 3)
-        sfile = file["warning"]["file"]
-
-    elif x >= 40 and x < 50:
-        nextbeep = file["error"]["interval"] + time.time() + (random.random() * 3)
-        sfile = file["error"]["file"]
-
-    elif x >= 50:
-        nextbeep = file["critical"]["interval"] + time.time() + (random.random() * 3)
-        sfile = file["critical"]["file"]
-    else:
-        nextbeep = 10**10
-        sfile = None
-
-    return sfile
-
-
-# A bit of randomness makes important alerts seem more important
-@scheduling.scheduler.every_second
-def alarmBeep():
-    if time.time() > nextbeep:
-        calcNextBeep()
-        s = (sfile_default or "").strip()
-        beepDevice = file["all"]["soundcard"]
-        if beepDevice == "__disable__":
-            return
-        if s:
-            try:
-                # On-demand to avoid circular import
-                from icemedia import sound_player as sound
-
-                sound.play_sound(s, handle="kaithem_sys_main_alarm", output=beepDevice)
-            except Exception:
-                logger.exception("ERROR PLAYING ALERT SOUND")
 
 
 def highest_unacknowledged_alert_level(excludeSilent=False) -> str:
@@ -381,7 +311,7 @@ class Alert:
     def trip_delay(self):
         return self._trip_delay
 
-    # I don't like the undefined thread aspec of __del__. Change this?
+    # I don't like the undefined thread aspect of __del__. Change this?
     def _on_active(self):
         global unacknowledged
         global active
@@ -393,20 +323,6 @@ class Alert:
 
             _active[self.id] = weakref.ref(self)
             active = _active.copy()
-            s = calcNextBeep()
-        if s:
-            # Sound drivers can actually use tagpoints, this was causing a
-            # deadlock with the tag's lock in the __del__ function GCing some
-            # other tag. I don't quite understand it but this should break the loop
-            def f():
-                # Ondemand to avoid circular import
-                from icemedia import sound_player as sound
-
-                beepDevice = file["all"]["soundcard"]
-                sound.play_sound(s, handle="kaithem_sys_main_alarm", output=beepDevice)
-                api.send(["shouldRefresh"])
-
-            workers.do(f)
 
         if self.priority in ("error", "critical", "important"):
             logger.error(f"Alarm {self.name} ACTIVE")
@@ -429,7 +345,7 @@ class Alert:
             if self.id in _unacknowledged:
                 del _unacknowledged[self.id]
             unacknowledged = _unacknowledged.copy()
-        calcNextBeep()
+
         api.send(["shouldRefresh"])
         sendMessage()
         pushAlertState()
@@ -463,7 +379,7 @@ class Alert:
             if self.id in _active:
                 del _active[self.id]
             active = _active.copy()
-        calcNextBeep()
+
         api.send(["shouldRefresh"])
         sendMessage()
         pushAlertState()

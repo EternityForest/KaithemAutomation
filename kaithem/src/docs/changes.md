@@ -1,18 +1,15 @@
 Change Log
 ----------
+
 ### 0.85.0
 
-
-#### Deprecated
-
-- :coffin: The alert sounds system may be removed. It is suggested to use an automation rule on /sys/alerts.level for more control
 
 #### Removed
 
 - :coffin: control and \_\_variables\_\_ chandler universes
 - :coffin: Tab to space option: Spaces are always used
 - :coffin: Screen rotate setting that didn't work on Wayland
-
+- :coffin: The alert sounds system has been removed. It is suggested to use an automation rule on /sys/alerts.level.
 
 #### Added
 

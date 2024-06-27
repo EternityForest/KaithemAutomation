@@ -375,11 +375,6 @@ def changeprefs(**kwargs):
         return pages.loginredirect(pages.geturl())
     pages.postOnly()
 
-    if "tabtospace" in kwargs:
-        auth.setUserSetting(pages.getAcessingUser(), "tabtospace", True)
-    else:
-        auth.setUserSetting(pages.getAcessingUser(), "tabtospace", False)
-
     for i in kwargs:
         if i.startswith("pref_"):
             if i not in ["pref_strftime", "pref_timezone", "email"]:
@@ -470,27 +465,6 @@ def set_time_from_web(**kwargs):
         subprocess.call(["sudo", "hwclock", "--systohc"])
     except Exception:
         pass
-
-    return quart.redirect("/settings/system")
-
-
-@legacy_route
-def changealertsettingstarget(**kwargs):
-    try:
-        pages.require("system_admin")
-    except PermissionError:
-        return pages.loginredirect(pages.geturl())
-    pages.postOnly()
-    from . import alerts
-
-    alerts.file["warning"]["interval"] = float(kwargs["warningbeeptime"])
-    alerts.file["error"]["interval"] = float(kwargs["errorbeeptime"])
-    alerts.file["critical"]["interval"] = float(kwargs["critbeeptime"])
-    alerts.file["warning"]["file"] = kwargs["warningsound"]
-    alerts.file["error"]["file"] = kwargs["errorsound"]
-    alerts.file["critical"]["file"] = kwargs["critsound"]
-    alerts.file["all"]["soundcard"] = kwargs["soundcard"]
-    alerts.saveSettings()
 
     return quart.redirect("/settings/system")
 
