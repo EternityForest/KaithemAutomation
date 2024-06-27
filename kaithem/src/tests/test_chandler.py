@@ -488,7 +488,7 @@ def test_priorities():
     assert tagpoints.Tag("/test_p").value == 2
 
     # Change priority and confirm stacking order changes
-    s.setPriority(51)
+    s.priority = 51
 
     time.sleep(0.1)
     if not tagpoints.Tag("/test_p").value == 1:
