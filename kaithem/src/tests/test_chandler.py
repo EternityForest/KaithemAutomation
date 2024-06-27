@@ -468,6 +468,34 @@ def test_tag_backtrack_feature():
     assert tagpoints.Tag("/test_bt").value == 5
 
 
+def test_priorities():
+    s = groups.Group(board, name="TestingGroup7", id="TEST")
+    s2 = groups.Group(board, name="TestingGroup8", id="TEST2")
+
+    board.addGroup(s)
+    board.addGroup(s)
+
+    s.go()
+    s2.go()
+
+    # Set values and check that tags change
+    s.cues["default"].set_value("/test_p", "value", 1)
+    s2.cues["default"].set_value("/test_p", "value", 2)
+
+    time.sleep(0.1)
+    if not tagpoints.Tag("/test_p").value == 2:
+        time.sleep(1)
+    assert tagpoints.Tag("/test_p").value == 2
+
+    # Change priority and confirm stacking order changes
+    s.setPriority(51)
+
+    time.sleep(0.1)
+    if not tagpoints.Tag("/test_p").value == 1:
+        time.sleep(1)
+    assert tagpoints.Tag("/test_p").value == 1
+
+
 def test_lighting_value_set_tag_flicker():
     s = groups.Group(board, name="TestingGroup5", id="TEST")
     s2 = groups.Group(board, name="TestingGroup6", id="TEST2")
