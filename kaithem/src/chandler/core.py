@@ -86,6 +86,8 @@ def disallow_special(s: str, allow: str = "", replaceMode: str | None = None) ->
 
 musicLocation = os.path.join(kaithem.misc.vardir, "chandler", "music")
 
+
+"""Only change this under core.lock"""
 boards: dict[str, ChandlerConsole.ChandlerConsole] = {}
 
 

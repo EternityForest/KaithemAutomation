@@ -2,7 +2,6 @@ import atexit
 import threading
 import time
 
-import icemedia.sound_player
 from scullery import messagebus
 
 from . import ChandlerConsole, core, group_lighting, universes
@@ -53,17 +52,7 @@ messagebus.subscribe("/chandler/command/refreshFixtures", cl_refresh_fixtures)
 def pollsounds():
     for b in core.iter_boards():
         for i in b.active_groups:
-            # If the cuelen isn't 0 it means we are using the newer version that supports randomizing lengths.
-            # We keep this in case we get a sound format we can'r read the length of in advance
-            if i.cuelen == 0:
-                # Forbid any crazy error loopy business with too short sounds
-                if (time.time() - i.entered_cue) > 1 / 5:
-                    if i.cue.sound and i.cue.rel_length:
-                        if not i.media_ended_at:
-                            if not icemedia.sound_player.is_playing(str(i.id)):
-                                i.media_ended_at = time.time()
-                        if i.media_ended_at and (time.time() - i.media_ended_at > (i.cue.length * i.bpm)):
-                            i.next_cue(cause="sound")
+            i.check_sound_state()
 
 
 def poll_board_groups(board: ChandlerConsole.ChandlerConsole, t=None):
@@ -100,7 +89,9 @@ def cl_loop():
                 u_cache_time = t
 
             do_gui_push = False
-            if t - lastrendered > 1 / 14.0:
+            # Only needed when we don't know length in advance
+            # so it doesn't need fast response its just a fallback
+            if t - lastrendered > 1 / 3:
                 with core.lock:
                     pollsounds()
                 do_gui_push = True
@@ -112,11 +103,11 @@ def cl_loop():
                 # The pre-render step has to
                 # happen before we start compositing on the layers
 
-                for b in core.iter_boards():
+                for b in core.boards.values():
                     poll_board_groups(b)
                     changed.update(group_lighting.mark_and_reset_changed_universes(b, u_cache))
 
-                for b in core.iter_boards():
+                for b in core.boards.values():
                     c = group_lighting.composite_layers_from_board(b, u=u_cache)
                     changed.update(c)
 

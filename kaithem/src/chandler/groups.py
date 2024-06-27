@@ -16,6 +16,7 @@ import weakref
 from collections.abc import Callable, Iterable
 from typing import TYPE_CHECKING, Any
 
+import icemedia.sound_player
 import structlog
 from beartype import beartype
 from scullery import workers
@@ -385,8 +386,6 @@ class Group:
         self.lastTap: float = 0
         self.tapSequence = 0
 
-        # This flag is used to avoid having to repaint the canvas if we don't need to
-        self.fade_in_completed = False
         # A pointer into that list pointing at the current cue. We have to update all this
         # every time we change the lists
         self.cuePointer = 0
@@ -496,6 +495,20 @@ class Group:
         schemas.validate("chandler/group", d)
 
         return d
+
+    def check_sound_state(self):
+        # If the cuelen isn't 0 it means we are using the newer version that supports randomizing lengths.
+        # We keep this in case we get a sound format we can'r read the length of in advance
+        if self.cuelen == 0:
+            # Forbid any crazy error loopy business with too short sounds
+            if (time.time() - self.entered_cue) > 1 / 5:
+                if self.cue.sound and self.cue.rel_length:
+                    if not self.media_ended_at:
+                        if not icemedia.sound_player.is_playing(str(self.id)):
+                            self.media_ended_at = time.time()
+                    cuelen = self.evalExprFloat(self.cue.length)
+                    if self.media_ended_at and (time.time() - self.media_ended_at > (cuelen * self.bpm)):
+                        self.next_cue(cause="sound")
 
     def __del__(self):
         pass
@@ -1948,21 +1961,30 @@ class Group:
                 1.0,
             )
             fadePosition = ease(fadePosition)
+
+            if fadePosition < 1:
+                self.poll_again_flag = True
+                self.lighting_manager.should_rerender_onto_universes = True
+
         else:
             fadePosition = 1
 
-        if fadePosition < 1:
-            self.poll_again_flag = True
-            self.lighting_manager.should_rerender_onto_universes = True
-
         # Remember, we can and do the next cue thing and still need to repaint, because sometimes the next cue thing does nothing
-        if force_repaint or (not self.fade_in_completed):
+        if force_repaint or (not self.lighting_manager.fade_in_completed):
             self.lighting_manager.paint_canvas(fadePosition)
             if fadePosition >= 1.0:
                 self.lighting_manager.fade_complete()
 
-        if self.cuelen and (time.time() - self.entered_cue) > self.cuelen * (60 / self.bpm):
+        if self.cue_time_finished():
             # rel_length cues end after the sound in a totally different part of code
             # Calculate the "real" time we entered, which is exactly the previous entry time plus the len.
             # Then round to the nearest millisecond to prevent long term drift due to floating point issues.
-            self.next_cue(round(self.entered_cue + self.cuelen * (60 / self.bpm), 3), cause="time")
+
+            # Confirm under lock to avoid any race conditions
+            with self.lock:
+                if self.cue_time_finished():
+                    self.next_cue(round(self.entered_cue + self.cuelen * (60 / self.bpm), 3), cause="time")
+
+    def cue_time_finished(self):
+        if self.cuelen and (time.time() - self.entered_cue) > self.cuelen * (60 / self.bpm):
+            return True

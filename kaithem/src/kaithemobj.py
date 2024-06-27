@@ -358,7 +358,7 @@ class Kaithem:
         directories = config.config["audio_paths"]
 
         @staticmethod
-        def outputs():
+        def outputs() -> List[str]:
             try:
                 from . import jackmanager
 
