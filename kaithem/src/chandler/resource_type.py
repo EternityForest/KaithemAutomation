@@ -42,13 +42,15 @@ class ConfigType(modules_state.ResourceType):
         x = entries.pop((module, resource), None)
         entries[module, resource] = WebChandlerConsole.WebConsole(f"{module}:{resource}")
         set_save_cb(entries[module, resource], module, resource)
-        with core.lock:
-            core.boards[f"{module}:{resource}"] = entries[module, resource]
 
-            if x:
-                x.cl_close()
+        with core.cl_context:
+            with core.lock:
+                core.boards[f"{module}:{resource}"] = entries[module, resource]
 
-            core.boards[f"{module}:{resource}"].cl_setup(data.get("project", {}))
+                if x:
+                    x.cl_close()
+
+                core.boards[f"{module}:{resource}"].cl_setup(data.get("project", {}))
 
     def on_move(self, module, resource, to_module, to_resource, data):
         x = entries.pop((module, resource), None)
@@ -67,9 +69,10 @@ class ConfigType(modules_state.ResourceType):
         self.on_load(module, resource, data)
 
     def on_delete(self, module, resource, data):
-        entries[module, resource].cl_close()
-        with core.lock:
-            core.boards.pop(f"{module}:{resource}", None)
+        with core.cl_context:
+            with core.lock:
+                entries[module, resource].cl_close()
+                core.boards.pop(f"{module}:{resource}", None)
 
         del entries[module, resource]
 

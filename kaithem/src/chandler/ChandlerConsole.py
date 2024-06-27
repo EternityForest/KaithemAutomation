@@ -130,6 +130,7 @@ class ChandlerConsole(console_abc.Console_ABC):
             self.cl_check_autosave()
             time.sleep(10)
 
+    @core.cl_context.required
     def cl_close(self):
         for i in self.groups:
             self.groups[i].stop()
@@ -144,6 +145,7 @@ class ChandlerConsole(console_abc.Console_ABC):
         except Exception:
             print(traceback.format_exc())
 
+    @core.cl_context.entry_point
     def cl_load_project(self, data: dict[str, Any]):
         for i in self.groups:
             self.groups[i].stop()
@@ -195,11 +197,13 @@ class ChandlerConsole(console_abc.Console_ABC):
             self.cl_load_dict(d)
             self.linkSend(["refreshPage", self.fixture_assignments])
 
+    @core.cl_context.entry_point
     def cl_setup(self, project: dict[str, Any]):
         console_abc.Console_ABC.cl_setup(self, project)
         self.cl_load_project(project)
         self.initialized = True
 
+    @core.cl_context.entry_point
     def cl_reload_fixture_assignment_data(self):
         with core.lock:
             self.ferrs = ""
@@ -240,6 +244,7 @@ class ChandlerConsole(console_abc.Console_ABC):
             self.ferrs = self.ferrs or "No Errors!"
             self.push_setup()
 
+    @core.cl_context.entry_point
     def cl_create_universes(self, data: dict[str, Any]):
         """Cl because of the universes object init"""
         assert isinstance(data, Dict)
@@ -287,6 +292,7 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         self.push_setup()
 
+    @core.cl_context.entry_point
     def cl_load_show(self, showName: str):
         saveLocation = os.path.join(kaithem.misc.vardir, "chandler", "shows", showName)
         d = {}
@@ -311,6 +317,7 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         return copy.deepcopy(d)
 
+    @core.cl_context.entry_point
     def cl_load_setup_file(self, data_str: str):
         data = yaml.load(data_str, Loader=yaml.SafeLoader)
         data = snake_compat.snakify_dict_keys(data)
@@ -359,6 +366,7 @@ class ChandlerConsole(console_abc.Console_ABC):
             logger.exception("Failed to get file timestamp")
             return ""
 
+    @core.cl_context.entry_point
     def cl_get_setup_file(self):
         with core.lock:
             return {
@@ -386,6 +394,7 @@ class ChandlerConsole(console_abc.Console_ABC):
         else:
             raise ValueError("No fixture types in that file")
 
+    @core.cl_context.entry_point
     def cl_get_library_file(self):
         with core.lock:
             return {
@@ -395,6 +404,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                 "fixture_presets": self.fixture_presets,
             }
 
+    @core.cl_context.entry_point
     def cl_load_group_file(self, data_str: str, filename: str, errs: bool = False, clear_old: bool = True):
         data = yaml.load(data_str, Loader=yaml.SafeLoader)
 
@@ -420,6 +430,7 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         self.cl_load_dict(data, errs)
 
+    @core.cl_context.entry_point
     def cl_load_dict(self, data: dict[str, Any], errs: bool = False):
         data = copy.deepcopy(data)
         data = from_legacy(data)
@@ -561,6 +572,7 @@ class ChandlerConsole(console_abc.Console_ABC):
             ]
         )
 
+    @core.cl_context.entry_point
     def cl_get_groups(self):
         "Return serializable version of groups list"
         with core.lock:
@@ -571,16 +583,19 @@ class ChandlerConsole(console_abc.Console_ABC):
 
             return sd
 
+    @core.cl_context.entry_point
     def cl_check_autosave(self):
         if self.initialized:
             self.cl_save_project_data()
 
+    @core.cl_context.entry_point
     def cl_get_project_data(self):
         sd = copy.deepcopy(self.cl_get_groups())
 
         project_file: dict[str, Any] = {"groups": sd, "setup": self.cl_get_setup_file()}
         return project_file
 
+    @core.cl_context.entry_point
     def cl_save_project_data(self):
         project_file = self.cl_get_project_data()
 
@@ -776,6 +791,7 @@ class ChandlerConsole(console_abc.Console_ABC):
             )
             x = x[100:]
 
+    @core.cl_context.entry_point
     def cl_del_group(self, sc):
         i = None
         with core.lock:
@@ -787,6 +803,7 @@ class ChandlerConsole(console_abc.Console_ABC):
             self.linkSend(["del", i.id])
             persistance.del_checkpoint(i.id)
 
+    @core.cl_context.entry_point
     def cl_add_to_active_groups(self, group: Group):
         with core.lock:
             if group not in self._active_groups:
@@ -795,6 +812,7 @@ class ChandlerConsole(console_abc.Console_ABC):
             self._active_groups = sorted(self._active_groups, key=lambda k: (k.priority, k.started))
             self.active_groups = self._active_groups[:]
 
+    @core.cl_context.entry_point
     def cl_rm_from_active_groups(self, group: Group):
         with core.lock:
             if group in self._active_groups:
@@ -805,11 +823,13 @@ class ChandlerConsole(console_abc.Console_ABC):
         gc.collect()
         gc.collect()
 
+    @core.cl_context.entry_point
     def cl_update_group_priorities(self):
         with core.lock:
             self._active_groups = sorted(self._active_groups, key=lambda k: (k.priority, k.started))
             self.active_groups = self._active_groups[:]
 
+    @core.cl_context.required
     def cl_gui_push(self, universes_snapshot):
         "Snapshot is a list of all universes because the getter for that is slow"
         with core.lock:

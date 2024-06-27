@@ -3,6 +3,7 @@ import os
 from . import core, global_actions, groups, utils
 
 
+@core.cl_context.entry_point
 def cl_import_m3u(group: groups.Group, d):
     d = d.replace("\r", "").split("\n")
 

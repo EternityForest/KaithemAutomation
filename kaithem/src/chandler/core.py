@@ -16,6 +16,7 @@ from icemedia import sound_player
 from scullery import workers
 from tinytag import TinyTag
 
+from .. import context_restrictions
 from ..kaithemobj import kaithem
 from . import console_abc
 
@@ -58,6 +59,14 @@ def rl_log_exc(m: str):
     if last_logged_error < time.monotonic() - 5 * 60:
         logging.exception(m)
     last_logged_error = time.monotonic()
+
+
+cl_context = context_restrictions.Context("ChandlerCoreLock")
+
+# All groups share the context
+group_context = context_restrictions.Context("ChandlerGroupLock")
+
+cl_context.opens_before(group_context)
 
 
 lock = threading.RLock()

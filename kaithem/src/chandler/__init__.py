@@ -29,6 +29,7 @@ def refresh_groups(t, v):
 messagebus.subscribe("/chandler/command/refresh_group_lighting", refresh_groups)
 
 
+@core.cl_context.entry_point
 def cl_refresh_fixtures(topic, val):
     # Deal with fixtures in this universe that aren't actually attached to this object yet.
     for i in range(5):
@@ -73,6 +74,7 @@ lastrendered = 0
 run = [True]
 
 
+@core.cl_context.entry_point
 def cl_loop():
     global lastrendered
 

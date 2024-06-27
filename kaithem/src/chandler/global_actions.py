@@ -31,6 +31,7 @@ def normalize_shortcut(code: str | int | float) -> str:
     return str(code)
 
 
+@core.cl_context.entry_point
 def cl_trigger_shortcut_code(code: str, limitGroup: Group | None = None, exclude: Group | None = None):
     "API to activate a cue by it's shortcut code"
 
@@ -73,6 +74,7 @@ def cl_trigger_shortcut_code(code: str, limitGroup: Group | None = None, exclude
         i[0].event("shortcut." + i[1], None)
 
 
+@core.cl_context.entry_point
 def cl_event(s: str, value: Any = None, info: str = "") -> None:
     "THIS IS THE ONLY TIME THE INFO THING DOES ANYTHING"
     # disallow_special(s, allow=".")

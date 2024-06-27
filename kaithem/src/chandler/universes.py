@@ -138,15 +138,16 @@ class Fixture:
 
                 ID = id(self)
 
-            with core.lock:
-                try:
-                    if id(fixtures[self.name]()) == id(ID):
-                        self.cl_assign(None, None)
-                        self.rm()
-                except KeyError:
-                    pass
-                except Exception:
-                    print(traceback.format_exc())
+            with core.cl_context:
+                with core.lock:
+                    try:
+                        if id(fixtures[self.name]()) == id(ID):
+                            self.cl_assign(None, None)
+                            self.rm()
+                    except KeyError:
+                        pass
+                    except Exception:
+                        print(traceback.format_exc())
 
         kaithem.misc.do(f)
 
@@ -156,6 +157,7 @@ class Fixture:
         except Exception:
             print(traceback.format_exc())
 
+    @core.cl_context.required
     def cl_assign(self, universe: str | None, channel: int | None):
         with core.lock:
             # First just clear the old assignment, if any
@@ -289,26 +291,27 @@ class Universe:
 
         self.error_alert = alerts.Alert(f"{self.name}.errorState", priority="error", auto_ack=True)
 
-        # Add a timeout due to the fact we can't really name the init with a cl_
-        if core.lock.acquire(True, 120):
-            try:
-                with universesLock:
-                    if name in _universes and _universes[name]():
-                        gc.collect()
-                        time.sleep(0.1)
-                        gc.collect()
-                        # We retry, because the universes are often temporarily cached as strong refs
+        with core.cl_context:
+            # Add a timeout due to the fact we can't really name the init with a cl_
+            if core.lock.acquire(True, 120):
+                try:
+                    with universesLock:
                         if name in _universes and _universes[name]():
-                            try:
-                                u = _universes[name]()
-                                if u:
-                                    u.cl_close()
-                            except Exception:
-                                raise ValueError("Name " + name + " is taken")
-                    _universes[name] = weakref.ref(self)
-                    universes = {i: _universes[i] for i in _universes if _universes[i]()}
-            finally:
-                core.lock.release()
+                            gc.collect()
+                            time.sleep(0.1)
+                            gc.collect()
+                            # We retry, because the universes are often temporarily cached as strong refs
+                            if name in _universes and _universes[name]():
+                                try:
+                                    u = _universes[name]()
+                                    if u:
+                                        u.cl_close()
+                                except Exception:
+                                    raise ValueError("Name " + name + " is taken")
+                        _universes[name] = weakref.ref(self)
+                        universes = {i: _universes[i] for i in _universes if _universes[i]()}
+                finally:
+                    core.lock.release()
 
         # flag to apply all groups, even ones not marked as neding rerender
         self.full_rerender = False
@@ -338,6 +341,7 @@ class Universe:
             kaithem.message.post("/chandler/command/refreshFixtures", self.name)
             self.refresh_groups()
 
+    @core.cl_context.required
     def cl_close(self):
         global universes
         with universesLock:
@@ -388,6 +392,7 @@ class Universe:
                     # Do as little as possible in the undefined __del__ thread
                     kaithem.message.post("/chandler/command/refresh_group_lighting", None)
 
+    @core.cl_context.required
     def cl_channels_changed(self):
         "Call this when fixtures are added, moved, or modified."
         with core.lock:
@@ -496,6 +501,7 @@ class EnttecUniverse(Universe):
         # Stop the thread when this gets deleted
         self.sender.onFrame(None)
 
+    @core.cl_context.required
     def cl_close(self):
         try:
             self.sender.onFrame(None)
@@ -682,6 +688,7 @@ class ArtNetUniverse(Universe):
         # Stop the thread when this gets deleted
         self.sender.onFrame(None)
 
+    @core.cl_context.required
     def cl_close(self):
         try:
             self.sender.onFrame(None)
@@ -813,6 +820,7 @@ class EnttecOpenUniverse(Universe):
         # Stop the thread when this gets deleted
         self.sender.onFrame(None)
 
+    @core.cl_context.required
     def cl_close(self):
         try:
             self.sender.onFrame(None)
@@ -1054,7 +1062,8 @@ class ColorTagUniverse(Universe):
         self.hidden = False
         self.tag = tag
         self.f = Fixture(self.name + ".rgb", [["R", "red"], ["G", "green"], ["B", "blue"]])
-        self.f.cl_assign(self.name, 1)
+        with core.cl_context:
+            self.f.cl_assign(self.name, 1)
         self.lock = threading.RLock()
 
         self.lastColor = None
