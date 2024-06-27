@@ -1,12 +1,9 @@
 from typing import Any, Callable, Dict, Iterable, List, Optional, Set
 
-from .core import cl_context
-
 
 class Console_ABC:
     "Abstract base class for console to make typing easier"
 
-    @cl_context.entry_point
     def cl_setup(self, project: dict[str, Any]):
         pass
 

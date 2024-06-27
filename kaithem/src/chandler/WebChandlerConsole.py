@@ -179,67 +179,67 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         self.linkSend(["fixtureAssignments", f])
 
+    @core.cl_context.entry_point
     def send_everything(self, sessionid: str):
-        with core.lock:
-            self.push_setup()
-            self.push_setup()
-            self.linkSend(["alerts", getAlertState()])
-            self.linkSend(["soundfolders", self.media_folders])
+        self.push_setup()
+        self.push_setup()
+        self.linkSend(["alerts", getAlertState()])
+        self.linkSend(["soundfolders", self.media_folders])
 
-            for i in self.groups:
-                s = self.groups[i]
-                self.pushCueList(s.id)
-                self.pushMeta(i)
-                if self.groups[i].cue:
-                    try:
-                        self.pushCueMeta(self.groups[i].cue.id)
-                    except Exception:
-                        print(traceback.format_exc())
+        for i in self.groups:
+            s = self.groups[i]
+            self.pushCueList(s.id)
+            self.pushMeta(i)
+            if self.groups[i].cue:
                 try:
-                    self.pushCueMeta(self.groups[i].cues["default"].id)
+                    self.pushCueMeta(self.groups[i].cue.id)
                 except Exception:
                     print(traceback.format_exc())
+            try:
+                self.pushCueMeta(self.groups[i].cues["default"].id)
+            except Exception:
+                print(traceback.format_exc())
 
-                try:
-                    for j in s.media_link.slideshow_telemetry:
-                        # TODO send more stuff to just the target
-                        self.linkSendTo(
-                            ["slideshow_telemetry", j, s.media_link.slideshow_telemetry[j]],
-                            sessionid,
-                        )
-                except Exception:
-                    print(traceback.format_exc())
+            try:
+                for j in s.media_link.slideshow_telemetry:
+                    # TODO send more stuff to just the target
+                    self.linkSendTo(
+                        ["slideshow_telemetry", j, s.media_link.slideshow_telemetry[j]],
+                        sessionid,
+                    )
+            except Exception:
+                print(traceback.format_exc())
 
-                try:
-                    for j in self.groups[i].cues:
-                        self.pushCueMeta(self.groups[i].cues[j].id)
-                except Exception:
-                    print(traceback.format_exc())
+            try:
+                for j in self.groups[i].cues:
+                    self.pushCueMeta(self.groups[i].cues[j].id)
+            except Exception:
+                print(traceback.format_exc())
 
-            for i in self.active_groups:
-                # Tell clients about any changed alpha values and stuff.
-                if i.id not in self.groups:
-                    self.pushMeta(i.id)
-            self.pushConfiguredUniverses()
-            self.linkSend(["serports", getSerPorts()])
+        for i in self.active_groups:
+            # Tell clients about any changed alpha values and stuff.
+            if i.id not in self.groups:
+                self.pushMeta(i.id)
+        self.pushConfiguredUniverses()
+        self.linkSend(["serports", getSerPorts()])
 
-            shows = os.path.join(kaithem.misc.vardir, "chandler", "shows")
-            if os.path.isdir(shows):
-                self.linkSend(
-                    [
-                        "shows",
-                        [i for i in os.listdir(shows) if os.path.isdir(os.path.join(shows, i))],
-                    ]
-                )
+        shows = os.path.join(kaithem.misc.vardir, "chandler", "shows")
+        if os.path.isdir(shows):
+            self.linkSend(
+                [
+                    "shows",
+                    [i for i in os.listdir(shows) if os.path.isdir(os.path.join(shows, i))],
+                ]
+            )
 
-            setups = os.path.join(kaithem.misc.vardir, "chandler", "setups")
-            if os.path.isdir(setups):
-                self.linkSend(
-                    [
-                        "setups",
-                        [i for i in os.listdir(setups) if os.path.isdir(os.path.join(setups, i))],
-                    ]
-                )
+        setups = os.path.join(kaithem.misc.vardir, "chandler", "setups")
+        if os.path.isdir(setups):
+            self.linkSend(
+                [
+                    "setups",
+                    [i for i in os.listdir(setups) if os.path.isdir(os.path.join(setups, i))],
+                ]
+            )
 
     def _onmsg(self, user: str, msg: list[Any], sessionid: str):
         # Getters

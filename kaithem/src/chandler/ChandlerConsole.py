@@ -205,44 +205,43 @@ class ChandlerConsole(console_abc.Console_ABC):
 
     @core.cl_context.entry_point
     def cl_reload_fixture_assignment_data(self):
-        with core.lock:
-            self.ferrs = ""
+        self.ferrs = ""
+        try:
+            for i in self.fixtures:
+                self.fixtures[i].cl_assign(None, None)
+                self.fixtures[i].rm()
+        except Exception:
+            self.ferrs += "Error deleting old assignments:\n" + traceback.format_exc()
+            print(traceback.format_exc())
+
+        try:
+            del i  # type: ignore
+        except Exception:
+            pass
+
+        self.fixtures = {}
+        for key, i in self.fixture_assignments.items():
             try:
-                for i in self.fixtures:
-                    self.fixtures[i].cl_assign(None, None)
-                    self.fixtures[i].rm()
+                if not i["name"] == key:
+                    raise RuntimeError("Name does not match key?")
+                x = universes.Fixture(i["name"], self.fixture_classes[i["type"]])
+                self.fixtures[i["name"]] = x
+                self.fixtures[i["name"]].cl_assign(i["universe"], int(i["addr"]))
+                universes.fixtures[i["name"]] = weakref.ref(x)
             except Exception:
-                self.ferrs += "Error deleting old assignments:\n" + traceback.format_exc()
+                logger.exception("Error setting up fixture")
                 print(traceback.format_exc())
+                self.ferrs += str(i) + "\n" + traceback.format_exc()
 
-            try:
-                del i  # type: ignore
-            except Exception:
-                pass
+        for u in universes.universes:
+            self.pushchannelInfoByUniverseAndNumber(u)
 
-            self.fixtures = {}
-            for key, i in self.fixture_assignments.items():
-                try:
-                    if not i["name"] == key:
-                        raise RuntimeError("Name does not match key?")
-                    x = universes.Fixture(i["name"], self.fixture_classes[i["type"]])
-                    self.fixtures[i["name"]] = x
-                    self.fixtures[i["name"]].cl_assign(i["universe"], int(i["addr"]))
-                    universes.fixtures[i["name"]] = weakref.ref(x)
-                except Exception:
-                    logger.exception("Error setting up fixture")
-                    print(traceback.format_exc())
-                    self.ferrs += str(i) + "\n" + traceback.format_exc()
+        for f in universes.fixtures:
+            if f:
+                self.pushchannelInfoByUniverseAndNumber("@" + f)
 
-            for u in universes.universes:
-                self.pushchannelInfoByUniverseAndNumber(u)
-
-            for f in universes.fixtures:
-                if f:
-                    self.pushchannelInfoByUniverseAndNumber("@" + f)
-
-            self.ferrs = self.ferrs or "No Errors!"
-            self.push_setup()
+        self.ferrs = self.ferrs or "No Errors!"
+        self.push_setup()
 
     @core.cl_context.entry_point
     def cl_create_universes(self, data: dict[str, Any]):
@@ -368,14 +367,13 @@ class ChandlerConsole(console_abc.Console_ABC):
 
     @core.cl_context.entry_point
     def cl_get_setup_file(self):
-        with core.lock:
-            return {
-                "fixture_types": self.fixture_classes,
-                "configured_universes": self.configured_universes,
-                "fixture_assignments": self.fixture_assignments,
-                "fixture_presets": self.fixture_presets,
-                "media_folders": self.media_folders,
-            }
+        return {
+            "fixture_types": self.fixture_classes,
+            "configured_universes": self.configured_universes,
+            "fixture_assignments": self.fixture_assignments,
+            "fixture_presets": self.fixture_presets,
+            "media_folders": self.media_folders,
+        }
 
     def loadLibraryFile(
         self,
@@ -396,13 +394,12 @@ class ChandlerConsole(console_abc.Console_ABC):
 
     @core.cl_context.entry_point
     def cl_get_library_file(self):
-        with core.lock:
-            return {
-                "fixture_types": self.fixture_classes,
-                "universes": self.configured_universes,
-                "fixure_assignments": self.fixture_assignments,
-                "fixture_presets": self.fixture_presets,
-            }
+        return {
+            "fixture_types": self.fixture_classes,
+            "universes": self.configured_universes,
+            "fixure_assignments": self.fixture_assignments,
+            "fixture_presets": self.fixture_presets,
+        }
 
     @core.cl_context.entry_point
     def cl_load_group_file(self, data_str: str, filename: str, errs: bool = False, clear_old: bool = True):
@@ -417,8 +414,7 @@ class ChandlerConsole(console_abc.Console_ABC):
             # Remove the .yaml
             data = {filename[:-5]: data}
 
-        with core.lock:
-            g = copy.copy(self.groups)
+        g = copy.copy(self.groups)
 
         if clear_old:
             for i in g:
@@ -450,60 +446,57 @@ class ChandlerConsole(console_abc.Console_ABC):
                 except Exception:
                     logger.exception(f"Error Validating cue {j}, loading anyway")
 
-        with core.lock:
-            for i in data:
-                # New versions don't have a name key at all, the name is the key
-                if "name" in data[i]:
-                    pass
+        for i in data:
+            # New versions don't have a name key at all, the name is the key
+            if "name" in data[i]:
+                pass
+            else:
+                data[i]["name"] = i
+            n = data[i]["name"]
+
+            # Delete existing groups we own
+            if n in self.groups_by_name:
+                old_id = self.groups_by_name[n].id
+                if old_id in self.groups:
+                    self.groups[old_id].stop()
+                    self.groups[old_id].close()
+                    try:
+                        del self.groups[old_id]
+                    except KeyError:
+                        pass
                 else:
-                    data[i]["name"] = i
-                n = data[i]["name"]
+                    raise ValueError("Group " + i + " already exists. We cannot overwrite, because it was not created through this board")
+            try:
+                x = False
 
-                # Delete existing groups we own
-                if n in self.groups_by_name:
-                    old_id = self.groups_by_name[n].id
-                    if old_id in self.groups:
-                        self.groups[old_id].stop()
-                        self.groups[old_id].close()
-                        try:
-                            del self.groups[old_id]
-                        except KeyError:
-                            pass
-                    else:
-                        raise ValueError(
-                            "Group " + i + " already exists. We cannot overwrite, because it was not created through this board"
-                        )
-                try:
-                    x = False
+                # I think this was a legacy save format thing TODO
+                if "default_active" in data[i]:
+                    x = data[i]["default_active"]
+                    del data[i]["default_active"]
+                if "active" in data[i]:
+                    x = data[i]["active"]
+                    del data[i]["active"]
 
-                    # I think this was a legacy save format thing TODO
-                    if "default_active" in data[i]:
-                        x = data[i]["default_active"]
-                        del data[i]["default_active"]
-                    if "active" in data[i]:
-                        x = data[i]["active"]
-                        del data[i]["active"]
+                # Older versions indexed by UUID
+                if "uuid" in data[i]:
+                    uuid = data[i]["uuid"]
+                    del data[i]["uuid"]
+                else:
+                    uuid = i
 
-                    # Older versions indexed by UUID
-                    if "uuid" in data[i]:
-                        uuid = data[i]["uuid"]
-                        del data[i]["uuid"]
-                    else:
-                        uuid = i
+                s = Group(self, id=uuid, default_active=x, **data[i])
 
-                    s = Group(self, id=uuid, default_active=x, **data[i])
-
-                    self.groups[uuid] = s
-                    if x:
-                        s.go()
-                        s.poll_again_flag = True
-                        s.lighting_manager.should_rerender_onto_universes = True
-                except Exception:
-                    if not errs:
-                        logger.exception("Failed to load group " + str(i) + " " + str(data[i].get("name", "")))
-                        print("Failed to load group " + str(i) + " " + str(data[i].get("name", "")) + ": " + traceback.format_exc(3))
-                    else:
-                        raise
+                self.groups[uuid] = s
+                if x:
+                    s.go()
+                    s.poll_again_flag = True
+                    s.lighting_manager.should_rerender_onto_universes = True
+            except Exception:
+                if not errs:
+                    logger.exception("Failed to load group " + str(i) + " " + str(data[i].get("name", "")))
+                    print("Failed to load group " + str(i) + " " + str(data[i].get("name", "")) + ": " + traceback.format_exc(3))
+                else:
+                    raise
 
     @beartype.beartype
     def addGroup(self, group: Group):
@@ -575,13 +568,12 @@ class ChandlerConsole(console_abc.Console_ABC):
     @core.cl_context.entry_point
     def cl_get_groups(self):
         "Return serializable version of groups list"
-        with core.lock:
-            sd = {}
-            for i in self.groups:
-                x = self.groups[i]
-                sd[x.name] = x.toDict()
+        sd = {}
+        for i in self.groups:
+            x = self.groups[i]
+            sd[x.name] = x.toDict()
 
-            return sd
+        return sd
 
     @core.cl_context.entry_point
     def cl_check_autosave(self):
@@ -794,9 +786,8 @@ class ChandlerConsole(console_abc.Console_ABC):
     @core.cl_context.entry_point
     def cl_del_group(self, sc):
         i = None
-        with core.lock:
-            if sc in self.groups:
-                i = self.groups.pop(sc)
+        if sc in self.groups:
+            i = self.groups.pop(sc)
         if i:
             i.stop()
             self.groups_by_name.pop(i.name)
@@ -805,19 +796,18 @@ class ChandlerConsole(console_abc.Console_ABC):
 
     @core.cl_context.entry_point
     def cl_add_to_active_groups(self, group: Group):
-        with core.lock:
-            if group not in self._active_groups:
-                self._active_groups.append(group)
+        if group not in self._active_groups:
+            self._active_groups.append(group)
 
-            self._active_groups = sorted(self._active_groups, key=lambda k: (k.priority, k.started))
-            self.active_groups = self._active_groups[:]
+        self._active_groups = sorted(self._active_groups, key=lambda k: (k.priority, k.started))
+        self.active_groups = self._active_groups[:]
 
     @core.cl_context.entry_point
     def cl_rm_from_active_groups(self, group: Group):
-        with core.lock:
-            if group in self._active_groups:
-                self._active_groups.remove(group)
-                self.active_groups = self._active_groups[:]
+        if group in self._active_groups:
+            self._active_groups.remove(group)
+            self.active_groups = self._active_groups[:]
+
         gc.collect()
         time.sleep(0.01)
         gc.collect()
@@ -825,38 +815,36 @@ class ChandlerConsole(console_abc.Console_ABC):
 
     @core.cl_context.entry_point
     def cl_update_group_priorities(self):
-        with core.lock:
-            self._active_groups = sorted(self._active_groups, key=lambda k: (k.priority, k.started))
-            self.active_groups = self._active_groups[:]
+        self._active_groups = sorted(self._active_groups, key=lambda k: (k.priority, k.started))
+        self.active_groups = self._active_groups[:]
 
     @core.cl_context.required
     def cl_gui_push(self, universes_snapshot):
         "Snapshot is a list of all universes because the getter for that is slow"
-        with core.lock:
-            for i in self.newDataFunctions:
-                i(self)
-            self.newDataFunctions = []
-            for i in universes_snapshot:
-                if self.id not in universes_snapshot[i].statusChanged:
-                    self.linkSend(
-                        [
-                            "universe_status",
-                            i,
-                            universes_snapshot[i].status,
-                            universes_snapshot[i].ok,
-                            universes_snapshot[i].telemetry,
-                        ]
-                    )
-                    universes_snapshot[i].statusChanged[self.id] = True
+        for i in self.newDataFunctions:
+            i(self)
+        self.newDataFunctions = []
+        for i in universes_snapshot:
+            if self.id not in universes_snapshot[i].statusChanged:
+                self.linkSend(
+                    [
+                        "universe_status",
+                        i,
+                        universes_snapshot[i].status,
+                        universes_snapshot[i].ok,
+                        universes_snapshot[i].telemetry,
+                    ]
+                )
+                universes_snapshot[i].statusChanged[self.id] = True
 
-            for i in self.groups:
-                # Tell clients about any changed alpha values and stuff.
-                if self.id not in self.groups[i].metadata_already_pushed_by:
-                    self.pushMeta(i, statusOnly=True)
-                    self.groups[i].metadata_already_pushed_by[self.id] = False
+        for i in self.groups:
+            # Tell clients about any changed alpha values and stuff.
+            if self.id not in self.groups[i].metadata_already_pushed_by:
+                self.pushMeta(i, statusOnly=True)
+                self.groups[i].metadata_already_pushed_by[self.id] = False
 
-            for i in self.active_groups:
-                # Tell clients about any changed alpha values and stuff.
-                if self.id not in i.metadata_already_pushed_by:
-                    self.pushMeta(i.id)
-                    i.metadata_already_pushed_by[self.id] = False
+        for i in self.active_groups:
+            # Tell clients about any changed alpha values and stuff.
+            if self.id not in i.metadata_already_pushed_by:
+                self.pushMeta(i.id)
+                i.metadata_already_pushed_by[self.id] = False

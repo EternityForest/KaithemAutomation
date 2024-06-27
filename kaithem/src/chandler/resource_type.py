@@ -44,20 +44,19 @@ class ConfigType(modules_state.ResourceType):
         set_save_cb(entries[module, resource], module, resource)
 
         with core.cl_context:
-            with core.lock:
-                core.boards[f"{module}:{resource}"] = entries[module, resource]
+            core.boards[f"{module}:{resource}"] = entries[module, resource]
 
-                if x:
-                    x.cl_close()
+            if x:
+                x.cl_close()
 
-                core.boards[f"{module}:{resource}"].cl_setup(data.get("project", {}))
+            core.boards[f"{module}:{resource}"].cl_setup(data.get("project", {}))
 
     def on_move(self, module, resource, to_module, to_resource, data):
         x = entries.pop((module, resource), None)
         if x:
             entries[to_module, to_resource] = x
 
-        with core.lock:
+        with core.cl_context:
             b = core.boards.pop(f"{module}:{resource}", None)
 
             if b:
@@ -70,9 +69,8 @@ class ConfigType(modules_state.ResourceType):
 
     def on_delete(self, module, resource, data):
         with core.cl_context:
-            with core.lock:
-                entries[module, resource].cl_close()
-                core.boards.pop(f"{module}:{resource}", None)
+            entries[module, resource].cl_close()
+            core.boards.pop(f"{module}:{resource}", None)
 
         del entries[module, resource]
 

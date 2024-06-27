@@ -34,13 +34,12 @@ def cl_refresh_fixtures(topic, val):
     # Deal with fixtures in this universe that aren't actually attached to this object yet.
     for i in range(5):
         try:
-            with core.lock:
-                for i in universes.fixtures:
-                    f = universes.fixtures[i]()
-                    if not f:
-                        continue
-                    if f.universe == val or val is None:
-                        f.cl_assign(f.universe, f.startAddress)
+            for i in universes.fixtures:
+                f = universes.fixtures[i]()
+                if not f:
+                    continue
+                if f.universe == val or val is None:
+                    f.cl_assign(f.universe, f.startAddress)
             break
         except RuntimeError:
             # Should there be some kind of dict changed size problem, retry
@@ -74,7 +73,6 @@ lastrendered = 0
 run = [True]
 
 
-@core.cl_context.entry_point
 def cl_loop():
     global lastrendered
 
@@ -83,23 +81,22 @@ def cl_loop():
     u_cache_time = time.time()
 
     while run[0]:
-        t = time.time()
-        try:
-            # Profiler says this needs a cache
-            if t - u_cache_time > 1:
-                u_cache = universes.getUniverses()
-                u_cache_time = t
+        with core.cl_context:
+            t = time.time()
+            try:
+                # Profiler says this needs a cache
+                if t - u_cache_time > 1:
+                    u_cache = universes.getUniverses()
+                    u_cache_time = t
 
-            do_gui_push = False
-            # Only needed when we don't know length in advance
-            # so it doesn't need fast response its just a fallback
-            if t - lastrendered > 1 / 3:
-                with core.lock:
+                do_gui_push = False
+                # Only needed when we don't know length in advance
+                # so it doesn't need fast response its just a fallback
+                if t - lastrendered > 1 / 3:
                     pollsounds()
-                do_gui_push = True
-                lastrendered = t
+                    do_gui_push = True
+                    lastrendered = t
 
-            with core.lock:
                 changed = {}
 
                 # The pre-render step has to
@@ -118,9 +115,9 @@ def cl_loop():
 
                 group_lighting.do_output(changed, u_cache)
 
-            time.sleep(1 / 60)
-        except Exception:
-            logger.exception("Wat")
+                time.sleep(1 / 60)
+            except Exception:
+                logger.exception("Wat")
 
 
 thread = threading.Thread(target=cl_loop, name="ChandlerThread", daemon=True)

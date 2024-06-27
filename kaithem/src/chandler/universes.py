@@ -32,7 +32,6 @@ int = int
 max = max
 min = min
 
-universesLock = core.lock
 universes: dict[str, weakref.ReferenceType[Universe]] = {}
 
 # MUTABLE
@@ -130,7 +129,7 @@ class Fixture:
 
     def __del__(self):
         def f():
-            with core.lock:
+            with core.cl_context:
                 try:
                     del fixtures[self.name]
                 except KeyError:
@@ -138,16 +137,14 @@ class Fixture:
 
                 ID = id(self)
 
-            with core.cl_context:
-                with core.lock:
-                    try:
-                        if id(fixtures[self.name]()) == id(ID):
-                            self.cl_assign(None, None)
-                            self.rm()
-                    except KeyError:
-                        pass
-                    except Exception:
-                        print(traceback.format_exc())
+                try:
+                    if id(fixtures[self.name]()) == id(ID):
+                        self.cl_assign(None, None)
+                        self.rm()
+                except KeyError:
+                    pass
+                except Exception:
+                    print(traceback.format_exc())
 
         kaithem.misc.do(f)
 
@@ -159,59 +156,58 @@ class Fixture:
 
     @core.cl_context.required
     def cl_assign(self, universe: str | None, channel: int | None):
-        with core.lock:
-            # First just clear the old assignment, if any
-            if self.universe and self.startAddress:
-                oldUniverseObj = getUniverse(self.universe)
+        # First just clear the old assignment, if any
+        if self.universe and self.startAddress:
+            oldUniverseObj = getUniverse(self.universe)
 
-                if oldUniverseObj:
-                    # Delete current assignments
-                    for i in range(self.startAddress, self.startAddress + len(self.channels)):
-                        if i in oldUniverseObj.channels:
-                            if oldUniverseObj.channels[i]() and oldUniverseObj.channels[i]() is self:
-                                del oldUniverseObj.channels[i]
-                                # We just unassigned it, so it's not a hue channel anymore
-                                oldUniverseObj.hueBlendMask[i] = 0
-                            else:
-                                print(
-                                    "Unexpected channel data corruption",
-                                    universe,
-                                    i,
-                                    oldUniverseObj.channels[i](),
-                                )
+            if oldUniverseObj:
+                # Delete current assignments
+                for i in range(self.startAddress, self.startAddress + len(self.channels)):
+                    if i in oldUniverseObj.channels:
+                        if oldUniverseObj.channels[i]() and oldUniverseObj.channels[i]() is self:
+                            del oldUniverseObj.channels[i]
+                            # We just unassigned it, so it's not a hue channel anymore
+                            oldUniverseObj.hueBlendMask[i] = 0
+                        else:
+                            print(
+                                "Unexpected channel data corruption",
+                                universe,
+                                i,
+                                oldUniverseObj.channels[i](),
+                            )
 
-            self.assignment = universe, channel
+        self.assignment = universe, channel
 
-            self.universe = universe
-            self.startAddress = channel
+        self.universe = universe
+        self.startAddress = channel
 
-            universeObj = getUniverse(universe)
+        universeObj = getUniverse(universe)
 
-            if not universeObj:
-                return
+        if not universeObj:
+            return
 
-            core.fixtureschanged = {}
+        core.fixtureschanged = {}
 
-            if not channel:
-                return
-            # 2 separate loops, first is just to check, so that we don't have half-completed stuff
-            for i in range(channel, channel + len(self.channels)):
-                if i in universeObj.channels:
-                    if universeObj.channels[i]:
-                        fixture = universeObj.channels[i]()
-                        if fixture:
-                            if not self.name == fixture.name:
-                                raise ValueError("channel " + str(i) + " of " + self.name + " would overlap with " + fixture.name)
+        if not channel:
+            return
+        # 2 separate loops, first is just to check, so that we don't have half-completed stuff
+        for i in range(channel, channel + len(self.channels)):
+            if i in universeObj.channels:
+                if universeObj.channels[i]:
+                    fixture = universeObj.channels[i]()
+                    if fixture:
+                        if not self.name == fixture.name:
+                            raise ValueError("channel " + str(i) + " of " + self.name + " would overlap with " + fixture.name)
 
-            cPointer = 0
-            for i in range(channel, channel + len(self.channels)):
-                universeObj.channels[i] = weakref.ref(self)
-                if self.channels[cPointer]["type"] in ("hue", "sat", "custom"):
-                    # Mark it as a hue channel that blends slightly differently
-                    universeObj.hueBlendMask[i] = 1
-                    cPointer += 1
+        cPointer = 0
+        for i in range(channel, channel + len(self.channels)):
+            universeObj.channels[i] = weakref.ref(self)
+            if self.channels[cPointer]["type"] in ("hue", "sat", "custom"):
+                # Mark it as a hue channel that blends slightly differently
+                universeObj.hueBlendMask[i] = 1
+                cPointer += 1
 
-            universeObj.cl_channels_changed()
+        universeObj.cl_channels_changed()
 
 
 class Universe:
@@ -292,26 +288,20 @@ class Universe:
         self.error_alert = alerts.Alert(f"{self.name}.errorState", priority="error", auto_ack=True)
 
         with core.cl_context:
-            # Add a timeout due to the fact we can't really name the init with a cl_
-            if core.lock.acquire(True, 120):
-                try:
-                    with universesLock:
-                        if name in _universes and _universes[name]():
-                            gc.collect()
-                            time.sleep(0.1)
-                            gc.collect()
-                            # We retry, because the universes are often temporarily cached as strong refs
-                            if name in _universes and _universes[name]():
-                                try:
-                                    u = _universes[name]()
-                                    if u:
-                                        u.cl_close()
-                                except Exception:
-                                    raise ValueError("Name " + name + " is taken")
-                        _universes[name] = weakref.ref(self)
-                        universes = {i: _universes[i] for i in _universes if _universes[i]()}
-                finally:
-                    core.lock.release()
+            if name in _universes and _universes[name]():
+                gc.collect()
+                time.sleep(0.1)
+                gc.collect()
+                # We retry, because the universes are often temporarily cached as strong refs
+                if name in _universes and _universes[name]():
+                    try:
+                        u = _universes[name]()
+                        if u:
+                            u.cl_close()
+                    except Exception:
+                        raise ValueError("Name " + name + " is taken")
+            _universes[name] = weakref.ref(self)
+            universes = {i: _universes[i] for i in _universes if _universes[i]()}
 
         # flag to apply all groups, even ones not marked as neding rerender
         self.full_rerender = False
@@ -344,23 +334,22 @@ class Universe:
     @core.cl_context.required
     def cl_close(self):
         global universes
-        with universesLock:
-            # Don't delete the object that replaced this
-            if self.name in _universes and (_universes[self.name]() is self):
-                del _universes[self.name]
+        # Don't delete the object that replaced this
+        if self.name in _universes and (_universes[self.name]() is self):
+            del _universes[self.name]
 
-            universes = {i: _universes[i] for i in _universes if _universes[i]()}
+        universes = {i: _universes[i] for i in _universes if _universes[i]()}
 
-            def alreadyClosed(*a, **k):
-                raise RuntimeError("This universe has been stopped, possibly because it was replaced wih a newer one")
+        def alreadyClosed(*a, **k):
+            raise RuntimeError("This universe has been stopped, possibly because it was replaced wih a newer one")
 
-            self.onFrame = alreadyClosed
-            self.setStatus = alreadyClosed
-            self.refresh_groups = alreadyClosed
-            self.reset_to_cache = alreadyClosed
-            self.reset = alreadyClosed
-            self.preFrame = alreadyClosed
-            self.save_prerendered = alreadyClosed
+        self.onFrame = alreadyClosed
+        self.setStatus = alreadyClosed
+        self.refresh_groups = alreadyClosed
+        self.reset_to_cache = alreadyClosed
+        self.reset = alreadyClosed
+        self.preFrame = alreadyClosed
+        self.save_prerendered = alreadyClosed
 
         kaithem.message.post("/chandler/command/refresh_group_lighting", None)
         self.closed = True
@@ -395,27 +384,26 @@ class Universe:
     @core.cl_context.required
     def cl_channels_changed(self):
         "Call this when fixtures are added, moved, or modified."
-        with core.lock:
-            self.fine_channels = {}
-            self.fixed_channels = {}
+        self.fine_channels = {}
+        self.fixed_channels = {}
 
-            for i in self.channels:
-                fixture = self.channels[i]()
-                if not fixture:
-                    continue
-                if not fixture.startAddress:
-                    continue
-                data = fixture.channels[i - fixture.startAddress]
-                if data["type"] == "fine":
-                    if isinstance(data["coarse"], int):
-                        self.fine_channels[i] = fixture.startAddress + data["coarse"]
-                    else:
-                        for num, ch in enumerate(fixture.channels):
-                            if ch.get("name", "") == data["coarse"]:
-                                self.fine_channels[i] = fixture.startAddress + num
+        for i in self.channels:
+            fixture = self.channels[i]()
+            if not fixture:
+                continue
+            if not fixture.startAddress:
+                continue
+            data = fixture.channels[i - fixture.startAddress]
+            if data["type"] == "fine":
+                if isinstance(data["coarse"], int):
+                    self.fine_channels[i] = fixture.startAddress + data["coarse"]
+                else:
+                    for num, ch in enumerate(fixture.channels):
+                        if ch.get("name", "") == data["coarse"]:
+                            self.fine_channels[i] = fixture.startAddress + num
 
-                if data["type"] == "fixed":
-                    self.fixed_channels[i] = data["value"]
+            if data["type"] == "fixed":
+                self.fixed_channels[i] = data["value"]
 
     def reset_to_cache(self):
         "Remove all changes since the prerendered layer."
@@ -1010,11 +998,10 @@ def cl_discover_color_tag_devices():
         if ft:
             addedTags[ft.name] = True
 
-        with universesLock:
-            if name not in _universes:
-                u[name] = ColorTagUniverse(name, c, ft)
-            else:
-                u[name] = _universes[name]()
+        if name not in _universes:
+            u[name] = ColorTagUniverse(name, c, ft)
+        else:
+            u[name] = _universes[name]()
 
     for i in kaithem.devices:
         d = kaithem.devices[i]

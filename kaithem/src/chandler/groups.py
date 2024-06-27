@@ -21,7 +21,7 @@ import structlog
 from beartype import beartype
 from scullery import workers
 
-from .. import schemas, tagpoints, util
+from .. import context_restrictions, schemas, tagpoints, util
 from ..kaithemobj import kaithem
 from . import core, group_media, mqtt, persistance
 from .core import disallow_special
@@ -47,6 +47,16 @@ min = min
 
 # Indexed by ID
 groups: weakref.WeakValueDictionary[str, Group] = weakref.WeakValueDictionary()
+
+# This is only used on some functions.  We have an actual lock,
+# It doesn't serve as the lock, it just makes sure we don't try to start a new core lock context,
+# Or start a session with another group
+
+# It can't be exclusive because we have lots of groups.
+# We don't use it for every single time we get a group
+group_lock_context = context_restrictions.Context("Group Lock")
+
+core.cl_context.opens_before(group_lock_context)
 
 
 def normalize_midi_name(t):
@@ -161,6 +171,7 @@ class DebugScriptContext(kaithem.chandlerscript.ChandlerScriptContext):
                 core.rl_log_exc("Error handling var set notification")
                 print(traceback.format_exc())
 
+    @group_lock_context.object_session_entry_point
     def event(self, evt: str, val: str | float | int | bool | None = None):
         kaithem.chandlerscript.ChandlerScriptContext.event(self, evt, val)
         try:
@@ -209,6 +220,7 @@ group_schema = schemas.get_schema("chandler/group")
 class Group:
     "An objecting representing one group. If noe default cue present one is made"
 
+    @group_lock_context.object_session_entry_point
     def __init__(
         self,
         chandler_board: ChandlerConsole.ChandlerConsole,
@@ -478,6 +490,7 @@ class Group:
 
         workers.do(f)
 
+    @group_lock_context.object_session_entry_point
     def toDict(self) -> dict[str, Any]:
         # These are the properties that aren't just straight 1 to 1 copies
         # of props, but still get saved
@@ -520,6 +533,7 @@ class Group:
                 x += "MQTT Disconnected "
         return x
 
+    @group_lock_context.object_session_entry_point
     def close(self):
         "Unregister the group and delete it from the lists"
 
@@ -611,6 +625,7 @@ class Group:
                     return x.name
             return None
 
+    @group_lock_context.object_session_entry_point
     def rmCue(self, cue: str):
         with self.lock:
             if not len(self.cues) > 1:
@@ -658,6 +673,7 @@ class Group:
             self.cues_ordered[i].next_ll = self.cues_ordered[i + 1]
         self.cues_ordered[-1].next_ll = None
 
+    @group_lock_context.object_session_entry_point
     def _add_cue(self, cue: Cue, forceAdd=True):
         name = cue.name
         with self.lock:
@@ -681,6 +697,7 @@ class Group:
 
         core.add_data_pusher_to_all_boards(lambda s: s.pushMeta(self.id, statusOnly=statusOnly, keys=keys))
 
+    @group_lock_context.object_session_entry_point
     def event(self, s: str, value: Any = True, info: str = "", exclude_errors: bool = True):
         # No error loops allowed!
         if (not s == "script.error") and exclude_errors:
@@ -915,6 +932,7 @@ class Group:
 
         return (cue_name, 0)
 
+    @group_lock_context.object_session_entry_point
     def goto_cue(
         self,
         cue: str,
@@ -1228,6 +1246,7 @@ class Group:
             # never go below 0.1*the setting or else you could go to zero and get a never ending cue
             self.cuelen = max(0, float(v * 0.1), self.randomizeModifier + float(v))
 
+    @group_lock_context.object_session_entry_point
     def make_script_context(self):
         scriptContext = DebugScriptContext(self, parentContext=rootContext, variables=self.chandler_vars, gil=self.lock)
 
@@ -1241,6 +1260,7 @@ class Group:
         scriptContext.commands["sendMQTT"] = sendMQTT
         return scriptContext
 
+    @group_lock_context.object_session_entry_point
     def refresh_rules(self, rulesFrom: Cue | None = None):
         with self.lock:
             # We copy over the event recursion depth so that we can detect infinite loops
@@ -1401,6 +1421,7 @@ class Group:
 
         return tag, f
 
+    @group_lock_context.object_session_entry_point
     def set_display_tags(self, dt):
         dt = dt[:]
         with self.lock:
@@ -1516,6 +1537,7 @@ class Group:
             self.command_tagSubscriptions.append((t, s))
             t.subscribe(s)
 
+    @group_lock_context.object_session_entry_point
     def rename_cue(self, old: str, new: str):
         disallow_special(new, allowedCueNameSpecials)
         if new[0] in "1234567890 \t_":
@@ -1540,6 +1562,7 @@ class Group:
 
         cue.push()
 
+    @group_lock_context.object_session_entry_point
     def set_command_tag(self, tag_name: str):
         tag_name = tag_name.strip()
 
@@ -1555,6 +1578,7 @@ class Group:
 
                 self._nl_subscribe_command_tags()
 
+    @group_lock_context.object_session_entry_point
     def next_cue(self, t=None, cause="generic"):
         cue = self.cue
         if not cue:
@@ -1573,6 +1597,7 @@ class Group:
                 if x:
                     self.goto_cue(x, t)
 
+    @group_lock_context.object_session_entry_point
     def prev_cue(self, cause="generic"):
         with self.lock:
             if len(self.cueHistory) > 1:
@@ -1583,6 +1608,7 @@ class Group:
     def __repr__(self):
         return f"<Group {self.name}>"
 
+    @group_lock_context.object_session_entry_point
     def go(self):
         with self.lock:
             if self in self.board.active_groups:
@@ -1624,6 +1650,7 @@ class Group:
         return self._priority
 
     @priority.setter
+    @group_lock_context.object_session_entry_point
     def priority(self, p: float):
         self.metadata_already_pushed_by = {}
         self._priority = p
@@ -1641,6 +1668,7 @@ class Group:
         self.pushMeta(statusOnly=True)
 
     @beartype
+    @group_lock_context.object_session_entry_point
     def setMqttServer(self, mqtt_server: str):
         with self.lock:
             x = mqtt_server.strip().split(":")
@@ -1679,6 +1707,7 @@ class Group:
 
             self.doMqttSubscriptions()
 
+    @group_lock_context.object_session_entry_point
     def setName(self, name: str):
         """May not take effect instantly"""
         disallow_special(name)
@@ -1785,6 +1814,7 @@ class Group:
             self.entered_cue = x
         self.pushMeta(keys={"bpm"})
 
+    @group_lock_context.object_session_entry_point
     def stop(self):
         with self.lock:
             # No need to set rerender
