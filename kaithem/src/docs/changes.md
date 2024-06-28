@@ -32,6 +32,7 @@ Change Log
 
 - :boom: Chandler "Scenes" have been renamed to "Groups" to disambiguate from "Cues" and follow stage lighting practice.  This should not be a breaking change, anything user facing gets migrated automatically.
 
+
 #### Fixed
 
 - :bug: Fix setting media folders
@@ -46,6 +47,9 @@ Change Log
 - :bug: Fix digital signage permission issue
 - :bug: Fix digital signage unable to start midway through media
 - :bug: Fix delete button in file manager
+- :bug: Fix Vary blend mode
+- :bug: Fix Flicker blend mode performance
+- :bug: Fix editing blend mode params
 
 ### 0.84.0b2
 

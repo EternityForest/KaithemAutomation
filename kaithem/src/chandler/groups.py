@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import collections
+import copy
 import datetime
 import gc
 import json
@@ -259,6 +260,9 @@ class Group:
 
         self.media_player = group_media.GroupMediaPlayer(self)
         self.lighting_manager = GroupLightingManager(self)
+
+        # Get whatever defaults it sets up for the UI
+        self.blend_args = copy.deepcopy(self.lighting_manager.blend_args)
 
         self.mqttConnection = None
         self.mqttSubscribed: dict[str, bool]

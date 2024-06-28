@@ -104,6 +104,8 @@ class flicker_blendmode(BlendMode):
         self.heights = {}
         self.heights_lp = {}
 
+        self.rand = [random.triangular(0, 1, 0.35) for i in range(256)]
+
     def frame(self, u, old, values, alphas, alpha):
         uobj = getUniverse(u)
 
@@ -153,7 +155,7 @@ class flicker_blendmode(BlendMode):
         # it doesn't know there will always be at least
         # one group found.  Or maybe it knows something i don't.
         t = random.random()
-        nv = random.triangular(0, 1, 0.35)
+        nv = self.rand[random.randint(0, 255)]
         rise = random.random() * self.riserate * t60
 
         for k in numpy.nonzero(values)[0]:
@@ -163,9 +165,8 @@ class flicker_blendmode(BlendMode):
             if (not (ctr % group)) or k - lastk > 1:
                 t = random.random()
                 ctr = 0
-                nv = random.triangular(0, 1, 0.35)
-                # lowpass filtering constant for this set of 3
-                lp = t60 * random.triangular(0, lps, lps / 2.0)
+                nv = self.rand[random.randint(0, 255)]
+
                 rise = random.random() * self.riserate * t60
             ctr += 1
 
@@ -178,7 +179,7 @@ class flicker_blendmode(BlendMode):
                 else:
                     heights[k] = 1
 
-            f = min(1, lp * t60)
+            f = min(1, lps * t60)
             heights_lp[k] = heights_lp[k] * (1 - f) + heights[k] * (f)
 
         old *= (alphas * alpha * numpy.minimum(heights_lp, 1)) + 1 - (alpha * alphas)
@@ -257,7 +258,7 @@ class vary_blendmode_np(BlendMode):
                 uobj.interpolationTime = (1 / 60) / self.blend_args["speed"]
 
         self.vals_lp[u] = self.vals_lp[u] * (1 - lp) + self.vals[u] * lp
-        old *= numpy.minimum((self.group.alpha * self.vals_lp[u]) + 1 - self.group.alpha, 255)
+        old *= numpy.minimum((alpha * self.vals_lp[u]) + 1 - alpha, 255)
         return old
 
 

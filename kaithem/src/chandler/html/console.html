@@ -1643,11 +1643,11 @@ ${lists}
                         <div class="stacked-form">
                             <p>{{editingGroup.blendDesc}}</p>
                             <p>
-                                <label v-for="(j,k) in editingGroup.blendParams">{{j[0]}}:
+                                <label v-for="k,v of dictView(editingGroup.blendParams,[])">{{k[0]}}:
                                     <input :disabled="no_edit" type="number" style="width:5em" step=0.01
-                                        v-bind:title="j[2]"
-                                        v-on:change="setblendparam(groupname,k,parseFloat($event.target.value))"
-                                        v-model="editingGroup.blendArgs[k]"></input>
+                                        v-bind:title="k[0]"
+                                        v-on:change="setblendparam(groupname,k[0],parseFloat($event.target.value))"
+                                        v-model="editingGroup.blendParams[k[0]]">
 
                                 </label>
                             </p>
