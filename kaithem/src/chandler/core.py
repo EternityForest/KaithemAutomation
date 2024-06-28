@@ -26,6 +26,9 @@ if TYPE_CHECKING:
 # when the last time we logged an error, so we can ratelimit
 last_logged_error = 0
 
+started_frame_number = 0
+completed_frame_number = 0
+
 
 def is_img_file(path: str):
     if path.endswith((".png", ".jpg", ".webp", ".png", ".heif", ".tiff", ".gif", ".svg")):
@@ -225,8 +228,15 @@ ratelimit = RateLimiter()
 action_queue = []
 action_queue_lock = threading.RLock()
 
+next_frame_action_queue = []
+
 
 def serialized_async_with_core_lock(f):
+    """Do f in bg thread. Events are delayed but guaranteed to be processed in order.
+    Note that this can block the frame rendering loop, the frame won't advance till all
+    events that happened during the last frame have been processed.
+    """
+
     def g():
         with cl_context:
             f()
@@ -239,3 +249,14 @@ def serialized_async_with_core_lock(f):
                 action_queue.pop(False)()
 
     workers.do(h)
+
+
+def serialized_async_next_frame(f):
+    next_frame_action_queue.append(f)
+
+
+# Only call from main loop
+def process_next_frame_actions():
+    while next_frame_action_queue:
+        x = next_frame_action_queue.pop(0)
+        serialized_async_with_core_lock(x)

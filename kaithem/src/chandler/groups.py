@@ -418,6 +418,7 @@ class Group:
         self.rerenderOnVarChange = False
 
         self.entered_cue: float = 0
+        self.entered_cue_frame_number = 0
 
         # Map event name to runtime as unix timestamp
         self.runningTimers: dict[str, float] = {}
@@ -955,9 +956,23 @@ class Group:
         :param sendSync: Boolean indicating whether to send synchronization message, defaults to True.
         :param generateEvents: Boolean indicating whether to generate events, defaults to True.
         :param cause: The cause of the cue transition, defaults to "generic".
+        :param defer_if_too_soon: Boolean indicating whether to defer the transition to a bg thread if it's too soon after the last cue transition.
         """
         # Globally raise an error if there's a big horde of cue transitions happening
         doTransitionRateLimit()
+
+        # Wait until a full frame has passed since the last cue change
+        # So the previous cue's effects can propagate.
+        # There is a big problem here in that this cue transition
+        # itself could be what is blocking everything up
+        if core.completed_frame_number < self.entered_cue_frame_number + 1:
+            for i in range(10):
+                if core.completed_frame_number < self.entered_cue_frame_number + 1:
+                    time.sleep(0.05)
+
+        # Ignore old cue transitions, but with some slop margin for bad time sync
+        if cue_entered_time and cue_entered_time < self.entered_cue - 5:
+            return
 
         # Not really in a cue, reentrancy doesn't apply
         skip_reentrant_check = self.entered_cue == 0
@@ -1090,7 +1105,7 @@ class Group:
                 def f():
                     cl_trigger_shortcut_code(sc, exclude=self)
 
-                workers.do(f)
+                core.serialized_async_with_core_lock(f)
             self.cue = self.cues[cue]
 
             if self.cue.checkpoint:
@@ -1114,6 +1129,9 @@ class Group:
             self.preload_next_cue_sound()
             self.media_player.next(self.cues[cue])
             self.media_link.next(self.cues[cue])
+
+            # Do this last because it's what we use for the rate limiting
+            self.entered_cue_frame_number = core.started_frame_number
 
         if self.cue.name == "__setup__":
             self.goto_cue("__checkpoint__")
@@ -1501,7 +1519,7 @@ class Group:
                 def f():
                     cl_trigger_shortcut_code(str(v[len("launch:") :]), self)
 
-                workers.do(f)
+                core.serialized_async_with_core_lock(f)
 
             elif v == "Rev":
                 self.prev_cue(cause="ECP")
@@ -1678,7 +1696,6 @@ class Group:
     @group_lock_context.object_session_entry_point
     def setMqttServer(self, mqtt_server: str):
         with self.lock:
-            print(110)
             x = mqtt_server.strip().split(":")
             server = x[0]
             if len(x) > 1:
@@ -1689,7 +1706,6 @@ class Group:
 
             if mqtt_server == self.activeMqttServer:
                 return
-            print(110)
 
             # Track time.monotonic of when they became unused
             self.unusedMqttTopics: dict[str, float] = {}

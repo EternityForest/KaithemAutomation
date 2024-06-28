@@ -72,6 +72,8 @@ lastrendered = 0
 
 run = [True]
 
+frame_wait = threading.Event()
+
 
 def cl_loop():
     global lastrendered
@@ -79,9 +81,15 @@ def cl_loop():
     # This function is apparently slightly slow?
     u_cache = universes.getUniverses()
     u_cache_time = time.time()
+    frame_number = core.started_frame_number
+    last = 0
 
     while run[0]:
+        frame_number += 1
+        core.started_frame_number = frame_number
         t = time.time()
+        core.frame_rate = 1 / (t - last)
+        last = t
         try:
             with core.cl_context:
                 # Profiler says this needs a cache
@@ -117,7 +125,28 @@ def cl_loop():
 
             group_lighting.do_output(changed, u_cache)
 
+            core.completed_frame_number = frame_number
+
+            # Don't go to the next frame until all events and tasks from this frame are done
+            # But if the action queue is empty, we skip the step
+            queue_wait = False
+            if core.action_queue:
+                queue_wait = True
+                core.serialized_async_with_core_lock(frame_wait.set)
+
+            core.process_next_frame_actions()
+
+            # Sleep happens at the end, ideally the next frame actions could be done before rendering
+            # and we could save some latency.
             time.sleep(1 / 60)
+
+            if queue_wait:
+                # Don't go to the next frame until all events and tasks from this frame are done
+                # Waiting happens after that because i think it uses more cpu
+                # than just sleeping
+                frame_wait.wait(1)
+                frame_wait.clear()
+
         except Exception:
             logger.exception("Wat")
 

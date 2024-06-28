@@ -1,5 +1,3 @@
-from scullery import workers
-
 from kaithem.src.kaithemobj import kaithem
 
 from . import core
@@ -64,7 +62,7 @@ def add_context_commands(context_group):
     cc = {}
 
     def gotoCommand(group: str = "=GROUP", cue: str = ""):
-        "Triggers a group to go to a cue.  Ends handling of any further bindings on the current event"
+        "Triggers a group to go to a cue in the next frame."
 
         # Ignore empty
         if not cue.strip():
@@ -84,18 +82,19 @@ def add_context_commands(context_group):
             elif cause == "script.2":
                 raise RuntimeError("More than 3 layers of redirects in cue.enter or cue.exit")
 
-        # We don't want to handle other bindings after a goto, leaving a group stops execution.
-        context_group.board.groups_by_name[group].script_context.stopAfterThisHandler()
-        context_group.board.groups_by_name[group].goto_cue(cue, cause=newcause)
+        def f():
+            context_group.board.groups_by_name[group].goto_cue(cue, cause=newcause)
+
+        core.serialized_async_next_frame(f)
         return True
 
     def codeCommand(code: str = ""):
-        "Activates any cues with the matching shortcut code in any group"
+        "Activates any cues with the matching shortcut code in any group. Triggers in the next frame."
 
         def f():
             cl_trigger_shortcut_code(code)
 
-        workers.do(f)
+        core.serialized_async_next_frame(f)
         return True
 
     gotoCommand.completionTags = {  # type: ignore
@@ -115,13 +114,13 @@ def add_context_commands(context_group):
         )
 
     def eventCommand(group: str = "=GROUP", ev: str = "DummyEvent", value: str = ""):
-        "Send an event to a group, or to all groups if group is __global__"
+        "Send an event to a group, or to all groups if group is __global__. Triggers in the next frame."
         if group == "__global__":
 
             def f():
                 cl_event(ev, value)
 
-            workers.do(f)
+            core.serialized_async_next_frame(f)
         else:
             context_group.board.groups_by_name[group].event(ev, value)
         return True

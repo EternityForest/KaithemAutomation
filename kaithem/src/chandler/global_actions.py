@@ -4,8 +4,6 @@ from __future__ import annotations
 import traceback
 from typing import TYPE_CHECKING, Any
 
-from scullery import workers
-
 from . import core
 
 if TYPE_CHECKING:
@@ -89,4 +87,4 @@ def async_event(s: str, value: Any = None, info: str = "") -> None:
     def f():
         cl_event(s, value, info)
 
-    workers.do(f)
+    core.serialized_async_with_core_lock(f)

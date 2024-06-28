@@ -72,10 +72,10 @@ class flicker_blendmode(BlendMode):
 
     always_rerender = True
     parameters = {
-        "gustiness": ("Gustiness", "number", "", 0.2),
-        "lowpass": ("Lowpass", "number", "", 0.06),
-        "topple_chance": ("Windiness", "number", "", 0.1),
-        "agility": ("Flame agility", "number", "", 0.15),
+        "gustiness": ("Gustiness", "number", "", 0.17),
+        "lowpass": ("Lowpass", "number", "", 0.19),
+        "topple_chance": ("Windiness", "number", "", 0.07),
+        "agility": ("Flame agility", "number", "", 0.02),
         "group": (
             "Group",
             "number",

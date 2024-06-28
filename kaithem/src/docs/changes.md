@@ -32,6 +32,8 @@ Change Log
 
 - :boom: Chandler "Scenes" have been renamed to "Groups" to disambiguate from "Cues" and follow stage lighting practice.  This should not be a breaking change, anything user facing gets migrated automatically.
 
+- :boom: Chandler GotoCue commands no longer stop execution of the current event.
+- :boom: Chandler GotoCue, shortcut, and event happens in the next frame
 
 #### Fixed
 

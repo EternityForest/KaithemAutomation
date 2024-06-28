@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import copy
 import gc
 import json
 import logging
@@ -408,15 +407,15 @@ class Universe:
     def reset_to_cache(self):
         "Remove all changes since the prerendered layer."
         values, alphas = self.prerendered_data
-        self.values = copy.deepcopy(values)
-        self.alphas = copy.deepcopy(alphas)
+        self.values = numpy.copy(values)
+        self.alphas = numpy.copy(alphas)
 
         self.top_layer = self.prerendered_layer
 
     def save_prerendered(self, p, s):
         "Save this layer as the cached layer. Called in the render functions"
         self.prerendered_layer = (p, s)
-        self.prerendered_data = (copy.deepcopy(self.values), copy.deepcopy(self.alphas))
+        self.prerendered_data = (numpy.copy(self.values), numpy.copy(self.alphas))
 
     def reset(self):
         "Reset all values to 0 including the prerendered data"
