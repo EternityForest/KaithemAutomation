@@ -26,6 +26,7 @@ Change Log
 - :sparkles: Retire the original error.ogg file.  alert.ogg and error.ogg are now aliases for new files.
 - :sparkles: All the core web UI sounds are available in chandler
 - :sparkles: New "Enable Default Alerts" option to disable all the alerts a device sets.
+- :sparkles: Compact view for chandler cues
 
 
 #### Changed

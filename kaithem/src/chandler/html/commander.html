@@ -58,6 +58,57 @@
         max-width: 32em;
     }
 
+    .compact-cuebutton.success {
+        font-weight: bold;
+    }
+    .compact-cuebutton {
+        aspect-ratio: 16/9;
+        overflow: hidden;
+        flex-basis: 10rem;
+        height: auto;
+        flex-grow: 0;
+        max-width: 10rem;
+        padding: 0px;
+        position: relative;
+        z-index: 1001;
+        box-shadow: 4px 5px 3px #00000069;
+        margin: 3px;
+
+
+        &>img {
+            position: absolute;
+            object-fit: contain;
+            width: 100%;
+            height: 100%;
+            margin: auto;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1002;
+
+        }
+
+
+        &>div {
+            &>p{
+                opacity: 0.3;
+            }
+            width: 100%;
+            height: 100%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-shadow:
+                1px 1px 2px var(--contrasting-bg-color),
+                -1px 1px 2px var(--contrasting-bg-color),
+                -1px -1px 2px var(--contrasting-bg-color),
+                1px -1px 2px var(--contrasting-bg-color);
+            position: absolute;
+            z-index: 1002;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.082) 58%, rgb(0 0 0 / 0%) 85%, rgba(0, 0, 0, 0.363) 100%) !important;
+        }
+    }
+
     .cue-button-album-art{
         border:none; height: 100%;
         object-fit: contain;
@@ -258,61 +309,88 @@
                     </h3>
                     <button v-if="editingGroup.cuelen" v-on:click="addTimeToGroup(editingGroup.id)"><i
                             class="mdi mdi-clock"></i></i><i class="mdi mdi-plus"></i>Add Time</button>
+                    <button @click="compactCues=!compactCues" class="nogrow"><i class="mdi mdi-view-grid-compact"></i>Compact</button>
                 </div>
             </header>
 
             <div id="cuesbox">
                 <div class="flex-row align-left">
 
-                    <article class="w-sm-full margin flex-col" v-for="i in formatCues"
-                        v-bind:class="{'card': 1, 'success' : cuemeta[editingGroup.cue].name==i[1].name}">
+                    <template  v-for="i in formatCues">
 
-                        <header>
-                            <button class="h-4rem w-full" v-on:click="jumptocue(i[1].id, editingGroup.id)"
-                                class="cuebutton">
-                                <span v-if="i[1].shortcut.length>0"> ({{i[1].shortcut}})</span>
-                                {{i[1].name}}
+                        <button v-if="compactCues" v-on:click="jumptocue(i[1].id, editingGroup.id)" class="compact-cuebutton"
+                        v-bind:class="{'success' : cuemeta[editingGroup.cue].name==i[1].name}">
 
-                                <span  v-if="i[1].sound.length>0" class="mdi mdi-music"></span>
-                                <span v-if="i[1].slide.length>0" class="mdi mdi-projector-screen-outline"></span>
-                                <span  v-if="!i[1].track" class="mdi mdi-arrow-expand-right" title="Cue Only"></span>
-                                <span  v-if="i[1].hasLightingData || !i[1].track" class="mdi mdi-track-light" title="Cue Only"></span>
-
-
-                            </button>
-                        </header>
-
-
-                        <div class="flex-row nogaps nogrow h-12rem w-full cue-button-body" style="position: relative;">
                             <img style="border:none; height:100%; width:100%; position: absolute; object-fit: contain" class="v-center"
                             onerror='this.style.display = "none"' v-if="i[1].labelImage"
                             :src="'../WebMediaServer?labelImg='+encodeURIComponent(i[1].id)+'&cacheid='+encodeURIComponent(i[1].labelImageTime)">
 
+                            <div>{{i[1].name}}
+                                <p>
+                                    <span  v-if="i[1].sound.length>0" class="mdi mdi-music"></span>
+                                    <span v-if="i[1].slide.length>0" class="mdi mdi-projector-screen-outline"></span>
+                                    <span  v-if="!i[1].track" class="mdi mdi-arrow-expand-right" title="Cue Only"></span>
+                                    <span  v-if="i[1].hasLightingData || !i[1].track" class="mdi mdi-track-light" title="Cue Only"></span>
+                                    <span  v-if="i[1].length" class="mdi mdi-clock-outline" title="Timed Cue"></span>
+                                    <span  v-if="i[1].fadeIn" class="mdi mdi-chart-bell-curve-cumulative" title="Fade In"></span>
+                                </p>
+                            </div>
+                        </button>
 
-                            <div
-                            style="z-index: 1; height:2rem;"
-                                :class="{'success': cuemeta[editingGroup.cue].name==i[1].name,'grow':1,'readability-outline':1}">
-                                <cue-countdown v-if="cuemeta[editingGroup.cue].name==i[1].name" :group="editingGroup"
-                                    :cue="cuemeta[editingGroup.cue]"></cue-countdown>
 
-                                <div v-if="i[1].notes.length>0" style="max-width: 10em;">{{i[1].notes}}</div>
+                        <article class="w-sm-full margin flex-col" v-if="!compactCues"
+                            v-bind:class="{'card':1, 'success' : cuemeta[editingGroup.cue].name==i[1].name}">
 
-                                <span v-if="(i[1].active && (''+i[1].length).indexOf('@')>-1)"><i
-                                    class="mdi mdi-clock-outline"></i>{{i[1].cue.length.substring(1)}}</span>
+                            <header>
+                                <button class="h-4rem w-full" v-on:click="jumptocue(i[1].id, editingGroup.id)"
+                                    class="cuebutton">
+                                    <span v-if="i[1].shortcut.length>0"> ({{i[1].shortcut}})</span>
+                                    {{i[1].name}}
+
+                                    <span  v-if="i[1].sound.length>0" class="mdi mdi-music"></span>
+                                    <span v-if="i[1].slide.length>0" class="mdi mdi-projector-screen-outline"></span>
+                                    <span  v-if="!i[1].track" class="mdi mdi-arrow-expand-right" title="Cue Only"></span>
+                                    <span  v-if="i[1].hasLightingData || !i[1].track" class="mdi mdi-track-light" title="Cue Only"></span>
+                                    <span  v-if="i[1].length" class="mdi mdi-clock-outline" title="Timed Cue"></span>
+                                    <span  v-if="i[1].fadeIn" class="mdi mdi-chart-bell-curve-cumulative" title="Fade In"></span>
+
+                                </button>
+                            </header>
+
+
+                            <div class="flex-row nogaps nogrow h-12rem w-full cue-button-body" style="position: relative;">
+                                <img style="border:none; height:100%; width:100%; position: absolute; object-fit: contain" class="v-center"
+                                onerror='this.style.display = "none"' v-if="i[1].labelImage"
+                                :src="'../WebMediaServer?labelImg='+encodeURIComponent(i[1].id)+'&cacheid='+encodeURIComponent(i[1].labelImageTime)">
+
+
+                                <div
+                                style="z-index: 1; height:2rem;"
+                                    :class="{'success': cuemeta[editingGroup.cue].name==i[1].name,'grow':1,'readability-outline':1}">
+                                    <cue-countdown v-if="cuemeta[editingGroup.cue].name==i[1].name" :group="editingGroup"
+                                        :cue="cuemeta[editingGroup.cue]"></cue-countdown>
+
+                                    <div v-if="i[1].notes.length>0" style="max-width: 10em;">{{i[1].notes}}</div>
+
+                                    <span v-if="(i[1].active && (''+i[1].length).indexOf('@')>-1)"><i
+                                        class="mdi mdi-clock-outline"></i>{{i[1].cue.length.substring(1)}}</span>
+                                </div>
+
+
+
+
+                                <img class="v-center cue-button-album-art"
+                                        onerror='this.style.display = "none"' v-if="i[1].sound"
+                                        :src="'../WebMediaServer?albumArt='+encodeURIComponent(i[1].id)">
+
+
+
                             </div>
 
+                        </article>
 
 
-
-                            <img class="v-center cue-button-album-art"
-                                    onerror='this.style.display = "none"' v-if="i[1].sound"
-                                    :src="'../WebMediaServer?albumArt='+encodeURIComponent(i[1].id)">
-
-
-
-                        </div>
-
-                    </article>
+                    </template>
 
                 </div>
 
@@ -341,6 +419,7 @@
     appData.boardname = window.location.pathname.split('/')[3]
     document.title = appData.boardname
     appData.showUtils = false
+    appData.compactCues = true
     appData.scratchpad = "Text here is NOT yet saved when page reloads."
     appData.formatTime = function (t) {
         var date = new Date(t * 1000);
