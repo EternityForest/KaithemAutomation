@@ -408,7 +408,7 @@ def composite_rendered_layer_onto_universe(universe: str, group: Group, universe
     return universe_values
 
 
-def pre_render(board: ChandlerConsole, universes: dict[str, universes.Universe]):
+def mark_and_reset_changed_universes(board: ChandlerConsole, universes: dict[str, universes.Universe]) -> dict[str, tuple[int, int]]:
     """
     Reset all universes to either the all 0s background or the cached layer, depending on if the cache layer is still valid
     This needs to happen before we start compositing on the layers.

@@ -1,4 +1,5 @@
 import copy
+import gc
 import os
 import threading
 import time
@@ -7,6 +8,7 @@ import uuid
 import weakref
 from typing import Any, Dict, Iterable, List, Optional, Set
 
+import beartype
 import yaml
 from scullery import scheduling, snake_compat
 
@@ -15,7 +17,7 @@ from .. import schemas
 from ..kaithemobj import kaithem
 from . import blendmodes, console_abc, core, fixtureslib, groups, persistance, universes
 from .core import logger
-from .global_actions import event
+from .global_actions import async_event
 from .groups import Group, cues
 from .universes import getUniverse, getUniverses
 
@@ -27,12 +29,12 @@ def from_legacy_preset_format(d: Dict[str, Any]) -> dict[str, dict[int | str, fl
         return d
 
 
-def from_legacy_fixture_class_format(d):
+def from_legacy_fixture_class_format(d: List[Any] | Dict[str, Any]) -> dict[str, Any]:
     if "channels" not in d:
         c = d
-        a = []
+        a: List[dict[str, Any]] = []
         for i in c:
-            o = {}
+            o: dict[str, Any] = {}
             o["name"] = i[0]
             o["type"] = i[1]
 
@@ -46,6 +48,7 @@ def from_legacy_fixture_class_format(d):
 
         return {"channels": a}  # type: ignore
     else:
+        assert isinstance(d, dict)
         return d
 
 
@@ -78,19 +81,17 @@ class ChandlerConsole(console_abc.Console_ABC):
         # This light board's group memory, or the set of groups 'owned' by this board.
         self.groups: Dict[str, Group] = {}
 
-        self.media_folders = []
+        self.media_folders: list[str] = []
 
         # For change etection in groups. Tuple is folder, file indicating where it should go,
         # as would be passed to saveasfiles
         self.last_saved_version: dict[str, Any] = {}
 
-        self.lock = threading.RLock()
-
-        self.configured_universes: Dict[str, Any] = {}
+        self.configured_universes: Dict[str, universes.Universe] = {}
         self.fixture_assignments: Dict[str, Any] = {}
         self.fixture_presets: Dict[str, dict[str, Any]] = {}
 
-        self.fixtures = {}
+        self.fixtures: Dict[str, universes.Fixture] = {}
 
         self.universe_objects: Dict[str, universes.Universe] = {}
         self.fixture_classes: Dict[str, Any] = {}
@@ -116,35 +117,43 @@ class ChandlerConsole(console_abc.Console_ABC):
         self.last_logged_gui_send_error = 0
         self.ferrs = ""
 
-        self.autosave_checker = scheduling.scheduler.every(self.check_autosave, 10 * 60)
+        self.autosave_checker = scheduling.scheduler.every(self.cl_check_autosave, 10 * 60)
 
         def dummy(data: dict[str, Any]):
             logger.error("No save backend present")
 
         self.save_callback = dummy
+        self.should_run = True
 
-    def close(self):
+    def worker_loop(self):
+        while self.should_run:
+            self.cl_check_autosave()
+            time.sleep(10)
+
+    @core.cl_context.required
+    def cl_close(self):
         for i in self.groups:
             self.groups[i].stop()
             self.groups[i].close()
         self.groups = {}
 
         for i in self.configured_universes:
-            self.configured_universes[i].close()
+            self.configured_universes[i].cl_close()
 
         try:
             self.autosave_checker.unregister()
         except Exception:
             print(traceback.format_exc())
 
-    def load_project(self, data: dict):
+    @core.cl_context.entry_point
+    def cl_load_project(self, data: dict[str, Any]):
         for i in self.groups:
             self.groups[i].stop()
             self.groups[i].close()
         self.groups = {}
 
         for i in self.configured_universes:
-            self.configured_universes[i].close()
+            self.configured_universes[i].cl_close()
 
         if "setup" in data:
             data2 = data["setup"]
@@ -160,7 +169,7 @@ class ChandlerConsole(console_abc.Console_ABC):
             x = data2.get("fixture_presets", {})
             self.fixture_presets = {i: from_legacy_preset_format(x[i]) for i in x}
 
-            default_media_folders = []
+            default_media_folders: list[str] = []
 
             if os.path.exists(os.path.expanduser("~/Music")):
                 default_media_folders.append(os.path.expanduser("~/Music"))
@@ -172,12 +181,12 @@ class ChandlerConsole(console_abc.Console_ABC):
             self.media_folders = data2.get("media_folders", default_media_folders) or []
 
             try:
-                self.create_universes(self.configured_universes)
+                self.cl_create_universes(self.configured_universes)
             except Exception:
                 logger.exception("Error creating universes")
                 print(traceback.format_exc(6))
 
-            self.refresh_fixtures()
+            self.cl_reload_fixture_assignment_data()
 
         if "scenes" in data:
             data["groups"] = data.pop("scenes")
@@ -185,59 +194,61 @@ class ChandlerConsole(console_abc.Console_ABC):
         if "groups" in data:
             d = data["groups"]
 
-            self.loadDict(d)
+            self.cl_load_dict(d)
             self.linkSend(["refreshPage", self.fixture_assignments])
 
-    def setup(self, project: dict[str, Any]):
-        console_abc.Console_ABC.setup(self, project)
-        self.load_project(project)
+    @core.cl_context.entry_point
+    def cl_setup(self, project: dict[str, Any]):
+        console_abc.Console_ABC.cl_setup(self, project)
+        self.cl_load_project(project)
         self.initialized = True
 
-    def refresh_fixtures(self):
-        with core.lock:
-            self.ferrs = ""
+    @core.cl_context.entry_point
+    def cl_reload_fixture_assignment_data(self):
+        self.ferrs = ""
+        try:
+            for i in self.fixtures:
+                self.fixtures[i].cl_assign(None, None)
+                self.fixtures[i].rm()
+        except Exception:
+            self.ferrs += "Error deleting old assignments:\n" + traceback.format_exc()
+            print(traceback.format_exc())
+
+        try:
+            del i  # type: ignore
+        except Exception:
+            pass
+
+        self.fixtures = {}
+        for key, i in self.fixture_assignments.items():
             try:
-                for i in self.fixtures:
-                    self.fixtures[i].assign(None, None)
-                    self.fixtures[i].rm()
+                if not i["name"] == key:
+                    raise RuntimeError("Name does not match key?")
+                x = universes.Fixture(i["name"], self.fixture_classes[i["type"]])
+                self.fixtures[i["name"]] = x
+                self.fixtures[i["name"]].cl_assign(i["universe"], int(i["addr"]))
+                universes.fixtures[i["name"]] = weakref.ref(x)
             except Exception:
-                self.ferrs += "Error deleting old assignments:\n" + traceback.format_exc()
+                logger.exception("Error setting up fixture")
                 print(traceback.format_exc())
+                self.ferrs += str(i) + "\n" + traceback.format_exc()
 
-            try:
-                del i  # type: ignore
-            except Exception:
-                pass
+        for u in universes.universes:
+            self.pushchannelInfoByUniverseAndNumber(u)
 
-            self.fixtures = {}
-            for key, i in self.fixture_assignments.items():
-                try:
-                    if not i["name"] == key:
-                        raise RuntimeError("Name does not match key?")
-                    x = universes.Fixture(i["name"], self.fixture_classes[i["type"]])
-                    self.fixtures[i["name"]] = x
-                    self.fixtures[i["name"]].assign(i["universe"], int(i["addr"]))
-                    universes.fixtures[i["name"]] = weakref.ref(x)
-                except Exception:
-                    logger.exception("Error setting up fixture")
-                    print(traceback.format_exc())
-                    self.ferrs += str(i) + "\n" + traceback.format_exc()
+        for f in universes.fixtures:
+            if f:
+                self.pushchannelInfoByUniverseAndNumber("@" + f)
 
-            for u in universes.universes:
-                self.pushchannelInfoByUniverseAndNumber(u)
+        self.ferrs = self.ferrs or "No Errors!"
+        self.push_setup()
 
-            with core.lock:
-                for f in universes.fixtures:
-                    if f:
-                        self.pushchannelInfoByUniverseAndNumber("@" + f)
-
-            self.ferrs = self.ferrs or "No Errors!"
-            self.push_setup()
-
-    def create_universes(self, data: dict):
+    @core.cl_context.entry_point
+    def cl_create_universes(self, data: dict[str, Any]):
+        """Cl because of the universes object init"""
         assert isinstance(data, Dict)
         for i in self.universe_objects:
-            self.universe_objects[i].close()
+            self.universe_objects[i].cl_close()
 
         self.universe_objects = {}
         import gc
@@ -269,18 +280,19 @@ class ChandlerConsole(console_abc.Console_ABC):
                     number=int(u[i].get("number", 0)),
                 )
             else:
-                event("system.error", "No universe type: " + u[i]["type"])
+                async_event("system.error", "No universe type: " + u[i]["type"])
         self.universe_objects = universeObjects
 
         try:
-            universes.discoverColorTagDevices()
+            universes.cl_discover_color_tag_devices()
         except Exception:
-            event("system.error", traceback.format_exc())
+            async_event("system.error", traceback.format_exc())
             print(traceback.format_exc())
 
         self.push_setup()
 
-    def load_show(self, showName):
+    @core.cl_context.entry_point
+    def cl_load_show(self, showName: str):
         saveLocation = os.path.join(kaithem.misc.vardir, "chandler", "shows", showName)
         d = {}
         if os.path.isdir(saveLocation):
@@ -290,10 +302,10 @@ class ChandlerConsole(console_abc.Console_ABC):
                 if os.path.isfile(fn) and fn.endswith(".yaml"):
                     d[i[: -len(".yaml")]] = kaithem.persist.load(fn)
 
-        self.loadDict(d)
-        self.refresh_fixtures()
+        self.cl_load_dict(d)
+        self.cl_reload_fixture_assignment_data()
 
-    def get_setup_data(self, force=True):
+    def get_setup_data(self, force: bool = True):
         d = {
             "fixture_types": self.fixture_classes,
             "universes": self.configured_universes,
@@ -304,8 +316,9 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         return copy.deepcopy(d)
 
-    def loadSetupFile(self, data):
-        data = yaml.load(data, Loader=yaml.SafeLoader)
+    @core.cl_context.entry_point
+    def cl_load_setup_file(self, data_str: str):
+        data = yaml.load(data_str, Loader=yaml.SafeLoader)
         data = snake_compat.snakify_dict_keys(data)
 
         if "fixture_types" in data:
@@ -313,11 +326,11 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         if "universes" in data:
             self.configured_universes = data["universes"]
-            self.create_universes(self.configured_universes)
+            self.cl_create_universes(self.configured_universes)
 
         if "configured_universes" in data:
             self.configured_universes = data["configured_universes"]
-            self.create_universes(self.configured_universes)
+            self.cl_create_universes(self.configured_universes)
 
         # Compatibility with a legacy typo
         if "fixures" in data:
@@ -327,7 +340,7 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         if "fixure_assignments" in data:
             self.fixture_assignments = data["fixure_assignments"]
-            self.refresh_fixtures()
+            self.cl_reload_fixture_assignment_data()
 
         if "fixture_presets" in data:
             x = data["fixture_presets"]
@@ -346,19 +359,21 @@ class ChandlerConsole(console_abc.Console_ABC):
                 return str(os.stat(filename).st_mtime * 10)
             else:
                 return ""
+        except (FileNotFoundError, ValueError):
+            return ""
         except Exception:
             logger.exception("Failed to get file timestamp")
             return ""
 
-    def getSetupFile(self):
-        with core.lock:
-            return {
-                "fixture_types": self.fixture_classes,
-                "configured_universes": self.configured_universes,
-                "fixture_assignments": self.fixture_assignments,
-                "fixture_presets": self.fixture_presets,
-                "media_folders": self.media_folders,
-            }
+    @core.cl_context.entry_point
+    def cl_get_setup_file(self):
+        return {
+            "fixture_types": self.fixture_classes,
+            "configured_universes": self.configured_universes,
+            "fixture_assignments": self.fixture_assignments,
+            "fixture_presets": self.fixture_presets,
+            "media_folders": self.media_folders,
+        }
 
     def loadLibraryFile(
         self,
@@ -377,17 +392,18 @@ class ChandlerConsole(console_abc.Console_ABC):
         else:
             raise ValueError("No fixture types in that file")
 
-    def getLibraryFile(self):
-        with core.lock:
-            return {
-                "fixture_types": self.fixture_classes,
-                "universes": self.configured_universes,
-                "fixure_assignments": self.fixture_assignments,
-                "fixture_presets": self.fixture_presets,
-            }
+    @core.cl_context.entry_point
+    def cl_get_library_file(self):
+        return {
+            "fixture_types": self.fixture_classes,
+            "universes": self.configured_universes,
+            "fixure_assignments": self.fixture_assignments,
+            "fixture_presets": self.fixture_presets,
+        }
 
-    def loadGroupFile(self, data, filename: str, errs=False, clear_old=True):
-        data = yaml.load(data, Loader=yaml.SafeLoader)
+    @core.cl_context.entry_point
+    def cl_load_group_file(self, data_str: str, filename: str, errs: bool = False, clear_old: bool = True):
+        data = yaml.load(data_str, Loader=yaml.SafeLoader)
 
         data = snake_compat.snakify_dict_keys(data)
 
@@ -398,17 +414,20 @@ class ChandlerConsole(console_abc.Console_ABC):
             # Remove the .yaml
             data = {filename[:-5]: data}
 
-        with core.lock:
-            if clear_old:
-                for i in self.groups:
-                    if clear_old or (i in data):
-                        self.groups[i].stop()
-                        self.groups[i].close()
+        g = copy.copy(self.groups)
 
-                self.groups = {}
-            self.loadDict(data, errs)
+        if clear_old:
+            for i in g:
+                if clear_old or (i in data):
+                    g[i].stop()
+                    g[i].close()
 
-    def loadDict(self, data: dict[str, Any], errs: bool = False):
+            self.groups = {}
+
+        self.cl_load_dict(data, errs)
+
+    @core.cl_context.entry_point
+    def cl_load_dict(self, data: dict[str, Any], errs: bool = False):
         data = copy.deepcopy(data)
         data = from_legacy(data)
         data = snake_compat.snakify_dict_keys(data)
@@ -427,67 +446,64 @@ class ChandlerConsole(console_abc.Console_ABC):
                 except Exception:
                     logger.exception(f"Error Validating cue {j}, loading anyway")
 
-        with core.lock:
-            for i in data:
-                # New versions don't have a name key at all, the name is the key
-                if "name" in data[i]:
-                    pass
+        for i in data:
+            # New versions don't have a name key at all, the name is the key
+            if "name" in data[i]:
+                pass
+            else:
+                data[i]["name"] = i
+            n = data[i]["name"]
+
+            # Delete existing groups we own
+            if n in self.groups_by_name:
+                old_id = self.groups_by_name[n].id
+                if old_id in self.groups:
+                    self.groups[old_id].stop()
+                    self.groups[old_id].close()
+                    try:
+                        del self.groups[old_id]
+                    except KeyError:
+                        pass
                 else:
-                    data[i]["name"] = i
-                n = data[i]["name"]
+                    raise ValueError("Group " + i + " already exists. We cannot overwrite, because it was not created through this board")
+            try:
+                x = False
 
-                # Delete existing groups we own
-                if n in self.groups_by_name:
-                    old_id = self.groups_by_name[n].id
-                    if old_id in self.groups:
-                        self.groups[old_id].stop()
-                        self.groups[old_id].close()
-                        try:
-                            del self.groups[old_id]
-                        except KeyError:
-                            pass
-                    else:
-                        raise ValueError(
-                            "Group " + i + " already exists. We cannot overwrite, because it was not created through this board"
-                        )
-                try:
-                    x = False
+                # I think this was a legacy save format thing TODO
+                if "default_active" in data[i]:
+                    x = data[i]["default_active"]
+                    del data[i]["default_active"]
+                if "active" in data[i]:
+                    x = data[i]["active"]
+                    del data[i]["active"]
 
-                    # I think this was a legacy save format thing TODO
-                    if "default_active" in data[i]:
-                        x = data[i]["default_active"]
-                        del data[i]["default_active"]
-                    if "active" in data[i]:
-                        x = data[i]["active"]
-                        del data[i]["active"]
+                # Older versions indexed by UUID
+                if "uuid" in data[i]:
+                    uuid = data[i]["uuid"]
+                    del data[i]["uuid"]
+                else:
+                    uuid = i
 
-                    # Older versions indexed by UUID
-                    if "uuid" in data[i]:
-                        uuid = data[i]["uuid"]
-                        del data[i]["uuid"]
-                    else:
-                        uuid = i
+                s = Group(self, id=uuid, default_active=x, **data[i])
 
-                    s = Group(self, id=uuid, default_active=x, **data[i])
+                self.groups[uuid] = s
+                if x:
+                    s.go()
+                    s.poll_again_flag = True
+                    s.lighting_manager.should_rerender_onto_universes = True
+            except Exception:
+                if not errs:
+                    logger.exception("Failed to load group " + str(i) + " " + str(data[i].get("name", "")))
+                    print("Failed to load group " + str(i) + " " + str(data[i].get("name", "")) + ": " + traceback.format_exc(3))
+                else:
+                    raise
 
-                    self.groups[uuid] = s
-                    if x:
-                        s.go()
-                        s.poll_again_flag = True
-                        s.lighting_manager.should_rerender_onto_universes = True
-                except Exception:
-                    if not errs:
-                        logger.exception("Failed to load group " + str(i) + " " + str(data[i].get("name", "")))
-                        print("Failed to load group " + str(i) + " " + str(data[i].get("name", "")) + ": " + traceback.format_exc(3))
-                    else:
-                        raise
-
-    def addGroup(self, group):
-        if not isinstance(group, Group):
-            raise ValueError("Arg must be a Group")
+    @beartype.beartype
+    def addGroup(self, group: Group):
         self.groups[group.id] = group
 
-    def rmGroup(self, group):
+    @beartype.beartype
+    def rmGroup(self, group: Group):
         try:
             del self.groups[group.id]
         except Exception:
@@ -549,28 +565,31 @@ class ChandlerConsole(console_abc.Console_ABC):
             ]
         )
 
-    def getGroups(self):
+    @core.cl_context.entry_point
+    def cl_get_groups(self):
         "Return serializable version of groups list"
-        with core.lock:
-            sd = {}
-            for i in self.groups:
-                x = self.groups[i]
-                sd[x.name] = x.toDict()
+        sd = {}
+        for i in self.groups:
+            x = self.groups[i]
+            sd[x.name] = x.toDict()
 
-            return sd
+        return sd
 
-    def check_autosave(self):
+    @core.cl_context.entry_point
+    def cl_check_autosave(self):
         if self.initialized:
-            self.save_project_data()
+            self.cl_save_project_data()
 
-    def get_project_data(self):
-        sd = copy.deepcopy(self.getGroups())
+    @core.cl_context.entry_point
+    def cl_get_project_data(self):
+        sd = copy.deepcopy(self.cl_get_groups())
 
-        project_file: dict[str, Any] = {"groups": sd, "setup": self.getSetupFile()}
+        project_file: dict[str, Any] = {"groups": sd, "setup": self.cl_get_setup_file()}
         return project_file
 
-    def save_project_data(self):
-        project_file = self.get_project_data()
+    @core.cl_context.entry_point
+    def cl_save_project_data(self):
+        project_file = self.cl_get_project_data()
 
         if self.last_saved_version == project_file:
             return
@@ -579,7 +598,7 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         self.save_callback(project_file)
 
-    def pushchannelInfoByUniverseAndNumber(self, u):
+    def pushchannelInfoByUniverseAndNumber(self, u: str):
         "This has expanded to push more data than names"
         if not u[0] == "@":
             uobj = getUniverse(u)
@@ -762,44 +781,68 @@ class ChandlerConsole(console_abc.Console_ABC):
             )
             x = x[100:]
 
-    def delgroup(self, sc):
+    @core.cl_context.entry_point
+    def cl_del_group(self, sc):
         i = None
-        with core.lock:
-            if sc in self.groups:
-                i = self.groups.pop(sc)
+        if sc in self.groups:
+            i = self.groups.pop(sc)
         if i:
             i.stop()
             self.groups_by_name.pop(i.name)
             self.linkSend(["del", i.id])
             persistance.del_checkpoint(i.id)
 
-    def guiPush(self, universes_snapshot):
+    @core.cl_context.entry_point
+    def cl_add_to_active_groups(self, group: Group):
+        if group not in self._active_groups:
+            self._active_groups.append(group)
+
+        self._active_groups = sorted(self._active_groups, key=lambda k: (k.priority, k.started))
+        self.active_groups = self._active_groups[:]
+
+    @core.cl_context.entry_point
+    def cl_rm_from_active_groups(self, group: Group):
+        if group in self._active_groups:
+            self._active_groups.remove(group)
+            self.active_groups = self._active_groups[:]
+
+        gc.collect()
+        time.sleep(0.01)
+        gc.collect()
+        gc.collect()
+
+    @core.cl_context.entry_point
+    def cl_update_group_priorities(self):
+        self._active_groups = sorted(self._active_groups, key=lambda k: (k.priority, k.started))
+        self.active_groups = self._active_groups[:]
+
+    @core.cl_context.required
+    def cl_gui_push(self, universes_snapshot):
         "Snapshot is a list of all universes because the getter for that is slow"
-        with core.lock:
-            for i in self.newDataFunctions:
-                i(self)
-            self.newDataFunctions = []
-            for i in universes_snapshot:
-                if self.id not in universes_snapshot[i].statusChanged:
-                    self.linkSend(
-                        [
-                            "universe_status",
-                            i,
-                            universes_snapshot[i].status,
-                            universes_snapshot[i].ok,
-                            universes_snapshot[i].telemetry,
-                        ]
-                    )
-                    universes_snapshot[i].statusChanged[self.id] = True
+        for i in self.newDataFunctions:
+            i(self)
+        self.newDataFunctions = []
+        for i in universes_snapshot:
+            if self.id not in universes_snapshot[i].statusChanged:
+                self.linkSend(
+                    [
+                        "universe_status",
+                        i,
+                        universes_snapshot[i].status,
+                        universes_snapshot[i].ok,
+                        universes_snapshot[i].telemetry,
+                    ]
+                )
+                universes_snapshot[i].statusChanged[self.id] = True
 
-            for i in self.groups:
-                # Tell clients about any changed alpha values and stuff.
-                if self.id not in self.groups[i].metadata_already_pushed_by:
-                    self.pushMeta(i, statusOnly=True)
-                    self.groups[i].metadata_already_pushed_by[self.id] = False
+        for i in self.groups:
+            # Tell clients about any changed alpha values and stuff.
+            if self.id not in self.groups[i].metadata_already_pushed_by:
+                self.pushMeta(i, statusOnly=True)
+                self.groups[i].metadata_already_pushed_by[self.id] = False
 
-            for i in self.active_groups:
-                # Tell clients about any changed alpha values and stuff.
-                if self.id not in i.metadata_already_pushed_by:
-                    self.pushMeta(i.id)
-                    i.metadata_already_pushed_by[self.id] = False
+        for i in self.active_groups:
+            # Tell clients about any changed alpha values and stuff.
+            if self.id not in i.metadata_already_pushed_by:
+                self.pushMeta(i.id)
+                i.metadata_already_pushed_by[self.id] = False

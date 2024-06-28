@@ -82,12 +82,12 @@ def test_fixtures():
     fixas = {"testFixture": {"addr": 1, "name": "testFixture", "type": "TestFixtureType", "universe": "dmx"}}
 
     board._onmsg("__admin__", ["setconfuniverses", u], "test")
-    board.check_autosave()
+    board.cl_check_autosave()
 
-    assert board.get_project_data()["setup"]["configured_universes"]["dmx"]
+    assert board.cl_get_project_data()["setup"]["configured_universes"]["dmx"]
 
     board._onmsg("__admin__", ["setfixtureclass", "TestFixtureType", fixtypes["TestFixtureType"]], "test")
-    assert board.get_project_data()["setup"]["fixture_types"]["TestFixtureType"]["channels"][0]["name"] == "red"
+    assert board.cl_get_project_data()["setup"]["fixture_types"]["TestFixtureType"]["channels"][0]["name"] == "red"
     board._onmsg("__admin__", ["setFixtureAssignment", "testFixture", fixas["testFixture"]], "test")
 
     s = groups.Group(board, "TestingGroup1", id="TEST")
@@ -113,7 +113,7 @@ def test_fixtures():
             assert int(universes.universes["dmx"]().values[5]) == 127
             assert int(universes.universes["dmx"]().values[6]) == 4
 
-    assert board.get_project_data()["setup"]["fixture_assignments"]["testFixture"]
+    assert board.cl_get_project_data()["setup"]["fixture_assignments"]["testFixture"]
 
     s.close()
     board.rmGroup(s)

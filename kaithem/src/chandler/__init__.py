@@ -2,7 +2,6 @@ import atexit
 import threading
 import time
 
-import icemedia.sound_player
 from scullery import messagebus
 
 from . import ChandlerConsole, core, group_lighting, universes
@@ -21,49 +20,39 @@ min = min
 
 def refresh_groups(t, v):
     """Tell groups the set of universes has changed"""
-    with core.lock:
-        for b in core.iter_boards():
-            for i in b.active_groups:
+    for b in core.iter_boards():
+        for i in b.active_groups:
+            with i.lock:
                 i.lighting_manager.refresh()
 
 
 messagebus.subscribe("/chandler/command/refresh_group_lighting", refresh_groups)
 
 
-def refreshFixtures(topic, val):
+@core.cl_context.entry_point
+def cl_refresh_fixtures(topic, val):
     # Deal with fixtures in this universe that aren't actually attached to this object yet.
     for i in range(5):
         try:
-            with core.lock:
-                for i in universes.fixtures:
-                    f = universes.fixtures[i]()
-                    if not f:
-                        continue
-                    if f.universe == val or val is None:
-                        f.assign(f.universe, f.startAddress)
+            for i in universes.fixtures:
+                f = universes.fixtures[i]()
+                if not f:
+                    continue
+                if f.universe == val or val is None:
+                    f.cl_assign(f.universe, f.startAddress)
             break
         except RuntimeError:
             # Should there be some kind of dict changed size problem, retry
             time.sleep(0.1)
 
 
-messagebus.subscribe("/chandler/command/refreshFixtures", refreshFixtures)
+messagebus.subscribe("/chandler/command/refreshFixtures", cl_refresh_fixtures)
 
 
 def pollsounds():
     for b in core.iter_boards():
         for i in b.active_groups:
-            # If the cuelen isn't 0 it means we are using the newer version that supports randomizing lengths.
-            # We keep this in case we get a sound format we can'r read the length of in advance
-            if i.cuelen == 0:
-                # Forbid any crazy error loopy business with too short sounds
-                if (time.time() - i.entered_cue) > 1 / 5:
-                    if i.cue.sound and i.cue.rel_length:
-                        if not i.media_ended_at:
-                            if not icemedia.sound_player.is_playing(str(i.id)):
-                                i.media_ended_at = time.time()
-                        if i.media_ended_at and (time.time() - i.media_ended_at > (i.cue.length * i.bpm)):
-                            i.next_cue(cause="sound")
+            i.check_sound_state()
 
 
 def poll_board_groups(board: ChandlerConsole.ChandlerConsole, t=None):
@@ -84,7 +73,7 @@ lastrendered = 0
 run = [True]
 
 
-def loop():
+def cl_loop():
     global lastrendered
 
     # This function is apparently slightly slow?
@@ -92,45 +81,46 @@ def loop():
     u_cache_time = time.time()
 
     while run[0]:
-        t = time.time()
-        try:
-            # Profiler says this needs a cache
-            if t - u_cache_time > 1:
-                u_cache = universes.getUniverses()
-                u_cache_time = t
+        with core.cl_context:
+            t = time.time()
+            try:
+                # Profiler says this needs a cache
+                if t - u_cache_time > 1:
+                    u_cache = universes.getUniverses()
+                    u_cache_time = t
 
-            do_gui_push = False
-            if t - lastrendered > 1 / 14.0:
-                with core.lock:
+                do_gui_push = False
+                # Only needed when we don't know length in advance
+                # so it doesn't need fast response its just a fallback
+                if t - lastrendered > 1 / 3:
                     pollsounds()
-                do_gui_push = True
-                lastrendered = t
+                    do_gui_push = True
+                    lastrendered = t
 
-            with core.lock:
                 changed = {}
 
                 # The pre-render step has to
                 # happen before we start compositing on the layers
 
-                for b in core.iter_boards():
+                for b in core.boards.values():
                     poll_board_groups(b)
-                    changed.update(group_lighting.pre_render(b, u_cache))
+                    changed.update(group_lighting.mark_and_reset_changed_universes(b, u_cache))
 
-                for b in core.iter_boards():
+                for b in core.boards.values():
                     c = group_lighting.composite_layers_from_board(b, u=u_cache)
                     changed.update(c)
 
                     if do_gui_push:
-                        b.guiPush(u_cache)
+                        b.cl_gui_push(u_cache)
 
                 group_lighting.do_output(changed, u_cache)
 
-            time.sleep(1 / 60)
-        except Exception:
-            logger.exception("Wat")
+                time.sleep(1 / 60)
+            except Exception:
+                logger.exception("Wat")
 
 
-thread = threading.Thread(target=loop, name="ChandlerThread", daemon=True)
+thread = threading.Thread(target=cl_loop, name="ChandlerThread", daemon=True)
 thread.start()
 
 

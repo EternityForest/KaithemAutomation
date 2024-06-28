@@ -4,6 +4,8 @@ from __future__ import annotations
 import traceback
 from typing import TYPE_CHECKING, Any
 
+from scullery import workers
+
 from . import core
 
 if TYPE_CHECKING:
@@ -29,40 +31,62 @@ def normalize_shortcut(code: str | int | float) -> str:
     return str(code)
 
 
-def trigger_shortcut_code(code: str, limitGroup: Group | None = None, exclude: Group | None = None):
+@core.cl_context.entry_point
+def cl_trigger_shortcut_code(code: str, limitGroup: Group | None = None, exclude: Group | None = None):
     "API to activate a cue by it's shortcut code"
 
     code = normalize_shortcut(code)
 
     if not limitGroup:
-        event("shortcut." + str(code)[:64], None)
+        cl_event("shortcut." + str(code)[:64], None)
 
-    with core.lock:
-        if code in shortcut_codes:
-            for i in shortcut_codes[code]:
-                try:
-                    x = i.group()
-                    if not x:
+    go_list = []
+    event_list = []
+
+    if code in shortcut_codes:
+        for i in shortcut_codes[code]:
+            try:
+                x = i.group()
+                if not x:
+                    continue
+
+                if limitGroup:
+                    if (x is not limitGroup) and not (x.name == limitGroup):
+                        print("skip " + x.name, limitGroup)
                         continue
+                    if x is not exclude:
+                        # x.event("shortcut." + str(code)[:64])
+                        event_list.append((x, str(code)[:64]))
+                else:
+                    if x and x is not exclude:
+                        # x.go()
+                        # x.goto_cue(i.name, cause="manual")
+                        go_list.append((x, i.name))
+            except Exception:
+                print(traceback.format_exc())
 
-                    if limitGroup:
-                        if (x is not limitGroup) and not (x.name == limitGroup):
-                            print("skip " + x.name, limitGroup)
-                            continue
-                        if x is not exclude:
-                            x.event("shortcut." + str(code)[:64])
-                    else:
-                        if x and x is not exclude:
-                            x.go()
-                            x.goto_cue(i.name, cause="manual")
-                except Exception:
-                    print(traceback.format_exc())
+    for i in go_list:
+        i[0].goto_cue(i[1], cause="manual")
+
+    for i in event_list:
+        i[0].event("shortcut." + i[1], None)
 
 
-def event(s: str, value: Any = None, info: str = "") -> None:
+@core.cl_context.entry_point
+def cl_event(s: str, value: Any = None, info: str = "") -> None:
     "THIS IS THE ONLY TIME THE INFO THING DOES ANYTHING"
     # disallow_special(s, allow=".")
-    with core.lock:
-        for board in core.iter_boards():
-            for i in board.active_groups:
-                i._event(s, value=value, info=info)
+    event_list = []
+    for board in core.iter_boards():
+        for i in board.active_groups:
+            event_list.append(i)
+
+    for i in event_list:
+        i._event(s, value=value, info=info)
+
+
+def async_event(s: str, value: Any = None, info: str = "") -> None:
+    def f():
+        cl_event(s, value, info)
+
+    workers.do(f)

@@ -17,15 +17,17 @@ import weakref
 from collections.abc import Callable, Iterable
 from typing import TYPE_CHECKING, Any
 
+import icemedia.sound_player
 import structlog
 from beartype import beartype
+from scullery import workers
 
-from .. import schemas, tagpoints, util
+from .. import context_restrictions, schemas, tagpoints, util
 from ..kaithemobj import kaithem
 from . import core, group_media, mqtt, persistance
 from .core import disallow_special
 from .cue import Cue, allowedCueNameSpecials, cues
-from .global_actions import trigger_shortcut_code
+from .global_actions import cl_trigger_shortcut_code
 from .group_context_commands import add_context_commands, rootContext
 from .group_lighting import GroupLightingManager
 from .mathutils import dt_to_ts, ease, number_to_note
@@ -46,6 +48,16 @@ min = min
 
 # Indexed by ID
 groups: weakref.WeakValueDictionary[str, Group] = weakref.WeakValueDictionary()
+
+# This is only used on some functions.  We have an actual lock,
+# It doesn't serve as the lock, it just makes sure we don't try to start a new core lock context,
+# Or start a session with another group
+
+# It can't be exclusive because we have lots of groups.
+# We don't use it for every single time we get a group
+group_lock_context = context_restrictions.Context("Group Lock")
+
+core.cl_context.opens_before(group_lock_context)
 
 
 def normalize_midi_name(t):
@@ -160,6 +172,7 @@ class DebugScriptContext(kaithem.chandlerscript.ChandlerScriptContext):
                 core.rl_log_exc("Error handling var set notification")
                 print(traceback.format_exc())
 
+    @group_lock_context.object_session_entry_point
     def event(self, evt: str, val: str | float | int | bool | None = None):
         kaithem.chandlerscript.ChandlerScriptContext.event(self, evt, val)
         try:
@@ -208,6 +221,7 @@ group_schema = schemas.get_schema("chandler/group")
 class Group:
     "An objecting representing one group. If noe default cue present one is made"
 
+    @group_lock_context.object_session_entry_point
     def __init__(
         self,
         chandler_board: ChandlerConsole.ChandlerConsole,
@@ -388,8 +402,6 @@ class Group:
         self.lastTap: float = 0
         self.tapSequence = 0
 
-        # This flag is used to avoid having to repaint the canvas if we don't need to
-        self.fade_in_completed = False
         # A pointer into that list pointing at the current cue. We have to update all this
         # every time we change the lists
         self.cuePointer = 0
@@ -476,8 +488,13 @@ class Group:
         else:
             self.cueTagClaim.set("__stopped__", annotation="GroupObject")
 
-        self.subscribe_command_tags()
+        def f():
+            with self.lock:
+                self._nl_subscribe_command_tags()
 
+        workers.do(f)
+
+    @group_lock_context.object_session_entry_point
     def toDict(self) -> dict[str, Any]:
         # These are the properties that aren't just straight 1 to 1 copies
         # of props, but still get saved
@@ -496,6 +513,20 @@ class Group:
 
         return d
 
+    def check_sound_state(self):
+        # If the cuelen isn't 0 it means we are using the newer version that supports randomizing lengths.
+        # We keep this in case we get a sound format we can'r read the length of in advance
+        if self.cuelen == 0:
+            # Forbid any crazy error loopy business with too short sounds
+            if (time.time() - self.entered_cue) > 1 / 5:
+                if self.cue.sound and self.cue.rel_length:
+                    if not self.media_ended_at:
+                        if not icemedia.sound_player.is_playing(str(self.id)):
+                            self.media_ended_at = time.time()
+                    cuelen = self.evalExprFloat(self.cue.length)
+                    if self.media_ended_at and (time.time() - self.media_ended_at > (cuelen * self.bpm)):
+                        self.next_cue(cause="sound")
+
     def __del__(self):
         pass
 
@@ -506,19 +537,25 @@ class Group:
                 x += "MQTT Disconnected "
         return x
 
+    @group_lock_context.object_session_entry_point
     def close(self):
         "Unregister the group and delete it from the lists"
-        with core.lock:
-            self.stop()
-            self.mqtt_server = ""
-            x = self.mqttConnection
-            if x:
-                x.disconnect()
+
+        def f():
             if self.board.groups_by_name.get(self.name, None) is self:
                 del self.board.groups_by_name[self.name]
 
             if groups.get(self.id, None) is self:
                 del groups[self.id]
+
+        core.async_with_core_lock(f)
+
+        with self.lock:
+            self.stop()
+            self.mqtt_server = ""
+            x = self.mqttConnection
+            if x:
+                x.disconnect()
 
     def evalExprFloat(self, s: str | int | float) -> float:
         f = self.evalExpr(s)
@@ -535,27 +572,26 @@ class Group:
         """
         return self.script_context.preprocessArgument(s)
 
-    def insertSorted(self, c):
+    def _nl_insert_cue_sorted(self, c):
         "Insert a None to just recalt the whole ordering"
-        with core.lock:
-            if c:
-                self.cues_ordered.append(c)
+        if c:
+            self.cues_ordered.append(c)
 
-            self.cues_ordered.sort(key=lambda i: i.number)
+        self.cues_ordered.sort(key=lambda i: i.number)
 
-            # We inset cues before we actually have a selected cue.
-            if hasattr(self, "cue") and self.cue:
-                try:
-                    self.cuePointer = self.cues_ordered.index(self.cue)
-                except Exception:
-                    print(traceback.format_exc())
-            else:
-                self.cuePointer = 0
+        # We inset cues before we actually have a selected cue.
+        if hasattr(self, "cue") and self.cue:
+            try:
+                self.cuePointer = self.cues_ordered.index(self.cue)
+            except Exception:
+                print(traceback.format_exc())
+        else:
+            self.cuePointer = 0
 
-            # Regenerate linked list by brute force when a new cue is added.
-            for i in range(len(self.cues_ordered) - 1):
-                self.cues_ordered[i].next_ll = self.cues_ordered[i + 1]
-            self.cues_ordered[-1].next_ll = None
+        # Regenerate linked list by brute force when a new cue is added.
+        for i in range(len(self.cues_ordered) - 1):
+            self.cues_ordered[i].next_ll = self.cues_ordered[i + 1]
+        self.cues_ordered[-1].next_ll = None
 
     def getDefaultNext(self):
         if self.default_next.strip():
@@ -577,7 +613,7 @@ class Group:
 
     def getParent(self, cue: str) -> str | None:
         "Return the cue that this cue name should backtrack values from or None"
-        with core.lock:
+        with self.lock:
             if not self.cues[cue].track:
                 return None
 
@@ -593,8 +629,9 @@ class Group:
                     return x.name
             return None
 
+    @group_lock_context.object_session_entry_point
     def rmCue(self, cue: str):
-        with core.lock:
+        with self.lock:
             if not len(self.cues) > 1:
                 raise RuntimeError("Cannot have group with no cues")
 
@@ -640,12 +677,14 @@ class Group:
             self.cues_ordered[i].next_ll = self.cues_ordered[i + 1]
         self.cues_ordered[-1].next_ll = None
 
+    @group_lock_context.object_session_entry_point
     def _add_cue(self, cue: Cue, forceAdd=True):
         name = cue.name
-        self.insertSorted(cue)
-        if name in self.cues and not forceAdd:
-            raise RuntimeError("Cue would overwrite existing.")
-        self.cues[name] = cue
+        with self.lock:
+            self._nl_insert_cue_sorted(cue)
+            if name in self.cues and not forceAdd:
+                raise RuntimeError("Cue would overwrite existing.")
+            self.cues[name] = cue
 
         core.add_data_pusher_to_all_boards(lambda s: s.pushCueMeta(self.cues[name].id))
         core.add_data_pusher_to_all_boards(lambda s: s.pushCueData(cue.id))
@@ -662,6 +701,7 @@ class Group:
 
         core.add_data_pusher_to_all_boards(lambda s: s.pushMeta(self.id, statusOnly=statusOnly, keys=keys))
 
+    @group_lock_context.object_session_entry_point
     def event(self, s: str, value: Any = True, info: str = "", exclude_errors: bool = True):
         # No error loops allowed!
         if (not s == "script.error") and exclude_errors:
@@ -896,6 +936,7 @@ class Group:
 
         return (cue_name, 0)
 
+    @group_lock_context.object_session_entry_point
     def goto_cue(
         self,
         cue: str,
@@ -936,24 +977,21 @@ class Group:
         kwargs_var: collections.defaultdict[str, str] = collections.defaultdict(lambda: "")
         kwargs_var.update(k2)
 
-        self.script_context.setVar("KWARGS", kwargs_var)
+        with self.lock:
+            cue_entered_time = cue_entered_time or time.time()
 
-        cue_entered_time = cue_entered_time or time.time()
+            if cue in self.cues:
+                if sendSync:
+                    gn = self.mqtt_sync_features.get("syncGroup", False)
+                    if gn:
+                        topic = f"/kaithem/chandler/syncgroup/{gn}"
+                        m = {
+                            "time": cue_entered_time,
+                            "cue": cue,
+                            "senderSessionID": self.mqttNodeSessionID,
+                        }
+                        self.sendMqttMessage(topic, m)
 
-        if cue in self.cues:
-            if sendSync:
-                gn = self.mqtt_sync_features.get("syncGroup", False)
-                if gn:
-                    topic = f"/kaithem/chandler/syncgroup/{gn}"
-                    m = {
-                        "time": cue_entered_time,
-                        "cue": cue,
-                        "senderSessionID": self.mqttNodeSessionID,
-                    }
-                    self.sendMqttMessage(topic, m)
-
-        with core.lock:
-            with self.lock:
                 if not self.active:
                     return
 
@@ -961,120 +999,126 @@ class Group:
                     self.stop()
                     return
 
-                cue, cuetime = self._parseCueName(cue)
+            cue, cuetime = self._parseCueName(cue)
 
-                cue_entered_time = cuetime or cue_entered_time
+            cue_entered_time = cuetime or cue_entered_time
 
-                if not cue:
-                    return
+            if not cue:
+                return
 
-                cobj = self.cues[cue]
+            self.script_context.setVar("KWARGS", kwargs_var)
 
-                if self.cue:
-                    if cobj == self.cue:
-                        if not (cobj.reentrant or skip_reentrant_check):
-                            return
-                else:
-                    # Act like we actually we in the default cue, but allow reenter no matter what since
-                    # We weren't in any cue
-                    self.cue = self.cues["default"]
-                    self.cueTagClaim.set(self.cue.name, annotation="GroupObject")
+            cobj = self.cues[cue]
 
-                self.entered_cue = cue_entered_time
+            if self.cue:
+                if cobj == self.cue:
+                    if not (cobj.reentrant or skip_reentrant_check):
+                        return
+            else:
+                # Act like we actually we in the default cue, but allow reenter no matter what since
+                # We weren't in any cue
+                self.cue = self.cues["default"]
+                self.cueTagClaim.set(self.cue.name, annotation="GroupObject")
 
-                # Allow specifying an "Exact" time to enter for zero-drift stuff, so things stay in sync
-                # I don't know if it's fully correct to set the timestamp before exit...
-                # However we really don't want to queue up a bazillion transitions
-                # If we can't keep up, so we limit that to 3s
-                # if t and t>time.time()-3:
-                # Also, limit to 500ms in the future, seems like there could be bugs otherwise
-                #   self.entered_cue = min(t,self.entered_cue+0.5)
+            self.entered_cue = cue_entered_time
 
-                entered = self.entered_cue
+            # Allow specifying an "Exact" time to enter for zero-drift stuff, so things stay in sync
+            # I don't know if it's fully correct to set the timestamp before exit...
+            # However we really don't want to queue up a bazillion transitions
+            # If we can't keep up, so we limit that to 3s
+            # if t and t>time.time()-3:
+            # Also, limit to 500ms in the future, seems like there could be bugs otherwise
+            #   self.entered_cue = min(t,self.entered_cue+0.5)
 
-                if not (cue == self.cue.name):
-                    if generateEvents:
-                        if self.active and self.script_context:
-                            self.event("cue.exit", value=[self.cue.name, cause])
+            entered = self.entered_cue
 
-                # We return if some the enter transition already
-                # Changed to a new cue
-                if not self.entered_cue == entered:
-                    return
+            if not (cue == self.cue.name):
+                if generateEvents:
+                    if self.active and self.script_context:
+                        self.event("cue.exit", value=[self.cue.name, cause])
 
-                self.cueHistory.append((cue, time.time()))
-                self.cueHistory = self.cueHistory[-1024:]
-                self.media_ended_at = 0
+            # We return if some the enter transition already
+            # Changed to a new cue
+            if not self.entered_cue == entered:
+                return
 
-                try:
-                    # Take rules from new cue, don't actually set this as the cue we are in
-                    # Until we succeed in running all the rules that happen as we enter
-                    # We do set the local variables for the incoming cue though.
-                    self.refresh_rules(cobj)
-                except Exception:
-                    core.rl_log_exc("Error handling script")
-                    print(traceback.format_exc(6))
+            self.cueHistory.append((cue, time.time()))
+            self.cueHistory = self.cueHistory[-1024:]
+            self.media_ended_at = 0
 
-                if self.active:
-                    if self.cue.onExit:
-                        self.cue.onExit(cue_entered_time)
+            try:
+                # Take rules from new cue, don't actually set this as the cue we are in
+                # Until we succeed in running all the rules that happen as we enter
+                # We do set the local variables for the incoming cue though.
+                self.refresh_rules(cobj)
+            except Exception:
+                core.rl_log_exc("Error handling script")
+                print(traceback.format_exc(6))
 
-                    if cobj.onEnter:
-                        cobj.onEnter(cue_entered_time)
+            if self.active:
+                if self.cue.onExit:
+                    self.cue.onExit(cue_entered_time)
 
-                    if generateEvents:
-                        self.event("cue.enter", [cobj.name, cause])
+                if cobj.onEnter:
+                    cobj.onEnter(cue_entered_time)
 
-                # We return if some the enter transition already
-                # Changed to a new cue
-                if not self.entered_cue == entered:
-                    return
+                if generateEvents:
+                    self.event("cue.enter", [cobj.name, cause])
 
-                # We don't fully reset until after we are done fading in and have rendered.
-                # Until then, the affect list has to stay because it has stuff that prev cues affected.
-                # Even if we are't tracking, we still need to know to rerender them without the old effects,
-                # And the fade means we might still affect them for a brief time.
+            # We return if some the enter transition already
+            # Changed to a new cue
+            if not self.entered_cue == entered:
+                return
 
-                # optimization, try to se if we can just increment if we are going to the next cue, else
-                # we have to actually find the index of the new cue
-                if self.cuePointer < (len(self.cues_ordered) - 1) and self.cues[cue] is self.cues_ordered[self.cuePointer + 1]:
-                    self.cuePointer += 1
-                else:
-                    self.cuePointer = self.cues_ordered.index(self.cues[cue])
+            # We don't fully reset until after we are done fading in and have rendered.
+            # Until then, the affect list has to stay because it has stuff that prev cues affected.
+            # Even if we are't tracking, we still need to know to rerender them without the old effects,
+            # And the fade means we might still affect them for a brief time.
 
-                sc = self.cues[cue].trigger_shortcut.strip()
-                if sc:
-                    trigger_shortcut_code(sc, exclude=self)
-                self.cue = self.cues[cue]
+            # optimization, try to se if we can just increment if we are going to the next cue, else
+            # we have to actually find the index of the new cue
+            if self.cuePointer < (len(self.cues_ordered) - 1) and self.cues[cue] is self.cues_ordered[self.cuePointer + 1]:
+                self.cuePointer += 1
+            else:
+                self.cuePointer = self.cues_ordered.index(self.cues[cue])
 
-                if self.cue.checkpoint:
-                    if not cause == "start":
-                        persistance.set_checkpoint(self.id, self.cue.name)
+            sc = self.cues[cue].trigger_shortcut.strip()
+            if sc:
 
-                self.cueTagClaim.set(self.cues[cue].name, annotation="GroupObject")
+                def f():
+                    cl_trigger_shortcut_code(sc, exclude=self)
 
-                self.recalc_randomize_modifier()
-                self.recalc_cue_len()
+                workers.do(f)
+            self.cue = self.cues[cue]
 
-                self.lighting_manager.next(self.cues[cue])
+            if self.cue.checkpoint:
+                if not cause == "start":
+                    persistance.set_checkpoint(self.id, self.cue.name)
 
-                # We don't render here. Very short cues coupt create loops of rerendering and goto
-                # self.render(force_repaint=True)
+            self.cueTagClaim.set(self.cues[cue].name, annotation="GroupObject")
 
-                # Instead we set the flag
-                self.poll_again_flag = True
-                self.lighting_manager.should_rerender_onto_universes = True
-                self.pushMeta(statusOnly=True)
+            self.recalc_randomize_modifier()
+            self.recalc_cue_len()
 
-                self.preload_next_cue_sound()
-                self.media_player.next(self.cues[cue])
-                self.media_link.next(self.cues[cue])
+            self.lighting_manager.next(self.cues[cue])
 
-            if self.cue.name == "__setup__":
-                self.goto_cue("__checkpoint__")
+            # We don't render here. Very short cues coupt create loops of rerendering and goto
+            # self.render(force_repaint=True)
 
-            if self.cue.name == "__setup__":
-                self.goto_cue("default", sendSync=False)
+            # Instead we set the flag
+            self.poll_again_flag = True
+            self.lighting_manager.should_rerender_onto_universes = True
+            self.pushMeta(statusOnly=True)
+
+            self.preload_next_cue_sound()
+            self.media_player.next(self.cues[cue])
+            self.media_link.next(self.cues[cue])
+
+        if self.cue.name == "__setup__":
+            self.goto_cue("__checkpoint__")
+
+        if self.cue.name == "__setup__":
+            self.goto_cue("default", sendSync=False)
 
     def preload_next_cue_sound(self):
         # Preload the next cue's sound if we know what it is
@@ -1206,8 +1250,9 @@ class Group:
             # never go below 0.1*the setting or else you could go to zero and get a never ending cue
             self.cuelen = max(0, float(v * 0.1), self.randomizeModifier + float(v))
 
+    @group_lock_context.object_session_entry_point
     def make_script_context(self):
-        scriptContext = DebugScriptContext(self, parentContext=rootContext, variables=self.chandler_vars, gil=core.lock)
+        scriptContext = DebugScriptContext(self, parentContext=rootContext, variables=self.chandler_vars, gil=self.lock)
 
         scriptContext.addNamespace("pagevars")
 
@@ -1219,8 +1264,9 @@ class Group:
         scriptContext.commands["sendMQTT"] = sendMQTT
         return scriptContext
 
+    @group_lock_context.object_session_entry_point
     def refresh_rules(self, rulesFrom: Cue | None = None):
-        with core.lock:
+        with self.lock:
             # We copy over the event recursion depth so that we can detect infinite loops
             if not self.script_context:
                 self.script_context = self.make_script_context()
@@ -1341,13 +1387,13 @@ class Group:
         if self.mqttConnection:
             self.mqttConnection.publish(topic, json.dumps(message))
 
-    def clearDisplayTags(self):
-        with core.lock:
-            for i in self.display_tag_subscription_refs:
-                i[0].unsubscribe(i[1])
-            self.display_tag_subscription_refs = []
-            self.display_tag_values = {}
-            self.display_tag_meta = {}
+    def _nl_clear_display_tags(self):
+        """Must be called under lock.  Clear all the display tags"""
+        for i in self.display_tag_subscription_refs:
+            i[0].unsubscribe(i[1])
+        self.display_tag_subscription_refs = []
+        self.display_tag_values = {}
+        self.display_tag_meta = {}
 
     def make_display_tag_subscriber(self, tag: tagpoints.GenericTagPointClass) -> tuple[tagpoints.GenericTagPointClass, Callable]:
         "Create and return a subscriber to a display tag"
@@ -1379,10 +1425,11 @@ class Group:
 
         return tag, f
 
+    @group_lock_context.object_session_entry_point
     def set_display_tags(self, dt):
         dt = dt[:]
-        with core.lock:
-            self.clearDisplayTags()
+        with self.lock:
+            self._nl_clear_display_tags()
             gc.collect()
             gc.collect()
             gc.collect()
@@ -1439,18 +1486,21 @@ class Group:
 
             self.pushMeta(keys=["display_tags"])
 
-    def clear_configured_tags(self):
-        with core.lock:
-            for i in self.command_tagSubscriptions:
-                i[0].unsubscribe(i[1])
-            self.command_tagSubscriptions = []
+    def _nl_clear_configured_tags(self):
+        for i in self.command_tagSubscriptions:
+            i[0].unsubscribe(i[1])
+        self.command_tagSubscriptions = []
 
     def command_tag_subscriber(self):
         def f(v, t, a):
             v = v[0]
 
             if v.startswith("launch:"):
-                trigger_shortcut_code(str(v[len("launch:") :]), self)
+
+                def f():
+                    cl_trigger_shortcut_code(str(v[len("launch:") :]), self)
+
+                workers.do(f)
 
             elif v == "Rev":
                 self.prev_cue(cause="ECP")
@@ -1481,16 +1531,17 @@ class Group:
 
         return f
 
-    def subscribe_command_tags(self):
+    def _nl_subscribe_command_tags(self):
         if not self.command_tag.strip():
             return
-        with core.lock:
-            for i in [self.command_tag]:
-                t = kaithem.tags.ObjectTag(i)
-                s = self.command_tag_subscriber()
-                self.command_tagSubscriptions.append((t, s))
-                t.subscribe(s)
 
+        for i in [self.command_tag]:
+            t = kaithem.tags.ObjectTag(i)
+            s = self.command_tag_subscriber()
+            self.command_tagSubscriptions.append((t, s))
+            t.subscribe(s)
+
+    @group_lock_context.object_session_entry_point
     def rename_cue(self, old: str, new: str):
         disallow_special(new, allowedCueNameSpecials)
         if new[0] in "1234567890 \t_":
@@ -1515,26 +1566,29 @@ class Group:
 
         cue.push()
 
+    @group_lock_context.object_session_entry_point
     def set_command_tag(self, tag_name: str):
         tag_name = tag_name.strip()
 
-        self.clear_configured_tags()
+        with self.lock:
+            self._nl_clear_configured_tags()
 
-        self.command_tag = tag_name
+            self.command_tag = tag_name
 
-        if tag_name:
-            tag = kaithem.tags.ObjectTag(tag_name)
-            if tag.subtype and not tag.subtype == "event":
-                raise ValueError("That tag does not have the event subtype")
+            if tag_name:
+                tag = kaithem.tags.ObjectTag(tag_name)
+                if tag.subtype and not tag.subtype == "event":
+                    raise ValueError("That tag does not have the event subtype")
 
-            self.subscribe_command_tags()
+                self._nl_subscribe_command_tags()
 
+    @group_lock_context.object_session_entry_point
     def next_cue(self, t=None, cause="generic"):
         cue = self.cue
         if not cue:
             return
 
-        with core.lock:
+        with self.lock:
             if cue.next_cue and (
                 (self.evalExpr(cue.next_cue).split("?")[0] in self.cues)
                 or cue.next_cue.startswith("__")
@@ -1547,8 +1601,9 @@ class Group:
                 if x:
                     self.goto_cue(x, t)
 
+    @group_lock_context.object_session_entry_point
     def prev_cue(self, cause="generic"):
-        with core.lock:
+        with self.lock:
             if len(self.cueHistory) > 1:
                 c = self.cueHistory[-2]
                 c = c[0]
@@ -1557,12 +1612,13 @@ class Group:
     def __repr__(self):
         return f"<Group {self.name}>"
 
+    @group_lock_context.object_session_entry_point
     def go(self):
-        self.set_display_tags(self.display_tags)
-
-        with core.lock:
+        with self.lock:
             if self in self.board.active_groups:
                 return
+
+            self.set_display_tags(self.display_tags)
 
             self.active = True
 
@@ -1579,17 +1635,16 @@ class Group:
             self.metadata_already_pushed_by = {}
             self.started = time.time()
 
-            if self not in self.board._active_groups:
-                self.board._active_groups.append(self)
-            self.board._active_groups = sorted(self.board._active_groups, key=lambda k: (k.priority, k.started))
-            self.board.active_groups = self.board._active_groups[:]
-
             self.setMqttServer(self.mqtt_server)
 
             # Minor inefficiency rendering twice the first frame
             self.poll_again_flag = True
             self.lighting_manager.should_rerender_onto_universes = True
-            # self.render()
+
+            def f():
+                self.board.cl_add_to_active_groups(self)
+
+            workers.do(f)
 
     def is_active(self):
         return self.active
@@ -1599,13 +1654,14 @@ class Group:
         return self._priority
 
     @priority.setter
+    @group_lock_context.object_session_entry_point
     def priority(self, p: float):
         self.metadata_already_pushed_by = {}
         self._priority = p
-        with core.lock:
-            self.board._active_groups = sorted(self.board._active_groups, key=lambda k: (k.priority, k.started))
-            self.board.active_groups = self.board._active_groups[:]
+        with self.lock:
             self.lighting_manager.refresh()
+
+        workers.do(self.board.cl_update_group_priorities)
 
     def mqttStatusEvent(self, value: str, timestamp: float, annotation: Any):
         if value == "connected":
@@ -1616,6 +1672,7 @@ class Group:
         self.pushMeta(statusOnly=True)
 
     @beartype
+    @group_lock_context.object_session_entry_point
     def setMqttServer(self, mqtt_server: str):
         with self.lock:
             x = mqtt_server.strip().split(":")
@@ -1654,13 +1711,22 @@ class Group:
 
             self.doMqttSubscriptions()
 
+    @group_lock_context.object_session_entry_point
     def setName(self, name: str):
+        """May not take effect instantly"""
         disallow_special(name)
         if self.name == "":
             raise ValueError("Cannot name group an empty string")
         if not isinstance(name, str):
             raise TypeError("Name must be str")
-        with core.lock:
+
+        if name in self.board.groups_by_name:
+            raise ValueError("Name in use")
+
+        with self.lock:
+            self.script_context.setVar("GROUP", self.name)
+
+        def f():
             if name in self.board.groups_by_name:
                 raise ValueError("Name in use")
             if self.name in self.board.groups_by_name:
@@ -1668,7 +1734,8 @@ class Group:
             self.name = name
             self.board.groups_by_name[name] = self
             self.metadata_already_pushed_by = {}
-            self.script_context.setVar("GROUP", self.name)
+
+        core.async_with_core_lock(f)
 
     def setMQTTFeature(self, feature: str, state):
         if state:
@@ -1751,8 +1818,9 @@ class Group:
             self.entered_cue = x
         self.pushMeta(keys={"bpm"})
 
+    @group_lock_context.object_session_entry_point
     def stop(self):
-        with core.lock:
+        with self.lock:
             # No need to set rerender
             if self.script_context:
                 self.script_context.clearBindings()
@@ -1767,9 +1835,6 @@ class Group:
             self.metadata_already_pushed_by = {}
 
             self.lighting_manager.stop()
-            if self in self.board._active_groups:
-                self.board._active_groups.remove(self)
-                self.board.active_groups = self.board._active_groups[:]
 
             self.active = False
 
@@ -1782,6 +1847,12 @@ class Group:
             except Exception:
                 core.rl_log_exc("Error handling timer set notification")
                 print(traceback.format_exc())
+
+            def f():
+                self.board.cl_rm_from_active_groups(self)
+
+            workers.do(f)
+
             # fALLBACK
             self.cue = self.cues.get("default", list(self.cues.values())[0])
             # the real thing that means we aren't really in a cue
@@ -1924,21 +1995,30 @@ class Group:
                 1.0,
             )
             fadePosition = ease(fadePosition)
+
+            if fadePosition < 1:
+                self.poll_again_flag = True
+                self.lighting_manager.should_rerender_onto_universes = True
+
         else:
             fadePosition = 1
 
-        if fadePosition < 1:
-            self.poll_again_flag = True
-            self.lighting_manager.should_rerender_onto_universes = True
-
         # Remember, we can and do the next cue thing and still need to repaint, because sometimes the next cue thing does nothing
-        if force_repaint or (not self.fade_in_completed):
+        if force_repaint or (not self.lighting_manager.fade_in_completed):
             self.lighting_manager.paint_canvas(fadePosition)
             if fadePosition >= 1.0:
                 self.lighting_manager.fade_complete()
 
-        if self.cuelen and (time.time() - self.entered_cue) > self.cuelen * (60 / self.bpm):
+        if self.cue_time_finished():
             # rel_length cues end after the sound in a totally different part of code
             # Calculate the "real" time we entered, which is exactly the previous entry time plus the len.
             # Then round to the nearest millisecond to prevent long term drift due to floating point issues.
-            self.next_cue(round(self.entered_cue + self.cuelen * (60 / self.bpm), 3), cause="time")
+
+            # Confirm under lock to avoid any race conditions
+            with self.lock:
+                if self.cue_time_finished():
+                    self.next_cue(round(self.entered_cue + self.cuelen * (60 / self.bpm), 3), cause="time")
+
+    def cue_time_finished(self):
+        if self.cuelen and (time.time() - self.entered_cue) > self.cuelen * (60 / self.bpm):
+            return True

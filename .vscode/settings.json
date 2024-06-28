@@ -89,6 +89,7 @@
                 "Vals",
                 "vueapp",
                 "webp"
-            ]
+            ],
+            "python.analysis.typeCheckingMode": "standard"
 
 }

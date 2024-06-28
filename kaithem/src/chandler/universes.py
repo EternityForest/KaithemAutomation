@@ -32,7 +32,6 @@ int = int
 max = max
 min = min
 
-universesLock = core.lock
 universes: dict[str, weakref.ReferenceType[Universe]] = {}
 
 # MUTABLE
@@ -116,31 +115,31 @@ class Fixture:
         for i in range(len(channels)):
             self.nameToOffset[channels[i]["name"]] = i
 
-        with core.lock:
-            if name in fixtures:
-                raise ValueError("Name in Use")
-            else:
-                fixtures[name] = weakref.ref(self)
-                self.name = name
+        # Not threadsafe or something to rely on,
+        # just an extra defensive check
+        if name in fixtures:
+            raise ValueError("Name in Use")
+        else:
+            fixtures[name] = weakref.ref(self)
+            self.name = name
 
     def getChannelByName(self, name: str):
         if self.startAddress:
             return self
 
     def __del__(self):
-        with core.lock:
-            try:
-                del fixtures[self.name]
-            except KeyError:
-                pass
-
-        ID = id(self)
-
         def f():
-            with core.lock:
+            with core.cl_context:
+                try:
+                    del fixtures[self.name]
+                except KeyError:
+                    pass
+
+                ID = id(self)
+
                 try:
                     if id(fixtures[self.name]()) == id(ID):
-                        self.assign(None, None)
+                        self.cl_assign(None, None)
                         self.rm()
                 except KeyError:
                     pass
@@ -155,60 +154,60 @@ class Fixture:
         except Exception:
             print(traceback.format_exc())
 
-    def assign(self, universe: str | None, channel: int | None):
-        with core.lock:
-            # First just clear the old assignment, if any
-            if self.universe and self.startAddress:
-                oldUniverseObj = getUniverse(self.universe)
+    @core.cl_context.required
+    def cl_assign(self, universe: str | None, channel: int | None):
+        # First just clear the old assignment, if any
+        if self.universe and self.startAddress:
+            oldUniverseObj = getUniverse(self.universe)
 
-                if oldUniverseObj:
-                    # Delete current assignments
-                    for i in range(self.startAddress, self.startAddress + len(self.channels)):
-                        if i in oldUniverseObj.channels:
-                            if oldUniverseObj.channels[i]() and oldUniverseObj.channels[i]() is self:
-                                del oldUniverseObj.channels[i]
-                                # We just unassigned it, so it's not a hue channel anymore
-                                oldUniverseObj.hueBlendMask[i] = 0
-                            else:
-                                print(
-                                    "Unexpected channel data corruption",
-                                    universe,
-                                    i,
-                                    oldUniverseObj.channels[i](),
-                                )
+            if oldUniverseObj:
+                # Delete current assignments
+                for i in range(self.startAddress, self.startAddress + len(self.channels)):
+                    if i in oldUniverseObj.channels:
+                        if oldUniverseObj.channels[i]() and oldUniverseObj.channels[i]() is self:
+                            del oldUniverseObj.channels[i]
+                            # We just unassigned it, so it's not a hue channel anymore
+                            oldUniverseObj.hueBlendMask[i] = 0
+                        else:
+                            print(
+                                "Unexpected channel data corruption",
+                                universe,
+                                i,
+                                oldUniverseObj.channels[i](),
+                            )
 
-            self.assignment = universe, channel
+        self.assignment = universe, channel
 
-            self.universe = universe
-            self.startAddress = channel
+        self.universe = universe
+        self.startAddress = channel
 
-            universeObj = getUniverse(universe)
+        universeObj = getUniverse(universe)
 
-            if not universeObj:
-                return
+        if not universeObj:
+            return
 
-            core.fixtureschanged = {}
+        core.fixtureschanged = {}
 
-            if not channel:
-                return
-            # 2 separate loops, first is just to check, so that we don't have half-completed stuff
-            for i in range(channel, channel + len(self.channels)):
-                if i in universeObj.channels:
-                    if universeObj.channels[i]:
-                        fixture = universeObj.channels[i]()
-                        if fixture:
-                            if not self.name == fixture.name:
-                                raise ValueError("channel " + str(i) + " of " + self.name + " would overlap with " + fixture.name)
+        if not channel:
+            return
+        # 2 separate loops, first is just to check, so that we don't have half-completed stuff
+        for i in range(channel, channel + len(self.channels)):
+            if i in universeObj.channels:
+                if universeObj.channels[i]:
+                    fixture = universeObj.channels[i]()
+                    if fixture:
+                        if not self.name == fixture.name:
+                            raise ValueError("channel " + str(i) + " of " + self.name + " would overlap with " + fixture.name)
 
-            cPointer = 0
-            for i in range(channel, channel + len(self.channels)):
-                universeObj.channels[i] = weakref.ref(self)
-                if self.channels[cPointer]["type"] in ("hue", "sat", "custom"):
-                    # Mark it as a hue channel that blends slightly differently
-                    universeObj.hueBlendMask[i] = 1
-                    cPointer += 1
+        cPointer = 0
+        for i in range(channel, channel + len(self.channels)):
+            universeObj.channels[i] = weakref.ref(self)
+            if self.channels[cPointer]["type"] in ("hue", "sat", "custom"):
+                # Mark it as a hue channel that blends slightly differently
+                universeObj.hueBlendMask[i] = 1
+                cPointer += 1
 
-            universeObj.channelsChanged()
+        universeObj.cl_channels_changed()
 
 
 class Universe:
@@ -287,22 +286,22 @@ class Universe:
         self.all_static = True
 
         self.error_alert = alerts.Alert(f"{self.name}.errorState", priority="error", auto_ack=True)
-        with core.lock:
-            with universesLock:
+
+        with core.cl_context:
+            if name in _universes and _universes[name]():
+                gc.collect()
+                time.sleep(0.1)
+                gc.collect()
+                # We retry, because the universes are often temporarily cached as strong refs
                 if name in _universes and _universes[name]():
-                    gc.collect()
-                    time.sleep(0.1)
-                    gc.collect()
-                    # We retry, because the universes are often temporarily cached as strong refs
-                    if name in _universes and _universes[name]():
-                        try:
-                            u = _universes[name]()
-                            if u:
-                                u.close()
-                        except Exception:
-                            raise ValueError("Name " + name + " is taken")
-                _universes[name] = weakref.ref(self)
-                universes = {i: _universes[i] for i in _universes if _universes[i]()}
+                    try:
+                        u = _universes[name]()
+                        if u:
+                            u.cl_close()
+                    except Exception:
+                        raise ValueError("Name " + name + " is taken")
+            _universes[name] = weakref.ref(self)
+            universes = {i: _universes[i] for i in _universes if _universes[i]()}
 
         # flag to apply all groups, even ones not marked as neding rerender
         self.full_rerender = False
@@ -332,25 +331,25 @@ class Universe:
             kaithem.message.post("/chandler/command/refreshFixtures", self.name)
             self.refresh_groups()
 
-    def close(self):
+    @core.cl_context.required
+    def cl_close(self):
         global universes
-        with universesLock:
-            # Don't delete the object that replaced this
-            if self.name in _universes and (_universes[self.name]() is self):
-                del _universes[self.name]
+        # Don't delete the object that replaced this
+        if self.name in _universes and (_universes[self.name]() is self):
+            del _universes[self.name]
 
-            universes = {i: _universes[i] for i in _universes if _universes[i]()}
+        universes = {i: _universes[i] for i in _universes if _universes[i]()}
 
-            def alreadyClosed(*a, **k):
-                raise RuntimeError("This universe has been stopped, possibly because it was replaced wih a newer one")
+        def alreadyClosed(*a, **k):
+            raise RuntimeError("This universe has been stopped, possibly because it was replaced wih a newer one")
 
-            self.onFrame = alreadyClosed
-            self.setStatus = alreadyClosed
-            self.refresh_groups = alreadyClosed
-            self.reset_to_cache = alreadyClosed
-            self.reset = alreadyClosed
-            self.preFrame = alreadyClosed
-            self.save_prerendered = alreadyClosed
+        self.onFrame = alreadyClosed
+        self.setStatus = alreadyClosed
+        self.refresh_groups = alreadyClosed
+        self.reset_to_cache = alreadyClosed
+        self.reset = alreadyClosed
+        self.preFrame = alreadyClosed
+        self.save_prerendered = alreadyClosed
 
         kaithem.message.post("/chandler/command/refresh_group_lighting", None)
         self.closed = True
@@ -382,29 +381,29 @@ class Universe:
                     # Do as little as possible in the undefined __del__ thread
                     kaithem.message.post("/chandler/command/refresh_group_lighting", None)
 
-    def channelsChanged(self):
+    @core.cl_context.required
+    def cl_channels_changed(self):
         "Call this when fixtures are added, moved, or modified."
-        with core.lock:
-            self.fine_channels = {}
-            self.fixed_channels = {}
+        self.fine_channels = {}
+        self.fixed_channels = {}
 
-            for i in self.channels:
-                fixture = self.channels[i]()
-                if not fixture:
-                    continue
-                if not fixture.startAddress:
-                    continue
-                data = fixture.channels[i - fixture.startAddress]
-                if data["type"] == "fine":
-                    if isinstance(data["coarse"], int):
-                        self.fine_channels[i] = fixture.startAddress + data["coarse"]
-                    else:
-                        for num, ch in enumerate(fixture.channels):
-                            if ch.get("name", "") == data["coarse"]:
-                                self.fine_channels[i] = fixture.startAddress + num
+        for i in self.channels:
+            fixture = self.channels[i]()
+            if not fixture:
+                continue
+            if not fixture.startAddress:
+                continue
+            data = fixture.channels[i - fixture.startAddress]
+            if data["type"] == "fine":
+                if isinstance(data["coarse"], int):
+                    self.fine_channels[i] = fixture.startAddress + data["coarse"]
+                else:
+                    for num, ch in enumerate(fixture.channels):
+                        if ch.get("name", "") == data["coarse"]:
+                            self.fine_channels[i] = fixture.startAddress + num
 
-                if data["type"] == "fixed":
-                    self.fixed_channels[i] = data["value"]
+            if data["type"] == "fixed":
+                self.fixed_channels[i] = data["value"]
 
     def reset_to_cache(self):
         "Remove all changes since the prerendered layer."
@@ -490,12 +489,13 @@ class EnttecUniverse(Universe):
         # Stop the thread when this gets deleted
         self.sender.onFrame(None)
 
-    def close(self):
+    @core.cl_context.required
+    def cl_close(self):
         try:
             self.sender.onFrame(None)
         except Exception:
             pass
-        return super().close()
+        return super().cl_close()
 
 
 class DMXSender:
@@ -676,12 +676,13 @@ class ArtNetUniverse(Universe):
         # Stop the thread when this gets deleted
         self.sender.onFrame(None)
 
-    def close(self):
+    @core.cl_context.required
+    def cl_close(self):
         try:
             self.sender.onFrame(None)
         except Exception:
             pass
-        return super().close()
+        return super().cl_close()
 
 
 def makeSender(c, uref, *a):
@@ -807,12 +808,13 @@ class EnttecOpenUniverse(Universe):
         # Stop the thread when this gets deleted
         self.sender.onFrame(None)
 
-    def close(self):
+    @core.cl_context.required
+    def cl_close(self):
         try:
             self.sender.onFrame(None)
         except Exception:
             pass
-        return super().close()
+        return super().cl_close()
 
 
 def makeDMXSender(uref, port, fr):
@@ -962,7 +964,7 @@ def onDelTag(t, m):
         with discoverlock:
             if m in addedTags:
                 del addedTags[m]
-                discoverColorTagDevices()
+                cl_discover_color_tag_devices()
 
 
 kaithem.message.subscribe("/system/tags/deleted", onDelTag)
@@ -971,14 +973,14 @@ kaithem.message.subscribe("/system/tags/deleted", onDelTag)
 def onAddTag(t, m):
     if "color" not in m and "fade" not in m and "light" not in m and "bulb" not in m and "colour" not in m:
         return
-    discoverColorTagDevices()
+    cl_discover_color_tag_devices()
 
 
 kaithem.message.subscribe("/system/tags/created", onAddTag)
 kaithem.message.subscribe("/system/tags/configured", onAddTag)
 
 
-def discoverColorTagDevices():
+def cl_discover_color_tag_devices():
     global colorTagDeviceUniverses
 
     u = {}
@@ -996,11 +998,10 @@ def discoverColorTagDevices():
         if ft:
             addedTags[ft.name] = True
 
-        with universesLock:
-            if name not in _universes:
-                u[name] = ColorTagUniverse(name, c, ft)
-            else:
-                u[name] = _universes[name]()
+        if name not in _universes:
+            u[name] = ColorTagUniverse(name, c, ft)
+        else:
+            u[name] = _universes[name]()
 
     for i in kaithem.devices:
         d = kaithem.devices[i]
@@ -1048,7 +1049,8 @@ class ColorTagUniverse(Universe):
         self.hidden = False
         self.tag = tag
         self.f = Fixture(self.name + ".rgb", [["R", "red"], ["G", "green"], ["B", "blue"]])
-        self.f.assign(self.name, 1)
+        with core.cl_context:
+            self.f.cl_assign(self.name, 1)
         self.lock = threading.RLock()
 
         self.lastColor = None
@@ -1086,9 +1088,6 @@ class ColorTagUniverse(Universe):
                 self.fadeTag(t, tm, annotation="Chandler")
 
             self.tag(c, tm, annotation="Chandler")
-
-
-core.discoverColorTagDevices = discoverColorTagDevices
 
 
 class OneTagpoint(Universe):

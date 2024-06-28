@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 import os
-import threading
 import time
 import traceback
 import unicodedata
@@ -13,8 +12,10 @@ from typing import TYPE_CHECKING, Any
 import structlog
 import textdistance
 from icemedia import sound_player
+from scullery import workers
 from tinytag import TinyTag
 
+from .. import context_restrictions
 from ..kaithemobj import kaithem
 from . import console_abc
 
@@ -59,7 +60,8 @@ def rl_log_exc(m: str):
     last_logged_error = time.monotonic()
 
 
-lock = threading.RLock()
+cl_context = context_restrictions.Context("ChandlerCoreLock", exclusive=True)
+
 logger = structlog.get_logger(__name__)
 
 saveLocation = os.path.join(kaithem.misc.vardir, "chandler")
@@ -85,6 +87,8 @@ def disallow_special(s: str, allow: str = "", replaceMode: str | None = None) ->
 
 musicLocation = os.path.join(kaithem.misc.vardir, "chandler", "music")
 
+
+"""Only change this under core.cl_context"""
 boards: dict[str, ChandlerConsole.ChandlerConsole] = {}
 
 
@@ -215,3 +219,11 @@ class RateLimiter:
 
 
 ratelimit = RateLimiter()
+
+
+def async_with_core_lock(f):
+    def g():
+        with cl_context:
+            f()
+
+    workers.do(g)

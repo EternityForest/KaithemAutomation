@@ -42,22 +42,25 @@ class ConfigType(modules_state.ResourceType):
         x = entries.pop((module, resource), None)
         entries[module, resource] = WebChandlerConsole.WebConsole(f"{module}:{resource}")
         set_save_cb(entries[module, resource], module, resource)
-        core.boards[f"{module}:{resource}"] = entries[module, resource]
 
-        if x:
-            x.close()
+        with core.cl_context:
+            core.boards[f"{module}:{resource}"] = entries[module, resource]
 
-        core.boards[f"{module}:{resource}"].setup(data.get("project", {}))
+            if x:
+                x.cl_close()
+
+            core.boards[f"{module}:{resource}"].cl_setup(data.get("project", {}))
 
     def on_move(self, module, resource, to_module, to_resource, data):
         x = entries.pop((module, resource), None)
         if x:
             entries[to_module, to_resource] = x
 
-        b = core.boards.pop(f"{module}:{resource}", None)
+        with core.cl_context:
+            b = core.boards.pop(f"{module}:{resource}", None)
 
-        if b:
-            b = core.boards[f"{to_module}:{to_resource}"] = b
+            if b:
+                b = core.boards[f"{to_module}:{to_resource}"] = b
 
         set_save_cb(entries[to_module, to_resource], to_module, to_resource)
 
@@ -65,8 +68,9 @@ class ConfigType(modules_state.ResourceType):
         self.on_load(module, resource, data)
 
     def on_delete(self, module, resource, data):
-        entries[module, resource].close()
-        core.boards.pop(f"{module}:{resource}", None)
+        with core.cl_context:
+            entries[module, resource].cl_close()
+            core.boards.pop(f"{module}:{resource}", None)
 
         del entries[module, resource]
 
@@ -94,7 +98,7 @@ class ConfigType(modules_state.ResourceType):
         return d.render(self.get_update_target(module, resource))
 
     def flush_unsaved(self, module, resource):
-        entries[module, resource].check_autosave()
+        entries[module, resource].cl_check_autosave()
         return super().flush_unsaved(module, resource)
 
 

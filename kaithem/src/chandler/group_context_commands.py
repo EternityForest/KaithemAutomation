@@ -1,7 +1,9 @@
+from scullery import workers
+
 from kaithem.src.kaithemobj import kaithem
 
 from . import core
-from .global_actions import event, trigger_shortcut_code
+from .global_actions import cl_event, cl_trigger_shortcut_code
 
 rootContext = kaithem.chandlerscript.ChandlerScriptContext()
 
@@ -89,7 +91,11 @@ def add_context_commands(context_group):
 
     def codeCommand(code: str = ""):
         "Activates any cues with the matching shortcut code in any group"
-        trigger_shortcut_code(code)
+
+        def f():
+            cl_trigger_shortcut_code(code)
+
+        workers.do(f)
         return True
 
     gotoCommand.completionTags = {  # type: ignore
@@ -111,7 +117,11 @@ def add_context_commands(context_group):
     def eventCommand(group: str = "=GROUP", ev: str = "DummyEvent", value: str = ""):
         "Send an event to a group, or to all groups if group is __global__"
         if group == "__global__":
-            event(ev, value)
+
+            def f():
+                cl_event(ev, value)
+
+            workers.do(f)
         else:
             context_group.board.groups_by_name[group].event(ev, value)
         return True
