@@ -255,7 +255,7 @@ class Cue:
     def setTrack(self, val):
         self.track = bool(val)
         self.getGroup().poll_again_flag = True
-        self.getGroup().lighting_manager.should_rerender_onto_universes = True
+        self.getGroup().lighting_manager.refresh()
 
     def setNumber(self, n):
         "Can take a string representing a decimal number for best accuracy, saves as *1000 fixed point"
@@ -339,7 +339,7 @@ class Cue:
                 else:
                     shortcut_codes[code] = [self]
 
-        core.async_with_core_lock(f)
+        core.serialized_async_with_core_lock(f)
 
         self.shortcut = code
         if push:
@@ -408,7 +408,7 @@ class Cue:
 
             if group.cue == self and group.is_active():
                 group.poll_again_flag = True
-                group.lighting_manager.should_rerender_onto_universes = True
+                group.lighting_manager.rerender()
 
                 # If we change something in a pattern effect we just do a full recalc since those are complicated.
                 if unmappeduniverse in self.values and "__length__" in self.values[unmappeduniverse]:
@@ -440,7 +440,7 @@ class Cue:
                     group.poll(force_repaint=True)
 
             group.poll_again_flag = True
-            group.lighting_manager.should_rerender_onto_universes = True
+            group.lighting_manager.rerender()
 
             # For blend modes that don't like it when you
             # change the list of values without resetting

@@ -150,7 +150,7 @@ class DebugScriptContext(kaithem.chandlerscript.ChandlerScriptContext):
                 if not k == "_" and group.rerenderOnVarChange:
                     group.lighting_manager.recalc_cue_vals()
                     group.poll_again_flag = True
-                    group.lighting_manager.should_rerender_onto_universes = True
+                    group.lighting_manager.rerender()
 
             except Exception:
                 core.rl_log_exc("Error handling var set notification")
@@ -514,6 +514,8 @@ class Group:
         return d
 
     def check_sound_state(self):
+        if not self.active:
+            return
         # If the cuelen isn't 0 it means we are using the newer version that supports randomizing lengths.
         # We keep this in case we get a sound format we can'r read the length of in advance
         if self.cuelen == 0:
@@ -548,7 +550,7 @@ class Group:
             if groups.get(self.id, None) is self:
                 del groups[self.id]
 
-        core.async_with_core_lock(f)
+        core.serialized_async_with_core_lock(f)
 
         with self.lock:
             self.stop()
@@ -1107,7 +1109,6 @@ class Group:
 
             # Instead we set the flag
             self.poll_again_flag = True
-            self.lighting_manager.should_rerender_onto_universes = True
             self.pushMeta(statusOnly=True)
 
             self.preload_next_cue_sound()
@@ -1615,7 +1616,7 @@ class Group:
     @group_lock_context.object_session_entry_point
     def go(self):
         with self.lock:
-            if self in self.board.active_groups:
+            if self.active:
                 return
 
             self.set_display_tags(self.display_tags)
@@ -1639,12 +1640,14 @@ class Group:
 
             # Minor inefficiency rendering twice the first frame
             self.poll_again_flag = True
-            self.lighting_manager.should_rerender_onto_universes = True
+            self.lighting_manager.rerender()
+
+            self.active = True
 
             def f():
                 self.board.cl_add_to_active_groups(self)
 
-            workers.do(f)
+            core.serialized_async_with_core_lock(f)
 
     def is_active(self):
         return self.active
@@ -1675,6 +1678,7 @@ class Group:
     @group_lock_context.object_session_entry_point
     def setMqttServer(self, mqtt_server: str):
         with self.lock:
+            print(110)
             x = mqtt_server.strip().split(":")
             server = x[0]
             if len(x) > 1:
@@ -1685,6 +1689,7 @@ class Group:
 
             if mqtt_server == self.activeMqttServer:
                 return
+            print(110)
 
             # Track time.monotonic of when they became unused
             self.unusedMqttTopics: dict[str, float] = {}
@@ -1694,20 +1699,20 @@ class Group:
                 self.mqttConnection = None
 
             if mqtt_server:
-                if self in self.board.active_groups:
+                if self.active:
                     self.mqttConnection = makeWrappedConnectionClass(self)(
                         server,
                         port,
                     )
 
                     self.mqttSubscribed = {}
-
+                # Do after so we can get the err on bad format first
+                self.mqtt_server = self.activeMqttServer = mqtt_server
             else:
                 self.mqttConnection = None
                 self.mqttSubscribed = {}
-
-            # Do after so we can get the err on bad format first
-            self.mqtt_server = self.activeMqttServer = mqtt_server
+                # Do after so we can get the err on bad format first
+                self.mqtt_server = self.activeMqttServer = mqtt_server
 
             self.doMqttSubscriptions()
 
@@ -1735,7 +1740,7 @@ class Group:
             self.board.groups_by_name[name] = self
             self.metadata_already_pushed_by = {}
 
-        core.async_with_core_lock(f)
+        core.serialized_async_with_core_lock(f)
 
     def setMQTTFeature(self, feature: str, state):
         if state:
@@ -1760,7 +1765,7 @@ class Group:
             self.goto_cue(self.cue.name)
             self.entered_cue = x
             self.poll_again_flag = True
-            self.lighting_manager.should_rerender_onto_universes = True
+            self.lighting_manager.rerender()
 
         self.metadata_already_pushed_by = {}
 
@@ -1851,7 +1856,7 @@ class Group:
             def f():
                 self.board.cl_rm_from_active_groups(self)
 
-            workers.do(f)
+            core.serialized_async_with_core_lock(f)
 
             # fALLBACK
             self.cue = self.cues.get("default", list(self.cues.values())[0])
@@ -1867,6 +1872,12 @@ class Group:
             gc.collect()
             time.sleep(0.002)
             gc.collect()
+
+    @group_lock_context.object_session_entry_point
+    def refresh_lighting(self):
+        with self.lock:
+            if self.active:
+                self.lighting_manager.refresh()
 
     def noteOn(self, ch: int, note: int, vel: float):
         self.event("midi.note:" + str(ch) + "." + number_to_note(note), vel)
@@ -1948,7 +1959,7 @@ class Group:
         else:
             self.pushMeta(keys={"alpha", "default_alpha"})
         self.poll_again_flag = True
-        self.lighting_manager.should_rerender_onto_universes = True
+        self.lighting_manager.rerender()
 
         self.media_link_socket.send(["volume", val])
 
@@ -1987,6 +1998,9 @@ class Group:
         Handles misc tasks.
         Calculate the current alpha value, handle stopping the cue and going to the next one
         """
+        if not self.active:
+            return
+
         assert self.cue
 
         if self.cue.fade_in:
@@ -1998,7 +2012,7 @@ class Group:
 
             if fadePosition < 1:
                 self.poll_again_flag = True
-                self.lighting_manager.should_rerender_onto_universes = True
+                self.lighting_manager.rerender()
 
         else:
             fadePosition = 1
@@ -2016,7 +2030,7 @@ class Group:
 
             # Confirm under lock to avoid any race conditions
             with self.lock:
-                if self.cue_time_finished():
+                if self.active and self.cue_time_finished():
                     self.next_cue(round(self.entered_cue + self.cuelen * (60 / self.bpm), 3), cause="time")
 
     def cue_time_finished(self):

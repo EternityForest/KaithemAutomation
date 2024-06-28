@@ -11,7 +11,6 @@ import time
 import urllib
 import urllib.parse
 from collections.abc import Iterator
-from threading import RLock
 from typing import Any, Callable
 
 import beartype
@@ -19,7 +18,7 @@ import structlog
 import yaml
 from stream_zip import ZIP_64, stream_zip
 
-from . import directories, util
+from . import context_restrictions, directories, util
 from .resource_types import ResourceDictType, ResourceType, additionalTypes
 
 # Dummy keeps linter happy
@@ -481,7 +480,7 @@ def ls_folder(m: str, d: str) -> list[str]:
 
 
 "this lock protects the activemodules thing. Any changes at all should go through this."
-modulesLock = RLock()
+modulesLock = context_restrictions.Context("ModulesLock")
 
 
 # For passing things to that owning thread

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import threading
 import time
 import traceback
 from typing import TYPE_CHECKING, Any
@@ -14,6 +15,13 @@ if TYPE_CHECKING:
     from .groups import Cue, Group
 
 from .fadecanvas import FadeCanvas
+
+# This lock only covers the actual compositing of values.
+# Use it so you can mark something for rerender but make sure
+# it gets the new values.
+
+# It does not cover any other part of rendering
+render_loop_lock = threading.RLock()
 
 
 class GroupLightingManager:
@@ -42,10 +50,31 @@ class GroupLightingManager:
         self.blend_args: dict[str, float | int | bool | str] = group.blend_args or {}
 
     def refresh(self):
-        "Recalculate all the lighting stuff"
-        if self.cue:
-            self.next(self.cue)
-            self.paint_canvas(self.last_fade_position)
+        """
+        Recalculate all the lighting stuff, mark any universes we affect
+        as needing to be rerendered fully.
+        """
+        with render_loop_lock:
+            try:
+                for i in self.state_vals:
+                    universes.rerenderUniverse(i)
+            except Exception:
+                print(traceback.format_exc())
+            if self.cue:
+                self.next(self.cue)
+                self.paint_canvas(self.last_fade_position)
+
+                self.should_rerender_onto_universes = True
+
+    def rerender(self):
+        """We have new data, but don't need to rerender from scratch
+        like we would if we stopped affecting a universe and now it needs to revert to background
+        """
+
+        # Make sure it's in a place where this will be noticed for at
+        # least one rerender
+        with render_loop_lock:
+            self.should_rerender_onto_universes = True
 
     def recalc_cue_vals(self):
         """Call when you change a value in the cue"""
@@ -86,7 +115,10 @@ class GroupLightingManager:
         self.update_state_from_cue_vals(cue, not cue.track)
         self.fade_in_completed = False
 
+        self.rerender()
+
     def stop(self):
+        # Tell them to rerender
         try:
             for i in self.state_vals:
                 universes.rerenderUniverse(i)
@@ -255,7 +287,7 @@ class GroupLightingManager:
 
         # One last rerender, this was some kind of bug workaround
         self.fade_in_completed = True
-        self.should_rerender_onto_universes = True
+        self.rerender()
 
     def apply_backtracked_values(self, destination_cue: Cue) -> dict[str, Any]:
         # When jumping to a cue that isn't directly the next one, apply and "parent" cues.
@@ -324,7 +356,7 @@ class GroupLightingManager:
             self.blend_args = self.blend_args or {}
             self._blend = blendmodes.HardcodedBlendMode(self)
             self.blendClass = blendmodes.HardcodedBlendMode
-        self.should_rerender_onto_universes = True
+        self.rerender()
 
     def setBlendArg(self, key: str, val: float | bool | str):
         if not hasattr(self.blendClass, "parameters") or key not in self.blendClass.parameters:
@@ -339,7 +371,7 @@ class GroupLightingManager:
                 pass
             self.blend_args[key] = val
             self._blend.blend_args[key] = val
-        self.should_rerender_onto_universes = True
+        self.rerender()
 
 
 def _composite(background, values, alphas, alpha):
@@ -469,6 +501,10 @@ def composite_layers_from_board(board: ChandlerConsole, t=None, u=None):
     # Remember that groups get rendered in ascending priority order here
     for i in board.active_groups:
         if i.blend == "monitor":
+            continue
+
+        # It takes a while to add and remove self from the active list.
+        if not i.active:
             continue
 
         data = i.lighting_manager.canvas.v2

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+import threading
 import time
 import traceback
 import unicodedata
@@ -221,9 +222,20 @@ class RateLimiter:
 ratelimit = RateLimiter()
 
 
-def async_with_core_lock(f):
+action_queue = []
+action_queue_lock = threading.RLock()
+
+
+def serialized_async_with_core_lock(f):
     def g():
         with cl_context:
             f()
 
-    workers.do(g)
+    action_queue.append(g)
+
+    def h():
+        with action_queue_lock:
+            while action_queue:
+                action_queue.pop(False)()
+
+    workers.do(h)

@@ -23,7 +23,7 @@ def refresh_groups(t, v):
     for b in core.iter_boards():
         for i in b.active_groups:
             with i.lock:
-                i.lighting_manager.refresh()
+                i.refresh_lighting()
 
 
 messagebus.subscribe("/chandler/command/refresh_group_lighting", refresh_groups)
@@ -104,14 +104,16 @@ def cl_loop():
 
                 for b in core.boards.values():
                     poll_board_groups(b)
-                    changed.update(group_lighting.mark_and_reset_changed_universes(b, u_cache))
-
-                for b in core.boards.values():
-                    c = group_lighting.composite_layers_from_board(b, u=u_cache)
-                    changed.update(c)
-
                     if do_gui_push:
                         b.cl_gui_push(u_cache)
+
+                with group_lighting.render_loop_lock:
+                    for b in core.boards.values():
+                        changed.update(group_lighting.mark_and_reset_changed_universes(b, u_cache))
+
+                    for b in core.boards.values():
+                        c = group_lighting.composite_layers_from_board(b, u=u_cache)
+                        changed.update(c)
 
                 group_lighting.do_output(changed, u_cache)
 

@@ -7,6 +7,10 @@ from . import WebChandlerConsole, core
 
 entries: dict[tuple[str, str], WebChandlerConsole.WebConsole] = {}
 
+# Ensure that no Chandler function tries to call a modules function
+# And risks a deadlock.
+modules_state.modulesLock.opens_before(core.cl_context)
+
 
 def set_save_cb(c: WebChandlerConsole.WebConsole, module: str, resource: str):
     def save(data: dict[str, Any]):
@@ -16,7 +20,7 @@ def set_save_cb(c: WebChandlerConsole.WebConsole, module: str, resource: str):
             x["project"] = data
             modules_state.rawInsertResource(module, resource, x)
 
-    c.save_callback = save
+    c.ml_save_callback = save
 
 
 class ConfigType(modules_state.ResourceType):

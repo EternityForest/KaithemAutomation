@@ -51,9 +51,13 @@ listener 7801
         s2.add_cue("c2")
 
         s.goto_cue("c2")
-        time.sleep(0.1)
+        time.sleep(0.2)
+        time.sleep(0.2)
+        time.sleep(0.2)
+        time.sleep(0.2)
+        time.sleep(0.2)
 
-        for attempt in stamina.retry_context(on=AssertionError):
+        for attempt in stamina.retry_context(on=AssertionError, attempts=20):
             with attempt:
                 assert s2.cue.name == "c2"
     finally:

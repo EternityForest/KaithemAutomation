@@ -122,7 +122,7 @@ class ChandlerConsole(console_abc.Console_ABC):
         def dummy(data: dict[str, Any]):
             logger.error("No save backend present")
 
-        self.save_callback = dummy
+        self.ml_save_callback = dummy
         self.should_run = True
 
     def worker_loop(self):
@@ -490,7 +490,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                 if x:
                     s.go()
                     s.poll_again_flag = True
-                    s.lighting_manager.should_rerender_onto_universes = True
+                    s.lighting_manager.refresh()
             except Exception:
                 if not errs:
                     logger.exception("Failed to load group " + str(i) + " " + str(data[i].get("name", "")))
@@ -587,16 +587,16 @@ class ChandlerConsole(console_abc.Console_ABC):
         project_file: dict[str, Any] = {"groups": sd, "setup": self.cl_get_setup_file()}
         return project_file
 
-    @core.cl_context.entry_point
     def cl_save_project_data(self):
-        project_file = self.cl_get_project_data()
+        with core.cl_context:
+            project_file = self.cl_get_project_data()
 
-        if self.last_saved_version == project_file:
-            return
+            if self.last_saved_version == project_file:
+                return
 
-        self.last_saved_version = project_file
+            self.last_saved_version = project_file
 
-        self.save_callback(project_file)
+        self.ml_save_callback(project_file)
 
     def pushchannelInfoByUniverseAndNumber(self, u: str):
         "This has expanded to push more data than names"

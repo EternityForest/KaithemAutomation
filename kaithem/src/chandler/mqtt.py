@@ -221,6 +221,7 @@ class MQTTConnection:
         self.disconnect()
 
     def __del__(self):
+        print("Deleting MQTT Connection", self.name)
         logging.warning("MQTT Connection closed automatically: " + self.name)
         self.close()
 
