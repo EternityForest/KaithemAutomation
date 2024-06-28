@@ -341,7 +341,7 @@ class Universe:
         universes = {i: _universes[i] for i in _universes if _universes[i]()}
 
         def alreadyClosed(*a, **k):
-            raise RuntimeError("This universe has been stopped, possibly because it was replaced wih a newer one")
+            pass
 
         self.onFrame = alreadyClosed
         self.setStatus = alreadyClosed

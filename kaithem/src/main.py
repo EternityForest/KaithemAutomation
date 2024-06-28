@@ -39,7 +39,6 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
         "mako",
         "mako.lookup",
         "jinja2",
-        "typeguard",
         "multiprocessing",
         "glob",
         "beartype",

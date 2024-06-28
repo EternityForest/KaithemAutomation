@@ -97,8 +97,11 @@ class Context:
 
         @wraps(f)
         def entry_point_wrapper(*args, **kwargs):
-            with self:
+            if self._local.level > 0:
                 return f(*args, **kwargs)
+            else:
+                with self:
+                    return f(*args, **kwargs)
 
         return entry_point_wrapper  # type: ignore
 
@@ -114,9 +117,12 @@ class Context:
             def session_entry_point_wrapper(*args, **kwargs):
                 if self._local.session and self._local.session != str:
                     raise ContextError(f"{self.name} open in session {self._local.session}")
-                with self:
-                    self._local.session = str
+                if self._local.level > 0:
                     return f(*args, **kwargs)
+                else:
+                    with self:
+                        self._local.session = str
+                        return f(*args, **kwargs)
 
             return session_entry_point_wrapper  # type: ignore
 
@@ -153,8 +159,12 @@ class Context:
             s = id(obj)
             if self._local.session and self._local.session != s:
                 raise ContextError(f"{self.name} open in session {self._local.session}")
-            with self:
+
+            if self._local.level > 0:
                 return f(obj, *args, **kwargs)
+            else:
+                with self:
+                    return f(obj, *args, **kwargs)
 
         return object_session_entry_point_wrapper  # type: ignore
 

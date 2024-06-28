@@ -51,6 +51,7 @@ Change Log
 - :bug: Fix Flicker blend mode performance
 - :bug: Fix editing blend mode params
 - :bug: Tag point universes always update on cue even if not changed
+- :bug: Fix bug where a fade in the middle of another fade could be a sudden jump
 
 ### 0.84.0b2
 

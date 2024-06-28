@@ -81,9 +81,9 @@ def cl_loop():
     u_cache_time = time.time()
 
     while run[0]:
-        with core.cl_context:
-            t = time.time()
-            try:
+        t = time.time()
+        try:
+            with core.cl_context:
                 # Profiler says this needs a cache
                 if t - u_cache_time > 1:
                     u_cache = universes.getUniverses()
@@ -97,29 +97,29 @@ def cl_loop():
                     do_gui_push = True
                     lastrendered = t
 
-                changed = {}
-
-                # The pre-render step has to
-                # happen before we start compositing on the layers
-
                 for b in core.boards.values():
                     poll_board_groups(b)
                     if do_gui_push:
                         b.cl_gui_push(u_cache)
 
-                with group_lighting.render_loop_lock:
-                    for b in core.boards.values():
-                        changed.update(group_lighting.mark_and_reset_changed_universes(b, u_cache))
+            changed = {}
 
-                    for b in core.boards.values():
-                        c = group_lighting.composite_layers_from_board(b, u=u_cache)
-                        changed.update(c)
+            # The pre-render step has to
+            # happen before we start compositing on the layers
 
-                group_lighting.do_output(changed, u_cache)
+            with group_lighting.render_loop_lock:
+                for b in core.boards.values():
+                    changed.update(group_lighting.mark_and_reset_changed_universes(b, u_cache))
 
-                time.sleep(1 / 60)
-            except Exception:
-                logger.exception("Wat")
+                for b in core.boards.values():
+                    c = group_lighting.composite_layers_from_board(b, u=u_cache)
+                    changed.update(c)
+
+            group_lighting.do_output(changed, u_cache)
+
+            time.sleep(1 / 60)
+        except Exception:
+            logger.exception("Wat")
 
 
 thread = threading.Thread(target=cl_loop, name="ChandlerThread", daemon=True)

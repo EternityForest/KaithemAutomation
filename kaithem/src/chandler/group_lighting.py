@@ -299,27 +299,29 @@ class GroupLightingManager:
         # the script context that should be set when entering
         # this cue, but that is nit supported yet
 
-        intermediate_cue = destination_cue.name
+        assert self.cue
+
+        new_cue = destination_cue.name
 
         vars: dict[str, Any] = {}
 
         if (
             self.group.backtrack
             # Track whenever the cue we are going to is not the next one in the numbering sequence
-            and not intermediate_cue == (self.group.getDefaultNext())
+            and not new_cue == (self.group.getDefaultNext())
             and destination_cue.track
         ):
             to_apply = []
             seen = {}
             safety = 10000
-            x = self.group.getParent(intermediate_cue)
+            x = self.group.getParent(new_cue)
             while x:
                 # No l00ps
                 if x in seen:
                     break
 
                 # Don't backtrack past the current cue for no reason
-                if x is self.cue:
+                if x == self.cue.name:
                     break
 
                 to_apply.append(self.group.cues[x])
@@ -330,8 +332,8 @@ class GroupLightingManager:
                     break
 
             # Apply all the lighting changes we would have seen if we had gone through the list one at a time.
-            for intermediate_cue in reversed(to_apply):
-                self.update_state_from_cue_vals(intermediate_cue)
+            for c in reversed(to_apply):
+                self.update_state_from_cue_vals(c)
 
         return vars
 

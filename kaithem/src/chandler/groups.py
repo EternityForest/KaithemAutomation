@@ -1998,40 +1998,42 @@ class Group:
         Handles misc tasks.
         Calculate the current alpha value, handle stopping the cue and going to the next one
         """
-        if not self.active:
-            return
 
-        assert self.cue
+        with self.lock:
+            if not self.active:
+                return
 
-        if self.cue.fade_in:
-            fadePosition: float = min(
-                (time.time() - self.entered_cue) / (self.cue.fade_in * (60.0 / self.bpm)),
-                1.0,
-            )
-            fadePosition = ease(fadePosition)
+            assert self.cue
 
-            if fadePosition < 1:
-                self.poll_again_flag = True
-                self.lighting_manager.rerender()
+            if self.cue.fade_in:
+                fadePosition: float = min(
+                    (time.time() - self.entered_cue) / (self.cue.fade_in * (60.0 / self.bpm)),
+                    1.0,
+                )
+                fadePosition = ease(fadePosition)
 
-        else:
-            fadePosition = 1
+                if fadePosition < 1:
+                    self.poll_again_flag = True
+                    self.lighting_manager.rerender()
 
-        # Remember, we can and do the next cue thing and still need to repaint, because sometimes the next cue thing does nothing
-        if force_repaint or (not self.lighting_manager.fade_in_completed):
-            self.lighting_manager.paint_canvas(fadePosition)
-            if fadePosition >= 1.0:
-                self.lighting_manager.fade_complete()
+            else:
+                fadePosition = 1
 
-        if self.cue_time_finished():
-            # rel_length cues end after the sound in a totally different part of code
-            # Calculate the "real" time we entered, which is exactly the previous entry time plus the len.
-            # Then round to the nearest millisecond to prevent long term drift due to floating point issues.
+            # Remember, we can and do the next cue thing and still need to repaint, because sometimes the next cue thing does nothing
+            if force_repaint or (not self.lighting_manager.fade_in_completed):
+                self.lighting_manager.paint_canvas(fadePosition)
+                if fadePosition >= 1.0:
+                    self.lighting_manager.fade_complete()
 
-            # Confirm under lock to avoid any race conditions
-            with self.lock:
-                if self.active and self.cue_time_finished():
-                    self.next_cue(round(self.entered_cue + self.cuelen * (60 / self.bpm), 3), cause="time")
+            if self.cue_time_finished():
+                # rel_length cues end after the sound in a totally different part of code
+                # Calculate the "real" time we entered, which is exactly the previous entry time plus the len.
+                # Then round to the nearest millisecond to prevent long term drift due to floating point issues.
+
+                # Confirm under lock to avoid any race conditions
+                with self.lock:
+                    if self.active and self.cue_time_finished():
+                        self.next_cue(round(self.entered_cue + self.cuelen * (60 / self.bpm), 3), cause="time")
 
     def cue_time_finished(self):
         if self.cuelen and (time.time() - self.entered_cue) > self.cuelen * (60 / self.bpm):
