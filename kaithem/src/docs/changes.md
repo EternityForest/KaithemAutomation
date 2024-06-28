@@ -50,6 +50,7 @@ Change Log
 - :bug: Fix Vary blend mode
 - :bug: Fix Flicker blend mode performance
 - :bug: Fix editing blend mode params
+- :bug: Tag point universes always update on cue even if not changed
 
 ### 0.84.0b2
 

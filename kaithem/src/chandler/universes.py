@@ -1122,14 +1122,10 @@ class OneTagpoint(Universe):
 
             t = (x, a)
 
-            # Do our own change detection. We don't want
-            # to unnecessarily set the tag and interfere with external
-            # settings.
-            if self.prev != t:
-                if (x > -1) and (a > 0):
-                    self.claim = self.tagpoint.claim(x, "ChandlerUniverse", 50)
-                else:
-                    self.tagpoint.release("ChandlerUniverse")
+            if (x > -1) and (a > 0):
+                self.claim = self.tagpoint.claim(x, "ChandlerUniverse", 50)
+            else:
+                self.tagpoint.release("ChandlerUniverse")
 
             self.prev = t
 
