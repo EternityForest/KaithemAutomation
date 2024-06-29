@@ -808,12 +808,6 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
         if self.board:
             rms = max(rms, -90)
 
-            # Avoid having to do the whole tag lock thing if
-            # the value hasn't changed, it's not critcal and the
-            # race condition is fine
-            if not self.levelTag.last_value == rms:
-                self.levelTag.value = rms
-
             self.doSoundFuse(rms)
             if abs(level - self.lastLevel) < 3:
                 if time.time() - self.lastPushedLevel < 1:
@@ -821,6 +815,13 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             else:
                 if time.time() - self.lastPushedLevel < 0.07:
                     return True
+
+            # Avoid having to do the whole tag lock thing if
+            # the value hasn't changed, it's not critcal and the
+            # race condition is fine
+            if not self.levelTag.last_value == rms:
+                self.levelTag.value = rms
+
             level = max(round(level, 2), -99)
             self.board.channels[self.name]["level"] = level
             self.lastPushedLevel = time.time()

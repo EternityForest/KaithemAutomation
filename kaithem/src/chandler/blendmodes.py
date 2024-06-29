@@ -8,6 +8,21 @@ import numpy
 
 from . import universes
 
+rand_table = [random.randint(0, 255) for i in range(1024)]
+rand_counter = 0
+
+
+# This takes 7us, random.randint takes like 80us,
+# normal variates take 40us, so we use this to look up normal variates in
+# a table
+def fast_rand_255():
+    global rand_counter
+    rand_counter = (rand_counter + 1) % 1024
+    if rand_counter == 0:
+        rand_table[random.randint(0, 1023)] = random.randint(0, 255)
+        rand_counter = random.randint(0, 1023)
+    return rand_table[rand_counter]
+
 
 def getUniverse(u: str):
     "Get strong ref to universe if it exists, else get none."
@@ -155,7 +170,7 @@ class flicker_blendmode(BlendMode):
         # it doesn't know there will always be at least
         # one group found.  Or maybe it knows something i don't.
         t = random.random()
-        nv = self.rand[random.randint(0, 255)]
+        nv = self.rand[fast_rand_255()]
         rise = random.random() * self.riserate * t60
 
         for k in numpy.nonzero(values)[0]:
@@ -165,7 +180,7 @@ class flicker_blendmode(BlendMode):
             if (not (ctr % group)) or k - lastk > 1:
                 t = random.random()
                 ctr = 0
-                nv = self.rand[random.randint(0, 255)]
+                nv = self.rand[fast_rand_255()]
 
                 rise = random.random() * self.riserate * t60
             ctr += 1

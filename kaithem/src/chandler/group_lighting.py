@@ -21,12 +21,18 @@ from .fadecanvas import FadeCanvas
 # it gets the new values.
 
 # It does not cover any other part of rendering
+# You have to NEVER get a group lock, or the cl_context
+# while holding this.  It should only be held extremely briefly
 render_loop_lock = threading.RLock()
 
 
 class GroupLightingManager:
     def __init__(self, group: Group):
+        """Functions of this class other than rerender() should only be called under the group's lock"""
         self.group = group
+
+        # Canvas data can be read by the render loop at any time so must only
+        # by changed with the render loop lock
         self.canvas = FadeCanvas()
 
         self.should_rerender_onto_universes = False
@@ -36,6 +42,8 @@ class GroupLightingManager:
 
         # Lets us cache the lists of values as numpy arrays with 0 alpha for not present vals
         # which are faster that dicts for some operations
+
+        # These must only be mutated under the group's lock
         self.state_vals: dict[str, numpy.typing.NDArray[Any]] = {}
         self.state_alphas: dict[str, numpy.typing.NDArray[Any]] = {}
         self.on_demand_universes: dict[str, universes.Universe] = {}
@@ -54,17 +62,21 @@ class GroupLightingManager:
         Recalculate all the lighting stuff, mark any universes we affect
         as needing to be rerendered fully.
         """
-        with render_loop_lock:
-            try:
-                for i in self.state_vals:
-                    universes.rerenderUniverse(i)
-            except Exception:
-                print(traceback.format_exc())
+        with self.group.lock:
+            with render_loop_lock:
+                try:
+                    for i in self.state_vals:
+                        universes.rerenderUniverse(i)
+                except Exception:
+                    print(traceback.format_exc())
             if self.cue:
                 self.next(self.cue)
                 self.paint_canvas(self.last_fade_position)
 
-                self.should_rerender_onto_universes = True
+                # Set under lock to ensure it's in a place where it will be noticed
+                # Not blown away at the end of the loop
+                with render_loop_lock:
+                    self.should_rerender_onto_universes = True
 
     def rerender(self):
         """We have new data, but don't need to rerender from scratch
@@ -83,166 +95,172 @@ class GroupLightingManager:
 
     def next(self, cue: Cue):
         """Handle lighting related cue transition stuff"""
+        with self.group.lock:
+            self.canvas.save_current_as_background()
 
-        self.canvas.save_current_as_background()
+            # There might be universes we affect that we don't anymore,
+            # We need to mark to rerender those because otherwise the system might think absolutely nothing has changed.
+            # A full rerender on every cue change isn't the most efficient, but it shouldn't be too bad
+            # since most frames don't have a cue change in them
+            try:
+                for i in self.state_vals:
+                    universes.rerenderUniverse(i)
+            except Exception:
+                print(traceback.format_exc())
 
-        # There might be universes we affect that we don't anymore,
-        # We need to mark to rerender those because otherwise the system might think absolutely nothing has changed.
-        # A full rerender on every cue change isn't the most efficient, but it shouldn't be too bad
-        # since most frames don't have a cue change in them
-        try:
-            for i in self.state_vals:
-                universes.rerenderUniverse(i)
-        except Exception:
-            print(traceback.format_exc())
+            reentering = self.cue is cue
 
-        reentering = self.cue is cue
+            self.cue = cue
 
-        self.cue = cue
+            if not reentering:
+                if cue.track:
+                    self.apply_backtracked_values(cue)
 
-        if not reentering:
-            if cue.track:
-                self.apply_backtracked_values(cue)
+            # Recalc what universes are affected by this group.
+            # We don't clear the old universes, we do that when we're done fading in.
+            for i in cue.values:
+                i = universes.mapUniverse(i)
 
-        # Recalc what universes are affected by this group.
-        # We don't clear the old universes, we do that when we're done fading in.
-        for i in cue.values:
-            i = universes.mapUniverse(i)
+                if i and i.startswith("/"):
+                    self.on_demand_universes[i] = universes.get_on_demand_universe(i)
 
-            if i and i.startswith("/"):
-                self.on_demand_universes[i] = universes.get_on_demand_universe(i)
+            self.update_state_from_cue_vals(cue, not cue.track)
+            self.fade_in_completed = False
 
-        self.update_state_from_cue_vals(cue, not cue.track)
-        self.fade_in_completed = False
-
-        self.rerender()
+            self.rerender()
 
     def stop(self):
-        # Tell them to rerender
-        try:
-            for i in self.state_vals:
-                universes.rerenderUniverse(i)
-        except Exception:
-            print(traceback.format_exc())
+        with self.group.lock:
+            # Tell them to rerender
+            try:
+                for i in self.state_vals:
+                    universes.rerenderUniverse(i)
+            except Exception:
+                print(traceback.format_exc())
 
-        self.state_vals = {}
-        self.state_alphas = {}
-        self.canvas.clean([])
-        self.on_demand_universes = {}
+            self.state_vals = {}
+            self.state_alphas = {}
+            self.canvas.clean([])
+            self.on_demand_universes = {}
 
-        # Just using this to get rid of prev value
-        self._blend = blendmodes.HardcodedBlendMode(self)
+            # Just using this to get rid of prev value
+            self._blend = blendmodes.HardcodedBlendMode(self)
 
     def update_state_from_cue_vals(self, source_cue: Cue, clearBefore=False):
         """Apply everything from the cue to the fade canvas"""
-        # Loop over universes in the cue
-        if clearBefore:
-            # self.cue_cached_vals_as_arrays = {}
-            for i in self.state_alphas:
-                self.state_alphas[i] = numpy.zeros(self.state_alphas[i].shape)
+        with self.group.lock:
+            # Loop over universes in the cue
+            if clearBefore:
+                # self.cue_cached_vals_as_arrays = {}
+                for i in self.state_alphas:
+                    self.state_alphas[i] = numpy.zeros(self.state_alphas[i].shape)
 
-        for i in source_cue.values:
-            universe = universes.mapUniverse(i)
-            if not universe:
-                continue
+            for i in source_cue.values:
+                universe = universes.mapUniverse(i)
+                if not universe:
+                    continue
 
-            fixture = None
-            try:
-                if i[1:] in universes.fixtures:
-                    f = universes.fixtures[i[1:]]()
-                    if f:
-                        fixture = f
-            except KeyError:
-                print(traceback.format_exc())
+                fixture = None
+                try:
+                    if i[1:] in universes.fixtures:
+                        f = universes.fixtures[i[1:]]()
+                        if f:
+                            fixture = f
+                except KeyError:
+                    print(traceback.format_exc())
 
-            chCount = 0
+                chCount = 0
 
-            if fixture:
-                chCount = len(fixture.channels)
+                if fixture:
+                    chCount = len(fixture.channels)
 
-            if "__length__" in source_cue.values[i]:
-                s = source_cue.values[i]["__length__"]
-                assert s
-                repeats = int(self.group.evalExprFloat(s))
-            else:
-                repeats = 1
+                if "__length__" in source_cue.values[i]:
+                    s = source_cue.values[i]["__length__"]
+                    assert s
+                    repeats = int(self.group.evalExprFloat(s))
+                else:
+                    repeats = 1
 
-            if "__spacing__" in source_cue.values[i]:
-                s = source_cue.values[i]["__spacing__"]
-                assert s
-                chCount = int(self.group.evalExprFloat(s))
+                if "__spacing__" in source_cue.values[i]:
+                    s = source_cue.values[i]["__spacing__"]
+                    assert s
+                    chCount = int(self.group.evalExprFloat(s))
 
-            universe_object = universes.getUniverse(universe)
+                universe_object = universes.getUniverse(universe)
 
-            if universe.startswith("/"):
-                self.on_demand_universes[i] = universes.get_on_demand_universe(universe)
-                universe_object = self.on_demand_universes[i]
+                if universe.startswith("/"):
+                    self.on_demand_universes[i] = universes.get_on_demand_universe(universe)
+                    universe_object = self.on_demand_universes[i]
 
-            if not universe_object:
-                continue
+                if not universe_object:
+                    continue
 
-            if universe not in self.state_vals:
-                size = len(universe_object.values)
-                self.state_vals[universe] = numpy.array([0.0] * size, dtype="f4")
-                self.state_alphas[universe] = numpy.array([0.0] * size, dtype="f4")
+                if universe not in self.state_vals:
+                    size = len(universe_object.values)
+                    self.state_vals[universe] = numpy.array([0.0] * size, dtype="f4")
+                    self.state_alphas[universe] = numpy.array([0.0] * size, dtype="f4")
 
-            self.rerenderOnVarChange = False
+                self.rerenderOnVarChange = False
 
-            # TODO stronger type
-            dest: dict[str | int, Any] = {}
+                # TODO stronger type
+                dest: dict[str | int, Any] = {}
 
-            for j in source_cue.values[i]:
-                if isinstance(j, str) and j.startswith("__dest__."):
-                    dest[j[9:]] = self.group.evalExpr(source_cue.values[i][j] if source_cue.values[i][j] is not None else 0)
-
-            for idx in range(repeats):
                 for j in source_cue.values[i]:
-                    if isinstance(j, str) and j.startswith("__"):
-                        continue
+                    if isinstance(j, str) and j.startswith("__dest__."):
+                        dest[j[9:]] = self.group.evalExpr(source_cue.values[i][j] if source_cue.values[i][j] is not None else 0)
 
-                    cue_values = source_cue.values[i][j]
+                for idx in range(repeats):
+                    for j in source_cue.values[i]:
+                        if isinstance(j, str) and j.startswith("__"):
+                            continue
 
-                    evaled = self.group.evalExpr(cue_values if cue_values is not None else 0)
-                    # This should always be a float
-                    evaled = float(evaled)
+                        cue_values = source_cue.values[i][j]
 
-                    # Do the blend thing
-                    if j in dest:
-                        # Repeats is a count, idx is zero based, we want diveder to be 1 on the last index of the set
-                        divider = idx / (max(repeats - 1, 1))
-                        evaled = (evaled * (1 - divider)) + (dest[j] * divider)
+                        evaled = self.group.evalExpr(cue_values if cue_values is not None else 0)
+                        # This should always be a float
+                        evaled = float(evaled)
 
-                    x = universes.mapChannel(i.split("[")[0], j)
-                    if x:
-                        universe, channel = x[0], x[1]
-                        try:
-                            self.state_alphas[universe][channel + (idx * chCount)] = 1.0 if cue_values is not None else 0
-                            self.state_vals[universe][channel + (idx * chCount)] = evaled
-                        except Exception:
-                            print("err", traceback.format_exc())
-                            self.group.event(
-                                "script.error",
-                                self.group.name
-                                + " cue "
-                                + source_cue.name
-                                + " Val "
-                                + str((universe, channel))
-                                + "\n"
-                                + traceback.format_exc(),
-                            )
+                        # Do the blend thing
+                        if j in dest:
+                            # Repeats is a count, idx is zero based, we want diveder to be 1 on the last index of the set
+                            divider = idx / (max(repeats - 1, 1))
+                            evaled = (evaled * (1 - divider)) + (dest[j] * divider)
 
-                    if isinstance(cue_values, str) and cue_values.startswith("="):
-                        self.rerenderOnVarChange = True
+                        x = universes.mapChannel(i.split("[")[0], j)
+                        if x:
+                            universe, channel = x[0], x[1]
+                            try:
+                                self.state_alphas[universe][channel + (idx * chCount)] = 1.0 if cue_values is not None else 0
+                                self.state_vals[universe][channel + (idx * chCount)] = evaled
+                            except Exception:
+                                print("err", traceback.format_exc())
+                                self.group.event(
+                                    "script.error",
+                                    self.group.name
+                                    + " cue "
+                                    + source_cue.name
+                                    + " Val "
+                                    + str((universe, channel))
+                                    + "\n"
+                                    + traceback.format_exc(),
+                                )
+
+                        if isinstance(cue_values, str) and cue_values.startswith("="):
+                            self.rerenderOnVarChange = True
 
     def paint_canvas(self, fade_position: float = 0.0):
         assert self.cue
-        self.last_fade_position = fade_position
+        # Group lock for state vals
+        # Render loop lock for canvas
+        with self.group.lock:
+            with render_loop_lock:
+                self.last_fade_position = fade_position
 
-        self.canvas.paint(
-            fade_position,
-            vals=self.state_vals,
-            alphas=self.state_alphas,
-        )
+                self.canvas.paint(
+                    fade_position,
+                    vals=self.state_vals,
+                    alphas=self.state_alphas,
+                )
 
     def fade_complete(self):
         """Called when the fade is complete, to clean up leftover stuff we don't need"""
@@ -251,43 +269,44 @@ class GroupLightingManager:
         # We did the fade, now if this is not a tracking
         # cue, we are going to no longer affect anything
         # That isn't directly in the cue
-        if self.cue and not self.cue.track:
-            current_affected = {}
-            for i in self.cue.values:
-                m = universes.mapUniverse(i)
-                current_affected[m] = True
+        with self.group.lock:
+            if self.cue and not self.cue.track:
+                current_affected = {}
+                for i in self.cue.values:
+                    m = universes.mapUniverse(i)
+                    current_affected[m] = True
 
-            to_delete = []
-            for i in self.state_alphas:
-                if i not in current_affected:
-                    to_delete.append(i)
+                to_delete = []
+                for i in self.state_alphas:
+                    if i not in current_affected:
+                        to_delete.append(i)
 
-            # These arrays should never be out of sync, this is just defensive
-            for i in to_delete:
-                if i in self.state_alphas:
-                    del self.state_alphas[i]
-                if i in self.state_vals:
-                    del self.state_vals[i]
+                # These arrays should never be out of sync, this is just defensive
+                for i in to_delete:
+                    if i in self.state_alphas:
+                        del self.state_alphas[i]
+                    if i in self.state_vals:
+                        del self.state_vals[i]
 
-        # Clean up on demand universes
+            # Clean up on demand universes
 
-        odu = {}
+            odu = {}
 
-        for i in self.state_vals:
-            u = universes.mapUniverse(i)
+            for i in self.state_vals:
+                u = universes.mapUniverse(i)
 
-            if u and u.startswith("/"):
-                odu[u] = universes.get_on_demand_universe(u)
+                if u and u.startswith("/"):
+                    odu[u] = universes.get_on_demand_universe(u)
 
-        self.on_demand_universes = odu
+            self.on_demand_universes = odu
 
-        # Remove unused stuff from the canvas
-        # State vals has all the tracked stuff already
-        self.canvas.clean(self.state_vals)
+            # Remove unused stuff from the canvas
+            # State vals has all the tracked stuff already
+            self.canvas.clean(self.state_vals)
 
-        # One last rerender, this was some kind of bug workaround
-        self.fade_in_completed = True
-        self.rerender()
+            # One last rerender, this was some kind of bug workaround
+            self.fade_in_completed = True
+            self.rerender()
 
     def apply_backtracked_values(self, destination_cue: Cue) -> dict[str, Any]:
         # When jumping to a cue that isn't directly the next one, apply and "parent" cues.
@@ -299,43 +318,44 @@ class GroupLightingManager:
         # the script context that should be set when entering
         # this cue, but that is nit supported yet
 
-        assert self.cue
+        with self.group.lock:
+            assert self.cue
 
-        new_cue = destination_cue.name
+            new_cue = destination_cue.name
 
-        vars: dict[str, Any] = {}
+            vars: dict[str, Any] = {}
 
-        if (
-            self.group.backtrack
-            # Track whenever the cue we are going to is not the next one in the numbering sequence
-            and not new_cue == (self.group.getDefaultNext())
-            and destination_cue.track
-        ):
-            to_apply = []
-            seen = {}
-            safety = 10000
-            x = self.group.getParent(new_cue)
-            while x:
-                # No l00ps
-                if x in seen:
-                    break
+            if (
+                self.group.backtrack
+                # Track whenever the cue we are going to is not the next one in the numbering sequence
+                and not new_cue == (self.group.getDefaultNext())
+                and destination_cue.track
+            ):
+                to_apply = []
+                seen = {}
+                safety = 10000
+                x = self.group.getParent(new_cue)
+                while x:
+                    # No l00ps
+                    if x in seen:
+                        break
 
-                # Don't backtrack past the current cue for no reason
-                if x == self.cue.name:
-                    break
+                    # Don't backtrack past the current cue for no reason
+                    if x == self.cue.name:
+                        break
 
-                to_apply.append(self.group.cues[x])
-                seen[x] = True
-                x = self.group.getParent(x)
-                safety -= 1
-                if not safety:
-                    break
+                    to_apply.append(self.group.cues[x])
+                    seen[x] = True
+                    x = self.group.getParent(x)
+                    safety -= 1
+                    if not safety:
+                        break
 
-            # Apply all the lighting changes we would have seen if we had gone through the list one at a time.
-            for c in reversed(to_apply):
-                self.update_state_from_cue_vals(c)
+                # Apply all the lighting changes we would have seen if we had gone through the list one at a time.
+                for c in reversed(to_apply):
+                    self.update_state_from_cue_vals(c)
 
-        return vars
+            return vars
 
     def setup_blend_args(self):
         # Fill in defaults
@@ -347,33 +367,35 @@ class GroupLightingManager:
         self._blend.blend_args.update(self.blend_args)
 
     def setBlend(self, blend: str):
-        blend = str(blend)[:256]
-        self.blend = blend
-        if blend in blendmodes.blendmodes:
-            if self.group.is_active():
-                self._blend = blendmodes.blendmodes[blend](self)
-            self.blendClass = blendmodes.blendmodes[blend]
-            self.setup_blend_args()
-        else:
-            self.blend_args = self.blend_args or {}
-            self._blend = blendmodes.HardcodedBlendMode(self)
-            self.blendClass = blendmodes.HardcodedBlendMode
-        self.rerender()
+        with self.group.lock:
+            blend = str(blend)[:256]
+            self.blend = blend
+            if blend in blendmodes.blendmodes:
+                if self.group.is_active():
+                    self._blend = blendmodes.blendmodes[blend](self)
+                self.blendClass = blendmodes.blendmodes[blend]
+                self.setup_blend_args()
+            else:
+                self.blend_args = self.blend_args or {}
+                self._blend = blendmodes.HardcodedBlendMode(self)
+                self.blendClass = blendmodes.HardcodedBlendMode
+            self.rerender()
 
     def setBlendArg(self, key: str, val: float | bool | str):
-        if not hasattr(self.blendClass, "parameters") or key not in self.blendClass.parameters:
-            raise KeyError("No such param")
+        with self.group.lock:
+            if not hasattr(self.blendClass, "parameters") or key not in self.blendClass.parameters:
+                raise KeyError("No such param")
 
-        if val is None:
-            del self.blend_args[key]
-        else:
-            try:
-                val = float(val)
-            except Exception:
-                pass
-            self.blend_args[key] = val
-            self._blend.blend_args[key] = val
-        self.rerender()
+            if val is None:
+                del self.blend_args[key]
+            else:
+                try:
+                    val = float(val)
+                except Exception:
+                    pass
+                self.blend_args[key] = val
+                self._blend.blend_args[key] = val
+            self.rerender()
 
 
 def _composite(background, values, alphas, alpha):
@@ -493,7 +515,9 @@ def mark_and_reset_changed_universes(board: ChandlerConsole, universes: dict[str
 
 def composite_layers_from_board(board: ChandlerConsole, t=None, u=None):
     """This is the primary rendering function.
-    Returns dict of universes we know changes
+    Returns dict of universes we know changes.
+
+    Happens under the render loop lock
     """
     universesSnapshot = u or universes.getUniverses()
     changedUniverses = {}
@@ -509,6 +533,7 @@ def composite_layers_from_board(board: ChandlerConsole, t=None, u=None):
         if not i.active:
             continue
 
+        # TODO this can change size during iteration
         data = i.lighting_manager.canvas.v2
 
         # Loop over universes the group affects

@@ -21,6 +21,7 @@ from typing import TYPE_CHECKING, Any, Callable
 
 import numpy
 from beartype import beartype
+from scullery import workers
 
 from .. import schemas
 from . import core
@@ -255,7 +256,12 @@ class Cue:
     def setTrack(self, val):
         self.track = bool(val)
         self.getGroup().poll_again_flag = True
-        self.getGroup().lighting_manager.refresh()
+
+        def f():
+            with self.getGroup().lock:
+                self.getGroup().lighting_manager.refresh()
+
+        workers.do(f)
 
     def setNumber(self, n):
         "Can take a string representing a decimal number for best accuracy, saves as *1000 fixed point"

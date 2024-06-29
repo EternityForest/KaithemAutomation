@@ -836,9 +836,12 @@ class RawDMXSender:
         self.thread.name = "DMXSenderThread_" + self.thread.name
         self.portname = port
         self.framerate = float(framerate)
+
         self.lock = threading.Lock()
         self.port = None
         self.started = None
+
+        self.should_stop = False
 
     def setStatus(self, s, ok):
         try:
@@ -911,22 +914,21 @@ class RawDMXSender:
                 s = time.time()
                 self.port.read(self.port.inWaiting())
                 x = self.frame.wait(0.1)
-                with self.lock:
-                    if self.data is None:
-                        try:
-                            self.port.close()
-                        except Exception:
-                            pass
-                        return
+                if self.should_stop:
+                    try:
+                        self.port.close()
+                    except Exception:
+                        pass
+                    return
 
-                    self.port.break_condition = True
-                    time.sleep(0.0001)
-                    self.port.break_condition = False
-                    time.sleep(0.0003)
+                self.port.break_condition = True
+                time.sleep(0.0001)
+                self.port.break_condition = False
+                time.sleep(0.0003)
 
-                    self.port.write(self.data)
-                    if x:
-                        self.frame.clear()
+                self.port.write(self.data)
+                if x:
+                    self.frame.clear()
                 time.sleep(max(((1.0 / self.framerate) - (time.time() - s)), 0))
             except Exception as e:
                 try:
@@ -947,9 +949,11 @@ class RawDMXSender:
                     return
 
     def onFrame(self, data):
-        with self.lock:
+        if data is None:
+            self.should_stop = True
+        else:
             self.data = data
-            self.frame.set()
+        self.frame.set()
 
 
 colorTagDeviceUniverses = {}
@@ -1134,7 +1138,8 @@ class OneTagpoint(Universe):
 
 
 def getUniverse(u: str | None) -> Universe | None:
-    "Get strong ref to universe if it exists, else get none."
+    """Get strong ref to universe if it exists, else get none. must be
+    safe to call under render loop lock."""
     if not u:
         return None
     try:
@@ -1157,7 +1162,8 @@ def getUniverses() -> dict[str, Universe]:
 
 
 def rerenderUniverse(i: str):
-    """Set full_rerender to true on a given universe, if it exists"""
+    """Set full_rerender to true on a given universe, if it exists. must be
+    safe to call under render loop lock."""
     universe = getUniverse(i)
     if universe:
         universe.full_rerender = True

@@ -26,6 +26,7 @@ class FadeCanvas:
         self.background_a: Dict[str, numpy.typing.NDArray[Any]] = {}
         self.v2: Dict[str, numpy.typing.NDArray[Any]] = {}
         self.a2: Dict[str, numpy.typing.NDArray[Any]] = {}
+        self.output = (self.v2, self.a2)
 
     def paint(
         self,
@@ -60,10 +61,17 @@ class FadeCanvas:
             # Add existing universes to canvas, skip non existing ones
             if i not in self.background_v:
                 size = len(obj.values)
+                nv = copy.copy(self.v2)
+                na = copy.copy(self.a2)
+
                 self.background_v[i] = makeBlankArray(size)
                 self.background_a[i] = makeBlankArray(size)
-                self.v2[i] = makeBlankArray(size)
-                self.a2[i] = makeBlankArray(size)
+                nv[i] = makeBlankArray(size)
+                na[i] = makeBlankArray(size)
+
+                self.v2 = nv
+                self.a2 = na
+                self.output = (nv, na)
 
             # Some universes can disable local fading, like smart bulbs where we have remote fading.
             # And we would rather use that. Of course, the disadvantage is we can't properly handle
@@ -103,18 +111,25 @@ class FadeCanvas:
         self.background_a = copy.deepcopy(self.a2)
 
     def clean(self, affect: Iterable[str]):
+        nv = copy.copy(self.v2)
+        na = copy.copy(self.a2)
+
         for i in list(self.background_a.keys()):
             if i not in affect:
                 del self.background_a[i]
 
-        for i in list(self.a2.keys()):
+        for i in list(na.keys()):
             if i not in affect:
-                del self.a2[i]
+                del na[i]
 
         for i in list(self.background_v.keys()):
             if i not in affect:
                 del self.background_v[i]
 
-        for i in list(self.v2.keys()):
+        for i in list(nv.keys()):
             if i not in affect:
-                del self.v2[i]
+                del nv[i]
+
+        self.v2 = nv
+        self.a2 = na
+        self.output = (nv, na)

@@ -19,12 +19,12 @@
 .action,
 .event {
     height: 12em;
+    min-width: 8rem;
 }
 
 .selected {
     border-width: 4px;
-    border-color: darkgrey;
-    border-style: dotted;
+    border-color: var(--highlight-color);
 }
 
 p.small {
