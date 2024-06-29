@@ -186,6 +186,7 @@ def test_setup_cue():
 
     s.close()
     board.rmGroup(s)
+    core.wait_frame()
     assert "TestingGroup1" not in board.groups_by_name
 
 
@@ -221,6 +222,8 @@ def test_checkpoint():
 
     s.close()
     board.rmGroup(s)
+    core.wait_frame()
+
     assert "TestingGroup1" not in board.groups_by_name
 
 
@@ -252,6 +255,8 @@ def test_shuffle():
 
     s.close()
     board.rmGroup(s)
+    core.wait_frame()
+
     assert "TestingGroup1" not in board.groups_by_name
 
 
@@ -288,6 +293,8 @@ def test_sched():
 
     s.close()
     board.rmGroup(s)
+    core.wait_frame()
+
     assert "TestingGroup1" not in board.groups_by_name
 
 
@@ -314,6 +321,8 @@ def test_timer_group():
 
     s.close()
     board.rmGroup(s)
+    core.wait_frame()
+
     assert "TestingGroup1" not in board.groups_by_name
 
 
@@ -346,6 +355,7 @@ def test_play_sound():
 
     s.close()
     board.rmGroup(s)
+    core.wait_frame()
 
     assert "TestingGroup2" not in board.groups_by_name
 
@@ -381,6 +391,7 @@ def test_trigger_shortcuts():
     s2.close()
     board.rmGroup(s)
     board.rmGroup(s2)
+    core.wait_frame()
 
     assert "TestingGroup3" not in board.groups_by_name
     assert "TestingGroup4" not in board.groups_by_name
@@ -424,6 +435,7 @@ def test_cue_logic():
     s2.close()
     board.rmGroup(s)
     board.rmGroup(s2)
+    core.wait_frame()
 
     assert "TestingGroup5" not in board.groups_by_name
     assert "TestingGroup6" not in board.groups_by_name
@@ -465,6 +477,7 @@ def test_commands():
     s2.close()
     board.rmGroup(s)
     board.rmGroup(s2)
+    core.wait_frame()
 
     assert "TestingGroup5" not in board.groups_by_name
     assert "TestingGroup6" not in board.groups_by_name
@@ -727,6 +740,7 @@ def test_cue_logic_plugin():
     s2.close()
     board.rmGroup(s)
     board.rmGroup(s2)
+    core.wait_frame()
 
     assert "TestingGroup5" not in board.groups_by_name
     assert "TestingGroup6" not in board.groups_by_name

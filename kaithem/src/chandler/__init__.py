@@ -127,8 +127,6 @@ def cl_loop():
 
             group_lighting.do_output(changed, u_cache)
 
-            core.completed_frame_number = frame_number
-
             # Don't go to the next frame until all events and tasks from this frame are done
             # But if the action queue is empty, we skip the step
             queue_wait = False
@@ -144,10 +142,12 @@ def cl_loop():
 
             if queue_wait:
                 # Don't go to the next frame until all events and tasks from this frame are done
-                # Waiting happens after that because i think it uses more cpu
+                # Waiting happens after sleep because i think it uses more cpu
                 # than just sleeping
                 frame_wait.wait(1)
                 frame_wait.clear()
+
+            core.completed_frame_number = frame_number
 
         except Exception:
             logger.exception("Wat")
