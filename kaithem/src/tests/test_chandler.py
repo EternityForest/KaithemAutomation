@@ -100,8 +100,10 @@ def test_fixtures():
     s.go()
     cid = s.cue.id
     ## 0s are the pattern spacing
+    core.wait_frame()
 
     board._onmsg("__admin__", ["add_cuef", cid, "testFixture", 0, 0, 0], "test")
+    core.wait_frame()
 
     board._onmsg("__admin__", ["scv", cid, "@testFixture", "red", 39], "test")
     board._onmsg("__admin__", ["scv", cid, "@testFixture", "dim", 64.5], "test")
@@ -488,6 +490,7 @@ def test_tag_backtrack_feature():
     board.addGroup(s)
 
     s.go()
+    core.wait_frame()
 
     # Set values and check that tags change
     s.cues["default"].set_value("/test_bt", "value", 1)

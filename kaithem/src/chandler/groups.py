@@ -1691,7 +1691,7 @@ class Group:
         with self.lock:
             self.lighting_manager.refresh()
 
-        workers.do(self.board.cl_update_group_priorities)
+        core.serialized_async_with_core_lock(self.board.cl_update_group_priorities)
 
     def mqttStatusEvent(self, value: str, timestamp: float, annotation: Any):
         if value == "connected":

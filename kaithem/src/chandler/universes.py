@@ -42,6 +42,18 @@ _universes: dict[str, weakref.ReferenceType[Universe]] = {}
 fixtures: dict[str, weakref.ref[Fixture]] = {}
 
 
+def refresh_groups():
+    """Tell groups the set of universes has changed"""
+
+    def f():
+        for b in core.iter_boards():
+            for i in b.active_groups:
+                with i.lock:
+                    i.refresh_lighting()
+
+    core.serialized_async_with_core_lock(f)
+
+
 def get_on_demand_universe(name: str) -> Universe:
     if not name.strip().startswith("/"):
         raise ValueError("Only tag point universes")
@@ -352,7 +364,7 @@ class Universe:
         self.preFrame = alreadyClosed
         self.save_prerendered = alreadyClosed
 
-        kaithem.message.post("/chandler/command/refresh_group_lighting", None)
+        refresh_groups()
         self.closed = True
 
     def setStatus(self, s: str, ok: bool):
@@ -373,14 +385,14 @@ class Universe:
         """Stop and restart all active groups, because some caches might need to be updated
         when a new universes is added
         """
-        kaithem.message.post("/chandler/command/refresh_group_lighting", None)
+        refresh_groups()
 
     def __del__(self):
         if not self.closed:
             if self.refresh_on_create:
                 if lifespan and not lifespan.shutdown:
                     # Do as little as possible in the undefined __del__ thread
-                    kaithem.message.post("/chandler/command/refresh_group_lighting", None)
+                    refresh_groups()
 
     @core.cl_context.required
     def cl_channels_changed(self):

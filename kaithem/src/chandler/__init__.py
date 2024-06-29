@@ -18,17 +18,6 @@ max = max
 min = min
 
 
-def refresh_groups(t, v):
-    """Tell groups the set of universes has changed"""
-    for b in core.iter_boards():
-        for i in b.active_groups:
-            with i.lock:
-                i.refresh_lighting()
-
-
-messagebus.subscribe("/chandler/command/refresh_group_lighting", refresh_groups)
-
-
 @core.cl_context.entry_point
 def cl_refresh_fixtures(topic, val):
     # Deal with fixtures in this universe that aren't actually attached to this object yet.

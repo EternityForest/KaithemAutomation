@@ -21,7 +21,6 @@ from typing import TYPE_CHECKING, Any, Callable
 
 import numpy
 from beartype import beartype
-from scullery import workers
 
 from .. import schemas
 from . import core
@@ -261,7 +260,7 @@ class Cue:
             with self.getGroup().lock:
                 self.getGroup().lighting_manager.refresh()
 
-        workers.do(f)
+        core.serialized_async_with_core_lock(f)
 
     def setNumber(self, n):
         "Can take a string representing a decimal number for best accuracy, saves as *1000 fixed point"

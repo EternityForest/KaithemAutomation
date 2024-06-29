@@ -2,6 +2,7 @@
 # TODO this is a yucky hack but pytest won't load
 
 import importlib.metadata
+import sys
 
 try:
     import typeguard  # noqa
@@ -16,7 +17,6 @@ except Exception:
 
     importlib.metadata.version = version
 
-import sys
 
 import pytest
 
@@ -33,4 +33,7 @@ def exit_pytest_first_failure():
 
 
 if __name__ == "__main__":
-    sys.exit(pytest.main(["-qq", "-x", "--cov=kaithem"], plugins=[MyPlugin()]))
+    if not sys.gettrace():
+        sys.exit(pytest.main(["-qq", "-x", "--cov=kaithem"], plugins=[MyPlugin()]))
+    else:
+        sys.exit(pytest.main(["-qq", "-x"], plugins=[MyPlugin()]))
