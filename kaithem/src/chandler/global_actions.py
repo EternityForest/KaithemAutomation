@@ -71,7 +71,7 @@ def cl_trigger_shortcut_code(code: str, limitGroup: Group | None = None, exclude
 
 
 @core.cl_context.entry_point
-def cl_event(s: str, value: Any = None, info: str = "") -> None:
+def cl_event(s: str, value: Any = None, info: str = "", ts=None) -> None:
     "THIS IS THE ONLY TIME THE INFO THING DOES ANYTHING"
     # disallow_special(s, allow=".")
     event_list = []
@@ -80,7 +80,7 @@ def cl_event(s: str, value: Any = None, info: str = "") -> None:
             event_list.append(i)
 
     for i in event_list:
-        i._event(s, value=value, info=info)
+        i._event(s, value=value, info=info, ts=ts)
 
 
 def async_event(s: str, value: Any = None, info: str = "") -> None:

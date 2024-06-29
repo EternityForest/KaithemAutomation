@@ -443,6 +443,11 @@ class BaseChandlerScriptContext:
         self.need_refresh_for_variable: dict[str, bool] = {}
         self.need_refresh_for_tag: dict[str, bool] = {}
 
+        # Used to track stuff like tag values that have timestamps
+        # Tag value getters set it to the highest of the tag time and its current val.
+        # Set it to 0, run an eval, the value gives you a time to use as event timestamp
+        self.eval_times = 0
+
         # Used for detecting loops.  .d Must be 0 whenever we are not CURRENTLY,
         # as in right now, in this thread, executing an event. Not a pure stack
         # or semaphore, when you queue up an event, that event will run at one
@@ -559,19 +564,21 @@ class BaseChandlerScriptContext:
                     # Edge trigger
                     if i.startswith("=/"):
                         # Change =/ to just =
+                        self.eval_times = 0
                         r = self.preprocessArgument(f"={i[2:]}")
                         if r:
                             if (i in self.risingEdgeDetects) and (not self.risingEdgeDetects[i]):
                                 self.risingEdgeDetects[i] = True
-                                self.event(i, r)
+                                self.event(i, r, timestamp=self.eval_times or time.time())
                         else:
                             self.risingEdgeDetects[i] = False
 
                     # Level trigger
                     elif i.startswith("="):
+                        self.eval_times = 0
                         r = self.preprocessArgument(i)
                         if r:
-                            self.event(i, r)
+                            self.event(i, r, self.eval_times or time.time())
                 except Exception:
                     self.event(
                         "script.error",
@@ -700,7 +707,6 @@ class BaseChandlerScriptContext:
 
             context_info.event = (evt, val)
             self.variables["_"] = True if val is None else val
-            self.variables["event"] = self.eventValueStack[-1]
 
             self.stopScriptFlag = False
             try:
@@ -721,8 +727,6 @@ class BaseChandlerScriptContext:
                     f"{self.contextName}\n{traceback.format_exc(chain=True)}",
                 )
                 raise
-            finally:
-                del self.variables["event"]
 
         finally:
             if self.eventValueStack:
@@ -1042,6 +1046,7 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
             t = tagpoints.Tag(tagName)
             self.setupTag(t)
             self.setVar(f"$tag:{t.name}", t.value, True)
+            self.eval_times = max(t.timestamp, self.eval_times)
             return t.value
 
         def stringtagpoint(t):
@@ -1051,6 +1056,7 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
             t = tagpoints.StringTag(tagName)
             self.setupTag(t)
             self.setVar(f"$tag:{t.name}", t.value, True)
+            self.eval_times = max(t.timestamp, self.eval_times)
             return t.value
 
         c = {}

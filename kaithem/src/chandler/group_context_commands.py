@@ -141,14 +141,20 @@ def add_context_commands(context_group: groups.Group):
 
     def eventCommand(group: str = "=GROUP", ev: str = "DummyEvent", value: str = ""):
         "Send an event to a group, or to all groups if group is __global__. Triggers in the next frame."
+        t = _time.time()
         if group == "__global__":
 
             def f():
-                cl_event(ev, value)
+                cl_event(ev, value, ts=t)
 
-            core.serialized_async_next_frame(f)
+            core.serialized_async_with_core_lock(f)
         else:
-            context_group.board.groups_by_name[group].event(ev, value)
+
+            def f():
+                context_group.board.groups_by_name[group].event(ev, value, ts=t)
+
+            core.serialized_async_with_core_lock(f)
+
         return True
 
     def setWebVarCommand(group: str = "=GROUP", key: str = "varFoo", value: str = ""):

@@ -42,10 +42,11 @@
          v-on:change="focused = false; $emit('update:modelValue', $event.target.value); $emit('change', $event.target.value); "
          v-on:focus="focused = true;"
          v-on:blur="blurTimer()"
+         style="flex-basis: 4rem; min-width: 4rem;"
          >
         <button 
         v-on:blur="buttonBlurTimer()"
-        :disabled="disabled" title="Show/Hide selector" style="width:3em;" 
+        :disabled="disabled" title="Show/Hide selector" style="width:3rem; max-width: 3rem;" 
         v-on:click="showmenu = !(showmenu); focused = false; $event.target.focus()" 
         v-bind:class="{ 'highlight': showmenu }"> <i class="mdi mdi-dots-horizontal"></i></button>
     </div>

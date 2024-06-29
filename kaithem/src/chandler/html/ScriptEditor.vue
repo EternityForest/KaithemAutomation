@@ -56,7 +56,7 @@ p.small {
         <div class="w-full">
             <div class="flex-row gaps">
 
-                <div v-if="selectedCommand == 0 && selectedBinding" class="col-3 card min-h-24rem">
+                <div v-if="selectedCommand == 0 && selectedBinding" class="col-3 card min-h-24rem w-sm-full">
                     <h3>Block Inspector</h3>
 
                     <p>
@@ -64,17 +64,21 @@ p.small {
                     </p>
 
                     <h4>Parameters</h4>
-
-                    <label>Run on
-                        <combo-box :disabled="disabled" @update:modelValue="" v-model="selectedBinding[0]" v-bind:options="example_events"
-                            v-on:change="$emit('update:modelValue', rules);"></combo-box>
-                    </label>
+                    <div class="stacked-form">
+                        <label>Run on
+                            <combo-box :disabled="disabled" @update:modelValue="" v-model="selectedBinding[0]"
+                                v-bind:options="example_events"
+                                v-on:change="$emit('update:modelValue', rules);"></combo-box>
+                        </label>
+                    </div>
                     <h4>Delete</h4>
-                    <button  :disabled="disabled" v-on:click="deleteBinding(selectedBinding); $emit('update:modelValue', rules);">Remove binding and all
+                    <button :disabled="disabled"
+                        v-on:click="deleteBinding(selectedBinding); $emit('update:modelValue', rules);">Remove binding
+                        and all
                         actions</button>
                 </div>
 
-                <div v-if="selectedCommand" class="card col-3 min-h-24rem">
+                <div v-if="selectedCommand" class="card col-3 min-h-24rem w-sm-full">
                     <h3>Block Inspector</h3>
                     Type
                     <combo-box :disabled="disabled" v-model="selectedCommand[0]" v-bind:options="getPossibleActions()"
@@ -82,9 +86,10 @@ p.small {
                         v-on:change="setCommandDefaults(selectedCommand); $emit('update:modelValue', rules);"></combo-box>
                     <h4>Config</h4>
                     <div v-if="selectedCommand[0] == 'set'">
-                        Set a variable named <combo-box :disabled="disabled" v-model="selectedCommand[1]" v-bind:pinned="pinnedvars"
-                            v-on:change="$emit('update:modelValue', rules)"></combo-box> <br>to<br> <combo-box
-                            v-model="selectedCommand[2]" v-on:change="$emit('update:modelValue', rules)"></combo-box><br>
+                        Set a variable named <combo-box :disabled="disabled" v-model="selectedCommand[1]"
+                            v-bind:pinned="pinnedvars" v-on:change="$emit('update:modelValue', rules)"></combo-box>
+                        <br>to<br> <combo-box v-model="selectedCommand[2]"
+                            v-on:change="$emit('update:modelValue', rules)"></combo-box><br>
                         and always return True.
                     </div>
 
@@ -93,20 +98,22 @@ p.small {
                     </div>
 
                     <div v-if="selectedCommand[0] == 'maybe'">
-                        Continue action with :<input :disabled="disabled" v-model="selectedCommand[1]" v-on:change="$emit('update:modelValue', rules)">%
+                        Continue action with :<input :disabled="disabled" v-model="selectedCommand[1]"
+                            v-on:change="$emit('update:modelValue', rules)">%
                         chance <br> otherwise
                         return None and stop the action.
                     </div>
 
                     <div v-if="(!(selectedCommand[0] in specialCommands)) && ((commands[selectedCommand[0]]))">
-                        <table>
-                            <tr v-for="i in commands[selectedCommand[0]].args.keys()">
-                                <td>{{ commands[selectedCommand[0]].args[i][0] }}</td>
-                                <td><combo-box :disabled="disabled" v-model="selectedCommand[i + 1]" v-on:change="$emit('update:modelValue', rules)"
-                                        :options="getCompletions(selectedCommand, commands[selectedCommand[0]].args[i][0])"></combo-box>
-                                </td>
-                            </tr>
-                        </table>
+                        <div class="stacked-form">
+                            <label v-for="i in commands[selectedCommand[0]].args.keys()">
+                                {{ commands[selectedCommand[0]].args[i][0] }}
+                                <combo-box :disabled="disabled" v-model="selectedCommand[i + 1]"
+                                    v-on:change="$emit('update:modelValue', rules)"
+                                    :options="getCompletions(selectedCommand, commands[selectedCommand[0]].args[i][0])"></combo-box>
+
+                            </label>
+                        </div>
                         <h5>Docs</h5>
 
                         <pre style="white-space: pre-wrap;">{{ commands[selectedCommand[0]].doc }}</pre>
@@ -117,7 +124,8 @@ p.small {
                     <button v-if="selectedCommandIndex > 0" :disabled="disabled"
                         v-on:click="swapArrayElements(rules[selectedBindingIndex][1], selectedCommandIndex, selectedCommandIndex - 1); selectedCommandIndex -= 1; $emit('update:modelValue', rules);">
                         Move Back</button>
-                    <button :disabled="disabled" v-if="selectedCommandIndex < (rules[selectedBindingIndex][1].length - 1)"
+                    <button :disabled="disabled"
+                        v-if="selectedCommandIndex < (rules[selectedBindingIndex][1].length - 1)"
                         v-on:click="swapArrayElements(rules[selectedBindingIndex][1], selectedCommandIndex, selectedCommandIndex + 1); selectedCommandIndex += 1; $emit('update:modelValue', rules);">
                         Move Forward</button>
 
@@ -143,23 +151,25 @@ p.small {
                         <div class="flex-row gaps w-full padding nogaps">
 
                             <div v-for="j in i[1]" style="display:flex;" class="nogrow">
-                                <button  style="align-content: flex-start;" v-bind:class="{action: 1, 'flex-row':1, selected: (selectedBinding == i & selectedCommand == j) }"
+                                <button style="align-content: flex-start;"
+                                    v-bind:class="{ action: 1, 'flex-row': 1, selected: (selectedBinding == i & selectedCommand == j) }"
                                     v-on:click="selectedCommandIndex = i[1].indexOf(j); selectedBindingIndex = rules.indexOf(i)">
 
                                     <template style="min-width:6em;max-width:12em;overflow:hidden"
                                         v-if="((commands[j[0]]))">
 
                                         <div class="w-full h-min-content"><b>{{ j[0] }}</b></div>
-                                            <div class="nogrow h-min-content" style="margin: 2px;" v-for="i in commands[j[0]].args.keys()">
-                                                {{ j[i + 1] }}
-                                            </div>
+                                        <div class="nogrow h-min-content" style="margin: 2px;"
+                                            v-for="i in commands[j[0]].args.keys()">
+                                            {{ j[i + 1] }}
+                                        </div>
                                     </template>
 
 
                                     <template v-if="(!(j[0] in commands))">
                                         <div class="nogrow h-min-content" style="margin: 2px;" v-for="i in j">
-                                                {{ i }}
-                                            </div>                                    
+                                            {{ i }}
+                                        </div>
                                     </template>
                                 </button>
                                 <i class="mdi mdi-arrow-right" style="align-self:center; text-align:center;"></i>
@@ -168,7 +178,8 @@ p.small {
                             <div style="align-self:stretch;">
 
                                 <button class="action" style="align-self:stretch;" :disabled="disabled"
-                                    v-on:click="i[1].push(['pass']); $emit('update:modelValue', rules)"><b>Add Action</b></button>
+                                    v-on:click="i[1].push(['pass']); $emit('update:modelValue', rules)"><b>Add
+                                        Action</b></button>
                             </div>
 
                         </div>
@@ -176,7 +187,7 @@ p.small {
                     <button style="width: 95%; margin-top: 0.5em;" :disabled="disabled"
                         title="Add a rule that the group should do something when an event fires"
                         v-on:click="rules.push(['cue.enter', [['goto', '=GROUP', '']]]); $emit('update:modelValue', rules);"><b>Add
-                        Rule</b></button>
+                            Rule</b></button>
 
                 </div>
 

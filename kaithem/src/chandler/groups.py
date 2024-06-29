@@ -705,16 +705,16 @@ class Group:
         core.add_data_pusher_to_all_boards(lambda s: s.pushMeta(self.id, statusOnly=statusOnly, keys=keys))
 
     @group_lock_context.object_session_entry_point
-    def event(self, s: str, value: Any = True, info: str = "", exclude_errors: bool = True):
+    def event(self, s: str, value: Any = True, info: str = "", exclude_errors: bool = True, ts=None):
         # No error loops allowed!
         if (not s == "script.error") and exclude_errors:
-            self._event(s, value, info)
+            self._event(s, value, info, ts=ts)
 
-    def _event(self, s: str, value: Any, info: str = ""):
+    def _event(self, s: str, value: Any, info: str = "", ts=None):
         "Manually trigger any script bindings on an event"
         try:
             if self.script_context:
-                self.script_context.event(s, value)
+                self.script_context.event(s, value, timestamp=ts)
         except Exception:
             core.rl_log_exc("Error handling event: " + str(s))
             print(traceback.format_exc(6))
