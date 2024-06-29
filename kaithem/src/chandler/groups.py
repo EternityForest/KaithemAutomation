@@ -286,6 +286,9 @@ class Group:
 
         self.require_confirm = require_confirm
 
+        # he commands specific to this group for the scripting
+        self.command_refs: dict[str, Callable[..., Any]] = {}
+
         disallow_special(name)
 
         self.mqtt_sync_features: dict[str, Any] = mqtt_sync_features or {}
@@ -578,7 +581,7 @@ class Group:
         """
         return self.script_context.preprocessArgument(s)
 
-    def _nl_insert_cue_sorted(self, c):
+    def _nl_insert_cue_sorted(self, c: Cue | None):
         "Insert a None to just recalt the whole ordering"
         if c:
             self.cues_ordered.append(c)
@@ -857,7 +860,7 @@ class Group:
 
                     # We found the end time of the cue.
                     # If that turns out to be the most recent,
-                    # We go to the one after that ifit has a next,
+                    # We go to the one after that if it has a next,
                     # Else just go to
                     if cue.next_ll:
                         times[cue.next_ll.name] = a2

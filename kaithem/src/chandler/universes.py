@@ -13,6 +13,8 @@ from typing import Any
 
 import colorzero
 import numpy
+import serial
+import serial.tools.list_ports
 import structlog
 
 from kaithem.api import lifespan
@@ -535,12 +537,7 @@ class DMXSender:
     def reconnect(self, portlist=None):
         "Try to reconnect to the adapter"
         try:
-            import serial
-            import serial.tools
-
             if not self.portname:
-                import serial.tools.list_ports
-
                 p = portlist or serial.tools.list_ports.comports()
                 if p:
                     if len(p) > 1:
@@ -559,7 +556,8 @@ class DMXSender:
                 p = self.portname
             time.sleep(0.1)
             try:
-                self.port.close()
+                if self.port:
+                    self.port.close()
             except Exception:
                 pass
             self.port = serial.Serial(p, 57600, timeout=1.0, write_timeout=1.0)
@@ -574,7 +572,7 @@ class DMXSender:
                 time.sleep(0.05)
             self.port.write(message(numpy.zeros(max(128, len(self.universe().values)))))
             time.sleep(0.1)
-            self.port.read(self.port.inWaiting())
+            self.port.read(self.port.in_waiting)
             time.sleep(0.05)
             self.port.write(self.data)
             self.setStatus("connected to " + p, True)
@@ -588,8 +586,9 @@ class DMXSender:
     def run(self):
         while 1:
             try:
+                assert self.port
                 s = time.time()
-                self.port.read(self.port.inWaiting())
+                self.port.read(self.port.in_waiting)
                 x = self.frame.wait(1)
                 if not x:
                     continue
@@ -605,7 +604,8 @@ class DMXSender:
                 time.sleep(max(((1.0 / self.framerate) - (time.time() - s)), 0))
             except Exception as e:
                 try:
-                    self.port.close()
+                    if self.port:
+                        self.port.close()
                 except Exception:
                     pass
                 try:
@@ -616,7 +616,6 @@ class DMXSender:
                     self.port = None
                     # I don't remember why we retry twice here. But reusing the port list should reduce CPU a lot.
                     time.sleep(3)
-                    import serial
 
                     portlist = serial.tools.list_ports.comports()
                     # reconnect is designed not to raise Exceptions, so if there's0
@@ -865,11 +864,7 @@ class RawDMXSender:
     def reconnect(self):
         "Try to reconnect to the adapter"
         try:
-            import serial
-
             if not self.portname:
-                import serial.tools.list_ports
-
                 p = serial.tools.list_ports.comports()
                 if p:
                     if len(p) > 1:
@@ -887,12 +882,13 @@ class RawDMXSender:
                 p = self.portname
             time.sleep(0.1)
             try:
-                self.port.close()
+                if self.port:
+                    self.port.close()
             except Exception:
                 pass
             self.port = serial.Serial(p, baudrate=250000, timeout=1.0, write_timeout=1.0, stopbits=2)
 
-            self.port.read(self.port.inWaiting())
+            self.port.read(self.port.in_waiting)
             time.sleep(0.05)
             self.port.break_condition = True
             time.sleep(0.0001)
@@ -911,8 +907,9 @@ class RawDMXSender:
     def run(self):
         while self.universe():
             try:
+                assert self.port
                 s = time.time()
-                self.port.read(self.port.inWaiting())
+                self.port.read(self.port.in_waiting)
                 x = self.frame.wait(0.1)
                 if self.should_stop:
                     try:
@@ -932,7 +929,8 @@ class RawDMXSender:
                 time.sleep(max(((1.0 / self.framerate) - (time.time() - s)), 0))
             except Exception as e:
                 try:
-                    self.port.close()
+                    if self.port:
+                        self.port.close()
                 except Exception:
                     pass
                 try:
@@ -1051,7 +1049,16 @@ class ColorTagUniverse(Universe):
         Universe.__init__(self, name, 4)
         self.hidden = False
         self.tag = tag
-        self.f = Fixture(self.name + ".rgb", [["R", "red"], ["G", "green"], ["B", "blue"]])
+        self.f = Fixture(
+            self.name + ".rgb",
+            {
+                "channels": [
+                    {"name": "red", "type": "red"},
+                    {"name": "green", "type": "green"},
+                    {"name": "blue", "type": "blue"},
+                ]
+            },
+        )
         with core.cl_context:
             self.f.cl_assign(self.name, 1)
         self.lock = threading.RLock()

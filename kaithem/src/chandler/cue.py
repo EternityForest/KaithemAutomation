@@ -173,7 +173,7 @@ class Cue:
         self.id: str = id or uuid.uuid4().hex
         self.name = name
 
-        # Odd circular dependancy
+        # Odd circular dependency
         try:
             self.number = number or parent.cues_ordered[-1].number + 5000
         except Exception:
@@ -270,7 +270,7 @@ class Cue:
         self.number = int((Decimal(n) * Decimal(1000)).quantize(1))
 
         # re-sort the cuelist
-        self.getGroup().insertSorted(None)
+        self.getGroup()._nl_insert_cue_sorted(None)
 
         self.push()
 

@@ -1,12 +1,18 @@
+from __future__ import annotations
+
 import hashlib
 import os
 import time
+from typing import TYPE_CHECKING
 
 import quart
 import quart.utils
 import vignette
 from mako.lookup import TemplateLookup
 from tinytag import TinyTag
+
+if TYPE_CHECKING:
+    from .WebChandlerConsole import WebConsole
 
 from kaithem.src import quart_app, tagpoints
 
@@ -217,7 +223,8 @@ def config(board: str):
 @quart_app.app.route("/chandler/config/opz_import/<board>")
 def opz_import(board: str):
     pages.require("system_admin")
-    link = core.boards[board].link
+    b: WebConsole = core.boards[board]  # type: ignore
+    link = b.link
     return get_template("opz_import.html").render(
         boardname=board,
         api_link=link,

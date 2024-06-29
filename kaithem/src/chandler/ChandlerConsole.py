@@ -83,7 +83,7 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         self.media_folders: list[str] = []
 
-        # For change etection in groups. Tuple is folder, file indicating where it should go,
+        # For change detection in groups. Tuple is folder, file indicating where it should go,
         # as would be passed to saveasfiles
         self.last_saved_version: dict[str, Any] = {}
 
@@ -115,7 +115,7 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         # For logging ratelimiting
         self.last_logged_gui_send_error = 0
-        self.ferrs = ""
+        self.fixture_errors = ""
 
         self.autosave_checker = scheduling.scheduler.every(self.cl_check_autosave, 10 * 60)
 
@@ -205,13 +205,13 @@ class ChandlerConsole(console_abc.Console_ABC):
 
     @core.cl_context.entry_point
     def cl_reload_fixture_assignment_data(self):
-        self.ferrs = ""
+        self.fixture_errors = ""
         try:
             for i in self.fixtures:
                 self.fixtures[i].cl_assign(None, None)
                 self.fixtures[i].rm()
         except Exception:
-            self.ferrs += "Error deleting old assignments:\n" + traceback.format_exc()
+            self.fixture_errors += "Error deleting old assignments:\n" + traceback.format_exc()
             print(traceback.format_exc())
 
         try:
@@ -231,7 +231,7 @@ class ChandlerConsole(console_abc.Console_ABC):
             except Exception:
                 logger.exception("Error setting up fixture")
                 print(traceback.format_exc())
-                self.ferrs += str(i) + "\n" + traceback.format_exc()
+                self.fixture_errors += str(i) + "\n" + traceback.format_exc()
 
         for u in universes.universes:
             self.pushchannelInfoByUniverseAndNumber(u)
@@ -240,7 +240,7 @@ class ChandlerConsole(console_abc.Console_ABC):
             if f:
                 self.pushchannelInfoByUniverseAndNumber("@" + f)
 
-        self.ferrs = self.ferrs or "No Errors!"
+        self.fixture_errors = self.fixture_errors or "No Errors!"
         self.push_setup()
 
     @core.cl_context.entry_point
@@ -544,7 +544,7 @@ class ChandlerConsole(console_abc.Console_ABC):
         for i in ps:
             ps[i]["labelImageTimestamp"] = self.get_file_timestamp_if_exists(ps[i].get("label_image", ""))
         "Errors in fixture list"
-        self.linkSend(["ferrs", self.ferrs])
+        self.linkSend(["ferrs", self.fixture_errors])
         self.linkSend(["fixtureAssignments", self.fixture_assignments])
         self.linkSend(["fixturePresets", ps])
 
@@ -601,15 +601,15 @@ class ChandlerConsole(console_abc.Console_ABC):
     def pushchannelInfoByUniverseAndNumber(self, u: str):
         "This has expanded to push more data than names"
         if not u[0] == "@":
-            uobj = getUniverse(u)
+            universe_object = getUniverse(u)
 
-            if not uobj:
+            if not universe_object:
                 return
 
             d = {}
 
-            for i in uobj.channels:
-                fixture = uobj.channels[i]()
+            for i in universe_object.channels:
+                fixture = universe_object.channels[i]()
                 if not fixture:
                     continue
 

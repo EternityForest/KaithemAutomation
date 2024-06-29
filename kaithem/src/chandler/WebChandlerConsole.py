@@ -27,7 +27,7 @@ def listsoundfolder(path: str, extra_folders: list[str] = []):
     """return format [ [subfolderfolder,displayname],[subfolder2,displayname]  ],
     [[fn, fn_relative_to_its_configured_folder]...]
 
-    Note we store things as relative paths exculding the folder,
+    Note we store things as relative paths excluding the folder,
     so users can move things around
     """
     soundfolders = core.getSoundFolders()
@@ -788,7 +788,9 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         elif cmd_name == "rmcue":
             c = cues[msg[1]]
-            c.group().rmCue(c.id)
+            gr = c.group()
+            assert gr
+            gr.rmCue(c.id)
 
         elif cmd_name == "setCueTriggerShortcut":
             v = msg[2]
@@ -908,15 +910,15 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             self.pushCueMeta(msg[1])
 
         elif cmd_name == "setcuemediaspeed":
-            cues[msg[1]].media_speed = float(str(msg[2]).strip() or 1)
+            cues[msg[1]].media_speed = str(msg[2]).strip() or "1"
             self.pushCueMeta(msg[1])
 
         elif cmd_name == "setcuemediawindup":
-            cues[msg[1]].media_wind_up = float(str(msg[2]).strip() or 0)
+            cues[msg[1]].media_wind_up = str(msg[2]).strip() or "0"
             self.pushCueMeta(msg[1])
 
         elif cmd_name == "setcuemediawinddown":
-            cues[msg[1]].media_wind_down = float(str(msg[2]).strip() or 0)
+            cues[msg[1]].media_wind_down = str(msg[2]).strip() or "0"
             self.pushCueMeta(msg[1])
 
         elif cmd_name == "settrack":
@@ -992,7 +994,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 c = msg[2][:1024].strip()
             else:
                 c = None
-            cues[msg[1]].next_cue = c
+            cues[msg[1]].next_cue = c or ""
             self.pushCueMeta(msg[1])
 
         elif cmd_name == "setprobability":

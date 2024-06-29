@@ -857,10 +857,10 @@ appData = {
     'completers': {
 
         'gotoGroupNamesCompleter': function (a) {
-            var c = []
+            var c = [["=GROUP",'This group']]
 
 
-            var x = this.groupmeta
+            var x = appData.groupmeta
 
             if (!x) {
                 return []
@@ -876,11 +876,11 @@ appData = {
             var c = []
             var n = a[1]
             if (n.indexOf('=GROUP') > -1) {
-                n = this.groupname
+                n = appData.groupname
             }
             else {
-                for (i in this.groupmeta) {
-                    var s = this.groupmeta[i]
+                for (i in appData.groupmeta) {
+                    var s = appData.groupmeta[i]
                     if (s.name == n) {
                         n = i
                         break
@@ -889,7 +889,7 @@ appData = {
             }
 
 
-            var x = this.groupcues[n]
+            var x = appData.groupcues[n]
 
             if (!x) {
                 return []
