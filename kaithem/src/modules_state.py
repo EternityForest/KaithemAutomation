@@ -229,15 +229,15 @@ def save_resource(module: str, resource: str, resourceData: ResourceDictType, na
 
 
 @beartype.beartype
-def rawInsertResource(module: str, resource: str, resourceData: ResourceDictType):
-    resourceData: dict[str, Any] = copy.deepcopy(resourceData)  # type: ignore
+def rawInsertResource(module: str, resource: str, resource_data: ResourceDictType):
+    resourceData: dict[str, Any] = copy.deepcopy(resource_data)  # type: ignore
     check_forbidden(resource)
     assert resource[0] != "/"
 
     if "resource_timestamp" not in resourceData:
         resourceData["resource_timestamp"] = int(time.time() * 1000000)
 
-    # todo maybe we don't need os indepedence
+    # todo maybe we don't need os independence
     d = os.path.dirname(resource.replace("/", os.path.pathsep))
     while d:
         if d not in ActiveModules[module]:
@@ -253,7 +253,7 @@ def rawInsertResource(module: str, resource: str, resourceData: ResourceDictType
 def rawDeleteResource(m: str, r: str, type: str | None = None) -> None:
     """
     Delete a resource from the module, but don't do
-    any bookkeeping. Will not remove whatever runtime objectes
+    any bookkeeping. Will not remove whatever runtime objects
     were created from the resource, also will not update hashes.
     """
     resourceData = ActiveModules[m].pop(r)

@@ -106,16 +106,14 @@ def test_fixtures():
     board._onmsg("__admin__", ["scv", cid, "@testFixture", "red", 39], "test")
     board._onmsg("__admin__", ["scv", cid, "@testFixture", "dim", 64.5], "test")
 
-    time.sleep(0.1)
+    core.wait_frame()
 
-    for attempt in stamina.retry_context(on=AssertionError):
-        with attempt:
-            assert universes.universes["dmx"]().values[0] == 0
-            assert universes.universes["dmx"]().values[1] == 39
+    assert universes.universes["dmx"]().values[0] == 0
+    assert universes.universes["dmx"]().values[1] == 39
 
-            assert int(universes.universes["dmx"]().values[4]) == 64
-            assert int(universes.universes["dmx"]().values[5]) == 127
-            assert int(universes.universes["dmx"]().values[6]) == 4
+    assert int(universes.universes["dmx"]().values[4]) == 64
+    assert int(universes.universes["dmx"]().values[5]) == 127
+    assert int(universes.universes["dmx"]().values[6]) == 4
 
     assert board.cl_get_project_data()["setup"]["fixture_assignments"]["testFixture"]
 
@@ -134,6 +132,7 @@ def test_make_group():
     s.go()
 
     assert s.active
+    core.wait_frame()
     assert s in board.active_groups
     assert s.cue.name == "default"
 
@@ -172,6 +171,8 @@ def test_setup_cue():
     s.go()
 
     assert s.active
+
+    core.wait_frame()
     assert s in board.active_groups
     assert s.cue.name == "default"
 
@@ -199,6 +200,8 @@ def test_checkpoint():
     s.go()
 
     assert s.active
+    core.wait_frame()
+
     assert s in board.active_groups
     assert s.cue.name == "default"
 
@@ -298,6 +301,8 @@ def test_timer_group():
     s.go()
 
     assert s.active
+    core.wait_frame()
+
     assert s in board.active_groups
     assert s.cue.name == "default"
 
@@ -321,17 +326,23 @@ def test_play_sound():
     s.go()
 
     assert s.active
+    core.wait_frame()
+
     assert s in board.active_groups
     assert s.cue.name == "default"
 
     s.add_cue("cue2", sound="alert.ogg")
     s.goto_cue("cue2")
+
+    # Asyc from the frames can't just frame wait
+    time.sleep(1)
     time.sleep(1)
 
     # Dummy test sounds end right away
     assert play_logs[-1][0] == "play"
     assert play_logs[-1][1] == "TEST"
-    assert play_logs[-1][2].endswith("alert.ogg")
+    # Resolver should have found an opus file
+    assert play_logs[-1][2].endswith(".opus")
 
     s.close()
     board.rmGroup(s)
@@ -349,6 +360,8 @@ def test_trigger_shortcuts():
     s2.go()
 
     assert s.active
+    core.wait_frame()
+
     assert s in board.active_groups
     assert s.cue.name == "default"
 
@@ -357,6 +370,9 @@ def test_trigger_shortcuts():
     s2.add_cue("cue2", shortcut="foo")
 
     s.goto_cue("cue2")
+
+    core.wait_frame()
+    core.wait_frame()
 
     # Cue2 in s should trigger the shortcut code foo, which triggers Cue2 in s2
     assert s2.cue.name == "cue2"
@@ -380,6 +396,8 @@ def test_cue_logic():
     s2.go()
 
     assert s.active
+    core.wait_frame()
+
     assert s in board.active_groups
     assert s.cue.name == "default"
 
@@ -394,8 +412,11 @@ def test_cue_logic():
     s2.add_cue("cue2")
 
     s.goto_cue("cue2")
-    time.sleep(0.5)
-    time.sleep(0.5)
+
+    # Events are sometimes delayed a frame
+    core.wait_frame()
+    core.wait_frame()
+
     assert s2.cue.name == "cue2"
     assert s.alpha == 0.76
 
@@ -418,6 +439,7 @@ def test_commands():
     s2.go()
 
     assert s.active
+    core.wait_frame()
     assert s in board.active_groups
     assert s.cue.name == "default"
 
@@ -432,7 +454,10 @@ def test_commands():
     s2.add_cue("cue2")
 
     s.goto_cue("cue2")
-    time.sleep(0.5)
+
+    core.wait_frame()
+    core.wait_frame()
+
     assert s2.cue.name == "cue2"
     assert s.alpha == 0.76
 
@@ -453,9 +478,8 @@ def test_tag_backtrack_feature():
 
     # Set values and check that tags change
     s.cues["default"].set_value("/test_bt", "value", 1)
-    time.sleep(0.1)
-    if not tagpoints.Tag("/test_bt").value == 1:
-        time.sleep(1)
+    core.wait_frame()
+
     assert tagpoints.Tag("/test_bt").value == 1
 
     c2 = s.add_cue("c2")
@@ -466,9 +490,8 @@ def test_tag_backtrack_feature():
     # c3 has no lighting values, however as c2 is between default and c3 in sequence,
     # Skipping should backtrack.
     s.goto_cue("c3")
-    time.sleep(0.1)
-    if not tagpoints.Tag("/test_bt").value == 5:
-        time.sleep(1)
+    core.wait_frame()
+
     assert tagpoints.Tag("/test_bt").value == 5
 
 
@@ -486,17 +509,16 @@ def test_priorities():
     s.cues["default"].set_value("/test_p", "value", 1)
     s2.cues["default"].set_value("/test_p", "value", 2)
 
-    time.sleep(0.1)
-    if not tagpoints.Tag("/test_p").value == 2:
-        time.sleep(1)
+    core.wait_frame()
+
     assert tagpoints.Tag("/test_p").value == 2
 
     # Change priority and confirm stacking order changes
     s.priority = 51
 
-    time.sleep(0.1)
-    if not tagpoints.Tag("/test_p").value == 1:
-        time.sleep(1)
+    core.wait_frame()
+    core.wait_frame()
+
     assert tagpoints.Tag("/test_p").value == 1
 
 
@@ -512,34 +534,29 @@ def test_lighting_value_set_tag_flicker():
     # Set values and check that tags change
     s.cues["default"].set_value("/test1", "value", 50)
     s.cues["default"].set_value("/test2", "value", 60)
-    time.sleep(0.2)
 
-    if not tagpoints.Tag("/test1").value == 50:
-        time.sleep(1)
+    core.wait_frame()
 
     assert tagpoints.Tag("/test1").value == 50
     assert tagpoints.Tag("/test2").value == 60
 
     # Half the alpha should have half the resulting values
     s.setAlpha(0.50)
-    # Give backround rerender time
-    time.sleep(0.25)
-    time.sleep(0.1)
+    core.wait_frame()
 
     assert tagpoints.Tag("/test1").value == 25
     assert tagpoints.Tag("/test2").value == 30
 
     s.stop()
-    time.sleep(0.2)
-    time.sleep(0.1)
+    core.wait_frame()
 
     assert tagpoints.Tag("/test1").value == 0
     assert tagpoints.Tag("/test2").value == 0
 
     s.default_alpha = 0.5
     s.go()
-    time.sleep(0.2)
-    time.sleep(0.1)
+    core.wait_frame()
+
     assert tagpoints.Tag("/test1").value == 25
     assert tagpoints.Tag("/test2").value == 30
 
@@ -554,7 +571,7 @@ def test_lighting_value_set_tag_flicker():
     # Ensure the values are changing
     t1 = tagpoints.Tag("/test1").value
     t2 = tagpoints.Tag("/test2").value
-    time.sleep(0.1)
+    core.wait_frame()
 
     for attempt in stamina.retry_context(on=AssertionError):
         with attempt:
@@ -563,7 +580,7 @@ def test_lighting_value_set_tag_flicker():
 
     # Stop flickering, should be back to normal
     s2.stop()
-    time.sleep(0.2)
+    core.wait_frame()
 
     for attempt in stamina.retry_context(on=AssertionError):
         with attempt:
@@ -571,7 +588,7 @@ def test_lighting_value_set_tag_flicker():
             assert t2 == tagpoints.Tag("/test2").value
 
     s2.go()
-    time.sleep(0.2)
+    core.wait_frame()
 
     for attempt in stamina.retry_context(on=AssertionError):
         with attempt:
@@ -581,7 +598,7 @@ def test_lighting_value_set_tag_flicker():
 
     t1 = tagpoints.Tag("/test1").value
     t2 = tagpoints.Tag("/test2").value
-    time.sleep(0.1)
+    core.wait_frame()
 
     for attempt in stamina.retry_context(on=AssertionError):
         with attempt:
@@ -629,7 +646,7 @@ def test_tag_io():
 
     # Simulate user input
     board._onmsg("__admin__", ["inputtagvalue", s.id, "/ghjgy", 97], "nonexistantsession")
-    time.sleep(0.1)
+    core.wait_frame()
     # Make sure the input tag thing actually sets the value
     assert tagpoints.Tag("ghjgy").value == 97
 
@@ -660,6 +677,8 @@ def test_cue_logic_plugin():
     s2.go()
 
     assert s.active
+    core.wait_frame()
+
     assert s in board.active_groups
     assert s.cue.name == "default"
 
@@ -675,7 +694,9 @@ def test_cue_logic_plugin():
     s2.add_cue("cue2", shortcut="test_val")
     s.goto_cue("cue2")
 
-    time.sleep(0.5)
+    core.wait_frame()
+    core.wait_frame()
+
     assert s2.cue.name == "cue2"
 
     s2.stop()
@@ -689,13 +710,16 @@ def test_cue_logic_plugin():
         ],
     )
 
-    time.sleep(0.2)
+    core.wait_frame()
+    core.wait_frame()
+
     assert s2.cue.name == "default"
     assert s2.entered_cue == 0
 
     s.go()
-    time.sleep(0.2)
-    time.sleep(0.2)
+
+    core.wait_frame()
+    core.wait_frame()
 
     assert s2.cue.name == "cue2"
 
@@ -718,6 +742,8 @@ def test_cue_logic_plugin():
 #     s = board.groups_by_name["unit_testing"]
 
 #     assert s.active
+#     core.wait_frame()
+
 #     assert s in board.active_groups
 
 #     if not s.cue.name == "c1":

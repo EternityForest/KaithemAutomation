@@ -1,9 +1,11 @@
 import os
+import time
 
 from icemedia import sound_player as sound  # noqa: F401
 
 # TODO legacy
 from icemedia.sound_player import *  # noqa
+from icemedia.sound_player import is_playing, play_sound
 
 from . import config, directories, messagebus, util
 
@@ -36,11 +38,13 @@ def init():
             return os.path.join(directories.datadir, "static/sounds/423166__plasterbrain__minimalist-sci-fi-ui-error.opus")
 
     def resolver(fn):
-        for i in os.listdir(os.path.join(directories.vardir, "modules", "data")):
-            p = os.path.join(directories.vardir, "modules", "data", i, "__filedata__", "media")
-            filename = util.search_paths(fn, [p])
-            if filename:
-                break
+        d = os.path.join(directories.vardir, "modules", "data")
+        if os.path.isdir(d):
+            for i in os.listdir(d):
+                p = os.path.join(directories.vardir, "modules", "data", i, "__filedata__", "media")
+                filename = util.search_paths(fn, [p])
+                if filename:
+                    return filename
 
     sound.media_resolvers["kaithem_module"] = resolver
     sound.media_resolvers["kaithem_special"] = special_resolver

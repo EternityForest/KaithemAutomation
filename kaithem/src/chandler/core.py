@@ -260,3 +260,11 @@ def process_next_frame_actions():
     while next_frame_action_queue:
         x = next_frame_action_queue.pop(0)
         serialized_async_with_core_lock(x)
+
+
+def wait_frame():
+    "Waits until at least the frame after this one has been completed"
+    global started_frame_number, completed_frame_number
+    s = started_frame_number
+    while completed_frame_number < s + 1:
+        time.sleep(0.01)
