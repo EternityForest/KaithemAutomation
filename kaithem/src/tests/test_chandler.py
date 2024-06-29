@@ -519,6 +519,8 @@ def test_tag_backtrack_feature():
     core.wait_frame()
 
     assert tagpoints.Tag("/test_bt").value == 5
+    s.close()
+    core.wait_frame()
 
 
 def test_priorities():

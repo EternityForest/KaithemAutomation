@@ -176,7 +176,7 @@ class flicker_blendmode(BlendMode):
         nv = 0
         rise = 0
 
-        groups_ctr = 1
+        groups_ctr = 0
         for k in numpy.nonzero(values)[0]:
             k = int(k)
             # Detect RGB groups of N, put them all together.
