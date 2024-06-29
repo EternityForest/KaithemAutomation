@@ -374,9 +374,9 @@ def str_to_int_si_multipliers(s):
     if s.endswith("k"):
         return int(s[:-1]) * 1000
     elif s.endswith("m"):
-        return int(s[:-1]) * 1000000
+        return int(s[:-1]) * 1000_000
     elif s.endswith("g"):
-        return int(s[:-1]) * 1000000000
+        return int(s[:-1]) * 1000_000_000
     else:
         return int(s[:-1])
 

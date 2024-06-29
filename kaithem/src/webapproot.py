@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 import asyncio
+import gc
 import json
 import logging
 import os
@@ -365,4 +366,7 @@ def startServer():
     loop.stop()
     logger.info("Engine stopped")
     # Let background tasks finish to prevent nuisance errors
-    time.sleep(0.1)
+    # Do collect so the stuff that's gonna get GCed can shutdown gracefully
+    for i in range(5):
+        gc.collect()
+        time.sleep(0.1)

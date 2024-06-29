@@ -103,3 +103,7 @@ dev-publish-to-pypi: # Publish to PyPi.  Can't use poetry because of freeze-whee
 .PHONY: dev-import-16_9_buttons
 dev-import-16_9_buttons: 
 	@bash scripts/import_16x9_buttons.sh
+
+.PHONY: dev-scalene-profile
+dev-scalene-profile:
+	@scalene --profile-all --use-virtual-time --cpu-sampling-rate=0.001 dev_run.py

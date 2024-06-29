@@ -237,7 +237,7 @@ class Universe:
         # The longest time requested by any layer is used
         # The final interpolation time is the greater of
         # This and the time determined by fadeEndTime
-        self.interpolationTime = 0
+        self.interpolationTime = 0.0
 
         # Let subclasses set these
         if not hasattr(self, "status"):

@@ -5,6 +5,7 @@ import weakref
 from typing import Any, Dict, Tuple
 
 import numpy
+import numpy.typing
 
 from . import universes
 
@@ -121,8 +122,11 @@ class flicker_blendmode(BlendMode):
 
         self.rand = [random.triangular(0, 1, 0.35) for i in range(256)]
 
-    def frame(self, u, old, values, alphas, alpha):
+    def frame(self, u: str, old, values: numpy.typing.NDArray[numpy.float32], alphas: numpy.typing.NDArray[numpy.float32], alpha: float):
         uobj = getUniverse(u)
+        assert uobj
+
+        call_time = time.time()
 
         if u not in self.heights:
             if uobj:
@@ -138,8 +142,8 @@ class flicker_blendmode(BlendMode):
             uobj.interpolationTime = 0.2
 
         # Time in 60ths of a second since last frame, so we can keep a consistant frame rate
-        t60 = (time.time() - self.last) * 60
-        self.last = time.time()
+        t60 = (call_time - self.last) * 60
+        self.last = call_time
         lp = t60 * 0.05
         self.wind = 1 * lp + self.wind * (1 - lp)
 
@@ -150,12 +154,11 @@ class flicker_blendmode(BlendMode):
             self.riserate = random.normalvariate(rr, rr / (4.0))
 
         # Get the per-universe time interval
-        t60 = (time.time() - self.last_per[u]) * 60
-        self.last_per[u] = time.time()
+        t60 = (call_time - self.last_per[u]) * 60
+        self.last_per[u] = call_time
 
-        ctr = 0
-        tc = self.blend_args["topple_chance"]
-        lps = self.blend_args["lowpass"]
+        topple_chance_setting = float(self.blend_args["topple_chance"])
+        lowpass_setting = float(self.blend_args["lowpass"])
 
         # This algorithm is pretty tricky and I'm not sure how to properly implement it in numpy.
         # So we're doing it one pixel at a time in python
@@ -169,24 +172,26 @@ class flicker_blendmode(BlendMode):
         # These are here to make linter happy,
         # it doesn't know there will always be at least
         # one group found.  Or maybe it knows something i don't.
-        t = random.random()
-        nv = self.rand[fast_rand_255()]
-        rise = random.random() * self.riserate * t60
+        topple_randomizer = 0
+        nv = 0
+        rise = 0
 
+        groups_ctr = 1
         for k in numpy.nonzero(values)[0]:
             k = int(k)
             # Detect RGB groups of N, put them all together.
             # Reset group on finding a gap to account for typical DMX layouts
-            if (not (ctr % group)) or k - lastk > 1:
-                t = random.random()
-                ctr = 0
+            if (not (groups_ctr % group)) or k - lastk > 1:
+                groups_ctr += 1
+                topple_randomizer = random.random()
+                groups_ctr = 0
                 nv = self.rand[fast_rand_255()]
 
                 rise = random.random() * self.riserate * t60
-            ctr += 1
+            groups_ctr += 1
 
             lastk = k
-            if t < (tc * self.wind * t60):
+            if topple_randomizer < (topple_chance_setting * self.wind * t60):
                 heights[k] = min(1 - (nv * (values[k] / 255.0)), heights[k] + 0.1)
             else:
                 if heights[k] < 1 and values[k] > 0:
@@ -194,7 +199,7 @@ class flicker_blendmode(BlendMode):
                 else:
                     heights[k] = 1
 
-            f = min(1, lps * t60)
+            f = min(1, lowpass_setting * t60)
             heights_lp[k] = heights_lp[k] * (1 - f) + heights[k] * (f)
 
         old *= (alphas * alpha * numpy.minimum(heights_lp, 1)) + 1 - (alpha * alphas)

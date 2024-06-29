@@ -115,16 +115,15 @@ def cl_loop():
             # The pre-render step has to
             # happen before we start compositing on the layers
 
-            try:
-                for b in core.boards.values():
-                    changed.update(group_lighting.mark_and_reset_changed_universes(b, u_cache))
+            # TODO the boards count can change
+            with core.cl_context:
+                with group_lighting.render_loop_lock:
+                    for b in core.boards.values():
+                        changed.update(group_lighting.mark_and_reset_changed_universes(b, u_cache))
 
-                for b in core.boards.values():
-                    c = group_lighting.composite_layers_from_board(b, u=u_cache)
-                    changed.update(c)
-
-            finally:
-                group_lighting.render_loop_lock.release()
+                    for b in core.boards.values():
+                        c = group_lighting.composite_layers_from_board(b, u=u_cache)
+                        changed.update(c)
 
             group_lighting.do_output(changed, u_cache)
 
