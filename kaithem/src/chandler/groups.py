@@ -147,7 +147,7 @@ class DebugScriptContext(kaithem.chandlerscript.ChandlerScriptContext):
         group = self.groupObj()
         if group:
             try:
-                if not k == "_" and group.rerenderOnVarChange:
+                if (k not in ("_", "event")) and group.rerenderOnVarChange:
                     group.lighting_manager.recalc_cue_vals()
                     group.poll_again_flag = True
                     group.lighting_manager.rerender()
@@ -157,7 +157,7 @@ class DebugScriptContext(kaithem.chandlerscript.ChandlerScriptContext):
                 print(traceback.format_exc())
 
             try:
-                if not k.startswith("_"):
+                if not k.startswith("_") and not k == "event":
                     for board in core.iter_boards():
                         if board:
                             if isinstance(v, (str, int, float, bool)):

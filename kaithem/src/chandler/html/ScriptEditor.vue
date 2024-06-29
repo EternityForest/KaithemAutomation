@@ -79,7 +79,7 @@ p.small {
                     Type
                     <combo-box :disabled="disabled" v-model="selectedCommand[0]" v-bind:options="getPossibleActions()"
                         v-bind:pinned="getSpecialActions()" @update:modelValue="setCommandDefaults(selectedCommand);"
-                        v-on:change="$emit('update:modelValue', rules);"></combo-box>
+                        v-on:change="setCommandDefaults(selectedCommand); $emit('update:modelValue', rules);"></combo-box>
                     <h4>Config</h4>
                     <div v-if="selectedCommand[0] == 'set'">
                         Set a variable named <combo-box :disabled="disabled" v-model="selectedCommand[1]" v-bind:pinned="pinnedvars"
@@ -354,14 +354,12 @@ module.exports = {
                 if (l[0] in this.commands) {
                     d = this.commands[l[0]]['args']
                 }
-
+                //Get rid of everything except the command name
+                l.splice(1);
                 //Not a command we know anything about to set defaults
                 if (d == 0) {
                     return;
                 }
-
-                //Get rid of everything except the command name
-                l.splice(1);
 
                 //Push the default values for the command
                 for (i of d) {

@@ -17,8 +17,10 @@ rootContext = kaithem.chandlerscript.ChandlerScriptContext()
 
 # Dummies just for the introspection
 # TODO use the context commands thingy so we don't repeat this
-def gotoCommand(group: str = "=GROUP", cue: str = ""):
-    "Triggers a group to go to a cue.  Ends handling of any further bindings on the current event"
+def gotoCommand(group: str = "=GROUP", cue: str = "", time="=event.time"):
+    """Triggers a group to go to a cue in the next frame.
+    Repeat commands with same timestamp are ignored. Leave time blank
+    to use current time."""
 
 
 def codeCommand(code: str = ""):
@@ -75,7 +77,7 @@ def add_context_commands(context_group: groups.Group):
         Repeat commands with same timestamp are ignored. Leave time blank
         to use current time."""
 
-        time = time or _time.time()
+        time = context_group.evalExpr(time) or _time.time()
 
         if not abs(float(time) - _time.time()) < 60 * 5:
             raise ValueError("Timestamp sanity check failed")
