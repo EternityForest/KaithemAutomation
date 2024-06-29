@@ -56,6 +56,7 @@ Change Log
 - :bug: Tag point universes always update on cue even if not changed
 - :bug: Fix bug where a fade in the middle of another fade could be a sudden jump
 - :bug: Fix cue and group autocomplete in script editor
+- :bug: Can debug test_run.py
 
 ### 0.84.0b2
 

@@ -41,9 +41,13 @@ _universes: dict[str, weakref.ReferenceType[Universe]] = {}
 
 fixtures: dict[str, weakref.ref[Fixture]] = {}
 
+last_state_update = time.time()
+
 
 def refresh_groups():
     """Tell groups the set of universes has changed"""
+    global last_state_update
+    last_state_update = time.time()
 
     def f():
         for b in core.iter_boards():
@@ -136,6 +140,9 @@ class Fixture:
             fixtures[name] = weakref.ref(self)
             self.name = name
 
+        global last_state_update
+        last_state_update = time.time()
+
     def getChannelByName(self, name: str):
         if self.startAddress:
             return self
@@ -158,6 +165,8 @@ class Fixture:
                     pass
                 except Exception:
                     print(traceback.format_exc())
+            global last_state_update
+            last_state_update = time.time()
 
         kaithem.misc.do(f)
 
@@ -166,6 +175,8 @@ class Fixture:
             del fixtures[self.name]
         except Exception:
             print(traceback.format_exc())
+        global last_state_update
+        last_state_update = time.time()
 
     @core.cl_context.required
     def cl_assign(self, universe: str | None, channel: int | None):
@@ -221,6 +232,8 @@ class Fixture:
                 cPointer += 1
 
         universeObj.cl_channels_changed()
+        global last_state_update
+        last_state_update = time.time()
 
 
 class Universe:
@@ -343,6 +356,8 @@ class Universe:
         if self.refresh_on_create:
             kaithem.message.post("/chandler/command/refreshFixtures", self.name)
             self.refresh_groups()
+        global last_state_update
+        last_state_update = time.time()
 
     @core.cl_context.required
     def cl_close(self):
@@ -366,6 +381,8 @@ class Universe:
 
         refresh_groups()
         self.closed = True
+        global last_state_update
+        last_state_update = time.time()
 
     def setStatus(self, s: str, ok: bool):
         "Set the status shown in the gui. ok is a bool value that indicates if the object is able to transmit data to the fixtures"
@@ -393,6 +410,8 @@ class Universe:
                 if lifespan and not lifespan.shutdown:
                     # Do as little as possible in the undefined __del__ thread
                     refresh_groups()
+            global last_state_update
+            last_state_update = time.time()
 
     @core.cl_context.required
     def cl_channels_changed(self):

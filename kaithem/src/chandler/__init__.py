@@ -82,7 +82,8 @@ def cl_loop():
         try:
             with core.cl_context:
                 # Profiler says this needs a cache
-                if t - u_cache_time > 1:
+                # Todo race condition but i think it's just a flaky test issue
+                if (t - u_cache_time > 1) or universes.last_state_update > u_cache_time:
                     u_cache = universes.getUniverses()
                     u_cache_time = t
 

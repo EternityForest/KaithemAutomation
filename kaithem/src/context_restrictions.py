@@ -40,7 +40,7 @@ class Context:
         self._opens_before: list[Context] = []
         self._preconditions: list[Callable[[], bool]] = []
         self._postconditions: list[Callable[[], bool]] = []
-        self._lock_timeout = -1
+        self._lock_timeout = 15
 
     def __repr__(self) -> str:
         return f"<Context {self.name} active={self.active} session={self.session} exclusive={self._lock is not None}>"
@@ -159,7 +159,6 @@ class Context:
             s = id(obj)
             if self._local.session and self._local.session != s:
                 raise ContextError(f"{self.name} open in session {self._local.session}")
-
             if self._local.level > 0:
                 return f(obj, *args, **kwargs)
             else:

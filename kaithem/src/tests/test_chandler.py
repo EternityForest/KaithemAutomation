@@ -121,6 +121,8 @@ def test_fixtures():
 
     s.close()
     board.rmGroup(s)
+    core.wait_frame()
+
     assert "TestingGroup1" not in board.groups_by_name
 
 
@@ -155,6 +157,8 @@ def test_make_group():
 
     s.close()
     board.rmGroup(s)
+    core.wait_frame()
+
     assert "TestingGroup1" not in board.groups_by_name
 
     # board.check_autosave()
@@ -189,6 +193,7 @@ def test_setup_cue():
     s.close()
     board.rmGroup(s)
     core.wait_frame()
+
     assert "TestingGroup1" not in board.groups_by_name
 
 
@@ -493,10 +498,15 @@ def test_tag_backtrack_feature():
     core.wait_frame()
 
     # Set values and check that tags change
+    # First time allow two frames because it creates a new universe for the tag
     s.cues["default"].set_value("/test_bt", "value", 1)
     core.wait_frame()
-
+    core.wait_frame()
     assert tagpoints.Tag("/test_bt").value == 1
+
+    s.cues["default"].set_value("/test_bt", "value", 2)
+    core.wait_frame()
+    assert tagpoints.Tag("/test_bt").value == 2
 
     c2 = s.add_cue("c2")
     c2.set_value("/test_bt", "value", 5)
@@ -641,6 +651,7 @@ def test_lighting_value_set_tag_flicker():
     s2.close()
     board.rmGroup(s)
     board.rmGroup(s2)
+    core.wait_frame()
 
 
 def test_tag_io():
@@ -678,6 +689,7 @@ def test_tag_io():
 
     s.close()
     board.rmGroup(s)
+    core.wait_frame()
 
 
 def test_cue_logic_plugin():
