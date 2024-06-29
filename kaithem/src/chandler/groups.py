@@ -173,8 +173,8 @@ class DebugScriptContext(kaithem.chandlerscript.ChandlerScriptContext):
                 print(traceback.format_exc())
 
     @group_lock_context.object_session_entry_point
-    def event(self, evt: str, val: str | float | int | bool | None = None):
-        kaithem.chandlerscript.ChandlerScriptContext.event(self, evt, val)
+    def event(self, evt: str, val: str | float | int | bool | None = None, timestamp=None):
+        kaithem.chandlerscript.ChandlerScriptContext.event(self, evt, val, timestamp=timestamp)
         try:
             for board in core.iter_boards():
                 board.pushEv(evt, self.groupName, time.time(), value=val)
@@ -956,7 +956,6 @@ class Group:
         :param sendSync: Boolean indicating whether to send synchronization message, defaults to True.
         :param generateEvents: Boolean indicating whether to generate events, defaults to True.
         :param cause: The cause of the cue transition, defaults to "generic".
-        :param defer_if_too_soon: Boolean indicating whether to defer the transition to a bg thread if it's too soon after the last cue transition.
         """
         # Globally raise an error if there's a big horde of cue transitions happening
         doTransitionRateLimit()
@@ -971,7 +970,11 @@ class Group:
                     time.sleep(0.05)
 
         # Ignore old cue transitions, but with some slop margin for bad time sync
-        if cue_entered_time and cue_entered_time < self.entered_cue - 5:
+        if cue_entered_time and cue_entered_time < self.entered_cue - 60:
+            return
+
+        # Exact match is definitely a repeat
+        if cue_entered_time and cue_entered_time == self.entered_cue:
             return
 
         # Not really in a cue, reentrancy doesn't apply

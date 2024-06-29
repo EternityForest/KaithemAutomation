@@ -508,9 +508,6 @@ class Device(iot_devices.device.Device):
     def tagpoints(self, v):
         self.tagPoints = v
 
-    # def handler(v,t or None, a="Set by device"):
-    #     self.set_claim_val("default", v, t or time.monotonic(), a)
-
     def handle_error(self, s):
         self.errors.append((time.time(), str(s)))
 

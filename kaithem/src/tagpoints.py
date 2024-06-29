@@ -107,8 +107,6 @@ logger = structlog.get_logger(__name__)
 
 exposedTags: weakref.WeakValueDictionary[str, GenericTagPointClass[Any]] = weakref.WeakValueDictionary()
 
-t = time.monotonic
-
 # This is used for messing with the set of tags.
 # We just accept that creating and deleting tags and claims is slow.
 lock = threading.RLock()
@@ -1072,7 +1070,7 @@ class GenericTagPointClass(Generic[T]):
         Meant for streaming video and the like.
         """
 
-        timestamp = timestamp or time.monotonic()
+        timestamp = timestamp or time.time()
 
         for i in self.subscribers_atomic:
             f = i()
@@ -1101,7 +1099,7 @@ class GenericTagPointClass(Generic[T]):
         if isinstance(f, GenericTagPointClass) and (f.unreliable or self.unreliable):
             f = f.fast_push
 
-        timestamp = time.monotonic()
+        timestamp = time.time()
 
         try:
             desc = str(f"{f} of {f.__module__}")
@@ -1109,10 +1107,8 @@ class GenericTagPointClass(Generic[T]):
         except Exception:
             desc = str(f)
 
-        timestamp = time.monotonic()
-
         def errcheck(*a: Any):
-            if time.monotonic() < timestamp - 0.5:
+            if time.time() < timestamp - 0.5:
                 logger.warning("Function: " + desc + " was deleted 0.5s after being subscribed.  This is probably not what you wanted.")
 
         if self.lock.acquire(timeout=20):
@@ -1254,7 +1250,7 @@ class GenericTagPointClass(Generic[T]):
 
     @property
     def age(self):
-        return time.monotonic() - self.vta[1]
+        return time.time() - self.vta[1]
 
     @property
     def value(self) -> T:
@@ -1262,7 +1258,7 @@ class GenericTagPointClass(Generic[T]):
 
     @value.setter
     def value(self, v: T | Callable[..., T | None]):
-        self.set_claim_val("default", v, time.monotonic(), "Set via value property")
+        self.set_claim_val("default", v, time.time(), "Set via value property")
 
     def pull(self) -> T:
         if not self.lock.acquire(timeout=15):
@@ -1276,7 +1272,7 @@ class GenericTagPointClass(Generic[T]):
         "Get the processed value of the tag, and update last_value, It is meant to be called under lock."
 
         # Overrides not guaranteed to be instant
-        if (self.last_got_value > time.monotonic() - self.interval) and not force:
+        if (self.last_got_value > time.time() - self.interval) and not force:
             return self.last_value
 
         active_claim = self.active_claim
@@ -1288,7 +1284,7 @@ class GenericTagPointClass(Generic[T]):
         if not callable(active_claim_value):
             # We no longer are aiming to support using the processor for impure functions
 
-            self.last_got_value = time.monotonic()
+            self.last_got_value = time.time()
             self.last_value = self.processValue(active_claim_value)
 
         else:
@@ -1297,10 +1293,10 @@ class GenericTagPointClass(Generic[T]):
             # It shouldn't affect correctness
 
             # Note that this is on a per-claim basis.  Every claim has it's own cache.
-            if (time.monotonic() - active_claim.lastGotValue > self._interval) or force:
+            if (time.time() - active_claim.lastGotValue > self._interval) or force:
                 # Set this flag immediately, or else a function with an error could defeat the cacheing
                 # And just flood everything with errors
-                active_claim.lastGotValue = time.monotonic()
+                active_claim.lastGotValue = time.time()
 
                 try:
                     # However, the actual logic IS ratelimited
@@ -1321,7 +1317,7 @@ class GenericTagPointClass(Generic[T]):
                     try:
                         # None means no new data
                         x = active_claim_value()
-                        t = time.monotonic()
+                        t = time.time()
 
                         if x is not None:
                             # Race here. Data might not always match timestamp an annotation, if we weren't under lock
@@ -1333,7 +1329,7 @@ class GenericTagPointClass(Generic[T]):
                             active_claim.cachedValue = (x, t)
 
                             # This is just used to calculate the overall age of the tags data
-                            self.last_got_value = time.monotonic()
+                            self.last_got_value = time.time()
                             self.last_value = self.processValue(x)
                             self._push()
 
@@ -1345,8 +1341,8 @@ class GenericTagPointClass(Generic[T]):
                     logger.exception("Error getting tag value")
 
                     # The system logger is the one kaithem actually logs to file.
-                    if self.lastError < (time.monotonic() - (60 * 10)):
-                        self.lastError = time.monotonic()
+                    if self.lastError < (time.time() - (60 * 10)):
+                        self.lastError = time.time()
                         logger.exception("Error getting tag value. This message will only be logged every ten minutes.")
                     # If we can, try to send the exception back whence it came
                     try:
@@ -1427,7 +1423,7 @@ class GenericTagPointClass(Generic[T]):
 
         name = name or f"claim{str(time.time())}"
         if timestamp is None:
-            timestamp = time.monotonic()
+            timestamp = time.time()
 
         if priority and priority > 100:
             raise ValueError("Maximum priority is 100")
@@ -1535,7 +1531,7 @@ class GenericTagPointClass(Generic[T]):
         "Set the value of an existing claim"
 
         if timestamp is None:
-            timestamp = time.monotonic()
+            timestamp = time.time()
 
         valCallable = True
         if not callable(val):
@@ -1583,7 +1579,7 @@ class GenericTagPointClass(Generic[T]):
                     # No need to call the function right away, that can happen when a getter calls it
                     # self._getValue()
                 else:
-                    self.last_got_value = time.monotonic()
+                    self.last_got_value = time.time()
                     self.last_value = self.processValue(val)
                 # No need to push is listening
                 if self.subscribers or self.handler:
@@ -1905,7 +1901,7 @@ class Claim(Generic[T]):
     ):
         self.name = name
         self.tag = tag
-        timestamp = timestamp or time.monotonic()
+        timestamp = timestamp or time.time()
         self.vta: tuple[T | Callable[[], T | None], float, Any] = (
             value,
             timestamp,
@@ -1919,7 +1915,7 @@ class Claim(Generic[T]):
         # Track the last *attempt* at reading the value if it is a callable, regardless of whether
         # it had new data or not.
 
-        # It is in monotonic time.
+        # It is in unix time.
         self.lastGotValue = 0.0
 
         self.priority = priority
@@ -1989,7 +1985,7 @@ class Claim(Generic[T]):
             ts = self.timestamp
 
         if not self.expired:
-            if ts < (time.monotonic() - self.expiration):
+            if ts < (time.time() - self.expiration):
                 # First we must try to refresh the callable.
                 self.refreshCallable()
                 if self.tag.lock.acquire(timeout=90):
@@ -1999,7 +1995,7 @@ class Claim(Generic[T]):
                         else:
                             ts = self.timestamp
 
-                        if ts < (time.monotonic() - self.expiration):
+                        if ts < (time.time() - self.expiration):
                             self.setPriority(self.expiredPriority, False)
                             self.expired = True
                     finally:
@@ -2014,11 +2010,11 @@ class Claim(Generic[T]):
         # Only call the getter under lock in case it happens to not be threadsafe
         if callable(self.value):
             if self.tag.lock.acquire(timeout=90):
-                self.lastGotValue = time.monotonic()
+                self.lastGotValue = time.time()
                 try:
                     x = self.value()
                     if x is not None:
-                        self.cachedValue = (x, time.monotonic())
+                        self.cachedValue = (x, time.time())
                         self.unexpire()
                 finally:
                     self.tag.lock.release()

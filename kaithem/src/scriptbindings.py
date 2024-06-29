@@ -399,10 +399,10 @@ class ScriptActionKeeper:
 
 
 class Event:
-    def __init__(self, name, val):
+    def __init__(self, name, val, timestamp=None):
         self.name = name
         self.value = val
-        self.time = time.time()
+        self.time = timestamp or time.time()
         self.millis = millis()
 
 
@@ -416,7 +416,11 @@ class BaseChandlerScriptContext:
         constants: dict[str, Any] | None = None,
         contextFunctions: dict[str, Callable[..., Any]] = {},
         contextName: str = "script",
+        wait_for_all_async_commands_callback: Callable[[], Any] | None = None,
     ):
+        # Used so external code can give us a way to wait for any custom events to be done.
+        self.wait_for_all_async_commands_callback = wait_for_all_async_commands_callback
+
         # Used as a backup plan to be able to do things in a background thread
         # when doing so directly would cause a deadlock
         self.event_queue: list[Callable[[], Any]] = []
@@ -470,7 +474,7 @@ class BaseChandlerScriptContext:
 
         # Stack to keep track of the $event variable for the current event we
         # are running, For nested events
-        self.eventValueStack = []
+        self.eventValueStack: list[Event] = []
 
         # Look for rising edge detects that already fired
         self.risingEdgeDetects = {}
@@ -538,8 +542,11 @@ class BaseChandlerScriptContext:
         else:
             self.gil = gil
 
-    def waitForEvents(self):
+    def waitForEvents(self, timeout=None):
+        st = time.time()
         while self.event_queue:
+            if timeout and time.time() - st > timeout:
+                raise TimeoutError("Timed out waiting for events")
             time.sleep(0.001)
 
     def checkPollEvents(self):
@@ -554,7 +561,7 @@ class BaseChandlerScriptContext:
                         # Change =/ to just =
                         r = self.preprocessArgument(f"={i[2:]}")
                         if r:
-                            if (i not in self.risingEdgeDetects) or (not self.risingEdgeDetects[i]):
+                            if (i in self.risingEdgeDetects) and (not self.risingEdgeDetects[i]):
                                 self.risingEdgeDetects[i] = True
                                 self.event(i, r)
                         else:
@@ -654,7 +661,7 @@ class BaseChandlerScriptContext:
         "Don't handle any more bindings for this event, but continue the current binding"
         self.stopScriptFlag = True
 
-    def event(self, evt, val=None):
+    def event(self, evt, val=None, timestamp=None):
         "Queue an event to run in the background. Queued events run in FIFO"
 
         # Capture the depth we are at, so we can make sure that _event knows if
@@ -675,7 +682,7 @@ class BaseChandlerScriptContext:
         self.event_queue.append(f)
         workers.do(self.doEventQueue)
 
-    def _event(self, evt, val, depth):
+    def _event(self, evt, val, depth, timestamp=None):
         handled = False
 
         # Tell any functions we call that they are running at elevated depth.
@@ -686,13 +693,15 @@ class BaseChandlerScriptContext:
                 raise RecursionError("Cannot nest more than 8 events directly causing each other")
 
             if not isinstance(val, Event):
-                self.eventValueStack.append(Event(evt, val))
+                self.eventValueStack.append(Event(evt, val, timestamp))
             else:
                 val.name = evt
                 self.eventValueStack.append(val)
 
             context_info.event = (evt, val)
             self.variables["_"] = True if val is None else val
+            self.variables["event"] = self.eventValueStack[-1]
+
             self.stopScriptFlag = False
             try:
                 if evt in self.event_listeners:
@@ -712,6 +721,8 @@ class BaseChandlerScriptContext:
                     f"{self.contextName}\n{traceback.format_exc(chain=True)}",
                 )
                 raise
+            finally:
+                del self.variables["event"]
 
         finally:
             if self.eventValueStack:
@@ -900,7 +911,7 @@ class BaseChandlerScriptContext:
 class ChandlerScriptContext(BaseChandlerScriptContext):
     tagDefaultPrefix = "/sandbox/"
 
-    def onTagChange(self, tagname, val):
+    def onTagChange(self, tagname, val, timestamp):
         """We make a best effort to run this synchronously. If we cannot,
         We let the background thread handle it.
         """
@@ -929,7 +940,7 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
             return
 
         def onchange(v, ts, an):
-            self.onTagChange(tag.name, v)
+            self.onTagChange(tag.name, v, ts)
 
         tag.subscribe(onchange)
         self.need_refresh_for_tag[tag.name] = True

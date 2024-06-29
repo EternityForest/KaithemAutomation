@@ -1074,7 +1074,7 @@ class ColorTagUniverse(Universe):
     def _onFrame(self):
         c = colorzero.Color.from_rgb(self.values[1] / 255, self.values[2] / 255, self.values[3] / 255).html
 
-        tm = time.monotonic()
+        tm = time.time()
 
         # Only set the fade tag right before we are about to do something with the bulb, otherwise we would be adding a ton
         # of useless writes

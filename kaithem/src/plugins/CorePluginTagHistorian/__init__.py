@@ -222,12 +222,11 @@ class TagLogger:
     def flush(self, force=False):
         # Ratelimit how often we log, continue accumulating if nothing to log.
         if not force:
-            if self.lastLogged > time.monotonic() - self.interval:
+            if self.lastLogged > time.time() - self.interval:
                 return
 
-        offset = time.time() - time.monotonic()
-        self.insertData((self.chID, self.accumTime + offset, self.accumVal))
-        self.lastLogged = time.monotonic()
+        self.insertData((self.chID, self.accumTime, self.accumVal))
+        self.lastLogged = time.time()
         self.accumCount = 0
         self.accumVal = self.defaultAccum
 
@@ -286,18 +285,17 @@ class AverageLogger(TagLogger):
     def flush(self, force=False):
         # Ratelimit how often we log, continue accumulating if nothing to log.
         if not force:
-            if self.lastLogged > time.monotonic() - self.interval:
+            if self.lastLogged > time.time() - self.interval:
                 return
-        offset = time.time() - time.monotonic()
 
         self.insertData(
             (
                 self.chID,
-                (self.accumTime / self.accumCount) + offset,
+                (self.accumTime / self.accumCount),
                 self.accumVal / self.accumCount,
             )
         )
-        self.lastLogged = time.monotonic()
+        self.lastLogged = time.time()
         self.accumCount = 0
         self.accumVal = 0
         self.accumTime = 0
@@ -319,12 +317,11 @@ class MinLogger(TagLogger):
     def flush(self, force=False):
         # Ratelimit how often we log, continue accumulating if nothing to log.
         if not force:
-            if self.lastLogged > time.monotonic() - self.interval:
+            if self.lastLogged > time.time() - self.interval:
                 return
 
-        offset = time.time() - time.monotonic()
-        self.insertData((self.chID, (self.accumTime / self.accumCount) + offset, self.accumVal))
-        self.lastLogged = time.monotonic()
+        self.insertData((self.chID, (self.accumTime / self.accumCount), self.accumVal))
+        self.lastLogged = time.time()
         self.accumCount = 0
         self.accumVal = 10**18
         self.accumTime = 0
@@ -346,12 +343,11 @@ class MaxLogger(MinLogger):
     def flush(self, force=False):
         # Ratelimit how often we log, continue accumulating if nothing to log.
         if not force:
-            if self.lastLogged > time.monotonic() - self.interval:
+            if self.lastLogged > time.time() - self.interval:
                 return
 
-        offset = time.time() - time.monotonic()
-        self.insertData((self.chID, (self.accumTime / self.accumCount) + offset, self.accumVal))
-        self.lastLogged = time.monotonic()
+        self.insertData((self.chID, (self.accumTime / self.accumCount), self.accumVal))
+        self.lastLogged = time.time()
         self.accumCount = 0
         self.accumVal = -(10**18)
         self.accumTime = 0
@@ -434,7 +430,7 @@ class TagHistorian:
 
         self.history.close()
 
-        self.lastFlushed = time.monotonic()
+        self.lastFlushed = time.time()
 
         self.lastGarbageCollected = 0
 
@@ -458,14 +454,14 @@ class TagHistorian:
 
     def flush(self, force=False):
         if not force:
-            if time.monotonic() - self.lastFlushed < self.flushInterval:
+            if time.time() - self.lastFlushed < self.flushInterval:
                 return
-            self.lastFlushed = time.monotonic()
+            self.lastFlushed = time.time()
 
         with self.lock:
-            needsGC = self.lastGarbageCollected < time.monotonic() - self.gcInterval
+            needsGC = self.lastGarbageCollected < time.time() - self.gcInterval
             if needsGC:
-                self.lastGarbageCollected = time.monotonic()
+                self.lastGarbageCollected = time.time()
             if force:
                 needsGC = 1
 

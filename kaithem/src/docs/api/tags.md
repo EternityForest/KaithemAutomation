@@ -143,7 +143,7 @@ When a tag is first created, it's value is the default for that type, and
 it's timestamp will be 0.
 
 The annotation is an arbitrary python object, and the timestamp is always in
-the time.monotonic() scale.
+the time.time() scale.
 
 It is suggested that you not do anything with annotations besides equality
 testing, or that you always typecheck the value as it defaults to None.

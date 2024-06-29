@@ -289,11 +289,11 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             self.levelTag.value = -90
             self.lastLevel = 0
             self.lastRMS = 0
-            self.lastNormalVolumeLevel = time.monotonic()
+            self.lastNormalVolumeLevel = time.time()
             # Limit how often we can clear the alert
-            self.alertRatelimitTime = time.monotonic() + 10
+            self.alertRatelimitTime = time.time() + 10
             self.soundFuseSetting = soundFuse
-            self.lastPushedLevel = time.monotonic()
+            self.lastPushedLevel = time.time()
             self.effectsById = {}
             self.effectDataById = {}
             self.faderLevel = -60
@@ -302,7 +302,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             # Are we already doing a loudness cutoff?
             self.doingFeedbackCutoff = False
 
-            self.created_time = time.monotonic()
+            self.created_time = time.time()
 
             if not input or not input.startswith("rtplisten://"):
                 self.src = self.add_element(
@@ -549,7 +549,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
 
     def setInput(self, input):
         # Stop whatever was there before
-        self.stopMPVThread = time.monotonic()
+        self.stopMPVThread = time.time()
         if "://" in input and ("http://" not in input) and ("https://" not in input):
             return
         with self.lock:
@@ -816,14 +816,14 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
 
             self.doSoundFuse(rms)
             if abs(level - self.lastLevel) < 3:
-                if time.monotonic() - self.lastPushedLevel < 1:
+                if time.time() - self.lastPushedLevel < 1:
                     return True
             else:
-                if time.monotonic() - self.lastPushedLevel < 0.07:
+                if time.time() - self.lastPushedLevel < 0.07:
                     return True
             level = max(round(level, 2), -99)
             self.board.channels[self.name]["level"] = level
-            self.lastPushedLevel = time.monotonic()
+            self.lastPushedLevel = time.time()
             self.lastLevel = level
             self.board.pushLevel(self.name, level)
 
@@ -839,11 +839,11 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
         # Aside from very small decreases, there's likely other stuff happening too.
         # But if we are close to clipping ignore that
         if not (((self.lastRMS < (rms + 1.5)) or rms > -2) and rms > self.soundFuseSetting):
-            self.lastNormalVolumeLevel = time.monotonic()
+            self.lastNormalVolumeLevel = time.time()
         self.lastRMS = rms
-        if time.monotonic() - self.lastNormalVolumeLevel > 0.2:
+        if time.time() - self.lastNormalVolumeLevel > 0.2:
             # self.loudnessAlert.trip()
-            self.alertRatelimitTime = time.monotonic()
+            self.alertRatelimitTime = time.time()
 
             if not self.doingFeedbackCutoff:
                 self.doingFeedbackCutoff = True
@@ -900,9 +900,9 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
 
                 workers.do(f)
 
-        elif time.monotonic() - self.alertRatelimitTime > 10:
+        elif time.time() - self.alertRatelimitTime > 10:
             # self.loudnessAlert.release()
-            self.alertRatelimitTime = time.monotonic()
+            self.alertRatelimitTime = time.time()
 
     def _faderTagHandler(self, level, t, a):
         # Note: We don't set the configured data fader level here.
@@ -1004,11 +1004,11 @@ class MixingBoard:
 
         # This could iterationerror, just ignore it and move on for now
         for name, i in self.channelObjects.items():
-            if i.created_time < (time.monotonic() - 60):
+            if i.created_time < (time.time() - 60):
                 if not i.check_ports():
                     logging.error(f"Ports for {name} not found, remaking channel")
-                    if not actionLockout.get(name, 0) > time.monotonic() - 10:
-                        actionLockout[name] = time.monotonic()
+                    if not actionLockout.get(name, 0) > time.time() - 10:
+                        actionLockout[name] = time.time()
                         self._createChannel(name, self.channels[name])
                         actionLockout.pop(name, None)
 
@@ -1251,8 +1251,8 @@ class MixingBoard:
 
     def reloadChannel(self, name):
         # disallow spamming
-        if not actionLockout.get(name, 0) > time.monotonic() - 10:
-            actionLockout[name] = time.monotonic()
+        if not actionLockout.get(name, 0) > time.time() - 10:
+            actionLockout[name] = time.time()
             self._createChannel(name, self.channels[name])
             actionLockout.pop(name, None)
 

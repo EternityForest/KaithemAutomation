@@ -1,3 +1,12 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from . import groups
+
+import time as _time
+
 from kaithem.src.kaithemobj import kaithem
 
 from . import core
@@ -58,11 +67,18 @@ def sendMqttMessage(topic: str, message: str):
 rootContext.commands["send_mqtt"] = sendMqttMessage
 
 
-def add_context_commands(context_group):
+def add_context_commands(context_group: groups.Group):
     cc = {}
 
-    def gotoCommand(group: str = "=GROUP", cue: str = ""):
-        "Triggers a group to go to a cue in the next frame."
+    def gotoCommand(group: str = "=GROUP", cue: str = "", time="=event.time"):
+        """Triggers a group to go to a cue in the next frame.
+        Repeat commands with same timestamp are ignored. Leave time blank
+        to use current time."""
+
+        time = time or _time.time()
+
+        if not abs(float(time) - _time.time()) < 60 * 5:
+            raise ValueError("Timestamp sanity check failed")
 
         # Ignore empty
         if not cue.strip():
@@ -83,9 +99,17 @@ def add_context_commands(context_group):
                 raise RuntimeError("More than 3 layers of redirects in cue.enter or cue.exit")
 
         def f():
-            context_group.board.groups_by_name[group].goto_cue(cue, cause=newcause)
+            context_group.board.groups_by_name[group].goto_cue(cue, cause=newcause, cue_entered_time=float(time))
 
-        core.serialized_async_next_frame(f)
+        fn = context_group.board.groups_by_name[group].entered_cue_frame_number
+
+        # If we just entered the cue, then defer to next frame
+        # So goto_cue's wait doesn't block stuff
+        if fn > core.completed_frame_number - 1:
+            core.serialized_async_next_frame(f)
+        else:
+            core.serialized_async_with_core_lock(f)
+
         return True
 
     def codeCommand(code: str = ""):
