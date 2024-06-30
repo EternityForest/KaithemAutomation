@@ -42,7 +42,7 @@ class Context:
     to open.
     """
 
-    def __init__(self, name: str, exclusive: bool = False, bottom_level: bool = False):
+    def __init__(self, name: str, exclusive: bool = False, bottom_level: bool = False, timeout=-1):
         self.name = name
 
         self._lock = threading.RLock() if exclusive else None
@@ -50,10 +50,10 @@ class Context:
         self._opens_before: list[Context] = []
         self._preconditions: list[Callable[[], bool]] = []
         self._postconditions: list[Callable[[], bool]] = []
-        self._lock_timeout = 15
+        self._lock_timeout = timeout
         self._is_bottom_level = bottom_level
 
-    def __repr__(self) -> str:
+    def __repr__(self):
         return f"<Context {self.name} active={self.active} session={self.session} exclusive={self._lock is not None}>"
 
     def precondition(self, f: Callable[[], bool]):

@@ -111,11 +111,11 @@ class flicker_blendmode(BlendMode):
         BlendMode.__init__(self, group)
         self.group = group
 
-        self.wind = 1
-        self.wind_gust_chance = 0.01
-        self.topple_chance = 0.1
-        self.riserate = 0.04
-        self.last = time.time()
+        self.wind: float = 1
+        self.wind_gust_chance: float = 0.01
+        self.topple_chance: float = 0.1
+        self.riserate: float = 0.04
+        self.last: float = time.time()
         self.last_per = {}
 
         # dicts of np arrays by universe name

@@ -84,7 +84,8 @@ def rl_log_exc(m: str):
     last_logged_error = time.monotonic()
 
 
-cl_context = context_restrictions.Context("ChandlerCoreLock", exclusive=True)
+cl_context = context_restrictions.Context("ChandlerCoreLock", exclusive=True, timeout=5 * 60)
+
 
 logger = structlog.get_logger(__name__)
 

@@ -206,6 +206,22 @@ class Cue:
 
         self.push()
 
+    def __repr__(self):
+        gr = None
+        if hasattr(self, "group"):
+            gr = self.group()
+        ac = False
+        if gr:
+            g = gr.name
+            if hasattr(gr, "cue") and gr.cue is self:
+                ac = gr.cue is self
+        else:
+            g = "None"
+        try:
+            return f"Cue({self.name}, id={self.id}, group={g}, active={ac})"
+        except Exception:
+            return "Cue(init not done or data corrupted)"
+
     def serialize(self):
         x2 = {}
         # The schema decides what properties we save

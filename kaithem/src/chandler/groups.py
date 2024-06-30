@@ -1706,8 +1706,8 @@ class Group:
 
         self.pushMeta(statusOnly=True)
 
-    @beartype
     @slow_group_lock_context.object_session_entry_point
+    @beartype
     def setMqttServer(self, mqtt_server: str):
         with self.lock:
             x = mqtt_server.strip().split(":")

@@ -235,35 +235,3 @@ if time.time() < util.min_time:
         "/system/notifications/errors",
         """System Clock may be wrong, or time has been set backwards at some point.""",
     )
-
-
-# # If either of these doesn't run at the right time, raise a message
-# selftest = [time.monotonic(), time.monotonic()]
-
-# lastpost = [0.0]
-
-
-# def a():
-#     selftest[0] = time.monotonic()
-#     if selftest[1] < time.monotonic() - 40:
-#         if lastpost[0] < time.monotonic() - 600:
-#             lastpost[0] = time.monotonic()
-#             messagebus.post_message(
-#                 "/system/notifications/errors",
-#                 "Something caused a scheduler continual selftest function not to run.",
-#             )
-
-
-# def b():
-#     selftest[1] = time.monotonic()
-#     if selftest[0] < time.monotonic() - 40:
-#         if lastpost[0] < time.monotonic() - 600:
-#             lastpost[0] = time.monotonic()
-#             messagebus.post_message(
-#                 "/system/notifications/errors",
-#                 "Something caused a scheduler continual selftest function not to run.",
-#             )
-
-
-# scheduling.scheduler.every(a, 20)
-# scheduling.scheduler.every(b, 20)
