@@ -1,9 +1,9 @@
-
 import datetime
-import time
-import pytz
 import math
+import time
 from typing import Optional
+
+import pytz
 
 
 def ease(x: float):
@@ -15,21 +15,13 @@ def dt_to_ts(dt: datetime.datetime, tz: Optional[datetime.tzinfo] = None) -> flo
     "Given a datetime in tz, return unix timestamp"
     if tz:
         utc = pytz.timezone("UTC")
-        return (
-            tz.localize(dt.replace(tzinfo=None))
-            - datetime.datetime(1970, 1, 1, tzinfo=utc)
-        ) / datetime.timedelta(seconds=1)
+        return (tz.localize(dt.replace(tzinfo=None)) - datetime.datetime(1970, 1, 1, tzinfo=utc)) / datetime.timedelta(seconds=1)
 
     else:
         # Local Time
         ts = time.time()
-        offset = (
-            datetime.datetime.fromtimestamp(
-                ts) - datetime.datetime.utcfromtimestamp(ts)
-        ).total_seconds()
-        return (
-            (dt - datetime.datetime(1970, 1, 1)) / datetime.timedelta(seconds=1)
-        ) - offset
+        offset = (datetime.datetime.fromtimestamp(ts) - datetime.datetime.fromtimestamp(ts, datetime.UTC)).total_seconds()
+        return ((dt - datetime.datetime(1970, 1, 1)) / datetime.timedelta(seconds=1)) - offset
 
 
 # https://gist.github.com/devxpy/063968e0a2ef9b6db0bd6af8079dad2a

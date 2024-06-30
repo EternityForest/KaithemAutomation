@@ -30,6 +30,23 @@ started_frame_number = 0
 completed_frame_number = 0
 
 
+# This lock covers the actual compositing of values.
+# Use it so you can mark something for rerender but make sure
+# it gets the new values.
+
+# It also covers some universe and fixture data, and can be held for any updates
+# you want to apply all at once, as long as you do not ever get any other lock under
+# It
+
+# It does not cover any other part of rendering
+# You have to NEVER get a group lock, or the cl_context
+# while holding this.  It should only be held extremely briefly
+if __debug__:
+    render_loop_lock = context_restrictions.Context("RenderLoopLock", exclusive=True, bottom_level=True)
+else:
+    render_loop_lock = threading.RLock()
+
+
 def is_img_file(path: str):
     if path.endswith((".png", ".jpg", ".webp", ".png", ".heif", ".tiff", ".gif", ".svg")):
         return True

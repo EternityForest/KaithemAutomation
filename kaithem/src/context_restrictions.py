@@ -6,6 +6,16 @@ from functools import wraps
 from typing import Any, TypeVar
 
 
+# Used to track if we are in a bottom level context that blocks everything else.
+class _BottomLocal(threading.local):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.level = 0
+
+
+_bottom = _BottomLocal()
+
+
 class ContextError(Exception):
     pass
 
@@ -32,7 +42,7 @@ class Context:
     to open.
     """
 
-    def __init__(self, name: str, exclusive: bool = False):
+    def __init__(self, name: str, exclusive: bool = False, bottom_level: bool = False):
         self.name = name
 
         self._lock = threading.RLock() if exclusive else None
@@ -41,6 +51,7 @@ class Context:
         self._preconditions: list[Callable[[], bool]] = []
         self._postconditions: list[Callable[[], bool]] = []
         self._lock_timeout = 15
+        self._is_bottom_level = bottom_level
 
     def __repr__(self) -> str:
         return f"<Context {self.name} active={self.active} session={self.session} exclusive={self._lock is not None}>"
@@ -183,22 +194,31 @@ class Context:
 
     def __enter__(self):
         if not self._local.level:
+            if _bottom.level:
+                raise ContextError("Cannot open a new context while already in a bottom-level context")
+
             for i in self._preconditions:
                 if not i():
                     raise ContextError(f"{self.name} precondition failed: {i.__name__}")
 
             for i in self._opens_before:
                 if i.active:
-                    raise ContextError(f"{self.name} must be opened before {i.name}")
+                    raise ContextError(f"{self.name} must be opened before {i.name} if both are used")
 
         if self._lock:
             if not self._lock.acquire(True, timeout=self._lock_timeout):
                 raise ContextError(f"{self.name} is locked by another thread")
 
         self._local.level += 1
+        if self._is_bottom_level:
+            _bottom.level += 1
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self._local.level -= 1
+
+        if self._is_bottom_level:
+            _bottom.level -= 1
+
         if self._lock:
             self._lock.release()
         if not self._local.level:

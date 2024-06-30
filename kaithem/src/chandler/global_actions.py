@@ -64,7 +64,7 @@ def cl_trigger_shortcut_code(code: str, limitGroup: Group | None = None, exclude
                 print(traceback.format_exc())
 
     for i in go_list:
-        i[0].goto_cue(i[1], cause="manual")
+        i[0].goto_cue(i[1], cause="shortcut")
 
     for i in event_list:
         i[0].event("shortcut." + i[1], None)

@@ -18,6 +18,7 @@ from collections.abc import Callable, Iterable
 from typing import TYPE_CHECKING, Any
 
 import icemedia.sound_player
+import numpy
 import structlog
 from beartype import beartype
 from scullery import workers
@@ -32,6 +33,7 @@ from .group_context_commands import add_context_commands, rootContext
 from .group_lighting import GroupLightingManager
 from .mathutils import dt_to_ts, ease, number_to_note
 from .signage import MediaLinkManager
+from .universes import get_on_demand_universe, getUniverse, mapChannel
 
 logger = structlog.get_logger(__name__)
 
@@ -200,6 +202,9 @@ class DebugScriptContext(kaithem.chandlerscript.ChandlerScriptContext):
         if t not in self.tagpoints and len(self.tagpoints) > 128:
             raise RuntimeError("Too many tagpoints in one group")
         return t
+
+    # def do_async(self, f):
+    #     core.serialized_async_with_core_lock(f)
 
 
 def checkPermissionsForGroupData(data: dict[str, Any], user: str):
@@ -1006,6 +1011,9 @@ class Group:
         with self.lock:
             cue_entered_time = cue_entered_time or time.time()
 
+            if not self.active:
+                return
+
             if cue in self.cues:
                 if sendSync:
                     gn = self.mqtt_sync_features.get("syncGroup", False)
@@ -1017,9 +1025,6 @@ class Group:
                             "senderSessionID": self.mqttNodeSessionID,
                         }
                         self.sendMqttMessage(topic, m)
-
-                if not self.active:
-                    return
 
                 if cue == "__stop__":
                     self.stop()
@@ -2024,6 +2029,14 @@ class Group:
         Calculate the current alpha value, handle stopping the cue and going to the next one
         """
 
+        # We don't use the slow group lock context in this function
+        # For performance, but lets still do a basic check.
+        # If core.cl_context is active then the group lock comes after,
+        # if the group lock context is active then core lock context
+        # Can handle avoiding opening after.
+        # I think these two check handle all the cases without having to use a wrapper.
+        assert core.cl_context.active or slow_group_lock_context.active
+
         with self.lock:
             if not self.active:
                 return
@@ -2050,16 +2063,94 @@ class Group:
                 if fadePosition >= 1.0:
                     self.lighting_manager.fade_complete()
 
-            if self.cue_time_finished():
-                # rel_length cues end after the sound in a totally different part of code
-                # Calculate the "real" time we entered, which is exactly the previous entry time plus the len.
-                # Then round to the nearest millisecond to prevent long term drift due to floating point issues.
-
-                # Confirm under lock to avoid any race conditions
-                with self.lock:
-                    if self.active and self.cue_time_finished():
-                        self.next_cue(round(self.entered_cue + self.cuelen * (60 / self.bpm), 3), cause="time")
+            if self.active and self.cue_time_finished():
+                self.next_cue(round(self.entered_cue + self.cuelen * (60 / self.bpm), 3), cause="time")
 
     def cue_time_finished(self):
         if self.cuelen and (time.time() - self.entered_cue) > self.cuelen * (60 / self.bpm):
             return True
+
+    @slow_group_lock_context.object_session_entry_point
+    def set_cue_value(self, cue_name: str, universe: str, channel: str | int, value: str | int | float | None):
+        with self.lock:
+            reset = False
+
+            # Allow [] for range effects
+            disallow_special(universe, allow="_@./[]")
+
+            cue = self.cues[cue_name]
+
+            if value is not None:
+                try:
+                    value = float(value)
+                except ValueError:
+                    pass
+
+            if isinstance(channel, (int, float)):
+                pass
+
+            else:
+                x = channel.strip()
+                if not x == channel:
+                    raise Exception("Channel name cannot begin or end with whitespace")
+
+                # If it looks like an int, cast it even if it's a string,
+                # We get a lot of raw user input that looks like that.
+                try:
+                    channel = int(channel)
+                except ValueError:
+                    pass
+
+            reset = cue.set_value(universe, channel, value)
+
+            unmappeduniverse = universe
+
+            mapped_channel = mapChannel(universe, channel)
+
+            if self.cue == cue and self.is_active():
+                self.poll_again_flag = True
+                self.lighting_manager.rerender()
+
+                # If we change something in a pattern effect we just do a full recalc since those are complicated.
+                if unmappeduniverse in cue.values and "__length__" in cue.values[unmappeduniverse]:
+                    self.lighting_manager.update_state_from_cue_vals(cue, False)
+
+                    # The FadeCanvas needs to know about this change
+                    self.poll(force_repaint=True)
+
+                # Otherwise if we are changing a simple mapped channel we optimize
+                elif mapped_channel:
+                    universe, channel = mapped_channel[0], mapped_channel[1]
+
+                    uobj = None
+
+                    if universe.startswith("/"):
+                        uobj = get_on_demand_universe(universe)
+                        self.lighting_manager.on_demand_universes[universe] = uobj
+
+                    if (universe not in self.lighting_manager.state_alphas) and value is not None:
+                        # GetUniverse might not actually be working yet because
+                        # It takes up to a frame for things to be added
+                        if not uobj:
+                            uobj = getUniverse(universe)
+                        reset = True
+                        if uobj:
+                            self.lighting_manager.state_vals[universe] = numpy.array([0.0] * len(uobj.values), dtype="f4")
+                            self.lighting_manager.state_alphas[universe] = numpy.array([0.0] * len(uobj.values), dtype="f4")
+
+                    if universe in self.lighting_manager.state_alphas:
+                        if channel not in self.lighting_manager.state_alphas[universe]:
+                            reset = True
+                        self.lighting_manager.state_alphas[universe][channel] = 1 if value is not None else 0
+                        self.lighting_manager.state_vals[universe][channel] = self.evalExpr(value if value is not None else 0)
+
+                    # The FadeCanvas needs to know about this change
+                    self.poll(force_repaint=True)
+
+                self.poll_again_flag = True
+                self.lighting_manager.rerender()
+
+                # For blend modes that don't like it when you
+                # change the list of values without resetting
+                if reset:
+                    self.setBlend(self.blend)

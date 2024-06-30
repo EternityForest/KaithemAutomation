@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import threading
 import time
 import traceback
 from typing import TYPE_CHECKING, Any
@@ -14,16 +13,8 @@ if TYPE_CHECKING:
     from .ChandlerConsole import ChandlerConsole
     from .groups import Cue, Group
 
+from .core import render_loop_lock
 from .fadecanvas import FadeCanvas
-
-# This lock only covers the actual compositing of values.
-# Use it so you can mark something for rerender but make sure
-# it gets the new values.
-
-# It does not cover any other part of rendering
-# You have to NEVER get a group lock, or the cl_context
-# while holding this.  It should only be held extremely briefly
-render_loop_lock = threading.RLock()
 
 
 class GroupLightingManager:

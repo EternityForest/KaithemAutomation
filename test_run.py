@@ -1,6 +1,5 @@
 # fix https://github.com/python/cpython/issues/91216
 # TODO this is a yucky hack but pytest won't load
-
 import importlib.metadata
 import sys
 

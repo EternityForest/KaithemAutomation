@@ -496,20 +496,20 @@ def test_tag_backtrack_feature():
 
     s.go()
     core.wait_frame()
+    s.cues["default"].set_value_immediate("/test_bt", "value", 1)
 
     # Set values and check that tags change
-    # First time allow two frames because it creates a new universe for the tag
-    s.cues["default"].set_value("/test_bt", "value", 1)
+    # First time allow two frames because it creates a new universe for the tag    s.cues["default"].set_value_immediate("/test_bt", "value", 1)
     core.wait_frame()
     core.wait_frame()
     assert tagpoints.Tag("/test_bt").value == 1
 
-    s.cues["default"].set_value("/test_bt", "value", 2)
+    s.cues["default"].set_value_immediate("/test_bt", "value", 2)
     core.wait_frame()
     assert tagpoints.Tag("/test_bt").value == 2
 
     c2 = s.add_cue("c2")
-    c2.set_value("/test_bt", "value", 5)
+    c2.set_value_immediate("/test_bt", "value", 5)
 
     s.add_cue("c3")
 
@@ -534,8 +534,8 @@ def test_priorities():
     s2.go()
 
     # Set values and check that tags change
-    s.cues["default"].set_value("/test_p", "value", 1)
-    s2.cues["default"].set_value("/test_p", "value", 2)
+    s.cues["default"].set_value_immediate("/test_p", "value", 1)
+    s2.cues["default"].set_value_immediate("/test_p", "value", 2)
 
     core.wait_frame()
 
@@ -560,8 +560,8 @@ def test_lighting_value_set_tag_flicker():
     s2.go()
 
     # Set values and check that tags change
-    s.cues["default"].set_value("/test1", "value", 50)
-    s.cues["default"].set_value("/test2", "value", 60)
+    s.cues["default"].set_value_immediate("/test1", "value", 50)
+    s.cues["default"].set_value_immediate("/test2", "value", 60)
 
     core.wait_frame()
 
@@ -593,8 +593,8 @@ def test_lighting_value_set_tag_flicker():
     s2.priority = 65
 
     # Set values and check that tags change
-    s2.cues["default"].set_value("/test1", "value", 255)
-    s2.cues["default"].set_value("/test2", "value", 255)
+    s2.cues["default"].set_value_immediate("/test1", "value", 255)
+    s2.cues["default"].set_value_immediate("/test2", "value", 255)
 
     # Ensure the values are changing
     t1 = tagpoints.Tag("/test1").value
@@ -746,10 +746,20 @@ def test_cue_logic_plugin():
     assert s2.cue.name == "default"
     assert s2.entered_cue == 0
 
+    s2.go()
+    core.wait_frame()
+    core.wait_frame()
+    assert s2.cue.name == "default"
+
     s.go()
 
     core.wait_frame()
     core.wait_frame()
+
+    # Script events are not currently frame synced
+    for i in range(10):
+        if not s2.cue.name == "cue2":
+            time.sleep(0.25)
 
     assert s2.cue.name == "cue2"
 

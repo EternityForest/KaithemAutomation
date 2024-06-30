@@ -19,14 +19,12 @@ import weakref
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any, Callable
 
-import numpy
 from beartype import beartype
 
 from .. import schemas
 from . import core
 from .core import disallow_special
 from .global_actions import normalize_shortcut, shortcut_codes
-from .universes import get_on_demand_universe, getUniverse, mapChannel
 
 if TYPE_CHECKING:
     from .groups import Group
@@ -350,6 +348,11 @@ class Cue:
         if push:
             self.push()
 
+    def set_value_immediate(self, universe: str, channel: str | int, value: str | int | float | None):
+        gr = self.getGroup()
+        if gr:
+            gr.set_cue_value(self.name, universe, channel, value)
+
     @beartype
     def set_value(self, universe: str, channel: str | int, value: str | int | float | None):
         # Allow [] for range effects
@@ -359,95 +362,24 @@ class Cue:
 
         if not group:
             raise RuntimeError("The group doesn't exist")
+
+        reset = False
         if value is not None:
-            try:
-                value = float(value)
-            except ValueError:
-                pass
-
-        if isinstance(channel, (int, float)):
-            pass
-
+            if universe not in self.values:
+                self.values[universe] = {}
+                reset = True
+            if channel not in self.values[universe]:
+                reset = True
+            self.values[universe][channel] = value
         else:
-            x = channel.strip()
-            if not x == channel:
-                raise Exception("Channel name cannot begin or end with whitespace")
+            empty = False
+            if channel in self.values[universe]:
+                del self.values[universe][channel]
+            if not self.values[universe]:
+                empty = True
+                del self.values[universe]
+            if empty:
+                self.pushData()
+        self.pushoneval(universe, channel, value)
 
-            # If it looks like an int, cast it even if it's a string,
-            # We get a lot of raw user input that looks like that.
-            try:
-                channel = int(channel)
-            except ValueError:
-                pass
-
-        # Assume anything that can be an int, is meant to be
-        if isinstance(channel, str):
-            try:
-                channel = int(channel)
-            except ValueError:
-                pass
-
-        with self.getGroup().lock:
-            reset = False
-            if value is not None:
-                if universe not in self.values:
-                    self.values[universe] = {}
-                    reset = True
-                if channel not in self.values[universe]:
-                    reset = True
-                self.values[universe][channel] = value
-            else:
-                empty = False
-                if channel in self.values[universe]:
-                    del self.values[universe][channel]
-                if not self.values[universe]:
-                    empty = True
-                    del self.values[universe]
-                if empty:
-                    self.pushData()
-            self.pushoneval(universe, channel, value)
-
-            unmappeduniverse = universe
-
-            mapped_channel = mapChannel(universe, channel)
-
-            if group.cue == self and group.is_active():
-                group.poll_again_flag = True
-                group.lighting_manager.rerender()
-
-                # If we change something in a pattern effect we just do a full recalc since those are complicated.
-                if unmappeduniverse in self.values and "__length__" in self.values[unmappeduniverse]:
-                    group.lighting_manager.update_state_from_cue_vals(self, False)
-
-                    # The FadeCanvas needs to know about this change
-                    group.poll(force_repaint=True)
-
-                # Otherwise if we are changing a simple mapped channel we optimize
-                elif mapped_channel:
-                    universe, channel = mapped_channel[0], mapped_channel[1]
-
-                    uobj = None
-
-                    if universe.startswith("/"):
-                        uobj = get_on_demand_universe(universe)
-                        group.lighting_manager.on_demand_universes[universe] = uobj
-
-                    if (universe not in group.lighting_manager.state_alphas) and value is not None:
-                        uobj = getUniverse(universe)
-                        if uobj:
-                            group.lighting_manager.state_vals[universe] = numpy.array([0.0] * len(uobj.values), dtype="f4")
-                            group.lighting_manager.state_alphas[universe] = numpy.array([0.0] * len(uobj.values), dtype="f4")
-                    if universe in group.lighting_manager.state_alphas:
-                        group.lighting_manager.state_alphas[universe][channel] = 1 if value is not None else 0
-                        group.lighting_manager.state_vals[universe][channel] = group.evalExpr(value if value is not None else 0)
-
-                    # The FadeCanvas needs to know about this change
-                    group.poll(force_repaint=True)
-
-            group.poll_again_flag = True
-            group.lighting_manager.rerender()
-
-            # For blend modes that don't like it when you
-            # change the list of values without resetting
-            if reset:
-                group.setBlend(group.blend)
+        return reset

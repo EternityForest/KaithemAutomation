@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright 2024 Daniel Dunn
+# SPDX-License-Identifier: GPL-3.0-only
+
 import math
 import random
 import time

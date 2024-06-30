@@ -138,7 +138,7 @@ class ChandlerConsole(console_abc.Console_ABC):
         self.groups = {}
 
         for i in self.configured_universes:
-            self.configured_universes[i].cl_close()
+            self.configured_universes[i].close()
 
         try:
             self.autosave_checker.unregister()
@@ -153,7 +153,7 @@ class ChandlerConsole(console_abc.Console_ABC):
         self.groups = {}
 
         for i in self.configured_universes:
-            self.configured_universes[i].cl_close()
+            self.configured_universes[i].close()
 
         if "setup" in data:
             data2 = data["setup"]
@@ -248,7 +248,7 @@ class ChandlerConsole(console_abc.Console_ABC):
         """Cl because of the universes object init"""
         assert isinstance(data, Dict)
         for i in self.universe_objects:
-            self.universe_objects[i].cl_close()
+            self.universe_objects[i].close()
 
         self.universe_objects = {}
         import gc

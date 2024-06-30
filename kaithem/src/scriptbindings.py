@@ -599,6 +599,10 @@ class BaseChandlerScriptContext:
 
             return info
 
+    def do_async(self, f):
+        self.event_queue.append(f)
+        workers.do(self.doEventQueue)
+
     def doEventQueue(self, allowAsync=True):
         # Run all events in the queue, under the gil.
         while self.event_queue:
@@ -686,8 +690,7 @@ class BaseChandlerScriptContext:
         if len(self.event_queue) > 128:
             raise RuntimeError("Too Many queued events!!!")
 
-        self.event_queue.append(f)
-        workers.do(self.doEventQueue)
+        self.do_async(f)
 
     def _event(self, evt, val, depth, timestamp=None):
         handled = False
@@ -936,8 +939,7 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
             raise RuntimeError("Too Many queued events!!!")
 
         # All tag point changes happen async
-        self.event_queue.append(f)
-        workers.do(self.doEventQueue)
+        self.do_async(f)
 
     def setupTag(self, tag):
         if tag in self.tagpoints:

@@ -1,3 +1,5 @@
+"""Important things about this module:"""
+
 from __future__ import annotations
 
 import gc
@@ -33,6 +35,8 @@ int = int
 max = max
 min = min
 
+
+# universes and universes state are protected under the render loop lock
 universes: dict[str, weakref.ReferenceType[Universe]] = {}
 
 # MUTABLE
@@ -59,6 +63,7 @@ def refresh_groups():
 
 
 def get_on_demand_universe(name: str) -> Universe:
+    global universes
     if not name.strip().startswith("/"):
         raise ValueError("Only tag point universes")
 
@@ -184,52 +189,57 @@ class Fixture:
         if self.universe and self.startAddress:
             oldUniverseObj = getUniverse(self.universe)
 
-            if oldUniverseObj:
-                # Delete current assignments
-                for i in range(self.startAddress, self.startAddress + len(self.channels)):
-                    if i in oldUniverseObj.channels:
-                        if oldUniverseObj.channels[i]() and oldUniverseObj.channels[i]() is self:
-                            del oldUniverseObj.channels[i]
-                            # We just unassigned it, so it's not a hue channel anymore
-                            oldUniverseObj.hueBlendMask[i] = 0
-                        else:
-                            print(
-                                "Unexpected channel data corruption",
-                                universe,
-                                i,
-                                oldUniverseObj.channels[i](),
-                            )
+            # All fixture channels together. This is safe because there are no nontrivial
+            # function calls under this, and we are in the proper lock order
+            with core.render_loop_lock:
+                if oldUniverseObj:
+                    # Delete current assignments
+                    for i in range(self.startAddress, self.startAddress + len(self.channels)):
+                        if i in oldUniverseObj.channels:
+                            if oldUniverseObj.channels[i]() and oldUniverseObj.channels[i]() is self:
+                                del oldUniverseObj.channels[i]
+                                # We just unassigned it, so it's not a hue channel anymore
+                                oldUniverseObj.hueBlendMask[i] = 0
+                            else:
+                                print(
+                                    "Unexpected channel data corruption",
+                                    universe,
+                                    i,
+                                    oldUniverseObj.channels[i](),
+                                )
 
-        self.assignment = universe, channel
+        # Again, no non-safe calls under this lock.
+        with core.render_loop_lock:
+            self.assignment = universe, channel
 
-        self.universe = universe
-        self.startAddress = channel
+            self.universe = universe
+            self.startAddress = channel
 
-        universeObj = getUniverse(universe)
+            universeObj = getUniverse(universe)
 
-        if not universeObj:
-            return
+            if not universeObj:
+                return
 
-        core.fixtureschanged = {}
+            core.fixtureschanged = {}
 
-        if not channel:
-            return
-        # 2 separate loops, first is just to check, so that we don't have half-completed stuff
-        for i in range(channel, channel + len(self.channels)):
-            if i in universeObj.channels:
-                if universeObj.channels[i]:
-                    fixture = universeObj.channels[i]()
-                    if fixture:
-                        if not self.name == fixture.name:
-                            raise ValueError("channel " + str(i) + " of " + self.name + " would overlap with " + fixture.name)
+            if not channel:
+                return
+            # 2 separate loops, first is just to check, so that we don't have half-completed stuff
+            for i in range(channel, channel + len(self.channels)):
+                if i in universeObj.channels:
+                    if universeObj.channels[i]:
+                        fixture = universeObj.channels[i]()
+                        if fixture:
+                            if not self.name == fixture.name:
+                                raise ValueError("channel " + str(i) + " of " + self.name + " would overlap with " + fixture.name)
 
-        cPointer = 0
-        for i in range(channel, channel + len(self.channels)):
-            universeObj.channels[i] = weakref.ref(self)
-            if self.channels[cPointer]["type"] in ("hue", "sat", "custom"):
-                # Mark it as a hue channel that blends slightly differently
-                universeObj.hueBlendMask[i] = 1
-                cPointer += 1
+            cPointer = 0
+            for i in range(channel, channel + len(self.channels)):
+                universeObj.channels[i] = weakref.ref(self)
+                if self.channels[cPointer]["type"] in ("hue", "sat", "custom"):
+                    # Mark it as a hue channel that blends slightly differently
+                    universeObj.hueBlendMask[i] = 1
+                    cPointer += 1
 
         universeObj.cl_channels_changed()
         global last_state_update
@@ -313,22 +323,6 @@ class Universe:
 
         self.error_alert = alerts.Alert(f"{self.name}.errorState", priority="error", auto_ack=True)
 
-        with core.cl_context:
-            if name in _universes and _universes[name]():
-                gc.collect()
-                time.sleep(0.1)
-                gc.collect()
-                # We retry, because the universes are often temporarily cached as strong refs
-                if name in _universes and _universes[name]():
-                    try:
-                        u = _universes[name]()
-                        if u:
-                            u.cl_close()
-                    except Exception:
-                        raise ValueError("Name " + name + " is taken")
-            _universes[name] = weakref.ref(self)
-            universes = {i: _universes[i] for i in _universes if _universes[i]()}
-
         # flag to apply all groups, even ones not marked as neding rerender
         self.full_rerender = False
 
@@ -353,31 +347,55 @@ class Universe:
         except Exception:
             logger.exception("Exception in push_setup")
 
-        if self.refresh_on_create:
-            kaithem.message.post("/chandler/command/refreshFixtures", self.name)
-            self.refresh_groups()
+        global _universes, universes
+        if name in _universes and _universes[name]():
+            gc.collect()
+            time.sleep(0.1)
+            gc.collect()
+            # We retry, because the universes are often temporarily cached as strong refs
+            if name in _universes and _universes[name]():
+                try:
+                    u = None
+                    try:
+                        u = _universes[name]()
+                    except KeyError:
+                        pass
+                    if u:
+                        u.close()
+                except Exception:
+                    raise ValueError("Name " + name + " is taken")
+
+        with core.render_loop_lock:
+            _universes[name] = weakref.ref(self)
+            universes = {i: _universes[i] for i in _universes if _universes[i]()}
+
         global last_state_update
         last_state_update = time.time()
 
-    @core.cl_context.required
-    def cl_close(self):
+        if self.refresh_on_create:
+            kaithem.message.post("/chandler/command/refreshFixtures", self.name)
+            self.refresh_groups()
+
+    def close(self):
         global universes
-        # Don't delete the object that replaced this
-        if self.name in _universes and (_universes[self.name]() is self):
-            del _universes[self.name]
 
-        universes = {i: _universes[i] for i in _universes if _universes[i]()}
+        with core.render_loop_lock:
+            # Don't delete the object that replaced this
+            if self.name in _universes and (_universes[self.name]() is self):
+                del _universes[self.name]
 
-        def alreadyClosed(*a, **k):
-            pass
+            universes = {i: _universes[i] for i in _universes if _universes[i]()}
 
-        self.onFrame = alreadyClosed
-        self.setStatus = alreadyClosed
-        self.refresh_groups = alreadyClosed
-        self.reset_to_cache = alreadyClosed
-        self.reset = alreadyClosed
-        self.preFrame = alreadyClosed
-        self.save_prerendered = alreadyClosed
+            def alreadyClosed(*a, **k):
+                pass
+
+            self.onFrame = alreadyClosed
+            self.setStatus = alreadyClosed
+            self.refresh_groups = alreadyClosed
+            self.reset_to_cache = alreadyClosed
+            self.reset = alreadyClosed
+            self.preFrame = alreadyClosed
+            self.save_prerendered = alreadyClosed
 
         refresh_groups()
         self.closed = True
@@ -522,12 +540,12 @@ class EnttecUniverse(Universe):
         self.sender.onFrame(None)
 
     @core.cl_context.required
-    def cl_close(self):
+    def close(self):
         try:
             self.sender.onFrame(None)
         except Exception:
             pass
-        return super().cl_close()
+        return super().close()
 
 
 class DMXSender:
@@ -706,12 +724,12 @@ class ArtNetUniverse(Universe):
         self.sender.onFrame(None)
 
     @core.cl_context.required
-    def cl_close(self):
+    def close(self):
         try:
             self.sender.onFrame(None)
         except Exception:
             pass
-        return super().cl_close()
+        return super().close()
 
 
 def makeSender(c, uref, *a):
@@ -838,12 +856,12 @@ class EnttecOpenUniverse(Universe):
         self.sender.onFrame(None)
 
     @core.cl_context.required
-    def cl_close(self):
+    def close(self):
         try:
             self.sender.onFrame(None)
         except Exception:
             pass
-        return super().cl_close()
+        return super().close()
 
 
 def makeDMXSender(uref, port, fr):
@@ -1021,6 +1039,7 @@ def cl_discover_color_tag_devices():
     # /devices/devname/subdevice.color
 
     def handleSubdevice(dev, sd, c, ft):
+        global _universes
         if dev == sd:
             name = dev
         else:
@@ -1177,7 +1196,9 @@ class OneTagpoint(Universe):
 
 def getUniverse(u: str | None) -> Universe | None:
     """Get strong ref to universe if it exists, else get none. must be
-    safe to call under render loop lock."""
+    safe to call under render loop lock.
+    """
+    global universes
     if not u:
         return None
     try:
@@ -1189,6 +1210,7 @@ def getUniverse(u: str | None) -> Universe | None:
 
 def getUniverses() -> dict[str, Universe]:
     "Returns dict of strong refs to universes, filtered to exclude weak refs"
+    global universes
     m = universes
     u = {}
     for i in m:

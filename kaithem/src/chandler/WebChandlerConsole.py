@@ -601,7 +601,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             hadVals = len(cues[msg[1]].values)
 
             # Allow number:name format, but we only want the name
-            cues[msg[1]].set_value(msg[2], str(msg[3]).split(":")[-1], val)
+            cues[msg[1]].set_value_immediate(msg[2], str(msg[3]).split(":")[-1], val)
             # Tell clients that now there is values in that cue
             if not hadVals:
                 self.pushCueMeta(msg[1])
@@ -627,12 +627,12 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                         val = sc.lighting_manager.blendClass.default_channel_value
                     else:
                         val = 0
-                    cue.set_value("@" + msg[2], i["name"], val)
+                    cue.set_value_immediate("@" + msg[2], i["name"], val)
 
             if length > 1:
                 # Set the length as if it were a ficture property
-                cue.set_value("@" + msg[2], "__length__", length)
-                cue.set_value("@" + msg[2], "__spacing__", spacing)
+                cue.set_value_immediate("@" + msg[2], "__length__", length)
+                cue.set_value_immediate("@" + msg[2], "__spacing__", spacing)
 
                 # The __dest__ channels represet the color at the end of the channel
                 for i in x.channels:
@@ -644,7 +644,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                         else:
                             val = 0
                         # i[0] is the name of the channel
-                        cue.set_value("@" + msg[2], "__dest__." + str(i["name"]), val)
+                        cue.set_value_immediate("@" + msg[2], "__dest__." + str(i["name"]), val)
 
             self.linkSend(["cuedata", msg[1], cue.values])
             self.pushCueMeta(msg[1])
@@ -655,7 +655,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             x = list(s.values[msg[2]].keys())
 
             for i in x:
-                s.set_value(msg[2], i, None)
+                s.set_value_immediate(msg[2], i, None)
             self.linkSend(["cuedata", msg[1], s.values])
             self.pushCueMeta(msg[1])
 
@@ -680,7 +680,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 except ValueError:
                     pass
 
-            cues[msg[1]].set_value(msg[2], ch, v)
+            cues[msg[1]].set_value_immediate(msg[2], ch, v)
             self.linkSend(["scv", msg[1], msg[2], ch, v])
 
             if v is None:
