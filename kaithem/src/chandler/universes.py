@@ -501,9 +501,9 @@ def rawmessage(data):
     "An enttec open DMX message from a set of values"
     data = numpy.maximum(numpy.minimum(data, 255), 0)
     data = data.astype(numpy.uint8)
-    data = data.tobytes()[1:513]
+    data = data.tobytes()
     # Remove the 0 position as DMX starts at 1
-    return b"\0" + data
+    return b"\0" + (data[1:513])
 
 
 class EnttecUniverse(Universe):

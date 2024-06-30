@@ -41,10 +41,12 @@ completed_frame_number = 0
 # It does not cover any other part of rendering
 # You have to NEVER get a group lock, or the cl_context
 # while holding this.  It should only be held extremely briefly
-if __debug__:
-    render_loop_lock = context_restrictions.Context("RenderLoopLock", exclusive=True, bottom_level=True)
-else:
-    render_loop_lock = threading.RLock()
+# if __debug__:
+#     render_loop_lock = context_restrictions.Context("RenderLoopLock", exclusive=True, bottom_level=True)
+# else:
+#     render_loop_lock = threading.RLock()
+
+render_loop_lock = threading.RLock()
 
 
 def is_img_file(path: str):
