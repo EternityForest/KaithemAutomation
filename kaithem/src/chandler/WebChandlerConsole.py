@@ -450,6 +450,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             sc = Group(self, msg[1].strip())
             self.groups[sc.id] = sc
             self.pushMeta(sc.id)
+            sc.go()
 
         elif cmd_name == "setconfuniverses":
             if kaithem.users.check_permission(user, "system_admin"):

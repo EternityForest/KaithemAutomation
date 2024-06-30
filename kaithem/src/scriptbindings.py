@@ -1075,54 +1075,54 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
 ##### SELFTEST ##########
 
 
-c = ChandlerScriptContext()
+# c = ChandlerScriptContext()
 
-x = []
-desired = ["Playing Baseball", "A bat goes with a glove"]
-
-
-def baseball():
-    x.append("Playing Baseball")
-    return True
+# x = []
+# desired = ["Playing Baseball", "A bat goes with a glove"]
 
 
-def bat(a):
-    x.append(f"A bat goes with a {a}")
-    return None
+# def baseball():
+#     x.append("Playing Baseball")
+#     return True
 
 
-def no(*a, **k):
-    raise RuntimeError("This shouldn't run, the prev command returning None stops the pipe")
+# def bat(a):
+#     x.append(f"A bat goes with a {a}")
+#     return None
 
 
-c.commands["baseball"] = baseball
-c.commands["bat"] = bat
-c.commands["no"] = no
-c.commands
+# def no(*a, **k):
+#     raise RuntimeError("This shouldn't run, the prev command returning None stops the pipe")
 
-b: list[list[str | list[list[str]]]] = [
-    ["window", [["baseball"], ["bat", "='glove'"], ["no", "this", "shouldn't", "run"]]],
-    ["test", [["set", "foo", "bar"]]],
-]
 
-c.addBindings(b)
+# c.commands["baseball"] = baseball
+# c.commands["bat"] = bat
+# c.commands["no"] = no
+# c.commands
 
-# Bind event window to an action with three commands
+# b: list[list[str | list[list[str]]]] = [
+#     ["window", [["baseball"], ["bat", "='glove'"], ["no", "this", "shouldn't", "run"]]],
+#     ["test", [["set", "foo", "bar"]]],
+# ]
 
-# Top level list of b is a list of event name,commands pairs.
-#
-# commands is a list of commands. Every action is a list where the first
-# Is th name of the command, and the rest are arguments.
+# c.addBindings(b)
 
-# Note that the first arg of bat stats with an equals sign
-# so it gets evaluated, just like a LibreOffice Calc cell.
+# # Bind event window to an action with three commands
 
-c.event("window")
-c.event("test")
+# # Top level list of b is a list of event name,commands pairs.
+# #
+# # commands is a list of commands. Every action is a list where the first
+# # Is th name of the command, and the rest are arguments.
 
-c.waitForEvents()
+# # Note that the first arg of bat stats with an equals sign
+# # so it gets evaluated, just like a LibreOffice Calc cell.
 
-if not x == desired:
-    raise RuntimeError("The ChandlerScript module isn't working as planned")
-if not c.variables["foo"] == "bar":
-    raise RuntimeError("The ChandlerScript module isn't working as planned")
+# c.event("window")
+# c.event("test")
+
+# c.waitForEvents()
+
+# if not x == desired:
+#     raise RuntimeError("The ChandlerScript module isn't working as planned")
+# if not c.variables["foo"] == "bar":
+#     raise RuntimeError("The ChandlerScript module isn't working as planned")

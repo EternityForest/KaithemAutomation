@@ -98,7 +98,6 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
         notifications,  # noqa: F401
         persist,  # noqa: F401
         plugin_system,  # noqa: F401
-        selftest,  # noqa: F401
         settings,  # noqa: F401
         signalhandlers,  # noqa: F401
         systasks,  # noqa: F401

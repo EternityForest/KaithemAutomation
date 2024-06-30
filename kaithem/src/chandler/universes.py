@@ -128,7 +128,7 @@ class Fixture:
 
         self.universe: str | None = None
         self.startAddress: int | None = 0
-        self.assignment = None
+        self.assignment: tuple[str, int] | None = None
         disallow_special(name, ".")
 
         self.nameToOffset: dict[str, int] = {}
@@ -185,6 +185,14 @@ class Fixture:
 
     @core.cl_context.required
     def cl_assign(self, universe: str | None, channel: int | None):
+        if universe is None:
+            if channel is not None:
+                raise ValueError("Cannot specify channel without universe")
+
+        if channel is None:
+            if universe is not None:
+                raise ValueError("Cannot specify universe without channel")
+
         # First just clear the old assignment, if any
         if self.universe and self.startAddress:
             oldUniverseObj = getUniverse(self.universe)
@@ -210,7 +218,11 @@ class Fixture:
 
         # Again, no non-safe calls under this lock.
         with core.render_loop_lock:
-            self.assignment = universe, channel
+            if universe:
+                assert channel is not None
+                self.assignment = universe, channel
+            else:
+                self.assignment = None
 
             self.universe = universe
             self.startAddress = channel
