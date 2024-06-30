@@ -10,7 +10,7 @@ from typing import Any, Dict, Iterable, List, Optional, Set
 
 import beartype
 import yaml
-from scullery import scheduling, snake_compat
+from scullery import scheduling, snake_compat, workers
 
 # The frontend's ephemeral state is using CamelCase conventions for now
 from .. import schemas
@@ -596,7 +596,12 @@ class ChandlerConsole(console_abc.Console_ABC):
 
             self.last_saved_version = project_file
 
-        self.ml_save_callback(project_file)
+        # If this is called under the core lock,
+        # The modules lock won't let us get it so we have to do a bg thread
+        def f():
+            self.ml_save_callback(project_file)
+
+        workers.do(f)
 
     def pushchannelInfoByUniverseAndNumber(self, u: str):
         "This has expanded to push more data than names"
