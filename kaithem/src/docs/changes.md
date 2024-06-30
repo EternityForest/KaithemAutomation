@@ -10,7 +10,7 @@ Change Log
 - :coffin: Tab to space option: Spaces are always used
 - :coffin: Screen rotate setting that didn't work on Wayland
 - :coffin: The alert sounds system has been removed. It is suggested to use an automation rule on /sys/alerts.level.
-
+- :coffin: The setting for universe channel count. Ther're just always max size now.
 #### Added
 
 - :sparkles: Can now set a label image for a cue

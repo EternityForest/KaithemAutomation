@@ -513,7 +513,7 @@ class EnttecUniverse(Universe):
     def __init__(
         self,
         name: str,
-        channels: int = 128,
+        channels: int = 512,
         portname: str = "",
         framerate: float = 44.0,
         number: int = 0,
@@ -833,7 +833,7 @@ class EnttecOpenUniverse(Universe):
     # Thanks to https://github.com/c0z3n/pySimpleDMX
     # I didn't actually use the code, but it was a very useful resource
     # For protocol documentation.
-    def __init__(self, name, channels=128, portname="", framerate=44.0, number=0):
+    def __init__(self, name, channels=512, portname="", framerate=44.0, number=0):
         self.ok = False
         self.number = number
         self.status = "Disconnect"
