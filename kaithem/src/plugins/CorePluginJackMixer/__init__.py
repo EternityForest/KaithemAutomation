@@ -462,11 +462,11 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                 print(traceback.format_exc())
             time.sleep(0.1)
 
-        self.silencein = jacktools.Airwire("SILENCE", f"{self.name}_in")
-        self.silencein.connect()
-
         jacktools.disconnect_all_from(f"{self.name}_in")
         jacktools.disconnect_all_from(f"{self.name}_out")
+
+        self.silencein = jacktools.Airwire("SILENCE", f"{self.name}_in")
+        self.silencein.connect()
 
         # do it here, after things are set up
         self.faderTag.value = self.initialFader
