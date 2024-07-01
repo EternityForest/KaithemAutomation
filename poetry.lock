@@ -2284,6 +2284,17 @@ files = [
 ]
 
 [[package]]
+name = "pipewire-python"
+version = "0.2.3"
+description = "Python controller, player and recorder via pipewire's commands"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "pipewire_python-0.2.3-py3-none-any.whl", hash = "sha256:f0f7458622d0d33082c08fea2bc1e4046577114c7da44dda420d003f58bc6ce5"},
+    {file = "pipewire_python-0.2.3.tar.gz", hash = "sha256:4add001b9aecfb40e4629b769d1a86b3fffa576406cab84214c9a04ec77ac955"},
+]
+
+[[package]]
 name = "platformdirs"
 version = "4.2.2"
 description = "A small Python package for determining appropriate platform-specific dirs, e.g. a `user data dir`."
@@ -4200,4 +4211,4 @@ ifaddr = ">=0.1.7"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10.0, <3.13"
-content-hash = "145e0a50f4f49421a5b766e06660a15dfe1e6041101d215fbce91f89ee9f5543"
+content-hash = "352749b1cb6b69d6ebdd9798740cbd465434b517cab4bc5e3affecc6e4c86456"

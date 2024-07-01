@@ -120,6 +120,7 @@ starlette = "^0.37.2"
 ephem = "^4.1.5"
 
 opencv-python = "^4.10.0.84"
+pipewire-python = "^0.2.3"
 [tool.poetry.scripts]
 "kaithem" = "kaithem:__main__"
 "kaithem-cli" = "kaithem_cli.cli:main"
