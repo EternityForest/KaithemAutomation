@@ -38,6 +38,7 @@ After=time-sync.target sysinit.service mosquitto.service zigbee2mqtt.service pip
 
 [Service]
 TimeoutStartSec=0
+Environment="PIPEWIRE_LATENCY=512/48000"
 ExecStart=/usr/bin/pw-jack /home/%u/.local/bin/kaithem
 Restart=on-failure
 RestartSec=15
