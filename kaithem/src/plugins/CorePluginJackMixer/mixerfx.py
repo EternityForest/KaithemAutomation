@@ -175,19 +175,6 @@ effectTemplates_data = {
         "preSupportElements": [],
         "postSupportElements": [],
     },
-    "a2dpsink": {
-        "type": "a2dpsink",
-        "displayType": "A2DP Sender",
-        "help": "Send to a bluetooth speaker",
-        "gstElement": "a2dpsink",
-        "params": {"device": {"type": "string", "value": "", "sort": 0}},
-        "gstSetup": {},
-        "sidechain": True,
-        "preSupportElements": [
-            {"gstElement": "audioconvert", "gstSetup": {}},
-            {"gstElement": "sbcenc", "gstSetup": {}},
-        ],
-    },
     "autotune": {
         "type": "autotune",
         "displayType": "Autotune",
@@ -601,17 +588,17 @@ effectTemplates_data = {
     "send": {
         "type": "send",
         "displayType": "Send",
-        "help": "JACK mono/stereo send",
+        "help": "mono/stereo send",
         "gstElement": "SpecialCase",
         "params": {
-            "volume": {
+            "*db_volume": {
                 "type": "float",
                 "displayName": "Level",
                 "sort": 0,
                 "min": -60,
-                "max": 0,
+                "max": 10,
                 "value": -60,
-                "step": 1,
+                "step": 0.25,
             },
             "*destination": {
                 "type": "JackInput",
@@ -1235,6 +1222,7 @@ effectTemplates_data = {
                 "max": 2,
                 "step": 0.01,
                 "sort": 0,
+                "uiScale": "dbToLinear",
             },
         },
         "gstSetup": {"volume": 1},

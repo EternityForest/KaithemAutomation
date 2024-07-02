@@ -83,6 +83,7 @@
                 "rtmidi",
                 "sceneid",
                 "snakify",
+                "starlette",
                 "strftime",
                 "stringly",
                 "testid",
@@ -93,7 +94,8 @@
                 "urandom",
                 "Vals",
                 "vue",
-                "webp"
+                "webp",
+                "werkzeug"
             ],
             "python.analysis.typeCheckingMode": "standard"
 
