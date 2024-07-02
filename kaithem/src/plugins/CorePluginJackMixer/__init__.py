@@ -246,12 +246,17 @@ class Recorder(gstwrapper.Pipeline):
     def __init__(self, name="krecorder", channels=2, pattern="mixer_"):
         gstwrapper.Pipeline.__init__(self, name, realtime=70)
 
-        self.src = self.add_element(
-            "pipewiresrc",
-            client_name=name,
-            do_timestamp=True,
-            always_copy=True,
-        )
+        self.src = self.add_element("pipewiresrc", client_name=name, do_timestamp=True, always_copy=True, autoconnect=False)
+        # It is not ginna start unless we can make the connection to the silence thing
+        # Before the thing even exists...
+        self.silencein = jacktools.Airwire("SILENCE", name)
+
+        def f():
+            time.sleep(0.3)
+            self.silencein.connect()
+
+        workers.do(f)
+
         self.capsfilter = self.add_element("capsfilter", caps=f"audio/x-raw,channels={str(channels)}")
 
         filename = os.path.join(directories.vardir, "recordings", "mixer", f"{pattern + datetime.datetime.now().isoformat()}.opus")
@@ -305,12 +310,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             self.created_time = time.time()
 
             if not input or not input.startswith("rtplisten://"):
-                self.src = self.add_element(
-                    "pipewiresrc",
-                    client_name=f"{name}_in",
-                    do_timestamp=True,
-                    always_copy=True,
-                )
+                self.src = self.add_element("pipewiresrc", client_name=f"{name}_in", do_timestamp=True, always_copy=True, autoconnect=False)
 
                 self.capsfilter = self.add_element(
                     "capsfilter",
@@ -443,6 +443,16 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                 if not jacktools.get_ports():
                     return
 
+        # It is not ginna start unless we can make the connection to the silence thing
+        # Before the thing even exists...
+        self.silencein = jacktools.Airwire("SILENCE", f"{self.name}_in")
+
+        def f():
+            time.sleep(0.1)
+            self.silencein.connect()
+
+        workers.do(f)
+
         self.start(timeout=wait)
         # We unfortunately can't suppress auto connect in this version
         # use this hack.  Wait till ports show up then disconnect.
@@ -461,12 +471,6 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             except Exception:
                 print(traceback.format_exc())
             time.sleep(0.1)
-
-        jacktools.disconnect_all_from(f"{self.name}_in")
-        jacktools.disconnect_all_from(f"{self.name}_out")
-
-        self.silencein = jacktools.Airwire("SILENCE", f"{self.name}_in")
-        self.silencein.connect()
 
         # do it here, after things are set up
         self.faderTag.value = self.initialFader
