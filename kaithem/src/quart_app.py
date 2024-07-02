@@ -14,6 +14,8 @@ app = Quart(__name__)
 
 @app.errorhandler(Exception)
 def handle_exception(e):
+    if isinstance(e, pages.KaithemUserPermissionError):
+        return pages.loginredirect(quart.request.url)
     if isinstance(e, InternalServerError):
         e = e.original_exception
     r = pages.get_template("errors/e500.html").render(e="".join(traceback.format_exception(None, e, e.__traceback__)))

@@ -16,7 +16,6 @@ import uuid
 
 import quart
 import structlog
-from icemedia import iceflow
 from scullery import jacktools, scheduling, workers
 
 from kaithem.src import (
@@ -49,15 +48,6 @@ dummy_src_lock = threading.Lock()
 recorder = None
 
 
-class DummySource(iceflow.GStreamerPipeline):
-    "Nasty hack. When gstreamer is disconnected it stops.  So we have a special silent thing to always connect to"
-
-    def __init__(self):
-        iceflow.GStreamerPipeline.__init__(self)
-        self.add_element("audiotestsrc", volume=0)
-        self.add_element("pipewiresink", client_name="SILENCE")
-
-
 ds = None
 
 
@@ -66,16 +56,20 @@ def start_dummy_source_if_needed():
         global ds
         if ds:
             return
-        try:
-            x = DummySource()
-            x.start()
-            ds = x
-            for i in range(25):
-                if [i.name for i in jacktools.get_ports() if i.name.startswith("SILENCE")]:
-                    break
-                time.sleep(0.1)
-        except Exception:
-            log.exception("Dummy source")
+
+        for i in range(25):
+            if [i.name for i in jacktools.get_ports() if i.name.startswith("SILENCE")]:
+                return
+            time.sleep(0.1)
+
+        ds = subprocess.Popen("gst-launch-1.0 audiotestsrc volume=0 ! pipewiresink client-name=SILENCE", stdout=None, shell=True)
+
+        for i in range(25):
+            if [i.name for i in jacktools.get_ports() if i.name.startswith("SILENCE")]:
+                return
+            time.sleep(0.1)
+
+        raise Exception("Failed to start dummy source")
 
 
 def onPortAdd(t, m):
@@ -246,12 +240,17 @@ class Recorder(gstwrapper.Pipeline):
     def __init__(self, name="krecorder", channels=2, pattern="mixer_"):
         gstwrapper.Pipeline.__init__(self, name, realtime=70)
 
-        self.src = self.add_element(
-            "pipewiresrc",
-            client_name=name,
-            do_timestamp=True,
-            always_copy=True,
-        )
+        self.src = self.add_element("pipewiresrc", client_name=name, do_timestamp=True, always_copy=True, autoconnect=False)
+        # It is not ginna start unless we can make the connection to the silence thing
+        # Before the thing even exists...
+        self.silencein = jacktools.Airwire("SILENCE", name)
+
+        def f():
+            time.sleep(0.3)
+            self.silencein.connect()
+
+        workers.do(f)
+
         self.capsfilter = self.add_element("capsfilter", caps=f"audio/x-raw,channels={str(channels)}")
 
         filename = os.path.join(directories.vardir, "recordings", "mixer", f"{pattern + datetime.datetime.now().isoformat()}.opus")
@@ -305,12 +304,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             self.created_time = time.time()
 
             if not input or not input.startswith("rtplisten://"):
-                self.src = self.add_element(
-                    "pipewiresrc",
-                    client_name=f"{name}_in",
-                    do_timestamp=True,
-                    always_copy=True,
-                )
+                self.src = self.add_element("pipewiresrc", client_name=f"{name}_in", always_copy=True, autoconnect=False)
 
                 self.capsfilter = self.add_element(
                     "capsfilter",
@@ -434,25 +428,43 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                 **{"async": False},
             )
 
-            # I think It doesn't like it if you start without jack
-            if self.usingJack:
-                t = time.time()
-                while (time.time() - t) < 3:
-                    if jacktools.get_ports():
+        # wait till it exists for real
+        for i in range(15):
+            pt = jacktools.get_ports()
+            p = [i.name for i in pt]
+            p2 = [i.clientName for i in pt]
+            p = p + p2
+            if (f"{self.name}_in") in p:
+                break
+            else:
+                time.sleep(0.1)
+
+        # It is not ginna start unless we can make the connection to the silence thing
+        # Before the thing even exists...
+        # so we start it then do the connection in the background
+        self.silencein = jacktools.Airwire("SILENCE", f"{self.name}_in")
+
+        def f():
+            for i in range(25):
+                try:
+                    if [i.name for i in jacktools.get_ports() if i.name.startswith(f"{self.name}_in:")]:
                         break
-                if not jacktools.get_ports():
-                    return
+                except Exception:
+                    print(traceback.format_exc())
+                time.sleep(0.1)
+            self.silencein.connect()
+
+        workers.do(f)
 
         self.start(timeout=wait)
-        # We unfortunately can't suppress auto connect in this version
-        # use this hack.  Wait till ports show up then disconnect.
+
         for i in range(25):
             try:
                 if [i.name for i in jacktools.get_ports() if i.name.startswith(f"{self.name}_in:")]:
                     break
             except Exception:
                 print(traceback.format_exc())
-            time.sleep(0.1)
+            time.sleep(0.2)
 
         for i in range(25):
             try:
@@ -460,13 +472,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                     break
             except Exception:
                 print(traceback.format_exc())
-            time.sleep(0.1)
-
-        jacktools.disconnect_all_from(f"{self.name}_in")
-        jacktools.disconnect_all_from(f"{self.name}_out")
-
-        self.silencein = jacktools.Airwire("SILENCE", f"{self.name}_in")
-        self.silencein.connect()
+            time.sleep(0.2)
 
         # do it here, after things are set up
         self.faderTag.value = self.initialFader
@@ -583,22 +589,39 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
         with self.lock:
             if not isinstance(target, str):
                 raise ValueError("Target must be string")
-            element1, element2 = self.add_jack_mixer_send_elements(target, id, volume)
 
-            self.effectsById[id] = element1
-            self.effectsById[f"{id}*destination"] = element2
+            cname = f"{self.name}_send{str(len(self.sends))}"
+
+            linkTo = self.add_element("tee")
+            self.add_element("queue", leaky=2, max_size_time=100_0000_0000, connect_to_output=linkTo)
+            linkTo = self.add_element("queue", leaky=2, sidechain=True, connect_to_output=linkTo, max_size_buffers=1)
+
+            vl = self.add_element(
+                "volume", volume=10 ** (volume / 20), connect_to_output=linkTo, connect_when_available="audio", sidechain=True
+            )
+            linkTo = self.add_element("audioconvert", connect_to_output=linkTo, connect_when_available="audio", sidechain=True)
+
+            self.add_element(
+                "pipewiresink",
+                client_name=cname,
+                mode=2,
+                max_lateness=5_000_000,
+                connect_to_output=linkTo,
+                connect_when_available="audio",
+                sidechain=True,
+            )
+
+            self.effectsById[id] = vl
 
             d = effectTemplates["send"]
             d["params"]["*destination"]["value"] = target
-            d["params"]["volume"]["value"] = volume
+            d["params"]["*db_volume"]["value"] = volume
             self.effectDataById[id] = d
 
-            # Sequentially number the sends
-            cname = f"{self.name}_send{str(len(self.sends))}"
-            element2.set_property("client-name", cname)
-
             self.sendAirwires[id] = jacktools.Airwire(cname, target, force_combining=(self.channels == 1))
-            self.sends.append(element2)
+            self.sends.append(vl)
+            self.sendAirwires[id].connect()
+            self.sendAirwires[id].send_source = cname
 
     def loadData(self, d):
         self.mute = d.get("mute", False)
@@ -620,7 +643,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                 self.addSend(
                     i["params"]["*destination"]["value"],
                     i["id"],
-                    i["params"]["volume"]["value"],
+                    i["params"]["*db_volume"]["value"],
                 )
 
             else:
@@ -747,6 +770,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
 
             if t == "int":
                 value = int(value)
+
             if t == "string.int":
                 try:
                     value = int(value)
@@ -760,7 +784,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                     if effectId in self.sendAirwires:
                         self.sendAirwires[effectId].disconnect()
                         self.sendAirwires[effectId] = jacktools.Airwire(
-                            self.sendAirwires[effectId].orig,
+                            self.sendAirwires[effectId].send_source,
                             value,
                             force_combining=(self.channels == 1),
                         )
@@ -768,6 +792,10 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                             self.sendAirwires[effectId].connect()
                         except Exception:
                             pass
+
+                elif param == "*db_volume":
+                    self.effectsById[effectId].set_property("volume", 10 ** (value / 20))
+
             elif param == "bypass":
                 pass
             else:
@@ -1404,7 +1432,7 @@ class MixingBoard:
 
 
 def STOP(*a):
-    ds = None
+    global ds
     # Shut down in opposite order we started in
     for board in boards.values():
         with board.lock:
@@ -1414,7 +1442,7 @@ def STOP(*a):
 
     try:
         if ds:
-            ds.stop()
+            ds.terminate()
             ds = None
     except Exception:
         logging.exception("Exception stopping dummy source")

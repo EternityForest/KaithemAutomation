@@ -58,7 +58,7 @@ ${global_api.render("gapi")}
 
         <datalist id="outports">
           <option v-for="i in sortedConnectables(outports)">{{i}}</option>
-          <option>krecorder</option>
+          <option>{{recorderPortName}}</option>
         </datalist>
 
         <datalist id="presets">
@@ -234,6 +234,7 @@ ${global_api.render("gapi")}
 
                     <table class="col-12 h-center" border=1>
                       <tr v-for="param in sortedParams(effect.params)" class="param">
+
                         <template v-if="param.type=='float'">
                           <td>{{param.displayName}}</td>
                           <td><smooth-range style="width:95%" v-model.number="param.value" v-bind:min="param.min"
@@ -488,6 +489,7 @@ ${global_api.render("gapi")}
         loadedPreset: '',
         midiinports: [],
         midioutports: [],
+        recorderPortName: window.location.pathname.split('/')[3].replace(":", "_").replace("/", "_"),
         recordName: window.location.pathname.split('/')[3].replace(":", "_").replace("/", "_")+"_",
         recordChannels: 2,
         recordStatus: "",

@@ -23,6 +23,10 @@ get_template = _Lookup.get_template
 _varLookup = TemplateLookup(directories=[directories.vardir])
 
 
+class KaithemUserPermissionError(PermissionError):
+    pass
+
+
 class HTTPRedirect(Exception):
     def __init__(self, url):
         Exception.__init__(self)
@@ -192,10 +196,10 @@ def require(permission):
             # This check is really just to be sure nobody accidentally uses HTTP,
             # But localhost and encrypted mesh are legitamate uses of HTTP.
             if not isHTTPAllowed(x):
-                raise PermissionError(permission)
+                raise KaithemUserPermissionError(permission)
 
         if not auth.canUserDoThis(user, permission):
-            raise PermissionError(permission)
+            raise KaithemUserPermissionError(permission)
 
 
 def loginredirect(url):
