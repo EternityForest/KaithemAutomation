@@ -304,7 +304,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             self.created_time = time.time()
 
             if not input or not input.startswith("rtplisten://"):
-                self.src = self.add_element("pipewiresrc", client_name=f"{name}_in", do_timestamp=True, always_copy=True, autoconnect=False)
+                self.src = self.add_element("pipewiresrc", client_name=f"{name}_in", always_copy=True, autoconnect=False)
 
                 self.capsfilter = self.add_element(
                     "capsfilter",
@@ -596,10 +596,20 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             self.add_element("queue", leaky=2, max_size_time=100_0000_0000, connect_to_output=linkTo)
             linkTo = self.add_element("queue", leaky=2, sidechain=True, connect_to_output=linkTo, max_size_buffers=1)
 
-            vl = self.add_element("volume", volume=10 ** (volume / 20), connect_to_output=linkTo)
-            linkTo = self.add_element("audioconvert", connect_to_output=linkTo)
+            vl = self.add_element(
+                "volume", volume=10 ** (volume / 20), connect_to_output=linkTo, connect_when_available="audio", sidechain=True
+            )
+            linkTo = self.add_element("audioconvert", connect_to_output=linkTo, connect_when_available="audio", sidechain=True)
 
-            self.add_element("pipewiresink", client_name=cname, mode=2, max_lateness=5_000_000, sync=False, connect_to_output=linkTo)
+            self.add_element(
+                "pipewiresink",
+                client_name=cname,
+                mode=2,
+                max_lateness=5_000_000,
+                connect_to_output=linkTo,
+                connect_when_available="audio",
+                sidechain=True,
+            )
 
             self.effectsById[id] = vl
 
