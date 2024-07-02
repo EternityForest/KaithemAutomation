@@ -240,7 +240,9 @@ class Recorder(gstwrapper.Pipeline):
     def __init__(self, name="krecorder", channels=2, pattern="mixer_"):
         gstwrapper.Pipeline.__init__(self, name, realtime=70)
 
-        self.src = self.add_element("pipewiresrc", client_name=name, do_timestamp=True, always_copy=True, autoconnect=False)
+        self.src = self.add_element(
+            "pipewiresrc", client_name=name, do_timestamp=True, always_copy=True, stream_properties="x,node.autoconnect=false"
+        )
         # It is not ginna start unless we can make the connection to the silence thing
         # Before the thing even exists...
         self.silencein = jacktools.Airwire("SILENCE", name)
@@ -304,7 +306,9 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             self.created_time = time.time()
 
             if not input or not input.startswith("rtplisten://"):
-                self.src = self.add_element("pipewiresrc", client_name=f"{name}_in", always_copy=True, autoconnect=False)
+                self.src = self.add_element(
+                    "pipewiresrc", client_name=f"{name}_in", always_copy=True, stream_properties={"node.autoconnect": "false"}
+                )
 
                 self.capsfilter = self.add_element(
                     "capsfilter",
