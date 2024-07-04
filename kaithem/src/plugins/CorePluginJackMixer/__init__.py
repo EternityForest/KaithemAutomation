@@ -312,15 +312,16 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
 
             if not input or not input.startswith("rtplisten://"):
                 self.src = self.add_element(
-                    "pipewiresrc", client_name=f"{name}_in", always_copy=True, stream_properties={"node.autoconnect": "false"}
+                    "pipewiresrc",
+                    client_name=f"{name}_in",
+                    always_copy=True,
+                    stream_properties={"node.autoconnect": "false"},
                 )
 
                 self.capsfilter = self.add_element(
                     "capsfilter",
                     caps=f"audio/x-raw,channels={str(channels)}",
                 )
-
-                self.add_element("audiorate")
             else:
                 self.src = self.add_element("udpsrc", port=int(input.split("://")[1]))
                 self.capsfilter = self.add_element(
@@ -427,13 +428,10 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
 
     def finalize(self, wait=3):
         with self.lock:
-            self.add_element("audiorate")
-
             self.sink = self.add_element(
                 "pipewiresink",
                 client_name=f"{self.name}_out",
                 mode=2,
-                max_lateness=5_000_000,
                 **{"async": False},
             )
 
@@ -602,7 +600,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             cname = f"{self.name}_send{str(len(self.sends))}"
 
             linkTo = self.add_element("tee")
-            self.add_element("queue", leaky=2, max_size_time=100_0000_0000, connect_to_output=linkTo)
+            self.add_element("queue", leaky=2, max_size_time=250_000_000, connect_to_output=linkTo)
             linkTo = self.add_element("queue", leaky=2, sidechain=True, connect_to_output=linkTo, max_size_buffers=1)
 
             vl = self.add_element(
@@ -614,7 +612,6 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                 "pipewiresink",
                 client_name=cname,
                 mode=2,
-                max_lateness=5_000_000,
                 connect_to_output=linkTo,
                 connect_when_available="audio",
                 sidechain=True,
