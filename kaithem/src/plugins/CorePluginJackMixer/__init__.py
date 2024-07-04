@@ -435,18 +435,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                 **{"async": False},
             )
 
-        # wait till it exists for real
-        for i in range(15):
-            pt = jacktools.get_ports()
-            p = [i.name for i in pt]
-            p2 = [i.clientName for i in pt]
-            p = p + p2
-            if (f"{self.name}_in") in p:
-                break
-            else:
-                time.sleep(0.1)
-
-        # It is not ginna start unless we can make the connection to the silence thing
+        # It is not going to start unless we can make the connection to the silence thing
         # Before the thing even exists...
         # so we start it then do the connection in the background
         self.silencein = jacktools.Airwire("SILENCE", f"{self.name}_in")
@@ -600,21 +589,18 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             cname = f"{self.name}_send{str(len(self.sends))}"
 
             linkTo = self.add_element("tee")
-            self.add_element("queue", leaky=2, max_size_time=250_000_000, connect_to_output=linkTo)
-            linkTo = self.add_element("queue", leaky=2, sidechain=True, connect_to_output=linkTo, max_size_buffers=1)
+            linkTo = self.add_element("queue", connect_to_output=linkTo, sidechain=True)
 
-            vl = self.add_element(
-                "volume", volume=10 ** (volume / 20), connect_to_output=linkTo, connect_when_available="audio", sidechain=True
-            )
-            linkTo = self.add_element("audioconvert", connect_to_output=linkTo, connect_when_available="audio", sidechain=True)
+            linkTo = vl = self.add_element("volume", volume=10 ** (volume / 20), connect_to_output=linkTo, sidechain=True)
+            linkTo = self.add_element("audioconvert", connect_to_output=linkTo, sidechain=True)
 
             self.add_element(
                 "pipewiresink",
                 client_name=cname,
                 mode=2,
                 connect_to_output=linkTo,
-                connect_when_available="audio",
                 sidechain=True,
+                **{"async": False},
             )
 
             self.effectsById[id] = vl
