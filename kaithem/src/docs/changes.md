@@ -38,6 +38,7 @@ Change Log
 - :boom: Chandler GotoCue commands no longer stop execution of the current event.
 - :boom: Chandler GotoCue, shortcut, and event happens in the next frame
 - :boom: Tag points and the message bus use system time, not monotonic.
+- :boom: Tag points under /jackmixer/ renamed to just mixer
 
 #### Fixed
 

@@ -312,15 +312,16 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
 
             if not input or not input.startswith("rtplisten://"):
                 self.src = self.add_element(
-                    "pipewiresrc", client_name=f"{name}_in", always_copy=True, stream_properties={"node.autoconnect": "false"}
+                    "pipewiresrc",
+                    client_name=f"{name}_in",
+                    always_copy=True,
+                    stream_properties={"node.autoconnect": "false"},
                 )
 
                 self.capsfilter = self.add_element(
                     "capsfilter",
                     caps=f"audio/x-raw,channels={str(channels)}",
                 )
-
-                self.add_element("audiorate")
             else:
                 self.src = self.add_element("udpsrc", port=int(input.split("://")[1]))
                 self.capsfilter = self.add_element(
@@ -427,28 +428,14 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
 
     def finalize(self, wait=3):
         with self.lock:
-            self.add_element("audiorate")
-
             self.sink = self.add_element(
                 "pipewiresink",
                 client_name=f"{self.name}_out",
                 mode=2,
-                max_lateness=5_000_000,
                 **{"async": False},
             )
 
-        # wait till it exists for real
-        for i in range(15):
-            pt = jacktools.get_ports()
-            p = [i.name for i in pt]
-            p2 = [i.clientName for i in pt]
-            p = p + p2
-            if (f"{self.name}_in") in p:
-                break
-            else:
-                time.sleep(0.1)
-
-        # It is not ginna start unless we can make the connection to the silence thing
+        # It is not going to start unless we can make the connection to the silence thing
         # Before the thing even exists...
         # so we start it then do the connection in the background
         self.silencein = jacktools.Airwire("SILENCE", f"{self.name}_in")
@@ -602,22 +589,18 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             cname = f"{self.name}_send{str(len(self.sends))}"
 
             linkTo = self.add_element("tee")
-            self.add_element("queue", leaky=2, max_size_time=100_0000_0000, connect_to_output=linkTo)
-            linkTo = self.add_element("queue", leaky=2, sidechain=True, connect_to_output=linkTo, max_size_buffers=1)
+            linkTo = self.add_element("queue", connect_to_output=linkTo, sidechain=True)
 
-            vl = self.add_element(
-                "volume", volume=10 ** (volume / 20), connect_to_output=linkTo, connect_when_available="audio", sidechain=True
-            )
-            linkTo = self.add_element("audioconvert", connect_to_output=linkTo, connect_when_available="audio", sidechain=True)
+            linkTo = vl = self.add_element("volume", volume=10 ** (volume / 20), connect_to_output=linkTo, sidechain=True)
+            linkTo = self.add_element("audioconvert", connect_to_output=linkTo, sidechain=True)
 
             self.add_element(
                 "pipewiresink",
                 client_name=cname,
                 mode=2,
-                max_lateness=5_000_000,
                 connect_to_output=linkTo,
-                connect_when_available="audio",
                 sidechain=True,
+                **{"async": False},
             )
 
             self.effectsById[id] = vl
