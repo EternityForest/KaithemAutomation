@@ -62,7 +62,12 @@ def start_dummy_source_if_needed():
                 return
             time.sleep(0.1)
 
-        ds = subprocess.Popen("gst-launch-1.0 audiotestsrc volume=0 ! pipewiresink client-name=SILENCE", stdout=None, shell=True)
+        ds = subprocess.Popen(
+            "gst-launch-1.0 audiotestsrc volume=0 ! pipewiresink client-name=SILENCE",
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            shell=True,
+        )
 
         for i in range(25):
             if [i.name for i in jacktools.get_ports() if i.name.startswith("SILENCE")]:

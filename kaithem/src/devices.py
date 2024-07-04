@@ -249,7 +249,7 @@ class DeviceResourceType(ResourceType):
         raise RuntimeError("Not implemented, devices uses it's own create page")
 
     def create_page(self, module, path):
-        return pages.get_template("devices/deviceinto_module.html").render(module=module, path=path)
+        return pages.get_template("devices/deviceintomodule.html").render(module=module, path=path)
 
     def edit_page(self, module, resource, value):
         with modules_state.modulesLock:
