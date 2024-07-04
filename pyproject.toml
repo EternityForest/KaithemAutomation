@@ -35,7 +35,7 @@ python = "^3.10.0, <3.13"
 # First party
 scullery = ">=0.2.0"
 iot-devices = ">=0.1.19"
-icemedia = ">=0.1.6"
+icemedia = ">=0.1.7"
 NVRChannel = ">=0.1.7"
 
 # New numpy needs new opencv
