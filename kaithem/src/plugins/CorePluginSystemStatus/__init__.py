@@ -29,7 +29,7 @@ def getSDHealth():
                 logging.exception("Failed to get SD health status")
                 messagebus.post_message(
                     "/system/notifications/warnings",
-                    "Sdmon is installed, but failed to get SD card health status. Probably missing passwordless sudo",
+                    "Sdmon is installed, but failed to get SD card health status. Probably an unsupported card ormissing passwordless sudo",
                 )
                 return None
     if p:
