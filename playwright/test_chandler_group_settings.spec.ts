@@ -47,10 +47,10 @@ test('test', async ({ page }) => {
     await page.getByTestId('add-group-button').click();
     await page.getByRole('button', { name: 'ts1' }).click();
     await page.getByText('Group Settings').click();
-    await page.getByLabel('Slideshow Overlay:').click();
-    await page.getByLabel('Slideshow Overlay:').fill('overlay');
-    await page.getByLabel('MIDI Source:').click();
-    await page.getByLabel('MIDI Source:').fill('midisrc');
+    await page.getByLabel('Slideshow Overlay').click();
+    await page.getByLabel('Slideshow Overlay').fill('overlay');
+    await page.getByLabel('MIDI Source').click();
+    await page.getByLabel('MIDI Source').fill('midisrc');
     await page.getByPlaceholder('Next cue in list').click();
     await page.getByPlaceholder('Next cue in list').fill('foo');
     await page.getByRole('main').click();
@@ -61,11 +61,11 @@ test('test', async ({ page }) => {
     await page.getByRole('heading', { name: 'Sound' }).click();
 
     // This doesn't seem to work the first time despite working in manual
-    await page.getByLabel('Alpha:').fill('0.25');
+    await page.getByLabel('Alpha', { exact: true }).fill('0.25');
     await page.getByRole('heading', { name: 'Sound' }).click();
 
-    await page.getByLabel('Alpha:').fill('0.25');
-    await page.getByLabel('Alpha:').fill('0.25');
+    await page.getByLabel('Alpha', { exact: true }).fill('0.25');
+    await page.getByLabel('Alpha', { exact: true }).fill('0.25');
 
     await page.getByRole('heading', { name: 'Sound' }).click();
     await page.getByLabel('Require Confirmation for Cue').click();
@@ -73,8 +73,8 @@ test('test', async ({ page }) => {
     await page.getByLabel('Sound Output').fill('defaultout');
     await page.getByLabel('Crossfade for non-silent').click();
     await page.getByLabel('Crossfade for non-silent').fill('0.56');
-    await page.getByLabel('MQTT Server:').click();
-    await page.getByLabel('MQTT Server:').fill('ppp');
+    await page.getByLabel('MQTT Server').click();
+    await page.getByLabel('MQTT Server').fill('ppp');
     await page.getByLabel('Sync Group Name').click();
     await page.getByLabel('Sync Group Name').fill('grp');
     await page.getByText('ts1 (running)Delete GroupNameShortcutFadeinLengthNextTrackJump to5defaultGEN>>>').click();
@@ -91,15 +91,15 @@ test('test', async ({ page }) => {
 
     await expect(page.getByLabel('Priority')).toHaveValue('42');
 
-    await expect(page.getByLabel('Alpha:')).toHaveValue('0.25');
+    await expect(page.getByLabel('Alpha', { exact: true })).toHaveValue('0.25');
     await expect(page.getByLabel('Default Alpha')).toHaveValue('0.22');
-    await expect(page.getByLabel('Slideshow Overlay:')).toHaveValue('overlay');
-    await expect(page.getByLabel('MIDI Source:')).toHaveValue('midisrc');
+    await expect(page.getByLabel('Slideshow Overlay')).toHaveValue('overlay');
+    await expect(page.getByLabel('MIDI Source')).toHaveValue('midisrc');
     await expect(page.getByPlaceholder('Tagpoint')).toHaveValue('cmdtag');
     await expect(page.getByPlaceholder('Next cue in list')).toHaveValue('foo');
     await expect(page.getByLabel('Sound Output')).toHaveValue('defaultout');
     await expect(page.getByLabel('Crossfade for non-silent')).toHaveValue('0.56');
-    await expect(page.getByLabel('MQTT Server:')).toHaveValue('ppp');
+    await expect(page.getByLabel('MQTT Server')).toHaveValue('ppp');
     await expect(page.getByLabel('Sync Group Name')).toHaveValue('grp');
 
     await page.getByRole('button', { name: 'ts1' }).click();
@@ -111,7 +111,7 @@ test('test', async ({ page }) => {
     await page.getByRole('button', { name: 'ts1' }).click();
     await page.getByText('Group Settings').click();
     await page.getByTestId('group_blend_mode').selectOption('HTP');
-    await expect(page.getByLabel('Alpha:')).toHaveValue('0.25');
+    await expect(page.getByLabel('Alpha', { exact: true })).toHaveValue('0.25');
     await page.getByLabel('Default Alpha').click();
 
     await page.getByLabel('Sidebar info URL').click();
@@ -192,7 +192,7 @@ test('test', async ({ page }) => {
 
     // Now lets set stuff back to defaults
 
-    await page.getByLabel('Sound Output').click('');
+    await page.getByLabel('Sound Output').click();
     await page.getByLabel('Sound Output').fill('');
     await page.getByLabel('Crossfade for non-silent').click();
     await page.getByLabel('Crossfade for non-silent').click();
@@ -202,20 +202,20 @@ test('test', async ({ page }) => {
     await page.getByLabel('Crossfade for non-silent').click();
     await page.getByLabel('Crossfade for non-silent').fill('0');
     await page.getByRole('heading', { name: 'Sound' }).click();
-    await page.getByLabel('MQTT Server:').dblclick();
-    await page.getByLabel('MQTT Server:').fill('');
+    await page.getByLabel('MQTT Server').dblclick();
+    await page.getByLabel('MQTT Server').fill('');
     await page.getByLabel('Sync Group Name').dblclick();
     await page.getByLabel('Sync Group Name').fill('');
-    await page.getByLabel('Slideshow Overlay:').click({
+    await page.getByLabel('Slideshow Overlay').click({
         clickCount: 3
     });
-    await page.getByLabel('Slideshow Overlay:').fill('');
-    await page.getByLabel('MIDI Source:').dblclick();
+    await page.getByLabel('Slideshow Overlay').fill('');
+    await page.getByLabel('MIDI Source').dblclick();
 
-    await page.getByLabel('MIDI Source:').click({
+    await page.getByLabel('MIDI Source').click({
         clickCount: 3
     });
-    await page.getByLabel('MIDI Source:').fill('');
+    await page.getByLabel('MIDI Source').fill('');
     await page.getByPlaceholder('Tagpoint').click({
         clickCount: 3
     });
@@ -236,10 +236,10 @@ test('test', async ({ page }) => {
     await page.getByRole('button', { name: 'ts1' }).click();
     await page.getByText('Group Settings').click();
 
-    await expect(page.getByLabel('MQTT Server:')).toBeEmpty();
+    await expect(page.getByLabel('MQTT Server')).toBeEmpty();
     await expect(page.getByLabel('Sync Group Name')).toBeEmpty();
-    await expect(page.getByLabel('Slideshow Overlay:')).toBeEmpty();
-    await expect(page.getByLabel('MIDI Source:')).toBeEmpty();
+    await expect(page.getByLabel('Slideshow Overlay')).toBeEmpty();
+    await expect(page.getByLabel('MIDI Source')).toBeEmpty();
     await expect(page.getByPlaceholder('Tagpoint')).toBeEmpty();
     await expect(page.getByPlaceholder('Next cue in list')).toBeEmpty();
     await expect(page.getByLabel('Crossfade for non-silent')).toHaveValue('0');

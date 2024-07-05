@@ -253,8 +253,15 @@ class Recorder(gstwrapper.Pipeline):
         self.silencein = jacktools.Airwire("SILENCE", name)
 
         def f():
-            time.sleep(0.3)
-            self.silencein.connect()
+            for i in range(100):
+                try:
+                    if [i.name for i in jacktools.get_ports() if i.name.startswith(name)]:
+                        break
+                except Exception:
+                    print(traceback.format_exc())
+                time.sleep(0.1)
+
+                self.silencein.connect()
 
         workers.do(f)
 
@@ -441,7 +448,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
         self.silencein = jacktools.Airwire("SILENCE", f"{self.name}_in")
 
         def f():
-            for i in range(25):
+            for i in range(100):
                 try:
                     if [i.name for i in jacktools.get_ports() if i.name.startswith(f"{self.name}_in:")]:
                         break

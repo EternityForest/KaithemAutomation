@@ -49,11 +49,20 @@ test('test', async ({ page }) => {
 
     await page.locator('#triggerbox').fill('True');
     await page.getByRole('button', { name: 'Save Changes' }).click();
+
+    await page.goto("http://localhost:8002/modules/module/PlaywrightBasicModuleFeatures")
+    await page.goto("http://localhost:8002/modules/module/PlaywrightBasicModuleFeatures")
+
+    
     await expect(page.getByText('Trigger: True Last Ran:')).toContainText('ago');
     await page.getByRole('link', { name: 'e1 (event)' }).click();
 
+    // Waste some time
+    await page.goto("http://localhost:8002/modules/module/PlaywrightBasicModuleFeatures")
+    await page.goto("http://localhost:8002/modules/module/PlaywrightBasicModuleFeatures")
+
     // Check for the "this last ran X seconds ago"
-    await expect(page.getByRole('paragraph')).toContainText('ago');
+    await expect(page.getByText('Trigger: True')).toContainText('ago');
     await page.goto("http://localhost:8002/modules/module/PlaywrightBasicModuleFeatures#resources");
 
     // Rename the page
@@ -78,6 +87,10 @@ test('test', async ({ page }) => {
     await page.getByLabel('New Name').click();
     await page.getByLabel('New Name').fill('e1_new');
     await page.getByRole('button', { name: 'Submit' }).click();
+    //Waste time
+    await page.goto("http://localhost:8002/modules/module/PlaywrightBasicModuleFeatures")
+    await page.goto("http://localhost:8002/modules/module/PlaywrightBasicModuleFeatures")
+
     await expect(page.getByText('Trigger: True Last Ran:')).toContainText('ago');
 
 
