@@ -1,9 +1,8 @@
 import datetime
 import math
-import time
-from typing import Optional
 
-import pytz
+import dateutil
+import dateutil.tz
 
 
 def ease(x: float):
@@ -11,17 +10,16 @@ def ease(x: float):
     return -(math.cos(math.pi * x) - 1) / 2
 
 
-def dt_to_ts(dt: datetime.datetime, tz: Optional[datetime.tzinfo] = None) -> float:
-    "Given a datetime in tz, return unix timestamp"
-    if tz:
-        utc = pytz.timezone("UTC")
-        return (tz.localize(dt.replace(tzinfo=None)) - datetime.datetime(1970, 1, 1, tzinfo=utc)) / datetime.timedelta(seconds=1)
+def dt_to_ts(dt: datetime.datetime) -> float:
+    "Given a datetime, return unix timestamp"
 
-    else:
-        # Local Time
-        ts = time.time()
-        offset = (datetime.datetime.fromtimestamp(ts) - datetime.datetime.fromtimestamp(ts, datetime.UTC)).total_seconds()
-        return ((dt - datetime.datetime(1970, 1, 1)) / datetime.timedelta(seconds=1)) - offset
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=dateutil.tz.tzlocal())
+
+    d2 = datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc)
+    time_delta = dt - d2
+    ts = int(time_delta.total_seconds())
+    return ts
 
 
 # https://gist.github.com/devxpy/063968e0a2ef9b6db0bd6af8079dad2a

@@ -71,7 +71,7 @@ def get_time(ev):
     try:
         if not _events_by_module_resource[ev].nextruntime:
             return 0
-        return dt_to_ts(_events_by_module_resource[ev].nextruntime or 0, _events_by_module_resource[ev].tz)
+        return dt_to_ts(_events_by_module_resource[ev].nextruntime or 0)
     except Exception:
         return -1
 
@@ -1224,7 +1224,6 @@ class RecurringEvent(CompileCodeStringsMixin):
         selector = util.get_rrule_selector(when, ref)
 
         self.selector = selector
-        self.tz = None
 
         self.nextruntime = None
         self.next = None
@@ -1264,7 +1263,7 @@ class RecurringEvent(CompileCodeStringsMixin):
             if not self.lock.acquire(False):
                 self.nextruntime = self.selector.after(self.nextruntime, False)
 
-                self.next = scheduler.schedule(self.handler, dt_to_ts(self.nextruntime, self.tz), False)
+                self.next = scheduler.schedule(self.handler, dt_to_ts(self.nextruntime), False)
                 return
         try:
             # If the scheduler misses it and we have exact configured, then we just don't do the
@@ -1289,7 +1288,7 @@ class RecurringEvent(CompileCodeStringsMixin):
                 return
 
             if self.nextruntime:
-                self.next = scheduler.schedule(self.handler, dt_to_ts(self.nextruntime, self.tz), False)
+                self.next = scheduler.schedule(self.handler, dt_to_ts(self.nextruntime), False)
                 return
             print(
                 "Caught event trying to return None for get next run, time is:",
@@ -1321,7 +1320,7 @@ class RecurringEvent(CompileCodeStringsMixin):
             time.sleep(1.353)
 
             if self.nextruntime:
-                self.next = scheduler.schedule(self.handler, dt_to_ts(self.nextruntime, self.tz), False)
+                self.next = scheduler.schedule(self.handler, dt_to_ts(self.nextruntime), False)
                 return
             print(
                 """Caught event trying to return None for get next run
@@ -1350,7 +1349,7 @@ class RecurringEvent(CompileCodeStringsMixin):
             if self.nextruntime is None:
                 return
 
-            self.next = scheduler.schedule(self.handler, dt_to_ts(self.nextruntime, self.tz), False)
+            self.next = scheduler.schedule(self.handler, dt_to_ts(self.nextruntime), False)
 
             self.disable = False
 
@@ -2008,9 +2007,7 @@ class EventType(modules_state.ResourceType):
 
         def formatnextrun():
             try:
-                return unitsofmeasure.strftime(
-                    dt_to_ts(_events_by_module_resource[module, resource].nextruntime, _events_by_module_resource[module, resource].tz)
-                )
+                return unitsofmeasure.strftime(dt_to_ts(_events_by_module_resource[module, resource].nextruntime))
             except Exception as e:
                 return str(e)
 
