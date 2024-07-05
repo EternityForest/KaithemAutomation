@@ -244,3 +244,17 @@ chmod 755 /usr/bin/sdmon
 
 fi
 
+
+
+
+if [ `uname -m` == "aarch64" ]; then
+
+# This is the program that lets us get the SanDisk industrial health data.
+
+wget -nc  https://github.com/darkhz/bluetuith/releases/download/v0.2.2/bluetuith_0.2.2_Linux_arm64.tar.gz
+tar zxf bluetuith_0.2.2_Linux_arm64.tar.gz
+mv bluetuith /usr/bin
+chmod 755 /usr/bin/bluetuith 
+
+fi
+
