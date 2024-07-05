@@ -317,7 +317,7 @@ class ScheduleTimer:
         self.selector = util.get_rrule_selector(selector[1:], ref)
 
         nextruntime = self.selector.after(datetime.datetime.now(), False)
-        self.nextruntime = dt_to_ts(nextruntime, self.selector.tz)
+        self.nextruntime = dt_to_ts(nextruntime)
         self.next = scheduler.schedule(self.handler, self.nextruntime, False)
 
     def handler(self, *a, **k):
@@ -330,7 +330,7 @@ class ScheduleTimer:
         try:
             ctx.event(self.eventName)
 
-            self.nextruntime = dt_to_ts(nextruntime, self.selector.tz)
+            self.nextruntime = dt_to_ts(nextruntime)
             self.next = scheduler.schedule(self.handler, self.nextruntime, False)
             ctx.onTimerChange(self.eventName, self.nextruntime)
 

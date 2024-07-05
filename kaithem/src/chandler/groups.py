@@ -1208,7 +1208,7 @@ class Group:
             if nextruntime <= ref:
                 nextruntime = selector.after(nextruntime, False)
 
-            t2 = dt_to_ts(nextruntime, None)
+            t2 = dt_to_ts(nextruntime)
 
             nextruntime = t2
 

@@ -1,6 +1,5 @@
 import datetime
 import math
-from typing import Optional
 
 import dateutil
 import dateutil.tz
@@ -11,10 +10,9 @@ def ease(x: float):
     return -(math.cos(math.pi * x) - 1) / 2
 
 
-def dt_to_ts(dt: datetime.datetime, tz: Optional[datetime.tzinfo] = None) -> float:
-    "Given a datetime in tz, return unix timestamp"
-    if tz:
-        dt = dt.replace(tzinfo=tz)
+def dt_to_ts(dt: datetime.datetime) -> float:
+    "Given a datetime, return unix timestamp"
+
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=dateutil.tz.tzlocal())
 

@@ -62,6 +62,7 @@ Change Log
 - :bug: Fix bug where a fade in the middle of another fade could be a sudden jump
 - :bug: Fix cue and group autocomplete in script editor
 - :bug: Mixer sends work
+- :bug: Fix recurring time selectors being a few seconds off
 
 
 ### 0.84.0b2
