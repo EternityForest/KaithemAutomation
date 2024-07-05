@@ -10,6 +10,29 @@ effectTemplates_data = {
         "help": "The main fader for the channel",
         "params": {},
     },
+    "send": {
+        "type": "send",
+        "displayType": "Send",
+        "help": "mono/stereo send",
+        "gstElement": "SpecialCase",
+        "params": {
+            "*db_volume": {
+                "type": "float",
+                "displayName": "Level",
+                "sort": 0,
+                "min": -60,
+                "max": 10,
+                "value": -60,
+                "step": 0.25,
+            },
+            "*destination": {
+                "type": "JackInput",
+                "displayName": "Dest",
+                "value": "",
+                "sort": 1,
+            },
+        },
+    },
     "ringmod": {
         "type": "ringmod",
         "displayType": "Ring Mod",

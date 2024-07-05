@@ -107,6 +107,10 @@ class Fixture:
         use the first argument to specify the number of the coarse channel,
         with 0 being the fixture's first channel.
         """
+        # Not threadsafe or something to rely on,
+        # just an extra defensive check
+        if name in fixtures:
+            raise ValueError("Name in Use")
 
         if data:
             channel_data = data.get("channels", None)
@@ -137,13 +141,8 @@ class Fixture:
         for i in range(len(channels)):
             self.nameToOffset[channels[i]["name"]] = i
 
-        # Not threadsafe or something to rely on,
-        # just an extra defensive check
-        if name in fixtures:
-            raise ValueError("Name in Use")
-        else:
-            fixtures[name] = weakref.ref(self)
-            self.name = name
+        fixtures[name] = weakref.ref(self)
+        self.name = name
 
         global last_state_update
         last_state_update = time.time()
@@ -154,6 +153,14 @@ class Fixture:
 
     def __del__(self):
         def f():
+            # Todo think more about if theres a race condition
+            if self.name not in fixtures:
+                return
+
+            if fixtures[self.name]() is not self:
+                return
+
+            logger.warn(f"Auto-deleting fixture {self.name}")
             with core.cl_context:
                 try:
                     del fixtures[self.name]
@@ -163,7 +170,8 @@ class Fixture:
                 ID = id(self)
 
                 try:
-                    if id(fixtures[self.name]()) == id(ID):
+                    x = fixtures[self.name]()
+                    if id(x) == id(ID):
                         self.cl_assign(None, None)
                         self.rm()
                 except KeyError:
@@ -204,6 +212,7 @@ class Fixture:
                     # Delete current assignments
                     for i in range(self.startAddress, self.startAddress + len(self.channels)):
                         if i in oldUniverseObj.channels:
+                            # Ensure we are not assigning something else with same name
                             if oldUniverseObj.channels[i]() and oldUniverseObj.channels[i]() is self:
                                 del oldUniverseObj.channels[i]
                                 # We just unassigned it, so it's not a hue channel anymore
@@ -253,6 +262,7 @@ class Fixture:
                     universeObj.hueBlendMask[i] = 1
                     cPointer += 1
 
+        universeObj.fixtures[self.name] = weakref.ref(self)
         universeObj.cl_channels_changed()
         global last_state_update
         last_state_update = time.time()

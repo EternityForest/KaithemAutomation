@@ -15,7 +15,7 @@ from scullery import scheduling, snake_compat, workers
 # The frontend's ephemeral state is using CamelCase conventions for now
 from .. import schemas
 from ..kaithemobj import kaithem
-from . import blendmodes, console_abc, core, fixtureslib, groups, persistance, universes
+from . import blendmodes, console_abc, core, fixtureslib, group_lighting, groups, persistance, universes
 from .core import logger
 from .global_actions import async_event
 from .groups import Group, cues
@@ -237,7 +237,6 @@ class ChandlerConsole(console_abc.Console_ABC):
                 x = universes.Fixture(i["name"], self.fixture_classes[i["type"]])
                 self.fixtures[i["name"]] = x
                 self.fixtures[i["name"]].cl_assign(i["universe"], int(i["addr"]))
-                universes.fixtures[i["name"]] = weakref.ref(x)
             except Exception:
                 logger.exception("Error setting up fixture")
                 print(traceback.format_exc())
@@ -252,6 +251,7 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         self.fixture_errors = self.fixture_errors or "No Errors!"
         self.push_setup()
+        group_lighting.refresh_all_group_lighting()
 
     @core.cl_context.entry_point
     def cl_create_universes(self, data: dict[str, Any]):

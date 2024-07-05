@@ -536,7 +536,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             del self.fixture_assignments[msg[1]]
 
             self.send_fixture_assignments()
-
             self.cl_reload_fixture_assignment_data()
 
         elif cmd_name == "clonecue":
