@@ -87,7 +87,7 @@ class ChandlerConsole(console_abc.Console_ABC):
         # as would be passed to saveasfiles
         self.last_saved_version: dict[str, Any] = {}
 
-        self.configured_universes: Dict[str, universes.Universe] = {}
+        self.configured_universes: Dict[str, dict[str, Any]] = {}
         self.fixture_assignments: Dict[str, Any] = {}
         self.fixture_presets: Dict[str, dict[str, Any]] = {}
 
@@ -138,12 +138,17 @@ class ChandlerConsole(console_abc.Console_ABC):
         self.groups = {}
 
         for i in self.configured_universes:
-            self.configured_universes[i].close()
+            try:
+                u = universes.universes[i]()
+                if u is not None:
+                    u.close()
+            except Exception:
+                logger.exception("Could not close universe")
 
         try:
             self.autosave_checker.unregister()
         except Exception:
-            print(traceback.format_exc())
+            logger.exception("Could not close correctly")
 
     @core.cl_context.entry_point
     def cl_load_project(self, data: dict[str, Any]):
@@ -153,7 +158,12 @@ class ChandlerConsole(console_abc.Console_ABC):
         self.groups = {}
 
         for i in self.configured_universes:
-            self.configured_universes[i].close()
+            try:
+                u = universes.universes[i]()
+                if u is not None:
+                    u.close()
+            except Exception:
+                logger.exception("Could not close universe")
 
         if "setup" in data:
             data2 = data["setup"]

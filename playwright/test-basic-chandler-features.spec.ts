@@ -53,7 +53,7 @@ test('test', async ({ page }) => {
     
     // Action params editor has a cue field
     // When we go into default cue it should redirect to c2
-    await page.getByText('Block Inspector Type').getByRole('row', { name: 'cue' }).getByRole('textbox').fill('c2');
+    await page.getByLabel('cue', { exact: true }).fill('c2');
     //Dismiss popup selecter by clicking outside
     await page.getByRole('heading', { name: 'Automation Logic' }).click();
 
@@ -95,9 +95,9 @@ test('test', async ({ page }) => {
     // Make a new cue from the alert sound    
     await page.getByText('Cue Sound/Media').click();
     await page.getByRole('list').getByText('Refresh').click();
-    await page.getByText('/kaithem/data/sounds/').click();
+    await page.getByText('/dev/shm/kaithem_test_env/assets/').click();
 
-    // It must exisr
+    // It must exist
     await page.getByRole('button', { name: 'New' }).first().click();
     await expect(page.locator('#cuesbox')).toContainText('alert');
 
@@ -133,7 +133,9 @@ test('test', async ({ page }) => {
     await page.getByRole('button', { name: 'Channels' }).click();
     
     await page.getByRole('button', { name: 'Normal View' }).click();
-    await page.locator('article').filter({ hasText: 'dmx250.000' }).getByRole('slider').fill('130');
+
+    await page.locator('summary').filter({ hasText: 'Channels' }).click();
+    await page.locator('article').filter({ hasText: 'dmx' }).getByRole('slider').fill('130');
     await expect(page.getByRole('main')).toContainText('130.0');
     
     // Make a tag point
@@ -152,7 +154,8 @@ test('test', async ({ page }) => {
     await page.getByRole('button', { name: 'Channels' }).click();
 
     await page.locator('div').filter({ hasText: /^Tag Add Channel to Cue$/ }).getByRole('button').click();
-    await page.locator('article').filter({ hasText: '/test_chandler_tagvalue'}).getByRole('slider').fill('130');
+    await page.locator('summary').filter({ hasText: 'Channels' }).click();
+    await page.locator('article').filter({ hasText: '/' }).getByRole('slider').fill('130');
     
     await page.getByRole('button', { name: 'Go', exact: true }).first().click();
     
