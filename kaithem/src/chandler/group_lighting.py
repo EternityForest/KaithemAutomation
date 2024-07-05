@@ -13,8 +13,17 @@ if TYPE_CHECKING:
     from .ChandlerConsole import ChandlerConsole
     from .groups import Cue, Group
 
-from .core import render_loop_lock
+from .core import iter_boards, render_loop_lock, serialized_async_with_core_lock
 from .fadecanvas import FadeCanvas
+
+
+def refresh_all_group_lighting():
+    def f():
+        for b in iter_boards():
+            for i in b.groups:
+                b.groups[i].refresh_lighting()
+
+    serialized_async_with_core_lock(f)
 
 
 class GroupLightingManager:
