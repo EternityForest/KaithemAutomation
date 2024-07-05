@@ -391,7 +391,7 @@ ${global_api.render("gapi")}
           <h3>Recorder ({{recordStatus}})</h3>
         </header>
           <details class="help">
-            <summary><i class="mdi mdi-help-circle-outline"></i></summary>Route your audio to the input(Named recorder_$module_$resource) to use this.
+            <summary><i class="mdi mdi-help-circle-outline"></i></summary>Route your audio to the input(Named {{recorderPortName}}) to use this.
 
             <br>Files in <a
               href="/settings/files/${os.path.join(directories.vardir,'recordings','mixer')|u}">VARDIR/recordings/mixer</a>

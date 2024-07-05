@@ -246,7 +246,11 @@ class Recorder(gstwrapper.Pipeline):
         gstwrapper.Pipeline.__init__(self, name, realtime=70)
 
         self.src = self.add_element(
-            "pipewiresrc", client_name=name, do_timestamp=True, always_copy=True, stream_properties="x,node.autoconnect=false"
+            "pipewiresrc",
+            client_name=name,
+            do_timestamp=True,
+            always_copy=True,
+            stream_properties={"node.autoconnect": "false"},
         )
         # It is not ginna start unless we can make the connection to the silence thing
         # Before the thing even exists...

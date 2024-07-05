@@ -855,11 +855,14 @@ class Group:
                     scheduled_count += 1
                     ref = datetime.datetime.now()
                     selector = util.get_rrule_selector(processlen(cue.length)[1:], ref)
-                    a = selector.before(ref)
+                    a: datetime.datetime = selector.before(ref)
 
                     # Hasn't happened yet, can't fast forward past it
                     if not a:
                         break
+
+                    if not a.tzinfo:
+                        a = a.astimezone()
 
                     a2 = dt_to_ts(a)
 
