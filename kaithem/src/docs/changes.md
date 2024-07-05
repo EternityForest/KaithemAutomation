@@ -12,6 +12,7 @@ Change Log
 - :coffin: The alert sounds system has been removed. It is suggested to use an automation rule on /sys/alerts.level.
 - :coffin: The setting for universe channel count. Ther're just always max size now.
 - :coffin: Most of the integrated self tests removed. Hardware related tests are staying.
+- :coffin: RTP features in the Mixing Board.  They will return at some point asa separate feature outside the FX chain.
 
 #### Added
 
