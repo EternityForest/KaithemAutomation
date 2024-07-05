@@ -34,7 +34,6 @@ test('test', async ({ page }) => {
     await page.getByRole('cell', { name: 'Number' }).dblclick();
     await page.getByRole('button', { name: 'Add', exact: true }).click();
     await page.getByRole('button', { name: 'Update Settings' }).click();
-    await page.getByRole('button', { name: 'Fixtures' }).click();
     await page.getByRole('button', { name: '󰅖 Close' }).click();
 
 
@@ -46,12 +45,12 @@ test('test', async ({ page }) => {
     await page.getByRole('spinbutton').click();
     await page.getByRole('spinbutton').fill('1');
     await page.getByRole('spinbutton').click();
+
+    await page.locator('select').selectOption('7ch DGBR');
+
     await page.getByRole('button', { name: 'Add and Update' }).click();
 
 
-    await page.getByRole('link', { name: '󱒕 Modules' }).click();
-    await page.getByRole('link', { name: 'foo' }).click();
-    await page.getByText('lakehylia (0) Modules Devices Tags Tools Help Logout(admin) Close Module foo').click();
     await page.getByRole('link', { name: '󱒕 Modules' }).click();
     await page.getByRole('link', { name: 'test_presets' }).click();
     await page.getByRole('link', { name: '󰏬 Editor' }).click();
@@ -67,6 +66,13 @@ test('test', async ({ page }) => {
     await page.locator('div').filter({ hasText: /^blue126\.0$/ }).getByRole('slider').fill('255');
     await page.locator('div').filter({ hasText: /^green0\.000$/ }).getByRole('slider').fill('37');
     await page.locator('div').filter({ hasText: /^green37\.00$/ }).getByRole('slider').fill('255');
+
+    page.once('dialog', dialog => {
+      console.log(`Dialog message: ${dialog.message()}`);
+      dialog.accept("Aqua").catch(() => {});
+    });
+    await page.locator('details').filter({ hasText: 'Cue Channel ValuesNormal' }).getByRole('combobox').selectOption('');
+
     await page.locator('div').filter({ hasText: /^blue255\.0$/ }).getByRole('slider').fill('234');
     await page.locator('div').filter({ hasText: /^blue234\.0$/ }).getByRole('slider').fill('0');
     await page.locator('div').filter({ hasText: /^green255\.0$/ }).getByRole('slider').fill('0');

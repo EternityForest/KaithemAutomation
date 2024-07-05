@@ -528,6 +528,8 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             self.cl_reload_fixture_assignment_data()
 
         elif cmd_name == "setFixtureAssignment":
+            if not msg[2]["type"]:
+                raise RuntimeError("Fixture type must be specified")
             self.fixture_assignments[msg[1]] = msg[2]
             self.send_fixture_assignments()
             self.cl_reload_fixture_assignment_data()
