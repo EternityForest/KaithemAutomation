@@ -106,7 +106,6 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
         webapproot,  # noqa: F401
         weblogin,  # noqa: F401
         widgets,  # noqa: F401
-        workers,
     )
     from . import config as cfg
     from .chandler import resource_type  # noqa
@@ -158,8 +157,6 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
     # Load all modules from the active modules directory
     modules.initModules()
     logger.info("Loaded modules")
-
-    workers.do(systasks.doUPnP)
 
     try:
         import setproctitle

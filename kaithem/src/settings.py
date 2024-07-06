@@ -27,11 +27,6 @@ notificationsfn = os.path.join(directories.vardir, "core.settings", "pushnotific
 pushsettings = persist.getStateFile(notificationsfn)
 
 
-upnpsettingsfile = os.path.join(directories.vardir, "core.settings", "upnpsettings.yaml")
-
-upnpsettings = persist.getStateFile(upnpsettingsfile)
-
-
 redirectsfn = os.path.join(directories.vardir, "core.settings", "httpredirects.toml")
 
 
@@ -173,16 +168,6 @@ def mdns():
     except PermissionError:
         return pages.loginredirect(pages.geturl())
     return pages.get_template("settings/mdns.html").render()
-
-
-@legacy_route
-def upnp():
-    """Return a page showing all of the discovered stuff on the LAN"""
-    try:
-        pages.require("system_admin")
-    except PermissionError:
-        return pages.loginredirect(pages.geturl())
-    return pages.get_template("settings/upnp.html").render()
 
 
 @legacy_route

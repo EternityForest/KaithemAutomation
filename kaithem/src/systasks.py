@@ -2,9 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 import atexit
-import gc
 import logging
-import os
 import platform
 import re
 import socket
@@ -17,7 +15,7 @@ import structlog
 from scullery import scheduling
 from zeroconf import ServiceBrowser, ServiceStateChange
 
-from . import directories, messagebus, persist, unitsofmeasure, util
+from . import messagebus, unitsofmeasure, util
 from .config import config
 
 # very much not thread safe, doesn't matter, it's only for one UI page
@@ -90,30 +88,7 @@ pageviewsthisminute = 0
 pageviewpublishcountdown = 1
 nminutepagecount = 0
 
-
-upnpMapping = None
 logger = structlog.get_logger(__name__)
-
-
-def doUPnP():
-    global upnpMapping
-    upnpsettingsfile = os.path.join(directories.vardir, "core.settings", "upnpsettings.yaml")
-
-    upnpsettings = persist.getStateFile(upnpsettingsfile)
-    p = upnpsettings.get("wan_port", 0)
-
-    if p:
-        try:
-            lp = config["https_port"]
-            from . import upnpwrapper
-
-            upnpMapping = upnpwrapper.addMapping(p, "TCP", desc="KaithemAutomation web UI", register=True, WANPort=lp)
-        except Exception:
-            logger.exception("Could not create mapping")
-    else:
-        # Going to let GC handle this
-        upnpMapping = None
-        gc.collect()
 
 
 # This gets called when an HTML request is made.

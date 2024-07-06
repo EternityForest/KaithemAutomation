@@ -1861,21 +1861,6 @@ files = [
 ]
 
 [[package]]
-name = "netdisco"
-version = "3.0.0"
-description = "Discover devices on your local network"
-optional = false
-python-versions = ">=3"
-files = [
-    {file = "netdisco-3.0.0-py3-none-any.whl", hash = "sha256:d76eb62b46da3c25df55d8baad7d33600b29fb23573f6cf8f122bd0d340235f5"},
-    {file = "netdisco-3.0.0.tar.gz", hash = "sha256:4dbb590482f377ccc461e01742707ccbe8f1d2d1b28578af91dc9b7febcdcbd2"},
-]
-
-[package.dependencies]
-requests = ">=2.0"
-zeroconf = ">=0.30.0"
-
-[[package]]
 name = "netifaces"
 version = "0.11.0"
 description = "Portable network interface information."
@@ -3503,13 +3488,13 @@ exceptiongroup = "*"
 
 [[package]]
 name = "tenacity"
-version = "8.4.2"
+version = "8.5.0"
 description = "Retry code until it succeeds"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "tenacity-8.4.2-py3-none-any.whl", hash = "sha256:9e6f7cf7da729125c7437222f8a522279751cdfbe6b67bfe64f75d3a348661b2"},
-    {file = "tenacity-8.4.2.tar.gz", hash = "sha256:cd80a53a79336edba8489e767f729e4f391c896956b57140b5d7511a64bbd3ef"},
+    {file = "tenacity-8.5.0-py3-none-any.whl", hash = "sha256:b594c2a5945830c267ce6b79a166228323ed52718f30302c1359836112346687"},
+    {file = "tenacity-8.5.0.tar.gz", hash = "sha256:8bc6c0c8a09b31e6cad13c47afbed1a567518250a9a171418582ed8d9c20ca78"},
 ]
 
 [package.extras]
@@ -3692,23 +3677,6 @@ files = [
     {file = "typing_extensions-4.12.2-py3-none-any.whl", hash = "sha256:04e5ca0351e0f3f85c6853954072df659d0d13fac324d0072316b67d7794700d"},
     {file = "typing_extensions-4.12.2.tar.gz", hash = "sha256:1a7ead55c7e559dd4dee8856e3a88b41225abfe1ce8df57b7c13915fe121ffb8"},
 ]
-
-[[package]]
-name = "upnpclient"
-version = "0.0.8"
-description = "Python 2 and 3 library for accessing uPnP devices."
-optional = false
-python-versions = "*"
-files = [
-    {file = "uPnPClient-0.0.8.tar.gz", hash = "sha256:67fe5c02fa8c134dae08e3136f0a1c94e0e1d34b923658d84b107aa053f507b6"},
-]
-
-[package.dependencies]
-lxml = "*"
-netdisco = "*"
-python-dateutil = "*"
-requests = "*"
-six = "*"
 
 [[package]]
 name = "urllib3"
@@ -4222,4 +4190,4 @@ ifaddr = ">=0.1.7"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10.0, <3.13"
-content-hash = "5b9228cf4c2a823a4c898ea348beee3a41c5d3590924fb83ae1e2bb759b27385"
+content-hash = "d4ed3379ead7a4b4e7f9ddb41531443dbaa2d29f0d30562f27ac1c7419353f11"
