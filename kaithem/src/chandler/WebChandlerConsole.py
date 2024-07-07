@@ -10,7 +10,6 @@ import traceback
 from typing import Any
 
 import yaml
-from scullery import snake_compat
 from tinytag import TinyTag
 
 from ..alerts import getAlertState
@@ -863,98 +862,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         elif cmd_name == "setCueInheritRules":
             cues[msg[1]].setInheritRules(msg[2])
             self.pushCueMeta(msg[1])
-
-        elif cmd_name == "setcuesound":
-            # If it's a cloud asset, get it first
-            kaithem.assetpacks.ensure_file(msg[2])
-
-            soundfolders = core.getSoundFolders(extra_folders=self.media_folders)
-            s = ""
-            if msg[2]:
-                for i in soundfolders:
-                    s = msg[2]
-                    # Make paths relative.
-                    if not i.endswith("/"):
-                        i = i + "/"
-                    if s.startswith(i):
-                        s = s[len(i) :]
-                        break
-                assert s
-
-            if s.strip() and cues[msg[1]].sound and cues[msg[1]].named_for_sound:
-                self.pushCueMeta(msg[1])
-                raise RuntimeError(
-                    """This cue was named for a specific sound file,
-                    forbidding change to avoid confusion.
-                    To override, set to no sound first"""
-                )
-            cues[msg[1]].sound = s
-            self.pushCueMeta(msg[1])
-
-        elif cmd_name == "setcueslide":
-            kaithem.assetpacks.ensure_file(msg[2])
-            soundfolders = core.getSoundFolders(extra_folders=self.media_folders)
-
-            for i in soundfolders:
-                s = msg[2]
-                # Make paths relative.
-                if not i.endswith("/"):
-                    i = i + "/"
-                if s.startswith(i):
-                    s = s[len(i) :]
-                    break
-
-            cues[msg[1]].slide = s
-            self.pushCueMeta(msg[1])
-
-        elif cmd_name == "setcuesoundoutput":
-            cues[msg[1]].sound_output = msg[2].strip()
-            self.pushCueMeta(msg[1])
-
-        elif cmd_name == "setcuesoundstartposition":
-            cues[msg[1]].sound_start_position = float(msg[2].strip() or 0)
-            self.pushCueMeta(msg[1])
-
-        elif cmd_name == "setcuemediaspeed":
-            cues[msg[1]].media_speed = str(msg[2]).strip() or "1"
-            self.pushCueMeta(msg[1])
-
-        elif cmd_name == "setcuemediawindup":
-            cues[msg[1]].media_wind_up = str(msg[2]).strip() or "0"
-            self.pushCueMeta(msg[1])
-
-        elif cmd_name == "setcuemediawinddown":
-            cues[msg[1]].media_wind_down = str(msg[2]).strip() or "0"
-            self.pushCueMeta(msg[1])
-
-        elif cmd_name == "settrack":
-            cues[msg[1]].setTrack(msg[2])
-            self.pushCueMeta(msg[1])
-
-        # TODO: Almost everything should go through these two functions!!
-        elif cmd_name == "setGroupProperty":
-            prop = snake_compat.camel_to_snake(msg[2])
-            # Generic setter for things that are just simple value sets.
-
-            # Try to get the attr, to ensure that it actually exists.
-            old = getattr(groups.groups[msg[1]], prop)
-
-            setattr(groups.groups[msg[1]], prop, msg[3])
-
-            if not old == msg[3]:
-                self.pushMeta(msg[1], keys={prop})
-
-        elif cmd_name == "setCueProperty":
-            prop = snake_compat.camel_to_snake(msg[2])
-            # Generic setter for things that are just simple value sets.
-
-            # Try to get the attr, to ensure that it actually exists.
-            old = getattr(cues[msg[1]], prop)
-
-            setattr(cues[msg[1]], prop, msg[3])
-
-            if not old == msg[3]:
-                self.pushCueMeta(msg[1])
 
         elif cmd_name == "setmqttfeature":
             groups.groups[msg[1]].setMQTTFeature(msg[2], msg[3])

@@ -239,7 +239,7 @@ ${lists}
                         title="Enter a cue's shortcut code here to activate it. Keybindings are suspended while this is selected."
                         aria-label="Shortcut code" placeholder="Shortcut" v-model="sc_code"
                         v-on:keydown.enter="shortcut()" v-on:focus="keyboardJS.pause();"
-                        v-on:blur="keyboardJS.resume();"></input>
+                        v-on:blur="keyboardJS.resume();">
                     <button type="button" v-on:click="shortcut()">Go!</button>
                 </div>
                 <div class="tool-bar">
@@ -747,13 +747,13 @@ ${lists}
                                         title="Select a cue to activate when this one ends"
                                         v-on:change="setnext(i[1].id,$event.target.value)" v-model="i[1].next"
                                         v-bind:placeholder="i[1].defaultnext">
-                                    </input>
+
                                 </td>
 
 
                                 <td class="desktop-only" data-label="Track vals from prev: ">
                                     <input :disabled="no_edit" type="checkbox"
-                                        v-on:change="settrack(i[1].id,i[1].track)" v-model="i[1].track"
+                                        v-on:change="setCueProperty(i[1].id, 'track', i[1].track)" v-model="i[1].track"
                                         title="Track values from previous cue? If false, values not present are always transparent">
                                 </td>
                                 <td data-label="Goto:">
@@ -892,7 +892,7 @@ ${lists}
 
                                 <div class="stacked-form w-24rem">
                                     <label>Tag
-                                        <input v-model="newcuetag" list="tagslisting"></input>
+                                        <input v-model="newcuetag" list="tagslisting">
                                     </label>
 
 
@@ -1027,12 +1027,12 @@ ${lists}
                                     <label>Sound
                                         <input :disabled="no_edit" placeholder="No sound file"
                                             v-model="currentcue.sound"
-                                            v-on:change="setSoundfile(currentcueid,currentcue.sound)">
+                                            v-on:change="setCueProperty(currentcueid,'sound',currentcue.sound)">
                                     </label>
                                     <label>Web player slide
                                         <input :disabled="no_edit" placeholder="No media file"
                                             v-model="currentcue.slide"
-                                            v-on:change="setCueSlide(currentcueid,currentcue.slide)">
+                                            v-on:change="setCueProperty(currentcueid,'slide',currentcue.slide)">
                                     </label>
 
                                     <label>Label Image
@@ -1051,7 +1051,7 @@ ${lists}
                                     <p>
                                         <label>Sound start
                                             <input :disabled="no_edit" v-model="currentcue.soundStartPosition"
-                                                v-on:change="setCueSoundStart(currentcueid,currentcue.soundStartPosition)">s
+                                                v-on:change="setCueProperty(currentcueid,'soundStartPosition',currentcue.soundStartPosition)">s
                                             into
                                             file.
                                         </label>
@@ -1059,7 +1059,7 @@ ${lists}
 
                                         <label>Media Speed
                                             <input :disabled="no_edit" type="number" v-model="currentcue.mediaSpeed"
-                                                v-on:change="setCueMediaSpeed(currentcueid,currentcue.mediaSpeed)">
+                                                v-on:change="setCueProperty(currentcueid, 'mediaSpeed', currentcue.mediaSpeed)">
                                         </label>
                                     </p>
 
@@ -1089,9 +1089,9 @@ ${lists}
 
                                         <input
                                             title="Using mplayer -ao syntax, or one of kaithem's device aliases, set the output device"
-                                            v-on:change="setSoundOutput(currentcueid,$event.target.value)"
+                                            v-on:change="setCueProperty(currentcueid,'soundOutput', $event.target.value)"
                                             v-model="cuemeta[currentcueid].soundOutput" placeholder="default"
-                                            list="soundcards"></input>
+                                            list="soundcards">
                                     </label>
 
                                     <p>
@@ -1144,12 +1144,12 @@ ${lists}
                                 <media-browser :no_edit="no_edit">
                                     <template v-slot="slotProps">
                                         <button
-                                            v-on:click="setSoundfile(currentcueid, slotProps.filename)">Set(sound)</button>
+                                            v-on:click="setCueProperty(currentcueid, 'sound', slotProps.filename)">Set(sound)</button>
                                         <button
                                             v-on:click="newCueFromSound(groupname, slotProps.filename)">New(sound)</button>
                                         <button v-on:click="previewSound(slotProps.filename)">Preview</button>
                                         <button
-                                            v-on:click="setCueSlide(currentcueid, slotProps.filename)">Set(slide)</button>
+                                            v-on:click="setCueProperty(currentcueid, 'slide', slotProps.filename)">Set(slide)</button>
                                         <button
                                             v-on:click="newCueFromSlide(groupname, slotProps.filename)">New(slide)</button>
 
@@ -1180,7 +1180,7 @@ ${lists}
                                             <dd>
                                                 <div class="tool-bar">
                                                     <button
-                                                        v-on:click="setSoundOutput(currentcueid,'groupwebplayer')">Set
+                                                        v-on:click="setCueProperty(currentcueid,'soundOutput','groupwebplayer')">Set
                                                         for
                                                         Cue</button>
                                                     <button
@@ -1196,7 +1196,7 @@ ${lists}
                                                 <dd>
                                                     <div class="tool-bar">
                                                         <button type="button"
-                                                            v-on:click="setSoundOutput(currentcueid,i)">Set for
+                                                            v-on:click="setCueProperty(currentcueid,'soundOutput',i)">Set for
                                                             Cue</button>
                                                         <button type="button"
                                                             v-on:click="setGroupSoundOutput(groupname,i)">Set as
@@ -1256,7 +1256,7 @@ ${lists}
                                     <p>
                                         <label>
                                             <input :disabled="no_edit" type="checkbox"
-                                                v-on:change="settrack(currentcueid,currentcue.track)"
+                                                v-on:change="setCueProperty(currentcueid,'track',currentcue.track)"
                                                 v-model="currentcue.track"
                                                 title="Track values from previous cue? If false, values not present are always transparent">
                                             <span><i class="mdi mdi-arrow-expand-right"></i>Track</span>
@@ -1302,7 +1302,7 @@ ${lists}
                                                 Length</span>
                                             <input :disabled="no_edit"
                                                 v-on:change="setlength(currentcueid,$event.target.value)"
-                                                v-model="cuemeta[currentcueid].length" min=0></input>
+                                                v-model="cuemeta[currentcueid].length" min=0>
                                         </label>
                                     </p>
 
@@ -1312,7 +1312,7 @@ ${lists}
                                             <input :disabled="no_edit" type="number"
                                                 v-on:change="setrandomize(currentcueid,$event.target.value)"
                                                 title="Randomize the cue length +- this amount"
-                                                v-model="cuemeta[currentcueid].lengthRandomize" min=0 step=0.25></input>
+                                                v-model="cuemeta[currentcueid].lengthRandomize" min=0 step=0.25>
                                         </label>
                                         <label><span><i class="mdi mdi-dice-multiple-outline"></i>Probability</span>
                                             <input
@@ -1325,7 +1325,19 @@ ${lists}
                                     <label><span><i class="mdi mdi-text"></i>Notes</span>
                                         <input :disabled="no_edit"
                                             v-on:change="setCueProperty(currentcueid, 'notes', $event.target.value)"
-                                            v-model="cuemeta[currentcueid].notes" min=0></input>
+                                            v-model="cuemeta[currentcueid].notes">
+                                    </label>
+
+                                    <datalist :id="'providers' + groupname">
+                                        <option v-for="p in editingGroup.cueProviders" :value="p"></option>
+                                        <option value="">Internal</option>
+                                    </datalist>
+
+                                    <label><span><i class="mdi mdi-folder"></i>Provider</span>
+                                        <input :disabled="no_edit"
+                                            :list="'providers' + groupname"
+                                            v-on:change="setCueProperty(currentcueid, 'provider', $event.target.value)"
+                                            v-model="cuemeta[currentcueid].provider">
                                     </label>
 
                                 </fieldset>
@@ -1398,7 +1410,7 @@ ${lists}
                                     Default Alpha</span>
                                 <input :disabled="no_edit" type="number" max=1 step=0.01 min=0
                                     v-on:change="setdalpha(groupname,parseFloat($event.target.value))"
-                                    v-model="editingGroup.defaultAlpha"></input>
+                                    v-model="editingGroup.defaultAlpha">
                             </label>
                         </p>
 
@@ -1455,7 +1467,7 @@ ${lists}
                                     Active By Default</span>
                                 <input :disabled="no_edit" type="checkbox"
                                     v-on:change="setGroupProperty(groupname,'defaultActive',$event.target.checked)"
-                                    v-model="editingGroup.defaultActive"></input>
+                                    v-model="editingGroup.defaultActive">
                             </label>
 
                             <label title="Groups inherit from previous groups even if you jump directly to them">
@@ -1463,7 +1475,7 @@ ${lists}
                                     Backtrack</span>
                                 <input :disabled="no_edit" type="checkbox"
                                     v-on:change="setGroupProperty(groupname,'backtrack', $event.target.checked)"
-                                    v-model="editingGroup.backtrack"></input>
+                                    v-model="editingGroup.backtrack">
                             </label>
                         </p>
 
@@ -1472,7 +1484,7 @@ ${lists}
                                 Slideshow Overlay</span>
                             <input :disabled="no_edit"
                                 v-on:change="setGroupProperty(groupname,'slideOverlayUrl',$event.target.value)"
-                                v-model="editingGroup.slideOverlayUrl"></input>
+                                v-model="editingGroup.slideOverlayUrl">
                         </label>
 
 
@@ -1482,7 +1494,7 @@ ${lists}
                                 MIDI Source:</span>
                             <input :disabled="no_edit" list="midiinputs"
                                 v-on:change="setGroupProperty(groupname,'midiSource', $event.target.value)"
-                                v-model="editingGroup.midiSource"></input>
+                                v-model="editingGroup.midiSource">
                         </label>
 
                         <label title="Recieve shortcut codes from a command-type tag">
@@ -1495,7 +1507,7 @@ ${lists}
                             cue advance:
                             <input :disabled="no_edit" list="nextcueoptions"
                                 v-on:change="setdefaultnext(groupname,$event.target.value)"
-                                v-model="editingGroup.defaultNext" placeholder="Next cue in list"></input>
+                                v-model="editingGroup.defaultNext" placeholder="Next cue in list">
                         </label>
                     </fieldset>
 
@@ -1510,13 +1522,13 @@ ${lists}
                                     title="If not set by a cue, the global setting for the group is used"
                                     v-on:change="setGroupSoundOutput(groupname,$event.target.value)"
                                     v-model="editingGroup.soundOutput" placeholder="default"
-                                    list="soundcards"></input></label>
+                                    list="soundcards"></label>
 
                             <label>
                                 Crossfade for non-silent Sounds
                                 <input :disabled="no_edit" type="number" max=1 step=0.01 min=0
                                     v-on:change="setcrossfade(groupname,parseFloat($event.target.value))"
-                                    v-model="editingGroup.crossfade"></input>
+                                    v-model="editingGroup.crossfade">
                             </label>
                         </div>
                         <h5>Outputs</h5>
@@ -1555,7 +1567,7 @@ ${lists}
                         <div class="stacked-form">
                             <label>MQTT Server:
                                 <input :disabled="no_edit" v-on:change="setmqtt(groupname,$event.target.value)"
-                                    v-model="editingGroup.mqttServer"></input>
+                                    v-model="editingGroup.mqttServer">
                             </label>
 
                             <label
@@ -1563,100 +1575,10 @@ ${lists}
                                 Group Name
                                 <input :disabled="no_edit"
                                     v-on:change="setmqttfeature(groupname,'syncGroup',$event.target.value)"
-                                    v-model="editingGroup.mqttSyncFeatures.syncGroup"></input>
+                                    v-model="editingGroup.mqttSyncFeatures.syncGroup">
                             </label>
                         </div>
                     </div>
-
-
-                    <div class="card w-sm-full">
-                        <header>
-                            <h4>Import/Export</h4>
-                        </header>
-                        <div class="stacked-form">
-                            <label>Download just this group
-                                <a class="button"
-                                    v-bind:href="'downloadOneGroup?id='+groupname+'&name='+editingGroup.name"
-                                    title="Download your group as a file"><i class="mdi mdi-download"></i>Download
-                                    Group</a>
-                            </label>
-
-                            <label>Download audio playlist as m3u
-                                <a class="button"
-                                    v-bind:href="'downloadm3u?id='+groupname+'&rel=&name='+editingGroup.name"
-                                    title="Download your group as a file"><i class="mdi mdi-download"></i>Download
-                                    Playlist</a>
-                            </label>
-
-                            <p>This playlist should work in other apps such as VLC on other computers, as long as the
-                                same media folders are
-                                in the same place relative to your home folder.
-                            </p>
-
-                            <label>Add new cues from playlist
-                                <a class="button" v-bind:href="'uploadm3u?id='+groupname" title="Upload a playlist"><i
-                                        class="mdi mdi-folder-open"></i>Upload M3U Playlist</a>
-                            </label>
-
-                            <p>Uploads use fuzzy search and should work as long as media files exist somewhere in a
-                                media folder, you can use playlists from other devices.
-                            </p>
-
-                        </div>
-                    </div>
-
-
-
-                    <div class="card w-sm-full" v-if="editingGroup.blend!='normal'">
-                        <header>
-                            <h4>Send event</h4>
-                        </header>
-                        <div class="stacked-form">
-                            <label>Event name:
-                                <input :disabled="no_edit" v-model="evtosend" v-on:keydown.enter="sendev"
-                                    placeholder="Event Name" title="Event Name">
-
-                            </label>
-
-                            <label>Value
-                                <input :disabled="no_edit" v-model="evval" v-on:keydown.enter="sendev"
-                                    title="Event Value" placeholder="value">
-                            </label>
-                            <label>Type
-                                <select v-model="evtypetosend">
-                                    <option value="int">Integer</option>
-                                    <option value="float">Real Number</option>
-                                    <option value="str">Text</option>
-                                </select>
-                            </label>
-
-                            <button type="button" v-on:click="sendev(groupname)">Send</button>
-                            </label>
-                        </div>
-                    </div>
-
-
-                    <div class="card w-sm-full" v-if="editingGroup.blend!='normal'">
-                        <header>
-                            <h4>Blend Mode</h4>
-                        </header>
-                        <div class="stacked-form">
-                            <p>{{editingGroup.blendDesc}}</p>
-                            <p>
-                                <label v-for="k,v of dictView(editingGroup.blendParams,[])">{{k[0]}}:
-                                    <input :disabled="no_edit" type="number" style="width:5em" step=0.01
-                                        v-bind:title="k[0]"
-                                        v-on:change="setblendparam(groupname,k[0],parseFloat($event.target.value))"
-                                        v-model="editingGroup.blendParams[k[0]]">
-
-                                </label>
-                            </p>
-                        </div>
-                    </div>
-
-
-
-
 
                     <div class="card w-sm-double">
                         <header>
@@ -1681,7 +1603,7 @@ ${lists}
 
                             <label title="This URL is shown in a mini window in the sidebar">Sidebar info URL
                                 <input :disabled="no_edit" v-on:change="setinfodisplay(groupname,$event.target.value)"
-                                    v-model="editingGroup.infoDisplay"></input>
+                                    v-model="editingGroup.infoDisplay">
                             </label>
                         </div>
                         <h5>Event Buttons</h5>
@@ -1689,7 +1611,7 @@ ${lists}
                             <tr>
                                 <th>Label</th>
                                 <th>Event</th>
-                                <th>Acton</th>
+                                <th>Action</th>
                             </tr>
                             <tr v-for="(v,i) in editingGroup.eventButtons">
                                 <td><input :disabled="no_edit" v-model="v[0]" class="w-6rem"
@@ -1808,7 +1730,94 @@ ${lists}
                         </table>
                     </div>
 
-                    <div class="card w-full">
+
+                    <div class="card w-sm-full">
+                        <header>
+                            <h4>Import/Export</h4>
+                        </header>
+                        <div class="stacked-form">
+                            <label>Download just this group
+                                <a class="button"
+                                    v-bind:href="'downloadOneGroup?id='+groupname+'&name='+editingGroup.name"
+                                    title="Download your group as a file"><i class="mdi mdi-download"></i>Download
+                                    Group</a>
+                            </label>
+
+                            <label>Download audio playlist as m3u
+                                <a class="button"
+                                    v-bind:href="'downloadm3u?id='+groupname+'&rel=&name='+editingGroup.name"
+                                    title="Download your group as a file"><i class="mdi mdi-download"></i>Download
+                                    Playlist</a>
+                            </label>
+
+                            <p>This playlist should work in other apps such as VLC on other computers, as long as the
+                                same media folders are
+                                in the same place relative to your home folder.
+                            </p>
+
+                            <label>Add new cues from playlist
+                                <a class="button" v-bind:href="'uploadm3u?id='+groupname" title="Upload a playlist"><i
+                                        class="mdi mdi-folder-open"></i>Upload M3U Playlist</a>
+                            </label>
+
+                            <p>Uploads use fuzzy search and should work as long as media files exist somewhere in a
+                                media folder, you can use playlists from other devices.
+                            </p>
+
+                        </div>
+                    </div>
+
+
+
+                    <div class="card w-sm-full" v-if="editingGroup.blend!='normal'">
+                        <header>
+                            <h4>Send event</h4>
+                        </header>
+                        <div class="stacked-form">
+                            <label>Event name:
+                                <input :disabled="no_edit" v-model="evtosend" v-on:keydown.enter="sendev"
+                                    placeholder="Event Name" title="Event Name">
+
+                            </label>
+
+                            <label>Value
+                                <input :disabled="no_edit" v-model="evval" v-on:keydown.enter="sendev"
+                                    title="Event Value" placeholder="value">
+                            </label>
+                            <label>Type
+                                <select v-model="evtypetosend">
+                                    <option value="int">Integer</option>
+                                    <option value="float">Real Number</option>
+                                    <option value="str">Text</option>
+                                </select>
+                            </label>
+
+                            <button type="button" v-on:click="sendev(groupname)">Send</button>
+                            </label>
+                        </div>
+                    </div>
+
+
+                    <div class="card w-sm-full" v-if="editingGroup.blend!='normal'">
+                        <header>
+                            <h4>Blend Mode</h4>
+                        </header>
+                        <div class="stacked-form">
+                            <p>{{editingGroup.blendDesc}}</p>
+                            <p>
+                                <label v-for="k,v of dictView(editingGroup.blendParams,[])">{{k[0]}}:
+                                    <input :disabled="no_edit" type="number" style="width:5em" step=0.01
+                                        v-bind:title="k[0]"
+                                        v-on:change="setblendparam(groupname,k[0],parseFloat($event.target.value))"
+                                        v-model="editingGroup.blendParams[k[0]]">
+
+                                </label>
+                            </p>
+                        </div>
+                    </div>
+
+
+                    <div class="card w-sm-double">
                         <header>
                             <h4>Slideshow Layout</h4>
                         </header>
@@ -1844,6 +1853,33 @@ ${lists}
                             </div>
                         </details>
                     </div>
+
+                    <div class="card w-sm-full">
+                        <header><h4>Cue Providers</h4></header>
+                        <p>Cue providers let you automatically import cues from a folder of media files.</p>
+
+                        <div>
+                            <ul>
+                                <dt v-for="cueprovider of editingGroup.cueProviders">
+                                   {{cueprovider}}
+                                   <button
+                                       v-on:click="editingGroup.cueProviders.splice(editingGroup.cueProviders.indexOf(cueprovider), 1); setGroupProperty(editingGroup.id, 'cueProviders', editingGroup.cueProviders);">
+                                       Delete
+                                </dt>
+                            </ul>
+                        </div>
+
+                        <media-browser :no_edit="no_edit">
+                            <template v-slot="slotProps">
+                                <button
+                                    v-if="slotProps.filename.endsWith('/')"
+                                    @click="editingGroup.cueProviders.push(slotProps.filename); setGroupProperty(editingGroup.id, 'cueProviders', editingGroup.cueProviders);">
+                                    Use
+                                </button>
+                            </template>
+                        </media-browser>
+                    </div>
+
             </details>
 
 

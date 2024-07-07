@@ -748,6 +748,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                 "hasLightingData": len(cue.values),
                 "default_next": group.getAfter(cue.name),
                 "labelImageTimestamp": self.get_file_timestamp_if_exists(cue.label_image),
+                "provider": cue.provider,
             }
 
             d = {}

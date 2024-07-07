@@ -131,6 +131,13 @@ properties:
   uuid:
     type: string
 
+  cue_providers:
+    type: array
+    items:
+      type: string
+    description: |
+      A list of providers to use. Each provider is a URI like file://some/directory/
+      And allows cues to be auto-synced with the stuff in the dir.
 
 
 additionalProperties: true

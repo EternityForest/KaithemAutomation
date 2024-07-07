@@ -121,9 +121,18 @@ appMethods = {
             clearTimeout(x);
             delete cueSetData[group + property]
         }
-        api_link.send(['setGroupProperty', group, property, value])
+        var b = {}
+        b[property] = value
 
+        fetch("/chandler/api/set-group-properties/" + cue, {
+            method: "PUT",
+            body: JSON.stringify(b),
+            headers: {
+                "Content-type": "application/json; charset=UTF-8"
+            }
+        });
     },
+
     'setCueProperty': function (cue, property, value) {
         var x = cueSetData[cue + property]
         if (x) {
@@ -131,21 +140,38 @@ appMethods = {
             delete cueSetData[cue + property]
         }
 
-        api_link.send(['setCueProperty', cue, property, value])
+        var b = {}
+        b[property] = value
 
+        fetch("/chandler/api/set-cue-properties/" + cue, {
+            method: "PUT",
+            body: JSON.stringify(b),
+            headers: {
+                "Content-type": "application/json; charset=UTF-8"
+            }
+        });
     },
 
     'setCuePropertyDeferred': function (cue, property, value) {
         //Set the property in 5 seconds, unless we get another command to set
-        //it to something else
+        //it to something else.  Used for cue text and stuff that shouldn;t update live
+        // so it doesn't refresh a millon times
         var x = cueSetData[cue + property]
         if (x) {
             clearTimeout(x);
         }
 
         cueSetData[cue + property] = setTimeout(function () {
-            api_link.send(['setCueProperty', cue, property, value])
-            delete cueSetData[cue + property]
+            var b = {}
+            b[property] = value
+
+            fetch("/chandler/api/set-cue-properties/" + cue, {
+                method: "PUT",
+                body: JSON.stringify(b),
+                headers: {
+                    "Content-type": "application/json; charset=UTF-8"
+                }
+            }); delete cueSetData[cue + property]
         }, 3000)
 
     },
@@ -159,8 +185,16 @@ appMethods = {
         }
 
         cueSetData[cue + property] = setTimeout(function () {
-            api_link.send(['setGroupProperty', group, property, value])
-            delete cueSetData[group + property]
+            var b = {}
+            b[property] = value
+
+            fetch("/chandler/api/set-group-properties/" + cue, {
+                method: "PUT",
+                body: JSON.stringify(b),
+                headers: {
+                    "Content-type": "application/json; charset=UTF-8"
+                }
+            }); delete cueSetData[group + property]
         }, 3000)
 
     },
@@ -189,10 +223,10 @@ appMethods = {
     },
 
     'setFixturePreset': function (sc, fix, preset) {
-        const deleteIndex =  this.recentPresets.indexOf(preset);
+        const deleteIndex = this.recentPresets.indexOf(preset);
 
         if (deleteIndex > -1) {
-            this.recentPresets =  this.recentPresets.toSpliced(deleteIndex, 1);
+            this.recentPresets = this.recentPresets.toSpliced(deleteIndex, 1);
         }
         this.recentPresets = this.recentPresets.slice(-8);
         this.recentPresets.push(preset);
@@ -239,10 +273,10 @@ appMethods = {
         // }
 
         for (i in this.cuevals[sc][fix]) {
-                if (selectedPreset.values[i] != undefined) {
-                    api_link.send(['scv', sc, fix, i, selectedPreset.values[i]]);
-                    this.cuevals[sc][fix][i].v = selectedPreset.values[i]
-                }
+            if (selectedPreset.values[i] != undefined) {
+                api_link.send(['scv', sc, fix, i, selectedPreset.values[i]]);
+                this.cuevals[sc][fix][i].v = selectedPreset.values[i]
+            }
         }
     },
 
@@ -470,9 +504,6 @@ appMethods = {
     'setreentrant': function (cue, v) {
         api_link.send(['setreentrant', cue, v]);
     },
-    'settrack': function (cue, v) {
-        api_link.send(['settrack', cue, v]);
-    },
 
     'setrellen': function (cue, v) {
         api_link.send(['setrellen', cue, v]);
@@ -666,41 +697,6 @@ appMethods = {
         api_link.send(['setconfuniverses', this.configuredUniverses])
     },
 
-    'setSoundOutput': function (cueid, i) {
-
-        api_link.send(['setcuesoundoutput', cueid, i])
-    },
-
-    'setCueSoundStart': function (cueid, i) {
-
-        api_link.send(['setcuesoundstartposition', cueid, i])
-    },
-
-    'setCueSlide': function (cueid, i) {
-
-        api_link.send(['setcueslide', cueid, i])
-    },
-
-
-
-    'setCueMediaSpeed': function (cueid, i) {
-
-        api_link.send(['setcuemediaspeed', cueid, i])
-    },
-
-    'setCueMediaWindup': function (cueid, i) {
-
-        api_link.send(['setcuemediawindup', cueid, i])
-    },
-
-    'setCueMediaWinddown': function (cueid, i) {
-
-        api_link.send(['setcuemediawinddown', cueid, i])
-    },
-    'setSoundfile': function (cueid, i) {
-
-        api_link.send(['setcuesound', cueid, i])
-    },
     'setGroupSoundOutput': function (cueid, i) {
 
         api_link.send(['setgroupsoundout', cueid, i])
@@ -857,7 +853,7 @@ appData = {
     'completers': {
 
         'gotoGroupNamesCompleter': function (a) {
-            var c = [["=GROUP",'This group']]
+            var c = [["=GROUP", 'This group']]
 
 
             var x = appData.groupmeta
@@ -983,7 +979,7 @@ appData = {
 
     'lookupFixtureType': function (f) {
         for (i in this.fixtureAssignments) {
-            if (("@"+this.fixtureAssignments[i].name) == f) {
+            if (("@" + this.fixtureAssignments[i].name) == f) {
                 return this.fixtureAssignments[i].type;
             }
         }
@@ -1239,7 +1235,7 @@ appData = {
         if (this.channelInfoByUniverseAndNumber[u] == undefined) {
             return undefined
         }
-        if (this.channelInfoByUniverseAndNumber[u][c]== undefined) {
+        if (this.channelInfoByUniverseAndNumber[u][c] == undefined) {
             return undefined
         }
 
@@ -1589,7 +1585,7 @@ init_api_link = function () {
         }
 
         for (i of document.querySelectorAll('[data-count-ref]')) {
-            l = parseFloat(i.dataset.countLen) * (60/parseFloat(i.dataset.countBpm))
+            l = parseFloat(i.dataset.countLen) * (60 / parseFloat(i.dataset.countBpm))
             e = parseFloat(i.dataset.countRef) + l
 
             i.innerHTML = formatInterval(e - u)

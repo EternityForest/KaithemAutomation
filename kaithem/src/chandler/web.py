@@ -18,7 +18,13 @@ from kaithem.src import quart_app, tagpoints
 
 from .. import directories, pages
 from ..kaithemobj import kaithem
-from . import blendmodes, core, groups, universes
+from . import (
+    blendmodes,
+    core,
+    groups,
+    universes,
+    web_api,  # noqa: F401
+)
 
 _Lookup = TemplateLookup(
     directories=[

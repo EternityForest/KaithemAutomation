@@ -27,7 +27,7 @@ from .. import context_restrictions, schemas, tagpoints, util
 from ..kaithemobj import kaithem
 from . import core, group_media, mqtt, persistance
 from .core import disallow_special
-from .cue import Cue, allowedCueNameSpecials, cues
+from .cue import Cue, CueProvider, allowedCueNameSpecials, cues, get_cue_provider
 from .global_actions import cl_trigger_shortcut_code
 from .group_context_commands import add_context_commands, rootContext
 from .group_lighting import GroupLightingManager
@@ -261,6 +261,7 @@ class Group:
         music_visualizations: str = "",
         require_confirm: bool = False,
         mqtt_sync_features: dict[str, Any] | None = None,
+        cue_providers: list[str] | None = [],
         **ignoredParams,
     ):
         """
@@ -282,6 +283,10 @@ class Group:
 
         self.media_player = group_media.GroupMediaPlayer(self)
         self.lighting_manager = GroupLightingManager(self)
+
+        self._cue_providers: list[str] = cue_providers or []
+
+        self._cue_provider_objects: list[CueProvider] = [get_cue_provider(cue_provider) for cue_provider in self._cue_providers]
 
         # Get whatever defaults it sets up for the UI
         self.blend_args = copy.deepcopy(self.lighting_manager.blend_args)
@@ -506,16 +511,59 @@ class Group:
 
         workers.do(f)
 
+        workers.do(self.scan_cue_providers)
+
+    @property
+    def cue_providers(self):
+        return self._cue_providers
+
+    @cue_providers.setter
+    def cue_providers(self, value: list[str]):
+        self._cue_providers = value
+        self._cue_provider_objects = [get_cue_provider(cue_provider) for cue_provider in self._cue_providers]
+        workers.do(self.scan_cue_providers)
+
+    def get_cue_provider(self, name: str) -> CueProvider:
+        for i in self._cue_provider_objects:
+            if i.url == name:
+                return i
+        raise RuntimeError("Cue provider does not exist in group")
+
+    @slow_group_lock_context.object_session_entry_point
+    def scan_cue_providers(self):
+        discovered = {}
+
+        for i in self._cue_provider_objects:
+            c = i.scan_cues()
+            for cue in c.values():
+                assert cue.provider == i.url
+                if cue.name not in self.cues:
+                    self._add_cue(cue)
+                discovered[cue.id] = i
+
+        for i in self.cues:
+            if self.cues[i].provider:
+                if self.cues[i].id not in discovered:
+                    self.rmCue(self.cues[i].name)
+
     @slow_group_lock_context.object_session_entry_point
     def toDict(self) -> dict[str, Any]:
         # These are the properties that aren't just straight 1 to 1 copies
         # of props, but still get saved
+
         d = {
             "alpha": self.default_alpha,
-            "cues": {j: self.cues[j].serialize() for j in self.cues},
+            "cues": {j: self.cues[j].serialize() for j in self.cues if not self.cues[j].provider},
             "active": self.default_active,
             "uuid": self.id,
         }
+
+        # Call the cue provider to self.cues[i].providerave any cues that aren't normal cues and are
+        # Instead imported from somewhere.
+        for i in self.cues:
+            p = self.cues[i].provider
+            if p:
+                p.save_cue(self.cues[i])
 
         for i in group_schema["properties"]:
             if i not in d:

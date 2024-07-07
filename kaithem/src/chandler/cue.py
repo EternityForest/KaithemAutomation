@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING, Any, Callable
 from beartype import beartype
 
 from .. import schemas
+from ..kaithemobj import kaithem
 from . import core
 from .core import disallow_special
 from .global_actions import normalize_shortcut, shortcut_codes
@@ -35,7 +36,9 @@ cues: weakref.WeakValueDictionary[str, Cue] = weakref.WeakValueDictionary()
 # All the properties that can be saved and loaded are actually defined in the schema,
 cue_schema = schemas.get_schema("chandler/cue")
 
-stored_as_property = ["markdown"]
+# These are in the schema but the corresponding entry on the object has
+# an underscore and there's getters and setters.
+stored_as_property = ["markdown", "track", "sound", "slide"]
 
 slots = list(cue_schema["properties"].keys()) + [
     "id",
@@ -46,6 +49,7 @@ slots = list(cue_schema["properties"].keys()) + [
     "inherit",
     "onEnter",
     "onExit",
+    "_provider",
     "__weakref__",
 ]
 s2 = []
@@ -108,6 +112,39 @@ def fnToCueName(fn: str):
     return fn
 
 
+cue_provider_types: dict[str, type[CueProvider]] = {}
+
+
+class CueProvider:
+    def __init__(self, url: str, *a, **k):
+        self.discovered_cues: dict[str, Cue] = {}
+        self.url = url
+
+    def save_cue(self, cue: Cue):
+        # Save user changes to a cue
+        raise NotImplementedError
+
+    def scan_cues(self) -> dict[str, Cue]:
+        """Given a group, return a list of the cues we
+        provide to that group, indexed by ID.
+
+        Also updates the `discovered_cues` attribute with the new cues.
+
+        This method must not blow away user changes to cues, it must just return
+        the same old cue for ones that still exists, however it can
+        just not return a certain cue if it doesn't exist.
+        """
+        raise NotImplementedError
+
+    def delete_saved_user_cue_data(self, cue: Cue):
+        raise NotImplementedError
+
+
+def get_cue_provider(url: str) -> CueProvider:
+    scheme = url.split(":")[0]
+    return cue_provider_types[scheme](url)
+
+
 class Cue:
     "A static set of values with a fade in and out duration"
 
@@ -123,6 +160,7 @@ class Cue:
         id: str | None = None,
         onEnter: Callable[..., Any] | None = None,
         onExit: Callable[..., Any] | None = None,
+        provider: CueProvider | None = None,
         **kw: Any,
     ):
         # declare vars
@@ -142,11 +180,11 @@ class Cue:
         self.rel_length: bool
         self.length_randomize: float
         self.next_cue: str
-        self.track: bool
+        self._track: bool
         self.shortcut: str
         self.trigger_shortcut: str
-        self.sound: str
-        self.slide: str
+        self._sound: str
+        self._slide: str
         self.sound_output: str
         self.sound_start_position: str | int | float
         self.media_speed: str
@@ -157,7 +195,15 @@ class Cue:
         self.checkpoint: bool
         self.label_image: str
 
+        # If a Cue Provider is specified, we do not save it to
+        # The show file like normal, the provider will tell us how to save it
+        self._provider: str = provider
+
+        self.group: weakref.ref[Group] = weakref.ref(parent)
+
         self._markdown: str = kw.get("markdown", "").strip()
+
+        self._sound = ""
 
         if id:
             disallow_special(id)
@@ -201,10 +247,25 @@ class Cue:
         self.next_ll: Cue | None = None
         parent._add_cue(self, forceAdd=forceAdd)
 
-        self.group: weakref.ref[Group] = weakref.ref(parent)
         self.setShortcut(shortcut, False)
 
         self.push()
+
+    @property
+    def provider(self):
+        return self._provider
+
+    @provider.setter
+    def provider(self, value):
+        if value not in self.getGroup().cue_providers:
+            raise RuntimeError("Cue provider does not exist in parent group")
+        old = self._provider
+        self._provider = value
+        if old and old != value:
+            try:
+                self.getGroup().get_cue_provider(old).delete_saved_user_cue_data(self)
+            except Exception:
+                logging.exception("Failed to delete old cue data")
 
     def __repr__(self):
         gr = None
@@ -228,7 +289,7 @@ class Cue:
         for i in schemas.get_schema("chandler/cue")["properties"]:
             x2[i] = getattr(self, i)
 
-        schemas.supress_defaults("chandler/cue", x2)
+        schemas.suppress_defaults("chandler/cue", x2)
 
         return x2
 
@@ -237,15 +298,6 @@ class Cue:
         if not s:
             raise RuntimeError("Group must have been deleted")
         return s
-
-    def push(self):
-        core.add_data_pusher_to_all_boards(lambda s: s.pushCueMeta(self.id))
-
-    def pushData(self):
-        core.add_data_pusher_to_all_boards(lambda s: s.pushCueData(self.id))
-
-    def pushoneval(self, u: str, ch: str | int, v: str | float | int | None):
-        core.add_data_pusher_to_all_boards(lambda s: s.linkSend(["scv", self.id, u, ch, v]))
 
     def clone(self, name: str):
         if name in self.getGroup().cues:
@@ -266,8 +318,13 @@ class Cue:
         core.add_data_pusher_to_all_boards(lambda s: s.pushCueMeta(c.id))
         core.add_data_pusher_to_all_boards(lambda s: s.pushCueData(c.id))
 
-    def setTrack(self, val):
-        self.track = bool(val)
+    @property
+    def track(self):
+        return self._track
+
+    @track.setter
+    def track(self, val: bool):
+        self._track = bool(val)
         self.getGroup().poll_again_flag = True
 
         def f():
@@ -321,6 +378,68 @@ class Cue:
     def setInheritRules(self, r):
         self.inherit_rules = r
         self.getGroup().refresh_rules()
+
+    @property
+    def slide(self):
+        return self._slide
+
+    @slide.setter
+    def slide(self, val: str):
+        kaithem.assetpacks.ensure_file(val)
+        g = self.getGroup()
+        b = g.board
+
+        soundfolders = core.getSoundFolders(extra_folders=b.media_folders)
+
+        s = val
+        for i in soundfolders:
+            s = val
+            # Make paths relative.
+            if not i.endswith("/"):
+                i = i + "/"
+            if s.startswith(i):
+                s = s[len(i) :]
+                break
+
+        self._slide = s
+        self.push()
+
+    @property
+    def sound(self):
+        return self._sound
+
+    @sound.setter
+    def sound(self, val: str):
+        # If it's a cloud asset, get it first
+        kaithem.assetpacks.ensure_file(val)
+
+        g = self.getGroup()
+        b = g.board
+
+        soundfolders = core.getSoundFolders(extra_folders=b.media_folders)
+        s = ""
+        if val:
+            for i in soundfolders:
+                s = val
+                # Make paths relative.
+                if not i.endswith("/"):
+                    i = i + "/"
+                if s.startswith(i):
+                    s = s[len(i) :]
+                    break
+            assert s
+
+        if s.strip() and self.sound and self.named_for_sound:
+            self.push()
+            raise RuntimeError(
+                """This cue was named for a specific sound file,
+                forbidding change to avoid confusion.
+                To override, set to no sound first"""
+            )
+
+        self._sound = s
+
+        self.push()
 
     def setShortcut(self, code: str, push: bool = True):
         code = normalize_shortcut(code)
@@ -399,3 +518,12 @@ class Cue:
         self.pushoneval(universe, channel, value)
 
         return reset
+
+    def push(self):
+        core.add_data_pusher_to_all_boards(lambda s: s.pushCueMeta(self.id))
+
+    def pushData(self):
+        core.add_data_pusher_to_all_boards(lambda s: s.pushCueData(self.id))
+
+    def pushoneval(self, u: str, ch: str | int, v: str | float | int | None):
+        core.add_data_pusher_to_all_boards(lambda s: s.linkSend(["scv", self.id, u, ch, v]))
