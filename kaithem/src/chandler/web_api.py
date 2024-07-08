@@ -42,7 +42,7 @@ async def set_cue_properties(cue_id: str):
     return await f()
 
 
-@quart_app.app.route("/chandler/api/set-cue-properties/<group_id>", methods=["PUT"])
+@quart_app.app.route("/chandler/api/set-group-properties/<group_id>", methods=["PUT"])
 async def set_group_properties(group_id: str):
     """Set all properties given in the form data.
 

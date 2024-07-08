@@ -116,9 +116,13 @@ cue_provider_types: dict[str, type[CueProvider]] = {}
 
 
 class CueProvider:
-    def __init__(self, url: str, *a, **k):
+    def __init__(self, url: str, group: Group, *a, **k):
         self.discovered_cues: dict[str, Cue] = {}
         self.url = url
+        self.group = group
+        # Some subclasses may import from a dire and we also want that to
+        # be a media dir
+        self.dir: str = ""
 
     def save_cue(self, cue: Cue):
         # Save user changes to a cue
@@ -140,9 +144,9 @@ class CueProvider:
         raise NotImplementedError
 
 
-def get_cue_provider(url: str) -> CueProvider:
+def get_cue_provider(url: str, group: Group) -> CueProvider:
     scheme = url.split(":")[0]
-    return cue_provider_types[scheme](url)
+    return cue_provider_types[scheme](url, group)
 
 
 class Cue:
@@ -160,7 +164,7 @@ class Cue:
         id: str | None = None,
         onEnter: Callable[..., Any] | None = None,
         onExit: Callable[..., Any] | None = None,
-        provider: CueProvider | None = None,
+        provider: str | None = None,
         **kw: Any,
     ):
         # declare vars
@@ -520,7 +524,9 @@ class Cue:
         return reset
 
     def push(self):
-        core.add_data_pusher_to_all_boards(lambda s: s.pushCueMeta(self.id))
+        # Not even set up yet don't bother
+        if self.id in cues:
+            core.add_data_pusher_to_all_boards(lambda s: s.pushCueMeta(self.id))
 
     def pushData(self):
         core.add_data_pusher_to_all_boards(lambda s: s.pushCueData(self.id))

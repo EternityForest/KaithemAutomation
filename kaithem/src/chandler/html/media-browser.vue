@@ -49,7 +49,7 @@ It takes a set of action button slots that get passed "filename"
                     </li>
                     <li v-on:click="setSoundfileDir(i[0])" v-for="i in soundfileslisting[0]">
                         <a>{{i[0] }}</a>
-                        <slot :filename="soundfilesdir + i[0]+'/'" :relfilename="i[0]+'/'">
+                        <slot :filename="i[0]" :relfilename="i[0].split('/').pop()">
                         </slot>
                     </li>
                 </ul>

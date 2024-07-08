@@ -124,13 +124,17 @@ appMethods = {
         var b = {}
         b[property] = value
 
-        fetch("/chandler/api/set-group-properties/" + cue, {
+        fetch("/chandler/api/set-group-properties/" + group, {
             method: "PUT",
             body: JSON.stringify(b),
             headers: {
                 "Content-type": "application/json; charset=UTF-8"
             }
-        });
+        }).catch(
+            function (e) {
+                alert("Error setting property.")
+            }
+        );
     },
 
     'setCueProperty': function (cue, property, value) {
@@ -149,7 +153,11 @@ appMethods = {
             headers: {
                 "Content-type": "application/json; charset=UTF-8"
             }
-        });
+        }).catch(
+            function (e) {
+                alert("Error setting property.")
+            }
+        );
     },
 
     'setCuePropertyDeferred': function (cue, property, value) {
@@ -171,7 +179,11 @@ appMethods = {
                 headers: {
                     "Content-type": "application/json; charset=UTF-8"
                 }
-            }); delete cueSetData[cue + property]
+            }).catch(
+                function (e) {
+                    alert("Error setting property.")
+                }
+            ); delete cueSetData[cue + property]
         }, 3000)
 
     },
@@ -188,13 +200,17 @@ appMethods = {
             var b = {}
             b[property] = value
 
-            fetch("/chandler/api/set-group-properties/" + cue, {
+            fetch("/chandler/api/set-group-properties/" + group, {
                 method: "PUT",
                 body: JSON.stringify(b),
                 headers: {
                     "Content-type": "application/json; charset=UTF-8"
                 }
-            }); delete cueSetData[group + property]
+            }).catch(
+                function (e) {
+                    alert("Error setting property.")
+                }
+            ); delete cueSetData[group + property]
         }, 3000)
 
     },

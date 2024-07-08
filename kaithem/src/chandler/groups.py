@@ -27,7 +27,8 @@ from .. import context_restrictions, schemas, tagpoints, util
 from ..kaithemobj import kaithem
 from . import core, group_media, mqtt, persistance
 from .core import disallow_special
-from .cue import Cue, CueProvider, allowedCueNameSpecials, cues, get_cue_provider
+from .cue import Cue, CueProvider, allowedCueNameSpecials, cue_provider_types, cues, get_cue_provider
+from .fs_cue_provider import FilesystemCueProvider
 from .global_actions import cl_trigger_shortcut_code
 from .group_context_commands import add_context_commands, rootContext
 from .group_lighting import GroupLightingManager
@@ -47,6 +48,7 @@ int = int
 max = max
 min = min
 
+cue_provider_types["file"] = FilesystemCueProvider
 
 # Indexed by ID
 groups: weakref.WeakValueDictionary[str, Group] = weakref.WeakValueDictionary()
@@ -286,7 +288,7 @@ class Group:
 
         self._cue_providers: list[str] = cue_providers or []
 
-        self._cue_provider_objects: list[CueProvider] = [get_cue_provider(cue_provider) for cue_provider in self._cue_providers]
+        self._cue_provider_objects: list[CueProvider] = [get_cue_provider(cue_provider, self) for cue_provider in self._cue_providers]
 
         # Get whatever defaults it sets up for the UI
         self.blend_args = copy.deepcopy(self.lighting_manager.blend_args)
@@ -520,7 +522,7 @@ class Group:
     @cue_providers.setter
     def cue_providers(self, value: list[str]):
         self._cue_providers = value
-        self._cue_provider_objects = [get_cue_provider(cue_provider) for cue_provider in self._cue_providers]
+        self._cue_provider_objects = [get_cue_provider(cue_provider, self) for cue_provider in self._cue_providers]
         workers.do(self.scan_cue_providers)
 
     def get_cue_provider(self, name: str) -> CueProvider:
@@ -544,7 +546,7 @@ class Group:
         for i in self.cues:
             if self.cues[i].provider:
                 if self.cues[i].id not in discovered:
-                    self.rmCue(self.cues[i].name)
+                    self.rmCue(self.cues[i].name, allow_rm_external=True)
 
     @slow_group_lock_context.object_session_entry_point
     def toDict(self) -> dict[str, Any]:
@@ -561,7 +563,7 @@ class Group:
         # Call the cue provider to self.cues[i].providerave any cues that aren't normal cues and are
         # Instead imported from somewhere.
         for i in self.cues:
-            p = self.cues[i].provider
+            p = self.cues[i].getGroup().get_cue_provider(self.cues[i].provider)
             if p:
                 p.save_cue(self.cues[i])
 
@@ -692,7 +694,7 @@ class Group:
             return None
 
     @slow_group_lock_context.object_session_entry_point
-    def rmCue(self, cue: str):
+    def rmCue(self, cue: str, allow_rm_external: bool = False):
         with self.lock:
             if not len(self.cues) > 1:
                 raise RuntimeError("Cannot have group with no cues")
@@ -700,6 +702,10 @@ class Group:
             if cue in cues:
                 if cues[cue].name == "default":
                     raise RuntimeError("Cannot delete the cue named default")
+
+                if cues[cue].provider:
+                    if not allow_rm_external:
+                        raise RuntimeError("Cannot delete the cue with a provider")
 
             if self.cue and self.name == cue:
                 try:
@@ -1233,7 +1239,13 @@ class Group:
                     print(traceback.format_exc())
 
     def resolve_media(self, sound) -> str:
-        return core.resolve_sound(sound, extra_folders=self.board.media_folders)
+        f = copy.copy(self.board.media_folders)
+
+        for i in self._cue_provider_objects:
+            if i.dir:
+                f.append(i.dir)
+
+        return core.resolve_sound(sound, extra_folders=f)
 
     def recalc_randomize_modifier(self):
         "Recalculate the random variance to apply to the length"

@@ -1873,8 +1873,8 @@ ${lists}
                             <template v-slot="slotProps">
                                 <button
                                     v-if="slotProps.filename.endsWith('/')"
-                                    @click="editingGroup.cueProviders.push(slotProps.filename); setGroupProperty(editingGroup.id, 'cueProviders', editingGroup.cueProviders);">
-                                    Use
+                                    @click="editingGroup.cueProviders.push('file://'+slotProps.filename+'?import_media=sound'); setGroupProperty(editingGroup.id, 'cueProviders', editingGroup.cueProviders);">
+                                    Import Sounds
                                 </button>
                             </template>
                         </media-browser>
