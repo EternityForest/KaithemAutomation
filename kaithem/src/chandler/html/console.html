@@ -677,7 +677,10 @@ ${lists}
                                         v-on:dblclick="promptsetnumber(i[1].id)">{{i[1].number}}</span>
 
 
-                                    <span>{{i[1].name}}</span>
+
+                                    <span  v-if="i[1].provider" class="mdi mdi-import"></span>
+
+                                    <span>{{i[1].name.slice(0,64)}}</span>
 
                                     <span title="Checkpoint Cue" v-if="i[1].checkpoint"
                                         class="mdi mdi-star-four-points-outline"></span>
@@ -727,13 +730,13 @@ ${lists}
                                 </td>
 
                                 <td data-label="Next Cue:">
-                                    <select style="width:98%" v-model="i[1].next" :disabled="no_edit"
-                                        v-if="Object.keys(groupcues[groupname]).length<600" autocomplete=off
+                                    <select style="width:98%; max-width: 24rem" v-model="i[1].next" :disabled="no_edit"
+                                        v-if="Object.keys(groupcues[groupname]).length<40" autocomplete=off
                                         title="Select a cue to activate when this one ends"
                                         v-on:change="setnext(i[1].id,$event.target.value)">
-                                        <option value="">&gt&gt&gt</option>
+                                        <option value="">&gt&gt&gt {{editingGroup.defaultnext}}</option>
                                         <option v-for="j in formatCues" v-bind:value="j[1].name">{{j[1].number}}:
-                                            {{j[1].name}}</option>
+                                            {{j[1].name.slice(0,16)}}</option>
                                         <option v-bind:value="i[1].next">{{i[1].next}}</option>
 
                                         <option value="__random__">RANDOM</option>
@@ -746,7 +749,7 @@ ${lists}
                                         autocomplete=off list="cues_in_group"
                                         title="Select a cue to activate when this one ends"
                                         v-on:change="setnext(i[1].id,$event.target.value)" v-model="i[1].next"
-                                        v-bind:placeholder="i[1].defaultnext">
+                                        v-bind:placeholder="editingGroup.defaultnext">
 
                                 </td>
 
@@ -1360,7 +1363,7 @@ ${lists}
                                             <i class="mdi mdi-content-copy"></i>Clone to Next</button>
                                     </p>
 
-                                    <datalist id="cues_in_group" v-if="Object.keys(groupcues[groupname]).length<50">
+                                    <datalist id="cues_in_group" name="cues_in_group">
                                         <option v-for="i in Object.keys(groupcues[groupname]).sort()" v-bind:value="i">
                                             {{i}}</option>
                                     </datalist>
@@ -1723,6 +1726,9 @@ ${lists}
                             <tr>
                                 <td></td>
                                 <td></td>
+                                <td></td>
+                                <td></td>
+
                                 <td><button
                                         v-on:click="editingGroup.displayTags.push(['Label','=1', {'type':'auto'}]); setDisplayTags(groupname, editingGroup.displayTags);">Add
                                         Tag</button>
@@ -1876,6 +1882,12 @@ ${lists}
                                     @click="editingGroup.cueProviders.push('file://'+slotProps.filename+'?import_media=sound'); setGroupProperty(editingGroup.id, 'cueProviders', editingGroup.cueProviders);">
                                     Import Sounds
                                 </button>
+
+                                <button
+                                v-if="slotProps.filename.endsWith('/')"
+                                @click="editingGroup.cueProviders.push('file://'+slotProps.filename+'?import_media=slide'); setGroupProperty(editingGroup.id, 'cueProviders', editingGroup.cueProviders);">
+                                Import Slides
+                            </button>
                             </template>
                         </media-browser>
                     </div>

@@ -265,24 +265,26 @@ async def media():
         if "labelImg" in kwargs:
             pages.require("enumerate_endpoints")
             pages.require("chandler_operator")
+            cue = groups.cues[kwargs["labelImg"]]
 
-            label_image = groups.cues[kwargs["labelImg"]].label_image
-            grp = groups.cues[kwargs["labelImg"]].group()
+            label_image = cue.label_image
+            grp = cue.group()
 
             if grp:
-                return grp.resolve_media(label_image)
+                return grp.resolve_media(label_image, cue)
 
         if "albumArt" in kwargs:
             pages.require("enumerate_endpoints")
             pages.require("chandler_operator")
+            cue = groups.cues[kwargs["albumArt"]]
 
-            sound = groups.cues[kwargs["albumArt"]].sound
+            sound = cue.sound
             if not sound:
                 return ""
-            grp = groups.cues[kwargs["albumArt"]].group()
+            grp = cue.group()
 
             if grp:
-                sound = grp.resolve_media(sound)
+                sound = grp.resolve_media(sound, cue)
 
             if vignette:
                 t = vignette.try_get_thumbnail(sound)

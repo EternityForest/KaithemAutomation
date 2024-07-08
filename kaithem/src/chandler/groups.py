@@ -563,9 +563,10 @@ class Group:
         # Call the cue provider to self.cues[i].providerave any cues that aren't normal cues and are
         # Instead imported from somewhere.
         for i in self.cues:
-            p = self.cues[i].getGroup().get_cue_provider(self.cues[i].provider)
-            if p:
-                p.save_cue(self.cues[i])
+            if self.cues[i].provider:
+                p = self.cues[i].getGroup().get_cue_provider(self.cues[i].provider)
+                if p:
+                    p.save_cue(self.cues[i])
 
         for i in group_schema["properties"]:
             if i not in d:
@@ -751,6 +752,8 @@ class Group:
         with self.lock:
             self._nl_insert_cue_sorted(cue)
             if name in self.cues and not forceAdd:
+                if self.cues[name] is cue:
+                    return
                 raise RuntimeError("Cue would overwrite existing.")
             self.cues[name] = cue
 
@@ -1223,7 +1226,7 @@ class Group:
             c = self.cues[next_cue]
             sound = c.sound
             try:
-                sound = self.resolve_media(sound)
+                sound = self.resolve_media(sound, c)
             except Exception:
                 return
             if os.path.isfile(sound):
@@ -1238,12 +1241,15 @@ class Group:
                 except Exception:
                     print(traceback.format_exc())
 
-    def resolve_media(self, sound) -> str:
+    def resolve_media(self, sound, cue_scope: Cue | None = None) -> str:
         f = copy.copy(self.board.media_folders)
 
-        for i in self._cue_provider_objects:
-            if i.dir:
-                f.append(i.dir)
+        if cue_scope:
+            if cue_scope.provider:
+                p = self.get_cue_provider(cue_scope.provider)
+                d = p.get_dir_for_cue(cue_scope)
+                if d:
+                    f.append(d)
 
         return core.resolve_sound(sound, extra_folders=f)
 
@@ -1277,7 +1283,7 @@ class Group:
         else:
             v = float(v)
             if len(self.cue.sound) and self.cue.rel_length:
-                path = self.resolve_media(self.cue.sound or self.cue.slide)
+                path = self.resolve_media(self.cue.sound or self.cue.slide, self.cue)
                 if core.is_img_file(path):
                     v = 0
                 else:
@@ -1319,7 +1325,7 @@ class Group:
                         return
 
             if len(self.cue.slide) and self.cue.rel_length:
-                path = self.resolve_media(self.cue.slide)
+                path = self.resolve_media(self.cue.slide, self.cue)
                 if core.is_img_file(path):
                     pass
                 else:

@@ -109,6 +109,9 @@ def fnToCueName(fn: str):
         if i not in allowedCueNameSpecials:
             fn = fn.replace(i, "")
 
+    if fn[0] in "1234567890":
+        fn = "x" + fn
+
     return fn
 
 
@@ -123,6 +126,10 @@ class CueProvider:
         # Some subclasses may import from a dire and we also want that to
         # be a media dir
         self.dir: str = ""
+
+    def get_dir_for_cue(self, cue: Cue) -> str | None:
+        """If cue is from filesystem, return the folder it came from"""
+        return None
 
     def save_cue(self, cue: Cue):
         # Save user changes to a cue
@@ -142,6 +149,9 @@ class CueProvider:
 
     def delete_saved_user_cue_data(self, cue: Cue):
         raise NotImplementedError
+
+    def validate_property_update(self, cue: Cue, prop: str, value: Any):
+        return value
 
 
 def get_cue_provider(url: str, group: Group) -> CueProvider:
@@ -167,7 +177,7 @@ class Cue:
         provider: str | None = None,
         **kw: Any,
     ):
-        # declare vars
+        # declare vars.
         self.name: str
         self.number: int
         self.inherit_rules: str
@@ -180,15 +190,15 @@ class Cue:
         self.fade_in: float
         self.sound_fade_out: float
         self.sound_fade_in: float
-        self.length: float | str
-        self.rel_length: bool
+        self.length: float | str = 0
+        self.rel_length: bool = False
         self.length_randomize: float
         self.next_cue: str
-        self._track: bool
+        self._track: bool = False
         self.shortcut: str
         self.trigger_shortcut: str
-        self._sound: str
-        self._slide: str
+        self._sound: str = ""
+        self._slide: str = ""
         self.sound_output: str
         self.sound_start_position: str | int | float
         self.media_speed: str
@@ -328,7 +338,10 @@ class Cue:
 
     @track.setter
     def track(self, val: bool):
-        self._track = bool(val)
+        v = bool(val)
+        if v == self._track:
+            return
+        self._track = v
         self.getGroup().poll_again_flag = True
 
         def f():
@@ -481,7 +494,10 @@ class Cue:
                 else:
                     shortcut_codes[code] = [self]
 
-        core.serialized_async_with_core_lock(f)
+        if not code == self.shortcut:
+            core.serialized_async_with_core_lock(f)
+        else:
+            push = False
 
         self.shortcut = code
         if push:

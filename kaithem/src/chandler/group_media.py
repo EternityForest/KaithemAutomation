@@ -96,7 +96,7 @@ class GroupMediaPlayer:
                     )
                     self.group.cueVolume = 1
                 try:
-                    sound = self.group.resolve_media(sound)
+                    sound = self.group.resolve_media(sound, cue)
                 except Exception:
                     print(traceback.format_exc())
 

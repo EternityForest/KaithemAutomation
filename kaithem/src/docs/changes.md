@@ -1,6 +1,12 @@
 Change Log
 ----------
 
+### 0.86.0
+
+#### Added
+- :sparkles: Cue provider system lets you quickly create playists from folders of media
+
+
 ### 0.85.0
 
 
