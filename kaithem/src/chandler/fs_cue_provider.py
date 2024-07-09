@@ -34,7 +34,7 @@ class FilesystemCueProvider(CueProvider):
             # That will have fn.cue.yaml and be longer than the main
 
             for i in sorted(files):
-                if len(cues) > 512:
+                if len(cues) > 8192 * 4:
                     break
 
                 if i.endswith(media_extensions):

@@ -3,8 +3,8 @@
 <template id="cue-table">
     <div>
         <div class="tool-bar">
-            <p>
-                <input v-model="cuefilter" placeholder="Search Cues" />
+            <p style="flex-grow: 300;">
+                <input v-model="cuefilter" placeholder="Search Cues"  @change="page = 0" />
                 <button type="button" v-on:click="cuefilter = ''"><i class="mdi mdi-backspace"></i></button>
             </p>
 

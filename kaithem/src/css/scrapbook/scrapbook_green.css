@@ -98,3 +98,7 @@ input:disabled {
 }
 
 
+
+[popover]{
+    --box-bg: rgb(200 223 188);
+}
