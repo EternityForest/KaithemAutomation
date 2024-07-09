@@ -19,28 +19,16 @@
                 Next</button>
         </div>
 
-        <div style="overflow-y: auto;max-height:12em;">
-
-            <table class="reflow w-full" border="1">
-
-                <thead>
-                    <slot name="header"></slot>
-                </thead>
-
-                <tbody>
-                    <template v-for="i in formatCues()">
-                        <slot name="row" :i="i"></slot>
-                    </template>
-                </tbody>
-
-            </table>
+        <div style="overflow-y: auto;max-height:72em; display: flex; flex-direction: row; flex-wrap: wrap;">
+                <template v-for="i in formatCues()">
+                    <slot :i="i"></slot>
+                </template>
         </div>
     </div>
 </template>
 
 
 <script>
-console.log('Cue Table')
 var cuetabledata =
 {
     'page': 0,
