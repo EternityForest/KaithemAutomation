@@ -70,7 +70,7 @@ def get_audio_duration(path: str) -> float | None:
 
     try:
         info = ffmpeg.probe(path)
-        return info["format"]["duration"]
+        return float(info["format"]["duration"])
     except Exception:
         print(traceback.format_exc())
     return None

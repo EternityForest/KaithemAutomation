@@ -310,6 +310,9 @@ appMethods = {
     'selectgroup': function (sc, sn) {
         this.getcuedata(this.groupcues[sn][this.selectedCues[
             sc] || 'default'])
+        if(this.cuePage[sn] == undefined) {
+            this.cuePage[sn] = 0
+        }
         this.editingGroup = sc;
         this.groupname = sn;
         api_link.send(['gsd', sn]);
@@ -777,11 +780,11 @@ appComputed = {
             }
         }
         if (!filt) {
-            this.formattedCues = this.dictView(z, ['number']).filter((item) => item[1].id)
+            this.formattedCues = this.dictView(z, ['number'], undefined, this.cuePage[this.groupname]).filter((item) => item[1].id)
             return this.formattedCues
         }
         else {
-            return this.dictView(z, ['number']).filter((item) => item[1].id)
+            return this.dictView(z, ['number'], undefined, this.cuePage[this.groupname]).filter((item) => item[1].id)
         }
     },
 
@@ -839,6 +842,8 @@ appData = {
     'newcuetag': '',
     'newcuevnumber': '',
     'newgroupname': '',
+    //For each group what page are we on
+    'cuePage': {},
     'nuisianceRateLimit': [10, Date.now()],
     'specialvars': [
         ["_", "Output of the previous action"]
@@ -1027,7 +1032,7 @@ appData = {
         }
     },
 
-    'dictView': function (dict, sorts, filterf) {
+    'dictView': function (dict, sorts, filterf, page) {
         //Given a dict  and a list of sort keys sorts,
         //return a list of [key,value] pairs sorted by the sort
         //keys. Earlier sort keys take precendence.
@@ -1037,10 +1042,28 @@ appData = {
         //Keys starting with ! are interpreted as meanng to sort in descending order
 
         var o = []
+
+        const usePages = page !== undefined
+        page = page || 0
+        var toSkip = page * 50
+
         Object.keys(dict).forEach(
             function (key, index) {
                 if (filterf == undefined || filterf(key, dict[key])) {
-                    o.push([key, dict[key]])
+                    toSkip -= 1
+
+                    if (toSkip > 0) {
+                        return
+                    }
+                    else {
+                        // overlap between pages
+                        if (toSkip < -60) {
+                            if (usePages) {
+                                return
+                            }
+                        }
+                        o.push([key, dict[key]])
+                    }
                 }
             })
 
@@ -1585,13 +1608,25 @@ init_api_link = function () {
 
     // Exact sync on half seconds
     function unix_time_upd() {
-        vueapp.$data.clock = new Date(api_link.now()).toLocaleTimeString()
         vueapp.$data.unixtime = api_link.now() / 1000
         setTimeout(unix_time_upd,
-            1000 - (api_link.now() % 1000))
+            10000 - (api_link.now() % 10000))
     }
 
     unix_time_upd()
+
+    function clock_upd() {
+        var c = new Date(api_link.now()).toLocaleTimeString()
+        const el = document.getElementById("toolbar-clock")
+        if (el) {
+            el.innerHTML = c;
+        }
+
+        setTimeout(clock_upd,
+            1000 - (api_link.now() % 1000))
+    }
+
+    clock_upd()
 
     var update_meters = function () {
         var u = api_link.now() / 1000

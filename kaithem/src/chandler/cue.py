@@ -38,7 +38,7 @@ cue_schema = schemas.get_schema("chandler/cue")
 
 # These are in the schema but the corresponding entry on the object has
 # an underscore and there's getters and setters.
-stored_as_property = ["markdown", "track", "sound", "slide"]
+stored_as_property = ["markdown", "track", "sound", "slide", "shortcut"]
 
 slots = list(cue_schema["properties"].keys()) + [
     "id",
@@ -195,7 +195,7 @@ class Cue:
         self.length_randomize: float
         self.next_cue: str
         self._track: bool = False
-        self.shortcut: str
+        self._shortcut: str
         self.trigger_shortcut: str
         self._sound: str = ""
         self._slide: str = ""
@@ -211,7 +211,7 @@ class Cue:
 
         # If a Cue Provider is specified, we do not save it to
         # The show file like normal, the provider will tell us how to save it
-        self._provider: str = provider
+        self._provider: str = (provider or "").strip()
 
         self.group: weakref.ref[Group] = weakref.ref(parent)
 
@@ -236,6 +236,12 @@ class Cue:
         except Exception:
             self.number = 5000
 
+        # Set up all the underscore internal vals for the properties before settingthe actual
+        # properties
+        for i in cue_schema["properties"]:
+            if i in stored_as_property:
+                setattr(self, "_" + i, copy.deepcopy(cue_schema["properties"][i]["default"]))
+
         # Most of the data is loaded here based on what's in the schema
         for i in cue_schema["properties"]:
             # number is special because of auto increment
@@ -256,13 +262,10 @@ class Cue:
         self.onEnter = onEnter
         self.onExit = onExit
 
-        cues[self.id] = self
-
         self.next_ll: Cue | None = None
         parent._add_cue(self, forceAdd=forceAdd)
 
-        self.setShortcut(shortcut, False)
-
+        cues[self.id] = self
         self.push()
 
     @property
@@ -271,8 +274,12 @@ class Cue:
 
     @provider.setter
     def provider(self, value):
+        value = value or ""
+        value = value.strip()
         if value not in self.getGroup().cue_providers:
             raise RuntimeError("Cue provider does not exist in parent group")
+        if value and self.name == "default":
+            raise RuntimeError("Cannot set a cue provider on the default cue")
         old = self._provider
         self._provider = value
         if old and old != value:
@@ -353,7 +360,7 @@ class Cue:
     def setNumber(self, n):
         "Can take a string representing a decimal number for best accuracy, saves as *1000 fixed point"
         if self.shortcut == number_to_shortcut(self.number):
-            self.setShortcut(number_to_shortcut(int((Decimal(n) * Decimal(1000)).quantize(1))))
+            self.shortcut = number_to_shortcut(int((Decimal(n) * Decimal(1000)).quantize(1)))
         self.number = int((Decimal(n) * Decimal(1000)).quantize(1))
 
         # re-sort the cuelist
@@ -458,7 +465,12 @@ class Cue:
 
         self.push()
 
-    def setShortcut(self, code: str, push: bool = True):
+    @property
+    def shortcut(self):
+        return self._shortcut
+
+    @shortcut.setter
+    def shortcut(self, code: str):
         code = normalize_shortcut(code)
 
         disallow_special(code, allow="._")
@@ -467,9 +479,9 @@ class Cue:
             code = number_to_shortcut(self.number)
 
         def f():
-            if self.shortcut in shortcut_codes:
+            if self._shortcut in shortcut_codes:
                 try:
-                    shortcut_codes[self.shortcut].remove(self)
+                    shortcut_codes[self._shortcut].remove(self)
                 except ValueError:
                     pass
                 except Exception:
@@ -494,12 +506,13 @@ class Cue:
                 else:
                     shortcut_codes[code] = [self]
 
-        if not code == self.shortcut:
+        if not code == self._shortcut:
             core.serialized_async_with_core_lock(f)
+            push = True
         else:
             push = False
 
-        self.shortcut = code
+        self._shortcut = code
         if push:
             self.push()
 

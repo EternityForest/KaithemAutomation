@@ -169,7 +169,7 @@
         <div class="window paper cols-10 grow margin-top" style="overflow: auto; flex-grow:1">
             <header>
                 <div class="tool-bar">
-                    <button>{{clock}}</button>
+                    <button id="toolbar-clock">{{clock}}</button>
                     <a class="button" :href="'/chandler/editor/'+boardname"><i class="mdi mdi-pencil"></i></a>
 
                     <button type="button" @click="showUtils = !showUtils"><i class="mdi mdi-calculator"></i></button>
@@ -315,6 +315,13 @@
             </header>
 
             <div id="cuesbox">
+                <div class="tool-bar">
+                    <label>Page
+                        <input v-model="cuePage[groupname]" type="number" min="0" max="99" />
+                    </label>
+                    <button type="button" v-on:click="cuePage[groupname]-=1">Prev</button>
+                    <button type="button" v-on:click="cuePage[groupname]+=1">Next</button>
+                </div>
                 <div class="flex-row align-left">
 
                     <template  v-for="i in formatCues">

@@ -727,11 +727,11 @@ class Group:
 
             if cue in cues:
                 id = cue
-                self.cues[cues[cue].name].setShortcut("")
+                self.cues[cues[cue].name].shortcut = ""
                 del self.cues[cues[cue].name]
             elif cue in self.cues:
                 id = self.cues[cue].id
-                self.cues[cue].setShortcut("")
+                self.cues[cue].shortcut = ""
                 del self.cues[cue]
 
             for board in core.iter_boards():

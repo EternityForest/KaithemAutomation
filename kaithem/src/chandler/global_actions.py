@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 from . import core
 
 if TYPE_CHECKING:
-    from .cue import Cue
+    from .cue import Cue, cues
     from .groups import Group
 
 # Index Cues by codes that we use to jump to them. This is a dict of lists of cues with that short code,
@@ -44,6 +44,10 @@ def cl_trigger_shortcut_code(code: str, limitGroup: Group | None = None, exclude
     if code in shortcut_codes:
         for i in shortcut_codes[code]:
             try:
+                # Not in the cues list yet means it doesn't really exist
+                if i.id not in cues:
+                    continue
+
                 x = i.group()
                 if not x:
                     continue

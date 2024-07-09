@@ -545,8 +545,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         elif cmd_name == "event":
             cl_event(msg[1], msg[2])
 
-        elif cmd_name == "setshortcut":
-            cues[msg[1]].setShortcut(msg[2][:128])
         elif cmd_name == "setnumber":
             cues[msg[1]].setNumber(msg[2])
 

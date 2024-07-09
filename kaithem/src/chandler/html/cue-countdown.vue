@@ -3,10 +3,10 @@
 
 <template id="cue-cd">
     <div style="position: relative; width: fit-content;">
-        <meter style="height: calc(var(--control-height) * 1.5);" v-bind:high="(cue.length>30)?(group.cuelen*(60/group.bpm))-10:(group.cuelen*(60/group.bpm))"
+        <!-- <meter style="height: calc(var(--control-height) * 1.5);" v-bind:high="(cue.length>30)?(group.cuelen*(60/group.bpm))-10:(group.cuelen*(60/group.bpm))"
             v-if="group.active && cue && cue.length" min=0 v-bind:max="group.cuelen*(60/group.bpm)"
-            v-bind:data-meter-ref="group.enteredCue"></meter>
-        <span class="readability-outline" style="position: absolute; left:2px; top:calc(var(--control-height) * 0.25)" v-if="group.active && cue && cue.length"
+            v-bind:data-meter-ref="group.enteredCue"></meter> -->
+        <span  style="position: absolute; left:2px; top:calc(var(--control-height) * 0.25)" v-if="group.active && cue && cue.length"
         :data-count-ref="group.enteredCue"
         :data-count-bpm="group.bpm"
         :data-count-len="group.cuelen">

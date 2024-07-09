@@ -183,7 +183,7 @@ ${lists}
     <section id="optionsblock" class="multibar undecorated w-full">
 
         <div class="menubar tool-bar">
-            <p>{{clock}} </p>
+            <p id="toolbar-clock"></p>
             <p><b>{{boardname}}</b></p>
             <a class="button" :href="'/chandler/commander/'+boardname"><i class="mdi mdi-dance-ballroom"></i></a>
 
@@ -272,7 +272,7 @@ ${lists}
 
                             </div>
                         </header>
-                        <p>
+                        <p v-if="cuemeta[i[1].cue]">
 
                             <span v-if="i[1].active && cuemeta[i[1].cue]">{{cuemeta[i[1].cue].name}}
                                 <small>{{formatTime(i[1].enteredCue)}}</small></span>
@@ -632,11 +632,6 @@ ${lists}
                     <button type="button" v-if="editingGroup.cuelen" v-on:click="addTimeToGroup(editingGroup.id)"><i
                             class="mdi mdi-clock"></i></i><i class="mdi mdi-plus"></i>Add Time</button>
 
-                    <p>
-                        <input v-model="cuefilter" placeholder="Search Cues" />
-                        <button type="button" v-on:click="cuefilter=''"><i class="mdi mdi-backspace"></i></button>
-                    </p>
-
                     <button type="button" v-on:click="delgroup(groupname)"><i class="mdi mdi-delete"></i>Delete
                         Group</button>
 
@@ -647,128 +642,127 @@ ${lists}
 
             <div id="cuesbox">
 
-                <div style="overflow-y: auto;max-height:12em;">
-                    <table class="reflow w-full" border="1">
 
-                        <thead>
-                            <tr>
-                                <th title="Click the cue name to edit that cue">Name</th>
-                                <th class="desktop-only">Shortcut</th>
-                                <th class="desktop-only">Fadein</th>
-                                <th class="desktop-only" title="Length, 0 indicates until stopped">Length</th>
-                                <th title="The next cue, after this one ends">Next</th>
-                                <th class="desktop-only">Track</th>
-                                <th>Jump to</th>
-                            </tr>
-                        </thead>
+                <cue-table :cuemeta="cuemeta" :groupname="groupname" :groupcues="groupcues">
+                    <template v-slot:header>
+                        <tr>
+                            <th title="Click the cue name to edit that cue">Name</th>
+                            <th class="desktop-only">Shortcut</th>
+                            <th class="desktop-only">Fadein</th>
+                            <th class="desktop-only" title="Length, 0 indicates until stopped">Length</th>
+                            <th title="The next cue, after this one ends">Next</th>
+                            <th class="desktop-only">Track</th>
+                            <th>Jump to</th>
+                        </tr>
+                    </template>
 
-                        <tbody>
-                            <tr v-for="i in formatCues"
-                                v-bind:class="{'highlight' : selectedCues[groupname]==i[1].name, 'success':cuemeta[editingGroup.cue].name==i[1].name}">
-                                <td class="rowname" data-label="Cue: " style=" user-select: none;"
-                                    title="Click the cue name to edit that cue"
-                                    v-on:click="selectcue(groupname,i[1].name)">
+                    <template v-slot:row="slotProps">
+                        <tr
+                            v-bind:class="{'highlight' : selectedCues[groupname]==slotProps.i[1].name, 'success':cuemeta[editingGroup.cue].name==slotProps.i[1].name}">
+                            <td class="rowname" data-label="Cue: " style=" user-select: none;"
+                                title="Click the cue name to edit that cue"
+                                v-on:click="selectcue(groupname,slotProps.i[1].name)">
 
-                                    <i v-if="cuemeta[editingGroup.cue].name==i[1].name"
-                                        class="mdi mdi-arrow-right-bold-outline nomargin"></i>
-
-
-                                    <span title="Cue number, double click to change." style="width:6em; margin: 6px"
-                                        v-on:dblclick="promptsetnumber(i[1].id)">{{i[1].number}}</span>
+                                <i v-if="cuemeta[editingGroup.cue].name==slotProps.i[1].name"
+                                    class="mdi mdi-arrow-right-bold-outline nomargin"></i>
 
 
-
-                                    <span  v-if="i[1].provider" class="mdi mdi-import"></span>
-
-                                    <span>{{i[1].name.slice(0,64)}}</span>
-
-                                    <span title="Checkpoint Cue" v-if="i[1].checkpoint"
-                                        class="mdi mdi-star-four-points-outline"></span>
-
-                                    <span v-if="selectedCues[groupname]==i[1].name"><i
-                                            class="mdi mdi-pencil nomargin"></i></span>
-
-                                    <i class="mdi mdi-light-bulb nomargin" v-if="i[1].hasLightingData"
-                                        title="This cue has lighting commands"></i>
-
-                                    <i class="mdi mdi-audio nomargin" v-if="i[1].sound"></i>
-                                    <i class="mdi mdi-monitor nomargin" v-if="i[1].slide"></i>
-
-                                    <span v-if="i[1].inheritRules" title="This cue has rules inherited"><i
-                                            class="mdi mdi-script-text-outline nomargin"></i></span>
-
-                                    <span v-if="i[1].rules && i[1].rules.length>0"
-                                        title="This cue has rules attatched"><i
-                                            class="mdi mdi-script-text-outline nomargin"></i></span>
-
-                                    <i v-if="cuemeta[editingGroup.cue].name==i[1].name"
-                                        class="mdi mdi-arrow-left-bold-outline nomargin"></i>
-
-                                </td>
+                                <span title="Cue number, double click to change." style="width:6em; margin: 6px"
+                                    v-on:dblclick="promptsetnumber(slotProps.i[1].id)">{{slotProps.i[1].number}}</span>
 
 
-                                <td class="desktop-only" data-label="Shortcut:">
-                                    <div class="tool-bar" style="width: 8em;">
-                                        <input :disabled="no_edit" title="Shortcut code" style="max-width: 4.5em;"
-                                            v-on:change="apiCommand(i[1].id,'setshortcut',$event.target.value)" min=0
-                                            step=0.1 v-model="i[1].shortcut">
-                                        <button type="button" style="opacity:0.3"
-                                            title="Generate a shortcut code from the cue's number"
-                                            v-on:click="apiCommand(i[1].id,'setshortcut','__generate__from__number__')">GEN</button>
-                                    </div>
-                                </td>
 
-                                <td class="desktop-only" data-label="Fade In:">
-                                    <input :disabled="no_edit" type="number"
-                                        v-on:change="setfadein(i[1].id,$event.target.value)" style="width:3em" min=0
-                                        v-model="i[1].fadeIn">
-                                </td>
+                                <span v-if="slotProps.i[1].provider" class="mdi mdi-import"></span>
 
-                                <td class="desktop-only" data-label="Length:">
-                                    <input :disabled="no_edit" v-on:change="setlength(i[1].id,$event.target.value)"
-                                        class="w-12rem" list="lenoptions" v-model="i[1].length">
-                                </td>
+                                <span>{{slotProps.i[1].name.slice(0,64)}}</span>
 
-                                <td data-label="Next Cue:">
-                                    <select style="width:98%; max-width: 24rem" v-model="i[1].next" :disabled="no_edit"
-                                        v-if="Object.keys(groupcues[groupname]).length<40" autocomplete=off
-                                        title="Select a cue to activate when this one ends"
-                                        v-on:change="setnext(i[1].id,$event.target.value)">
-                                        <option value="">&gt&gt&gt {{editingGroup.defaultnext}}</option>
-                                        <option v-for="j in formatCues" v-bind:value="j[1].name">{{j[1].number}}:
-                                            {{j[1].name.slice(0,16)}}</option>
-                                        <option v-bind:value="i[1].next">{{i[1].next}}</option>
+                                <span title="Checkpoint Cue" v-if="slotProps.i[1].checkpoint"
+                                    class="mdi mdi-star-four-points-outline"></span>
 
-                                        <option value="__random__">RANDOM</option>
-                                        <option value="__shuffle__">SHUFFLE</option>
-                                        <option value="__schedule__">Skip to Schedule</option>
+                                <span v-if="selectedCues[groupname]==slotProps.i[1].name"><i
+                                        class="mdi mdi-pencil nomargin"></i></span>
 
-                                    </select>
+                                <i class="mdi mdi-light-bulb nomargin" v-if="slotProps.i[1].hasLightingData"
+                                    title="This cue has lighting commands"></i>
 
-                                    <input :disabled="no_edit" v-if="Object.keys(groupcues[groupname]).length>40"
-                                        autocomplete=off list="cues_in_group"
-                                        title="Select a cue to activate when this one ends"
-                                        v-on:change="setnext(i[1].id,$event.target.value)" v-model="i[1].next"
-                                        v-bind:placeholder="editingGroup.defaultnext">
+                                <i class="mdi mdi-audio nomargin" v-if="slotProps.i[1].sound"></i>
+                                <i class="mdi mdi-monitor nomargin" v-if="slotProps.i[1].slide"></i>
 
-                                </td>
+                                <span v-if="slotProps.i[1].inheritRules" title="This cue has rules inherited"><i
+                                        class="mdi mdi-script-text-outline nomargin"></i></span>
+
+                                <span v-if="slotProps.i[1].rules && slotProps.i[1].rules.length>0"
+                                    title="This cue has rules attatched"><i
+                                        class="mdi mdi-script-text-outline nomargin"></i></span>
+
+                                <i v-if="cuemeta[editingGroup.cue].name==slotProps.i[1].name"
+                                    class="mdi mdi-arrow-left-bold-outline nomargin"></i>
+
+                            </td>
 
 
-                                <td class="desktop-only" data-label="Track vals from prev: ">
-                                    <input :disabled="no_edit" type="checkbox"
-                                        v-on:change="setCueProperty(i[1].id, 'track', i[1].track)" v-model="i[1].track"
-                                        title="Track values from previous cue? If false, values not present are always transparent">
-                                </td>
-                                <td data-label="Goto:">
-                                    <button type="button" style="min-width: 90%;"
-                                        v-on:click="jumptocue(i[1].id,  editingGroup.id)">Go</button>
-                                </td>
+                            <td class="desktop-only" data-label="Shortcut:">
+                                <div class="tool-bar" style="width: 8em;">
+                                    <input :disabled="no_edit" title="Shortcut code" style="max-width: 4.5em;"
+                                        v-on:change="apiCommand(slotProps.i[1].id,'setshortcut',$event.target.value)"
+                                        min=0 step=0.1 v-model="slotProps.i[1].shortcut">
+                                    <button type="button" style="opacity:0.3"
+                                        title="Generate a shortcut code from the cue's number"
+                                        v-on:click="apiCommand(slotProps.i[1].id,'setshortcut','__generate__from__number__')">GEN</button>
+                                </div>
+                            </td>
 
-                            </tr>
-                        </tbody>
+                            <td class="desktop-only" data-label="Fade In:">
+                                <input :disabled="no_edit" type="number"
+                                    v-on:change="setfadein(slotProps.i[1].id,$event.target.value)" style="width:3em"
+                                    min=0 v-model="slotProps.i[1].fadeIn">
+                            </td>
 
-                    </table>
-                </div>
+                            <td class="desktop-only" data-label="Length:">
+                                <input :disabled="no_edit"
+                                    v-on:change="setlength(slotProps.i[1].id,$event.target.value)" class="w-12rem"
+                                    list="lenoptions" v-model="slotProps.i[1].length">
+                            </td>
+
+                            <td data-label="Next Cue:">
+                                <select style="width:98%; max-width: 24rem" v-model="slotProps.i[1].next"
+                                    :disabled="no_edit" v-if="Object.keys(groupcues[groupname]).length<40"
+                                    autocomplete=off title="Select a cue to activate when this one ends"
+                                    v-on:change="setnext(slotProps.i[1].id,$event.target.value)">
+                                    <option value="">&gt&gt&gt {{editingGroup.defaultnext}}</option>
+                                    <option v-for="j in formatCues" v-bind:value="j[1].name">{{j[1].number}}:
+                                        {{j[1].name.slice(0,16)}}</option>
+                                    <option v-bind:value="slotProps.i[1].next">{{slotProps.i[1].next}}</option>
+
+                                    <option value="__random__">RANDOM</option>
+                                    <option value="__shuffle__">SHUFFLE</option>
+                                    <option value="__schedule__">Skip to Schedule</option>
+
+                                </select>
+
+                                <input :disabled="no_edit" v-if="Object.keys(groupcues[groupname]).length>40"
+                                    autocomplete=off list="cues_in_group"
+                                    title="Select a cue to activate when this one ends"
+                                    v-on:change="setnext(slotProps.i[1].id,$event.target.value)"
+                                    v-model="slotProps.i[1].next" v-bind:placeholder="editingGroup.defaultnext">
+
+                            </td>
+
+
+                            <td class="desktop-only" data-label="Track vals from prev: ">
+                                <input :disabled="no_edit" type="checkbox"
+                                    v-on:change="setCueProperty(slotProps.i[1].id, 'track', slotProps.i[1].track)"
+                                    v-model="slotProps.i[1].track"
+                                    title="Track values from previous cue? If false, values not present are always transparent">
+                            </td>
+                            <td data-label="Goto:">
+                                <button type="button" style="min-width: 90%;"
+                                    v-on:click="jumptocue(slotProps.i[1].id,  editingGroup.id)">Go</button>
+                            </td>
+
+                        </tr>
+                    </template>
+                </cue-table>
 
                 <div class="tool-bar">
                     <input :disabled="no_edit" v-model="newcuename" placeholder="New cue name" list="specialcues">
@@ -1199,7 +1193,8 @@ ${lists}
                                                 <dd>
                                                     <div class="tool-bar">
                                                         <button type="button"
-                                                            v-on:click="setCueProperty(currentcueid,'soundOutput',i)">Set for
+                                                            v-on:click="setCueProperty(currentcueid,'soundOutput',i)">Set
+                                                            for
                                                             Cue</button>
                                                         <button type="button"
                                                             v-on:click="setGroupSoundOutput(groupname,i)">Set as
@@ -1337,8 +1332,7 @@ ${lists}
                                     </datalist>
 
                                     <label><span><i class="mdi mdi-folder"></i>Provider</span>
-                                        <input :disabled="no_edit"
-                                            :list="'providers' + groupname"
+                                        <input :disabled="no_edit" :list="'providers' + groupname"
                                             v-on:change="setCueProperty(currentcueid, 'provider', $event.target.value)"
                                             v-model="cuemeta[currentcueid].provider">
                                     </label>
@@ -1524,8 +1518,7 @@ ${lists}
                             <label> Sound Output<input
                                     title="If not set by a cue, the global setting for the group is used"
                                     v-on:change="setGroupSoundOutput(groupname,$event.target.value)"
-                                    v-model="editingGroup.soundOutput" placeholder="default"
-                                    list="soundcards"></label>
+                                    v-model="editingGroup.soundOutput" placeholder="default" list="soundcards"></label>
 
                             <label>
                                 Crossfade for non-silent Sounds
@@ -1861,33 +1854,33 @@ ${lists}
                     </div>
 
                     <div class="card w-sm-full">
-                        <header><h4>Cue Providers</h4></header>
+                        <header>
+                            <h4>Cue Providers</h4>
+                        </header>
                         <p>Cue providers let you automatically import cues from a folder of media files.</p>
 
                         <div>
                             <ul>
                                 <dt v-for="cueprovider of editingGroup.cueProviders">
-                                   {{cueprovider}}
-                                   <button
-                                       v-on:click="editingGroup.cueProviders.splice(editingGroup.cueProviders.indexOf(cueprovider), 1); setGroupProperty(editingGroup.id, 'cueProviders', editingGroup.cueProviders);">
-                                       Delete
+                                    {{cueprovider}}
+                                    <button
+                                        v-on:click="editingGroup.cueProviders.splice(editingGroup.cueProviders.indexOf(cueprovider), 1); setGroupProperty(editingGroup.id, 'cueProviders', editingGroup.cueProviders);">
+                                        Delete
                                 </dt>
                             </ul>
                         </div>
 
                         <media-browser :no_edit="no_edit">
                             <template v-slot="slotProps">
-                                <button
-                                    v-if="slotProps.filename.endsWith('/')"
+                                <button v-if="slotProps.filename.endsWith('/')"
                                     @click="editingGroup.cueProviders.push('file://'+slotProps.filename+'?import_media=sound'); setGroupProperty(editingGroup.id, 'cueProviders', editingGroup.cueProviders);">
                                     Import Sounds
                                 </button>
 
-                                <button
-                                v-if="slotProps.filename.endsWith('/')"
-                                @click="editingGroup.cueProviders.push('file://'+slotProps.filename+'?import_media=slide'); setGroupProperty(editingGroup.id, 'cueProviders', editingGroup.cueProviders);">
-                                Import Slides
-                            </button>
+                                <button v-if="slotProps.filename.endsWith('/')"
+                                    @click="editingGroup.cueProviders.push('file://'+slotProps.filename+'?import_media=slide'); setGroupProperty(editingGroup.id, 'cueProviders', editingGroup.cueProviders);">
+                                    Import Slides
+                                </button>
                             </template>
                         </media-browser>
                     </div>
@@ -2039,6 +2032,8 @@ ${lists}
                 "script-editor": httpVueLoader('../static/ScriptEditor.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
                 "h-fader": httpVueLoader('../static/hfader.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
                 'cue-countdown': httpVueLoader('../static/cue-countdown.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
+                'cue-table': httpVueLoader('../static/cuetable.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
+
                 // Currently contains the timers and the display tags for the groups overview
                 'group-ui': httpVueLoader('../static/group-ui-controls.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
                 'smooth-range': httpVueLoader('/static/vue/smoothrange.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
