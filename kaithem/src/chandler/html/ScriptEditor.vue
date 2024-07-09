@@ -56,8 +56,18 @@ p.small {
         <div class="w-full">
             <div class="flex-row gaps">
 
-                <div v-if="selectedCommand == 0 && selectedBinding" class="col-3 card min-h-24rem w-sm-full">
-                    <h3>Block Inspector</h3>
+                <div class="card paper margin" popover id="blockInspectorEvent"
+                ontoggle="handleDialogState(event)"
+                
+                    v-if="selectedCommand == 0 && selectedBinding" class="col-3 card min-h-24rem w-sm-full">
+                    <header>
+                            <div class="tool-bar">
+                                <h4>Event Inspector</h4>
+                                <button class="nogrow" type="button" popovertarget="blockInspectorEvent" popoveraction="hide">
+                                    <i class="mdi mdi-close"></i>Close
+                                </button>
+                            </div>
+                    </header>
 
                     <p>
                         Event Trigger. Runs the actions when something happens.
@@ -78,8 +88,17 @@ p.small {
                         actions</button>
                 </div>
 
-                <div v-if="selectedCommand" class="card col-3 min-h-24rem w-sm-full">
-                    <h3>Block Inspector</h3>
+                <div class="card paper margin" popover ontoggle="handleDialogState(event)"
+                id="blockInspectorCommand"  v-if="selectedCommand" class="card col-3 min-h-24rem w-sm-full">
+                    <header>
+                            <div class="tool-bar">
+                                <h4>Command Inspector</h4>
+                                <button class="nogrow" type="button" popovertarget="blockInspectorCommand" popoveraction="hide">
+                                    <i class="mdi mdi-close"></i>Close
+                                </button>
+                            </div>
+                    </header>
+                    
                     Type
                     <combo-box :disabled="disabled" v-model="selectedCommand[0]" v-bind:options="getPossibleActions()"
                         v-bind:pinned="getSpecialActions()" @update:modelValue="setCommandDefaults(selectedCommand);"
@@ -137,7 +156,9 @@ p.small {
                     <div v-for="(i, idx) in rules" class="w-sm-double card">
                         <header>
                             <div class="tool-bar">
-                                <button v-bind:class="{ highlight: selectedBinding == i }" style="flex-grow: 50;"
+                                <button 
+                                    popovertarget="blockInspectorEvent"
+                                    v-bind:class="{ highlight: selectedBinding == i }" style="flex-grow: 50;"
                                     v-on:click="selectedBindingIndex = rules.indexOf(i); selectedCommandIndex = -1">
 
                                     <b>On {{ i[0] }}</b>
@@ -152,6 +173,7 @@ p.small {
 
                             <div v-for="j in i[1]" style="display:flex;" class="nogrow">
                                 <button style="align-content: flex-start;"
+                                    popovertarget="blockInspectorCommand"
                                     v-bind:class="{ action: 1, 'flex-row': 1, selected: (selectedBinding == i & selectedCommand == j) }"
                                     v-on:click="selectedCommandIndex = i[1].indexOf(j); selectedBindingIndex = rules.indexOf(i)">
 

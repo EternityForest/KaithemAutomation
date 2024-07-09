@@ -260,6 +260,7 @@ ${lists}
                             <div>
                                 <h4>
                                     <button type="button" v-bind:class="{highlight:i[0]==groupname}"
+                                        popovertarget="selectedGroupWindow"
                                         v-on:click="selectgroup(i[1],i[0])" style="width: 100%">
 
                                         <span style="font-size: 150%;">{{i[1].name}}</span><span v-if="i[1].ext"
@@ -618,7 +619,7 @@ ${lists}
         </section>
 
 
-        <section class="window paper margin" v-if="editingGroup && cuemeta[editingGroup.cue]">
+        <section popover ontoggle="handleDialogState(event)" id="selectedGroupWindow" class="modal window paper margin w-full" v-if="editingGroup && cuemeta[editingGroup.cue]">
             <header>
 
                 <p class="warning" v-if="editingGroup.status">STATUS: {{editingGroup.status}}</p>
@@ -629,12 +630,24 @@ ${lists}
 
 
                     </h3>
-                    <button type="button" v-if="editingGroup.cuelen" v-on:click="addTimeToGroup(editingGroup.id)"><i
+                    <button type="button"  class="nogrow" v-if="editingGroup.cuelen" v-on:click="addTimeToGroup(editingGroup.id)"><i
                             class="mdi mdi-clock"></i></i><i class="mdi mdi-plus"></i>Add Time</button>
 
-                    <button type="button" v-on:click="delgroup(groupname)"><i class="mdi mdi-delete"></i>Delete
-                        Group</button>
 
+                    <button class="nogrow" type="button" popovertarget="groupNotesDialog">
+                        <i class="mdi mdi-text"></i>
+                        Notes</button>
+
+                    <button class="nogrow" type="button" popovertarget="groupPropsDialog">
+                                <i class="mdi mdi-cog"></i>
+                                Settings</button>
+
+                    <button type="button"  class="nogrow" v-on:click="delgroup(groupname)"><i class="mdi mdi-delete"></i>Delete
+                        </button>
+
+                    <button type="button" class="nogrow" popovertarget="selectedGroupWindow" popoveraction="hide">
+                        <i class="mdi mdi-close"></i>Close
+                    </button>
 
                 </div>
             </header>
@@ -779,7 +792,33 @@ ${lists}
 
 
             <div v-if="currentcue">
-                <h3><i class="mdi mdi-pencil nomargin"></i>Editing Cue: {{currentcue.name}}</h3>
+                <div class="tool-bar">
+                    <h3><i class="mdi mdi-pencil nomargin nogrow"></i>Editing Cue: {{currentcue.name}}</h3>
+
+                    <button type="button" popovertarget="cueTextDialog">
+                        <i class="mdi mdi-text"></i>
+                        Text</button>
+
+
+                    <button type="button" popovertarget="cueMediaDialog">
+                        <i class="mdi mdi-music"></i>
+                        Media</button>
+
+                    <button type="button" popovertarget="cuePropsDialog">
+                        <i class="mdi mdi-cog"></i>
+                        Properties</button>
+
+                    <button type="button" popovertarget="cueLogicDialog">
+                        <i class="mdi mdi-code-braces"></i>
+                        Logic({{currentcue.rules.length}})</button>
+
+                </div>
+
+                <div class="tool-bar">
+                    <p v-if="currentcue.sound">Sound: {{currentcue.sound}}</p>
+                    <p v-if="currentcue.slide">Slide: {{currentcue.slide}}</p>
+                </div>
+
                 <p v-if="currentcue.name.startsWith('__')" class="highlight">Cues starting with __ are special cues.
                     They are never chosen in random selections or as the default next cue and may have predefined system
                     functions attatched.</p>
@@ -789,8 +828,7 @@ ${lists}
                     Any
                     changes made here may be overwritten by the code at any time.</span>
 
-                <details open class="undecorated">
-                    <summary>Cue Channel Values</summary>
+                <div class="undecorated">
                     <div class="tool-bar">
                         <button type="button" v-bind:class="{highlight:grouptab=='cue'}" v-on:click="grouptab='cue'"><i
                                 class="mdi mdi-cog-outline"></i>Normal View</button>
@@ -924,11 +962,18 @@ ${lists}
                         </div>
                     </div>
 
-                </details>
+                </div>
 
 
-                <details class="undecorated">
-                    <summary>Cue Logic</summary>
+                <div class="window w-full" popover id="cueLogicDialog" class="modal" ontoggle="handleDialogState(event)">
+                    <header>
+                        <div class="tool-bar">
+                            <h4>{{currentcue.name}} Logic</h4>
+                            <button class="nogrow" type="button" popovertarget="cueLogicDialog" popoveraction="hide">
+                                <i class="mdi mdi-close"></i>Close
+                            </button>
+                        </div>
+                    </header>
 
                     <div>
                         <h3>Automation Logic</h3>
@@ -1002,15 +1047,22 @@ ${lists}
                             </table>
                         </div>
                     </div>
-                </details>
+                </div>
 
 
 
 
                 <div>
 
-                    <details class="undecorated">
-                        <summary>Cue Sound/Media</summary>
+                    <div class="window w-full" popover id="cueMediaDialog" class="modal" ontoggle="handleDialogState(event)">
+                        <header>
+                            <div class="tool-bar">
+                                <h4>{{currentcue.name}} Sound</h4>
+                                <button class="nogrow" type="button" popovertarget="cueMediaDialog" popoveraction="hide">
+                                    <i class="mdi mdi-close"></i>Close
+                                </button>
+                            </div>
+                        </header>
 
                         <p><a :href="'../webmediadisplay?group='+editingGroup.id">Web Media Display</a></p>
 
@@ -1211,20 +1263,34 @@ ${lists}
                             </div>
 
                         </div>
-                    </details>
+                    </div>
 
-                    <details class="undecorated">
-                        <summary>Cue Text</summary>
+                    <div class="window w-full" popover id="cueTextDialog" class="modal" ontoggle="handleDialogState(event)">
+                        <header>
+                            <div class="tool-bar">
+                                <h4>{{currentcue.name}} Text</h4>
+                                <button class="nogrow" type="button" popovertarget="cueTextDialog" popoveraction="hide">
+                                    <i class="mdi mdi-close"></i>Close
+                                </button>
+                            </div>
+                        </header>
+
                         <textarea v-model="currentcue.markdown" class="w-full h-16rem"
                             @input="setCuePropertyDeferred(currentcue.id, 'markdown', $event.target.value)"
                             @change="setCueProperty(currentcue.id, 'markdown', $event.target.value)">
 
                         </textarea>
-                    </details>
+                    </div>
 
-                    <details class="undecorated">
-                        <summary>Cue Properties
-                        </summary>
+                    <div class="window w-full" popover id="cuePropsDialog" class="modal" ontoggle="handleDialogState(event)">
+                        <header>
+                            <div class="tool-bar">
+                                <h4>{{currentcue.name}}</h4>
+                                <button class="nogrow" type="button" popovertarget="cuePropsDialog" popoveraction="hide">
+                                    <i class="mdi mdi-close"></i>Close
+                                </button>
+                            </div>
+                        </header>
 
                         <div>
                             <div class="flex-row gaps">
@@ -1370,22 +1436,36 @@ ${lists}
 
 
             </div>
-            <details class="undecorated">
-                <summary>Group Notes</summary>
+
+            <div class="window w-full" popover id="groupNotesDialog" class="modal" ontoggle="handleDialogState(event)">
+                <header>
+                    <div class="tool-bar">
+                        <h4>{{editingGroup.name}} Notes</h4>
+                        <button class="nogrow" type="button" popovertarget="groupNotesDialog" popoveraction="hide">
+                            <i class="mdi mdi-close"></i>Close
+                        </button>
+                    </div>
+                </header>
 
 
 
                 <div style="overflow: auto; max-height:30em;">
-                    <h4>Group Notes</h4>
                     <textarea v-model="editingGroup.notes"
                         @change="setGroupProperty(editingGroup.id, 'notes', $event.target.value)"
                         @input="setGroupPropertyDeferred(editingGroup.id, 'notes', $event.target.value)"></textarea>
                 </div>
-            </details>
+            </div>
 
-            <details class="undecorated">
-                <summary>Group Settings</summary>
 
+            <div class="window w-full" popover id="groupPropsDialog" class="modal" ontoggle="handleDialogState(event)">
+                <header>
+                    <div class="tool-bar">
+                        <h4>Group Settings</h4>
+                        <button class="nogrow" type="button" popovertarget="groupPropsDialog" popoveraction="hide">
+                            <i class="mdi mdi-close"></i>Close
+                        </button>
+                    </div>
+                </header>
                 <!-- <details>
                     <summary>Music Visualization Presets</summary>
                     <textarea v-on:change="setvisualization(groupname,$event.target.value);"
@@ -1885,7 +1965,7 @@ ${lists}
                         </media-browser>
                     </div>
 
-            </details>
+                </div>
 
 
 
@@ -2090,5 +2170,32 @@ ${lists}
     window.visibilitychange = function () {
         document.activeElement.blur();
     };
+
+</script>
+
+
+<script>
+
+    var prev = history.state
+
+    function handleDialogState (e) {
+            if(e.newState == 'open') {
+                history.pushState({el:e.target.id}, null, '#popover')
+                prev = history.state
+            }
+            else{
+                if (history.state?.el == e.target.id) {
+                    history.back()
+                    prev = history.state
+                }
+            }
+    }
+
+    window.addEventListener('popstate', function (e) {
+        if (prev?.el&& document.getElementById(prev?.el).hidePopover) {
+            document.getElementById(prev?.el).hidePopover()
+        }
+        prev = history.state
+    });
 
 </script>

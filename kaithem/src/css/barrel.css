@@ -296,8 +296,18 @@ input[type=range],
 
 
 
+:modal, .modal{
+    &::backdrop{
+        content: "";
+        background-color: black;
+        opacity: 0.3;
+    }
+}
 
-
+[popover]{
+    max-height: 100vh;
+    overflow: scroll;
+}
 /*****************Typography****************************/
 
 @media screen and (max-width: 820px) {
@@ -1390,6 +1400,10 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
 .w-full {
     width: 100%;
     max-width: 100%;
+
+    &:is(.margin) {
+        max-width: calc(100% - calc(var(--gap) * 2));
+    }
 }
 
 .h-full {
