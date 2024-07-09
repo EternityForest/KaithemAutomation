@@ -155,7 +155,7 @@
 
 <div id="app" v-cloak style="display:flex; flex-wrap:wrap; justify-content: center;">
     <div class="flex-row w-full">
-        <section class="window cols-2 nogrow max-h-24rem margin" v-if="Object.keys(sys_alerts).length">
+        <section class="window cols-2 max-h-24rem margin max-w-48rem" v-if="Object.keys(sys_alerts).length">
             <div class="flex-row scroll gaps padding">
                 <div class="card" v-for="v,i of sys_alerts">
                     <header :class="v['barrel-class']" class="padding">
@@ -166,7 +166,7 @@
             </div>
         </section>
 
-        <div class="window paper cols-10 grow margin-top" style="overflow: auto; flex-grow:1">
+        <div class="window paper cols-10 grow margin-top" style="overflow: auto; flex-grow:1; min-width: 24em">
             <header>
                 <div class="tool-bar">
                     <button id="toolbar-clock">{{clock}}</button>
