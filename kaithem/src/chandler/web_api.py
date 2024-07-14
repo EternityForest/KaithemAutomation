@@ -4,9 +4,32 @@ import quart.ctx
 from quart import request
 from scullery import snake_compat
 
+from kaithem.api.web import require
+
+from .core import boards, cl_context
 from .cue import cues
 from .groups import groups
 from .web import quart_app
+
+
+@quart_app.app.route("/chandler/api/all-cues/<board>")
+async def all_cues(board: str):
+    require("chandler_operator")
+
+    @quart.ctx.copy_current_request_context
+    def f():
+        with cl_context:
+            d = {}
+            b = boards[board]
+
+            for i in b.groups:
+                for j in b.groups[i].cues:
+                    c = b.groups[i].cues[j]
+                    d[c.id] = c.get_ui_data()
+
+        return json.dumps(d)
+
+    return await f()
 
 
 @quart_app.app.route("/chandler/api/set-cue-properties/<cue_id>", methods=["PUT"])
@@ -16,6 +39,7 @@ async def set_cue_properties(cue_id: str):
     camelCase top level keys are converted to snake_case to that
     web code can use JS conventions.
     """
+    require("system_admin")
 
     kw = json.loads(await request.body)
 
@@ -49,6 +73,7 @@ async def set_group_properties(group_id: str):
     camelCase top level keys are converted to snake_case to that
     web code can use JS conventions.
     """
+    require("system_admin")
 
     kw = json.loads(await request.body)
 

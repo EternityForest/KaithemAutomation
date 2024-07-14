@@ -5,7 +5,7 @@ Change Log
 
 #### Added
 - :sparkles: Cue provider system lets you quickly create playists from folders of media
-
+- :sparkles: Mount/Unmount disks from devices page
 
 ### 0.85.0
 

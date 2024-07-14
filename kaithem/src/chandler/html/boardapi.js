@@ -103,6 +103,18 @@ cueSetData = {}
 
 appMethods = {
 
+    "initializeState": async function(board){
+
+        var v = await fetch("/chandler/api/all-cues/"+board, {
+            method: "GET",
+        })
+
+        v = await v.json()
+
+        this.cuemeta = v
+
+    },
+
     'mediaLinkCommand': function (sc, linkid, data) {
 
         api_link.send(["mediaLinkCommand", sc, linkid, data])
@@ -303,10 +315,8 @@ appMethods = {
         this.selectedCues[sc] = cue
         this.getcuedata(this.groupcues[sc][cue])
     },
-    'getallcuemeta': function (sn) {
-        api_link.send(['getallcuemeta', sn]);
 
-    },
+
     'selectgroup': function (sc, sn) {
         this.getcuedata(this.groupcues[sn][this.selectedCues[
             sc] || 'default'])
@@ -315,8 +325,6 @@ appMethods = {
         }
         this.editingGroup = sc;
         this.groupname = sn;
-        api_link.send(['gsd', sn]);
-        api_link.send(['getallcuemeta', sn]);
         this.recomputeformattedCues();
     },
     'delgroup': function (sc) {
@@ -1602,7 +1610,10 @@ function f(v) {
 }
 
 
-init_api_link = function () {
+init_api_link = async function (board) {
+
+    await vueapp.initializeState(board)
+
     api_link.upd = f
     api_link.send(['getCommands']);
 

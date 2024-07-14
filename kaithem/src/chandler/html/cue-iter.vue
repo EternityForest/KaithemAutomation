@@ -19,7 +19,7 @@
                 Next</button>
         </div>
 
-        <div style="overflow-y: auto;max-height:72em; display: flex; flex-direction: row; flex-wrap: wrap;">
+        <div style="overflow-y: auto;max-height:42em; display: flex; flex-direction: row; flex-wrap: wrap;">
                 <template v-for="i in formatCues()">
                     <slot :i="i"></slot>
                 </template>

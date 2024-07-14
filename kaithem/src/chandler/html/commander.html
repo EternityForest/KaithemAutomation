@@ -217,6 +217,7 @@
 
                         <header class="flex-row gaps">
                             <h3><button :disabled="i[1].utility" v-bind:class="{highlight:i[0]==groupname}"
+                                popovertarget="groupDialog"
                                     v-on:click="selectgroup(i[1],i[0])" style="font-weight:bold; width:100%">
                                     {{i[1].name}}<span v-if="i[1].ext" class="grey"> (external)</span>
 
@@ -300,17 +301,24 @@
         </div>
     </div>
 
-    <div class="flex-row w-full">
-        <div class="window paper margin col-10 h-max-content" v-if="editingGroup && cuemeta[editingGroup.cue]"
-            style="display:inline-block;" class="scroll">
+        <div popover id="groupDialog" class="window paper margin modal w-full" v-if="editingGroup && cuemeta[editingGroup.cue]"
+            >
             <header>
                 <div class="tool-bar">
                     <h3>{{editingGroup.name}}
                         <span class="highlight" v-if="editingGroup.active&(!editingGroup.doingHandoff)">(running)</span>
                     </h3>
+
+                    <input v-if="!editingGroup.utility" type="range" style="max-width: 12rem" max=1
+                                    step=0.01 min=0 v-on:input="setalpha(editingGroup.id,parseFloat($event.target.value));"
+                                    v-on:change="setalpha(editingGroup.id,parseFloat($event.target.value));"
+                                    :value="alphas[editingGroup.id]">
+
                     <button v-if="editingGroup.cuelen" v-on:click="addTimeToGroup(editingGroup.id)"><i
                             class="mdi mdi-clock"></i></i><i class="mdi mdi-plus"></i>Add Time</button>
                     <button @click="compactCues=!compactCues" class="nogrow"><i class="mdi mdi-view-grid-compact"></i>Compact</button>
+                    <button popovertarget="groupDialog" popoveraction="hide" class="nogrow"><i class="mdi mdi-close"></i>Close</button>
+
                 </div>
             </header>
 
@@ -351,7 +359,7 @@
                                         <span v-if="cueSlot.i[1].slide.length>0" class="mdi mdi-projector-screen-outline"></span>
                                         <span  v-if="!cueSlot.i[1].track" class="mdi mdi-arrow-expand-right" title="Cue Only"></span>
                                         <span  v-if="cueSlot.i[1].hasLightingData || !cueSlot.i[1].track" class="mdi mdi-track-light" title="Cue Only"></span>
-                                        <span  v-if="cueSlot.i[1].length" class="mdi mdi-clock-outline" title="Timed Cue"></span>
+                                        <span  v-if="cueSlot.i[1].length || cueSlot.i[1].relLength" class="mdi mdi-clock-outline" title="Timed Cue"></span>
                                         <span  v-if="cueSlot.i[1].fadeIn" class="mdi mdi-chart-bell-curve-cumulative" title="Fade In"></span>
 
                                     </button>
@@ -472,7 +480,8 @@
     var script = document.createElement('script');
 
     script.onload = function () {
-        init_api_link()
+        const boardname = window.location.pathname.split('/')[3];
+        init_api_link(boardname)
     };
 
     script.src = "/apiwidget/WebChandlerConsole:" + appData.boardname + "?js_name=api_link";

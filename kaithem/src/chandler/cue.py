@@ -20,6 +20,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING, Any, Callable
 
 from beartype import beartype
+from scullery import snake_compat
 
 from .. import schemas
 from ..kaithemobj import kaithem
@@ -208,6 +209,7 @@ class Cue:
         self.values: dict[str, dict[str | int, str | int | float | None]]
         self.checkpoint: bool
         self.label_image: str
+        self.metadata: dict[str, str | int | float | bool | None]
 
         # If a Cue Provider is specified, we do not save it to
         # The show file like normal, the provider will tell us how to save it
@@ -551,6 +553,42 @@ class Cue:
         self.pushoneval(universe, channel, value)
 
         return reset
+
+    def get_ui_data(self):
+        group = self.group()
+        if not group:
+            raise RuntimeError("Cue belongs to nonexistant group")
+
+        # Stuff that never gets saved, it's runtime UI stuff
+        d2 = {
+            "id": self.id,
+            "name": self.name,
+            "next": self.next_cue if self.next_cue else "",
+            "group": group.id,
+            "number": self.number / 1000.0,
+            "prev": group.getParent(self.name),
+            "hasLightingData": len(self.values),
+            "default_next": group.getAfter(self.name),
+            "labelImageTimestamp": self.getGroup().board.get_file_timestamp_if_exists(self.label_image),
+            "provider": self.provider,
+        }
+
+        d = {}
+        # All the stuff that's just a straight 1 to 1 copy of the attributes
+        # are the same as whats in the save file
+        for i in schemas.get_schema("chandler/cue")["properties"]:
+            d[i] = getattr(self, i)
+
+        # Important that d2 takes priority
+        d.update(d2)
+
+        # not metadata, sent separately
+        d.pop("values")
+
+        # Web frontend still uses ye olde camel case
+        d = snake_compat.camelify_dict_keys(d)
+
+        return d
 
     def push(self):
         # Not even set up yet don't bother

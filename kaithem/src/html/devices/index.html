@@ -175,6 +175,31 @@ ${device(i)}
 %endif
 
 %endfor
+
+%for i in disks:
+<article class="card margin w-sm-half" style="min-width: min-content; max-width: 18rem">
+    <header>
+        <h3>${i}</h3>
+    </header>
+
+    <table>
+        <tr><td>Size</td><td>${si(disks[i]['total'])}</td></tr>
+        <tr><td>Used</td><td>${si(disks[i]['used'])}</td></tr>
+    </table>
+    %if is_mounted(disks[i]['device']):
+    <form method="post" action="/udisks/unmount">
+        <input type="hidden" name="partition" value="${disks[i]['device']}">
+        <button class="w-full" type="submit">Eject</button>
+    </form>
+    %else:
+    <form method="post" action="/udisks/mount">
+        <input type="hidden" name="partition" value="${disks[i]['device']}">
+        <button class="w-full" type="submit">Connect</button>
+    </form>
+    %endif
+</article>
+%endfor
+
 </div>
 
 

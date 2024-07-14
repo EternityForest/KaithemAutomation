@@ -733,38 +733,7 @@ class ChandlerConsole(console_abc.Console_ABC):
         try:
             cue = cues[cueid]
 
-            group = cue.group()
-            if not group:
-                raise RuntimeError("Cue belongs to nonexistant group")
-
-            # Stuff that never gets saved, it's runtime UI stuff
-            d2 = {
-                "id": cueid,
-                "name": cue.name,
-                "next": cue.next_cue if cue.next_cue else "",
-                "group": group.id,
-                "number": cue.number / 1000.0,
-                "prev": group.getParent(cue.name),
-                "hasLightingData": len(cue.values),
-                "default_next": group.getAfter(cue.name),
-                "labelImageTimestamp": self.get_file_timestamp_if_exists(cue.label_image),
-                "provider": cue.provider,
-            }
-
-            d = {}
-            # All the stuff that's just a straight 1 to 1 copy of the attributes
-            # are the same as whats in the save file
-            for i in schemas.get_schema("chandler/cue")["properties"]:
-                d[i] = getattr(cue, i)
-
-            # Important that d2 takes priority
-            d.update(d2)
-
-            # not metadata, sent separately
-            d.pop("values")
-
-            # Web frontend still uses ye olde camel case
-            d = snake_compat.camelify_dict_keys(d)
+            d = cue.get_ui_data()
 
             self.linkSend(
                 [

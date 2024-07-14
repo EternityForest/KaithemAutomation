@@ -25,7 +25,7 @@
     --convex-item-bg: var(--control-bg);
     --convex-item-active-bg: var(--grey-1);
     --concave-item-box-shadow: none;
-    --control-border-color: #49451b;
+    --control-border-color: color-mix(in srgb, var(--graphical-fg) 80%, rgb(0 0 0 / 0%));
 
     --3d-highlight: var(--control-bg);
     --3d-shadow: var(--control-bg);

@@ -2,14 +2,18 @@ import copy
 import gc
 import json
 import os
+import subprocess
 import time
 import traceback
 import urllib.parse
 
 import colorzero
+import quart
 from quart import Response, redirect
+from quart.ctx import copy_current_request_context
+from scullery import units
 
-from kaithem.src import devices, messagebus, modules_state, pages
+from kaithem.src import devices, messagebus, modules_state, pages, udisks
 from kaithem.src.devices import (
     Device,
     delete_bookkeep,
@@ -66,6 +70,9 @@ def devices_index():
     d = pages.get_template("devices/index.html").render(
         deviceData=devices.remote_devices_atomic,
         url=url,
+        disks=udisks.list_drives(),
+        is_mounted=udisks.is_mounted,
+        si=units.si_format_number,
     )
 
     return Response(d, mimetype="text/html", headers={"X-Frame-Options": "SAMEORIGIN"})
@@ -392,3 +399,37 @@ def delete_device(name, delete_conf_dir=False):
         gc.collect()
 
         messagebus.post_message("/devices/removed/", name)
+
+
+@app.route("/udisks/mount", methods=["POST"])
+async def mount_device():
+    pages.require("system_admin")
+    form = await quart.request.form
+
+    dev = str(form.get("partition"))
+    dev = os.path.realpath(dev)
+
+    @copy_current_request_context
+    def f():
+        subprocess.check_call(["udisksctl", "mount", "-b", dev])
+
+    await f()
+
+    return redirect("/devices")
+
+
+@app.route("/udisks/unmount", methods=["POST"])
+async def unmount_device():
+    pages.require("system_admin")
+    form = await quart.request.form
+
+    dev = str(form.get("partition"))
+    dev = os.path.realpath(dev)
+
+    @copy_current_request_context
+    def f():
+        subprocess.check_call(["udisksctl", "unmount", "-b", dev])
+
+    await f()
+
+    return redirect("/devices")

@@ -145,5 +145,9 @@ properties:
     type: boolean
     default: false
 
+  metadata:
+    type: object
+    default: {}
+
 required:
   - number

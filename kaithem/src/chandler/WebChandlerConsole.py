@@ -187,7 +187,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         for i in self.groups:
             s = self.groups[i]
-            self.pushCueList(s.id)
             self.pushMeta(i)
             if self.groups[i].cue:
                 try:
@@ -245,30 +244,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         cmd_name: str = str(msg[0])
 
-        # read only commands
-
-        if cmd_name == "gsd":
-            # Could be long-running, so we offload to a workerthread
-            # Used to be get group data, Now its a general get everything to show pags thing
-            def f():
-                s = groups.groups[msg[1]]
-                self.pushCueList(s.id)
-                self.pushMeta(msg[1])
-                self.push_setup()
-
-            kaithem.misc.do(f)
-            return
-
-        elif cmd_name == "getallcuemeta":
-
-            def f():
-                for i in groups.groups[msg[1]].cues:
-                    self.pushCueMeta(groups.groups[msg[1]].cues[i].id)
-
-            kaithem.misc.do(f)
-            return
-
-        elif cmd_name == "getcuedata":
+        if cmd_name == "getcuedata":
             s = cues[msg[1]]
             self.linkSend(["cuedata", msg[1], s.values])
             self.pushCueMeta(msg[1])
@@ -286,11 +262,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         elif cmd_name == "getcuemeta":
             s = cues[msg[1]]
             self.pushCueMeta(msg[1])
-            return
-
-        elif cmd_name == "gasd":
-            # Get All State Data, used to get all group data
-            self.send_everything(sessionid)
             return
 
         # There's such a possibility for an iteration error if universes changes.

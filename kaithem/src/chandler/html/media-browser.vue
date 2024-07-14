@@ -49,7 +49,7 @@ It takes a set of action button slots that get passed "filename"
                     </li>
                     <li v-on:click="setSoundfileDir(i[0])" v-for="i in soundfileslisting[0]">
                         <a>{{i[0] }}</a>
-                        <slot :filename="i[0]" :relfilename="i[0].split('/').pop()">
+                        <slot v-if="selectfolders" :filename="i[0]" :relfilename="i[0].split('/').pop()">
                         </slot>
                     </li>
                 </ul>
@@ -113,7 +113,7 @@ module.exports = {
     template: '#mediabrowser',
     //I is a data object having u,ch, and v, the universe channel and value.
     //Chinfo is the channel info list from the fixtues that you get with channelInfoForUniverseChannel
-    props: ['no_edit'],
+    props: ['no_edit', 'select_folder'],
     data: function () {
         function onsoundfolderlisting(e) {
             const v = e.data

@@ -23,7 +23,7 @@ import structlog
 from beartype import beartype
 from scullery import workers
 
-from .. import context_restrictions, schemas, tagpoints, util
+from .. import alerts, context_restrictions, schemas, tagpoints, util
 from ..kaithemobj import kaithem
 from . import core, group_media, mqtt, persistance
 from .core import disallow_special
@@ -343,6 +343,10 @@ class Group:
 
         self.cueVolume = 1.0
 
+        self.error_codes = {}
+
+        self.error_code_alert = alerts.Alert("/chandler/groups/" + name + ".error_codes", priority="error")
+
         # Allow goto_cue
         def cueTagHandler(val, timestamp, annotation):
             # We generated this event, that means we don't have to respond to it
@@ -515,6 +519,12 @@ class Group:
 
         workers.do(self.scan_cue_providers)
 
+    def check_error_codes(self):
+        if self.error_codes:
+            self.error_code_alert.trip(str(self.error_codes))
+        else:
+            self.error_code_alert.clear()
+
     @property
     def cue_providers(self):
         return self._cue_providers
@@ -534,19 +544,28 @@ class Group:
     @slow_group_lock_context.object_session_entry_point
     def scan_cue_providers(self):
         discovered = {}
+        try:
+            for i in self._cue_provider_objects:
+                c = i.scan_cues()
+                for cue in c.values():
+                    assert cue.provider == i.url
+                    if cue.name not in self.cues:
+                        self._add_cue(cue)
+                    discovered[cue.id] = i
 
-        for i in self._cue_provider_objects:
-            c = i.scan_cues()
-            for cue in c.values():
-                assert cue.provider == i.url
-                if cue.name not in self.cues:
-                    self._add_cue(cue)
-                discovered[cue.id] = i
+            for i in self.cues:
+                if self.cues[i].provider:
+                    if self.cues[i].id not in discovered:
+                        self.rmCue(self.cues[i].name, allow_rm_external=True)
 
-        for i in self.cues:
-            if self.cues[i].provider:
-                if self.cues[i].id not in discovered:
-                    self.rmCue(self.cues[i].name, allow_rm_external=True)
+            self.error_codes.pop("cue_provider_error", None)
+            self.check_error_codes()
+
+        except Exception as e:
+            self.error_codes["cue_provider_error"] = str(e)
+            self.check_error_codes()
+            logger.exception("Cue provider error")
+            raise
 
     @slow_group_lock_context.object_session_entry_point
     def toDict(self) -> dict[str, Any]:
