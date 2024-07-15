@@ -197,6 +197,9 @@ async def resource_update_handler(module, resource):
         with modules_state.modulesLock:
             resourceobj = dict(copy.deepcopy(modules_state.ActiveModules[module][resource]))
 
+            if "resource_lock" in resourceobj and resourceobj["resource_lock"]:
+                raise PermissionError("This resource can only be edited by manually removing the resource_lock from the file.")
+
             old_resource = copy.deepcopy(resourceobj)
 
             t = resourceobj["resource_type"]
@@ -316,6 +319,11 @@ async def deleteresourcetarget(module):
 
     @copy_current_request_context
     def f():
+        resourceobj = modules_state.ActiveModules[module][kwargs["name"]]
+
+        if "resource_lock" in resourceobj and resourceobj["resource_lock"]:
+            raise PermissionError("This resource can only be edited by manually removing the resource_lock from the file.")
+
         modules.rmResource(
             module,
             kwargs["name"],
@@ -353,6 +361,11 @@ async def moveresourcetarget(module):
 
     @copy_current_request_context
     def f():
+        resourceobj = modules_state.ActiveModules[module][kwargs["name"]]
+
+        if "resource_lock" in resourceobj and resourceobj["resource_lock"]:
+            raise PermissionError("This resource can only be edited by manually removing the resource_lock from the file.")
+
         # Allow / to move stuf to dirs
         check_forbidden(kwargs["newname"].replace("/", ""))
 
@@ -405,14 +418,14 @@ async def module_update(module):
                 if module in external_module_locations:
                     external_module_locations.pop(module)
             # Missing descriptions have caused a lot of bugs
-            if "__description" in modules_state.ActiveModules[module]:
-                dsc = dict(copy.deepcopy(modules_state.ActiveModules[module]["__description"]["text"]))
-                dsc["text"] = kwargs["description"]
-                modules_state.ActiveModules[module]["__description"] = dsc
+            if "__metadata__" in modules_state.ActiveModules[module]:
+                dsc = dict(copy.deepcopy(modules_state.ActiveModules[module]["__metadata__"]["text"]))
+                dsc["description"] = kwargs["description"]
+                modules_state.ActiveModules[module]["__metadata__"] = dsc
             else:
-                modules_state.ActiveModules[module]["__description"] = {
+                modules_state.ActiveModules[module]["__metadata__"] = {
                     "resource_type": "module-description",
-                    "text": kwargs["description"],
+                    "description": kwargs["description"],
                     "resource_timestamp": int(time.time() * 1000000),
                 }
 

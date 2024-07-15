@@ -37,7 +37,7 @@ logger = structlog.get_logger(__name__)
 
 
 def new_empty_module():
-    return {"__description": {"resource_type": "module-description", "text": ""}}
+    return {"__metadata__": {"resource_type": "module_metadata", "description": "", "resource_timestamp": int(time.time() * 1000000)}}
 
 
 def loadAllCustomResourceTypes() -> None:
@@ -388,6 +388,21 @@ def loadModule(folder: str, modulename: str, ignore_func: Callable[[str], bool] 
                 # Create a directory resource for the dirrctory
                 module[util.unurl(relfn)] = {"resource_type": "directory"}
 
+        if "__metadata__" not in module:
+            module["__metadata__"] = {
+                "resource_type": "module_metadata",
+                "description": "",
+                "resource_timestamp": int(time.time() * 1000000),
+            }
+
+        # Legacy upgrade TODO: Remove at some point
+        if "__description" in module:
+            md = dict(copy.deepcopy(module["__metadata__"]))
+            md["description"] = module["__description"]["text"]
+            module["__metadata__"] = md
+
+            del module["__description"]
+
         scopes[modulename] = ModuleObject(modulename)
         modules_state.ActiveModules[modulename] = module
         modules_state.importFiledataFolderStructure(modulename)
@@ -580,11 +595,15 @@ def newModule(name: str, location: str | None = None) -> None:
                 loadModule(location, name)
             else:
                 modules_state.ActiveModules[name] = {
-                    "__description": {"resource_type": "module-description", "text": "", "resource_timestamp": int(time.time() * 1000000)}
+                    "__metadata__": {
+                        "resource_type": "module_metadata",
+                        "description": "",
+                        "resource_timestamp": int(time.time() * 1000000),
+                    }
                 }
         else:
             modules_state.ActiveModules[name] = {
-                "__description": {"resource_type": "module-description", "text": "", "resource_timestamp": int(time.time() * 1000000)}
+                "__metadata__": {"resource_type": "module_metadata", "description": "", "resource_timestamp": int(time.time() * 1000000)}
             }
         saveModule(modules_state.ActiveModules[name], name)
 

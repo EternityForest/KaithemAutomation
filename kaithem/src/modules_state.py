@@ -39,6 +39,14 @@ external_module_locations: dict[str, str] = {}
 prev_versions: dict[tuple, dict] = {}
 
 
+def get_module_metadata(module: str) -> dict[str, Any]:
+    m = ActiveModules[module]
+    if "__metadata__" not in m:
+        return {}
+
+    return dict(copy.deepcopy(m["__metadata__"]))
+
+
 @beartype.beartype
 def check_forbidden(s: str) -> None:
     if not s:

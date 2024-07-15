@@ -4,7 +4,7 @@ from kaithem.src import modules, modules_state
 
 def getDesc(m):
     try:
-        d =  modules_state.ActiveModules[m]['__description']['text']
+        d =  modules_state.ActiveModules[m]['__metadata__']['description']
         if d=='Module info here':
             return ''
         return d

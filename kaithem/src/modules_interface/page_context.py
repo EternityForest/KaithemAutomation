@@ -22,7 +22,7 @@ def urlForPath(module, path):
 
 def getDesc(module):
     try:
-        return module["__description"]["text"]
+        return module["__metadata__"]["description"]
     except Exception:
         return "No module description found"
 
