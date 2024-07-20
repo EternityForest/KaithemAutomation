@@ -10,15 +10,16 @@ test('test', async ({ page }) => {
 
     //Make a media folder and put a png there
 
-    await page.getByRole('link', { name: '󰐕 Add' }).click();
-    await page.getByLabel('Name of New Module').click();
-    await page.getByLabel('Name of New Module').fill('test_digital_signage');
-    await page.getByRole('button', { name: 'Submit' }).click();
+    makeModule(page, 'test_digital_signage');
+
+    await page.getByRole('button', { name: 'Add Resource' }).click();
     await page.getByTestId('add-folder').click();
     await page.getByLabel('Name').click();
     await page.getByLabel('Name').fill('media');
     await page.getByRole('button', { name: 'Submit' }).click();
     await page.getByRole('link', { name: '󰉖 media' }).click();
+    await page.getByRole('button', { name: 'Add Resource' }).click();
+
     await page.getByTestId('add-file').click();
     await page.locator('#upload').click();
     await page.locator('#upload').setInputFiles('badges/linux.png');
@@ -26,6 +27,8 @@ test('test', async ({ page }) => {
 
 
     await page.getByRole('link', { name: 'test_digital_signage' }).click();
+    await page.getByRole('button', { name: 'Add Resource' }).click();
+
     await page.getByTestId('add-chandler_board').click();
     await page.getByLabel('Resource Name').click();
     await page.getByLabel('Resource Name').fill('board1');
@@ -43,9 +46,9 @@ test('test', async ({ page }) => {
 
     //Set the slide for the cue
     await page.getByRole('button', { name: 'signage' }).click();
-    await page.getByText('Cue Sound/Media').click();
-    await page.getByText('<TOP DIRECTORY>').click();
-    await page.getByText('/dev/shm/kaithem_test_env/modules/data/test_digital_signage/__filedata__/media/').click();
+    await page.getByRole('button', { name: 'Media' }).click();
+    await page.locator('#cueMediaDialog').getByText('<TOP DIRECTORY>').click()
+    await page.locator('#cueMediaDialog').getByText('/dev/shm/kaithem_test_env/modules/data/test_digital_signage/__filedata__/media/').click();
     await page.getByRole('button', { name: 'Set(slide)' }).click();
     
     //Use the slideshow preview window
@@ -61,11 +64,8 @@ test('test', async ({ page }) => {
     await expect(page.getByRole('article')).toContainText('c2');
 
     // TODO: Make sure the slide actually changes
+    
+    deleteModule(page, 'test_digital_signage');
 
-    await page.getByRole('link', { name: '󱒕 Modules' }).click();
-    await page.getByRole('link', { name: '󰆴 Delete' }).click();
-    await page.getByLabel('Name').click();
-    await page.getByLabel('Name').fill('test_digital_signage');
-    await page.getByRole('button', { name: 'Submit' }).click();
     await logout(page);
 });

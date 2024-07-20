@@ -1,16 +1,13 @@
 import { test, expect } from '@playwright/test';
-import { login, logout, deleteModule } from './util';
+import { login, logout, deleteModule, makeModule } from './util';
 
 test('test', async ({ page }) => {
     await login(page);
 
-    await page.getByRole('link', { name: '󱒕 Modules' }).click();
-    await page.getByRole('link', { name: '󰐕 Add' }).click();
-    await page.getByLabel('Name of New Module').click();
-    await page.getByLabel('Name of New Module').fill('test_config');
-    await page.getByText('Name of New Module Choose an').click();
+    await makeModule(page, 'test_config');
 
     await page.getByRole('button', { name: 'Submit' }).click();
+    await page.getByRole('button', { name: 'Add Resource' }).click();
     await page.getByTestId('add-config').click();
     await page.getByLabel('Resource Name').click();
     await page.getByLabel('Resource Name').fill('config_entry');

@@ -1,18 +1,16 @@
 import { test, expect } from '@playwright/test';
-import { login, logout, login_as } from './util';
+import { login, logout, makeModule, deleteModule } from './util';
 
 test('test', async ({ page }) => {
     test.setTimeout(2400000);
 
     await login(page);
     // Make a module to put the device in
-    await page.getByRole('link', { name: 'Modules' }).click();
-    await page.getByRole('link', { name: 'Add' }).click();
-    await page.getByLabel('Name of New Module').click();
-    await page.getByLabel('Name of New Module').fill('devmodule');
-    await page.getByRole('button', { name: 'Submit' }).click();
+
+    await makeModule(page, 'devmodule');
 
     // Make a device
+    await page.getByRole('button', { name: 'Add Resource' }).click();
     await page.getByTestId('add-device').click();
     await page.getByLabel('Target Resource Name:').click();
     await page.getByLabel('Target Resource Name:').fill('testdevice');
@@ -51,10 +49,8 @@ test('test', async ({ page }) => {
     await page.getByRole('button', { name: 'Submit' }).click();
     await page.getByRole('link', { name: 'Modules' }).click();
     await page.getByText('Modules Modules Add Delete').click();
-    await page.getByRole('link', { name: 'Delete' }).click();
-    await page.getByLabel('Name').click();
-    await page.getByLabel('Name').fill('devmodule');
-    await page.getByRole('button', { name: 'Submit' }).click();
+
+    await deleteModule(page, 'devmodule');
 
     await logout(page);
 });

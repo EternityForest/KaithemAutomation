@@ -55,8 +55,16 @@
         </section>
     </section>
 
-    <section class="window padding">
-        <div class="tool-bar w-full">
+    <div class="window h-18rem paper modal margin" popover id="addresource">
+        <header>
+            <div class="tool-bar">
+                <h3>Add Resource</h3>
+                <button aria-label="Close" type="button" popovertarget="addresource" popoveraction="close">
+                    <span class="mdi mdi-close"></span></button>
+            </div>
+
+        </header>
+        <div class="w-full flex-row">
             <a class="button" data-testid="add-permission"
                 href="/modules/module/{{ url(name) }}/addresource/permission?dir={{ url('/'.join(path) ) }}"><i
                     class="mdi mdi-key"></i>Permission</a>
@@ -77,6 +85,16 @@
                     class="mdi mdi-{{modules.additionalTypes[i].mdi_icon}}"></i>{{ modules.additionalTypes[i].title or i.capitalize()| escape }}</a>
             {% endif %}
             {% endfor %}
+
+        </div>
+    </div>
+
+    <section class="window padding">
+        <div class="tool-bar w-full">
+
+             <button type="button" popovertarget="addresource">
+                <i class="mdi mdi-plus"></i>Add Resource
+             </button>
 
             {% for i in webapi._module_plugin_links %}
             <a class="button" href="{{ i[1] }}?module={{ url(name) }}&dir={{ url('/'.join(path) ) }}">{{ i[0] }}</a>
@@ -123,8 +141,8 @@
                         <a href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}#resources"><i
                                 class="mdi mdi-folder-outline"></i><b>{{ i.split('/')[-1] | escape }}</b></a>
                     </p>
-                    <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}">
-                        <i class="mdi mdi-delete"></i>Delete</a>
+                    <a aria-label="Delete" class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}">
+                        <i class="mdi mdi-delete"></i></a>
                 </div>
             </dt>
             {% endif %}
@@ -148,8 +166,8 @@
                     {% endif %}
                     {% endfor %}
 
-                    <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i[1]) }}">
-                        <i class="mdi mdi-delete"></i>Delete</a>
+                    <a aria-label="Delete" class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i[1]) }}">
+                        <i class="mdi mdi-delete"></i></a>
                 </div>
             </dt>
 
@@ -185,8 +203,8 @@
                             {{ i.split("/")[-1] | escape }}</a>
                     </p>
 
-                    <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
-                            class="mdi mdi-delete"></i>Delete</a>
+                    <a aria-label="Delete" class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
+                            class="mdi mdi-delete"></i></a>
                 </div>
             </dt>
             {% endif %}
@@ -205,16 +223,16 @@
                             {{ i.split("/")[-1] | escape }} ({{module[i]['resource_type']}})</a>
                     </h3>
 
-                    <a class="button nogrow" href="/modules/module/{{ url(name) }}/download_resource/{{ url(i) }}"><span
+                    <a aria-label="Download" class="button nogrow" href="/modules/module/{{ url(name) }}/download_resource/{{ url(i) }}"><span
                             class="mdi mdi-download-box"></span>
-                        Export</a>
-                    <a class="button nogrow" href="/modules/module/{{ url(name) }}/moveresource/{{ url(i) }}"><span
+                        </a>
+                    <a aria-label="Move" class="button nogrow" href="/modules/module/{{ url(name) }}/moveresource/{{ url(i) }}"><span
                             class="mdi mdi-folder-move"></span>
-                        Move</a>
-                    <a class="button nogrow" href="/excalidraw-plugin/edit?module={{ url(name) }}&resource=media/resource_labels/{{ url(i) }}.excalidraw.png&callback=/modules/set_label_image/{{ url(name) }}/{{ url(i) }}&ratio_guide=16_9">
+                        </a>
+                    <a aria-label="Sketch Label" class="button nogrow" href="/excalidraw-plugin/edit?module={{ url(name) }}&resource=media/resource_labels/{{ url(i) }}.excalidraw.png&callback=/modules/set_label_image/{{ url(name) }}/{{ url(i) }}&ratio_guide=16_9">
                             <i class="mdi mdi-image"></i></a>
-                    <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
-                            class="mdi mdi-delete"></i>Delete</a>
+                    <a aria-label="Delete" class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
+                            class="mdi mdi-delete"></i></a>
                 </div>
             </dt>
             <dd>
@@ -236,10 +254,13 @@
                             href="/device/{{module[i].get('device',{}).get('name','').replace('/','%2F')|escape}}/manage">
                             <i class="mdi mdi-chip"></i> {{ i.split("/")[-1] | escape }}</a>
                     </p>
-                    <a class="button nogrow" href="/excalidraw-plugin/edit?module={{ url(name) }}&resource=media/resource_labels/{{ url(i) }}.excalidraw.png&callback=/modules/set_label_image/{{ url(name) }}/{{ url(i) }}">
+                    <a aria-label="Sketch Label" class="button nogrow" href="/excalidraw-plugin/edit?module={{ url(name) }}&resource=media/resource_labels/{{ url(i) }}.excalidraw.png&callback=/modules/set_label_image/{{ url(name) }}/{{ url(i) }}">
                         <i class="mdi mdi-image"></i></a>
-                    <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
-                            class="mdi mdi-delete"></i>Delete</a>
+                    <a aria-label="Download" class="button nogrow" href="/modules/module/{{ url(name) }}/download_resource/{{ url(i) }}"><span
+                            class="mdi mdi-download-box"></span>
+                    </a>
+                    <a aria-label="Delete" class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
+                            class="mdi mdi-delete"></i></a>
                     <br>
                 </div>
             </dt>

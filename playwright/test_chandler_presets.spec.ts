@@ -1,16 +1,12 @@
 import { test, expect } from '@playwright/test';
-import { login, logout } from './util';
+import { deleteModule, login, logout, makeModule } from './util';
 
 test('test', async ({ page }) => {
     await login(page);
 
-    await page.getByRole('link', { name: '󱒕 Modules' }).click();
-    await page.getByRole('link', { name: '󰐕 Add' }).click();
-    await page.getByLabel('Name of New Module').click();
-    await page.getByLabel('Name of New Module').fill('test_presets');
-    await page.getByRole('button', { name: 'Submit' }).click();
+    makeModule(page, 'test_presets');
 
-
+    await page.getByRole('button', { name: 'Add Resource' }).click();
     await page.getByTestId('add-chandler_board').click();
     await page.getByLabel('Resource Name').click();
     await page.getByLabel('Resource Name').fill('p');
@@ -94,11 +90,8 @@ test('test', async ({ page }) => {
     await page.getByRole('row', { name: 'test More than one device' }).getByRole('link').click();
     await expect(page.locator('section')).toContainText('50.0');
     await expect(page.locator('section')).toContainText('255.0');
-    await page.getByRole('link', { name: '󱒕 Modules' }).click();
-    await page.getByRole('link', { name: '󰆴 Delete' }).click();
-    await page.getByLabel('Name').click();
-    await page.getByLabel('Name').fill('test_presets');
-    await page.getByRole('button', { name: 'Submit' }).click();
+
+    deleteModule(page, 'test_presets');
 
 
     await logout(page);

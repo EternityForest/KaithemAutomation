@@ -25,11 +25,10 @@ test('test', async ({ page }) => {
 
     await login(page);
 
-    await page.getByRole('link', { name: '󱒕 Modules' }).click();
-    await page.getByRole('link', { name: '󰐕 Add' }).click();
-    await page.getByLabel('Name of New Module').click();
-    await page.getByLabel('Name of New Module').fill('testchandlerproperties');
-    await page.getByRole('button', { name: 'Submit' }).click();
+    makeModule(page, 'testchandlerproperties');
+
+    await page.getByRole('button', { name: 'Add Resource' }).click();
+
     await page.getByTestId('add-chandler_board').click();
     await page.getByLabel('Resource Name').click();
     await page.getByLabel('Resource Name').fill('b1');
@@ -46,7 +45,7 @@ test('test', async ({ page }) => {
     await page.getByPlaceholder('New group name').fill('ts1');
     await page.getByTestId('add-group-button').click();
     await page.getByRole('button', { name: 'ts1' }).click();
-    await page.getByText('Group Settings').click();
+    await page.getByTestId('group-properties-button').click();
     await page.getByLabel('Slideshow Overlay').click();
     await page.getByLabel('Slideshow Overlay').fill('overlay');
     await page.getByLabel('MIDI Source').click();
@@ -80,14 +79,14 @@ test('test', async ({ page }) => {
     await page.getByText('ts1 (running)Delete GroupNameShortcutFadeinLengthNextTrackJump to5defaultGEN>>>').click();
     await page.getByPlaceholder('Tagpoint').click();
     await page.getByPlaceholder('Tagpoint').fill('cmdtag');
-    await page.getByText('Group Settings').click();
-    await page.getByText('Group Settings').click();
+    await page.getByTestId('group-properties-button').click();
+    await page.getByTestId('group-properties-button').click();
 
     // Check that the stuff is there
     await page.goto('http://localhost:8002/chandler/editor/testchandlerproperties:b1');
     await expect(page.getByRole('main')).toContainText('STATUS: MQTT');
     await page.getByRole('button', { name: 'ts1' }).click();
-    await page.getByText('Group Settings').click();
+    await page.getByTestId('group-properties-button').click();
 
     await expect(page.getByLabel('Priority')).toHaveValue('42');
 
@@ -109,7 +108,7 @@ test('test', async ({ page }) => {
     // More settings
     await page.goto('http://localhost:8002/chandler/editor/testchandlerproperties:b1');
     await page.getByRole('button', { name: 'ts1' }).click();
-    await page.getByText('Group Settings').click();
+    await page.getByTestId('group-properties-button').click();
     await page.getByTestId('group_blend_mode').selectOption('HTP');
     await expect(page.getByLabel('Alpha', { exact: true })).toHaveValue('0.25');
     await page.getByLabel('Default Alpha').click();
@@ -127,7 +126,7 @@ test('test', async ({ page }) => {
     // More checking
     await page.goto('http://localhost:8002/chandler/editor/testchandlerproperties:b1');
     await page.getByRole('button', { name: 'ts1' }).click();
-    await page.getByText('Group Settings').click();
+    await page.getByTestId('group-properties-button').click();
     await expect(page.getByLabel('Utility Group(No controls)')).toBeChecked();
     await expect(page.getByLabel('Hide in Runtime Mode')).toBeChecked();
     await expect(page.getByLabel('Sidebar info URL')).toHaveValue('foourl');
@@ -163,7 +162,7 @@ test('test', async ({ page }) => {
 
     await page.goto('http://localhost:8002/chandler/editor/testchandlerproperties:b1');
     await page.getByRole('button', { name: 'ts1' }).click();
-    await page.getByText('Group Settings').click();
+    await page.getByTestId('group-properties-button').click();
     await expect(page.getByRole('article')).toContainText('tg1');
 
     await expect(page.getByTestId('event_button_label')).toHaveValue('btn1');
@@ -185,7 +184,7 @@ test('test', async ({ page }) => {
 
     await page.goto('http://localhost:8002/chandler/editor/testchandlerproperties:b1');
     await page.getByRole('button', { name: 'ts1' }).click();
-    await page.getByText('Group Settings').click();
+    await page.getByTestId('group-properties-button').click();
 
     await expect(page.getByLabel('Require Confirmation for Cue')).toBeChecked();
 
@@ -234,7 +233,7 @@ test('test', async ({ page }) => {
     // Check that it worked
     await page.goto('http://localhost:8002/chandler/editor/testchandlerproperties:b1');
     await page.getByRole('button', { name: 'ts1' }).click();
-    await page.getByText('Group Settings').click();
+    await page.getByTestId('group-properties-button').click();
 
     await expect(page.getByLabel('MQTT Server')).toBeEmpty();
     await expect(page.getByLabel('Sync Group Name')).toBeEmpty();
@@ -260,7 +259,7 @@ test('test', async ({ page }) => {
 
     await page.goto('http://localhost:8002/chandler/editor/testchandlerproperties:b1');
     await page.getByRole('button', { name: 'ts1' }).click();
-    await page.getByText('Group Settings').click();
+    await page.getByTestId('group-properties-button').click();
     await page.getByText('Custom layout for slideshow').click();
     await expect(page.getByTestId('slideshow_layout')).toHaveValue('LayoutPlaceholder');
 

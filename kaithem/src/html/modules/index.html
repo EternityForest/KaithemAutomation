@@ -21,11 +21,14 @@ def getDesc(m):
 
     <header>
     <div class="tool-bar menubar">
-    <a class="button" href="/modules/newmodule"><i class="mdi mdi-plus"></i>Add</a>
-    <a class="button" href="/modules/deletemodule"><i class="mdi mdi-delete"></i>Delete</a>
-    <a class="button" href="/modules/upload"><i class="mdi mdi-upload"></i>Upload</a>
+    <a class="button" href="/modules/newmodule" aria-label="Add Module"><i class="mdi mdi-plus"></i></a>
+    <a class="button" href="/modules/deletemodule" aria-label="Delete"><i class="mdi mdi-delete"></i></a>
+    <a class="button" href="/modules/upload"><i class="mdi mdi-upload" aria-label="Upload"></i></a>
     <a class="button" href="/modules/library"><i class="mdi mdi-library"></i>Library</a>
-    <form style="display:inline-flex;" action="/modules/search/__all__"><input name="search" size="4" placeholder="Search all modules"/><input type=submit value="search"/></form>
+    <form style="display:inline-flex;" action="/modules/search/__all__"><input name="search" size="4" placeholder="Search all modules"/>
+        <button type=submit value="search" aria-label="Search"><span class="mdi mdi-magnify"></span>
+        </button>
+            </form>
     <p title="${modules_state.moduleshash}">${memorableHash(modules_state.moduleshash, 3, separator=' ').upper()}</p>
     </header>
 
@@ -45,20 +48,17 @@ print(e)
 %>
 </dt>
 <dt>
-${e|h}
+    ${e|h}
 </dt>
 %endtry
 </summary>
 <div id="${i.replace('"','')}">${getDesc(i)|h}</div>
 </details>
 <script>
-    showdown.setFlavor('github');
-    var c= document.getElementById("${i.replace('"','')}").innerHTML;
-    var converter = new showdown.Converter();
-    document.getElementById("${i.replace('"','')}").innerHTML=converter.makeHtml(c);
-</script>
+    showdown.setFlavor(' github'); var c = document.getElementById("${i.replace('"','')}").innerHTML; var converter=new
+    showdown.Converter(); document.getElementById("${i.replace('"','')}").innerHTML=converter.makeHtml(c); </script>
 
-%endfor
+    %endfor
 </div>
 </section>
 <%include file="/pagefooter.html"/>

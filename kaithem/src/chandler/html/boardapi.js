@@ -1379,7 +1379,6 @@ function f(v) {
     else if (c == "cuemeta") {
         handleCueInfo(v[1], v[2]);
         vueapp.$data.recomputeformattedCues();
-
     }
 
     else if (c == "event") {

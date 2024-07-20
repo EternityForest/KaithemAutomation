@@ -18,6 +18,8 @@ test('test', async ({ page }) => {
     makeModule(page, module);
 
     // Make chandler board
+    await page.getByRole('button', { name: 'Add Resource' }).click();
+
     await page.getByRole('link', { name: 'Chandler Board' }).click();
     await page.getByLabel('Resource Name').click();
     await page.getByLabel('Resource Name').fill('board1');
@@ -88,12 +90,12 @@ test('test', async ({ page }) => {
     await page.getByText('Cue Logic', { exact: true }).click();
 
     // Also some cue text
-    await page.getByText('Cue Text').click();
-    await page.locator('details').filter({ hasText: 'Cue Text' }).getByRole('textbox').click();
-    await page.locator('details').filter({ hasText: 'Cue Text' }).getByRole('textbox').fill('cuetext');
+    await page.getByText('text').click();
+    await page.locator('details').filter({ hasText: 'Text' }).getByRole('textbox').click();
+    await page.locator('details').filter({ hasText: 'Text' }).getByRole('textbox').fill('cuetext');
     
     // Make a new cue from the alert sound    
-    await page.getByText('Cue Sound/Media').click();
+    await page.getByRole('button', { name: 'Media' }).click();
     await page.getByRole('list').getByText('Refresh').click();
     await page.getByText('/dev/shm/kaithem_test_env/assets/').click();
 
@@ -111,7 +113,6 @@ test('test', async ({ page }) => {
    
     //Select the group box in the sidebar that tells us what the cue is
     await expect(page.getByText('tst1alert')).toContainText('alert');
-    await page.getByText('Cue Channel Values').click();
     // Channel adding tab
     await page.getByRole('button', { name: 'Channels' }).click();
     // Add raw dmx channek;

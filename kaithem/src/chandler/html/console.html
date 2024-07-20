@@ -201,8 +201,8 @@ ${lists}
 
             <button type="button" v-on:click="showslideshowtelemetry=!showslideshowtelemetry"><i
                     class="mdi mdi-monitor"></i>Displays</button>
-            <a class="button" href="/chandler/config/${boardname}"><i
-                    class="mdi mdi-cog-outline"></i>Settings</a><label>
+            <a aria-label="Settings" class="button" href="/chandler/config/${boardname}"><i
+                    class="mdi mdi-cog-outline"></i></a><label>
                 <i class="mdi mdi-volume-medium"></i><input type="checkbox" class="toggle" v-model="uiAlertSounds">
             </label>
             <button type="button" onclick="document.documentElement.requestFullscreen()"><i
@@ -573,10 +573,11 @@ ${lists}
             <iframe :src="iframeDialog"></iframe>
         </div>
 
-        <div v-if="selectingPresetFor" class="card paper flex-col"
+        <div popover id="presetForFixture" v-if="selectingPresetFor" class="card paper flex-col"
             style="background: var(--alt-control-bg); position: fixed; width:90vw; height: 90vh; top:5vh; left:5vw; z-index: 100">
             <header>Presets for {{selectingPresetFor}}</header>
-            <button @click="selectingPresetFor=null" class="w-full nogrow">
+            <button @click="selectingPresetFor=null" class="w-full nogrow"
+                popovertarget="presetForFixture" popoveraction="hide">
                 <i class="mdi mdi-close"></i>Close
             </button>
             <div class="flex-row nogrow max-h-12rem scroll" style="align-items:flex-start;align-content:flex-start">
@@ -631,22 +632,22 @@ ${lists}
                     <button type="button" class="nogrow" v-if="editingGroup.cuelen"
                         v-on:click="addTimeToGroup(editingGroup.id)"><i class="mdi mdi-clock"></i></i><i
                             class="mdi mdi-plus"></i>Add Time</button>
+                            cue sound/
 
-
-                    <button class="nogrow" type="button" popovertarget="groupNotesDialog">
+                    <button aria-label="Group Notes" class="nogrow" type="button" popovertarget="groupNotesDialog">
                         <i class="mdi mdi-text"></i>
-                        Notes</button>
+                        </button>
 
-                    <button class="nogrow" type="button" popovertarget="groupPropsDialog">
+                    <button aria-label="Group Settings" data-testid="group-properties-button" class="nogrow" type="button" popovertarget="groupPropsDialog">
                         <i class="mdi mdi-cog"></i>
-                        Settings</button>
+                        </button>
 
-                    <button type="button" class="nogrow" v-on:click="delgroup(groupname)"><i
-                            class="mdi mdi-delete"></i>Delete
+                    <button aria-label="Delete Group" type="button" class="nogrow" v-on:click="delgroup(groupname)"><i
+                            class="mdi mdi-delete"></i>
                     </button>
 
-                    <button type="button" class="nogrow" popovertarget="selectedGroupWindow" popoveraction="hide">
-                        <i class="mdi mdi-close"></i>Close
+                    <button aria-label="Close Group" type="button" class="nogrow" popovertarget="selectedGroupWindow" popoveraction="hide">
+                        <i class="mdi mdi-close"></i>
                     </button>
 
                 </div>
@@ -833,7 +834,7 @@ ${lists}
                         <button type="button" v-bind:class="{highlight:grouptab=='cue'}" v-on:click="grouptab='cue'"><i
                                 class="mdi mdi-cog-outline"></i>Normal View</button>
                         <button type="button" v-bind:class="{highlight:grouptab=='channels'}"
-                            v-on:click="grouptab='channels'"><i class="mdi mdi-list-box-outline"></i>Channels</button>
+                            v-on:click="grouptab='channels'"><i class="mdi mdi-list-box-outline"></i>Add/Remove Fixtures</button>
                     </div>
 
                     <div class="fadersbox flex-row nopadding" style="max-width: 100%">
@@ -863,7 +864,7 @@ ${lists}
                                     <h4 :title="lookupFixtureType(fname)">{{fname}}</h4>
 
                                     <div class="tool-bar">
-                                        <button type="button" @click="showPresetDialog(fname)">Presets</button>
+                                        <button type="button" @click="showPresetDialog(fname)" popovertarget="presetForFixture">Presets</button>
 
                                         <select :disabled="no_edit" class="w-4rem nogrow" style="flex-basis: 2rem;"
                                             v-on:change="savePreset(h, $event.target.value);$event.target.value='__dummy__'">
@@ -1279,7 +1280,7 @@ ${lists}
                             </div>
                         </header>
 
-                        <textarea v-model="currentcue.markdown" class="w-full h-16rem"
+                        <textarea v-model="currentcue.markdown" class="w-full h-16rem" data-testid="cuetext"
                             @input="setCuePropertyDeferred(currentcue.id, 'markdown', $event.target.value)"
                             @change="setCueProperty(currentcue.id, 'markdown', $event.target.value)">
 

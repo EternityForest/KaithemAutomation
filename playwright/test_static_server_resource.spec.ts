@@ -9,13 +9,11 @@ test('test', async ({ page }) => {
 
     const brows = await chromium.launch();
 
-    await page.getByRole('link', { name: '󱒕 Modules' }).click();
-    await page.getByRole('link', { name: '󰐕 Add' }).click();
-    await page.getByLabel('Name of New Module').click();
-    await page.getByLabel('Name of New Module').fill('test_static_server');
-    await page.getByRole('button', { name: 'Submit' }).click();
+    await makeModule(page, 'test_static_server');
+
 
     // Make a /public folder
+    await page.getByRole('button', { name: 'Add Resource' }).click();
     await page.getByTestId('add-folder').click();
     await page.getByLabel('Name').click();
     await page.getByLabel('Name').fill('public');
@@ -23,6 +21,7 @@ test('test', async ({ page }) => {
     await page.getByRole('link', { name: '󰉖 public' }).click();
 
     // Add a file to folder
+    await page.getByRole('button', { name: 'Add Resource' }).click();
     await page.getByTestId('add-file').click();
     await page.locator('#upload').setInputFiles('badges/linux.png');
     await page.getByRole('button', { name: 'Upload' }).click();
@@ -30,6 +29,7 @@ test('test', async ({ page }) => {
     // Add a static server at /pages/test_static_server/static pointing at /public
     // Which is the default for the server resources
     await page.getByRole('link', { name: 'test_static_server' }).click();
+    await page.getByRole('button', { name: 'Add Resource' }).click();
     await page.getByTestId('add-fileserver').click();
     await page.getByLabel('Name').click();
     await page.getByLabel('Name').fill('static');
