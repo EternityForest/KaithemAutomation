@@ -7,6 +7,9 @@ Change Log
 - :sparkles: Cue provider system lets you quickly create playists from folders of media
 - :sparkles: Mount/Unmount disks from devices page
 
+- :sparkles: Add the module_lock key to the module's \_\_metadata\_\_.yaml to protect from changes via GUI.
+
+
 ### 0.85.0
 
 

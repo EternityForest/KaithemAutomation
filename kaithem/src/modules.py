@@ -435,6 +435,9 @@ def load_modules_from_zip(f: BytesIO, replace: bool = False) -> None:
                     old_module_dir = None
                     m_backup = None
                     if i in modules_state.ActiveModules:
+                        if "module_lock" in modules_state.get_module_metadata(i):
+                            raise PermissionError("Old module is locked")
+
                         old_module_dir = getModuleDir(i)
                         if not replace:
                             raise RuntimeError(f"Module {i} already loaded")

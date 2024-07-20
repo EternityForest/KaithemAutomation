@@ -197,6 +197,9 @@ async def resource_update_handler(module, resource):
         with modules_state.modulesLock:
             resourceobj = dict(copy.deepcopy(modules_state.ActiveModules[module][resource]))
 
+            if "module_lock" in modules_state.get_module_metadata(module):
+                raise PermissionError("Module is locked")
+
             if "resource_lock" in resourceobj and resourceobj["resource_lock"]:
                 raise PermissionError("This resource can only be edited by manually removing the resource_lock from the file.")
 
@@ -272,6 +275,11 @@ async def deletemoduletarget():
     except PermissionError:
         return pages.loginredirect(pages.geturl())
     pages.postOnly()
+    m = modules_state.get_module_metadata(kwargs["name"])
+
+    if "module_lock" in m and m["module_lock"]:
+        raise PermissionError("This module can only be deleted by manually removing the module_lock from the file.")
+
     modules.rmModule(kwargs["name"], f"Module Deleted by {pages.getAcessingUser()}")
     messagebus.post_message(
         "/system/notifications",
@@ -288,6 +296,9 @@ async def deleteresource(module, target):
     except PermissionError:
         return pages.loginredirect(pages.geturl())
 
+    if "module_lock" in modules_state.get_module_metadata(module):
+        raise PermissionError("Module is locked")
+
     d = dialogs.SimpleDialog(f"Delete resource in {module}")
     d.text_input("name", default=target)
     d.submit_button("Submit")
@@ -300,6 +311,9 @@ async def moveresource(module, target):
         pages.require("system_admin")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
+
+    if "module_lock" in modules_state.get_module_metadata(module):
+        raise PermissionError("Module is locked")
 
     d = dialogs.SimpleDialog(f"Move resource in {module}")
     d.text_input("name", default=target)
@@ -320,6 +334,9 @@ async def deleteresourcetarget(module):
     @copy_current_request_context
     def f():
         resourceobj = modules_state.ActiveModules[module][kwargs["name"]]
+
+        if "module_lock" in modules_state.get_module_metadata(module):
+            raise PermissionError("Module is locked")
 
         if "resource_lock" in resourceobj and resourceobj["resource_lock"]:
             raise PermissionError("This resource can only be edited by manually removing the resource_lock from the file.")
@@ -363,6 +380,9 @@ async def moveresourcetarget(module):
     def f():
         resourceobj = modules_state.ActiveModules[module][kwargs["name"]]
 
+        if "module_lock" in modules_state.get_module_metadata(module):
+            raise PermissionError("Module is locked")
+
         if "resource_lock" in resourceobj and resourceobj["resource_lock"]:
             raise PermissionError("This resource can only be edited by manually removing the resource_lock from the file.")
 
@@ -386,6 +406,11 @@ async def module_update(module):
 
     @copy_current_request_context
     def f():
+        m = modules_state.get_module_metadata(module)
+
+        if "module_lock" in m and m["module_lock"]:
+            raise PermissionError("This module can only be edited by manually removing the module_lock from the file.")
+
         modules_state.recalcModuleHashes()
         if not kwargs["name"] == module:
             if "." in kwargs:

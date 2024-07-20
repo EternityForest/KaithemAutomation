@@ -7,7 +7,7 @@ import vignette
 from quart import request
 from quart.ctx import copy_current_request_context
 
-from .. import modules, pages, quart_app, util
+from .. import modules, modules_state, pages, quart_app, util
 
 syslog = structlog.get_logger("system")
 
@@ -54,6 +54,8 @@ async def addfileresource(module):
         pages.require("system_admin")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
+    if "module_lock" in modules_state.get_module_metadata(module):
+        raise PermissionError("Module is locked")
     path = request.args.get("dir", "")
 
     # path[1] tells what type of resource is being created and addResourceDispatcher returns the appropriate crud screen
@@ -75,6 +77,9 @@ async def uploadfileresourcetarget(module):
 
     @copy_current_request_context
     def f():
+        if "module_lock" in modules_state.get_module_metadata(module):
+            raise PermissionError("Module is locked")
+
         d = modules.getModuleDir(module)
         folder = os.path.join(d, "__filedata__")
 

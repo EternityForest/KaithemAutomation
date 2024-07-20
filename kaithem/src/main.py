@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 # SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
+import gc
 import importlib
 import logging
 import os
@@ -170,3 +171,8 @@ def start_server():
     from . import webapproot
 
     webapproot.startServer()
+    gc.collect()
+    gc.collect()
+    time.sleep(0.1)
+    gc.collect()
+    gc.collect()

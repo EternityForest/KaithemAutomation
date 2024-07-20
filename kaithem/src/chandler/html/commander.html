@@ -314,6 +314,8 @@
                                     v-on:change="setalpha(editingGroup.id,parseFloat($event.target.value));"
                                     :value="alphas[editingGroup.id]">
 
+                                    <cue-countdown :group="editingGroup" :cue="cuemeta[editingGroup.cue]"></cue-countdown>
+
                     <button v-if="editingGroup.cuelen" v-on:click="addTimeToGroup(editingGroup.id)"><i
                             class="mdi mdi-clock"></i></i><i class="mdi mdi-plus"></i>Add Time</button>
                     <button @click="compactCues=!compactCues" class="nogrow"><i class="mdi mdi-view-grid-compact"></i>Compact</button>

@@ -996,6 +996,11 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
                 if not modules_state.ActiveModules[m][r]["resource_type"] == "device":
                     raise ValueError("A resource in the module with that name exists and is not a device.")
 
+                if "module_lock" in modules_state.get_module_metadata(m):
+                    raise PermissionError("Module is locked")
+
+                if "resource_lock" in modules_state.ActiveModules[m][r]:
+                    raise PermissionError("Device is locked")
             # Make sure we don't corrupt state by putting a folder where a file already is
             ensure_module_path_ok(m, r)
         else:
