@@ -208,12 +208,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             except Exception:
                 print(traceback.format_exc())
 
-            try:
-                for j in self.groups[i].cues:
-                    self.pushCueMeta(self.groups[i].cues[j].id)
-            except Exception:
-                print(traceback.format_exc())
-
         for i in self.active_groups:
             # Tell clients about any changed alpha values and stuff.
             if i.id not in self.groups:

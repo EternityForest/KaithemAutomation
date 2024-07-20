@@ -111,7 +111,9 @@ appMethods = {
 
         v = await v.json()
 
-        this.cuemeta = v
+        for (i in v) {
+            handleCueInfo(i, v[i])
+        }
 
     },
 
@@ -1292,6 +1294,22 @@ appData = {
     'prompt': prompt,
 }
 
+
+function handleCueInfo(id, cue){
+    //Make an empty list of cues if it's not there yet
+    if (vueapp.$data.groupcues[cue.group] == undefined) {
+        old_vue_set(vueapp.$data.groupcues, cue.group, {});
+    };
+    old_vue_set(vueapp.$data.groupcues[cue.group], cue.name, id);
+
+
+    //Make an empty list of cues as a placeholder till the real data arrives
+    if (vueapp.$data.cuemeta[id] == undefined) {
+        old_vue_set(vueapp.$data.cuemeta, id, {});
+    };
+    set(vueapp.$data.cuemeta, id, cue);
+}
+
 function f(v) {
     c = v[0]
 
@@ -1359,18 +1377,7 @@ function f(v) {
     }
 
     else if (c == "cuemeta") {
-        //Make an empty list of cues if it's not there yet
-        if (vueapp.$data.groupcues[v[2].group] == undefined) {
-            old_vue_set(vueapp.$data.groupcues, v[2].group, {});
-        };
-        old_vue_set(vueapp.$data.groupcues[v[2].group], v[2].name, v[1]);
-
-
-        //Make an empty list of cues as a placeholder till the real data arrives
-        if (vueapp.$data.cuemeta[v[1]] == undefined) {
-            old_vue_set(vueapp.$data.cuemeta, v[1], {});
-        };
-        set(vueapp.$data.cuemeta, v[1], v[2]);
+        handleCueInfo(v[1], v[2]);
         vueapp.$data.recomputeformattedCues();
 
     }
