@@ -1,16 +1,12 @@
 import { test, expect } from '@playwright/test';
-import { login, logout, deleteModule } from './util';
+import { login, logout, deleteModule, makeModule } from './util';
 
 test('test', async ({ page }) => {
     test.setTimeout(2400000);
 
     await login(page);
 
-    await page.getByRole('link', { name: 'Modules' }).click();
-    await page.getByRole('link', { name: '󰐕 Add' }).click();
-    await page.getByLabel('Name of New Module').click();
-    await page.getByLabel('Name of New Module').fill('testpageinnestedfolder');
-    await page.getByRole('button', { name: 'Submit' }).click();
+    await makeModule(page, 'testpageinnestedfolder');
 
     // Make a first folder
     await page.getByTestId('add-folder').click();

@@ -473,7 +473,7 @@ ${lists}
                 v-model="presets[selectingImageLabelForPreset].label_image">
 
             <div style="background-color: var(--alt-control-bg);">
-                <media-browser :no_edit="no_edit">
+                <media-browser :no_edit="no_edit"  :selectfolders="false">
                     <template v-slot="slotProps">
                         <button
                             v-if="slotProps.filename.endsWith('.jpg') || slotProps.filename.endsWith('.svg') || slotProps.filename.endsWith('.png') || slotProps.filename.endsWith('.gif') || slotProps.filename.endsWith('.jpeg') || slotProps.filename.endsWith('.avif')"
@@ -632,7 +632,6 @@ ${lists}
                     <button type="button" class="nogrow" v-if="editingGroup.cuelen"
                         v-on:click="addTimeToGroup(editingGroup.id)"><i class="mdi mdi-clock"></i></i><i
                             class="mdi mdi-plus"></i>Add Time</button>
-                            cue sound/
 
                     <button aria-label="Group Notes" class="nogrow" type="button" popovertarget="groupNotesDialog">
                         <i class="mdi mdi-text"></i>
@@ -646,7 +645,7 @@ ${lists}
                             class="mdi mdi-delete"></i>
                     </button>
 
-                    <button aria-label="Close Group" type="button" class="nogrow" popovertarget="selectedGroupWindow" popoveraction="hide">
+                    <button data-testid="close-group" aria-label="Close Group" type="button" class="nogrow" popovertarget="selectedGroupWindow" popoveraction="hide">
                         <i class="mdi mdi-close"></i>
                     </button>
 
@@ -971,7 +970,7 @@ ${lists}
                     <header>
                         <div class="tool-bar">
                             <h4>{{currentcue.name}} Logic</h4>
-                            <button class="nogrow" type="button" popovertarget="cueLogicDialog" popoveraction="hide">
+                            <button class="nogrow" data-testid="close-logic" type="button" popovertarget="cueLogicDialog" popoveraction="hide">
                                 <i class="mdi mdi-close"></i>Close
                             </button>
                         </div>
@@ -1062,7 +1061,7 @@ ${lists}
                             <div class="tool-bar">
                                 <h4>{{currentcue.name}} Sound</h4>
                                 <button class="nogrow" type="button" popovertarget="cueMediaDialog"
-                                    popoveraction="hide">
+                                    popoveraction="hide" data-testid="close-cue-media">
                                     <i class="mdi mdi-close"></i>Close
                                 </button>
                             </div>
@@ -1194,7 +1193,7 @@ ${lists}
                                 </div>
                             </div>
                             <div class="w-sm-double flex-col gaps">
-                                <media-browser :no_edit="no_edit">
+                                <media-browser :no_edit="no_edit"  :selectfolders="false">
                                     <template v-slot="slotProps">
                                         <button
                                             v-on:click="setCueProperty(currentcueid, 'sound', slotProps.filename)">Set(sound)</button>
@@ -1275,7 +1274,7 @@ ${lists}
                             <div class="tool-bar">
                                 <h4>{{currentcue.name}} Text</h4>
                                 <button class="nogrow" type="button" popovertarget="cueTextDialog" popoveraction="hide">
-                                    <i class="mdi mdi-close"></i>Close
+                                    <i class="mdi mdi-close" data-testid="close-cue-text"></i>Close
                                 </button>
                             </div>
                         </header>
@@ -1293,7 +1292,7 @@ ${lists}
                             <div class="tool-bar">
                                 <h4>{{currentcue.name}}</h4>
                                 <button class="nogrow" type="button" popovertarget="cuePropsDialog"
-                                    popoveraction="hide">
+                                    popoveraction="hide" data-testid="close-cue-props">
                                     <i class="mdi mdi-close"></i>Close
                                 </button>
                             </div>
@@ -1449,7 +1448,7 @@ ${lists}
                     <header>
                         <div class="tool-bar">
                             <h4>{{editingGroup.name}} Notes</h4>
-                            <button class="nogrow" type="button" popovertarget="groupNotesDialog" popoveraction="hide">
+                            <button class="nogrow" type="button" data-testid="close-group-notes" popovertarget="groupNotesDialog" popoveraction="hide">
                                 <i class="mdi mdi-close"></i>Close
                             </button>
                         </div>
@@ -1470,7 +1469,7 @@ ${lists}
                     <header>
                         <div class="tool-bar">
                             <h4>Group Settings</h4>
-                            <button class="nogrow" type="button" popovertarget="groupPropsDialog" popoveraction="hide">
+                            <button class="nogrow" type="button" data-testid="close-group-settings" popovertarget="groupPropsDialog" popoveraction="hide">
                                 <i class="mdi mdi-close"></i>Close
                             </button>
                         </div>

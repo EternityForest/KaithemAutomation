@@ -22,7 +22,7 @@ test('test', async ({ page }) => {
     await page.getByPlaceholder('New group name').fill('foo');
     await page.getByTestId('add-group-button').click();
 
-    await page.getByRole('link', { name: '󰢻 Settings' }).click();
+    await page.getByLabel('Settings').click();
 
     await page.getByRole('button', { name: 'Universes' }).click();
     await page.getByPlaceholder('New Universe Name').click();

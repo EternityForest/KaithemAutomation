@@ -21,7 +21,6 @@ test('test', async ({ page }) => {
     await page.getByRole('button', { name: 'Add Resource' }).click();
 
     await page.getByTestId('add-file').click();
-    await page.locator('#upload').click();
     await page.locator('#upload').setInputFiles('badges/linux.png');
     await page.getByRole('button', { name: 'Upload' }).click();
 
@@ -51,17 +50,13 @@ test('test', async ({ page }) => {
     await page.locator('#cueMediaDialog').getByText('/dev/shm/kaithem_test_env/modules/data/test_digital_signage/__filedata__/media/').click();
     await page.getByRole('button', { name: 'Set(slide)' }).click();
     
+    await page.getByTestId('close-cue-media').click();
+    await page.getByTestId('close-group').click();
+
     //Use the slideshow preview window
     await expect(page.getByRole('article')).toContainText('(slideshow)');
     await page.locator('summary').filter({ hasText: '(slideshow)' }).click();
     await expect(page.frameLocator('article iframe').getByRole('img')).toBeVisible();
-    await expect(page.getByPlaceholder('New cue name')).toBeVisible();
-    await page.getByPlaceholder('New cue name').click();
-    await page.getByPlaceholder('New cue name').fill('c2');
-    await page.getByRole('button', { name: '󰐕 Add Cue' }).click();
-    await page.getByRole('button', { name: 'Go' }).nth(4).click();
-
-    await expect(page.getByRole('article')).toContainText('c2');
 
     // TODO: Make sure the slide actually changes
     

@@ -22,3 +22,7 @@ node_modules/
 
 button_images_pack
 sounds_pack
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

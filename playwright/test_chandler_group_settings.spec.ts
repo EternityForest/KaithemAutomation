@@ -10,12 +10,12 @@ async function fill_box(page, box, text: string) {
     await box.fill(text);
 
     // blur element by clicking outside
-    await page.getByRole('button', { name: 'ts1' }).click();
+    await page.keyboard.press('Tab');
     // Do it twice
 
     await box.click();
     await box.fill(text);
-    await page.getByRole('button', { name: 'ts1' }).click();
+    await page.keyboard.press('Tab');
 
 }
 
@@ -76,11 +76,12 @@ test('test', async ({ page }) => {
     await page.getByLabel('MQTT Server').fill('ppp');
     await page.getByLabel('Sync Group Name').click();
     await page.getByLabel('Sync Group Name').fill('grp');
-    await page.getByText('ts1 (running)Delete GroupNameShortcutFadeinLengthNextTrackJump to5defaultGEN>>>').click();
     await page.getByPlaceholder('Tagpoint').click();
     await page.getByPlaceholder('Tagpoint').fill('cmdtag');
-    await page.getByTestId('group-properties-button').click();
-    await page.getByTestId('group-properties-button').click();
+
+    // Click away
+    await page.getByLabel('Sync Group Name').click();
+
 
     // Check that the stuff is there
     await page.goto('http://localhost:8002/chandler/editor/testchandlerproperties:b1');
@@ -101,8 +102,8 @@ test('test', async ({ page }) => {
     await expect(page.getByLabel('MQTT Server')).toHaveValue('ppp');
     await expect(page.getByLabel('Sync Group Name')).toHaveValue('grp');
 
-    await page.getByRole('button', { name: 'ts1' }).click();
-    await page.getByRole('button', { name: 'ts1' }).click();
+    await page.getByTestId('close-group-settings').click();
+    await page.getByTestId('close-group').click();
 
 
     // More settings
@@ -118,9 +119,9 @@ test('test', async ({ page }) => {
     await page.getByLabel('Utility Group(No controls)').check();
     await page.getByLabel('Hide in Runtime Mode').check();
 
-    // Waste time
-    await page.getByRole('button', { name: 'ts1' }).click();
-    await page.getByRole('button', { name: 'ts1' }).click();
+
+    await page.getByTestId('close-group-settings').click();
+    await page.getByTestId('close-group').click();
 
 
     // More checking
@@ -156,8 +157,9 @@ test('test', async ({ page }) => {
     await page.getByTestId('display_tag_type').selectOption('Meter')
 
     // Waste some time to let it send
-    await page.getByRole('button', { name: 'ts1' }).click();
-    await page.getByRole('button', { name: 'ts1' }).click();
+
+    await page.getByTestId('close-group-settings').click();
+    await page.getByTestId('close-group').click();
 
 
     await page.goto('http://localhost:8002/chandler/editor/testchandlerproperties:b1');
@@ -179,7 +181,9 @@ test('test', async ({ page }) => {
     await page.getByLabel('Require Confirmation for Cue').check();
 
     // Click elsewhere, do other stuff, let it save
-    await page.getByRole('button', { name: 'ts1' }).click();
+
+    await page.getByTestId('close-group-settings').click();
+    await page.getByTestId('close-group').click();
 
 
     await page.goto('http://localhost:8002/chandler/editor/testchandlerproperties:b1');
@@ -227,8 +231,9 @@ test('test', async ({ page }) => {
     await page.getByLabel('Active By Default').uncheck();
     await page.getByLabel('Require Confirmation for Cue').uncheck();
 
-    await page.getByRole('button', { name: 'ts1' }).click();
-    await page.getByRole('button', { name: 'ts1' }).click();
+
+    await page.getByTestId('close-group-settings').click();
+    await page.getByTestId('close-group').click();
 
     // Check that it worked
     await page.goto('http://localhost:8002/chandler/editor/testchandlerproperties:b1');
@@ -254,8 +259,11 @@ test('test', async ({ page }) => {
     await page.getByText('Custom layout for slideshow').click();
     await page.getByTestId('slideshow_layout').click();
     await page.getByTestId('slideshow_layout').fill('LayoutPlaceholder');
-    await page.getByRole('button', { name: 'ts1' }).click();
-    await page.getByRole('button', { name: 'ts1' }).click();
+
+
+    await page.getByTestId('close-group-settings').click();
+    await page.getByTestId('close-group').click();
+
 
     await page.goto('http://localhost:8002/chandler/editor/testchandlerproperties:b1');
     await page.getByRole('button', { name: 'ts1' }).click();
