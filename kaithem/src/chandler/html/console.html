@@ -842,7 +842,7 @@ ${lists}
                                 <header>
                                     <h3 class="noselect">{{uname}}</h3>
                                 </header>
-                                <details class="undecorated nopadding nomargin">
+                                <details class="undecorated nopadding nomargin" data-testid="details-fixture-channels-summary">
                                     <summary>Channels</summary>
                                     <div class="scroll nomargin h-24rem">
                                         <h-fader :i="i[1]" :chinfo="channelInfoForUniverseChannel(i[1].u,i[1].ch)"
@@ -866,13 +866,14 @@ ${lists}
                                         <button type="button" @click="showPresetDialog(fname)" popovertarget="presetForFixture">Presets</button>
 
                                         <select :disabled="no_edit" class="w-4rem nogrow" style="flex-basis: 2rem;"
+                                            data-testid="save-preset-options"
                                             v-on:change="savePreset(h, $event.target.value);$event.target.value='__dummy__'">
                                             <option value="__dummy__">Save</option>
+                                            <option value="">For Any</option>
                                             <option :value="'name' + fname" title="Save for use with this fixture">For
                                                 This</option>
                                             <option :value="'name@h-fa' + lookupFixtureType(fname)"
                                                 title="Save for use with fixtures of this type">For Type</option>
-                                            <option value="">For Any</option>
                                         </select>
                                     </div>
                                     <button type="button" v-if="grouptab=='channels'"
@@ -880,7 +881,7 @@ ${lists}
                                         <i class="mdi mdi-delete"></i>
                                     </button>
                                 </header>
-                                <details class="undecorated nopadding nomargin">
+                                <details class="undecorated nopadding nomargin" data-testid="details-fixture-channels-summary">
                                     <summary>Channels</summary>
                                     <div class="scroll nomargin h-24rem padding-bottom">
                                         <h-fader :i="i[1]" :chinfo="channelInfoForUniverseChannel(i[1].u,i[1].ch)"

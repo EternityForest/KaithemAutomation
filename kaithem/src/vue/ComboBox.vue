@@ -46,6 +46,7 @@
         </datalist>
 
         <input  :disabled="disabled" 
+         :data-testid="testid"
          :list="uid"
          v-bind:value="modelValue" 
          v-on:input="$emit('update:modelValue', $event.target.value)" 
@@ -81,6 +82,10 @@ module.exports = {
         'disabled': {
             type: Boolean,
             default: false
+        },
+        "testid": {
+            type: String,
+            default: ''
         }
     },
     name: 'ComboBox',
