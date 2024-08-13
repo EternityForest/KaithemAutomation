@@ -20,6 +20,13 @@ if [ "$(id -u)" -ne 0 ]; then
         exit 1
 fi
 
+# Use the KAITHEM_UID variable to set a user ID that will be running the code.
+# 1000 is the default on almost all Linux systems
+[ -z "$KAITHEM_UID" ] && KAITHEM_UID=1000
+
+[ -z "$KAITHEM_USER" ] && KAITHEM_USER=$(id -un $KAITHEM_UID)
+
+
 # X11 still exists even though Wayland is defayult
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
@@ -34,7 +41,7 @@ systemctl disable systemd-random-seed.service
 ! systemctl disable systemd-readahead-collect.service
 ! systemctl disable systemd-readahead-replay.service
 
-
+mkdir -p /home/$(id -un $KAITHEM_UID)/.local/state
 
 ! rm -rf  /home/$(id -un $KAITHEM_UID)/.local/state/wireplumber/
 mkdir -p /var/run/$(id -un $KAITHEM_UID)-wireplumber-state/
@@ -46,11 +53,11 @@ ln -s /var/run/$(id -un $KAITHEM_UID)-wireplumber-state  /home/$(id -un $KAITHEM
 
 
 # Xsession errors is a big offender for wrecking down your disk with writes
-sed -i s/'ERRFILE=\$HOME\/\.xsession\-errors'/'ERRFILE\=\/var\/log\/\$USER\-xsession\-errors'/g /etc/X11/Xsession
+sed -i s/'ERRFILE=\$HOME\/\.xsession\-errors'/'ERRFILE\=\/var\/log\/\$KAITHEM_USER\-xsession\-errors'/g /etc/X11/Xsession
 
 
 cat << EOF > /etc/logrotate.d/xsession
-/var/log/$USER-xsession-errors {
+/var/log/$KAITHEM_USER-xsession-errors {
   rotate 2 
   daily
   compress
