@@ -171,7 +171,6 @@ class Cue:
         name: str,
         number: int | None = None,
         forceAdd: bool = False,
-        shortcut: str = "",
         id: str | None = None,
         onEnter: Callable[..., Any] | None = None,
         onExit: Callable[..., Any] | None = None,

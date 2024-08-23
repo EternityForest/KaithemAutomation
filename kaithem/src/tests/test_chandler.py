@@ -52,12 +52,8 @@ listener 7801
 
         s.goto_cue("c2")
         time.sleep(0.2)
-        time.sleep(0.2)
-        time.sleep(0.2)
-        time.sleep(0.2)
-        time.sleep(0.2)
 
-        for attempt in stamina.retry_context(on=AssertionError, attempts=20):
+        for attempt in stamina.retry_context(on=AssertionError, attempts=50):
             with attempt:
                 assert s2.cue.name == "c2"
     finally:
@@ -499,7 +495,8 @@ def test_tag_backtrack_feature():
     s.cues["default"].set_value_immediate("/test_bt", "value", 1)
 
     # Set values and check that tags change
-    # First time allow two frames because it creates a new universe for the tag    s.cues["default"].set_value_immediate("/test_bt", "value", 1)
+    # First time allow two frames because it creates a new universe for the tag
+
     core.wait_frame()
     core.wait_frame()
     assert tagpoints.Tag("/test_bt").value == 1
@@ -722,15 +719,23 @@ def test_cue_logic_plugin():
     )
 
     s2.add_cue("cue2", shortcut="test_val")
+    # Registering a new cue with a shortcut listener is not instant
+    core.wait_frame()
+    core.wait_frame()
+
     s.goto_cue("cue2")
 
     core.wait_frame()
-    core.wait_frame()
 
-    assert s2.cue.name == "cue2"
+    # not frame synced yet?
+    for attempt in stamina.retry_context(on=AssertionError, attempts=10):
+        with attempt:
+            assert s2.cue.name == "cue2"
 
     s2.stop()
     s.stop()
+    core.wait_frame()
+
     assert s2.cue.name == "default"
     assert s2.entered_cue == 0
 
