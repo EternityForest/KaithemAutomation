@@ -6,7 +6,6 @@ test('test', async ({ page }) => {
 
     await makeModule(page, 'test_config');
 
-    await page.getByRole('button', { name: 'Submit' }).click();
     await page.getByRole('button', { name: 'Add Resource' }).click();
     await page.getByTestId('add-config').click();
     await page.getByLabel('Resource Name').click();

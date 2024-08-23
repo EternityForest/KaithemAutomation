@@ -1,7 +1,7 @@
 import { Page } from '@playwright/test';
 
 async function login(page: Page) {
-    await page.goto('http://localhost:8002/');
+    await page.goto('http://localhost:8002/index');
 
     // Might already be logged in
     if (await page.getByRole('button', { name: 'Logout(' }).isVisible()) {
@@ -20,7 +20,7 @@ async function login(page: Page) {
 }
 
 async function login_as(page: Page, username: string, password: string) {
-    await page.goto('http://localhost:8002/');
+    await page.goto('http://localhost:8002/index');
 
     // Might already be logged in
     if (await page.getByRole('button', { name: 'Logout(' }).isVisible()) {

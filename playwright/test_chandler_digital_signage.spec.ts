@@ -10,7 +10,7 @@ test('test', async ({ page }) => {
 
     //Make a media folder and put a png there
 
-    makeModule(page, 'test_digital_signage');
+    await makeModule(page, 'test_digital_signage');
 
     await page.getByRole('button', { name: 'Add Resource' }).click();
     await page.getByTestId('add-folder').click();
@@ -60,7 +60,7 @@ test('test', async ({ page }) => {
 
     // TODO: Make sure the slide actually changes
     
-    deleteModule(page, 'test_digital_signage');
+    await deleteModule(page, 'test_digital_signage');
 
     await logout(page);
 });
