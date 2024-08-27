@@ -587,13 +587,6 @@ appMethods = {
         api_link.send(['setrandomize', sc, v]);
     },
 
-    'setdalpha': function (sc, v) {
-
-        this.groupmeta[sc].alpha = v;
-        api_link.send(['setdalpha', sc, v]);
-    },
-
-
     'setcrossfade': function (sc, v) {
 
         this.groupmeta[sc].crossfade = v;

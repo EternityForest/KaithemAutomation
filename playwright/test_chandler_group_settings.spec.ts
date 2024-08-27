@@ -62,7 +62,7 @@ test('test', async ({ page }) => {
     // This doesn't seem to work the first time despite working in manual
     await page.getByLabel('Alpha', { exact: true }).fill('0.25');
     await page.getByRole('heading', { name: 'Sound' }).click();
-
+    await page.getByLabel('Alpha', { exact: true }).fill('0.25');
     await page.getByRole('heading', { name: 'Sound' }).click();
     await page.getByLabel('Require Confirmation for Cue').click();
     await page.getByLabel('Sound Output').click();

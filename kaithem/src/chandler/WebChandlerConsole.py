@@ -664,9 +664,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         elif cmd_name == "setcrossfade":
             groups.groups[msg[1]].crossfade = float(msg[2] or 0)
 
-        elif cmd_name == "setdalpha":
-            groups.groups[msg[1]].setAlpha(msg[2], sd=True)
-
         elif cmd_name == "add_cue":
             n = msg[2].strip()
             if msg[2] not in groups.groups[msg[1]].cues:
