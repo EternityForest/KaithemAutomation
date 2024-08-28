@@ -49,11 +49,11 @@ test('test', async ({ page }) => {
 
   await page.getByLabel('Type:').first().selectOption('intensity');
   await page.getByRole('button', { name: 'Add Channel' }).click();
-  await page.getByLabel('Type:').nth(0).selectOption('red');
+  await page.getByLabel('Type:').nth(1).selectOption('red');
   await page.getByRole('button', { name: 'Add Channel' }).click();
-  await page.getByLabel('Type:').nth(1).selectOption('green');
+  await page.getByLabel('Type:').nth(2).selectOption('green');
   await page.getByRole('button', { name: 'Add Channel' }).click();
-  await page.getByLabel('Type:').nth(2).selectOption('blue');
+  await page.getByLabel('Type:').nth(3).selectOption('blue');
   await page.getByRole('button', { name: '󰅖 Close' }).click();
 
 
