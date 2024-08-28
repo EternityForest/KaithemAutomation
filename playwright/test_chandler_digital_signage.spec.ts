@@ -12,7 +12,7 @@ test('test', async ({ page }) => {
 
     await makeModule(page, 'test_digital_signage');
 
-    await page.getByRole('button', { name: 'Add Resource' }).click();
+    await page.getByTestId('add-resource-button').click();
     await page.getByTestId('add-folder').click();
     await page.getByLabel('Name').click();
     await page.getByLabel('Name').fill('media');

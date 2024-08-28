@@ -13,7 +13,7 @@ test('test', async ({ page }) => {
 
 
     // Make a /public folder
-    await page.getByRole('button', { name: 'Add Resource' }).click();
+    await page.getByTestId('add-resource-button').click();
     await page.getByTestId('add-folder').click();
     await page.getByLabel('Name').click();
     await page.getByLabel('Name').fill('public');
@@ -84,7 +84,7 @@ test('test', async ({ page }) => {
 
     // Move it to /pages/test_static_server/static2
     await page.goto('http://localhost:8002/modules/module/test_static_server');
-    await page.getByRole('link', { name: '󰉒 Move' }).click();
+    await page.getByTestId("move-resource-button").click();
     await page.getByLabel('New Name').click();
     await page.getByLabel('New Name').fill('static2');
     await page.getByRole('button', { name: 'Submit' }).click();

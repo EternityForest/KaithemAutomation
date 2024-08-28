@@ -9,6 +9,8 @@ test('test', async ({ page }) => {
     await makeModule(page, 'testpageinnestedfolder');
 
     // Make a first folder
+    await page.getByTestId('add-resource-button').click();
+
     await page.getByTestId('add-folder').click();
     await page.getByLabel('Name').click();
     await page.getByLabel('Name').fill('testfolder');
@@ -18,6 +20,7 @@ test('test', async ({ page }) => {
     await page.getByRole('link', { name: '󰉖 testfolder' }).click();
 
     // Make a nested folder in the folder
+    await page.getByTestId('add-resource-button').click();
     await page.getByTestId('add-folder').click();
     await page.getByLabel('Name').click();
     await page.getByLabel('Name').fill('testfolder2');
@@ -35,6 +38,7 @@ test('test', async ({ page }) => {
     await page.getByRole('link', { name: '󰉖 testfolder2' }).click();
 
     //Make a page there
+    await page.getByTestId('add-resource-button').click();
     await page.getByTestId('add-page').click();
     // On page editor, save and goto
     await page.getByLabel('Name').click();

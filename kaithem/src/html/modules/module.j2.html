@@ -92,7 +92,7 @@
     <section class="window padding">
         <div class="tool-bar w-full">
 
-             <button type="button" popovertarget="addresource">
+             <button type="button" popovertarget="addresource" data-testid="add-resource-button">
                 <i class="mdi mdi-plus"></i>Add Resource
              </button>
 
@@ -226,12 +226,12 @@
                     <a aria-label="Download" class="button nogrow" href="/modules/module/{{ url(name) }}/download_resource/{{ url(i) }}"><span
                             class="mdi mdi-download-box"></span>
                         </a>
-                    <a aria-label="Move" class="button nogrow" href="/modules/module/{{ url(name) }}/moveresource/{{ url(i) }}"><span
+                    <a aria-label="Move" data-testid="move-resource-button" class="button nogrow" href="/modules/module/{{ url(name) }}/moveresource/{{ url(i) }}"><span
                             class="mdi mdi-folder-move"></span>
                         </a>
                     <a aria-label="Sketch Label" class="button nogrow" href="/excalidraw-plugin/edit?module={{ url(name) }}&resource=media/resource_labels/{{ url(i) }}.excalidraw.png&callback=/modules/set_label_image/{{ url(name) }}/{{ url(i) }}&ratio_guide=16_9">
                             <i class="mdi mdi-image"></i></a>
-                    <a aria-label="Delete" class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
+                    <a aria-label="Delete" data-testid="delete-resource-button" class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
                             class="mdi mdi-delete"></i></a>
                 </div>
             </dt>

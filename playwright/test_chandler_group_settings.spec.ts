@@ -156,6 +156,10 @@ test('test', async ({ page }) => {
     // Waste some time to let it send
 
     await page.getByTestId('close-group-settings').click();
+    
+    // More time waste
+    await page.getByTestId('close-group').click();
+    await page.getByRole('button', { name: 'ts1' }).click();
     await page.getByTestId('close-group').click();
 
 

@@ -27,9 +27,14 @@ class Entries:
             if settings_overrides:
                 settings_overrides.add_val(i, "", str(self.source) + str(id(self)), priority=self.priority)
         try:
-            del entries[self.source]
+            # Handle nuisance error at shutdown
+            if entries is not None:
+                del entries[self.source]
         except KeyError:
             pass
+        except Exception:
+            if entries is not None:
+                raise
 
     def __del__(self):
         if not self.closed:

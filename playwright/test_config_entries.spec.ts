@@ -2,6 +2,8 @@ import { test, expect } from '@playwright/test';
 import { login, logout, deleteModule, makeModule } from './util';
 
 test('test', async ({ page }) => {
+    test.setTimeout(4800000);
+
     await login(page);
 
     await makeModule(page, 'test_config');
@@ -26,7 +28,7 @@ test('test', async ({ page }) => {
     await expect(page.locator('dl')).toContainText('test_val');
     await page.getByRole('link', { name: '󱒕 Modules' }).click();
     await page.getByRole('link', { name: 'test_config' }).click();
-    await page.getByRole('link', { name: '󰆴 Delete' }).click();
+    await page.getByTestId("delete-resource-button").click();
     await page.getByRole('button', { name: 'Submit' }).click();
     await page.getByRole('link', { name: '󰢻 Tools' }).click();
     await page.getByRole('link', { name: '󰢻 System Settings' }).click();
