@@ -1,9 +1,7 @@
 import { test, expect } from '@playwright/test';
-import { login, logout, makeModule, deleteModule, makeTagPoint} from './util';
+import { sleep, login, logout, makeModule, deleteModule, makeTagPoint} from './util';
 
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
+
 
 /*
 Create a module, make a chandler board, test very simple logic,

@@ -1,5 +1,9 @@
 import { Page } from '@playwright/test';
 
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function login(page: Page) {
     await page.goto('http://localhost:8002/index');
 
@@ -99,4 +103,4 @@ async function makeTagPoint(page: Page, module: string, name: string) {
     await page.getByRole('button', { name: 'Submit' }).click();
 }
 
-export { login, login_as, logout, makeModule, deleteModule, makeTagPoint };
+export { login, login_as, logout, makeModule, deleteModule, makeTagPoint, sleep };

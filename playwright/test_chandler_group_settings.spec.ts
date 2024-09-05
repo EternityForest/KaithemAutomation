@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { login, logout, makeModule, deleteModule, makeTagPoint } from './util';
+import { login, logout, makeModule, deleteModule, sleep } from './util';
 
 
 async function fill_box(page, box, text: string) {
@@ -144,6 +144,7 @@ test('test', async ({ page }) => {
 
     await fill_box(page, page.getByTestId('display_tag_label'), 'tg1');
 
+    // This line is flaky, if you get a fail just manually pause a bit.
     await fill_box(page,
         page.getByTestId('display_tag_width'), '5');
 
@@ -159,8 +160,8 @@ test('test', async ({ page }) => {
     
     // More time waste
     await page.getByTestId('close-group').click();
-    await page.getByRole('button', { name: 'ts1' }).click();
-    await page.getByTestId('close-group').click();
+    
+    await sleep(300);
 
 
     await page.goto('http://localhost:8002/chandler/editor/testchandlerproperties:b1');
