@@ -10,7 +10,7 @@ test('test', async ({ page }) => {
 
 
     // Add a logger to that module
-    await page.getByRole('button', { name: 'Add Resource' }).click();
+    await page.getByTestId('add-resource-button').click();
     await page.getByTestId('add-logger').click();
     await page.getByLabel('Logger Name').click();
     await page.getByLabel('Logger Name').fill('testlogger');

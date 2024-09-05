@@ -9,7 +9,7 @@ test('test', async ({ page }) => {
 
 
     // Make the page which should appear in search results
-    await page.getByRole('button', { name: 'Add Resource' }).click();
+    await page.getByTestId('add-resource-button').click();
     await page.getByTestId('add-page').click();
     await page.getByLabel('Name').click();
     await page.getByLabel('Name').fill('search_result');

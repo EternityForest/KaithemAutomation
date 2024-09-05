@@ -88,7 +88,8 @@ async function makeTagPoint(page: Page, module: string, name: string) {
 
     await page.getByRole('link', { name: 'Modules' }).click();
     await page.getByRole('link', { name: module }).click();
-    await page.getByRole('link', { name: 'Tagpoint' }).click();
+    await page.getByTestId('add-resource-button').click();
+    await page.getByTestId('add-tagpoint').click();
     await page.getByLabel('Resource Name').click();
     await page.getByLabel('Resource Name').fill(name);
     await page.getByLabel('Tag Point Name').click();

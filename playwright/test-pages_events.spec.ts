@@ -15,7 +15,7 @@ test('test', async ({ page }) => {
 
 
     // Create a page
-    await page.getByRole('button', { name: 'Add Resource' }).click();
+    await page.getByTestId('add-resource-button').click();
 
     await page.getByRole('link', { name: 'Page' }).click();
     await page.getByLabel('Name').click();
@@ -40,7 +40,7 @@ test('test', async ({ page }) => {
     await expect(page.getByRole('link', { name: 'p1 (page)' })).toContainText('p1 (page)');
 
     // Create an event
-    await page.getByRole('button', { name: 'Add Resource' }).click();
+    await page.getByTestId('add-resource-button').click();
     await page.getByRole('link', { name: 'Event' }).click();
     await page.getByLabel('Name').click();
     await page.getByLabel('Name').fill('e1');

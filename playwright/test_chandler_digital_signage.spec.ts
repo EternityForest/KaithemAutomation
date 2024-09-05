@@ -18,7 +18,7 @@ test('test', async ({ page }) => {
     await page.getByLabel('Name').fill('media');
     await page.getByRole('button', { name: 'Submit' }).click();
     await page.getByRole('link', { name: '󰉖 media' }).click();
-    await page.getByRole('button', { name: 'Add Resource' }).click();
+    await page.getByTestId('add-resource-button').click();
 
     await page.getByTestId('add-file').click();
     await page.locator('#upload').setInputFiles('badges/linux.png');
@@ -26,7 +26,7 @@ test('test', async ({ page }) => {
 
 
     await page.getByRole('link', { name: 'test_digital_signage' }).click();
-    await page.getByRole('button', { name: 'Add Resource' }).click();
+    await page.getByTestId('add-resource-button').click();
 
     await page.getByTestId('add-chandler_board').click();
     await page.getByLabel('Resource Name').click();

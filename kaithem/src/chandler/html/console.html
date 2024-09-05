@@ -795,12 +795,12 @@ ${lists}
                 <div class="tool-bar">
                     <h3><i class="mdi mdi-pencil nomargin nogrow"></i>Editing Cue: {{currentcue.name}}</h3>
 
-                    <button type="button" popovertarget="cueTextDialog">
+                    <button type="button" popovertarget="cueTextDialog" data-testid="cue-text-dialog-button">
                         <i class="mdi mdi-text"></i>
                         Text</button>
 
 
-                    <button type="button" popovertarget="cueMediaDialog">
+                    <button type="button" popovertarget="cueMediaDialog" data-testid="cue-media-dialog-button">
                         <i class="mdi mdi-music"></i>
                         Media</button>
 
@@ -808,7 +808,7 @@ ${lists}
                         <i class="mdi mdi-cog"></i>
                         Properties</button>
 
-                    <button type="button" popovertarget="cueLogicDialog">
+                    <button type="button" popovertarget="cueLogicDialog" data-testid="cue-logic-button">
                         <i class="mdi mdi-code-braces"></i>
                         Logic({{currentcue.rules.length}})</button>
 
@@ -832,7 +832,7 @@ ${lists}
                     <div class="tool-bar">
                         <button type="button" v-bind:class="{highlight:grouptab=='cue'}" v-on:click="grouptab='cue'"><i
                                 class="mdi mdi-cog-outline"></i>Normal View</button>
-                        <button type="button" v-bind:class="{highlight:grouptab=='channels'}"
+                        <button type="button" v-bind:class="{highlight:grouptab=='channels'}" data-testid="add-rm-fixtures-button"
                             v-on:click="grouptab='channels'"><i class="mdi mdi-list-box-outline"></i>Add/Remove Fixtures</button>
                     </div>
 
@@ -1193,7 +1193,7 @@ ${lists}
 
                                 </div>
                             </div>
-                            <div class="w-sm-double flex-col gaps">
+                            <div class="w-sm-double flex-col gaps" data-testid="media-browser-container">
                                 <media-browser :no_edit="no_edit"  :selectfolders="false">
                                     <template v-slot="slotProps">
                                         <button

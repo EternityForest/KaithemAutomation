@@ -8,7 +8,7 @@ test('test', async ({ page }) => {
     const brows = await chromium.launch();
 
     await makeModule(page, 'testpageoptions');
-    await page.getByRole('button', { name: 'Add Resource' }).click();
+    await page.getByTestId('add-resource-button').click();
     await page.getByTestId('add-page').click();
     await page.getByLabel('Name').click();
     await page.getByLabel('Name').fill('test_options');

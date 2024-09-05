@@ -27,7 +27,7 @@ test('test', async ({ page }) => {
 
     makeModule(page, 'testchandlerproperties');
 
-    await page.getByRole('button', { name: 'Add Resource' }).click();
+    await page.getByTestId('add-resource-button').click();
 
     await page.getByTestId('add-chandler_board').click();
     await page.getByLabel('Resource Name').click();

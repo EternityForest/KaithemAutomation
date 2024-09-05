@@ -10,7 +10,7 @@ test('test', async ({ page }) => {
     await makeModule(page, 'devmodule');
 
     // Make a device
-    await page.getByRole('button', { name: 'Add Resource' }).click();
+    await page.getByTestId('add-resource-button').click();
     await page.getByTestId('add-device').click();
     await page.getByLabel('Target Resource Name:').click();
     await page.getByLabel('Target Resource Name:').fill('testdevice');

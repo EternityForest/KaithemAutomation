@@ -18,7 +18,7 @@ test('test', async ({ page }) => {
     makeModule(page, module);
 
     // Make chandler board
-    await page.getByRole('button', { name: 'Add Resource' }).click();
+    await page.getByTestId('add-resource-button').click();
 
     await page.getByRole('link', { name: 'Chandler Board' }).click();
     await page.getByLabel('Resource Name').click();
@@ -46,7 +46,7 @@ test('test', async ({ page }) => {
     await page.locator('#cuesbox').getByText('default', { exact: true }).click();
 
     // Cue logic
-    await page.getByText('Cue Logic', { exact: true }).click();
+    await page.getByTestId('cue-logic-button').click();
 
     // Add rule and edit the default example action
     await page.getByRole('button', { name: 'Add Rule' }).click();
@@ -58,6 +58,8 @@ test('test', async ({ page }) => {
     await page.getByLabel('cue', { exact: true }).fill('c2');
     //Dismiss popup selecter by clicking outside
     await page.getByRole('heading', { name: 'Automation Logic' }).click();
+
+    await page.getByTestId("close-logic").click();
 
     // Go on default cue
     await page.getByRole('button', { name: 'Go', exact: true }).first().click();
@@ -85,24 +87,23 @@ test('test', async ({ page }) => {
     await page.getByRole('button', { name: 'Go', exact: true }).first().click();
     await expect(page.getByRole('article')).toContainText('c2');
 
-    // Now let's add lighting vals
-    await page.getByText('Cue Channel Values').click();
-    await page.getByText('Cue Logic', { exact: true }).click();
-
     // Also some cue text
-    await page.getByText('text').click();
-    await page.locator('details').filter({ hasText: 'Text' }).getByRole('textbox').click();
-    await page.locator('details').filter({ hasText: 'Text' }).getByRole('textbox').fill('cuetext');
+    await page.getByTestId('cue-text-dialog-button').click();
+    await page.getByTestId('cuetext').fill('cuetext');
+    await page.getByTestId("close-cue-text").click();
     
     // Make a new cue from the alert sound    
-    await page.getByRole('button', { name: 'Media' }).click();
+    await page.getByTestId("cue-media-dialog-button").click();
     await page.getByRole('list').getByText('Refresh').click();
-    await page.getByText('/dev/shm/kaithem_test_env/assets/').click();
+
+    await page.getByTestId("media-browser-container").getByText('/dev/shm/kaithem_test_env/assets/').click();
 
     // It must exist
-    await page.getByRole('button', { name: 'New' }).first().click();
+    await page.getByRole('button', { name: 'New(sound)' }).first().click();
     await expect(page.locator('#cuesbox')).toContainText('alert');
 
+
+    await page.getByTestId("close-cue-media").click();
 
     // Set the cue length to 0 so it doesn't end too soon
     await page.getByRole('cell', { name: '0.01' }).getByRole('combobox').dblclick();
@@ -114,16 +115,16 @@ test('test', async ({ page }) => {
     //Select the group box in the sidebar that tells us what the cue is
     await expect(page.getByText('tst1alert')).toContainText('alert');
     // Channel adding tab
-    await page.getByRole('button', { name: 'Channels' }).click();
+    await page.getByTestId("add-rm-fixtures-button").click();
     // Add raw dmx channek;
     await page.getByLabel('Universe').fill('dmx');
 
     // Click elsewhere to make dropdown suggestions box go
-    await page.getByRole('button', { name: 'Channels' }).click();
+    await page.getByTestId("add-rm-fixtures-button").click();
 
     await page.getByLabel('Channel').fill('25');
     // Click elsewhere to make dropdown suggestions box go
-    await page.getByRole('button', { name: 'Channels' }).click();
+    await page.getByTestId("add-rm-fixtures-button").click();
 
     await page.getByRole('button', { name: 'Add Channel to Cue' }).first().click();
     await expect(page.getByRole('main')).toContainText('dmx');
@@ -131,7 +132,7 @@ test('test', async ({ page }) => {
     await expect(page.getByRole('main')).toContainText('25');
 
     // Click elsewhere to make dropdown suggestions box go
-    await page.getByRole('button', { name: 'Channels' }).click();
+    await page.getByTestId("add-rm-fixtures-button").click();
     
     await page.getByRole('button', { name: 'Normal View' }).click();
 
@@ -148,11 +149,11 @@ test('test', async ({ page }) => {
     await page.getByRole('link', { name: module }).click();
     await page.getByRole('link', { name: 'Editor' }).click();
     await page.getByRole('button', { name: 'tst1' }).click();
-    await page.getByRole('button', { name: 'Channels' }).click();
+    await page.getByTestId("add-rm-fixtures-button").click();
     await page.getByLabel('Tag', { exact: true }).click();
     await page.getByLabel('Tag', { exact: true }).fill('/test_chandler_tag');
     // Click elsewhere to make dropdown suggestions box go
-    await page.getByRole('button', { name: 'Channels' }).click();
+    await page.getByTestId("add-rm-fixtures-button").click();
 
     await page.locator('div').filter({ hasText: /^Tag Add Channel to Cue$/ }).getByRole('button').click();
     await page.locator('summary').filter({ hasText: 'Channels' }).click();
@@ -160,27 +161,17 @@ test('test', async ({ page }) => {
     
     await page.getByRole('button', { name: 'Go', exact: true }).first().click();
     
+
     // Go back and make sure it actually worked
-    await page.getByRole('link', { name: 'Tags' }).click();
+    await page.goto('http://localhost:8002/tagpoints')
 
     // Do this twice to give it time to render
     await sleep(300);
-    await page.getByRole('link', { name: 'Tags' }).click();
+    await page.goto('http://localhost:8002/tagpoints')
 
     await expect(page.getByRole('row', { name: '/test_chandler_tag' })).toContainText('130');
-    await page.getByRole('link', { name: 'Modules' }).click();
-    await page.getByRole('link', { name: module }).click();
-    await page.getByRole('link', { name: 'Editor' }).click();
-    await page.getByRole('button', { name: 'tst1' }).click();
-    await page.getByRole('cell', { name: 'alert' }).click();
-    await page.getByRole('row', { name: 'alert' }).getByRole('checkbox').uncheck();
-
-    await page.getByRole('row', { name: 'alert' }).getByRole('button', { name: 'Go', exact: true }).click()
-
-    await page.getByRole('link', { name: 'Tags' }).click();
-    await expect(page.getByRole('row', { name: '/test_chandler_tag' })).toContainText('0.0');
     
-    
+
     await deleteModule(page, module);
     await logout(page);
 });

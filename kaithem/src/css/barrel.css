@@ -2963,3 +2963,18 @@ label {
 [x-cloak]>* {
     display: none !important;
 }
+
+/* JSON Editor Compatibility */
+
+.je-modal {
+    border-radius: var(--border-radius);
+    background-color: var(--box-bg);
+    border: var(--border);
+    box-shadow: var(--window-box-shadow);
+    position: absolute;
+    z-index: 10;
+}
+
+.je-indented-panel:not(.specificity_hack){
+    border: none;
+}

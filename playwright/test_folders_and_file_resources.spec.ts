@@ -14,7 +14,7 @@ test('test', async ({ page }) => {
     await page.getByLabel('Name').fill('dir1');
     await page.getByRole('button', { name: 'Submit' }).click();
 
-    await page.getByRole('button', { name: 'Add Resource' }).click();
+    await page.getByTestId('add-resource-button').click();
     await page.getByTestId('add-file').click();
     await page.locator('#upload').setInputFiles('badges/linux.png');
     await page.getByRole('button', { name: 'Upload' }).click();

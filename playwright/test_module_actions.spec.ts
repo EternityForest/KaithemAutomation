@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test('test', async ({ page }) => {
   await page.goto('http://localhost:8002/');
   await page.getByRole('link', { name: '󱒕 Modules' }).click();
-  await page.getByRole('link', { name: '󰐕 Add' }).click();
+  await page.getByTestId('add-module-button').click();
   
   await page.getByLabel('Username:').click();
   await page.getByLabel('Username:').fill('admin');
