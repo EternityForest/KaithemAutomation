@@ -3,12 +3,14 @@ Change Log
 
 ### 0.86.0
 
+This release took a while, because so many tests had to be rewritten for the Popover API based UI.
+Chandler should be much nicer to use now, especially on Mobile!
+
 #### Added
 - :sparkles: Cue provider system lets you quickly create playists from folders of media
 - :sparkles: Mount/Unmount disks from devices page
-
 - :sparkles: Add the module_lock key to the module's \_\_metadata\_\_.yaml to protect from changes via GUI.
-
+- :sparkles: Popover-based UI overhaul for Chandler.
 
 ### 0.85.0
 
