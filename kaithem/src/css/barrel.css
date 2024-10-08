@@ -2977,4 +2977,34 @@ label {
 
 .je-indented-panel:not(.specificity_hack){
     border: none;
+    margin: 3px;
+    padding:3px;
+
+}
+
+.je-object__container{
+    margin: 3px;
+    border: var(--border);
+    border-radius: var(--border-radius);
+    padding:var(--padding);
+    box-shadow: var(--item-box-shadow);
+}
+
+.je-tab--top:not(.specificity_hack){
+    border-color: var(--fg-color)
+    border-width: 2px;
+    border-top-left-radius: var(--control-border-radius);
+    border-top-right-radius: var(--control-border-radius);
+    box-shadow: var(--window-box-shadow);
+    background: var(--control-bg) !important;
+}
+
+
+.je-header>span{
+    font-weight:bold;
+}
+
+.je-indented-panel--top:not(.specificity){
+     margin-left: 3px;
+    padding-left: 3px;
 }

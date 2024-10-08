@@ -921,7 +921,10 @@ class BaseDashWidget extends HTMLElement {
   }
 
   disconnectedCallback() {
-    this.source.unsubscribe(this.setterFunc);
+    if (this.source) {
+      this.source.unsubscribe(this.setterFunc);
+    }
+
     for (const i in this.filterStack) {
       this.filterStack[i].close();
     }
@@ -1075,12 +1078,26 @@ class InputDashWidget extends picodash.BaseDashWidget {
             this.input.disabled = true;
         }
 
-        for (const i of ['min', 'max', 'high', 'low', 'step']) {
-            var x = cfg[i] || this.getAttribute('min');
+        for (const i of ['min', 'max', 'high', 'low']) {
+            var x = cfg[i] || this.getAttribute(i);
 
             if (typeof x !== 'undefined') {
                 this.input[i] = x;
             }
+        }
+
+        let stp = cfg.step || 0.000001;
+
+        if (!this.getAttribute('step')) {
+            if (stp == parseInt(stp)) {
+                stp=stp;
+            }
+            else {
+                stp = "any";
+            }
+        }
+        else {
+            this.getAttribute('step');
         }
 
         this.input.className = this.className || '';
@@ -1089,6 +1106,10 @@ class InputDashWidget extends picodash.BaseDashWidget {
         this.input.type = this.getAttribute('type') || 'text';
         this.input.disabled = this.input.disabled || this.getAttribute('disabled') || false;
         this.input.placeholder = this.getAttribute('placeholder') || '';
+
+        if(this.input.type == 'number'){
+            this.input.step = stp;
+        }
 
         if (this.getAttribute('list')) {
             this.input.list = this.getAttribute('list') || '';
@@ -1557,7 +1578,7 @@ class JsonStringify extends picodash.Filter {
 
   async get(unfiltered) {
     // Convert from unfiltered to filtered
-    return JSON.stringify(unfiltered)
+    return JSON.stringify(unfiltered, null, 2)
   }
 
   async set(val) {
