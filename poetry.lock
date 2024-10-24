@@ -1189,22 +1189,24 @@ files = [
 
 [[package]]
 name = "iot-devices"
-version = "0.2.0"
+version = "0.21.0"
 description = "Framework for creating and using device drives, and a library of devices."
 optional = false
 python-versions = "<4.0,>=3.10"
 files = [
-    {file = "iot_devices-0.2.0-py3-none-any.whl", hash = "sha256:40877a914f6a7c8af365f06efe61a8a68d748f53f1b5a018c69a8d2ef9f5b2d9"},
-    {file = "iot_devices-0.2.0.tar.gz", hash = "sha256:3acb3c99873fc674486ba853b129c4b61153a4de27aa8013858db1ae9ac9d733"},
+    {file = "iot_devices-0.21.0-py3-none-any.whl", hash = "sha256:83c2ac1ec04ccf0877001b8359ef69df0e7b4f7217ca7f59bcc61c14e548b4df"},
+    {file = "iot_devices-0.21.0.tar.gz", hash = "sha256:65ee15f88927201f07b75dcd45a05016a5dd6583e97d7236977e443734a23e21"},
 ]
 
 [package.dependencies]
 aioesphomeapi = "24.6.0"
 colorzero = "*"
 gpiozero = "*"
+niquests = ">=3.9.1,<4.0.0"
 paho-mqtt = "*"
 scullery = ">=0.2.0"
 urwid = "*"
+websockets = ">=13.1,<14.0"
 yeelight = "*"
 
 [[package]]
@@ -4267,4 +4269,4 @@ ifaddr = ">=0.1.7"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10.0, <3.13"
-content-hash = "d4ed3379ead7a4b4e7f9ddb41531443dbaa2d29f0d30562f27ac1c7419353f11"
+content-hash = "38f292c0571971f3c2c7ce60557cf82c8064e4429977ee30086a3045e6552cdf"

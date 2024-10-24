@@ -5,7 +5,7 @@
 # Use poetry self add poetry-plugin-freeze
 
 name = "kaithem"
-version = "0.86.0"
+version = "0.86.1"
 description = "Home/commercial automation server"
 license = "GPL-3.0-only"
 packages = [{ include = "kaithem" }, { include = "kaithem_cli" }, { include = "kaithem_scripts" }]
