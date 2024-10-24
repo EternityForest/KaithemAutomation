@@ -1,6 +1,4 @@
 {
-    "python.pythonPath": "/usr/bin/python3",
-
     "files.exclude": {
         "helpers/debianpackaging/package/usr/**": true,
         ".mypy_cache": true,
@@ -18,10 +16,12 @@
     },
     "python.autoComplete.extraPaths": [
         "kaithem/src/thirdparty",
-        "kaithem/src/docs/thirdparty/python**"
+        "kaithem/src/docs/thirdparty/python**",
+        ".venv/lib/*/site-packages"
     ],
     "python.analysis.extraPaths": [
-        "kaithem/src/docs/thirdparty/"
+        "kaithem/src/docs/thirdparty/",
+        ".venv/lib/*/site-packages"
     ],
     "editor.formatOnSave": false,
     "editor.formatOnType": true,
@@ -97,7 +97,8 @@
                 "Vals",
                 "vue",
                 "webp",
-                "werkzeug"
+                "werkzeug",
+                "ws"
             ],
             "python.analysis.typeCheckingMode": "standard"
 

@@ -33,6 +33,14 @@ from . import alerts, messagebus, pages, widgets, workers
 from .unitsofmeasure import convert, unit_types
 
 logger = structlog.get_logger(__name__)
+# _ and . allowed
+ILLEGAL_NAME_CHARS = "{}|\\<>,?-=+)(*&^%$#@!~`\n\r\t\0"
+
+
+def replace_illegal_chars(name):
+    for i in ILLEGAL_NAME_CHARS:
+        name = name.replace(i, "")
+    return name
 
 
 def to_sk(s: str):
@@ -194,9 +202,6 @@ def normalize_tag_name(name: str, replacementChar: str | None = None) -> str:
 
     return name
 
-
-# _ and . allowed
-ILLEGAL_NAME_CHARS = "{}|\\<>,?-=+)(*&^%$#@!~`\n\r\t\0"
 
 T = TypeVar("T")
 

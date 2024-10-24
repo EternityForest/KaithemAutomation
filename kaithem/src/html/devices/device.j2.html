@@ -443,7 +443,9 @@
 
 
             <h2>Messages</h2>
+            {% if hasattr(obj,'logWindow') %}
             {{ obj.logWindow.render() }}
+            {% endif %}
 
 
 
@@ -462,8 +464,10 @@
     <div style="flex-basis: 20%; min-width: 12em;"></div>
 </main>
 
+{% if hasattr(obj,'_admin_ws_channel') %}
 {{ obj._admin_ws_channel.render("_admin_ws_channel") }}
 {{ obj._generic_ws_channel.render("_generic_ws_channel") }}
+{% endif %}
 <script>
 
     fakesOn = false;

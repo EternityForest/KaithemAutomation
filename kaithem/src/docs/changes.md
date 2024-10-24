@@ -1,6 +1,12 @@
 Change Log
 ----------
 
+
+### 0.86.1
+
+- :bug: Minor UI stuff with displaying unsupported devices
+- :sparkles:  Add experimental support for the ArduinoCogs web API, which is still pre-alpha.
+
 ### 0.86.0
 
 This release took a while, because so many tests had to be rewritten for the Popover API based UI.
