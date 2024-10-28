@@ -55,7 +55,7 @@ print(e)
 <div id="${i.replace('"','')}">${getDesc(i)|h}</div>
 </details>
 <script>
-    showdown.setFlavor(' github'); var c = document.getElementById("${i.replace('"','')}").innerHTML; var converter=new
+    showdown.setFlavor('github'); var c = document.getElementById("${i.replace('"','')}").innerHTML; var converter=new
     showdown.Converter(); document.getElementById("${i.replace('"','')}").innerHTML=converter.makeHtml(c); </script>
 
     %endfor

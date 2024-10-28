@@ -25,6 +25,13 @@ class TagDataSource extends picodash.DataSource {
                         this_.config[i] = myArr[i]
                     }
                 }
+
+                if(myArr.subtype){
+                    this_.config.subtype = myArr.subtype
+                }
+                else {
+                    this_.config.subtype = ''
+                }
                 this_.config.readonly = !myArr.writePermission
 
                 this_.data = myArr.lastVal
@@ -38,7 +45,12 @@ class TagDataSource extends picodash.DataSource {
     async pushData(d) {
         if (d != this.data) {
             this.data = d
-            kaithemapi.sendValue(this.name, d)
+            if (this.config.subtype == 'trigger') {
+                kaithemapi.sendTrigger(this.name, d)
+            }
+            else {
+                kaithemapi.sendValue(this.name, d)
+            }
         }
         super.pushData(d)
     }

@@ -72,7 +72,6 @@ Copyright (c) 2015 Yusuke Kawasaki
 
 	KaithemApi = function () {
 		var x = {
-
 			toSend: [],
 			enableWidgetGoneAlert: true,
 			lastDidSnackbarError: 0,
@@ -204,6 +203,18 @@ Copyright (c) 2015 Yusuke Kawasaki
 				this.poll_ratelimited();
 			},
 
+			sendTrigger: function (key,value) {
+				var d = { 'upd': [[key, value]] };
+				if (this.use_mp0) {
+					var j = new Blob([msgpack.encode(d)]);
+				}
+				else {
+					var j = JSON.stringify(d);
+				}
+
+				this.connection.send(j);
+			},
+
 			wsPrefix: function () {
 				return window.location.protocol.replace("http", "ws") + "//" + window.location.host
 			},
@@ -213,6 +224,8 @@ Copyright (c) 2015 Yusuke Kawasaki
 			reconnect_timeout: 1500,
 
 			reconnector: null,
+			// Very first time, give it some extra before clearing old msgs
+			lastDisconnect: Date.now()+15000,
 
 			connect: function () {
 				var apiobj = this
@@ -220,6 +233,7 @@ Copyright (c) 2015 Yusuke Kawasaki
 				this.connection = new WebSocket(window.location.protocol.replace("http", "ws") + "//" + window.location.host + '/widgets/ws');
 
 				this.connection.onclose = function (e) {
+					apiobj.lastDisconnect = Date.now();
 					console.log(e);
 					if (apiobj.reconnector) {
 						clearTimeout(apiobj.reconnector)
@@ -229,6 +243,7 @@ Copyright (c) 2015 Yusuke Kawasaki
 				};
 
 				this.connection.onerror = function (e) {
+					apiobj.lastDisconnect = Date.now();
 					console.log(e);
 					if (apiobj.reconnector) {
 						clearTimeout(apiobj.reconnector)
@@ -293,6 +308,11 @@ Copyright (c) 2015 Yusuke Kawasaki
 					}
 				}
 				this.connection.onopen = function (e) {
+					// Do not send very old messages on reconnect
+					if(apiobj.lastDisconnect < (Date.now() - 5000)) {
+						apiobj.toSend = [];
+					}
+
 					var j = JSON.stringify({ "subsc": Object.keys(apiobj.serverMsgCallbacks), "req": [], "upd": [["__url__", window.location.href]] })
 					apiobj.connection.send(j)
 					console.log("WS Connection Initialized");
