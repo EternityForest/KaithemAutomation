@@ -1311,6 +1311,15 @@ class Group:
                         # The crossfade to work
                         # TODO this should not stop early if the next cue overrides
                         duration = core.get_audio_duration(path) or 0
+
+                        loops: int = int(self.script_context.preprocessArgument(self.cue.sound_loops)) or 0
+                        if loops > 1:
+                            duration = duration * loops
+
+                        # Dummy very long time for endless looping.
+                        if loops < 0:
+                            duration = 2**31
+
                         if duration > 0:
                             start = self.script_context.preprocessArgument(self.cue.sound_start_position) or 0
                             start = float(start)

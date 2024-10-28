@@ -1,6 +1,9 @@
 Change Log
 ----------
 
+### 0.86.2
+
+- :bug: Fix bug where the loop sound feature interacted badly with relative length
 
 ### 0.86.1
 
