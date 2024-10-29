@@ -103,9 +103,9 @@ cueSetData = {}
 
 appMethods = {
 
-    "initializeState": async function(board){
+    "initializeState": async function (board) {
 
-        var v = await fetch("/chandler/api/all-cues/"+board, {
+        var v = await fetch("/chandler/api/all-cues/" + board, {
             method: "GET",
         })
 
@@ -322,7 +322,7 @@ appMethods = {
     'selectgroup': function (sc, sn) {
         this.getcuedata(this.groupcues[sn][this.selectedCues[
             sc] || 'default'])
-        if(this.cuePage[sn] == undefined) {
+        if (this.cuePage[sn] == undefined) {
             this.cuePage[sn] = 0
         }
         this.editingGroup = sc;
@@ -862,15 +862,27 @@ appData = {
     'fixtureassg': '',
     'showevents': false,
 
-    'example_events': [['now', "Run when script loads"], ['cue.exit', 'When exiting the cue'], ['cue.enter', 'When entering a cue'], ['button.a', 'A button in groups sidebar']
-    ['keydown.a', "When a lowercase A is pressed in the Send Events mode on the console"], ["=log(90)", 'Example polled expression. =Expressions are polled every few seconds or on certain triggers.'],
-    ['@january 5th', "Run every jan 5 at midnight"], ['@every day at 2am US/Pacific', 'Time zones supported'],
-    ['@every 10 seconds', 'Simple repeating trigger'],
-    ["=isNight()", 'Run if it is nighttime(polled)'], ["=isNight()", 'Run if it is nighttime(polled)'],
-    ["=tv('/system/alerts.level') >= 30 ", "Run if the highest priority alert is warning(30), error(40), or critical(50) level"],
-    ["=isDark()", 'Run if it is civil twilight'],
-    ["=tv('TagPointName')", 'Run when tag point becomes nonzero(instant, poll is triggered on change)'],
-    ["script.poll", 'Run every fast(~24Hz) polling cycle of the script, not the same as =expressions']],
+    'example_events_base': [
+        ['now', "Run when script loads"],
+        ['cue.exit', 'When exiting the cue'],
+        ['cue.enter', 'When entering a cue'],
+        ["=tv('TagPointName')", 'Run when tag point is nonzero'],
+        ["=/tv('TagPointName')", 'Run when tag point newly becomes nonzero(edge trigger)'],
+        ["=~tv('TagPointName')", 'Run when tag point changes'],
+        ["=+tv('TagPointName')", 'Run when changes and is not zero(Counter/bang trigger)'],
+        ['button.a', 'A button in groups sidebar'],
+        ['keydown.a', "When a lowercase A is pressed in the Send Events mode on the console"],
+        ["=log(90)", 'Example polled expression. =Expressions are polled every few seconds or on certain triggers.'],
+        ['@january 5th', "Run every jan 5 at midnight"], ['@every day at 2am US/Pacific', 'Time zones supported'],
+        ['@every 10 seconds', 'Simple repeating trigger'],
+        ["=isNight()", 'Run if it is nighttime(polled)'], ["=isNight()", 'Run if it is nighttime(polled)'],
+        ["=tv('/system/alerts.level') >= 30 ", "Run if the highest priority alert is warning(30), error(40), or critical(50) level"],
+        ["=isDark()", 'Run if it is civil twilight'],
+        ["script.poll", 'Run every fast(~24Hz) polling cycle of the script, not the same as =expressions'],
+    ],
+
+    'example_events': [
+    ],
 
 
     'availableTags': availableTags,
@@ -923,7 +935,7 @@ appData = {
 
         'tagPointsCompleter': function (a) {
             var c = [];
-            for (i of this.availableTags) {
+            for (i in availableTags) {
                 c.push([i, ''])
             }
             return c;
@@ -940,7 +952,7 @@ appData = {
                 ['=random()', 'Random from 0 to 1'],
                 ['=GROUP', 'Name of the group']
             ];
-            for (i of this.availableTags) {
+            for (i in availableTags) {
                 c.push(['=tv("' + i + '")', ''])
             }
             return c;
@@ -1288,7 +1300,7 @@ appData = {
 }
 
 
-function handleCueInfo(id, cue){
+function handleCueInfo(id, cue) {
     //Make an empty list of cues if it's not there yet
     if (vueapp.$data.groupcues[cue.group] == undefined) {
         old_vue_set(vueapp.$data.groupcues, cue.group, {});
@@ -1301,6 +1313,22 @@ function handleCueInfo(id, cue){
         old_vue_set(vueapp.$data.cuemeta, id, {});
     };
     set(vueapp.$data.cuemeta, id, cue);
+}
+
+for (var i in appData.example_events_base) {
+    appData.example_events.push(appData.example_events_base[i])
+}
+
+for (var n in availableTags) {
+    let i = availableTags[n]
+    appData.example_events.push(["=tv('" + n + "')", "While tag is nonzero"])
+    if (i == "trigger") {
+        appData.example_events.push(["=+tv('" + n + "')", "On every nonzero change"])
+    }
+    if (i == "bool") {
+        appData.example_events.push(["=/tv('" + n + "')", "When tag newly becomes nonzero(edge trigger)"])
+    }
+
 }
 
 function f(v) {

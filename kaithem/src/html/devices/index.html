@@ -121,6 +121,14 @@ else:
 
 
     <div class="stacked-form margin-top">
+        %if hasattr(devObj, 'alerts') and devObj.alerts:
+        %for i in devObj.alerts:
+        % if devObj.alerts[i].sm.state!='normal':
+        <p class="danger"><i class="mdi mdi-alert"></i>${i}</p>
+        %endif
+        %endfor
+        %endif
+
         %if hasattr(devObj, 'tagPoints') and devObj.tagPoints:
 
             %for i in devObj.tagPoints:

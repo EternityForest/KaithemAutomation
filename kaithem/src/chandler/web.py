@@ -68,11 +68,13 @@ def limitedTagsListing():
     # Unless there's way too many
     # Then only list some of them
 
-    v = []
+    v = {}
     for i in tagpoints.allTagsAtomic:
         if len(v) > 1024:
             break
-        v.append(i)
+        t = tagpoints.allTagsAtomic[i]()
+        if t:
+            v[i] = t.subtype
     return v
 
 

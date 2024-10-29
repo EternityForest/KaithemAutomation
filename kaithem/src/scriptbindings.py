@@ -484,6 +484,9 @@ class BaseChandlerScriptContext:
         # Look for rising edge detects that already fired
         self.risingEdgeDetects = {}
 
+        # State tracking for change detection
+        self.changeDetects = {}
+
         if parentContext:
 
             def delf(*a, **K):
@@ -573,7 +576,24 @@ class BaseChandlerScriptContext:
                         else:
                             self.risingEdgeDetects[i] = False
 
-                    # Level trigger
+                    elif i.startswith("=~"):
+                        self.eval_times = 0
+                        r = self.preprocessArgument(f"={i[2:]}")
+                        if (i in self.changeDetects) and (self.changeDetects[i] != r):
+                            self.event(i, r, timestamp=self.eval_times or time.time())
+
+                        self.changeDetects[i] = r
+
+                    # Counter trigger
+                    elif i.startswith("=+"):
+                        self.eval_times = 0
+                        r = self.preprocessArgument(f"={i[2:]}")
+                        if r:
+                            if (i in self.changeDetects) and (self.changeDetects[i] != r):
+                                self.event(i, r, timestamp=self.eval_times or time.time())
+
+                        self.changeDetects[i] = r
+
                     elif i.startswith("="):
                         self.eval_times = 0
                         r = self.preprocessArgument(i)
@@ -1030,6 +1050,7 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
 
         self.setTag = setTag
         self.commands["set_tag"] = setTag
+        setTag.completionTags = {"tagName": "tagPointsCompleter"}  # type: ignore
 
         def shell(cmd: str):
             """Run a system shell command line and return the output as the next command's _"""

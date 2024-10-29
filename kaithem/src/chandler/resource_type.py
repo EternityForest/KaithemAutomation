@@ -45,7 +45,6 @@ class ConfigType(modules_state.ResourceType):
         data = copy.deepcopy(data)
         x = entries.pop((module, resource), None)
         entries[module, resource] = WebChandlerConsole.WebConsole(f"{module}:{resource}")
-        set_save_cb(entries[module, resource], module, resource)
 
         with core.cl_context:
             core.boards[f"{module}:{resource}"] = entries[module, resource]
@@ -54,6 +53,8 @@ class ConfigType(modules_state.ResourceType):
                 x.cl_close()
 
             core.boards[f"{module}:{resource}"].cl_setup(data.get("project", {}))
+
+        set_save_cb(entries[module, resource], module, resource)
 
     def on_move(self, module, resource, to_module, to_resource, data):
         x = entries.pop((module, resource), None)

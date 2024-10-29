@@ -6,6 +6,9 @@ Change Log
 - :bug: Fix bug where the loop sound feature interacted badly with relative length
 - :sparkles: Widget API will no longer send old failed messages on reconnected after 5 seconds
 - :bug: Fix nuisance gitgub flavor not found error
+- :sparkles: Chandler logic lets you use `=+ tv("TagName")` to trigger when a tag changes to a nonzero value.
+- :sparkles: Improve chandler autocomplete suggestions
+- :lipstick: Alerts more visible on devices pages
 
 ### 0.86.1
 
