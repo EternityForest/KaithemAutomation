@@ -80,7 +80,7 @@ else:
         %if hasattr(devObj, 'tagpoints'):
 
         %if not hasattr(deviceData[i](),'_kaithem_is_subdevice'):
-        <a href="deleteDevice/${url(i)}" class="button" style="flex-grow:0"><i class="mdi mdi-delete"></i></a>
+        <a href="/modules/module/${url(devObj.parent_module)}/deleteresource/${url(devObj.parent_resource)}" class="button" style="flex-grow:0"><i class="mdi mdi-delete"></i></a>
         %endif
 
         </div>

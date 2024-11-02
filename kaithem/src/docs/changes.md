@@ -9,6 +9,8 @@ Change Log
 - :sparkles: Chandler logic lets you use `=+ tv("TagName")` to trigger when a tag changes to a nonzero value.
 - :sparkles: Improve chandler autocomplete suggestions
 - :lipstick: Alerts more visible on devices pages
+- :bug: Delete button on devices page works correctly
+- :sparkles: Switch to https://reallyfreegeoip.org for the one time location lookup
 
 ### 0.86.1
 

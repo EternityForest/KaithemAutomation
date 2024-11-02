@@ -296,18 +296,20 @@ input[type=range],
 
 
 
-:modal, .modal{
-    &::backdrop{
+:modal,
+.modal {
+    &::backdrop {
         content: "";
         background-color: black;
         opacity: 0.3;
     }
 }
 
-[popover]{
+[popover] {
     max-height: 100vh;
     overflow: scroll;
 }
+
 /*****************Typography****************************/
 
 @media screen and (max-width: 820px) {
@@ -322,7 +324,7 @@ main {
     margin: auto;
     width: calc(min(45em, 100vw, 100%));
     max-width: 100%;
-    min-width: calc(min(min-content,100vw));
+    min-width: calc(min(min-content, 100vw));
 }
 
 html {
@@ -1202,7 +1204,8 @@ it usable.  Remove when FF fully supports :has()*/
     and in behaves badly in edge cases, so no wrap*/
     flex-wrap: nowrap;
     flex-direction: column;
-    &>hr{
+
+    &>hr {
         flex-grow: 0;
     }
 
@@ -1365,6 +1368,7 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
 .w-sm-quarter {
     width: 80px;
     max-width: calc(min(160px, 25vw));
+
     &:is(.margin) {
         max-width: calc(calc(min(160, 25vw)) - calc(var(--gap) * 2));
     }
@@ -1813,23 +1817,23 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
         flex-shrink: 1;
         flex-grow: 1;
     }
-    
+
     .w-sm-quarter {
         flex-basis: 70px;
     }
-    
+
     .w-sm-half {
         flex-basis: 160px;
         flex-grow: 1;
-    
+
     }
-    
+
     .w-sm-double {
         flex-basis: 16cm;
         flex-shrink: 1;
         flex-grow: 1;
     }
-    
+
 }
 
 
@@ -1851,10 +1855,10 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
 
 .readability-outline {
     text-shadow:
-    2px 2px 2px var(--contrasting-bg-color),
-    -2px 2px 3px var(--contrasting-bg-color),
-    -2px -2px 3px var(--contrasting-bg-color),
-    2px -2px 2px var(--contrasting-bg-color)
+        2px 2px 2px var(--contrasting-bg-color),
+        -2px 2px 3px var(--contrasting-bg-color),
+        -2px -2px 3px var(--contrasting-bg-color),
+        2px -2px 2px var(--contrasting-bg-color)
 }
 
 
@@ -2100,7 +2104,8 @@ footer.padding {
 
 .error:not(.specificity_hack),
 .danger:not(.specificity_hack),
-.bad:not(.specificity_hack) {
+.bad:not(.specificity_hack),
+input:invalid:not(.specificity_hack) {
     --highlight-tint: color-mix(in srgb, var(--danger-color) var(--highlight-opacity), transparent);
     --alt-control-bg: var(--highlight-tint);
     background-color: var(--highlight-tint);
@@ -2118,7 +2123,8 @@ footer.padding {
 .bad:not(.specificity_hack),
 .highlight:not(.specificity_hack),
 .success:not(.specificity_hack),
-.warning:not(.specificity_hack) {
+.warning:not(.specificity_hack),
+input:invalid:not(.specificity_hack) {
 
     &:not(meter),
     & :is(input, button, textarea, select, .button) {
@@ -2975,23 +2981,23 @@ label {
     z-index: 10;
 }
 
-.je-indented-panel:not(.specificity_hack){
+.je-indented-panel:not(.specificity_hack) {
     border: none;
     margin: 3px;
-    padding:3px;
+    padding: 3px;
 
 }
 
-.je-object__container{
+.je-object__container {
     margin: 3px;
     border: var(--border);
     border-radius: var(--border-radius);
-    padding:var(--padding);
+    padding: var(--padding);
     box-shadow: var(--item-box-shadow);
 }
 
-.je-tab--top:not(.specificity_hack){
-    border-color: var(--fg-color)
+.je-tab--top:not(.specificity_hack) {
+    border-color: var(--fg-color);
     border-width: 2px;
     border-top-left-radius: var(--control-border-radius);
     border-top-right-radius: var(--control-border-radius);
@@ -3000,11 +3006,53 @@ label {
 }
 
 
-.je-header>span{
-    font-weight:bold;
+.je-header>span {
+    font-weight: bold;
 }
 
-.je-indented-panel--top:not(.specificity){
-     margin-left: 3px;
+.je-indented-panel--top:not(.specificity) {
+    margin-left: 3px;
     padding-left: 3px;
 }
+
+.je-indented-panel {
+    .form-control {
+        display: flex;
+        flex-direction: column;
+
+        &>label:is(:first-child) {
+            font-weight: bold;
+        }
+        &>input, &>select, &>textarea, &>p{
+            margin-left: var(--gap);'
+        }
+        &>p{
+            color: var(--graphical-fg);
+            font-size: 80%;
+        }
+    }
+}
+
+.json-editor-btn-edit_properties{
+    border:none;
+    padding:4px;
+    &:before{
+        content:"⚙️"
+    }
+    span{
+        display:none;
+    }
+}
+
+.json-editor-btn-add 
+{
+    border:none;
+    padding:4px;
+    &:before{
+        content:"➕"
+    }
+    span{
+        display:none;
+    }
+}
+
