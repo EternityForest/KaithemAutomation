@@ -39,7 +39,7 @@ cue_schema = schemas.get_schema("chandler/cue")
 
 # These are in the schema but the corresponding entry on the object has
 # an underscore and there's getters and setters.
-stored_as_property = ["markdown", "track", "sound", "slide", "shortcut"]
+stored_as_property = ["markdown", "track", "sound", "slide", "shortcut", "length_randomize"]
 
 slots = list(cue_schema["properties"].keys()) + [
     "id",
@@ -192,7 +192,7 @@ class Cue:
         self.sound_fade_in: float
         self.length: float | str = 0
         self.rel_length: bool = False
-        self.length_randomize: float
+        self._length_randomize: float
         self.next_cue: str
         self._track: bool = False
         self._shortcut: str
@@ -270,6 +270,14 @@ class Cue:
         self.push()
 
     @property
+    def is_active(self):
+        g = self.group()
+        if hasattr(g, "cue"):
+            if g and g.cue is self:
+                return True
+        return False
+
+    @property
     def provider(self):
         return self._provider
 
@@ -330,7 +338,7 @@ class Cue:
             name,
             fade_in=self.fade_in,
             length=self.length,
-            length_randomize=self.length_randomize,
+            length_randomize=self._length_randomize,
             values=copy.deepcopy(self.values),
             next_cue=self.next_cue,
             rel_length=self.rel_length,
@@ -403,6 +411,21 @@ class Cue:
     def setInheritRules(self, r):
         self.inherit_rules = r
         self.getGroup().refresh_rules()
+
+    @property
+    def length_randomize(self) -> float:
+        return self._length_randomize
+
+    @length_randomize.setter
+    def length_randomize(self, val: float):
+        changed = val != self._length_randomize
+        self._length_randomize = float(val or 0)
+
+        if changed and self.is_active:
+            g = self.group()
+            if g:
+                g.recalc_randomize_modifier()
+            self.push()
 
     @property
     def slide(self):

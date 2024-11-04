@@ -88,7 +88,8 @@ ${alertsapi.render("alertapi")}
 
         <%
         if "ackalarm" in quart.request.args:
-            alerts.all[quart.request.args['ackalarm']].API_ack()
+            if quart.request.args['ackalarm'] in alerts.all:
+                alerts.all[quart.request.args['ackalarm']].API_ack()
         toshow = {}
         l = []
 

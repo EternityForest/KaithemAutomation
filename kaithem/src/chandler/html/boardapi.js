@@ -832,6 +832,7 @@ appData = {
     'sc_code': "",
     'unixtime': 0,
     'serports': [],
+    'shortcuts': [],
     //Index by name
     'fixtureAssignments': {},
     'newfixname': '',
@@ -1633,6 +1634,10 @@ function f(v) {
             document.body.removeChild(link)
             window.URL.revokeObjectURL(url)
         }
+    }
+
+    else if (c == 'shortcuts') {
+        vueapp.$data.shortcuts = v[1]
     }
 }
 

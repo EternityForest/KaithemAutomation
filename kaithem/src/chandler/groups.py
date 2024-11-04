@@ -272,6 +272,7 @@ class Group:
             RuntimeError: _description_
             ValueError: _description_
         """
+
         self.board = chandler_board
 
         if name and name in self.board.groups_by_name:

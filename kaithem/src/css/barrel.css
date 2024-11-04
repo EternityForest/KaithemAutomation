@@ -317,6 +317,11 @@ input[type=range],
         display: none;
     }
 }
+@media screen and (min-width: 820px) {
+    .mobile-only {
+        display: none;
+    }
+}
 
 /*Overall page layout */
 

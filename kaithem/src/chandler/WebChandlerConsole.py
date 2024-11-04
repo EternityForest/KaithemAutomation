@@ -15,7 +15,7 @@ from tinytag import TinyTag
 from ..alerts import getAlertState
 from ..auth import canUserDoThis
 from ..kaithemobj import kaithem
-from . import ChandlerConsole, core, groups, universes
+from . import ChandlerConsole, core, global_actions, groups, universes
 from .core import disallow_special
 from .cue import fnToCueName
 from .global_actions import cl_event
@@ -184,6 +184,14 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         self.push_setup()
         self.linkSend(["alerts", getAlertState()])
         self.linkSend(["soundfolders", self.media_folders])
+
+        sc = []
+
+        for i in global_actions.shortcut_codes:
+            if not i.isdecimal():
+                sc.append(i)
+
+        self.linkSend(["shortcuts", sc])
 
         for i in self.groups:
             s = self.groups[i]
@@ -849,17 +857,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             sc = cues[msg[1]].group()
             assert sc
             sc.recalc_cue_len()
-            self.pushCueMeta(msg[1])
-
-        elif cmd_name == "setrandomize":
-            try:
-                v = float(msg[2])
-            except Exception:
-                v = msg[2][:256]
-            cues[msg[1]].length_randomize = v
-            sc = cues[msg[1]].group()
-            assert sc
-            sc.recalc_randomize_modifier()
             self.pushCueMeta(msg[1])
 
         elif cmd_name == "setnext":

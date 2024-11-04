@@ -1344,20 +1344,24 @@ ${lists}
 
                                     <p>
 
+                                        <datalist id="shortcuts">
+                                            <option v-for="i of shortcuts" v-bind:value="i"></option>
+                                        </datalist>
+
                                         <label><span><i class="mdi mdi-arrow-down-circle-outline"></i>Shortcut
                                             </span>
                                             <input :disabled="no_edit"
                                                 title="Shortcut code used to quickly activate a cue" size="8"
-                                                v-on:change="apiCommand(i[1].id,'setshortcut',$event.target.value)"
+                                                v-on:change="setCueProperty(currentcueid,'shortcut', $event.target.value)"
                                                 v-model="currentcue.shortcut">
                                         </label>
 
                                         <label><span><i class="mdi mdi-arrow-right-circle-outline"></i>
                                                 Trigger Shortcut</span>
-                                            <input :disabled="no_edit"
+                                            <input :disabled="no_edit" list="shortcuts"
                                                 title="When entering this cue, trigger the shortcut in other groups"
                                                 size="8"
-                                                v-on:change="settriggershortcut(currentcueid,$event.target.value)"
+                                                v-on:change="setCueProperty(currentcueid,'triggerShortcut', $event.target.value)"
                                                 v-model="currentcue.triggerShortcut">
                                         </label>
                                     </p>
@@ -1381,7 +1385,7 @@ ${lists}
                                         <label><span><i class="mdi mdi-dice-multiple-outline"></i>
                                                 Randomize Length</span>
                                             <input :disabled="no_edit" type="number"
-                                                v-on:change="setrandomize(currentcueid,$event.target.value)"
+                                                v-on:change="setCueProperty(currentcueid,'lengthRandomize',$event.target.value)"
                                                 title="Randomize the cue length +- this amount"
                                                 v-model="cuemeta[currentcueid].lengthRandomize" min=0 step=0.25>
                                         </label>
