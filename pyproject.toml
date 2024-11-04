@@ -114,7 +114,7 @@ hypercorn = {extras = ["uvloop"], version = "^0.17.3"}
 structlog = "^24.1.0"
 rich = "^13.7.1"
 colorama = "^0.4.6"
-starlette = "^0.37.2"
+starlette = ">=0.37.2,<0.41.0"
 
 ephem = "^4.1.5"
 
