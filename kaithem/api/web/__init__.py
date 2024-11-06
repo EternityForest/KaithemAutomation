@@ -1,5 +1,6 @@
 import importlib as _importlib
 import os as _os
+import socket as _socket
 from collections.abc import Callable
 
 import jinja2 as _jinja2
@@ -63,6 +64,14 @@ def render_jinja_template(template_filename: str, **kw):
     {% endblock %}
     """
     return _jl.load(_env, template_filename, _env.globals).render(imp0rt=_importlib.import_module, **kw)
+
+
+def render_html_file(body: str, title: str = "Kaithem"):
+    with open(body) as f:
+        body = f.read()
+
+    title = title or _socket.gethostname()
+    return render_jinja_template("generic_page.j2.html", body=body, title=title)
 
 
 def add_asgi_app(prefix: str, app, permission="system_admin"):

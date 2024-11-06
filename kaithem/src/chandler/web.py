@@ -14,6 +14,7 @@ from tinytag import TinyTag
 if TYPE_CHECKING:
     pass
 
+from kaithem.api.web import render_html_file
 from kaithem.src import quart_app
 
 from .. import directories, pages
@@ -91,6 +92,11 @@ async def label_update_callback(path: str):
     return await f()
 
 
+html_dir = os.path.join(os.path.dirname(__file__), "html")
+
+console_fn = os.path.join(html_dir, "console.html")
+
+
 @quart_app.app.route("/chandler/editor/<board>")
 def editor(board: str):
     """Index page for web interface"""
@@ -99,7 +105,7 @@ def editor(board: str):
     except PermissionError:
         return pages.loginredirect(pages.geturl())
 
-    return get_template("console.html").render()
+    return render_html_file(console_fn)
 
 
 @quart_app.app.route("/chandler/commander/<board>")
