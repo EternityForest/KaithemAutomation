@@ -479,17 +479,6 @@
 
             }
         }).mount("#app")
-    var script = document.createElement('script');
-
-    script.onload = function () {
-        const boardname = window.location.pathname.split('/')[3];
-        init_api_link(boardname)
-    };
-
-    script.src = "/apiwidget/WebChandlerConsole:" + appData.boardname + "?js_name=api_link";
-
-    document.head.appendChild(script);
-
 </script>
 
 <%include file="/pagefooter.html" />

@@ -1,8 +1,6 @@
 <%inherit file="/pagetemplate.html" />
 <%block name="title">Chandler Editor</%block>
 
-${lists}
-
 <style>
     .grey {
         color: grey;
@@ -318,7 +316,7 @@ ${lists}
 
             <div class="tool-bar">
                 <button v-on:click="addfixturetype()"><i class="mdi mdi-plus"></i>New</button>
-                <a class="button" href="/chandler/config/opz_import/${boardname}">Import from OP-Z format</a>
+                <a class="button" :href="'/chandler/config/opz_import/'+boardname">Import from OP-Z format</a>
             </div>
             <hr>
             <combo-box testid="fixture-type-to-edit" v-model="selectedFixtureClass" v-on:change="getfixtureclass(selectedFixtureClass)"
@@ -530,9 +528,6 @@ ${lists}
 </div>
 
 
-
-
-${core.boards[boardname].link.render('api_link')}
 <script src="/static/js/thirdparty/strftime-min.js"></script>
 
 <script src="../dyn_js/boardapi.js?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61"></script>
@@ -657,7 +652,6 @@ ${core.boards[boardname].link.render('api_link')}
         var date = new Date(t * 1000);
         return date.strftime("%I:%M:%S%p")
     }
-    appData.boardname = '${boardname}'
     appData.selectingImageLabelForFixture = null
     appData.iframeDialog = null
 
@@ -710,7 +704,4 @@ ${core.boards[boardname].link.render('api_link')}
             },
             computed: appComputed
         }).mount("#app")
-
-    init_api_link(appData.boardname)
-
 </script>

@@ -12,14 +12,13 @@ from mako.lookup import TemplateLookup
 from tinytag import TinyTag
 
 if TYPE_CHECKING:
-    from .WebChandlerConsole import WebConsole
+    pass
 
-from kaithem.src import quart_app, tagpoints
+from kaithem.src import quart_app
 
 from .. import directories, pages
 from ..kaithemobj import kaithem
 from . import (
-    blendmodes,
     core,
     groups,
     universes,
@@ -34,73 +33,6 @@ _Lookup = TemplateLookup(
 )
 
 get_template = _Lookup.get_template
-
-once = [0]
-
-
-def listRtmidi():
-    try:
-        import rtmidi
-    except ImportError:
-        if once[0] == 0:
-            kaithem.message.post(
-                "/system/notifications/errors/",
-                "python-rtmidi is missing. Most MIDI related features will not work.",
-            )
-            once[0] = 1
-        return []
-    try:
-        try:
-            m = rtmidi.MidiIn()
-        except Exception:
-            m = rtmidi.MidiIn()
-
-        x = [(m.get_port_name(i)) for i in range(m.get_port_count())]
-        m.close_port()
-        return x
-    except Exception:
-        core.logger.exception("Error in MIDI system")
-        return []
-
-
-def limitedTagsListing():
-    # Make a list of all the tags,
-    # Unless there's way too many
-    # Then only list some of them
-
-    v = {}
-    for i in tagpoints.allTagsAtomic:
-        if len(v) > 1024:
-            break
-        t = tagpoints.allTagsAtomic[i]()
-        if t:
-            v[i] = t.subtype
-    return v
-
-
-def command_tagsListing():
-    # Make a list of all the tags,
-    # Unless there's way too many
-    # Then only list some of them
-
-    v = []
-    t = tagpoints.allTagsAtomic
-    for i in t:
-        x = t[i]()
-        if x:
-            if x.subtype == "event":
-                if len(v) > 250:
-                    break
-                v.append(i)
-    return v
-
-
-def header(datalists, v):
-    return get_template("dlmaker.html").render(__datalists__=datalists, __jsvars__=v)
-
-
-def scriptheader(v):
-    return get_template("global_vars_maker.js").render(__jsvars__=v)
 
 
 # @quart_app.app.route("/chandler/downloadOneGroup")
@@ -166,26 +98,8 @@ def editor(board: str):
         pages.require("system_admin")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
-    v = limitedTagsListing()
-    c = command_tagsListing()
 
-    datalists = {"midiinputs": [], "tagslisting": [], "commandtagslisting": []}
-
-    for i in listRtmidi():
-        datalists["midiinputs"].append({"value": str(i)})
-
-    for i in v:
-        datalists["tagslisting"].append({"value": str(i)})
-
-    for i in c:
-        datalists["commandtagslisting"].append({"value": str(i)})
-
-    return get_template("console.html").render(
-        lists=header(datalists, {}),
-        boardname=board,
-        core=core,
-        blendmodes=blendmodes,
-    )
+    return get_template("console.html").render()
 
 
 @quart_app.app.route("/chandler/commander/<board>")
@@ -196,7 +110,7 @@ def commander(board: str):
     except PermissionError:
         return pages.loginredirect(pages.geturl())
 
-    return get_template("commander.html").render(boardname=board, core=core)
+    return get_template("commander.html").render()
 
 
 @quart_app.app.route("/chandler/config/<board>")
@@ -206,37 +120,14 @@ def config(board: str):
         pages.require("system_admin")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
-    v = limitedTagsListing()
-    c = command_tagsListing()
 
-    datalists = {"midiinputs": [], "tagslisting": [], "commandtagslisting": []}
-
-    for i in listRtmidi():
-        datalists["midiinputs"].append({"value": str(i)})
-
-    for i in v:
-        datalists["tagslisting"].append({"value": str(i)})
-
-    for i in c:
-        datalists["commandtagslisting"].append({"value": str(i)})
-
-    return get_template("config.html").render(
-        lists=header(datalists, {}),
-        boardname=board,
-        core=core,
-        blendmodes=blendmodes,
-    )
+    return get_template("config.html").render()
 
 
 @quart_app.app.route("/chandler/config/opz_import/<board>")
 def opz_import(board: str):
     pages.require("system_admin")
-    b: WebConsole = core.boards[board]  # type: ignore
-    link = b.link
-    return get_template("opz_import.html").render(
-        boardname=board,
-        api_link=link,
-    )
+    return get_template("opz_import.html").render()
 
 
 @quart_app.app.route("/chandler/dyn_js/<file>")
@@ -247,14 +138,7 @@ def dyn_js(file):
         except PermissionError:
             return pages.loginredirect(pages.geturl())
 
-        vars = {
-            "KaithemSoundCards": [i for i in kaithem.sound.outputs()],
-            "availableTags": limitedTagsListing(),
-        }
-
-        return get_template("boardapi.js").render(
-            vars=scriptheader(vars),
-        )
+        return get_template("boardapi.js").render()
     raise RuntimeError("File not found")
 
 

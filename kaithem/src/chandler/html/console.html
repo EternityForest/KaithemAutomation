@@ -1,9 +1,4 @@
 <%inherit file="/pagetemplate.html" />
-<%!
-from kaithem.src.kaithemobj import kaithem
-%>
-
-${lists}
 
 
 <datalist name="nextcueoptions" id="nextcueoptions">
@@ -180,6 +175,15 @@ ${lists}
 
 
 <div id="app" v-cloak class="flex-row gaps">
+
+    <datalist id="tagslisting">
+        <option v-for="v,i of availableTags" v-bind:value="i"></option>
+    </datalist>
+
+    <datalist id="midiinputs">
+        <option v-for="v,i of midiInputs" v-bind:value="i"></option>
+    </datalist>
+
     <section id="optionsblock" class="multibar undecorated w-full">
 
         <div class="menubar tool-bar">
@@ -201,7 +205,7 @@ ${lists}
 
             <button type="button" v-on:click="showslideshowtelemetry=!showslideshowtelemetry"><i
                     class="mdi mdi-monitor"></i>Displays</button>
-            <a aria-label="Settings" class="button" href="/chandler/config/${boardname}"><i
+            <a aria-label="Settings" class="button" :href="'/chandler/config/'+boardname"><i
                     class="mdi mdi-cog-outline"></i></a><label>
                 <i class="mdi mdi-volume-medium"></i><input type="checkbox" class="toggle" v-model="uiAlertSounds">
             </label>
@@ -1517,7 +1521,7 @@ ${lists}
                                         HTP</option>
                                     <option title="Limit maximum level">inhibit</option>
 
-                                    <option v-for="i in ${[i for i in blendmodes.blendmodes.keys()]}">{{i}}
+                                    <option v-for="i in blendModes">{{i}}
                                     </option>
 
                                 </select>
@@ -2092,7 +2096,7 @@ ${lists}
 
     appData.keyboardJS = keyboardJS
 
-    appData.no_edit = ${ 'false' if kaithem.web.has_permission('system_admin') else 'true' }
+    appData.no_edit = !kaithemapi.checkPermission("system_admin");
 
     const options = {
         moduleCache: {
@@ -2146,7 +2150,7 @@ ${lists}
 
     var script = document.createElement('script');
     script.onload = function () {
-        const boardname =window.location.pathname.split('/')[3];
+        const boardname = window.location.pathname.split('/')[3];
         init_api_link(boardname)
     };
 

@@ -39,7 +39,7 @@ Copyright (c) 2015 Yusuke Kawasaki
 		// add the text node to the newly created div
 		//newDiv.appendChild(newContent);
 		newDiv.classList = "card paper"
-		newDiv.innerHTML = "<header>Alert (x)</header><p>"+m+"</p>"
+		newDiv.innerHTML = "<header>Alert (x)</header><p>" + m + "</p>"
 
 		// add the newly created element and its content into the DOM
 		const currentDiv = document.getElementById("div1");
@@ -72,6 +72,18 @@ Copyright (c) 2015 Yusuke Kawasaki
 
 	KaithemApi = function () {
 		var x = {
+
+
+			checkPermission: async function (perm) {
+				let permissionurl = "/api.core/check-permission/" + perm
+
+				return fetch(permissionurl, {
+					method: "GET",
+				}).then(response => {
+					return response.json()
+				})
+			},
+
 			toSend: [],
 			enableWidgetGoneAlert: true,
 			lastDidSnackbarError: 0,
@@ -203,7 +215,7 @@ Copyright (c) 2015 Yusuke Kawasaki
 				this.poll_ratelimited();
 			},
 
-			sendTrigger: function (key,value) {
+			sendTrigger: function (key, value) {
 				var d = { 'upd': [[key, value]] };
 				if (this.use_mp0) {
 					var j = new Blob([msgpack.encode(d)]);
@@ -225,7 +237,7 @@ Copyright (c) 2015 Yusuke Kawasaki
 
 			reconnector: null,
 			// Very first time, give it some extra before clearing old msgs
-			lastDisconnect: Date.now()+15000,
+			lastDisconnect: Date.now() + 15000,
 
 			connect: function () {
 				var apiobj = this
@@ -251,7 +263,7 @@ Copyright (c) 2015 Yusuke Kawasaki
 					}
 					if (apiobj.connection.readyState != 1) {
 						apiobj.reconnect_timeout = Math.min(apiobj.reconnect_timeout * 2, 20000);
-						apiobj.reconnector =setTimeout(function () { apiobj.connect() }, apiobj.reconnect_timeout);
+						apiobj.reconnector = setTimeout(function () { apiobj.connect() }, apiobj.reconnect_timeout);
 					}
 				};
 
@@ -309,7 +321,7 @@ Copyright (c) 2015 Yusuke Kawasaki
 				}
 				this.connection.onopen = function (e) {
 					// Do not send very old messages on reconnect
-					if(apiobj.lastDisconnect < (Date.now() - 5000)) {
+					if (apiobj.lastDisconnect < (Date.now() - 5000)) {
 						apiobj.toSend = [];
 					}
 

@@ -12,14 +12,57 @@ from typing import Any
 import yaml
 from tinytag import TinyTag
 
+from .. import tagpoints
 from ..alerts import getAlertState
 from ..auth import canUserDoThis
 from ..kaithemobj import kaithem
-from . import ChandlerConsole, core, global_actions, groups, universes
+from . import ChandlerConsole, blendmodes, core, global_actions, groups, universes
 from .core import disallow_special
 from .cue import fnToCueName
 from .global_actions import cl_event
 from .groups import Group, cues
+
+once = [0]
+
+
+def listRtmidi():
+    try:
+        import rtmidi
+    except ImportError:
+        if once[0] == 0:
+            kaithem.message.post(
+                "/system/notifications/errors/",
+                "python-rtmidi is missing. Most MIDI related features will not work.",
+            )
+            once[0] = 1
+        return []
+    try:
+        try:
+            m = rtmidi.MidiIn()
+        except Exception:
+            m = rtmidi.MidiIn()
+
+        x = [(m.get_port_name(i)) for i in range(m.get_port_count())]
+        m.close_port()
+        return x
+    except Exception:
+        core.logger.exception("Error in MIDI system")
+        return []
+
+
+def limitedTagsListing():
+    # Make a list of all the tags,
+    # Unless there's way too many
+    # Then only list some of them
+
+    v = {}
+    for i in tagpoints.allTagsAtomic:
+        if len(v) > 1024:
+            break
+        t = tagpoints.allTagsAtomic[i]()
+        if t:
+            v[i] = t.subtype
+    return v
 
 
 def listsoundfolder(path: str, extra_folders: list[str] = []):
@@ -184,6 +227,14 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         self.push_setup()
         self.linkSend(["alerts", getAlertState()])
         self.linkSend(["soundfolders", self.media_folders])
+
+        self.linkSend(["availableTags", limitedTagsListing()])
+
+        self.linkSend(["soundoutputs", [i for i in kaithem.sound.outputs()]])
+
+        self.linkSend(["midiInputs", listRtmidi()])
+
+        self.linkSend(["blendModes", list(blendmodes.blendmodes.keys())])
 
         sc = []
 

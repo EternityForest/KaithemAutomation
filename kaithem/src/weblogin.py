@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 import base64
 import collections
+import json
 import logging
 import threading
 import time
@@ -165,3 +166,8 @@ def logout():
     r = quart.redirect("/index")
     r.set_cookie("kaithem_auth", "", samesite="Strict", path="/", httponly=True, secure=False)
     return r
+
+
+@quart_app.app.route("/api.core/check-permission/<permission>", methods=["GET"])
+def check_own_permissions(permission: str) -> str:
+    return json.dumps(auth.canUserDoThis(pages.getAcessingUser(), permission))

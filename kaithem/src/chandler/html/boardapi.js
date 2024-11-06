@@ -1,5 +1,3 @@
-${ vars }
-
 /* This rather hacky file expects this to become the app data for a vue instance
  named vueapp, and provides the chandler API that way.
 
@@ -95,9 +93,6 @@ formatInterval = function (seconds) {
     time = ("" + hours).padStart(2, '0') + ":" + ("" + minutes).padStart(2, '0') + ":" + ("" + seconds).padStart(2, '0')
     return time;
 }
-
-
-
 
 cueSetData = {}
 
@@ -826,6 +821,7 @@ appComputed = {
 //# sourceURL=appcode.js
 appData = {
     //https://stackoverflow.com/questions/6312993/javascript-seconds-to-time-string-with-format-hhmmss
+    'boardname': window.location.pathname.split('/')[3],
     'formatInterval': formatInterval,
     'clock': 'time_should_be_here',
     'console': console,
@@ -855,7 +851,7 @@ appData = {
 
     'evlog': [
     ],
-    'soundCards': KaithemSoundCards,
+    'soundCards': {},
 
     //What universe if any to show the full settings page for
     'universeFullSettings': false,
@@ -886,7 +882,9 @@ appData = {
     ],
 
 
-    'availableTags': availableTags,
+    'availableTags': {},
+    "midiInputs": [],
+    "blendModes": [],
     'completers': {
 
         'gotoGroupNamesCompleter': function (a) {
@@ -936,7 +934,7 @@ appData = {
 
         'tagPointsCompleter': function (a) {
             var c = [];
-            for (i in availableTags) {
+            for (i in appData.availableTags) {
                 c.push([i, ''])
             }
             return c;
@@ -953,7 +951,7 @@ appData = {
                 ['=random()', 'Random from 0 to 1'],
                 ['=GROUP', 'Name of the group']
             ];
-            for (i in availableTags) {
+            for (i in appData.availableTags) {
                 c.push(['=tv("' + i + '")', ''])
             }
             return c;
@@ -1316,21 +1314,7 @@ function handleCueInfo(id, cue) {
     set(vueapp.$data.cuemeta, id, cue);
 }
 
-for (var i in appData.example_events_base) {
-    appData.example_events.push(appData.example_events_base[i])
-}
 
-for (var n in availableTags) {
-    let i = availableTags[n]
-    appData.example_events.push(["=tv('" + n + "')", "While tag is nonzero"])
-    if (i == "trigger") {
-        appData.example_events.push(["=+tv('" + n + "')", "On every nonzero change"])
-    }
-    if (i == "bool") {
-        appData.example_events.push(["=/tv('" + n + "')", "When tag newly becomes nonzero(edge trigger)"])
-    }
-
-}
 
 function f(v) {
     c = v[0]
@@ -1639,6 +1623,32 @@ function f(v) {
     else if (c == 'shortcuts') {
         vueapp.$data.shortcuts = v[1]
     }
+
+    else if (c == 'availableTags') {
+        vueapp.$data.availableTags = v[1]
+        appData.example_events = []
+        for (var i in appData.example_events_base) {
+            appData.example_events.push(appData.example_events_base[i])
+        }
+
+        for (var n in appData.availableTags) {
+            let i = appData.availableTags[n]
+            appData.example_events.push(["=tv('" + n + "')", "While tag is nonzero"])
+            if (i == "trigger") {
+                appData.example_events.push(["=+tv('" + n + "')", "On every nonzero change"])
+            }
+            if (i == "bool") {
+                appData.example_events.push(["=/tv('" + n + "')", "When tag newly becomes nonzero(edge trigger)"])
+            }
+        }
+    }
+    else if (c == 'midiInputs') {
+        vueapp.$data.midiInputs = v[1]
+    }
+
+    else if (c == "blendModes") {
+        vueapp.$data.blendModes = v[1]
+    }
 }
 
 
@@ -1719,3 +1729,12 @@ var goto = function (sc, cue) {
     }
 }
 
+
+
+var script = document.createElement('script');
+script.onload = function () {
+    const boardname = window.location.pathname.split('/')[3];
+    init_api_link(boardname)
+};
+script.src = "/apiwidget/WebChandlerConsole:" + appData.boardname + "?js_name=api_link";
+document.head.appendChild(script);
