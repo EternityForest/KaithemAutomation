@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 import hashlib
 import os
 import time
@@ -17,11 +18,12 @@ if TYPE_CHECKING:
 from kaithem.api.web import render_html_file
 from kaithem.src import quart_app
 
-from .. import directories, pages
+from .. import directories, pages, util
 from ..kaithemobj import kaithem
 from . import (
     core,
     groups,
+    mathutils,
     universes,
     web_api,  # noqa: F401
 )
@@ -157,6 +159,36 @@ async def static_file(fn):
     return await quart.send_file(
         os.path.join(os.path.dirname(__file__), "html", fn)
     )
+
+
+@quart_app.app.route("/chandler/api/eval-cue-length")
+def erd():
+    cuelen_str = quart.request.args["rule"]
+    v = 0
+
+    try:
+        v = float(cuelen_str)
+    except ValueError:
+        pass
+
+    if cuelen_str.startswith("@"):
+        ref = datetime.datetime.now()
+        selector = util.get_rrule_selector(cuelen_str[1:], ref)
+        nextruntime = selector.after(ref, True)
+
+        if nextruntime <= ref:
+            nextruntime = selector.after(nextruntime, False)
+
+        t2 = mathutils.dt_to_ts(nextruntime)
+
+        nextruntime = t2
+
+        v = nextruntime - time.time()
+
+    v = time.time() + v
+    t = datetime.datetime.fromtimestamp(v).strftime("%Y-%m-%d %H:%M:%S")
+
+    return t
 
 
 @quart_app.app.route("/chandler/WebMediaServer")

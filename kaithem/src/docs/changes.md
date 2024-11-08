@@ -14,7 +14,7 @@ Change Log
 - :bug: Delete button on devices page works correctly
 - :sparkles: Switch to https://reallyfreegeoip.org for the one time location lookup
 - :sparkles: kaithem.api.web.render_html_file function for fully client side apps
-
+- :sparkles: When setting a @time length, give a popup so you can tell if it was parsed correctly
 
 ### 0.86.1
 

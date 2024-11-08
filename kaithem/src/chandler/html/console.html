@@ -689,7 +689,7 @@
 
                             <td class="desktop-only" data-label="Length:">
                                 <input :disabled="no_edit"
-                                    v-on:change="setlength(slotProps.i[1].id,$event.target.value)"
+                                    v-on:change="setlength(slotProps.i[1].id,$event.target.value);debugCueLen($event.target.value)"
                                     class="w-12rem" list="lenoptions"
                                     v-model="slotProps.i[1].length">
                             </td>
@@ -1471,7 +1471,7 @@
                                                     class="mdi mdi-clock-outline"></i>
                                                 Length</span>
                                             <input :disabled="no_edit"
-                                                v-on:change="setlength(currentcueid,$event.target.value)"
+                                                v-on:change="setlength(currentcueid,$event.target.value);debugCueLen($event.target.value)"
                                                 v-model="cuemeta[currentcueid].length"
                                                 min=0>
                                         </label>

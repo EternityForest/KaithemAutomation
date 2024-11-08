@@ -16,7 +16,6 @@
 */
 
 
-
 function playAlert(m) {
     if (vueapp.$data.uiAlertSounds) {
         var mp3_url = '/static/sounds/72127__kizilsungur__sweetalertsound3.opus';
@@ -1275,6 +1274,22 @@ appData = {
 
         }
     },
+
+    'debugCueLen': async function (cuelenstr, force) {
+        if (!force) {
+            if (!isNaN(parseFloat(cuelenstr))) {
+                return
+            }
+        }
+
+        let x = fetch("/chandler/api/eval-cue-length?rule=" + cuelenstr, {
+            method: "GET"
+        })
+
+        x = await x
+        alert("Cue len: " + cuelenstr + ". If cue started now, it would end at " + await x.text())
+    },
+
 
     'updatePreset': function (i, v) {
         /*Update given a name and the modified data as would be found in the presets file*/
