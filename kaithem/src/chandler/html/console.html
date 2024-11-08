@@ -142,17 +142,17 @@
             <div class="h-24rem scroll">
                 <div class="flex-col gaps">
                     <article v-for="i in formatAllGroups"
-                        style="position:relative;"
-                        v-bind:class="{'group':1, card:1, 'grey':i[1].doingHandoff, 'run':i[1].active &(!i[1].doingHandoff)}"
-                        style="border-style:solid; border-width:1px;">
+                        class="card group relative border"
+                        v-bind:class="{'grey':i[1].doingHandoff, 'run':i[1].active &(!i[1].doingHandoff)}"
+                        >
                         <header>
                             <div>
                                 <h4>
                                     <button type="button"
-                                        v-bind:class="{highlight:i[0]==groupname}"
+                                        class="w-full noselect"
                                         popovertarget="selectedGroupWindow"
                                         v-on:click="selectgroup(i[1],i[0])"
-                                        style="width: 100%">
+                                        >
 
                                         <span
                                             style="font-size: 150%;">{{i[1].name}}</span><span
@@ -354,10 +354,11 @@
         </section>
 
 
-        <div v-if="selectingImageLabelForPreset" class="card paper flex-col"
+        <div v-if="selectingImageLabelForPreset" class="card paper flex-col" popover
+            id="presetImageLabel"
             style="position: fixed; width:90vw; height: 90vh; top:5vh; left:5vw; z-index: 100">
             <header>Label for {{selectingImageLabelForPreset}}</header>
-            <button @click="selectingImageLabelForPreset=null"
+            <button @click="selectingImageLabelForPreset=null" popoveraction="hide"
                 class="w-full nogrow">
                 <i class="mdi mdi-close"></i>Close
             </button>
@@ -422,12 +423,15 @@
                         <dt
                             v-if="ps[0].toLowerCase().includes(filterPresets.toLowerCase())">
                             <div class="tool-bar">
-                                <h4>{{ps[0]}}</h4>
+                                <b>{{ps[0]}}</b>
                                 <button type="button"
+                                    popovertarget="presetImageLabel"
                                     v-on:click="selectingImageLabelForPreset=ps[0];">
                                     <i class="mdi mdi-image-edit-outline"></i>
                                     Image</button>
+
                                 <button class="button"
+                                    type="button"
                                     popovertarget="iframeDialog"
                                     @click="iframeDialog=getExcalidrawPresetLink(ps[0])">
                                     <i class="mdi mdi-fountain-pen-tip"></i>
