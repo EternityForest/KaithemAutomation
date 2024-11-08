@@ -24,148 +24,14 @@
 </datalist>
 
 
-
-<style>
-    .grey {
-        color: grey;
-        font-size: 70%;
-    }
-
-    div.hfader {
-        border-style: solid;
-        border-radius: 5px;
-        overflow: auto;
-        border-width: 2px;
-        border-color: rgba(0, 0, 0, 0.1);
-        margin: 3px;
-        min-width: 8em;
-        min-height: 4em;
-    }
-
-    div.hfader span.indicator {
-        float: right;
-    }
-
-    p.group {
-        border-style: solid;
-        border-width: 1px;
-    }
-
-    .fadersbox {
-        display: flex;
-    }
-
-    article.universe {
-        overflow: auto;
-        border-color: grey;
-        margin: 3px;
-        width: 95%;
-        min-width: 9em;
-        flex-basis: fit-content;
-        max-width: max-content;
-        flex-grow: 2
-    }
-
-    article.fixture {
-        margin: 3px;
-        max-width: 16em;
-        flex-basis: min-content;
-        min-width: 9em;
-        flex-grow: 1;
-    }
-
-    .indicator {
-        border-radius: 0.2em;
-        display: inline-block;
-        width: 0.9em;
-        height: 0.9em;
-        border-style: dashed;
-        border-width: 1.5px;
-    }
-
-    .labelbox {
-        display: flex;
-        flex-wrap: wrap;
-    }
-
-    .preset-button {
-        aspect-ratio: 16/9;
-        overflow: hidden;
-        flex-basis: 10rem;
-        height: auto;
-        flex-grow: 0;
-        max-width: 10rem;
-        padding: 0px;
-        position: relative;
-        z-index: 1001;
-        box-shadow: 4px 5px 3px #00000069;
-        margin: 3px;
-
-
-        &>img {
-            position: absolute;
-            object-fit: contain;
-            width: 100%;
-            height: 100%;
-            margin: auto;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 1002;
-
-        }
-
-
-        &>div {
-            width: 100%;
-            height: 100%;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-shadow:
-                1px 1px 2px var(--contrasting-bg-color),
-                -1px 1px 2px var(--contrasting-bg-color),
-                -1px -1px 2px var(--contrasting-bg-color),
-                1px -1px 2px var(--contrasting-bg-color);
-            position: absolute;
-            z-index: 1002;
-            background: radial-gradient(circle, rgba(255, 255, 255, 0.082) 58%, rgb(0 0 0 / 0%) 85%, rgba(0, 0, 0, 0.363) 100%) !important;
-        }
-    }
-
-    .break {
-        flex-basis: 100%;
-        height: 0;
-    }
-
-    .blinking {
-        animation: blinkingText 1s infinite;
-    }
-
-    @keyframes blinkingText {
-        0% {
-            opacity: 0.5;
-        }
-
-        50% {
-            opacity: 1;
-        }
-
-        100% {
-            opacity: 0.5;
-        }
-    }
-
-    .multibar>* {
-        display: inline-flex;
-    }
-</style>
+<link rel="stylesheet" type="text/css"
+    href="/chandler/static/console.css?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61">
 
 <script src="/static/js/thirdparty/vue3.js"></script>
 
 <script src="/static/js/thirdparty/sortable.min.js"></script>
 
-<script type="text/javascript" src="/static/js/widget.js?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61"></script>
+<script src="/static/js/widget.js?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61"></script>
 <script src="/static/js/thirdparty/keyboard.min.js"></script>
 <script src="/static/js/thirdparty/js-yaml.min.js"></script>
 <script src="/static/js/thirdparty/strftime-min.js"></script>
@@ -206,7 +72,7 @@
                     class="mdi mdi-cog-outline"></i></a><label>
                 <i class="mdi mdi-volume-medium"></i><input type="checkbox" class="toggle" v-model="uiAlertSounds">
             </label>
-            <button type="button" onclick="document.documentElement.requestFullscreen()"><i
+            <button aria-label="Fullscreen" type="button" onclick="document.documentElement.requestFullscreen()"><i
                     class="mdi mdi-arrow-expand-all"></i></button>
         </div>
 
@@ -236,7 +102,7 @@
                 <div class="decorative-image-h-bar decorative-image" style="min-height: 3em; margin: auto;"></div>
 
                 <div class="tool-bar">
-                    <input size=8
+                    <input size="8" type="text"
                         title="Enter a cue's shortcut code here to activate it. Keybindings are suspended while this is selected."
                         aria-label="Shortcut code" placeholder="Shortcut" v-model="sc_code"
                         v-on:keydown.enter="shortcut()" v-on:focus="keyboardJS.pause();"
@@ -244,8 +110,8 @@
                     <button type="button" v-on:click="shortcut()">Go!</button>
                 </div>
                 <div class="tool-bar">
-                    <input v-model="groupfilter" placeholder="Search" list="tracks" /><button
-                        v-on:click="groupfilter=''"><i class="mdi mdi-backspace"></i>
+                    <input type="text" v-model="groupfilter" placeholder="Search" list="tracks">
+                    <button type="button" aria-label="Clear search" v-on:click="groupfilter=''"><i class="mdi mdi-backspace"></i>
                     </button>
                     <button type="button" v-on:click="showPages=!showPages">Compact</button>
 
@@ -339,7 +205,7 @@
 
             <footer class="padding">
                 <div class="tool-bar">
-                    <input :disabled="no_edit" v-model="newgroupname" placeholder="New group name" size="4">
+                    <input  type="text" :disabled="no_edit" v-model="newgroupname" placeholder="New group name" size="4">
                     <button type="button" data-testid="add-group-button" v-on:click="addGroup()"><i
                             class="mdi mdi-plus"></i>Add</button>
                 </div>
@@ -347,12 +213,12 @@
 
         </section>
 
-        <section class="window margin" v-if="showevents" class="flex-item"
+        <section class="window margin flex-item" v-if="showevents"
             style="position:fixed; z-index:99; bottom:0px; width:78%;">
             <h2> <button type="button" v-on:click="showevents=0"><i class="mdi mdi-close"></i>Close</button>Event
                 Log
             </h2>
-            <input v-model="evfilt" placeholder="Filter events"><br>
+            <input type="text" v-model="evfilt" placeholder="Filter events"><br>
             <div class="max-h-12rem scroll border" style="height:6em">
                 <div v-bind:class="{'evlisting': i[0]!=='error', 'evlisting_err': i[0].includes('error')}"
                     v-for="i in evlog.filter((d) => (d[1].search(evfilt)>-1 || d[0].search(evfilt)>-1) )">{{i[2]}}:
@@ -367,7 +233,7 @@
             </div>
 
             <label>Send Global Event:
-                <input :disabled="no_edit" v-model="evtosend" v-on:keydown.enter="sendev" placeholder="Event Name"
+                <input type="text" :disabled="no_edit" v-model="evtosend" v-on:keydown.enter="sendev" placeholder="Event Name"
                     title="Event Name">
             </label>
 
@@ -2041,193 +1907,4 @@
 <script src="../dyn_js/boardapi.js?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61"></script>
 <script src="/static/js/thirdparty/vue3-sfc-loader.js"></script>
 
-<script>
-
-
-    appMethods.showPresetDialog = function (fixture) {
-        vueapp.$data.selectingPresetFor = fixture
-    }
-
-    appMethods.getPresetImage = function (preset) {
-        // Can use generic preset image if specific not available
-        if (vueapp.$data.presets[preset]?.label_image) {
-            return (vueapp.$data.presets[preset]?.label_image)
-        }
-
-        if (vueapp.$data.presets[preset.split('@')[0]]?.label_image) {
-            return (vueapp.$data.presets[preset.split('@')[0]]?.label_image)
-        }
-        return null
-    }
-
-    appData.selectingImageLabelForPreset = null
-    appData.iframeDialog = null
-    appData.filterPresets = ''
-    const session_time = new Date().toISOString().slice(0, -8)
-
-    appData.getExcalidrawCueLink = function (group, cue) {
-        return '/excalidraw-plugin/edit?module=' +
-            encodeURIComponent(this.boardname.split(":")[0]) +
-            '&resource=' + encodeURIComponent("media/chandler/sketches/cue_" + this.boardname.split(":")[1] + "_" +
-                "_" +
-                group + "_" + cue.name + ".excalidraw.png") +
-            "&callback=" + encodeURIComponent("/chandler/label_image_update_callback/cue/" + cue.id) +
-            "&ratio_guide=16_9"
-    }
-
-    appData.getExcalidrawPresetLink = function (preset) {
-        return '/excalidraw-plugin/edit?module=' +
-            encodeURIComponent(this.boardname.split(":")[0]) +
-            '&resource=' + encodeURIComponent("media/chandler/sketches/preset_" + this.boardname.split(":")[1] + "_" +
-                preset + "_" +
-                session_time + ".excalidraw.png") +
-            "&callback=" + encodeURIComponent("/chandler/label_image_update_callback/preset/" + this.boardname + "/" + preset) +
-            "&ratio_guide=16_9"
-    }
-
-
-
-
-    appData.selectingPresetFor = null
-    appData.presetFilter = ''
-    // Add console specific stuff to the appdata
-    appData.formatTime = function (t) {
-        var date = new Date(t * 1000);
-        return date.strftime("%I:%M:%S%p")
-    }
-
-    appData.boardname = window.location.pathname.split('/')[3]
-
-    document.title = appData.boardname
-
-    appData.keyboardJS = keyboardJS
-
-    appData.no_edit = !kaithemapi.checkPermission("system_admin");
-
-    const options = {
-        moduleCache: {
-            vue: Vue
-        },
-        async getFile(url) {
-
-            const res = await fetch(url);
-            if (!res.ok)
-                throw Object.assign(new Error(res.statusText + ' ' + url), { res });
-            return {
-                getContentData: asBinary => asBinary ? res.arrayBuffer() : res.text(),
-            }
-        },
-        addStyle(textContent) {
-
-            const style = Object.assign(document.createElement('style'), { textContent });
-            const ref = document.head.getElementsByTagName('style')[0] || null;
-            document.head.insertBefore(style, ref);
-        },
-    }
-
-    const { loadModule } = window['vue3-sfc-loader'];
-
-
-    function httpVueLoader(u) {
-        return Vue.defineAsyncComponent(() => loadModule(u, options))
-    }
-
-    var vueapp = Vue.createApp(
-        {
-            data: function () {
-                return appData
-            },
-            methods: appMethods,
-            components: {
-                "combo-box": httpVueLoader('/static/vue/ComboBox.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
-                "script-editor": httpVueLoader('../static/ScriptEditor.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
-                "h-fader": httpVueLoader('../static/hfader.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
-                'cue-countdown': httpVueLoader('../static/cue-countdown.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
-                'cue-table': httpVueLoader('../static/cuetable.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
-
-                // Currently contains the timers and the display tags for the groups overview
-                'group-ui': httpVueLoader('../static/group-ui-controls.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
-                'smooth-range': httpVueLoader('/static/vue/smoothrange.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
-                'media-browser': httpVueLoader('../static/media-browser.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61')
-
-            },
-            computed: appComputed
-        }).mount("#app")
-
-    var script = document.createElement('script');
-    script.onload = function () {
-        const boardname = window.location.pathname.split('/')[3];
-        init_api_link(boardname)
-    };
-
-    script.src = "/apiwidget/WebChandlerConsole:" + appData.boardname + "?js_name=api_link";
-
-    document.head.appendChild(script);
-
-</script>
-
-<script>
-    keysdown = {}
-    keyHandle = function (e) {
-        if (keysdown[e.key] != undefined) {
-            if (keysdown[e.key]) {
-                return;
-            }
-
-        }
-        keysdown[e.key] = true;
-        e.preventRepeat();
-        api_link.send(['event', "keydown." + e.key, 1, 'int', "__global__"])
-    }
-    keyUpHandle = function (e) {
-        if (keysdown[e.key] != undefined) {
-            if (!keysdown[e.key]) {
-                return;
-            }
-
-        }
-        keysdown[e.key] = false;
-        api_link.send(['event', "keyup." + e.key, 1, 'int', "__global__"])
-    }
-    rebind = function (data) {
-        keyboardJS.reset()
-        keyboardJS.bind(keyHandle)
-        keyboardJS.bind(null, keyUpHandle)
-
-    }
-
-    appData.example_events[3] = ['FooEvent', 'Any custom name you want']
-
-    // Blur the active element to cause Onchange events
-    window.visibilitychange = function () {
-        document.activeElement.blur();
-    };
-
-</script>
-
-
-<script>
-
-    var prev = history.state
-
-    function handleDialogState(e) {
-        if (e.newState == 'open') {
-            history.pushState({ el: e.target.id }, null, '#popover')
-            prev = history.state
-        }
-        else {
-            if (history.state?.el == e.target.id) {
-                history.back()
-                prev = history.state
-            }
-        }
-    }
-
-    window.addEventListener('popstate', function (e) {
-        if (prev?.el && document.getElementById(prev?.el).hidePopover) {
-            document.getElementById(prev?.el).hidePopover()
-        }
-        prev = history.state
-    });
-
-</script>
+<script src="/chandler/static/console.js?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61"></script>

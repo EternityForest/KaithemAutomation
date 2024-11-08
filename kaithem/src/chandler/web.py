@@ -148,6 +148,13 @@ def dyn_js(file):
     raise RuntimeError("File not found")
 
 
+@quart_app.app.route("/chandler/static/<fn>")
+async def static_file(fn):
+    if ".." in fn or "/" in fn or "\\" in fn:
+        return quart.abort(404)
+    return await quart.send_file(os.path.join(os.path.dirname(__file__), "html", fn))
+
+
 @quart_app.app.route("/chandler/WebMediaServer")
 async def media():
     kwargs = quart.request.args
