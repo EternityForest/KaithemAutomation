@@ -103,8 +103,8 @@
                 // Currently contains the timers and the display tags for the groups overview
                 'group-ui': httpVueLoader('../static/group-ui-controls.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
                 'smooth-range': httpVueLoader('/static/vue/smoothrange.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
-                'media-browser': httpVueLoader('../static/media-browser.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61')
-
+                'media-browser': httpVueLoader('../static/media-browser.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
+                'slideshow-telemetry': httpVueLoader('../static/signagetelemetry.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61')
             },
             computed: appComputed
         }).mount("#app")

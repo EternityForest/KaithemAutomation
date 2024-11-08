@@ -4,7 +4,7 @@ Change Log
 ### 0.86.2
 
 - :technologist: Dependabot and the general ecosystem have spoken. No more dev branch, we're not using Gitflow.
--
+- :technologist: 80 line limit.
 - :bug: Fix bug where the loop sound feature interacted badly with relative length
 - :sparkles: Widget API will no longer send old failed messages on reconnected after 5 seconds
 - :bug: Fix nuisance gitgub flavor not found error
