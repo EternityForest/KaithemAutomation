@@ -54,8 +54,12 @@ class GroupLightingManager:
         # Hardcoded indicates that applyLayer reads the blend name and we
         # have hardcoded logic there
         self._blend: blendmodes.BlendMode = blendmodes.HardcodedBlendMode(self)
-        self.blendClass: type[blendmodes.BlendMode] = blendmodes.HardcodedBlendMode
-        self.blend_args: dict[str, float | int | bool | str] = group.blend_args or {}
+        self.blendClass: type[blendmodes.BlendMode] = (
+            blendmodes.HardcodedBlendMode
+        )
+        self.blend_args: dict[str, float | int | bool | str] = (
+            group.blend_args or {}
+        )
 
     def refresh(self):
         """
@@ -122,7 +126,9 @@ class GroupLightingManager:
                 i = universes.mapUniverse(i)
 
                 if i and i.startswith("/"):
-                    self.on_demand_universes[i] = universes.get_on_demand_universe(i)
+                    self.on_demand_universes[i] = (
+                        universes.get_on_demand_universe(i)
+                    )
 
             self.update_state_from_cue_vals(cue, not cue.track)
             self.fade_in_completed = False
@@ -153,7 +159,9 @@ class GroupLightingManager:
             if clearBefore:
                 # self.cue_cached_vals_as_arrays = {}
                 for i in self.state_alphas:
-                    self.state_alphas[i] = numpy.zeros(self.state_alphas[i].shape)
+                    self.state_alphas[i] = numpy.zeros(
+                        self.state_alphas[i].shape
+                    )
 
             for i in source_cue.values:
                 universe = universes.mapUniverse(i)
@@ -189,7 +197,9 @@ class GroupLightingManager:
                 universe_object = universes.getUniverse(universe)
 
                 if universe.startswith("/"):
-                    self.on_demand_universes[i] = universes.get_on_demand_universe(universe)
+                    self.on_demand_universes[i] = (
+                        universes.get_on_demand_universe(universe)
+                    )
                     universe_object = self.on_demand_universes[i]
 
                 if not universe_object:
@@ -197,8 +207,12 @@ class GroupLightingManager:
 
                 if universe not in self.state_vals:
                     size = len(universe_object.values)
-                    self.state_vals[universe] = numpy.array([0.0] * size, dtype="f4")
-                    self.state_alphas[universe] = numpy.array([0.0] * size, dtype="f4")
+                    self.state_vals[universe] = numpy.array(
+                        [0.0] * size, dtype="f4"
+                    )
+                    self.state_alphas[universe] = numpy.array(
+                        [0.0] * size, dtype="f4"
+                    )
 
                 self.rerenderOnVarChange = False
 
@@ -207,7 +221,11 @@ class GroupLightingManager:
 
                 for j in source_cue.values[i]:
                     if isinstance(j, str) and j.startswith("__dest__."):
-                        dest[j[9:]] = self.group.evalExpr(source_cue.values[i][j] if source_cue.values[i][j] is not None else 0)
+                        dest[j[9:]] = self.group.evalExpr(
+                            source_cue.values[i][j]
+                            if source_cue.values[i][j] is not None
+                            else 0
+                        )
 
                 for idx in range(repeats):
                     for j in source_cue.values[i]:
@@ -216,7 +234,9 @@ class GroupLightingManager:
 
                         cue_values = source_cue.values[i][j]
 
-                        evaled = self.group.evalExpr(cue_values if cue_values is not None else 0)
+                        evaled = self.group.evalExpr(
+                            cue_values if cue_values is not None else 0
+                        )
                         # This should always be a float
                         evaled = float(evaled)
 
@@ -224,14 +244,20 @@ class GroupLightingManager:
                         if j in dest:
                             # Repeats is a count, idx is zero based, we want diveder to be 1 on the last index of the set
                             divider = idx / (max(repeats - 1, 1))
-                            evaled = (evaled * (1 - divider)) + (dest[j] * divider)
+                            evaled = (evaled * (1 - divider)) + (
+                                dest[j] * divider
+                            )
 
                         x = universes.mapChannel(i.split("[")[0], j)
                         if x:
                             universe, channel = x[0], x[1]
                             try:
-                                self.state_alphas[universe][channel + (idx * chCount)] = 1.0 if cue_values is not None else 0
-                                self.state_vals[universe][channel + (idx * chCount)] = evaled
+                                self.state_alphas[universe][
+                                    channel + (idx * chCount)
+                                ] = 1.0 if cue_values is not None else 0
+                                self.state_vals[universe][
+                                    channel + (idx * chCount)
+                                ] = evaled
                             except Exception:
                                 print("err", traceback.format_exc())
                                 self.group.event(
@@ -245,7 +271,9 @@ class GroupLightingManager:
                                     + traceback.format_exc(),
                                 )
 
-                        if isinstance(cue_values, str) and cue_values.startswith("="):
+                        if isinstance(
+                            cue_values, str
+                        ) and cue_values.startswith("="):
                             self.rerenderOnVarChange = True
 
     def paint_canvas(self, fade_position: float = 0.0):
@@ -383,7 +411,10 @@ class GroupLightingManager:
 
     def setBlendArg(self, key: str, val: float | bool | str):
         with self.group.lock:
-            if not hasattr(self.blendClass, "parameters") or key not in self.blendClass.parameters:
+            if (
+                not hasattr(self.blendClass, "parameters")
+                or key not in self.blendClass.parameters
+            ):
                 raise KeyError("No such param")
 
             if val is None:
@@ -404,7 +435,9 @@ def _composite(background, values, alphas, alpha):
     return background
 
 
-def composite_rendered_layer_onto_universe(universe: str, group: Group, universe_object: universes.Universe):
+def composite_rendered_layer_onto_universe(
+    universe: str, group: Group, universe_object: universes.Universe
+):
     "May happen in place, or not, but always returns the new version"
 
     universe_values = universe_object.values
@@ -419,7 +452,9 @@ def composite_rendered_layer_onto_universe(universe: str, group: Group, universe
     # if it handles fading in a different way.
     # This will look really bad for complex things, to try and reduce them to a series of fades,
     # but we just do the best we can, and assume there's mostly only 1 group at a time affecting things
-    universe_object.fadeEndTime = max(universe_object.fadeEndTime, group.cue.fade_in + group.entered_cue)
+    universe_object.fadeEndTime = max(
+        universe_object.fadeEndTime, group.cue.fade_in + group.entered_cue
+    )
 
     universe_alphas = universe_object.alphas
 
@@ -428,25 +463,33 @@ def composite_rendered_layer_onto_universe(universe: str, group: Group, universe
     if bm == "normal":
         # todo: is it bad to multiply by bool?
         unsetVals = universe_alphas == 0.0
-        fade = numpy.maximum(group.alpha, unsetVals & universe_object.hueBlendMask)
+        fade = numpy.maximum(
+            group.alpha, unsetVals & universe_object.hueBlendMask
+        )
 
         universe_values = _composite(universe_values, vals, alphas, fade)
         # Essentially calculate remaining light percent, then multiply layers and convert back to alpha
         universe_alphas = 1 - ((1 - (alphas * fade)) * (1 - (universe_alphas)))
 
     elif bm == "HTP":
-        universe_values = numpy.maximum(universe_values, vals * (alphas * group.alpha))
+        universe_values = numpy.maximum(
+            universe_values, vals * (alphas * group.alpha)
+        )
         universe_alphas = (alphas * group.alpha) > 0
 
     elif bm == "inhibit":
-        universe_values = numpy.minimum(universe_values, vals * (alphas * group.alpha))
+        universe_values = numpy.minimum(
+            universe_values, vals * (alphas * group.alpha)
+        )
         universe_alphas = (alphas * group.alpha) > 0
 
     elif bm == "gel" or bm == "multiply":
         if group.alpha:
             # precompute constants
             c = 255 / group.alpha
-            universe_values = (universe_values * (1 - alphas * group.alpha)) + (universe_values * vals) / c
+            universe_values = (universe_values * (1 - alphas * group.alpha)) + (
+                universe_values * vals
+            ) / c
 
             # COMPLETELY incorrect, but we don't use alpha for that much, and the real math
             # Is complicated. #TODO
@@ -454,7 +497,9 @@ def composite_rendered_layer_onto_universe(universe: str, group: Group, universe
 
     elif group.lighting_manager._blend:
         try:
-            universe_values = group.lighting_manager._blend.frame(universe, universe_values, vals, alphas, group.alpha)
+            universe_values = group.lighting_manager._blend.frame(
+                universe, universe_values, vals, alphas, group.alpha
+            )
             # Also incorrect-ish, but treating modified vals as fully opaque is good enough.
             universe_alphas = (alphas * group.alpha) > 0
         except Exception:
@@ -464,7 +509,9 @@ def composite_rendered_layer_onto_universe(universe: str, group: Group, universe
     return universe_values
 
 
-def mark_and_reset_changed_universes(board: ChandlerConsole, universes: dict[str, universes.Universe]) -> dict[str, tuple[int, int]]:
+def mark_and_reset_changed_universes(
+    board: ChandlerConsole, universes: dict[str, universes.Universe]
+) -> dict[str, tuple[int, int]]:
     """
     Reset all universes to either the all 0s background or the cached layer, depending on if the cache layer is still valid
     This needs to happen before we start compositing on the layers.
@@ -481,7 +528,10 @@ def mark_and_reset_changed_universes(board: ChandlerConsole, universes: dict[str
             if u in universes:
                 universe = universes[u]
                 universe.all_static = True
-                if i.lighting_manager.should_rerender_onto_universes or i.lighting_manager.blendClass.always_rerender:
+                if (
+                    i.lighting_manager.should_rerender_onto_universes
+                    or i.lighting_manager.blendClass.always_rerender
+                ):
                     changedUniverses[u] = (0, 0)
 
                     # We are below the cached layer, we need to fully reset
@@ -550,20 +600,30 @@ def composite_layers_from_board(board: ChandlerConsole, t=None, u=None):
             if (i.priority, i.started) > universeObject.top_layer:
                 # If this layer we are about to render was found to be the highest layer that likely won't need rerendering,
                 # Save the state just before we apply that layer.
-                if (universeObject.save_before_layer == (i.priority, i.started)) and not ((i.priority, i.started) == (0, 0)):
-                    universeObject.save_prerendered(universeObject.top_layer[0], universeObject.top_layer[1])
+                if (
+                    universeObject.save_before_layer == (i.priority, i.started)
+                ) and not ((i.priority, i.started) == (0, 0)):
+                    universeObject.save_prerendered(
+                        universeObject.top_layer[0], universeObject.top_layer[1]
+                    )
 
                 changedUniverses[u] = (i.priority, i.started)
-                universeObject.values = composite_rendered_layer_onto_universe(u, i, universeObject)
+                universeObject.values = composite_rendered_layer_onto_universe(
+                    u, i, universeObject
+                )
                 universeObject.top_layer = (i.priority, i.started)
 
                 # If this is the first nonstatic layer, meaning it's render function requested a rerender next frame
                 # or if this is the last one, mark it as the one we should save just before
-                if i.lighting_manager.should_rerender_onto_universes or (i is board.active_groups[-1]):
+                if i.lighting_manager.should_rerender_onto_universes or (
+                    i is board.active_groups[-1]
+                ):
                     if universeObject.all_static:
                         # Copy it and set to none as a flag that we already found it
                         universeObject.all_static = False
-                        universeObject.save_before_layer = universeObject.top_layer
+                        universeObject.save_before_layer = (
+                            universeObject.top_layer
+                        )
         i.lighting_manager.should_rerender_onto_universes = False
 
     return changedUniverses

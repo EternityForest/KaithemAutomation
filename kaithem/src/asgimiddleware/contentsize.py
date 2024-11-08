@@ -32,15 +32,22 @@ class ContentSizeLimitMiddleware:
         async def inner():
             nonlocal received, verified_limit
             message = await receive()
-            if message["type"] != "http.request" or self.max_content_size is None:
+            if (
+                message["type"] != "http.request"
+                or self.max_content_size is None
+            ):
                 return message
             body_len = len(message.get("body", b""))
             received += body_len
             if received > verified_limit:
                 user = pages.getAcessingUser(scope)
-                verified_limit = max(auth.getUserLimit(user, "web.maxbytes"), 128 * 1024)
+                verified_limit = max(
+                    auth.getUserLimit(user, "web.maxbytes"), 128 * 1024
+                )
                 if received > verified_limit:
-                    raise self.exception_cls(f"Maximum content size limit ({self.max_content_size}) exceeded ({received} bytes read)")
+                    raise self.exception_cls(
+                        f"Maximum content size limit ({self.max_content_size}) exceeded ({received} bytes read)"
+                    )
             return message
 
         return inner

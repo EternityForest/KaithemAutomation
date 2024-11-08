@@ -33,15 +33,28 @@ def init():
 
     def special_resolver(fn):
         if fn == "alert.ogg":
-            return os.path.join(directories.datadir, "static/sounds/72127__kizilsungur__sweetalertsound3.opus")
+            return os.path.join(
+                directories.datadir,
+                "static/sounds/72127__kizilsungur__sweetalertsound3.opus",
+            )
         if fn == "error.ogg":
-            return os.path.join(directories.datadir, "static/sounds/423166__plasterbrain__minimalist-sci-fi-ui-error.opus")
+            return os.path.join(
+                directories.datadir,
+                "static/sounds/423166__plasterbrain__minimalist-sci-fi-ui-error.opus",
+            )
 
     def resolver(fn):
         d = os.path.join(directories.vardir, "modules", "data")
         if os.path.isdir(d):
             for i in os.listdir(d):
-                p = os.path.join(directories.vardir, "modules", "data", i, "__filedata__", "media")
+                p = os.path.join(
+                    directories.vardir,
+                    "modules",
+                    "data",
+                    i,
+                    "__filedata__",
+                    "media",
+                )
                 filename = util.search_paths(fn, [p])
                 if filename:
                     return filename
@@ -56,6 +69,8 @@ def init():
     p = config.config["audio_paths"]
     for i in p:
         if i == "__default__":
-            sound.media_paths.append(os.path.join(directories.datadir, "static", "sounds"))
+            sound.media_paths.append(
+                os.path.join(directories.datadir, "static", "sounds")
+            )
         else:
             sound.media_paths.append(i)

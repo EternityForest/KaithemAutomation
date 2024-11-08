@@ -8,11 +8,31 @@ import yaml
 from .core import disallow_special
 from .cue import Cue, CueProvider, fnToCueName
 
-sound_extensions = (".mp3", ".m4a", ".ogg", ".wav", ".wma", ".opus", ".flac", ".aac")
-video_extensions = (".mp4", ".mov", ".webm", ".mpg", ".mpeg", ".avi", ".mkv", ".webp")
+sound_extensions = (
+    ".mp3",
+    ".m4a",
+    ".ogg",
+    ".wav",
+    ".wma",
+    ".opus",
+    ".flac",
+    ".aac",
+)
+video_extensions = (
+    ".mp4",
+    ".mov",
+    ".webm",
+    ".mpg",
+    ".mpeg",
+    ".avi",
+    ".mkv",
+    ".webp",
+)
 image_extensions = (".png", ".jpeg", ".jpg", ".gif", ".svg")
 
-media_extensions = sound_extensions + video_extensions + image_extensions + (".cue.yaml",)
+media_extensions = (
+    sound_extensions + video_extensions + image_extensions + (".cue.yaml",)
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -37,7 +57,9 @@ class FilesystemCueProvider(CueProvider):
         self.data_as_imported = {}
 
         if not os.path.isdir(self.dir):
-            raise RuntimeError("Cue provider directory does not exist: " + self.dir)
+            raise RuntimeError(
+                "Cue provider directory does not exist: " + self.dir
+            )
 
     def validate_property_update(self, cue: Cue, prop: str, value):
         if prop == "name":
@@ -96,7 +118,9 @@ class FilesystemCueProvider(CueProvider):
                 if "sound" in self.query_string:
                     sound = i
 
-                if fn.endswith(sound_extensions) or fn.endswith(video_extensions):
+                if fn.endswith(sound_extensions) or fn.endswith(
+                    video_extensions
+                ):
                     length = 0.01
                     rel_len = True
                 else:
@@ -109,7 +133,14 @@ class FilesystemCueProvider(CueProvider):
                     logger.info("Skipping:  " + name)
                     continue
 
-                data = {"name": name, "id": id, "sound": sound, "slide": slide, "length": length, "rel_length": rel_len}
+                data = {
+                    "name": name,
+                    "id": id,
+                    "sound": sound,
+                    "slide": slide,
+                    "length": length,
+                    "rel_length": rel_len,
+                }
                 self.data_as_imported[id] = copy.deepcopy(data)
 
                 if os.path.exists(fn + ".cue.yaml"):
@@ -152,7 +183,12 @@ class FilesystemCueProvider(CueProvider):
         if id not in self.cue_source_files:
             cn = cue.name
             cn = disallow_special(cn, replaceMode="_")
-            self.cue_source_files[id] = cue.name.replace("/", "_").replace(" ", "_").replace(".", "_").replace("~", "_")
+            self.cue_source_files[id] = (
+                cue.name.replace("/", "_")
+                .replace(" ", "_")
+                .replace(".", "_")
+                .replace("~", "_")
+            )
 
         fn = self.cue_source_files[id]
 

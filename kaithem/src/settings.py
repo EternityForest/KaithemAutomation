@@ -20,14 +20,27 @@ import structlog
 import vignette
 from quart.ctx import copy_current_request_context
 
-from . import auth, directories, kaithemobj, messagebus, pages, persist, quart_app, weblogin
+from . import (
+    auth,
+    directories,
+    kaithemobj,
+    messagebus,
+    pages,
+    persist,
+    quart_app,
+    weblogin,
+)
 
-notificationsfn = os.path.join(directories.vardir, "core.settings", "pushnotifications.toml")
+notificationsfn = os.path.join(
+    directories.vardir, "core.settings", "pushnotifications.toml"
+)
 
 pushsettings = persist.getStateFile(notificationsfn)
 
 
-redirectsfn = os.path.join(directories.vardir, "core.settings", "httpredirects.toml")
+redirectsfn = os.path.join(
+    directories.vardir, "core.settings", "httpredirects.toml"
+)
 
 
 if os.path.exists(redirectsfn):
@@ -68,7 +81,9 @@ def ctype_async_raise(thread_obj, exception):
     if not found:
         raise ValueError("Invalid thread object")
 
-    ret = ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(target_tid), ctypes.py_object(exception))
+    ret = ctypes.pythonapi.PyThreadState_SetAsyncExc(
+        ctypes.c_long(target_tid), ctypes.py_object(exception)
+    )
     # ref: http://docs.python.org/c-api/init.html#PyThreadState_SetAsyncExc
     if ret == 0:
         raise ValueError("Invalid thread ID")
@@ -76,7 +91,9 @@ def ctype_async_raise(thread_obj, exception):
         # Huh? Why would we notify more than one threads?
         # Because we punch a hole into C level interpreter.
         # So it is better to clean up the mess.
-        ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(target_tid), NULL)
+        ctypes.pythonapi.PyThreadState_SetAsyncExc(
+            ctypes.c_long(target_tid), NULL
+        )
         raise SystemError("PyThreadState_SetAsyncExc failed")
 
 
@@ -367,7 +384,9 @@ def changeprefs(**kwargs):
             # Filter too long values
             auth.setUserSetting(pages.getAcessingUser(), i[5:], kwargs[i][:200])
 
-    auth.setUserSetting(pages.getAcessingUser(), "allow-cors", "allowcors" in kwargs)
+    auth.setUserSetting(
+        pages.getAcessingUser(), "allow-cors", "allowcors" in kwargs
+    )
 
     return quart.redirect("/settings/account")
 
@@ -382,7 +401,9 @@ def changeinfo(**kwargs):
     if len(kwargs["email"]) > 120:
         raise RuntimeError("Limit 120 chars for email address")
     auth.setUserSetting(pages.getAcessingUser(), "email", kwargs["email"])
-    messagebus.post_message("/system/auth/user/changedemail", pages.getAcessingUser())
+    messagebus.post_message(
+        "/system/auth/user/changedemail", pages.getAcessingUser()
+    )
     return quart.redirect("/settings/account")
 
 
@@ -405,7 +426,9 @@ def changepwd(**kwargs):
             return quart.redirect("/errors/mismatch")
     else:
         return quart.redirect("/errors/loginerror")
-    messagebus.post_message("/system/auth/user/selfchangedepassword", pages.getAcessingUser())
+    messagebus.post_message(
+        "/system/auth/user/selfchangedepassword", pages.getAcessingUser()
+    )
 
     return quart.redirect("/")
 
@@ -445,7 +468,15 @@ def set_time_from_web(**kwargs):
         return pages.loginredirect(pages.geturl())
     pages.postOnly()
     t = float(kwargs["time"])
-    subprocess.call(["date", "-s", datetime.datetime.fromtimestamp(t, tz=datetime.timezone.utc).isoformat()])
+    subprocess.call(
+        [
+            "date",
+            "-s",
+            datetime.datetime.fromtimestamp(
+                t, tz=datetime.timezone.utc
+            ).isoformat(),
+        ]
+    )
     try:
         subprocess.call(["sudo", "hwclock", "--systohc"])
     except Exception:
@@ -472,7 +503,9 @@ def changesettingstarget(**kwargs):
         timezone=kwargs["timezone"],
     )
 
-    messagebus.post_message("/system/settings/changedelocation", pages.getAcessingUser())
+    messagebus.post_message(
+        "/system/settings/changedelocation", pages.getAcessingUser()
+    )
     return quart.redirect("/settings/system")
 
 
@@ -488,7 +521,10 @@ def changepushsettings(**kwargs):
 
     pushsettings.set("apprise_target", t.strip())
 
-    messagebus.post_message("/system/notifications/important", "Push notification config was changed")
+    messagebus.post_message(
+        "/system/notifications/important",
+        "Push notification config was changed",
+    )
 
     return quart.redirect("/settings/system")
 
@@ -537,7 +573,9 @@ def ip_geolocate():
         discovered_location["countryCode"],
     )
 
-    messagebus.post_message("/system/settings/changedelocation", pages.getAcessingUser())
+    messagebus.post_message(
+        "/system/settings/changedelocation", pages.getAcessingUser()
+    )
     return quart.redirect("/settings/system")
 
 
@@ -594,7 +632,9 @@ def bytotal():
         pages.require("system_admin")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
-    return pages.get_template("settings/profiler/index.html").render(sort="total")
+    return pages.get_template("settings/profiler/index.html").render(
+        sort="total"
+    )
 
 
 @legacy_route_prf
@@ -614,7 +654,9 @@ def start():
             logging.exception("CPU time profiling not supported")
 
     time.sleep(0.5)
-    messagebus.post_message("/system/settings/activatedprofiler", pages.getAcessingUser())
+    messagebus.post_message(
+        "/system/settings/activatedprofiler", pages.getAcessingUser()
+    )
     return quart.redirect("/settings/profiler")
 
 

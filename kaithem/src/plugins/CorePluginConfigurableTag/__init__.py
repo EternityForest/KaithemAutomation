@@ -107,7 +107,9 @@ class TagType(modules_state.ResourceType):
         if data["tag_type"] != "numeric":
             for i in ["hi", "lo", "min", "max"]:
                 if str(data[i]).strip():
-                    raise ValueError(f"Option {i} is only valid for numeric types")
+                    raise ValueError(
+                        f"Option {i} is only valid for numeric types"
+                    )
 
         for i in ["hi", "lo", "min", "max", "interval"]:
             if data.get(i, ""):
@@ -122,14 +124,26 @@ class TagType(modules_state.ResourceType):
             d.text_input("name", title="Resource Name")
 
         d.text_input(
-            "tag", title="Tag Point Name", default=value.get("tag", ""), suggestions=[(i, i) for i in tagsapi.all_tags_raw().keys()]
+            "tag",
+            title="Tag Point Name",
+            default=value.get("tag", ""),
+            suggestions=[(i, i) for i in tagsapi.all_tags_raw().keys()],
         )
-        d.selection("tag_type", title="Tag Type", options=["numeric", "string"], default=value.get("numeric", ""))
+        d.selection(
+            "tag_type",
+            title="Tag Type",
+            options=["numeric", "string"],
+            default=value.get("numeric", ""),
+        )
 
-        d.text_input("default", default=value.get("default", ""), title="Default Value")
+        d.text_input(
+            "default", default=value.get("default", ""), title="Default Value"
+        )
         d.text_input("interval", default=value.get("interval", ""))
 
-        d.text("Adding an alias lets you access it by a more convenient, shorter name")
+        d.text(
+            "Adding an alias lets you access it by a more convenient, shorter name"
+        )
         d.text_input("alias", default=value.get("alias", ""))
 
         d.text("Options for numeric tags only")

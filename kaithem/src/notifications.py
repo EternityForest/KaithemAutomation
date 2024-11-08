@@ -11,7 +11,15 @@ import quart
 import structlog
 from scullery import scheduling
 
-from . import directories, messagebus, pages, persist, quart_app, widgets, workers
+from . import (
+    directories,
+    messagebus,
+    pages,
+    persist,
+    quart_app,
+    widgets,
+    workers,
+)
 from .config import config
 from .unitsofmeasure import strftime
 
@@ -23,7 +31,9 @@ ilogger = structlog.get_logger("system.notifications.important")
 notificationslog = []
 
 
-notificationsfn = os.path.join(directories.vardir, "core.settings", "pushnotifications.toml")
+notificationsfn = os.path.join(
+    directories.vardir, "core.settings", "pushnotifications.toml"
+)
 
 pushsettings = persist.getStateFile(notificationsfn)
 
@@ -138,7 +148,11 @@ def subscriber(topic, message):
 
     if "error" in topic or "warning" in topic or "important" in topic:
         # Add allowed notifications at a rate of  under 1 per miniute up to 15 "stored credits"
-        epochAndRemaining[1] = max((time.monotonic() - epochAndRemaining[0]) / 240 + epochAndRemaining[1], 15)
+        epochAndRemaining[1] = max(
+            (time.monotonic() - epochAndRemaining[0]) / 240
+            + epochAndRemaining[1],
+            15,
+        )
         epochAndRemaining[0] = time.monotonic()
 
         if epochAndRemaining[1] > 1:
@@ -163,7 +177,11 @@ def subscriber(topic, message):
                     # notify all of the services loaded into our Apprise object.
                     apobj.notify(
                         body=str(message),
-                        title=("Notification" if "error" not in topic else "Error") + " " + ts,
+                        title=(
+                            "Notification" if "error" not in topic else "Error"
+                        )
+                        + " "
+                        + ts,
                     )
 
             pending_notifications.append(f)

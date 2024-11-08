@@ -76,7 +76,9 @@ def get_on_demand_universe(name: str) -> Universe:
             pass
 
     t = OneTagpoint(name)
-    core.add_data_pusher_to_all_boards(lambda s: s.pushchannelInfoByUniverseAndNumber(name))  # type: ignore
+    core.add_data_pusher_to_all_boards(
+        lambda s: s.pushchannelInfoByUniverseAndNumber(name)
+    )  # type: ignore
     return t
 
 
@@ -121,7 +123,9 @@ class Fixture:
 
         if channel_data:
             # Normalize and raise errors on nonsense
-            channels: list[dict[str, Any]] = json.loads(json.dumps(channel_data))
+            channels: list[dict[str, Any]] = json.loads(
+                json.dumps(channel_data)
+            )
 
             assert isinstance(channels, list)
             self.channels = channels
@@ -210,10 +214,16 @@ class Fixture:
             with core.render_loop_lock:
                 if oldUniverseObj:
                     # Delete current assignments
-                    for i in range(self.startAddress, self.startAddress + len(self.channels)):
+                    for i in range(
+                        self.startAddress,
+                        self.startAddress + len(self.channels),
+                    ):
                         if i in oldUniverseObj.channels:
                             # Ensure we are not assigning something else with same name
-                            if oldUniverseObj.channels[i]() and oldUniverseObj.channels[i]() is self:
+                            if (
+                                oldUniverseObj.channels[i]()
+                                and oldUniverseObj.channels[i]() is self
+                            ):
                                 del oldUniverseObj.channels[i]
                                 # We just unassigned it, so it's not a hue channel anymore
                                 oldUniverseObj.hueBlendMask[i] = 0
@@ -252,7 +262,14 @@ class Fixture:
                         fixture = universeObj.channels[i]()
                         if fixture:
                             if not self.name == fixture.name:
-                                raise ValueError("channel " + str(i) + " of " + self.name + " would overlap with " + fixture.name)
+                                raise ValueError(
+                                    "channel "
+                                    + str(i)
+                                    + " of "
+                                    + self.name
+                                    + " would overlap with "
+                                    + fixture.name
+                                )
 
             cPointer = 0
             for i in range(channel, channel + len(self.channels)):
@@ -277,7 +294,9 @@ class Universe:
         global universes
         for i in ":[]()*\\`~!@#$%^&*=+|{}'\";<>,":
             if i in name:
-                raise ValueError("Name cannot contain special characters except _")
+                raise ValueError(
+                    "Name cannot contain special characters except _"
+                )
         self.name = name
         self.closed = False
 
@@ -343,7 +362,9 @@ class Universe:
         # so far in this frame
         self.all_static = True
 
-        self.error_alert = alerts.Alert(f"{self.name}.errorState", priority="error", auto_ack=True)
+        self.error_alert = alerts.Alert(
+            f"{self.name}.errorState", priority="error", auto_ack=True
+        )
 
         # flag to apply all groups, even ones not marked as neding rerender
         self.full_rerender = False
@@ -359,7 +380,10 @@ class Universe:
         # and start from there without rerendering lower layers.
 
         # The format is values,alphas
-        self.prerendered_data = (numpy.array([0.0] * count, dtype="f4"), numpy.array([0.0] * count, dtype="f4"))
+        self.prerendered_data = (
+            numpy.array([0.0] * count, dtype="f4"),
+            numpy.array([0.0] * count, dtype="f4"),
+        )
 
         # Maybe there might be an iteration error. But it's just a GUI convenience that
         # A simple refresh solves, so ignore it.
@@ -389,7 +413,9 @@ class Universe:
 
         with core.render_loop_lock:
             _universes[name] = weakref.ref(self)
-            universes = {i: _universes[i] for i in _universes if _universes[i]()}
+            universes = {
+                i: _universes[i] for i in _universes if _universes[i]()
+            }
 
         global last_state_update
         last_state_update = time.time()
@@ -406,7 +432,9 @@ class Universe:
             if self.name in _universes and (_universes[self.name]() is self):
                 del _universes[self.name]
 
-            universes = {i: _universes[i] for i in _universes if _universes[i]()}
+            universes = {
+                i: _universes[i] for i in _universes if _universes[i]()
+            }
 
             def alreadyClosed(*a, **k):
                 pass
@@ -468,7 +496,9 @@ class Universe:
             data = fixture.channels[i - fixture.startAddress]
             if data["type"] == "fine":
                 if isinstance(data["coarse"], int):
-                    self.fine_channels[i] = fixture.startAddress + data["coarse"]
+                    self.fine_channels[i] = (
+                        fixture.startAddress + data["coarse"]
+                    )
                 else:
                     for num, ch in enumerate(fixture.channels):
                         if ch.get("name", "") == data["coarse"]:
@@ -488,7 +518,10 @@ class Universe:
     def save_prerendered(self, p, s):
         "Save this layer as the cached layer. Called in the render functions"
         self.prerendered_layer = (p, s)
-        self.prerendered_data = (numpy.copy(self.values), numpy.copy(self.alphas))
+        self.prerendered_data = (
+            numpy.copy(self.values),
+            numpy.copy(self.alphas),
+        )
 
     def reset(self):
         "Reset all values to 0 including the prerendered data"
@@ -546,7 +579,9 @@ class EnttecUniverse(Universe):
         self.statusChanged = {}
         # Sender needs the values to be there for setup
         self.values = numpy.array([0.0] * channels, dtype="f4")
-        self.sender = makeSender(DMXSender, weakref.ref(self), portname, framerate)
+        self.sender = makeSender(
+            DMXSender, weakref.ref(self), portname, framerate
+        )
 
         Universe.__init__(self, name, channels)
         self.sender.connect()
@@ -641,7 +676,9 @@ class DMXSender:
             for i in range(8):
                 self.port.write(message(numpy.array([231] * 120)))
                 time.sleep(0.05)
-            self.port.write(message(numpy.zeros(max(128, len(self.universe().values)))))
+            self.port.write(
+                message(numpy.zeros(max(128, len(self.universe().values))))
+            )
             time.sleep(0.1)
             self.port.read(self.port.in_waiting)
             time.sleep(0.05)
@@ -683,7 +720,9 @@ class DMXSender:
                     if self.data is None:
                         return
                     if self.port:
-                        self.setStatus("disconnected, " + str(e)[:100] + "...", False)
+                        self.setStatus(
+                            "disconnected, " + str(e)[:100] + "...", False
+                        )
                     self.port = None
                     # I don't remember why we retry twice here. But reusing the port list should reduce CPU a lot.
                     time.sleep(3)
@@ -731,7 +770,9 @@ class ArtNetUniverse(Universe):
 
         # Channel 0 is a dummy to make math easier.
         self.values = numpy.array([0.0] * (channels + 1), dtype="f4")
-        self.sender = makeSender(ArtNetSender, weakref.ref(self), addr, port, framerate, scheme)
+        self.sender = makeSender(
+            ArtNetSender, weakref.ref(self), addr, port, framerate, scheme
+        )
 
         Universe.__init__(self, name, channels)
 
@@ -803,7 +844,9 @@ class ArtNetSender:
                         time.sleep(5)
                         raise
 
-                    time.sleep(max(((1.0 / self.framerate) - (time.time() - s)), 0))
+                    time.sleep(
+                        max(((1.0 / self.framerate) - (time.time() - s)), 0)
+                    )
                 except Exception:
                     core.rl_log_exc("Error in artnet universe")
                     print(traceback.format_exc())
@@ -841,7 +884,11 @@ class ArtNetSender:
                 # DMX starts at 1, don't send element 0 even though it exists.
                 p = (
                     b"Art-Net\x00\x00\x50\x00\x0e\0"
-                    + struct.pack("<BH", physical if physical is not None else universe, universe)
+                    + struct.pack(
+                        "<BH",
+                        physical if physical is not None else universe,
+                        universe,
+                    )
                     + struct.pack(">H", len(data))
                     + (data.astype(numpy.uint8).tobytes()[1:])
                 )
@@ -855,7 +902,9 @@ class EnttecOpenUniverse(Universe):
     # Thanks to https://github.com/c0z3n/pySimpleDMX
     # I didn't actually use the code, but it was a very useful resource
     # For protocol documentation.
-    def __init__(self, name, channels=512, portname="", framerate=44.0, number=0):
+    def __init__(
+        self, name, channels=512, portname="", framerate=44.0, number=0
+    ):
         self.ok = False
         self.number = number
         self.status = "Disconnect"
@@ -957,7 +1006,9 @@ class RawDMXSender:
                     self.port.close()
             except Exception:
                 pass
-            self.port = serial.Serial(p, baudrate=250000, timeout=1.0, write_timeout=1.0, stopbits=2)
+            self.port = serial.Serial(
+                p, baudrate=250000, timeout=1.0, write_timeout=1.0, stopbits=2
+            )
 
             self.port.read(self.port.in_waiting)
             time.sleep(0.05)
@@ -1008,7 +1059,9 @@ class RawDMXSender:
                     if self.data is None:
                         return
                     if self.port:
-                        self.setStatus("disconnected, " + str(e)[:100] + "...", False)
+                        self.setStatus(
+                            "disconnected, " + str(e)[:100] + "...", False
+                        )
                     self.port = None
                     # reconnect is designed not to raise Exceptions, so if there's0
                     # an error here it's probably because the whole scope is being cleaned
@@ -1043,7 +1096,13 @@ kaithem.message.subscribe("/system/tags/deleted", onDelTag)
 
 
 def onAddTag(t, m):
-    if "color" not in m and "fade" not in m and "light" not in m and "bulb" not in m and "colour" not in m:
+    if (
+        "color" not in m
+        and "fade" not in m
+        and "light" not in m
+        and "bulb" not in m
+        and "colour" not in m
+    ):
         return
     cl_discover_color_tag_devices()
 
@@ -1155,7 +1214,9 @@ class ColorTagUniverse(Universe):
         kaithem.misc.do(f)
 
     def _onFrame(self):
-        c = colorzero.Color.from_rgb(self.values[1] / 255, self.values[2] / 255, self.values[3] / 255).html
+        c = colorzero.Color.from_rgb(
+            self.values[1] / 255, self.values[2] / 255, self.values[3] / 255
+        ).html
 
         tm = time.time()
 
@@ -1164,7 +1225,9 @@ class ColorTagUniverse(Universe):
         if not c == self.lastColor or not c == self.tag.value:
             self.lastColor = c
             if self.fadeTag:
-                t = max(self.fadeEndTime - time.time(), self.interpolationTime, 0)
+                t = max(
+                    self.fadeEndTime - time.time(), self.interpolationTime, 0
+                )
                 # Round to the nearest 20th of a second so we don't accidentally set the values more often than needed if it doesn't change
                 t = int(t * 20) / 20
                 self.fadeTag(t, tm, annotation="Chandler")
@@ -1177,7 +1240,9 @@ class OneTagpoint(Universe):
 
     refresh_on_create = False
 
-    def __init__(self, name, channels=3, tagpoints={}, framerate=44.0, number=0):
+    def __init__(
+        self, name, channels=3, tagpoints={}, framerate=44.0, number=0
+    ):
         self.ok = True
         self.status = "OK"
         self.number = number

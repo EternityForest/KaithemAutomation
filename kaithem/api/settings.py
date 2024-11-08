@@ -11,6 +11,8 @@ def get_val(key: str) -> str:
     return settings_overrides.get_val(key)
 
 
-def add_val(key: str, value: str, source: str = "<code>", priority: float | int = 0):
+def add_val(
+    key: str, value: str, source: str = "<code>", priority: float | int = 0
+):
     """Add a config option.   If value is empty string, remove it instead."""
     return settings_overrides.add_val(key, value, source, priority)

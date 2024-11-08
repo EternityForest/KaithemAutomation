@@ -65,7 +65,9 @@ async def search(module):
             return pages.get_template("modules/search.html").render(
                 search=kwargs["search"],
                 name=module,
-                results=searchModuleResources(module, kwargs["search"], 100, start),
+                results=searchModuleResources(
+                    module, kwargs["search"], 100, start
+                ),
             )
         else:
             return pages.get_template("modules/search.html").render(

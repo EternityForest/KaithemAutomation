@@ -20,7 +20,12 @@ class Console_ABC:
         "Push lighting values for cue to clients"
 
     def pushMeta(
-        self, groupid: str, statusOnly: bool = False, keys: Optional[List[Any] | Set[Any] | Dict[Any, Any] | Iterable[str]] = None
+        self,
+        groupid: str,
+        statusOnly: bool = False,
+        keys: Optional[
+            List[Any] | Set[Any] | Dict[Any, Any] | Iterable[str]
+        ] = None,
     ):
         "Push group metadata"
 

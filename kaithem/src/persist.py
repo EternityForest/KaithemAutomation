@@ -169,7 +169,9 @@ def loadRecursiveFrom(f, d, remapToDirForSave=None):
                         # that don't exist in the real filesystem yet, but still when we save
                         # things we need to save them back to the real FS
                         fn = os.path.join(root, i)
-                        fn = os.path.join(remapToDirForSave, os.path.relpath(fn, f))
+                        fn = os.path.join(
+                            remapToDirForSave, os.path.relpath(fn, f)
+                        )
                         data = getStateFile(fn)
                         data.noFileForEmpty = True
                         d[x] = data

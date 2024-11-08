@@ -39,7 +39,14 @@ cue_schema = schemas.get_schema("chandler/cue")
 
 # These are in the schema but the corresponding entry on the object has
 # an underscore and there's getters and setters.
-stored_as_property = ["markdown", "track", "sound", "slide", "shortcut", "length_randomize"]
+stored_as_property = [
+    "markdown",
+    "track",
+    "sound",
+    "slide",
+    "shortcut",
+    "length_randomize",
+]
 
 slots = list(cue_schema["properties"].keys()) + [
     "id",
@@ -241,7 +248,11 @@ class Cue:
         # properties
         for i in cue_schema["properties"]:
             if i in stored_as_property:
-                setattr(self, "_" + i, copy.deepcopy(cue_schema["properties"][i]["default"]))
+                setattr(
+                    self,
+                    "_" + i,
+                    copy.deepcopy(cue_schema["properties"][i]["default"]),
+                )
 
         # Most of the data is loaded here based on what's in the schema
         for i in cue_schema["properties"]:
@@ -250,11 +261,19 @@ class Cue:
                 if i in kw:
                     setattr(self, i, kw[i])
                 else:
-                    setattr(self, i, copy.deepcopy(cue_schema["properties"][i]["default"]))
+                    setattr(
+                        self,
+                        i,
+                        copy.deepcopy(cue_schema["properties"][i]["default"]),
+                    )
 
         for i in kw:
             if i not in cue_schema["properties"]:
-                logging.error("Unknown cue data key " + str(i) + " loading anyway but data may be lost")
+                logging.error(
+                    "Unknown cue data key "
+                    + str(i)
+                    + " loading anyway but data may be lost"
+                )
 
         self.rules = self.validate_rules(self.rules)
 
@@ -293,7 +312,9 @@ class Cue:
         self._provider = value
         if old and old != value:
             try:
-                self.getGroup().get_cue_provider(old).delete_saved_user_cue_data(self)
+                self.getGroup().get_cue_provider(
+                    old
+                ).delete_saved_user_cue_data(self)
             except Exception:
                 logging.exception("Failed to delete old cue data")
 
@@ -369,7 +390,9 @@ class Cue:
     def setNumber(self, n):
         "Can take a string representing a decimal number for best accuracy, saves as *1000 fixed point"
         if self.shortcut == number_to_shortcut(self.number):
-            self.shortcut = number_to_shortcut(int((Decimal(n) * Decimal(1000)).quantize(1)))
+            self.shortcut = number_to_shortcut(
+                int((Decimal(n) * Decimal(1000)).quantize(1))
+            )
         self.number = int((Decimal(n) * Decimal(1000)).quantize(1))
 
         # re-sort the cuelist
@@ -540,13 +563,17 @@ class Cue:
         if push:
             self.push()
 
-    def set_value_immediate(self, universe: str, channel: str | int, value: str | int | float | None):
+    def set_value_immediate(
+        self, universe: str, channel: str | int, value: str | int | float | None
+    ):
         gr = self.getGroup()
         if gr:
             gr.set_cue_value(self.name, universe, channel, value)
 
     @beartype
-    def set_value(self, universe: str, channel: str | int, value: str | int | float | None):
+    def set_value(
+        self, universe: str, channel: str | int, value: str | int | float | None
+    ):
         # Allow [] for range effects
         disallow_special(universe, allow="_@./[]")
 
@@ -591,7 +618,9 @@ class Cue:
             "prev": group.getParent(self.name),
             "hasLightingData": len(self.values),
             "default_next": group.getAfter(self.name),
-            "labelImageTimestamp": self.getGroup().board.get_file_timestamp_if_exists(self.label_image),
+            "labelImageTimestamp": self.getGroup().board.get_file_timestamp_if_exists(
+                self.label_image
+            ),
             "provider": self.provider,
         }
 
@@ -621,4 +650,6 @@ class Cue:
         core.add_data_pusher_to_all_boards(lambda s: s.pushCueData(self.id))
 
     def pushoneval(self, u: str, ch: str | int, v: str | float | int | None):
-        core.add_data_pusher_to_all_boards(lambda s: s.linkSend(["scv", self.id, u, ch, v]))
+        core.add_data_pusher_to_all_boards(
+            lambda s: s.linkSend(["scv", self.id, u, ch, v])
+        )

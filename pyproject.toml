@@ -28,7 +28,7 @@ pytest-cov = "^5.0.0"
 pytest-asyncio = "^0.23.7"
 
 [tool.ruff]
-line-length = 140
+line-length = 80
 
 [tool.poetry.dependencies]
 python = "^3.10.0, <3.13"

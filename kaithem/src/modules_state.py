@@ -157,11 +157,15 @@ def importFiledataFolderStructure(module: str) -> None:
                     relfn = os.path.relpath(os.path.join(root, i), folder)
 
                     # Create a directory resource for the directory
-                    ActiveModules[module][util.unurl(relfn)] = {"resource_type": "directory"}
+                    ActiveModules[module][util.unurl(relfn)] = {
+                        "resource_type": "directory"
+                    }
 
 
 @beartype.beartype
-def writeResource(obj: ResourceDictType, dir: str, resource_name: str) -> str | None:
+def writeResource(
+    obj: ResourceDictType, dir: str, resource_name: str
+) -> str | None:
     "Write resource into dir"
     # logger.debug("Saving resource to "+str(fn))
 
@@ -183,9 +187,13 @@ def writeResource(obj: ResourceDictType, dir: str, resource_name: str) -> str | 
 
     for bn in files:
         if not ".".join(bn.split(".")[:-1]) == resource_name.split("/")[-1]:
-            raise RuntimeError(f"Plugin wants to save file {bn} that doesn't match resource {resource_name}")
+            raise RuntimeError(
+                f"Plugin wants to save file {bn} that doesn't match resource {resource_name}"
+            )
         if "/" in bn:
-            raise RuntimeError(f"Resource saving plugins can't create subfolder. Requested fn {bn}")
+            raise RuntimeError(
+                f"Resource saving plugins can't create subfolder. Requested fn {bn}"
+            )
         fn = os.path.join(dir, bn)
         d = files[bn]
 
@@ -209,7 +217,12 @@ def writeResource(obj: ResourceDictType, dir: str, resource_name: str) -> str | 
 
 
 @beartype.beartype
-def save_resource(module: str, resource: str, resourceData: ResourceDictType, name: str | None = None) -> None:
+def save_resource(
+    module: str,
+    resource: str,
+    resourceData: ResourceDictType,
+    name: str | None = None,
+) -> None:
     if "__do__not__save__to__disk__:" in module:
         return
 
@@ -222,7 +235,9 @@ def save_resource(module: str, resource: str, resourceData: ResourceDictType, na
     if not name == resource:
         for i in os.listdir(dir):
             if i.startswith(name + "."):
-                raise ValueError(f"File appears to exist: {os.path.join(dir, i)}")
+                raise ValueError(
+                    f"File appears to exist: {os.path.join(dir, i)}"
+                )
 
     if resourceData["resource_type"] == "directory":
         d = dict(copy.deepcopy(resourceData))
@@ -237,7 +252,9 @@ def save_resource(module: str, resource: str, resourceData: ResourceDictType, na
 
 
 @beartype.beartype
-def rawInsertResource(module: str, resource: str, resource_data: ResourceDictType):
+def rawInsertResource(
+    module: str, resource: str, resource_data: ResourceDictType
+):
     resourceData: dict[str, Any] = copy.deepcopy(resource_data)  # type: ignore
     check_forbidden(resource)
     assert resource[0] != "/"
@@ -249,7 +266,9 @@ def rawInsertResource(module: str, resource: str, resource_data: ResourceDictTyp
     d = os.path.dirname(resource.replace("/", os.path.pathsep))
     while d:
         if d not in ActiveModules[module]:
-            ActiveModules[module][d.replace(os.path.pathsep, "/")] = {"resource_type": "directory"}
+            ActiveModules[module][d.replace(os.path.pathsep, "/")] = {
+                "resource_type": "directory"
+            }
         d = os.path.dirname(d)
 
     ActiveModules[module][resource] = resourceData
@@ -294,7 +313,9 @@ def get_resource_save_location(m: str, r: str) -> str:
 
 
 @beartype.beartype
-def saveModule(module: dict[str, ResourceDictType], modulename: str) -> list[str] | None:
+def saveModule(
+    module: dict[str, ResourceDictType], modulename: str
+) -> list[str] | None:
     """Returns a list of saved module,resource tuples and the saved resource.
     ignore_func if present must take an abs path and return true if that path should be
     left alone. It's meant for external modules and version control systems.
@@ -304,7 +325,9 @@ def saveModule(module: dict[str, ResourceDictType], modulename: str) -> list[str
         return
 
     if modulename in external_module_locations:
-        fn = os.path.join(directories.moduledir, "data", modulename + ".location")
+        fn = os.path.join(
+            directories.moduledir, "data", modulename + ".location"
+        )
         with open(fn, "w") as f:
             f.write(external_module_locations[modulename])
 
@@ -348,7 +371,9 @@ def hashModules() -> str:
             for i in sorted(ActiveModules.keys()):
                 m.update(i.encode())
                 m.update(hashModule(i).encode())
-        return base64.b32encode(m.digest()[:16]).decode().upper().replace("=", "")
+        return (
+            base64.b32encode(m.digest()[:16]).decode().upper().replace("=", "")
+        )
     except Exception:
         logger.exception("Could not hash modules")
         return "ERRORHASHINGMODULES"
@@ -428,7 +453,15 @@ def iter_fc(f: str) -> Iterator[bytes]:
 
 def member_files(
     module: str,
-) -> Iterator[tuple[str, datetime.datetime, int, Callable[[Any, Any], tuple[object, object, Any, None, None]], Iterator[Any]]]:
+) -> Iterator[
+    tuple[
+        str,
+        datetime.datetime,
+        int,
+        Callable[[Any, Any], tuple[object, object, Any, None, None]],
+        Iterator[Any],
+    ]
+]:
     dir = getModuleDir(module)
     for root, dirs, files in deterministic_walk(dir):
         for i in files:

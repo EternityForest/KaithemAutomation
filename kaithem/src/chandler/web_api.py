@@ -32,7 +32,9 @@ async def all_cues(board: str):
     return await f()
 
 
-@quart_app.app.route("/chandler/api/set-cue-properties/<cue_id>", methods=["PUT"])
+@quart_app.app.route(
+    "/chandler/api/set-cue-properties/<cue_id>", methods=["PUT"]
+)
 async def set_cue_properties(cue_id: str):
     """Set all properties given in the form data.
 
@@ -66,7 +68,9 @@ async def set_cue_properties(cue_id: str):
     return await f()
 
 
-@quart_app.app.route("/chandler/api/set-group-properties/<group_id>", methods=["PUT"])
+@quart_app.app.route(
+    "/chandler/api/set-group-properties/<group_id>", methods=["PUT"]
+)
 async def set_group_properties(group_id: str):
     """Set all properties given in the form data.
 

@@ -1,17 +1,16 @@
 # SPDX-FileCopyrightText: Copyright 2019 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
-import traceback
 import os
-from scullery import messagebus  # noqa
-from scullery import jacktools  # noqa
+import traceback
 
 # Used by other stuff, yes this really is supposed to be there
 # as defensive fallback
 from icemedia.jack_tools import *  # noqa
-
 from icemedia.jack_tools import Airwire, get_ports  # noqa
-
-from scullery import messagebus
+from scullery import (
+    jacktools,  # noqa
+    messagebus,  # noqa
+)
 
 
 def exit(*a, **k):
@@ -25,11 +24,15 @@ __doc__ = ""
 
 
 def onFail():
-    messagebus.post_message("/system/notifications/errors", "JACK server has failed")
+    messagebus.post_message(
+        "/system/notifications/errors", "JACK server has failed"
+    )
 
 
 def onStart():
-    messagebus.post_message("/system/notifications/important", "JACK server connected")
+    messagebus.post_message(
+        "/system/notifications/important", "JACK server connected"
+    )
     messagebus.post_message("/system/sound/jackstart", "JACK server connected")
 
 
@@ -53,7 +56,11 @@ def checkIfProcessRunning(processName):
             if processName.lower() in proc.name().lower():
                 if proc.uids()[0] == os.geteuid():
                     return True
-        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+        except (
+            psutil.NoSuchProcess,
+            psutil.AccessDenied,
+            psutil.ZombieProcess,
+        ):
             pass
     return False
 

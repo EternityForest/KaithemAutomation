@@ -35,7 +35,11 @@ class AsgiDispatcher:
                 raise
         except Exception:
             if scope["type"] == "http":
-                r = starlette.responses.Response(pages.get_template("errors/e500.html").render(e=traceback.format_exc()))
+                r = starlette.responses.Response(
+                    pages.get_template("errors/e500.html").render(
+                        e=traceback.format_exc()
+                    )
+                )
                 await r(scope, receive, send)
             else:
                 print("Error", traceback.format_exc())

@@ -15,21 +15,34 @@ from scullery import scheduling, snake_compat, workers
 # The frontend's ephemeral state is using CamelCase conventions for now
 from .. import schemas
 from ..kaithemobj import kaithem
-from . import blendmodes, console_abc, core, fixtureslib, group_lighting, groups, persistance, universes
+from . import (
+    blendmodes,
+    console_abc,
+    core,
+    fixtureslib,
+    group_lighting,
+    groups,
+    persistance,
+    universes,
+)
 from .core import logger
 from .global_actions import async_event
 from .groups import Group, cues
 from .universes import getUniverse, getUniverses
 
 
-def from_legacy_preset_format(d: Dict[str, Any]) -> dict[str, dict[int | str, float | int | str]]:
+def from_legacy_preset_format(
+    d: Dict[str, Any],
+) -> dict[str, dict[int | str, float | int | str]]:
     if "values" not in d:
         return {"values": d}  # type: ignore
     else:
         return d
 
 
-def from_legacy_fixture_class_format(d: List[Any] | Dict[str, Any]) -> dict[str, Any]:
+def from_legacy_fixture_class_format(
+    d: List[Any] | Dict[str, Any],
+) -> dict[str, Any]:
     if "channels" not in d:
         c = d
         a: List[dict[str, Any]] = []
@@ -73,7 +86,9 @@ class ChandlerConsole(console_abc.Console_ABC):
         self.name = name
 
         # mutable and immutable versions of the active groups list.
-        self.groups_by_name: weakref.WeakValueDictionary[str, Group] = weakref.WeakValueDictionary()
+        self.groups_by_name: weakref.WeakValueDictionary[str, Group] = (
+            weakref.WeakValueDictionary()
+        )
 
         self._active_groups: list[Group] = []
         self.active_groups: list[Group] = []
@@ -103,7 +118,9 @@ class ChandlerConsole(console_abc.Console_ABC):
         self.initialized = False
 
         def f(self: ChandlerConsole, *dummy: tuple[Any]):
-            self.linkSend(["soundoutputs", [i for i in kaithem.sound.outputs()]])
+            self.linkSend(
+                ["soundoutputs", [i for i in kaithem.sound.outputs()]]
+            )
 
         self.callback_jackports = f
         kaithem.message.subscribe("/system/jack/newport/", f)
@@ -117,7 +134,9 @@ class ChandlerConsole(console_abc.Console_ABC):
         self.last_logged_gui_send_error = 0
         self.fixture_errors = ""
 
-        self.autosave_checker = scheduling.scheduler.every(self.cl_check_autosave, 10 * 60)
+        self.autosave_checker = scheduling.scheduler.every(
+            self.cl_check_autosave, 10 * 60
+        )
 
         def dummy(data: dict[str, Any]):
             logger.error("No save backend present")
@@ -172,12 +191,16 @@ class ChandlerConsole(console_abc.Console_ABC):
             self.fixture_classes = {}
             ft = data2["fixture_types"]
             for i in ft:
-                self.fixture_classes[i] = from_legacy_fixture_class_format(ft[i])
+                self.fixture_classes[i] = from_legacy_fixture_class_format(
+                    ft[i]
+                )
 
             self.fixture_assignments = data2["fixture_assignments"]
 
             x = data2.get("fixture_presets", {})
-            self.fixture_presets = {i: from_legacy_preset_format(x[i]) for i in x}
+            self.fixture_presets = {
+                i: from_legacy_preset_format(x[i]) for i in x
+            }
 
             default_media_folders: list[str] = []
 
@@ -188,7 +211,9 @@ class ChandlerConsole(console_abc.Console_ABC):
             if os.path.exists(os.path.expanduser("~/Pictures")):
                 default_media_folders.append(os.path.expanduser("~/Pictures"))
 
-            self.media_folders = data2.get("media_folders", default_media_folders) or []
+            self.media_folders = (
+                data2.get("media_folders", default_media_folders) or []
+            )
 
             try:
                 self.cl_create_universes(self.configured_universes)
@@ -221,7 +246,9 @@ class ChandlerConsole(console_abc.Console_ABC):
                 self.fixtures[i].cl_assign(None, None)
                 self.fixtures[i].rm()
         except Exception:
-            self.fixture_errors += "Error deleting old assignments:\n" + traceback.format_exc()
+            self.fixture_errors += (
+                "Error deleting old assignments:\n" + traceback.format_exc()
+            )
             print(traceback.format_exc())
 
         try:
@@ -234,9 +261,13 @@ class ChandlerConsole(console_abc.Console_ABC):
             try:
                 if not i["name"] == key:
                     raise RuntimeError("Name does not match key?")
-                x = universes.Fixture(i["name"], self.fixture_classes[i["type"]])
+                x = universes.Fixture(
+                    i["name"], self.fixture_classes[i["type"]]
+                )
                 self.fixtures[i["name"]] = x
-                self.fixtures[i["name"]].cl_assign(i["universe"], int(i["addr"]))
+                self.fixtures[i["name"]].cl_assign(
+                    i["universe"], int(i["addr"])
+                )
             except Exception:
                 logger.exception("Error setting up fixture")
                 print(traceback.format_exc())
@@ -303,7 +334,9 @@ class ChandlerConsole(console_abc.Console_ABC):
 
     @core.cl_context.entry_point
     def cl_load_show(self, showName: str):
-        saveLocation = os.path.join(kaithem.misc.vardir, "chandler", "shows", showName)
+        saveLocation = os.path.join(
+            kaithem.misc.vardir, "chandler", "shows", showName
+        )
         d = {}
         if os.path.isdir(saveLocation):
             for i in os.listdir(saveLocation):
@@ -354,7 +387,9 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         if "fixture_presets" in data:
             x = data["fixture_presets"]
-            self.fixture_presets = {i: from_legacy_preset_format(x[i]) for i in x}
+            self.fixture_presets = {
+                i: from_legacy_preset_format(x[i]) for i in x
+            }
 
         self.push_setup()
 
@@ -362,7 +397,9 @@ class ChandlerConsole(console_abc.Console_ABC):
         try:
             if not filename:
                 return ""
-            filename = core.resolve_sound(filename, extra_folders=self.media_folders)
+            filename = core.resolve_sound(
+                filename, extra_folders=self.media_folders
+            )
             if not filename:
                 return ""
             if os.path.isfile(filename):
@@ -412,7 +449,13 @@ class ChandlerConsole(console_abc.Console_ABC):
         }
 
     @core.cl_context.entry_point
-    def cl_load_group_file(self, data_str: str, filename: str, errs: bool = False, clear_old: bool = True):
+    def cl_load_group_file(
+        self,
+        data_str: str,
+        filename: str,
+        errs: bool = False,
+        clear_old: bool = True,
+    ):
         data = yaml.load(data_str, Loader=yaml.SafeLoader)
 
         data = snake_compat.snakify_dict_keys(data)
@@ -454,7 +497,9 @@ class ChandlerConsole(console_abc.Console_ABC):
                 try:
                     schemas.validate("chandler/cue", cues[j])
                 except Exception:
-                    logger.exception(f"Error Validating cue {j}, loading anyway")
+                    logger.exception(
+                        f"Error Validating cue {j}, loading anyway"
+                    )
 
         for i in data:
             # New versions don't have a name key at all, the name is the key
@@ -475,7 +520,11 @@ class ChandlerConsole(console_abc.Console_ABC):
                     except KeyError:
                         pass
                 else:
-                    raise ValueError("Group " + i + " already exists. We cannot overwrite, because it was not created through this board")
+                    raise ValueError(
+                        "Group "
+                        + i
+                        + " already exists. We cannot overwrite, because it was not created through this board"
+                    )
             try:
                 x = False
 
@@ -503,8 +552,20 @@ class ChandlerConsole(console_abc.Console_ABC):
                     s.lighting_manager.refresh()
             except Exception:
                 if not errs:
-                    logger.exception("Failed to load group " + str(i) + " " + str(data[i].get("name", "")))
-                    print("Failed to load group " + str(i) + " " + str(data[i].get("name", "")) + ": " + traceback.format_exc(3))
+                    logger.exception(
+                        "Failed to load group "
+                        + str(i)
+                        + " "
+                        + str(data[i].get("name", ""))
+                    )
+                    print(
+                        "Failed to load group "
+                        + str(i)
+                        + " "
+                        + str(data[i].get("name", ""))
+                        + ": "
+                        + traceback.format_exc(3)
+                    )
                 else:
                     raise
 
@@ -538,13 +599,17 @@ class ChandlerConsole(console_abc.Console_ABC):
                     )
                 except Exception:
                     if time.monotonic() - self.last_logged_gui_send_error < 60:
-                        logger.exception("Error when reporting event. (Log ratelimit: 30)")
+                        logger.exception(
+                            "Error when reporting event. (Log ratelimit: 30)"
+                        )
                         self.last_logged_gui_send_error = time.monotonic()
                 finally:
                     self.gui_send_lock.release()
             else:
                 if time.monotonic() - self.last_logged_gui_send_error < 60:
-                    logger.error("Timeout getting lock to push event. (Log ratelimit: 60)")
+                    logger.error(
+                        "Timeout getting lock to push event. (Log ratelimit: 60)"
+                    )
                     self.last_logged_gui_send_error = time.monotonic()
 
         kaithem.misc.do(f)
@@ -552,7 +617,9 @@ class ChandlerConsole(console_abc.Console_ABC):
     def push_setup(self):
         ps = copy.deepcopy(self.fixture_presets)
         for i in ps:
-            ps[i]["labelImageTimestamp"] = self.get_file_timestamp_if_exists(ps[i].get("label_image", ""))
+            ps[i]["labelImageTimestamp"] = self.get_file_timestamp_if_exists(
+                ps[i].get("label_image", "")
+            )
         "Errors in fixture list"
         self.linkSend(["ferrs", self.fixture_errors])
         self.linkSend(["fixtureAssignments", self.fixture_assignments])
@@ -594,7 +661,10 @@ class ChandlerConsole(console_abc.Console_ABC):
     def cl_get_project_data(self):
         sd = copy.deepcopy(self.cl_get_groups())
 
-        project_file: dict[str, Any] = {"groups": sd, "setup": self.cl_get_setup_file()}
+        project_file: dict[str, Any] = {
+            "groups": sd,
+            "setup": self.cl_get_setup_file(),
+        }
         return project_file
 
     def cl_save_project_data(self):
@@ -631,7 +701,10 @@ class ChandlerConsole(console_abc.Console_ABC):
                 if not fixture.startAddress:
                     continue
 
-                data = [fixture.name, fixture.channels[i - fixture.startAddress]]
+                data = [
+                    fixture.name,
+                    fixture.channels[i - fixture.startAddress],
+                ]
                 d[i] = data
             self.linkSend(["cnames", u, d])
         else:
@@ -645,11 +718,18 @@ class ChandlerConsole(console_abc.Console_ABC):
 
     def pushPreset(self, preset):
         preset_data = copy.deepcopy(self.fixture_presets.get(preset, {}))
-        preset_data["labelImageTimestamp"] = self.get_file_timestamp_if_exists(preset_data.get("label_image", ""))
+        preset_data["labelImageTimestamp"] = self.get_file_timestamp_if_exists(
+            preset_data.get("label_image", "")
+        )
         self.linkSend(["preset", preset, preset_data])
 
     def pushMeta(
-        self, groupid: str, statusOnly: bool = False, keys: Optional[List[Any] | Set[Any] | Dict[Any, Any] | Iterable[str]] = None
+        self,
+        groupid: str,
+        statusOnly: bool = False,
+        keys: Optional[
+            List[Any] | Set[Any] | Dict[Any, Any] | Iterable[str]
+        ] = None,
     ):
         "Statusonly=only the stuff relevant to a cue change. Keys is iterable of what to send, or None for all"
         group = self.groups.get(groupid, None)
@@ -662,7 +742,10 @@ class ChandlerConsole(console_abc.Console_ABC):
             try:
                 for j in group.script_context.variables:
                     if not j == "_":
-                        if isinstance(group.script_context.variables[j], (int, float, str, bool)):
+                        if isinstance(
+                            group.script_context.variables[j],
+                            (int, float, str, bool),
+                        ):
                             v[j] = group.script_context.variables[j]
 
                         else:
@@ -674,7 +757,9 @@ class ChandlerConsole(console_abc.Console_ABC):
             data: Dict[str, Any] = {
                 # These dynamic runtime vars aren't part of the schema for stuff that gets saved
                 "status": group.getStatusString(),
-                "blendParams": group.lighting_manager.blend_args if hasattr(group.lighting_manager.blendClass, "parameters") else {},
+                "blendParams": group.lighting_manager.blend_args
+                if hasattr(group.lighting_manager.blendClass, "parameters")
+                else {},
                 "blendDesc": blendmodes.getblenddesc(group.blend),
                 "cue": group.cue.id if group.cue else group.cues["default"].id,
                 "ext": groupid not in self.groups,
@@ -761,7 +846,10 @@ class ChandlerConsole(console_abc.Console_ABC):
                 [
                     "groupcues",
                     group,
-                    {i: (s.cues[i].id, s.cues[i].number / 1000.0) for i in x[:100]},
+                    {
+                        i: (s.cues[i].id, s.cues[i].number / 1000.0)
+                        for i in x[:100]
+                    },
                 ]
             )
             x = x[100:]
@@ -782,7 +870,9 @@ class ChandlerConsole(console_abc.Console_ABC):
         if group not in self._active_groups:
             self._active_groups.append(group)
 
-        self._active_groups = sorted(self._active_groups, key=lambda k: (k.priority, k.started))
+        self._active_groups = sorted(
+            self._active_groups, key=lambda k: (k.priority, k.started)
+        )
         self.active_groups = self._active_groups[:]
 
     @core.cl_context.entry_point
@@ -798,7 +888,9 @@ class ChandlerConsole(console_abc.Console_ABC):
 
     @core.cl_context.entry_point
     def cl_update_group_priorities(self):
-        self._active_groups = sorted(self._active_groups, key=lambda k: (k.priority, k.started))
+        self._active_groups = sorted(
+            self._active_groups, key=lambda k: (k.priority, k.started)
+        )
         self.active_groups = self._active_groups[:]
 
     @core.cl_context.required

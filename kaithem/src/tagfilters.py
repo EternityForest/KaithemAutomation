@@ -53,7 +53,9 @@ class LowpassFilter(Filter):
         inputTag.subscribe(self.doInput)
 
         self.tag = Tag(name)
-        self.claim = self.tag.claim(self.getter, name=f"{inputTag.name}.lowpass", priority=priority)
+        self.claim = self.tag.claim(
+            self.getter, name=f"{inputTag.name}.lowpass", priority=priority
+        )
 
         if interval is None:
             self.tag.interval = timeConstant / 2
@@ -70,7 +72,9 @@ class LowpassFilter(Filter):
         # Get the average state over the last period
         state = (self.state + self.lastState) / 2
         t = time.monotonic() - self.lastRanFilter
-        self.filtered = self.filtered + ((state - self.filtered) * (1 - (self.k**t)))
+        self.filtered = self.filtered + (
+            (state - self.filtered) * (1 - (self.k**t))
+        )
         self.lastRanFilter += t
 
         self.lastState = self.state
@@ -89,7 +93,9 @@ class HighpassFilter(LowpassFilter):
         # Get the average state over the last period
         state = (self.state + self.lastState) / 2
         t = time.monotonic() - self.lastRanFilter
-        self.filtered = self.filtered + ((state - self.filtered) * (1 - (self.k**t)))
+        self.filtered = self.filtered + (
+            (state - self.filtered) * (1 - (self.k**t))
+        )
         self.lastRanFilter += t
 
         self.lastState = self.state

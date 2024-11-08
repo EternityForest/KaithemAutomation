@@ -59,7 +59,9 @@ def debug_universe_values(universe):
     return "Universe not found"
 
 
-@quart_app.app.route("/chandler/label_image_update_callback/<path:path>", methods=["POST"])
+@quart_app.app.route(
+    "/chandler/label_image_update_callback/<path:path>", methods=["POST"]
+)
 async def label_update_callback(path: str):
     try:
         pages.require("system_admin")
@@ -152,7 +154,9 @@ def dyn_js(file):
 async def static_file(fn):
     if ".." in fn or "/" in fn or "\\" in fn:
         return quart.abort(404)
-    return await quart.send_file(os.path.join(os.path.dirname(__file__), "html", fn))
+    return await quart.send_file(
+        os.path.join(os.path.dirname(__file__), "html", fn)
+    )
 
 
 @quart_app.app.route("/chandler/WebMediaServer")
@@ -193,17 +197,33 @@ async def media():
             soundMeta = TinyTag.get(sound, image=True)
             t = soundMeta.get_image()
             if not t:
-                return os.path.join(directories.datadir, "static", "img", "ai_default_album_art.jpg")
+                return os.path.join(
+                    directories.datadir,
+                    "static",
+                    "img",
+                    "ai_default_album_art.jpg",
+                )
 
             return t
 
         else:
             # TODO: Is the timing attack resistance here enough?
 
-            if "group" in kwargs and groups.groups[kwargs["group"]].media_link.allowed_remote_media_url == kwargs["file"]:
+            if (
+                "group" in kwargs
+                and groups.groups[
+                    kwargs["group"]
+                ].media_link.allowed_remote_media_url
+                == kwargs["file"]
+            ):
                 return kwargs["file"]
-            elif "group" in kwargs and groups.groups[kwargs["group"]].cue.slide == kwargs["file"]:
-                return groups.groups[kwargs["group"]].resolve_media(kwargs["file"])
+            elif (
+                "group" in kwargs
+                and groups.groups[kwargs["group"]].cue.slide == kwargs["file"]
+            ):
+                return groups.groups[kwargs["group"]].resolve_media(
+                    kwargs["file"]
+                )
             # elif 'group' in kwargs and kwargs['file'] in groups.groups[kwargs['group']].musicVisualizations:
             #     return(kwargs['file'],name= os.path.basename(kwargs['file']))
             else:
@@ -215,7 +235,9 @@ async def media():
                 assert x
                 f = groups.groups[x].resolve_media(kwargs["file"])
                 if kaithem.web.has_permission("view_admin_info"):
-                    for i in core.getSoundFolders(groups.groups[x].board.media_folders):
+                    for i in core.getSoundFolders(
+                        groups.groups[x].board.media_folders
+                    ):
                         if not i.endswith("/"):
                             i = i + "/"
                         if os.path.normpath(f).startswith(i):
@@ -228,7 +250,10 @@ async def media():
                             return f
 
                 # Resist discovering what scenes exist
-                time.sleep(hashlib.md5(kwargs["group"].encode("utf-8")).digest()[0] / 1000)
+                time.sleep(
+                    hashlib.md5(kwargs["group"].encode("utf-8")).digest()[0]
+                    / 1000
+                )
                 return f
 
     r = await get_file()
@@ -272,11 +297,18 @@ async def default(path):
         if not isinstance(e.f_filepath, (str, os.PathLike)):
             # bytesio not a real path....
             return quart.Response(e.f_filepath)
-        return await quart.send_file(e.f_filepath, mimetype=e.f_MIME, as_attachment=True, attachment_filename=e.f_name)
+        return await quart.send_file(
+            e.f_filepath,
+            mimetype=e.f_MIME,
+            as_attachment=True,
+            attachment_filename=e.f_name,
+        )
 
 
 @quart_app.app.route("/chandler/static/<path:file>")
 async def static_chandler_files(file):
     if ".." in file or "/" in file or "\\" in file:
         raise RuntimeError("confuse a hacker script")
-    return await quart.send_file(os.path.join(os.path.dirname(__file__), "html", file))
+    return await quart.send_file(
+        os.path.join(os.path.dirname(__file__), "html", file)
+    )

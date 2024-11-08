@@ -26,7 +26,9 @@ def insert_resource(module: str, resource: str, resourceData: ResourceDictType):
     and initializing it as appropriate for it's resource type
     """
     if resource in modules_state.ActiveModules[module]:
-        raise ValueError(f"Resource {resource} already exists in module {module}")
+        raise ValueError(
+            f"Resource {resource} already exists in module {module}"
+        )
 
     modules_state.rawInsertResource(module, resource, resourceData)
     modules.handleResourceChange(module, resource, newly_added=True)
@@ -35,9 +37,16 @@ def insert_resource(module: str, resource: str, resourceData: ResourceDictType):
 def update_resource(module: str, resource: str, resourceData: ResourceDictType):
     """Update an existing resource"""
     if resource not in modules_state.ActiveModules[module]:
-        raise ValueError(f"Resource {resource} does not exist in module {module}")
-    if not get_resource_data(module, resource)["resource_type"] == resourceData["resource_type"]:
-        raise ValueError(f"Resource {resource} in {module} is of type {resourceData['resource_type']}")
+        raise ValueError(
+            f"Resource {resource} does not exist in module {module}"
+        )
+    if (
+        not get_resource_data(module, resource)["resource_type"]
+        == resourceData["resource_type"]
+    ):
+        raise ValueError(
+            f"Resource {resource} in {module} is of type {resourceData['resource_type']}"
+        )
     modules_state.rawInsertResource(module, resource, resourceData)
     modules.handleResourceChange(module, resource)
 

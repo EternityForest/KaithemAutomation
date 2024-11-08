@@ -41,7 +41,13 @@ def url(u):
 
 def getshownkeys(obj: Device):
     return sorted(
-        [i for i in obj.config.keys() if i not in specialKeys and not i.startswith("kaithem.") and not i.startswith("temp.kaithem")]
+        [
+            i
+            for i in obj.config.keys()
+            if i not in specialKeys
+            and not i.startswith("kaithem.")
+            and not i.startswith("temp.kaithem")
+        ]
     )
 
 
@@ -55,7 +61,9 @@ device_page_env = {
 
 def render_device_tag(obj, tag):
     try:
-        return pages.render_jinja_template("devices/device_tag_component.j2.html", i=tag, obj=obj)
+        return pages.render_jinja_template(
+            "devices/device_tag_component.j2.html", i=tag, obj=obj
+        )
     except Exception:
         return f"<article>{traceback.format_exc()}</article>"
 
@@ -75,7 +83,9 @@ def devices_index():
         si=units.si_format_number,
     )
 
-    return Response(d, mimetype="text/html", headers={"X-Frame-Options": "SAMEORIGIN"})
+    return Response(
+        d, mimetype="text/html", headers={"X-Frame-Options": "SAMEORIGIN"}
+    )
 
 
 @app.route("/devices/report")
@@ -127,7 +137,11 @@ def device_manage(name):
 
     if obj.parent_module:
         assert obj.parent_resource
-        merged.update(modules_state.ActiveModules[obj.parent_module][obj.parent_resource]["device"])
+        merged.update(
+            modules_state.ActiveModules[obj.parent_module][obj.parent_resource][
+                "device"
+            ]
+        )
 
     # I think stored data is enough, this is just defensive
     merged.update(devices.remote_devices[name].config)
@@ -210,8 +224,12 @@ def discoveryStep(type, devname, **kwargs):
         intent="step",
     )
 
-    dt = pages.get_template("devices/discoverstep.html").render(data=d, current=c, name=devname, obj=obj)
-    return Response(dt, mimetype="text/html", headers={"X-Frame-Options": "SAMEORIGIN"})
+    dt = pages.get_template("devices/discoverstep.html").render(
+        data=d, current=c, name=devname, obj=obj
+    )
+    return Response(
+        dt, mimetype="text/html", headers={"X-Frame-Options": "SAMEORIGIN"}
+    )
 
 
 @app.route("/devices/createDevice", methods=["POST"])
@@ -248,7 +266,9 @@ def create_device_from_kwargs(**kwargs):
 
             modules_state.rawInsertResource(m, r, dt)
         else:
-            raise RuntimeError("Creating devices outside of modules is no longer supported.")
+            raise RuntimeError(
+                "Creating devices outside of modules is no longer supported."
+            )
 
         if name in devices.remote_devices:
             devices.remote_devices[name].close()
@@ -257,7 +277,9 @@ def create_device_from_kwargs(**kwargs):
         if m and r:
             storeDeviceInModule(d, m, r)
         else:
-            raise RuntimeError("Creating devices outside of modules is no longer supported.")
+            raise RuntimeError(
+                "Creating devices outside of modules is no longer supported."
+            )
 
         devices.remote_devices[name].parent_module = m
         devices.remote_devices[name].parent_resource = r
@@ -279,8 +301,12 @@ def createDevicePage(module, resource, type):
     tp = getDeviceType(type)
     assert tp
 
-    d = pages.get_template("devices/createpage.html").render(name=resource, type=type, module=module, resource=resource)
-    return Response(d, mimetype="text/html", headers={"X-Frame-Options": "SAMEORIGIN"})
+    d = pages.get_template("devices/createpage.html").render(
+        name=resource, type=type, module=module, resource=resource
+    )
+    return Response(
+        d, mimetype="text/html", headers={"X-Frame-Options": "SAMEORIGIN"}
+    )
 
 
 @app.route("/devices/deleteDevice/<name>")
@@ -290,7 +316,9 @@ def delete_device_dialog(name):
     except PermissionError:
         return pages.loginredirect(pages.geturl())
     d = pages.get_template("devices/confirmdelete.html").render(name=name)
-    return Response(d, mimetype="text/html", headers={"X-Frame-Options": "SAMEORIGIN"})
+    return Response(
+        d, mimetype="text/html", headers={"X-Frame-Options": "SAMEORIGIN"}
+    )
 
 
 @app.route("/devices/settarget/<name>/<tag>", methods=["POST"])
@@ -336,9 +364,15 @@ def dimtarget(name, tag, **kwargs):
 
     if tag in x.tagpoints:
         try:
-            x.tagpoints[tag].value = (colorzero.Color.from_string(x.tagpoints[tag].value) * colorzero.Luma(kwargs["value"])).html
+            x.tagpoints[tag].value = (
+                colorzero.Color.from_string(x.tagpoints[tag].value)
+                * colorzero.Luma(kwargs["value"])
+            ).html
         except Exception:
-            x.tagpoints[tag].value = (colorzero.Color.from_rgb(1, 1, 1) * colorzero.Luma(kwargs["value"])).html
+            x.tagpoints[tag].value = (
+                colorzero.Color.from_rgb(1, 1, 1)
+                * colorzero.Luma(kwargs["value"])
+            ).html
     return ""
 
 
@@ -385,7 +419,9 @@ def delete_device(name, delete_conf_dir=False):
         delete_bookkeep(name, delete_conf_dir)
 
         if x.parent_module:
-            modules_state.rawDeleteResource(x.parent_module, x.parent_resource or name)
+            modules_state.rawDeleteResource(
+                x.parent_module, x.parent_resource or name
+            )
 
         # no zombie reference
         del x

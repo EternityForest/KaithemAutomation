@@ -16,7 +16,12 @@ def urlForPath(module, path):
         "/modules/module/"
         + url(module)
         + "/resource/"
-        + "/".join([url(i.replace("\\", "\\\\").replace("/", "\\/")) for i in path[0].split("/")[:-1]])
+        + "/".join(
+            [
+                url(i.replace("\\", "\\\\").replace("/", "\\/"))
+                for i in path[0].split("/")[:-1]
+            ]
+        )
     )
 
 
@@ -30,14 +35,19 @@ def getDesc(module):
 def sorted_module_path_list(name: str, path: list):
     return sorted(
         sorted(modules_state.ls_folder(name, "/".join(path))),
-        key=lambda x: (modules_state.ActiveModules[name][x]["resource_type"], x),
+        key=lambda x: (
+            modules_state.ActiveModules[name][x]["resource_type"],
+            x,
+        ),
     )
 
 
 def sorted_module_file_list(name: str, path: list):
     """Yields (name, full resourcename, mtime, size)"""
 
-    p = os.path.join(modules_state.getModuleDir(name), "__filedata__", "/".join(path))
+    p = os.path.join(
+        modules_state.getModuleDir(name), "__filedata__", "/".join(path)
+    )
     if not os.path.isdir(p):
         return []
     lst = os.listdir(p)

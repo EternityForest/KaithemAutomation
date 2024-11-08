@@ -88,7 +88,9 @@ def get_rrule_selector(s: str, ref: datetime.datetime | None = None):
             # Must be a one time event selector
             r = recurrent.RecurringEvent(now_date=ref)
             dt = r.parse(s)
-            selector = dateutil.rrule.rrule(freq=dateutil.rrule.YEARLY, dtstart=dt, count=1)
+            selector = dateutil.rrule.rrule(
+                freq=dateutil.rrule.YEARLY, dtstart=dt, count=1
+            )
             selector._dtstart -= datetime.timedelta(weeks=52 + 3)  # noqa
 
             return selector
@@ -149,10 +151,17 @@ def chmod_private_try(p: str, execute: bool = True) -> None:
         if execute:
             os.chmod(
                 p,
-                stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IXGRP,
+                stat.S_IRUSR
+                | stat.S_IWUSR
+                | stat.S_IXUSR
+                | stat.S_IRGRP
+                | stat.S_IWGRP
+                | stat.S_IXGRP,
             )
         else:
-            os.chmod(p, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP)
+            os.chmod(
+                p, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP
+            )
     except Exception as e:
         raise e
 
@@ -215,14 +224,22 @@ def readfile(f):
 
 
 def get_immediate_subdirectories(folder):
-    return [name for name in os.listdir(folder) if os.path.isdir(os.path.join(folder, name))]
+    return [
+        name
+        for name in os.listdir(folder)
+        if os.path.isdir(os.path.join(folder, name))
+    ]
 
 
 # Get a list of all filenames but not the full paths
 
 
 def get_files(folder):
-    return [name for name in os.listdir(folder) if not os.path.isdir(os.path.join(folder, name))]
+    return [
+        name
+        for name in os.listdir(folder)
+        if not os.path.isdir(os.path.join(folder, name))
+    ]
 
 
 def search_paths(fn: str, paths: List[str]) -> str | None:
@@ -354,7 +371,9 @@ def roundto(n, s):
         return n - n % s
 
 
-def split_escape(s: str, separator: str, escape=None, preserve_escapes=False) -> list[str]:
+def split_escape(
+    s: str, separator: str, escape=None, preserve_escapes=False
+) -> list[str]:
     current_token = ""
     tokens: list[str] = []
     literal = False
@@ -399,7 +418,12 @@ def resourcename_escape(s):
 
 
 def module_onelevelup(s):
-    return "/".join([i.replace("\\", "\\\\").replace("/", "\\/") for i in split_escape(s, "/", "\\")[:-1]])
+    return "/".join(
+        [
+            i.replace("\\", "\\\\").replace("/", "\\/")
+            for i in split_escape(s, "/", "\\")[:-1]
+        ]
+    )
 
 
 numberlock = threading.Lock()

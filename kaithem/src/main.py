@@ -22,7 +22,9 @@ def import_in_thread(m):
     def f():
         importlib.import_module(m)
 
-    threading.Thread(target=f, daemon=True, name=f"nostartstoplog.importer.{m}").start()
+    threading.Thread(
+        target=f, daemon=True, name=f"nostartstoplog.importer.{m}"
+    ).start()
 
 
 def initialize(cfg: Optional[Dict[str, Any]] = None):
@@ -119,7 +121,9 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
             from .plugins import CorePluginEventResources
 
             if f.__module__ in CorePluginEventResources.eventsByModuleName:
-                CorePluginEventResources.eventsByModuleName[f.__module__].handle_exception()
+                CorePluginEventResources.eventsByModuleName[
+                    f.__module__
+                ].handle_exception()
             else:
                 print(traceback.format_exc())
 
@@ -128,7 +132,12 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
 
         try:
             if hasattr(f, "__name__") and hasattr(f, "__module__"):
-                logger.exception("Exception in scheduled function " + f.__name__ + " of module " + f.__module__)
+                logger.exception(
+                    "Exception in scheduled function "
+                    + f.__name__
+                    + " of module "
+                    + f.__module__
+                )
         except Exception:
             logger.exception(f"Exception in scheduled function {repr(f)}")
 
@@ -137,7 +146,11 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
         m = f.__module__
         messagebus.post_message(
             "/system/notifications/errors",
-            "Problem in scheduled event function: " + repr(f) + " in module: " + m + ", check logs for more info.",
+            "Problem in scheduled event function: "
+            + repr(f)
+            + " in module: "
+            + m
+            + ", check logs for more info.",
         )
 
     scheduling.handle_first_error = handle_first_error

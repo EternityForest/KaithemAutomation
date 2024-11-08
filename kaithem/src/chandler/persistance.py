@@ -17,7 +17,9 @@ os.makedirs(os.path.dirname(fn), exist_ok=True)
 con = sqlite3.connect(fn)
 cur = con.cursor()
 
-cur.execute("CREATE TABLE IF NOT EXISTS checkpoint(groupid, cuename, timestamp)")
+cur.execute(
+    "CREATE TABLE IF NOT EXISTS checkpoint(groupid, cuename, timestamp)"
+)
 con.commit()
 
 
@@ -76,7 +78,9 @@ def set_checkpoint(groupid: str, cuename: str):
 
     c = get_con()
     c.execute("DELETE FROM checkpoint WHERE groupid=?", (groupid,))
-    c.execute("INSERT INTO checkpoint VALUES (?,?,?)", (groupid, cuename, time.time()))
+    c.execute(
+        "INSERT INTO checkpoint VALUES (?,?,?)", (groupid, cuename, time.time())
+    )
     c.commit()
 
 

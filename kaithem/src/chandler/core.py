@@ -45,13 +45,17 @@ completed_frame_number = 0
 
 # When running under a debugger actually enforce the ordering
 if "debugpy" in sys.modules:
-    render_loop_lock = context_restrictions.Context("RenderLoopLock", exclusive=True, bottom_level=True)
+    render_loop_lock = context_restrictions.Context(
+        "RenderLoopLock", exclusive=True, bottom_level=True
+    )
 else:
     render_loop_lock = threading.RLock()
 
 
 def is_img_file(path: str):
-    if path.endswith((".png", ".jpg", ".webp", ".png", ".heif", ".tiff", ".gif", ".svg")):
+    if path.endswith(
+        (".png", ".jpg", ".webp", ".png", ".heif", ".tiff", ".gif", ".svg")
+    ):
         return True
 
 
@@ -84,7 +88,9 @@ def rl_log_exc(m: str):
     last_logged_error = time.monotonic()
 
 
-cl_context = context_restrictions.Context("ChandlerCoreLock", exclusive=True, timeout=5 * 60)
+cl_context = context_restrictions.Context(
+    "ChandlerCoreLock", exclusive=True, timeout=5 * 60
+)
 
 
 logger = structlog.get_logger(__name__)
@@ -100,11 +106,19 @@ fixtureschanged = {}
 controlValues = weakref.WeakValueDictionary()
 
 
-def disallow_special(s: str, allow: str = "", replaceMode: str | None = None) -> str:
+def disallow_special(
+    s: str, allow: str = "", replaceMode: str | None = None
+) -> str:
     for i in "[]{}()!@#$%^&*()<>,./;':\"-=+\\|`~?\r\n\t":
         if i in s and i not in allow:
             if replaceMode is None:
-                raise ValueError("Special char " + i + " not allowed in this context(full str starts with " + s[:100] + ")")
+                raise ValueError(
+                    "Special char "
+                    + i
+                    + " not allowed in this context(full str starts with "
+                    + s[:100]
+                    + ")"
+                )
             else:
                 s = s.replace(i, replaceMode)
     return s
@@ -126,7 +140,9 @@ def iter_boards():
         pass
 
 
-def add_data_pusher_to_all_boards(func: Callable[[console_abc.Console_ABC], Any]):
+def add_data_pusher_to_all_boards(
+    func: Callable[[console_abc.Console_ABC], Any],
+):
     """Add a function to every lightboard, which will be called from within it's
     GUI loop and passed the board as first param"""
     for board in iter_boards():
@@ -155,7 +171,14 @@ def getSoundFolders(extra_folders: list[str] | None = None) -> dict[str, str]:
     modulesdata = os.path.join(kaithem.misc.vardir, "modules", "data")
     if os.path.exists(modulesdata):
         for i in os.listdir(modulesdata):
-            x = os.path.join(kaithem.misc.vardir, "modules", "data", i, "__filedata__", "media")
+            x = os.path.join(
+                kaithem.misc.vardir,
+                "modules",
+                "data",
+                i,
+                "__filedata__",
+                "media",
+            )
             if os.path.exists(x):
                 soundfolders[x] = "Module:" + i + "/media"
 
@@ -182,8 +205,14 @@ LATIN = "ä  æ  ǽ  đ ð ƒ ħ ı ł ø ǿ ö  œ  ß  ŧ ü  Ä  Æ  Ǽ  Đ �
 ASCII = "ae ae ae d d f h i l o o oe oe ss t ue AE AE AE D D F H I L O O OE OE SS T UE"
 
 
-def remove_diacritics(s, outliers=str.maketrans(dict(zip(LATIN.split(), ASCII.split())))):  # type: ignore
-    return "".join(c for c in unicodedata.normalize("NFD", s.translate(outliers)) if not unicodedata.combining(c))
+def remove_diacritics(
+    s, outliers=str.maketrans(dict(zip(LATIN.split(), ASCII.split())))
+):  # type: ignore
+    return "".join(
+        c
+        for c in unicodedata.normalize("NFD", s.translate(outliers))
+        if not unicodedata.combining(c)
+    )
 
 
 def simplify_name(n):
@@ -196,7 +225,9 @@ def simplify_name(n):
     return n.lower()
 
 
-def resolve_sound_fuzzy(sound: str, extra_folders: list[str] | None = None) -> str:
+def resolve_sound_fuzzy(
+    sound: str, extra_folders: list[str] | None = None
+) -> str:
     try:
         s = resolve_sound(sound)
         if s and os.path.exists(s):
@@ -214,7 +245,12 @@ def resolve_sound_fuzzy(sound: str, extra_folders: list[str] | None = None) -> s
             else:
                 for dirpath, dirnames, filenames in os.walk(i):
                     for j in filenames:
-                        if textdistance.damerau_levenshtein(simplify_name(j), sound) < 2:
+                        if (
+                            textdistance.damerau_levenshtein(
+                                simplify_name(j), sound
+                            )
+                            < 2
+                        ):
                             sound = os.path.join(dirpath, j)
 
     if not sound.startswith("/"):

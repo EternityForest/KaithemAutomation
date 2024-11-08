@@ -70,14 +70,19 @@ def getAlertState() -> dict[str, str | dict[str, Any]]:
                         "state": alert.sm.state,
                         "priority": alert.priority,
                         "description": alert.description,
-                        "barrel-class": priority_to_class.get(alert.priority, {"warning": 1}),
+                        "barrel-class": priority_to_class.get(
+                            alert.priority, {"warning": 1}
+                        ),
                         "message": alert.trip_message,
                     }
             return d
 
     except Exception:
         logger.exception("Error pushing alert state on msg bus")
-        return {"Alerts": {"priority": "error", "state": "active"}, "unacknowledged_level": highest_unacknowledged_alert_level()}
+        return {
+            "Alerts": {"priority": "error", "state": "active"},
+            "unacknowledged_level": highest_unacknowledged_alert_level(),
+        }
 
 
 def pushAlertState():
@@ -100,7 +105,11 @@ illegalCharsInName = "[]{}|\\<>,?-=+)(*&^%$#@!~`\n\r\t\0"
 
 
 def formatAlerts():
-    return {i: active[i]().format() for i in active if active[i]() and pages.canUserDoThis(active[i]().permissions)}
+    return {
+        i: active[i]().format()
+        for i in active
+        if active[i]() and pages.canUserDoThis(active[i]().permissions)
+    }
 
 
 class API(widgets.APIWidget):
@@ -285,7 +294,9 @@ class Alert:
             {}""".format(
             hex(id(self)),
             self.sm.state,
-            unitsofmeasure.format_time_interval(time.time() - self.sm.entered_state, 2),
+            unitsofmeasure.format_time_interval(
+                time.time() - self.sm.entered_state, 2
+            ),
             unitsofmeasure.strftime(self.sm.entered_state),
             ("\n" if self.description else "") + self.description,
         )
@@ -326,15 +337,21 @@ class Alert:
 
         if self.priority in ("error", "critical", "important"):
             logger.error(f"Alarm {self.name} ACTIVE")
-            messagebus.post_message("/system/notifications/errors", f"Alarm {self.name} is active")
+            messagebus.post_message(
+                "/system/notifications/errors", f"Alarm {self.name} is active"
+            )
         elif self.priority in ("warning"):
-            messagebus.post_message("/system/notifications/warnings", f"Alarm {self.name} is active")
+            messagebus.post_message(
+                "/system/notifications/warnings", f"Alarm {self.name} is active"
+            )
             logger.warning(f"Alarm {self.name} ACTIVE")
         else:
             logger.info(f"Alarm {self.name} active")
 
         if self.priority in ("info"):
-            messagebus.post_message("/system/notifications", f"Alarm {self.name} is active")
+            messagebus.post_message(
+                "/system/notifications", f"Alarm {self.name} is active"
+            )
         sendMessage()
         pushAlertState()
 
@@ -354,8 +371,19 @@ class Alert:
         "Mostly defensive but also cleans up if the autoclear occurs and we skip the acknowledged state"
         global unacknowledged, active, tripped
         if not self.sm.prev_state == "tripped":
-            if self.priority in ("info", "warning", "error", "critical", "important"):
-                if self.priority in ("warning", "error", "critical", "important"):
+            if self.priority in (
+                "info",
+                "warning",
+                "error",
+                "critical",
+                "important",
+            ):
+                if self.priority in (
+                    "warning",
+                    "error",
+                    "critical",
+                    "important",
+                ):
                     messagebus.post_message(
                         "/system/notifications/important",
                         f"Alarm {self.name} returned to normal",

@@ -33,7 +33,9 @@ class MediaLinkManager:
         self.media_link_socket = APIWidget(id=groupObj.id + "_media_link")
         self.media_link_socket.echo = False
 
-        self.slideshow_telemetry: collections.OrderedDict[str, dict[str, Any]] = collections.OrderedDict()
+        self.slideshow_telemetry: collections.OrderedDict[
+            str, dict[str, Any]
+        ] = collections.OrderedDict()
         self.slideshow_telemetry_ratelimit = (time.monotonic(), 200)
         # Variables to send to the slideshow.  They are UI only and
         # we don't have any reactive features
@@ -42,7 +44,9 @@ class MediaLinkManager:
         def handleMediaLink(u, v, id):
             if v[0] == "telemetry":
                 ts, remain = self.slideshow_telemetry_ratelimit
-                remain = max(0, min(200, (time.monotonic() - ts) * 3 + remain - 1))
+                remain = max(
+                    0, min(200, (time.monotonic() - ts) * 3 + remain - 1)
+                )
 
                 if remain:
                     ip = kaithem.widget.ws_connections[id].peer_address
@@ -60,7 +64,9 @@ class MediaLinkManager:
                         "ip": ip,
                         "id": id,
                         "ts": time.time(),
-                        "battery": kaithem.widget.ws_connections[id].batteryStatus,
+                        "battery": kaithem.widget.ws_connections[
+                            id
+                        ].batteryStatus,
                         "group": groupObj.name,
                     }
                     self.slideshow_telemetry.move_to_end(n)
@@ -72,7 +78,13 @@ class MediaLinkManager:
 
                     try:
                         for board in core.iter_boards():
-                            board.linkSend(["slideshow_telemetry", n, self.slideshow_telemetry[n]])
+                            board.linkSend(
+                                [
+                                    "slideshow_telemetry",
+                                    n,
+                                    self.slideshow_telemetry[n],
+                                ]
+                            )
                     except Exception:
                         pass
 
@@ -99,7 +111,13 @@ class MediaLinkManager:
 
         self.media_link_socket.send(["text", self.group.cue.markdown])
 
-        self.media_link_socket.send(["cue_ends", self.group.cuelen + self.group.entered_cue, self.group.cuelen])
+        self.media_link_socket.send(
+            [
+                "cue_ends",
+                self.group.cuelen + self.group.entered_cue,
+                self.group.cuelen,
+            ]
+        )
 
         self.media_link_socket.send(["all_variables", self.web_variables])
 
@@ -108,7 +126,12 @@ class MediaLinkManager:
                 "mediaURL",
                 self.allowed_remote_media_url,
                 self.group.entered_cue,
-                max(0, self.group.cue.fade_in or self.group.cue.sound_fade_in or self.group.crossfade),
+                max(
+                    0,
+                    self.group.cue.fade_in
+                    or self.group.cue.sound_fade_in
+                    or self.group.crossfade,
+                ),
             ]
         )
         self.media_link_socket.send(
@@ -143,12 +166,22 @@ class MediaLinkManager:
             ]
         )
 
-        self.media_link_socket.send(["cue_ends", self.group.cuelen + self.group.entered_cue, self.group.cuelen])
+        self.media_link_socket.send(
+            [
+                "cue_ends",
+                self.group.cuelen + self.group.entered_cue,
+                self.group.cuelen,
+            ]
+        )
 
     def sendVisualizations(self):
         self.media_link_socket.send(
             [
                 "butterchurnfiles",
-                [i.split("milkdrop:")[-1] for i in self.group.music_visualizations.split("\n") if i],
+                [
+                    i.split("milkdrop:")[-1]
+                    for i in self.group.music_visualizations.split("\n")
+                    if i
+                ],
             ]
         )

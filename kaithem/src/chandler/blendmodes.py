@@ -39,11 +39,11 @@ def getUniverse(u: str):
 
 def getblenddesc(mode: str):
     if mode == "gel" or mode == "multiply":
-        return "Values in this group act as a virtual gel filter over the layers below it, the final value is produced by multiplying the values together"
+        return "The final value is produced by multiplying the values together"
     elif mode == "inhibit":
-        return "Values in this group act to limit the max value, the final value is the lower of the value in this group and the rendered value below it"
+        return "The final value is the lower of the value in this group and the rendered value below it"
     elif mode == "HTP":
-        return "The highest of the this group's values and the values below it take effect, as in a traditional HTP lighting console"
+        return "The highest of the this group's values and the values below it take effect"
 
     try:
         return blendmodes[mode].description
@@ -78,7 +78,9 @@ class HardcodedBlendMode(BlendMode):
     "Indicates that the blend mode is hardcoded in applyLayer"
 
 
-blendmodes: weakref.WeakValueDictionary[str, Any] = weakref.WeakValueDictionary()
+blendmodes: weakref.WeakValueDictionary[str, Any] = (
+    weakref.WeakValueDictionary()
+)
 
 
 def makeBlankArray(count, v=0):
@@ -119,13 +121,21 @@ class flicker_blendmode(BlendMode):
         self.last_per = {}
 
         # dicts of np arrays by universe name
-        # Don't worry about garbage collection, this all gets reset when a group is stopped and started
+        # Don't worry about garbage collection,
+        # this all gets reset when a group is stopped and started
         self.heights = {}
         self.heights_lp = {}
 
         self.rand = [random.triangular(0, 1, 0.35) for i in range(256)]
 
-    def frame(self, u: str, old, values: numpy.typing.NDArray[numpy.float32], alphas: numpy.typing.NDArray[numpy.float32], alpha: float):
+    def frame(
+        self,
+        u: str,
+        old,
+        values: numpy.typing.NDArray[numpy.float32],
+        alphas: numpy.typing.NDArray[numpy.float32],
+        alpha: float,
+    ):
         uobj = getUniverse(u)
         assert uobj
 
@@ -163,7 +173,8 @@ class flicker_blendmode(BlendMode):
         topple_chance_setting = float(self.blend_args["topple_chance"])
         lowpass_setting = float(self.blend_args["lowpass"])
 
-        # This algorithm is pretty tricky and I'm not sure how to properly implement it in numpy.
+        # This algorithm is pretty tricky and I'm not
+        # sure how to properly implement it in numpy.
         # So we're doing it one pixel at a time in python
 
         lastk = 0
@@ -195,7 +206,9 @@ class flicker_blendmode(BlendMode):
 
             lastk = k
             if topple_randomizer < (topple_chance_setting * self.wind * t60):
-                heights[k] = min(1 - (nv * (values[k] / 255.0)), heights[k] + 0.1)
+                heights[k] = min(
+                    1 - (nv * (values[k] / 255.0)), heights[k] + 0.1
+                )
             else:
                 if heights[k] < 1 and values[k] > 0:
                     heights[k] += rise * t60
@@ -205,7 +218,11 @@ class flicker_blendmode(BlendMode):
             f = min(1, lowpass_setting * t60)
             heights_lp[k] = heights_lp[k] * (1 - f) + heights[k] * (f)
 
-        old *= (alphas * alpha * numpy.minimum(heights_lp, 1)) + 1 - (alpha * alphas)
+        old *= (
+            (alphas * alpha * numpy.minimum(heights_lp, 1))
+            + 1
+            - (alpha * alphas)
+        )
         return old
 
 
@@ -270,9 +287,13 @@ class vary_blendmode_np(BlendMode):
             interval = self.blend_args["interval"]
             rnd = self.blend_args["rinterval"]
             avg = self.blend_args["mode"]
-            nv = numpy.random.default_rng().triangular(0, max(min(1, 1 - avg), 0), 1, values.shape)
+            nv = numpy.random.default_rng().triangular(
+                0, max(min(1, 1 - avg), 0), 1, values.shape
+            )
             self.vals[u] = 1 - (nv * (values / 255.0))
-            self.ntt = time.time() + random.triangular(interval - rnd, interval + rnd, interval)
+            self.ntt = time.time() + random.triangular(
+                interval - rnd, interval + rnd, interval
+            )
 
         lp = t60 * self.blend_args["speed"]
         if uobj:
@@ -297,7 +318,9 @@ class exp_blendmode_np(BlendMode):
         self.last = time.time()
 
     def frame(self, u, below, values, alphas, alpha):
-        return (((below ** (values / 100.0)) / 255.0 ** (values / 100.0)) * 255) * (alphas * alpha) + below * (1 - alphas * alpha)
+        return (
+            ((below ** (values / 100.0)) / 255.0 ** (values / 100.0)) * 255
+        ) * (alphas * alpha) + below * (1 - alphas * alpha)
 
 
 blendmodes["gamma"] = exp_blendmode_np
@@ -357,7 +380,9 @@ class sparks_blendmode(BlendMode):
                 if t > self.sparktimes.get(k, 0):
                     c = self.blend_args["interval"]
                     x = True
-                    self.sparktimes[k] = t + random.uniform(max(c / 3.0, 0.35), c * 2)
+                    self.sparktimes[k] = t + random.uniform(
+                        max(c / 3.0, 0.35), c * 2
+                    )
                 else:
                     x = False
             if x:
@@ -374,9 +399,12 @@ class sparks_blendmode(BlendMode):
         # Exponential decay equation.
         self.vals_lp[u] *= y
 
-        # The vals_lp are actually alphas that spark up and then fade out and control how much of the group shows up
+        # The vals_lp are actually alphas that spark up and then
+        # fade out and control how much of the group shows up
         # in that channel
-        return values * (self.vals_lp[u] * alpha * alphas) + old * (1 - (self.vals_lp[u] * alpha * alphas))
+        return values * (self.vals_lp[u] * alpha * alphas) + old * (
+            1 - (self.vals_lp[u] * alpha * alphas)
+        )
 
 
 blendmodes["sparks"] = sparks_blendmode

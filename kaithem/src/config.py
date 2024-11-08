@@ -82,7 +82,9 @@ def load(cfg: dict[str, Any]):
         vd = os.path.expanduser(argcmd.d)
         with open(os.path.join(vd, "config.yaml")) as f:
             _usr_config = yaml.load(f, yaml.SafeLoader) or {}
-            logger.info("Loaded configuration from " + os.path.join(vd, "config.yaml"))
+            logger.info(
+                "Loaded configuration from " + os.path.join(vd, "config.yaml")
+            )
 
     if "site_data_dir" in cfg:
         p = os.path.join(cfg["site_data_dir"], "config.yaml")

@@ -31,7 +31,9 @@ def on_service_state_change(zeroconf, service_type, name, state_change):
         if state_change is ServiceStateChange.Added:
             httpservices.append(
                 (
-                    tuple(sorted([socket.inet_ntoa(i) for i in info.addresses])),
+                    tuple(
+                        sorted([socket.inet_ntoa(i) for i in info.addresses])
+                    ),
                     service_type,
                     name,
                     info.port,
@@ -43,7 +45,11 @@ def on_service_state_change(zeroconf, service_type, name, state_change):
             try:
                 httpservices.remove(
                     (
-                        tuple(sorted([socket.inet_ntoa(i) for i in info.addresses])),
+                        tuple(
+                            sorted(
+                                [socket.inet_ntoa(i) for i in info.addresses]
+                            )
+                        ),
                         service_type,
                         name,
                         info.port,
@@ -56,7 +62,9 @@ def on_service_state_change(zeroconf, service_type, name, state_change):
 # Not common enough to waste CPU all the time on
 # browser = ServiceBrowser(util.zeroconf, "_https._tcp.local.", handlers=[ on_service_state_change])
 
-browser2 = ServiceBrowser(util.zeroconf, "_http._tcp.local.", handlers=[on_service_state_change])
+browser2 = ServiceBrowser(
+    util.zeroconf, "_http._tcp.local.", handlers=[on_service_state_change]
+)
 
 
 # Can't think of anywhere else to put this thing.
@@ -70,11 +78,15 @@ lastsaved = time.time()
 def getcfg():
     global saveinterval, dumplogsinterval, lastdumpedlogs
     if not config["autosave_state"] == "never":
-        saveinterval = unitsofmeasure.time_interval_from_string(config["autosave_state"])
+        saveinterval = unitsofmeasure.time_interval_from_string(
+            config["autosave_state"]
+        )
 
     lastdumpedlogs = time.time()
     if not config["autosave_logs"] == "never":
-        dumplogsinterval = unitsofmeasure.time_interval_from_string(config["autosave_logs"])
+        dumplogsinterval = unitsofmeasure.time_interval_from_string(
+            config["autosave_logs"]
+        )
 
 
 getcfg()
@@ -150,7 +162,9 @@ def logstats():
 
     # Only log page views every ten minutes
     if (time.time() > lastpageviews + (60 * 30)) and nminutepagecount > 0:
-        logger.info(f"Requests per minute: {str(round(nminutepagecount / 30, 2))}")
+        logger.info(
+            f"Requests per minute: {str(round(nminutepagecount / 30, 2))}"
+        )
         lastpageviews = time.time()
         nminutepagecount = 0
 
@@ -163,7 +177,9 @@ def logstats():
 
             usedp = round((1 - (free + cache) / float(total)), 3)
             total = round(total / 1024.0, 2)
-            if (time.time() - lastram > (60 * 60)) or ((time.time() - lastram > 600) and usedp > 0.8):
+            if (time.time() - lastram > (60 * 60)) or (
+                (time.time() - lastram > 600) and usedp > 0.8
+            ):
                 logger.info(f"Total ram usage: {str(round(usedp * 100, 1))}")
                 lastram = time.time()
 
@@ -173,7 +189,9 @@ def logstats():
                     if time.time() - lastramwarn > 3600:
                         messagebus.post_message(
                             "/system/notifications/warnings",
-                            "Total System Memory Use rose above " + str(int(config["mem_use_warn"] * 100)) + "%",
+                            "Total System Memory Use rose above "
+                            + str(int(config["mem_use_warn"] * 100))
+                            + "%",
                         )
                         lastramwarn = time.time()
 
@@ -191,8 +209,12 @@ messagebus.subscribe("/system/shutdown", stop_workers)
 
 
 def sd():
-    messagebus.post_message("/system/shutdown", "System about to shut down or restart")
-    messagebus.post_message("/system/notifications/important", "System shutting down now")
+    messagebus.post_message(
+        "/system/shutdown", "System about to shut down or restart"
+    )
+    messagebus.post_message(
+        "/system/notifications/important", "System shutting down now"
+    )
 
 
 sd.priority = 25

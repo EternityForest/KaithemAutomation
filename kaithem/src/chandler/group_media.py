@@ -31,17 +31,27 @@ class GroupMediaPlayer:
 
         self.cue = cue
 
-        fade_len = max(0, self.group.cue.sound_fade_out or self.group.crossfade or self.group.evalExprFloat(cue.fade_in))
+        fade_len = max(
+            0,
+            self.group.cue.sound_fade_out
+            or self.group.crossfade
+            or self.group.evalExprFloat(cue.fade_in),
+        )
 
         if not cue.sound == "__keep__":
             # Don't stop audio of we're about to crossfade to the next track
             if not (self.group.crossfade and cue.sound):
-                if self.group.cue.sound_fade_out or self.group.cue.media_wind_down:
+                if (
+                    self.group.cue.sound_fade_out
+                    or self.group.cue.media_wind_down
+                ):
                     fadeSound(
                         None,
                         length=self.group.cue.sound_fade_out,
                         handle=str(self.group.id),
-                        winddown=self.group.evalExprFloat(self.group.cue.media_wind_down or 0),
+                        winddown=self.group.evalExprFloat(
+                            self.group.cue.media_wind_down or 0
+                        ),
                     )
                 else:
                     if not fade_len:
@@ -49,12 +59,17 @@ class GroupMediaPlayer:
 
             # There is no next sound so crossfade to silence
             elif self.group.crossfade and (not cue.sound):
-                if self.group.cue.sound_fade_out or self.group.cue.media_wind_down:
+                if (
+                    self.group.cue.sound_fade_out
+                    or self.group.cue.media_wind_down
+                ):
                     fadeSound(
                         None,
                         length=self.group.cue.sound_fade_out,
                         handle=str(self.group.id),
-                        winddown=self.group.evalExprFloat(self.group.cue.media_wind_down or 0),
+                        winddown=self.group.evalExprFloat(
+                            self.group.cue.media_wind_down or 0
+                        ),
                     )
                 else:
                     stop_sound(str(self.group.id))
@@ -92,7 +107,9 @@ class GroupMediaPlayer:
                 except Exception:
                     self.group.event(
                         "script.error",
-                        self.group.name + " in cueVolume eval:\n" + traceback.format_exc(),
+                        self.group.name
+                        + " in cueVolume eval:\n"
+                        + traceback.format_exc(),
                     )
                     self.group.cueVolume = 1
                 try:
@@ -106,12 +123,20 @@ class GroupMediaPlayer:
                         # Also fade in for crossfade,
                         # but in that case we only do it if there is something to fade in from.
 
-                        spd = self.group.script_context.preprocessArgument(cue.media_speed)
+                        spd = self.group.script_context.preprocessArgument(
+                            cue.media_speed
+                        )
                         spd = spd or 1
                         spd = float(spd)
 
                         if not (
-                            (((self.group.crossfade > 0) and not (cue.sound_fade_in < 0)) and sound_player.is_playing(str(self.group.id)))
+                            (
+                                (
+                                    (self.group.crossfade > 0)
+                                    and not (cue.sound_fade_in < 0)
+                                )
+                                and sound_player.is_playing(str(self.group.id))
+                            )
                             or (cue.fade_in > 0)
                             or (cue.sound_fade_in > 0)
                             or cue.media_wind_up
@@ -123,11 +148,17 @@ class GroupMediaPlayer:
                                 volume=self.group.alpha * self.group.cueVolume,
                                 output=out,
                                 loop=cue.sound_loops,
-                                start=self.group.evalExprFloat(cue.sound_start_position or 0),
+                                start=self.group.evalExprFloat(
+                                    cue.sound_start_position or 0
+                                ),
                                 speed=spd,
                             )
                         else:
-                            fade = cue.fade_in or cue.sound_fade_in or self.group.crossfade
+                            fade = (
+                                cue.fade_in
+                                or cue.sound_fade_in
+                                or self.group.crossfade
+                            )
                             # Odd cases where there's a wind up but specifically disabled fade
                             if cue.sound_fade_in < 0:
                                 fade = 0.1
@@ -139,15 +170,23 @@ class GroupMediaPlayer:
                                 volume=self.group.alpha * self.group.cueVolume,
                                 output=out,
                                 loop=cue.sound_loops,
-                                start=self.group.evalExprFloat(cue.sound_start_position or 0),
-                                windup=self.group.evalExprFloat(cue.media_wind_up or 0),
-                                winddown=self.group.evalExprFloat(self.group.cue.media_wind_down or 0),
+                                start=self.group.evalExprFloat(
+                                    cue.sound_start_position or 0
+                                ),
+                                windup=self.group.evalExprFloat(
+                                    cue.media_wind_up or 0
+                                ),
+                                winddown=self.group.evalExprFloat(
+                                    self.group.cue.media_wind_down or 0
+                                ),
                                 speed=spd,
                             )
 
                     else:
                         self.group.media_link.allowed_remote_media_url = sound
-                        self.group.media_link_socket.send(["volume", self.group.alpha])
+                        self.group.media_link_socket.send(
+                            ["volume", self.group.alpha]
+                        )
                         self.group.media_link_socket.send(
                             [
                                 "mediaURL",
@@ -173,7 +212,9 @@ class GroupMediaPlayer:
                         if sound.endswith(".mp3"):
                             self.group.event(
                                 "error",
-                                "Reading metadata for: " + sound + traceback.format_exc(),
+                                "Reading metadata for: "
+                                + sound
+                                + traceback.format_exc(),
                             )
                         album_art = None
                         currentAudioMetadata = {
@@ -183,10 +224,15 @@ class GroupMediaPlayer:
                             "year": "",
                         }
 
-                    self.group.cueInfoTag.value = {"audio.meta": currentAudioMetadata}
+                    self.group.cueInfoTag.value = {
+                        "audio.meta": currentAudioMetadata
+                    }
 
                     if album_art and len(album_art) < 3 * 10**6:
-                        self.group.albumArtTag.value = "data:image/jpeg;base64," + base64.b64encode(album_art).decode()
+                        self.group.albumArtTag.value = (
+                            "data:image/jpeg;base64,"
+                            + base64.b64encode(album_art).decode()
+                        )
                     else:
                         self.group.albumArtTag.value = ""
 

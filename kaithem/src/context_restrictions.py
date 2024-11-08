@@ -42,7 +42,13 @@ class Context:
     to open.
     """
 
-    def __init__(self, name: str, exclusive: bool = False, bottom_level: bool = False, timeout=-1):
+    def __init__(
+        self,
+        name: str,
+        exclusive: bool = False,
+        bottom_level: bool = False,
+        timeout=-1,
+    ):
         self.name = name
 
         self._lock = threading.RLock() if exclusive else None
@@ -127,7 +133,9 @@ class Context:
             @wraps(f)
             def session_entry_point_wrapper(*args, **kwargs):
                 if self._local.session and self._local.session != str:
-                    raise ContextError(f"{self.name} open in session {self._local.session}")
+                    raise ContextError(
+                        f"{self.name} open in session {self._local.session}"
+                    )
                 if self._local.level > 0:
                     return f(*args, **kwargs)
                 else:
@@ -148,7 +156,9 @@ class Context:
             @wraps(f)
             def session_required_wrapper(*args, **kwargs):
                 if self._local.session != str:
-                    raise ContextError(f"{self.name} open in session {self._local.session}")
+                    raise ContextError(
+                        f"{self.name} open in session {self._local.session}"
+                    )
 
                 return f(*args, **kwargs)
 
@@ -169,7 +179,9 @@ class Context:
         def object_session_entry_point_wrapper(obj, *args, **kwargs):
             s = id(obj)
             if self._local.session and self._local.session != s:
-                raise ContextError(f"{self.name} open in session {self._local.session}")
+                raise ContextError(
+                    f"{self.name} open in session {self._local.session}"
+                )
             if self._local.level > 0:
                 return f(obj, *args, **kwargs)
             else:
@@ -187,7 +199,9 @@ class Context:
         def object_session_required_wrapper(obj, *args, **kwargs):
             s = id(obj)
             if self._local.session != s:
-                raise ContextError(f"{self.name} open in session {self._local.session}")
+                raise ContextError(
+                    f"{self.name} open in session {self._local.session}"
+                )
             return f(obj, *args, **kwargs)
 
         return object_session_required_wrapper  # type: ignore
@@ -195,15 +209,21 @@ class Context:
     def __enter__(self):
         if not self._local.level:
             if _bottom.level:
-                raise ContextError("Cannot open a new context while already in a bottom-level context")
+                raise ContextError(
+                    "Cannot open a new context while already in a bottom-level context"
+                )
 
             for i in self._preconditions:
                 if not i():
-                    raise ContextError(f"{self.name} precondition failed: {i.__name__}")
+                    raise ContextError(
+                        f"{self.name} precondition failed: {i.__name__}"
+                    )
 
             for i in self._opens_before:
                 if i.active:
-                    raise ContextError(f"{self.name} must be opened before {i.name} if both are used")
+                    raise ContextError(
+                        f"{self.name} must be opened before {i.name} if both are used"
+                    )
 
         if self._lock:
             if not self._lock.acquire(True, timeout=self._lock_timeout):
@@ -225,4 +245,6 @@ class Context:
             self._local.session = None
             for i in self._postconditions:
                 if not i():
-                    raise ContextError(f"{self.name} postcondition failed: {i.__name__}")
+                    raise ContextError(
+                        f"{self.name} postcondition failed: {i.__name__}"
+                    )

@@ -77,9 +77,15 @@ messagebus.subscribe("/system/shutdown", iot_devices.host.app_exit_cleanup)
 
 @quart_app.app.route("/favicon.ico")
 async def favicon():
-    fn = os.path.join(directories.datadir, "static", settings_overrides.get_val("core/favicon_ico"))
+    fn = os.path.join(
+        directories.datadir,
+        "static",
+        settings_overrides.get_val("core/favicon_ico"),
+    )
     if not os.path.exists(fn):
-        fn = os.path.join(directories.vardir, settings_overrides.get_val("core/favicon_ico"))
+        fn = os.path.join(
+            directories.vardir, settings_overrides.get_val("core/favicon_ico")
+        )
     return await send_file(fn, cache_timeout=3600 * 24)
 
 
@@ -117,8 +123,12 @@ async def user_static(*args):
     except PermissionError:
         return pages.loginredirect(pages.geturl())
     if not args:
-        if os.path.exists(os.path.join(directories.vardir, "static", "index.html")):
-            return await quart.send_file(os.path.join(directories.vardir, "static", "index.html"))
+        if os.path.exists(
+            os.path.join(directories.vardir, "static", "index.html")
+        ):
+            return await quart.send_file(
+                os.path.join(directories.vardir, "static", "index.html")
+            )
 
     try:
         dir = "/".join(args)
@@ -132,14 +142,21 @@ async def user_static(*args):
 
         dir = os.path.join(directories.vardir, "static", dir)
 
-        if not os.path.normpath(dir).startswith(os.path.join(directories.vardir, "static")):
+        if not os.path.normpath(dir).startswith(
+            os.path.join(directories.vardir, "static")
+        ):
             raise RuntimeError("Security violation")
 
         if os.path.isfile(dir):
             return await quart.send_file(dir)
         else:
-            x = [(i + "/" if os.path.isdir(os.path.join(dir, i)) else i) for i in os.listdir(dir)]
-            x = "\r\n".join(['<a href="' + i + '">' + i + "</a><br>" for i in x])
+            x = [
+                (i + "/" if os.path.isdir(os.path.join(dir, i)) else i)
+                for i in os.listdir(dir)
+            ]
+            x = "\r\n".join(
+                ['<a href="' + i + '">' + i + "</a><br>" for i in x]
+            )
             return x
     except Exception:
         return traceback.format_exc()
@@ -155,7 +172,9 @@ def index_default(*path, **data):
         pages.require("view_status")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
-    r = pages.get_template("index.html").render(api=notifications.api, alertsapi=alerts.api)
+    r = pages.get_template("index.html").render(
+        api=notifications.api, alertsapi=alerts.api
+    )
     r2 = quart.Response(r)
     r2.set_cookie("LastSawMainPage", str(time.time()))
     return r2
@@ -167,7 +186,9 @@ def index_direct():
         pages.require("view_status")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
-    r = pages.get_template("index.html").render(api=notifications.api, alertsapi=alerts.api)
+    r = pages.get_template("index.html").render(
+        api=notifications.api, alertsapi=alerts.api
+    )
     r2 = quart.Response(r)
     r2.set_cookie("LastSawMainPage", str(time.time()))
     return r2
@@ -179,7 +200,9 @@ def dropdownpanel():
         pages.require("view_status")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
-    return pages.get_template("dropdownpanel.html").render(api=notifications.api, alertsapi=alerts.api)
+    return pages.get_template("dropdownpanel.html").render(
+        api=notifications.api, alertsapi=alerts.api
+    )
 
 
 @quart_app.app.route("/tagpoints")
@@ -191,7 +214,9 @@ def tagpoints_index(*path, show_advanced=""):
         return pages.loginredirect(pages.geturl())
     data = request.args
 
-    return pages.get_template("settings/tagpoints.html").render(data=data, module="", resource="")
+    return pages.get_template("settings/tagpoints.html").render(
+        data=data, module="", resource=""
+    )
 
 
 @quart_app.app.route("/tagpoints/<path:path>", methods=["GET", "POST"])
@@ -208,7 +233,13 @@ def specific_tagpoint(path):
         tn = "/" + tn
     if tagpoints.normalize_tag_name(tn) not in tagpoints.allTags:
         raise ValueError("This tag does not exist")
-    return pages.get_template("settings/tagpoint.html").render(tagName=tn, data=request.args, show_advanced=True, module="", resource="")
+    return pages.get_template("settings/tagpoint.html").render(
+        tagName=tn,
+        data=request.args,
+        show_advanced=True,
+        module="",
+        resource="",
+    )
 
 
 @quart_app.app.route("/action_step/<id>", methods=["POST"])
@@ -218,7 +249,9 @@ def action_step(id, **kwargs):
         pages.require("system_admin")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
-    return module_actions.actions[id].step(**kwargs) or quart.redirect("/modules")
+    return module_actions.actions[id].step(**kwargs) or quart.redirect(
+        "/modules"
+    )
 
 
 @quart_app.app.route("/tag_api/<cmd>/<path:path>")
@@ -250,7 +283,9 @@ def tag_api(cmd, path):
 def docs(path):
     path = path.split("/")
     if path:
-        return pages.get_template("help/" + path[0] + ".html").render(path=path, data=request.args)
+        return pages.get_template("help/" + path[0] + ".html").render(
+            path=path, data=request.args
+        )
     return pages.get_template("help/help.html").render()
 
 
@@ -304,20 +339,27 @@ def startServer():
 
     def save():
         if config["save_before_shutdown"]:
-            messagebus.post_message("/system/notifications/important/", "System saving before shutting down")
+            messagebus.post_message(
+                "/system/notifications/important/",
+                "System saving before shutting down",
+            )
             util.SaveAllState()
 
     def pageloadnotify(*args, **kwargs):
         systasks.aPageJustLoaded()
 
     messagebus.post_message("/system/startup", "System Initialized")
-    messagebus.post_message("/system/notifications/important", "System Initialized")
+    messagebus.post_message(
+        "/system/notifications/important", "System Initialized"
+    )
 
     hypercornapps["/widgets/wsraw"] = widgets.rawapp
     hypercornapps["/widgets/ws"] = widgets.app
 
     for i in webapi._wsgi_apps:
-        hypercornapps[i[0]] = SimpleUserAuthMiddleware(AsyncioWSGIMiddleware(i[1]), i[2])
+        hypercornapps[i[0]] = SimpleUserAuthMiddleware(
+            AsyncioWSGIMiddleware(i[1]), i[2]
+        )
 
     for i in webapi._asgi_apps:
         hypercornapps[i[0]] = SimpleUserAuthMiddleware(i[1], i[2])
@@ -326,7 +368,9 @@ def startServer():
     dispatcher_app = AsgiDispatcher(hypercornapps)
 
     config2 = Config()
-    config2.bind = [f"{bindto}:{config['http_port']}"]  # As an example configuration setting
+    config2.bind = [
+        f"{bindto}:{config['http_port']}"
+    ]  # As an example configuration setting
     config2.worker_class = "uvloop"
 
     # if config["https_port"]:

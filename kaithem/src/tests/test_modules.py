@@ -75,7 +75,10 @@ def test_make_module():
 
     modules.rmResource(n, "testevt")
 
-    assert (n, "testevt") not in CorePluginEventResources._events_by_module_resource
+    assert (
+        n,
+        "testevt",
+    ) not in CorePluginEventResources._events_by_module_resource
 
     # The scope of the dynamically generated module should be gone now
     assert ref() is None
@@ -104,7 +107,9 @@ def test_make_module():
 
     old_hash = modules_state.getModuleHash(n)
 
-    old_json = json.dumps(modules_state.ActiveModules[n], sort_keys=True, indent=4)
+    old_json = json.dumps(
+        modules_state.ActiveModules[n], sort_keys=True, indent=4
+    )
 
     zf = modules_state.getModuleAsYamlZip(n)
     assert zf
@@ -122,7 +127,9 @@ def test_make_module():
 
     modules.load_modules_from_zip(zf2)
 
-    new_json = json.dumps(modules_state.ActiveModules[n], sort_keys=True, indent=4)
+    new_json = json.dumps(
+        modules_state.ActiveModules[n], sort_keys=True, indent=4
+    )
 
     diff = difflib.unified_diff(old_json.splitlines(), new_json.splitlines())
 

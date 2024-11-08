@@ -25,7 +25,9 @@ if "--collect-only" not in sys.argv:
         if not (str(path).startswith("/dev/shm/")) and not path == "/dev/null":
             if "w" in mode or "a" in mode:
                 if "__pycache__" not in str(path):
-                    raise RuntimeError("Unit testing is not allowed to write outside of /dev/shm")
+                    raise RuntimeError(
+                        "Unit testing is not allowed to write outside of /dev/shm"
+                    )
 
         return old_open(path, mode, *args, **kwargs)
 
@@ -166,7 +168,9 @@ uuid: efcae37b3e78437cad5098eadf3a172d
 
     os.makedirs("/dev/shm/kaithem_tests/chandler/groups")
 
-    with open("/dev/shm/kaithem_tests/chandler/groups/unit_testing.yaml", "w") as f:
+    with open(
+        "/dev/shm/kaithem_tests/chandler/groups/unit_testing.yaml", "w"
+    ) as f:
         f.write(test_group)
 
     kaithem.initialize_app(cfg)

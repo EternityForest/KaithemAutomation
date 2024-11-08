@@ -203,7 +203,12 @@ class LoggingHandler(logging.Handler):
         raw = self.format(record)
         txt = strip_ansi_colour(raw)
         if self.doprint:
-            if not self.exclude_print or (not (record.name == self.exclude_print or record.name.startswith(f"{self.exclude_print}."))):
+            if not self.exclude_print or (
+                not (
+                    record.name == self.exclude_print
+                    or record.name.startswith(f"{self.exclude_print}.")
+                )
+            ):
                 print(raw)
 
         self.callback(record)
@@ -264,7 +269,9 @@ class LoggingHandler(logging.Handler):
             else:
                 openlog = open
                 ext = ".log"
-                print("Invalid config option for 'log-compress' so defaulting to no compression")
+                print(
+                    "Invalid config option for 'log-compress' so defaulting to no compression"
+                )
 
             # Swap out the log buffers so we can work with an immutable copy
             # That way we don't block anything that tries to write a log for the entirety of
@@ -298,7 +305,10 @@ class LoggingHandler(logging.Handler):
                 # TODO: TOo Many Open Files error
                 chmodflag = not os.path.exists(self.current_file)
                 try:
-                    with openlog(self.current_file, "ba" if self.compress == "none" else "wb") as f:
+                    with openlog(
+                        self.current_file,
+                        "ba" if self.compress == "none" else "wb",
+                    ) as f:
                         if chmodflag:
                             util.chmod_private_try(fn)
                         for i in logbuffer:
@@ -337,7 +347,9 @@ class LoggingHandler(logging.Handler):
                 # If we have filled up one file, we close it, and let the logic
                 # for the next dump decide what to do about it.
                 # Always start a new file after a compressed dump.
-                if (self.counter >= self.entries_per_file) or not self.compress == "none":
+                if (
+                    self.counter >= self.entries_per_file
+                ) or not self.compress == "none":
                     self.current_file = None
                     self.counter = 0
                     self.bytecounter = 0

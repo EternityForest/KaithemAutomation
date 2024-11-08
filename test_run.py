@@ -33,6 +33,8 @@ def exit_pytest_first_failure():
 
 if __name__ == "__main__":
     if not sys.gettrace():
-        sys.exit(pytest.main(["-qq", "-x", "--cov=kaithem"], plugins=[MyPlugin()]))
+        sys.exit(
+            pytest.main(["-qq", "-x", "--cov=kaithem"], plugins=[MyPlugin()])
+        )
     else:
         sys.exit(pytest.main(["-qq", "-x"], plugins=[MyPlugin()]))

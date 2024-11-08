@@ -108,7 +108,12 @@ effectTemplates_data = {
                 "type": "enum",
                 "displayName": "Type",
                 "value": 0,
-                "options": [["sine", 0], ["white", 5], ["pink", 6], ["silence", 0]],
+                "options": [
+                    ["sine", 0],
+                    ["white", 5],
+                    ["pink", 6],
+                    ["silence", 0],
+                ],
                 "sort": 0,
             }
         },

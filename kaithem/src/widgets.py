@@ -32,12 +32,16 @@ logger = structlog.get_logger(__name__)
 
 # Modify lock for any websocket's subscriptions
 subscriptionLock = threading.Lock()
-widgets: weakref.WeakValueDictionary[str | int, Widget] = weakref.WeakValueDictionary()
+widgets: weakref.WeakValueDictionary[str | int, Widget] = (
+    weakref.WeakValueDictionary()
+)
 n = 0
 
 # We can keep track of how many. If more than 10, we stop making new ones for every
 # connection.
-wsrunners: weakref.WeakValueDictionary[int, WSActionRunner] = weakref.WeakValueDictionary()
+wsrunners: weakref.WeakValueDictionary[int, WSActionRunner] = (
+    weakref.WeakValueDictionary()
+)
 
 
 class WSActionRunner:
@@ -92,7 +96,9 @@ def eventErrorHandler(f: Callable[[], Any]):
         from .plugins import CorePluginEventResources
 
         if f.__module__ in CorePluginEventResources.eventsByModuleName:
-            CorePluginEventResources.eventsByModuleName[f.__module__].handle_exception()
+            CorePluginEventResources.eventsByModuleName[
+                f.__module__
+            ].handle_exception()
     except Exception:
         print(traceback.format_exc())
 
@@ -119,7 +125,9 @@ def mkid():
 
 
 class ClientInfo:
-    def __init__(self, user: str, cookie: Optional[SimpleCookie] = None) -> None:
+    def __init__(
+        self, user: str, cookie: Optional[SimpleCookie] = None
+    ) -> None:
         self.user = user
         self.cookie = cookie
 
@@ -144,14 +152,20 @@ def subsc_closure(self: WebSocketHandler, widgetid: str, widget: Widget):
                     "/system/notifications/errors",
                     "Problem in widget " + repr(widget) + ", see logs",
                 )
-                logger.exception("Error sending data from widget " + repr(widget) + " via websocket")
+                logger.exception(
+                    "Error sending data from widget "
+                    + repr(widget)
+                    + " via websocket"
+                )
             else:
                 logger.exception("Error sending data from websocket")
 
     return f
 
 
-def raw_subsc_closure(self: RawWidgetDataHandler, widgetid: str, widget: Widget):
+def raw_subsc_closure(
+    self: RawWidgetDataHandler, widgetid: str, widget: Widget
+):
     def f(msg: Any, raw: Any):
         try:
             if isinstance(raw, bytes):
@@ -172,7 +186,11 @@ def raw_subsc_closure(self: RawWidgetDataHandler, widgetid: str, widget: Widget)
                     "/system/notifications/errors",
                     "Problem in widget " + repr(widget) + ", see logs",
                 )
-                logger.exception("Error sending data from widget " + repr(widget) + " via websocket")
+                logger.exception(
+                    "Error sending data from widget "
+                    + repr(widget)
+                    + " via websocket"
+                )
             else:
                 logger.exception("Error sending data from websocket")
 
@@ -181,10 +199,18 @@ def raw_subsc_closure(self: RawWidgetDataHandler, widgetid: str, widget: Widget)
 
 clients_info = weakref.WeakValueDictionary()
 
-ws_connections: weakref.WeakValueDictionary[str, WebSocketHandler | RawWidgetDataHandler] = weakref.WeakValueDictionary()
+ws_connections: weakref.WeakValueDictionary[
+    str, WebSocketHandler | RawWidgetDataHandler
+] = weakref.WeakValueDictionary()
 
 
-def get_connectionRefForID(id: str, deleteCallback: Callable[[weakref.ref[WebSocketHandler | RawWidgetDataHandler]], None] | None = None):
+def get_connectionRefForID(
+    id: str,
+    deleteCallback: Callable[
+        [weakref.ref[WebSocketHandler | RawWidgetDataHandler]], None
+    ]
+    | None = None,
+):
     try:
         return weakref.ref(ws_connections[id], deleteCallback)
     except KeyError:
@@ -232,10 +258,19 @@ userBatteryAlerts = {}
 
 
 class WebSocketHandler:
-    def __init__(self, parent: WebSocket, user: str, loop: asyncio.AbstractEventLoop) -> None:
+    def __init__(
+        self, parent: WebSocket, user: str, loop: asyncio.AbstractEventLoop
+    ) -> None:
         self.subscriptions: list[str] = []
         self.lastPushedNewData = 0
-        self.connection_id = "id" + base64.b64encode(os.urandom(16)).decode().replace("/", "").replace("-", "").replace("+", "")[:-2]
+        self.connection_id = (
+            "id"
+            + base64.b64encode(os.urandom(16))
+            .decode()
+            .replace("/", "")
+            .replace("-", "")
+            .replace("+", "")[:-2]
+        )
         self.parent = parent
         self.user = user
         self.widget_wslock = threading.Lock()
@@ -247,7 +282,9 @@ class WebSocketHandler:
         self.loop = loop
 
         ws_connections[self.connection_id] = self
-        messagebus.subscribe("/system/permissions/rmfromuser", self.onPermissionRemoved)
+        messagebus.subscribe(
+            "/system/permissions/rmfromuser", self.onPermissionRemoved
+        )
 
         self.pageURL = "UNKNOWN"
 
@@ -290,8 +327,12 @@ class WebSocketHandler:
                 i = self.subscriptions.pop(0)
                 try:
                     widgets[i].subscriptions.pop(self.connection_id)
-                    widgets[i].subscriptions_atomic = widgets[i].subscriptions.copy()
-                    widgets[i].on_subscriber_disconnected(self.user, self.connection_id)
+                    widgets[i].subscriptions_atomic = widgets[
+                        i
+                    ].subscriptions.copy()
+                    widgets[i].on_subscriber_disconnected(
+                        self.user, self.connection_id
+                    )
                 except Exception:
                     pass
 
@@ -316,7 +357,9 @@ class WebSocketHandler:
             upd = o["upd"]
             for i in upd:
                 if i[0] in widgets:
-                    widgets[i[0]]._on_update(user, i[1], self.connection_id, asgi)
+                    widgets[i[0]]._on_update(
+                        user, i[1], self.connection_id, asgi
+                    )
                 elif i[0] == "__url__":
                     self.pageURL = i[1]
 
@@ -332,7 +375,9 @@ class WebSocketHandler:
                             elif i[1]["level"] > 0.4 and i[1]["charging"]:
                                 userBatteryAlerts[self.user].release()
                         except Exception:
-                            logger.exception("Error in battery status telemetry")
+                            logger.exception(
+                                "Error in battery status telemetry"
+                            )
 
                 elif i[0] == "__USERIDLE__":
                     self.userState = i[1]["userState"]
@@ -341,11 +386,17 @@ class WebSocketHandler:
                     # Only log one user error per minute, globally.  It's not meant to catch *everything*,
                     # just to give you a decent change
                     if lastLoggedUserError < time.time() - 10:
-                        logger.error("Client side err(These are globally ratelimited):\r\n" + i[1])
+                        logger.error(
+                            "Client side err(These are globally ratelimited):\r\n"
+                            + i[1]
+                        )
                         lastLoggedUserError = time.time()
 
                     elif lastPrintedUserError < time.time() - 1:
-                        print("Client side err(These are globally ratelimited):\r\n" + i[1])
+                        print(
+                            "Client side err(These are globally ratelimited):\r\n"
+                            + i[1]
+                        )
                         lastPrintedUserError = time.time()
 
             if "subsc" in o:
@@ -357,7 +408,9 @@ class WebSocketHandler:
                     elif i == "__SHOWMESSAGE__":
                         continue
                     elif i == "__SHOWSNACKBAR__":
-                        if lastGlobalAlertMessage[0] and lastGlobalAlertMessage[1] > (time.monotonic() - lastGlobalAlertMessage[2]):
+                        if lastGlobalAlertMessage[0] and lastGlobalAlertMessage[
+                            1
+                        ] > (time.monotonic() - lastGlobalAlertMessage[2]):
                             self.send(
                                 json.dumps(
                                     [
@@ -365,7 +418,11 @@ class WebSocketHandler:
                                             "__SHOWSNACKBAR__",
                                             [
                                                 lastGlobalAlertMessage[0],
-                                                lastGlobalAlertMessage[2] - (time.monotonic() - lastGlobalAlertMessage[1]),
+                                                lastGlobalAlertMessage[2]
+                                                - (
+                                                    time.monotonic()
+                                                    - lastGlobalAlertMessage[1]
+                                                ),
                                             ],
                                         ]
                                     ]
@@ -374,38 +431,54 @@ class WebSocketHandler:
 
                     # TODO: DoS by filling memory with subscriptions?? This should at least stop accidental attacks
                     if self.subCount > 1024:
-                        raise RuntimeError("Too many subscriptions for this connnection")
+                        raise RuntimeError(
+                            "Too many subscriptions for this connnection"
+                        )
 
                     with subscriptionLock:
                         if i in widgets:
                             for p in widgets[i]._read_perms:
-                                if not pages.canUserDoThis(p, user, self.asgiscope):
+                                if not pages.canUserDoThis(
+                                    p, user, self.asgiscope
+                                ):
                                     # We have to be very careful about this, because
                                     self.send(
                                         json.dumps(
                                             [
                                                 [
                                                     "__SHOWMESSAGE__",
-                                                    "You are missing permission: " + str(p) + ", data may be incorrect",
+                                                    "You are missing permission: "
+                                                    + str(p)
+                                                    + ", data may be incorrect",
                                                 ]
                                             ]
                                         )
                                     )
-                                    raise PermissionError(user + " missing permission: " + str(p))
+                                    raise PermissionError(
+                                        user + " missing permission: " + str(p)
+                                    )
                                 self.usedPermissions[p] += 1
 
-                            widgets[i].subscriptions[self.connection_id] = subsc_closure(self, i, widgets[i])
-                            widgets[i].subscriptions_atomic = widgets[i].subscriptions.copy()
+                            widgets[i].subscriptions[self.connection_id] = (
+                                subsc_closure(self, i, widgets[i])
+                            )
+                            widgets[i].subscriptions_atomic = widgets[
+                                i
+                            ].subscriptions.copy()
 
                             self.subscriptions.append(i)
                             if not widgets[i].noOnConnectData:
-                                x = widgets[i]._on_request(user, self.connection_id, asgi)
+                                x = widgets[i]._on_request(
+                                    user, self.connection_id, asgi
+                                )
                                 if x is not None:
                                     widgets[i].send(x)
                             self.subCount += 1
 
                             # This comes after in case it  sends data
-                            widgets[i].on_new_subscriber(user, self.connection_id)
+                            widgets[i].on_new_subscriber(
+                                user, self.connection_id
+                            )
                         else:
                             pass
             if "unsub" in o:
@@ -416,14 +489,18 @@ class WebSocketHandler:
                     # TODO: DoS by filling memory with subscriptions??
                     with subscriptionLock:
                         if i in widgets:
-                            if widgets[i].subscriptions.pop(self.connection_id, None):
+                            if widgets[i].subscriptions.pop(
+                                self.connection_id, None
+                            ):
                                 self.subCount -= 1
 
                                 for p in widgets[i].permissions:
                                     self.usedPermissions[p] -= 1
                                     if self.usedPermissions[p] == 0:
                                         del self.usedPermissions[p]
-                            widgets[i].subscriptions_atomic = widgets[i].subscriptions.copy()
+                            widgets[i].subscriptions_atomic = widgets[
+                                i
+                            ].subscriptions.copy()
 
         # Permissionerrors are too common to do the full logging thing
         except PermissionError as e:
@@ -431,7 +508,9 @@ class WebSocketHandler:
 
         except Exception as e:
             logger.exception("Error in widget, responding to " + str(d))
-            messagebus.post_message("system/errors/widgets/websocket", traceback.format_exc(6))
+            messagebus.post_message(
+                "system/errors/widgets/websocket", traceback.format_exc(6)
+            )
             self.send(json.dumps({"__WIDGETERROR__": repr(e)}))
 
 
@@ -442,11 +521,20 @@ class RawWidgetDataHandler:
     def __init__(self, parent, user, loop, widgetName: str, asgiscope) -> None:
         self.subscriptions: list[str] = []
         self.lastPushedNewData = 0
-        self.connection_id = "id" + base64.b64encode(os.urandom(16)).decode().replace("/", "").replace("-", "").replace("+", "")[:-2]
+        self.connection_id = (
+            "id"
+            + base64.b64encode(os.urandom(16))
+            .decode()
+            .replace("/", "")
+            .replace("-", "")
+            .replace("+", "")[:-2]
+        )
         self.widget_wslock = threading.Lock()
         self.subCount = 0
         ws_connections[self.connection_id] = self
-        messagebus.subscribe("/system/permissions/rmfromuser", self.onPermissionRemoved)
+        messagebus.subscribe(
+            "/system/permissions/rmfromuser", self.onPermissionRemoved
+        )
         self.user = user
         self.parent = parent
         self.peer_address = ""
@@ -461,11 +549,17 @@ class RawWidgetDataHandler:
             if widgetName in widgets:
                 for p in widgets[widgetName]._read_perms:
                     if not pages.canUserDoThis(p, self.user, asgi=self.asgi):
-                        raise RuntimeError(self.user + " missing permission: " + str(p))
+                        raise RuntimeError(
+                            self.user + " missing permission: " + str(p)
+                        )
                     self.usedPermissions[p] += 1
 
-                widgets[widgetName].subscriptions[self.connection_id] = raw_subsc_closure(self, widgetName, widgets[widgetName])
-                widgets[widgetName].subscriptions_atomic = widgets[widgetName].subscriptions.copy()
+                widgets[widgetName].subscriptions[self.connection_id] = (
+                    raw_subsc_closure(self, widgetName, widgets[widgetName])
+                )
+                widgets[widgetName].subscriptions_atomic = widgets[
+                    widgetName
+                ].subscriptions.copy()
 
                 self.subscriptions.append(widgetName)
                 self.subCount += 1
@@ -502,7 +596,9 @@ class RawWidgetDataHandler:
                 i = self.subscriptions.pop(0)
                 try:
                     widgets[i].subscriptions.pop(self.uuid)
-                    widgets[i].subscriptions_atomic = widgets[i].subscriptions.copy()
+                    widgets[i].subscriptions_atomic = widgets[
+                        i
+                    ].subscriptions.copy()
                 except Exception:
                     pass
 
@@ -544,7 +640,11 @@ async def app(scope, receive, send):
         assert isinstance(x, str)
         impl.peer_address = x
 
-        if user == "__guest__" and (not x.startswith("127.")) and (len(wsrunners) > 8):
+        if (
+            user == "__guest__"
+            and (not x.startswith("127."))
+            and (len(wsrunners) > 8)
+        ):
             runner = guestWSRunner
         else:
             runner = WSActionRunner()
@@ -588,7 +688,9 @@ async def rawapp(scope, receive, send):
         user = "__guest__"
 
     io_loop = asyncio.get_running_loop()
-    impl = RawWidgetDataHandler(websocket, user, io_loop, websocket.query_params["widgetid"], scope)
+    impl = RawWidgetDataHandler(
+        websocket, user, io_loop, websocket.query_params["widgetid"], scope
+    )
     impl.cookie = cookie
     impl.user_agent = user_agent
 
@@ -598,7 +700,11 @@ async def rawapp(scope, receive, send):
     assert isinstance(x, str)
     impl.peer_address = x
 
-    if user == "__guest__" and (not x.startswith("127.")) and (len(wsrunners) > 8):
+    if (
+        user == "__guest__"
+        and (not x.startswith("127."))
+        and (len(wsrunners) > 8)
+    ):
         runner = guestWSRunner
     else:
         runner = WSActionRunner()
@@ -620,7 +726,13 @@ async def rawapp(scope, receive, send):
 
 def randID() -> str:
     "Generate a base64 id"
-    return base64.b64encode(os.urandom(8))[:-1].decode().replace("+", "").replace("/", "").replace("-", "")
+    return (
+        base64.b64encode(os.urandom(8))[:-1]
+        .decode()
+        .replace("+", "")
+        .replace("/", "")
+        .replace("-", "")
+    )
 
 
 idlock = threading.RLock()
@@ -671,7 +783,9 @@ class Widget:
     def on_new_subscriber(self, user, connection_id, **kw):
         pass
 
-    def on_subscriber_disconnected(self, user: str, connection_id: str, **kw: Any) -> None:
+    def on_subscriber_disconnected(
+        self, user: str, connection_id: str, **kw: Any
+    ) -> None:
         pass
 
     def forEach(self, callback):
@@ -864,7 +978,9 @@ class DataSource(Widget):
     attrs = ""
 
     def render(self):
-        raise RuntimeError("This is not a real widget, you must manually subscribe to this widget's ID and build your own handling for it.")
+        raise RuntimeError(
+            "This is not a real widget, you must manually subscribe to this widget's ID and build your own handling for it."
+        )
 
 
 class ScrollingWindow(Widget):

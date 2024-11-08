@@ -122,7 +122,9 @@ def newusertarget(**kwargs):
         useSystem="useSystemPassword" in kwargs,
     )
     # Take the user back to the users page
-    messagebus.post_message("/system/notifications", 'New user "' + kwargs["username"] + '" added')
+    messagebus.post_message(
+        "/system/notifications", 'New user "' + kwargs["username"] + '" added'
+    )
     messagebus.post_message(
         "/system/auth/user/added",
         {"user": kwargs["username"], "addedby": pages.getAcessingUser()},
@@ -174,7 +176,9 @@ def updateuser(user, **kwargs):
 
         if auth.Users[user].get("password") == "system":
             if not kwargs["password"]:
-                raise ValueError("Must specify a password to disable the system password feature")
+                raise ValueError(
+                    "Must specify a password to disable the system password feature"
+                )
 
     # Remove the user from all groups that the checkbox was not checked for
     for i in auth.Users[user]["groups"]:
@@ -190,7 +194,9 @@ def updateuser(user, **kwargs):
     if (not kwargs["password"] == "") or useSystem:
         auth.changePassword(user, kwargs["password"], useSystem=useSystem)
 
-    auth.setUserSetting(pages.getAcessingUser(), "allow-cors", "allowcors" in kwargs)
+    auth.setUserSetting(
+        pages.getAcessingUser(), "allow-cors", "allowcors" in kwargs
+    )
     auth.setUserSetting(user, "restrict-lan", "lanonly" in kwargs)
     auth.setUserSetting(user, "telemetry-alerts", "telemetryalerts" in kwargs)
 

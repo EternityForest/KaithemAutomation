@@ -51,7 +51,9 @@ def use_api_if_needed():
     if "default" not in file:
         file["default"] = {}
 
-    if not file["default"].get("lat", None) and not file["default"].get("lon", None):
+    if not file["default"].get("lat", None) and not file["default"].get(
+        "lon", None
+    ):
         try:
             location = ip_geolocate()
             messagebus.post_message(

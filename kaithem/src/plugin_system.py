@@ -43,7 +43,9 @@ def import_in_thread(m: str | importlib.machinery.ModuleSpec):
                 m.loader.exec_module(foo)
                 plugins[m.name] = foo
 
-            logger.info(f"Loaded plugin {m} in {round((time.monotonic()-t) * 1000,2)}ms")
+            logger.info(
+                f"Loaded plugin {m} in {round((time.monotonic()-t) * 1000,2)}ms"
+            )
         except Exception:
             logger.exception("Error loading plugin {m}")
             messagebus.post_message(
@@ -52,7 +54,9 @@ def import_in_thread(m: str | importlib.machinery.ModuleSpec):
             )
         e.clear()
 
-    threading.Thread(target=f, daemon=True, name=f"nostartstoplog.importer.{m}").start()
+    threading.Thread(
+        target=f, daemon=True, name=f"nostartstoplog.importer.{m}"
+    ).start()
 
 
 def load_plugins():
@@ -79,7 +83,9 @@ def load_plugins():
                 break
 
     except Exception:
-        messagebus.post_message("/system/notifications/errors", "Error loading plugins")
+        messagebus.post_message(
+            "/system/notifications/errors", "Error loading plugins"
+        )
         logger.exception("Error loading plugins")
 
 
@@ -97,7 +103,9 @@ def load_user_plugins():
                     p = os.path.join(usr, i)
                     try:
                         spec = importlib.util.spec_from_file_location(
-                            f"kaithem_usr_plugins.{i}", os.path.join(p, "__init__.py"), submodule_search_locations=[p]
+                            f"kaithem_usr_plugins.{i}",
+                            os.path.join(p, "__init__.py"),
+                            submodule_search_locations=[p],
                         )
                         assert spec
                         import_in_thread(spec)
@@ -118,5 +126,7 @@ def load_user_plugins():
                 return
 
     except Exception:
-        messagebus.post_message("/system/notifications/errors", "Error loading plugins")
+        messagebus.post_message(
+            "/system/notifications/errors", "Error loading plugins"
+        )
         logger.exception("Error loading plugins")

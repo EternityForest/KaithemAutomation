@@ -167,7 +167,10 @@ def paramDefault(p):
 def get_function_info(f: Callable[..., Any]):
     p = inspect.signature(f).parameters
 
-    d = {"doc": inspect.getdoc(f), "args": [[i, paramDefault(p[i].default)] for i in p]}
+    d = {
+        "doc": inspect.getdoc(f),
+        "args": [[i, paramDefault(p[i].default)] for i in p],
+    }
 
     if hasattr(f, "completionTags"):
         d["completionTags"] = f.completionTags
@@ -204,7 +207,9 @@ def is_day(lat=None, lon=None):
             lat, lon = geolocation.getCoords()
 
         if lat is None or lon is None:
-            raise RuntimeError("No server location set, fix this in system settings")
+            raise RuntimeError(
+                "No server location set, fix this in system settings"
+            )
     return sky.is_day(lat, lon)
 
 
@@ -214,7 +219,9 @@ def is_night(lat=None, lon=None):
             lat, lon = geolocation.getCoords()
 
         if lat is None or lon is None:
-            raise RuntimeError("No server location set, fix this in system settings")
+            raise RuntimeError(
+                "No server location set, fix this in system settings"
+            )
     return sky.is_night(lat, lon)
 
 
@@ -224,7 +231,9 @@ def is_light(lat=None, lon=None):
             lat, lon = geolocation.getCoords()
 
         if lat is None or lon is None:
-            raise RuntimeError("No server location set, fix this in system settings")
+            raise RuntimeError(
+                "No server location set, fix this in system settings"
+            )
     return sky.is_light(lat, lon)
 
 
@@ -235,7 +244,9 @@ def is_dark(lat=None, lon=None):
     else:
         raise ValueError("You set lon, but not lst?")
     if lat is None or lon is None:
-        raise RuntimeError("No server location set, fix this in system settings")
+        raise RuntimeError(
+            "No server location set, fix this in system settings"
+        )
 
     return sky.is_dark(lat, lon)
 
@@ -331,7 +342,9 @@ class ScheduleTimer:
             ctx.event(self.eventName)
 
             self.nextruntime = dt_to_ts(nextruntime)
-            self.next = scheduler.schedule(self.handler, self.nextruntime, False)
+            self.next = scheduler.schedule(
+                self.handler, self.nextruntime, False
+            )
             ctx.onTimerChange(self.eventName, self.nextruntime)
 
         finally:
@@ -348,13 +361,21 @@ def dt_to_ts(dt, tz=None):
     "Given a datetime in tz, return unix timestamp"
     if tz:
         utc = pytz.timezone("UTC")
-        return (tz.localize(dt.replace(tzinfo=None)) - datetime.datetime(1970, 1, 1, tzinfo=utc)) / datetime.timedelta(seconds=1)
+        return (
+            tz.localize(dt.replace(tzinfo=None))
+            - datetime.datetime(1970, 1, 1, tzinfo=utc)
+        ) / datetime.timedelta(seconds=1)
 
     else:
         # Local Time
         ts = time.time()
-        offset = (datetime.datetime.fromtimestamp(ts) - datetime.datetime.utcfromtimestamp(ts)).total_seconds()
-        return ((dt - datetime.datetime(1970, 1, 1)) / datetime.timedelta(seconds=1)) - offset
+        offset = (
+            datetime.datetime.fromtimestamp(ts)
+            - datetime.datetime.utcfromtimestamp(ts)
+        ).total_seconds()
+        return (
+            (dt - datetime.datetime(1970, 1, 1)) / datetime.timedelta(seconds=1)
+        ) - offset
 
 
 class ScriptActionKeeper:
@@ -376,8 +397,15 @@ class ScriptActionKeeper:
 
         p = inspect.signature(value).parameters
         for i in p:
-            if (not p[i].default == p[i].empty) and p[i].default and not isinstance(p[i].default, (str, int, bool)):
-                raise ValueError("All default values must be int, string, or bool, not " + str(p[i].default))
+            if (
+                (not p[i].default == p[i].empty)
+                and p[i].default
+                and not isinstance(p[i].default, (str, int, bool))
+            ):
+                raise ValueError(
+                    "All default values must be int, string, or bool, not "
+                    + str(p[i].default)
+                )
 
         self.scriptcommands[key] = value
 
@@ -419,7 +447,9 @@ class BaseChandlerScriptContext:
         wait_for_all_async_commands_callback: Callable[[], Any] | None = None,
     ):
         # Used so external code can give us a way to wait for any custom events to be done.
-        self.wait_for_all_async_commands_callback = wait_for_all_async_commands_callback
+        self.wait_for_all_async_commands_callback = (
+            wait_for_all_async_commands_callback
+        )
 
         # Used as a backup plan to be able to do things in a background thread
         # when doing so directly would cause a deadlock
@@ -428,13 +458,19 @@ class BaseChandlerScriptContext:
         # Map event names to a list of pipelines, where each pipeline
         # is a list of commands, a command being a list of strings.
         self.event_listeners: dict[str, list[list[list[str]]]] = {}
-        self.variables: dict[str, Any] = variables if variables is not None else {}
+        self.variables: dict[str, Any] = (
+            variables if variables is not None else {}
+        )
         self.commands = ScriptActionKeeper()
         self.context_commands = ScriptActionKeeper()
 
         self.children: dict[int, weakref.ref[BaseChandlerScriptContext]] = {}
-        self.children_iterable: dict[int, weakref.ref[BaseChandlerScriptContext]] = {}
-        self.constants: dict[str, Any] = constants if (constants is not None) else {}
+        self.children_iterable: dict[
+            int, weakref.ref[BaseChandlerScriptContext]
+        ] = {}
+        self.constants: dict[str, Any] = (
+            constants if (constants is not None) else {}
+        )
         self.contextName = contextName
 
         # Cache whether or not any binding is watching a variable
@@ -492,7 +528,9 @@ class BaseChandlerScriptContext:
             def delf(*a, **K):
                 with lock:
                     del parentContext.children[selfid]
-                    parentContext.children_iterable = parentContext.children.copy()
+                    parentContext.children_iterable = (
+                        parentContext.children.copy()
+                    )
 
             with lock:
                 parentContext.children[id(self)] = weakref.ref(self, delf)
@@ -543,7 +581,9 @@ class BaseChandlerScriptContext:
 
         self.functions = functions
 
-        self.evaluator = simpleeval.SimpleEval(functions=functions, names=self._nameLookup)
+        self.evaluator = simpleeval.SimpleEval(
+            functions=functions, names=self._nameLookup
+        )
 
         if not gil:
             self.gil = threading.RLock()
@@ -570,17 +610,27 @@ class BaseChandlerScriptContext:
                         self.eval_times = 0
                         r = self.preprocessArgument(f"={i[2:]}")
                         if r:
-                            if (i in self.risingEdgeDetects) and (not self.risingEdgeDetects[i]):
+                            if (i in self.risingEdgeDetects) and (
+                                not self.risingEdgeDetects[i]
+                            ):
                                 self.risingEdgeDetects[i] = True
-                                self.event(i, r, timestamp=self.eval_times or time.time())
+                                self.event(
+                                    i,
+                                    r,
+                                    timestamp=self.eval_times or time.time(),
+                                )
                         else:
                             self.risingEdgeDetects[i] = False
 
                     elif i.startswith("=~"):
                         self.eval_times = 0
                         r = self.preprocessArgument(f"={i[2:]}")
-                        if (i in self.changeDetects) and (self.changeDetects[i] != r):
-                            self.event(i, r, timestamp=self.eval_times or time.time())
+                        if (i in self.changeDetects) and (
+                            self.changeDetects[i] != r
+                        ):
+                            self.event(
+                                i, r, timestamp=self.eval_times or time.time()
+                            )
 
                         self.changeDetects[i] = r
 
@@ -589,8 +639,14 @@ class BaseChandlerScriptContext:
                         self.eval_times = 0
                         r = self.preprocessArgument(f"={i[2:]}")
                         if r:
-                            if (i in self.changeDetects) and (self.changeDetects[i] != r):
-                                self.event(i, r, timestamp=self.eval_times or time.time())
+                            if (i in self.changeDetects) and (
+                                self.changeDetects[i] != r
+                            ):
+                                self.event(
+                                    i,
+                                    r,
+                                    timestamp=self.eval_times or time.time(),
+                                )
 
                         self.changeDetects[i] = r
 
@@ -638,7 +694,9 @@ class BaseChandlerScriptContext:
                 finally:
                     self.gil.release()
             else:
-                raise RuntimeError("Event queue stalled, Queued events are still buffered and may run later")
+                raise RuntimeError(
+                    "Event queue stalled, Queued events are still buffered and may run later"
+                )
 
     def onTimerChange(self, timer, nextRunTime):
         pass
@@ -668,7 +726,9 @@ class BaseChandlerScriptContext:
             try:
                 return a(*[self.preprocessArgument(i) for i in c[1:]])
             except Exception:
-                raise RuntimeError(f"Error running chandler command: {str(c)[:1024]}")
+                raise RuntimeError(
+                    f"Error running chandler command: {str(c)[:1024]}"
+                )
         else:
             raise ValueError(f"No such command: {c}")
 
@@ -720,7 +780,9 @@ class BaseChandlerScriptContext:
 
         try:
             if self.eventRecursionDepth.d > 8:
-                raise RecursionError("Cannot nest more than 8 events directly causing each other")
+                raise RecursionError(
+                    "Cannot nest more than 8 events directly causing each other"
+                )
 
             if not isinstance(val, Event):
                 self.eventValueStack.append(Event(evt, val, timestamp))
@@ -855,10 +917,14 @@ class BaseChandlerScriptContext:
             self.need_refresh_for_tag = {}
             for i in b:
                 if not isinstance(i[0], str):
-                    raise ValueError(f"First item in binding must be str, got {i[0]}")
+                    raise ValueError(
+                        f"First item in binding must be str, got {i[0]}"
+                    )
 
                 if not isinstance(i[1], list):
-                    raise ValueError(f"Second item in binding must be command list, got {i[1]}")
+                    raise ValueError(
+                        f"Second item in binding must be command list, got {i[1]}"
+                    )
 
                 evt_name: str = i[0]
                 cmds: list[list[str]] = i[1]
@@ -886,12 +952,16 @@ class BaseChandlerScriptContext:
                         self.onTimerChange(i, self.time_events[i].nextruntime)
                 if i == "script.poll":
                     if not self.poller:
-                        self.poller = scheduler.schedule_repeating(self.poll, 1 / 24.0)
+                        self.poller = scheduler.schedule_repeating(
+                            self.poll, 1 / 24.0
+                        )
                 # Really just a fallback for various insta-check triggers like tag changes
                 if i.strip().startswith("="):
                     if not self.slowpoller:
                         needCheck = True
-                        self.slowpoller = scheduler.schedule_repeating(self.checkPollEvents, 3)
+                        self.slowpoller = scheduler.schedule_repeating(
+                            self.checkPollEvents, 3
+                        )
 
             # Run right away for faster response
             if needCheck:
@@ -980,7 +1050,9 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
 
     def specialVariableHook(self, k, v):
         if k.startswith("$tag:"):
-            raise NameError("Tagpoint variables are not writable. Use setTag(name, value, claimPriority)")
+            raise NameError(
+                "Tagpoint variables are not writable. Use setTag(name, value, claimPriority)"
+            )
 
     def on_clearBindingsHook(self):
         for i in self.tagHandlers:
@@ -1000,7 +1072,9 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
     def __init__(self, *a, **k):
         BaseChandlerScriptContext.__init__(self, *a, **k)
 
-        def setTag(tagName=f"{self.tagDefaultPrefix}foo", value="=0", priority=75):
+        def setTag(
+            tagName=f"{self.tagDefaultPrefix}foo", value="=0", priority=75
+        ):
             """Set a Tagpoint with the given claim priority.
             Use a value of None to unset existing tags. If the tag does not
             exist, the type is auto-guessed based on the type of the value.
@@ -1054,7 +1128,11 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
 
         def shell(cmd: str):
             """Run a system shell command line and return the output as the next command's _"""
-            return subprocess.check_output(cmd, shell=True, timeout=10).decode("utf-8").strip()
+            return (
+                subprocess.check_output(cmd, shell=True, timeout=10)
+                .decode("utf-8")
+                .strip()
+            )
 
         self.shell = shell
         self.commands["shell"] = shell

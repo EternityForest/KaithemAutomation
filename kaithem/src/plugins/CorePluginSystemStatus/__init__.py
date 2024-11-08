@@ -24,7 +24,9 @@ def getSDHealth():
                 # Requires passwordless sudo.
                 # Eventually we need a better solution.
                 # TODO fix passwordless sudo requirement
-                p = subprocess.check_output("sudo sdmon /dev/mmcblk0 -a", shell=True)
+                p = subprocess.check_output(
+                    "sudo sdmon /dev/mmcblk0 -a", shell=True
+                )
             except Exception:
                 logging.exception("Failed to get SD health status")
                 messagebus.post_message(
@@ -68,7 +70,9 @@ if battery:
     battery_time.max = 30 * 60 * 60
     battery_time.lo = 40 * 60
     battery_time.value = battery.secsleft if battery.secsleft > 0 else 9999999
-    battery_time.set_alarm("lowbattery_timeRemaining", "value < 60*15", priority="error")
+    battery_time.set_alarm(
+        "lowbattery_timeRemaining", "value < 60*15", priority="error"
+    )
     battery_time.expose("view_status")
 
     acPowerTag = tagpoints.Tag("/system/power/charging")
@@ -167,7 +171,11 @@ if psutil:
 
             if i not in tempTags:
                 # Fix the name
-                tempTags[i] = tagpoints.Tag(tagpoints.normalize_tag_name("/system/sensors/temp/" + i, "_"))
+                tempTags[i] = tagpoints.Tag(
+                    tagpoints.normalize_tag_name(
+                        "/system/sensors/temp/" + i, "_"
+                    )
+                )
                 tempTags[i].set_alarm(
                     "temperature",
                     "value>78",
@@ -188,7 +196,9 @@ if psutil:
         if battery:
             acPowerTag.value = battery.power_plugged or 0
             batteryTag.value = battery.percent
-            battery_time.value = battery.secsleft if battery.secsleft > 0 else 9999999
+            battery_time.value = (
+                battery.secsleft if battery.secsleft > 0 else 9999999
+            )
 
     doPsutil()
 
@@ -294,11 +304,19 @@ def makeLedTagIfNonexistant(f, n):
             logging.exception("Error setting up LED state")
 
 
-makeLedTagIfNonexistant("/sys/class/leds/led1/brightness", "/system/board/leds/pwr")
-makeLedTagIfNonexistant("/sys/class/leds/PWR/brightness", "/system/board/leds/pwr")
+makeLedTagIfNonexistant(
+    "/sys/class/leds/led1/brightness", "/system/board/leds/pwr"
+)
+makeLedTagIfNonexistant(
+    "/sys/class/leds/PWR/brightness", "/system/board/leds/pwr"
+)
 
-makeLedTagIfNonexistant("/sys/class/leds/led0/brightness", "/system/board/leds/act")
-makeLedTagIfNonexistant("/sys/class/leds/ACT/brightness", "/system/board/leds/act")
+makeLedTagIfNonexistant(
+    "/sys/class/leds/led0/brightness", "/system/board/leds/act"
+)
+makeLedTagIfNonexistant(
+    "/sys/class/leds/ACT/brightness", "/system/board/leds/act"
+)
 
 
 errtag = tagpoints.Tag("/system/io_error_flag")

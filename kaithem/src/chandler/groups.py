@@ -27,7 +27,14 @@ from .. import alerts, context_restrictions, schemas, tagpoints, util
 from ..kaithemobj import kaithem
 from . import core, group_media, mqtt, persistance
 from .core import disallow_special
-from .cue import Cue, CueProvider, allowedCueNameSpecials, cue_provider_types, cues, get_cue_provider
+from .cue import (
+    Cue,
+    CueProvider,
+    allowedCueNameSpecials,
+    cue_provider_types,
+    cues,
+    get_cue_provider,
+)
 from .fs_cue_provider import FilesystemCueProvider
 from .global_actions import cl_trigger_shortcut_code
 from .group_context_commands import add_context_commands, rootContext
@@ -69,7 +76,13 @@ core.cl_context.opens_before(slow_group_lock_context)
 
 def normalize_midi_name(t):
     "Same function as in the core plugin midi to tags"
-    t = t.lower().replace(":", "_").replace("[", "").replace("]", "").replace(" ", "_")
+    t = (
+        t.lower()
+        .replace(":", "_")
+        .replace("[", "")
+        .replace("]", "")
+        .replace(" ", "_")
+    )
     t = t.replace("-", "_")
     for i in tagpoints.ILLEGAL_NAME_CHARS:
         t = t.replace(i, "")
@@ -139,7 +152,9 @@ def doTransitionRateLimit():
 
     # Limit to less than 2 per 100ms
     if cueTransitionsLimitCount > 6:
-        raise RuntimeError("Too many cue transitions extremely fast.  You may have a problem somewhere.")
+        raise RuntimeError(
+            "Too many cue transitions extremely fast.  You may have a problem somewhere."
+        )
     cueTransitionsLimitCount += 2
 
 
@@ -168,20 +183,33 @@ class DebugScriptContext(kaithem.chandlerscript.ChandlerScriptContext):
                     for board in core.iter_boards():
                         if board:
                             if isinstance(v, (str, int, float, bool)):
-                                board.linkSend(["varchange", self.groupId, k, v])
+                                board.linkSend(
+                                    ["varchange", self.groupId, k, v]
+                                )
                             elif isinstance(v, collections.defaultdict):
                                 v = json.dumps(v)[:160]
-                                board.linkSend(["varchange", self.groupId, k, v])
+                                board.linkSend(
+                                    ["varchange", self.groupId, k, v]
+                                )
                             else:
                                 v = str(v)[:160]
-                                board.linkSend(["varchange", self.groupId, k, v])
+                                board.linkSend(
+                                    ["varchange", self.groupId, k, v]
+                                )
             except Exception:
                 core.rl_log_exc("Error handling var set notification")
                 print(traceback.format_exc())
 
     @slow_group_lock_context.object_session_entry_point
-    def event(self, evt: str, val: str | float | int | bool | None = None, timestamp=None):
-        kaithem.chandlerscript.ChandlerScriptContext.event(self, evt, val, timestamp=timestamp)
+    def event(
+        self,
+        evt: str,
+        val: str | float | int | bool | None = None,
+        timestamp=None,
+    ):
+        kaithem.chandlerscript.ChandlerScriptContext.event(
+            self, evt, val, timestamp=timestamp
+        )
         try:
             for board in core.iter_boards():
                 board.pushEv(evt, self.groupName, time.time(), value=val)
@@ -195,7 +223,9 @@ class DebugScriptContext(kaithem.chandlerscript.ChandlerScriptContext):
             group.runningTimers[timer] = nextRunTime
             try:
                 for board in core.iter_boards():
-                    board.linkSend(["grouptimers", group.id, group.runningTimers])
+                    board.linkSend(
+                        ["grouptimers", group.id, group.runningTimers]
+                    )
             except Exception:
                 core.rl_log_exc("Error handling timer set notification")
                 print(traceback.format_exc())
@@ -289,7 +319,10 @@ class Group:
 
         self._cue_providers: list[str] = cue_providers or []
 
-        self._cue_provider_objects: list[CueProvider] = [get_cue_provider(cue_provider, self) for cue_provider in self._cue_providers]
+        self._cue_provider_objects: list[CueProvider] = [
+            get_cue_provider(cue_provider, self)
+            for cue_provider in self._cue_providers
+        ]
 
         # Get whatever defaults it sets up for the UI
         self.blend_args = copy.deepcopy(self.lighting_manager.blend_args)
@@ -319,7 +352,10 @@ class Group:
         self.slide_overlay_url: str = slide_overlay_url
 
         # Kind of long so we do it in the external file
-        self.slideshow_layout: str = slideshow_layout.strip() or group_schema["properties"]["slideshow_layout"]["default"]
+        self.slideshow_layout: str = (
+            slideshow_layout.strip()
+            or group_schema["properties"]["slideshow_layout"]["default"]
+        )
 
         # Audio visualizations
         self.music_visualizations = music_visualizations
@@ -329,7 +365,9 @@ class Group:
         self.lock = threading.RLock()
         self.randomizeModifier = 0
 
-        self.command_tagSubscriptions: list[tuple[tagpoints.ObjectTagPointClass, Callable]] = []
+        self.command_tagSubscriptions: list[
+            tuple[tagpoints.ObjectTagPointClass, Callable]
+        ] = []
         self.command_tag = command_tag
 
         self.notes = notes
@@ -337,16 +375,22 @@ class Group:
         self.default_next = str(default_next).strip()
 
         # TagPoint for managing the current cue
-        self.cueTag = kaithem.tags.StringTag("/chandler/groups/" + name + ".cue")
+        self.cueTag = kaithem.tags.StringTag(
+            "/chandler/groups/" + name + ".cue"
+        )
         self.cueTag.expose("view_status", "chandler_operator")
 
-        self.cueTagClaim = self.cueTag.claim("__stopped__", "Group", 50, annotation="GroupObject")
+        self.cueTagClaim = self.cueTag.claim(
+            "__stopped__", "Group", 50, annotation="GroupObject"
+        )
 
         self.cueVolume = 1.0
 
         self.error_codes = {}
 
-        self.error_code_alert = alerts.Alert("/chandler/groups/" + name + ".error_codes", priority="error")
+        self.error_code_alert = alerts.Alert(
+            "/chandler/groups/" + name + ".error_codes", priority="error"
+        )
 
         # Allow goto_cue
         def cueTagHandler(val, timestamp, annotation):
@@ -365,11 +409,15 @@ class Group:
         self.cueTag.subscribe(cueTagHandler)
 
         # This is used to expose the state of the music cue mostly.
-        self.cueInfoTag = kaithem.tags.ObjectTag("/chandler/groups/" + name + ".cueInfo")
+        self.cueInfoTag = kaithem.tags.ObjectTag(
+            "/chandler/groups/" + name + ".cueInfo"
+        )
         self.cueInfoTag.value = {"audio.meta": {}}
         self.cueInfoTag.expose("view_status", "chandler_operator")
 
-        self.albumArtTag = kaithem.tags.StringTag("/chandler/groups/" + name + ".albumArt")
+        self.albumArtTag = kaithem.tags.StringTag(
+            "/chandler/groups/" + name + ".albumArt"
+        )
         self.albumArtTag.expose("view_status")
 
         # Used to determine the numbering of added cues
@@ -387,7 +435,9 @@ class Group:
         self.alphaTag.max = 1
         self.alphaTag.expose("view_status", "chandler_operator")
 
-        self.alphaTagClaim = self.alphaTag.claim(self.alpha, "Group", 50, annotation="GroupObject")
+        self.alphaTagClaim = self.alphaTag.claim(
+            self.alpha, "Group", 50, annotation="GroupObject"
+        )
 
         # Allow setting the alpha
         def alphaTagHandler(val, timestamp, annotation):
@@ -482,7 +532,9 @@ class Group:
 
         # Holds (tagpoint, subscribe function) tuples whenever we subscribe
         # to a tag to display it
-        self.display_tag_subscription_refs: list[tuple[tagpoints.GenericTagPointClass, Callable]] = []
+        self.display_tag_subscription_refs: list[
+            tuple[tagpoints.GenericTagPointClass, Callable]
+        ] = []
 
         # Name, TagpointName, properties
         # This is the actual configured data.
@@ -533,7 +585,10 @@ class Group:
     @cue_providers.setter
     def cue_providers(self, value: list[str]):
         self._cue_providers = value
-        self._cue_provider_objects = [get_cue_provider(cue_provider, self) for cue_provider in self._cue_providers]
+        self._cue_provider_objects = [
+            get_cue_provider(cue_provider, self)
+            for cue_provider in self._cue_providers
+        ]
         workers.do(self.scan_cue_providers)
 
     def get_cue_provider(self, name: str) -> CueProvider:
@@ -575,7 +630,11 @@ class Group:
 
         d = {
             "alpha": self.default_alpha,
-            "cues": {j: self.cues[j].serialize() for j in self.cues if not self.cues[j].provider},
+            "cues": {
+                j: self.cues[j].serialize()
+                for j in self.cues
+                if not self.cues[j].provider
+            },
             "active": self.default_active,
             "uuid": self.id,
         }
@@ -584,7 +643,11 @@ class Group:
         # Instead imported from somewhere.
         for i in self.cues:
             if self.cues[i].provider:
-                p = self.cues[i].getGroup().get_cue_provider(self.cues[i].provider)
+                p = (
+                    self.cues[i]
+                    .getGroup()
+                    .get_cue_provider(self.cues[i].provider)
+                )
                 if p:
                     p.save_cue(self.cues[i])
 
@@ -609,7 +672,9 @@ class Group:
                         if not icemedia.sound_player.is_playing(str(self.id)):
                             self.media_ended_at = time.time()
                     cuelen = self.evalExprFloat(self.cue.length)
-                    if self.media_ended_at and (time.time() - self.media_ended_at > (cuelen * self.bpm)):
+                    if self.media_ended_at and (
+                        time.time() - self.media_ended_at > (cuelen * self.bpm)
+                    ):
                         self.next_cue(cause="sound")
 
     def __del__(self):
@@ -726,7 +791,9 @@ class Group:
 
                 if cues[cue].provider:
                     if not allow_rm_external:
-                        raise RuntimeError("Cannot delete the cue with a provider")
+                        raise RuntimeError(
+                            "Cannot delete the cue with a provider"
+                        )
 
             if self.cue and self.name == cue:
                 try:
@@ -756,7 +823,9 @@ class Group:
 
             for board in core.iter_boards():
                 if len(board.newDataFunctions) < 100:
-                    board.newDataFunctions.append(lambda s: s.linkSend(["delcue", id]))
+                    board.newDataFunctions.append(
+                        lambda s: s.linkSend(["delcue", id])
+                    )
             try:
                 self.cuePointer = self.cues_ordered.index(self.cue)
             except Exception:
@@ -777,7 +846,9 @@ class Group:
                 raise RuntimeError("Cue would overwrite existing.")
             self.cues[name] = cue
 
-        core.add_data_pusher_to_all_boards(lambda s: s.pushCueMeta(self.cues[name].id))
+        core.add_data_pusher_to_all_boards(
+            lambda s: s.pushCueMeta(self.cues[name].id)
+        )
         core.add_data_pusher_to_all_boards(lambda s: s.pushCueData(cue.id))
 
     def pushMeta(
@@ -788,12 +859,23 @@ class Group:
     ):
         # Push cue first so the client already has that data when we jump to the new display
         if cue and self.cue:
-            core.add_data_pusher_to_all_boards(lambda s: s.pushCueMeta(self.cue.id))
+            core.add_data_pusher_to_all_boards(
+                lambda s: s.pushCueMeta(self.cue.id)
+            )
 
-        core.add_data_pusher_to_all_boards(lambda s: s.pushMeta(self.id, statusOnly=statusOnly, keys=keys))
+        core.add_data_pusher_to_all_boards(
+            lambda s: s.pushMeta(self.id, statusOnly=statusOnly, keys=keys)
+        )
 
     @slow_group_lock_context.object_session_entry_point
-    def event(self, s: str, value: Any = True, info: str = "", exclude_errors: bool = True, ts=None):
+    def event(
+        self,
+        s: str,
+        value: Any = True,
+        info: str = "",
+        exclude_errors: bool = True,
+        ts=None,
+    ):
         # No error loops allowed!
         if (not s == "script.error") and exclude_errors:
             self._event(s, value, info, ts=ts)
@@ -807,7 +889,9 @@ class Group:
             core.rl_log_exc("Error handling event: " + str(s))
             print(traceback.format_exc(6))
 
-    def pick_random_cue_from_names(self, cues: list[str] | set[str] | dict[str, Any]) -> str:
+    def pick_random_cue_from_names(
+        self, cues: list[str] | set[str] | dict[str, Any]
+    ) -> str:
         """
         Picks a random cue from a list of cue names.
 
@@ -839,7 +923,11 @@ class Group:
             if i.startswith("__"):
                 continue
             if i in self.cues:
-                weights.append(self.evalExprFloat(str(self.cues[i].probability).strip() or 1))
+                weights.append(
+                    self.evalExprFloat(
+                        str(self.cues[i].probability).strip() or 1
+                    )
+                )
                 names.append(i)
 
         return random.choices(names, weights=weights)[0]
@@ -851,7 +939,11 @@ class Group:
         like stored checkpoints which may have an old entered_time.
         """
         if cue_name == "__shuffle__":
-            x = [i.name for i in self.cues_ordered if not (i.name == self.cue.name)]
+            x = [
+                i.name
+                for i in self.cues_ordered
+                if not (i.name == self.cue.name)
+            ]
 
             for history_item in list(reversed(self.cueHistory[-15:])):
                 if len(x) < 3:
@@ -878,7 +970,9 @@ class Group:
 
             # Avoid confusing stuff even though we technically could implement it.
             if self.default_next.strip():
-                raise RuntimeError("Group's default next is not empty, __schedule__ doesn't work here.")
+                raise RuntimeError(
+                    "Group's default next is not empty, __schedule__ doesn't work here."
+                )
 
             def processlen(raw_length) -> str:
                 # Return length but always a string and empty if it was 0
@@ -900,14 +994,22 @@ class Group:
                 nextname = ""
                 if pointer.next_ll:
                     nextname = pointer.next_ll.name
-                nxt = (pointer.next_cue if not pointer.next_cue == "__schedule__" else nextname) or nextname
+                nxt = (
+                    pointer.next_cue
+                    if not pointer.next_cue == "__schedule__"
+                    else nextname
+                ) or nextname
 
                 if pointer is not self.cue:
                     if str(pointer.next_cue).startswith("__"):
-                        raise RuntimeError("Found special __ cue, fast forward not possible")
+                        raise RuntimeError(
+                            "Found special __ cue, fast forward not possible"
+                        )
 
                     if str(pointer.length).startswith("="):
-                        raise RuntimeError("Found special =expression length cue, fast forward not possible")
+                        raise RuntimeError(
+                            "Found special =expression length cue, fast forward not possible"
+                        )
 
                 if processlen(pointer.length) or pointer is self.cue:
                     consider.append(pointer)
@@ -931,7 +1033,9 @@ class Group:
                 if processlen(cue.length).startswith("@"):
                     scheduled_count += 1
                     ref = datetime.datetime.now()
-                    selector = util.get_rrule_selector(processlen(cue.length)[1:], ref)
+                    selector = util.get_rrule_selector(
+                        processlen(cue.length)[1:], ref
+                    )
                     a: datetime.datetime = selector.before(ref)
 
                     # Hasn't happened yet, can't fast forward past it
@@ -973,7 +1077,9 @@ class Group:
                     return (most_recent[1], most_recent[0])
 
         elif cue_name == "__random__":
-            x = [i.name for i in self.cues_ordered if not i.name == self.cue.name]
+            x = [
+                i.name for i in self.cues_ordered if not i.name == self.cue.name
+            ]
             cue_name = self.pick_random_cue_from_names(x)
 
         else:
@@ -1057,7 +1163,10 @@ class Group:
         # itself could be what is blocking everything up
         if core.completed_frame_number < self.entered_cue_frame_number + 1:
             for i in range(10):
-                if core.completed_frame_number < self.entered_cue_frame_number + 1:
+                if (
+                    core.completed_frame_number
+                    < self.entered_cue_frame_number + 1
+                ):
                     time.sleep(0.05)
 
         # Ignore old cue transitions, but with some slop margin for bad time sync
@@ -1085,7 +1194,9 @@ class Group:
             if len(kwargs[i]) == 1:
                 k2[i] = kwargs[i][0]
 
-        kwargs_var: collections.defaultdict[str, str] = collections.defaultdict(lambda: "")
+        kwargs_var: collections.defaultdict[str, str] = collections.defaultdict(
+            lambda: ""
+        )
         kwargs_var.update(k2)
 
         with self.lock:
@@ -1188,7 +1299,10 @@ class Group:
 
             # optimization, try to se if we can just increment if we are going to the next cue, else
             # we have to actually find the index of the new cue
-            if self.cuePointer < (len(self.cues_ordered) - 1) and self.cues[cue] is self.cues_ordered[self.cuePointer + 1]:
+            if (
+                self.cuePointer < (len(self.cues_ordered) - 1)
+                and self.cues[cue] is self.cues_ordered[self.cuePointer + 1]
+            ):
                 self.cuePointer += 1
             else:
                 self.cuePointer = self.cues_ordered.index(self.cues[cue])
@@ -1276,7 +1390,10 @@ class Group:
     def recalc_randomize_modifier(self):
         "Recalculate the random variance to apply to the length"
         if self.cue:
-            self.randomizeModifier = random.triangular(-float(self.cue.length_randomize), +float(self.cue.length_randomize))
+            self.randomizeModifier = random.triangular(
+                -float(self.cue.length_randomize),
+                +float(self.cue.length_randomize),
+            )
 
     def recalc_cue_len(self):
         "Calculate the actual cue len, without changing the randomizeModifier"
@@ -1303,7 +1420,9 @@ class Group:
         else:
             v = float(v)
             if len(self.cue.sound) and self.cue.rel_length:
-                path = self.resolve_media(self.cue.sound or self.cue.slide, self.cue)
+                path = self.resolve_media(
+                    self.cue.sound or self.cue.slide, self.cue
+                )
                 if core.is_img_file(path):
                     v = 0
                 else:
@@ -1313,7 +1432,14 @@ class Group:
                         # TODO this should not stop early if the next cue overrides
                         duration = core.get_audio_duration(path) or 0
 
-                        loops: int = int(self.script_context.preprocessArgument(self.cue.sound_loops)) or 0
+                        loops: int = (
+                            int(
+                                self.script_context.preprocessArgument(
+                                    self.cue.sound_loops
+                                )
+                            )
+                            or 0
+                        )
                         if loops > 1:
                             duration = duration * loops
 
@@ -1322,14 +1448,29 @@ class Group:
                             duration = 2**31
 
                         if duration > 0:
-                            start = self.script_context.preprocessArgument(self.cue.sound_start_position) or 0
+                            start = (
+                                self.script_context.preprocessArgument(
+                                    self.cue.sound_start_position
+                                )
+                                or 0
+                            )
                             start = float(start)
 
                             # Account for media speed
-                            spd = self.script_context.preprocessArgument(self.cue.media_speed) or 1
+                            spd = (
+                                self.script_context.preprocessArgument(
+                                    self.cue.media_speed
+                                )
+                                or 1
+                            )
                             spd = float(spd)
 
-                            windup = self.script_context.preprocessArgument(self.cue.media_speed) or 0
+                            windup = (
+                                self.script_context.preprocessArgument(
+                                    self.cue.media_speed
+                                )
+                                or 0
+                            )
                             windup = float(spd)
 
                             avg_speed_during_windup = (0.1 + spd) / 2
@@ -1348,7 +1489,9 @@ class Group:
                         else:
                             raise RuntimeError("Failed to get length")
                     except Exception:
-                        logger.exception("Error getting length for sound " + str(path))
+                        logger.exception(
+                            "Error getting length for sound " + str(path)
+                        )
                         # Default to 5 mins just so it's obvious there is a problem, and so that the cue actually does end eventually
                         self.cuelen = 300.0
                         return
@@ -1370,7 +1513,9 @@ class Group:
                         else:
                             raise RuntimeError("Failed to get length")
                     except Exception:
-                        logger.exception("Error getting length for sound " + str(path))
+                        logger.exception(
+                            "Error getting length for sound " + str(path)
+                        )
                         # Default to 5 mins just so it's obvious there is a problem, and so that the cue actually does end eventually
                         self.cuelen = 300.0
                         return
@@ -1379,11 +1524,18 @@ class Group:
             self.cuelen = 0.0
         else:
             # never go below 0.1*the setting or else you could go to zero and get a never ending cue
-            self.cuelen = max(0, float(v * 0.1), self.randomizeModifier + float(v))
+            self.cuelen = max(
+                0, float(v * 0.1), self.randomizeModifier + float(v)
+            )
 
     @slow_group_lock_context.object_session_entry_point
     def make_script_context(self):
-        scriptContext = DebugScriptContext(self, parentContext=rootContext, variables=self.chandler_vars, gil=self.lock)
+        scriptContext = DebugScriptContext(
+            self,
+            parentContext=rootContext,
+            variables=self.chandler_vars,
+            gil=self.lock,
+        )
 
         scriptContext.addNamespace("pagevars")
 
@@ -1434,7 +1586,9 @@ class Group:
                     x = self.cues[x].inherit_rules
 
                 if "__rules__" in self.cues:
-                    self.script_context.addBindings(self.cues["__rules__"].rules)
+                    self.script_context.addBindings(
+                        self.cues["__rules__"].rules
+                    )
 
                 self.script_context.startTimers()
                 self.doMqttSubscriptions()
@@ -1450,7 +1604,9 @@ class Group:
             self.event("$mqtt:" + topic, message)
         except Exception:
             if isinstance(message, bytes):
-                self.event("$mqtt:" + topic, json.loads(message.decode("utf-8")))
+                self.event(
+                    "$mqtt:" + topic, json.loads(message.decode("utf-8"))
+                )
             else:
                 raise TypeError("Not str or bytes")
 
@@ -1472,7 +1628,9 @@ class Group:
                     # Don't adjust out start time too much. It only exists to fix network latency.
                     self.goto_cue(
                         m["cue"],
-                        cue_entered_time=max(min(time.time() + 0.5, m["time"]), time.time() - 0.5),
+                        cue_entered_time=max(
+                            min(time.time() + 0.5, m["time"]), time.time() - 0.5
+                        ),
                         sendSync=False,
                         cause="MQTT Sync",
                     )
@@ -1481,8 +1639,12 @@ class Group:
         if self.mqttConnection:
             if self.mqtt_sync_features.get("syncGroup", False):
                 # In the future we will not use a leading slash
-                self.mqttConnection.subscribe(f"/kaithem/chandler/syncgroup/{self.mqtt_sync_features.get('syncGroup',False)}")
-                self.mqttConnection.subscribe(f"kaithem/chandler/syncgroup/{self.mqtt_sync_features.get('syncGroup',False)}")
+                self.mqttConnection.subscribe(
+                    f"/kaithem/chandler/syncgroup/{self.mqtt_sync_features.get('syncGroup',False)}"
+                )
+                self.mqttConnection.subscribe(
+                    f"kaithem/chandler/syncgroup/{self.mqtt_sync_features.get('syncGroup',False)}"
+                )
 
         if self.mqttConnection and self.script_context:
             # Subscribe to everything we aren't subscribed to
@@ -1501,7 +1663,9 @@ class Group:
                     if i not in self.unusedMqttTopics:
                         self.unusedMqttTopics[i] = time.monotonic()
                         continue
-                    elif self.unusedMqttTopics[i] > time.monotonic() - keepUnused:
+                    elif (
+                        self.unusedMqttTopics[i] > time.monotonic() - keepUnused
+                    ):
                         continue
                     self.mqttConnection.unsubscribe(i)
                     del self.unusedMqttTopics[i]
@@ -1526,7 +1690,9 @@ class Group:
         self.display_tag_values = {}
         self.display_tag_meta = {}
 
-    def make_display_tag_subscriber(self, tag: tagpoints.GenericTagPointClass) -> tuple[tagpoints.GenericTagPointClass, Callable]:
+    def make_display_tag_subscriber(
+        self, tag: tagpoints.GenericTagPointClass
+    ) -> tuple[tagpoints.GenericTagPointClass, Callable]:
         "Create and return a subscriber to a display tag"
         tag_name = tag.name
 
@@ -1579,7 +1745,9 @@ class Group:
                         i[2]["width"] = "4"
 
                     if i[2]["type"] == "auto":
-                        logger.error("Auto type tag display no longer supported")
+                        logger.error(
+                            "Auto type tag display no longer supported"
+                        )
                         continue
 
                     t = None
@@ -1607,7 +1775,9 @@ class Group:
                         t = kaithem.tags[i[1]]
 
                     if t:
-                        self.display_tag_subscription_refs.append(self.make_display_tag_subscriber(t))
+                        self.display_tag_subscription_refs.append(
+                            self.make_display_tag_subscriber(t)
+                        )
                     else:
                         raise ValueError("Bad tag type?")
             except Exception:
@@ -1693,7 +1863,9 @@ class Group:
         # Delete old, push new
         for board in core.iter_boards():
             if len(board.newDataFunctions) < 100:
-                board.newDataFunctions.append(lambda s: s.linkSend(["delcue", cue.id]))
+                board.newDataFunctions.append(
+                    lambda s: s.linkSend(["delcue", cue.id])
+                )
 
         cue.push()
 
@@ -1794,7 +1966,9 @@ class Group:
         with self.lock:
             self.lighting_manager.refresh()
 
-        core.serialized_async_with_core_lock(self.board.cl_update_group_priorities)
+        core.serialized_async_with_core_lock(
+            self.board.cl_update_group_priorities
+        )
 
     def mqttStatusEvent(self, value: str, timestamp: float, annotation: Any):
         if value == "connected":
@@ -2067,7 +2241,9 @@ class Group:
     def setAlpha(self, val: float, sd: bool = False):
         val = min(1, max(0, val))
         try:
-            self.cueVolume = min(5, max(0, float(self.evalExpr(self.cue.sound_volume))))
+            self.cueVolume = min(
+                5, max(0, float(self.evalExpr(self.cue.sound_volume)))
+            )
         except Exception:
             self.event(
                 "script.error",
@@ -2143,7 +2319,8 @@ class Group:
 
             if self.cue.fade_in:
                 fadePosition: float = min(
-                    (time.time() - self.entered_cue) / (self.cue.fade_in * (60.0 / self.bpm)),
+                    (time.time() - self.entered_cue)
+                    / (self.cue.fade_in * (60.0 / self.bpm)),
                     1.0,
                 )
                 fadePosition = ease(fadePosition)
@@ -2162,14 +2339,25 @@ class Group:
                     self.lighting_manager.fade_complete()
 
             if self.active and self.cue_time_finished():
-                self.next_cue(round(self.entered_cue + self.cuelen * (60 / self.bpm), 3), cause="time")
+                self.next_cue(
+                    round(self.entered_cue + self.cuelen * (60 / self.bpm), 3),
+                    cause="time",
+                )
 
     def cue_time_finished(self):
-        if self.cuelen and (time.time() - self.entered_cue) > self.cuelen * (60 / self.bpm):
+        if self.cuelen and (time.time() - self.entered_cue) > self.cuelen * (
+            60 / self.bpm
+        ):
             return True
 
     @slow_group_lock_context.object_session_entry_point
-    def set_cue_value(self, cue_name: str, universe: str, channel: str | int, value: str | int | float | None):
+    def set_cue_value(
+        self,
+        cue_name: str,
+        universe: str,
+        channel: str | int,
+        value: str | int | float | None,
+    ):
         with self.lock:
             reset = False
 
@@ -2190,7 +2378,9 @@ class Group:
             else:
                 x = channel.strip()
                 if not x == channel:
-                    raise Exception("Channel name cannot begin or end with whitespace")
+                    raise Exception(
+                        "Channel name cannot begin or end with whitespace"
+                    )
 
                 # If it looks like an int, cast it even if it's a string,
                 # We get a lot of raw user input that looks like that.
@@ -2210,7 +2400,10 @@ class Group:
                 self.lighting_manager.rerender()
 
                 # If we change something in a pattern effect we just do a full recalc since those are complicated.
-                if unmappeduniverse in cue.values and "__length__" in cue.values[unmappeduniverse]:
+                if (
+                    unmappeduniverse in cue.values
+                    and "__length__" in cue.values[unmappeduniverse]
+                ):
                     self.lighting_manager.update_state_from_cue_vals(cue, False)
 
                     # The FadeCanvas needs to know about this change
@@ -2224,23 +2417,42 @@ class Group:
 
                     if universe.startswith("/"):
                         uobj = get_on_demand_universe(universe)
-                        self.lighting_manager.on_demand_universes[universe] = uobj
+                        self.lighting_manager.on_demand_universes[universe] = (
+                            uobj
+                        )
 
-                    if (universe not in self.lighting_manager.state_alphas) and value is not None:
+                    if (
+                        universe not in self.lighting_manager.state_alphas
+                    ) and value is not None:
                         # GetUniverse might not actually be working yet because
                         # It takes up to a frame for things to be added
                         if not uobj:
                             uobj = getUniverse(universe)
                         reset = True
                         if uobj:
-                            self.lighting_manager.state_vals[universe] = numpy.array([0.0] * len(uobj.values), dtype="f4")
-                            self.lighting_manager.state_alphas[universe] = numpy.array([0.0] * len(uobj.values), dtype="f4")
+                            self.lighting_manager.state_vals[universe] = (
+                                numpy.array(
+                                    [0.0] * len(uobj.values), dtype="f4"
+                                )
+                            )
+                            self.lighting_manager.state_alphas[universe] = (
+                                numpy.array(
+                                    [0.0] * len(uobj.values), dtype="f4"
+                                )
+                            )
 
                     if universe in self.lighting_manager.state_alphas:
-                        if channel not in self.lighting_manager.state_alphas[universe]:
+                        if (
+                            channel
+                            not in self.lighting_manager.state_alphas[universe]
+                        ):
                             reset = True
-                        self.lighting_manager.state_alphas[universe][channel] = 1 if value is not None else 0
-                        self.lighting_manager.state_vals[universe][channel] = self.evalExpr(value if value is not None else 0)
+                        self.lighting_manager.state_alphas[universe][
+                            channel
+                        ] = 1 if value is not None else 0
+                        self.lighting_manager.state_vals[universe][channel] = (
+                            self.evalExpr(value if value is not None else 0)
+                        )
 
                     # The FadeCanvas needs to know about this change
                     self.poll(force_repaint=True)

@@ -25,7 +25,9 @@ mimetypes.add_type("application/javascript", ".js", strict=True)
 
 if not os.environ.get("VIRTUAL_ENV"):
     if "pipx" in sys.executable:
-        os.environ["VIRTUAL_ENV"] = os.path.dirname(os.path.dirname(sys.executable))
+        os.environ["VIRTUAL_ENV"] = os.path.dirname(
+            os.path.dirname(sys.executable)
+        )
 
 try:
     import typeguard  # noqa
@@ -133,12 +135,17 @@ def installThreadLogging():
         run_old = self.run
 
         def run_with_except_hook(*args, **kw):
-            if self.name.startswith("nostartstoplog.") or self.name.startswith("Thread-"):
+            if self.name.startswith("nostartstoplog.") or self.name.startswith(
+                "Thread-"
+            ):
                 try:
                     run_old(*args, **kw)
                 except Exception as e:
                     threadlogger.exception(
-                        "Thread stopping due to exception: " + self.name + " with ID: " + str(threading.current_thread().ident)
+                        "Thread stopping due to exception: "
+                        + self.name
+                        + " with ID: "
+                        + str(threading.current_thread().ident)
                     )
                     raise e
             else:
@@ -153,17 +160,29 @@ def installThreadLogging():
                     )
 
                     run_old(*args, **kw)
-                    threadlogger.debug("Thread stopping: " + self.name + " with ID: " + str(threading.current_thread().ident))
+                    threadlogger.debug(
+                        "Thread stopping: "
+                        + self.name
+                        + " with ID: "
+                        + str(threading.current_thread().ident)
+                    )
 
                 except Exception as e:
                     threadlogger.exception(
-                        "Thread stopping due to exception: " + self.name + " with ID: " + str(threading.current_thread().ident)
+                        "Thread stopping due to exception: "
+                        + self.name
+                        + " with ID: "
+                        + str(threading.current_thread().ident)
                     )
                     from . import messagebus
 
                     messagebus.post_message(
                         "/system/notifications/errors",
-                        "Thread: " + self.name + " with ID: " + str(threading.current_thread().ident) + " stopped due to exception ",
+                        "Thread: "
+                        + self.name
+                        + " with ID: "
+                        + str(threading.current_thread().ident)
+                        + " stopped due to exception ",
                     )
                     raise e
 

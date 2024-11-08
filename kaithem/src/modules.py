@@ -37,7 +37,13 @@ logger = structlog.get_logger(__name__)
 
 
 def new_empty_module():
-    return {"__metadata__": {"resource_type": "module_metadata", "description": "", "resource_timestamp": int(time.time() * 1000000)}}
+    return {
+        "__metadata__": {
+            "resource_type": "module_metadata",
+            "description": "",
+            "resource_timestamp": int(time.time() * 1000000),
+        }
+    }
 
 
 def loadAllCustomResourceTypes() -> None:
@@ -72,9 +78,13 @@ def loadAllCustomResourceTypes() -> None:
                                 "/system/notifications/errors",
                                 f"Error loading resource:{str((i, j))}",
                             )
-                            logger.exception(f"Error loading resource: {str((i, j))}")
+                            logger.exception(
+                                f"Error loading resource: {str((i, j))}"
+                            )
                 if not r == orig:
-                    logger.warning(f"Loader tried to modify resource object {i}:{j} during load")
+                    logger.warning(
+                        f"Loader tried to modify resource object {i}:{j} during load"
+                    )
 
     for i in additionalTypes:
         additionalTypes[i].on_finished_loading(None)
@@ -110,7 +120,9 @@ def readResourceFromFile(
     original = copy.deepcopy(x[0])
 
     if not (x[0] == original):
-        logger.info(f"Resource {x[1]} is in an older format and should be migrated to the new file type")
+        logger.info(
+            f"Resource {x[1]} is in an older format and should be migrated to the new file type"
+        )
     # For now don't break anything by actually changing the data.
     return (original, x[1])
 
@@ -124,7 +136,9 @@ def readResourceFromData(
     """
     fn = relative_name
     r = None
-    if filename and (not filename.endswith(".yaml") or filename.endswith(".toml")):
+    if filename and (
+        not filename.endswith(".yaml") or filename.endswith(".toml")
+    ):
         return None, None
     try:
         # This regex is meant to handle any combination of cr, lf, and trailing whitespaces
@@ -158,12 +172,22 @@ def readResourceFromData(
         # This is a workaround for when dolphin puts .directory files in directories and gitignore files
         # and things like that. Also ignore attempts to load from filedata
         # I'd like to add more workarounds if there are other programs that insert similar crap files.
-        if "/.git" in fn or "/.gitignore" in fn or "__filedata__" in fn or fn.endswith(".directory"):
+        if (
+            "/.git" in fn
+            or "/.gitignore" in fn
+            or "__filedata__" in fn
+            or fn.endswith(".directory")
+        ):
             return (None, None)
         else:
             raise
     if not r or "resource_type" not in r:
-        if "/.git" in fn or "/.gitignore" in fn or "__filedata__" in fn or fn.endswith(".directory"):
+        if (
+            "/.git" in fn
+            or "/.gitignore" in fn
+            or "__filedata__" in fn
+            or fn.endswith(".directory")
+        ):
             return None, None
         else:
             print(fn)
@@ -260,7 +284,9 @@ def _detect_ignorable(path: str) -> bool:
     # Detect .git
     if os.path.basename(path) == ".git":
         # Double check, because we can, on the off chance something else is named .git
-        if os.path.exists(os.path.join(path, "HEAD")) or os.path.exists(os.path.join(path, "branches")):
+        if os.path.exists(os.path.join(path, "HEAD")) or os.path.exists(
+            os.path.join(path, "branches")
+        ):
             return True
     # I think that's how you detect hg repos?
     if os.path.basename(path) == ".hg" and os.path.isdir(path):
@@ -276,7 +302,9 @@ def load_one_yaml_resource(folder: str, relpath: str, module: str):
         return "Wrong extension"
     try:
         r: ResourceDictType | None
-        r, resourcename = readResourceFromFile(os.path.join(folder, relpath), relpath, modulename=module)
+        r, resourcename = readResourceFromFile(
+            os.path.join(folder, relpath), relpath, modulename=module
+        )
         assert isinstance(r, dict)
         assert isinstance(resourcename, str)
         assert "resource_type" in r
@@ -285,7 +313,9 @@ def load_one_yaml_resource(folder: str, relpath: str, module: str):
             "/system/notifications/errors",
             f"Error loadingresource from: {os.path.join(folder, relpath)}",
         )
-        logger.exception(f"Error loading resource from file {os.path.join(folder, relpath)}")
+        logger.exception(
+            f"Error loading resource from file {os.path.join(folder, relpath)}"
+        )
         raise
     if not r:
         return
@@ -299,7 +329,12 @@ def load_one_yaml_resource(folder: str, relpath: str, module: str):
     handleResourceChange(module, resourcename)
 
 
-def loadModule(folder: str, modulename: str, ignore_func: Callable[[str], bool] | None = None, resource_folder: str | None = None) -> None:
+def loadModule(
+    folder: str,
+    modulename: str,
+    ignore_func: Callable[[str], bool] | None = None,
+    resource_folder: str | None = None,
+) -> None:
     "Load a single module but don't bookkeep it . Used by loadModules"
     logger.debug(f"Attempting to load module {modulename}")
 
@@ -367,7 +402,9 @@ def loadModule(folder: str, modulename: str, ignore_func: Callable[[str], bool] 
 
                         module[resourcename] = r
                         if "resource_type" not in r:
-                            logger.warning(f"No resource type found for {resourcename}")
+                            logger.warning(
+                                f"No resource type found for {resourcename}"
+                            )
                             continue
 
                     except Exception:
@@ -435,14 +472,18 @@ def load_modules_from_zip(f: BytesIO, replace: bool = False) -> None:
                     old_module_dir = None
                     m_backup = None
                     if i in modules_state.ActiveModules:
-                        if "module_lock" in modules_state.get_module_metadata(i):
+                        if "module_lock" in modules_state.get_module_metadata(
+                            i
+                        ):
                             raise PermissionError("Old module is locked")
 
                         old_module_dir = getModuleDir(i)
                         if not replace:
                             raise RuntimeError(f"Module {i} already loaded")
                         if i in external_module_locations:
-                            raise RuntimeError(f"Module {i} is an external module")
+                            raise RuntimeError(
+                                f"Module {i} is an external module"
+                            )
 
                         shutil.move(old_module_dir, bu)
                         m_backup = os.path.join(bu, i)
@@ -450,7 +491,10 @@ def load_modules_from_zip(f: BytesIO, replace: bool = False) -> None:
                     try:
                         loadModule(temp_module_folder, i)
                         bookkeeponemodule(i)
-                        shutil.move(temp_module_folder, os.path.join(directories.vardir, "modules", "data"))
+                        shutil.move(
+                            temp_module_folder,
+                            os.path.join(directories.vardir, "modules", "data"),
+                        )
                     except Exception:
                         if old_module_dir and m_backup:
                             try:
@@ -459,7 +503,9 @@ def load_modules_from_zip(f: BytesIO, replace: bool = False) -> None:
                             except Exception:
                                 pass
 
-                            shutil.move(m_backup, os.path.dirname(old_module_dir))
+                            shutil.move(
+                                m_backup, os.path.dirname(old_module_dir)
+                            )
                             loadModule(old_module_dir, i)
                             bookkeeponemodule(i)
                         raise
@@ -489,7 +535,9 @@ def bookkeeponemodule(module: str, update: bool = False) -> None:
         try:
             handleResourceChange(module, i, newly_added=not update)
         except Exception:
-            messagebus.post_message("/system/notifications/errors", f"Failed to load  resource: {i}")
+            messagebus.post_message(
+                "/system/notifications/errors", f"Failed to load  resource: {i}"
+            )
 
     for i in modules_state.additionalTypes:
         modules_state.additionalTypes[i].on_finished_loading(module)
@@ -504,16 +552,27 @@ def mvResource(module: str, resource: str, to_module: str, to_resource: str):
     for i in new:
         check_forbidden(i)
 
-    if not ("/".join(new[:-1]) in modules_state.ActiveModules[to_module] or len(new) < 2):
+    if not (
+        "/".join(new[:-1]) in modules_state.ActiveModules[to_module]
+        or len(new) < 2
+    ):
         raise ValueError("Invalid destination")
     if to_module not in modules_state.ActiveModules:
         raise ValueError("Invalid destination")
     # If something by the name of the directory we are moving to exists but it is not a directory.
     # short circuit evaluating the len makes this clause ignore moves that are to the root of a module.
-    if not (len(new) < 2 or modules_state.ActiveModules[to_module]["/".join(new[:-1])]["resource_type"] == "directory"):
+    if not (
+        len(new) < 2
+        or modules_state.ActiveModules[to_module]["/".join(new[:-1])][
+            "resource_type"
+        ]
+        == "directory"
+    ):
         raise ValueError("Invalid destination")
 
-    obj: modules_state.ResourceDictType = modules_state.ActiveModules[module][resource]
+    obj: modules_state.ResourceDictType = modules_state.ActiveModules[module][
+        resource
+    ]
     rt = obj["resource_type"]
 
     assert isinstance(rt, str)
@@ -529,10 +588,14 @@ def mvResource(module: str, resource: str, to_module: str, to_resource: str):
             if os.path.exists(newfn):
                 raise FileExistsError(newfn)
 
-    modules_state.ActiveModules[to_module][to_resource] = modules_state.ActiveModules[module][resource]
+    modules_state.ActiveModules[to_module][to_resource] = (
+        modules_state.ActiveModules[module][resource]
+    )
     del modules_state.ActiveModules[module][resource]
     if rt in modules_state.additionalTypes:
-        modules_state.additionalTypes[rt].on_move(module, resource, to_module, to_resource, obj)
+        modules_state.additionalTypes[rt].on_move(
+            module, resource, to_module, to_resource, obj
+        )
 
     os.makedirs(dir, exist_ok=True)
 
@@ -541,7 +604,9 @@ def mvResource(module: str, resource: str, to_module: str, to_resource: str):
             shutil.move(i[0], i[1])
 
 
-def rmResource(module: str, resource: str, message: str = "Resource Deleted") -> None:
+def rmResource(
+    module: str, resource: str, message: str = "Resource Deleted"
+) -> None:
     "Delete one resource by name, message is an optional message explaining the change"
     with modulesLock:
         if resource not in modules_state.ActiveModules[module]:
@@ -592,7 +657,9 @@ def newModule(name: str, location: str | None = None) -> None:
             raise RuntimeError("A module by that name already exists.")
         if location:
             if os.path.isfile(location):
-                raise RuntimeError("Cannot create new module that would clobber existing file")
+                raise RuntimeError(
+                    "Cannot create new module that would clobber existing file"
+                )
 
             if os.path.isdir(location):
                 loadModule(location, name)
@@ -606,7 +673,11 @@ def newModule(name: str, location: str | None = None) -> None:
                 }
         else:
             modules_state.ActiveModules[name] = {
-                "__metadata__": {"resource_type": "module_metadata", "description": "", "resource_timestamp": int(time.time() * 1000000)}
+                "__metadata__": {
+                    "resource_type": "module_metadata",
+                    "description": "",
+                    "resource_timestamp": int(time.time() * 1000000),
+                }
             }
         saveModule(modules_state.ActiveModules[name], name)
 
@@ -616,7 +687,10 @@ def newModule(name: str, location: str | None = None) -> None:
             "/system/notifications",
             f"User {pages.getAcessingUser()} Created Module {name}",
         )
-        messagebus.post_message("/system/modules/new", {"user": pages.getAcessingUser(), "module": name})
+        messagebus.post_message(
+            "/system/modules/new",
+            {"user": pages.getAcessingUser(), "module": name},
+        )
 
         modules_state.recalcModuleHashes()
 
@@ -624,7 +698,11 @@ def newModule(name: str, location: str | None = None) -> None:
 def rmModule(module: str, message: str = "deleted") -> None:
     with modulesLock:
         x = modules_state.ActiveModules.pop(module)
-        j = {i: copy.deepcopy(x[i]) for i in x if not (isinstance(x[i], weakref.ref))}
+        j = {
+            i: copy.deepcopy(x[i])
+            for i in x
+            if not (isinstance(x[i], weakref.ref))
+        }
         scopes.pop(module)
 
     for i in additionalTypes:
@@ -660,7 +738,9 @@ def rmModule(module: str, message: str = "deleted") -> None:
     # Get rid of any garbage cycles associated with the event.
     gc.collect()
     messagebus.post_message("/system/modules/unloaded", module)
-    messagebus.post_message("/system/modules/deleted", {"user": pages.getAcessingUser()})
+    messagebus.post_message(
+        "/system/modules/deleted", {"user": pages.getAcessingUser()}
+    )
 
 
 class KaithemEvent(dict):
@@ -672,7 +752,9 @@ def createResource(module: str, resource: str, data: ResourceDictType):
     handleResourceChange(module, resource)
 
 
-def handleResourceChange(module: str, resource: str, obj: None = None, newly_added: bool = False) -> None:
+def handleResourceChange(
+    module: str, resource: str, obj: None = None, newly_added: bool = False
+) -> None:
     modules_state.recalcModuleHashes()
 
     with modules_state.modulesLock:

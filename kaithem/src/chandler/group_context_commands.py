@@ -41,11 +41,15 @@ def ifCueCommand(group: str, cue: str):
     "True if the group is running that cue"
 
 
-def eventCommand(group: str = "=GROUP", ev: str = "DummyEvent", value: str = ""):
+def eventCommand(
+    group: str = "=GROUP", ev: str = "DummyEvent", value: str = ""
+):
     "Send an event to a group, or to all groups if group is __global__"
 
 
-def setWebVarCommand(group: str = "=GROUP", key: str = "varFoo", value: str = ""):
+def setWebVarCommand(
+    group: str = "=GROUP", key: str = "varFoo", value: str = ""
+):
     "Set a slideshow variable. These can be used in the slideshow text as {{var_name}}"
 
 
@@ -88,7 +92,10 @@ def add_context_commands(context_group: groups.Group):
 
         # Track layers of recursion
         newcause = "script.0"
-        if kaithem.chandlerscript.context_info.event[0] in ("cue.enter", "cue.exit"):
+        if kaithem.chandlerscript.context_info.event[0] in (
+            "cue.enter",
+            "cue.exit",
+        ):
             cause = kaithem.chandlerscript.context_info.event[1][1]
             # Nasty hack, but i don't thing we need more layers and parsing might be slower.
             if cause == "script.0":
@@ -98,10 +105,14 @@ def add_context_commands(context_group: groups.Group):
                 newcause = "script.2"
 
             elif cause == "script.2":
-                raise RuntimeError("More than 3 layers of redirects in cue.enter or cue.exit")
+                raise RuntimeError(
+                    "More than 3 layers of redirects in cue.enter or cue.exit"
+                )
 
         def f():
-            context_group.board.groups_by_name[group].goto_cue(cue, cause=newcause, cue_entered_time=float(time))
+            context_group.board.groups_by_name[group].goto_cue(
+                cue, cause=newcause, cue_entered_time=float(time)
+            )
 
         fn = context_group.board.groups_by_name[group].entered_cue_frame_number
 
@@ -136,10 +147,15 @@ def add_context_commands(context_group: groups.Group):
     def ifCueCommand(group: str, cue: str):
         "True if the group is running that cue"
         return (
-            True if context_group.board.groups_by_name[group].active and context_group.board.groups_by_name[group].cue.name == cue else None
+            True
+            if context_group.board.groups_by_name[group].active
+            and context_group.board.groups_by_name[group].cue.name == cue
+            else None
         )
 
-    def eventCommand(group: str = "=GROUP", ev: str = "DummyEvent", value: str = ""):
+    def eventCommand(
+        group: str = "=GROUP", ev: str = "DummyEvent", value: str = ""
+    ):
         "Send an event to a group, or to all groups if group is __global__. Triggers in the next frame."
         t = _time.time()
         if group == "__global__":
@@ -157,18 +173,26 @@ def add_context_commands(context_group: groups.Group):
 
         return True
 
-    def setWebVarCommand(group: str = "=GROUP", key: str = "varFoo", value: str = ""):
+    def setWebVarCommand(
+        group: str = "=GROUP", key: str = "varFoo", value: str = ""
+    ):
         "Set a slideshow variable. These can be used in the slideshow text as {{var_name}}"
         if not key.startswith("var"):
-            raise ValueError("Custom slideshow variable names for slideshow must start with 'var' ")
-        context_group.board.groups_by_name[group].media_link.set_slideshow_variable(key, value)
+            raise ValueError(
+                "Custom slideshow variable names for slideshow must start with 'var' "
+            )
+        context_group.board.groups_by_name[
+            group
+        ].media_link.set_slideshow_variable(key, value)
         return True
 
     def uiNotificationCommand(text: str):
         "Send a notification to the operator, on the web editor and console pages"
         for board in core.iter_boards():
             if len(board.newDataFunctions) < 100:
-                board.newDataFunctions.append(lambda s: s.linkSend(["ui_alert", text]))
+                board.newDataFunctions.append(
+                    lambda s: s.linkSend(["ui_alert", text])
+                )
 
     cc["shortcut"] = codeCommand
     cc["goto"] = gotoCommand
@@ -182,7 +206,9 @@ def add_context_commands(context_group: groups.Group):
 
     def sendMqttMessage(topic: str, message: str):
         "JSON encodes message, and publishes it to the group's MQTT server"
-        raise RuntimeError("This was supposed to be overridden by a group specific version")
+        raise RuntimeError(
+            "This was supposed to be overridden by a group specific version"
+        )
 
     cc["send_mqtt"] = sendMqttMessage
     for i in cc:

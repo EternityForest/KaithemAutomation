@@ -29,7 +29,9 @@ listener 7801
     with open("/dev/shm/kaithem_tests/mosquitto.conf", "w") as f:
         f.write(cfg)
 
-    pr = subprocess.Popen(["mosquitto", "-c", "/dev/shm/kaithem_tests/mosquitto.conf"])
+    pr = subprocess.Popen(
+        ["mosquitto", "-c", "/dev/shm/kaithem_tests/mosquitto.conf"]
+    )
     time.sleep(0.5)
     assert pr.poll() is None
 
@@ -64,7 +66,14 @@ def test_fixtures():
     """Create a universe, a fixture type, and a fixture,
     add the fixture to a group, check the universe vals
     """
-    u = {"dmx": {"channels": 512, "framerate": 44, "number": 1, "type": "enttecopen"}}
+    u = {
+        "dmx": {
+            "channels": 512,
+            "framerate": 44,
+            "number": 1,
+            "type": "enttecopen",
+        }
+    }
     fixtypes = {
         "TestFixtureType": {
             "channels": [
@@ -79,16 +88,36 @@ def test_fixtures():
     }
 
     # fixps = {"tst": {"blue": 42, "dim": 0, "green": 0, "red": 0}}
-    fixas = {"testFixture": {"addr": 1, "name": "testFixture", "type": "TestFixtureType", "universe": "dmx"}}
+    fixas = {
+        "testFixture": {
+            "addr": 1,
+            "name": "testFixture",
+            "type": "TestFixtureType",
+            "universe": "dmx",
+        }
+    }
 
     board._onmsg("__admin__", ["setconfuniverses", u], "test")
     board.cl_check_autosave()
 
     assert board.cl_get_project_data()["setup"]["configured_universes"]["dmx"]
 
-    board._onmsg("__admin__", ["setfixtureclass", "TestFixtureType", fixtypes["TestFixtureType"]], "test")
-    assert board.cl_get_project_data()["setup"]["fixture_types"]["TestFixtureType"]["channels"][0]["name"] == "red"
-    board._onmsg("__admin__", ["setFixtureAssignment", "testFixture", fixas["testFixture"]], "test")
+    board._onmsg(
+        "__admin__",
+        ["setfixtureclass", "TestFixtureType", fixtypes["TestFixtureType"]],
+        "test",
+    )
+    assert (
+        board.cl_get_project_data()["setup"]["fixture_types"][
+            "TestFixtureType"
+        ]["channels"][0]["name"]
+        == "red"
+    )
+    board._onmsg(
+        "__admin__",
+        ["setFixtureAssignment", "testFixture", fixas["testFixture"]],
+        "test",
+    )
 
     s = groups.Group(board, "TestingGroup1", id="TEST")
     # Must add groups to the board so we can save them and test the saving
@@ -113,7 +142,9 @@ def test_fixtures():
     assert int(universes.universes["dmx"]().values[5]) == 127
     assert int(universes.universes["dmx"]().values[6]) == 4
 
-    assert board.cl_get_project_data()["setup"]["fixture_assignments"]["testFixture"]
+    assert board.cl_get_project_data()["setup"]["fixture_assignments"][
+        "testFixture"
+    ]
 
     s.close()
     board.rmGroup(s)
@@ -671,7 +702,9 @@ def test_tag_io():
     s.go()
 
     # Simulate user input
-    board._onmsg("__admin__", ["inputtagvalue", s.id, "/ghjgy", 97], "nonexistantsession")
+    board._onmsg(
+        "__admin__", ["inputtagvalue", s.id, "/ghjgy", 97], "nonexistantsession"
+    )
     core.wait_frame()
     # Make sure the input tag thing actually sets the value
     assert tagpoints.Tag("ghjgy").value == 97

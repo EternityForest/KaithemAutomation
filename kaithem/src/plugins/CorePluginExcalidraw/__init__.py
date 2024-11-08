@@ -8,8 +8,17 @@ from urllib.parse import quote_plus
 import quart
 import quart.utils
 
-from kaithem.api.modules import admin_url_for_file_resource, filename_for_resource, scan_file_resources
-from kaithem.api.web import add_file_resource_link, add_module_plugin_link, quart_app, require
+from kaithem.api.modules import (
+    admin_url_for_file_resource,
+    filename_for_resource,
+    scan_file_resources,
+)
+from kaithem.api.web import (
+    add_file_resource_link,
+    add_module_plugin_link,
+    quart_app,
+    require,
+)
 from kaithem.api.web.dialogs import SimpleDialog
 
 t = os.path.join(os.path.dirname(__file__), "dist")
@@ -48,8 +57,12 @@ async def excalidraw_edit():
     kwargs.update(quart.request.args)
 
     def f():
-        url = admin_url_for_file_resource(quart.request.args["module"], quart.request.args["resource"])
-        fn = filename_for_resource(quart.request.args["module"], quart.request.args["resource"])
+        url = admin_url_for_file_resource(
+            quart.request.args["module"], quart.request.args["resource"]
+        )
+        fn = filename_for_resource(
+            quart.request.args["module"], quart.request.args["resource"]
+        )
         if not os.path.isfile(fn):
             url = ""
         return quart.redirect(
@@ -76,17 +89,28 @@ def excalidraw_plugin_link():
     if dir:
         dir = dir + "/"
 
-    d.text("Name must end with .excalidraw.png, and if the resource already exists, it will be overwritten")
-    d.text_input("resource", default=dir + f"new_drawing_{datetime.datetime.now().isoformat()}.excalidraw.png")
+    d.text(
+        "Name must end with .excalidraw.png, and if the resource already exists, it will be overwritten"
+    )
+    d.text_input(
+        "resource",
+        default=dir
+        + f"new_drawing_{datetime.datetime.now().isoformat()}.excalidraw.png",
+    )
     d.text_input("module", default=quart.request.args["module"])
     d.submit_button("Create")
     return d.render("/excalidraw-plugin/edit")
 
 
-add_module_plugin_link('<span class="mdi mdi-fountain-pen-tip"></span>Excalidraw', "/excalidraw-plugin/module_plugin")
+add_module_plugin_link(
+    '<span class="mdi mdi-fountain-pen-tip"></span>Excalidraw',
+    "/excalidraw-plugin/module_plugin",
+)
 
 
-def filter_excalidraw_resources(module: str, resource: str) -> tuple[str, str] | None:
+def filter_excalidraw_resources(
+    module: str, resource: str
+) -> tuple[str, str] | None:
     if resource.endswith(".excalidraw.png"):
         s = (
             f"/excalidraw-plugin/dist/main.html?module={quote_plus(module, safe='')}"
@@ -94,7 +118,10 @@ def filter_excalidraw_resources(module: str, resource: str) -> tuple[str, str] |
             + f"&load_file={quote_plus(admin_url_for_file_resource(module, resource), safe='')}"
         )
 
-        return ('<span class="mdi mdi-fountain-pen-tip"></span>Edit Excalidraw', s)
+        return (
+            '<span class="mdi mdi-fountain-pen-tip"></span>Edit Excalidraw',
+            s,
+        )
 
 
 add_file_resource_link(filter_excalidraw_resources)

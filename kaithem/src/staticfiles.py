@@ -7,8 +7,12 @@ from kaithem.src import quart_app
 
 logger = get_logger(__name__)
 
-sdn = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "src")
-ddn = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "data")
+sdn = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "src"
+)
+ddn = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "data"
+)
 
 
 @quart_app.app.route("/static/<path:path>")

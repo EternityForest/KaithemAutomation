@@ -82,7 +82,9 @@ class FadeCanvas:
             # We don't want to fade any values that have 0 alpha in the group,
             # because that's how we mark "not present", and we want to track the old val.
             # faded = self.v[i]*(1-(fade*alphas[i]))+ (alphas[i]*fade)*vals[i]
-            faded = self.background_v[i] * (1 - effectiveFade) + (effectiveFade * vals[i])
+            faded = self.background_v[i] * (1 - effectiveFade) + (
+                effectiveFade * vals[i]
+            )
 
             # We always want to jump straight to the value if alpha was previously 0.
             # That's because a 0 alpha would mean the last group released that channel, and there's
@@ -104,7 +106,10 @@ class FadeCanvas:
                 aset = 0
             else:
                 aset = alphas[i]
-            self.a2[i] = self.background_a[i] * (1 - effectiveFade) + effectiveFade * aset
+            self.a2[i] = (
+                self.background_a[i] * (1 - effectiveFade)
+                + effectiveFade * aset
+            )
 
     def save_current_as_background(self):
         self.background_v = copy.deepcopy(self.v2)

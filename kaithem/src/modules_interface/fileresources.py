@@ -28,7 +28,9 @@ async def getfileresource(module, resource):
         raise FileNotFoundError(f"File not found: {f}")
 
 
-@quart_app.app.route("/modules/module/<module>/getfileresourcethumb/<path:resource>")
+@quart_app.app.route(
+    "/modules/module/<module>/getfileresourcethumb/<path:resource>"
+)
 async def getfileresourcethumb(module, resource):
     try:
         pages.require("view_admin_info")
@@ -45,7 +47,10 @@ async def getfileresourcethumb(module, resource):
     if t and os.path.isfile(t):
         return await quart.send_file(t)
     else:
-        return quart.Response('<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0"/>', mimetype="image/svg+xml")
+        return quart.Response(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0"/>',
+            mimetype="image/svg+xml",
+        )
 
 
 @quart_app.app.route("/modules/module/<module>/addfileresource")
@@ -59,10 +64,14 @@ async def addfileresource(module):
     path = request.args.get("dir", "")
 
     # path[1] tells what type of resource is being created and addResourceDispatcher returns the appropriate crud screen
-    return pages.get_template("modules/uploadfileresource.html").render(module=module, path=path)
+    return pages.get_template("modules/uploadfileresource.html").render(
+        module=module, path=path
+    )
 
 
-@quart_app.app.route("/modules/module/<module>/uploadfileresourcetarget", methods=["POST"])
+@quart_app.app.route(
+    "/modules/module/<module>/uploadfileresourcetarget", methods=["POST"]
+)
 async def uploadfileresourcetarget(module):
     try:
         pages.require("system_admin")
@@ -109,7 +118,9 @@ async def uploadfileresourcetarget(module):
                 f.write(d)
 
         if path:
-            return quart.redirect(f"/modules/module/{util.url(module)}/resource/{util.url(path)}")
+            return quart.redirect(
+                f"/modules/module/{util.url(module)}/resource/{util.url(path)}"
+            )
         else:
             return quart.redirect(f"/modules/module/{util.url(module)}")
 

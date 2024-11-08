@@ -77,7 +77,9 @@ def get_val(key: str) -> str:
 
 
 @beartype.beartype
-def add_val(key: str, value: str, source: str = "<code>", priority: float | int = 0):
+def add_val(
+    key: str, value: str, source: str = "<code>", priority: float | int = 0
+):
     """Add a value for the given key.   If empty string, remove it instead.
     The one with the highest priority is the one that is returned.
     Note that this does not save anything to disk.

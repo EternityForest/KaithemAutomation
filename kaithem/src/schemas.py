@@ -43,7 +43,11 @@ DefaultValidatingValidator = extend_with_default(Draft202012Validator)
 
 @cache
 def get_schema(schemaName: str):
-    fn = os.path.join(os.path.dirname(os.path.normpath(__file__)), "schemas", schemaName + ".yaml")
+    fn = os.path.join(
+        os.path.dirname(os.path.normpath(__file__)),
+        "schemas",
+        schemaName + ".yaml",
+    )
     with open(fn) as f:
         return yaml.load(f, Loader=yaml.SafeLoader)
 
@@ -58,7 +62,9 @@ def validate(schemaName: str, data: Any):
     get_validator(schemaName).validate(data)
 
 
-def clean_data_inplace(schemaName: str, data: Dict[str, Any], deprecated_only: bool = False):
+def clean_data_inplace(
+    schemaName: str, data: Dict[str, Any], deprecated_only: bool = False
+):
     "Remove top level keys not in the schema or that are deprecated."
 
     sc = get_schema(schemaName)
@@ -74,7 +80,9 @@ def clean_data_inplace(schemaName: str, data: Dict[str, Any], deprecated_only: b
 
     # Check for deprecation
     for i in data:
-        if (i in sc["properties"]) and sc["properties"][i].get("deprecated", False):
+        if (i in sc["properties"]) and sc["properties"][i].get(
+            "deprecated", False
+        ):
             # print(f"Removing deprecated property {i}")
             to_remove.append(i)
 

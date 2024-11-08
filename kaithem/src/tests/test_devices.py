@@ -14,7 +14,13 @@ if "--collect-only" not in sys.argv:
 
 
 def test_make_demo_device():
-    from kaithem.src import devices, devices_interface, modules, modules_state, tagpoints
+    from kaithem.src import (
+        devices,
+        devices_interface,
+        modules,
+        modules_state,
+        tagpoints,
+    )
 
     n = "test" + str(time.time()).replace(".", "_")
 
@@ -22,7 +28,9 @@ def test_make_demo_device():
 
     assert n in modules_state.ActiveModules
 
-    devices_interface.create_device_from_kwargs(module=n, resource="devtest", type="DemoDevice", name="pytest_demo")
+    devices_interface.create_device_from_kwargs(
+        module=n, resource="devtest", type="DemoDevice", name="pytest_demo"
+    )
 
     assert "pytest_demo" in devices.remote_devices
     assert "pytest_demo" in devices.remote_devices_atomic
@@ -30,7 +38,9 @@ def test_make_demo_device():
     assert tagpoints.allTagsAtomic["/devices/pytest_demo.random"]().value
     assert tagpoints.allTagsAtomic["/devices/pytest_demo.random"]().value < 1
 
-    assert tagpoints.allTagsAtomic["/devices/pytest_demo/subdevice.random"]().value
+    assert tagpoints.allTagsAtomic[
+        "/devices/pytest_demo/subdevice.random"
+    ]().value
 
     devices.updateDevice(
         "pytest_demo",
@@ -49,7 +59,14 @@ def test_make_demo_device():
 
     assert "10000909000" in lr
 
-    assert str(yaml.load(lr, yaml.SafeLoader)["device"]["device.fixed_number_multiplier"]) == "10000909000"
+    assert (
+        str(
+            yaml.load(lr, yaml.SafeLoader)["device"][
+                "device.fixed_number_multiplier"
+            ]
+        )
+        == "10000909000"
+    )
 
     assert tagpoints.allTagsAtomic["/devices/pytest_demo.random"]().value > 1
 
@@ -60,7 +77,9 @@ def test_make_demo_device():
     time.sleep(0.2)
 
     assert "/devices/pytest_demo.random" not in tagpoints.allTags
-    assert "/devices/pytest_demo/subdevice.random" not in tagpoints.allTagsAtomic
+    assert (
+        "/devices/pytest_demo/subdevice.random" not in tagpoints.allTagsAtomic
+    )
 
     assert "pytest_demo" not in devices.remote_devices
     assert "pytest_demo" not in devices.remote_devices_atomic
@@ -68,4 +87,6 @@ def test_make_demo_device():
     assert len(devices.remote_devices) == 0
     assert len(devices.remote_devices_atomic) == 0
 
-    assert not os.path.exists(os.path.join(dir, "modules/data/", n, "devtest.yaml"))
+    assert not os.path.exists(
+        os.path.join(dir, "modules/data/", n, "devtest.yaml")
+    )

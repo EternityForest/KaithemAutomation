@@ -16,7 +16,14 @@ from .. import tagpoints
 from ..alerts import getAlertState
 from ..auth import canUserDoThis
 from ..kaithemobj import kaithem
-from . import ChandlerConsole, blendmodes, core, global_actions, groups, universes
+from . import (
+    ChandlerConsole,
+    blendmodes,
+    core,
+    global_actions,
+    groups,
+    universes,
+)
 from .core import disallow_special
 from .cue import fnToCueName
 from .global_actions import cl_event
@@ -79,7 +86,10 @@ def listsoundfolder(path: str, extra_folders: list[str] = []):
             soundfolders[i] = i
     if not path:
         return [
-            [[i + ("/" if not i.endswith("/") else ""), soundfolders[i]] for i in soundfolders],
+            [
+                [i + ("/" if not i.endswith("/") else ""), soundfolders[i]]
+                for i in soundfolders
+            ],
             [],
         ]
 
@@ -94,7 +104,10 @@ def listsoundfolder(path: str, extra_folders: list[str] = []):
             match = i
     if not match:
         return [
-            [[i + ("/" if not i.endswith("/") else ""), soundfolders[i]] for i in soundfolders],
+            [
+                [i + ("/" if not i.endswith("/") else ""), soundfolders[i]]
+                for i in soundfolders
+            ],
             [],
         ]
 
@@ -105,8 +118,20 @@ def listsoundfolder(path: str, extra_folders: list[str] = []):
     x = kaithem.assetpacks.ls(path)
 
     return (
-        sorted([[os.path.join(path, i), os.path.join(path, i)] for i in x if i.endswith("/")]),
-        sorted([[i, os.path.join(path, i)[len(match) :]] for i in x if not i.endswith("/")]),
+        sorted(
+            [
+                [os.path.join(path, i), os.path.join(path, i)]
+                for i in x
+                if i.endswith("/")
+            ]
+        ),
+        sorted(
+            [
+                [i, os.path.join(path, i)[len(match) :]]
+                for i in x
+                if not i.endswith("/")
+            ]
+        ),
     )
 
 
@@ -147,7 +172,10 @@ def getSerPorts():
         import serial.tools.list_ports
 
         if os.path.exists("/dev/serial/by-path"):
-            return [os.path.join("/dev/serial/by-path", i) for i in os.listdir("/dev/serial/by-path")]
+            return [
+                os.path.join("/dev/serial/by-path", i)
+                for i in os.listdir("/dev/serial/by-path")
+            ]
         else:
             return [i.device for i in serial.tools.list_ports.comports()]
     except Exception:
@@ -165,12 +193,18 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             def on_new_subscriber(s, user: str, connection_id: str, **kw: Any):
                 self.send_everything(connection_id)
 
-            def on_subscriber_disconnected(s, user: str, connection_id: str, **kw: Any) -> None:
+            def on_subscriber_disconnected(
+                s, user: str, connection_id: str, **kw: Any
+            ) -> None:
                 if canUserDoThis(user, "system_admin"):
                     self.cl_check_autosave()
-                return super().on_subscriber_disconnected(user, connection_id, **kw)
+                return super().on_subscriber_disconnected(
+                    user, connection_id, **kw
+                )
 
-        self.link = WrappedLink(id=f"WebChandlerConsole:{self.name}", echo=False)
+        self.link = WrappedLink(
+            id=f"WebChandlerConsole:{self.name}", echo=False
+        )
         self.link.require("chandler_operator")
         self.link.echo = False
         # Bound method weakref nonsense prevention
@@ -261,7 +295,11 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 for j in s.media_link.slideshow_telemetry:
                     # TODO send more stuff to just the target
                     self.linkSendTo(
-                        ["slideshow_telemetry", j, s.media_link.slideshow_telemetry[j]],
+                        [
+                            "slideshow_telemetry",
+                            j,
+                            s.media_link.slideshow_telemetry[j],
+                        ],
                         sessionid,
                     )
             except Exception:
@@ -279,7 +317,11 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             self.linkSend(
                 [
                     "shows",
-                    [i for i in os.listdir(shows) if os.path.isdir(os.path.join(shows, i))],
+                    [
+                        i
+                        for i in os.listdir(shows)
+                        if os.path.isdir(os.path.join(shows, i))
+                    ],
                 ]
             )
 
@@ -288,7 +330,11 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             self.linkSend(
                 [
                     "setups",
-                    [i for i in os.listdir(setups) if os.path.isdir(os.path.join(setups, i))],
+                    [
+                        i
+                        for i in os.listdir(setups)
+                        if os.path.isdir(os.path.join(setups, i))
+                    ],
                 ]
             )
 
@@ -304,12 +350,16 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             return
 
         elif cmd_name == "getfixtureclass":
-            self.linkSend(["fixtureclass", msg[1], self.fixture_classes[msg[1]]])
+            self.linkSend(
+                ["fixtureclass", msg[1], self.fixture_classes[msg[1]]]
+            )
             return
 
         elif cmd_name == "getfixtureclasses":
             # Send placeholder dicts for all fixture classes.
-            self.linkSend(["fixtureclasses", {i: {} for i in self.fixture_classes.keys()}])
+            self.linkSend(
+                ["fixtureclasses", {i: {} for i in self.fixture_classes.keys()}]
+            )
             return
 
         elif cmd_name == "getcuemeta":
@@ -341,7 +391,9 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             return
 
         elif cmd_name == "getcuehistory":
-            self.linkSend(["cuehistory", msg[1], groups.groups[msg[1]].cueHistory])
+            self.linkSend(
+                ["cuehistory", msg[1], groups.groups[msg[1]].cueHistory]
+            )
             return
 
         elif cmd_name == "getfixtureassg":
@@ -354,7 +406,9 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             # Right now there's no separate chandler view, just operator
             if not kaithem.users.check_permission(user, "chandler_operator"):
                 if not kaithem.users.check_permission(user, "system_admin"):
-                    raise PermissionError(cmd_name + "requires chandler_operator or system_admin")
+                    raise PermissionError(
+                        cmd_name + "requires chandler_operator or system_admin"
+                    )
 
         # User level runtime stuff that can't change config
 
@@ -463,7 +517,10 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             self.cl_load_show(msg[1])
 
         elif cmd_name == "downloadSetup":
-            self.linkSendTo(["fileDownload", msg[1], yaml.dump(self.cl_get_library_file())], sessionid)
+            self.linkSendTo(
+                ["fileDownload", msg[1], yaml.dump(self.cl_get_library_file())],
+                sessionid,
+            )
 
         elif cmd_name == "fileUpload":
             if msg[2] == "setup":
@@ -543,7 +600,9 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
             fix = {"channels": x}
 
-            self.fixture_classes[msg[1].replace("-", " ").replace("/", " ")] = fix
+            self.fixture_classes[msg[1].replace("-", " ").replace("/", " ")] = (
+                fix
+            )
             self.cl_reload_fixture_assignment_data()
 
         elif cmd_name == "rmfixtureclass":
@@ -624,7 +683,9 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             hadVals = len(cues[msg[1]].values)
 
             # Allow number:name format, but we only want the name
-            cues[msg[1]].set_value_immediate(msg[2], str(msg[3]).split(":")[-1], val)
+            cues[msg[1]].set_value_immediate(
+                msg[2], str(msg[3]).split(":")[-1], val
+            )
             # Tell clients that now there is values in that cue
             if not hadVals:
                 self.pushCueMeta(msg[1])
@@ -646,8 +707,12 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 if i["type"] not in ("unused", "fixed"):
                     sc = cue.group()
                     assert sc
-                    if hasattr(sc.lighting_manager.blendClass, "default_channel_value"):
-                        val = sc.lighting_manager.blendClass.default_channel_value
+                    if hasattr(
+                        sc.lighting_manager.blendClass, "default_channel_value"
+                    ):
+                        val = (
+                            sc.lighting_manager.blendClass.default_channel_value
+                        )
                     else:
                         val = 0
                     cue.set_value_immediate("@" + msg[2], i["name"], val)
@@ -662,12 +727,17 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                     if i["type"] not in ("unused", "fixed"):
                         sc = cue.group()
                         assert sc
-                        if hasattr(sc.lighting_manager.blendClass, "default_channel_value"):
+                        if hasattr(
+                            sc.lighting_manager.blendClass,
+                            "default_channel_value",
+                        ):
                             val = sc.lighting_manager.blendClass.default_channel_value
                         else:
                             val = 0
                         # i[0] is the name of the channel
-                        cue.set_value_immediate("@" + msg[2], "__dest__." + str(i["name"]), val)
+                        cue.set_value_immediate(
+                            "@" + msg[2], "__dest__." + str(i["name"]), val
+                        )
 
             self.linkSend(["cuedata", msg[1], cue.values])
             self.pushCueMeta(msg[1])
@@ -742,12 +812,16 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 [
                     "soundsearchresults",
                     msg[1],
-                    searchPaths(msg[1], core.getSoundFolders(self.media_folders)),
+                    searchPaths(
+                        msg[1], core.getSoundFolders(self.media_folders)
+                    ),
                 ]
             )
 
         elif cmd_name == "mediaLinkCommand":
-            self.groups_by_name[msg[1]].media_link_socket.send_to(msg[3], msg[2])
+            self.groups_by_name[msg[1]].media_link_socket.send_to(
+                msg[3], msg[2]
+            )
             return
 
         elif cmd_name == "newFromSound":
@@ -766,7 +840,9 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 groups.groups[msg[1]].cues[bn].rel_length = True
                 groups.groups[msg[1]].cues[bn].length = 0.01
 
-                soundfolders = core.getSoundFolders(extra_folders=self.media_folders)
+                soundfolders = core.getSoundFolders(
+                    extra_folders=self.media_folders
+                )
                 s = None
                 for i in soundfolders:
                     s = msg[2]
@@ -790,7 +866,9 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             bn = disallow_special(bn, "_~", replaceMode=" ")
             if bn not in groups.groups[msg[1]].cues:
                 groups.groups[msg[1]].add_cue(bn)
-                soundfolders = core.getSoundFolders(extra_folders=self.media_folders)
+                soundfolders = core.getSoundFolders(
+                    extra_folders=self.media_folders
+                )
                 assert soundfolders
                 s = ""
                 for i in soundfolders:
@@ -939,7 +1017,11 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             self.cl_del_group(msg[1])
 
         elif cmd_name == "setsoundfolders":
-            self.media_folders = [i.strip().replace("\r", "").replace("\t", " ") for i in msg[1].split("\n") if i]
+            self.media_folders = [
+                i.strip().replace("\r", "").replace("\t", " ")
+                for i in msg[1].split("\n")
+                if i
+            ]
 
         else:
             raise ValueError("Unrecognized Command " + str(cmd_name))

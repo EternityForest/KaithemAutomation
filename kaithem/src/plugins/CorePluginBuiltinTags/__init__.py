@@ -12,7 +12,9 @@ def is_dark():
     lat, lon = geolocation.getCoords()
 
     if lat is None or lon is None:
-        raise RuntimeError("No server location set, fix this in system settings")
+        raise RuntimeError(
+            "No server location set, fix this in system settings"
+        )
 
     return sky.is_dark(lat, lon)
 
@@ -21,7 +23,9 @@ def is_night():
     lat, lon = geolocation.getCoords()
 
     if lat is None or lon is None:
-        raise RuntimeError("No server location set, fix this in system settings")
+        raise RuntimeError(
+            "No server location set, fix this in system settings"
+        )
     return sky.is_night(lat, lon)
 
 
@@ -39,7 +43,9 @@ def create():
     twilightTag.min = -1
     twilightTag.max = 1
     twilightTag.interval = 60
-    twilightTag.description = "Unless overridden, 1 if dark, else 0, -1 if no location is set"
+    twilightTag.description = (
+        "Unless overridden, 1 if dark, else 0, -1 if no location is set"
+    )
     twilightTag.value = civil_twilight
     twilightTag.expose("view_status")
     refs.append(twilightTag)
@@ -58,7 +64,9 @@ def create():
     refs.append(atm)
 
     messagebus.subscribe("/system/alerts/level", atm)
-    alertTag.value = alerts.priorities[alerts.highest_unacknowledged_alert_level()]
+    alertTag.value = alerts.priorities[
+        alerts.highest_unacknowledged_alert_level()
+    ]
 
     def night():
         try:
@@ -73,7 +81,9 @@ def create():
     nTag.min = -1
     nTag.max = 1
     nTag.interval = 60
-    nTag.description = "Unless overridden, 1 if night, else 0, -1 if no location is set"
+    nTag.description = (
+        "Unless overridden, 1 if night, else 0, -1 if no location is set"
+    )
     nTag.value = night
     nTag.expose("view_status")
 

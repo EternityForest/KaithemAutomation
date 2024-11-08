@@ -52,7 +52,10 @@ def poll_board_groups(board: ChandlerConsole.ChandlerConsole, t=None):
     for i in board.active_groups:
         # We don't need to call render() if the frame is a static group and the opacity
         # and all that is the same, we can just re-layer it on top of the values
-        if i.poll_again_flag or (i.cue.length and ((time.time() - i.entered_cue) > i.cuelen * (60 / i.bpm))):
+        if i.poll_again_flag or (
+            i.cue.length
+            and ((time.time() - i.entered_cue) > i.cuelen * (60 / i.bpm))
+        ):
             i.poll_again_flag = False
             i.poll()
 
@@ -83,7 +86,9 @@ def cl_loop():
             with core.cl_context:
                 # Profiler says this needs a cache
                 # Todo race condition but i think it's just a flaky test issue
-                if (t - u_cache_time > 1) or universes.last_state_update > u_cache_time:
+                if (
+                    t - u_cache_time > 1
+                ) or universes.last_state_update > u_cache_time:
                     u_cache = universes.getUniverses()
                     u_cache_time = t
 
@@ -109,10 +114,16 @@ def cl_loop():
             with core.cl_context:
                 with group_lighting.render_loop_lock:
                     for b in core.boards.values():
-                        changed.update(group_lighting.mark_and_reset_changed_universes(b, u_cache))
+                        changed.update(
+                            group_lighting.mark_and_reset_changed_universes(
+                                b, u_cache
+                            )
+                        )
 
                     for b in core.boards.values():
-                        c = group_lighting.composite_layers_from_board(b, u=u_cache)
+                        c = group_lighting.composite_layers_from_board(
+                            b, u=u_cache
+                        )
                         changed.update(c)
 
             group_lighting.do_output(changed, u_cache)

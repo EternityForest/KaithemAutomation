@@ -44,7 +44,9 @@ class ConfigType(modules_state.ResourceType):
     def on_load(self, module, resource, data):
         data = copy.deepcopy(data)
         x = entries.pop((module, resource), None)
-        entries[module, resource] = WebChandlerConsole.WebConsole(f"{module}:{resource}")
+        entries[module, resource] = WebChandlerConsole.WebConsole(
+            f"{module}:{resource}"
+        )
 
         with core.cl_context:
             core.boards[f"{module}:{resource}"] = entries[module, resource]
@@ -52,7 +54,9 @@ class ConfigType(modules_state.ResourceType):
             if x:
                 x.cl_close()
 
-            core.boards[f"{module}:{resource}"].cl_setup(data.get("project", {}))
+            core.boards[f"{module}:{resource}"].cl_setup(
+                data.get("project", {})
+            )
 
         set_save_cb(entries[module, resource], module, resource)
 
@@ -107,5 +111,7 @@ class ConfigType(modules_state.ResourceType):
         return super().flush_unsaved(module, resource)
 
 
-drt = ConfigType("chandler_board", mdi_icon="castle", priority=60, title="Chandler Board")
+drt = ConfigType(
+    "chandler_board", mdi_icon="castle", priority=60, title="Chandler Board"
+)
 modules_state.additionalTypes["chandler_board"] = drt

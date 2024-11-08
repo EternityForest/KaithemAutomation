@@ -56,7 +56,9 @@ persist.resolve_path = resolve_path
 # This exception is what we raise from within the page handler to serve a static file
 
 
-ServeFileInsteadOfRenderingPageException = pages.ServeFileInsteadOfRenderingPageException
+ServeFileInsteadOfRenderingPageException = (
+    pages.ServeFileInsteadOfRenderingPageException
+)
 
 plugins = weakref.WeakValueDictionary()
 
@@ -239,14 +241,18 @@ class Kaithem:
             return unitsofmeasure.strftime(*args)
 
         @staticmethod
-        def sunset_time(lat: Optional[float] = None, lon: Optional[float] = None, date=None):
+        def sunset_time(
+            lat: Optional[float] = None, lon: Optional[float] = None, date=None
+        ):
             if lon is None:
                 lat, lon = geolocation.getCoords()
 
             else:
                 raise ValueError("You set lon, but not lst?")
             if lat is None or lon is None:
-                raise RuntimeError("No server location set, fix this in system settings")
+                raise RuntimeError(
+                    "No server location set, fix this in system settings"
+                )
 
             return sky.sunset(lat, lon, date)
 
@@ -258,7 +264,9 @@ class Kaithem:
             else:
                 raise ValueError("You set lon, but not lst?")
             if lat is None or lon is None:
-                raise RuntimeError("No server location set, fix this in system settings")
+                raise RuntimeError(
+                    "No server location set, fix this in system settings"
+                )
 
             return sky.sunrise(lat, lon, date)
 
@@ -270,7 +278,9 @@ class Kaithem:
             else:
                 raise ValueError("You set lon, but not lst?")
             if lat is None or lon is None:
-                raise RuntimeError("No server location set, fix this in system settings")
+                raise RuntimeError(
+                    "No server location set, fix this in system settings"
+                )
 
             return sky.dusk(lat, lon, date)
 
@@ -282,7 +292,9 @@ class Kaithem:
             else:
                 raise ValueError("You set lon, but not lst?")
             if lat is None or lon is None:
-                raise RuntimeError("No server location set, fix this in system settings")
+                raise RuntimeError(
+                    "No server location set, fix this in system settings"
+                )
 
             return sky.dawn(lat, lon, date)
 
@@ -294,7 +306,9 @@ class Kaithem:
             else:
                 raise ValueError("You set lon, but not lst?")
             if lat is None or lon is None:
-                raise RuntimeError("No server location set, fix this in system settings")
+                raise RuntimeError(
+                    "No server location set, fix this in system settings"
+                )
 
             return sky.is_dark(lat, lon)
 
@@ -305,7 +319,9 @@ class Kaithem:
                     lat, lon = geolocation.getCoords()
 
                 if lat is None or lon is None:
-                    raise RuntimeError("No server location set, fix this in system settings")
+                    raise RuntimeError(
+                        "No server location set, fix this in system settings"
+                    )
             return sky.is_day(lat, lon)
 
         @staticmethod
@@ -315,7 +331,9 @@ class Kaithem:
                     lat, lon = geolocation.getCoords()
 
                 if lat is None or lon is None:
-                    raise RuntimeError("No server location set, fix this in system settings")
+                    raise RuntimeError(
+                        "No server location set, fix this in system settings"
+                    )
             return sky.is_night(lat, lon)
 
         @staticmethod
@@ -325,7 +343,9 @@ class Kaithem:
                     lat, lon = geolocation.getCoords()
 
                 if lat is None or lon is None:
-                    raise RuntimeError("No server location set, fix this in system settings")
+                    raise RuntimeError(
+                        "No server location set, fix this in system settings"
+                    )
             return sky.is_light(lat, lon)
 
         @staticmethod
@@ -364,7 +384,12 @@ class Kaithem:
 
                 # Always
                 try:
-                    x = [i.name for i in jackmanager.get_ports(is_audio=True, is_input=True)]
+                    x = [
+                        i.name
+                        for i in jackmanager.get_ports(
+                            is_audio=True, is_input=True
+                        )
+                    ]
                 except Exception:
                     print(traceback.format_exc())
                     x = []
@@ -484,7 +509,9 @@ class Kaithem:
         unsaved = sculleryPersist.unsavedFiles
 
         @staticmethod
-        def load(fn: str, *args: tuple[Any], **kwargs: Dict[str, Any]) -> bytes | str | Dict[Any, Any] | List[Any]:
+        def load(
+            fn: str, *args: tuple[Any], **kwargs: Dict[str, Any]
+        ) -> bytes | str | Dict[Any, Any] | List[Any]:
             return persist.load(fn, *args, **kwargs)
 
         @staticmethod

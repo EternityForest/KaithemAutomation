@@ -18,7 +18,9 @@ def handle_exception(e):
         return pages.loginredirect(quart.request.url)
     if isinstance(e, InternalServerError):
         e = e.original_exception
-    r = pages.get_template("errors/e500.html").render(e="".join(traceback.format_exception(None, e, e.__traceback__)))
+    r = pages.get_template("errors/e500.html").render(
+        e="".join(traceback.format_exception(None, e, e.__traceback__))
+    )
     return Response(r, status=500)
 
 
@@ -61,7 +63,9 @@ async def send_file_range(file_path: str):
 
         @quart.ctx.copy_current_request_context
         def f():
-            range_header = quart.request.headers.get("Range", "").replace("bytes=", "")
+            range_header = quart.request.headers.get("Range", "").replace(
+                "bytes=", ""
+            )
             if "-" in range_header:
                 r = range_header.split("-")
                 start = int(r[0])
@@ -80,8 +84,12 @@ async def send_file_range(file_path: str):
                 file.seek(start)
                 data = file.read(end - start + 1)
 
-            response = quart.Response(data, mimetype=mimetypes.guess_type(file_path)[0])
-            response.headers["Content-Range"] = f"bytes {start}-{end}/{os.path.getsize(file_path)}"
+            response = quart.Response(
+                data, mimetype=mimetypes.guess_type(file_path)[0]
+            )
+            response.headers["Content-Range"] = (
+                f"bytes {start}-{end}/{os.path.getsize(file_path)}"
+            )
             response.headers["Content-Length"] = str(end - start + 1)
             response.status_code = 206
             return response

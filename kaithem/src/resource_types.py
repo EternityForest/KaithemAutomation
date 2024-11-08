@@ -29,7 +29,9 @@ class ResourceType:
     .
     """
 
-    def __init__(self, type: str, mdi_icon="", schema=None, priority=50.0, title=""):
+    def __init__(
+        self, type: str, mdi_icon="", schema=None, priority=50.0, title=""
+    ):
         """ "Schema may be a JSON schema, representing a dict,
         which must validate the resource, but should not include any
         key beginning with resource_ as those are internal and reserved.
@@ -116,7 +118,9 @@ class ResourceType:
         </form>
         """
 
-    def on_create_request(self, module: str, resource: str, kwargs) -> ResourceDictType:
+    def on_create_request(
+        self, module: str, resource: str, kwargs
+    ) -> ResourceDictType:
         """Must return a resource object given kwargs from createpage.
         Called on submitting create form
         """
@@ -128,7 +132,9 @@ class ResourceType:
         """
         return str(data)
 
-    def on_update_request(self, module: str, resource: str, data: ResourceDictType, kwargs):
+    def on_update_request(
+        self, module: str, resource: str, data: ResourceDictType, kwargs
+    ):
         "Called with the kwargs from editpage.  Gets old resource obj, must return new"
         return data
 
@@ -145,7 +151,9 @@ class ResourceType:
     def on_delete_module(self, module: str):
         """Called before the resource deleter callbacks"""
 
-    def on_move(self, module: str, resource: str, to_module: str, to_resource: str, data):
+    def on_move(
+        self, module: str, resource: str, to_module: str, to_resource: str, data
+    ):
         """Called when object has been moved.  All additionaltypes must be movable."""
 
     def on_delete(self, module, resource: str, data):
@@ -158,4 +166,6 @@ class ResourceType:
         """Called when the resource should save any unsaved data it has back to the resource."""
 
 
-additionalTypes: weakref.WeakValueDictionary[str, ResourceType] = weakref.WeakValueDictionary()
+additionalTypes: weakref.WeakValueDictionary[str, ResourceType] = (
+    weakref.WeakValueDictionary()
+)

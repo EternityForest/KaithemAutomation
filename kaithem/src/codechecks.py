@@ -1,7 +1,8 @@
-import pyflakes.api
-import pyflakes.reporter
-import pyflakes.checker
 import io
+
+import pyflakes.api
+import pyflakes.checker
+import pyflakes.reporter
 
 # These could do false negatives. But it's kinda the best we can easily do.
 pyflakes.checker.Checker.builtIns.add("kaithem")

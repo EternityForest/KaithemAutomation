@@ -44,7 +44,9 @@ class MyCache(_jinja2.BytecodeCache):
         self.cache[k] = bucket.bytecode_to_string()
 
 
-_env = _jinja2.Environment(loader=_jl, autoescape=False, bytecode_cache=MyCache())
+_env = _jinja2.Environment(
+    loader=_jl, autoescape=False, bytecode_cache=MyCache()
+)
 
 
 def render_jinja_template(template_filename: str, **kw):
@@ -63,7 +65,9 @@ def render_jinja_template(template_filename: str, **kw):
     </main>
     {% endblock %}
     """
-    return _jl.load(_env, template_filename, _env.globals).render(imp0rt=_importlib.import_module, **kw)
+    return _jl.load(_env, template_filename, _env.globals).render(
+        imp0rt=_importlib.import_module, **kw
+    )
 
 
 def render_html_file(body: str, title: str = "Kaithem"):
@@ -97,7 +101,9 @@ def add_module_plugin_link(link: str, destination: str):
     _module_plugin_links.append((link, destination))
 
 
-def add_file_resource_link(filter: None | Callable[[str, str], tuple[str, str] | None] = None):
+def add_file_resource_link(
+    filter: None | Callable[[str, str], tuple[str, str] | None] = None,
+):
     """Add a link to every file resource if filter matches
     Return value is link html, destination tuple or None.
 

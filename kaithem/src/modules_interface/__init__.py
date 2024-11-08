@@ -14,7 +14,17 @@ from quart.ctx import copy_current_request_context
 from kaithem.src.modules_interface.page_context import module_page_context
 from kaithem.src.modules_state import ActiveModules, check_forbidden
 
-from .. import auth, dialogs, directories, module_actions, modules, modules_state, pages, quart_app, util
+from .. import (
+    auth,
+    dialogs,
+    directories,
+    module_actions,
+    modules,
+    modules_state,
+    pages,
+    quart_app,
+    util,
+)
 from ..util import url
 
 # Here's where most of the actual page routes are
@@ -120,7 +130,9 @@ def modules_index():
         pages.require("view_admin_info")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
-    return pages.get_template("modules/index.html").render(ActiveModules=modules_state.ActiveModules)
+    return pages.get_template("modules/index.html").render(
+        ActiveModules=modules_state.ActiveModules
+    )
 
 
 @quart_app.app.route("/modules/library")
@@ -148,7 +160,9 @@ async def newmoduletarget():
         # If there is no module by that name, create a blank template and the scope obj
         with modules_state.modulesLock:
             if kwargs["name"] in modules_state.ActiveModules:
-                return pages.get_template("error.html").render(info=" A module already exists by that name,")
+                return pages.get_template("error.html").render(
+                    info=" A module already exists by that name,"
+                )
             modules.newModule(kwargs["name"], kwargs.get("location", None))
             return quart.redirect(f"/modules/module/{util.url(kwargs['name'])}")
 
@@ -169,7 +183,9 @@ async def loadlibmodule(module):
         if name in modules_state.ActiveModules:
             return quart.redirect("/errors/alreadyexists")
 
-        modules.loadModule(os.path.join(directories.datadir, "modules", module), name)
+        modules.loadModule(
+            os.path.join(directories.datadir, "modules", module), name
+        )
 
         auth.importPermissionsFromModules()
         modules.saveModule(modules_state.ActiveModules[name], name)
@@ -231,7 +247,9 @@ async def get_resource_label_image(module: str, path: str):
     return await quart.send_file(fn)
 
 
-@quart_app.app.route("/modules/set_label_image/<module>/<path:path>", methods=["POST"])
+@quart_app.app.route(
+    "/modules/set_label_image/<module>/<path:path>", methods=["POST"]
+)
 async def set_resource_label(module: str, path: str):
     pages.require("system_admin")
     kw = dict(await quart.request.form)
