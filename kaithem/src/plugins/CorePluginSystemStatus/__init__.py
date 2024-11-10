@@ -8,6 +8,11 @@ from scullery import scheduling, workers
 
 from kaithem.src import alerts, messagebus, tagpoints, util
 
+from . import log_environment
+
+t = threading.Thread(target=log_environment.go, daemon=True)
+t.start()
+
 undervoltageDuringBootPosted = False
 overTempDuringBootPosted = False
 battery = None

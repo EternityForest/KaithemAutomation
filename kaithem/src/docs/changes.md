@@ -15,6 +15,8 @@ Change Log
 - :sparkles: Switch to https://reallyfreegeoip.org for the one time location lookup
 - :sparkles: kaithem.api.web.render_html_file function for fully client side apps
 - :sparkles: When setting a @time length, give a popup so you can tell if it was parsed correctly
+- :sparkles: At boot, logs changes in the environment like installed system packages.
+
 
 ### 0.86.1
 
