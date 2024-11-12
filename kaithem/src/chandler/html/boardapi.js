@@ -752,6 +752,9 @@ appMethods = {
 
 appComputed = {
     "currentcue": function () {
+        if(this.selectedCues[this.groupname]==undefined){
+            return null
+        }
         return (this.cuemeta[this.groupcues[this.groupname]
         [this.selectedCues[this.groupname]]
         ])
@@ -847,9 +850,7 @@ appData = {
     //For each group what page are we on
     'cuePage': {},
     'nuisianceRateLimit': [10, Date.now()],
-    'specialvars': [
-        ["_", "Output of the previous action"]
-    ],
+
 
     'evlog': [
     ],
@@ -861,104 +862,9 @@ appData = {
     'fixtureassg': '',
     'showevents': false,
 
-    'example_events_base': [
-        ['now', "Run when script loads"],
-        ['cue.exit', 'When exiting the cue'],
-        ['cue.enter', 'When entering a cue'],
-        ["=tv('TagPointName')", 'Run when tag point is nonzero'],
-        ["=/tv('TagPointName')", 'Run when tag point newly becomes nonzero(edge trigger)'],
-        ["=~tv('TagPointName')", 'Run when tag point changes'],
-        ["=+tv('TagPointName')", 'Run when changes and is not zero(Counter/bang trigger)'],
-        ['button.a', 'A button in groups sidebar'],
-        ['keydown.a', "When a lowercase A is pressed in the Send Events mode on the console"],
-        ["=log(90)", 'Example polled expression. =Expressions are polled every few seconds or on certain triggers.'],
-        ['@january 5th', "Run every jan 5 at midnight"], ['@every day at 2am US/Pacific', 'Time zones supported'],
-        ['@every 10 seconds', 'Simple repeating trigger'],
-        ["=isNight()", 'Run if it is nighttime(polled)'], ["=isNight()", 'Run if it is nighttime(polled)'],
-        ["=tv('/system/alerts.level') >= 30 ", "Run if the highest priority alert is warning(30), error(40), or critical(50) level"],
-        ["=isDark()", 'Run if it is civil twilight'],
-        ["script.poll", 'Run every fast(~24Hz) polling cycle of the script, not the same as =expressions'],
-    ],
-
-    'example_events': [
-    ],
-
-
     'availableTags': {},
     "midiInputs": [],
     "blendModes": [],
-    'completers': {
-
-        'gotoGroupNamesCompleter': function (a) {
-            var c = [["=GROUP", 'This group']]
-
-
-            var x = appData.groupmeta
-
-            if (!x) {
-                return []
-            }
-
-            for (i in x) {
-                c.push([x[i].name, ''])
-            }
-            return c;
-        },
-
-        'gotoGroupCuesCompleter': function (a) {
-            var c = []
-            var n = a[1]
-            if (n.indexOf('=GROUP') > -1) {
-                n = appData.groupname
-            }
-            else {
-                for (i in appData.groupmeta) {
-                    var s = appData.groupmeta[i]
-                    if (s.name == n) {
-                        n = i
-                        break
-                    }
-                }
-            }
-
-
-            var x = appData.groupcues[n]
-
-            if (!x) {
-                return []
-            }
-
-            for (i in x) {
-                c.push([i, ''])
-            }
-            return c;
-        },
-
-        'tagPointsCompleter': function (a) {
-            var c = [];
-            for (i in appData.availableTags) {
-                c.push([i, ''])
-            }
-            return c;
-        },
-
-        'defaultExpressionCompleter': function (a) {
-            var c = [
-
-                ['1', 'Literal 1'],
-                ['0', ''],
-                ['=1+2+3', 'Spreadsheet-style expression'],
-                ['=tv("TagName")', 'Get the value of TagName(0 if nonexistant)'],
-                ['=stv("TagName")', 'Get the value of a string tagpoint(empty if nonexistant)'],
-                ['=random()', 'Random from 0 to 1'],
-                ['=GROUP', 'Name of the group']
-            ];
-            for (i in appData.availableTags) {
-                c.push(['=tv("' + i + '")', ''])
-            }
-            return c;
-        }
-    },
 
     'soundfolders': [],
     'showimportexport': false,
@@ -1053,19 +959,6 @@ appData = {
 
 
 
-    'cueNamesByGroupName': function () {
-        var d = {}
-        for (i in this.groupmeta) {
-            d[this.groupmeta[i].name] = []
-
-            for (j in this.groupcues[i]) {
-                d[this.groupmeta[i].name].push(j)
-            }
-        }
-        return d;
-    },
-
-
     'toggleTransparent': function (cue, u, c, v) {
         if (v != null) {
             this.setCueVal(cue, u, c, null)
@@ -1109,15 +1002,6 @@ appData = {
         }
         return 1;
     },
-    'setCueInheritRules': function (c, r) {
-        api_link.send(['setCueInheritRules', c, r])
-    },
-
-
-    'setCueRules': function (c, r) {
-        api_link.send(['setCueRules', c, r])
-    },
-
 
     //Current per group alpha channel
     'alphas': {},
@@ -1589,21 +1473,7 @@ function f(v) {
 
     else if (c == 'availableTags') {
         vueapp.$data.availableTags = v[1]
-        appData.example_events = []
-        for (var i in appData.example_events_base) {
-            appData.example_events.push(appData.example_events_base[i])
-        }
 
-        for (var n in appData.availableTags) {
-            let i = appData.availableTags[n]
-            appData.example_events.push(["=tv('" + n + "')", "While tag is nonzero"])
-            if (i == "trigger") {
-                appData.example_events.push(["=+tv('" + n + "')", "On every nonzero change"])
-            }
-            if (i == "bool") {
-                appData.example_events.push(["=/tv('" + n + "')", "When tag newly becomes nonzero(edge trigger)"])
-            }
-        }
     }
     else if (c == 'midiInputs') {
         vueapp.$data.midiInputs = v[1]

@@ -52,178 +52,146 @@ p.small {
 }
 </style>
 <template>
+<div class="w-full">
     <div class="w-full">
-        <div class="w-full">
-            <div class="flex-row gaps">
+        <div class="flex-row gaps">
 
-                <div class="card paper margin" popover id="blockInspectorEvent"
-                ontoggle="handleDialogState(event)"
-                
-                    v-if="selectedCommand == 0 && selectedBinding" class="col-3 card min-h-24rem w-sm-full">
-                    <header>
-                            <div class="tool-bar">
-                                <h4>Event Inspector</h4>
-                                <button class="nogrow" type="button" popovertarget="blockInspectorEvent" popoveraction="hide">
-                                    <i class="mdi mdi-close"></i>Close
-                                </button>
-                            </div>
-                    </header>
+            <div class="card paper margin" popover id="blockInspectorEvent" ontoggle="handleDialogState(event)" v-if="selectedCommand == 0 && selectedBinding" class="col-3 card min-h-24rem w-sm-full">
+                <header>
+                    <div class="tool-bar">
+                        <h4>Event Inspector</h4>
+                        <button class="nogrow" type="button" popovertarget="blockInspectorEvent" popoveraction="hide">
+                            <i class="mdi mdi-close"></i>Close
+                        </button>
+                    </div>
+                </header>
 
-                    <p>
-                        Event Trigger. Runs the actions when something happens.
-                    </p>
+                <p>
+                    Event Trigger. Runs the actions when something happens.
+                </p>
 
-                    <h4>Parameters</h4>
+                <h4>Parameters</h4>
+                <div class="stacked-form">
+                    <label>Run on
+                        <combo-box :disabled="disabled" @update:modelValue="" v-model="selectedBinding[0]" v-bind:options="example_events" v-on:change="$emit('update:modelValue', rules);"></combo-box>
+                    </label>
+                </div>
+                <h4>Delete</h4>
+                <button :disabled="disabled" v-on:click="deleteBinding(selectedBinding); $emit('update:modelValue', rules);">Remove binding
+                    and all
+                    actions</button>
+            </div>
+
+            <div class="card paper margin" popover ontoggle="handleDialogState(event)" id="blockInspectorCommand" v-if="selectedCommand" class="card col-3 min-h-24rem w-sm-full">
+                <header>
+                    <div class="tool-bar">
+                        <h4>Command Inspector</h4>
+                        <button class="nogrow" type="button" popovertarget="blockInspectorCommand" popoveraction="hide">
+                            <i class="mdi mdi-close"></i>Close
+                        </button>
+                    </div>
+                </header>
+
+                Type
+                <combo-box :disabled="disabled" v-model="selectedCommand[0]" v-bind:options="getPossibleActions()" v-bind:pinned="getSpecialActions()" @update:modelValue="setCommandDefaults(selectedCommand);" v-on:change="setCommandDefaults(selectedCommand); $emit('update:modelValue', rules);"></combo-box>
+                <h4>Config</h4>
+                <div v-if="selectedCommand[0] == 'set'">
+                    Set a variable named <combo-box :disabled="disabled" v-model="selectedCommand[1]" v-bind:pinned="pinnedvars" v-on:change="$emit('update:modelValue', rules)"></combo-box>
+                    <br>to<br>
+                    <combo-box v-model="selectedCommand[2]" v-on:change="$emit('update:modelValue', rules)"></combo-box><br>
+                    and always return True.
+                </div>
+
+                <div v-if="selectedCommand[0] == 'pass'">
+                    Do nothing and return True.
+                </div>
+
+                <div v-if="selectedCommand[0] == 'maybe'">
+                    Continue action with :<input :disabled="disabled" v-model="selectedCommand[1]" v-on:change="$emit('update:modelValue', rules)">%
+                    chance <br> otherwise
+                    return None and stop the action.
+                </div>
+
+                <div v-if="(!(selectedCommand[0] in specialCommands)) && ((commands[selectedCommand[0]]))">
                     <div class="stacked-form">
-                        <label>Run on
-                            <combo-box :disabled="disabled" @update:modelValue="" v-model="selectedBinding[0]"
-                                v-bind:options="example_events"
-                                v-on:change="$emit('update:modelValue', rules);"></combo-box>
+                        <label v-for="i in commands[selectedCommand[0]].args.keys()">
+                            {{ commands[selectedCommand[0]].args[i][0] }}
+                            <combo-box :disabled="disabled" v-model="selectedCommand[i + 1]" v-on:change="$emit('update:modelValue', rules)" :options="getCompletions(selectedCommand, commands[selectedCommand[0]].args[i][0])"></combo-box>
+
                         </label>
                     </div>
-                    <h4>Delete</h4>
-                    <button :disabled="disabled"
-                        v-on:click="deleteBinding(selectedBinding); $emit('update:modelValue', rules);">Remove binding
-                        and all
-                        actions</button>
-                </div>
+                    <h5>Docs</h5>
 
-                <div class="card paper margin" popover ontoggle="handleDialogState(event)"
-                id="blockInspectorCommand"  v-if="selectedCommand" class="card col-3 min-h-24rem w-sm-full">
+                    <pre style="white-space: pre-wrap;">{{ commands[selectedCommand[0]].doc }}</pre>
+
+                </div>
+                <button v-on:click="rules[selectedBindingIndex][1].splice(selectedCommandIndex, 1); selectedCommandIndex -= 1; $emit('update:modelValue', rules);">Delete</button>
+                <button v-if="selectedCommandIndex > 0" :disabled="disabled" v-on:click="swapArrayElements(rules[selectedBindingIndex][1], selectedCommandIndex, selectedCommandIndex - 1); selectedCommandIndex -= 1; $emit('update:modelValue', rules);">
+                    Move Back</button>
+                <button :disabled="disabled" v-if="selectedCommandIndex < (rules[selectedBindingIndex][1].length - 1)" v-on:click="swapArrayElements(rules[selectedBindingIndex][1], selectedCommandIndex, selectedCommandIndex + 1); selectedCommandIndex += 1; $emit('update:modelValue', rules);">
+                    Move Forward</button>
+
+            </div>
+
+            <div class="flex-row gaps col-9">
+                <div v-for="(i, idx) in rules" class="w-sm-double card">
                     <header>
-                            <div class="tool-bar">
-                                <h4>Command Inspector</h4>
-                                <button class="nogrow" type="button" popovertarget="blockInspectorCommand" popoveraction="hide">
-                                    <i class="mdi mdi-close"></i>Close
-                                </button>
-                            </div>
+                        <div class="tool-bar">
+                            <button popovertarget="blockInspectorEvent" v-bind:class="{ highlight: selectedBinding == i }" style="flex-grow: 50;" v-on:click="selectedBindingIndex = rules.indexOf(i); selectedCommandIndex = -1">
+
+                                <b>On {{ i[0] }}</b>
+                            </button>
+
+                            <button :disabled="disabled" v-on:click="moveCueRuleDown(idx)">Move down</button>
+                        </div>
+
                     </header>
-                    
-                    Type
-                    <combo-box :disabled="disabled" v-model="selectedCommand[0]" v-bind:options="getPossibleActions()"
-                        v-bind:pinned="getSpecialActions()" @update:modelValue="setCommandDefaults(selectedCommand);"
-                        v-on:change="setCommandDefaults(selectedCommand); $emit('update:modelValue', rules);"></combo-box>
-                    <h4>Config</h4>
-                    <div v-if="selectedCommand[0] == 'set'">
-                        Set a variable named <combo-box :disabled="disabled" v-model="selectedCommand[1]"
-                            v-bind:pinned="pinnedvars" v-on:change="$emit('update:modelValue', rules)"></combo-box>
-                        <br>to<br> <combo-box v-model="selectedCommand[2]"
-                            v-on:change="$emit('update:modelValue', rules)"></combo-box><br>
-                        and always return True.
-                    </div>
 
-                    <div v-if="selectedCommand[0] == 'pass'">
-                        Do nothing and return True.
-                    </div>
+                    <div class="flex-row gaps w-full padding nogaps">
 
-                    <div v-if="selectedCommand[0] == 'maybe'">
-                        Continue action with :<input :disabled="disabled" v-model="selectedCommand[1]"
-                            v-on:change="$emit('update:modelValue', rules)">%
-                        chance <br> otherwise
-                        return None and stop the action.
-                    </div>
+                        <div v-for="j in i[1]" style="display:flex;" class="nogrow">
+                            <button style="align-content: flex-start;" popovertarget="blockInspectorCommand" v-bind:class="{ action: 1, 'flex-row': 1, selected: (selectedBinding == i & selectedCommand == j) }" v-on:click="selectedCommandIndex = i[1].indexOf(j); selectedBindingIndex = rules.indexOf(i)">
 
-                    <div v-if="(!(selectedCommand[0] in specialCommands)) && ((commands[selectedCommand[0]]))">
-                        <div class="stacked-form">
-                            <label v-for="i in commands[selectedCommand[0]].args.keys()">
-                                {{ commands[selectedCommand[0]].args[i][0] }}
-                                <combo-box :disabled="disabled" v-model="selectedCommand[i + 1]"
-                                    v-on:change="$emit('update:modelValue', rules)"
-                                    :options="getCompletions(selectedCommand, commands[selectedCommand[0]].args[i][0])"></combo-box>
+                                <template style="min-width:6em;max-width:12em;overflow:hidden" v-if="((commands[j[0]]))">
 
-                            </label>
-                        </div>
-                        <h5>Docs</h5>
+                                    <div class="w-full h-min-content"><b>{{ j[0] }}</b></div>
+                                    <div class="nogrow h-min-content" style="margin: 2px;" v-for="i in commands[j[0]].args.keys()">
+                                        {{ j[i + 1] }}
+                                    </div>
+                                </template>
 
-                        <pre style="white-space: pre-wrap;">{{ commands[selectedCommand[0]].doc }}</pre>
-
-                    </div>
-                    <button
-                        v-on:click="rules[selectedBindingIndex][1].splice(selectedCommandIndex, 1); selectedCommandIndex -= 1; $emit('update:modelValue', rules);">Delete</button>
-                    <button v-if="selectedCommandIndex > 0" :disabled="disabled"
-                        v-on:click="swapArrayElements(rules[selectedBindingIndex][1], selectedCommandIndex, selectedCommandIndex - 1); selectedCommandIndex -= 1; $emit('update:modelValue', rules);">
-                        Move Back</button>
-                    <button :disabled="disabled"
-                        v-if="selectedCommandIndex < (rules[selectedBindingIndex][1].length - 1)"
-                        v-on:click="swapArrayElements(rules[selectedBindingIndex][1], selectedCommandIndex, selectedCommandIndex + 1); selectedCommandIndex += 1; $emit('update:modelValue', rules);">
-                        Move Forward</button>
-
-                </div>
-
-
-
-                <div class="flex-row gaps col-9">
-                    <div v-for="(i, idx) in rules" class="w-sm-double card">
-                        <header>
-                            <div class="tool-bar">
-                                <button 
-                                    popovertarget="blockInspectorEvent"
-                                    v-bind:class="{ highlight: selectedBinding == i }" style="flex-grow: 50;"
-                                    v-on:click="selectedBindingIndex = rules.indexOf(i); selectedCommandIndex = -1">
-
-                                    <b>On {{ i[0] }}</b>
-                                </button>
-
-                                <button :disabled="disabled" v-on:click="moveCueRuleDown(idx)">Move down</button>
-                            </div>
-
-                        </header>
-
-                        <div class="flex-row gaps w-full padding nogaps">
-
-                            <div v-for="j in i[1]" style="display:flex;" class="nogrow">
-                                <button style="align-content: flex-start;"
-                                    popovertarget="blockInspectorCommand"
-                                    v-bind:class="{ action: 1, 'flex-row': 1, selected: (selectedBinding == i & selectedCommand == j) }"
-                                    v-on:click="selectedCommandIndex = i[1].indexOf(j); selectedBindingIndex = rules.indexOf(i)">
-
-                                    <template style="min-width:6em;max-width:12em;overflow:hidden"
-                                        v-if="((commands[j[0]]))">
-
-                                        <div class="w-full h-min-content"><b>{{ j[0] }}</b></div>
-                                        <div class="nogrow h-min-content" style="margin: 2px;"
-                                            v-for="i in commands[j[0]].args.keys()">
-                                            {{ j[i + 1] }}
-                                        </div>
-                                    </template>
-
-
-                                    <template v-if="(!(j[0] in commands))">
-                                        <div class="nogrow h-min-content" style="margin: 2px;" v-for="i in j">
-                                            {{ i }}
-                                        </div>
-                                    </template>
-                                </button>
-                                <i class="mdi mdi-arrow-right" style="align-self:center; text-align:center;"></i>
-
-                            </div>
-                            <div style="align-self:stretch;">
-
-                                <button class="action" style="align-self:stretch;" :disabled="disabled"
-                                    v-on:click="i[1].push(['pass']); $emit('update:modelValue', rules)"><b>Add
-                                        Action</b></button>
-                            </div>
+                                <template v-if="(!(j[0] in commands))">
+                                    <div class="nogrow h-min-content" style="margin: 2px;" v-for="i in j">
+                                        {{ i }}
+                                    </div>
+                                </template>
+                            </button>
+                            <i class="mdi mdi-arrow-right" style="align-self:center; text-align:center;"></i>
 
                         </div>
+                        <div style="align-self:stretch;">
+
+                            <button class="action" style="align-self:stretch;" :disabled="disabled" v-on:click="i[1].push(['pass']); $emit('update:modelValue', rules)"><b>Add
+                                    Action</b></button>
+                        </div>
+
                     </div>
-                    <button style="width: 95%; margin-top: 0.5em;" :disabled="disabled"
-                        title="Add a rule that the group should do something when an event fires"
-                        v-on:click="rules.push(['cue.enter', [['goto', '=GROUP', '']]]); $emit('update:modelValue', rules);"><b>Add
-                            Rule</b></button>
-
                 </div>
-
+                <button style="width: 95%; margin-top: 0.5em;" :disabled="disabled" title="Add a rule that the group should do something when an event fires" v-on:click="rules.push(['cue.enter', [['goto', '=GROUP', '']]]); $emit('update:modelValue', rules);"><b>Add
+                        Rule</b></button>
 
             </div>
 
         </div>
+
     </div>
+</div>
 </template>
 
 <script>
 module.exports = {
 
-    props: ['modelValue', 'commands', 'disabled', 'pinnedvars', "inspector", "completers", "example_events"],
+    props: ['modelValue', 'commands', 'disabled', "inspector", "completers", "example_events"],
     components: {
         "combo-box": httpVueLoader("/static/vue/ComboBox.vue"),
     },
@@ -266,6 +234,9 @@ module.exports = {
     },
     data: function () {
         return ({
+            'pinnedvars': [
+                ["_", "Output of the previous action"]
+            ],
             "getCompletions": function (fullCommand, arg) {
                 var t = this.commands[fullCommand[0]].completionTags
                 if (t == undefined) {
@@ -273,8 +244,7 @@ module.exports = {
                     try {
                         return this.argcompleters['defaultExpressionCompleter'](fullCommand)
                         return c(fullCommand)
-                    }
-                    catch (e) {
+                    } catch (e) {
                         return [];
                     }
                 }
@@ -287,12 +257,10 @@ module.exports = {
                     }
 
                     return c(fullCommand)
-                }
-                catch (e) {
+                } catch (e) {
                     return [];
                 }
             },
-
 
             'moveCueRuleDown': function (idx) {
                 var rules = [...this.modelValue];
@@ -306,7 +274,6 @@ module.exports = {
 
             },
 
-
             swapArrayElements: function (arr, indexA, indexB) {
                 var temp = arr[indexA];
                 arr[indexA] = arr[indexB];
@@ -319,8 +286,7 @@ module.exports = {
                 for (i in this.commands) {
                     if (this.commands[i] == null) {
                         console.log("Warning: Null entry for command info for" + i)
-                    }
-                    else {
+                    } else {
                         //Just use the special version if possible
                         if (!(i in this.specialCommands)) {
                             l.push([i, this.commands[i].doc || ''])
@@ -329,7 +295,6 @@ module.exports = {
                 }
                 return l
             },
-
 
             getSpecialActions: function () {
                 var l = [];
@@ -344,11 +309,13 @@ module.exports = {
             selectedCommandIndex: -1,
             selectedBindingIndex: -1,
 
-
             //Stuff we have built in HTML templating for
             specialCommands: {
                 'set': {
-                    args: [['var', ''], ['val', '']],
+                    args: [
+                        ['var', ''],
+                        ['val', '']
+                    ],
                     description: "Sets a variable"
                 },
                 'pass': {
@@ -356,7 +323,9 @@ module.exports = {
                     description: ""
                 },
                 'maybe': {
-                    args: [['chance', '50']],
+                    args: [
+                        ['chance', '50']
+                    ],
                     description: ""
                 }
             },
@@ -403,5 +372,4 @@ module.exports = {
         })
     }
 }
-
 </script>

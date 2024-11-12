@@ -353,15 +353,11 @@
         </section>
 
 
-        <fixture-presets-dialog
-            :presets="presets"
-            :fixture="selectingPresetFor"
+        <fixture-presets-dialog :presets="presets" :fixture="selectingPresetFor"
             :fixturetype="lookupFixtureType(selectingPresetFor)"
             :currentvals="(cuevals[currentcueid]||{})[selectingPresetFor]"
             :currentcueid="currentcueid"
-            :getpresetimage="getPresetImage"
-
-        ></fixture-presets-dialog>
+            :getpresetimage="getPresetImage"></fixture-presets-dialog>
 
         <div v-if="selectingImageLabelForPreset" class="card paper flex-col"
             popover id="presetImageLabel"
@@ -495,12 +491,21 @@
             <header>
                 <button @click="iframeDialog=null" popovertarget="iframeDialog"
                     popoveraction="hide" class="w-full nogrow">
-                    <i class="mdi mdi-close"></i>Close
+                    <i class="mdi mdi-close"></i>Close</button>
             </header>
-            <iframe :src="iframeDialog"></iframe>
+            <iframe title="excalidraw" :src="iframeDialog"></iframe>
         </div>
 
 
+
+        <cue-logic-dialog :groupname="groupname" :currentcue="currentcue"
+            :groupmeta="groupmeta" :groupcues="groupcues"
+            :editinggroup="editingGroup" :availablecommands="availableCommands"
+            :availabletags="availableTags"
+            :no_edit="no_edit"
+            :setcueproperty="setCueProperty">
+
+        </cue-logic-dialog>
 
         <section popover ontoggle="handleDialogState(event)"
             id="selectedGroupWindow" style="min-height: 90vh"
@@ -522,7 +527,7 @@
                     <button type="button" class="nogrow"
                         v-if="editingGroup.cuelen"
                         v-on:click="addTimeToGroup(editingGroup.id)"><i
-                            class="mdi mdi-clock"></i></i><i
+                            class="mdi mdi-clock"></i><i
                             class="mdi mdi-plus"></i>Add Time</button>
 
                     <button aria-label="Group Notes" class="nogrow"
@@ -955,109 +960,6 @@
 
                 </div>
 
-
-                <div class="window w-full" popover id="cueLogicDialog"
-                    class="modal" ontoggle="handleDialogState(event)">
-                    <header>
-                        <div class="tool-bar">
-                            <h4>{{currentcue.name}} Logic</h4>
-                            <button class="nogrow" data-testid="close-logic"
-                                type="button" popovertarget="cueLogicDialog"
-                                popoveraction="hide">
-                                <i class="mdi mdi-close"></i>Close
-                            </button>
-                        </div>
-                    </header>
-
-                    <div>
-                        <h3>Automation Logic</h3>
-                        <details class="help">
-                            <summary><i class="mdi mdi-help-circle-outline"></i>
-                            </summary>
-                            <p>
-                                Here you can create rules that
-                                apply whenever the group is in this cue, to
-                                do things like trigger other cues when
-                                this one enters or exits.
-                            </p>
-
-                            <p>Action parameters can use spreadsheet-style
-                                =expressions. The special function tv('name')
-                                or stv('name') gets the value of
-                                a tag or string tag.
-                            </p>
-
-                            <p>The variables "event.name", "event.value", and
-                                "event.time" are available to get info on
-                                the event that triggered a rule.</p>
-
-
-                        </details>
-                    </div>
-                    <div class="card w-sm-full" style="overflow: visible;">
-                        <label>Inherit rules from
-                            <div style="overflow: visible;">
-                                <combo-box :disabled="no_edit"
-                                    v-model="currentcue.inheritRules"
-                                    :disabled="editingGroup.name =='__rules__'"
-                                    v-on:change="setCueInheritRules(currentcueid, currentcue.inheritRules)"
-                                    :options="useBlankDescriptions(groupcues[groupname])"></combo-box>
-                            </div>
-                            <p>Inherited rules run after directly set rules.</p>
-                            <p>If a cue names __rules__ exists, <br> all cues
-                                will additionally inherit from that cue.
-                            </p>
-
-                        </label>
-                    </div>
-                    <hr>
-
-
-                    <script-editor :completers="completers"
-                        v-bind:example_events="example_events"
-                        v-model="currentcue.rules"
-                        @update:model-value="setCueRules(currentcueid, $event);"
-                        v-bind:commands="availableCommands"
-                        v-bind:groups="cueNamesByGroupName()"
-                        v-bind:pinnedvars="specialvars"
-                        v-bind:vars="editingGroup.vars"
-                        v-bind:parentgroup="editingGroup.name"
-                        :disabled="no_edit">
-                    </script-editor>
-
-                    <div style="display:flex;flex-wrap:wrap;">
-                        <div
-                            style="border-style:solid;flex-grow:3;margin:0.5em;padding:0.5em;">
-                            <h3>Group Variables</h3>
-                            <table border="1">
-
-                                <tr v-for="(v,i) in editingGroup.vars">
-                                    <td>{{i}}</td>
-                                    <td>{{v}}</td>
-                                </tr>
-                            </table>
-                        </div>
-
-                        <div
-                            style="border-style:solid;flex-grow:1;margin:0.5em;padding:0.5em;">
-                            <h3>Timers</h3>
-                            <table border="1" style="width:98%">
-
-                                <tr v-for="(v,i) in editingGroup.timers">
-                                    <td>{{i}}</td>
-                                    <td style="width:8em;"
-                                        v-bind:class="{warning:(v-unixtime)<60, blinking:(v-unixtime)<5}">
-                                        {{formatInterval((v-unixtime))}}
-                                    </td>
-                                </tr>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-
-
-
                 <div>
 
                     <div class="window w-full" popover id="cueMediaDialog"
@@ -1379,7 +1281,8 @@
                                             title="At startup, jump to the last checkpoint cue you were in."
                                             v-on:change="setCueProperty(currentcueid,'checkpoint', currentcue.checkpoint)">
                                     </label>
-                                    </p>
+
+
                                     <p>
                                         <label>
                                             <input :disabled="no_edit"
@@ -1524,7 +1427,6 @@
                                 </fieldset>
                             </div>
                         </div>
-                        </details>
                     </div>
 
 
@@ -2051,7 +1953,6 @@
 
                                 <button type="button"
                                     v-on:click="sendev(groupname)">Send</button>
-                                </label>
                             </div>
                         </div>
 
@@ -2131,9 +2032,9 @@
                                     <dt
                                         v-for="cueprovider of editingGroup.cueProviders">
                                         {{cueprovider}}
-                                        <button
+                                        <button type="button"
                                             v-on:click="editingGroup.cueProviders.splice(editingGroup.cueProviders.indexOf(cueprovider), 1); setGroupProperty(editingGroup.id, 'cueProviders', editingGroup.cueProviders);">
-                                            Delete
+                                            Delete</button>
                                     </dt>
                                 </ul>
                             </div>
@@ -2188,8 +2089,11 @@
                         v-if="groupcues[groupname][selectedCues[groupname]]==undefined || cuemeta[groupcues[groupname][selectedCues[groupname]]]==undefined">
                         Cue data not found...
                     </div>
+
                     <div v-if="showevents" style="height:25em">
                     </div>
+                </div>
+            </div>
         </section>
 
     </main>

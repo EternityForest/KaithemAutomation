@@ -46,6 +46,8 @@ stored_as_property = [
     "slide",
     "shortcut",
     "length_randomize",
+    "rules",
+    "inherit_rules",
 ]
 
 slots = list(cue_schema["properties"].keys()) + [
@@ -187,7 +189,7 @@ class Cue:
         # declare vars.
         self.name: str
         self.number: int
-        self.inherit_rules: str
+        self._inherit_rules: str
         self.reentrant: bool
         self.sound_volume: float | str
         self.sound_loops: int
@@ -226,6 +228,7 @@ class Cue:
         self._markdown: str = kw.get("markdown", "").strip()
 
         self._sound = ""
+        self._rules: list[list[str | list[list[str]]]] = []
 
         if id:
             disallow_special(id)
@@ -275,7 +278,7 @@ class Cue:
                     + " loading anyway but data may be lost"
                 )
 
-        self.rules = self.validate_rules(self.rules)
+        self._rules = self.validate_rules(self._rules)
 
         # Now unused
         # self.script = script
@@ -426,14 +429,26 @@ class Cue:
         s = s.replace('"=SCENE"', '"=GROUP"')
         return json.loads(s)
 
-    def setRules(self, r: list[list[str | list[list[str]]]]):
-        r = self.validate_rules(r)
-        self.rules = r or []
-        self.getGroup().refresh_rules()
+    @property
+    def rules(self) -> list[list[str | list[list[str]]]]:
+        return self._rules
 
-    def setInheritRules(self, r):
-        self.inherit_rules = r
-        self.getGroup().refresh_rules()
+    @rules.setter
+    def rules(self, r: list[list[str | list[list[str]]]]):
+        r = self.validate_rules(r)
+        self._rules = r or []
+        if self.is_active:
+            self.getGroup().refresh_rules()
+
+    @property
+    def inherit_rules(self) -> str:
+        return self._inherit_rules
+
+    @inherit_rules.setter
+    def inherit_rules(self, r: str):
+        self._inherit_rules = r
+        if self.is_active:
+            self.getGroup().refresh_rules()
 
     @property
     def length_randomize(self) -> float:

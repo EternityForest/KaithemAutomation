@@ -942,14 +942,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             cues[msg[1]].reentrant = v
             self.pushCueMeta(msg[1])
 
-        elif cmd_name == "setCueRules":
-            cues[msg[1]].setRules(msg[2])
-            self.pushCueMeta(msg[1])
-
-        elif cmd_name == "setCueInheritRules":
-            cues[msg[1]].setInheritRules(msg[2])
-            self.pushCueMeta(msg[1])
-
         elif cmd_name == "setmqttfeature":
             groups.groups[msg[1]].setMQTTFeature(msg[2], msg[3])
             self.pushMeta(msg[1], keys={"mqtt_sync_features"})

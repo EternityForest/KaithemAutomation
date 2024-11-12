@@ -82,7 +82,6 @@ var vueapp = Vue.createApp(
         methods: appMethods,
         components: {
             "combo-box": httpVueLoader('/static/vue/ComboBox.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
-            "script-editor": httpVueLoader('../static/ScriptEditor.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
             "h-fader": httpVueLoader('../static/hfader.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
             'cue-countdown': httpVueLoader('../static/cue-countdown.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
             'cue-table': httpVueLoader('../static/cuetable.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
@@ -92,7 +91,8 @@ var vueapp = Vue.createApp(
             'smooth-range': httpVueLoader('/static/vue/smoothrange.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
             'media-browser': httpVueLoader('../static/media-browser.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
             'slideshow-telemetry': httpVueLoader('../static/signagetelemetry.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
-            'fixture-presets-dialog': httpVueLoader('../static/fixture-presets-dialog.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61')
+            'fixture-presets-dialog': httpVueLoader('../static/fixture-presets-dialog.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
+            'cue-logic-dialog': httpVueLoader('../static/cue-logic-dialog.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
         },
         computed: appComputed
     }).mount("#app")
@@ -136,8 +136,6 @@ rebind = function (data) {
     keyboardJS.bind(null, keyUpHandle)
 
 }
-
-appData.example_events[3] = ['FooEvent', 'Any custom name you want']
 
 // Blur the active element to cause Onchange events
 window.visibilitychange = function () {
