@@ -143,16 +143,14 @@
                 <div class="flex-col gaps">
                     <article v-for="i in formatAllGroups"
                         class="card group relative border"
-                        v-bind:class="{'grey':i[1].doingHandoff, 'run':i[1].active &(!i[1].doingHandoff)}"
-                        >
+                        v-bind:class="{'grey':i[1].doingHandoff, 'run':i[1].active &(!i[1].doingHandoff)}">
                         <header>
                             <div>
                                 <h4>
                                     <button type="button"
                                         class="w-full noselect"
                                         popovertarget="selectedGroupWindow"
-                                        v-on:click="selectgroup(i[1],i[0])"
-                                        >
+                                        v-on:click="selectgroup(i[1],i[0])">
 
                                         <span
                                             style="font-size: 150%;">{{i[1].name}}</span><span
@@ -318,7 +316,8 @@
                 </div>
             </header>
 
-            <slideshow-telemetry :telemetry="slideshow_telemetry"></slideshow-telemetry>
+            <slideshow-telemetry
+                :telemetry="slideshow_telemetry"></slideshow-telemetry>
         </section>
 
         <section v-if="showimportexport" class="flex-item window paper h-24rem">
@@ -354,12 +353,12 @@
         </section>
 
 
-        <div v-if="selectingImageLabelForPreset" class="card paper flex-col" popover
-            id="presetImageLabel"
+        <div v-if="selectingImageLabelForPreset" class="card paper flex-col"
+            popover id="presetImageLabel"
             style="position: fixed; width:90vw; height: 90vh; top:5vh; left:5vw; z-index: 100">
             <header>Label for {{selectingImageLabelForPreset}}</header>
-            <button @click="selectingImageLabelForPreset=null" popoveraction="hide"
-                class="w-full nogrow">
+            <button @click="selectingImageLabelForPreset=null"
+                popoveraction="hide" class="w-full nogrow">
                 <i class="mdi mdi-close"></i>Close
             </button>
 
@@ -430,8 +429,7 @@
                                     <i class="mdi mdi-image-edit-outline"></i>
                                     Image</button>
 
-                                <button class="button"
-                                    type="button"
+                                <button class="button" type="button"
                                     popovertarget="iframeDialog"
                                     @click="iframeDialog=getExcalidrawPresetLink(ps[0])">
                                     <i class="mdi mdi-fountain-pen-tip"></i>
@@ -787,6 +785,15 @@
                         <i class="mdi mdi-code-braces"></i>
                         Logic({{currentcue.rules.length}})</button>
 
+                </div>
+                <div class="tool-bar w-full">
+                    <label class="grow" for="cuenotes"><span><i
+                                class="mdi mdi-text"></i>Notes</span>
+                    </label>
+
+                    <input :disabled="no_edit" type="text" id="cuenotes"
+                        v-on:change="setCueProperty(currentcueid, 'notes', $event.target.value)"
+                        v-model="cuemeta[currentcueid].notes">
                 </div>
 
                 <div class="tool-bar">
@@ -1498,12 +1505,7 @@
                                         </label>
 
                                     </p>
-                                    <label><span><i
-                                                class="mdi mdi-text"></i>Notes</span>
-                                        <input :disabled="no_edit"
-                                            v-on:change="setCueProperty(currentcueid, 'notes', $event.target.value)"
-                                            v-model="cuemeta[currentcueid].notes">
-                                    </label>
+
 
                                     <datalist :id="'providers' + groupname">
                                         <option

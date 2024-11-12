@@ -16,7 +16,7 @@ Change Log
 - :sparkles: kaithem.api.web.render_html_file function for fully client side apps
 - :sparkles: When setting a @time length, give a popup so you can tell if it was parsed correctly
 - :sparkles: At boot, logs changes in the environment like installed system packages.
-
+- :lipstick: Make cue notes more visible
 
 ### 0.86.1
 
