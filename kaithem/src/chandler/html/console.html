@@ -1706,7 +1706,7 @@
                                 title="You can use this with __random__ to create a shuffle effect.">Default
                                 cue advance:
                                 <input :disabled="no_edit" list="nextcueoptions"
-                                    v-on:change="setdefaultnext(groupname,$event.target.value)"
+                                    v-on:change="setGroupProperty(groupname,'defaultNext',$event.target.value)"
                                     v-model="editingGroup.defaultNext"
                                     placeholder="Next cue in list">
                             </label>
@@ -1797,7 +1797,7 @@
                                     <label>Utility Group(No controls)
                                         <input :disabled="no_edit"
                                             type="checkbox"
-                                            v-on:change="setutility(groupname,editingGroup.utility)"
+                                            v-on:change="setGroupProperty(groupname,'utility',editingGroup.utility)"
                                             v-model="editingGroup.utility"
                                             title="If checked, the group is a utility group without sidebar controls. Use for embedding CCTV, or basic state machines.">
                                     </label>
@@ -1805,7 +1805,7 @@
                                     <label>Hide in Runtime Mode
                                         <input :disabled="no_edit"
                                             type="checkbox"
-                                            v-on:change="setHide(groupname,editingGroup.hide)"
+                                            v-on:change="setGroupProperty(groupname,'hide',editingGroup.hide)"
                                             v-model="editingGroup.hide"
                                             title="If checked, the group is a utility group without sidebar controls. Use for embedding CCTV, or basic state machines.">
                                     </label>

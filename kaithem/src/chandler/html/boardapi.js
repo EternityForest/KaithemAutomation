@@ -624,20 +624,10 @@ appMethods = {
         api_link.send(['setgroupcommandtag', sc, v]);
     },
 
-    'setdefaultnext': function (sc, v) {
-
-        this.groupmeta[sc].defaultNext = v;
-        api_link.send(['setDefaultNext', sc, v]);
-    },
     'setinfodisplay': function (sc, v) {
 
         this.groupmeta[sc].infoDisplay = v;
         api_link.send(['setinfodisplay', sc, v]);
-    },
-    'setutility': function (sc, v) {
-
-        this.groupmeta[sc].utility = v;
-        api_link.send(['setutility', sc, v]);
     },
     'setbpm': function (sc, v) {
         api_link.send(['setbpm', sc, v]);
@@ -749,12 +739,6 @@ appMethods = {
 
         api_link.send(['seteventbuttons', sc, i])
     },
-
-    'setHide': function (sc, i) {
-
-        api_link.send(['sethide', sc, i])
-    },
-
     'setTagInputValue': function (sc, tag, v) {
 
         api_link.send(['inputtagvalue', sc, tag, v])

@@ -643,17 +643,9 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             groups.groups[msg[1]].event_buttons = msg[2]
             self.pushMeta(msg[1], keys={"event_buttons"})
 
-        elif cmd_name == "sethide":
-            groups.groups[msg[1]].hide = msg[2]
-            self.pushMeta(msg[1], keys={"hide"})
-
         elif cmd_name == "setinfodisplay":
             groups.groups[msg[1]].info_display = msg[2]
             self.pushMeta(msg[1], keys={"info_display"})
-
-        elif cmd_name == "setutility":
-            groups.groups[msg[1]].utility = msg[2]
-            self.pushMeta(msg[1], keys={"utility"})
 
         elif cmd_name == "setdisplaytags":
             groups.groups[msg[1]].set_display_tags(msg[2])
@@ -783,8 +775,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         elif cmd_name == "setMusicVisualizations":
             groups.groups[msg[1]].setMusicVisualizations(msg[2])
 
-        elif cmd_name == "setDefaultNext":
-            groups.groups[msg[1]].default_next = str(msg[2])[:256]
         elif cmd_name == "tap":
             groups.groups[msg[1]].tap(msg[2])
         elif cmd_name == "setbpm":
