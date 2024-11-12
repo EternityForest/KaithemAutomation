@@ -353,6 +353,16 @@
         </section>
 
 
+        <fixture-presets-dialog
+            :presets="presets"
+            :fixture="selectingPresetFor"
+            :fixturetype="lookupFixtureType(selectingPresetFor)"
+            :currentvals="(cuevals[currentcueid]||{})[selectingPresetFor]"
+            :currentcueid="currentcueid"
+            :getpresetimage="getPresetImage"
+
+        ></fixture-presets-dialog>
+
         <div v-if="selectingImageLabelForPreset" class="card paper flex-col"
             popover id="presetImageLabel"
             style="position: fixed; width:90vw; height: 90vh; top:5vh; left:5vw; z-index: 100">
@@ -490,51 +500,6 @@
             <iframe :src="iframeDialog"></iframe>
         </div>
 
-        <div popover id="presetForFixture" v-if="selectingPresetFor"
-            class="card paper flex-col"
-            style="background: var(--alt-control-bg); position: fixed; width:90vw; height: 90vh; top:5vh; left:5vw; z-index: 100">
-            <header>Presets for {{selectingPresetFor}}</header>
-            <button @click="selectingPresetFor=null" class="w-full nogrow"
-                popovertarget="presetForFixture" popoveraction="hide">
-                <i class="mdi mdi-close"></i>Close
-            </button>
-            <div class="flex-row nogrow max-h-12rem scroll"
-                style="align-items:flex-start;align-content:flex-start">
-                <template v-for="ps of recentPresets.toReversed()">
-                    <button
-                        v-if="!ps.includes('@') ||ps.endsWith(selectingPresetFor) || ps.endsWith('@' + lookupFixtureType(selectingPresetFor))"
-                        @click="setFixturePreset(currentcueid,selectingPresetFor, ps);selectingPresetFor=null"
-                        :disabled="no_edit" class="preset-button">
-
-                        <img v-if="getPresetImage(ps)"
-                            :src="'../WebMediaServer?file='+encodeURIComponent(getPresetImage(ps))">
-                        <div>{{ps.split('@')[0]}}<div>
-                    </button>
-
-                </template>
-                <div style="flex-grow: 2;"></div>
-
-            </div>
-
-            <div class="tool-bar">
-                <input v-model="presetFilter" placeholder="Search Presets..." />
-                <button @click="presetFilter=''" class="nogrow"><i
-                        class="mdi mdi-backspace"></i></button>
-            </div>
-            <div class="flex-row grow scroll"
-                style="background: var(--alt-control-bg); align-items:flex-start;align-content:flex-start">
-                <button
-                    v-for="ps of dictView(presets,[], function(k,v){if((((!k.includes('@')) || k.endsWith(selectingPresetFor) || k.endsWith('@' + lookupFixtureType(selectingPresetFor)) )) && k.includes(presetFilter)){return 1}})"
-                    @click="setFixturePreset(currentcueid,selectingPresetFor, ps[0]);selectingPresetFor=null"
-                    :disabled="no_edit" class="preset-button">
-                    <img v-if="getPresetImage(ps[0])"
-                        :src="'../WebMediaServer?file='+encodeURIComponent(getPresetImage(ps[0]))">
-
-                    <div>{{ps[0].split('@')[0]}}</div>
-                </button>
-            </div>
-
-        </div>
 
 
         <section popover ontoggle="handleDialogState(event)"

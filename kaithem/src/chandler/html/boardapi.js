@@ -7,6 +7,10 @@
 
  It provides appData, appComputed, and appMethods to add to your vue instance.
 
+ It also provides some globals:
+
+ dictView, formatInterval
+
  Things are done oddly because:
 
  1. It was not originally planned to be this feature rich
@@ -14,7 +18,6 @@
 
 
 */
-
 
 function playAlert(m) {
     if (vueapp.$data.uiAlertSounds) {
@@ -92,6 +95,75 @@ formatInterval = function (seconds) {
     time = ("" + hours).padStart(2, '0') + ":" + ("" + minutes).padStart(2, '0') + ":" + ("" + seconds).padStart(2, '0')
     return time;
 }
+
+dictView = function (dict, sorts, filterf, page) {
+    //Given a dict  and a list of sort keys sorts,
+    //return a list of [key,value] pairs sorted by the sort
+    //keys. Earlier sort keys take precendence.
+
+    // the lowest precedence sort key is the actual dict key.
+
+    //Keys starting with ! are interpreted as meanng to sort in descending order
+
+    var o = []
+
+    const usePages = page !== undefined
+    page = page || 0
+    var toSkip = page * 50
+
+    Object.keys(dict).forEach(
+        function (key, index) {
+            if (filterf == undefined || filterf(key, dict[key])) {
+                toSkip -= 1
+
+                if (toSkip > 0) {
+                    return
+                }
+                else {
+                    // overlap between pages
+                    if (toSkip < -60) {
+                        if (usePages) {
+                            return
+                        }
+                    }
+                    o.push([key, dict[key]])
+                }
+            }
+        })
+
+    var l = []
+    for (var i of sorts) {
+        //Convert to (reverse, string) tuple where reverse is -1 if str started with an exclamation point
+        //Get rid of the fist char if so
+        l.push([
+            i[0] == '!' ? -1 : 1,
+            i[0] == "!" ? i.slice(1) : i
+        ])
+    }
+
+    o.sort(function (a, b) {
+        //For each of the possible soft keys, check if they
+        //are different. If so, compare and possible reverse the ouptut
+
+        var d = a[1]
+        var d2 = b[1]
+        for (i of l) {
+            var key = i[1]
+            var rev = i[0]
+            if (!(d[key] == d2[key])) {
+                return (d[key] > d2[key] ? 1 : -1) * rev
+            }
+
+        }
+        // Fallback sort is the keys themselves
+        if (a[0] != b[0]) {
+            return (a[0] > b[0]) ? 1 : -1
+        }
+        return 0
+    });
+    return (o)
+}
+
 
 cueSetData = {}
 
@@ -246,63 +318,7 @@ appMethods = {
         api_link.send(['scv', sc, u, ch, val]);
     },
 
-    'setFixturePreset': function (sc, fix, preset) {
-        const deleteIndex = this.recentPresets.indexOf(preset);
 
-        if (deleteIndex > -1) {
-            this.recentPresets = this.recentPresets.toSpliced(deleteIndex, 1);
-        }
-        this.recentPresets = this.recentPresets.slice(-8);
-        this.recentPresets.push(preset);
-
-        var generic = false
-
-        // Use a fixture specific preset if available
-        var selectedPreset = this.presets[preset + '@' + fix]
-
-        // Else use a type specific preset
-        if (selectedPreset == undefined) {
-            selectedPreset = this.presets[preset + '@' + this.lookupFixtureType(fix)]
-        }
-
-        if (selectedPreset == undefined) {
-            selectedPreset = this.presets[preset]
-            // Could not find fixture or type specific preset.
-            if (preset.indexOf('@') == -1) {
-                generic = true
-            }
-        }
-
-        if (selectedPreset == undefined) {
-            return
-        }
-
-        selectedPreset = JSON.parse(JSON.stringify(selectedPreset))
-
-        // if (generic) {
-        //     // If using a generic preset, we want to apply the white
-        //     // balance correction if at all possible.
-        //     var cal_white = this.presets['cal.white@' + fix]
-        //     var cal_white = cal_white || this.presets['cal.white@' + this.lookupFixtureType(fix)]
-        //     if (cal_white) {
-        //         for(i of ['red', 'green', 'blue', 'white']) {
-        //             if (cal_white.values[i] != undefined) {
-        //                 if(selectedPreset.values[i] != undefined) {
-        //                     selectedPreset.values[i] *= (cal_white.values[i] / 255)
-        //                     selectedPreset.values[i] = parseInt(selectedPreset.values[i])
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
-
-        for (i in this.cuevals[sc][fix]) {
-            if (selectedPreset.values[i] != undefined) {
-                api_link.send(['scv', sc, fix, i, selectedPreset.values[i]]);
-                this.cuevals[sc][fix][i].v = selectedPreset.values[i]
-            }
-        }
-    },
 
     'selectcue': function (sc, cue) {
         if (this.cueSelectTimeout) {
@@ -757,6 +773,9 @@ appComputed = {
         ])
     },
     "currentcueid": function () {
+        if(this.selectedCues[this.groupname]==undefined){
+            return null
+        }
         return (this.groupcues[this.groupname][this
             .selectedCues[
             this.groupname]
@@ -1045,73 +1064,7 @@ appData = {
         }
     },
 
-    'dictView': function (dict, sorts, filterf, page) {
-        //Given a dict  and a list of sort keys sorts,
-        //return a list of [key,value] pairs sorted by the sort
-        //keys. Earlier sort keys take precendence.
-
-        // the lowest precedence sort key is the actual dict key.
-
-        //Keys starting with ! are interpreted as meanng to sort in descending order
-
-        var o = []
-
-        const usePages = page !== undefined
-        page = page || 0
-        var toSkip = page * 50
-
-        Object.keys(dict).forEach(
-            function (key, index) {
-                if (filterf == undefined || filterf(key, dict[key])) {
-                    toSkip -= 1
-
-                    if (toSkip > 0) {
-                        return
-                    }
-                    else {
-                        // overlap between pages
-                        if (toSkip < -60) {
-                            if (usePages) {
-                                return
-                            }
-                        }
-                        o.push([key, dict[key]])
-                    }
-                }
-            })
-
-        var l = []
-        for (var i of sorts) {
-            //Convert to (reverse, string) tuple where reverse is -1 if str started with an exclamation point
-            //Get rid of the fist char if so
-            l.push([
-                i[0] == '!' ? -1 : 1,
-                i[0] == "!" ? i.slice(1) : i
-            ])
-        }
-
-        o.sort(function (a, b) {
-            //For each of the possible soft keys, check if they
-            //are different. If so, compare and possible reverse the ouptut
-
-            var d = a[1]
-            var d2 = b[1]
-            for (i of l) {
-                var key = i[1]
-                var rev = i[0]
-                if (!(d[key] == d2[key])) {
-                    return (d[key] > d2[key] ? 1 : -1) * rev
-                }
-
-            }
-            // Fallback sort is the keys themselves
-            if (a[0] != b[0]) {
-                return (a[0] > b[0]) ? 1 : -1
-            }
-            return 0
-        });
-        return (o)
-    },
+    'dictView': dictView,
 
 
 
@@ -1192,6 +1145,7 @@ appData = {
     'newcuename': '',
     'cuemeta': {},
     'availableCommands': {},
+    // per scene user selected for editing
     'selectedCues': {},
     'showPages': false,
     'uiAlertSounds': true,
@@ -1208,7 +1162,6 @@ appData = {
     //Actual objs are shared too so changing one obj change in in the other.
 
     'presets': {},
-    'recentPresets': [],
     //All alarms active on server
     'sys_alerts': {},
 
@@ -1288,6 +1241,17 @@ appData = {
 
         x = await x
         alert("Cue len: " + cuelenstr + ". If cue started now, it would end at " + await x.text())
+    },
+    'getPresetImage': function (preset) {
+        // Can use generic preset image if specific not available
+        if (this.presets[preset]?.label_image) {
+            return (this.presets[preset]?.label_image)
+        }
+
+        if (this.presets[preset.split('@')[0]]?.label_image) {
+            return (this.presets[preset.split('@')[0]]?.label_image)
+        }
+        return null
     },
 
 
