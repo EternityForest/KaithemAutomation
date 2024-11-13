@@ -57,7 +57,9 @@ def get_important_envars():
 
 def list_usb_devices():
     if which("lsusb"):
-        r: str = subprocess.check_output(["lsusb"]).decode()
+        r: str = subprocess.check_output(
+            ["lsusb"], stderr=subprocess.DEVNULL
+        ).decode()
         r2: list[str] = [i.strip() for i in r.split("\n")]
         r2 = [i for i in r2 if i]
 
@@ -68,7 +70,9 @@ def list_usb_devices():
 
 def list_rpm_packages():
     if which("rpm"):
-        r: str = subprocess.check_output(["rpm", "-qa"]).decode()
+        r: str = subprocess.check_output(
+            ["rpm", "-qa"], stderr=subprocess.DEVNULL
+        ).decode()
         r2: list[str] = [i.strip() for i in r.split("\n")]
 
         return r2
@@ -78,7 +82,9 @@ def list_rpm_packages():
 
 def get_pip_freeze_versions():
     if which("pip"):
-        r: str = subprocess.check_output(["pip", "freeze"]).decode()
+        r: str = subprocess.check_output(
+            ["pip", "freeze"], stderr=subprocess.DEVNULL
+        ).decode()
         r2: list[str] = [i.strip() for i in r.split("\n")]
 
         versions = {}

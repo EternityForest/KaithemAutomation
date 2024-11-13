@@ -105,21 +105,7 @@ input {
 
 
 <script>
-
-formatInterval = function (seconds) {
-    var hours = Math.floor(seconds / 3600);
-    var minutes = Math.floor((seconds - (hours * 3600)) /
-        60);
-    var seconds = seconds - (hours * 3600) - (minutes * 60);
-    var tenths = Math.floor((seconds - Math.floor(seconds)) *
-        10);
-    seconds = Math.floor(seconds);
-
-    var time = "";
-
-    time = ("" + hours).padStart(2, '0') + ":" + ("" + minutes).padStart(2, '0') + ":" + ("" + seconds).padStart(2, '0')
-    return time;
-}
+import { formatInterval} from "./utils.mjs?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61";
 
 
 module.exports = {
@@ -130,8 +116,8 @@ module.exports = {
     },
     methods: {
         'setTagInputValue': function (sc, tag, v) {
-            /*api_link is global*/
-            api_link.send(['inputtagvalue', sc, tag, v])
+            /*window.api_link is global*/
+            window.api_link.send(['inputtagvalue', sc, tag, v])
         }
     }
 }

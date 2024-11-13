@@ -22,7 +22,7 @@
         text-align: center;
     }
 </style>
-<script src="/static/js/widget.js?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61"></script>
+<script type="module" src="/static/js/widget.js?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61"></script>
 <script src="/static/js/thirdparty/mpegts.js"></script>
 
 <link href="/static/js/thirdparty/croppr/croppr.css" rel="stylesheet">
@@ -472,13 +472,15 @@
     <div style="flex-basis: 20%; min-width: 12em;"></div>
 </main>
 
-{% if hasattr(obj,'_admin_ws_channel') %}
-{{ obj._admin_ws_channel.render("_admin_ws_channel") }}
-{{ obj._generic_ws_channel.render("_generic_ws_channel") }}
-{% endif %}
-<script>
+<script type="module">
 
-    fakesOn = false;
+
+    import { api as _generic_ws_channel } from '/apiwidget/esm/{{obj._generic_ws_channel.uuid}}'
+    import { api as _admin_ws_channel } from '/apiwidget/esm/{{obj._admin_ws_channel.uuid}}'
+
+    window._generic_ws_channel = _generic_ws_channel
+
+    var fakesOn = false;
     function setFake(k, v) {
         if (!fakesOn) {
             fakesOn = confirm("Enable faking input values?");
@@ -489,6 +491,8 @@
 
     }
 
+    window.setFake = setFake
+
     function send_ui_message(m) {
         _admin_ws_channel.send(m)
     }
@@ -496,6 +500,9 @@
     function set_ui_message_handler(f) {
         _admin_ws_channel.upd = f
     }
+
+    window.send_ui_message = send_ui_message
+    window.set_ui_message_handler = set_ui_message_handler
 
 </script>
 

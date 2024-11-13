@@ -100,6 +100,8 @@ html_dir = os.path.join(os.path.dirname(__file__), "html")
 
 console_fn = os.path.join(html_dir, "console.html")
 
+schedule_fn = os.path.join(html_dir, "schedulemanager.html")
+
 
 @quart_app.app.route("/chandler/editor/<board>")
 def editor(board: str):
@@ -110,6 +112,17 @@ def editor(board: str):
         return pages.loginredirect(pages.geturl())
 
     return render_html_file(console_fn)
+
+
+# @quart_app.app.route("/chandler/scheduler/<board>")
+# def scheduler(board: str):
+#     """Index page for web interface"""
+#     try:
+#         pages.require("system_admin")
+#     except PermissionError:
+#         return pages.loginredirect(pages.geturl())
+
+#     return render_html_file(schedule_fn)
 
 
 @quart_app.app.route("/chandler/commander/<board>")
@@ -142,13 +155,13 @@ def opz_import(board: str):
 
 @quart_app.app.route("/chandler/dyn_js/<file>")
 def dyn_js(file):
-    if file == "boardapi.js":
+    if file == "boardapi.mjs":
         try:
             pages.require("view_admin_info")
         except PermissionError:
             return pages.loginredirect(pages.geturl())
 
-        return get_template("boardapi.js").render()
+        return get_template("boardapi.mjs").render()
     raise RuntimeError("File not found")
 
 

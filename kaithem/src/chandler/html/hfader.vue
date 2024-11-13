@@ -63,7 +63,7 @@ var hfaderdata =
     },
     'setCueVal': function (sc, u, ch, val) {
         val = isNaN(parseFloat(val)) ? val : parseFloat(val)
-        api_link.send(['scv', sc, u, ch, val]);
+        window.api_link.send(['scv', sc, u, ch, val]);
     },
 
     //Returns new value mapped into the range when user clicks to change the range of a custom val
@@ -76,7 +76,7 @@ var hfaderdata =
         //Given a channel info structure thing and a value, return the [min,max,name] of the range
         //that the value is in
         if (d?.ranges) {
-            for (i of d.ranges) {
+            for (var i of d.ranges) {
                 if ((v >= i.min) && (v <= i.max)) {
                     return (i)
                 }
@@ -88,7 +88,7 @@ var hfaderdata =
 
 
     'rmValFromCue': function (universe, ch) {
-        api_link.send(['scv', appData.groupcues[appData.groupname]
+        window.api_link.send(['scv', appData.groupcues[appData.groupname]
         [appData.selectedCues[appData.groupname]],
             universe,
             ch,
@@ -106,7 +106,7 @@ module.exports = {
         return (hfaderdata)
     },
     components: {
-        'smooth-range': httpVueLoader('/static/vue/smoothrange.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61')
+        'smooth-range': window.httpVueLoader('/static/vue/smoothrange.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61')
     },
 }
 

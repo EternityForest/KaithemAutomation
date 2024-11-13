@@ -32,8 +32,6 @@
 
 <script src="/static/js/thirdparty/sortable.min.js"></script>
 
-<script
-    src="/static/js/widget.js?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61"></script>
 <script src="/static/js/thirdparty/keyboard.min.js"></script>
 <script src="/static/js/thirdparty/js-yaml.min.js"></script>
 <script src="/static/js/thirdparty/strftime-min.js"></script>
@@ -357,14 +355,16 @@
             :fixturetype="lookupFixtureType(selectingPresetFor)"
             :currentvals="(cuevals[currentcueid]||{})[selectingPresetFor]"
             :currentcueid="currentcueid"
-            :getpresetimage="getPresetImage"></fixture-presets-dialog>
+            :getpresetimage="getPresetImage"
+            :no_edit="no_edit"
+            ></fixture-presets-dialog>
 
         <div v-if="selectingImageLabelForPreset" class="card paper flex-col"
             popover id="presetImageLabel"
             style="position: fixed; width:90vw; height: 90vh; top:5vh; left:5vw; z-index: 100">
             <header>Label for {{selectingImageLabelForPreset}}</header>
             <button @click="selectingImageLabelForPreset=null"
-                popoveraction="hide" class="w-full nogrow">
+                popovertargetaction="hide" class="w-full nogrow">
                 <i class="mdi mdi-close"></i>Close
             </button>
 
@@ -389,11 +389,11 @@
         </div>
 
 
-        <section popover id="presetsDialog" ontoggle="handleDialogState"
+        <section popover id="presetsDialog" ontoggle="globalThis.handleDialogState"
             class="margin modal flex-item window paper"
             style="width: 32em; max-height: 90vh">
             <h3>Presets<button type="button" popovertarget="presetsDialog"
-                    popoveraction="hide">
+                    popovertargetaction="hide">
                     <i class="mdi mdi-close"></i>Close</button>
             </h3>
             <details class="help">
@@ -490,7 +490,7 @@
             style="background: var(--alt-control-bg); position: fixed; width:90vw; max-width: 48rem; height: 90vh; top:5vh; left:5vw; z-index: 100">
             <header>
                 <button @click="iframeDialog=null" popovertarget="iframeDialog"
-                    popoveraction="hide" class="w-full nogrow">
+                    popovertargetaction="hide" class="w-full nogrow">
                     <i class="mdi mdi-close"></i>Close</button>
             </header>
             <iframe title="excalidraw" :src="iframeDialog"></iframe>
@@ -507,7 +507,7 @@
 
         </cue-logic-dialog>
 
-        <section popover ontoggle="handleDialogState(event)"
+        <section popover ontoggle="globalThis.handleDialogState(event)"
             id="selectedGroupWindow" style="min-height: 90vh"
             class="modal window paper margin w-full"
             v-if="editingGroup && cuemeta[editingGroup.cue]">
@@ -548,8 +548,9 @@
 
                     <button data-testid="close-group" aria-label="Close Group"
                         type="button" class="nogrow"
+                        @click="selectingPresetFor = null"
                         popovertarget="selectedGroupWindow"
-                        popoveraction="hide">
+                        popovertargetaction="hide">
                         <i class="mdi mdi-close"></i>
                     </button>
 
@@ -963,13 +964,13 @@
                 <div>
 
                     <div class="window w-full" popover id="cueMediaDialog"
-                        class="modal" ontoggle="handleDialogState(event)">
+                        class="modal" ontoggle="globalThis.handleDialogState(event)">
                         <header>
                             <div class="tool-bar">
                                 <h4>{{currentcue.name}} Sound</h4>
                                 <button class="nogrow" type="button"
                                     popovertarget="cueMediaDialog"
-                                    popoveraction="hide"
+                                    popovertargetaction="hide"
                                     data-testid="close-cue-media">
                                     <i class="mdi mdi-close"></i>Close
                                 </button>
@@ -1215,13 +1216,13 @@
                     </div>
 
                     <div class="window w-full" popover id="cueTextDialog"
-                        class="modal" ontoggle="handleDialogState(event)">
+                        class="modal" ontoggle="globalThis.handleDialogState(event)">
                         <header>
                             <div class="tool-bar">
                                 <h4>{{currentcue.name}} Text</h4>
                                 <button class="nogrow" type="button"
                                     popovertarget="cueTextDialog"
-                                    popoveraction="hide">
+                                    popovertargetaction="hide">
                                     <i class="mdi mdi-close"
                                         data-testid="close-cue-text"></i>Close
                                 </button>
@@ -1237,13 +1238,13 @@
                     </div>
 
                     <div class="window w-full" popover id="cuePropsDialog"
-                        class="modal" ontoggle="handleDialogState(event)">
+                        class="modal" ontoggle="globalThis.handleDialogState(event)">
                         <header>
                             <div class="tool-bar">
                                 <h4>{{currentcue.name}}</h4>
                                 <button class="nogrow" type="button"
                                     popovertarget="cuePropsDialog"
-                                    popoveraction="hide"
+                                    popovertargetaction="hide"
                                     data-testid="close-cue-props">
                                     <i class="mdi mdi-close"></i>Close
                                 </button>
@@ -1434,14 +1435,14 @@
                 </div>
 
                 <div class="window w-full" popover id="groupNotesDialog"
-                    class="modal" ontoggle="handleDialogState(event)">
+                    class="modal" ontoggle="globalThis.handleDialogState(event)">
                     <header>
                         <div class="tool-bar">
                             <h4>{{editingGroup.name}} Notes</h4>
                             <button class="nogrow" type="button"
                                 data-testid="close-group-notes"
                                 popovertarget="groupNotesDialog"
-                                popoveraction="hide">
+                                popovertargetaction="hide">
                                 <i class="mdi mdi-close"></i>Close
                             </button>
                         </div>
@@ -1458,14 +1459,14 @@
 
 
                 <div class="window w-full" popover id="groupPropsDialog"
-                    class="modal" ontoggle="handleDialogState(event)">
+                    class="modal" ontoggle="globalThis.handleDialogState(event)">
                     <header>
                         <div class="tool-bar">
                             <h4>Group Settings</h4>
                             <button class="nogrow" type="button"
                                 data-testid="close-group-settings"
                                 popovertarget="groupPropsDialog"
-                                popoveraction="hide">
+                                popovertargetaction="hide">
                                 <i class="mdi mdi-close"></i>Close
                             </button>
                         </div>
@@ -2104,10 +2105,7 @@
 
 
 <script src="/static/js/thirdparty/strftime-min.js"></script>
-
-<script
-    src="../dyn_js/boardapi.js?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61"></script>
 <script src="/static/js/thirdparty/vue3-sfc-loader.js"></script>
-
-<script
-    src="/chandler/static/console.js?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61"></script>
+<script type="module">
+    import '/chandler/static/console.js?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61';
+</script>

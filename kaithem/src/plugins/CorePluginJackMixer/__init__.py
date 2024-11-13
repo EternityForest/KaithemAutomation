@@ -333,7 +333,15 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
     ):
         try:
             self.name = name
+            self.input = input
+            self._input = None
+            self.outputs = outputs
+            self._outputs = []
+            self.sends = []
+            self.sendAirwires: dict = {}
+
             gstwrapper.Pipeline.__init__(self, name)
+
             start_dummy_source_if_needed()
             self.board: MixingBoard = board
             self.levelTag = tagpoints.Tag(f"/jackmixer/channels/{name}.level")
@@ -391,13 +399,6 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
                 self.add_element("opusdec")
                 self.add_element("audioconvert")
                 self.add_element("audioresample")
-
-            self.input = input
-            self._input = None
-            self.outputs = outputs
-            self._outputs = []
-            self.sends = []
-            self.sendAirwires: dict = {}
 
             self.faderTag = tagpoints.Tag(f"/jackmixer/channels/{name}.fader")
             self.faderTag.subscribe(self._faderTagHandler)

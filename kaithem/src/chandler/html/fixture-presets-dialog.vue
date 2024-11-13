@@ -4,17 +4,18 @@
     <div popover id="presetForFixture" v-if="fixture" class="card paper flex-col"
         style="background: var(--alt-control-bg); position: fixed; width:90vw; height: 90vh; top:5vh; left:5vw; z-index: 100">
         <header>Presets for {{ fixture }}</header>
-        <button @click="fixture = null" class="w-full nogrow" popovertarget="presetForFixture"
-            popoveraction="hide">
+        <button class="w-full nogrow" popovertarget="presetForFixture"
+            popovertargetaction="hide">
             <i class="mdi mdi-close"></i>Close
         </button>
         <div class="flex-row nogrow max-h-12rem scroll" style="align-items:flex-start;align-content:flex-start">
             <template v-for="ps of recentPresets.toReversed()">
                 <button
                     v-if="!ps.includes('@') || ps.endsWith(fixture) || ps.endsWith('@' +fixturetype)"
-                    @click="setFixturePreset(currentcueid, fixture, ps); fixture = null"
-                    :disabled="no_edit" class="preset-button">
-
+                    @click="setFixturePreset(currentcueid, fixture, ps);"
+                    :disabled="no_edit" class="preset-button"
+                    popovertarget="presetForFixture"
+                    popovertargetaction="hide"></button>
                     <img v-if="getpresetimage(ps)"
                         :src="'../WebMediaServer?file=' + encodeURIComponent(getpresetimage(ps))">
                     <div>{{ ps.split('@')[0] }}</div>
@@ -33,8 +34,11 @@
             style="background: var(--alt-control-bg); align-items:flex-start;align-content:flex-start">
             <button
                 v-for="ps of dictView(presets, [], function (k, v) { if ((((!k.includes('@')) || k.endsWith(fixture) || k.endsWith('@' +fixturetype))) && k.includes(presetFilter)) { return 1 } })"
-                @click="setFixturePreset(currentcueid, fixture, ps[0]); fixture = null"
-                :disabled="no_edit" class="preset-button">
+                @click="setFixturePreset(currentcueid, fixture, ps[0]);"
+                :disabled="no_edit" class="preset-button"
+                popovertarget="presetForFixture"
+                popovertargetaction="hide"
+                >
                 <img v-if="getpresetimage(ps[0])"
                     :src="'../WebMediaServer?file=' + encodeURIComponent(getpresetimage(ps[0]))">
 
@@ -47,7 +51,8 @@
 </template>
 
 
-<script>
+<script type="module">
+import { dictView } from  "./utils.mjs?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61";
 var data =
 {
 
@@ -104,9 +109,9 @@ var data =
         //     }
         // }
 
-        for (i in this.currentvals) {
+        for (var i in this.currentvals) {
             if (selectedPreset.values[i] != undefined) {
-                api_link.send(['scv', sc, fix, i, selectedPreset.values[i]]);
+                window.api_link.send(['scv', sc, fix, i, selectedPreset.values[i]]);
             }
         }
     },
@@ -115,7 +120,7 @@ var data =
 module.exports = {
     template: '#template',
 
-    props: ['presets', 'fixture', 'fixturetype', 'currentcueid', 'currentvals', 'getpresetimage'],
+    props: ['presets', 'fixture', 'fixturetype', 'currentcueid', 'currentvals', 'getpresetimage', "no_edit"],
     data: function () {
         return (data)
     },

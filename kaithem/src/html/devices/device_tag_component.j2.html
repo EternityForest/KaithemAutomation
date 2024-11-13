@@ -54,7 +54,7 @@
 
             function deselectInactiveRegions() {
                 var x = document.getElementById("regions")
-                for (i of x.childNodes) {
+                for (var i of x.childNodes) {
                     i.style = ''
                 }
             }
@@ -68,7 +68,7 @@
             selectedButton = null;
 
             try {
-                for (i of rdata) {
+                for (var i of rdata) {
                     if (i == '') {
                         continue;
                     }
@@ -88,7 +88,7 @@
                 var x = document.getElementById("regions")
                 x.innerHTML = '';
 
-                for (i in videoSelectedRegions) {
+                for (var i in videoSelectedRegions) {
                     if (i == '') {
                         continue;
                     }
@@ -203,7 +203,7 @@
                 var x = document.getElementById("property_device.regions")
                 if (x) {
                     x.value = ''
-                    for (i in videoSelectedRegions) {
+                    for (var i in videoSelectedRegions) {
                         if (i) {
                             var v = videoSelectedRegions[i]
                             x.value += i + '=' + v['x'] + ',' + v['y'] + ',' + v['width'] + ',' + v['height'] + ';'
@@ -230,14 +230,14 @@
         <script>
             if (!mpegts.isSupported()) {
                 alert("MPEG TS Not supported here")
-                kaithemapi.sendErrorMessage("MPEG TS Not supported here")
+                globalThis.kaithemapi.sendErrorMessage("MPEG TS Not supported here")
             }
 
             video = document.querySelector('video');
             var player = mpegts.createPlayer({
                 type: 'mpegts',  // could also be mpegts, m2ts, flv
                 isLive: true,
-                url: kaithemapi.wsPrefix() + "/widgets/wsraw?widgetid={{ obj.tagPoints[i].data_source_widget.uuid| urlencode }}",
+                url: globalThis.kaithemapi.wsPrefix() + "/widgets/wsraw?widgetid={{ obj.tagPoints[i].data_source_widget.uuid| urlencode }}",
                 liveBufferLatencyChasing: true,
                 liveBufferLatencyMaxLatency: 2,
                 liveBufferLatencyMinRemain: 1,
@@ -277,72 +277,72 @@
         <div class="tool-bar">
             {% if (not hasattr(obj.tagPoints[i],"writable")) or obj.tagPoints[i].writable %}
             {% if obj.tagPoints[i].subtype == 'bool' or obj.tagPoints[i].subtype == 'boolean' %}
-            <button type="button" onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', 0])">Off</button>
-            <button type="button" onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', 1])">On</button>
+            <button type="button" onclick="window._generic_ws_channel.send(['set', '{{ i| escape }}', 0])">Off</button>
+            <button type="button" onclick="window._generic_ws_channel.send(['set', '{{ i| escape }}', 1])">On</button>
             {% elif obj.tagPoints[i].subtype == 'tristate' %}
-            <button type="button" onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', 0])">Off</button>
-            <button type="button" onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', 1])">On</button>
-            <button type="button" onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', -1])">Unset</button>
+            <button type="button" onclick="window._generic_ws_channel.send(['set', '{{ i| escape }}', 0])">Off</button>
+            <button type="button" onclick="window._generic_ws_channel.send(['set', '{{ i| escape }}', 1])">On</button>
+            <button type="button" onclick="window._generic_ws_channel.send(['set', '{{ i| escape }}', -1])">Unset</button>
             {% elif obj.tagPoints[i].subtype == 'trigger' %}
             <button type="button"
-                onclick="triggerCounters['{{ i| escape }}'] = (triggerCounters['{{ i| escape }}']||0)+1; _generic_ws_channel.send(['set', '{{ i| escape }}', triggerCounters['{{ i| escape }}']])">Trigger</button>
+                onclick="triggerCounters['{{ i| escape }}'] = (triggerCounters['{{ i| escape }}']||0)+1; window._generic_ws_channel.send(['set', '{{ i| escape }}', triggerCounters['{{ i| escape }}']])">Trigger</button>
             {% elif obj.tagPoints[i].subtype == 'color' %}
             <button type="button"
-                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', prompt('New value?')])">Set
+                onclick="window._generic_ws_channel.send(['set', '{{ i| escape }}', prompt('New value?')])">Set
                 Hex</button>
             <button type="button" style="background-color: black;  color: lightblue;"
-                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#000000'])">Blk</button>
+                onclick="window._generic_ws_channel.send(['set', '{{ i| escape }}', '#000000'])">Blk</button>
             <button style="background-color: #FF0000;" type="button"
-                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#FF0000'])">Red</button>
+                onclick="window._generic_ws_channel.send(['set', '{{ i| escape }}', '#FF0000'])">Red</button>
             <button style="background-color: #FFDD00;" type="button"
-                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#FFDD00'])">Yel</button>
+                onclick="window._generic_ws_channel.send(['set', '{{ i| escape }}', '#FFDD00'])">Yel</button>
             <button style="background-color: #00FF00;" type="button"
-                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#00FF00'])">Grn</button>
+                onclick="window._generic_ws_channel.send(['set', '{{ i| escape }}', '#00FF00'])">Grn</button>
             <button style="background-color: #0000FF;" type="button"
-                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#0000FF'])">Blu</button>
+                onclick="window._generic_ws_channel.send(['set', '{{ i| escape }}', '#0000FF'])">Blu</button>
             <button style="background-color: #8F17E5;" type="button"
-                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#8F17E5'])">Prp</button>
+                onclick="window._generic_ws_channel.send(['set', '{{ i| escape }}', '#8F17E5'])">Prp</button>
             <button type="button" style="background-color: white;  color: darkgray;"
-                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#FFFFFF'])">Wht</button>
+                onclick="window._generic_ws_channel.send(['set', '{{ i| escape }}', '#FFFFFF'])">Wht</button>
             {% else %}
             <button type="button"
-                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', prompt('New value?')])">Set
+                onclick="window._generic_ws_channel.send(['set', '{{ i| escape }}', prompt('New value?')])">Set
                 val</button>
             {% if obj.tagPoints[i].max==1 and obj.tagPoints[i].min==0 %}
-            <button type="button" onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', 0])">Set 0</button>
-            <button type="button" onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', 1])">Set 1</button>
+            <button type="button" onclick="window._generic_ws_channel.send(['set', '{{ i| escape }}', 0])">Set 0</button>
+            <button type="button" onclick="window._generic_ws_channel.send(['set', '{{ i| escape }}', 1])">Set 1</button>
             {% endif %}
             {% endif %}
             {% else %}
             {% if  obj.tagPoints[i].type=='number' %}
-            <button type="button" onclick="setFake('{{ i| escape }}', null)"
+            <button type="button" onclick="window.setFake('{{ i| escape }}', null)"
                 title="Disable faking and use real value">Stop
                 fake</button>
 
             {% if obj.tagPoints[i].subtype == 'bool' or obj.tagPoints[i].subtype == 'boolean' %}
-            <button type="button" onclick="setFake('{{ i| escape }}', 0)" title="Fake input being zero">Fake
+            <button type="button" onclick="window.setFake('{{ i| escape }}', 0)" title="Fake input being zero">Fake
                 Off</button>
-            <button type="button" onclick="setFake('{{ i| escape }}', 1)" title="Fake input being one">Fake On</button>
-            <button type="button" onmousedown="setFake('{{ i| escape }}', 1)"
-                onmouseup="setFake('{{ i| escape }}', null)" title="Fake 1 while held">Fake Press</button>
+            <button type="button" onclick="window.setFake('{{ i| escape }}', 1)" title="Fake input being one">Fake On</button>
+            <button type="button" onmousedown="window.setFake('{{ i| escape }}', 1)"
+                onmouseup="window.setFake('{{ i| escape }}', null)" title="Fake 1 while held">Fake Press</button>
             {% else %}
-            <button type="button" onclick="setFake('{{ i| escape }}', prompt('New value?'))">Set fake val</button>
+            <button type="button" onclick="window.setFake('{{ i| escape }}', prompt('New value?'))">Set fake val</button>
             {% if obj.tagPoints[i].max==1 and obj.tagPoints[i].min==0 %}
-            <button type="button" onclick="setFake('{{ i| escape }}', 0)" title="Fake input being zero">Fake
+            <button type="button" onclick="window.setFake('{{ i| escape }}', 0)" title="Fake input being zero">Fake
                 Off</button>
-            <button type="button" onclick="setFake('{{ i| escape }}', 1)" title="Fake input being one">Fake On</button>
+            <button type="button" onclick="window.setFake('{{ i| escape }}', 1)" title="Fake input being one">Fake On</button>
             {% endif %}
             {% endif %}
 
             {% if obj.tagPoints[i].subtype == 'tristate' %}
-            <button type="button" onclick="setFake('{{ i| escape }}', -1)" title="Fake input being tristate/-1">Fake
+            <button type="button" onclick="window.setFake('{{ i| escape }}', -1)" title="Fake input being tristate/-1">Fake
                 Unset</button>
             {% endif %}
             {% endif %}
             {% endif %}
 
             {% if devices.callable(obj.tagPoints[i].active_claim.value) %}
-            <button type="button" onclick="_generic_ws_channel.send(['refresh', '{{ i| escape }}'])">Refresh</button>
+            <button type="button" onclick="window._generic_ws_channel.send(['refresh', '{{ i| escape }}'])">Refresh</button>
             {% else %}
             {% endif %}
         </div>
@@ -351,39 +351,39 @@
         {% if obj.tagPoints[i].subtype == 'color' %}
         <div class="tool-bar">
             <button type="button" style="background-color: #fafafa;"
-                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#fafafa'])">Argent</button>
+                onclick="window._generic_ws_channel.send(['set', '{{ i| escape }}', '#fafafa'])">Argent</button>
             <button type="button" style="background-color: #ffe066;"
-                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#ffe066'])">Or</button>
+                onclick="window._generic_ws_channel.send(['set', '{{ i| escape }}', '#ffe066'])">Or</button>
             <button type="button" style="background-color: #f0dc82;"
-                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#f0dc82'])">Buff</button>
+                onclick="window._generic_ws_channel.send(['set', '{{ i| escape }}', '#f0dc82'])">Buff</button>
             <button type="button" style="background-color: #7c1c05;  color: lightblue;"
-                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}' , '#7c1c05' ])">Copper</button>
+                onclick="window._generic_ws_channel.send(['set', '{{ i| escape }}' , '#7c1c05' ])">Copper</button>
         </div>
         <div class="tool-bar">
             <button type="button" style="background-color: #d7374a;"
-                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#d7374a'])">Gules</button>
+                onclick="window._generic_ws_channel.send(['set', '{{ i| escape }}', '#d7374a'])">Gules</button>
             <button type="button" style="background-color: #333333; color: lightblue;"
-                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#333333'])">Sable</button>
+                onclick="window._generic_ws_channel.send(['set', '{{ i| escape }}', '#333333'])">Sable</button>
             <button type="button" style="background-color: #377cd7;"
-                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#377cd7'])">Azure</button>
+                onclick="window._generic_ws_channel.send(['set', '{{ i| escape }}', '#377cd7'])">Azure</button>
             <button type="button" style="background-color: #26c061;"
-                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#26c061'])">Vert</button>
+                onclick="window._generic_ws_channel.send(['set', '{{ i| escape }}', '#26c061'])">Vert</button>
             <button type="button" style="background-color: #854296;  color: lightblue;"
-                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#854296'])">Purpure</button>
+                onclick="window._generic_ws_channel.send(['set', '{{ i| escape }}', '#854296'])">Purpure</button>
         </div>
         <div class="tool-bar">
             <button type="button" style="background-color: #85185b;  color: lightblue;"
-                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#85185b'])">Murrey</button>
+                onclick="window._generic_ws_channel.send(['set', '{{ i| escape }}', '#85185b'])">Murrey</button>
             <button type="button" style="background-color: #b63a3a;"
-                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#b63a3a'])">Sanguine</button>
+                onclick="window._generic_ws_channel.send(['set', '{{ i| escape }}', '#b63a3a'])">Sanguine</button>
             <button type="button" style="background-color: #cc7f19;"
-                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#cc7f19'])">Tenné</button>
+                onclick="window._generic_ws_channel.send(['set', '{{ i| escape }}', '#cc7f19'])">Tenné</button>
             <button type="button" style="background-color: #F27900;  color: lightblue;"
-                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#F27900'])">Orange</button>
+                onclick="window._generic_ws_channel.send(['set', '{{ i| escape }}', '#F27900'])">Orange</button>
             <button type="button" style="background-color: #FEC3AC;"
-                onclick="_generic_ws_channel.send(['set', '{{ i| escape }}', '#FEC3AC'])">Carnation</button>
+                onclick="window._generic_ws_channel.send(['set', '{{ i| escape }}', '#FEC3AC'])">Carnation</button>
             <button type="button" style="background-color: #797673; color: lightblue;"" onclick="
-                _generic_ws_channel.send(['set', '{{ i| escape }}' , '#797673' ])">Cendrée</button>
+                window._generic_ws_channel.send(['set', '{{ i| escape }}' , '#797673' ])">Cendrée</button>
         </div>
         {% endif %}
 

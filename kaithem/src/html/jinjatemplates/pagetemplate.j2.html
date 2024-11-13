@@ -21,11 +21,13 @@
   <link rel="stylesheet" type="text/css" href="/static/css/barrel.css?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61">
   <link rel="stylesheet" type="text/css" href="/static/css/kaithem.css?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61">
   <link rel="stylesheet" type="text/css" href="{{_k_usr_page_theme or theming.getCSSTheme() or config['theme-url']}}">
-  <script src="/static/js/widget.js?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61"></script>
+  <script type="module" src="/static/js/widget.js?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61"></script>
 
-  {{notifications.toolbarapi.render("wsapi")}}
 
-  <script type="text/javascript">
+
+  <script type="module">
+    import { api as wsapi} from '/apiwidget/esm/{{notifications.toolbarapi.uuid}}'
+
     var totalNotifications = 0;
 
     function getCookie(c_name) {
@@ -48,11 +50,8 @@
       return c_value;
     }
 
-
-    if (!getCookie("LastSawMainPage")) {
-      y = 0
-    }
-    else {
+    var y = 0
+    if (getCookie("LastSawMainPage")) {
       y = getCookie("LastSawMainPage");
     }
 

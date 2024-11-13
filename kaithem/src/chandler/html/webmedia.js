@@ -25,7 +25,7 @@ class makePlayer {
         this.group = group
         this.presets = {}
         this.isSound = function (fn) {
-            for (i of atypes) {
+            for (var i of atypes) {
                 if (fn.indexOf(i) > -1) {
                     return true;
                 }
@@ -35,7 +35,7 @@ class makePlayer {
         };
 
         this.isStillImage = function (fn) {
-            for (i of itypes) {
+            for (var i of itypes) {
                 if (fn.indexOf(i) > -1) {
                     return true;
                 }

@@ -45,7 +45,7 @@ module.exports = {
             var z = {}
             var filt = true
             //list cue objects
-            for (i in this.groupcues[this.groupname]) {
+            for (var i in this.groupcues[this.groupname]) {
                 var m = this.cuemeta[this.groupcues[this.groupname]
                 [i]]
                 if (m !== undefined) {
@@ -113,7 +113,7 @@ module.exports = {
 
                 var d = a[1]
                 var d2 = b[1]
-                for (i of l) {
+                for (var i of l) {
                     var key = i[1]
                     var rev = i[0]
                     if (!(d[key] == d2[key])) {

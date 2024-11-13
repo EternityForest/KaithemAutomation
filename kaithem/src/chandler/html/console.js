@@ -1,4 +1,8 @@
 
+import { kaithemapi } from "/static/js/widget.js"
+
+import {appData, appMethods, appComputed,initChandlerVueModel} from "./boardapi.mjs?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61";
+
 appMethods.showPresetDialog = function (fixture) {
     vueapp.$data.selectingPresetFor = fixture
 }
@@ -44,7 +48,6 @@ document.title = appData.boardname
 
 appData.keyboardJS = keyboardJS
 
-appData.no_edit = !kaithemapi.checkPermission("system_admin");
 
 const options = {
     moduleCache: {
@@ -73,6 +76,7 @@ const { loadModule } = window['vue3-sfc-loader'];
 function httpVueLoader(u) {
     return Vue.defineAsyncComponent(() => loadModule(u, options))
 }
+window.httpVueLoader = httpVueLoader
 
 var vueapp = Vue.createApp(
     {
@@ -81,61 +85,22 @@ var vueapp = Vue.createApp(
         },
         methods: appMethods,
         components: {
-            "combo-box": httpVueLoader('/static/vue/ComboBox.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
-            "h-fader": httpVueLoader('../static/hfader.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
-            'cue-countdown': httpVueLoader('../static/cue-countdown.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
-            'cue-table': httpVueLoader('../static/cuetable.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
+            "combo-box": window.httpVueLoader('/static/vue/ComboBox.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
+            "h-fader": window.httpVueLoader('../static/hfader.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
+            'cue-countdown': window.httpVueLoader('../static/cue-countdown.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
+            'cue-table': window.httpVueLoader('../static/cuetable.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
 
-            // Currently contains the timers and the display tags for the groups overview
-            'group-ui': httpVueLoader('../static/group-ui-controls.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
-            'smooth-range': httpVueLoader('/static/vue/smoothrange.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
-            'media-browser': httpVueLoader('../static/media-browser.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
-            'slideshow-telemetry': httpVueLoader('../static/signagetelemetry.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
-            'fixture-presets-dialog': httpVueLoader('../static/fixture-presets-dialog.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
-            'cue-logic-dialog': httpVueLoader('../static/cue-logic-dialog.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
+            // // Currently contains the timers and the display tags for the groups overview
+            'group-ui': window.httpVueLoader('../static/group-ui-controls.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
+            'smooth-range': window.httpVueLoader('/static/vue/smoothrange.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
+            'media-browser': window.httpVueLoader('../static/media-browser.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
+            'slideshow-telemetry': window.httpVueLoader('../static/signagetelemetry.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
+            'fixture-presets-dialog': window.httpVueLoader('../static/fixture-presets-dialog.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
+            'cue-logic-dialog': window.httpVueLoader('../static/cue-logic-dialog.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
         },
         computed: appComputed
     }).mount("#app")
 
-var script = document.createElement('script');
-script.onload = function () {
-    const boardname = window.location.pathname.split('/')[3];
-    init_api_link(boardname)
-};
-
-script.src = "/apiwidget/WebChandlerConsole:" + appData.boardname + "?js_name=api_link";
-
-document.head.appendChild(script);
-
-
-keysdown = {}
-keyHandle = function (e) {
-    if (keysdown[e.key] != undefined) {
-        if (keysdown[e.key]) {
-            return;
-        }
-
-    }
-    keysdown[e.key] = true;
-    e.preventRepeat();
-    api_link.send(['event', "keydown." + e.key, 1, 'int', "__global__"])
-}
-keyUpHandle = function (e) {
-    if (keysdown[e.key] != undefined) {
-        if (!keysdown[e.key]) {
-            return;
-        }
-
-    }
-    keysdown[e.key] = false;
-    api_link.send(['event', "keyup." + e.key, 1, 'int', "__global__"])
-}
-rebind = function (data) {
-    keyboardJS.reset()
-    keyboardJS.bind(keyHandle)
-    keyboardJS.bind(null, keyUpHandle)
-
-}
 
 // Blur the active element to cause Onchange events
 window.visibilitychange = function () {
@@ -158,9 +123,14 @@ function handleDialogState(e) {
     }
 }
 
+globalThis.handleDialogState = handleDialogState
+
 window.addEventListener('popstate', function (e) {
     if (prev?.el && document.getElementById(prev?.el).hidePopover) {
         document.getElementById(prev?.el).hidePopover()
     }
     prev = history.state
 });
+
+const boardname = window.location.pathname.split('/')[3];
+initChandlerVueModel(boardname,vueapp)

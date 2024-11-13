@@ -424,7 +424,7 @@ Subclassing is a bad plan but you may want them for type hinting.
 
 Create a websocket connection to the URL of this form:
 
-`kaithemapi.wsPrefix()+"/widgets/wsraw?widgetid={obj.tagPoints[i].data_source_widget.uuid}",`
+`globalThis.kaithemapi.wsPrefix()+"/widgets/wsraw?widgetid={obj.tagPoints[i].data_source_widget.uuid}",`
 
 And if you have read permissions, you will get tag data updates as raw data.
 Added to support video playback with mpegts.js

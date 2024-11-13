@@ -56,11 +56,11 @@ p.small {
     <div class="w-full">
         <div class="flex-row gaps">
 
-            <div class="card paper margin" popover id="blockInspectorEvent" ontoggle="handleDialogState(event)" v-if="selectedCommand == 0 && selectedBinding" class="col-3 card min-h-24rem w-sm-full">
+            <div class="card paper margin" popover id="blockInspectorEvent" ontoggle="globalThis.handleDialogState(event)" v-if="selectedCommand == 0 && selectedBinding" class="col-3 card min-h-24rem w-sm-full">
                 <header>
                     <div class="tool-bar">
                         <h4>Event Inspector</h4>
-                        <button class="nogrow" type="button" popovertarget="blockInspectorEvent" popoveraction="hide">
+                        <button class="nogrow" type="button" popovertarget="blockInspectorEvent" popovertargetaction="hide">
                             <i class="mdi mdi-close"></i>Close
                         </button>
                     </div>
@@ -82,11 +82,11 @@ p.small {
                     actions</button>
             </div>
 
-            <div class="card paper margin" popover ontoggle="handleDialogState(event)" id="blockInspectorCommand" v-if="selectedCommand" class="card col-3 min-h-24rem w-sm-full">
+            <div class="card paper margin" popover ontoggle="globalThis.handleDialogState(event)" id="blockInspectorCommand" v-if="selectedCommand" class="card col-3 min-h-24rem w-sm-full">
                 <header>
                     <div class="tool-bar">
                         <h4>Command Inspector</h4>
-                        <button class="nogrow" type="button" popovertarget="blockInspectorCommand" popoveraction="hide">
+                        <button class="nogrow" type="button" popovertarget="blockInspectorCommand" popovertargetaction="hide">
                             <i class="mdi mdi-close"></i>Close
                         </button>
                     </div>
@@ -193,7 +193,7 @@ module.exports = {
 
     props: ['modelValue', 'commands', 'disabled', "inspector", "completers", "example_events"],
     components: {
-        "combo-box": httpVueLoader("/static/vue/ComboBox.vue"),
+        "combo-box": window.httpVueLoader("/static/vue/ComboBox.vue"),
     },
     watch: {
         modelValue: function (newVal) {
@@ -207,7 +207,7 @@ module.exports = {
     computed: {
         "groupNames": function () {
             var l = [];
-            for (i in this.groups) {
+            for (var i in this.groups) {
                 l.push([i, ''])
             }
             return l;
@@ -283,7 +283,7 @@ module.exports = {
             argcompleters: (this.completers || {}),
             getPossibleActions: function () {
                 var l = [];
-                for (i in this.commands) {
+                for (var i in this.commands) {
                     if (this.commands[i] == null) {
                         console.log("Warning: Null entry for command info for" + i)
                     } else {
@@ -298,7 +298,7 @@ module.exports = {
 
             getSpecialActions: function () {
                 var l = [];
-                for (i in this.specialCommands) {
+                for (var i in this.specialCommands) {
                     //Prefer the special version
                     l.push([i, this.specialCommands[i].description])
                 }
@@ -364,7 +364,7 @@ module.exports = {
                 }
 
                 //Push the default values for the command
-                for (i of d) {
+                for (var i of d) {
                     l.push(i[1] || '')
                 }
                 return l;

@@ -30,10 +30,10 @@ def widget_docstring():
     {% block title %} {basename} {% endblock %}
 
     {% block body %}
-    {{t.render("api")}}
 
-    <script>
-        api.upd = (val) => console.log(val)
+    <script type="module">
+        import { api } from '/apiwidget/esm/${api.uuid}'
+        api.upd = (val) => alert(val)
         api.send("MyValue")
     </script>
 

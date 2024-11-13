@@ -8,7 +8,7 @@ class TagDataSource extends picodash.DataSource {
             this.pushData(data)
         }
         this.sub = upd.bind(this)
-        kaithemapi.subscribe(this.name, this.sub)
+        globalThis.kaithemapi.subscribe(this.name, this.sub)
 
         var xmlhttp = new XMLHttpRequest();
         var url = "/tag_api/info" + this.name.split(":")[1];
@@ -46,10 +46,10 @@ class TagDataSource extends picodash.DataSource {
         if (d != this.data) {
             this.data = d
             if (this.config.subtype == 'trigger') {
-                kaithemapi.sendTrigger(this.name, d)
+                globalThis.kaithemapi.sendTrigger(this.name, d)
             }
             else {
-                kaithemapi.sendValue(this.name, d)
+                globalThis.kaithemapi.sendValue(this.name, d)
             }
         }
         super.pushData(d)
@@ -59,7 +59,7 @@ class TagDataSource extends picodash.DataSource {
         return this.data
     }
     async close() {
-        kaithemapi.unsubscribe(this.name, this.sub)
+        globalThis.kaithemapi.unsubscribe(this.name, this.sub)
     }
 }
 

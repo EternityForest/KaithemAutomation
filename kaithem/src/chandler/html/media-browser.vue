@@ -91,7 +91,7 @@ var filebrowserdata = {
 
 
     'doSoundSearch': function (s) {
-        api_link.send(["searchsounds", s])
+        window.api_link.send(["searchsounds", s])
     },
     'setSoundfileDir': function (i) {
 
@@ -105,7 +105,7 @@ var filebrowserdata = {
             [],
             []
         ]
-        api_link.send(['listsoundfolder', i])
+        window.api_link.send(['listsoundfolder', i])
     },
 }
 

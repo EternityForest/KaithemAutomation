@@ -3,7 +3,7 @@
 
  It's slowly being refactored after getting very out of hand.
 
- It expects an APIWidget rendered with the name api_link
+It provides window.api_link
 
  It provides appData, appComputed, and appMethods to add to your vue instance.
 
@@ -18,6 +18,41 @@
 
 
 */
+
+import { useBlankDescriptions, formatInterval, dictView }  from "./utils.mjs?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61";
+import { kaithemapi } from "/static/js/widget.js"
+
+let keysdown = {}
+//Gets replaced with the vue app once we make it elsewhere and connect stuff
+let vueapp = null;
+
+let keyHandle = function (e) {
+    if (keysdown[e.key] != undefined) {
+        if (keysdown[e.key]) {
+            return;
+        }
+
+    }
+    keysdown[e.key] = true;
+    e.preventRepeat();
+    api_link.send(['event', "keydown." + e.key, 1, 'int', "__global__"])
+}
+let keyUpHandle = function (e) {
+    if (keysdown[e.key] != undefined) {
+        if (!keysdown[e.key]) {
+            return;
+        }
+
+    }
+    keysdown[e.key] = false;
+    api_link.send(['event', "keyup." + e.key, 1, 'int', "__global__"])
+}
+let rebindKeys = function (data) {
+    keyboardJS.reset()
+    keyboardJS.bind(keyHandle)
+    keyboardJS.bind(null, keyUpHandle)
+
+}
 
 function playAlert(m) {
     if (vueapp.$data.uiAlertSounds) {
@@ -65,109 +100,13 @@ function set(o, k, v) {
     return true;
 }
 
-function useBlankDescriptions(l, additional) {
-    var l2 = [];
-    for (i in l) {
-        l2.push([i, '']);
-    }
-    if (additional) {
-        for (i in additional) {
-            l2.push([i, additional[i]]);
-
-        }
-    }
-    return l2;
-}
 
 
 
-formatInterval = function (seconds) {
-    var hours = Math.floor(seconds / 3600);
-    var minutes = Math.floor((seconds - (hours * 3600)) /
-        60);
-    var seconds = seconds - (hours * 3600) - (minutes * 60);
-    var tenths = Math.floor((seconds - Math.floor(seconds)) *
-        10);
-    seconds = Math.floor(seconds);
 
-    var time = "";
+let cueSetData = {}
 
-    time = ("" + hours).padStart(2, '0') + ":" + ("" + minutes).padStart(2, '0') + ":" + ("" + seconds).padStart(2, '0')
-    return time;
-}
-
-dictView = function (dict, sorts, filterf, page) {
-    //Given a dict  and a list of sort keys sorts,
-    //return a list of [key,value] pairs sorted by the sort
-    //keys. Earlier sort keys take precendence.
-
-    // the lowest precedence sort key is the actual dict key.
-
-    //Keys starting with ! are interpreted as meanng to sort in descending order
-
-    var o = []
-
-    const usePages = page !== undefined
-    page = page || 0
-    var toSkip = page * 50
-
-    Object.keys(dict).forEach(
-        function (key, index) {
-            if (filterf == undefined || filterf(key, dict[key])) {
-                toSkip -= 1
-
-                if (toSkip > 0) {
-                    return
-                }
-                else {
-                    // overlap between pages
-                    if (toSkip < -60) {
-                        if (usePages) {
-                            return
-                        }
-                    }
-                    o.push([key, dict[key]])
-                }
-            }
-        })
-
-    var l = []
-    for (var i of sorts) {
-        //Convert to (reverse, string) tuple where reverse is -1 if str started with an exclamation point
-        //Get rid of the fist char if so
-        l.push([
-            i[0] == '!' ? -1 : 1,
-            i[0] == "!" ? i.slice(1) : i
-        ])
-    }
-
-    o.sort(function (a, b) {
-        //For each of the possible soft keys, check if they
-        //are different. If so, compare and possible reverse the ouptut
-
-        var d = a[1]
-        var d2 = b[1]
-        for (i of l) {
-            var key = i[1]
-            var rev = i[0]
-            if (!(d[key] == d2[key])) {
-                return (d[key] > d2[key] ? 1 : -1) * rev
-            }
-
-        }
-        // Fallback sort is the keys themselves
-        if (a[0] != b[0]) {
-            return (a[0] > b[0]) ? 1 : -1
-        }
-        return 0
-    });
-    return (o)
-}
-
-
-cueSetData = {}
-
-appMethods = {
+let appMethods = {
 
     "initializeState": async function (board) {
 
@@ -177,10 +116,9 @@ appMethods = {
 
         v = await v.json()
 
-        for (i in v) {
+        for (var i in v) {
             handleCueInfo(i, v[i])
         }
-
     },
 
     'mediaLinkCommand': function (sc, linkid, data) {
@@ -709,7 +647,7 @@ appMethods = {
         this.keybindmode = "edit";
     },
     'runMode': function () {
-        rebind();
+        rebindKeys();
         this.keybindmode = "run";
     },
     'refreshPorts': function () {
@@ -750,7 +688,7 @@ appMethods = {
     }
 }
 
-appComputed = {
+let appComputed = {
     "currentcue": function () {
         if(this.selectedCues[this.groupname]==undefined){
             return null
@@ -770,11 +708,11 @@ appComputed = {
     },
 
     'formatCues': function () {
-        z = {}
+        var z = {}
         var filt = true
         //list cue objects
-        for (i in this.groupcues[this.groupname]) {
-            m = this.cuemeta[this.groupcues[this.groupname]
+        for (var i in this.groupcues[this.groupname]) {
+            var m = this.cuemeta[this.groupcues[this.groupname]
             [i]]
             if (m !== undefined) {
                 if ((!filt) | i.includes(this.cuefilter)) {
@@ -822,9 +760,7 @@ appComputed = {
 
 }
 
-
-//# sourceURL=appcode.js
-appData = {
+let appData = {
     //https://stackoverflow.com/questions/6312993/javascript-seconds-to-time-string-with-format-hhmmss
     'boardname': window.location.pathname.split('/')[3],
     'formatInterval': formatInterval,
@@ -851,6 +787,7 @@ appData = {
     'cuePage': {},
     'nuisianceRateLimit': [10, Date.now()],
 
+    'no_edit' : !kaithemapi.checkPermission("system_admin"),
 
     'evlog': [
     ],
@@ -898,9 +835,9 @@ appData = {
         //Return a simplified version of the data in cuevals
         //Meant for direct display
         op = {}
-        for (i in c) {
+        for (var i in c) {
             op[i] = {}
-            for (j in c[i]) {
+            for (var j in c[i]) {
                 op[i][j] = c[i][j].v
             }
         }
@@ -921,7 +858,7 @@ appData = {
     },
 
     'lookupFixtureType': function (f) {
-        for (i in this.fixtureAssignments) {
+        for (var i in this.fixtureAssignments) {
             if (("@" + this.fixtureAssignments[i].name) == f) {
                 return this.fixtureAssignments[i].type;
             }
@@ -929,20 +866,7 @@ appData = {
         return '';
     },
 
-    'addFixtureAssignment': function (name, t, univ, addr) {
-        if (!name) {
-            return;
-        }
-        var d = {
-            'name': name,
-            'type': t,
-            'universe': univ,
-            'addr': addr
-        }
 
-        api_link.send(['setFixtureAssignment', name, d])
-
-    },
     'getfixtureassg': function () {
         api_link.send(['getfixtureassg'])
     },
@@ -995,7 +919,7 @@ appData = {
 
 
     'fuzzyIncludes'(s, search) {
-        for (i of search.toLowerCase().split(" ")) {
+        for (var i of search.toLowerCase().split(" ")) {
             if (!s.toLowerCase().includes(i)) {
                 return 0;
             }
@@ -1083,7 +1007,7 @@ appData = {
         var v2 = {}
 
         // Just the vals
-        for (i in v) {
+        for (var i in v) {
             v2[i] = v[i].v
         }
 
@@ -1164,7 +1088,7 @@ function handleCueInfo(id, cue) {
 
 
 function f(v) {
-    c = v[0]
+    let c = v[0]
 
 
     if (c == 'soundfolders') {
@@ -1300,7 +1224,7 @@ function f(v) {
         //Groupcues only gives us cue number and id info.
         //So if the data isn't in cuemeta, fill in what we can
         d = v[2]
-        for (i in v[2]) {
+        for (var i in v[2]) {
             if (vueapp.$data.cuemeta[d[i][0]] == undefined) {
                 old_vue_set(vueapp.$data.cuemeta, d[i][0],
                     {
@@ -1321,18 +1245,18 @@ function f(v) {
         vueapp.$data.recomputeformattedCues();
     }
     else if (c == "cuedata") {
-        d = {}
+        let d = {}
         old_vue_set(vueapp.$data.cuevals, v[1], d)
 
-        for (i in v[2]) {
+        for (var i in v[2]) {
 
             if (!(i in vueapp.$data.channelInfoByUniverseAndNumber)) {
                 api_link.send(['getcnames', i])
             }
             old_vue_set(vueapp.$data.cuevals[v[1]], i, {})
 
-            for (j in v[2][i]) {
-                y = {
+            for (var j in v[2][i]) {
+                let y = {
                     "u": i,
                     'ch': j,
                     "v": v[2][i][j]
@@ -1350,12 +1274,12 @@ function f(v) {
     }
 
     else if (c == "scv") {
-        x = []
+        let x = []
 
-        cue = v[1]
-        universe = v[2]
-        channel = v[3]
-        value = v[4]
+        let cue = v[1]
+        let universe = v[2]
+        let channel = v[3]
+        let value = v[4]
 
 
 
@@ -1371,7 +1295,7 @@ function f(v) {
 
         if (v[4] !== null) {
 
-            y = {
+            let y = {
                 "u": universe,
                 'ch': channel,
                 "v": value
@@ -1484,9 +1408,8 @@ function f(v) {
     }
 }
 
-
-init_api_link = async function (board) {
-
+async function initChandlerVueModel(board,va) {
+    vueapp = va
     await vueapp.initializeState(board)
 
     api_link.upd = f
@@ -1517,13 +1440,13 @@ init_api_link = async function (board) {
     var update_meters = function () {
         var u = api_link.now() / 1000
 
-        for (i of document.querySelectorAll('[data-meter-ref]')) {
+        for (var i of document.querySelectorAll('[data-meter-ref]')) {
             i.value = u - parseFloat(i.dataset.meterRef)
         }
 
-        for (i of document.querySelectorAll('[data-count-ref]')) {
-            l = parseFloat(i.dataset.countLen) * (60 / parseFloat(i.dataset.countBpm))
-            e = parseFloat(i.dataset.countRef) + l
+        for (var i of document.querySelectorAll('[data-count-ref]')) {
+            let l = parseFloat(i.dataset.countLen) * (60 / parseFloat(i.dataset.countBpm))
+            let e = parseFloat(i.dataset.countRef) + l
 
             i.innerHTML = formatInterval(e - u)
         }
@@ -1567,7 +1490,25 @@ var goto = function (sc, cue) {
 var script = document.createElement('script');
 script.onload = function () {
     const boardname = window.location.pathname.split('/')[3];
-    init_api_link(boardname)
+    initChandlerVueModel(boardname)
 };
-script.src = "/apiwidget/WebChandlerConsole:" + appData.boardname + "?js_name=api_link";
-document.head.appendChild(script);
+
+
+let api_link_url = "/apiwidget/esm/WebChandlerConsole:" + appData.boardname
+let api_link = (await import(api_link_url)).api;
+window.api_link = api_link
+
+export {
+    api_link,
+    useBlankDescriptions,
+    initChandlerVueModel,
+    shortcut,
+    next,
+    goto,
+    formatInterval,
+    confirm_for_group,
+    dictView,
+    appComputed,
+    appMethods,
+    appData
+}

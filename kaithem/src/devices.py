@@ -976,7 +976,7 @@ class Device(iot_devices.device.Device):
     def on_ui_message(
         self, msg: float | int | str | bool | None | dict | list, **kw
     ):
-        """recieve a json message from the ui page.  the host is responsible for providing a send_ui_message(msg)
+        """recieve a json message from the ui page.  the host is responsible for providing a window.send_ui_message(msg)
         function to the manage and create forms, and a set_ui_message_callback(f) function.
 
         these messages are not directed at anyone in particular, have no semantics, and will be recieved by all

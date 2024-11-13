@@ -18,6 +18,17 @@ Change Log
 - :sparkles: At boot, logs changes in the environment like installed system packages.
 - :lipstick: Make cue notes more visible
 
+#### :boom: BREAKING
+
+Widget.js along with several other internals are now esm modules.
+Normal non-esm JS is deprecated or legacy pretty much everywhere.
+
+Use:
+```js
+import { kaithemapi } from "/static/js/widget.js"
+```
+if you need to access the widget API directly.
+
 ### 0.86.1
 
 - :bug: Minor UI stuff with displaying unsupported devices

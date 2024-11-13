@@ -30,9 +30,9 @@ theme-css-url: ''
 {% block title %}APIWidget Example{% endblock %}
 
 {% block body %}
-{{t.render("api")}}
 
-<script>
+<script type="module">
+    import { api } from '/apiwidget/esm/${api.uuid}'
     api.upd = (val) => alert(val)
     api.send("MyValue")
 </script>

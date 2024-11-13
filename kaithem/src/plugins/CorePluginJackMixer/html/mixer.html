@@ -28,10 +28,7 @@
   }
 </style>
 
-<script type="text/javascript" src="/static/js/widget.js?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61"></script>
-
-${board.api.render("api")}
-${global_api.render("gapi")}
+<script type="module" src="/static/js/widget.js?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61"></script>
 
 
 <div id="app" v-cloak>
@@ -417,7 +414,10 @@ ${global_api.render("gapi")}
 <script src="/static/js/thirdparty/vue3-sfc-loader.js"></script>
 
 
-<script>
+<script type="module">
+  import {api} from '/apiwidget/esm/${board.api.uuid}';
+  import {api as gapi} from '/apiwidget/esm/${global_api.uuid}';
+
   function compareParams(a, b) {
     if (a.sort > b.sort) return 1;
     if (b.sort < a.sort) return -1;
@@ -427,7 +427,7 @@ ${global_api.render("gapi")}
 
   function sortedParams(pl) {
     var l = [];
-    for (i in pl) {
+    for (var i in pl) {
       pl[i].name = i;
       l.push(pl[i]);
     }
@@ -466,12 +466,13 @@ ${global_api.render("gapi")}
   }
   const session_time = new Date().toISOString().slice(0, -8)
 
-  channels = {};
+  var channels = {};
 
 
   var app = Vue.createApp({
     data: function () {
       return {
+        api:api,
         message: 'Hello Vue!',
         fxSearch: '',
         ui_ready: false,
@@ -611,7 +612,7 @@ ${global_api.render("gapi")}
       },
       sortedParams: function (pl) {
         var l = [];
-        for (i in pl) {
+        for (var i in pl) {
           pl[i].name = i;
           l.push(pl[i]);
         }
@@ -624,7 +625,7 @@ ${global_api.render("gapi")}
         var clients = {};
         var x = Object.keys(pl);
         x.sort();
-        for (i in pl) {
+        for (var i in pl) {
           l.push(i);
           if (!(i.split(':')[0] in clients)) {
             l.push(i.split(":")[0])

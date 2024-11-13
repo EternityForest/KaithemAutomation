@@ -15,12 +15,13 @@ import quart,socket,base64
   <link rel="stylesheet" type="text/css" href="/static/css/barrel.css?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61">
   <link rel="stylesheet" type="text/css" href="/static/css/kaithem.css?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61">
   <link rel="stylesheet" type="text/css" href="${_k_usr_page_theme or theming.getCSSTheme() or config['theme-url']}">
-  <script src="/static/js/widget.js?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61"></script>
+  <script type="module" src="/static/js/widget.js?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61"></script>
 
-  ${notifications.toolbarapi.render("wsapi")}
 
-      <script type="text/javascript">
-        var totalNotifications=0;
+      <script type="module">
+        import { api as wsapi } from '/apiwidget/esm/${notifications.toolbarapi.uuid}'
+
+        var totalNotifications = 0;
 
         function getCookie(c_name) {
           var c_value = document.cookie;
@@ -43,21 +44,18 @@ import quart,socket,base64
         }
 
 
-        if (!getCookie("LastSawMainPage")) {
-          y = 0
-        }
-        else {
-          y = getCookie("LastSawMainPage");
-        }
+        var y = 0
+    if (getCookie("LastSawMainPage")) {
+      y = getCookie("LastSawMainPage");
+    }
 
 
         wsapi.upd = function (e) {
           try {
             var k = e;
 
-            if (k[0]=='newmsg')
-            {
-              totalNotifications+=1
+            if (k[0] == 'newmsg') {
+              totalNotifications += 1
               document.getElementById("notifications_toolbar_item").innerHTML = "(" + totalNotifications + ")";
             }
             else if (k[0] > 0) {
@@ -82,7 +80,7 @@ import quart,socket,base64
           }
         }
 
-      wsapi.send(["countsince",parseFloat(y)])
+        wsapi.send(["countsince", parseFloat(y)])
 
       </script>
 </head>

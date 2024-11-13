@@ -1,11 +1,11 @@
 <style scoped></style>
 
 <template>
-<div class="window w-full modal" popover id="cueLogicDialog" ontoggle="handleDialogState(event)" v-if="currentcue && editinggroup">
+<div class="window w-full modal" popover id="cueLogicDialog" ontoggle="globalThis.handleDialogState(event)" v-if="currentcue && editinggroup">
     <header>
         <div class="tool-bar">
             <h4>{{currentcue.name}} Logic</h4>
-            <button class="nogrow" data-testid="close-logic" type="button" popovertarget="cueLogicDialog" popoveraction="hide">
+            <button class="nogrow" data-testid="close-logic" type="button" popovertarget="cueLogicDialog" popovertargetaction="hide">
                 <i class="mdi mdi-close"></i>Close
             </button>
         </div>
@@ -81,6 +81,8 @@
 </template>
 
 <script>
+import { dictView,useBlankDescriptions} from "./utils.mjs?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61";
+
 var data =
 {
 
@@ -95,7 +97,7 @@ var data =
         return []
     }
 
-    for (i in x) {
+    for (var i in x) {
         c.push([x[i].name, ''])
     }
     return c;
@@ -108,7 +110,7 @@ var data =
         n = this.editinggroup.name
     }
     else {
-        for (i in this.groupmeta) {
+        for (var i in this.groupmeta) {
             var s = this.groupmeta[i]
             if (s.name == n) {
                 n = i
@@ -123,7 +125,7 @@ var data =
         return []
     }
 
-    for (i in x) {
+    for (var i in x) {
         c.push([i, ''])
     }
     return c;
@@ -131,7 +133,7 @@ var data =
 
 'tagPointsCompleter': function (a) {
     var c = [];
-    for (i in this.availabletags) {
+    for (var i in this.availabletags) {
         c.push([i, ''])
     }
     return c;
@@ -148,7 +150,7 @@ var data =
         ['=random()', 'Random from 0 to 1'],
         ['=GROUP', 'Name of the group']
     ];
-    for (i in this.availabletags) {
+    for (var i in this.availabletags) {
         c.push(['=tv("' + i + '")', ''])
     }
     return c;
@@ -190,10 +192,10 @@ module.exports = {
 
     cueNamesByGroupName: function () {
         var d = {}
-        for (i in this.groupmeta) {
+        for (var i in this.groupmeta) {
             d[this.groupmeta[i].name] = []
 
-            for (j in this.groupcues[i]) {
+            for (var j in this.groupcues[i]) {
                 d[this.groupmeta[i].name].push(j)
             }
         }
@@ -201,8 +203,8 @@ module.exports = {
         },
     },
     "components": {
-        "combo-box": httpVueLoader("/static/vue/ComboBox.vue"),
-        "script-editor": httpVueLoader('../static/ScriptEditor.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
+        "combo-box": window.httpVueLoader("/static/vue/ComboBox.vue"),
+        "script-editor": window.httpVueLoader('../static/ScriptEditor.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
     }
     ,
     computed: {

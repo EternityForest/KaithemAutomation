@@ -4,7 +4,7 @@
 
 {% block body %}
 
-<script src="/static/js/widget.js?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61"></script>
+<script type="module" src="/static/js/widget.js?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61"></script>
 <main>
     <h2>Event {{ split_escape(name,'/','\\')[-1] | escape }} of module <a
             href="/modules/module/{{ url(module) }}">{{ module| escape }}</a>
@@ -208,7 +208,7 @@
             </details>
             {% if can_edit %}
             <input type="submit" value="Save Changes"
-                onclick="wasChanged=false; kaithemapi.enableWidgetGoneAlert=false">
+                onclick="wasChanged=false; globalThis.kaithemapi.enableWidgetGoneAlert=false">
             {% else %}
             <p>You must have the "system_admin" permission to make changes. Are you logged in?</p>
             {% endif %}

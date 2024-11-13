@@ -150,7 +150,7 @@
 
 
 
-<script type="text/javascript" src="/static/js/widget.js?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61"></script>
+<script type="module" src="/static/js/widget.js?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61"></script>
 
 
 <div id="app" v-cloak style="display:flex; flex-wrap:wrap; justify-content: center;">
@@ -319,7 +319,7 @@
                     <button v-if="editingGroup.cuelen" v-on:click="addTimeToGroup(editingGroup.id)"><i
                             class="mdi mdi-clock"></i></i><i class="mdi mdi-plus"></i>Add Time</button>
                     <button @click="compactCues=!compactCues" class="nogrow"><i class="mdi mdi-view-grid-compact"></i>Compact</button>
-                    <button popovertarget="groupDialog" popoveraction="hide" class="nogrow"><i class="mdi mdi-close"></i>Close</button>
+                    <button popovertarget="groupDialog" popovertargetaction="hide" class="nogrow"><i class="mdi mdi-close"></i>Close</button>
 
                 </div>
             </header>
@@ -419,7 +419,7 @@
 
 
 
-<script type="text/javascript" src="../dyn_js/boardapi.js?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61"></script>
+<script src="../dyn_js/boardapi.mjs?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61"></script>
 <script src="/static/js/thirdparty/strftime-min.js"></script>
 <script src="/static/js/thirdparty/vue3-sfc-loader.js"></script>
 
@@ -462,6 +462,8 @@
         return Vue.defineAsyncComponent(() => loadModule(u, options))
     }
 
+    window.httpVueLoader = window.httpVueLoader
+
 
     var vueapp = Vue.createApp(
         {
@@ -471,11 +473,11 @@
             computed: appComputed,
             methods: appMethods,
             components: {
-                "combo-box": httpVueLoader('../static/vue/ComboBox.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
-                'cue-countdown': httpVueLoader('../static/cue-countdown.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
+                "combo-box": window.httpVueLoader('../static/vue/ComboBox.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
+                'cue-countdown': window.httpVueLoader('../static/cue-countdown.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
                 // Currently contains the timers and the display tags for the groups overview
-                'group-ui': httpVueLoader('../static/group-ui-controls.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
-                'cue-iter': httpVueLoader('../static/cue-iter.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61')
+                'group-ui': window.httpVueLoader('../static/group-ui-controls.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
+                'cue-iter': window.httpVueLoader('../static/cue-iter.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61')
 
             }
         }).mount("#app")

@@ -1011,7 +1011,8 @@ class ScrollingWindow(Widget):
         <div id=%(htmlid)s class ="max-h-12rem scroll border %(cssclass)s" style="%(style)s">
         %(content)s
         </div>
-        <script type="text/javascript">
+        <script type="module">
+        import { kaithemapi } from "/static/js/widget.js"
         var d=document.getElementById('%(htmlid)s');
         d.scrollTop = d.scrollHeight;
         var upd=function(val){
@@ -1060,11 +1061,12 @@ class APIWidget(Widget):
             self.send(value)
 
     def render(self, htmlid: str) -> str:
-        return f"<script>{self.render_raw(htmlid)}</script>"
+        return f'<script type="module">{self.render_raw(htmlid)}</script>'
 
     def render_raw(self, htmlid: str) -> str:
         return f"""
-                {htmlid} = {{}};
+                import {{ kaithemapi }} from "/static/js/widget.js"
+                var {htmlid} = {{}};
                 {htmlid}.value = "Waiting..."
                 {htmlid}.clean = 0;
                 {htmlid}._maxsyncdelay = 250
@@ -1140,6 +1142,12 @@ class APIWidget(Widget):
                     kaithemapi.subscribe("{self.uuid}",_upd);
                     setTimeout({htmlid}.getTime,500)
             """
+
+    def render_esm(self) -> str:
+        htmlid = "ghvggfgffdsvdfghbjgf"
+        x = self.render_raw(htmlid)
+        x += "\nlet api = ghvggfgffdsvdfghbjgf\nexport default api\n export {api}"
+        return x
 
 
 t = APIWidget(echo=False, id="_ws_timesync_channel")

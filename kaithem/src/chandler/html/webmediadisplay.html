@@ -1,6 +1,8 @@
-<script src="/static/js/widget.js?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61">></script>
+<script type="module"
+    src="/static/js/widget.js?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61">></script>
 <script src="/static/js/thirdparty/showdown.min.js"></script>
-<script src="static/webmedia.js?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61"></script>
+<script
+    src="static/webmedia.js?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61"></script>
 
 
 <!-- <script src="/static/js/thirdparty/butterchurn/butterchurn.min.js"></script>
@@ -10,7 +12,6 @@
 <script src="/static/js/thirdparty/butterchurn/milkdrop-preset-converter.min.js"></script> -->
 
 <style>
-
     * {
         cursor: none !important;
     }
@@ -20,6 +21,7 @@
     video {
         filter: none;
     }
+
     body {
         background-color: black;
         overflow: hidden;
@@ -80,10 +82,12 @@
         display: none;
     }
 
-    img,![img](http://localhost:8002/static/img/nov23-ai-watercolor-tavern.webp)
-    iframe {
-        max-width: 100%;
-    }
+    img,
+    ![img](http: //localhost:8002/static/img/nov23-ai-watercolor-tavern.webp)
+
+        iframe {
+            max-width: 100%;
+        }
 </style>
 
 
@@ -146,22 +150,7 @@ ${groups.groups[kwargs['group']].slideshow_layout}
 
 <script>
 
-    formatInterval = function (seconds) {
-        var hours = Math.floor(seconds / 3600);
-        var minutes = Math.floor((seconds - (hours * 3600)) /
-            60);
-        var seconds = seconds - (hours * 3600) - (minutes * 60);
-        var tenths = Math.floor((seconds - Math.floor(seconds)) *
-            10);
-        seconds = Math.floor(seconds);
-
-        var time = "";
-
-        time = ("" + hours).padStart(2, '0') + ":" + ("" + minutes).padStart(2, '0') + ":" + ("" + seconds).padStart(2, '0')
-        return time;
-    }
-
-
+    import { formatInterval } from "./utils.mjs?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61";
 
     player = new makePlayer(document.getElementById('player1'), "${kwargs['group']}")
     player2 = new makePlayer(document.getElementById('player2'), "${kwargs['group']}")
@@ -192,35 +181,35 @@ ${groups.groups[kwargs['group']].slideshow_layout}
                 if (el.src != v[1]) {
                     el.src = v[1]
 
-                    if(el.src){
+                    if (el.src) {
                         el.style.display = 'block'
                     }
-                    else{
+                    else {
                         el.style.display = 'none'
                     }
                 }
             }
         }
 
-        else if(v[0] == 'testAudio'){
+        else if (v[0] == 'testAudio') {
             var mp3_url = '/static/sounds/72127__kizilsungur__sweetalertsound3.opus';
-            (new Audio(mp3_url)).play().catch(() =>{
+            (new Audio(mp3_url)).play().catch(() => {
                 telemetryStatus = "PLAY FAILED"
                 send_telemetry()
-            }).then(() =>{
+            }).then(() => {
                 telemetryStatus = "OK"
                 send_telemetry()
             }
             )
-            KaithemWidgetApiSnackbar("Ding!",5)
+            KaithemWidgetApiSnackbar("Ding!", 5)
         }
 
-        else if(v[0] == 'setFriendlyName'){
+        else if (v[0] == 'setFriendlyName') {
             telemetryName = v[1]
             localStorage.setItem('friendly_slideshow_device_name', v[1])
             send_telemetry()
         }
-        else if(v[0] =='refresh'){
+        else if (v[0] == 'refresh') {
             window.location.reload();
         }
 
@@ -293,15 +282,15 @@ ${groups.groups[kwargs['group']].slideshow_layout}
         if (document.visibilityState === "hidden") {
             telemetryStatus = "PAGE HIDDEN"
         }
-        else{
+        else {
             telemetryStatus = "PAGE SHOWN"
         }
         send_telemetry()
 
-      };
+    };
 
 
-      const beforeUnloadListener = (event) => {
+    const beforeUnloadListener = (event) => {
         telemetryStatus = "disconnect"
 
         send_telemetry()
@@ -339,15 +328,15 @@ ${groups.groups[kwargs['group']].slideshow_layout}
 
     // Function that attempts to request a screen wake lock.
     const requestWakeLock = async () => {
-    try {
-        wakeLock = await navigator.wakeLock.request();
-        wakeLock.addEventListener('release', () => {
-        console.log('Screen Wake Lock released:', wakeLock.released);
-        });
-        console.log('Screen Wake Lock released:', wakeLock.released);
-    } catch (err) {
-        console.error(err.message);
-    }
+        try {
+            wakeLock = await navigator.wakeLock.request();
+            wakeLock.addEventListener('release', () => {
+                console.log('Screen Wake Lock released:', wakeLock.released);
+            });
+            console.log('Screen Wake Lock released:', wakeLock.released);
+        } catch (err) {
+            console.error(err.message);
+        }
     };
 
     // Request a screen wake lock…
