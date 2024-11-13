@@ -20,7 +20,8 @@ It provides window.api_link
 */
 
 import { useBlankDescriptions, formatInterval, dictView }  from "./utils.mjs?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61";
-import { kaithemapi } from "/static/js/widget.js"
+import { kaithemapi, APIWidget} from "/static/js/widget.js"
+
 
 let keysdown = {}
 //Gets replaced with the vue app once we make it elsewhere and connect stuff
@@ -1494,8 +1495,11 @@ script.onload = function () {
 };
 
 
-let api_link_url = "/apiwidget/esm/WebChandlerConsole:" + appData.boardname
-let api_link = (await import(api_link_url)).api;
+// let api_link_url = "/apiwidget/esm/WebChandlerConsole:" + appData.boardname
+
+// let api_link = (await import(api_link_url)).api;
+
+let api_link = new APIWidget("WebChandlerConsole:" + appData.boardname);
 window.api_link = api_link
 
 export {

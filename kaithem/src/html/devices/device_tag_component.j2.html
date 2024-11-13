@@ -227,17 +227,19 @@
                 Motion</button>
         </div>
 
-        <script>
+        <script type="module">
+            import { kaithemapi } from "/static/js/widget.js?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61";
+
             if (!mpegts.isSupported()) {
                 alert("MPEG TS Not supported here")
-                globalThis.kaithemapi.sendErrorMessage("MPEG TS Not supported here")
+                kaithemapi.sendErrorMessage("MPEG TS Not supported here")
             }
 
-            video = document.querySelector('video');
+            var video = document.querySelector('video');
             var player = mpegts.createPlayer({
                 type: 'mpegts',  // could also be mpegts, m2ts, flv
                 isLive: true,
-                url: globalThis.kaithemapi.wsPrefix() + "/widgets/wsraw?widgetid={{ obj.tagPoints[i].data_source_widget.uuid| urlencode }}",
+                url: kaithemapi.wsPrefix() + "/widgets/wsraw?widgetid={{ obj.tagPoints[i].data_source_widget.uuid| urlencode }}",
                 liveBufferLatencyChasing: true,
                 liveBufferLatencyMaxLatency: 2,
                 liveBufferLatencyMinRemain: 1,

@@ -406,5 +406,103 @@ if (globalThis.kaithemapi == undefined) {
 		setTimeout(function () { globalThis.kaithemapi.connect() }, 10)
 	})
 }
+
+class APIWidget {
+    constructor(uuid) {
+        this.uuid = uuid
+        this.value = "Waiting..."
+        this.clean = 0;
+        this._maxsyncdelay = 250
+        this.timeSyncInterval = 120 * 1000;
+
+		this._timeref = null;
+
+        kaithemapi.subscribe("_ws_timesync_channel", this.onTimeResponse)
+        kaithemapi.subscribe(this.uuid, this._upd.bind(this));
+        setTimeout(this.getTime.bind(this), 500)
+    }
+
+    onTimeResponse(val) {
+        {
+            if (Math.abs(val[0] - this._txtime) < 0.1) {
+                {
+                    var t = performance.now();
+                    if (t - this._txtime < this._maxsyncdelay) {
+                        {
+                            this._timeref = [(t + this._txtime) / 2, val[1]]
+
+                            this._maxsyncdelay = (t - this._txtime) * 1.2;
+                        }
+                    }
+                    else {
+                        {
+
+                            this._maxsyncdelay = this._maxsyncdelay * 2;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    _upd(val) {
+        {
+            if (this.clean == 0) {
+                {
+                    this.value = val;
+                }
+            }
+            else {
+                {
+                    this.clean -= 1;
+                }
+            }
+            this.upd(val)
+        }
+    }
+
+    upd(val) {
+        {
+        }
+    }
+    getTime() {
+        {
+            var x = performance.now()
+            this._txtime = x;
+            kaithemapi.sendValue("_ws_timesync_channel", x)
+        }
+    }
+
+
+    now(val) {
+        {
+            var t = performance.now()
+            if (t - this._txtime > this.timeSyncInterval) {
+                {
+                    this.getTime();
+                }
+			}
+			if(this._timeref == null){
+				return Date.now();
+			}
+            return ((t - this._timeref[0]) + this._timeref[1])
+        }
+    }
+
+    set(val) {
+        {
+            kaithemapi.setValue(this.uuid, val);
+            this.clean = 2;
+        }
+    }
+
+    send(val) {
+        {
+            kaithemapi.sendValue(this.uuid, val);
+            this.clean = 2;
+        }
+    }
+}
+
 let kaithemapi = globalThis.kaithemapi
-export { kaithemapi }
+export { kaithemapi, APIWidget }

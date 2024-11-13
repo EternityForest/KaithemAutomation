@@ -3,6 +3,9 @@ Change Log
 
 ### 0.86.2
 
+This release is all about ES modules. I've decided to pretty much completely
+move on from non-module JS, and as kaithem is not yet 1.0, this will be a hard breaking change that affects most custom JS.
+
 - :technologist: Dependabot and the general ecosystem have spoken. No more dev branch, we're not using Gitflow.
 - :technologist: 80 line limit.
 - :bug: Fix bug where the loop sound feature interacted badly with relative length
@@ -23,11 +26,24 @@ Change Log
 Widget.js along with several other internals are now esm modules.
 Normal non-esm JS is deprecated or legacy pretty much everywhere.
 
+If you're doing custom JS/Python work an APIWidget, you'll need to
+give the APIWidget a widget ID, or fetch the generated one from widget.id,
+and import it's special API script:
+
+```html
+<script type="module">
+    import { api } from '/apiwidget/esm/your_widget_id'
+    api.upd = (val) => alert(val)
+    api.send("MyValue")
+</script>
+```
+
 Use:
 ```js
 import { kaithemapi } from "/static/js/widget.js"
 ```
 if you need to access the widget API directly.
+
 
 ### 0.86.1
 
