@@ -25,8 +25,7 @@ from .unitsofmeasure import strftime
 
 mlogger = structlog.get_logger("system.msgbuslog")
 
-logger = structlog.get_logger("system.notifications")
-ilogger = structlog.get_logger("system.notifications.important")
+logger = structlog.get_logger("notifications")
 
 notificationslog = []
 
@@ -194,13 +193,13 @@ messagebus.subscribe("/system/notifications/#", subscriber)
 
 def printer(t, m):
     if "error" in t:
-        logger.error(f"{t}:{m}")
+        logger.error(f"{m}")
     elif "warning" in t:
-        logger.warning(f"{t}:{m}")
+        logger.warning(f"{m}")
     elif "important" in t:
-        ilogger.info(f"{t}:{m}")
+        logger.info(f"{m}")
     else:
-        logger.info(f"{t}:{m}")
+        logger.info(f"{m}")
 
 
 messagebus.subscribe("/system/notifications/#", printer)

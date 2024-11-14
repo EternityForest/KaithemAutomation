@@ -22,6 +22,7 @@ It does not affect anything not using custom HTML/JS
 - :sparkles: When setting a @time length, give a popup so you can tell if it was parsed correctly
 - :sparkles: At boot, logs changes in the environment like installed system packages.
 - :lipstick: Make cue notes more visible
+- :lipstick: Less log clouter for notifications
 
 #### :boom: BREAKING
 
