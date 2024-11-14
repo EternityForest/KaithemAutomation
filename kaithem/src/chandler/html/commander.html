@@ -419,12 +419,13 @@
 
 
 
-<script src="../dyn_js/boardapi.mjs?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61"></script>
 <script src="/static/js/thirdparty/strftime-min.js"></script>
 <script src="/static/js/thirdparty/vue3-sfc-loader.js"></script>
 
 
-<script>
+<script type="module">
+    import {appData, appMethods, appComputed,initChandlerVueModel} from "../static/boardapi.mjs?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61";
+
     appData.boardname = window.location.pathname.split('/')[3]
     document.title = appData.boardname
     appData.showUtils = false
@@ -462,7 +463,7 @@
         return Vue.defineAsyncComponent(() => loadModule(u, options))
     }
 
-    window.httpVueLoader = window.httpVueLoader
+    window.httpVueLoader = httpVueLoader
 
 
     var vueapp = Vue.createApp(
@@ -481,6 +482,9 @@
 
             }
         }).mount("#app")
+
+const boardname = window.location.pathname.split('/')[3];
+initChandlerVueModel(boardname,vueapp)
 </script>
 
 <%include file="/pagefooter.html" />
