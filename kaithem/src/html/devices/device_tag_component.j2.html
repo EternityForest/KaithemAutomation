@@ -1,7 +1,7 @@
 {% set devices = imp0rt('kaithem.src.devices') %}
 {% set util = imp0rt('kaithem.src.util') %}
 
-<script type="module" src="/static/js/picodash.js"></script>
+<script type="module" src="/static/js/picodash.mjs"></script>
 
 <style>
     .croppr-imageClipped,
@@ -228,7 +228,7 @@
         </div>
 
         <script type="module">
-            import { kaithemapi } from "/static/js/widget.js?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61";
+            import { kaithemapi } from "/static/js/widget.mjs?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61";
 
             if (!mpegts.isSupported()) {
                 alert("MPEG TS Not supported here")

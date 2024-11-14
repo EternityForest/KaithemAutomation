@@ -19,7 +19,7 @@ setupcode: "from kaithem.api.widgets import APIWidget\r\n\r\nt = APIWidget(echo=
   \ id=\"YourWidgetID\")\r\n\r\ndef f(user: str, value, connection_id: str):\r\n \
   \   t.send_to(f\"Echoing {value} from {user} on {connection_id}\", connection_id)\r\
   \n\r\nt.attach2(f)\r\n\r\n# This returns an HTML string to embed in a page\r\n#\
-  \ which also includes /static/js/widget.js\r\n\r\nt.render(\"js_var_name\")"
+  \ which also includes /static/js/widget.mjs\r\n\r\nt.render(\"js_var_name\")"
 streaming-response: false
 template_engine: jinja2
 theme-css-url: ''
@@ -32,7 +32,10 @@ theme-css-url: ''
 {% block body %}
 
 <script type="module">
-    import { api } from '/apiwidget/esm/${api.uuid}'
+    import { kaithemapi, APIWidget} from "/static/js/widget.mjs"
+    let api_link = new APIWidget("{{api.uuid}}");
+
+
     api.upd = (val) => alert(val)
     api.send("MyValue")
 </script>

@@ -1,20 +1,37 @@
+const atypes = ['.ogg', '.oga', '.aac', '.m4a', '.mp3', '.opus']
+const itypes = ['.png', '.jpg', '.bmp', '.tiff', '.webp', '.gif', '.avif']
 
-atypes = ['.ogg', '.oga', '.aac', '.m4a', '.mp3', '.opus']
-itypes = ['.png', '.jpg', '.bmp', '.tiff', '.webp', '.gif', '.avif']
+let telemetryStatus = "LOADED"
+let link = null
 
-telemetryStatus = "LOADED"
+function setLink(l) {
+    link = l
+}
 
-telemetryName = localStorage.getItem('friendly_slideshow_device_name') || ''
-function send_telemetry() {
+let telemetryName = localStorage.getItem('friendly_slideshow_device_name') || ''
+function sendTelemetry() {
+    if (!link) {
+        return;
+    }
     link.send(['telemetry', {
         'status': telemetryStatus,
         'name': telemetryName
     }])
 }
 
+function setTelemetryStatus(s) {
+    telemetryStatus = s
+    sendTelemetry()
+}
+
+function setTelemetryName(s) {
+    telemetryName = s
+    sendTelemetry()
+}
+
 setInterval(
     function () {
-        send_telemetry()
+        sendTelemetry()
     }, 60000
 )
 
@@ -277,7 +294,7 @@ class makePlayer {
             if (!this.error_send_timeout) {
                 this.error_send_timeout = setTimeout(function () {
                     telemetryStatus = "PLAY FAILED"
-                    send_telemetry()
+                    sendTelemetry()
                 }, 20000)
             }
 
@@ -292,7 +309,7 @@ class makePlayer {
                             clearTimeout(this.error_send_timeout)
                         }
                         telemetryStatus = 'OK'
-                        send_telemetry()
+                        sendTelemetry()
 
                         var st = this.intended_start_pos - ((link.now() / 1000) - this.intended_start_ts)
                         st = Math.max(st, 0)
@@ -411,7 +428,7 @@ class makePlayer {
                 this.intended_start_pos = st
                 this.intended_start_ts = ts
 
-                st = st - ((link.now() / 1000) - ts)
+                let st = st - ((link.now() / 1000) - ts)
                 st = Math.max(st, 0)
                 t.children[0].currentTime = st;
                 t.children[0].controls = true;
@@ -477,3 +494,5 @@ class makePlayer {
 
     }
 }
+
+export { makePlayer, setLink, setTelemetryName, setTelemetryStatus, sendTelemetry }

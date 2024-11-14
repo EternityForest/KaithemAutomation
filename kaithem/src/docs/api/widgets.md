@@ -25,7 +25,7 @@ t.send_to(f"Echoing {value} from {user} on {connection_id}", connection_id)
 t.attach2(f)
 
 # This returns an HTML string to embed in a page
-# which also includes /static/js/widget.js
+# which also includes /static/js/widget.mjs
 
 t.render("js_var_name")
 ```

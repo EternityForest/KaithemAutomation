@@ -23,7 +23,7 @@ move on from non-module JS, and as kaithem is not yet 1.0, this will be a hard b
 
 #### :boom: BREAKING
 
-Widget.js along with several other internals are now esm modules.
+widget.mjs along with several other internals are now esm modules.
 Normal non-esm JS is deprecated or legacy pretty much everywhere.
 
 If you're doing custom JS/Python work an APIWidget, you'll need to
@@ -40,7 +40,7 @@ and import it's special API script:
 
 Use:
 ```js
-import { kaithemapi } from "/static/js/widget.js"
+import { kaithemapi } from "/static/js/widget.mjs"
 ```
 if you need to access the widget API directly.
 
@@ -672,7 +672,7 @@ Some may return in iot_devices later.
 - :bug: Fix chatty logs from aioesphomeapi
 - :coffin: Deprecate kaithem.web.controllers
 - :sparkles: kaithem.web.add_wsgi_app and add_tornado_app to allow for addon apps from other frameworks.
-- :lipstick: Legacy /static/widget.js moved to /static/js/widget.js
+- :lipstick: Legacy /static/widget.mjs moved to /static/js/widget.mjs
 - :lipstick: Third party JS moved to /static/js/thirdparty/
 - :sparkles: Support AppRise notifications(Configure them in global settings)
 
@@ -1842,7 +1842,7 @@ cart - Help boxes(paragraph or div class 'help') now show up minimized until you
 -   Safer handling of tokens to resist timing attacks
 -   Get rid of excessively tiny stack size that caused ocassional
     segfaults
--   Fix bug that caused annoying widget.js error messages
+-   Fix bug that caused annoying widget.mjs error messages
 -   Switch to microsoft's monaco editor instead of CodeMirror
 -   (SOMEWHAT BREAKING CHANGE) Users are now limited by default to 64k
     request HTTP bodies. You can allow users a larger limit on a

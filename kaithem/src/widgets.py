@@ -1012,7 +1012,7 @@ class ScrollingWindow(Widget):
         %(content)s
         </div>
         <script type="module">
-        import { kaithemapi } from "/static/js/widget.js"
+        import { kaithemapi } from "/static/js/widget.mjs"
         var d=document.getElementById('%(htmlid)s');
         d.scrollTop = d.scrollHeight;
         var upd=function(val){
@@ -1065,7 +1065,7 @@ class APIWidget(Widget):
 
     def render_raw(self, htmlid: str) -> str:
         return f"""
-                import {{ kaithemapi }} from "/static/js/widget.js"
+                import {{ kaithemapi }} from "/static/js/widget.mjs"
                 var {htmlid} = {{}};
                 {htmlid}.value = "Waiting..."
                 {htmlid}.clean = 0;

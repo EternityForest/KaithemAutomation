@@ -1,5 +1,5 @@
 
-import { kaithemapi } from "/static/js/widget.js"
+import { kaithemapi } from "/static/js/widget.mjs"
 
 import {appData, appMethods, appComputed,initChandlerVueModel} from "./boardapi.mjs?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61";
 

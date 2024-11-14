@@ -1,8 +1,4 @@
-<script type="module"
-    src="/static/js/widget.js?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61">></script>
 <script src="/static/js/thirdparty/showdown.min.js"></script>
-<script
-    src="static/webmedia.js?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61"></script>
 
 
 <!-- <script src="/static/js/thirdparty/butterchurn/butterchurn.min.js"></script>
@@ -92,7 +88,7 @@
 
 
 
-${groups.groups[kwargs['group']].media_link_socket.render('link')}
+
 
 <script src="/static/js/thirdparty/vue3.js"></script>
 <script src="/static/js/thirdparty/handlebars.js"></script>
@@ -100,9 +96,14 @@ ${groups.groups[kwargs['group']].media_link_socket.render('link')}
 
 ${groups.groups[kwargs['group']].slideshow_layout}
 
-<script>
+<script type="module">
+    import { makePlayer, setLink, setTelemetryName, setTelemetryStatus, sendTelemetry} from  "./static/webmedia.mjs?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61"
+    import { kaithemapi, APIWidget} from "/static/js/widget.mjs"
+
+    let link = new APIWidget("${groups.groups[kwargs['group']].media_link_socket.uuid}")
     var conv = new showdown.Converter({ metadata: true });
 
+    setLink(link)
 
     const { createApp, ref } = Vue;
 
@@ -145,15 +146,11 @@ ${groups.groups[kwargs['group']].slideshow_layout}
             'media-player': mediaPlayerComponent
         }
     }).mount('slideshow-app')
-</script>
 
+    import { formatInterval } from "./static/utils.mjs?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61";
 
-<script>
-
-    import { formatInterval } from "./utils.mjs?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61";
-
-    player = new makePlayer(document.getElementById('player1'), "${kwargs['group']}")
-    player2 = new makePlayer(document.getElementById('player2'), "${kwargs['group']}")
+    let player = new makePlayer(document.getElementById('player1'), "${kwargs['group']}")
+    let player2 = new makePlayer(document.getElementById('player2'), "${kwargs['group']}")
 
 
     function renderCueText() {
@@ -194,20 +191,17 @@ ${groups.groups[kwargs['group']].slideshow_layout}
         else if (v[0] == 'testAudio') {
             var mp3_url = '/static/sounds/72127__kizilsungur__sweetalertsound3.opus';
             (new Audio(mp3_url)).play().catch(() => {
-                telemetryStatus = "PLAY FAILED"
-                send_telemetry()
+                setTelemetryStatus("PLAY FAILED")
             }).then(() => {
-                telemetryStatus = "OK"
-                send_telemetry()
+                setTelemetryStatus("OK")
             }
             )
             KaithemWidgetApiSnackbar("Ding!", 5)
         }
 
         else if (v[0] == 'setFriendlyName') {
-            telemetryName = v[1]
+            setTelemetryName(v[1])
             localStorage.setItem('friendly_slideshow_device_name', v[1])
-            send_telemetry()
         }
         else if (v[0] == 'refresh') {
             window.location.reload();
@@ -275,25 +269,21 @@ ${groups.groups[kwargs['group']].slideshow_layout}
 
     link.send(['ask'])
     link.send(['initial'])
-    send_telemetry()
+    sendTelemetry()
 
 
     document.onvisibilitychange = () => {
         if (document.visibilityState === "hidden") {
-            telemetryStatus = "PAGE HIDDEN"
+            setTelemetryStatus("PAGE HIDDEN")
         }
         else {
-            telemetryStatus = "PAGE SHOWN"
+            setTelemetryStatus("OK")
         }
-        send_telemetry()
-
     };
 
 
     const beforeUnloadListener = (event) => {
-        telemetryStatus = "disconnect"
-
-        send_telemetry()
+        setTelemetryStatus("DISCONNECTED") //"disconnect"
     };
 
     window.addEventListener("beforeunload", beforeUnloadListener);
