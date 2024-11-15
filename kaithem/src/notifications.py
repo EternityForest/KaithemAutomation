@@ -38,7 +38,7 @@ pushsettings = persist.getStateFile(notificationsfn)
 
 
 class API(widgets.APIWidget):
-    def on_new_subscriber(self, user, cid, **kw):
+    def on_new_subscriber(self, user, connection_id, **kw):
         self.send(["all", notificationslog])
 
 
@@ -100,7 +100,7 @@ def mostrecent_target():
     return json.dumps(notificationslog[-int(kwargs["count"]) :])
 
 
-epochAndRemaining = [0, 15]
+epochAndRemaining = [0.0, 15.0]
 
 pending_notifications = []
 

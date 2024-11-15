@@ -32,7 +32,9 @@ def widget_docstring():
     {% block body %}
 
     <script type="module">
-        import { api } from '/apiwidget/esm/${api.uuid}'
+        import {APIWidget} from "/static/js/widget.mjs"
+        let api_link = new APIWidget("{{t.uuid}}");
+
         api.upd = (val) => alert(val)
         api.send("MyValue")
     </script>

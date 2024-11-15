@@ -9,7 +9,7 @@ appMethods.showPresetDialog = function (fixture) {
 
 appData.selectingImageLabelForPreset = null
 appData.iframeDialog = null
-appData.filterPresets = ''
+
 const session_time = new Date().toISOString().slice(0, -8)
 
 appData.getExcalidrawCueLink = function (group, cue) {
@@ -97,6 +97,8 @@ var vueapp = Vue.createApp(
             'slideshow-telemetry': window.httpVueLoader('../static/signagetelemetry.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
             'fixture-presets-dialog': window.httpVueLoader('../static/fixture-presets-dialog.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
             'cue-logic-dialog': window.httpVueLoader('../static/cue-logic-dialog.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
+            'preset-editing-dialog': window.httpVueLoader('../static/preset-editing-dialog.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
+
         },
         computed: appComputed
     }).mount("#app")

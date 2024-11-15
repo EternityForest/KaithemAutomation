@@ -36,7 +36,9 @@ important_envars = [
 
 
 def which(p) -> bool:
-    return subprocess.run(["which", p]).returncode == 0
+    return (
+        subprocess.run(["which", p], stdout=subprocess.DEVNULL).returncode == 0
+    )
 
 
 def list_deb_packages():

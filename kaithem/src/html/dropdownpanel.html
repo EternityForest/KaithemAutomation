@@ -77,7 +77,8 @@ scolor={
 
 
 <script type="module">
-    import { api } from '/apiwidget/esm/${api.uuid}'
+    import {APIWidget} from "/static/js/widget.mjs"
+    let api = new APIWidget("${api.uuid}");
 
     var app = new Vue({
         el: '#app',

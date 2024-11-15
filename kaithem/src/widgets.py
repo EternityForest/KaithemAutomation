@@ -321,7 +321,7 @@ class WebSocketHandler:
 
             asyncio.run_coroutine_threadsafe(f(), self.loop)
 
-    def closed(self, *a: Any) -> None:
+    def close(self, *a: Any) -> None:
         with subscriptionLock:
             while self.subscriptions:
                 i = self.subscriptions.pop(0)
