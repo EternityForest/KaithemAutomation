@@ -16,7 +16,7 @@ test('test', async ({ page }) => {
     await page.getByLabel('Target Resource Name:').fill('testdevice');
     await page.getByText('Target Module: Target').click();
     await page.getByPlaceholder('Click for dropdown').click();
-    await page.getByPlaceholder('Click for dropdown').fill('DemoDevice');
+    await page.getByPlaceholder('Click for dropdown').selectOption('DemoDevice');
     await page.getByRole('button', { name: 'Create' }).click();
     await page.getByRole('button', { name: 'Submit' }).click();
 

@@ -5,9 +5,8 @@ def widget_docstring():
     """
 
         Example code:
-        Python setup code:
 
-        ```python
+    ```python
     from kaithem.api.widgets import APIWidget
 
     t = APIWidget(echo=False, id="YourWidgetID")
@@ -17,14 +16,7 @@ def widget_docstring():
 
     t.attach2(f)
 
-    # This returns an HTML string to embed in a page
-    # which also includes /static/js/widget.mjs
-
-    t.render("js_var_name")
-        ```
-
-        HTML/Jinja2
-        ```html
+    ```html
     {% extends "pagetemplate.j2.html" %}
 
     {% block title %} {basename} {% endblock %}
@@ -41,7 +33,7 @@ def widget_docstring():
 
     {% endblock %}
 
-        ```
+    ```
 
     """
 

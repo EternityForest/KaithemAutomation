@@ -1,22 +1,19 @@
 import { test, expect } from '@playwright/test';
 import { login, logout, makeModule, deleteModule, sleep } from './util';
 
+async function delay(ms: number) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 async function fill_box(page, box, text: string) {
     /*Filling a box does't always work even if it does in the browser*/
 
     // Try this twice
     await box.click();
+    await delay(10);
     await box.fill(text);
-
-    // blur element by clicking outside
-    await page.keyboard.press('Tab');
-    // Do it twice
-
-    await box.click();
-    await box.fill(text);
-    await page.keyboard.press('Tab');
-
+    await delay(10);
+    await delay(10);
 }
 
 
@@ -151,6 +148,8 @@ test('test', async ({ page }) => {
 
     await fill_box(page,
         page.getByTestId('display_tag_tag'), '=4');
+    
+    delay(100);
 
     await page.getByTestId('display_tag_type').selectOption('Meter')
 
