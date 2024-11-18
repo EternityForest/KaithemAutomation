@@ -25,12 +25,10 @@ Kaithem is Linux home/commercial automation server written in pure Python(3.10 a
 You automate things by directly writing python and HTML via a web IDE, or by using the built-in Chandler module, which is a full web-based lighting aud audio control board with a visual programming language.
 
 ## Screenshots 🏕️
-![Nord Theme](screenshots/nord-theme.avif)
-![Steam Theme](screenshots/steam-theme.avif)
-![Module](screenshots/module-mobile.avif)
-![Audio](screenshots/audio-mixer.avif)
-![Logic](screenshots/cue-logic-mobile.avif)
-![Code](screenshots/python-code.avif)
+
+![Collage](screenshots/collage.avif)
+
+See the barrel.css [demo](https://eternityforest.github.io/barrel.css/) for more themes
 
 
 ## Installation 🌲
