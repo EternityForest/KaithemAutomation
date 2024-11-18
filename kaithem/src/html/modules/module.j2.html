@@ -213,15 +213,17 @@
             {% if modules.additionalTypes[module[i]['resource_type']].mdi_icon %}
             <dt>
                 <div class="tool-bar w-full inline">
-                    <h3>
+                    <h4>
                         {% if module[i]['resource_lock'] in modules_state.additionalTypes %}
                             <span class="mdi mdi-lock-outline"></span>LOCKED
                         {% endif %}
 
-                        <a href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}"> <i
+                        <a href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}"
+                        title="{{module[i]['resource_type']}}"
+                        > <i
                                 class="mdi mdi-{{modules.additionalTypes[module[i]['resource_type']].mdi_icon}}"></i>
-                            {{ i.split("/")[-1] | escape }} ({{module[i]['resource_type']}})</a>
-                    </h3>
+                            {{ i.split("/")[-1] | escape }}</a>
+                    </h4>
 
                     <a aria-label="Download" class="button nogrow" href="/modules/module/{{ url(name) }}/download_resource/{{ url(i) }}"><span
                             class="mdi mdi-download-box"></span>

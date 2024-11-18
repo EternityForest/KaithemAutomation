@@ -41,7 +41,7 @@
                 <combo-box :disabled="no_edit" v-model="currentcue.inheritRules" :disabled="editinggroup.name =='__rules__'" v-on:change="setcueproperty(currentcue.id,'inheritRules', currentcue.inheritRules)" :options="useBlankDescriptions(groupcues[editinggroup.id])"></combo-box>
             </div>
             <p>Inherited rules run after directly set rules.</p>
-            <p>If a cue names __rules__ exists, <br> all cues
+            <p>If a cue named __rules__ exists, <br> all cues
                 will additionally inherit from that cue.
             </p>
 
@@ -81,7 +81,7 @@
 </template>
 
 <script>
-import { dictView,useBlankDescriptions} from "./utils.mjs?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61";
+import { dictView,useBlankDescriptions, formatInterval} from "./utils.mjs?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61";
 
 var data =
 {
@@ -181,7 +181,8 @@ module.exports = {
     template: '#template',
 
     props: [ 'currentcue', 'editinggroup', 'no_edit',"setcueproperty",
-        'groupmeta', 'groupcues', 'availabletags','availablecommands'
+        'groupmeta', 'groupcues', 'availabletags', 'availablecommands',
+        'unixtime'
     ],
     data: function () {
         return (data)
@@ -189,6 +190,7 @@ module.exports = {
     methods: {
         dictView: dictView,
         useBlankDescriptions: useBlankDescriptions,
+        formatInterval: formatInterval,
 
     cueNamesByGroupName: function () {
         var d = {}

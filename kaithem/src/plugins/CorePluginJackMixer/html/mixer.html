@@ -364,7 +364,7 @@
             </footer>
         </article>
 
-<div class="flex-col gaps inline">
+<div class="flex-col gaps inline w-sm-full">
         <article class="channel window h-12rem flex-col margin w-sm-full">
             <header>
               <div class="decorative-image-h-bar decorative-image" style="min-height: 3em; margin: auto;"></div>
@@ -415,8 +415,9 @@
 
 
 <script type="module">
-  import {api} from '/apiwidget/esm/${board.api.uuid}';
-  import {api as gapi} from '/apiwidget/esm/${global_api.uuid}';
+  import { APIWidget } from '/static/js/widget.mjs?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'
+  let api = new APIWidget("${board.api.uuid}");
+  let gapi = new APIWidget("${global_api.uuid}");
 
   function compareParams(a, b) {
     if (a.sort > b.sort) return 1;

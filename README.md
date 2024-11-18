@@ -1,28 +1,37 @@
 ![AI generated picture of a tavern](kaithem/data/static/img/nov23-ai-watercolor-tavern.webp)
 
 ![Linux](badges/linux.png)
-![Single Board Computer badge](badges/sbc.png)
-![DMX](badges/dmx.png)
 ![Python](badges/python.png)
+![Ten Year Project](badges/ten-years.png)
 
 ![Offline First](badges/offline-first.png)
 ![GPLv3 Badge](badges/gpl-v3.png)
-![Pre-commit Badge](badges/pre-commit.png)
-![Makefile Badge](badges/makefile.png)
 
-![Ten Year Project](badges/ten-years.png)
 ![Pytest](badges/pytest.png)
 ![Ruff](badges/ruff.png)
 ![Poetry](badges/poetry.png)
+
+![DMX](badges/dmx.png)
+![Single Board Computer badge](badges/sbc.png)
+![Pre-commit Badge](badges/pre-commit.png)
 
 > Amidst the mists and fiercest frosts,\
 > with stoutest wrists and loudest boasts,\
 > He thrusts his fists against the posts,\
 > And still insists he sees the ghosts.
 
-Kaithem is Linux home/commercial automation server written in pure Python(3.10 and up). Not tested outside of Linux. Resource usage is low enough to run well on the Raspberry Pi.
+Kaithem is Linux home/commercial automation server written in pure Python(3.10 and up). Resource usage is low enough to run well on the Raspberry Pi from an SD card
 
-You automate things by directly writing python and HTML via a web IDE, or by using the built-in Chandler module, which is a full web-based lighting aud audio control board with a visual programming language adding interactivity.
+You automate things by directly writing python and HTML via a web IDE, or by using the built-in Chandler module, which is a full web-based lighting aud audio control board with a visual programming language.
+
+## Screenshots 🏕️
+![Nord Theme](screenshots/nord-theme.avif)
+![Steam Theme](screenshots/steam-theme.avif)
+![Module](screenshots/module-mobile.avif)
+![Audio](screenshots/audio-mixer.avif)
+![Logic](screenshots/cue-logic-mobile.avif)
+![Code](screenshots/python-code.avif)
+
 
 ## Installation 🌲
 
@@ -49,7 +58,7 @@ kaithem-scripts root-install-system-dependencies
 
 ```
 
-### System Configuration
+### System Configuration 🛠️
 
 > So, when the buckled girder\
 >  Lets down the grinding span,\
@@ -93,7 +102,7 @@ kaithem-scripts root-install-kiosk
 
 ```
 
-## Manual dev install
+## Manual dev install 🖐️
 
 Info for devs here on the wiki (https://github.com/EternityForest/KaithemAutomation/wiki/Development)
 

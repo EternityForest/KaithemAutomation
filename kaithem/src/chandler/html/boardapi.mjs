@@ -1494,11 +1494,6 @@ script.onload = function () {
     initChandlerVueModel(boardname)
 };
 
-
-// let api_link_url = "/apiwidget/esm/WebChandlerConsole:" + appData.boardname
-
-// let api_link = (await import(api_link_url)).api;
-
 let api_link = new APIWidget("WebChandlerConsole:" + appData.boardname);
 window.api_link = api_link
 

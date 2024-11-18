@@ -89,56 +89,6 @@ async def favicon():
     return await send_file(fn, cache_timeout=3600 * 24)
 
 
-@quart_app.app.route("/apiwidget/<widgetid>")
-def apiwidget(widgetid):
-    js_name = request.args.get("js_name", None)
-    assert js_name
-    try:
-        pages.require("enumerate_endpoints")
-    except PermissionError:
-        return pages.loginredirect(pages.geturl())
-
-    if widgetid not in widgets.widgets:
-        raise KeyError("Does not exist or not APIWidget")
-
-    if not isinstance(widgets.widgets[widgetid], widgets.APIWidget):
-        raise KeyError("Does not exist or not APIWidget")
-
-    w = widgets.widgets[widgetid]
-    assert isinstance(w, widgets.APIWidget)
-
-    if w._read_perms:
-        for i in w._read_perms:
-            pages.require(i)
-
-    return w.render_raw(js_name)
-
-
-@quart_app.app.route("/apiwidget/esm/<widgetid>")
-def apiwidget_esm(widgetid):
-    try:
-        pages.require("enumerate_endpoints")
-    except PermissionError:
-        return pages.loginredirect(pages.geturl())
-
-    if widgetid not in widgets.widgets:
-        raise KeyError("Does not exist or not APIWidget")
-
-    if not isinstance(widgets.widgets[widgetid], widgets.APIWidget):
-        raise KeyError("Does not exist or not APIWidget")
-
-    w = widgets.widgets[widgetid]
-    assert isinstance(w, widgets.APIWidget)
-
-    if w._read_perms:
-        for i in w._read_perms:
-            pages.require(i)
-
-    # js mime type
-
-    return quart.Response(w.render_esm(), mimetype="application/javascript")
-
-
 # Todo: is this to slow for async??
 @quart_app.app.route("/user_static/<path:args>")
 async def user_static(*args):

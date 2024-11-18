@@ -19,7 +19,8 @@ import quart,socket,base64
 
 
       <script type="module">
-        import { api as wsapi } from '/apiwidget/esm/${notifications.toolbarapi.uuid}'
+        import { APIWidget } from '/static/js/widget.mjs?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'
+        let wsapi = new APIWidget("{{notifications.toolbarapi.uuid}}")
 
         var totalNotifications = 0;
 

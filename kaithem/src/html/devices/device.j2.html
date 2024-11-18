@@ -473,10 +473,10 @@
 </main>
 
 <script type="module">
+    import { APIWidget } from '/static/js/widget.mjs?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'
 
-
-    import { api as _generic_ws_channel } from '/apiwidget/esm/{{obj._generic_ws_channel.uuid}}'
-    import { api as _admin_ws_channel } from '/apiwidget/esm/{{obj._admin_ws_channel.uuid}}'
+    let _generic_ws_channel = new APIWidget("{{obj._generic_ws_channel.uuid}}")
+    let _admin_ws_channel = new APIWidget("{{obj._admin_ws_channel.uuid}}")
 
     window._generic_ws_channel = _generic_ws_channel
 

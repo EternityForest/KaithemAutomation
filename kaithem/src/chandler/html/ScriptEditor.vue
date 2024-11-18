@@ -171,7 +171,7 @@ p.small {
                         </div>
                         <div style="align-self:stretch;">
 
-                            <button class="action" style="align-self:stretch;" :disabled="disabled" v-on:click="i[1].push(['pass']); $emit('update:modelValue', rules)"><b>Add
+                            <button class="action" style="align-self:stretch; flex-grow: 1;" :disabled="disabled" v-on:click="i[1].push(['pass']); $emit('update:modelValue', rules)"><b>Add
                                     Action</b></button>
                         </div>
 

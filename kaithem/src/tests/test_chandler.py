@@ -772,11 +772,9 @@ def test_cue_logic_plugin():
     assert s2.cue.name == "default"
     assert s2.entered_cue == 0
 
-    s.cues["default"].setRules(
-        [
-            ["cue.enter", [["foo_command", "test_val"]]],
-        ],
-    )
+    s.cues["default"].rules = [
+        ["cue.enter", [["foo_command", "test_val"]]],
+    ]
 
     core.wait_frame()
     core.wait_frame()
