@@ -6,14 +6,12 @@
 
 ![Offline First](badges/offline-first.png)
 ![GPLv3 Badge](badges/gpl-v3.png)
+![Single Board Computer badge](badges/sbc.png)
 
 ![Pytest](badges/pytest.png)
 ![Ruff](badges/ruff.png)
 ![Poetry](badges/poetry.png)
 
-![DMX](badges/dmx.png)
-![Single Board Computer badge](badges/sbc.png)
-![Pre-commit Badge](badges/pre-commit.png)
 
 > Amidst the mists and fiercest frosts,\
 > with stoutest wrists and loudest boasts,\
