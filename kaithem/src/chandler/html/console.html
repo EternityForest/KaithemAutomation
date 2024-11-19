@@ -724,6 +724,7 @@
                                     <summary>Channels</summary>
                                     <div class="scroll nomargin h-24rem">
                                         <h-fader :i="i[1]"
+                                             :groupid="groupname"
                                             :chinfo="channelInfoForUniverseChannel(i[1].u,i[1].ch)"
                                             :currentcueid="currentcueid"
                                             :showdelete="grouptab=='channels'"
@@ -779,6 +780,7 @@
                                     <div
                                         class="scroll nomargin h-24rem padding-bottom">
                                         <h-fader :i="i[1]"
+                                            :groupid="groupname"
                                             :chinfo="channelInfoForUniverseChannel(i[1].u,i[1].ch)"
                                             :currentcueid="currentcueid"
                                             :showdelete="grouptab=='channels'"

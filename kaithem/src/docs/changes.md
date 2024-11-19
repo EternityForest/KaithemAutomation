@@ -24,6 +24,7 @@ It does not affect anything not using custom HTML/JS
 - :lipstick: Make cue notes more visible
 - :lipstick: Less log clouter for notifications
 - :sparkles: ArduinoCogs support improved.
+- :bug: i/o error checker stalling bug
 
 #### :boom: BREAKING
 

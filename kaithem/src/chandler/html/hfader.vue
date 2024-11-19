@@ -6,7 +6,7 @@
 
         <div>
             <b v-if="chinfo" class="noselect" v-bind:title="'Actual channel:' + i.u + ':' + i.ch">{{ i.ch }}</b>
-            <button v-if="showdelete" v-on:click="rmValFromCue(i.u, i.ch)"><i class="mdi mdi-delete"></i>Remove</button>
+            <button v-if="showdelete" v-on:click="rmValFromCue(currentcueid,i.u, i.ch)"><i class="mdi mdi-delete"></i>Remove</button>
         </div>
 
         <span v-if="typeof (i.v) == 'string'">
@@ -86,10 +86,8 @@ var hfaderdata =
         return ({min:0, max:255, name:""})
     },
 
-
-    'rmValFromCue': function (universe, ch) {
-        window.api_link.send(['scv', appData.groupcues[appData.groupname]
-        [appData.selectedCues[appData.groupname]],
+    'rmValFromCue': function (cue, universe, ch) {
+        window.api_link.send(['scv', cue,
             universe,
             ch,
             null
@@ -101,7 +99,7 @@ module.exports = {
     template: '#h-fader',
     //I is a data object having u,ch, and v, the universe channel and value.
     //Chinfo is the channel info list from the fixtues that you get with channelInfoForUniverseChannel
-    props: ['i', 'chinfo', 'currentcueid', 'showdelete'],
+    props: ['i', 'chinfo', 'currentcueid', 'groupid','showdelete'],
     data: function () {
         return (hfaderdata)
     },

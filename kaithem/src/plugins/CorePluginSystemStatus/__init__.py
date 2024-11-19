@@ -335,10 +335,20 @@ errtag.max = 1
 errtag.subtype = "bool"
 errtag.expose("view_status")
 
+first_j = [True]
+
 
 @scheduling.scheduler.every_hour
 def checkDmesg():
-    t = subprocess.check_output(["journalctl", "-k"]).decode()
+    if first_j[0]:
+        first_j[0] = False
+        t = subprocess.check_output(
+            ["journalctl", "-k", "--no-pager", "-p", "4"]
+        ).decode()
+    else:
+        t = subprocess.check_output(
+            ["journalctl", "-k", "--no-pager", "-e", "-p", "4"]
+        ).decode()
     if "i/o error" in t.lower():
         errtag.value = 1
 
