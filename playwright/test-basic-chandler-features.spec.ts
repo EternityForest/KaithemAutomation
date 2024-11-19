@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { sleep, login, logout, makeModule, deleteModule, makeTagPoint} from './util';
+import { sleep, login, logout, makeModule, deleteModule, makeTagPoint } from './util';
 
 
 
@@ -11,7 +11,7 @@ test('test', async ({ page }) => {
     test.setTimeout(2400000);
 
     await login(page);
-    let module="PlaywrightChandlerTestModule";
+    let module = "PlaywrightChandlerTestModule";
     //Make module
     makeModule(page, module);
 
@@ -50,7 +50,7 @@ test('test', async ({ page }) => {
     await page.getByRole('button', { name: 'Add Rule' }).click();
     await page.getByRole('button', { name: 'goto =GROUP' }).click();
 
-    
+
     // Action params editor has a cue field
     // When we go into default cue it should redirect to c2
     await page.getByLabel('cue', { exact: true }).fill('c2');
@@ -74,7 +74,7 @@ test('test', async ({ page }) => {
     // Go in c3, check we're there
     await page.getByRole('row', { name: 'c3' }).getByRole('button', { name: 'Go', exact: true }).click();
     await expect(page.getByRole('article')).toContainText('c3');
-    
+
     page.once('dialog', dialog => {
         console.log(`Dialog message: ${dialog.message()}`);
         dialog.dismiss().catch(() => { });
@@ -89,7 +89,7 @@ test('test', async ({ page }) => {
     await page.getByTestId('cue-text-dialog-button').click();
     await page.getByTestId('cuetext').fill('cuetext');
     await page.getByTestId("close-cue-text").click();
-    
+
     // Make a new cue from the alert sound    
     await page.getByTestId("cue-media-dialog-button").click();
     await page.getByRole('list').getByText('Refresh').click();
@@ -108,8 +108,8 @@ test('test', async ({ page }) => {
     await page.getByRole('cell', { name: '0.01' }).getByRole('combobox').fill('0');
     await page.getByPlaceholder('New cue name').click();
     await page.getByRole('row', { name: 'alert' }).getByRole('button', { name: 'Go', exact: true }).click();
-   
-   
+
+
     //Select the group box in the sidebar that tells us what the cue is
     await expect(page.getByText('tst1alert')).toContainText('alert');
     // Channel adding tab
@@ -131,13 +131,13 @@ test('test', async ({ page }) => {
 
     // Click elsewhere to make dropdown suggestions box go
     await page.getByTestId("add-rm-fixtures-button").click();
-    
+
     await page.getByRole('button', { name: 'Normal View' }).click();
 
     await page.locator('summary').filter({ hasText: 'Channels' }).click();
     await page.locator('article').filter({ hasText: 'dmx' }).getByRole('slider').fill('130');
     await expect(page.getByRole('main')).toContainText('130.0');
-    
+
     // Make a tag point
     await makeTagPoint(page, module, 'test_chandler_tag');
 
@@ -156,9 +156,9 @@ test('test', async ({ page }) => {
     await page.locator('div').filter({ hasText: /^Tag Add Channel to Cue$/ }).getByRole('button').click();
     await page.locator('summary').filter({ hasText: 'Channels' }).click();
     await page.locator('article').filter({ hasText: '/' }).getByRole('slider').fill('130');
-    
+
     await page.getByRole('button', { name: 'Go', exact: true }).first().click();
-    
+
 
     // Go back and make sure it actually worked
     await page.goto('http://localhost:8002/tagpoints')
@@ -168,7 +168,22 @@ test('test', async ({ page }) => {
     await page.goto('http://localhost:8002/tagpoints')
 
     await expect(page.getByRole('row', { name: '/test_chandler_tag' })).toContainText('130');
-    
+
+
+    await page.goto('http://localhost:8002/chandler/editor/PlaywrightChandlerTestModule:board1');
+
+    await page.getByRole('button', { name: 'tst1' }).click();
+    await page.getByTestId('add-rm-fixtures-button').click();
+    await page.getByText('Channels').click();
+
+    await expect(page.getByRole('heading', { name: '/test_chandler_tag' })).toHaveCount(1);
+
+    await page.getByRole('button', { name: '󰆴 Remove' }).click();
+    await page.goto('http://localhost:8002/chandler/editor/PlaywrightChandlerTestModule:board1');
+    await page.getByRole('button', { name: 'tst1' }).click();
+
+    await expect(page.getByRole('heading', { name: '/test_chandler_tag' })).toHaveCount(0);
+
 
     await deleteModule(page, module);
     await logout(page);
