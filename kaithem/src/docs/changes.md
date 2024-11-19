@@ -23,6 +23,7 @@ It does not affect anything not using custom HTML/JS
 - :sparkles: At boot, logs changes in the environment like installed system packages.
 - :lipstick: Make cue notes more visible
 - :lipstick: Less log clouter for notifications
+- :sparkles: ArduinoCogs support improved.
 
 #### :boom: BREAKING
 
