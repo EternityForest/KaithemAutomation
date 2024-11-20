@@ -28,7 +28,7 @@ def admin_url_for_file_resource(module: str, resource: str) -> str: ...
 
 ## delete_resource
 
-[Show source in modules.py:45](../../../api/modules.py#L45)
+[Show source in modules.py:54](../../../api/modules.py#L54)
 
 #### Signature
 
@@ -84,7 +84,7 @@ def insert_resource(module: str, resource: str, resourceData: ResourceDictType):
 
 ## list_resources
 
-[Show source in modules.py:49](../../../api/modules.py#L49)
+[Show source in modules.py:58](../../../api/modules.py#L58)
 
 #### Signature
 
@@ -96,7 +96,7 @@ def list_resources(module: str) -> list[str]: ...
 
 ## scan_file_resources
 
-[Show source in modules.py:54](../../../api/modules.py#L54)
+[Show source in modules.py:63](../../../api/modules.py#L63)
 
 Scan the resources in the filedata folder for the specified module.
 Call if you directly change something, to update the UI.
@@ -111,7 +111,7 @@ def scan_file_resources(module: str): ...
 
 ## update_resource
 
-[Show source in modules.py:35](../../../api/modules.py#L35)
+[Show source in modules.py:37](../../../api/modules.py#L37)
 
 Update an existing resource
 

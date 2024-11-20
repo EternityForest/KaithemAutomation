@@ -38,7 +38,7 @@ class SimpleDialog:
 
 ### SimpleDialog().begin_section
 
-[Show source in dialogs.py:157](../../../../api/web/dialogs.py#L157)
+[Show source in dialogs.py:162](../../../../api/web/dialogs.py#L162)
 
 #### Signature
 
@@ -48,7 +48,7 @@ def begin_section(self, title: str): ...
 
 ### SimpleDialog().checkbox
 
-[Show source in dialogs.py:173](../../../../api/web/dialogs.py#L173)
+[Show source in dialogs.py:178](../../../../api/web/dialogs.py#L178)
 
 Add a checkbox
 
@@ -63,7 +63,7 @@ def checkbox(
 
 ### SimpleDialog().code_editor
 
-[Show source in dialogs.py:205](../../../../api/web/dialogs.py#L205)
+[Show source in dialogs.py:226](../../../../api/web/dialogs.py#L226)
 
 Add a file upload input. Name it 'file' and name an input 'filename'  to auto link them.
 
@@ -83,7 +83,7 @@ def code_editor(
 
 ### SimpleDialog().end_section
 
-[Show source in dialogs.py:163](../../../../api/web/dialogs.py#L163)
+[Show source in dialogs.py:168](../../../../api/web/dialogs.py#L168)
 
 #### Signature
 
@@ -93,7 +93,7 @@ def end_section(self): ...
 
 ### SimpleDialog().file_input
 
-[Show source in dialogs.py:189](../../../../api/web/dialogs.py#L189)
+[Show source in dialogs.py:206](../../../../api/web/dialogs.py#L206)
 
 Add a file upload input. Name it 'file' and name an input 'filename'  to auto link them.
 
@@ -132,7 +132,7 @@ def name_to_title(self, s: str): ...
 
 ### SimpleDialog().render
 
-[Show source in dialogs.py:263](../../../../api/web/dialogs.py#L263)
+[Show source in dialogs.py:315](../../../../api/web/dialogs.py#L315)
 
 The form will target the given URL and have all the keys and values in hidden inputs
 
@@ -147,7 +147,7 @@ def render(
 
 ### SimpleDialog().selection
 
-[Show source in dialogs.py:222](../../../../api/web/dialogs.py#L222)
+[Show source in dialogs.py:254](../../../../api/web/dialogs.py#L254)
 
 Add a select element
 
@@ -167,7 +167,7 @@ def selection(
 
 ### SimpleDialog().submit_button
 
-[Show source in dialogs.py:251](../../../../api/web/dialogs.py#L251)
+[Show source in dialogs.py:291](../../../../api/web/dialogs.py#L291)
 
 Add a submit button
 
