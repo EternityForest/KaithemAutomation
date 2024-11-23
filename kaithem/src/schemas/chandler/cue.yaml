@@ -7,6 +7,12 @@ properties:
     type: integer
     description: The actual value times 1000, because we use fixed point rather than deal with decimals.
 
+  schedule_at:
+    type: string
+    default: ''
+    description: Natural language recurring schedule, like 'every 2 hours'
+
+
   shortcut:
     type: string
     default: ''

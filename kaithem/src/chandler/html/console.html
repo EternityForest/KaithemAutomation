@@ -507,6 +507,11 @@
                                     style="width:6em; margin: 6px"
                                     v-on:dblclick="promptsetnumber(slotProps.i[1].id)">{{slotProps.i[1].number}}</span>
 
+                                <span v-if="slotProps.i[1].scheduledFor">
+                                    <i class="mdi mdi-calendar-clock"></i>
+                                    {{formatTime(slotProps.i[1].scheduledFor)}}
+                                    <i class="mdi mdi-arrow-right-thin"></i>
+                                </span>
 
 
                                 <span v-if="slotProps.i[1].provider"
@@ -1238,11 +1243,21 @@
                                                     class="mdi mdi-arrow-right-circle-outline"></i>
                                                 Trigger Shortcut</span>
                                             <input :disabled="no_edit"
+                                                type="text"
                                                 list="shortcuts"
                                                 title="When entering this cue, trigger the shortcut in other groups"
                                                 size="8"
                                                 v-on:change="setCueProperty(currentcueid,'triggerShortcut', $event.target.value)"
                                                 v-model="currentcue.triggerShortcut">
+                                        </label>
+
+                                        <label><span><i
+                                                    class="mdi mdi-clock-outline"></i>
+                                                    Schedule At</span>
+                                            <input :disabled="no_edit"
+                                                type="text"
+                                                v-on:change="setCueProperty(currentcueid,'scheduleAt', $event.target.value)"
+                                                v-model="currentcue.scheduleAt">
                                         </label>
                                     </p>
                                     <p>
@@ -2017,7 +2032,6 @@
 
 
 
-<script src="/static/js/thirdparty/strftime-min.js"></script>
 <script src="/static/js/thirdparty/vue3-sfc-loader.js"></script>
 <script type="module">
     import '/chandler/static/console.js?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61';
