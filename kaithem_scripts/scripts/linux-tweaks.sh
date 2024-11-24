@@ -69,11 +69,15 @@ EOF
 
 
 #raspi-config nonint do_ssh 0
+if command -v raspi-config &> /dev/null; then
+echo "Enabling I2C and SPI"
 ! raspi-config nonint do_spi 0
 ! raspi-config nonint do_i2c 0
+echo "Enabling camera"
 ! raspi-config nonint do_camera 0
+echo "Enabling overscan"
 ! raspi-config nonint do_overscan 1
-! raspi-config nonint do_memory_split 128
+fi
 
 # Systemd all the way
 ! sudo apt-get -y purge rsyslog
@@ -89,9 +93,17 @@ sudo systemctl disable apt-daily.service
 
 # Remove SSH warning
 
-! rm -rf /etc/profile.d/sshpwd.sh
-! rm -rf /etc/xdg/lxsession/LXDE-pi/sshpwd.sh
-! rm -rf /etc/xdg/autostart/pprompt.desktop
+if [ -f /etc/profile.d/sshpwd.sh ]; then
+    rm -rf /etc/profile.d/sshpwd.sh
+fi
+
+if [ -f /etc/xdg/lxsession/LXDE-pi/sshpwd.sh ]; then
+    rm -rf /etc/xdg/lxsession/LXDE-pi/sshpwd.sh
+fi
+
+if [ -f /etc/xdg/autostart/pprompt.desktop ]; then
+    rm -rf /etc/xdg/autostart/pprompt.desktop
+fi
 
 
 # Howerver DO update time zones and certs
