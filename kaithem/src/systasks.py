@@ -135,7 +135,7 @@ def check_scheduler():
     rhistory = rhistory[-10:]
     global time_last_minute
     if time_last_minute:
-        if time.time() - (time_last_minute) < 58:
+        if time.monotonic() - (time_last_minute) < 58:
             messagebus.post_message(
                 "/system/notifications/warnings",
                 """Kaithem has detected a scheduled event running
@@ -144,7 +144,34 @@ def check_scheduler():
                   after high load. History:"""
                 + repr(rhistory),
             )
-    time_last_minute = time.time()
+    time_last_minute = time.monotonic()
+
+
+offset = time.time() - time.monotonic()
+
+
+@scheduling.scheduler.every_minute
+def check_time_set():
+    global offset
+    n = time.time() - time.monotonic()
+    if abs(n - offset) > 20:
+        messagebus.post_message(
+            "/system/notifications/warnings",
+            f"System clock has been adjusted by {n - offset} seconds",
+        )
+    elif abs(n - offset) > 2:
+        messagebus.post_message(
+            "/system/notifications",
+            f"System clock is has been adjusted by {n - offset} seconds",
+        )
+
+    if abs(n - offset) > 1:
+        messagebus.post_message(
+            "/system/time_adjusted",
+            f"System clock has been adjusted by {n - offset} seconds",
+        )
+
+    offset = n
 
 
 @scheduling.scheduler.every_minute
