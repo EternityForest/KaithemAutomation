@@ -63,7 +63,7 @@ slots = list(cue_schema["properties"].keys()) + [
     "inherit",
     "onEnter",
     "onExit",
-    "_scheduler_object",
+    "scheduler_object",
     "_scheduled_func",
     "_provider",
     "__weakref__",
@@ -247,7 +247,7 @@ class Cue:
 
         # Natural language recurring start tim
         self._schedule_at: str = ""
-        self._scheduler_object: scheduling.Event | None = None
+        self.scheduler_object: scheduling.Event | None = None
         self._scheduled_func: Callable[..., Any] | None = None
 
         if id:
@@ -513,11 +513,11 @@ class Cue:
         s = False
         try:
             val = self.schedule_at
-            x = self._scheduler_object
+            x = self.scheduler_object
 
             if x:
                 scheduling.scheduler.remove(x)
-                self._scheduler_object = None
+                self.scheduler_object = None
 
             # Sanity check
             if time.time() > 1732341365:
@@ -539,7 +539,7 @@ class Cue:
                             except Exception:
                                 print(traceback.format_exc())
 
-                        self._scheduler_object = scheduling.scheduler.schedule(
+                        self.scheduler_object = scheduling.scheduler.schedule(
                             f, a2, True
                         )
                         self._scheduled_func = f
@@ -554,6 +554,14 @@ class Cue:
                     g.event("error", f"Failed to schedule {self._schedule_at}")
             except Exception:
                 print(traceback.format_exc())
+
+        try:
+            g = self.getGroup()
+            if g:
+                g.find_next_scheduled_cue()
+        except Exception:
+            logging.exception("Failed to find next scheduled cue")
+            print(traceback.format_exc())
 
         self.push()
 
@@ -731,8 +739,8 @@ class Cue:
                 self.label_image
             ),
             "provider": self.provider,
-            "scheduled_for": self._scheduler_object.time
-            if self._scheduler_object
+            "scheduled_for": self.scheduler_object.time
+            if self.scheduler_object
             else None,
         }
 

@@ -16,9 +16,13 @@ if TYPE_CHECKING:
 
 logger = structlog.get_logger()
 
+# TODO Must be called under slow_group_lock_context,
+# Add formal restriction
+
 
 def get_schedule_jump_point(group: groups.Group) -> None | tuple[str, float]:
     """
+
     Get a cue name and a timestamp to jump to, representing the most recent
     time-based cue change that would have happened in the past if we were
     active to run it.

@@ -240,6 +240,15 @@
                                     </div>
                                     <cue-countdown :group="i[1]" :cue="cuemeta[i[1].cue]"></cue-countdown>
 
+                                    <div class="w-full flex"
+                                        v-if="i[1].active && i[1].nextScheduledCue">
+                                        <span><i class="mdi mdi-calendar-clock"></i>
+                                            {{formatTime(i[1].nextScheduledCue[1])}}<i
+                                                class="mdi mdi-arrow-right"></i>
+                                            {{i[1].nextScheduledCue[0]}}
+                                        </span>
+                                    </div>
+
                                     <small v-if="i[1].active&&(cuemeta[i[1].cue].next||cuemeta[i[1].cue].defaultNext)">
                                         Next: {{(cuemeta[i[1].cue].next||cuemeta[i[1].cue].defaultNext||'').split('?')[0]}}
                                     </small>
@@ -403,7 +412,7 @@
 
 
 <script type="module">
-    import {appData, appMethods, appComputed,initChandlerVueModel} from "../static/boardapi.mjs?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61";
+    import { appData, appMethods, appComputed, initChandlerVueModel } from "../static/boardapi.mjs?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61";
 
     appData.boardname = window.location.pathname.split('/')[3]
     document.title = appData.boardname
@@ -462,8 +471,8 @@
             }
         }).mount("#app")
 
-const boardname = window.location.pathname.split('/')[3];
-initChandlerVueModel(boardname,vueapp)
+    const boardname = window.location.pathname.split('/')[3];
+    initChandlerVueModel(boardname, vueapp)
 </script>
 
 <%include file="/pagefooter.html" />

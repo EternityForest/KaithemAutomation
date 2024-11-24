@@ -463,6 +463,8 @@ class Group:
         # The list of cues as an actual list that is maintained sorted by number
         self.cues_ordered: list[Cue] = []
 
+        self.next_scheduled_cue: Cue | None = None
+
         if cues:
             for j in cues:
                 Cue(self, name=j, **cues[j])
@@ -572,6 +574,32 @@ class Group:
         workers.do(f)
 
         workers.do(self.scan_cue_providers)
+
+    @slow_group_lock_context.object_session_entry_point
+    def find_next_scheduled_cue(self):
+        now = time.time()
+
+        t = 10**20
+        sc = self.next_scheduled_cue
+
+        if sc:
+            so = sc.scheduler_object
+            if so:
+                t2 = so.time
+                if t2 > now and t2 < t:
+                    t = t2
+
+        for i in self.cues:
+            c = self.cues[i]
+
+            so = c.scheduler_object
+            if so:
+                t2 = so.time
+                if t2 > now and t2 < t:
+                    t = t2
+                    sc = c
+
+        self.next_scheduled_cue = sc
 
     def check_error_codes(self):
         if self.error_codes:
@@ -865,7 +893,9 @@ class Group:
             )
 
         core.add_data_pusher_to_all_boards(
-            lambda s: s.pushMeta(self.id, statusOnly=statusOnly, keys=keys)
+            lambda s: s.push_group_meta(
+                self.id, statusOnly=statusOnly, keys=keys
+            )
         )
 
     @slow_group_lock_context.object_session_entry_point
@@ -933,6 +963,7 @@ class Group:
 
         return random.choices(names, weights=weights)[0]
 
+    @slow_group_lock_context.required
     def _parseCueName(self, cue_name: str) -> tuple[str, float | int]:
         """
         Take a raw cue name and find an actual matching cue. Handles things like shuffle
@@ -1239,6 +1270,10 @@ class Group:
 
         if self.cue.name == "__setup__":
             self.goto_cue("default", sendSync=False)
+
+        # Suppose we manually enter a scheduled cue, we don't want it to re-enter
+        # At that time it was already scheduled
+        self.cue.schedule()
 
     def preload_next_cue_sound(self):
         # Preload the next cue's sound if we know what it is

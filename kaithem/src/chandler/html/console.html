@@ -221,8 +221,18 @@
                                 :cue="cuemeta[i[1].cue]"></cue-countdown>
                             <small><span
                                     v-if="(i[1].active && (''+cuemeta[i[1].cue].length).indexOf('@')>-1)"><i
-                                        class="mdi mdi-clock-outline"></i>{{cuemeta[i[1].cue].length.substring(1)}}</span></small>
+                                        class="mdi mdi-clock-end"></i>{{cuemeta[i[1].cue].length.substring(1)}}</span></small>
                         </div>
+
+                        <div class="w-full flex"
+                            v-if="i[1].active && i[1].nextScheduledCue">
+                            <span><i class="mdi mdi-calendar-clock"></i>
+                                {{formatTime(i[1].nextScheduledCue[1])}}<i
+                                    class="mdi mdi-arrow-right"></i>
+                                {{i[1].nextScheduledCue[0]}}
+                            </span>
+                        </div>
+
 
                         <footer>
                             <span
@@ -385,7 +395,8 @@
 
 
         <preset-editing-dialog :presets="presets" :no_edit="no_edit"
-            :updatepreset="updatePreset" :getpresetimage="getPresetImage"></preset-editing-dialog>
+            :updatepreset="updatePreset"
+            :getpresetimage="getPresetImage"></preset-editing-dialog>
 
 
 
@@ -413,8 +424,7 @@
             :groupmeta="groupmeta" :groupcues="groupcues"
             :editinggroup="editingGroup" :availablecommands="availableCommands"
             :availabletags="availableTags" :no_edit="no_edit"
-            :setcueproperty="setCueProperty"
-            :unixtime="unixtime">
+            :setcueproperty="setCueProperty" :unixtime="unixtime">
 
         </cue-logic-dialog>
 
@@ -507,17 +517,16 @@
                                     style="width:6em; margin: 6px"
                                     v-on:dblclick="promptsetnumber(slotProps.i[1].id)">{{slotProps.i[1].number}}</span>
 
-                                <span v-if="slotProps.i[1].scheduledFor">
-                                    <i class="mdi mdi-calendar-clock"></i>
-                                    {{formatTime(slotProps.i[1].scheduledFor)}}
-                                    <i class="mdi mdi-arrow-right-thin"></i>
-                                </span>
 
 
                                 <span v-if="slotProps.i[1].provider"
                                     class="mdi mdi-import"></span>
 
                                 <span>{{slotProps.i[1].name.slice(0,64)}}</span>
+                                <span v-if="slotProps.i[1].scheduledFor">
+                                    <i class="mdi mdi-calendar-clock"></i>
+                                    {{formatTime(slotProps.i[1].scheduledFor)}}
+                                </span>
 
                                 <span title="Checkpoint Cue"
                                     v-if="slotProps.i[1].checkpoint"
@@ -728,8 +737,7 @@
                                     data-testid="details-fixture-channels-summary">
                                     <summary>Channels</summary>
                                     <div class="scroll nomargin h-24rem">
-                                        <h-fader :i="i[1]"
-                                             :groupid="groupname"
+                                        <h-fader :i="i[1]" :groupid="groupname"
                                             :chinfo="channelInfoForUniverseChannel(i[1].u,i[1].ch)"
                                             :currentcueid="currentcueid"
                                             :showdelete="grouptab=='channels'"
@@ -784,8 +792,7 @@
                                     <summary>Channels</summary>
                                     <div
                                         class="scroll nomargin h-24rem padding-bottom">
-                                        <h-fader :i="i[1]"
-                                            :groupid="groupname"
+                                        <h-fader :i="i[1]" :groupid="groupname"
                                             :chinfo="channelInfoForUniverseChannel(i[1].u,i[1].ch)"
                                             :currentcueid="currentcueid"
                                             :showdelete="grouptab=='channels'"
@@ -1243,17 +1250,19 @@
                                                     class="mdi mdi-arrow-right-circle-outline"></i>
                                                 Trigger Shortcut</span>
                                             <input :disabled="no_edit"
-                                                type="text"
-                                                list="shortcuts"
+                                                type="text" list="shortcuts"
                                                 title="When entering this cue, trigger the shortcut in other groups"
                                                 size="8"
                                                 v-on:change="setCueProperty(currentcueid,'triggerShortcut', $event.target.value)"
                                                 v-model="currentcue.triggerShortcut">
                                         </label>
 
+
+                                    </p>
+                                    <p>
                                         <label><span><i
-                                                    class="mdi mdi-clock-outline"></i>
-                                                    Schedule At</span>
+                                                    class="mdi mdi-calendar-clock"></i>
+                                                Schedule At</span>
                                             <input :disabled="no_edit"
                                                 type="text"
                                                 v-on:change="setCueProperty(currentcueid,'scheduleAt', $event.target.value)"
@@ -1272,7 +1281,7 @@
                                                 v-model="currentcue.fadeIn">
                                         </label>
                                         <label><span><i
-                                                    class="mdi mdi-clock-outline"></i>
+                                                    class="mdi mdi-clock-end"></i>
                                                 Length</span>
                                             <input :disabled="no_edit"
                                                 v-on:change="setlength(currentcueid,$event.target.value);debugCueLen($event.target.value)"
@@ -1284,7 +1293,7 @@
                                     <p>
                                         <label><span><i
                                                     class="mdi mdi-dice-multiple-outline"></i>
-                                                Randomize Length</span>
+                                                Vary Length</span>
                                             <input :disabled="no_edit"
                                                 type="number"
                                                 v-on:change="setCueProperty(currentcueid,'lengthRandomize',$event.target.value)"
