@@ -1,21 +1,17 @@
 <style scoped></style>
 
-<template id="h-fader">
+<template>
     <div popover id="presetForFixture" v-if="fixture" class="card paper flex-col"
         style="background: var(--alt-control-bg); position: fixed; width:90vw; height: 90vh; top:5vh; left:5vw; z-index: 100">
         <header>Presets for {{ fixture }}</header>
-        <button class="w-full nogrow" popovertarget="presetForFixture"
-            popovertargetaction="hide">
+        <button class="w-full nogrow" popovertarget="presetForFixture" popovertargetaction="hide">
             <i class="mdi mdi-close"></i>Close
         </button>
         <div class="flex-row nogrow max-h-12rem scroll" style="align-items:flex-start;align-content:flex-start">
             <template v-for="ps of recentPresets.toReversed()">
-                <button
-                    v-if="!ps.includes('@') || ps.endsWith(fixture) || ps.endsWith('@' +fixturetype)"
-                    @click="setFixturePreset(currentcueid, fixture, ps);"
-                    :disabled="no_edit" class="preset-button"
-                    popovertarget="presetForFixture"
-                    popovertargetaction="hide"></button>
+                <button v-if="!ps.includes('@') || ps.endsWith(fixture) || ps.endsWith('@' + fixturetype)"
+                    @click="setFixturePreset(currentcueid, fixture, ps);" :disabled="no_edit" class="preset-button"
+                    popovertarget="presetForFixture" popovertargetaction="hide">
                     <img v-if="getpresetimage(ps)"
                         :src="'../WebMediaServer?file=' + encodeURIComponent(getpresetimage(ps))">
                     <div>{{ ps.split('@')[0] }}</div>
@@ -33,12 +29,9 @@
         <div class="flex-row grow scroll"
             style="background: var(--alt-control-bg); align-items:flex-start;align-content:flex-start">
             <button
-                v-for="ps of dictView(presets, [], function (k, v) { if ((((!k.includes('@')) || k.endsWith(fixture) || k.endsWith('@' +fixturetype))) && k.includes(presetFilter)) { return 1 } })"
-                @click="setFixturePreset(currentcueid, fixture, ps[0]);"
-                :disabled="no_edit" class="preset-button"
-                popovertarget="presetForFixture"
-                popovertargetaction="hide"
-                >
+                v-for="ps of dictView(presets, [], function (k, v) { if ((((!k.includes('@')) || k.endsWith(fixture) || k.endsWith('@' + fixturetype))) && k.includes(presetFilter)) { return 1 } })"
+                @click="setFixturePreset(currentcueid, fixture, ps[0]);" :disabled="no_edit" class="preset-button"
+                popovertarget="presetForFixture" popovertargetaction="hide">
                 <img v-if="getpresetimage(ps[0])"
                     :src="'../WebMediaServer?file=' + encodeURIComponent(getpresetimage(ps[0]))">
 
@@ -47,17 +40,16 @@
         </div>
 
     </div>
-
 </template>
 
-
-<script type="module">
-import { dictView } from  "./utils.mjs?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61";
-var data =
-{
+<script>
+import {
+    dictView
+} from "./utils.mjs?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61";
+var data = {
 
     'recentPresets': [],
-    'presetFilter':'',
+    'presetFilter': '',
 
     'setFixturePreset': function (sc, fix, preset) {
         const deleteIndex = this.recentPresets.indexOf(preset);
@@ -128,5 +120,4 @@ module.exports = {
         dictView: dictView
     }
 }
-
 </script>
