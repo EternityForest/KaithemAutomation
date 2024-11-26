@@ -102,7 +102,7 @@
     <section class="window padding w-full">
 
         {% if not hasattr(obj,'_kaithem_is_subdevice') %}
-        <form method="post" action="/devices/discoveryStep?type={{ url(data.get('type','')) }}&devname={{ url(name) }}">
+        <form method="post" action="/devices/discoveryStep/{{ url(data.get('type','')) }}/{{ url(name) }}">
             <button type="submit">Search for auto-setup configurations</button>
         </form>
         {% endif %}

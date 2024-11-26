@@ -4,6 +4,7 @@ Change Log
 ### 0.86.3
 
 - :bug: Fix preset edting dialog
+- :bug: Fix device interactive discovery
 
 ### 0.86.2
 

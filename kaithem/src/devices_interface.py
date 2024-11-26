@@ -225,7 +225,12 @@ def discoveryStep(type, devname, **kwargs):
     )
 
     dt = pages.get_template("devices/discoverstep.html").render(
-        data=d, current=c, name=devname, obj=obj
+        data=d,
+        current=c,
+        name=devname,
+        obj=obj,
+        parent_module=obj.parent_module if obj else None,
+        parent_resource=obj.parent_resource if obj else None,
     )
     return Response(
         dt, mimetype="text/html", headers={"X-Frame-Options": "SAMEORIGIN"}
