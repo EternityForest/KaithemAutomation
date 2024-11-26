@@ -816,7 +816,7 @@ let appData = {
     {
         'blah': { 'type': 'enttec', 'interface': 'xyz' }
     },
-    'fixtureClasses': { 'dfjlkdjf': [] },
+    'fixtureClasses': {},
 
     //Filter which groups are shown in the list
     'groupfilter': '',
@@ -868,6 +868,25 @@ let appData = {
     },
 
 
+    'lookupFixtureColorProfile': function (f) {
+        // If fixture has no color profile, the profile is just the type
+        let x = ''
+        for (var i in this.fixtureAssignments) {
+            if (("@" + this.fixtureAssignments[i].name) == f) {
+                x = this.fixtureAssignments[i].type;
+                break;
+            }
+        }
+        if (x.length > 0) {
+            let c = this.fixtureClasses[x]
+            if (c) {
+                if(c.color_profile && c.color_profile.length > 0) {
+                    return c.color_profile
+                }
+            }
+        }
+        return x;
+    },
     'getfixtureassg': function () {
         api_link.send(['getfixtureassg'])
     },
@@ -1340,8 +1359,12 @@ function f(v) {
         vueapp.$data.fixtureClasses = v[1]
     }
     else if (c == "fixtureclass") {
-
-        old_vue_set(vueapp.$data.fixtureClasses, v[1], v[2])
+        if (v[2] == null) {
+            old_vue_delete(vueapp.$data.fixtureClasses, v[1])
+        }
+        else {
+            old_vue_set(vueapp.$data.fixtureClasses, v[1], v[2])
+        }
     }
 
     else if (c == "fixtureAssignments") {

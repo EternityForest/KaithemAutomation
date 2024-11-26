@@ -60,7 +60,7 @@ class Context:
         self._is_bottom_level = bottom_level
 
     def __repr__(self):
-        return f"<Context {self.name} active={self.active} session={self.session} exclusive={self._lock is not None}>"
+        return f"<Context {self.name} active={self.active} session={self.session} lock={self._lock}>"
 
     def precondition(self, f: Callable[[], bool]):
         self._preconditions.append(f)
@@ -227,7 +227,9 @@ class Context:
 
         if self._lock:
             if not self._lock.acquire(True, timeout=self._lock_timeout):
-                raise ContextError(f"{self.name} is locked by another thread")
+                raise ContextError(
+                    f"{self.name} is locked by another thread: {self._lock}"
+                )
 
         self._local.level += 1
         if self._is_bottom_level:

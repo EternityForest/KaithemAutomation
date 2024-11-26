@@ -338,10 +338,19 @@
             </div>
 
             <div class="tool-bar" style="padding:0.25em; border-width:2px;">
-                <p>Load Setup:</p>
+                <p>Load Setup</p>
                 <input type="file" id="setupfile">
                 <button type="button"
                     @click="uploadFileFromElement('setupfile', 'setup')"
+                    title="Upload a groups file"><i
+                        class="mdi mdi-folder-open"></i>Go</button>
+            </div>
+
+            <div class="tool-bar" style="padding:0.25em; border-width:2px;">
+                <p>Import Fixture Presets</p>
+                <input type="file" id="psfile">
+                <button type="button"
+                    @click="uploadFileFromElement('psfile', 'setup')"
                     title="Upload a groups file"><i
                         class="mdi mdi-folder-open"></i>Go</button>
             </div>
@@ -349,43 +358,18 @@
 
 
         <fixture-presets-dialog :presets="presets" :fixture="selectingPresetFor"
+            :fixtureclasses="fixtureClasses"
             :fixturetype="lookupFixtureType(selectingPresetFor)"
             :currentvals="(cuevals[currentcueid]||{})[selectingPresetFor]"
             :currentcueid="currentcueid" :getpresetimage="getPresetImage"
             :no_edit="no_edit"></fixture-presets-dialog>
 
-        <div v-if="selectingImageLabelForPreset" class="card paper flex-col"
-            popover id="presetImageLabel"
-            style="position: fixed; width:90vw; height: 90vh; top:5vh; left:5vw; z-index: 100">
-            <header>Label for {{selectingImageLabelForPreset}}</header>
-            <button @click="selectingImageLabelForPreset=null"
-                popovertargetaction="hide" class="w-full nogrow">
-                <i class="mdi mdi-close"></i>Close
-            </button>
-
-
-            <hr>
-            <input class="w-full h-2rem nogrow" type="text"
-                @change="updatePreset(selectingImageLabelForPreset,presets[selectingImageLabelForPreset])"
-                v-model="presets[selectingImageLabelForPreset].label_image">
-
-            <div style="background-color: var(--alt-control-bg);">
-                <media-browser :no_edit="no_edit" :selectfolders="false">
-                    <template v-slot="slotProps">
-                        <button
-                            v-if="slotProps.filename.endsWith('.jpg') || slotProps.filename.endsWith('.svg') || slotProps.filename.endsWith('.png') || slotProps.filename.endsWith('.gif') || slotProps.filename.endsWith('.jpeg') || slotProps.filename.endsWith('.avif')"
-                            @click="presets[selectingImageLabelForPreset].label_image=slotProps.relfilename;updatePreset(selectingImageLabelForPreset,presets[selectingImageLabelForPreset])">
-                            Use
-                        </button>
-                    </template>
-                </media-browser>
-
-            </div>
-        </div>
-
 
         <preset-editing-dialog :presets="presets" :no_edit="no_edit"
-            :updatepreset="updatePreset" :getpresetimage="getPresetImage"></preset-editing-dialog>
+            :updatepreset="updatePreset" :getpresetimage="getPresetImage"
+            :deletepreset="deletePreset" :copypreset="copyPreset"
+            :renamepreset="renamePreset"
+            ></preset-editing-dialog>
 
 
 
@@ -396,9 +380,10 @@
         </dialog>
 
 
-        <div v-if="iframeDialog" class="card modal paper flex-col" popover
+        <div popover class="card modal paper flex-col"
             id="iframeDialog"
-            style="background: var(--alt-control-bg); position: fixed; width:90vw; max-width: 48rem; height: 90vh; top:5vh; left:5vw; z-index: 100">
+            style="background: var(--alt-control-bg); position: fixed; width:90vw; max-width: 48rem; height: 90vh; top:5vh; left:5vw; z-index: 100"
+            >
             <header>
                 <button @click="iframeDialog=null" popovertarget="iframeDialog"
                     popovertargetaction="hide" class="w-full nogrow">
@@ -763,7 +748,7 @@
                                                 For
                                                 This</option>
                                             <option
-                                                :value="'name@h-fa' + lookupFixtureType(fname)"
+                                                :value="'name@h-fa' + lookupFixtureColorProfile(fname)"
                                                 title="Save for use with fixtures of this type">
                                                 For Type</option>
                                         </select>

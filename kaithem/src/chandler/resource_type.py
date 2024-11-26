@@ -1,9 +1,14 @@
 import copy
 from typing import Any
 
+from scullery import messagebus
+from structlog import get_logger
+
 from kaithem.src import dialogs, modules_state
 
 from . import WebChandlerConsole, core
+
+logger = get_logger(__name__)
 
 entries: dict[tuple[str, str], WebChandlerConsole.WebConsole] = {}
 
@@ -14,11 +19,18 @@ modules_state.modulesLock.opens_before(core.cl_context)
 
 def set_save_cb(c: WebChandlerConsole.WebConsole, module: str, resource: str):
     def save(data: dict[str, Any]):
-        r = modules_state.ActiveModules[module][resource]
-        x: dict = copy.deepcopy(r)  # type: ignore
-        if not data == x.get("project", {}):
-            x["project"] = data
-            modules_state.rawInsertResource(module, resource, x)
+        try:
+            r = modules_state.ActiveModules[module][resource]
+            x: dict = copy.deepcopy(r)  # type: ignore
+            if not data == x.get("project", {}):
+                x["project"] = data
+                modules_state.rawInsertResource(module, resource, x)
+        except Exception:
+            logger.exception("Failed to save chandler project state")
+            messagebus.post_message(
+                "/system/notifications/errors/",
+                "Failed to save chandler project state",
+            )
 
     c.ml_save_callback = save
 

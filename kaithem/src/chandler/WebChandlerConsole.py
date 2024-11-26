@@ -269,6 +269,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         self.linkSend(["midiInputs", listRtmidi()])
 
         self.linkSend(["blendModes", list(blendmodes.blendmodes.keys())])
+        self.linkSend(["fixtureclasses", self.fixture_classes])
 
         sc = []
 
@@ -356,10 +357,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             return
 
         elif cmd_name == "getfixtureclasses":
-            # Send placeholder dicts for all fixture classes.
-            self.linkSend(
-                ["fixtureclasses", {i: {} for i in self.fixture_classes.keys()}]
-            )
+            self.linkSend(["fixtureclasses", self.fixture_classes])
             return
 
         elif cmd_name == "getcuemeta":
@@ -526,6 +524,9 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             if msg[2] == "setup":
                 self.cl_load_setup_file(msg[1])
 
+            if msg[3] == "import-presets":
+                self.cl_import_fixture_presets(msg[1])
+
         elif cmd_name == "addgroup":
             sc = Group(self, msg[1].strip())
             self.groups[sc.id] = sc
@@ -553,6 +554,9 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
             self.fixture_classes[msg[1]] = d
             self.cl_reload_fixture_assignment_data()
+            self.linkSend(
+                ["fixtureclass", msg[1], self.fixture_classes[msg[1]]]
+            )
 
         elif cmd_name == "setfixtureclassopz":
             x = []
@@ -604,10 +608,14 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 fix
             )
             self.cl_reload_fixture_assignment_data()
+            self.linkSend(
+                ["fixtureclass", msg[1], self.fixture_classes[msg[1]]]
+            )
 
         elif cmd_name == "rmfixtureclass":
             del self.fixture_classes[msg[1]]
             self.cl_reload_fixture_assignment_data()
+            self.linkSend(["fixtureclass", msg[1], None])
 
         elif cmd_name == "setFixtureAssignment":
             if not msg[2]["type"]:

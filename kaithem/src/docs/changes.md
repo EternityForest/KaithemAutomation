@@ -1,6 +1,10 @@
 Change Log
 ----------
 
+### 0.86.3
+
+- :bug: Fix preset edting dialog
+
 ### 0.86.2
 
 This release is all about ES modules. I've decided to pretty much completely

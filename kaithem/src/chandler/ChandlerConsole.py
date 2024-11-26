@@ -378,6 +378,7 @@ class ChandlerConsole(console_abc.Console_ABC):
         # Compatibility with a legacy typo
         if "fixures" in data:
             data["fixure_assignments"] = data["fixures"]
+
         if "fixtures" in data:
             data["fixure_assignments"] = data["fixtures"]
 
@@ -390,6 +391,25 @@ class ChandlerConsole(console_abc.Console_ABC):
             self.fixture_presets = {
                 i: from_legacy_preset_format(x[i]) for i in x
             }
+
+        self.push_setup()
+
+    def cl_import_fixture_presets(self, data_str: str):
+        data = yaml.load(data_str, Loader=yaml.SafeLoader)
+        data = snake_compat.snakify_dict_keys(data)
+
+        # Importing directly from a resource object
+        if "project" in data:
+            data = data["project"]
+            if "setup" in data:
+                data = data["setup"]
+
+        if "fixture_presets" in data:
+            x = data["fixture_presets"]
+            fp = {i: from_legacy_preset_format(x[i]) for i in x}
+
+            for i in fp:
+                self.fixture_presets[i] = fp[i]
 
         self.push_setup()
 

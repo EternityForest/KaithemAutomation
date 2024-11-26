@@ -42,7 +42,7 @@ test('test', async ({ page }) => {
 
 
 
-  await page.getByTestId("fixture-type-to-edit").fill('textfixtype');
+  await page.getByTestId("fixture-type-to-edit").selectOption('textfixtype');
   //TODO should not need to run twice
   await page.getByRole('button', { name: 'Add Channel' }).click();
   await page.getByRole('button', { name: 'Add Channel' }).click();

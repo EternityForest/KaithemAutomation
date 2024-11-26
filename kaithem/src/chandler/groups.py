@@ -2177,9 +2177,18 @@ class Group:
 
     @slow_group_lock_context.object_session_entry_point
     def refresh_lighting(self):
-        with self.lock:
-            if self.active:
-                self.lighting_manager.refresh()
+        # No idea why this deadlocked one time, the lock showed as owned by a thread
+        # that seemed to have no possible place it could have gotten it.
+        if self.lock.acquire(timeout=30):
+            try:
+                if self.active:
+                    self.lighting_manager.refresh()
+            finally:
+                self.lock.release()
+        else:
+            core.rl_log_exc(
+                f"{self.name} Unable to acquire group lock to refresh lighting: {self.lock}"
+            )
 
     def noteOn(self, ch: int, note: int, vel: float):
         self.event("midi.note:" + str(ch) + "." + number_to_note(note), vel)

@@ -11,7 +11,7 @@ appData.selectingImageLabelForPreset = null
 appData.iframeDialog = null
 
 const session_time = new Date().toISOString().slice(0, -8)
-
+window.session_time = session_time
 appData.getExcalidrawCueLink = function (group, cue) {
     return '/excalidraw-plugin/edit?module=' +
         encodeURIComponent(this.boardname.split(":")[0]) +
@@ -19,16 +19,6 @@ appData.getExcalidrawCueLink = function (group, cue) {
             "_" +
             group + "_" + cue.name + ".excalidraw.png") +
         "&callback=" + encodeURIComponent("/chandler/label_image_update_callback/cue/" + cue.id) +
-        "&ratio_guide=16_9"
-}
-
-appData.getExcalidrawPresetLink = function (preset) {
-    return '/excalidraw-plugin/edit?module=' +
-        encodeURIComponent(this.boardname.split(":")[0]) +
-        '&resource=' + encodeURIComponent("media/chandler/sketches/preset_" + this.boardname.split(":")[1] + "_" +
-            preset + "_" +
-            session_time + ".excalidraw.png") +
-        "&callback=" + encodeURIComponent("/chandler/label_image_update_callback/preset/" + this.boardname + "/" + preset) +
         "&ratio_guide=16_9"
 }
 
@@ -134,5 +124,10 @@ window.addEventListener('popstate', function (e) {
     prev = history.state
 });
 
+
+window.setIframeDialog = function (iframe) {
+    appData.iframeDialog = iframe
+}
 const boardname = window.location.pathname.split('/')[3];
+window.boardname = boardname
 initChandlerVueModel(boardname,vueapp)

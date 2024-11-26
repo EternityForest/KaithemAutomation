@@ -1,5 +1,8 @@
 <%include file="/pageheader.html"/>
 <%!import threading,sys,inspect,traceback%>
+<%!
+from kaithem.src import util
+%>
 <h1>Running Proceses</h1>
 <div class="window paper">
 <h2>Running Threads</h2>
@@ -36,7 +39,11 @@ running a function defined in <b>${i._target.__module__ if hasattr(i,'_target') 
 
 %try:
 <pre>
-${"".join(traceback.format_stack(info[i.ident]))}
+${util.saferepr("".join(traceback.format_stack(info[i.ident])))|h}
+</pre>
+<b>Locals</b>
+<pre>
+${info[i.ident].f_locals|h}
 </pre>
 %except Exception as e1:
     ${e1}
@@ -47,7 +54,7 @@ ${"".join(traceback.format_stack(info[i.ident]))}
     %endtry
 %endtry
 
-          
+
 </dd>
 %endtry
 %endfor

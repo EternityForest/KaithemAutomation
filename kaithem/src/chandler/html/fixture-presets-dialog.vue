@@ -9,7 +9,7 @@
         </button>
         <div class="flex-row nogrow max-h-12rem scroll" style="align-items:flex-start;align-content:flex-start">
             <template v-for="ps of recentPresets.toReversed()">
-                <button v-if="!ps.includes('@') || ps.endsWith(fixture) || ps.endsWith('@' + fixturetype)"
+                <button v-if="checkPresetUsablility(ps)"
                     @click="setFixturePreset(currentcueid, fixture, ps);" :disabled="no_edit" class="preset-button"
                     popovertarget="presetForFixture" popovertargetaction="hide">
                     <img v-if="getpresetimage(ps)"
@@ -29,7 +29,7 @@
         <div class="flex-row grow scroll"
             style="background: var(--alt-control-bg); align-items:flex-start;align-content:flex-start">
             <button
-                v-for="ps of dictView(presets, [], function (k, v) { if ((((!k.includes('@')) || k.endsWith(fixture) || k.endsWith('@' + fixturetype))) && k.includes(presetFilter)) { return 1 } })"
+                v-for="ps of dictView(presets, [], function (k, v) { if (checkPresetUsablility(k)) { return 1 } })"
                 @click="setFixturePreset(currentcueid, fixture, ps[0]);" :disabled="no_edit" class="preset-button"
                 popovertarget="presetForFixture" popovertargetaction="hide">
                 <img v-if="getpresetimage(ps[0])"
@@ -112,12 +112,45 @@ var data = {
 module.exports = {
     template: '#template',
 
-    props: ['presets', 'fixture', 'fixturetype', 'currentcueid', 'currentvals', 'getpresetimage', "no_edit"],
+    props: ['presets', 'fixture', 'fixtureclasses', 'fixturetype', 'currentcueid', 'currentvals', 'getpresetimage', "no_edit"],
     data: function () {
         return (data)
     },
     methods: {
-        dictView: dictView
+        dictView: dictView,
+        checkPresetUsablility(preset) {
+            console.log(preset)
+            if (!preset.includes('@')) {
+                return true
+            }
+            if (preset.endsWith(this.fixture)) {
+                return true
+            }
+
+            if (this.fixturetype) {
+                if (preset.endsWith("@" + this.fixturetype)) {
+                    return true
+                }
+            }
+
+
+            let clsdata = this.fixtureclasses[this.fixturetype]
+
+            if (!clsdata) {
+   
+                return false
+            }
+
+            if (clsdata) {
+                if (clsdata.color_profile) {
+                    if (preset.endsWith("@" + clsdata.color_profile)) {
+                        return true
+                    }
+                }
+            }
+
+            return false
+        }
     }
 }
 </script>

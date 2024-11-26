@@ -198,8 +198,12 @@
             {% if module[i]['resource_type'] == 'permission' %}
             <dt>
                 <div class="tool-bar w-full inline">
+                    <p class="nogrow">
+                        <i
+                        class="mdi mdi-key"></i>
+                    </p>
                     <p>
-                        <a href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}"> <i class="mdi mdi-key"></i>
+                        <a href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}">
                             {{ i.split("/")[-1] | escape }}</a>
                     </p>
 
@@ -213,17 +217,20 @@
             {% if modules.additionalTypes[module[i]['resource_type']].mdi_icon %}
             <dt>
                 <div class="tool-bar w-full inline">
-                    <h4>
+                    <p class="nogrow">
+                        <i
+                        class="mdi mdi-{{modules.additionalTypes[module[i]['resource_type']].mdi_icon}}"></i>
+                    </p>
+                    <p>
                         {% if module[i]['resource_lock'] in modules_state.additionalTypes %}
                             <span class="mdi mdi-lock-outline"></span>LOCKED
                         {% endif %}
 
                         <a href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}"
                         title="{{module[i]['resource_type']}}"
-                        > <i
-                                class="mdi mdi-{{modules.additionalTypes[module[i]['resource_type']].mdi_icon}}"></i>
-                            {{ i.split("/")[-1] | escape }}</a>
-                    </h4>
+                        >
+                            <b>{{ i.split("/")[-1] | escape }}</b></a>
+                    </p>
 
                     <a aria-label="Download" class="button nogrow" href="/modules/module/{{ url(name) }}/download_resource/{{ url(i) }}"><span
                             class="mdi mdi-download-box"></span>
@@ -251,10 +258,14 @@
             {% if module[i]['resource_type'] == 'device' %}
             <dt>
                 <div class="tool-bar w-full">
+                    <p class="nogrow">
+                        <i
+                        class="mdi mdi-key"></i>
+                    </p>
                     <p>
                         <a class="deviceslink"
                             href="/device/{{module[i].get('device',{}).get('name','').replace('/','%2F')|escape}}/manage">
-                            <i class="mdi mdi-chip"></i> {{ i.split("/")[-1] | escape }}</a>
+                             {{ i.split("/")[-1] | escape }}</a>
                     </p>
                     <a aria-label="Sketch Label" class="button nogrow" href="/excalidraw-plugin/edit?module={{ url(name) }}&resource=media/resource_labels/{{ url(i) }}.excalidraw.png&callback=/modules/set_label_image/{{ url(name) }}/{{ url(i) }}">
                         <i class="mdi mdi-image"></i></a>

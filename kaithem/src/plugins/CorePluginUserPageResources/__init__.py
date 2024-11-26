@@ -794,14 +794,13 @@ async def catch_all(module, path):
             return quart.redirect(e.url)
 
         tb = traceback.format_exc(chain=True)
-        # tb = tornado.exceptions.text_error_template().render()
         data = (
             "Request from: "
             + str(quart.request.remote_addr)
             + "("
             + pages.getAcessingUser()
             + ")\n"
-            + quart.request.request_line
+            + quart.request.url
             + "\n"
         )
         # When an error happens, log it and save the time

@@ -310,6 +310,9 @@ input[type=range],
     overflow: scroll;
 }
 
+[popover]:not(:popover-open):not(dialog[open]) {
+    display: none !important;
+}
 /*****************Typography****************************/
 
 @media screen and (max-width: 820px) {
@@ -557,6 +560,10 @@ a {
     text-decoration-color: color-mix(in srgb, var(--accent-color) 38%, rgb(0 0 0 / 0%));
 }
 
+.tool-bar a {
+    color: var(--control-fg);
+}
+
 
 
 button,
@@ -588,6 +595,9 @@ input:is([type='submit'], [type='button']),
 label,
 .tool-bar :is(p, h1, h2, h3, h4, h5) {
     text-shadow: var(--control-text-shadow);
+}
+.tool-bar input[type='file'] {
+    padding: 0px;
 }
 
 button,

@@ -101,6 +101,7 @@
                 "werkzeug",
                 "ws"
             ],
-            "python.analysis.typeCheckingMode": "standard"
+            "python.analysis.typeCheckingMode": "standard",
+            "vue-format.break_attr_limit": 2
 
 }

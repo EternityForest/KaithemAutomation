@@ -54,6 +54,10 @@
 <script src="/static/js/thirdparty/js-yaml.min.js"></script>
 <script src="/static/js/thirdparty/strftime-min.js"></script>
 
+<datalist name="colorprofiles" id="colorprofiles">
+    <option value="2015 Generic">Typical common LED fixture from 2015-2025</option>
+    <option value="2025 Generic">Typical common LED fixture from 2025 on</option>
+</datalist>
 
 <div id="app" v-cloak class="flex-row gaps">
 
@@ -319,8 +323,10 @@
                 <a class="button" :href="'/chandler/config/opz_import/'+boardname">Import from OP-Z format</a>
             </div>
             <hr>
-            <combo-box testid="fixture-type-to-edit" v-model="selectedFixtureClass" v-on:change="getfixtureclass(selectedFixtureClass)"
-                :options="useBlankDescriptions(fixtureClasses)"></combo-box>
+
+            <select testid="fixture-type-to-edit" v-model="selectedFixtureClass" v-on:change="getfixtureclass(selectedFixtureClass)">
+                <option v-for="i in Object.keys(fixtureClasses)" :value="i">{{i}}</option>
+            </select>
 
 
             <div v-if="selectedFixtureClass" class="margin">
@@ -329,6 +335,20 @@
                 <div class="tool-bar">
                     <button v-on:click="delfixturetype"><i class="mdi mdi-delete"></i>Delete Fixture Type</button>
                     <button>Rename</button>
+                </div>
+
+                <h3>Basic Info</h3>
+                <div class="stacked-form">
+                    <p class="help">
+                        Color profiles let you group fixtures with similar color behavior,
+                        so that they can share all presets called "name@profile"
+                    </p>
+                    <label>
+                        Color Profile:
+                        <input list="colorprofiles"
+                        v-on:change="pushfixture(selectedFixtureClass)"
+                        v-model="fixtureClasses[selectedFixtureClass].color_profile">
+                    </label>
                 </div>
 
                 <h3>Channels in Fixture Type</h3>
@@ -728,11 +748,10 @@
             },
             methods: appMethods,
             components: {
-                "combo-box": window.httpVueLoader('/static/vue/ComboBox.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
                 'media-browser': window.httpVueLoader('../static/media-browser.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61')
             },
             computed: appComputed
         }).mount("#app")
-        const boardname = window.location.pathname.split('/')[3];
-initChandlerVueModel(boardname,vueapp)
+    const boardname = window.location.pathname.split('/')[3];
+    initChandlerVueModel(boardname, vueapp)
 </script>

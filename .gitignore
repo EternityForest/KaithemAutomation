@@ -26,3 +26,5 @@ sounds_pack
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+/kaithem/src/__pycache__/**
+/kaithem/src/chandler/__pycache__/**
