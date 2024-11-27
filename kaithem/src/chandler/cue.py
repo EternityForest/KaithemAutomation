@@ -10,9 +10,11 @@ The class loads its __slots__ from a schema at runtime.
 from __future__ import annotations
 
 import copy
+import datetime
 import json
 import logging
 import random
+import time
 import traceback
 import uuid
 import weakref
@@ -20,13 +22,14 @@ from decimal import Decimal
 from typing import TYPE_CHECKING, Any, Callable
 
 from beartype import beartype
-from scullery import snake_compat
+from scullery import messagebus, scheduling, snake_compat
 
-from .. import schemas
+from .. import schemas, util
 from ..kaithemobj import kaithem
 from . import core
 from .core import disallow_special
 from .global_actions import normalize_shortcut, shortcut_codes
+from .mathutils import dt_to_ts
 
 if TYPE_CHECKING:
     from .groups import Group
@@ -48,6 +51,7 @@ stored_as_property = [
     "length_randomize",
     "rules",
     "inherit_rules",
+    "schedule_at",
 ]
 
 slots = list(cue_schema["properties"].keys()) + [
@@ -59,6 +63,8 @@ slots = list(cue_schema["properties"].keys()) + [
     "inherit",
     "onEnter",
     "onExit",
+    "scheduler_object",
+    "_scheduled_func",
     "_provider",
     "__weakref__",
 ]
@@ -126,6 +132,15 @@ def fnToCueName(fn: str):
 
 
 cue_provider_types: dict[str, type[CueProvider]] = {}
+
+
+@beartype
+def recalc_all_cue_schedules(*a, **k):
+    for i in cues.values():
+        i.schedule()
+
+
+messagebus.subscribe("/system/time_adjusted", recalc_all_cue_schedules)
 
 
 class CueProvider:
@@ -229,6 +244,11 @@ class Cue:
 
         self._sound = ""
         self._rules: list[list[str | list[list[str]]]] = []
+
+        # Natural language recurring start tim
+        self._schedule_at: str = ""
+        self.scheduler_object: scheduling.Event | None = None
+        self._scheduled_func: Callable[..., Any] | None = None
 
         if id:
             disallow_special(id)
@@ -465,6 +485,88 @@ class Cue:
                 g.recalc_randomize_modifier()
             self.push()
 
+    def goto_if_scene_active(self, ts: float | None = None):
+        """Go to this cue if the scene it belongs to is active"""
+        if ts is None:
+            ts = time.time()
+        x = self.getGroup()
+        if x and x.is_active:
+            x.goto_cue(self.name, ts)
+
+    @property
+    def schedule_at(self):
+        return self._schedule_at
+
+    @schedule_at.setter
+    def schedule_at(self, val: str):
+        if val and (not val.startswith("@")):
+            val = "@" + val
+
+        if val == self._schedule_at:
+            return
+
+        self._schedule_at = val
+        if not self.schedule():
+            raise RuntimeError("Failed to schedule cue for any future time.")
+
+    def schedule(self) -> bool:
+        s = False
+        try:
+            val = self.schedule_at
+            x = self.scheduler_object
+
+            if x:
+                scheduling.scheduler.remove(x)
+                self.scheduler_object = None
+
+            # Sanity check
+            if time.time() > 1732341365:
+                if len(self._schedule_at) > 1:
+                    ref = datetime.datetime.now()
+
+                    selector = util.get_rrule_selector(val[1:], ref)
+                    a: datetime.datetime = selector.after(ref)
+
+                    if a:
+                        if not a.tzinfo:
+                            a = a.astimezone()
+
+                        a2 = dt_to_ts(a)
+
+                        def f():
+                            try:
+                                self.goto_if_scene_active(a2)
+                            except Exception:
+                                print(traceback.format_exc())
+
+                        self.scheduler_object = scheduling.scheduler.schedule(
+                            f, a2, True
+                        )
+                        self._scheduled_func = f
+
+            s = True
+
+        except Exception:
+            print(traceback.format_exc())
+            try:
+                g = self.getGroup()
+                if g:
+                    g.event("error", f"Failed to schedule {self._schedule_at}")
+            except Exception:
+                print(traceback.format_exc())
+
+        try:
+            g = self.getGroup()
+            if g:
+                g.find_next_scheduled_cue()
+        except Exception:
+            logging.exception("Failed to find next scheduled cue")
+            print(traceback.format_exc())
+
+        self.push()
+
+        return s
+
     @property
     def slide(self):
         return self._slide
@@ -637,6 +739,9 @@ class Cue:
                 self.label_image
             ),
             "provider": self.provider,
+            "scheduled_for": self.scheduler_object.time
+            if self.scheduler_object
+            else None,
         }
 
         d = {}

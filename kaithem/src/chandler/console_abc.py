@@ -19,7 +19,7 @@ class Console_ABC:
     def pushCueData(self, cueid: str):
         "Push lighting values for cue to clients"
 
-    def pushMeta(
+    def push_group_meta(
         self,
         groupid: str,
         statusOnly: bool = False,

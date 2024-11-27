@@ -221,8 +221,18 @@
                                 :cue="cuemeta[i[1].cue]"></cue-countdown>
                             <small><span
                                     v-if="(i[1].active && (''+cuemeta[i[1].cue].length).indexOf('@')>-1)"><i
-                                        class="mdi mdi-clock-outline"></i>{{cuemeta[i[1].cue].length.substring(1)}}</span></small>
+                                        class="mdi mdi-clock-end"></i>{{cuemeta[i[1].cue].length.substring(1)}}</span></small>
                         </div>
+
+                        <div class="w-full flex"
+                            v-if="i[1].active && i[1].nextScheduledCue">
+                            <span><i class="mdi mdi-calendar-clock"></i>
+                                {{formatTime(i[1].nextScheduledCue[1])}}<i
+                                    class="mdi mdi-arrow-right"></i>
+                                {{i[1].nextScheduledCue[0]}}
+                            </span>
+                        </div>
+
 
                         <footer>
                             <span
@@ -501,6 +511,10 @@
                                         style="max-height: 1em">
 
                                 </div>
+                                <span v-if="slotProps.i[1].scheduledFor">
+                                    <i class="mdi mdi-calendar-clock"></i>
+                                    {{formatTime(slotProps.i[1].scheduledFor)}}
+                                </span>
 
                                 <span title="Checkpoint Cue"
                                     v-if="slotProps.i[1].checkpoint"
@@ -1225,11 +1239,23 @@
                                                     class="mdi mdi-arrow-right-circle-outline"></i>
                                                 Trigger Shortcut</span>
                                             <input :disabled="no_edit"
-                                                list="shortcuts"
+                                                type="text" list="shortcuts"
                                                 title="When entering this cue, trigger the shortcut in other groups"
                                                 size="8"
                                                 v-on:change="setCueProperty(currentcueid,'triggerShortcut', $event.target.value)"
                                                 v-model="currentcue.triggerShortcut">
+                                        </label>
+
+
+                                    </p>
+                                    <p>
+                                        <label><span><i
+                                                    class="mdi mdi-calendar-clock"></i>
+                                                Schedule At</span>
+                                            <input :disabled="no_edit"
+                                                type="text"
+                                                v-on:change="setCueProperty(currentcueid,'scheduleAt', $event.target.value)"
+                                                v-model="currentcue.scheduleAt">
                                         </label>
                                     </p>
                                     <p>
@@ -1244,7 +1270,7 @@
                                                 v-model="currentcue.fadeIn">
                                         </label>
                                         <label><span><i
-                                                    class="mdi mdi-clock-outline"></i>
+                                                    class="mdi mdi-clock-end"></i>
                                                 Length</span>
                                             <input :disabled="no_edit"
                                                 v-on:change="setlength(currentcueid,$event.target.value);debugCueLen($event.target.value)"
@@ -1256,7 +1282,7 @@
                                     <p>
                                         <label><span><i
                                                     class="mdi mdi-dice-multiple-outline"></i>
-                                                Randomize Length</span>
+                                                Vary Length</span>
                                             <input :disabled="no_edit"
                                                 type="number"
                                                 v-on:change="setCueProperty(currentcueid,'lengthRandomize',$event.target.value)"
@@ -2004,7 +2030,6 @@
 
 
 
-<script src="/static/js/thirdparty/strftime-min.js"></script>
 <script src="/static/js/thirdparty/vue3-sfc-loader.js"></script>
 <script type="module">
     import '/chandler/static/console.js?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61';

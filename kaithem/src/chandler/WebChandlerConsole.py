@@ -281,7 +281,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         for i in self.groups:
             s = self.groups[i]
-            self.pushMeta(i)
+            self.push_group_meta(i)
             if self.groups[i].cue:
                 try:
                     self.pushCueMeta(self.groups[i].cue.id)
@@ -309,7 +309,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         for i in self.active_groups:
             # Tell clients about any changed alpha values and stuff.
             if i.id not in self.groups:
-                self.pushMeta(i.id)
+                self.push_group_meta(i.id)
         self.pushConfiguredUniverses()
         self.linkSend(["serports", getSerPorts()])
 
@@ -448,7 +448,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             "Just this time, add a little extra"
             if groups.groups[msg[1]].cuelen:
                 groups.groups[msg[1]].cuelen += float(msg[2]) * 60
-                self.pushMeta(msg[1])
+                self.push_group_meta(msg[1])
             return
 
         elif cmd_name == "gotonext":
@@ -463,23 +463,23 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         elif cmd_name == "go":
             groups.groups[msg[1]].go()
-            self.pushMeta(msg[1])
+            self.push_group_meta(msg[1])
             return
 
         elif cmd_name == "gobyname":
             self.groups_by_name[msg[1]].go()
-            self.pushMeta(self.groups_by_name[msg[1]].id)
+            self.push_group_meta(self.groups_by_name[msg[1]].id)
             return
 
         elif cmd_name == "stopbyname":
             self.groups_by_name[msg[1]].stop()
-            self.pushMeta(msg[1], statusOnly=True)
+            self.push_group_meta(msg[1], statusOnly=True)
             return
 
         elif cmd_name == "stop":
             x = groups.groups[msg[1]]
             x.stop()
-            self.pushMeta(msg[1], statusOnly=True)
+            self.push_group_meta(msg[1], statusOnly=True)
             return
 
         elif cmd_name == "testSoundCard":
@@ -530,7 +530,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         elif cmd_name == "addgroup":
             sc = Group(self, msg[1].strip())
             self.groups[sc.id] = sc
-            self.pushMeta(sc.id)
+            self.push_group_meta(sc.id)
             sc.go()
 
         elif cmd_name == "setconfuniverses":
@@ -649,15 +649,15 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         elif cmd_name == "seteventbuttons":
             groups.groups[msg[1]].event_buttons = msg[2]
-            self.pushMeta(msg[1], keys={"event_buttons"})
+            self.push_group_meta(msg[1], keys={"event_buttons"})
 
         elif cmd_name == "setinfodisplay":
             groups.groups[msg[1]].info_display = msg[2]
-            self.pushMeta(msg[1], keys={"info_display"})
+            self.push_group_meta(msg[1], keys={"info_display"})
 
         elif cmd_name == "setdisplaytags":
             groups.groups[msg[1]].set_display_tags(msg[2])
-            self.pushMeta(msg[1], keys={"display_tags"})
+            self.push_group_meta(msg[1], keys={"display_tags"})
 
         elif cmd_name == "inputtagvalue":
             for i in groups.groups[msg[1]].display_tags:
@@ -669,7 +669,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         elif cmd_name == "setMqttServer":
             if kaithem.users.check_permission(user, "system_admin"):
                 groups.groups[msg[1]].setMqttServer(msg[2])
-                self.pushMeta(msg[1], keys={"mqtt_server"})
+                self.push_group_meta(msg[1], keys={"mqtt_server"})
 
         elif cmd_name == "add_cueval":
             sc = cues[msg[1]].group()
@@ -952,20 +952,20 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         elif cmd_name == "setmqttfeature":
             groups.groups[msg[1]].setMQTTFeature(msg[2], msg[3])
-            self.pushMeta(msg[1], keys={"mqtt_sync_features"})
+            self.push_group_meta(msg[1], keys={"mqtt_sync_features"})
 
         elif cmd_name == "setgroupsoundout":
             groups.groups[msg[1]].sound_output = msg[2]
-            self.pushMeta(msg[1], keys={"sound_output"})
+            self.push_group_meta(msg[1], keys={"sound_output"})
 
         elif cmd_name == "setgroupslideoverlay":
             groups.groups[msg[1]].slide_overlay_url = msg[2]
-            self.pushMeta(msg[1], keys={"slide_overlay_url"})
+            self.push_group_meta(msg[1], keys={"slide_overlay_url"})
 
         elif cmd_name == "setgroupcommandtag":
             groups.groups[msg[1]].set_command_tag(msg[2])
 
-            self.pushMeta(msg[1], keys={"command_tag"})
+            self.push_group_meta(msg[1], keys={"command_tag"})
 
         elif cmd_name == "setlength":
             try:

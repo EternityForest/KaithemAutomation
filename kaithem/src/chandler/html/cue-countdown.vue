@@ -3,6 +3,7 @@
 
 <template id="cue-cd">
     <div style="position: relative; width: fit-content;">
+        <i class="mdi mdi-clock-end"></i>
         <span v-if="group.active && cue && (cue.length || cue.relLength)"
         :data-count-ref="group.enteredCue"
         :data-count-bpm="group.bpm"

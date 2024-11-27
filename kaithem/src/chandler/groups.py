@@ -39,6 +39,7 @@ from .fs_cue_provider import FilesystemCueProvider
 from .global_actions import cl_trigger_shortcut_code
 from .group_context_commands import add_context_commands, rootContext
 from .group_lighting import GroupLightingManager
+from .group_scheduling import get_schedule_jump_point
 from .mathutils import dt_to_ts, ease, number_to_note
 from .signage import MediaLinkManager
 from .universes import get_on_demand_universe, getUniverse, mapChannel
@@ -462,6 +463,8 @@ class Group:
         # The list of cues as an actual list that is maintained sorted by number
         self.cues_ordered: list[Cue] = []
 
+        self.next_scheduled_cue: Cue | None = None
+
         if cues:
             for j in cues:
                 Cue(self, name=j, **cues[j])
@@ -571,6 +574,32 @@ class Group:
         workers.do(f)
 
         workers.do(self.scan_cue_providers)
+
+    @slow_group_lock_context.object_session_entry_point
+    def find_next_scheduled_cue(self):
+        now = time.time()
+
+        t = 10**20
+        sc = self.next_scheduled_cue
+
+        if sc:
+            so = sc.scheduler_object
+            if so:
+                t2 = so.time
+                if t2 > now and t2 < t:
+                    t = t2
+
+        for i in self.cues:
+            c = self.cues[i]
+
+            so = c.scheduler_object
+            if so:
+                t2 = so.time
+                if t2 > now and t2 < t:
+                    t = t2
+                    sc = c
+
+        self.next_scheduled_cue = sc
 
     def check_error_codes(self):
         if self.error_codes:
@@ -864,7 +893,9 @@ class Group:
             )
 
         core.add_data_pusher_to_all_boards(
-            lambda s: s.pushMeta(self.id, statusOnly=statusOnly, keys=keys)
+            lambda s: s.push_group_meta(
+                self.id, statusOnly=statusOnly, keys=keys
+            )
         )
 
     @slow_group_lock_context.object_session_entry_point
@@ -932,6 +963,7 @@ class Group:
 
         return random.choices(names, weights=weights)[0]
 
+    @slow_group_lock_context.required
     def _parseCueName(self, cue_name: str) -> tuple[str, float | int]:
         """
         Take a raw cue name and find an actual matching cue. Handles things like shuffle
@@ -966,115 +998,7 @@ class Group:
             return ("", 0)
 
         elif cue_name == "__schedule__":
-            # Fast forward through scheduled @time endings.
-
-            # Avoid confusing stuff even though we technically could implement it.
-            if self.default_next.strip():
-                raise RuntimeError(
-                    "Group's default next is not empty, __schedule__ doesn't work here."
-                )
-
-            def processlen(raw_length) -> str:
-                # Return length but always a string and empty if it was 0
-                try:
-                    raw_length = float(raw_length)
-                    if raw_length:
-                        return str(raw_length)
-                    else:
-                        return ""
-                except Exception:
-                    return str(raw_length)
-
-            consider: list[Cue] = []
-
-            found: dict[str, bool] = {}
-            pointer = self.cue
-            for safety_counter in range(1000):
-                # The logical next cue, except that __fast_forward also points to the next in sequence
-                nextname = ""
-                if pointer.next_ll:
-                    nextname = pointer.next_ll.name
-                nxt = (
-                    pointer.next_cue
-                    if not pointer.next_cue == "__schedule__"
-                    else nextname
-                ) or nextname
-
-                if pointer is not self.cue:
-                    if str(pointer.next_cue).startswith("__"):
-                        raise RuntimeError(
-                            "Found special __ cue, fast forward not possible"
-                        )
-
-                    if str(pointer.length).startswith("="):
-                        raise RuntimeError(
-                            "Found special =expression length cue, fast forward not possible"
-                        )
-
-                if processlen(pointer.length) or pointer is self.cue:
-                    consider.append(pointer)
-                    found[pointer.name] = True
-                else:
-                    break
-
-                if (nxt not in self.cues) or (nxt in found):
-                    break
-
-                pointer = self.cues[nxt]
-
-            times: dict[str, float] = {}
-
-            last = None
-
-            scheduled_count = 0
-
-            # Follow chain of next cues to get a set to consider
-            for cue in consider:
-                if processlen(cue.length).startswith("@"):
-                    scheduled_count += 1
-                    ref = datetime.datetime.now()
-                    selector = util.get_rrule_selector(
-                        processlen(cue.length)[1:], ref
-                    )
-                    a: datetime.datetime = selector.before(ref)
-
-                    # Hasn't happened yet, can't fast forward past it
-                    if not a:
-                        break
-
-                    if not a.tzinfo:
-                        a = a.astimezone()
-
-                    a2 = dt_to_ts(a)
-
-                    # We found the end time of the cue.
-                    # If that turns out to be the most recent,
-                    # We go to the one after that if it has a next,
-                    # Else just go to
-                    if cue.next_ll:
-                        times[cue.next_ll.name] = a2
-                    elif cue.next_cue in self.cues:
-                        times[cue.next_cue] = a2
-                    else:
-                        times[cue.name] = a2
-
-                    last = a2
-
-                else:
-                    if last:
-                        times[cue.name] = last + float(cue.length)
-
-            # Can't fast forward without a scheduled cue
-            if scheduled_count:
-                most_recent: tuple[float, str | None] = (0.0, None)
-
-                # Find the scheduled one that occurred most recently
-                for entry in times:
-                    if times[entry] > most_recent[0]:
-                        if times[entry] < time.time():
-                            most_recent = times[entry], entry
-                if most_recent[1]:
-                    return (most_recent[1], most_recent[0])
+            return get_schedule_jump_point(self) or ("", 0)
 
         elif cue_name == "__random__":
             x = [
@@ -1346,6 +1270,10 @@ class Group:
 
         if self.cue.name == "__setup__":
             self.goto_cue("default", sendSync=False)
+
+        # Suppose we manually enter a scheduled cue, we don't want it to re-enter
+        # At that time it was already scheduled
+        self.cue.schedule()
 
     def preload_next_cue_sound(self):
         # Preload the next cue's sound if we know what it is

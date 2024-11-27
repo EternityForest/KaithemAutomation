@@ -743,7 +743,7 @@ class ChandlerConsole(console_abc.Console_ABC):
         )
         self.linkSend(["preset", preset, preset_data])
 
-    def pushMeta(
+    def push_group_meta(
         self,
         groupid: str,
         statusOnly: bool = False,
@@ -803,6 +803,19 @@ class ChandlerConsole(console_abc.Console_ABC):
                 "default_active": group.default_active,
                 "active": group.is_active(),
             }
+
+            if (
+                group.next_scheduled_cue
+                and group.next_scheduled_cue.scheduler_object
+            ):
+                # Too race conditiony feeling with this property access chain TODO?
+                try:
+                    data["next_scheduled_cue"] = [
+                        group.next_scheduled_cue.name,
+                        group.next_scheduled_cue.scheduler_object.time,
+                    ]
+                except Exception:
+                    print(traceback.format_exc())
 
             # Everything else should by as it is in the schema
             for i in groups.group_schema["properties"]:
@@ -935,11 +948,11 @@ class ChandlerConsole(console_abc.Console_ABC):
         for i in self.groups:
             # Tell clients about any changed alpha values and stuff.
             if self.id not in self.groups[i].metadata_already_pushed_by:
-                self.pushMeta(i, statusOnly=True)
+                self.push_group_meta(i, statusOnly=True)
                 self.groups[i].metadata_already_pushed_by[self.id] = False
 
         for i in self.active_groups:
             # Tell clients about any changed alpha values and stuff.
             if self.id not in i.metadata_already_pushed_by:
-                self.pushMeta(i.id)
+                self.push_group_meta(i.id)
                 i.metadata_already_pushed_by[self.id] = False
