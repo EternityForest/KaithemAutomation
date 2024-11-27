@@ -3,6 +3,17 @@
 <template>
     <section popover id="presetsDialog" ontoggle="globalThis.handleDialogState"
         class="margin modal flex-item window paper" style="width: 32em; max-height: 90vh">
+
+        <datalist id="colorcategories">
+            <option>neutral</option>
+            <option>teal</option>
+            <option>amber</option>
+            <option>violet</option>
+            <option>green</option>
+            <option>utility</option>
+
+        </datalist>
+
         <h3>Presets<button type="button" popovertarget="presetsDialog" popovertargetaction="hide">
                 <i class="mdi mdi-close"></i>Close</button>
         </h3>
@@ -90,6 +101,12 @@
                         <img v-if="getpresetimage(ps[0])" style="max-height: 8em; max-width: 8em;"
                             :src="'../WebMediaServer?file=' + encodeURIComponent(getpresetimage(ps[0]))">
                         <details>
+                            <div class="stacked-form">
+                                <label>Category
+                                    <input :disabled="no_edit" v-model="ps[1].category"
+                                        v-on:change="ps[1].category = $event.target.value.trim(); updatepreset(ps[0], ps[1]);">
+                                </label>
+                            </div>
                             <summary>Values</summary>
                             <div class="stacked-form">
                                 <label v-for="val, field of ps[1].values">

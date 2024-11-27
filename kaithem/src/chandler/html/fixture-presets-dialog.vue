@@ -29,7 +29,7 @@
         <div class="flex-row grow scroll"
             style="background: var(--alt-control-bg); align-items:flex-start;align-content:flex-start">
             <button
-                v-for="ps of dictView(presets, [], function (k, v) { if (checkPresetUsablility(k)) { return 1 } })"
+                v-for="ps of dictView(presets, sorts, function (k, v) { if (checkPresetUsablility(k)) { return 1 } })"
                 @click="setFixturePreset(currentcueid, fixture, ps[0]);" :disabled="no_edit" class="preset-button"
                 popovertarget="presetForFixture" popovertargetaction="hide">
                 <img v-if="getpresetimage(ps[0])"
@@ -51,6 +51,7 @@ var data = {
     'recentPresets': [],
     'presetFilter': '',
 
+    'sorts': ["category", "!values.green","!values.red","!values.blue","!values.white","!values.dim"],
     'setFixturePreset': function (sc, fix, preset) {
         const deleteIndex = this.recentPresets.indexOf(preset);
 
@@ -119,7 +120,9 @@ module.exports = {
     methods: {
         dictView: dictView,
         checkPresetUsablility(preset) {
-            console.log(preset)
+            if (! preset.toLocaleLowerCase().includes(this.presetFilter.toLocaleLowerCase())) {
+                return false
+            }
             if (!preset.includes('@')) {
                 return true
             }
@@ -143,7 +146,7 @@ module.exports = {
 
             if (clsdata) {
                 if (clsdata.color_profile) {
-                    if (preset.endsWith("@" + clsdata.color_profile)) {
+                    if (preset.includes("@") && clsdata.color_profile.startsWith(preset.split("@")[1])) {
                         return true
                     }
                 }

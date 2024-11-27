@@ -77,13 +77,22 @@ function formatInterval (seconds) {
         //For each of the possible soft keys, check if they
         //are different. If so, compare and possible reverse the ouptut
 
-        var d = a[1]
-        var d2 = b[1]
+
         for (var i of l) {
+            var d = a[1]
+            var d2 = b[1]
             var key = i[1]
             var rev = i[0]
-            if (!(d[key] == d2[key])) {
-                return (d[key] > d2[key] ? 1 : -1) * rev
+
+            for (var k of key.split(".")) {
+                if (d == undefined || d2 == undefined) {
+                    break;
+                }
+                d = d[k]
+                d2 = d2[k]
+            }
+            if (!(d == d2)) {
+                return (d > d2 ? 1 : -1) * rev
             }
 
         }

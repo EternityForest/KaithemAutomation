@@ -113,7 +113,7 @@ class ChandlerConsole(console_abc.Console_ABC):
         c = copy.deepcopy(fixtureslib.genericFixtureClasses)
 
         for i in c:
-            self.fixture_classes[i] = from_legacy_fixture_class_format(c[i])
+            self.fixture_classes[i] = c[i]
 
         self.initialized = False
 

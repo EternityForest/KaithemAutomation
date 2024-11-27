@@ -55,8 +55,14 @@
 <script src="/static/js/thirdparty/strftime-min.js"></script>
 
 <datalist name="colorprofiles" id="colorprofiles">
-    <option value="2015 Generic">Typical common LED fixture from 2015-2025</option>
-    <option value="2025 Generic">Typical common LED fixture from 2025 on</option>
+    <option value="rgb.generic">Typical common RGB LED fixture</option>
+    <option value="rgbw.generic">Typical common RGBW LED fixture</option>
+
+    <option value="rgb.generic.2010">Typical common RGB LED fixture circa 2010-2020</option>
+    <option value="rgbw.generic.2010">Typical common RGBW LED fixture circa 2010-2020</option>
+
+    <option value="rgb.generic.2020">Typical common RGB LED fixture circa 2020-2030</option>
+    <option value="rgbw.generic.2020">Typical common RGBW LED fixture circa 2020-2030</option>
 </datalist>
 
 <div id="app" v-cloak class="flex-row gaps">
@@ -341,7 +347,9 @@
                 <div class="stacked-form">
                     <p class="help">
                         Color profiles let you group fixtures with similar color behavior,
-                        so that they can share all presets called "name@profile"
+                        so that they can share all presets called "name@profile". A preset for "rgb" will
+                        show up for any fixture where the profile *starts with* "rgb", including
+                        "rgbw", "rgb.generic", etc.
                     </p>
                     <label>
                         Color Profile:
