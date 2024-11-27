@@ -19,11 +19,18 @@ logger = structlog.get_logger(__name__)
 
 def handleMsgbusError(f, topic, message):
     try:
-        messagebus.log.exception("Error in subscribed function for " + topic + " with message " + str(message)[:64])
+        messagebus.log.exception(
+            "Error in subscribed function for "
+            + topic
+            + " with message "
+            + str(message)[:64]
+        )
         from .plugins import CorePluginEventResources
 
         if f.__module__ in CorePluginEventResources.eventsByModuleName:
-            CorePluginEventResources.eventsByModuleName[f.__module__].handle_exception()
+            CorePluginEventResources.eventsByModuleName[
+                f.__module__
+            ].handle_exception()
 
         # If we can't handle it whence it came
         else:
@@ -33,7 +40,9 @@ def handleMsgbusError(f, topic, message):
                 x = hasattr(f, "_kaithemAlreadyPostedNotificatonError")
                 f._kaithemAlreadyPostedNotificatonError = True
                 if not x:
-                    logger.exception("Message subscriber error for " + str(topic))
+                    logger.exception(
+                        "Message subscriber error for " + str(topic)
+                    )
             except Exception:
                 print(traceback.format_exc())
 

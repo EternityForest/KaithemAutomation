@@ -9,13 +9,11 @@ test('test', async ({ page }) => {
 
     const brows = await chromium.launch();
 
-    await page.getByRole('link', { name: '󱒕 Modules' }).click();
-    await page.getByRole('link', { name: '󰐕 Add' }).click();
-    await page.getByLabel('Name of New Module').click();
-    await page.getByLabel('Name of New Module').fill('test_static_server');
-    await page.getByRole('button', { name: 'Submit' }).click();
+    await makeModule(page, 'test_static_server');
+
 
     // Make a /public folder
+    await page.getByTestId('add-resource-button').click();
     await page.getByTestId('add-folder').click();
     await page.getByLabel('Name').click();
     await page.getByLabel('Name').fill('public');
@@ -23,6 +21,7 @@ test('test', async ({ page }) => {
     await page.getByRole('link', { name: '󰉖 public' }).click();
 
     // Add a file to folder
+    await page.getByTestId('add-resource-button').click();
     await page.getByTestId('add-file').click();
     await page.locator('#upload').setInputFiles('badges/linux.png');
     await page.getByRole('button', { name: 'Upload' }).click();
@@ -30,6 +29,7 @@ test('test', async ({ page }) => {
     // Add a static server at /pages/test_static_server/static pointing at /public
     // Which is the default for the server resources
     await page.getByRole('link', { name: 'test_static_server' }).click();
+    await page.getByTestId('add-resource-button').click();
     await page.getByTestId('add-fileserver').click();
     await page.getByLabel('Name').click();
     await page.getByLabel('Name').fill('static');
@@ -41,6 +41,14 @@ test('test', async ({ page }) => {
     await expect(page.getByRole('img')).toBeVisible();
     await page.goto('http://localhost:8002/');
 
+    // Ensure browsing it works
+    await page.getByRole('link', { name: '󱒕 Modules' }).click();
+    await page.getByRole('link', { name: 'test_static_server' }).click();
+    await page.getByRole('link', { name: 'Browse' }).click();
+    await expect(page.locator('dl')).toContainText('linux.png');
+    await page.getByRole('link', { name: 'linux.png (4.59K)' }).click();
+    await expect(page.getByRole('img')).toBeVisible();
+    await page.goto('http://localhost:8002/');
 
 
     // Ensure that it is accessible by guests
@@ -50,7 +58,7 @@ test('test', async ({ page }) => {
     await expect(guestpage1.getByRole('img')).toBeVisible();
     await guestpage1.goto('http://localhost:8002/');
     await guestctx1.close();
-    
+
 
     // Go add the __all_permissions__ permission
     await page.getByRole('link', { name: '󱒕 Modules' }).click();
@@ -76,7 +84,7 @@ test('test', async ({ page }) => {
 
     // Move it to /pages/test_static_server/static2
     await page.goto('http://localhost:8002/modules/module/test_static_server');
-    await page.getByRole('link', { name: '󰉒 Move' }).click();
+    await page.getByTestId("move-resource-button").click();
     await page.getByLabel('New Name').click();
     await page.getByLabel('New Name').fill('static2');
     await page.getByRole('button', { name: 'Submit' }).click();

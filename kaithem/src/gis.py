@@ -1,10 +1,9 @@
+import os
+import random
 import sqlite3
 import threading
 import time
 import uuid
-import random
-import os
-
 from typing import Optional
 
 from . import widgets
@@ -66,7 +65,9 @@ def get_con():
 
 def clean_old():
     con = get_con()
-    con.cursor.execute("DELETE FROM obj WHERE timestamp<?", (time.time() - 3600,))
+    con.cursor.execute(
+        "DELETE FROM obj WHERE timestamp<?", (time.time() - 3600,)
+    )
     con.commit()
 
 

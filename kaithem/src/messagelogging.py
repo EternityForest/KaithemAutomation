@@ -55,4 +55,6 @@ def viewall(topic, page=1):
         pages.require("view_admin_info")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
-    return pages.get_template("logging/topic.html").render(topicname=normalize_topic(topic), page=int(page))
+    return pages.get_template("logging/topic.html").render(
+        topicname=normalize_topic(topic), page=int(page)
+    )

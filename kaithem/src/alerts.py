@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import os
-import random
 import threading
 import time
 import weakref
@@ -9,37 +7,26 @@ from typing import Any
 
 import structlog
 from beartype import beartype
-from scullery import persist, scheduling, statemachines
+from scullery import statemachines
 
 from . import (
-    directories,
     messagebus,
     pages,
     unitsofmeasure,
     widgets,
-    workers,
 )
 
 logger = structlog.get_logger(__name__)
 lock = threading.RLock()
 
-
-fn = os.path.join(directories.vardir, "core.settings", "alertsounds.toml")
-
-if os.path.exists(fn):
-    file: dict[str, Any] = persist.load(fn)
-else:
-    file = {
-        "all": {"soundcard": "__disable__"},
-        "critical": {"file": "error.ogg", "interval": 36.0},
-        "error": {"file": "", "interval": 3600.0},
-        "warning": {"file": "", "interval": 3600.0},
-    }
+system_shutdown = threading.Event()
 
 
-def saveSettings(*a: tuple[Any], **k: dict[str, Any]):
-    persist.save(file, fn, private=True)
-    persist.unsavedFiles.pop(fn, "")
+def shutdown(*a: tuple[Any], **k: dict[str, Any]):
+    system_shutdown.set()
+
+
+messagebus.subscribe("/system/shutdown", shutdown)
 
 
 # This is a dict of all alerts that have not yet been acknowledged.
@@ -68,10 +55,10 @@ priority_to_class = {
 }
 
 
-def getAlertState() -> dict[str, dict[str, Any]]:
+def getAlertState() -> dict[str, str | dict[str, Any]]:
     try:
         with lock:
-            d: dict[str, dict[str, Any]] = {}
+            d: dict[str, str | dict[str, Any]] = {}
 
             for i in (active, unacknowledged):
                 for j in i:
@@ -83,14 +70,19 @@ def getAlertState() -> dict[str, dict[str, Any]]:
                         "state": alert.sm.state,
                         "priority": alert.priority,
                         "description": alert.description,
-                        "barrel-class": priority_to_class.get(alert.priority, {"warning": 1}),
+                        "barrel-class": priority_to_class.get(
+                            alert.priority, {"warning": 1}
+                        ),
                         "message": alert.trip_message,
                     }
             return d
 
     except Exception:
         logger.exception("Error pushing alert state on msg bus")
-        return {"Alerts": {"priority": "error", "state": "active"}}
+        return {
+            "Alerts": {"priority": "error", "state": "active"},
+            "unacknowledged_level": highest_unacknowledged_alert_level(),
+        }
 
 
 def pushAlertState():
@@ -99,6 +91,7 @@ def pushAlertState():
 
 priorities = {
     None: 0,
+    "": 0,
     "none": 0,
     "debug": 10,
     "info": 20,
@@ -111,16 +104,16 @@ priorities = {
 illegalCharsInName = "[]{}|\\<>,?-=+)(*&^%$#@!~`\n\r\t\0"
 
 
-nextbeep = 10**10
-sfile = "alert.ogg"
-
-
 def formatAlerts():
-    return {i: active[i]().format() for i in active if active[i]() and pages.canUserDoThis(active[i]().permissions)}
+    return {
+        i: active[i]().format()
+        for i in active
+        if active[i]() and pages.canUserDoThis(active[i]().permissions)
+    }
 
 
 class API(widgets.APIWidget):
-    def on_new_subscriber(self, user, cid, **kw):
+    def on_new_subscriber(self, user, connection_id, **kw):
         with lock:
             self.send(["all", formatAlerts()])
 
@@ -138,55 +131,10 @@ def handleApiCall(u: str, v: list):
 api.attach(handleApiCall)
 
 
-def calcNextBeep():
-    global nextbeep
-    global sfile
-    x = _highestUnacknowledged(excludeSilent=True)
-    if not x:
-        x = 0
-    else:
-        x = priorities.get(x, 40)
-    if x >= 30 and x < 40:
-        nextbeep = file["warning"]["interval"] + time.time() + (random.random() * 3)
-        sfile = file["warning"]["file"]
-
-    elif x >= 40 and x < 50:
-        nextbeep = file["error"]["interval"] + time.time() + (random.random() * 3)
-        sfile = file["error"]["file"]
-
-    elif x >= 50:
-        nextbeep = file["critical"]["interval"] + time.time() + (random.random() * 3)
-        sfile = file["critical"]["file"]
-    else:
-        nextbeep = 10**10
-        sfile = None
-
-    return sfile
-
-
-# A bit of randomness makes important alerts seem more important
-@scheduling.scheduler.every_second
-def alarmBeep():
-    if time.time() > nextbeep:
-        calcNextBeep()
-        s = (sfile or "").strip()
-        beepDevice = file["all"]["soundcard"]
-        if beepDevice == "__disable__":
-            return
-        if s:
-            try:
-                # Ondemand to avoid circular import
-                from icemedia import sound_player as sound
-
-                sound.play_sound(s, handle="kaithem_sys_main_alarm", output=beepDevice)
-            except Exception:
-                logger.exception("ERROR PLAYING ALERT SOUND")
-
-
-def _highestUnacknowledged(excludeSilent=False):
+def highest_unacknowledged_alert_level(excludeSilent=False) -> str:
     # Pre check outside lock for efficiency.
     if not unacknowledged:
-        return
+        return ""
     level = "debug"
     for i in unacknowledged.values():
         i = i()
@@ -201,7 +149,7 @@ def _highestUnacknowledged(excludeSilent=False):
 
 
 def sendMessage():
-    x = _highestUnacknowledged()
+    x = highest_unacknowledged_alert_level()
     messagebus.post_message("/system/alerts/level", x)
 
 
@@ -346,7 +294,9 @@ class Alert:
             {}""".format(
             hex(id(self)),
             self.sm.state,
-            unitsofmeasure.format_time_interval(time.time() - self.sm.entered_state, 2),
+            unitsofmeasure.format_time_interval(
+                time.time() - self.sm.entered_state, 2
+            ),
             unitsofmeasure.strftime(self.sm.entered_state),
             ("\n" if self.description else "") + self.description,
         )
@@ -372,7 +322,7 @@ class Alert:
     def trip_delay(self):
         return self._trip_delay
 
-    # I don't like the undefined thread aspec of __del__. Change this?
+    # I don't like the undefined thread aspect of __del__. Change this?
     def _on_active(self):
         global unacknowledged
         global active
@@ -384,32 +334,24 @@ class Alert:
 
             _active[self.id] = weakref.ref(self)
             active = _active.copy()
-            s = calcNextBeep()
-        if s:
-            # Sound drivers can actually use tagpoints, this was causing a
-            # deadlock with the tag's lock in the __del__ function GCing some
-            # other tag. I don't quite understand it but this should break the loop
-            def f():
-                # Ondemand to avoid circular import
-                from icemedia import sound_player as sound
-
-                beepDevice = file["all"]["soundcard"]
-                sound.play_sound(s, handle="kaithem_sys_main_alarm", output=beepDevice)
-                api.send(["shouldRefresh"])
-
-            workers.do(f)
 
         if self.priority in ("error", "critical", "important"):
             logger.error(f"Alarm {self.name} ACTIVE")
-            messagebus.post_message("/system/notifications/errors", f"Alarm {self.name} is active")
+            messagebus.post_message(
+                "/system/notifications/errors", f"Alarm {self.name} is active"
+            )
         elif self.priority in ("warning"):
-            messagebus.post_message("/system/notifications/warnings", f"Alarm {self.name} is active")
+            messagebus.post_message(
+                "/system/notifications/warnings", f"Alarm {self.name} is active"
+            )
             logger.warning(f"Alarm {self.name} ACTIVE")
         else:
             logger.info(f"Alarm {self.name} active")
 
         if self.priority in ("info"):
-            messagebus.post_message("/system/notifications", f"Alarm {self.name} is active")
+            messagebus.post_message(
+                "/system/notifications", f"Alarm {self.name} is active"
+            )
         sendMessage()
         pushAlertState()
 
@@ -420,17 +362,28 @@ class Alert:
             if self.id in _unacknowledged:
                 del _unacknowledged[self.id]
             unacknowledged = _unacknowledged.copy()
-        calcNextBeep()
+
         api.send(["shouldRefresh"])
         sendMessage()
         pushAlertState()
 
     def _on_normal(self):
-        "Mostly defensivem but also cleans up if the autoclear occurs and we skip the acknowledged state"
+        "Mostly defensive but also cleans up if the autoclear occurs and we skip the acknowledged state"
         global unacknowledged, active, tripped
         if not self.sm.prev_state == "tripped":
-            if self.priority in ("info", "warning", "error", "critical", "important"):
-                if self.priority in ("warning", "error", "critical", "important"):
+            if self.priority in (
+                "info",
+                "warning",
+                "error",
+                "critical",
+                "important",
+            ):
+                if self.priority in (
+                    "warning",
+                    "error",
+                    "critical",
+                    "important",
+                ):
                     messagebus.post_message(
                         "/system/notifications/important",
                         f"Alarm {self.name} returned to normal",
@@ -454,7 +407,7 @@ class Alert:
             if self.id in _active:
                 del _active[self.id]
             active = _active.copy()
-        calcNextBeep()
+
         api.send(["shouldRefresh"])
         sendMessage()
         pushAlertState()
@@ -505,11 +458,12 @@ class Alert:
         pushAlertState()
 
     def __del__(self):
-        self.acknowledge("<DELETED>")
-        self.clear()
-        cleanup()
-        sendMessage()
-        pushAlertState()
+        if not system_shutdown.is_set():
+            self.acknowledge("<DELETED>")
+            self.clear()
+            cleanup()
+            sendMessage()
+            pushAlertState()
 
     def acknowledge(self, by="unknown", notes=""):
         notes = notes[:64]

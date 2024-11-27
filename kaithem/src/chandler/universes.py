@@ -1,6 +1,7 @@
+"""Important things about this module:"""
+
 from __future__ import annotations
 
-import copy
 import gc
 import json
 import logging
@@ -14,6 +15,8 @@ from typing import Any
 
 import colorzero
 import numpy
+import serial
+import serial.tools.list_ports
 import structlog
 
 from kaithem.api import lifespan
@@ -32,7 +35,8 @@ int = int
 max = max
 min = min
 
-universesLock = core.lock
+
+# universes and universes state are protected under the render loop lock
 universes: dict[str, weakref.ReferenceType[Universe]] = {}
 
 # MUTABLE
@@ -41,8 +45,25 @@ _universes: dict[str, weakref.ReferenceType[Universe]] = {}
 
 fixtures: dict[str, weakref.ref[Fixture]] = {}
 
+last_state_update = time.time()
+
+
+def refresh_groups():
+    """Tell groups the set of universes has changed"""
+    global last_state_update
+    last_state_update = time.time()
+
+    def f():
+        for b in core.iter_boards():
+            for i in b.active_groups:
+                with i.lock:
+                    i.refresh_lighting()
+
+    core.serialized_async_with_core_lock(f)
+
 
 def get_on_demand_universe(name: str) -> Universe:
+    global universes
     if not name.strip().startswith("/"):
         raise ValueError("Only tag point universes")
 
@@ -55,12 +76,14 @@ def get_on_demand_universe(name: str) -> Universe:
             pass
 
     t = OneTagpoint(name)
-    core.add_data_pusher_to_all_boards(lambda s: s.pushChannelNames(name))  # type: ignore
+    core.add_data_pusher_to_all_boards(
+        lambda s: s.pushchannelInfoByUniverseAndNumber(name)
+    )  # type: ignore
     return t
 
 
 class Fixture:
-    def __init__(self, name: str, data: list[list[Any]] | dict[str, Any] | None = None):
+    def __init__(self, name: str, data: dict[str, Any] | None = None):
         """Represents a contiguous range of channels each with a defined role in one universe.
 
         data is the definition of the type of fixture. It can be a list of channels, or
@@ -86,14 +109,23 @@ class Fixture:
         use the first argument to specify the number of the coarse channel,
         with 0 being the fixture's first channel.
         """
-        self.channels: list[list[Any]]
+        # Not threadsafe or something to rely on,
+        # just an extra defensive check
+        if name in fixtures:
+            raise ValueError("Name in Use")
 
         if data:
-            # Normalize and raise errors on nonsense
-            channels: list[list[Any]] | dict[str, Any] = json.loads(json.dumps(data))
+            channel_data = data.get("channels", None)
+        else:
+            channel_data = None
 
-            if not isinstance(channels, list):
-                channels = channels["channels"]
+        self.channels: list[dict[str, Any]]
+
+        if channel_data:
+            # Normalize and raise errors on nonsense
+            channels: list[dict[str, Any]] = json.loads(
+                json.dumps(channel_data)
+            )
 
             assert isinstance(channels, list)
             self.channels = channels
@@ -104,45 +136,54 @@ class Fixture:
 
         self.universe: str | None = None
         self.startAddress: int | None = 0
-        self.assignment = None
+        self.assignment: tuple[str, int] | None = None
         disallow_special(name, ".")
 
         self.nameToOffset: dict[str, int] = {}
 
         # Used for looking up channel by name
         for i in range(len(channels)):
-            self.nameToOffset[channels[i][0]] = i
+            self.nameToOffset[channels[i]["name"]] = i
 
-        with core.lock:
-            if name in fixtures:
-                raise ValueError("Name in Use")
-            else:
-                fixtures[name] = weakref.ref(self)
-                self.name = name
+        fixtures[name] = weakref.ref(self)
+        self.name = name
+
+        global last_state_update
+        last_state_update = time.time()
 
     def getChannelByName(self, name: str):
         if self.startAddress:
             return self
 
     def __del__(self):
-        with core.lock:
-            try:
-                del fixtures[self.name]
-            except KeyError:
-                pass
-
-        ID = id(self)
-
         def f():
-            with core.lock:
+            # Todo think more about if theres a race condition
+            if self.name not in fixtures:
+                return
+
+            if fixtures[self.name]() is not self:
+                return
+
+            logger.warn(f"Auto-deleting fixture {self.name}")
+            with core.cl_context:
                 try:
-                    if id(fixtures[self.name]()) == id(ID):
-                        self.assign(None, None)
+                    del fixtures[self.name]
+                except KeyError:
+                    pass
+
+                ID = id(self)
+
+                try:
+                    x = fixtures[self.name]()
+                    if id(x) == id(ID):
+                        self.cl_assign(None, None)
                         self.rm()
                 except KeyError:
                     pass
                 except Exception:
                     print(traceback.format_exc())
+            global last_state_update
+            last_state_update = time.time()
 
         kaithem.misc.do(f)
 
@@ -151,18 +192,38 @@ class Fixture:
             del fixtures[self.name]
         except Exception:
             print(traceback.format_exc())
+        global last_state_update
+        last_state_update = time.time()
 
-    def assign(self, universe: str | None, channel: int | None):
-        with core.lock:
-            # First just clear the old assignment, if any
-            if self.universe and self.startAddress:
-                oldUniverseObj = getUniverse(self.universe)
+    @core.cl_context.required
+    def cl_assign(self, universe: str | None, channel: int | None):
+        if universe is None:
+            if channel is not None:
+                raise ValueError("Cannot specify channel without universe")
 
+        if channel is None:
+            if universe is not None:
+                raise ValueError("Cannot specify universe without channel")
+
+        # First just clear the old assignment, if any
+        if self.universe and self.startAddress:
+            oldUniverseObj = getUniverse(self.universe)
+
+            # All fixture channels together. This is safe because there are no nontrivial
+            # function calls under this, and we are in the proper lock order
+            with core.render_loop_lock:
                 if oldUniverseObj:
                     # Delete current assignments
-                    for i in range(self.startAddress, self.startAddress + len(self.channels)):
+                    for i in range(
+                        self.startAddress,
+                        self.startAddress + len(self.channels),
+                    ):
                         if i in oldUniverseObj.channels:
-                            if oldUniverseObj.channels[i]() and oldUniverseObj.channels[i]() is self:
+                            # Ensure we are not assigning something else with same name
+                            if (
+                                oldUniverseObj.channels[i]()
+                                and oldUniverseObj.channels[i]() is self
+                            ):
                                 del oldUniverseObj.channels[i]
                                 # We just unassigned it, so it's not a hue channel anymore
                                 oldUniverseObj.hueBlendMask[i] = 0
@@ -174,7 +235,13 @@ class Fixture:
                                     oldUniverseObj.channels[i](),
                                 )
 
-            self.assignment = universe, channel
+        # Again, no non-safe calls under this lock.
+        with core.render_loop_lock:
+            if universe:
+                assert channel is not None
+                self.assignment = universe, channel
+            else:
+                self.assignment = None
 
             self.universe = universe
             self.startAddress = channel
@@ -186,8 +253,6 @@ class Fixture:
 
             core.fixtureschanged = {}
 
-            universeObj.channelsChanged()
-
             if not channel:
                 return
             # 2 separate loops, first is just to check, so that we don't have half-completed stuff
@@ -197,15 +262,27 @@ class Fixture:
                         fixture = universeObj.channels[i]()
                         if fixture:
                             if not self.name == fixture.name:
-                                raise ValueError("channel " + str(i) + " of " + self.name + " would overlap with " + fixture.name)
+                                raise ValueError(
+                                    "channel "
+                                    + str(i)
+                                    + " of "
+                                    + self.name
+                                    + " would overlap with "
+                                    + fixture.name
+                                )
 
             cPointer = 0
             for i in range(channel, channel + len(self.channels)):
                 universeObj.channels[i] = weakref.ref(self)
-                if self.channels[cPointer][1] in ("hue", "sat", "custom"):
+                if self.channels[cPointer]["type"] in ("hue", "sat", "custom"):
                     # Mark it as a hue channel that blends slightly differently
                     universeObj.hueBlendMask[i] = 1
                     cPointer += 1
+
+        universeObj.fixtures[self.name] = weakref.ref(self)
+        universeObj.cl_channels_changed()
+        global last_state_update
+        last_state_update = time.time()
 
 
 class Universe:
@@ -217,7 +294,9 @@ class Universe:
         global universes
         for i in ":[]()*\\`~!@#$%^&*=+|{}'\";<>,":
             if i in name:
-                raise ValueError("Name cannot contain special characters except _")
+                raise ValueError(
+                    "Name cannot contain special characters except _"
+                )
         self.name = name
         self.closed = False
 
@@ -225,7 +304,7 @@ class Universe:
 
         # If local fading is disabled, the rendering tries to compress everything down to a set of fade commands.
         # This is the time at which the current fade is supposed to end.
-        self.fadeEndTime = 0
+        self.fadeEndTime = 0.0
 
         # If False, lighting values don't fade in, they just jump straight to the target,
         # For things like smart bulbs where we want to use the remote fade instead.
@@ -236,7 +315,7 @@ class Universe:
         # The longest time requested by any layer is used
         # The final interpolation time is the greater of
         # This and the time determined by fadeEndTime
-        self.interpolationTime = 0
+        self.interpolationTime = 0.0
 
         # Let subclasses set these
         if not hasattr(self, "status"):
@@ -244,7 +323,7 @@ class Universe:
         if not hasattr(self, "ok"):
             self.ok = True
 
-        # name:weakref(fixture) for every ficture that is mapped to this universe
+        # name:weakref(fixture) for every fixture that is mapped to this universe
         self.fixtures = {}
 
         # Represents the telemetry data back from the physical device of this universe.
@@ -255,8 +334,8 @@ class Universe:
         self.channels: dict[int, weakref.ref[Fixture]] = {}
 
         # Maps names to numbers, mostly for tagpoint universes.
-        if not hasattr(self, "channelNames"):
-            self.channelNames = {}
+        if not hasattr(self, "channelInfoByUniverseAndNumber"):
+            self.channelInfoByUniverseAndNumber = {}
 
         self.groups = {}
         self.values = numpy.array([0.0] * count, dtype="f4")
@@ -273,38 +352,24 @@ class Universe:
         self.fine_channels: dict[int, int] = {}
 
         # Map fixed channel numbers to values.
-        # We implemet that here so they are fixed no matter what the scenes and blend modes say
+        # We implemnet that here so they are fixed no matter what the groups and blend modes say
         self.fixed_channels: dict[int, float] = {}
 
         # Used for the caching. It's the layer we want to save as the background state before we apply.
-        # Calculated as either the last scene rendered in the stack or the first scene that requests a rerender that affects the universe
+        # Calculated as either the last group rendered in the stack or the first group that requests a rerender that affects the universe
         self.save_before_layer = (0.0, 0.0)
         # Reset in pre_render, indicates if we've not rendered a layer that we think is going to change soon
         # so far in this frame
         self.all_static = True
 
-        self.error_alert = alerts.Alert(f"{self.name}.errorState", priority="error", auto_ack=True)
-        with core.lock:
-            with universesLock:
-                if name in _universes and _universes[name]():
-                    gc.collect()
-                    time.sleep(0.1)
-                    gc.collect()
-                    # We retry, because the universes are often temporarily cached as strong refs
-                    if name in _universes and _universes[name]():
-                        try:
-                            u = _universes[name]()
-                            if u:
-                                u.close()
-                        except Exception:
-                            raise ValueError("Name " + name + " is taken")
-                _universes[name] = weakref.ref(self)
-                universes = {i: _universes[i] for i in _universes if _universes[i]()}
+        self.error_alert = alerts.Alert(
+            f"{self.name}.errorState", priority="error", auto_ack=True
+        )
 
-        # flag to apply all scenes, even ones not marked as neding rerender
+        # flag to apply all groups, even ones not marked as neding rerender
         self.full_rerender = False
 
-        # The priority, started of the top layer layer that's been applied to this scene.
+        # The priority, started of the top layer layer that's been applied to this group.
         self.top_layer = (0, 0)
 
         # This is the priority, started of the "saved" layer that's been cached so we don't
@@ -315,9 +380,12 @@ class Universe:
         # and start from there without rerendering lower layers.
 
         # The format is values,alphas
-        self.prerendered_data = ([0.0] * count, [0.0] * count)
+        self.prerendered_data = (
+            numpy.array([0.0] * count, dtype="f4"),
+            numpy.array([0.0] * count, dtype="f4"),
+        )
 
-        # Maybe there might be an iteration error. But it's just a GUI convienence that
+        # Maybe there might be an iteration error. But it's just a GUI convenience that
         # A simple refresh solves, so ignore it.
         try:
             for i in core.iter_boards():
@@ -325,32 +393,64 @@ class Universe:
         except Exception:
             logger.exception("Exception in push_setup")
 
+        global _universes, universes
+        if name in _universes and _universes[name]():
+            gc.collect()
+            time.sleep(0.1)
+            gc.collect()
+            # We retry, because the universes are often temporarily cached as strong refs
+            if name in _universes and _universes[name]():
+                try:
+                    u = None
+                    try:
+                        u = _universes[name]()
+                    except KeyError:
+                        pass
+                    if u:
+                        u.close()
+                except Exception:
+                    raise ValueError("Name " + name + " is taken")
+
+        with core.render_loop_lock:
+            _universes[name] = weakref.ref(self)
+            universes = {
+                i: _universes[i] for i in _universes if _universes[i]()
+            }
+
+        global last_state_update
+        last_state_update = time.time()
+
         if self.refresh_on_create:
             kaithem.message.post("/chandler/command/refreshFixtures", self.name)
-            self.refresh_scenes()
+            self.refresh_groups()
 
     def close(self):
         global universes
-        with universesLock:
+
+        with core.render_loop_lock:
             # Don't delete the object that replaced this
             if self.name in _universes and (_universes[self.name]() is self):
                 del _universes[self.name]
 
-            universes = {i: _universes[i] for i in _universes if _universes[i]()}
+            universes = {
+                i: _universes[i] for i in _universes if _universes[i]()
+            }
 
             def alreadyClosed(*a, **k):
-                raise RuntimeError("This universe has been stopped, possibly because it was replaced wih a newer one")
+                pass
 
             self.onFrame = alreadyClosed
             self.setStatus = alreadyClosed
-            self.refresh_scenes = alreadyClosed
+            self.refresh_groups = alreadyClosed
             self.reset_to_cache = alreadyClosed
             self.reset = alreadyClosed
             self.preFrame = alreadyClosed
             self.save_prerendered = alreadyClosed
 
-        kaithem.message.post("/chandler/command/refresh_scene_lighting", None)
+        refresh_groups()
         self.closed = True
+        global last_state_update
+        last_state_update = time.time()
 
     def setStatus(self, s: str, ok: bool):
         "Set the status shown in the gui. ok is a bool value that indicates if the object is able to transmit data to the fixtures"
@@ -359,63 +459,69 @@ class Universe:
         else:
             self.error_alert.trip(message=str(s))
 
-        # avoid pushing unneded statuses
+        # avoid pushing unnecessary statuses
         if (self.status == s) and (self.ok == ok):
             return
         self.status = s
         self.ok = ok
         self.statusChanged = {}
 
-    def refresh_scenes(self):
-        """Stop and restart all active scenes, because some caches might need to be updated
+    def refresh_groups(self):
+        """Stop and restart all active groups, because some caches might need to be updated
         when a new universes is added
         """
-        kaithem.message.post("/chandler/command/refresh_scene_lighting", None)
+        refresh_groups()
 
     def __del__(self):
         if not self.closed:
             if self.refresh_on_create:
                 if lifespan and not lifespan.shutdown:
                     # Do as little as possible in the undefined __del__ thread
-                    kaithem.message.post("/chandler/command/refresh_scene_lighting", None)
+                    refresh_groups()
+            global last_state_update
+            last_state_update = time.time()
 
-    def channelsChanged(self):
+    @core.cl_context.required
+    def cl_channels_changed(self):
         "Call this when fixtures are added, moved, or modified."
-        with core.lock:
-            self.fine_channels = {}
-            self.fixed_channels = {}
+        self.fine_channels = {}
+        self.fixed_channels = {}
 
-            for i in self.channels:
-                fixture = self.channels[i]()
-                if not fixture:
-                    continue
-                if not fixture.startAddress:
-                    continue
-                data = fixture.channels[i - fixture.startAddress]
-                if (data[1] == "fine") and (i > 1):
-                    if len(data) == 2:
-                        self.fine_channels[i] = i - 1
-                    else:
-                        self.fine_channels[i] = fixture.startAddress + data[2]
+        for i in self.channels:
+            fixture = self.channels[i]()
+            if not fixture:
+                continue
+            if not fixture.startAddress:
+                continue
+            data = fixture.channels[i - fixture.startAddress]
+            if data["type"] == "fine":
+                if isinstance(data["coarse"], int):
+                    self.fine_channels[i] = (
+                        fixture.startAddress + data["coarse"]
+                    )
+                else:
+                    for num, ch in enumerate(fixture.channels):
+                        if ch.get("name", "") == data["coarse"]:
+                            self.fine_channels[i] = fixture.startAddress + num
 
-                if data[1] == "fixed":
-                    if len(data) == 2:
-                        self.fixed_channels[i] = 0
-                    else:
-                        self.fixed_channels[i] = data[2]
+            if data["type"] == "fixed":
+                self.fixed_channels[i] = data["value"]
 
     def reset_to_cache(self):
         "Remove all changes since the prerendered layer."
         values, alphas = self.prerendered_data
-        self.values = copy.deepcopy(values)
-        self.alphas = copy.deepcopy(alphas)
+        self.values = numpy.copy(values)
+        self.alphas = numpy.copy(alphas)
 
         self.top_layer = self.prerendered_layer
 
     def save_prerendered(self, p, s):
         "Save this layer as the cached layer. Called in the render functions"
         self.prerendered_layer = (p, s)
-        self.prerendered_data = (copy.deepcopy(self.values), copy.deepcopy(self.alphas))
+        self.prerendered_data = (
+            numpy.copy(self.values),
+            numpy.copy(self.alphas),
+        )
 
     def reset(self):
         "Reset all values to 0 including the prerendered data"
@@ -450,19 +556,19 @@ def rawmessage(data):
     "An enttec open DMX message from a set of values"
     data = numpy.maximum(numpy.minimum(data, 255), 0)
     data = data.astype(numpy.uint8)
-    data = data.tobytes()[1:513]
+    data = data.tobytes()
     # Remove the 0 position as DMX starts at 1
-    return b"\0" + data
+    return b"\0" + (data[1:513])
 
 
 class EnttecUniverse(Universe):
     # Thanks to https://github.com/c0z3n/pySimpleDMX
-    # I didn't actually use the code, but it was a very useful resouurce
+    # I didn't actually use the code, but it was a very useful resource
     # For protocol documentation.
     def __init__(
         self,
         name: str,
-        channels: int = 128,
+        channels: int = 512,
         portname: str = "",
         framerate: float = 44.0,
         number: int = 0,
@@ -473,7 +579,9 @@ class EnttecUniverse(Universe):
         self.statusChanged = {}
         # Sender needs the values to be there for setup
         self.values = numpy.array([0.0] * channels, dtype="f4")
-        self.sender = makeSender(DMXSender, weakref.ref(self), portname, framerate)
+        self.sender = makeSender(
+            DMXSender, weakref.ref(self), portname, framerate
+        )
 
         Universe.__init__(self, name, channels)
         self.sender.connect()
@@ -488,6 +596,7 @@ class EnttecUniverse(Universe):
         # Stop the thread when this gets deleted
         self.sender.onFrame(None)
 
+    @core.cl_context.required
     def close(self):
         try:
             self.sender.onFrame(None)
@@ -534,12 +643,7 @@ class DMXSender:
     def reconnect(self, portlist=None):
         "Try to reconnect to the adapter"
         try:
-            import serial
-            import serial.tools
-
             if not self.portname:
-                import serial.tools.list_ports
-
                 p = portlist or serial.tools.list_ports.comports()
                 if p:
                     if len(p) > 1:
@@ -558,12 +662,13 @@ class DMXSender:
                 p = self.portname
             time.sleep(0.1)
             try:
-                self.port.close()
+                if self.port:
+                    self.port.close()
             except Exception:
                 pass
             self.port = serial.Serial(p, 57600, timeout=1.0, write_timeout=1.0)
 
-            # This is a flush to try to re-sync recievers that don't have any kind of time out detection
+            # This is a flush to try to re-sync receivers that don't have any kind of time out detection
             # We do this by sending a frame where each value is the packet end code,
             # Hoping that it lines up with the end of whatever unfinished data we don't know about.
             self.setStatus("Found port, writing sync data", True)
@@ -571,9 +676,11 @@ class DMXSender:
             for i in range(8):
                 self.port.write(message(numpy.array([231] * 120)))
                 time.sleep(0.05)
-            self.port.write(message(numpy.zeros(max(128, len(self.universe().values)))))
+            self.port.write(
+                message(numpy.zeros(max(128, len(self.universe().values))))
+            )
             time.sleep(0.1)
-            self.port.read(self.port.inWaiting())
+            self.port.read(self.port.in_waiting)
             time.sleep(0.05)
             self.port.write(self.data)
             self.setStatus("connected to " + p, True)
@@ -587,8 +694,9 @@ class DMXSender:
     def run(self):
         while 1:
             try:
+                assert self.port
                 s = time.time()
-                self.port.read(self.port.inWaiting())
+                self.port.read(self.port.in_waiting)
                 x = self.frame.wait(1)
                 if not x:
                     continue
@@ -604,18 +712,20 @@ class DMXSender:
                 time.sleep(max(((1.0 / self.framerate) - (time.time() - s)), 0))
             except Exception as e:
                 try:
-                    self.port.close()
+                    if self.port:
+                        self.port.close()
                 except Exception:
                     pass
                 try:
                     if self.data is None:
                         return
                     if self.port:
-                        self.setStatus("disconnected, " + str(e)[:100] + "...", False)
+                        self.setStatus(
+                            "disconnected, " + str(e)[:100] + "...", False
+                        )
                     self.port = None
                     # I don't remember why we retry twice here. But reusing the port list should reduce CPU a lot.
                     time.sleep(3)
-                    import serial
 
                     portlist = serial.tools.list_ports.comports()
                     # reconnect is designed not to raise Exceptions, so if there's0
@@ -660,7 +770,9 @@ class ArtNetUniverse(Universe):
 
         # Channel 0 is a dummy to make math easier.
         self.values = numpy.array([0.0] * (channels + 1), dtype="f4")
-        self.sender = makeSender(ArtNetSender, weakref.ref(self), addr, port, framerate, scheme)
+        self.sender = makeSender(
+            ArtNetSender, weakref.ref(self), addr, port, framerate, scheme
+        )
 
         Universe.__init__(self, name, channels)
 
@@ -674,6 +786,7 @@ class ArtNetUniverse(Universe):
         # Stop the thread when this gets deleted
         self.sender.onFrame(None)
 
+    @core.cl_context.required
     def close(self):
         try:
             self.sender.onFrame(None)
@@ -701,25 +814,6 @@ class ArtNetSender:
         self.running = 1
         # The last telemetry we didn't ignore
         self.lastTelemetry = 0
-        if self.scheme == "pavillion":
-
-            def onBatteryStatus(v):
-                self.universe().telemetry["battery"] = v
-                if self.lastTelemetry < (time.time() - 10):
-                    self.universe().statusChanged = {}
-
-            def onConnectionStatus(v):
-                self.universe().telemetry["rssi"] = v
-                if self.lastTelemetry < (time.time() - 10):
-                    self.universe().statusChanged = {}
-
-            self.connectionTag = kaithem.tags["/devices/" + addr + ".rssi"]
-            self._oncs = onConnectionStatus
-            self.connectionTag.subscribe(onConnectionStatus)
-
-            self.batteryTag = kaithem.tags["/devices/" + addr + ".battery"]
-            self._onb = onBatteryStatus
-            self.batteryTag.subscribe(onBatteryStatus)
 
         def run():
             import time
@@ -741,16 +835,8 @@ class ArtNetSender:
                         if self.data is None:
                             print("Stopping ArtNet Sender for " + self.addr)
                             return
-                        # Here we have the option to use a Pavillion device
-                        if self.scheme == "pavillion":
-                            try:
-                                addr = kaithem.devices[self.addr].data["address"]
-                            except Exception:
-                                time.sleep(3)
-                                continue
-                        else:
-                            addr = self.addr
 
+                        addr = self.addr
                         self.frame.clear()
                     try:
                         self.sock.sendto(self.data, (addr, self.port))
@@ -758,7 +844,9 @@ class ArtNetSender:
                         time.sleep(5)
                         raise
 
-                    time.sleep(max(((1.0 / self.framerate) - (time.time() - s)), 0))
+                    time.sleep(
+                        max(((1.0 / self.framerate) - (time.time() - s)), 0)
+                    )
                 except Exception:
                     core.rl_log_exc("Error in artnet universe")
                     print(traceback.format_exc())
@@ -796,7 +884,11 @@ class ArtNetSender:
                 # DMX starts at 1, don't send element 0 even though it exists.
                 p = (
                     b"Art-Net\x00\x00\x50\x00\x0e\0"
-                    + struct.pack("<BH", physical if physical is not None else universe, universe)
+                    + struct.pack(
+                        "<BH",
+                        physical if physical is not None else universe,
+                        universe,
+                    )
                     + struct.pack(">H", len(data))
                     + (data.astype(numpy.uint8).tobytes()[1:])
                 )
@@ -808,9 +900,11 @@ class ArtNetSender:
 
 class EnttecOpenUniverse(Universe):
     # Thanks to https://github.com/c0z3n/pySimpleDMX
-    # I didn't actually use the code, but it was a very useful resouurce
+    # I didn't actually use the code, but it was a very useful resource
     # For protocol documentation.
-    def __init__(self, name, channels=128, portname="", framerate=44.0, number=0):
+    def __init__(
+        self, name, channels=512, portname="", framerate=44.0, number=0
+    ):
         self.ok = False
         self.number = number
         self.status = "Disconnect"
@@ -832,6 +926,7 @@ class EnttecOpenUniverse(Universe):
         # Stop the thread when this gets deleted
         self.sender.onFrame(None)
 
+    @core.cl_context.required
     def close(self):
         try:
             self.sender.onFrame(None)
@@ -860,9 +955,12 @@ class RawDMXSender:
         self.thread.name = "DMXSenderThread_" + self.thread.name
         self.portname = port
         self.framerate = float(framerate)
+
         self.lock = threading.Lock()
         self.port = None
         self.started = None
+
+        self.should_stop = False
 
     def setStatus(self, s, ok):
         try:
@@ -886,11 +984,7 @@ class RawDMXSender:
     def reconnect(self):
         "Try to reconnect to the adapter"
         try:
-            import serial
-
             if not self.portname:
-                import serial.tools.list_ports
-
                 p = serial.tools.list_ports.comports()
                 if p:
                     if len(p) > 1:
@@ -908,12 +1002,15 @@ class RawDMXSender:
                 p = self.portname
             time.sleep(0.1)
             try:
-                self.port.close()
+                if self.port:
+                    self.port.close()
             except Exception:
                 pass
-            self.port = serial.Serial(p, baudrate=250000, timeout=1.0, write_timeout=1.0, stopbits=2)
+            self.port = serial.Serial(
+                p, baudrate=250000, timeout=1.0, write_timeout=1.0, stopbits=2
+            )
 
-            self.port.read(self.port.inWaiting())
+            self.port.read(self.port.in_waiting)
             time.sleep(0.05)
             self.port.break_condition = True
             time.sleep(0.0001)
@@ -932,36 +1029,39 @@ class RawDMXSender:
     def run(self):
         while self.universe():
             try:
+                assert self.port
                 s = time.time()
-                self.port.read(self.port.inWaiting())
+                self.port.read(self.port.in_waiting)
                 x = self.frame.wait(0.1)
-                with self.lock:
-                    if self.data is None:
-                        try:
-                            self.port.close()
-                        except Exception:
-                            pass
-                        return
+                if self.should_stop:
+                    try:
+                        self.port.close()
+                    except Exception:
+                        pass
+                    return
 
-                    self.port.break_condition = True
-                    time.sleep(0.0001)
-                    self.port.break_condition = False
-                    time.sleep(0.0003)
+                self.port.break_condition = True
+                time.sleep(0.0001)
+                self.port.break_condition = False
+                time.sleep(0.0003)
 
-                    self.port.write(self.data)
-                    if x:
-                        self.frame.clear()
+                self.port.write(self.data)
+                if x:
+                    self.frame.clear()
                 time.sleep(max(((1.0 / self.framerate) - (time.time() - s)), 0))
             except Exception as e:
                 try:
-                    self.port.close()
+                    if self.port:
+                        self.port.close()
                 except Exception:
                     pass
                 try:
                     if self.data is None:
                         return
                     if self.port:
-                        self.setStatus("disconnected, " + str(e)[:100] + "...", False)
+                        self.setStatus(
+                            "disconnected, " + str(e)[:100] + "...", False
+                        )
                     self.port = None
                     # reconnect is designed not to raise Exceptions, so if there's0
                     # an error here it's probably because the whole scope is being cleaned
@@ -971,9 +1071,11 @@ class RawDMXSender:
                     return
 
     def onFrame(self, data):
-        with self.lock:
+        if data is None:
+            self.should_stop = True
+        else:
             self.data = data
-            self.frame.set()
+        self.frame.set()
 
 
 colorTagDeviceUniverses = {}
@@ -987,31 +1089,38 @@ def onDelTag(t, m):
         with discoverlock:
             if m in addedTags:
                 del addedTags[m]
-                discoverColorTagDevices()
+                cl_discover_color_tag_devices()
 
 
 kaithem.message.subscribe("/system/tags/deleted", onDelTag)
 
 
 def onAddTag(t, m):
-    if "color" not in m and "fade" not in m and "light" not in m and "bulb" not in m and "colour" not in m:
+    if (
+        "color" not in m
+        and "fade" not in m
+        and "light" not in m
+        and "bulb" not in m
+        and "colour" not in m
+    ):
         return
-    discoverColorTagDevices()
+    cl_discover_color_tag_devices()
 
 
 kaithem.message.subscribe("/system/tags/created", onAddTag)
 kaithem.message.subscribe("/system/tags/configured", onAddTag)
 
 
-def discoverColorTagDevices():
+def cl_discover_color_tag_devices():
     global colorTagDeviceUniverses
 
     u = {}
 
-    # Devices may have "subdevices" represented by tag heirarchy, like:
+    # Devices may have "subdevices" represented by tag hierarchy, like:
     # /devices/devname/subdevice.color
 
     def handleSubdevice(dev, sd, c, ft):
+        global _universes
         if dev == sd:
             name = dev
         else:
@@ -1021,11 +1130,10 @@ def discoverColorTagDevices():
         if ft:
             addedTags[ft.name] = True
 
-        with universesLock:
-            if name not in _universes:
-                u[name] = ColorTagUniverse(name, c, ft)
-            else:
-                u[name] = _universes[name]()
+        if name not in _universes:
+            u[name] = ColorTagUniverse(name, c, ft)
+        else:
+            u[name] = _universes[name]()
 
     for i in kaithem.devices:
         d = kaithem.devices[i]
@@ -1072,8 +1180,18 @@ class ColorTagUniverse(Universe):
         Universe.__init__(self, name, 4)
         self.hidden = False
         self.tag = tag
-        self.f = Fixture(self.name + ".rgb", [["R", "red"], ["G", "green"], ["B", "blue"]])
-        self.f.assign(self.name, 1)
+        self.f = Fixture(
+            self.name + ".rgb",
+            {
+                "channels": [
+                    {"name": "red", "type": "red"},
+                    {"name": "green", "type": "green"},
+                    {"name": "blue", "type": "blue"},
+                ]
+            },
+        )
+        with core.cl_context:
+            self.f.cl_assign(self.name, 1)
         self.lock = threading.RLock()
 
         self.lastColor = None
@@ -1096,16 +1214,20 @@ class ColorTagUniverse(Universe):
         kaithem.misc.do(f)
 
     def _onFrame(self):
-        c = colorzero.Color.from_rgb(self.values[1] / 255, self.values[2] / 255, self.values[3] / 255).html
+        c = colorzero.Color.from_rgb(
+            self.values[1] / 255, self.values[2] / 255, self.values[3] / 255
+        ).html
 
-        tm = time.monotonic()
+        tm = time.time()
 
         # Only set the fade tag right before we are about to do something with the bulb, otherwise we would be adding a ton
         # of useless writes
         if not c == self.lastColor or not c == self.tag.value:
             self.lastColor = c
             if self.fadeTag:
-                t = max(self.fadeEndTime - time.time(), self.interpolationTime, 0)
+                t = max(
+                    self.fadeEndTime - time.time(), self.interpolationTime, 0
+                )
                 # Round to the nearest 20th of a second so we don't accidentally set the values more often than needed if it doesn't change
                 t = int(t * 20) / 20
                 self.fadeTag(t, tm, annotation="Chandler")
@@ -1113,15 +1235,14 @@ class ColorTagUniverse(Universe):
             self.tag(c, tm, annotation="Chandler")
 
 
-core.discoverColorTagDevices = discoverColorTagDevices
-
-
 class OneTagpoint(Universe):
     "Used for outputting lighting to Kaithem's internal Tagpoint system"
 
     refresh_on_create = False
 
-    def __init__(self, name, channels=3, tagpoints={}, framerate=44.0, number=0):
+    def __init__(
+        self, name, channels=3, tagpoints={}, framerate=44.0, number=0
+    ):
         self.ok = True
         self.status = "OK"
         self.number = number
@@ -1134,7 +1255,7 @@ class OneTagpoint(Universe):
 
         self.prev = (-1, -1)
 
-        self.channelNames = {"value": 1}
+        self.channelInfoByUniverseAndNumber = {"value": 1}
 
         # Sender needs the values to be there for setup
         self.values = numpy.array([0.0] * (self.count), dtype="f4")
@@ -1148,14 +1269,10 @@ class OneTagpoint(Universe):
 
             t = (x, a)
 
-            # Do our own change detection. We don't want
-            # to unnecessarily set the tag and interfere with external
-            # settings.
-            if self.prev != t:
-                if (x > -1) and (a > 0):
-                    self.claim = self.tagpoint.claim(x, "ChandlerUniverse", 50)
-                else:
-                    self.tagpoint.release("ChandlerUniverse")
+            if (x > -1) and (a > 0):
+                self.claim = self.tagpoint.claim(x, "ChandlerUniverse", 50)
+            else:
+                self.tagpoint.release("ChandlerUniverse")
 
             self.prev = t
 
@@ -1165,7 +1282,10 @@ class OneTagpoint(Universe):
 
 
 def getUniverse(u: str | None) -> Universe | None:
-    "Get strong ref to universe if it exists, else get none."
+    """Get strong ref to universe if it exists, else get none. must be
+    safe to call under render loop lock.
+    """
+    global universes
     if not u:
         return None
     try:
@@ -1177,6 +1297,7 @@ def getUniverse(u: str | None) -> Universe | None:
 
 def getUniverses() -> dict[str, Universe]:
     "Returns dict of strong refs to universes, filtered to exclude weak refs"
+    global universes
     m = universes
     u = {}
     for i in m:
@@ -1188,7 +1309,8 @@ def getUniverses() -> dict[str, Universe]:
 
 
 def rerenderUniverse(i: str):
-    """Set full_rerender to true on a given universe, if it exists"""
+    """Set full_rerender to true on a given universe, if it exists. must be
+    safe to call under render loop lock."""
     universe = getUniverse(i)
     if universe:
         universe.full_rerender = True
@@ -1229,7 +1351,7 @@ def mapChannel(u: str, c: str | int) -> tuple[str, int] | None:
 
             universe = getUniverse(u)
             if universe:
-                c = universe.channelNames.get(c, None)
+                c = universe.channelInfoByUniverseAndNumber.get(c, None)
                 if not c:
                     return None
                 else:
@@ -1246,6 +1368,9 @@ def mapChannel(u: str, c: str | int) -> tuple[str, int] | None:
         return None
     x = f.assignment
     if not x:
+        return
+
+    if c not in f.nameToOffset:
         return
 
     # Index advance @fixture[5] means assume @fixture is the first of 5 identical fixtures and you want #5

@@ -1,8 +1,6 @@
 # SPDX-FileCopyrightText: Copyright Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
 
-import logging
-
 import structlog
 from scullery import scheduling, util
 
@@ -94,4 +92,6 @@ try:
     workers.do(get_connectionstatus)
 
 except Exception:
-    log.exception("Could not use NetworkManager client. Network management disabled.")
+    log.exception(
+        "Could not use NetworkManager client. Network management disabled."
+    )

@@ -11,12 +11,32 @@
 {% set devices = imp0rt('kaithem.src.devices') %}
 {% block body %}
 <style>
-    img {
+    img,
+    dd {
         max-width: min(50vw, 100%);
         width: 28rem;
     }
+
+    .card {
+        max-width: min(50vw, 100%);
+        min-width: 12rem !important;
+    }
+
+    .param {
+        min-width: 6rem;
+        max-width: 12rem;
+        border: 1px solid;
+        padding: 4px;
+    }
+    .param-box {
+        row-gap: 0.5rem;
+    }
+    h4{
+        padding: 0px;
+    }
+
 </style>
-<script src="/static/thirdparty/js/qrcode.min.js"></script>
+<script src="/static/js/thirdparty/qrcode.min.js"></script>
 
 <div class="window">
     <div class="flex-row gaps">
@@ -26,13 +46,13 @@
             <header>
                 <h3>{{ dev }} <small>{{devs[dev]().config['type']}}</small> </h3>
             </header>
-            <div class="two-columns balance-columns">
-                <dl class="nopadding nomargin">
-                    {% for i in sorted(devs[dev]().config.keys()) %}
-                    {% if (not devs[dev]().config_properties.get(i,{}).get("secret",False)) or devs[dev]().config[i] in ('password', 'admin', '1234', '12345678', '123456', 'raspberry','')  %}
+            <div class="nopadding nomargin flex-row param-box">
+                {% for i in sorted(devs[dev]().config.keys()) %}
+                {% if (not devs[dev]().config_properties.get(i,{}).get("secret",False)) or devs[dev]().config[i] in ('password', 'admin', '1234', '12345678', '123456', 'raspberry','')  %}
 
-                    {% if devs[dev]().config[i] and not len(str(devs[dev]().config[i])) > 512 and not i in ('subclass','notes', 'description', 'name', 'type')  %}
-                    <dt class="nomargin"><small>
+                {% if devs[dev]().config[i] and not len(str(devs[dev]().config[i])) > 512 and not i in ('subclass','notes', 'description', 'name', 'type')  %}
+                <div class="param">
+                    <h4 class="nomargin"><small>
                             {% if i.startswith('device.') %}
                             {{i[7:]|escape}}
                             {% elif i.startswith('kaithem.') %}
@@ -41,22 +61,20 @@
                             {{i|escape}}
                             {% endif %}
                         </small>
-                    </dt>
+                    </h4>
 
-                    <dd class="nomargin" style="word-wrap: break-word;">
-                        <p class="nomargin margin-indent">{{devs[dev]().config[i]|escape}}</p>
-                    </dd>
+                    <p class="nomargin margin-indent">{{devs[dev]().config[i]|escape}}</p>
+                </div>
 
-                    {% endif %}
-                    {% endif %}
-                    {% endfor %}
-                </dl>
+                {% endif %}
+                {% endif %}
+                {% endfor %}
 
                 {% if devs[dev]().metadata %}
-                <dl class="nopadding">
-                    {% for i in devs[dev]().metadata %}
-                    {% if devs[dev]().metadata[i] and not len(str(devs[dev]().metadata[i])) > 128 %}
-                    <dt class="nomargin"><small>
+                {% for i in devs[dev]().metadata %}
+                {% if devs[dev]().metadata[i] and not len(str(devs[dev]().metadata[i])) > 128 %}
+                <div class="param">
+                    <h4 class="nomargin"><small>
                             {% if i.startswith('device.') %}
                             {{i[7:]|escape}}
                             {% elif i.startswith('kaithem.') %}
@@ -65,15 +83,14 @@
                             {{i|escape}}
                             {% endif %}
                         </small>
-                    </dt>
+                    </h4>
 
-                    <dd class="nomargin" style="word-wrap: break-word;">
-                        <p class="nomargin margin-indent">{{devs[dev]().metadata[i]|escape}}</p>
-                    </dd>
+                    <p class="nomargin margin-indent">{{devs[dev]().metadata[i]|escape}}</p>
+                </div>
 
 
-                    {% endif %}
-                    {% endfor %}
+                {% endif %}
+                {% endfor %}
                 </dl>
                 {% endif %}
 

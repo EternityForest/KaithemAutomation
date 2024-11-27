@@ -1,7 +1,146 @@
 Change Log
 ----------
 
+### 0.86.3
+
+- :bug: Fix preset edting dialog
+- :bug: Fix device interactive discovery
+
+### 0.86.2
+
+This release is all about ES modules. I've decided to pretty much completely
+move on from non-module JS, and as kaithem is not yet 1.0, this will be a hard breaking change that affects most custom JS, requiring minor(a few lines) changes.
+
+It does not affect anything not using custom HTML/JS
+
+- :technologist: Dependabot and the general ecosystem have spoken. No more dev branch, we're not using Gitflow.
+- :technologist: 80 line limit.
+- :bug: Fix bug where the loop sound feature interacted badly with relative length
+- :sparkles: Widget API will no longer send old failed messages on reconnected after 5 seconds
+- :bug: Fix nuisance gitgub flavor not found error
+- :sparkles: Chandler logic lets you use `=+ tv("TagName")` to trigger when a tag changes to a nonzero value.
+- :sparkles: Improve chandler autocomplete suggestions
+- :lipstick: Alerts more visible on devices pages
+- :bug: Delete button on devices page works correctly
+- :sparkles: Switch to https://reallyfreegeoip.org for the one time location lookup
+- :sparkles: kaithem.api.web.render_html_file function for fully client side apps
+- :sparkles: When setting a @time length, give a popup so you can tell if it was parsed correctly
+- :sparkles: At boot, logs changes in the environment like installed system packages.
+- :lipstick: Make cue notes more visible
+- :lipstick: Less log clouter for notifications
+- :sparkles: ArduinoCogs support improved.
+- :bug: i/o error checker stalling bug
+
+#### :boom: BREAKING
+
+widget.mjs along with several other internals are now esm modules.
+Normal non-esm JS is deprecated or legacy pretty much everywhere.
+
+If you're doing custom JS/Python work with an APIWidget, you'll need to
+give the APIWidget a widget ID, or fetch the generated one from widget.id,
+and import it's special API script:
+
+```html
+<script type="module">
+   import { kaithemapi, APIWidget} from "/static/js/widget.mjs"
+    let api = new APIWidget("widget_id")
+    api.upd = (val) => alert(val)
+    api.send("MyValue")
+</script>
+```
+
+Use:
+```js
+import { kaithemapi } from "/static/js/widget.mjs"
+```
+if you need to access the widget API directly.
+
+
+### 0.86.1
+
+- :bug: Minor UI stuff with displaying unsupported devices
+- :sparkles:  Add experimental support for the ArduinoCogs web API, which is still pre-alpha.
+
+### 0.86.0
+
+This release took a while, because so many tests had to be rewritten for the Popover API based UI.
+Chandler should be much nicer to use now, especially on Mobile!
+
+#### Added
+- :sparkles: Cue provider system lets you quickly create playists from folders of media
+- :sparkles: Mount/Unmount disks from devices page
+- :sparkles: Add the module_lock key to the module's \_\_metadata\_\_.yaml to protect from changes via GUI.
+- :sparkles: Popover-based UI overhaul for Chandler.
+
+### 0.85.0
+
+
+#### Removed
+
+- :coffin: control and \_\_variables\_\_ chandler universes
+- :coffin: Tab to space option: Spaces are always used
+- :coffin: Screen rotate setting that didn't work on Wayland
+- :coffin: The alert sounds system has been removed. It is suggested to use an automation rule on /sys/alerts.level.
+- :coffin: The setting for universe channel count. Ther're just always max size now.
+- :coffin: Most of the integrated self tests removed. Hardware related tests are staying.
+- :coffin: RTP features in the Mixing Board.  They will return at some point asa separate feature outside the FX chain.
+
+#### Added
+
+- :sparkles: Can now set a label image for a cue
+- :sparkles: Presets named foo@fixture are only usable for that fixture or fixture type.
+- :sparkles: Improved preset picker UI
+- :sparkles: Can set images for presets
+- :sparkles: Preset and cue images specified as 16/9
+- :sparkles: File server resources are browsable
+- :sparkles: File resource thumbnails
+- :sparkles: File resource audio previews
+- :sparkles: Excalidraw integration to draw labels and add documentation to modules
+- :sparkles: Excalidraw labeling for presets, resources, fixtures, cues, and mixer channels
+- :sparkles: Retire the original error.ogg file.  alert.ogg and error.ogg are now aliases for new files.
+- :sparkles: All the core web UI sounds are available in chandler
+- :sparkles: New "Enable Default Alerts" option to disable all the alerts a device sets.
+- :sparkles: Compact view for chandler cues
+
+
+#### Changed
+
+- :boom: Chandler "Scenes" have been renamed to "Groups" to disambiguate from "Cues" and follow stage lighting practice.  This should not be a breaking change, anything user facing gets migrated automatically.
+
+- :boom: Chandler GotoCue commands no longer stop execution of the current event.
+- :boom: Chandler GotoCue, shortcut, and event happens in the next frame
+- :boom: Tag points and the message bus use system time, not monotonic.
+- :boom: Tag points under /jackmixer/ renamed to just mixer
+
+#### Fixed
+
+- :bug: Fix setting media folders
+- :bug: Fix beholder media playback and other things using subfolders of user pages
+- :bug: Fix OPZ DMX Definition import
+- :bug: Fix incorrect fixture type mouseover display
+- :bug: Fix deleting file resources
+- :bug: Fix get file resource path API
+- :bug: Fix coarse/fine channels
+- :bug: Use a cache busting value in urls so the browser knows to refresh
+- :bug: Fix countdown timers with unusual bpm values
+- :bug: Fix digital signage permission issue
+- :bug: Fix digital signage unable to start midway through media
+- :bug: Fix delete button in file manager
+- :bug: Fix Vary blend mode
+- :bug: Fix Flicker blend mode performance
+- :bug: Fix editing blend mode params
+- :bug: Tag point universes always update on cue even if not changed
+- :bug: Fix bug where a fade in the middle of another fade could be a sudden jump
+- :bug: Fix cue and group autocomplete in script editor
+- :bug: Mixer sends work
+- :bug: Fix recurring time selectors being a few seconds off
+
+
 ### 0.84.0b2
+
+#### Added
+
+- :sparkles: More YoLink devices
 
 #### Fixed
 
@@ -12,7 +151,9 @@ Change Log
 - :bug: Missing file for lair.css theme
 - :bug: Fixture values were not applied on boot until the first cue transition
 - :bug: Fix issue where all black frames could get inserted in DMX output
-- :bug: Improve the UI for hthe fxture assignments setup
+- :bug: Improve the UI for the fxture assignments setup
+- :bug: Fix fading from a cue that has a fixture to a non-tracking one that doesn't
+- :bug: Fix inability to access manage page for subdevices
 
 #### Changed
 
@@ -21,6 +162,10 @@ Change Log
 #### Removed
 
 - :coffin: Rahu calculations removed due to switching libraries
+
+
+Internally, the separate "affect" variabl used in lighting rendering has been refactored away.
+
 
 ### 0.84.0b1
 
@@ -538,7 +683,7 @@ Some may return in iot_devices later.
 - :bug: Fix chatty logs from aioesphomeapi
 - :coffin: Deprecate kaithem.web.controllers
 - :sparkles: kaithem.web.add_wsgi_app and add_tornado_app to allow for addon apps from other frameworks.
-- :lipstick: Legacy /static/widget.js moved to /static/js/widget.js
+- :lipstick: Legacy /static/widget.mjs moved to /static/js/widget.mjs
 - :lipstick: Third party JS moved to /static/js/thirdparty/
 - :sparkles: Support AppRise notifications(Configure them in global settings)
 
@@ -1708,7 +1853,7 @@ cart - Help boxes(paragraph or div class 'help') now show up minimized until you
 -   Safer handling of tokens to resist timing attacks
 -   Get rid of excessively tiny stack size that caused ocassional
     segfaults
--   Fix bug that caused annoying widget.js error messages
+-   Fix bug that caused annoying widget.mjs error messages
 -   Switch to microsoft's monaco editor instead of CodeMirror
 -   (SOMEWHAT BREAKING CHANGE) Users are now limited by default to 64k
     request HTTP bodies. You can allow users a larger limit on a

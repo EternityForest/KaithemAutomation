@@ -84,6 +84,12 @@ dev-playwright-ui: # Open playwright tests UI
 dev-record-playwright: # Record playwright tests
 	@npx playwright codegen http://localhost:8002
 
+
+.PHONY: dev-update-playwright
+dev-update-playwright: # Update playwright tests
+	@npm install -D @playwright/test@latest
+	@npx playwright install --with-deps
+
 .PHONY: dev-file-lines
 dev-file-lines: # Show files sorted by line count
 	@poetry run pygount --merge-embedded-languages --names-to-skip="*.min.js,bip39.txt" --folders-to-skip="thirdparty,__pycache__,tests" kaithem/ scripts/ | sort -nr -
@@ -91,7 +97,19 @@ dev-file-lines: # Show files sorted by line count
 
 
 .PHONY: dev-build
-dev-build: # Build for release
+dev-build: dev-build-docs # Build for release
 	@poetry build
 	@poetry freeze-wheel
 
+
+.PHONY: dev-publish-to-pypi
+dev-publish-to-pypi: # Publish to PyPi.  Can't use poetry because of freeze-wheel
+	@twine upload dist/*.whl
+
+.PHONY: dev-import-16_9_buttons
+dev-import-16_9_buttons: 
+	@bash scripts/import_16x9_buttons.sh
+
+.PHONY: dev-scalene-profile
+dev-scalene-profile:
+	@scalene --profile-all --use-virtual-time --cpu-sampling-rate=0.001 dev_run.py

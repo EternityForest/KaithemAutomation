@@ -23,6 +23,13 @@
     from kaithem.src import workers
     from kaithem.src.config import config
 
+    try:
+        __version__ = version("kaithem")
+    except Exception as e:
+        __version__ = str(e)
+
+
+
     if os.name != "nt":
         import fcntl
         import struct
@@ -177,7 +184,7 @@ except Exception:
 
     <div class="window paper margin">${config['about_box_banner']}</div>
     <section class="window paper margin">
-    <b>Version:</b> ${kaithemobj.kaithem.misc.version|h}
+    <b>Version:</b> ${__version__|h}
     </section>
     <section class="window paper margin">
         <b>LAN access QR(${lanip[1]}):</b><br>

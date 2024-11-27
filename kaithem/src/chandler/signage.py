@@ -11,29 +11,31 @@ from . import core
 
 if TYPE_CHECKING:
     from .cue import Cue
-    from .scenes import Scene
+    from .groups import Group
 
 
 class MediaLinkManager:
-    def __init__(self, sceneObj: Scene):
+    def __init__(self, groupObj: Group):
         # This is used for the remote media triggers feature.
         # We must explicitly give it an ID so that it stays consistent
         # between runs and we can auto-reconnect
-        self.scene = sceneObj
+        self.group = groupObj
 
         # The active sound file being played through the remote playback mechanism.
         # Very ugly code with this, it only deals with routing sound not slides
         self.allowed_remote_media_url: str | None = None
 
         class APIWidget(widgets.APIWidget):
-            # Ignore badly named s param because it need to not conflic with outer self
+            # Ignore badly named s param because it need to not conflict with outer self
             def on_new_subscriber(s, user, cid, **kw):  # type: ignore
                 self.send_all_media_link_info()
 
-        self.media_link_socket = APIWidget(id=sceneObj.id + "_media_link")
+        self.media_link_socket = APIWidget(id=groupObj.id + "_media_link")
         self.media_link_socket.echo = False
 
-        self.slideshow_telemetry: collections.OrderedDict[str, dict[str, Any]] = collections.OrderedDict()
+        self.slideshow_telemetry: collections.OrderedDict[
+            str, dict[str, Any]
+        ] = collections.OrderedDict()
         self.slideshow_telemetry_ratelimit = (time.monotonic(), 200)
         # Variables to send to the slideshow.  They are UI only and
         # we don't have any reactive features
@@ -42,11 +44,13 @@ class MediaLinkManager:
         def handleMediaLink(u, v, id):
             if v[0] == "telemetry":
                 ts, remain = self.slideshow_telemetry_ratelimit
-                remain = max(0, min(200, (time.monotonic() - ts) * 3 + remain - 1))
+                remain = max(
+                    0, min(200, (time.monotonic() - ts) * 3 + remain - 1)
+                )
 
                 if remain:
                     ip = kaithem.widget.ws_connections[id].peer_address
-                    n = ip + "@" + sceneObj.name
+                    n = ip + "@" + groupObj.name
 
                     if v[1]["status"] == "disconnect":
                         self.slideshow_telemetry.pop(n, None)
@@ -60,8 +64,10 @@ class MediaLinkManager:
                         "ip": ip,
                         "id": id,
                         "ts": time.time(),
-                        "battery": kaithem.widget.ws_connections[id].batteryStatus,
-                        "scene": sceneObj.name,
+                        "battery": kaithem.widget.ws_connections[
+                            id
+                        ].batteryStatus,
+                        "group": groupObj.name,
                     }
                     self.slideshow_telemetry.move_to_end(n)
 
@@ -72,7 +78,13 @@ class MediaLinkManager:
 
                     try:
                         for board in core.iter_boards():
-                            board.linkSend(["slideshow_telemetry", n, self.slideshow_telemetry[n]])
+                            board.linkSend(
+                                [
+                                    "slideshow_telemetry",
+                                    n,
+                                    self.slideshow_telemetry[n],
+                                ]
+                            )
                     except Exception:
                         pass
 
@@ -83,7 +95,7 @@ class MediaLinkManager:
                 self.send_all_media_link_info()
 
             elif v[0] == "error":
-                self.scene.event(
+                self.group.event(
                     "system.error",
                     "Web media playback error in remote browser: " + v[1],
                 )
@@ -95,11 +107,17 @@ class MediaLinkManager:
         self.web_variables[k] = v
 
     def send_all_media_link_info(self):
-        self.media_link_socket.send(["volume", self.scene.alpha])
+        self.media_link_socket.send(["volume", self.group.alpha])
 
-        self.media_link_socket.send(["text", self.scene.cue.markdown])
+        self.media_link_socket.send(["text", self.group.cue.markdown])
 
-        self.media_link_socket.send(["cue_ends", self.scene.cuelen + self.scene.entered_cue, self.scene.cuelen])
+        self.media_link_socket.send(
+            [
+                "cue_ends",
+                self.group.cuelen + self.group.entered_cue,
+                self.group.cuelen,
+            ]
+        )
 
         self.media_link_socket.send(["all_variables", self.web_variables])
 
@@ -107,19 +125,24 @@ class MediaLinkManager:
             [
                 "mediaURL",
                 self.allowed_remote_media_url,
-                self.scene.entered_cue,
-                max(0, self.scene.cue.fade_in or self.scene.cue.sound_fade_in or self.scene.crossfade),
+                self.group.entered_cue,
+                max(
+                    0,
+                    self.group.cue.fade_in
+                    or self.group.cue.sound_fade_in
+                    or self.group.crossfade,
+                ),
             ]
         )
         self.media_link_socket.send(
             [
                 "slide",
-                self.scene.cue.slide,
-                self.scene.entered_cue,
-                max(0, self.scene.cue.fade_in or self.scene.crossfade),
+                self.group.cue.slide,
+                self.group.entered_cue,
+                max(0, self.group.cue.fade_in or self.group.crossfade),
             ]
         )
-        self.media_link_socket.send(["overlay", self.scene.slide_overlay_url])
+        self.media_link_socket.send(["overlay", self.group.slide_overlay_url])
 
     def stop(self):
         self.media_link_socket.send(["text", ""])
@@ -131,8 +154,8 @@ class MediaLinkManager:
             [
                 "slide",
                 cue.slide,
-                self.scene.entered_cue,
-                max(0, cue.fade_in or self.scene.crossfade),
+                self.group.entered_cue,
+                max(0, cue.fade_in or self.group.crossfade),
             ]
         )
 
@@ -143,12 +166,22 @@ class MediaLinkManager:
             ]
         )
 
-        self.media_link_socket.send(["cue_ends", self.scene.cuelen + self.scene.entered_cue, self.scene.cuelen])
+        self.media_link_socket.send(
+            [
+                "cue_ends",
+                self.group.cuelen + self.group.entered_cue,
+                self.group.cuelen,
+            ]
+        )
 
     def sendVisualizations(self):
         self.media_link_socket.send(
             [
                 "butterchurnfiles",
-                [i.split("milkdrop:")[-1] for i in self.scene.music_visualizations.split("\n") if i],
+                [
+                    i.split("milkdrop:")[-1]
+                    for i in self.group.music_visualizations.split("\n")
+                    if i
+                ],
             ]
         )

@@ -60,15 +60,23 @@ async def serve_map_tile(z, x, y):
         ):
             return await quart.send_file(
                 os.path.join(
-                    os.path.expanduser(f"~/.local/share/marble/maps/earth/{map}"),
+                    os.path.expanduser(
+                        f"~/.local/share/marble/maps/earth/{map}"
+                    ),
                     z,
                     x,
                     y,
                 )
             )
 
-        if os.path.exists(os.path.join(f"/home/pi/.local/share/marble/maps/earth/{map}", z, x, y)):
-            return await quart.send_file(os.path.join(f"/home/pi/share/marble/maps/earth/{map}", z, x, y))
+        if os.path.exists(
+            os.path.join(
+                f"/home/pi/.local/share/marble/maps/earth/{map}", z, x, y
+            )
+        ):
+            return await quart.send_file(
+                os.path.join(f"/home/pi/share/marble/maps/earth/{map}", z, x, y)
+            )
 
         await get_tile(x, y, z, map)
 

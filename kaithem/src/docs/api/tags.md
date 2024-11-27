@@ -143,7 +143,7 @@ When a tag is first created, it's value is the default for that type, and
 it's timestamp will be 0.
 
 The annotation is an arbitrary python object, and the timestamp is always in
-the time.monotonic() scale.
+the time.time() scale.
 
 It is suggested that you not do anything with annotations besides equality
 testing, or that you always typecheck the value as it defaults to None.
@@ -424,7 +424,7 @@ Subclassing is a bad plan but you may want them for type hinting.
 
 Create a websocket connection to the URL of this form:
 
-`kaithemapi.wsPrefix()+"/widgets/wsraw?widgetid={obj.tagPoints[i].data_source_widget.uuid}",`
+`globalThis.kaithemapi.wsPrefix()+"/widgets/wsraw?widgetid={obj.tagPoints[i].data_source_widget.uuid}",`
 
 And if you have read permissions, you will get tag data updates as raw data.
 Added to support video playback with mpegts.js

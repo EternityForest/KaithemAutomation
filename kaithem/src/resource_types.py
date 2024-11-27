@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: Copyright Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
 
+import copy
 import html
 import traceback
 import weakref
@@ -16,6 +17,10 @@ from jsonschema import validate
 ResourceDictType = Mapping[str, Any]
 
 
+def mutable_copy_resource(resource: ResourceDictType) -> dict[str, Any]:
+    return copy.deepcopy(resource)  # type: ignore
+
+
 class ResourceType:
     """Allows creating new resource types.
     Data keys starting with resource_ are reserved.
@@ -29,7 +34,9 @@ class ResourceType:
     .
     """
 
-    def __init__(self, type: str, mdi_icon="", schema=None, priority=50.0, title=""):
+    def __init__(
+        self, type: str, mdi_icon="", schema=None, priority=50.0, title=""
+    ):
         """ "Schema may be a JSON schema, representing a dict,
         which must validate the resource, but should not include any
         key beginning with resource_ as those are internal and reserved.
@@ -70,38 +77,38 @@ class ResourceType:
         """
         return {f"{name.split('/')[-1]}.yaml": yaml.dump(resource)}
 
-    def _validate(self, d: ResourceDictType):
+    def _validate(self, data: ResourceDictType):
         "Strip the resource_ keys before giving it to the validator"
-        d = {i: d[i] for i in d if not i.startswith("resource_")}
+        data = {i: data[i] for i in data if not i.startswith("resource_")}
         if self.schema:
-            validate(d, self.schema)
-        self.validate(d)
+            validate(data, self.schema)
+        self.validate(data)
 
     @beartype.beartype
-    def validate(self, d: ResourceDictType):
+    def validate(self, data: ResourceDictType):
         """Raise an error if the provided data is bad.
 
         Will not be passed any internal resource_* keys,
         just the resource specific stuff.
         """
 
-    def get_create_target(self, module, folder):
+    def get_create_target(self, module: str, folder):
         return f"/modules/module/{module}/addresourcetarget/{self.type}?dir={quote(folder,safe='')}"
 
-    def get_update_target(self, module, resource):
+    def get_update_target(self, module: str, resource):
         return f"/modules/module/{quote(module)}/updateresource/{resource}"
 
-    def _blurb(self, module, resource, object):
+    def _blurb(self, module: str, resource: str, data):
         try:
-            return self.blurb(module, resource, object)
+            return self.blurb(module, resource, data)
         except Exception:
             return f'<div class="scroll max-h-12rem">{html.escape(traceback.format_exc())}</div>'
 
-    def blurb(self, module, resource, object):
+    def blurb(self, module: str, resource: str, data) -> str:
         """Empty or a single overview div"""
         return ""
 
-    def createpage(self, module, path):
+    def create_page(self, module: str, path):
         """
         Called when the user clicks the create button.
 
@@ -116,48 +123,54 @@ class ResourceType:
         </form>
         """
 
-    def oncreaterequest(self, module, name, kwargs) -> ResourceDictType:
+    def on_create_request(
+        self, module: str, resource: str, kwargs
+    ) -> ResourceDictType:
         """Must return a resource object given kwargs from createpage.
         Called on submitting create form
         """
         return {"resource_type": "example"}
 
-    def editpage(self, module, resource, resourceobj):
+    def edit_page(self, module: str, resource: str, data):
         """Given current resource data, return a manager page.
         It may submit to get_update_target()
         """
-        return str(resourceobj)
+        return str(data)
 
-    def onupdaterequest(self, module, resource, resourceobj, kwargs):
+    def on_update_request(
+        self, module: str, resource: str, data: ResourceDictType, kwargs
+    ):
         "Called with the kwargs from editpage.  Gets old resource obj, must return new"
-        return resourceobj
+        return data
 
-    def onload(self, module: str, resource: str, resourceobj: ResourceDictType):
+    def on_load(self, module: str, resource: str, data: ResourceDictType):
         """Called when loaded from disk."""
-        return True
 
-    def onfinishedloading(self, module: str | None):
+    def on_finished_loading(self, module: str | None):
         """Called with module name when every resource has finished loading with onload(),
         and before any events or pages are loaded.
 
         Called during init with None when ALL modules are done loading.
         """
 
-    def ondeletemodule(self, module: str):
+    def on_delete_module(self, module: str):
         """Called before the resource deleter callbacks"""
 
-    def onmove(self, module, resource, toModule, toResource, resourceobj):
+    def on_move(
+        self, module: str, resource: str, to_module: str, to_resource: str, data
+    ):
         """Called when object has been moved.  All additionaltypes must be movable."""
-        return True
 
-    def ondelete(self, module, resource, resourceobj):
-        return True
+    def on_delete(self, module, resource: str, data):
+        pass
 
-    def onupdate(self, module, resource, resourceobj):
+    def on_update(self, module, resource: str, data):
         """Called when something has updated the data.  Usually the web UI but could be anything."""
 
     def flush_unsaved(self, module, resource):
         """Called when the resource should save any unsaved data it has back to the resource."""
 
 
-additionalTypes: weakref.WeakValueDictionary[str, ResourceType] = weakref.WeakValueDictionary()
+additionalTypes: weakref.WeakValueDictionary[str, ResourceType] = (
+    weakref.WeakValueDictionary()
+)

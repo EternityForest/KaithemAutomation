@@ -1,0 +1,44 @@
+:root {
+    --black-1: black;
+    --black-2: #0f0902;
+    --black-3: #16425c;
+    --black-4: #272626;
+    --grey-1: #686443;
+    --grey-2: #dfd9a3;
+    --grey-3: #bef1e2;
+    --warning-color: #836f1f;
+    --danger-color: #962c2c;
+    --highlight-color: #102142;
+    --success-color: #165316;
+    --accent-color: rgb(107, 133, 206);
+
+    --bg: var(--black-1);
+    --box-bg: var(--black-1);
+    --control-bg: var(--black-1);
+    --alt-control-bg: var(--black-2);
+
+    --fg: var(--grey-2);
+    --graphical-fg: var(--grey-1);
+    --control-fg: var(--grey-2);
+
+    --concave-item-bg: var(--control-bg);
+    --convex-item-bg: var(--control-bg);
+    --convex-item-active-bg: var(--grey-1);
+    --concave-item-box-shadow: none;
+    --control-border-color: color-mix(in srgb, var(--graphical-fg) 80%, rgb(0 0 0 / 0%));
+
+    --3d-highlight: var(--control-bg);
+    --3d-shadow: var(--control-bg);
+}
+
+input[type="range"] {
+   --slider-thumb: var(--graphical-fg);
+}
+
+* {
+    scrollbar-color: #2b2b2b var(--control-bg);
+}
+
+img {
+    filter: brightness(70%) contrast(140%);
+}

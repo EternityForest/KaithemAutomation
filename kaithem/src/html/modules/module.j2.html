@@ -1,5 +1,6 @@
 {% extends "pagetemplate.j2.html" %}
 {% set time = imp0rt( 'time' ) %}
+{% set webapi = imp0rt( 'kaithem.api.web' ) %}
 
 {% block body %}
 <style>
@@ -54,8 +55,16 @@
         </section>
     </section>
 
-    <section class="window padding">
-        <div class="tool-bar w-full">
+    <div class="window h-18rem paper modal margin" popover id="addresource">
+        <header>
+            <div class="tool-bar">
+                <h3>Add Resource</h3>
+                <button aria-label="Close" type="button" popovertarget="addresource" popovertargetaction="close">
+                    <span class="mdi mdi-close"></span></button>
+            </div>
+
+        </header>
+        <div class="w-full flex-row">
             <a class="button" data-testid="add-permission"
                 href="/modules/module/{{ url(name) }}/addresource/permission?dir={{ url('/'.join(path) ) }}"><i
                     class="mdi mdi-key"></i>Permission</a>
@@ -76,6 +85,21 @@
                     class="mdi mdi-{{modules.additionalTypes[i].mdi_icon}}"></i>{{ modules.additionalTypes[i].title or i.capitalize()| escape }}</a>
             {% endif %}
             {% endfor %}
+
+        </div>
+    </div>
+
+    <section class="window padding">
+        <div class="tool-bar w-full">
+
+             <button type="button" popovertarget="addresource" data-testid="add-resource-button">
+                <i class="mdi mdi-plus"></i>Add Resource
+             </button>
+
+            {% for i in webapi._module_plugin_links %}
+            <a class="button" href="{{ i[1] }}?module={{ url(name) }}&dir={{ url('/'.join(path) ) }}">{{ i[0] }}</a>
+            {% endfor %}
+
             <form action="/modules/module/{{url(name)}}/scanfiles" method="POST">
                 <button type="submit" title="Scan any manually added files in __filedata__">Rescan Files</button>
             </form>
@@ -117,8 +141,8 @@
                         <a href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}#resources"><i
                                 class="mdi mdi-folder-outline"></i><b>{{ i.split('/')[-1] | escape }}</b></a>
                     </p>
-                    <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}">
-                        <i class="mdi mdi-delete"></i>Delete</a>
+                    <a aria-label="Delete" class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}">
+                        <i class="mdi mdi-delete"></i></a>
                 </div>
             </dt>
             {% endif %}
@@ -136,14 +160,25 @@
                         {{ i[0] | escape }}
                     </p>
 
-                    <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i[1]) }}">
-                        <i class="mdi mdi-delete"></i>Delete</a>
+                    {% for j in webapi._file_resource_links %}
+                    {% if j(name,  i[1]) %}
+                    <a class="button" href="{{j(name,  i[1])[1] }}">{{ j(name,  i[1])[0] }}</a>
+                    {% endif %}
+                    {% endfor %}
+
+                    <a aria-label="Delete" class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i[1]) }}">
+                        <i class="mdi mdi-delete"></i></a>
                 </div>
             </dt>
 
             <dd>
 
-                <p><a href="/modules/module/{{ url(name) }}/getfileresource/{{i[1]}}">Download</a></p>
+                <p><a href="/modules/module/{{ url(name) }}/getfileresource/{{i[1]}}?timestamp={{i[2]}}">Download</a></p>
+                {% if i[1].split(".")[-1] in ('mp3', 'opus','wav', 'm4a','flac') %}
+                <audio controls preload="none" src="/modules/module/{{ url(name) }}/getfileresource/{{i[1]}}?timestamp={{i[2]}}"></audio>
+                {% endif %}
+
+
             </dd>
 
 
@@ -163,13 +198,17 @@
             {% if module[i]['resource_type'] == 'permission' %}
             <dt>
                 <div class="tool-bar w-full inline">
+                    <p class="nogrow">
+                        <i
+                        class="mdi mdi-key"></i>
+                    </p>
                     <p>
-                        <a href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}"> <i class="mdi mdi-key"></i>
+                        <a href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}">
                             {{ i.split("/")[-1] | escape }}</a>
                     </p>
 
-                    <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
-                            class="mdi mdi-delete"></i>Delete</a>
+                    <a aria-label="Delete" class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
+                            class="mdi mdi-delete"></i></a>
                 </div>
             </dt>
             {% endif %}
@@ -178,22 +217,38 @@
             {% if modules.additionalTypes[module[i]['resource_type']].mdi_icon %}
             <dt>
                 <div class="tool-bar w-full inline">
-                    <h3>
-                        <a href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}"> <i
-                                class="mdi mdi-{{modules.additionalTypes[module[i]['resource_type']].mdi_icon}}"></i>
-                            {{ i.split("/")[-1] | escape }} ({{module[i]['resource_type']}})</a>
-                    </h3>
-                    <a class="button nogrow" href="/modules/module/{{ url(name) }}/download_resource/{{ url(i) }}"><span
+                    <p class="nogrow">
+                        <i
+                        class="mdi mdi-{{modules.additionalTypes[module[i]['resource_type']].mdi_icon}}"></i>
+                    </p>
+                    <p>
+                        {% if module[i]['resource_lock'] in modules_state.additionalTypes %}
+                            <span class="mdi mdi-lock-outline"></span>LOCKED
+                        {% endif %}
+
+                        <a href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}"
+                        title="{{module[i]['resource_type']}}"
+                        >
+                            <b>{{ i.split("/")[-1] | escape }}</b></a>
+                    </p>
+
+                    <a aria-label="Download" class="button nogrow" href="/modules/module/{{ url(name) }}/download_resource/{{ url(i) }}"><span
                             class="mdi mdi-download-box"></span>
-                        Export</a>
-                    <a class="button nogrow" href="/modules/module/{{ url(name) }}/moveresource/{{ url(i) }}"><span
+                        </a>
+                    <a aria-label="Move" data-testid="move-resource-button" class="button nogrow" href="/modules/module/{{ url(name) }}/moveresource/{{ url(i) }}"><span
                             class="mdi mdi-folder-move"></span>
-                        Move</a>
-                    <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
-                            class="mdi mdi-delete"></i>Delete</a>
+                        </a>
+                    <a aria-label="Sketch Label" class="button nogrow" href="/excalidraw-plugin/edit?module={{ url(name) }}&resource=media/resource_labels/{{ url(i) }}.excalidraw.png&callback=/modules/set_label_image/{{ url(name) }}/{{ url(i) }}&ratio_guide=16_9">
+                            <i class="mdi mdi-image"></i></a>
+                    <a aria-label="Delete" data-testid="delete-resource-button" class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
+                            class="mdi mdi-delete"></i></a>
                 </div>
             </dt>
             <dd>
+                {% if module[i].get('resource_label_image') %}
+                <img alt="thumbnail" style="max-width: 32em; max-height: 32em"
+                src="{{get_resource_label_image_url(name,i)}}}}">
+                {% endif %}
                 {{modules.additionalTypes[module[i]['resource_type']]._blurb(name,i,module[i] )}}
             </dd>
             {% endif %}
@@ -203,22 +258,33 @@
             {% if module[i]['resource_type'] == 'device' %}
             <dt>
                 <div class="tool-bar w-full">
+                    <p class="nogrow">
+                        <i
+                        class="mdi mdi-key"></i>
+                    </p>
                     <p>
                         <a class="deviceslink"
                             href="/device/{{module[i].get('device',{}).get('name','').replace('/','%2F')|escape}}/manage">
-                            <i class="mdi mdi-chip"></i> {{ i.split("/")[-1] | escape }}</a>
+                             {{ i.split("/")[-1] | escape }}</a>
                     </p>
-                    <a class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
-                            class="mdi mdi-delete"></i>Delete</a>
+                    <a aria-label="Sketch Label" class="button nogrow" href="/excalidraw-plugin/edit?module={{ url(name) }}&resource=media/resource_labels/{{ url(i) }}.excalidraw.png&callback=/modules/set_label_image/{{ url(name) }}/{{ url(i) }}">
+                        <i class="mdi mdi-image"></i></a>
+                    <a aria-label="Download" class="button nogrow" href="/modules/module/{{ url(name) }}/download_resource/{{ url(i) }}"><span
+                            class="mdi mdi-download-box"></span>
+                    </a>
+                    <a aria-label="Delete" class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
+                            class="mdi mdi-delete"></i></a>
                     <br>
                 </div>
             </dt>
             <dd>
-
+                {% if module[i].get('resource_label_image') %}
+                <img alt="thumbnail" style="max-width: 32em; max-height: 8em"
+                src="{{get_resource_label_image_url(name,i)}}}}">
+                {% endif %}
             </dd>
             {% endif %}
 
-            <hr>
             {% endfor %}
         </dl>
     </section>

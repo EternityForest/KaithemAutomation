@@ -23,10 +23,15 @@ async def uploadresourcedialog(module):
     d.file_input("file")
     d.text_input("filename")
     d.submit_button("Submit")
-    return d.render(f"/modules/module/{url(module)}/uploadresourcetarget", hidden_inputs={"dir": path})
+    return d.render(
+        f"/modules/module/{url(module)}/uploadresourcetarget",
+        hidden_inputs={"dir": path},
+    )
 
 
-@quart_app.app.route("/modules/module/<module>/uploadresourcetarget", methods=["POST"])
+@quart_app.app.route(
+    "/modules/module/<module>/uploadresourcetarget", methods=["POST"]
+)
 async def uploadresourcetarget(module):
     try:
         pages.require("system_admin")
@@ -68,10 +73,16 @@ async def uploadresourcetarget(module):
 @quart_app.app.route("/modules/module/<module>/download_resource/<obj>")
 def download_resource(module, obj):
     pages.require("view_admin_info")
-    if modules_state.ActiveModules[module][obj]["resource_type"] in modules_state.additionalTypes:
-        modules_state.additionalTypes[modules_state.ActiveModules[module][obj]["resource_type"]].flush_unsaved(module, obj)
+    if (
+        modules_state.ActiveModules[module][obj]["resource_type"]
+        in modules_state.additionalTypes
+    ):
+        modules_state.additionalTypes[
+            modules_state.ActiveModules[module][obj]["resource_type"]
+        ].flush_unsaved(module, obj)
     r = quart.Response(
-        yaml.dump(modules_state.ActiveModules[module][obj]), headers={"Content-Disposition": f'attachment; filename="{obj}.yaml"'}
+        yaml.dump(modules_state.ActiveModules[module][obj]),
+        headers={"Content-Disposition": f'attachment; filename="{obj}.yaml"'},
     )
     return r
 
@@ -83,14 +94,20 @@ def yamldownload(module):
         pages.require("view_admin_info")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
-    fn = util.url(f"{module[:-4]}_{modules_state.getModuleWordHash(module[:-4]).replace(' ', '')}.zip")
+    fn = util.url(
+        f"{module[:-4]}_{modules_state.getModuleWordHash(module[:-4]).replace(' ', '')}.zip"
+    )
 
     mime = "application/zip"
     try:
         d = modules_state.getModuleAsYamlZip(
             module[:-4] if module.endswith(".zip") else module,
         )
-        r = quart.Response(d, mimetype=mime, headers={"Content-Disposition": f"attachment; filename={fn}"})
+        r = quart.Response(
+            d,
+            mimetype=mime,
+            headers={"Content-Disposition": f"attachment; filename={fn}"},
+        )
         return r
     except Exception:
         logger.exception("Failed to handle zip download request")
@@ -109,9 +126,13 @@ async def uploadtarget():
         @copy_current_request_context
         def f():
             modules_state.recalcModuleHashes()
-            modules.load_modules_from_zip(file, replace="replace" in request.args)
+            modules.load_modules_from_zip(
+                file, replace="replace" in request.args
+            )
 
         await f()
 
-    messagebus.post_message("/system/modules/uploaded", {"user": pages.getAcessingUser()})
+    messagebus.post_message(
+        "/system/modules/uploaded", {"user": pages.getAcessingUser()}
+    )
     return quart.redirect("/modules")

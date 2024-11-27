@@ -30,12 +30,33 @@ import yaml
 import zeroconf
 
 
+def align_dtsart_for_rrule(dt: datetime.datetime, rrule: str):
+    """Get rid of stuff in the dt that is't in the rrule, so 2:30pm starts at exactly 2:30 not
+    some seconds after"""
+
+    if "BYSECOND" not in rrule:
+        dt = dt.replace(second=0, microsecond=0)
+
+    if "BYMINUTE" not in rrule:
+        dt = dt.replace(minute=0)
+
+    if "BYHOUR" not in rrule:
+        dt = dt.replace(hour=0)
+
+    if "BYDAY" not in rrule:
+        dt = dt.replace(day=1)
+
+    if "BYMONTH" not in rrule:
+        dt = dt.replace(month=1)
+
+    return dt
+
+
 def get_rrule_selector(s: str, ref: datetime.datetime | None = None):
     """
     Given a natural expression like every tuesday get a dateutil rrule obj.
     Has the old recur behavior or something like ir
     """
-
     s = s.replace("noon", "12pm")
     s = s.replace("midnight", "12am")
 
@@ -51,27 +72,32 @@ def get_rrule_selector(s: str, ref: datetime.datetime | None = None):
                 r.parse(i + s)
                 rule = r.get_RFC_rrule()
                 if rule:
-                    selector = dateutil.rrule.rrulestr(rule)
-                    selector._dtstart -= datetime.timedelta(weeks=52 + 3)  # noqa
-                    selector.tz = None  # type: ignore
+                    d = datetime.datetime.now()
+                    # Something was an issue where without this it didn't
+                    # Return correct vals...
+                    d -= datetime.timedelta(weeks=52 + 3)  # noqa
+
+                    d = align_dtsart_for_rrule(d, rule)
+
+                    selector = dateutil.rrule.rrulestr(rule, dtstart=d)
                     return selector
             raise Exception()
 
         except Exception:
             # Couldn't get it to give us a valid rule,
-            # Must be a one time.
+            # Must be a one time event selector
             r = recurrent.RecurringEvent(now_date=ref)
             dt = r.parse(s)
-            selector = dateutil.rrule.rrule(freq=dateutil.rrule.YEARLY, dtstart=dt, count=1)
+            selector = dateutil.rrule.rrule(
+                freq=dateutil.rrule.YEARLY, dtstart=dt, count=1
+            )
             selector._dtstart -= datetime.timedelta(weeks=52 + 3)  # noqa
-            selector.tz = None  # type: ignore
+
             return selector
 
     rule = r.get_RFC_rrule()
     selector = dateutil.rrule.rrulestr(rule)
     selector._dtstart -= datetime.timedelta(weeks=52 + 3)  # noqa
-    selector.tz = None  # type: ignore
-
     return selector
 
 
@@ -125,10 +151,17 @@ def chmod_private_try(p: str, execute: bool = True) -> None:
         if execute:
             os.chmod(
                 p,
-                stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IXGRP,
+                stat.S_IRUSR
+                | stat.S_IWUSR
+                | stat.S_IXUSR
+                | stat.S_IRGRP
+                | stat.S_IWGRP
+                | stat.S_IXGRP,
             )
         else:
-            os.chmod(p, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP)
+            os.chmod(
+                p, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP
+            )
     except Exception as e:
         raise e
 
@@ -191,14 +224,22 @@ def readfile(f):
 
 
 def get_immediate_subdirectories(folder):
-    return [name for name in os.listdir(folder) if os.path.isdir(os.path.join(folder, name))]
+    return [
+        name
+        for name in os.listdir(folder)
+        if os.path.isdir(os.path.join(folder, name))
+    ]
 
 
 # Get a list of all filenames but not the full paths
 
 
 def get_files(folder):
-    return [name for name in os.listdir(folder) if not os.path.isdir(os.path.join(folder, name))]
+    return [
+        name
+        for name in os.listdir(folder)
+        if not os.path.isdir(os.path.join(folder, name))
+    ]
 
 
 def search_paths(fn: str, paths: List[str]) -> str | None:
@@ -330,7 +371,9 @@ def roundto(n, s):
         return n - n % s
 
 
-def split_escape(s: str, separator: str, escape=None, preserve_escapes=False) -> list[str]:
+def split_escape(
+    s: str, separator: str, escape=None, preserve_escapes=False
+) -> list[str]:
     current_token = ""
     tokens: list[str] = []
     literal = False
@@ -375,7 +418,12 @@ def resourcename_escape(s):
 
 
 def module_onelevelup(s):
-    return "/".join([i.replace("\\", "\\\\").replace("/", "\\/") for i in split_escape(s, "/", "\\")[:-1]])
+    return "/".join(
+        [
+            i.replace("\\", "\\\\").replace("/", "\\/")
+            for i in split_escape(s, "/", "\\")[:-1]
+        ]
+    )
 
 
 numberlock = threading.Lock()

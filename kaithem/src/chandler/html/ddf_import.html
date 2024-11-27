@@ -1,0 +1,77 @@
+<%include file="/pageheader.html" />
+
+<h2>UseOPZDMX</h2>
+<title>UseOPZDMX</title>
+
+<div class="window paper" id="app">
+<p>This app allows you to import fixtures from a file in OP-Z format, such as those availble from the <a href="https://open-fixture-library.org/">OFL</a>.
+Simply upload your file, select a fixture type, and import it.
+
+Kaithem currently does not support fixtures with multiple modes, each mode is treated as a separate type.
+</p>
+
+<div style="display:flex">
+    <div>
+        <input id="file" type="file"  v-on:change="onChange"/>
+        <label>Search:<input v-model="search"></label>
+        <ul v-if="d['profiles']">
+        <li v-for="v,i of d['profiles']" v-if="v['name'].includes(search)">
+            <button v-on:click="selected=v">{{v['name']}}</button>
+        </li>
+        </ul>
+    </div>
+
+    <div  style="border: 1px solid; width:20em;">
+        <h3>Channels</h3>
+
+        <table border=1v-if="selected['channels']">
+        <tr v-for="v,i of selected['channels']">
+            <td>{{i}}</td>
+            <td>{{v}}</td>
+        </tr>
+        </table>
+
+        <button v-on:click="importfixture()">Import Fixture Definition</button>
+    </div>
+</div>
+</div>
+
+<script src="/static/js/thirdparty/vue2.js"></script>
+${api_link.render('api_link')}
+
+<script>
+
+
+appData={
+    selected : {},
+    selectedname: "",
+    search: '',
+    d : {},
+     onChange: function(event) {
+        var reader = new FileReader();
+        reader.onload = appData.onReaderLoad;
+        reader.readAsText(event.target.files[0]);
+    },
+
+    onReaderLoad: function(event){
+        console.log(event.target.result);
+        appData.d=JSON.parse(event.target.result);
+    },
+
+    importfixture: function(){
+        api_link.send(['setfixtureclassopz', appData.selected['name'], appData.selected])
+    }
+
+
+}
+
+var vueapp = new Vue(
+{
+    el: '#app',
+    data: appData,
+}
+)
+
+</script>
+
+<%include file="/pagefooter.html" />

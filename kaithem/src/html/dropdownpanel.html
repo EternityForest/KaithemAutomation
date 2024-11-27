@@ -31,11 +31,7 @@ scolor={
 <link rel="stylesheet" type="text/css" href="${kaithem.web.theming.getCSSTheme() or config['theme-url']}">
 </head>
 <script src="/static/js/thirdparty/vue2.js"></script>
-<script src="/static/js/widget.js"></script>
 <script src="/static/js/thirdparty/strftime-min.js"></script>
-
-${api.render("api")}
-<!-- ${alertsapi.render("alertapi")} -->
 
 
 <style>
@@ -80,7 +76,10 @@ ${api.render("api")}
 
 
 
-<script>
+<script type="module">
+    import {APIWidget} from "/static/js/widget.mjs"
+    let api = new APIWidget("${api.uuid}");
+
     var app = new Vue({
         el: '#app',
         data: {

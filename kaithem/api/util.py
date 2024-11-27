@@ -16,3 +16,8 @@ else:
 def lorem() -> str:
     "Return a random sentence from the quotes.yaml file"
     return random.choice(sentences)
+
+
+def get_logdir() -> str:
+    """Get the user and machine specific log directory"""
+    return directories.logdir

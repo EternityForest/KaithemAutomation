@@ -69,11 +69,15 @@ EOF
 
 
 #raspi-config nonint do_ssh 0
+if command -v raspi-config &> /dev/null; then
+echo "Enabling I2C and SPI"
 ! raspi-config nonint do_spi 0
 ! raspi-config nonint do_i2c 0
+echo "Enabling camera"
 ! raspi-config nonint do_camera 0
+echo "Enabling overscan"
 ! raspi-config nonint do_overscan 1
-! raspi-config nonint do_memory_split 128
+fi
 
 # Systemd all the way
 ! sudo apt-get -y purge rsyslog
@@ -89,9 +93,17 @@ sudo systemctl disable apt-daily.service
 
 # Remove SSH warning
 
-! rm -rf /etc/profile.d/sshpwd.sh
-! rm -rf /etc/xdg/lxsession/LXDE-pi/sshpwd.sh
-! rm -rf /etc/xdg/autostart/pprompt.desktop
+if [ -f /etc/profile.d/sshpwd.sh ]; then
+    rm -rf /etc/profile.d/sshpwd.sh
+fi
+
+if [ -f /etc/xdg/lxsession/LXDE-pi/sshpwd.sh ]; then
+    rm -rf /etc/xdg/lxsession/LXDE-pi/sshpwd.sh
+fi
+
+if [ -f /etc/xdg/autostart/pprompt.desktop ]; then
+    rm -rf /etc/xdg/autostart/pprompt.desktop
+fi
 
 
 # Howerver DO update time zones and certs
@@ -241,6 +253,20 @@ wget -nc  https://github.com/Ognian/sdmon/releases/download/v0.9.0/sdmon-armv7.t
 tar zxf sdmon-armv7.tar.gz
 mv sdmon /usr/bin
 chmod 755 /usr/bin/sdmon 
+
+fi
+
+
+
+
+if [ `uname -m` == "aarch64" ]; then
+
+# This is the program that lets us get the SanDisk industrial health data.
+
+wget -nc  https://github.com/darkhz/bluetuith/releases/download/v0.2.2/bluetuith_0.2.2_Linux_arm64.tar.gz
+tar zxf bluetuith_0.2.2_Linux_arm64.tar.gz
+mv bluetuith /usr/bin
+chmod 755 /usr/bin/bluetuith 
 
 fi
 

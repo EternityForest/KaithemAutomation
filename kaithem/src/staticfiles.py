@@ -7,8 +7,12 @@ from kaithem.src import quart_app
 
 logger = get_logger(__name__)
 
-sdn = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "src")
-ddn = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "data")
+sdn = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "src"
+)
+ddn = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "data"
+)
 
 
 @quart_app.app.route("/static/<path:path>")
@@ -47,9 +51,9 @@ async def static_fonts(path):
     return await quart.send_file(os.path.join(ddn, "static", "fonts", path))
 
 
-@quart_app.app.route("/static/freeboardsounds/<path:path>")
+@quart_app.app.route("/static/sounds/<path:path>")
 async def static_fbsounds(path):
-    return await quart.send_file(os.path.join(ddn, "static", "freeboardsounds", path))
+    return await quart.send_file(os.path.join(ddn, "static", "sounds", path))
 
 
 @quart_app.app.route("/static/img/<path:path>")

@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: GPL-3.0-only
 from __future__ import annotations
 
+from urllib.parse import quote
+
 # This file handles the display of user-created pages
 import beartype
 import structlog
@@ -27,7 +29,9 @@ class ServerObj:
         self.xss = False
         self.methods = ("GET",)
         self.permissions = obj.get("require_permissions", [])
-        self.folder = obj["folder"].replace("$MODULE", modules_state.getModuleDir(m))
+        self.folder = obj["folder"].replace(
+            "$MODULE", modules_state.getModuleDir(m)
+        )
 
     def close(self):
         pass
@@ -35,29 +39,39 @@ class ServerObj:
 
 class FileServerType(modules_state.ResourceType):
     @beartype.beartype
-    def onload(self, module: str, resourcename: str, value: modules_state.ResourceDictType):
-        by_module_resource[module, resourcename] = ServerObj(module, resourcename, value)
+    def blurb(self, m, r, value):
+        return f'<a href="/pages/{url(m)}/{quote(r)}">Browse</a>'
+
+    def on_load(
+        self,
+        module: str,
+        resourcename: str,
+        value: modules_state.ResourceDictType,
+    ):
+        by_module_resource[module, resourcename] = ServerObj(
+            module, resourcename, value
+        )
         if lookup:
             lookup.invalidate_cache()
 
-    def onmove(self, module, resource, toModule, toResource, resourceobj):
+    def on_move(self, module, resource, to_module, to_resource, resourceobj):
         x = by_module_resource.pop((module, resource), None)
         if x:
-            by_module_resource[toModule, toResource] = x
+            by_module_resource[to_module, to_resource] = x
 
         if lookup:
             lookup.invalidate_cache()
 
-    def onupdate(self, module, resource, obj):
-        self.onload(module, resource, obj)
+    def on_update(self, module, resource, obj):
+        self.on_load(module, resource, obj)
 
-    def ondelete(self, module, name, value):
+    def on_delete(self, module, name, value):
         by_module_resource[module, name].close()
         del by_module_resource[module, name]
         if lookup:
             lookup.invalidate_cache()
 
-    def oncreaterequest(self, module, name, kwargs):
+    def on_create_request(self, module, name, kwargs):
         resourceobj = {
             "resource_type": self.type,
             "folder": kwargs["folder"],
@@ -65,7 +79,7 @@ class FileServerType(modules_state.ResourceType):
 
         return resourceobj
 
-    def onupdaterequest(self, module, resource, resourceobj, kwargs):
+    def on_update_request(self, module, resource, resourceobj, kwargs):
         resourceobj = {
             "resource_type": self.type,
             "folder": kwargs["folder"],
@@ -81,10 +95,12 @@ class FileServerType(modules_state.ResourceType):
 
         return resourceobj
 
-    def createpage(self, module, path):
+    def create_page(self, module, path):
         d = SimpleDialog(f"New File Server in {module}")
 
-        d.text("File servers can be accessed at /pages/modulename/resourcename/file/name.")
+        d.text(
+            "File servers can be accessed at /pages/modulename/resourcename/file/name."
+        )
         d.text("This will map to FOLDER/file/name")
         d.text_input("name")
 
@@ -95,9 +111,12 @@ class FileServerType(modules_state.ResourceType):
         d.text_input("folder", default="$MODULE/__filedata__/public")
 
         d.submit_button("Create")
-        return d.render(f"/modules/module/{url(module)}/addresourcetarget/{self.type}", hidden_inputs={"path": path})
+        return d.render(
+            f"/modules/module/{url(module)}/addresourcetarget/{self.type}",
+            hidden_inputs={"path": path},
+        )
 
-    def editpage(self, module, resource, resource_data):
+    def edit_page(self, module, resource, resource_data):
         if "require_permissions" in resource_data:
             requiredpermissions = resource_data["require_permissions"]
         else:
@@ -105,11 +124,16 @@ class FileServerType(modules_state.ResourceType):
 
         d = SimpleDialog(f"{module}: {resource}")
 
-        d.text_input("folder", default=resource_data.get("folder", "$MODULE/__filedata__/public"))
+        d.text_input(
+            "folder",
+            default=resource_data.get("folder", "$MODULE/__filedata__/public"),
+        )
 
         d.begin_section("Require Permissions")
         for i in sorted(auth.Permissions.keys()):
-            d.checkbox(f"Permission{i}", title=i, default=i in requiredpermissions)
+            d.checkbox(
+                f"Permission{i}", title=i, default=i in requiredpermissions
+            )
         d.end_section()
 
         d.submit_button("Create")

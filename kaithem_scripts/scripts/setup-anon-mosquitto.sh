@@ -11,7 +11,7 @@ fi
 apt-get -y install mosquitto
 
 cat << "EOF" >> /etc/mosquitto/conf.d/kaithem.conf
-persistance false
+persistence false
 allow_anonymous true
 EOF
 

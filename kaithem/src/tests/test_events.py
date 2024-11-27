@@ -13,7 +13,9 @@ def test_events():
     with CorePluginEventResources._event_list_lock:
         x = CorePluginEventResources.Event("y==1", "global y\ny=0", setup="y=0")
         x.module = x.resource = "pytest_testevt"
-        CorePluginEventResources._events_by_module_resource[x.module, x.resource] = x
+        CorePluginEventResources._events_by_module_resource[
+            x.module, x.resource
+        ] = x
 
         # Register event with polling.
         x.register()
@@ -79,7 +81,9 @@ def test_events():
         x.pymodule.y = 0
 
         x.module = x.resource = "pytest_TEST1"
-        CorePluginEventResources._events_by_module_resource[x.module, x.resource] = x
+        CorePluginEventResources._events_by_module_resource[
+            x.module, x.resource
+        ] = x
 
         # Register event with polling.
         x.register()
@@ -104,13 +108,19 @@ def test_events():
     # It was an old thing to caths a circular reference bug.
     with CorePluginEventResources._event_list_lock:
         # Now we test the message bus event
-        x = CorePluginEventResources.Event("!onmsg /system/selftest", "global y\ny='test'", setup="testObj=lambda x:0")
+        x = CorePluginEventResources.Event(
+            "!onmsg /system/selftest",
+            "global y\ny='test'",
+            setup="testObj=lambda x:0",
+        )
         x.module = x.resource = "pytest_TEST2"
         # Make sure nobody is iterating the eventlist
         # Add new event
         x.register()
         # Update index
-        CorePluginEventResources._events_by_module_resource[x.module, x.resource] = x
+        CorePluginEventResources._events_by_module_resource[
+            x.module, x.resource
+        ] = x
 
     testObj = weakref.ref(x.pymodule.__dict__["testObj"])
 
@@ -125,9 +135,13 @@ def test_events():
     if not hasattr(x.pymodule, "y"):
         time.sleep(5)
         if not hasattr(x.pymodule, "y"):
-            raise RuntimeError("Message Event did nothing or took longer than 5s")
+            raise RuntimeError(
+                "Message Event did nothing or took longer than 5s"
+            )
         else:
-            raise RuntimeError("Message Event had slow performance, delivery took more than 0.25s")
+            raise RuntimeError(
+                "Message Event had slow performance, delivery took more than 0.25s"
+            )
 
     assert x.pymodule.y == "test"
 
@@ -155,11 +169,15 @@ def test_events():
         gc.collect(1)
         gc.collect(2)
         if testObj():
-            raise RuntimeError("Object in event scope still exists after module deletion and GC")
+            raise RuntimeError(
+                "Object in event scope still exists after module deletion and GC"
+            )
 
     messagebus.post_message("foo", "/system/selftest")
     # If there is no y or pymodule, this test won't work but we can probably assume it unregistered correctly.
     # Maybe we should add a real test that works either way?
     if hasattr(x, "pymodule") and hasattr(x.pymodule, "y"):
         if x.pymodule.y == "test":
-            raise RuntimeError("Message Event did not go away when unregistered")
+            raise RuntimeError(
+                "Message Event did not go away when unregistered"
+            )

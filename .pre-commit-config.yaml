@@ -108,6 +108,9 @@ repos:
         - "--select=I"
         # Bandit
         #- "--select=S"
+        # Allow long lines for legacy code
+        - "--config"
+        - "line-length=140"
 
       # Run the formatter.
       - id: ruff-format

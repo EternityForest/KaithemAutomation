@@ -100,14 +100,20 @@ def delete_bookkeep(name, confdir=False):
 
             if confdir:
                 try:
-                    old_dev_conf_folder = get_config_folder_from_info(pm, pr, name, create=False, always_return=True)
-                    if old_dev_conf_folder and os.path.isdir(old_dev_conf_folder):
+                    old_dev_conf_folder = get_config_folder_from_info(
+                        pm, pr, name, create=False, always_return=True
+                    )
+                    if old_dev_conf_folder and os.path.isdir(
+                        old_dev_conf_folder
+                    ):
                         if not old_dev_conf_folder.count("/") > 3:
                             # Basically since rmtree is so dangerous we make sure
                             # it absolutely cannot be any root or nearly root level folder
                             # in the user's home dir even if some unknown future error happens.
                             # I have no reason to think this will ever actually be needed.
-                            raise RuntimeError(f"Defensive check failed: {old_dev_conf_folder}")
+                            raise RuntimeError(
+                                f"Defensive check failed: {old_dev_conf_folder}"
+                            )
 
                         shutil.rmtree(old_dev_conf_folder)
                 except Exception:
@@ -168,16 +174,16 @@ deferred_loaders = []
 
 
 class DeviceResourceType(ResourceType):
-    def onfinishedloading(self, module):
+    def on_finished_loading(self, module):
         if module is None:
             init_devices()
             global finished_reading_resources
             finished_reading_resources = True
 
-    def onload(self, module, resource, resourceobj):
+    def on_load(self, module, resource, data):
         cls = None
 
-        dev_data = resourceobj["device"]
+        dev_data = data["device"]
         assert isinstance(dev_data, dict)
 
         # It's a subdevice, we don't actually make the real thing
@@ -218,8 +224,13 @@ class DeviceResourceType(ResourceType):
                     if cls:
                         return
                     else:
-                        if not dev_data["type"] == remote_devices[devname].device_type_name:
-                            raise RuntimeError("Name in user, can't overwrite this device name with a different type")
+                        if (
+                            not dev_data["type"]
+                            == remote_devices[devname].device_type_name
+                        ):
+                            raise RuntimeError(
+                                "Name in user, can't overwrite this device name with a different type"
+                            )
                         remote_devices[devname].close()
 
                 d = makeDevice(devname, dev_data, cls)
@@ -237,26 +248,30 @@ class DeviceResourceType(ResourceType):
         else:
             deferred_loaders.append(load_closure)
 
-    def ondelete(self, module, resource, obj):
+    def on_delete(self, module, resource, data):
         with modules_state.modulesLock:
             n = resource.split(SUBDEVICE_SEPARATOR)[-1]
-            if "name" in obj["device"]:
-                n = obj["device"]["name"]
+            if "name" in data["device"]:
+                n = data["device"]["name"]
 
             delete_bookkeep(n, True)
 
-    def oncreaterequest(self, module, name, kwargs):
+    def on_create_request(self, module, resource, kwargs):
         raise RuntimeError("Not implemented, devices uses it's own create page")
 
-    def createpage(self, module, path):
-        return pages.get_template("devices/deviceintomodule.html").render(module=module, path=path)
+    def create_page(self, module, path):
+        return pages.get_template("devices/deviceintomodule.html").render(
+            module=module, path=path
+        )
 
-    def editpage(self, module, name, value):
+    def edit_page(self, module, resource, value):
         with modules_state.modulesLock:
-            n = name.split(SUBDEVICE_SEPARATOR)[-1]
+            n = resource.split(SUBDEVICE_SEPARATOR)[-1]
             if "name" in value["device"]:
                 n = value["device"]["name"]
-        return pages.get_template("devices/device.html").render(data=remote_devices[n].config, obj=remote_devices[n], name=n)
+        return pages.get_template("devices/device.html").render(
+            data=remote_devices[n].config, obj=remote_devices[n], name=n
+        )
 
 
 drt = DeviceResourceType("device")
@@ -273,7 +288,10 @@ def getZombies():
 
 
 def get_config_folder_from_device(d: str, create=True):
-    if not hasattr(remote_devices[d], "parent_module") or not remote_devices[d].parent_module:
+    if (
+        not hasattr(remote_devices[d], "parent_module")
+        or not remote_devices[d].parent_module
+    ):
         module = None
         resource = None
     else:
@@ -291,7 +309,9 @@ def get_config_folder_from_info(
     always_return=False,
 ):
     if not module:
-        saveLocation = os.path.join(directories.vardir, "devices", f"{name}.config.d")
+        saveLocation = os.path.join(
+            directories.vardir, "devices", f"{name}.config.d"
+        )
     else:
         # or '' makes linker happy, idk why it doesn't detect the if statement.
         saveLocation = os.path.join(
@@ -328,7 +348,9 @@ def makeBackgroundPrintFunction(p, t, title, self):
 def makeBackgroundErrorFunction(t, time, self):
     # Don't block everything up
     def f():
-        self.logWindow.write(f'<div class="danger"><b>Error at {time}</b><br><pre>{t}</pre></div>')
+        self.logWindow.write(
+            f'<div class="danger"><b>Error at {time}</b><br><pre>{t}</pre></div>'
+        )
 
     return f
 
@@ -369,17 +391,25 @@ class Device(iot_devices.device.Device):
         with modules_state.modulesLock:
             self.config[key] = v
 
-            if not self.config.get("is_ephemeral", False) and not key.startswith("temp.") and not key.startswith("kaithem.temp."):
+            if (
+                not self.config.get("is_ephemeral", False)
+                and not key.startswith("temp.")
+                and not key.startswith("kaithem.temp.")
+            ):
                 if self.parent_module:
                     assert self.parent_resource
-                    devdata = modules_state.ActiveModules[self.parent_module][self.parent_resource]["device"]
+                    devdata = modules_state.ActiveModules[self.parent_module][
+                        self.parent_resource
+                    ]["device"]
                     assert isinstance(devdata, dict)
                     devdata[key] = v
 
                     modules_state.rawInsertResource(
                         self.parent_module,
                         self.parent_resource,
-                        modules_state.ActiveModules[self.parent_module][self.parent_resource],
+                        modules_state.ActiveModules[self.parent_module][
+                            self.parent_resource
+                        ],
                     )
 
     @staticmethod
@@ -397,9 +427,15 @@ class Device(iot_devices.device.Device):
         return f
 
     def __init__(self, name: str, data: dict[str, Any]):
-        if not data["type"] == self.device_type_name and not self.device_type_name == "unsupported":
+        if (
+            not data["type"] == self.device_type_name
+            and not self.device_type_name == "unsupported"
+        ):
             raise ValueError(
-                "Incorrect device type in info dict," + data["type"] + " does not match device_type_name " + self.device_type_name
+                "Incorrect device type in info dict,"
+                + data["type"]
+                + " does not match device_type_name "
+                + self.device_type_name
             )
         global remote_devices_atomic
         global remote_devices
@@ -408,6 +444,10 @@ class Device(iot_devices.device.Device):
             self.title: str = data.get("title", "").strip() or name
         except Exception:
             self.title = name
+
+        self.k_use_default_alerts = data.get(
+            "kaithem.use_default_alerts", "true"
+        ).lower() in ("yes", "on", "true", "1")
 
         # Which points to show in overview
         self.dashboard_datapoints = {}
@@ -468,7 +508,9 @@ class Device(iot_devices.device.Device):
         # Where we stash our claims on the tags
         self.tagClaims: dict[str, tagpoints.Claim] = {}
 
-        self._deviceSpecIntegrationHandlers: dict[str, Callable[[Any, float, Any], None]] = {}
+        self._deviceSpecIntegrationHandlers: dict[
+            str, Callable[[Any, float, Any], None]
+        ] = {}
 
         # The new devices spec has a way more limited idea of what a data point is.
         self.datapoints: dict[str, Any] = {}
@@ -506,9 +548,6 @@ class Device(iot_devices.device.Device):
     def tagpoints(self, v):
         self.tagPoints = v
 
-    # def handler(v,t or None, a="Set by device"):
-    #     self.set_claim_val("default", v, t or time.monotonic(), a)
-
     def handle_error(self, s):
         self.errors.append((time.time(), str(s)))
 
@@ -521,9 +560,18 @@ class Device(iot_devices.device.Device):
         if len(self.errors) > 50:
             self.errors.pop(0)
 
-        workers.do(makeBackgroundErrorFunction(textwrap.fill(s, 120), unitsofmeasure.strftime(time.time()), self))
+        workers.do(
+            makeBackgroundErrorFunction(
+                textwrap.fill(s, 120),
+                unitsofmeasure.strftime(time.time()),
+                self,
+            )
+        )
         if len(self.errors) == 1:
-            messagebus.post_message("/system/notifications/errors", f"First error in device: {self.name}")
+            messagebus.post_message(
+                "/system/notifications/errors",
+                f"First error in device: {self.name}",
+            )
             logger.error(f"in device: {self.name}\n{s}")
 
     def onGenericUIMessage(self, u, v):
@@ -533,7 +581,9 @@ class Device(iot_devices.device.Device):
 
         if v[0] == "fake":
             if v[2] is not None:
-                self.tagPoints[v[1]]._k_ui_fake = self.tagPoints[v[1]].claim(v[2], "faked", priority=50.5)
+                self.tagPoints[v[1]]._k_ui_fake = self.tagPoints[v[1]].claim(
+                    v[2], "faked", priority=50.5
+                )
 
             else:
                 if hasattr(self.tagPoints[v[1]], "_k_ui_fake"):
@@ -583,7 +633,9 @@ class Device(iot_devices.device.Device):
         Allows a device to create it's own subdevices.
         """
         if self.config.get("is_subdevice", False):
-            raise RuntimeError("Kaithem does not support more than two layers of subdevice")
+            raise RuntimeError(
+                "Kaithem does not support more than two layers of subdevice"
+            )
 
         global remote_devices_atomic
 
@@ -601,8 +653,13 @@ class Device(iot_devices.device.Device):
                 if tmp:
                     n = tmp()
                     if n:
-                        if n.device_type_name not in ["UnusedSubdevice", "unsupported"]:
-                            raise RuntimeError("Subdevice name is already in use")
+                        if n.device_type_name not in [
+                            "UnusedSubdevice",
+                            "unsupported",
+                        ]:
+                            raise RuntimeError(
+                                "Subdevice name is already in use"
+                            )
                         remote_devices.pop(name)
 
                         remote_devices_atomic = wrcopy(remote_devices)
@@ -617,7 +674,9 @@ class Device(iot_devices.device.Device):
             if self.parent_module:
                 device_location_cache[name] = (
                     self.parent_module,
-                    ".d/".join(name.split("/")[1 if self.parent_module else 0 :]),
+                    ".d/".join(
+                        name.split("/")[1 if self.parent_module else 0 :]
+                    ),
                 )
 
         m = makeDevice(name=name, data=config, cls=cls)
@@ -643,8 +702,14 @@ class Device(iot_devices.device.Device):
 
     def __setupTagPerms(self, t, writable=True):
         # Devices can have a default exposure
-        read_perms = self.config.get("kaithem.read_perms", "system_admin").strip() or "system_admin"
-        write_perms = self.config.get("kaithem.write_perms", "system_admin").strip() or "system_admin"
+        read_perms = (
+            self.config.get("kaithem.read_perms", "system_admin").strip()
+            or "system_admin"
+        )
+        write_perms = (
+            self.config.get("kaithem.write_perms", "system_admin").strip()
+            or "system_admin"
+        )
         t.expose(read_perms, write_perms if writable else [])
 
     def handle_web_request(self, relpath, params, method, **kwargs):
@@ -860,6 +925,9 @@ class Device(iot_devices.device.Device):
         release_condition: str | None = None,
         **kw,
     ):
+        if not self.k_use_default_alerts:
+            return
+
         x = self.tagPoints[datapoint].set_alarm(
             name,
             condition=expression,
@@ -905,8 +973,10 @@ class Device(iot_devices.device.Device):
 
     # UI Integration
 
-    def on_ui_message(self, msg: float | int | str | bool | None | dict | list, **kw):
-        """recieve a json message from the ui page.  the host is responsible for providing a send_ui_message(msg)
+    def on_ui_message(
+        self, msg: float | int | str | bool | None | dict | list, **kw
+    ):
+        """recieve a json message from the ui page.  the host is responsible for providing a window.send_ui_message(msg)
         function to the manage and create forms, and a set_ui_message_callback(f) function.
 
         these messages are not directed at anyone in particular, have no semantics, and will be recieved by all
@@ -916,7 +986,9 @@ class Device(iot_devices.device.Device):
 
         """
 
-    def send_ui_message(self, msg: float | int | str | bool | None | dict | list):
+    def send_ui_message(
+        self, msg: float | int | str | bool | None | dict | list
+    ):
         """
         send a message to everyone including yourself.
         """
@@ -943,7 +1015,9 @@ class Device(iot_devices.device.Device):
 
 
 class UnsupportedDevice(iot_devices.device.Device):
-    description = "This device does not have support, or else the support is not loaded."
+    description = (
+        "This device does not have support, or else the support is not loaded."
+    )
     device_type_name = "unsupported"
     device_type = "unsupported"
 
@@ -984,16 +1058,31 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
 
     with modules_state.modulesLock:
         if kwargs.get("temp.kaithem.store_in_module", None):
-            if kwargs["temp.kaithem.store_in_module"] not in modules_state.ActiveModules:
+            if (
+                kwargs["temp.kaithem.store_in_module"]
+                not in modules_state.ActiveModules
+            ):
                 raise ValueError("Can't store in nonexistant module")
 
             m = kwargs["temp.kaithem.store_in_module"]
-            r = kwargs["temp.kaithem.store_in_resource"] or ".d/".join(name.split("/"))
+            r = kwargs["temp.kaithem.store_in_resource"] or ".d/".join(
+                name.split("/")
+            )
 
             if r in modules_state.ActiveModules[m]:
-                if not modules_state.ActiveModules[m][r]["resource_type"] == "device":
-                    raise ValueError("A resource in the module with that name exists and is not a device.")
+                if (
+                    not modules_state.ActiveModules[m][r]["resource_type"]
+                    == "device"
+                ):
+                    raise ValueError(
+                        "A resource in the module with that name exists and is not a device."
+                    )
 
+                if "module_lock" in modules_state.get_module_metadata(m):
+                    raise PermissionError("Module is locked")
+
+                if "resource_lock" in modules_state.ActiveModules[m][r]:
+                    raise PermissionError("Device is locked")
             # Make sure we don't corrupt state by putting a folder where a file already is
             ensure_module_path_ok(m, r)
         else:
@@ -1006,20 +1095,36 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
 
         parent_module = remote_devices[devname].parent_module
         parent_resource = remote_devices[devname].parent_resource
-        old_dev_conf_folder = get_config_folder_from_info(parent_module, parent_resource, devname, create=False, always_return=True)
+        old_dev_conf_folder = get_config_folder_from_info(
+            parent_module,
+            parent_resource,
+            devname,
+            create=False,
+            always_return=True,
+        )
 
         if "temp.kaithem.store_in_module" in kwargs:
             newparent_module = kwargs["temp.kaithem.store_in_module"]
-            newparent_resource = kwargs["temp.kaithem.store_in_resource"] or ".d/".join(name.split("/"))
+            newparent_resource = kwargs[
+                "temp.kaithem.store_in_resource"
+            ] or ".d/".join(name.split("/"))
 
         else:
             raise ValueError("Can only save in module")
 
-        new_dev_conf_folder = get_config_folder_from_info(newparent_module, newparent_resource, name, create=False, always_return=True)
+        new_dev_conf_folder = get_config_folder_from_info(
+            newparent_module,
+            newparent_resource,
+            name,
+            create=False,
+            always_return=True,
+        )
 
         assert parent_module
         assert parent_resource
-        dt = modules_state.ActiveModules[parent_module][parent_resource]["device"]
+        dt = modules_state.ActiveModules[parent_module][parent_resource][
+            "device"
+        ]
 
         assert isinstance(dt, dict)
 
@@ -1033,11 +1138,17 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
             1,
             "1",
         )
-        configuredAsSubdevice = configuredAsSubdevice or dt.get("parent_device", "").strip()  # type: ignore
+        configuredAsSubdevice = (
+            configuredAsSubdevice or dt.get("parent_device", "").strip()
+        )  # type: ignore
 
-        old_read_perms = remote_devices[devname].config.get("kaithem.read_perms", "")
+        old_read_perms = remote_devices[devname].config.get(
+            "kaithem.read_perms", ""
+        )
 
-        old_write_perms = remote_devices[devname].config.get("kaithem.write_perms", "")
+        old_write_perms = remote_devices[devname].config.get(
+            "kaithem.write_perms", ""
+        )
 
         if not subdevice:
             remote_devices[devname].close()
@@ -1048,7 +1159,11 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
         time.sleep(0.01)
         gc.collect()
 
-        savable_data = {i: kwargs[i] for i in kwargs if ((not i.startswith("temp.")) and not i.startswith("filedata."))}
+        savable_data = {
+            i: kwargs[i]
+            for i in kwargs
+            if ((not i.startswith("temp.")) and not i.startswith("filedata."))
+        }
 
         # Propagate subdevice status even if it is just loaded as a placeholder
         if configuredAsSubdevice or subdevice:
@@ -1069,13 +1184,19 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
             if new_dev_conf_folder:
                 if old_dev_conf_folder and os.path.exists(old_dev_conf_folder):
                     os.makedirs(new_dev_conf_folder, exist_ok=True, mode=0o700)
-                    shutil.copytree(old_dev_conf_folder, new_dev_conf_folder, dirs_exist_ok=True)
+                    shutil.copytree(
+                        old_dev_conf_folder,
+                        new_dev_conf_folder,
+                        dirs_exist_ok=True,
+                    )
                     if not old_dev_conf_folder.count("/") > 3:
                         # Basically since rmtree is so dangerous we make sure
                         # it absolutely cannot be any root or nearly root level folder
                         # in the user's home dir even if some unknown future error happens.
                         # I have no reason to think this will ever actually be needed.
-                        raise RuntimeError(f"Defensive check failed: {old_dev_conf_folder}")
+                        raise RuntimeError(
+                            f"Defensive check failed: {old_dev_conf_folder}"
+                        )
                     shutil.rmtree(old_dev_conf_folder)
 
         for i in fd:
@@ -1104,14 +1225,19 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
             kwargs["is_subdevice"] = "true"
 
             # Don't pass our special internal keys to that mechanism that expects to only see standard iot_devices keys.
-            k = {i: kwargs[i] for i in kwargs if not i.startswith("filedata.") and not i.startswith("temp.kaithem.")}
+            k = {
+                i: kwargs[i]
+                for i in kwargs
+                if not i.startswith("filedata.")
+                and not i.startswith("temp.kaithem.")
+            }
             subdevice_data_cache[name] = savable_data
             device_location_cache[name] = newparent_module, newparent_resource
 
             remote_devices[name].update_config(k)
 
         # Only actually update data structures
-        # after updating the device runtime sucessfully
+        # after updating the device runtime successfully
 
         # Delete and then recreate because we may be renaming to a different name
 
@@ -1127,7 +1253,9 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
         remote_devices[name].parent_resource = newparent_resource
 
         if newparent_module:
-            storeDeviceInModule(savable_data, newparent_module, newparent_resource or name)
+            storeDeviceInModule(
+                savable_data, newparent_module, newparent_resource or name
+            )
         else:
             raise ValueError("Must choose module")
 
@@ -1264,7 +1392,14 @@ def makeDevice(name, data, cls=None):
     # Don't pass framewith specific stuff to them.
     # Except a whitelist of known short string only keys that we need to easily access from
     # within the device integration code
-    new_data = {i: new_data[i] for i in new_data if ((not i.startswith("temp.kaithem.")) and (not i.startswith("filedata.")))}
+    new_data = {
+        i: new_data[i]
+        for i in new_data
+        if (
+            (not i.startswith("temp.kaithem."))
+            and (not i.startswith("filedata."))
+        )
+    }
 
     try:
         d = dt(name, new_data)
@@ -1283,8 +1418,15 @@ def ensure_module_path_ok(module, resource):
         dir = "/".join(resource.split("/")[:-1])
         for i in range(256):
             if dir in modules_state.ActiveModules[module]:
-                if not modules_state.ActiveModules[module][dir]["resource_type"] == "directory":
-                    raise RuntimeError(f"File exists blocking creation of: {module}")
+                if (
+                    not modules_state.ActiveModules[module][dir][
+                        "resource_type"
+                    ]
+                    == "directory"
+                ):
+                    raise RuntimeError(
+                        f"File exists blocking creation of: {module}"
+                    )
             if not dir.count("/"):
                 break
             dir = "/".join(dir.split("/")[-1:])
@@ -1306,7 +1448,9 @@ def storeDeviceInModule(d: dict, module: str, resource: str) -> None:
                     break
                 dir = "/".join(dir.split("/")[:-1])
 
-        modules_state.rawInsertResource(module, resource, {"resource_type": "device", "device": d})
+        modules_state.rawInsertResource(
+            module, resource, {"resource_type": "device", "device": d}
+        )
 
 
 def getDeviceType(t):
@@ -1326,10 +1470,14 @@ class TemplateGetter:
         self.fn = fn
 
     def __get__(self, instance, owner):
-        return lambda: pages.get_vardir_template(self.fn).render(data=instance.config, obj=instance, name=instance.name)
+        return lambda: pages.get_vardir_template(self.fn).render(
+            data=instance.config, obj=instance, name=instance.name
+        )
 
 
-unsupportedDevices: weakref.WeakValueDictionary[str, UnsupportedDevice] = weakref.WeakValueDictionary()
+unsupportedDevices: weakref.WeakValueDictionary[str, UnsupportedDevice] = (
+    weakref.WeakValueDictionary()
+)
 
 
 def warnAboutUnsupportedDevices():
@@ -1350,7 +1498,9 @@ def warnAboutUnsupportedDevices():
                     f"Device {str(i)} not supported",
                 )
             except Exception:
-                logger.exception(f"Error warning about missing device support device {str(i)}")
+                logger.exception(
+                    f"Error warning about missing device support device {str(i)}"
+                )
 
 
 def init_devices():
@@ -1360,7 +1510,9 @@ def init_devices():
             deferred_loaders.pop()()
         except Exception:
             logger.exception("Err with device")
-            messagebus.post_message("/system/notifications/errors", "Err with device")
+            messagebus.post_message(
+                "/system/notifications/errors", "Err with device"
+            )
 
 
 importedDeviceTypes = iot_devices.host.discover()

@@ -120,9 +120,17 @@ async def servelog(filename):
     filename = os.path.join(directories.logdir, "dumps", filename)
     filename = os.path.normpath(filename)
     # Second security check, normalize the abs path and make sure it is what we think it is.
-    if not filename.startswith(os.path.normpath(os.path.abspath(os.path.join(directories.logdir, "dumps")))):
+    if not filename.startswith(
+        os.path.normpath(
+            os.path.abspath(os.path.join(directories.logdir, "dumps"))
+        )
+    ):
         raise RuntimeError("Security Violation")
-    return await quart.send_file(filename, as_attachment=True, attachment_filename=os.path.split(filename)[1])
+    return await quart.send_file(
+        filename,
+        as_attachment=True,
+        attachment_filename=os.path.split(filename)[1],
+    )
 
 
 @quart_app.app.route("/syslog/archive")
@@ -131,4 +139,6 @@ def logarchive():
         pages.require("view_admin_info")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
-    return pages.get_template("syslog/archive.html").render(files=listlogdumps())
+    return pages.get_template("syslog/archive.html").render(
+        files=listlogdumps()
+    )

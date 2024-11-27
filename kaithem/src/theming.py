@@ -39,6 +39,8 @@ cssthemes = weakref.WeakValueDictionary()
 
 class Theme:
     def __init__(self, name, css_url: str = "") -> None:
+        if name in cssthemes:
+            raise ValueError(f"Theme {name} already exists")
         self.css_url = css_url
         cssthemes[name] = self
 
@@ -52,6 +54,7 @@ nord = Theme("nord", "/static/css/nord.css")
 blast = Theme("blast", "/static/css/blast.css")
 lair = Theme("lair", "/static/css/lair.css")
 steam = Theme("steam", "/static/css/steam.css")
+show_black = Theme("show_black", "/static/css/show_black.css")
 
 
 def getCSSTheme():

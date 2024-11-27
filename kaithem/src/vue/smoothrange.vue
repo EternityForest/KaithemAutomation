@@ -3,9 +3,10 @@
     @input="onInput" 
     @change="onInput"
     :title="title"
-    :max="max" 
-    :min="min" 
+    :max="_max" 
+    :min="_min" 
     :disabled="disabled"
+    :step="step"
     v-model="_val" 
     />
 </template>
@@ -20,7 +21,9 @@ export default {
       _val: v,
       lastUserChange: 0,
       bgWorker: null,
-      lastSend: 0
+      lastSend: 0,
+      _min:this.min,
+      _max:this.max
     })
   },
   props: {
@@ -33,6 +36,9 @@ export default {
     max: {
       required: true
     },
+    step: {
+      default: 1
+    },
     disabled: {
       default: false
     },
@@ -44,6 +50,12 @@ export default {
     modelValue(newVal) {
       newVal=parseFloat(newVal)
         this.trySetValue(newVal)
+    },
+    min(newVal) {
+      this._min=newVal
+    },
+    max(newVal) {
+      this._max=newVal
     }
   },
   methods: {
@@ -56,10 +68,21 @@ export default {
       if (newVal == this._val) {
         return
       }
-      // If uesr has not recently interacted, set now.
+      // If user has not recently interacted, set now.
       // Otherwise, set 600ms after the last user interaction
       if (Date.now() - this.lastUserChange > 600) {
-        this._val = newVal
+        // Expand range if commanded by server
+        // In case something updates val before min/max
+        if (newVal < this._min) {
+          this._min = newVal
+        }
+        if (newVal > this._max) {
+          this._max = newVal
+        }
+        // Work around val being updated before min and max
+        setTimeout(() => {
+                  this._val = newVal
+        },5)
       }
       else {
 
@@ -79,7 +102,7 @@ export default {
           this.bgWorkerSend = null;
       }
         
-      // If uesr has not recently interacted, set now.
+      // If user has not recently interacted, set now.
       // Otherwise, set 600ms after the last user interaction
       if (Date.now() - this.lastSend > 44) {
         this.lastSend = Date.now()

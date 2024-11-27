@@ -1,12 +1,13 @@
 # SPDX-FileCopyrightText: Copyright Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
 
-import os
-import yaml
 import json
-from jsonschema import Draft202012Validator, validators
-from typing import Dict, Any
+import os
 from functools import cache
+from typing import Any, Dict
+
+import yaml
+from jsonschema import Draft202012Validator, validators
 
 
 def json_roundtrip(d):
@@ -24,13 +25,12 @@ def extend_with_default(validator_class):
             if "default" in subschema:
                 instance.setdefault(property, subschema["default"])
 
-        for error in validate_properties(
+        yield from validate_properties(
             validator,
             properties,
             instance,
             schema,
-        ):
-            yield error
+        )
 
     return validators.extend(
         validator_class,
@@ -44,7 +44,9 @@ DefaultValidatingValidator = extend_with_default(Draft202012Validator)
 @cache
 def get_schema(schemaName: str):
     fn = os.path.join(
-        os.path.dirname(os.path.normpath(__file__)), "schemas", schemaName + ".yaml"
+        os.path.dirname(os.path.normpath(__file__)),
+        "schemas",
+        schemaName + ".yaml",
     )
     with open(fn) as f:
         return yaml.load(f, Loader=yaml.SafeLoader)
@@ -78,7 +80,9 @@ def clean_data_inplace(
 
     # Check for deprecation
     for i in data:
-        if (i in sc["properties"]) and sc["properties"][i].get("deprecated", False):
+        if (i in sc["properties"]) and sc["properties"][i].get(
+            "deprecated", False
+        ):
             # print(f"Removing deprecated property {i}")
             to_remove.append(i)
 
@@ -86,7 +90,7 @@ def clean_data_inplace(
         data.pop(i)
 
 
-def supress_defaults(schemaName: str, data: Dict[str, Any]):
+def suppress_defaults(schemaName: str, data: Dict[str, Any]):
     "Remove top level keys that are the same as the default value in the schema"
 
     sc = get_schema(schemaName)

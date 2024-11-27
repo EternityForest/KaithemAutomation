@@ -25,7 +25,9 @@ if "--collect-only" not in sys.argv:
         if not (str(path).startswith("/dev/shm/")) and not path == "/dev/null":
             if "w" in mode or "a" in mode:
                 if "__pycache__" not in str(path):
-                    raise RuntimeError("Unit testing is not allowed to write outside of /dev/shm")
+                    raise RuntimeError(
+                        "Unit testing is not allowed to write outside of /dev/shm"
+                    )
 
         return old_open(path, mode, *args, **kwargs)
 
@@ -48,7 +50,7 @@ import kaithem.api.chandler as chandlerapi
 
 def foo_command(x: str):
     "This docstring shows up in the logic editor"
-    # Trigger an event in every scene
+    # Trigger an event in every group
     chandlerapi.trigger_event(x)
 
     # Jump to any cue that has the shortcut
@@ -80,7 +82,7 @@ chandlerapi.add_command("foo_command", foo_command)
 {% endblock %}
     """
 
-    test_scene = """
+    test_group = """
 active: true
 alpha: 1
 backtrack: true
@@ -164,10 +166,12 @@ uuid: efcae37b3e78437cad5098eadf3a172d
     with open("/dev/shm/kaithem_tests/plugins/Test/template.html", "w") as f:
         f.write(pt)
 
-    os.makedirs("/dev/shm/kaithem_tests/chandler/scenes")
+    os.makedirs("/dev/shm/kaithem_tests/chandler/groups")
 
-    with open("/dev/shm/kaithem_tests/chandler/scenes/unit_testing.yaml", "w") as f:
-        f.write(test_scene)
+    with open(
+        "/dev/shm/kaithem_tests/chandler/groups/unit_testing.yaml", "w"
+    ) as f:
+        f.write(test_group)
 
     kaithem.initialize_app(cfg)
     # TODO Sound can't be imported before config init, eventually

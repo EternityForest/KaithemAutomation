@@ -11,7 +11,6 @@ import time
 import urllib
 import urllib.parse
 from collections.abc import Iterator
-from threading import RLock
 from typing import Any, Callable
 
 import beartype
@@ -19,7 +18,7 @@ import structlog
 import yaml
 from stream_zip import ZIP_64, stream_zip
 
-from . import directories, util
+from . import context_restrictions, directories, util
 from .resource_types import ResourceDictType, ResourceType, additionalTypes
 
 # Dummy keeps linter happy
@@ -38,6 +37,14 @@ external_module_locations: dict[str, str] = {}
 
 
 prev_versions: dict[tuple, dict] = {}
+
+
+def get_module_metadata(module: str) -> dict[str, Any]:
+    m = ActiveModules[module]
+    if "__metadata__" not in m:
+        return {}
+
+    return dict(copy.deepcopy(m["__metadata__"]))
 
 
 @beartype.beartype
@@ -70,10 +77,10 @@ def getModuleDir(module: str) -> str:
 
 # The key update must also be defined.
 # This must take a module, a resource, the current resource object, and a dict created from a form
-# POST, and returing a new updated resource object.
+# POST, and returning a new updated resource object.
 
 
-# If you want to be able to move the module, you must define a function 'onmove' that takes(module,resource,newmodule,newresource,object)
+# If you want to be able to move the module, you must define a function 'on_move' that takes(module,resource,newmodule,newresource,object)
 # The update function will always run under a lock.
 
 
@@ -149,12 +156,16 @@ def importFiledataFolderStructure(module: str) -> None:
 
                     relfn = os.path.relpath(os.path.join(root, i), folder)
 
-                    # Create a directory resource for the dirrctory
-                    ActiveModules[module][util.unurl(relfn)] = {"resource_type": "directory"}
+                    # Create a directory resource for the directory
+                    ActiveModules[module][util.unurl(relfn)] = {
+                        "resource_type": "directory"
+                    }
 
 
 @beartype.beartype
-def writeResource(obj: ResourceDictType, dir: str, resource_name: str) -> str | None:
+def writeResource(
+    obj: ResourceDictType, dir: str, resource_name: str
+) -> str | None:
     "Write resource into dir"
     # logger.debug("Saving resource to "+str(fn))
 
@@ -176,9 +187,13 @@ def writeResource(obj: ResourceDictType, dir: str, resource_name: str) -> str | 
 
     for bn in files:
         if not ".".join(bn.split(".")[:-1]) == resource_name.split("/")[-1]:
-            raise RuntimeError(f"Plugin wants to save file {bn} that doesn't match resource {resource_name}")
+            raise RuntimeError(
+                f"Plugin wants to save file {bn} that doesn't match resource {resource_name}"
+            )
         if "/" in bn:
-            raise RuntimeError(f"Resource saving plugins can't create subfolder. Requested fn {bn}")
+            raise RuntimeError(
+                f"Resource saving plugins can't create subfolder. Requested fn {bn}"
+            )
         fn = os.path.join(dir, bn)
         d = files[bn]
 
@@ -202,7 +217,12 @@ def writeResource(obj: ResourceDictType, dir: str, resource_name: str) -> str | 
 
 
 @beartype.beartype
-def save_resource(module: str, resource: str, resourceData: ResourceDictType, name: str | None = None) -> None:
+def save_resource(
+    module: str,
+    resource: str,
+    resourceData: ResourceDictType,
+    name: str | None = None,
+) -> None:
     if "__do__not__save__to__disk__:" in module:
         return
 
@@ -215,7 +235,9 @@ def save_resource(module: str, resource: str, resourceData: ResourceDictType, na
     if not name == resource:
         for i in os.listdir(dir):
             if i.startswith(name + "."):
-                raise ValueError(f"File appears to exist: {os.path.join(dir, i)}")
+                raise ValueError(
+                    f"File appears to exist: {os.path.join(dir, i)}"
+                )
 
     if resourceData["resource_type"] == "directory":
         d = dict(copy.deepcopy(resourceData))
@@ -230,19 +252,23 @@ def save_resource(module: str, resource: str, resourceData: ResourceDictType, na
 
 
 @beartype.beartype
-def rawInsertResource(module: str, resource: str, resourceData: ResourceDictType):
-    resourceData: dict[str, Any] = copy.deepcopy(resourceData)  # type: ignore
+def rawInsertResource(
+    module: str, resource: str, resource_data: ResourceDictType
+):
+    resourceData: dict[str, Any] = copy.deepcopy(resource_data)  # type: ignore
     check_forbidden(resource)
     assert resource[0] != "/"
 
     if "resource_timestamp" not in resourceData:
         resourceData["resource_timestamp"] = int(time.time() * 1000000)
 
-    # todo maybe we don't need os indepedence
+    # todo maybe we don't need os independence
     d = os.path.dirname(resource.replace("/", os.path.pathsep))
     while d:
         if d not in ActiveModules[module]:
-            ActiveModules[module][d.replace(os.path.pathsep, "/")] = {"resource_type": "directory"}
+            ActiveModules[module][d.replace(os.path.pathsep, "/")] = {
+                "resource_type": "directory"
+            }
         d = os.path.dirname(d)
 
     ActiveModules[module][resource] = resourceData
@@ -254,7 +280,7 @@ def rawInsertResource(module: str, resource: str, resourceData: ResourceDictType
 def rawDeleteResource(m: str, r: str, type: str | None = None) -> None:
     """
     Delete a resource from the module, but don't do
-    any bookkeeping. Will not remove whatever runtime objectes
+    any bookkeeping. Will not remove whatever runtime objects
     were created from the resource, also will not update hashes.
     """
     resourceData = ActiveModules[m].pop(r)
@@ -287,7 +313,9 @@ def get_resource_save_location(m: str, r: str) -> str:
 
 
 @beartype.beartype
-def saveModule(module: dict[str, ResourceDictType], modulename: str) -> list[str] | None:
+def saveModule(
+    module: dict[str, ResourceDictType], modulename: str
+) -> list[str] | None:
     """Returns a list of saved module,resource tuples and the saved resource.
     ignore_func if present must take an abs path and return true if that path should be
     left alone. It's meant for external modules and version control systems.
@@ -297,7 +325,9 @@ def saveModule(module: dict[str, ResourceDictType], modulename: str) -> list[str
         return
 
     if modulename in external_module_locations:
-        fn = os.path.join(directories.moduledir, "data", modulename + ".location")
+        fn = os.path.join(
+            directories.moduledir, "data", modulename + ".location"
+        )
         with open(fn, "w") as f:
             f.write(external_module_locations[modulename])
 
@@ -341,7 +371,9 @@ def hashModules() -> str:
             for i in sorted(ActiveModules.keys()):
                 m.update(i.encode())
                 m.update(hashModule(i).encode())
-        return base64.b32encode(m.digest()[:16]).decode().upper().replace("=", "")
+        return (
+            base64.b32encode(m.digest()[:16]).decode().upper().replace("=", "")
+        )
     except Exception:
         logger.exception("Could not hash modules")
         return "ERRORHASHINGMODULES"
@@ -421,7 +453,15 @@ def iter_fc(f: str) -> Iterator[bytes]:
 
 def member_files(
     module: str,
-) -> Iterator[tuple[str, datetime.datetime, int, Callable[[Any, Any], tuple[object, object, Any, None, None]], Iterator[Any]]]:
+) -> Iterator[
+    tuple[
+        str,
+        datetime.datetime,
+        int,
+        Callable[[Any, Any], tuple[object, object, Any, None, None]],
+        Iterator[Any],
+    ]
+]:
     dir = getModuleDir(module)
     for root, dirs, files in deterministic_walk(dir):
         for i in files:
@@ -454,7 +494,7 @@ def hashModule(module: str) -> str:
 
 
 def in_folder(n: str, folder_name: str) -> bool:
-    """Return true if name r represents a kaihem resource in folder f"""
+    """Return true if name r represents a kaithem resource in folder f"""
     # Note: this is about kaithem resources and folders, not actual filesystem dirs.
     if not n.startswith(folder_name):
         return False
@@ -481,14 +521,14 @@ def ls_folder(m: str, d: str) -> list[str]:
 
 
 "this lock protects the activemodules thing. Any changes at all should go through this."
-modulesLock = RLock()
+modulesLock = context_restrictions.Context("ModulesLock")
 
 
-# For passing thigs to that owning thread
+# For passing things to that owning thread
 mlockFunctionQueue: list[Callable[[], Any]] = []
 
 
-# Define a place to keep the module private scope obects.
+# Define a place to keep the module private scope objects.
 # Every module has a object of class object that is used so user code can share state between resources in
 # a module
 scopes: dict[str, Any] = {}

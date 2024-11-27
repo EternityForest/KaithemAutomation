@@ -20,6 +20,7 @@ video,
 canvas,
 svg {
     display: block;
+    object-fit: contain;
 }
 
 input,
@@ -172,6 +173,7 @@ dd {
     --success-fg: color-mix(in srgb, var(--success-color) 30%, var(--fg));
     --warning-fg: color-mix(in srgb, var(--warning-color) 30%, var(--fg));
     --danger-fg: color-mix(in srgb, var(--danger-color) 30%, var(--fg));
+    --contrasting-bg-color: var(--control-bg);
 }
 
 
@@ -294,12 +296,32 @@ input[type=range],
 
 
 
+:modal,
+.modal {
+    &::backdrop {
+        content: "";
+        background-color: black;
+        opacity: 0.3;
+    }
+}
 
+[popover] {
+    max-height: 100vh;
+    overflow: scroll;
+}
 
+[popover]:not(:popover-open):not(dialog[open]) {
+    display: none !important;
+}
 /*****************Typography****************************/
 
 @media screen and (max-width: 820px) {
     .desktop-only {
+        display: none;
+    }
+}
+@media screen and (min-width: 820px) {
+    .mobile-only {
         display: none;
     }
 }
@@ -310,7 +332,7 @@ main {
     margin: auto;
     width: calc(min(45em, 100vw, 100%));
     max-width: 100%;
-    min-width: min-content
+    min-width: calc(min(min-content, 100vw));
 }
 
 html {
@@ -538,6 +560,10 @@ a {
     text-decoration-color: color-mix(in srgb, var(--accent-color) 38%, rgb(0 0 0 / 0%));
 }
 
+.tool-bar a {
+    color: var(--control-fg);
+}
+
 
 
 button,
@@ -570,6 +596,9 @@ label,
 .tool-bar :is(p, h1, h2, h3, h4, h5) {
     text-shadow: var(--control-text-shadow);
 }
+.tool-bar input[type='file'] {
+    padding: 0px;
+}
 
 button,
 .button,
@@ -592,6 +621,7 @@ select {
 
 select {
     padding: 3px;
+    padding-bottom: 0px;
 }
 
 
@@ -946,7 +976,6 @@ table {
     /* bottom-left border-radius */
     &:not(:has(tfoot)) {
 
-        &>thead>tr:last-child>:first-child:is(td, th),
         &>tbody>tr:last-child>:first-child:is(td, th) {
             border-bottom-left-radius: var(--border-radius);
         }
@@ -1191,6 +1220,10 @@ it usable.  Remove when FF fully supports :has()*/
     flex-wrap: nowrap;
     flex-direction: column;
 
+    &>hr {
+        flex-grow: 0;
+    }
+
     /*Nicer input stacking*/
     &>label:has(+input) {
         margin-block-end: 4px;
@@ -1341,9 +1374,6 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
 .w-sm-full {
     width: min(min(430px, 100%), 100vw);
     max-width: calc(min(430px, 100vw));
-    flex-basis: 300px;
-    flex-shrink: 1;
-    flex-grow: 1;
 
     &:is(.margin) {
         max-width: calc(calc(min(430px, 100vw)) - calc(var(--gap) * 2));
@@ -1353,7 +1383,6 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
 .w-sm-quarter {
     width: 80px;
     max-width: calc(min(160px, 25vw));
-    flex-basis: 70px;
 
     &:is(.margin) {
         max-width: calc(calc(min(160, 25vw)) - calc(var(--gap) * 2));
@@ -1363,7 +1392,6 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
 .w-sm-half {
     width: 175px;
     max-width: calc(min(215px, 50vw));
-    flex-basis: 160px;
     flex-grow: 1;
 
     &:is(.margin) {
@@ -1374,9 +1402,6 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
 .w-sm-double {
     width: min(min(28cm, 96vw), 100%);
     max-width: min(28cm, 96vw);
-    flex-basis: 16cm;
-    flex-shrink: 1;
-    flex-grow: 1;
 
     &:is(.margin) {
         max-width: calc(calc(min(28cm, 100vw)) - calc(var(--gap) * 2));
@@ -1394,7 +1419,10 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
 .w-full {
     width: 100%;
     max-width: 100%;
-    flex-basis: 100%;
+
+    &:is(.margin) {
+        max-width: calc(100% - calc(var(--gap) * 2));
+    }
 }
 
 .h-full {
@@ -1468,6 +1496,62 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
 .control-height {
     height: var(--control-height)
 }
+
+
+.max-w-1rem {
+    max-width: 1rem;
+}
+
+.max-w-2rem {
+    max-width: 2rem;
+}
+
+.max-w-4rem {
+    max-width: 4rem;
+}
+
+.max-w-6rem {
+    max-width: 6rem;
+}
+
+.max-w-8rem {
+    max-width: 8rem;
+}
+
+.max-w-12rem {
+    max-width: 12rem;
+}
+
+.max-w-16rem {
+    max-width: 16rem;
+}
+
+.max-w-18rem {
+    max-width: 18rem;
+}
+
+.max-w-20rem {
+    max-width: 20rem;
+}
+
+.max-w-24rem {
+    max-width: 24rem;
+}
+
+.max-w-36rem {
+    max-width: 36rem;
+}
+
+.max-w-48rem {
+    max-width: 48rem;
+}
+
+.max-w-60rem {
+    max-width: 60rem;
+}
+
+
+
 
 .max-h-1rem {
     max-height: 1rem;
@@ -1738,6 +1822,33 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
     &>.w-min-content {
         flex-basis: min-content;
     }
+
+    &>.w-full {
+        flex-basis: 100%;
+    }
+
+    .w-sm-full {
+        flex-basis: 300px;
+        flex-shrink: 1;
+        flex-grow: 1;
+    }
+
+    .w-sm-quarter {
+        flex-basis: 70px;
+    }
+
+    .w-sm-half {
+        flex-basis: 160px;
+        flex-grow: 1;
+
+    }
+
+    .w-sm-double {
+        flex-basis: 16cm;
+        flex-shrink: 1;
+        flex-grow: 1;
+    }
+
 }
 
 
@@ -1757,9 +1868,14 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
     background: var(--box-bg);
 }
 
-.outline-text {
-    text-shadow: 0px 0px 1px var(--control-bg);
+.readability-outline {
+    text-shadow:
+        2px 2px 2px var(--contrasting-bg-color),
+        -2px 2px 3px var(--contrasting-bg-color),
+        -2px -2px 3px var(--contrasting-bg-color),
+        2px -2px 2px var(--contrasting-bg-color)
 }
+
 
 pre {
     width: fit-content;
@@ -2003,7 +2119,8 @@ footer.padding {
 
 .error:not(.specificity_hack),
 .danger:not(.specificity_hack),
-.bad:not(.specificity_hack) {
+.bad:not(.specificity_hack),
+input:invalid:not(.specificity_hack) {
     --highlight-tint: color-mix(in srgb, var(--danger-color) var(--highlight-opacity), transparent);
     --alt-control-bg: var(--highlight-tint);
     background-color: var(--highlight-tint);
@@ -2021,7 +2138,8 @@ footer.padding {
 .bad:not(.specificity_hack),
 .highlight:not(.specificity_hack),
 .success:not(.specificity_hack),
-.warning:not(.specificity_hack) {
+.warning:not(.specificity_hack),
+input:invalid:not(.specificity_hack) {
 
     &:not(meter),
     & :is(input, button, textarea, select, .button) {
@@ -2866,3 +2984,90 @@ label {
 [x-cloak]>* {
     display: none !important;
 }
+
+/* JSON Editor Compatibility */
+
+.je-modal {
+    border-radius: var(--border-radius);
+    background-color: var(--box-bg);
+    border: var(--border);
+    box-shadow: var(--window-box-shadow);
+    position: absolute;
+    z-index: 10;
+}
+
+.je-indented-panel:not(.specificity_hack) {
+    border: none;
+    margin: 3px;
+    padding: 3px;
+
+}
+
+.je-object__container {
+    margin: 3px;
+    border: var(--border);
+    border-radius: var(--border-radius);
+    padding: var(--padding);
+    box-shadow: var(--item-box-shadow);
+}
+
+.je-tab--top:not(.specificity_hack) {
+    border-color: var(--fg-color);
+    border-width: 2px;
+    border-top-left-radius: var(--control-border-radius);
+    border-top-right-radius: var(--control-border-radius);
+    box-shadow: var(--window-box-shadow);
+    background: var(--control-bg) !important;
+}
+
+
+.je-header>span {
+    font-weight: bold;
+}
+
+.je-indented-panel--top:not(.specificity) {
+    margin-left: 3px;
+    padding-left: 3px;
+}
+
+.je-indented-panel {
+    .form-control {
+        display: flex;
+        flex-direction: column;
+
+        &>label:is(:first-child) {
+            font-weight: bold;
+        }
+        &>input, &>select, &>textarea, &>p{
+            margin-left: var(--gap);'
+        }
+        &>p{
+            color: var(--graphical-fg);
+            font-size: 80%;
+        }
+    }
+}
+
+.json-editor-btn-edit_properties{
+    border:none;
+    padding:4px;
+    &:before{
+        content:"⚙️"
+    }
+    span{
+        display:none;
+    }
+}
+
+.json-editor-btn-add 
+{
+    border:none;
+    padding:4px;
+    &:before{
+        content:"➕"
+    }
+    span{
+        display:none;
+    }
+}
+

@@ -72,62 +72,6 @@ This lets you make the root go to a different page.  Use /index to access the no
 </section>
 
 
-<h2>Screen Rotate</h2>
-<section class="window paper">
-    <form method="POST" action="/settings/changerotationtarget">
-
-<label>Rotate<select name="rotate">
-    <details class="help"><summary><i class="mdi mdi-help-circle-outline"></i></summary>
-        Sets the screen rotation.  You should not use this on multi-display systems, the result is undefined
-        as to which one it will affect.  This may be fixed later.
-    </details>
-            <option value=""
-            %if settings.redirects.get('__first__',{}).get('Rotate','').strip()=='':
-            selected\
-            %endif
-            >
-            Unset
-            </option>
-
-            <option value="left"
-            %if settings.redirects.get('__first__',{}).get('Rotate','').strip()=='left':
-            selected\
-            %endif
-            >
-            Left
-            </option>
-
-            <option value="right"
-            %if settings.redirects.get('__first__',{}).get('Rotate','').strip()=='right':
-            selected\
-            %endif
-            >
-            Right
-            </option>
-
-            <option value=""
-            %if settings.redirects.get('__first__',{}).get('Rotate','').strip()=='invert':
-            selected\
-            %endif
-            >
-            Invert
-            </option>
-
-            <option value="normal"
-            %if settings.redirects.get('__first__',{}).get('Rotate','').strip()=='normal':
-            selected\
-            %endif
-            >
-            Normal
-            </option>
-        </select></label>
-        <input type="submit" >
-
-    </form>
-</section>
-
-
-
 <h2>Server Location</h2>
 <section class="window paper">
 <details class="help"><summary><i class="mdi mdi-help-circle-outline"></i></summary>
@@ -137,34 +81,35 @@ Get Location uses <a href="http://ip-api.com/">ip-api.com</a>
 <form method="POST" action="/settings/changesettingstarget">
 <table border=1>
 <tr>
-<tr>
 
 <td>Country Code</td>
-    <td><input name="country" value="${location['countryCode']}".></td>
+    <td><input name="country" value="${location['countryCode']}"></td>
 </tr>
 
 <tr>
     <td>Region</td>
-    <td><input name="region" value="${location['regionName']}".></td>
+    <td><input name="region" value="${location['regionName']}"></td>
 </tr>
 
 <tr>
     <td>Timezone</td>
-    <td><input name="timezone" value="${location['timezone']}".></td>
+    <td><input name="timezone" value="${location['timezone']}"></td>
 </tr>
 
 
 <tr>
     <td>City</td>
-    <td><input name="city" value="${location['city']}".></td>
+    <td><input name="city" value="${location['city']}"></td>
 </tr>
 
+<tr>
 <td>Lattitude</td>
-    <td><input name="lat" value="${location['lat']}".></td>
+    <td><input name="lat" value="${location['lat']}"></td>
 </tr>
+
 <tr>
 <td>Longitude</td>
-    <td><input name="lon" value="${location['lon']}".></td>
+    <td><input name="lon" value="${location['lon']}"></td>
 </tr>
 </table>
 <input type="submit" >
@@ -174,47 +119,6 @@ Get Location uses <a href="http://ip-api.com/">ip-api.com</a>
 </form>
 </section>
 
-<h2>Alerts</h2>
-<div class="window paper">
-<details class="help"><summary><i class="mdi mdi-help-circle-outline"></i></summary>
-    Use the sound device __disable__ to turn off alert sounds.
-</details>
-
-
-<h3>Sound</h3>
-<form action="/settings/changealertsettingstarget" method="POST">
-<table border=1>
-<tr>
-    <td>Beep interval(Warnings)</td><td><input type="number" name="warningbeeptime" value="${alerts.file['warning']['interval']}"></input></td>
-</tr>
-<tr>
-    <td>Sound file(Warnings)</td><td><input name="warningsound" value="${alerts.file['warning']['file']}"></input></td>
-</tr>
-<tr>
-<td>Beep interval(Errors)</td><td><input type="number" name="errorbeeptime" value="${alerts.file['error']['interval']}"></input></td>
-</tr>
-<tr>
-<td>Sound file(Errors)</td><td><input name="errorsound" value="${alerts.file['error']['file']}"></input></td>
-    </tr>
-<tr>
-<td>Beep interval(Critical)</td><td><input type="number" name="critbeeptime" value="${alerts.file['critical']['interval']}"></input></td>
-</tr>
-<td>Sound file(Critical)</td><td><input name="critsound" value="${alerts.file['critical']['file']}"></input></td>
-    </tr>
-<tr>
-<td>Sound Device(All)</td><td><input list="cards" name="soundcard" value="${alerts.file['all'].get('soundcard','')}">
-    <datalist id="cards">
-        <option value=""></option>
-        <option value="__disable__""></option>
-    </datalist>
-
-</input></td>
-    </tr>
-
-</table>
-<input type="submit" value="Save sound settings">
-</form>
-</div>
 
 <h2>Current Configuration Settings</h2>
 <div class="window paper">

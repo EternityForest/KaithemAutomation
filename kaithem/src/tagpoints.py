@@ -33,6 +33,14 @@ from . import alerts, messagebus, pages, widgets, workers
 from .unitsofmeasure import convert, unit_types
 
 logger = structlog.get_logger(__name__)
+# _ and . allowed
+ILLEGAL_NAME_CHARS = "{}|\\<>,?-=+)(*&^%$#@!~`\n\r\t\0"
+
+
+def replace_illegal_chars(name):
+    for i in ILLEGAL_NAME_CHARS:
+        name = name.replace(i, "")
+    return name
 
 
 def to_sk(s: str):
@@ -105,9 +113,9 @@ assigned_unique_numbers: dict[int, str] = {}
 
 logger = structlog.get_logger(__name__)
 
-exposedTags: weakref.WeakValueDictionary[str, GenericTagPointClass[Any]] = weakref.WeakValueDictionary()
-
-t = time.monotonic
+exposedTags: weakref.WeakValueDictionary[str, GenericTagPointClass[Any]] = (
+    weakref.WeakValueDictionary()
+)
 
 # This is used for messing with the set of tags.
 # We just accept that creating and deleting tags and claims is slow.
@@ -186,7 +194,9 @@ def normalize_tag_name(name: str, replacementChar: str | None = None) -> str:
                 if replacementChar:
                     name = name.replace(i, replacementChar)
                 else:
-                    raise ValueError(f"Illegal char in tag point name: {i} in {name}")
+                    raise ValueError(
+                        f"Illegal char in tag point name: {i} in {name}"
+                    )
         if not name.startswith("/"):
             name = f"/{name}"
         name = to_sk(name).replace("-", "_")
@@ -196,9 +206,6 @@ def normalize_tag_name(name: str, replacementChar: str | None = None) -> str:
 
     return name
 
-
-# _ and . allowed
-ILLEGAL_NAME_CHARS = "{}|\\<>,?-=+)(*&^%$#@!~`\n\r\t\0"
 
 T = TypeVar("T")
 
@@ -241,10 +248,14 @@ class GenericTagPointClass(Generic[T]):
         global allTagsAtomic
         _name: str = normalize_tag_name(name)
         if _name in allTags:
-            raise RuntimeError("Tag with this name already exists, use the getter function to get it instead")
+            raise RuntimeError(
+                "Tag with this name already exists, use the getter function to get it instead"
+            )
 
         # Used to store loggers sey elsewhere.
-        self.configLoggers: weakref.WeakValueDictionary[str, object] = weakref.WeakValueDictionary()
+        self.configLoggers: weakref.WeakValueDictionary[str, object] = (
+            weakref.WeakValueDictionary()
+        )
 
         # Used for the fake buttons in the device page
         self._k_ui_fake: Claim[T]
@@ -254,7 +265,7 @@ class GenericTagPointClass(Generic[T]):
         # Where we store a ref for the widget
         self._gui_updateSubscriber: Callable[[T, float, Any], Any]
 
-        # Dependancy tracking, if a tag depends on other tags, such as =expression based ones
+        # Dependency tracking, if a tag depends on other tags, such as =expression based ones
         self.source_tags: dict[str, GenericTagPointClass[Any]] = {}
 
         self._value: Callable[[], T | None] | T
@@ -301,7 +312,7 @@ class GenericTagPointClass(Generic[T]):
 
         self.unreliable: bool = False
 
-        # Track the recalc function used by the poller, the poller itself, and the recalc alarm subscrie
+        # Track the recalc function used by the poller, the poller itself, and the recalc alarm subscribe
         # function subscribed to us, respectively
 
         # The last is a function that is used as a subscriber which just causes the tag to be recalced.
@@ -403,7 +414,9 @@ class GenericTagPointClass(Generic[T]):
         self.manualOverrideClaim: None | Claim[T] = None
 
         with lock:
-            messagebus.post_message("/system/tags/created", self.name, synchronous=True)
+            messagebus.post_message(
+                "/system/tags/created", self.name, synchronous=True
+            )
 
         if self.name.startswith("="):
             self.exprClaim = self.createGetterFromExpression(self.name)
@@ -530,7 +543,9 @@ class GenericTagPointClass(Generic[T]):
 
                     # We don't want the web connection to be able to keep the tag alive
                     # so don't give it a reference to us
-                    self._weakApiHandler: Callable[[str, T | None], None] = self.makeWeakApiHandler(weakref.ref(self))
+                    self._weakApiHandler: Callable[[str, T | None], None] = (
+                        self.makeWeakApiHandler(weakref.ref(self))
+                    )
                     w.attach(self._weakApiHandler)
 
                     self.data_source_widget = w
@@ -620,7 +635,9 @@ class GenericTagPointClass(Generic[T]):
                 if not self._alreadyPostedDeadlock:
                     messagebus.post_message(
                         "/system/notifications/errors",
-                        "Tag point: " + self.name + " has been unavailable for 30s and may be involved in a deadlock. see threads view.",
+                        "Tag point: "
+                        + self.name
+                        + " has been unavailable for 30s and may be involved in a deadlock. see threads view.",
                     )
                     self._alreadyPostedDeadlock = True
 
@@ -714,7 +731,11 @@ class GenericTagPointClass(Generic[T]):
         return notificationHTML
 
     @staticmethod
-    def _getAlarmContextGetters(obj: _Alert, context: dict[str, Any], recalc: weakref.ref[Callable[..., None]]):
+    def _getAlarmContextGetters(
+        obj: _Alert,
+        context: dict[str, Any],
+        recalc: weakref.ref[Callable[..., None]],
+    ):
         # Note that it these go to an alarm which is held if active, or another tag that could be held elsewhere
         # It cannot reference any tag directly or preserve any references, we would not want that.
 
@@ -758,7 +779,7 @@ class GenericTagPointClass(Generic[T]):
             t = StringTag(n)
             obj.source_tags[n] = weakref.ref(t)
             # When any source tag updates, we want to recalculate.
-            obj.source_tags[n].subscribe(obj.recalcFunction)
+            obj.source_tags[n]().subscribe(obj.recalcFunction)
             return t.value
 
         context["tv"] = _context_get_numeric_tag_value
@@ -767,7 +788,9 @@ class GenericTagPointClass(Generic[T]):
         return recalc2
 
     @beartype.beartype
-    def _alarm_from_data(self, name: str, d: dict[str, str | None | int | bool | float]) -> Callable[..., None]:
+    def _alarm_from_data(
+        self, name: str, d: dict[str, str | None | int | bool | float]
+    ) -> Callable[..., None]:
         if not d.get("condition", ""):
             return
 
@@ -778,15 +801,24 @@ class GenericTagPointClass(Generic[T]):
         release_condition: str | None = d.get("release_condition", None)
 
         priority: str = d.get("priority", "warning") or "warning"
-        auto_ack: bool = d.get("auto_ack", "").lower() in ("yes", "true", "y", "auto")
+        auto_ack: bool = d.get("auto_ack", "").lower() in (
+            "yes",
+            "true",
+            "y",
+            "auto",
+        )
         trip_delay = float(d.get("trip_delay", 0) or 0)
 
         # Shallow copy, because we are going to override the tag getter
         context = copy.copy(self.eval_context)
 
-        tripCondition = compile(tripCondition, f"{self.name}.alarms.{name}_trip", "eval")
+        tripCondition = compile(
+            tripCondition, f"{self.name}.alarms.{name}_trip", "eval"
+        )
         if release_condition:
-            release_condition = compile(release_condition, f"{self.name}.alarms.{name}_release", "eval")
+            release_condition = compile(
+                release_condition, f"{self.name}.alarms.{name}_release", "eval"
+            )
 
         n = self.name.replace("=", "expr_")
         for i in ILLEGAL_NAME_CHARS:
@@ -803,7 +835,9 @@ class GenericTagPointClass(Generic[T]):
                         if t:
                             t.unsubscribe(oldAlert.recalcFunction)
                     except Exception:
-                        logger.exception("cleanup err, could be because it was already deleted")
+                        logger.exception(
+                            "cleanup err, could be because it was already deleted"
+                        )
 
                 refs = self._alarmGCRefs.pop(name, None)
                 if refs:
@@ -867,11 +901,15 @@ class GenericTagPointClass(Generic[T]):
 
         obj.notificationHTML = self._makeTagAlarmHTMLFunc(weakref.ref(self))
 
-        generatedRecalcFuncWeMustKeepARefTo = self._getAlarmContextGetters(obj, context, weakref.ref(alarm_recalc_function))
+        generatedRecalcFuncWeMustKeepARefTo = self._getAlarmContextGetters(
+            obj, context, weakref.ref(alarm_recalc_function)
+        )
 
         self._alarmGCRefs[name] = (
             alarm_recalc_function,
-            scheduling.scheduler.schedule_repeating(alarm_recalc_function, 60, sync=False),
+            scheduling.scheduler.schedule_repeating(
+                alarm_recalc_function, 60, sync=False
+            ),
             alarmPollFunction,
             generatedRecalcFuncWeMustKeepARefTo,
         )
@@ -905,13 +943,17 @@ class GenericTagPointClass(Generic[T]):
 
         return alarmPollFunction
 
-    def createGetterFromExpression(self: GenericTagPointClass[T], e: str, priority: int | float = 98) -> Claim[T]:
+    def createGetterFromExpression(
+        self: GenericTagPointClass[T], e: str, priority: int | float = 98
+    ) -> Claim[T]:
         "Create a getter for tag self using expression e"
         try:
             for i in self.source_tags:
                 self.source_tags[i].unsubscribe(self.recalc)
         except Exception:
-            logger.exception("Unsubscribe fail to old tag.  A subscription mau be leaked, wasting CPU. This should not happen.")
+            logger.exception(
+                "Unsubscribe fail to old tag.  A subscription mau be leaked, wasting CPU. This should not happen."
+            )
 
         self.source_tags = {}
 
@@ -944,7 +986,11 @@ class GenericTagPointClass(Generic[T]):
         else:
             self._interval = 0
 
-        messagebus.post_message(f"/system/tags/interval{self.name}", self._interval, synchronous=True)
+        messagebus.post_message(
+            f"/system/tags/interval{self.name}",
+            self._interval,
+            synchronous=True,
+        )
         with self.lock:
             self._manage_polling()
 
@@ -986,7 +1032,10 @@ class GenericTagPointClass(Generic[T]):
                 if x:
                     if x.__class__ is not cls:
                         raise TypeError(
-                            "A tag of that name exists, but it is the wrong type. Existing: " + str(x.__class__) + " New: " + str(cls)
+                            "A tag of that name exists, but it is the wrong type. Existing: "
+                            + str(x.__class__)
+                            + " New: "
+                            + str(cls)
                         )
                     rval = x
 
@@ -998,7 +1047,7 @@ class GenericTagPointClass(Generic[T]):
 
     @property
     def current_source(self) -> str:
-        # Avoid the lock by using retru in case claim disappears
+        # Avoid the lock by using retry in case claim disappears
         for i in range(10000):
             try:
                 if self.active_claim:
@@ -1022,7 +1071,9 @@ class GenericTagPointClass(Generic[T]):
                 allTagsAtomic = allTags.copy()
             except Exception:
                 logger.exception("Tag may have already been deleted")
-            messagebus.post_message("/system/tags/deleted", self.name, synchronous=True)
+            messagebus.post_message(
+                "/system/tags/deleted", self.name, synchronous=True
+            )
 
         for i in list(self._alarmGCRefs.keys()):
             pollStuff = self._alarmGCRefs.pop(i, None)
@@ -1056,13 +1107,17 @@ class GenericTagPointClass(Generic[T]):
                     self._poller.unregister()
                     self._poller = None
 
-                self._poller = scheduling.scheduler.schedule_repeating(self.poll, interval, sync=False)
+                self._poller = scheduling.scheduler.schedule_repeating(
+                    self.poll, interval, sync=False
+                )
         else:
             if self._poller:
                 self._poller.unregister()
                 self._poller = None
 
-    def fast_push(self, value: T, timestamp: float | None = None, annotation: Any = None) -> None:
+    def fast_push(
+        self, value: T, timestamp: float | None = None, annotation: Any = None
+    ) -> None:
         """
         Push a value to all subscribers. Does not set the tag's value.  Ignores any and all
         overriding claims.
@@ -1072,7 +1127,7 @@ class GenericTagPointClass(Generic[T]):
         Meant for streaming video and the like.
         """
 
-        timestamp = timestamp or time.monotonic()
+        timestamp = timestamp or time.time()
 
         for i in self.subscribers_atomic:
             f = i()
@@ -1097,11 +1152,15 @@ class GenericTagPointClass(Generic[T]):
             print("Timed out in the push function")
 
     @beartype.beartype
-    def subscribe(self, f: Callable[[T, float, Any], Any], immediate: bool = False):
-        if isinstance(f, GenericTagPointClass) and (f.unreliable or self.unreliable):
+    def subscribe(
+        self, f: Callable[[T, float, Any], Any], immediate: bool = False
+    ):
+        if isinstance(f, GenericTagPointClass) and (
+            f.unreliable or self.unreliable
+        ):
             f = f.fast_push
 
-        timestamp = time.monotonic()
+        timestamp = time.time()
 
         try:
             desc = str(f"{f} of {f.__module__}")
@@ -1109,15 +1168,21 @@ class GenericTagPointClass(Generic[T]):
         except Exception:
             desc = str(f)
 
-        timestamp = time.monotonic()
-
         def errcheck(*a: Any):
-            if time.monotonic() < timestamp - 0.5:
-                logger.warning("Function: " + desc + " was deleted 0.5s after being subscribed.  This is probably not what you wanted.")
+            if time.time() < timestamp - 0.5:
+                logger.warning(
+                    "Function: "
+                    + desc
+                    + " was deleted 0.5s after being subscribed.  This is probably not what you wanted."
+                )
 
         if self.lock.acquire(timeout=20):
             try:
-                ref: weakref.WeakMethod[Callable[[T, float, Any], Any]] | weakref.ref[Callable[[T, float, Any], Any]] | None = None
+                ref: (
+                    weakref.WeakMethod[Callable[[T, float, Any], Any]]
+                    | weakref.ref[Callable[[T, float, Any], Any]]
+                    | None
+                ) = None
 
                 if isinstance(f, types.MethodType):
                     ref = weakref.WeakMethod(f, errcheck)
@@ -1136,11 +1201,11 @@ class GenericTagPointClass(Generic[T]):
 
                 self.subscribers.append(ref)
 
-                torm = []
+                to_rm = []
                 for i in self.subscribers:
                     if not i():
-                        torm.append(i)
-                for i in torm:
+                        to_rm.append(i)
+                for i in to_rm:
                     self.subscribers.remove(i)
                 messagebus.post_message(
                     f"/system/tags/subscribers{self.name}",
@@ -1157,7 +1222,9 @@ class GenericTagPointClass(Generic[T]):
                 self.lock.release()
         else:
             self.testForDeadlock()
-            raise RuntimeError("Cannot get lock to subscribe to this tag. Is there a long running subscriber?")
+            raise RuntimeError(
+                "Cannot get lock to subscribe to this tag. Is there a long running subscriber?"
+            )
 
     @beartype.beartype
     def unsubscribe(self, f: Callable[[T, float, Any], Any]):
@@ -1180,7 +1247,9 @@ class GenericTagPointClass(Generic[T]):
                 self.lock.release()
         else:
             self.testForDeadlock()
-            raise RuntimeError("Cannot get lock to subscribe to this tag. Is there a long running subscriber?")
+            raise RuntimeError(
+                "Cannot get lock to subscribe to this tag. Is there a long running subscriber?"
+            )
 
     @beartype.beartype
     def set_handler(self, f: Callable[[T, float, Any], Any]):
@@ -1237,13 +1306,20 @@ class GenericTagPointClass(Generic[T]):
                         )
                     except Exception as e:
                         extraData = str(e)
-                    logger.exception(f"Tag subscriber error, val,time,annotation was: {extraData}")
+                    logger.exception(
+                        f"Tag subscriber error, val,time,annotation was: {extraData}"
+                    )
                     # Return the error from whence it came to display in the proper place
                     for i in subscriber_error_handlers:
                         try:
                             i(self, f, self.last_value)
                         except Exception:
-                            print("Failed to handle error: " + traceback.format_exc(6) + "\nData: " + extraData)
+                            print(
+                                "Failed to handle error: "
+                                + traceback.format_exc(6)
+                                + "\nData: "
+                                + extraData
+                            )
             del f
 
     def processValue(self, value) -> T:
@@ -1254,7 +1330,7 @@ class GenericTagPointClass(Generic[T]):
 
     @property
     def age(self):
-        return time.monotonic() - self.vta[1]
+        return time.time() - self.vta[1]
 
     @property
     def value(self) -> T:
@@ -1262,7 +1338,7 @@ class GenericTagPointClass(Generic[T]):
 
     @value.setter
     def value(self, v: T | Callable[..., T | None]):
-        self.set_claim_val("default", v, time.monotonic(), "Set via value property")
+        self.set_claim_val("default", v, time.time(), "Set via value property")
 
     def pull(self) -> T:
         if not self.lock.acquire(timeout=15):
@@ -1276,7 +1352,7 @@ class GenericTagPointClass(Generic[T]):
         "Get the processed value of the tag, and update last_value, It is meant to be called under lock."
 
         # Overrides not guaranteed to be instant
-        if (self.last_got_value > time.monotonic() - self.interval) and not force:
+        if (self.last_got_value > time.time() - self.interval) and not force:
             return self.last_value
 
         active_claim = self.active_claim
@@ -1288,7 +1364,7 @@ class GenericTagPointClass(Generic[T]):
         if not callable(active_claim_value):
             # We no longer are aiming to support using the processor for impure functions
 
-            self.last_got_value = time.monotonic()
+            self.last_got_value = time.time()
             self.last_value = self.processValue(active_claim_value)
 
         else:
@@ -1297,10 +1373,12 @@ class GenericTagPointClass(Generic[T]):
             # It shouldn't affect correctness
 
             # Note that this is on a per-claim basis.  Every claim has it's own cache.
-            if (time.monotonic() - active_claim.lastGotValue > self._interval) or force:
+            if (
+                time.time() - active_claim.lastGotValue > self._interval
+            ) or force:
                 # Set this flag immediately, or else a function with an error could defeat the cacheing
                 # And just flood everything with errors
-                active_claim.lastGotValue = time.monotonic()
+                active_claim.lastGotValue = time.time()
 
                 try:
                     # However, the actual logic IS ratelimited
@@ -1316,12 +1394,16 @@ class GenericTagPointClass(Generic[T]):
                         # We extend the idea that cache is allowed to also
                         # mean we can fall back to cache in case of a timeout.
                         else:
-                            logger.error("tag point:" + self.name + " took too long getting lock to get value, falling back to cache")
+                            logger.error(
+                                "tag point:"
+                                + self.name
+                                + " took too long getting lock to get value, falling back to cache"
+                            )
                             return self.last_value
                     try:
                         # None means no new data
                         x = active_claim_value()
-                        t = time.monotonic()
+                        t = time.time()
 
                         if x is not None:
                             # Race here. Data might not always match timestamp an annotation, if we weren't under lock
@@ -1333,7 +1415,7 @@ class GenericTagPointClass(Generic[T]):
                             active_claim.cachedValue = (x, t)
 
                             # This is just used to calculate the overall age of the tags data
-                            self.last_got_value = time.monotonic()
+                            self.last_got_value = time.time()
                             self.last_value = self.processValue(x)
                             self._push()
 
@@ -1345,16 +1427,23 @@ class GenericTagPointClass(Generic[T]):
                     logger.exception("Error getting tag value")
 
                     # The system logger is the one kaithem actually logs to file.
-                    if self.lastError < (time.monotonic() - (60 * 10)):
-                        self.lastError = time.monotonic()
-                        logger.exception("Error getting tag value. This message will only be logged every ten minutes.")
+                    if self.lastError < (time.time() - (60 * 10)):
+                        self.lastError = time.time()
+                        logger.exception(
+                            "Error getting tag value. This message will only be logged every ten minutes."
+                        )
                     # If we can, try to send the exception back whence it came
                     try:
                         from .plugins import CorePluginEventResources
 
                         if hasattr(active_claim_value, "__module__"):
-                            if active_claim_value.__module__ in CorePluginEventResources.eventsByModuleName:
-                                CorePluginEventResources.eventsByModuleName[active_claim_value.__module__].handle_exception()
+                            if (
+                                active_claim_value.__module__
+                                in CorePluginEventResources.eventsByModuleName
+                            ):
+                                CorePluginEventResources.eventsByModuleName[
+                                    active_claim_value.__module__
+                                ].handle_exception()
                     except Exception:
                         print(traceback.format_exc())
 
@@ -1366,7 +1455,9 @@ class GenericTagPointClass(Generic[T]):
 
     @pushOnRepeats.setter
     def pushOnRepeats(self, v):
-        raise AttributeError("Push on repeats was causing too much trouble and too much confusion and has been removed")
+        raise AttributeError(
+            "Push on repeats was causing too much trouble and too much confusion and has been removed"
+        )
 
     def handleSourceChanged(self, name):
         if self.onSourceChanged:
@@ -1427,7 +1518,7 @@ class GenericTagPointClass(Generic[T]):
 
         name = name or f"claim{str(time.time())}"
         if timestamp is None:
-            timestamp = time.monotonic()
+            timestamp = time.time()
 
         if priority and priority > 100:
             raise ValueError("Maximum priority is 100")
@@ -1449,7 +1540,9 @@ class GenericTagPointClass(Generic[T]):
             # If the weakref obj disappeared it will be None
             if claim is None:
                 priority = priority or 50
-                claim = self.claimFactory(value, name, priority, timestamp, annotation, expiration)
+                claim = self.claimFactory(
+                    value, name, priority, timestamp, annotation, expiration
+                )
 
             else:
                 # It could have been released previously.
@@ -1480,8 +1573,14 @@ class GenericTagPointClass(Generic[T]):
             claim.priority = priority
             claim.vta = value, timestamp, annotation
 
-            # If we have priortity on them, or if we have the same priority but are newer
-            if (ac is None) or (priority > oldAcPriority) or ((priority == oldAcPriority) and (timestamp > oldAcTimestamp)):
+            # If we have priority on them, or if we have the same priority but are newer
+            if (
+                (ac is None)
+                or (priority > oldAcPriority)
+                or (
+                    (priority == oldAcPriority) and (timestamp > oldAcTimestamp)
+                )
+            ):
                 self.active_claim = self.claims[name]
                 self.handleSourceChanged(name)
 
@@ -1535,7 +1634,7 @@ class GenericTagPointClass(Generic[T]):
         "Set the value of an existing claim"
 
         if timestamp is None:
-            timestamp = time.monotonic()
+            timestamp = time.time()
 
         valCallable = True
         if not callable(val):
@@ -1560,7 +1659,9 @@ class GenericTagPointClass(Generic[T]):
                 # and are more recent, byt to do that we have to use
                 #  the slower claim function that handles creating
                 # and switching claims
-                if (ac is None) or (co.priority >= ac.priority and timestamp >= ac.timestamp):
+                if (ac is None) or (
+                    co.priority >= ac.priority and timestamp >= ac.timestamp
+                ):
                     self.claim(val, claim, co.priority, timestamp, annotation)
                     return
 
@@ -1583,7 +1684,7 @@ class GenericTagPointClass(Generic[T]):
                     # No need to call the function right away, that can happen when a getter calls it
                     # self._getValue()
                 else:
-                    self.last_got_value = time.monotonic()
+                    self.last_got_value = time.time()
                     self.last_value = self.processValue(val)
                 # No need to push is listening
                 if self.subscribers or self.handler:
@@ -1614,14 +1715,18 @@ class GenericTagPointClass(Generic[T]):
         annotation: Any,
         expiration: int | float = 0,
     ):
-        return Claim[T](self, value, name, priority, timestamp, annotation, expiration)
+        return Claim[T](
+            self, value, name, priority, timestamp, annotation, expiration
+        )
 
     def getTopClaim(self) -> Claim[T]:
         x = [i for i in self.claims.values()]
         # Eliminate dead ones
         x = [i for i in x if i and not i.released]
         if not x:
-            raise RuntimeError(f"Program state is corrupt, tag{self.name} has no claims")
+            raise RuntimeError(
+                f"Program state is corrupt, tag{self.name} has no claims"
+            )
         # Get the top one
         x = sorted(x, reverse=True)
         return x[0]
@@ -1631,9 +1736,6 @@ class GenericTagPointClass(Generic[T]):
             raise RuntimeError("Could not get lock!")
 
         try:
-            # Ifid lets us filter by ID, so that a claim object that has
-            # Long since been overriden can't delete one with the same name
-            # When it gets GCed
             if name not in self.claims:
                 return
 
@@ -1672,7 +1774,9 @@ class NumericTagPointClass(GenericTagPointClass[float]):
     type = "number"
 
     @beartype.beartype
-    def __init__(self, name: str, min: float | None = None, max: float | None = None):
+    def __init__(
+        self, name: str, min: float | None = None, max: float | None = None
+    ):
         self.vta: tuple[float, float, Any]  # type: ignore
 
         # Real backing vars for props
@@ -1710,7 +1814,9 @@ class NumericTagPointClass(GenericTagPointClass[float]):
         annotation: Any,
         expiration: int | float = 0,
     ):
-        return NumericClaim(self, value, name, priority, timestamp, annotation, expiration)
+        return NumericClaim(
+            self, value, name, priority, timestamp, annotation, expiration
+        )
 
     @property
     def min(self) -> float | int:
@@ -1780,14 +1886,18 @@ class NumericTagPointClass(GenericTagPointClass[float]):
         if self._unit:
             if not self._unit == value:
                 if value:
-                    raise ValueError("Cannot change unit of tagpoint. To override this, set to None or '' first")
+                    raise ValueError(
+                        "Cannot change unit of tagpoint. To override this, set to None or '' first"
+                    )
         # TODO race condition in between check, but nobody will be setting this from different threads
         # I don't think
         if not self._display_units:
             # Rarely does anyone want alternate views of dB values
             if "dB" not in value:
                 try:
-                    self._display_units = _default_display_units[unit_types[value]]
+                    self._display_units = _default_display_units[
+                        unit_types[value]
+                    ]
                     # Always show the native unit
                     if value not in self._display_units:
                         self._display_units = f"{value}|{self._display_units}"
@@ -1908,7 +2018,7 @@ class Claim(Generic[T]):
     ):
         self.name = name
         self.tag = tag
-        timestamp = timestamp or time.monotonic()
+        timestamp = timestamp or time.time()
         self.vta: tuple[T | Callable[[], T | None], float, Any] = (
             value,
             timestamp,
@@ -1922,7 +2032,7 @@ class Claim(Generic[T]):
         # Track the last *attempt* at reading the value if it is a callable, regardless of whether
         # it had new data or not.
 
-        # It is in monotonic time.
+        # It is in unix time.
         self.lastGotValue = 0.0
 
         self.priority = priority
@@ -1992,7 +2102,7 @@ class Claim(Generic[T]):
             ts = self.timestamp
 
         if not self.expired:
-            if ts < (time.monotonic() - self.expiration):
+            if ts < (time.time() - self.expiration):
                 # First we must try to refresh the callable.
                 self.refreshCallable()
                 if self.tag.lock.acquire(timeout=90):
@@ -2002,13 +2112,15 @@ class Claim(Generic[T]):
                         else:
                             ts = self.timestamp
 
-                        if ts < (time.monotonic() - self.expiration):
+                        if ts < (time.time() - self.expiration):
                             self.setPriority(self.expiredPriority, False)
                             self.expired = True
                     finally:
                         self.tag.lock.release()
                 else:
-                    raise RuntimeError("Cannot get lock to set priority, waited 90s")
+                    raise RuntimeError(
+                        "Cannot get lock to set priority, waited 90s"
+                    )
         else:
             # If we are already expired just refresh now.
             self.refreshCallable()
@@ -2017,19 +2129,23 @@ class Claim(Generic[T]):
         # Only call the getter under lock in case it happens to not be threadsafe
         if callable(self.value):
             if self.tag.lock.acquire(timeout=90):
-                self.lastGotValue = time.monotonic()
+                self.lastGotValue = time.time()
                 try:
                     x = self.value()
                     if x is not None:
-                        self.cachedValue = (x, time.monotonic())
+                        self.cachedValue = (x, time.time())
                         self.unexpire()
                 finally:
                     self.tag.lock.release()
 
             else:
-                raise RuntimeError("Cannot get lock to set priority, waited 90s")
+                raise RuntimeError(
+                    "Cannot get lock to set priority, waited 90s"
+                )
 
-    def set_expiration(self, expiration: float, expiredPriority: int | float = 1):
+    def set_expiration(
+        self, expiration: float, expiredPriority: int | float = 1
+    ):
         """Set the time in seconds before this claim is regarded as stale, and what priority to revert to in the stale state.
         Note that that if you use a getter with this, it will constantly poll in the background
         """
@@ -2050,7 +2166,9 @@ class Claim(Generic[T]):
             if not self.poller or not (interval == self.poller.interval):
                 if self.poller:
                     self.poller.unregister()
-                self.poller = scheduling.scheduler.schedule_repeating(self.expirePoll, interval, sync=False)
+                self.poller = scheduling.scheduler.schedule_repeating(
+                    self.expirePoll, interval, sync=False
+                )
         else:
             if self.poller:
                 self.poller.unregister()
@@ -2067,7 +2185,9 @@ class Claim(Generic[T]):
                 finally:
                     self.tag.lock.release()
             else:
-                raise RuntimeError("Cannot get lock to set priority, waited 90s")
+                raise RuntimeError(
+                    "Cannot get lock to set priority, waited 90s"
+                )
 
     @property
     def value(self):
@@ -2081,7 +2201,9 @@ class Claim(Generic[T]):
     def annotation(self):
         return self.vta[2]
 
-    def set(self, value, timestamp: float | None = None, annotation: Any = None):
+    def set(
+        self, value, timestamp: float | None = None, annotation: Any = None
+    ):
         # Not threadsafe here if multiple threads use the same claim, value, timestamp, and annotation can
         self.vta = (value, self.timestamp, self.annotation)
 
@@ -2104,7 +2226,9 @@ class Claim(Generic[T]):
                     self.tag.lock.release()
 
             else:
-                raise RuntimeError("Cannot get lock to re-claim after release, waited 60s")
+                raise RuntimeError(
+                    "Cannot get lock to re-claim after release, waited 60s"
+                )
         else:
             self.tag.set_claim_val(self.name, value, timestamp, annotation)
 
@@ -2112,7 +2236,7 @@ class Claim(Generic[T]):
         try:
             # Stop any weirdness with an old claim double releasing and thus releasing a new claim
             if self.tag.claims[self.name] is not self:
-                # If the old replaced claim is somehow the active omne we acrtuallty should handle that
+                # If the old replaced claim is somehow the active omne we actually should handle that
                 if self.tag.active_claim is not self:
                     return
         except KeyError:
@@ -2166,7 +2290,9 @@ class NumericClaim(Claim[float]):
         expiration: int | float = 0,
     ):
         self.tag: NumericTagPointClass
-        Claim.__init__(self, tag, value, name, priority, timestamp, annotation, expiration)
+        Claim.__init__(
+            self, tag, value, name, priority, timestamp, annotation, expiration
+        )
 
     def set_as(
         self,

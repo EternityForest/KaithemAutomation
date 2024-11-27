@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 import base64
 import collections
+import json
 import logging
 import threading
 import time
@@ -65,7 +66,9 @@ def login_index():
         x = quart.request.remote_addr
         if not pages.isHTTPAllowed(x):
             return quart.redirect("/errors/gosecure")
-    return pages.get_template("login.html").render(target=kwargs.get("go", "/"), kaithemobj=kaithemobj)
+    return pages.get_template("login.html").render(
+        target=kwargs.get("go", "/"), kaithemobj=kaithemobj
+    )
 
 
 @quart_app.app.route("/login/login", methods=["POST"])
@@ -79,7 +82,9 @@ async def login():
             return quart.redirect("/index")
 
         if "__nologin__" in pages.getSubdomain():
-            raise RuntimeError("To prevent XSS attacks, login is forbidden from any subdomain containing __nologin__")
+            raise RuntimeError(
+                "To prevent XSS attacks, login is forbidden from any subdomain containing __nologin__"
+            )
 
         # Empty fields try the default. But don't autofill username if password is set.
         # If that actually worked because someone didn't fill the username in, they might be confused and
@@ -100,7 +105,10 @@ async def login():
         # Insert a delay that has a random component of up to 256us that is derived from the username
         # and password, to prevent anyone from being able to average it out, as it is the same per
         # query
-        auth.resist_timing_attack(kwargs["username"].encode("utf8") + kwargs["password"].encode("utf8"))
+        auth.resist_timing_attack(
+            kwargs["username"].encode("utf8")
+            + kwargs["password"].encode("utf8")
+        )
         x = auth.userLogin(kwargs["username"], kwargs["password"])
         # Don't ratelimit very long passwords, we'll just assume they are secure
         # Someone might still make a very long insecure password, but
@@ -108,7 +116,9 @@ async def login():
         if len(kwargs["password"]) < 32:
             if kwargs["username"] in lockouts:
                 if time.time() < lockouts[kwargs["username"]]:
-                    raise RuntimeError("Maximum 1 login attempt per 3 seconds per account.")
+                    raise RuntimeError(
+                        "Maximum 1 login attempt per 3 seconds per account."
+                    )
 
         if not x == "failure":
             if "maxgotime" in kwargs:
@@ -127,16 +137,28 @@ async def login():
             # Give the user the security token.
             # AFAIK this is and should at least for now be the
             # ONLY place in which the auth cookie is set.
-            r.set_cookie("kaithem_auth", x, samesite="Strict", path="/", httponly=True, secure=False)
+            r.set_cookie(
+                "kaithem_auth",
+                x,
+                samesite="Strict",
+                path="/",
+                httponly=True,
+                secure=False,
+            )
 
             x = auth.Users[kwargs["username"]]
             if "loginhistory" not in x:
                 x["loginhistory"] = [(time.time(), quart.request.remote_addr)]
             else:
-                x["loginhistory"].append((time.time(), quart.request.remote_addr))
+                x["loginhistory"].append(
+                    (time.time(), quart.request.remote_addr)
+                )
                 x["loginhistory"] = x["loginhistory"][:100]
 
-            messagebus.post_message("/system/auth/login", [kwargs["username"], quart.request.remote_addr])
+            messagebus.post_message(
+                "/system/auth/login",
+                [kwargs["username"], quart.request.remote_addr],
+            )
 
             return r
         else:
@@ -163,5 +185,17 @@ def logout():
             ],
         )
     r = quart.redirect("/index")
-    r.set_cookie("kaithem_auth", "", samesite="Strict", path="/", httponly=True, secure=False)
+    r.set_cookie(
+        "kaithem_auth",
+        "",
+        samesite="Strict",
+        path="/",
+        httponly=True,
+        secure=False,
+    )
     return r
+
+
+@quart_app.app.route("/api.core/check-permission/<permission>", methods=["GET"])
+def check_own_permissions(permission: str) -> str:
+    return json.dumps(auth.canUserDoThis(pages.getAcessingUser(), permission))

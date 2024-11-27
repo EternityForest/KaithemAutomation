@@ -1,0 +1,168 @@
+$schema: http://json-schema.org/draft-04/schema#
+
+type: object
+properties:
+  active:
+    type: boolean
+
+  alpha:
+    description: The default alpha, called default_alpha in the code
+    type: number
+
+  require_confirm:
+    type: boolean
+    default: false
+    description: If true, the user must confirm entering a cue to enter it via UI.
+
+  backtrack:
+    type: boolean
+    description: |
+      When jumping to a cue other than the next one,
+      apply values from previous cues as if you got there without jumping.
+
+  blend:
+    type: string
+
+  blend_args:
+    type: object
+    additionalProperties: true
+
+  bpm:
+    type: number
+
+  command_tag:
+    type: string
+
+  crossfade:
+    type: number
+
+  cues:
+    type: object
+    required:
+      - default
+
+  default_next:
+    type: string
+
+  display_tags:
+    type: array
+    items: {}
+    additionalItems: true
+
+  event_buttons:
+    type: array
+    items: {}
+    additionalItems: true
+
+  info_display:
+    type: string
+
+  midi_source:
+    type: string
+
+  mqtt_server:
+    type: string
+
+  mqtt_sync_features:
+    type: object
+    additionalProperties: true
+
+  music_visualizations:
+    type: string
+
+  notes:
+    type: string
+
+  priority:
+    type: number
+
+  slide_overlay_url:
+    type: string
+
+  slideshow_layout:
+    type: string
+    description: Customize the group web player view
+    default: |
+        <style>
+            slideshow-app {
+                display: flex;
+                flex-wrap: wrap;
+                flex-direction: row;
+            }
+
+            main{
+              display: flex;
+              flex-direction: column;
+              flex-grow:10;
+            }
+
+            media-player {
+                flex-grow: 5;
+            }
+
+            .sidebar {
+                background: linear-gradient(175deg, rgba(36,36,36,1) 0%, rgba(77,77,77,1) 100%);
+                max-width: calc(max(30%, min(24em, 100%) ));
+                text-wrap: wrap;
+            }
+
+        </style>
+
+
+        <slideshow-app>
+            <main>
+                <header></header>
+                <media-player></media-player>
+                <footer></footer>
+            </main>
+            <div class="sidebar" v-if="cueText" v-html="cueText">
+            </div>
+        </slideshow-app>
+
+  sound_output:
+    type: string
+
+  utility:
+    type: boolean
+
+  hide:
+    type: boolean
+
+  uuid:
+    type: string
+
+  cue_providers:
+    type: array
+    items:
+      type: string
+    description: |
+      A list of providers to use. Each provider is a URI like file://some/directory/
+      And allows cues to be auto-synced with the stuff in the dir.
+
+
+additionalProperties: true
+
+required:
+  - active
+  - alpha
+  - backtrack
+  - blend
+  - blend_args
+  - bpm
+  - command_tag
+  - crossfade
+  - cues
+  - default_next
+  - display_tags
+  - event_buttons
+  - info_display
+  - midi_source
+  - mqtt_server
+  - mqtt_sync_features
+  - music_visualizations
+  - notes
+  - priority
+  - slide_overlay_url
+  - sound_output
+  - utility
+  - uuid

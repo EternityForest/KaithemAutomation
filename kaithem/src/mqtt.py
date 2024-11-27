@@ -16,7 +16,9 @@ allConnectionsLock = threading.Lock()
 def listConnections():
     with allConnectionsLock:
         # Filter dead references
-        return {i: allConnections[i] for i in allConnections if allConnections[i]()}
+        return {
+            i: allConnections[i] for i in allConnections if allConnections[i]()
+        }
 
 
 class EnhancedConnection(BaseConnection):
@@ -31,7 +33,11 @@ class EnhancedConnection(BaseConnection):
         message_bus_name=None,
         **kw,
     ):
-        self.statusTag = tagpoints.StringTag("/system/mqtt/" + (message_bus_name or server + ":" + str(port)) + "/status")
+        self.statusTag = tagpoints.StringTag(
+            "/system/mqtt/"
+            + (message_bus_name or server + ":" + str(port))
+            + "/status"
+        )
         self.statusTagClaim = self.statusTag.claim("disconnected", "status", 90)
         BaseConnection.__init__(
             self,
@@ -45,11 +51,11 @@ class EnhancedConnection(BaseConnection):
         )
 
         with allConnectionsLock:
-            torm = []
+            to_rm = []
             for i in allConnections:
                 if not allConnections[i]():
-                    torm.append(i)
-            for i in torm:
+                    to_rm.append(i)
+            for i in to_rm:
                 allConnections.pop(i)
             allConnections[message_bus_name] = weakref.ref(self)
 

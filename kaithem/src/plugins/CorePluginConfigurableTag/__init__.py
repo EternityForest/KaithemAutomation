@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: Copyright Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
 
+import copy
 import gc
 import time
 from urllib.parse import quote
@@ -15,70 +16,70 @@ data_cache: dict[tuple[str, str], modules_state.ResourceDictType] = {}
 
 
 class TagType(modules_state.ResourceType):
-    def blurb(self, m, r, value):
-        t = tagsapi.existing_tag(value["tag"])
+    def blurb(self, module, resource, data):
+        t = tagsapi.existing_tag(data["tag"])
         if t:
             return f"""
             <div>
-                <a href="/tagpoints/{quote(value['tag'])}">{value['tag']}</a><br>
+                <a href="/tagpoints/{quote(data['tag'])}">{data['tag']}</a><br>
                 Value: {str(t.value)[:64] }
             </div>
             """
 
         return ""
 
-    def onload(self, module, resourcename, value):
-        data_cache[module, resourcename] = value
+    def on_load(self, module, resource, data):
+        data_cache[module, resource] = data
 
-        t = value["tag_type"]
+        t = data["tag_type"]
 
         if t == "numeric":
-            tg = tagsapi.NumericTag(value["tag"])
+            tg = tagsapi.NumericTag(data["tag"])
             for i in ["min", "max", "hi", "lo", "default"]:
-                if value.get(i, ""):
-                    setattr(tg, i, float(value[i]))
+                if data.get(i, ""):
+                    setattr(tg, i, float(data[i]))
 
         elif t == "string":
-            tg = tagsapi.NumericTag(value["tag"])
-            if value.get("default", ""):
-                tg.default = float(value["default"])
+            tg = tagsapi.NumericTag(data["tag"])
+            if data.get("default", ""):
+                tg.default = float(data["default"])
         else:
             raise ValueError(f"Bad tag type {t}")
-        if value.get("interval", ""):
-            tg.interval = float(value.get("interval", "0"))
+        if data.get("interval", ""):
+            tg.interval = float(data.get("interval", "0"))
 
-        alias = str(value.get("alias", "")).strip()
+        alias = str(data.get("alias", "")).strip()
 
         if alias:
-            if (module, resourcename) in data_cache:
-                old = data_cache[module, resourcename]
+            if (module, resource) in data_cache:
+                old = data_cache[module, resource]
                 old_alias = str(old.get("alias", "")).strip()
                 if old_alias and old_alias != alias:
                     tg.remove_alias(alias)
 
-            tg.add_alias(value["alias"])
+            tg.add_alias(data["alias"])
 
-        config_tags[module, resourcename] = tg
+        config_tags[module, resource] = tg
 
-    def onmove(self, module, resource, toModule, toResource, resourceobj):
+    def on_move(self, module, resource, to_module, to_resource, data):
         x = config_tags.pop((module, resource), None)
         if x:
-            config_tags[toModule, toResource] = x
+            config_tags[to_module, to_resource] = x
 
         x2 = data_cache.pop((module, resource), None)
         if x2:
-            data_cache[toModule, toResource] = x2
+            data_cache[to_module, to_resource] = x2
 
-    def onupdate(self, module, resource, obj):
-        self.onload(module, resource, obj)
+    def on_update(self, module, resource, data):
+        self.on_load(module, resource, data)
 
-    def ondelete(self, module, name, value):
-        del config_tags[module, name]
+    def on_delete(self, module, resource, data):
+        del config_tags[module, resource]
         for i in range(5):
             gc.collect()
             time.sleep(0.05)
 
-    def oncreaterequest(self, module: str, name: str, kwargs: dict):
+    def on_create_request(self, module: str, resource: str, kwargs: dict):
         d: modules_state.ResourceDictType = {"resource_type": self.type}
         d.update(kwargs)
         for i in ["hi", "lo", "min", "max", "interval"]:
@@ -89,8 +90,9 @@ class TagType(modules_state.ResourceType):
 
         return d
 
-    def onupdaterequest(self, module, resource, resourceobj, kwargs):
-        d = resourceobj
+    def on_update_request(self, module, resource, data, kwargs):
+        d: dict = copy.deepcopy(data)
+
         d.update(kwargs)
 
         for i in ["hi", "lo", "min", "max", "interval"]:
@@ -101,15 +103,17 @@ class TagType(modules_state.ResourceType):
         d.pop("Save", None)
         return d
 
-    def validate(self, d: dict):
-        if d["tag_type"] != "numeric":
+    def validate(self, data):
+        if data["tag_type"] != "numeric":
             for i in ["hi", "lo", "min", "max"]:
-                if str(d[i]).strip():
-                    raise ValueError(f"Option {i} is only valid for numeric types")
+                if str(data[i]).strip():
+                    raise ValueError(
+                        f"Option {i} is only valid for numeric types"
+                    )
 
         for i in ["hi", "lo", "min", "max", "interval"]:
-            if d.get(i, ""):
-                float(d[i])
+            if data.get(i, ""):
+                float(data[i])
 
     def tag_dialog(self, value, name=False):
         d = dialogs.SimpleDialog("Editing Tagpoint Resource")
@@ -120,14 +124,26 @@ class TagType(modules_state.ResourceType):
             d.text_input("name", title="Resource Name")
 
         d.text_input(
-            "tag", title="Tag Point Name", default=value.get("tag", ""), suggestions=[(i, i) for i in tagsapi.all_tags_raw().keys()]
+            "tag",
+            title="Tag Point Name",
+            default=value.get("tag", ""),
+            suggestions=[(i, i) for i in tagsapi.all_tags_raw().keys()],
         )
-        d.selection("tag_type", title="Tag Type", options=["numeric", "string"], default=value.get("numeric", ""))
+        d.selection(
+            "tag_type",
+            title="Tag Type",
+            options=["numeric", "string"],
+            default=value.get("numeric", ""),
+        )
 
-        d.text_input("default", default=value.get("default", ""), title="Default Value")
+        d.text_input(
+            "default", default=value.get("default", ""), title="Default Value"
+        )
         d.text_input("interval", default=value.get("interval", ""))
 
-        d.text("Adding an alias lets you access it by a more convenient, shorter name")
+        d.text(
+            "Adding an alias lets you access it by a more convenient, shorter name"
+        )
         d.text_input("alias", default=value.get("alias", ""))
 
         d.text("Options for numeric tags only")
@@ -141,13 +157,13 @@ class TagType(modules_state.ResourceType):
         d.submit_button("Save")
         return d
 
-    def createpage(self, module, path):
+    def create_page(self, module, path):
         d = self.tag_dialog({}, name=True)
         return d.render(self.get_create_target(module, path))
 
-    def editpage(self, module, name, value):
-        d = self.tag_dialog(value)
-        return d.render(self.get_update_target(module, name))
+    def edit_page(self, module, resource, data):
+        d = self.tag_dialog(data)
+        return d.render(self.get_update_target(module, resource))
 
 
 drt = TagType("tagpoint", mdi_icon="tag-multiple", priority=10)

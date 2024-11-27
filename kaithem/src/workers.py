@@ -35,7 +35,9 @@ def workersErrorHandler(f):
         from .plugins import CorePluginEventResources
 
         if f[0].__module__ in CorePluginEventResources.eventsByModuleName:
-            CorePluginEventResources.eventsByModuleName[f[0].__module__].handle_exception()
+            CorePluginEventResources.eventsByModuleName[
+                f[0].__module__
+            ].handle_exception()
     except Exception:
         print(traceback.format_exc())
 

@@ -1,0 +1,22 @@
+{% set theming = imp0rt( 'kaithem.src.theming' ) %}
+{% set socket = imp0rt( 'socket' ) %}
+
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>{% filter trim %}{%block title %}{{socket.gethostname()|escape}}{% endblock %}{% endfilter %}</title>
+
+  <meta content="text/html; charset=ISO-8859-1" http-equiv="content-type">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" type="text/css" href="/static/css/barrel.css?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61">
+  <link rel="stylesheet" type="text/css" href="/static/css/kaithem.css?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61">
+  <link rel="stylesheet" type="text/css" href="{{_k_usr_page_theme or theming.getCSSTheme() or config['theme-url']}}?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61">
+</head>
+
+
+<body>
+{% block body %} {% endblock %}
+</body>
+
+</html>

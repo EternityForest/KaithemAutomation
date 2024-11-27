@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Excalidraw in browser</title>
+    <script>
+        window.EXCALIDRAW_ASSET_PATH = "/excalidraw-plugin/dist/";
+
+    </script>
+    <script src="./react.production.min.js"></script>
+    <script src="./react-dom.production.min.js"></script>
+
+    <script src="./excalidraw.production.min.js"></script>
+    <style>
+        body {
+            margin: 0px;
+            height: 100vh;
+        }
+
+        #guide {
+            position: fixed;
+            min-height: 24vh;
+            /* max-width: 55em; */
+            top: 35vh;
+            right: 5vw;
+            z-index: 100;
+            border: 2px dotted;
+            box-sizing: content-box;
+            aspect-ratio: 16/9;
+            pointer-events: none;
+            display: none;
+            color: #97979770;
+            border-radius: 5px;
+        }
+    </style>
+
+</head>
+
+<body>
+    <div class="container">
+        <div id="guide">
+        </div>
+        <div id="app"></div>
+    </div>
+    <script>
+        const queryString = window.location.search;
+        const urlParams = new URLSearchParams(queryString);
+
+        if (urlParams.get('ratio_guide')) {
+            const guide = document.getElementById('guide');
+            guide.style.display = 'block';
+            guide.style.aspectRatio = urlParams.get('ratio_guide').replace("_", "/");
+        }
+        var excalidrawAPI, setExcalidrawAPI;
+
+        function appStateDefault() {
+            return {
+                currentItemStrokeColor: '#739f99',
+                currentItemStrokeStyle: 'solid',
+                currentItemStrokeWidth: 1,
+                currentItemBackgroundColor: 'transparent',
+                currentItemFillStyle: 'solid',
+                currentItemFontFamily: 1,
+                currentItemFontSize: 20,
+                currentItemTextAlign: 'left',
+                currentItemRoughness: 1,         //Sloppiness
+                currentItemRoundness: 'round',   //Edges
+                currentItemOpacity: 100,
+                currentItemEndArrowhead: 'triangle',
+                currentChartType: 'line',
+                viewBackgroundColor: '#2b4b47'
+            };
+        }
+
+        function appStateOpt() {
+            return {
+                exportBackground: false,
+                viewBackgroundColor: '#fff',
+                exportWithDarkMode: false,
+                exportEmbedScene: true,
+            };
+        };
+
+        function post(url, dat, cb) {
+            let data = new FormData();
+            for (var k in dat) { data.append(k, dat[k]) };
+
+            let head = new Headers();
+            head.append('Access-Control-Allow-Origin', '*')
+
+            let options = { method: 'post', headers: head, mode: 'cors', body: data };
+            fetch(url, options)
+                .then(e => e.text())
+                .then(text => {
+                    let s;
+                    try { s = JSON.parse(text) }
+                    catch (err) { s = '' }
+                    if (cb) cb(s);
+                });
+        }
+
+        function OptEXPORT(w = 0, h = 0, s = 1) {
+
+            const elements = excalidrawAPI.getSceneElements();
+            if (!elements || !elements.length) return false;
+
+            const files = excalidrawAPI.getFiles();
+
+            const appState = {
+                ...excalidrawAPI.getAppState(),
+                ...appStateDefault(),
+                ...appStateOpt()
+            };
+
+            return {
+                elements: elements,
+                files: files,
+                appState: appState,
+                getDimensions: w == 0 ? null : () => { return { width: w, height: h, scale: s } }
+            }
+        }
+
+        function EXPORT() {
+
+            const OptExport = OptEXPORT();
+            if (!OptExport) return;
+
+            const OptJPG = { exportPadding: 0, mimeType: 'image/jpeg', quality: 0.85 };
+            const OptPNG = { exportPadding: 0, mimeType: 'image/png' };
+
+
+
+            ExcalidrawLib.exportToBlob({ ...OptExport, ...OptPNG })
+                .then(e => {
+                    const url = ('/excalidraw-plugin/quick_save?' +
+                        'module=' + encodeURIComponent(urlParams.get('module')) +
+                        '&resource=' + encodeURIComponent(urlParams.get('resource')));
+
+                    const data = { do: 'save', name: name, mode: 'image', data: e };
+                    post(url, data, null);
+                    if (urlParams.get('callback')) {
+                        post(urlParams.get('callback') + '?resource=' + encodeURIComponent(urlParams.get('resource')) +
+                            '&module=' + encodeURIComponent(urlParams.get('module'))
+                            , '', null);
+                    }
+
+                });
+
+        };
+
+
+        function MainMenu() {
+
+            const pathOpen = 'm9.257 6.351.183.183H15.819c.34 0 .727.182 1.051.506.323.323.505.708.505 1.05v5.819c0 .316-.183.7-.52 1.035-.337.338-.723.522-1.037.522H4.182c-.352 0-.74-.181-1.058-.5-.318-.318-.499-.705-.499-1.057V5.182c0-.351.181-.736.5-1.054.32-.321.71-.503 1.057-.503H6.53l2.726 2.726Z';
+            const pathExport = 'M3.333 14.167v1.666c0 .92.747 1.667 1.667 1.667h10c.92 0 1.667-.746 1.667-1.667v-1.666M5.833 9.167 10 13.333l4.167-4.166M10 3.333v10';
+            const pathSave = 'M15 8h.01 M12 20h-5a3 3 0 0 1 -3 -3v-10a3 3 0 0 1 3 -3h10a3 3 0 0 1 3 3v5 M4 15l4 -4c.928 -.893 2.072 -.893 3 0l4 4 M14 14l1 -1c.617 -.593 1.328 -.793 2.009 -.598 M19 16v6 M22 19l-3 3l-3 -3';
+
+            const iconFill = { fill: 'none', stroke: 'currentColor', 'stroke-width': '1.25', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' };
+            const iconVB20 = { viewBox: '0 0 20 20', ...iconFill };
+            const iconVB24 = { viewBox: '0 0 24 24', ...iconFill };
+
+            const iconOpen = React.createElement('svg', iconVB20, React.createElement('path', { d: pathOpen }));
+            const iconExport = React.createElement('svg', iconVB20, React.createElement('path', { d: pathExport }));
+            const iconSave = React.createElement('svg', iconVB24, React.createElement('path', { d: pathSave }));
+
+            const Menu = [
+                React.createElement(ExcalidrawLib.MainMenu.DefaultItems.LoadScene),
+                React.createElement(ExcalidrawLib.MainMenu.Item, { icon: iconExport, onClick: () => EXPORT() }, 'Save to Server'),
+                React.createElement(ExcalidrawLib.MainMenu.DefaultItems.SaveAsImage),
+                React.createElement(ExcalidrawLib.MainMenu.DefaultItems.ClearCanvas),
+                React.createElement(ExcalidrawLib.MainMenu.Separator),
+                React.createElement(ExcalidrawLib.MainMenu.DefaultItems.ToggleTheme),
+                React.createElement(ExcalidrawLib.MainMenu.DefaultItems.ChangeCanvasBackground),
+            ]
+
+            return Menu;
+        }
+
+        //Start EXCALIDRAW with custom LIBRARY & ELEMENTS
+        function INIT(library, scene) {
+
+            const options = {
+                langCode: 'en-US',
+                name: name,
+                excalidrawAPI: (api) => { setExcalidrawAPI(api); },
+                initialData: {
+                    libraryItems: library.libraryItems,
+                    elements: scene.elements,
+                    files: scene.files,
+                    appState: { ...scene.appState, ...appStateDefault() },
+                }
+            }
+
+            const App = () => {
+
+                [excalidrawAPI, setExcalidrawAPI] = React.useState(null);
+
+                return React.createElement(
+                    React.Fragment, null,
+                    React.createElement('div', { style: { height: "100vh" } },
+                        React.createElement(ExcalidrawLib.Excalidraw, options,
+                            React.createElement(ExcalidrawLib.MainMenu, {}, MainMenu()),
+                        ),
+                    ),
+                );
+            };
+
+            const excali = document.getElementById('app');
+            const root = ReactDOM.createRoot(excali);
+            root.render(React.createElement(App));
+
+        }
+        function LOADCB(e) {
+
+            ExcalidrawLib.loadFromBlob(new Blob([e], { type: 'image/png' }))              //extract scene from png metadata
+                .then(scene => INIT('', scene));
+
+
+        }
+
+
+
+        const App = () => {
+
+            [excalidrawAPI, setExcalidrawAPI] = React.useState(null);
+            const options = {
+                excalidrawAPI: (api) => { setExcalidrawAPI(api); },
+                initialData: {
+                    appState: { ...appStateDefault() },
+                }
+
+            }
+            return React.createElement(
+                React.Fragment, null,
+                React.createElement('div', { style: { height: "100vh" } },
+                    React.createElement(ExcalidrawLib.Excalidraw, options,
+                        React.createElement(ExcalidrawLib.MainMenu, {}, MainMenu()),
+                    ),
+                ),
+            );
+        };
+
+        function FETCH(url, dat, cb) {
+            url = url + '?cache_fix=' + Date.now();
+            let data = new FormData();
+            for (var k in dat) { data.append(k, dat[k]) };
+
+            let head = new Headers();
+            head.append('Access-Control-Allow-Origin', '*')
+
+            let options = { method: 'get', headers: head, mode: 'cors' };
+            fetch(url, options)
+                .then(e => e.blob())
+                .then(text => {
+                    if (cb) cb(text);
+                });
+        }
+
+
+        if (urlParams.get('load_file')) {
+
+
+            const excalidrawWrapper = document.getElementById("app");
+            const root = ReactDOM.createRoot(excalidrawWrapper);
+            root.render(React.createElement(App));
+
+
+            const data = { do: 'get' };
+
+            //Load Backend JSON or PNG SCENE File
+            FETCH(urlParams.get('load_file'), data, e => LOADCB(e));
+        }
+        else {
+
+            const excalidrawWrapper = document.getElementById("app");
+            const root = ReactDOM.createRoot(excalidrawWrapper);
+            root.render(React.createElement(App));
+
+        }
+
+
+
+    </script>
+</body>
+
+</html>

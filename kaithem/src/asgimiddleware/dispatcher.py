@@ -28,9 +28,18 @@ class AsgiDispatcher:
         assert app
         try:
             await app(scope, receive, send)
+        except pages.KaithemUserPermissionError:
+            if scope["type"] == "http":
+                return pages.loginredirect(scope["path"])
+            else:
+                raise
         except Exception:
             if scope["type"] == "http":
-                r = starlette.responses.Response(pages.get_template("errors/e500.html").render(e=traceback.format_exc()))
+                r = starlette.responses.Response(
+                    pages.get_template("errors/e500.html").render(
+                        e=traceback.format_exc()
+                    )
+                )
                 await r(scope, receive, send)
             else:
                 print("Error", traceback.format_exc())

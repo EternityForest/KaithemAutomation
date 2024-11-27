@@ -14,9 +14,9 @@ import urllib.parse
     }
 
 </style>
-<script src="/static/js/widget.js"></script>
+<script type="module" src="/static/js/widget.mjs?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61"></script>
 
-<script type="module" src="/static/js/picodash.js"></script>
+<script type="module" src="/static/js/picodash.mjs"></script>
 <script src="/static/js/thirdparty/showdown.min.js"></script>
 
 
@@ -60,9 +60,9 @@ else:
         <div class="tool-bar">
         <h3 title="${devObj.device_type_name}">
 
-            <a href="device/${url(i)}/manage">${devObj.title|h}
+            <a href="device/${i|h}/manage">${devObj.title|h}
 
-                %if hasattr(devObj,'errors') and len(devObj.errors):
+                %if (hasattr(devObj,'errors') and len(devObj.errors)) :
                 <span style="color: ${'red' if len(devObj.errors) else 'inherit' };">
                     ${(str(len(devObj.errors))+" errors")}
                 </span>
@@ -80,7 +80,7 @@ else:
         %if hasattr(devObj, 'tagpoints'):
 
         %if not hasattr(deviceData[i](),'_kaithem_is_subdevice'):
-        <a href="deleteDevice/${url(i)}" class="button" style="flex-grow:0"><i class="mdi mdi-delete"></i></a>
+        <a href="/modules/module/${url(devObj.parent_module)}/deleteresource/${url(devObj.parent_resource)}" class="button" style="flex-grow:0"><i class="mdi mdi-delete"></i></a>
         %endif
 
         </div>
@@ -114,8 +114,21 @@ else:
         %endif
         %endif
 
+        %if devObj.parent_module and modules_state.ActiveModules[devObj.parent_module][devObj.parent_resource].get('resource_label_image'):
+        <img alt="thumbnail" style="max-width: 32em; max-height: 8em"
+        src="/modules/label_image/${ url(devObj.parent_module) }/${ url(devObj.parent_resource) }">
+        %endif %}
+
 
     <div class="stacked-form margin-top">
+        %if hasattr(devObj, 'alerts') and devObj.alerts:
+        %for i in devObj.alerts:
+        % if devObj.alerts[i].sm.state!='normal':
+        <p class="danger"><i class="mdi mdi-alert"></i>${i}</p>
+        %endif
+        %endfor
+        %endif
+
         %if hasattr(devObj, 'tagPoints') and devObj.tagPoints:
 
             %for i in devObj.tagPoints:
@@ -170,6 +183,31 @@ ${device(i)}
 %endif
 
 %endfor
+
+%for i in disks:
+<article class="card margin w-sm-half" style="min-width: min-content; max-width: 18rem">
+    <header>
+        <h3>${i}</h3>
+    </header>
+
+    <table>
+        <tr><td>Size</td><td>${si(disks[i]['total'])}</td></tr>
+        <tr><td>Used</td><td>${si(disks[i]['used'])}</td></tr>
+    </table>
+    %if is_mounted(disks[i]['device']):
+    <form method="post" action="/udisks/unmount">
+        <input type="hidden" name="partition" value="${disks[i]['device']}">
+        <button class="w-full" type="submit">Eject</button>
+    </form>
+    %else:
+    <form method="post" action="/udisks/mount">
+        <input type="hidden" name="partition" value="${disks[i]['device']}">
+        <button class="w-full" type="submit">Connect</button>
+    </form>
+    %endif
+</article>
+%endfor
+
 </div>
 
 

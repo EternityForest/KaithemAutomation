@@ -16,13 +16,18 @@ def urlForPath(module, path):
         "/modules/module/"
         + url(module)
         + "/resource/"
-        + "/".join([url(i.replace("\\", "\\\\").replace("/", "\\/")) for i in path[0].split("/")[:-1]])
+        + "/".join(
+            [
+                url(i.replace("\\", "\\\\").replace("/", "\\/"))
+                for i in path[0].split("/")[:-1]
+            ]
+        )
     )
 
 
 def getDesc(module):
     try:
-        return module["__description"]["text"]
+        return module["__metadata__"]["description"]
     except Exception:
         return "No module description found"
 
@@ -30,14 +35,19 @@ def getDesc(module):
 def sorted_module_path_list(name: str, path: list):
     return sorted(
         sorted(modules_state.ls_folder(name, "/".join(path))),
-        key=lambda x: (modules_state.ActiveModules[name][x]["resource_type"], x),
+        key=lambda x: (
+            modules_state.ActiveModules[name][x]["resource_type"],
+            x,
+        ),
     )
 
 
 def sorted_module_file_list(name: str, path: list):
     """Yields (name, full resourcename, mtime, size)"""
 
-    p = os.path.join(modules_state.getModuleDir(name), "__filedata__", "/".join(path))
+    p = os.path.join(
+        modules_state.getModuleDir(name), "__filedata__", "/".join(path)
+    )
     if not os.path.isdir(p):
         return []
     lst = os.listdir(p)
@@ -50,6 +60,8 @@ def sorted_module_file_list(name: str, path: list):
             rn = i
             if path:
                 rn = "/".join(path) + "/" + i
+            if not os.path.isfile(f):
+                continue
             yield (i, rn, os.path.getmtime(f), os.path.getsize(f))
         except Exception:
             logger.exception("Failed to get file info")
@@ -60,6 +72,16 @@ def breadcrumbs(path):
     for i in path.split("/"):
         temp_p += f"{i}/"
         yield (i, temp_p[:-1])
+
+
+def get_resource_label_image_url(module: str, path: str):
+    data = modules_state.ActiveModules[module][path]
+
+    mf = modules_state.getModuleDir(module)
+    mf = os.path.join(mf, "__filedata__/media")
+    fn = os.path.join(mf, data["resource_label_image"])
+    if os.path.isfile(fn):
+        return f"/modules/label_image/{url(module)}/{url(path)}?ts={os.path.getmtime(fn)}"
 
 
 module_page_context = {
@@ -83,4 +105,5 @@ module_page_context = {
     "sorted_module_file_list": sorted_module_file_list,
     "hasattr": hasattr,
     "breadcrumbs": breadcrumbs,
+    "get_resource_label_image_url": get_resource_label_image_url,
 }

@@ -103,7 +103,9 @@ class DayOfWeek(str):
                 return False
 
         except KeyError:
-            raise RuntimeError("Invalid to compare day of week to " + repr(other))
+            raise RuntimeError(
+                "Invalid to compare day of week to " + repr(other)
+            )
 
 
 class Month(str):
@@ -263,7 +265,9 @@ time_as_seconds_abbr = {
 def time_interval_from_string(s):
     """Take a string like '10 hours' or 'five minutes 32 milliseconds'
     or '1 year and 1 day' to a number of seconds"""
-    regex = r"([0-9]*)\D*?(year|month|week|day|hour|minute|second|millisecond)s?"
+    regex = (
+        r"([0-9]*)\D*?(year|month|week|day|hour|minute|second|millisecond)s?"
+    )
     r = re.compile(regex)
     m = r.finditer(s)
     total = 0
@@ -340,7 +344,9 @@ def format_time_interval_abbr(t, max_units, clock=False):
 
         return s
     s = ""
-    for i in sorted(time_as_seconds_abbr.items(), key=lambda x: x[1], reverse=True):
+    for i in sorted(
+        time_as_seconds_abbr.items(), key=lambda x: x[1], reverse=True
+    ):
         if max_units == 0:
             return s[:-1]
         x = t % i[1]
@@ -374,9 +380,9 @@ def str_to_int_si_multipliers(s):
     if s.endswith("k"):
         return int(s[:-1]) * 1000
     elif s.endswith("m"):
-        return int(s[:-1]) * 1000000
+        return int(s[:-1]) * 1000_000
     elif s.endswith("g"):
-        return int(s[:-1]) * 1000000000
+        return int(s[:-1]) * 1000_000_000
     else:
         return int(s[:-1])
 
@@ -423,10 +429,18 @@ def getZone(s):
 def strftime(*arg) -> str:
     tz = getZone(auth.getUserSetting(pages.getAcessingUser(), "timezone"))
     if arg:
-        d = datetime.datetime.fromtimestamp(*arg, tz=datetime.UTC).replace(tzinfo=pytz.utc)
+        d = datetime.datetime.fromtimestamp(*arg, tz=datetime.UTC).replace(
+            tzinfo=pytz.utc
+        )
     else:
-        d = datetime.datetime.fromtimestamp(time.time(), tz=datetime.UTC).replace(tzinfo=pytz.utc)
+        d = datetime.datetime.fromtimestamp(
+            time.time(), tz=datetime.UTC
+        ).replace(tzinfo=pytz.utc)
     if not ZoneInfo:
-        return tz.normalize(d.astimezone(tz)).strftime(auth.getUserSetting(pages.getAcessingUser(), "strftime"))
+        return tz.normalize(d.astimezone(tz)).strftime(
+            auth.getUserSetting(pages.getAcessingUser(), "strftime")
+        )
     else:
-        return d.astimezone(tz).strftime(auth.getUserSetting(pages.getAcessingUser(), "strftime"))
+        return d.astimezone(tz).strftime(
+            auth.getUserSetting(pages.getAcessingUser(), "strftime")
+        )

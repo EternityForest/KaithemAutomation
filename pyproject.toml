@@ -1,11 +1,22 @@
 [tool.poetry]
+
+# You need the freeze plugin to build this for release! 
+# https://github.com/cloud-custodian/poetry-plugin-freeze
+# Use poetry self add poetry-plugin-freeze
+
 name = "kaithem"
-version = "0.84.0b1"
+version = "0.86.2"
 description = "Home/commercial automation server"
 license = "GPL-3.0-only"
 packages = [{ include = "kaithem" }, { include = "kaithem_cli" }, { include = "kaithem_scripts" }]
 authors = ["Daniel Dunn"]
 readme = "README.md"
+
+# These are dev documents that don't need to be in the final package
+exclude = [
+    "*.dev.excalidraw.svg"
+]
+
 
 [tool.poetry.group.dev.dependencies]
 infer-types = "^1.0.0"
@@ -15,18 +26,20 @@ handsdown = "^2.1.0"
 
 pytest-cov = "^5.0.0"
 pytest-asyncio = "^0.23.7"
-poetry-lock-package = "^0.5.1"
+
 [tool.ruff]
-line-length = 140
+line-length = 80
 
 [tool.poetry.dependencies]
 python = "^3.10.0, <3.13"
 # First party
-scullery = ">=0.1.17"
-iot-devices = "*"
-icemedia = ">=0.1.6"
+scullery = ">=0.2.0"
+iot-devices = ">=0.21.1"
+icemedia = ">=0.1.8"
 NVRChannel = ">=0.1.7"
 
+# New numpy needs new opencv
+numpy = ">=2.0.0"
 
 #Datasette
 datasette= "*"
@@ -37,7 +50,6 @@ datasette-column-sum = "*"
 datasette-plot = "^0.1.0"
 #datasette-cluster-map = "*"
 
-numpy = ">1.26.1"
 cheroot = "*"
 mako = "*"
 jinja2 = "*"
@@ -71,7 +83,6 @@ passlib = "*"
 Pillow = "*"
 evdev = "*"
 markupsafe = "*"
-upnpclient = "*"
 types-requests = "*"
 python-dateutil = "*"
 recurrent = "*"
@@ -85,12 +96,11 @@ yeelight = "*"
 pyserial = "*"
 pygrep = "*"
 python-rtmidi = "1.5.8"
-paho-mqtt = "<=1.6.0"
+paho-mqtt = ">=1.6.0"
 setproctitle = "*"
 psutil = "*"
 netifaces = "*"
 JACK-Client = "*"
-aioesphomeapi = "*"
 sf2utils = "*"
 pynput = "*"
 
@@ -114,9 +124,13 @@ hypercorn = {extras = ["uvloop"], version = "^0.17.3"}
 structlog = "^24.1.0"
 rich = "^13.7.1"
 colorama = "^0.4.6"
-starlette = "^0.37.2"
+starlette = ">=0.37.2,<0.41.0"
 
 ephem = "^4.1.5"
+
+opencv-python = "^4.10.0.84"
+pipewire-python = "^0.2.3"
+
 [tool.poetry.scripts]
 "kaithem" = "kaithem:__main__"
 "kaithem-cli" = "kaithem_cli.cli:main"

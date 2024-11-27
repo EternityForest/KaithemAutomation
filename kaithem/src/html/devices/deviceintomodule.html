@@ -2,16 +2,7 @@
 <%!
 from kaithem.src import devices
 %>
-<datalist id="deviceTypes">
-    %for i in devices.device_types:
-    <option value="${i}" title="${devices.device_types[i].description}" ></option>
-    %endfor
 
-    %for i in devices.importedDeviceTypes:
-    <option value="${i}" title="${i}"></option>
-    %endfor
-
-</datalist>
 
 <title>Create Device</title>
 
@@ -21,7 +12,17 @@ from kaithem.src import devices
 <form action="/devices/createDevicePage" method="post">
 <label>Target Module:<input type="text" name="module"  value="${module|h}"></label>
 <label>Target Resource Name:<input type="text" name="resource" value="${path|h}"></label>
-<label>Type:<input type="text" name="type" placeholder="Click for dropdown" list="deviceTypes"></label>
+<label>Type:<select name="type" placeholder="Click for dropdown">
+
+    %for i in devices.device_types:
+    <option value="${i}" title="${devices.device_types[i].description}" ></option>
+    %endfor
+
+    %for i in devices.importedDeviceTypes:
+    <option value="${i}">${i}</option>
+    %endfor
+</select>
+</label>
 
 <button type="submit">Create</button>
 </form>

@@ -11,25 +11,34 @@ import quart
 import structlog
 from scullery import scheduling
 
-from . import directories, messagebus, pages, persist, quart_app, widgets, workers
+from . import (
+    directories,
+    messagebus,
+    pages,
+    persist,
+    quart_app,
+    widgets,
+    workers,
+)
 from .config import config
 from .unitsofmeasure import strftime
 
 mlogger = structlog.get_logger("system.msgbuslog")
 
-logger = structlog.get_logger("system.notifications")
-ilogger = structlog.get_logger("system.notifications.important")
+logger = structlog.get_logger("notifications")
 
 notificationslog = []
 
 
-notificationsfn = os.path.join(directories.vardir, "core.settings", "pushnotifications.toml")
+notificationsfn = os.path.join(
+    directories.vardir, "core.settings", "pushnotifications.toml"
+)
 
 pushsettings = persist.getStateFile(notificationsfn)
 
 
 class API(widgets.APIWidget):
-    def on_new_subscriber(self, user, cid, **kw):
+    def on_new_subscriber(self, user, connection_id, **kw):
         self.send(["all", notificationslog])
 
 
@@ -91,7 +100,7 @@ def mostrecent_target():
     return json.dumps(notificationslog[-int(kwargs["count"]) :])
 
 
-epochAndRemaining = [0, 15]
+epochAndRemaining = [0.0, 15.0]
 
 pending_notifications = []
 
@@ -138,7 +147,11 @@ def subscriber(topic, message):
 
     if "error" in topic or "warning" in topic or "important" in topic:
         # Add allowed notifications at a rate of  under 1 per miniute up to 15 "stored credits"
-        epochAndRemaining[1] = max((time.monotonic() - epochAndRemaining[0]) / 240 + epochAndRemaining[1], 15)
+        epochAndRemaining[1] = max(
+            (time.monotonic() - epochAndRemaining[0]) / 240
+            + epochAndRemaining[1],
+            15,
+        )
         epochAndRemaining[0] = time.monotonic()
 
         if epochAndRemaining[1] > 1:
@@ -163,7 +176,11 @@ def subscriber(topic, message):
                     # notify all of the services loaded into our Apprise object.
                     apobj.notify(
                         body=str(message),
-                        title=("Notification" if "error" not in topic else "Error") + " " + ts,
+                        title=(
+                            "Notification" if "error" not in topic else "Error"
+                        )
+                        + " "
+                        + ts,
                     )
 
             pending_notifications.append(f)
@@ -176,13 +193,13 @@ messagebus.subscribe("/system/notifications/#", subscriber)
 
 def printer(t, m):
     if "error" in t:
-        logger.error(f"{t}:{m}")
+        logger.error(f"{m}")
     elif "warning" in t:
-        logger.warning(f"{t}:{m}")
+        logger.warning(f"{m}")
     elif "important" in t:
-        ilogger.info(f"{t}:{m}")
+        logger.info(f"{m}")
     else:
-        logger.info(f"{t}:{m}")
+        logger.info(f"{m}")
 
 
 messagebus.subscribe("/system/notifications/#", printer)

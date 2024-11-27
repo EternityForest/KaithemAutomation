@@ -1,7 +1,11 @@
 import { Page } from '@playwright/test';
 
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function login(page: Page) {
-    await page.goto('http://localhost:8002/');
+    await page.goto('http://localhost:8002/index');
 
     // Might already be logged in
     if (await page.getByRole('button', { name: 'Logout(' }).isVisible()) {
@@ -20,7 +24,7 @@ async function login(page: Page) {
 }
 
 async function login_as(page: Page, username: string, password: string) {
-    await page.goto('http://localhost:8002/');
+    await page.goto('http://localhost:8002/index');
 
     // Might already be logged in
     if (await page.getByRole('button', { name: 'Logout(' }).isVisible()) {
@@ -88,7 +92,8 @@ async function makeTagPoint(page: Page, module: string, name: string) {
 
     await page.getByRole('link', { name: 'Modules' }).click();
     await page.getByRole('link', { name: module }).click();
-    await page.getByRole('link', { name: 'Tagpoint' }).click();
+    await page.getByTestId('add-resource-button').click();
+    await page.getByTestId('add-tagpoint').click();
     await page.getByLabel('Resource Name').click();
     await page.getByLabel('Resource Name').fill(name);
     await page.getByLabel('Tag Point Name').click();
@@ -98,4 +103,4 @@ async function makeTagPoint(page: Page, module: string, name: string) {
     await page.getByRole('button', { name: 'Submit' }).click();
 }
 
-export { login, login_as, logout, makeModule, deleteModule, makeTagPoint };
+export { login, login_as, logout, makeModule, deleteModule, makeTagPoint, sleep };

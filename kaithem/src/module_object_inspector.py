@@ -31,7 +31,9 @@ def followAttributes(root, path):
     return root
 
 
-@quart_app.app.route("/modules/module/<module>/obj/<path:path>", methods=["POST"])
+@quart_app.app.route(
+    "/modules/module/<module>/obj/<path:path>", methods=["POST"]
+)
 async def obj_inspect(module, path=""):
     kwargs = await request.form
     path = path.split("/")
@@ -55,7 +57,9 @@ async def obj_inspect(module, path=""):
             assert len(path) == 2
             from .plugins import CorePluginEventResources
 
-            obj = CorePluginEventResources._events_by_module_resource[module, path[1]].pymodule
+            obj = CorePluginEventResources._events_by_module_resource[
+                module, path[1]
+            ].pymodule
             objname = f"Event: {path[1]}"
 
         # Inspector should prob be its own module since it does all this.
@@ -76,7 +80,9 @@ async def obj_inspect(module, path=""):
 
         if "objpath" not in kwargs:
             assert objname
-            return pages.get_template("modules/modulescope.html").render(kwargs=kwargs, name=module, obj=obj, objname=objname)
+            return pages.get_template("modules/modulescope.html").render(
+                kwargs=kwargs, name=module, obj=obj, objname=objname
+            )
         else:
             assert objname
             return pages.get_template("obj_insp.html").render(

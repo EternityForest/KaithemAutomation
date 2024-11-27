@@ -32,11 +32,11 @@ def test_make_module():
         type = "event"
         rt = modules_state.additionalTypes[type]
         # If create returns None, assume it doesn't want to insert a module or handles it by itself
-        r = rt.oncreaterequest(n, "testevt", {})
+        r = rt.on_create_request(n, "testevt", {})
         rt._validate(r)
         if r:
             modules_state.rawInsertResource(n, "testevt", r)
-            rt.onload(n, "testevt", r)
+            rt.on_load(n, "testevt", r)
 
     assert "testevt" in modules_state.ActiveModules[n]
 
@@ -75,7 +75,10 @@ def test_make_module():
 
     modules.rmResource(n, "testevt")
 
-    assert (n, "testevt") not in CorePluginEventResources._events_by_module_resource
+    assert (
+        n,
+        "testevt",
+    ) not in CorePluginEventResources._events_by_module_resource
 
     # The scope of the dynamically generated module should be gone now
     assert ref() is None
@@ -93,7 +96,7 @@ def test_make_module():
         tag_type="numeric",
     )
     rt = modules_state.additionalTypes[type]
-    r = rt.oncreaterequest(n, "testtag", d)
+    r = rt.on_create_request(n, "testtag", d)
 
     modules_state.rawInsertResource(n, "testtag", r)
     modules.handleResourceChange(n, "testtag")
@@ -104,7 +107,9 @@ def test_make_module():
 
     old_hash = modules_state.getModuleHash(n)
 
-    old_json = json.dumps(modules_state.ActiveModules[n], sort_keys=True, indent=4)
+    old_json = json.dumps(
+        modules_state.ActiveModules[n], sort_keys=True, indent=4
+    )
 
     zf = modules_state.getModuleAsYamlZip(n)
     assert zf
@@ -122,7 +127,9 @@ def test_make_module():
 
     modules.load_modules_from_zip(zf2)
 
-    new_json = json.dumps(modules_state.ActiveModules[n], sort_keys=True, indent=4)
+    new_json = json.dumps(
+        modules_state.ActiveModules[n], sort_keys=True, indent=4
+    )
 
     diff = difflib.unified_diff(old_json.splitlines(), new_json.splitlines())
 

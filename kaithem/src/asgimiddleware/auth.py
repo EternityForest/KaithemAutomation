@@ -10,7 +10,9 @@ class SimpleUserAuthMiddleware:
         self.app = app
         self.permissions = permissions
 
-    async def __call__(self, scope: Scope, receive: Callable, send: Callable) -> None:
+    async def __call__(
+        self, scope: Scope, receive: Callable, send: Callable
+    ) -> None:
         if scope["type"] == "lifespan":
             await self.app(scope, receive, send)
         else:

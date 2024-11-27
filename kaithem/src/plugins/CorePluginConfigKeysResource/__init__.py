@@ -9,7 +9,9 @@ from kaithem.src import dialogs, modules_state, settings_overrides
 
 
 class Entries:
-    def __init__(self, source: tuple[str, str], data, priority: float = 50) -> None:
+    def __init__(
+        self, source: tuple[str, str], data, priority: float = 50
+    ) -> None:
         self.data = copy.copy(data)
         self.source = source
         self.priority = priority
@@ -18,16 +20,33 @@ class Entries:
         self.closed = False
 
         for i in self.data:
-            settings_overrides.add_val(i, self.data[i], str(self.source) + str(id(self)), priority=priority)
+            settings_overrides.add_val(
+                i,
+                self.data[i],
+                str(self.source) + str(id(self)),
+                priority=priority,
+            )
 
     def close(self):
         self.closed = True
         for i in self.data:
-            settings_overrides.add_val(i, "", str(self.source) + str(id(self)), priority=self.priority)
+            # Handle nonetype while shutting down
+            if settings_overrides:
+                settings_overrides.add_val(
+                    i,
+                    "",
+                    str(self.source) + str(id(self)),
+                    priority=self.priority,
+                )
         try:
-            del entries[self.source]
+            # Handle nuisance error at shutdown
+            if entries is not None:
+                del entries[self.source]
         except KeyError:
             pass
+        except Exception:
+            if entries is not None:
+                raise
 
     def __del__(self):
         if not self.closed:
@@ -38,33 +57,40 @@ entries: dict[tuple[str, str], Entries] = {}
 
 
 class ConfigType(modules_state.ResourceType):
-    def onload(self, module, resourcename, value):
+    def on_load(self, module, resourcename, value):
         x = entries.pop((module, resourcename), None)
-        x2 = Entries((module, resourcename), value["data"], float(value.get("config_priority", 50)))
+        x2 = Entries(
+            (module, resourcename),
+            value["data"],
+            float(value.get("config_priority", 50)),
+        )
         if x:
             x.close()
         entries[module, resourcename] = x2
 
-    def onmove(self, module, resource, toModule, toResource, resourceobj):
+    def on_move(self, module, resource, to_module, to_resource, resourceobj):
         x = entries.pop((module, resource), None)
         if x:
-            entries[toModule, toResource] = x
+            entries[to_module, to_resource] = x
 
-    def onupdate(self, module, resource, obj):
-        self.onload(module, resource, obj)
+    def on_update(self, module, resource, obj):
+        self.on_load(module, resource, obj)
 
-    def ondelete(self, module, name, value):
+    def on_delete(self, module, name, value):
         del entries[module, name]
 
-    def oncreaterequest(self, module, name, kwargs):
+    def on_create_request(self, module, name, kwargs):
         kwargs = dict(kwargs)
         pr = kwargs.pop("config_priority", "50")
-        d = {"resource_type": self.type, "data": {kwargs["key"]: kwargs["value"]}}
+        d = {
+            "resource_type": self.type,
+            "data": {kwargs["key"]: kwargs["value"]},
+        }
         d["config_priority"] = float(pr.strip())
 
         return d
 
-    def onupdaterequest(self, module, resource, resourceobj, kwargs):
+    def on_update_request(self, module, resource, resourceobj, kwargs):
         d = resourceobj
         kwargs = dict(kwargs)
         kwargs.pop("name", None)
@@ -80,20 +106,30 @@ class ConfigType(modules_state.ResourceType):
         for i in kwargs:
             for c in r"""~!@#$%^&*()+`-=[]\{}|;':"',<>?""":
                 if c in i:
-                    raise ValueError(f"Special char {c} is forbidden in keys: " + i)
+                    raise ValueError(
+                        f"Special char {c} is forbidden in keys: " + i
+                    )
 
             if kwargs[i] and kwargs[i][0] == "=":
                 raise ValueError("Values starting with = are reserved.")
 
         d["data"].update(kwargs)
-        d["data"] = {i.strip(): d["data"][i].strip() for i in d["data"] if d["data"][i].strip()}
+        d["data"] = {
+            i.strip(): d["data"][i].strip()
+            for i in d["data"]
+            if d["data"][i].strip()
+        }
 
         d["config_priority"] = float(pr.strip())
         return d
 
-    def createpage(self, module, path):
+    def create_page(self, module, path):
         d = dialogs.SimpleDialog("New Config Entries")
-        d.text_input("name", title="Resource Name", suggestions=[(i, i) for i in settings_overrides.list_keys()])
+        d.text_input(
+            "name",
+            title="Resource Name",
+            suggestions=[(i, i) for i in settings_overrides.list_keys()],
+        )
         d.text_input("key", title="Config Key")
         d.text_input("value", title="Config Value", multiline=True)
         d.text_input("config_priority", title="Config Priority", default="50")
@@ -101,7 +137,7 @@ class ConfigType(modules_state.ResourceType):
         d.submit_button("Save")
         return d.render(self.get_create_target(module, path))
 
-    def editpage(self, module, name, value):
+    def edit_page(self, module, name, value):
         d = dialogs.SimpleDialog("Editing Config Entries")
 
         d.text("Empty the key field to delete an entry")
@@ -111,7 +147,11 @@ class ConfigType(modules_state.ResourceType):
         for i in sorted(list(value["data"].keys())):
             d.text_input(i, title=i, default=value["data"][i], multiline=True)
         d.text("")
-        d.text_input("config_priority", title="Config Priority", default=str(value.get("config-priority", "50")))
+        d.text_input(
+            "config_priority",
+            title="Config Priority",
+            default=str(value.get("config-priority", "50")),
+        )
 
         d.text_input("_newkey", title="Add New Key?", suggestions=suggestions)
         d.text_input("_newv", title="Value For New Key?", multiline=True)

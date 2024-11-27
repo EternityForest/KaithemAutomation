@@ -11,7 +11,7 @@
 
 ## add_command
 
-[Show source in chandler.py:7](../../../api/chandler.py#L7)
+[Show source in chandler.py:8](../../../api/chandler.py#L8)
 
 Add a command which will be available in the
 Logic Editor.  Params should be strings.  Defaults and
@@ -27,7 +27,7 @@ def add_command(name: str, f: Callable): ...
 
 ## shortcut
 
-[Show source in chandler.py:20](../../../api/chandler.py#L20)
+[Show source in chandler.py:25](../../../api/chandler.py#L25)
 
 Trigger a shortcut code.  All matching cues will be jumped to.
 
@@ -41,9 +41,9 @@ def shortcut(s: str): ...
 
 ## trigger_event
 
-[Show source in chandler.py:15](../../../api/chandler.py#L15)
+[Show source in chandler.py:16](../../../api/chandler.py#L16)
 
-Trigger an event in all scenes
+Trigger an event in all groups
 
 #### Signature
 

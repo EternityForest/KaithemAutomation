@@ -87,11 +87,12 @@ class SimpleDialog:
     to serve to the user.
     """
 
-    def __init__(self, title: str) -> None:
+    def __init__(self, title: str, method="POST") -> None:
         # List of title, inputhtml pairs
         self.items: list[tuple[str, str]] = []
         self.title = title
         self.datalists: dict[str, list[tuple[str, str]]] = {}
+        self.method = method
 
         self.using_uploads = False
         self.using_ace = False
@@ -151,7 +152,12 @@ class SimpleDialog:
             this.style.height = this.scrollHeight + "px"'>{html.escape(default)}</textarea>"""
             self.items.append((title, x))
         else:
-            self.items.append((title, f'<input name="{name}" list="x-{id(suggestions)}"  value="{html.escape(default)}" {disabled}>'))
+            self.items.append(
+                (
+                    title,
+                    f'<input name="{name}" list="x-{id(suggestions)}"  value="{html.escape(default)}" {disabled}>',
+                )
+            )
 
     def begin_section(self, title: str):
         self.items_main = self.items
@@ -170,7 +176,14 @@ class SimpleDialog:
         self.items = self.items_main
 
     @beartype.beartype
-    def checkbox(self, name: str, *, title: str | None = None, default=False, disabled=None):
+    def checkbox(
+        self,
+        name: str,
+        *,
+        title: str | None = None,
+        default=False,
+        disabled=None,
+    ):
         "Add a checkbox"
         title = title or self.name_to_title(name)
 
@@ -183,10 +196,17 @@ class SimpleDialog:
         disabled = " disabled" if disabled else ""
         checked = "checked" if default else ""
 
-        self.items.append((title, f'<input type="checkbox" name="{name}" {checked} {disabled}>'))
+        self.items.append(
+            (
+                title,
+                f'<input type="checkbox" name="{name}" {checked} {disabled}>',
+            )
+        )
 
     @beartype.beartype
-    def file_input(self, name: str = "file", *, title: str | None = None, disabled=None):
+    def file_input(
+        self, name: str = "file", *, title: str | None = None, disabled=None
+    ):
         "Add a file upload input. Name it 'file' and name an input 'filename'  to auto link them."
         title = title or self.name_to_title(name)
 
@@ -195,14 +215,24 @@ class SimpleDialog:
 
         disabled = " disabled" if disabled else ""
 
-        self.items.append((title, f'<input type="file" name="{name}" {disabled}>'))
+        self.items.append(
+            (title, f'<input type="file" name="{name}" {disabled}>')
+        )
 
         if not self.using_uploads:
             self.extracode += _auto_fn + "\n"
             self.using_uploads = True
 
     @beartype.beartype
-    def code_editor(self, name: str = "file", *, language: str, title: str | None = None, disabled=None, default=""):
+    def code_editor(
+        self,
+        name: str = "file",
+        *,
+        language: str,
+        title: str | None = None,
+        disabled=None,
+        default="",
+    ):
         "Add a file upload input. Name it 'file' and name an input 'filename'  to auto link them."
         title = title or self.name_to_title(name)
 
@@ -211,7 +241,10 @@ class SimpleDialog:
 
         disabled = " disabled" if disabled else ""
         self.items.append(
-            (title, f'<textarea data-editor="{language}" rows=25 class="w-full" name="{name}" {disabled}>{html.escape(default)}</textarea>')
+            (
+                title,
+                f'<textarea data-editor="{language}" rows=25 class="w-full" name="{name}" {disabled}>{html.escape(default)}</textarea>',
+            )
         )
 
         if not self.using_ace:
@@ -219,7 +252,15 @@ class SimpleDialog:
             self.extracode += _ace_code + "\n"
 
     @beartype.beartype
-    def selection(self, name: str, *, options: list[str], default="", title: str | None = None, disabled=None):
+    def selection(
+        self,
+        name: str,
+        *,
+        options: list[str],
+        default="",
+        title: str | None = None,
+        disabled=None,
+    ):
         "Add a select element"
         title = title or self.name_to_title(name)
         self.default_return_value[name] = default or ""
@@ -248,7 +289,14 @@ class SimpleDialog:
         )
 
     @beartype.beartype
-    def submit_button(self, name: str, *, title: str | None = None, value: str = "", disabled=None):
+    def submit_button(
+        self,
+        name: str,
+        *,
+        title: str | None = None,
+        value: str = "",
+        disabled=None,
+    ):
         "Add a submit button"
         if disabled is None:
             disabled = self.is_disabled_by_default()
@@ -257,10 +305,19 @@ class SimpleDialog:
 
         title = title or "Submit"
         disabled = " disabled" if disabled else ""
-        self.items.append(("", f'<button  name="{name}" type="submit" {disabled}>{title}</button>'))
+        self.items.append(
+            (
+                "",
+                f'<button  name="{name}" type="submit" {disabled}>{title}</button>',
+            )
+        )
 
     @beartype.beartype
-    def render(self, target: str, hidden_inputs: dict[str, str | int | float] | None = None):
+    def render(
+        self,
+        target: str,
+        hidden_inputs: dict[str, str | int | float] | None = None,
+    ):
         "The form will target the given URL and have all the keys and values in hidden inputs"
         return pages.render_jinja_template(
             "dialogs/generic.j2.html",
@@ -270,4 +327,5 @@ class SimpleDialog:
             title=self.title,
             datalists=self.datalists,
             extracode=self.extracode,
+            method=self.method,
         )

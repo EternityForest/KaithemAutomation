@@ -22,11 +22,25 @@ import structlog
 from scullery import scheduling
 
 from kaithem.api import tags as tagsapi
-from kaithem.src import dialogs, directories, messagebus, modules_state, pages, quart_app, tagpoints
+from kaithem.src import (
+    dialogs,
+    directories,
+    messagebus,
+    modules_state,
+    pages,
+    quart_app,
+    tagpoints,
+)
 
 oldlogdir = os.path.join(directories.vardir, "logs")
 logdir = directories.logdir
-ramdbfile = "/dev/shm/" + socket.gethostname() + "-" + getpass.getuser() + "-taghistory.sqlite"
+ramdbfile = (
+    "/dev/shm/"
+    + socket.gethostname()
+    + "-"
+    + getpass.getuser()
+    + "-taghistory.sqlite"
+)
 
 
 logger = structlog.get_logger(__name__)
@@ -41,7 +55,9 @@ if not os.path.exists(logdir):
 # For that reason, should someone get the bright idea to sync a kaithem vardir, we must keep the history databases single-writer.
 
 # Plus, there is nothing in the DB itself to tell us who wrote it, so this is very convenient.
-historyFilemame = socket.gethostname() + "-" + getpass.getuser() + "-taghistory.sqlite"
+historyFilemame = (
+    socket.gethostname() + "-" + getpass.getuser() + "-taghistory.sqlite"
+)
 
 newHistoryDBFile = os.path.join(logdir, historyFilemame)
 
@@ -51,7 +67,9 @@ def iso_now():
 
 
 def ts_to_iso(t):
-    return datetime.datetime.fromtimestamp(t, datetime.UTC).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+    return datetime.datetime.fromtimestamp(t, datetime.UTC).strftime(
+        "%Y-%m-%dT%H:%M:%S.%fZ"
+    )
 
 
 class TagLogger:
@@ -61,7 +79,9 @@ class TagLogger:
     accumType = "latest"
     defaultAccum = 0
 
-    def __init__(self, tag, interval, history_length=3 * 30 * 24 * 3600, target="disk"):
+    def __init__(
+        self, tag, interval, history_length=3 * 30 * 24 * 3600, target="disk"
+    ):
         # We can have purely ram file based logging
         if target == "disk":
             self.h = historian
@@ -222,12 +242,11 @@ class TagLogger:
     def flush(self, force=False):
         # Ratelimit how often we log, continue accumulating if nothing to log.
         if not force:
-            if self.lastLogged > time.monotonic() - self.interval:
+            if self.lastLogged > time.time() - self.interval:
                 return
 
-        offset = time.time() - time.monotonic()
-        self.insertData((self.chID, self.accumTime + offset, self.accumVal))
-        self.lastLogged = time.monotonic()
+        self.insertData((self.chID, self.accumTime, self.accumVal))
+        self.lastLogged = time.time()
         self.accumCount = 0
         self.accumVal = self.defaultAccum
 
@@ -252,7 +271,11 @@ class TagLogger:
                 raise ValueError("bad tag accum " + str(self.accumType))
 
             for i in c:
-                if i["name"] == tag.name and i["unit"] == tag.unit and i["accumulate"] == self.accumType:
+                if (
+                    i["name"] == tag.name
+                    and i["unit"] == tag.unit
+                    and i["accumulate"] == self.accumType
+                ):
                     self.chID = i["id"]
 
             if not self.chID:
@@ -286,18 +309,17 @@ class AverageLogger(TagLogger):
     def flush(self, force=False):
         # Ratelimit how often we log, continue accumulating if nothing to log.
         if not force:
-            if self.lastLogged > time.monotonic() - self.interval:
+            if self.lastLogged > time.time() - self.interval:
                 return
-        offset = time.time() - time.monotonic()
 
         self.insertData(
             (
                 self.chID,
-                (self.accumTime / self.accumCount) + offset,
+                (self.accumTime / self.accumCount),
                 self.accumVal / self.accumCount,
             )
         )
-        self.lastLogged = time.monotonic()
+        self.lastLogged = time.time()
         self.accumCount = 0
         self.accumVal = 0
         self.accumTime = 0
@@ -319,12 +341,13 @@ class MinLogger(TagLogger):
     def flush(self, force=False):
         # Ratelimit how often we log, continue accumulating if nothing to log.
         if not force:
-            if self.lastLogged > time.monotonic() - self.interval:
+            if self.lastLogged > time.time() - self.interval:
                 return
 
-        offset = time.time() - time.monotonic()
-        self.insertData((self.chID, (self.accumTime / self.accumCount) + offset, self.accumVal))
-        self.lastLogged = time.monotonic()
+        self.insertData(
+            (self.chID, (self.accumTime / self.accumCount), self.accumVal)
+        )
+        self.lastLogged = time.time()
         self.accumCount = 0
         self.accumVal = 10**18
         self.accumTime = 0
@@ -346,12 +369,13 @@ class MaxLogger(MinLogger):
     def flush(self, force=False):
         # Ratelimit how often we log, continue accumulating if nothing to log.
         if not force:
-            if self.lastLogged > time.monotonic() - self.interval:
+            if self.lastLogged > time.time() - self.interval:
                 return
 
-        offset = time.time() - time.monotonic()
-        self.insertData((self.chID, (self.accumTime / self.accumCount) + offset, self.accumVal))
-        self.lastLogged = time.monotonic()
+        self.insertData(
+            (self.chID, (self.accumTime / self.accumCount), self.accumVal)
+        )
+        self.lastLogged = time.time()
         self.accumCount = 0
         self.accumVal = -(10**18)
         self.accumTime = 0
@@ -434,7 +458,7 @@ class TagHistorian:
 
         self.history.close()
 
-        self.lastFlushed = time.monotonic()
+        self.lastFlushed = time.time()
 
         self.lastGarbageCollected = 0
 
@@ -458,14 +482,14 @@ class TagHistorian:
 
     def flush(self, force=False):
         if not force:
-            if time.monotonic() - self.lastFlushed < self.flushInterval:
+            if time.time() - self.lastFlushed < self.flushInterval:
                 return
-            self.lastFlushed = time.monotonic()
+            self.lastFlushed = time.time()
 
         with self.lock:
-            needsGC = self.lastGarbageCollected < time.monotonic() - self.gcInterval
+            needsGC = self.lastGarbageCollected < time.time() - self.gcInterval
             if needsGC:
-                self.lastGarbageCollected = time.monotonic()
+                self.lastGarbageCollected = time.time()
             if force:
                 needsGC = 1
 
@@ -499,7 +523,10 @@ class TagHistorian:
                                 x.clearOldData(force)
 
                 for i in pending:
-                    self.history.execute("INSERT INTO record VALUES (?,?,?)", (i[0], ts_to_iso(i[1]), i[2]))
+                    self.history.execute(
+                        "INSERT INTO record VALUES (?,?,?)",
+                        (i[0], ts_to_iso(i[1]), i[2]),
+                    )
             self.history.close()
 
 
@@ -510,7 +537,9 @@ try:
 except Exception:
     messagebus.post_message(
         "/system/notifications/errors",
-        "Failed to create tag historian, logging will not work." + "\n" + traceback.format_exc(),
+        "Failed to create tag historian, logging will not work."
+        + "\n"
+        + traceback.format_exc(),
     )
 
 
@@ -529,7 +558,7 @@ class LoggerType(modules_state.ResourceType):
         </div>
         """
 
-    def onload(self, module, resourcename, value):
+    def on_load(self, module, resourcename, value):
         cls = accumTypes[value["logger_type"]]
 
         def f(v=None):
@@ -539,9 +568,16 @@ class LoggerType(modules_state.ResourceType):
             t = t()
             if not t:
                 return
-            loggers[module, resourcename] = cls(t, float(value["interval"]), int(value["history_length"]), value["log_target"])
+            loggers[module, resourcename] = cls(
+                t,
+                float(value["interval"]),
+                int(value["history_length"]),
+                value["log_target"],
+            )
 
-            t.configLoggers[module, resourcename] = loggers[module, resourcename]
+            t.configLoggers[module, resourcename] = loggers[
+                module, resourcename
+            ]
 
             pending.pop(module, resourcename)
             messagebus.unsubscribe("/system/tags/created", f)
@@ -554,18 +590,18 @@ class LoggerType(modules_state.ResourceType):
             # Do it later when ye olde tag existe.
             messagebus.subscribe("/system/tags/created", f)
 
-    def onmove(self, module, resource, toModule, toResource, resourceobj):
+    def on_move(self, module, resource, to_module, to_resource, resourceobj):
         x = loggers.pop((module, resource), None)
         if x:
-            loggers[toModule, toResource] = x
+            loggers[to_module, to_resource] = x
 
-    def onupdate(self, module, resource, obj):
-        self.onload(module, resource, obj)
+    def on_update(self, module, resource, obj):
+        self.on_load(module, resource, obj)
 
-    def ondelete(self, module, name, value):
+    def on_delete(self, module, name, value):
         del loggers[module, name]
 
-    def oncreaterequest(self, module, name, kwargs):
+    def on_create_request(self, module, name, kwargs):
         d = {"resource_type": self.type}
         d.update(kwargs)
         d.pop("name")
@@ -573,32 +609,62 @@ class LoggerType(modules_state.ResourceType):
 
         return d
 
-    def onupdaterequest(self, module, resource, resourceobj, kwargs):
+    def on_update_request(self, module, resource, resourceobj, kwargs):
         d = resourceobj
         d.update(kwargs)
         d.pop("name", None)
         d.pop("Save", None)
         return d
 
-    def createpage(self, module, path):
+    def create_page(self, module, path):
         d = dialogs.SimpleDialog("New Logger")
         d.text_input("name", title="Logger Name")
-        d.text_input("tag", title="Tag Point to Log", suggestions=[(i, i) for i in tagsapi.all_tags_raw().keys()])
-        d.selection("logger_type", options=list(accumTypes.keys()), title="Accumulate Mode")
+        d.text_input(
+            "tag",
+            title="Tag Point to Log",
+            suggestions=[(i, i) for i in tagsapi.all_tags_raw().keys()],
+        )
+        d.selection(
+            "logger_type",
+            options=list(accumTypes.keys()),
+            title="Accumulate Mode",
+        )
         d.selection("log_target", options=["disk", "ram"])
         d.text_input("interval", title="Interval(seconds)", default=str(60))
-        d.text_input("history_length", title="History Length(seconds)", default=str(24 * 30 * 3600))
+        d.text_input(
+            "history_length",
+            title="History Length(seconds)",
+            default=str(24 * 30 * 3600),
+        )
 
         d.submit_button("Save")
         return d.render(self.get_create_target(module, path))
 
-    def editpage(self, module, name, value):
+    def edit_page(self, module, name, value):
         d = dialogs.SimpleDialog("Editing Logger")
-        d.text_input("tag", title="Tag Point to Log", default=value["tag"], suggestions=[(i, i) for i in tagsapi.all_tags_raw().keys()])
-        d.selection("logger_type", options=list(accumTypes.keys()), default=value["logger_type"], title="Accumulate Mode")
-        d.selection("log_target", options=["disk", "ram"], default=value["log_target"])
-        d.text_input("interval", title="Interval(seconds)", default=value["interval"])
-        d.text_input("history_length", title="History Length(seconds)", default=value["history_length"])
+        d.text_input(
+            "tag",
+            title="Tag Point to Log",
+            default=value["tag"],
+            suggestions=[(i, i) for i in tagsapi.all_tags_raw().keys()],
+        )
+        d.selection(
+            "logger_type",
+            options=list(accumTypes.keys()),
+            default=value["logger_type"],
+            title="Accumulate Mode",
+        )
+        d.selection(
+            "log_target", options=["disk", "ram"], default=value["log_target"]
+        )
+        d.text_input(
+            "interval", title="Interval(seconds)", default=value["interval"]
+        )
+        d.text_input(
+            "history_length",
+            title="History Length(seconds)",
+            default=value["history_length"],
+        )
 
         d.submit_button("Save")
         return d.render(self.get_update_target(module, name))
@@ -631,25 +697,42 @@ def logpage(path: str = "", **kwargs):
         for key, i in tag.configLoggers.items():
             if i.accumType == kwargs["exportType"]:
                 tz = pytz.timezone("Etc/UTC")
-                logtime = tz.localize(dateutil.parser.parse(kwargs["logtime"])).timestamp()
-                raw = i.getDataRange(logtime, time.time() + 10000000, int(kwargs["exportRows"]))
+                logtime = tz.localize(
+                    dateutil.parser.parse(kwargs["logtime"])
+                ).timestamp()
+                raw = i.getDataRange(
+                    logtime, time.time() + 10000000, int(kwargs["exportRows"])
+                )
 
                 if kwargs["exportFormat"] == "csv.iso":
                     filename = (
-                        path.replace("/", "_").replace(".", "_").replace(":", "_")[1:]
+                        path.replace("/", "_")
+                        .replace(".", "_")
+                        .replace(":", "_")[1:]
                         + "_"
                         + kwargs["exportType"]
-                        + tz.localize(dateutil.parser.parse(kwargs["logtime"])).isoformat()
+                        + tz.localize(
+                            dateutil.parser.parse(kwargs["logtime"])
+                        ).isoformat()
                         + ".csv"
                     )
 
-                    d = ["Time(ISO), " + path.replace(",", "") + " <accum " + kwargs["exportType"] + ">"]
+                    d = [
+                        "Time(ISO), "
+                        + path.replace(",", "")
+                        + " <accum "
+                        + kwargs["exportType"]
+                        + ">"
+                    ]
                     for i in raw:
                         d.append(str(i[0]) + "," + str(i[1])[:128])
                     return quart.Response(
                         "\r\n".join(d) + "\r\n",
                         content_type="text/csv",
-                        headers={"Content-Disposition": "attachment; filename=" + filename},
+                        headers={
+                            "Content-Disposition": "attachment; filename="
+                            + filename
+                        },
                     )
 
         raise RuntimeError("Logger not found")

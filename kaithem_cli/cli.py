@@ -27,13 +27,20 @@ with open("/dev/shm/kaithem-api-port-" + getpass.getuser()) as f:
 cmd = [sys.argv[1]] + args[1:]
 
 
-url = "http://localhost:" + port + "/cli/cmd/" + "/".join(urllib.parse.quote(i, "") for i in cmd)
+url = (
+    "http://localhost:"
+    + port
+    + "/cli/cmd/"
+    + "/".join(urllib.parse.quote(i, "") for i in cmd)
+)
 
 kwargs["api_key"] = key
 
 
 def main():
-    r = niquests.post(url, data=kwargs, timeout=float(kwargs.get("timeout", 15)))
+    r = niquests.post(
+        url, data=kwargs, timeout=float(kwargs.get("timeout", 15))
+    )
 
     with os.fdopen(sys.stdout.fileno(), "wb", closefd=False) as stdout:
         stdout.write(r.content)

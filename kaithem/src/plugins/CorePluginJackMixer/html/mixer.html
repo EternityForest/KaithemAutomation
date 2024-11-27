@@ -28,13 +28,19 @@
   }
 </style>
 
-<script type="text/javascript" src="/static/js/widget.js"></script>
-
-${board.api.render("api")}
-${global_api.render("gapi")}
+<script type="module" src="/static/js/widget.mjs?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61"></script>
 
 
-<div id="app">
+<div id="app" v-cloak>
+
+  <div v-if="iframeDialog" class="card paper flex-col"
+    style="background: var(--alt-control-bg); position: fixed; width:90vw; max-width: 48rem; height: 90vh; top:5vh; left:5vw; z-index: 100">
+    <header>
+        <button @click="iframeDialog=null" class="w-full nogrow">
+            <i class="mdi mdi-close"></i>Close
+    </header>
+    <iframe :src="iframeDialog"></iframe>
+  </div>
 
     <section class="window">
       <header>
@@ -49,7 +55,7 @@ ${global_api.render("gapi")}
 
         <datalist id="outports">
           <option v-for="i in sortedConnectables(outports)">{{i}}</option>
-          <option>krecorder</option>
+          <option>{{recorderPortName}}</option>
         </datalist>
 
         <datalist id="presets">
@@ -61,6 +67,7 @@ ${global_api.render("gapi")}
           <button class="{bold: activePane=='mixer'}" v-on:click="activePane='mixer'">Mixer (${board.resource})</button>
           <button class="{bold: activePane=='presets'}" v-on:click="activePane='presets'">Presets/Defaults</button>
           <button class="{bold: activePane=='status'}" v-on:click="activePane='status'">Status</button>
+          <button v-on:click="showLabels= !showLabels">Labels</button>
 
           <button v-on:click="showAddEffect=true">Show Effects Menu</button>
           <p>Preset:</p><input list="presets" v-model="loadedPreset" placeholder="Preset name"><button
@@ -181,122 +188,156 @@ ${global_api.render("gapi")}
 
                 </div>
 
-                <div class="tool-bar">
-                  <label>In:<input v-model="channel.input" list="outports"
-                      v-on:change="setInput(channelname, $event.target.value)"></label>
 
-                </div>
             </header>
-            <div class="chain scroll h-24rem noselect">
-              <div v-for="effect, index in channel.effects" class="effect">
-                <details class="undecorated">
-                  <summary>
-                    <div class="menubar tool-bar inline" style="width: 85%;">
-                      <p v-bind:title="effect.id">
-                        <b>{{effect.displayType}}</b>
-                      </p>
-                      <button v-on:click="moveEffectUp(channelname, index)"><span class="mdi mdi-arrow-up"></span>
-                      </button>
-                      <button v-on:click="moveEffectDown(channelname, index)"><span class="mdi mdi-arrow-down"></span>
-                      </button>
-                      <button v-if="effect.type!='fader'" v-on:click="deleteEffect(channelname, index)"><span class="mdi mdi-trash-can"></span>
-                      </button>
-                    </div>
-                  </summary>
 
-
-
-                  <table class="col-12 h-center" border=1>
-                    <tr v-for="param in sortedParams(effect.params)" class="param">
-                      <template v-if="param.type=='float'">
-                        <td>{{param.displayName}}</td>
-                        <td><smooth-range style="width:95%" v-model.number="param.value" v-bind:min="param.min"
-                            v-bind:max="param.max" :step="(param.step)"
-                            v-on:input="setParam(channelname,effect.id,param.name,parseFloat($event.target.value))">
-                            </smooth-range>
-                        </td>
-
-                        <td>{{param.value}}</td>
-                      </template>
-
-                      <template v-if="param.type=='int'">
-                        <td>{{param.displayName}}</td>
-                        <td><smooth-range style="width:95%" v-model.number="param.value" v-bind:min="param.min"
-                            v-bind:max="param.max" :step="(param.step)"
-                            v-on:input="setParam(channelname,effect.id,param.name,parseInt($event.target.value))">
-                          </smooth-range>
-
-                          </td>
-
-                        <td>{{param.value}}</td>
-                      </template>
-
-                      <template v-if="param.type=='string.int'">
-                        <td>{{param.displayName}}</td>
-                        <td><input type="number" style="width:95%" v-model.number="param.value" v-bind:min="param.min"
-                            v-bind:max="param.max" :step="(param.step)"
-                            v-on:change="setParam(channelname,effect.id,param.name,parseInt($event.target.value))">
-                        </td>
-
-                        <td>{{param.value}}</td>
-                      </template>
-
-                      <template v-if="param.type=='bool'">
-                        <td>{{param.displayName}}</td>
-                        <td><input type="checkbox" v-model.bool="param.value"
-                            v-on:input="setParam(channelname,effect.id,param.name,$event.target.checked)">
-                        </td>
-                        <td>{{param.value}}</td>
-                      </template>
-
-                      <template v-if="param.type=='JackInput'">
-                        <td>{{param.displayName}}</td>
-                        <td><input list="inports" v-model="param.value"
-                            v-on:change="setParam(channelname,effect.id,param.name,$event.target.value)">
-                        </td>
-                        <td>{{param.value}}</td>
-                      </template>
-
-                      <template v-if="param.type=='string'">
-                        <td>{{param.displayName}}</td>
-                        <td><input v-model="param.value"
-                            v-on:change="setParam(channelname,effect.id,param.name,$event.target.value)">
-                        </td>
-                        <td></td>
-                      </template>
-
-                      <template v-if="param.type=='enum'">
-                        <td>{{param.displayName}}</td>
-                        <td><select v-model="param.value"
-                            v-on:input="setParam(channelname,effect.id,param.name,$event.target.value)">
-                            <option v-for="i of param.options" :value="i[1]">{{i[0]}}</option>
-                          </select>
-                        </td>
-                        <td></td>
-                      </template>
-
-                    </tr>
-                  </table>
-                </details>
-
-              </div>
-
-              <div class="effect" v-if="showAddEffect">
-                <h3>Add Effect<button v-on:click="showAddEffect=false">Hide</button></h3>
-                <div class="tool-bar"><input v-model="fxSearch" placeholder="Search"><button
-                    v-on:click="fxSearch=''"><i class="mdi mdi-backspace"></i></button></div>
-                <div style="height:8em;overflow: scroll;">
-                  <template v-for="i in effectTypes">
-                    <div  v-if="canUseEffect(i, channel.channels) && (i.displayType+i.help).toLowerCase().includes(fxSearch)">
-                      <h4>{{i.displayType}}</h4>
-                      <p>{{i.help}}</p>
-                      <button v-on:click="api.send(['addEffect', channelname, i.type])">Add</button>
-                    </div>
-                  </template>
-                </div>
-              </div>
+            <div v-if="showLabels">
+              <label>Image file(Relative to media/ in this module
+              <input
+              v-on:change="api.send(['set_label_image', channelname, $event.target.value])"
+              v-model="channel.label_image" placeholder="Label">
+                <button @click="iframeDialog=getExcalidrawLink(channelname)"><i class="mdi mdi-pencil"></i>Draw</button>
+            </label>
 
             </div>
+
+
+            <details>
+              <summary>Setup</summary>
+
+              <div class="tool-bar">
+                <label>In:<input v-model="channel.input" list="outports"
+                    v-on:change="setInput(channelname, $event.target.value)"></label>
+              </div>
+
+              <div class="chain scroll h-24rem noselect">
+                <div v-for="effect, index in channel.effects" class="effect">
+                  <details class="undecorated">
+                    <summary>
+                      <div class="menubar tool-bar inline" style="width: 85%;">
+                        <p v-bind:title="effect.id">
+                          <b>{{effect.displayType}}</b>
+                        </p>
+                        <button v-on:click="moveEffectUp(channelname, index)"><span class="mdi mdi-arrow-up"></span>
+                        </button>
+                        <button v-on:click="moveEffectDown(channelname, index)"><span class="mdi mdi-arrow-down"></span>
+                        </button>
+                        <button v-if="effect.type!='fader'" v-on:click="deleteEffect(channelname, index)"><span class="mdi mdi-trash-can"></span>
+                        </button>
+                      </div>
+                    </summary>
+
+
+
+                    <table class="col-12 h-center" border=1>
+                      <tr v-for="param in sortedParams(effect.params)" class="param">
+
+                        <template v-if="param.type=='float'">
+                          <td>{{param.displayName}}</td>
+                          <td><smooth-range style="width:95%" v-model.number="param.value" v-bind:min="param.min"
+                              v-bind:max="param.max" :step="(param.step)"
+                              v-on:input="setParam(channelname,effect.id,param.name,parseFloat($event.target.value))">
+                              </smooth-range>
+                          </td>
+
+                          <td>{{param.value}}</td>
+                        </template>
+
+                        <template v-if="param.type=='int'">
+                          <td>{{param.displayName}}</td>
+                          <td><smooth-range style="width:95%" v-model.number="param.value" v-bind:min="param.min"
+                              v-bind:max="param.max" :step="(param.step)"
+                              v-on:input="setParam(channelname,effect.id,param.name,parseInt($event.target.value))">
+                            </smooth-range>
+
+                            </td>
+
+                          <td>{{param.value}}</td>
+                        </template>
+
+                        <template v-if="param.type=='string.int'">
+                          <td>{{param.displayName}}</td>
+                          <td><input type="number" style="width:95%" v-model.number="param.value" v-bind:min="param.min"
+                              v-bind:max="param.max" :step="(param.step)"
+                              v-on:change="setParam(channelname,effect.id,param.name,parseInt($event.target.value))">
+                          </td>
+
+                          <td>{{param.value}}</td>
+                        </template>
+
+                        <template v-if="param.type=='bool'">
+                          <td>{{param.displayName}}</td>
+                          <td><input type="checkbox" v-model.bool="param.value"
+                              v-on:input="setParam(channelname,effect.id,param.name,$event.target.checked)">
+                          </td>
+                          <td>{{param.value}}</td>
+                        </template>
+
+                        <template v-if="param.type=='JackInput'">
+                          <td>{{param.displayName}}</td>
+                          <td><input list="inports" v-model="param.value"
+                              v-on:change="setParam(channelname,effect.id,param.name,$event.target.value)">
+                          </td>
+                          <td>{{param.value}}</td>
+                        </template>
+
+                        <template v-if="param.type=='string'">
+                          <td>{{param.displayName}}</td>
+                          <td><input v-model="param.value"
+                              v-on:change="setParam(channelname,effect.id,param.name,$event.target.value)">
+                          </td>
+                          <td></td>
+                        </template>
+
+                        <template v-if="param.type=='enum'">
+                          <td>{{param.displayName}}</td>
+                          <td><select v-model="param.value"
+                              v-on:input="setParam(channelname,effect.id,param.name,$event.target.value)">
+                              <option v-for="i of param.options" :value="i[1]">{{i[0]}}</option>
+                            </select>
+                          </td>
+                          <td></td>
+                        </template>
+
+                      </tr>
+                    </table>
+                  </details>
+
+                </div>
+
+                <div class="effect" v-if="showAddEffect">
+                  <h3>Add Effect<button v-on:click="showAddEffect=false">Hide</button></h3>
+                  <div class="tool-bar"><input v-model="fxSearch" placeholder="Search"><button
+                      v-on:click="fxSearch=''"><i class="mdi mdi-backspace"></i></button></div>
+                  <div style="height:8em;overflow: scroll;">
+                    <template v-for="i in effectTypes">
+                      <div  v-if="canUseEffect(i, channel.channels) && (i.displayType+i.help).toLowerCase().includes(fxSearch)">
+                        <h4>{{i.displayType}}</h4>
+                        <p>{{i.help}}</p>
+                        <button v-on:click="api.send(['addEffect', channelname, i.type])">Add</button>
+                      </div>
+                    </template>
+                  </div>
+                </div>
+
+              </div>
+              <div class="tool-bar">
+                <p>Connect output: </p><input v-model="channel.output" list="inports"
+                  v-on:change="setOutput(channelname, $event.target.value)"
+                  title="The output of this channel will be automatically connected to this port">
+              </div>
+
+              <div class="tool-bar">
+                <p>FBX Threshold:</p><input class="w-4rem" type="number" v-model="channel.soundFuse"
+                  title="Steady or increasing values above this will result in the volume being automatically lowered."
+                  v-on:change="setFuse(channelname, $event.target.value)">
+                <p>dB</p>
+              </div>
+
+            </details>
+
+            <img v-if="channel.label_image" class="w-full"
+            :src="'/settings/mixer/'+boardname+'/'+channelname+'/image?ts='+channel.labelImageTimestamp" />
 
             <footer class="padding noselect">
               <p>{{channelname}} Level:</p>
@@ -319,22 +360,11 @@ ${global_api.render("gapi")}
                   v-bind:value="channel.level"></meter>
                 <p style="width:5em;">{{channel.level}}db</p>
               </div>
-              <div class="tool-bar">
-                <p>Connect output: </p><input v-model="channel.output" list="inports"
-                  v-on:change="setOutput(channelname, $event.target.value)"
-                  title="The output of this channel will be automatically connected to this port">
-              </div>
 
-              <div class="tool-bar">
-                <p>FBX Threshold:</p><input class="w-4rem" type="number" v-model="channel.soundFuse"
-                  title="Steady or increasing values above this will result in the volume being automatically lowered."
-                  v-on:change="setFuse(channelname, $event.target.value)">
-                <p>dB</p>
-              </div>
             </footer>
         </article>
 
-<div class="flex-col gaps inline">
+<div class="flex-col gaps inline w-sm-full">
         <article class="channel window h-12rem flex-col margin w-sm-full">
             <header>
               <div class="decorative-image-h-bar decorative-image" style="min-height: 3em; margin: auto;"></div>
@@ -358,8 +388,8 @@ ${global_api.render("gapi")}
           <h3>Recorder ({{recordStatus}})</h3>
         </header>
           <details class="help">
-            <summary><i class="mdi mdi-help-circle-outline"></i></summary>Jack name: krecorder, channels will
-            autoconnect.
+            <summary><i class="mdi mdi-help-circle-outline"></i></summary>Route your audio to the input(Named {{recorderPortName}}) to use this.
+
             <br>Files in <a
               href="/settings/files/${os.path.join(directories.vardir,'recordings','mixer')|u}">VARDIR/recordings/mixer</a>
           </details>
@@ -384,7 +414,11 @@ ${global_api.render("gapi")}
 <script src="/static/js/thirdparty/vue3-sfc-loader.js"></script>
 
 
-<script>
+<script type="module">
+  import { APIWidget } from '/static/js/widget.mjs?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'
+  let api = new APIWidget("${board.api.uuid}");
+  let gapi = new APIWidget("${global_api.uuid}");
+
   function compareParams(a, b) {
     if (a.sort > b.sort) return 1;
     if (b.sort < a.sort) return -1;
@@ -394,7 +428,7 @@ ${global_api.render("gapi")}
 
   function sortedParams(pl) {
     var l = [];
-    for (i in pl) {
+    for (var i in pl) {
       pl[i].name = i;
       l.push(pl[i]);
     }
@@ -431,13 +465,15 @@ ${global_api.render("gapi")}
   function httpVueLoader(u) {
     return Vue.defineAsyncComponent(() => loadModule(u, options))
   }
+  const session_time = new Date().toISOString().slice(0, -8)
 
-  channels = {};
+  var channels = {};
 
 
   var app = Vue.createApp({
     data: function () {
       return {
+        api:api,
         message: 'Hello Vue!',
         fxSearch: '',
         ui_ready: false,
@@ -455,17 +491,30 @@ ${global_api.render("gapi")}
         loadedPreset: '',
         midiinports: [],
         midioutports: [],
-        recordName: "mixer_",
+        recorderPortName: window.location.pathname.split('/')[3].replace(":", "_").replace("/", "_"),
+        recordName: window.location.pathname.split('/')[3].replace(":", "_").replace("/", "_")+"_",
         recordChannels: 2,
         recordStatus: "",
-        channelStatus: {}
+        channelStatus: {},
+        showLabels: false,
+        iframeDialog:null,
+        boardname :window.location.pathname.split('/')[3]
       }
     },
 
     components: {
-      'smooth-range': httpVueLoader('/static/vue/smoothrange.vue')
+      'smooth-range': httpVueLoader('/static/vue/smoothrange.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61')
     },
     methods: {
+
+    getExcalidrawLink : function (channel) {
+          return '/excalidraw-plugin/edit?module=' +
+              encodeURIComponent(this.boardname.split(":")[0]) +
+              '&resource=' + encodeURIComponent("media/mixers/sketches/channel_"  +
+                  this.boardname.split(":")[1] +".excalidraw.png") +
+              "&callback=" + encodeURIComponent("/settings/mixer/" + this.boardname+"/" + channel+"/set_channel_img") +
+              "&ratio_guide=16_9"
+      },
 
       ding: function (c) {
         api.send(['test', c + "_in"]);
@@ -564,7 +613,7 @@ ${global_api.render("gapi")}
       },
       sortedParams: function (pl) {
         var l = [];
-        for (i in pl) {
+        for (var i in pl) {
           pl[i].name = i;
           l.push(pl[i]);
         }
@@ -577,7 +626,7 @@ ${global_api.render("gapi")}
         var clients = {};
         var x = Object.keys(pl);
         x.sort();
-        for (i in pl) {
+        for (var i in pl) {
           l.push(i);
           if (!(i.split(':')[0] in clients)) {
             l.push(i.split(":")[0])

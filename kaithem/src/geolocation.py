@@ -1,12 +1,11 @@
 # SPDX-FileCopyrightText: Copyright 2022 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
 
-import json
 import logging
 import os
-from urllib.request import urlopen
 
 import iot_devices.host
+import niquests
 from scullery import persist
 
 from . import config, directories, messagebus
@@ -14,9 +13,21 @@ from . import config, directories, messagebus
 
 def ip_geolocate():
     # Block for a bit if its been less than a second since the last time we did this
-    u = urlopen("http://ip-api.com/json", timeout=60)
+    u = niquests.get("https://reallyfreegeoip.org/json", timeout=15)
+    u.raise_for_status()
+
     try:
-        return json.loads(u.read().decode("utf8"))
+        d = u.json()
+
+        r = {}
+        r["lat"] = d["latitude"]
+        r["lon"] = d["longitude"]
+        r["city"] = d["city"]
+        r["timezone"] = d["time_zone"]
+        r["regionName"] = d["region_name"]
+        r["countryCode"] = d["country_code"]
+
+        return r
     finally:
         u.close()
 
@@ -40,7 +51,9 @@ def use_api_if_needed():
     if "default" not in file:
         file["default"] = {}
 
-    if not file["default"].get("lat", None) and not file["default"].get("lon", None):
+    if not file["default"].get("lat", None) and not file["default"].get(
+        "lon", None
+    ):
         try:
             location = ip_geolocate()
             messagebus.post_message(

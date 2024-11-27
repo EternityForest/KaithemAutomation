@@ -1,4 +1,5 @@
 import copy
+import gc
 import os
 import threading
 import time
@@ -7,17 +8,61 @@ import uuid
 import weakref
 from typing import Any, Dict, Iterable, List, Optional, Set
 
+import beartype
 import yaml
-from scullery import scheduling, snake_compat
+from scullery import scheduling, snake_compat, workers
 
 # The frontend's ephemeral state is using CamelCase conventions for now
 from .. import schemas
 from ..kaithemobj import kaithem
-from . import blendmodes, console_abc, core, fixtureslib, persistance, scenes, universes
+from . import (
+    blendmodes,
+    console_abc,
+    core,
+    fixtureslib,
+    group_lighting,
+    groups,
+    persistance,
+    universes,
+)
 from .core import logger
-from .global_actions import event
-from .scenes import Scene, cues
+from .global_actions import async_event
+from .groups import Group, cues
 from .universes import getUniverse, getUniverses
+
+
+def from_legacy_preset_format(
+    d: Dict[str, Any],
+) -> dict[str, dict[int | str, float | int | str]]:
+    if "values" not in d:
+        return {"values": d}  # type: ignore
+    else:
+        return d
+
+
+def from_legacy_fixture_class_format(
+    d: List[Any] | Dict[str, Any],
+) -> dict[str, Any]:
+    if "channels" not in d:
+        c = d
+        a: List[dict[str, Any]] = []
+        for i in c:
+            o: dict[str, Any] = {}
+            o["name"] = i[0]
+            o["type"] = i[1]
+
+            if o["type"] == "fine":
+                o["coarse"] = i[2]
+
+            elif o["type"] == "fixed":
+                o["value"] = i[2]
+
+            a.append(o)
+
+        return {"channels": a}  # type: ignore
+    else:
+        assert isinstance(d, dict)
+        return d
 
 
 def from_legacy(d: Dict[str, Any]) -> Dict[str, Any]:
@@ -40,34 +85,42 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         self.name = name
 
-        # mutable and immutable versions of the active scenes list.
-        self.scenes_by_name: weakref.WeakValueDictionary[str, Scene] = weakref.WeakValueDictionary()
+        # mutable and immutable versions of the active groups list.
+        self.groups_by_name: weakref.WeakValueDictionary[str, Group] = (
+            weakref.WeakValueDictionary()
+        )
 
-        self._active_scenes: list[Scene] = []
-        self.active_scenes: list[Scene] = []
+        self._active_groups: list[Group] = []
+        self.active_groups: list[Group] = []
 
-        # This light board's scene memory, or the set of scenes 'owned' by this board.
-        self.scenes: Dict[str, Scene] = {}
+        # This light board's group memory, or the set of groups 'owned' by this board.
+        self.groups: Dict[str, Group] = {}
 
-        # For change etection in scenes. Tuple is folder, file indicating where it should go,
+        self.media_folders: list[str] = []
+
+        # For change detection in groups. Tuple is folder, file indicating where it should go,
         # as would be passed to saveasfiles
         self.last_saved_version: dict[str, Any] = {}
 
-        self.lock = threading.RLock()
-
-        self.configured_universes: Dict[str, Any] = {}
+        self.configured_universes: Dict[str, dict[str, Any]] = {}
         self.fixture_assignments: Dict[str, Any] = {}
-        self.fixture_presets: Dict[str, dict[int | str, float | int | str]] = {}
+        self.fixture_presets: Dict[str, dict[str, Any]] = {}
 
-        self.fixtures = {}
+        self.fixtures: Dict[str, universes.Fixture] = {}
 
         self.universe_objects: Dict[str, universes.Universe] = {}
-        self.fixture_classes: Dict[str, Any] = copy.deepcopy(fixtureslib.genericFixtureClasses)
+        self.fixture_classes: Dict[str, Any] = {}
+        c = copy.deepcopy(fixtureslib.genericFixtureClasses)
+
+        for i in c:
+            self.fixture_classes[i] = c[i]
 
         self.initialized = False
 
         def f(self: ChandlerConsole, *dummy: tuple[Any]):
-            self.linkSend(["soundoutputs", [i for i in kaithem.sound.outputs()]])
+            self.linkSend(
+                ["soundoutputs", [i for i in kaithem.sound.outputs()]]
+            )
 
         self.callback_jackports = f
         kaithem.message.subscribe("/system/jack/newport/", f)
@@ -79,107 +132,161 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         # For logging ratelimiting
         self.last_logged_gui_send_error = 0
-        self.ferrs = ""
+        self.fixture_errors = ""
 
-        self.autosave_checker = scheduling.scheduler.every(self.check_autosave, 10 * 60)
+        self.autosave_checker = scheduling.scheduler.every(
+            self.cl_check_autosave, 10 * 60
+        )
 
         def dummy(data: dict[str, Any]):
             logger.error("No save backend present")
 
-        self.save_callback = dummy
+        self.ml_save_callback = dummy
+        self.should_run = True
 
-    def close(self):
-        for i in self.scenes:
-            self.scenes[i].stop()
-            self.scenes[i].close()
-        self.scenes = {}
+    def worker_loop(self):
+        while self.should_run:
+            self.cl_check_autosave()
+            time.sleep(10)
+
+    @core.cl_context.required
+    def cl_close(self):
+        for i in self.groups:
+            self.groups[i].stop()
+            self.groups[i].close()
+        self.groups = {}
 
         for i in self.configured_universes:
-            self.configured_universes[i].close()
+            try:
+                u = universes.universes[i]()
+                if u is not None:
+                    u.close()
+            except Exception:
+                logger.exception("Could not close universe")
 
         try:
             self.autosave_checker.unregister()
         except Exception:
-            print(traceback.format_exc())
+            logger.exception("Could not close correctly")
 
-    def load_project(self, data: dict):
-        for i in self.scenes:
-            self.scenes[i].stop()
-            self.scenes[i].close()
-        self.scenes = {}
+    @core.cl_context.entry_point
+    def cl_load_project(self, data: dict[str, Any]):
+        for i in self.groups:
+            self.groups[i].stop()
+            self.groups[i].close()
+        self.groups = {}
 
         for i in self.configured_universes:
-            self.configured_universes[i].close()
+            try:
+                u = universes.universes[i]()
+                if u is not None:
+                    u.close()
+            except Exception:
+                logger.exception("Could not close universe")
 
         if "setup" in data:
             data2 = data["setup"]
 
             self.configured_universes = data2["configured_universes"]
-            self.fixture_classes = data2["fixture_types"]
+            self.fixture_classes = {}
+            ft = data2["fixture_types"]
+            for i in ft:
+                self.fixture_classes[i] = from_legacy_fixture_class_format(
+                    ft[i]
+                )
+
             self.fixture_assignments = data2["fixture_assignments"]
-            self.fixture_presets = data2.get("fixture_presets", {})
+
+            x = data2.get("fixture_presets", {})
+            self.fixture_presets = {
+                i: from_legacy_preset_format(x[i]) for i in x
+            }
+
+            default_media_folders: list[str] = []
+
+            if os.path.exists(os.path.expanduser("~/Music")):
+                default_media_folders.append(os.path.expanduser("~/Music"))
+            if os.path.exists(os.path.expanduser("~/Videos")):
+                default_media_folders.append(os.path.expanduser("~/Videos"))
+            if os.path.exists(os.path.expanduser("~/Pictures")):
+                default_media_folders.append(os.path.expanduser("~/Pictures"))
+
+            self.media_folders = (
+                data2.get("media_folders", default_media_folders) or []
+            )
 
             try:
-                self.create_universes(self.configured_universes)
+                self.cl_create_universes(self.configured_universes)
             except Exception:
                 logger.exception("Error creating universes")
                 print(traceback.format_exc(6))
 
-            self.refresh_fixtures()
+            self.cl_reload_fixture_assignment_data()
 
         if "scenes" in data:
-            d = data["scenes"]
+            data["groups"] = data.pop("scenes")
 
-            self.loadDict(d)
+        if "groups" in data:
+            d = data["groups"]
+
+            self.cl_load_dict(d)
             self.linkSend(["refreshPage", self.fixture_assignments])
 
-    def setup(self, project: dict[str, Any]):
-        console_abc.Console_ABC.setup(self, project)
-        self.load_project(project)
+    @core.cl_context.entry_point
+    def cl_setup(self, project: dict[str, Any]):
+        console_abc.Console_ABC.cl_setup(self, project)
+        self.cl_load_project(project)
         self.initialized = True
 
-    def refresh_fixtures(self):
-        with core.lock:
-            self.ferrs = ""
+    @core.cl_context.entry_point
+    def cl_reload_fixture_assignment_data(self):
+        self.fixture_errors = ""
+        try:
+            for i in self.fixtures:
+                self.fixtures[i].cl_assign(None, None)
+                self.fixtures[i].rm()
+        except Exception:
+            self.fixture_errors += (
+                "Error deleting old assignments:\n" + traceback.format_exc()
+            )
+            print(traceback.format_exc())
+
+        try:
+            del i  # type: ignore
+        except Exception:
+            pass
+
+        self.fixtures = {}
+        for key, i in self.fixture_assignments.items():
             try:
-                for i in self.fixtures:
-                    self.fixtures[i].assign(None, None)
-                    self.fixtures[i].rm()
+                if not i["name"] == key:
+                    raise RuntimeError("Name does not match key?")
+                x = universes.Fixture(
+                    i["name"], self.fixture_classes[i["type"]]
+                )
+                self.fixtures[i["name"]] = x
+                self.fixtures[i["name"]].cl_assign(
+                    i["universe"], int(i["addr"])
+                )
             except Exception:
-                self.ferrs += "Error deleting old assignments:\n" + traceback.format_exc()
+                logger.exception("Error setting up fixture")
                 print(traceback.format_exc())
+                self.fixture_errors += str(i) + "\n" + traceback.format_exc()
 
-            try:
-                del i  # type: ignore
-            except Exception:
-                pass
+        for u in universes.universes:
+            self.pushchannelInfoByUniverseAndNumber(u)
 
-            self.fixtures = {}
-            for key, i in self.fixture_assignments.items():
-                try:
-                    if not i["name"] == key:
-                        raise RuntimeError("Name does not match key?")
-                    x = universes.Fixture(i["name"], self.fixture_classes[i["type"]])
-                    self.fixtures[i["name"]] = x
-                    self.fixtures[i["name"]].assign(i["universe"], int(i["addr"]))
-                    universes.fixtures[i["name"]] = weakref.ref(x)
-                except Exception:
-                    logger.exception("Error setting up fixture")
-                    print(traceback.format_exc())
-                    self.ferrs += str(i) + "\n" + traceback.format_exc()
+        for f in universes.fixtures:
+            if f:
+                self.pushchannelInfoByUniverseAndNumber("@" + f)
 
-            for u in universes.universes:
-                self.pushChannelNames(u)
+        self.fixture_errors = self.fixture_errors or "No Errors!"
+        self.push_setup()
+        group_lighting.refresh_all_group_lighting()
 
-            with core.lock:
-                for f in universes.fixtures:
-                    if f:
-                        self.pushChannelNames("@" + f)
-
-            self.ferrs = self.ferrs or "No Errors!"
-            self.push_setup()
-
-    def create_universes(self, data: dict):
+    @core.cl_context.entry_point
+    def cl_create_universes(self, data: dict[str, Any]):
+        """Cl because of the universes object init"""
         assert isinstance(data, Dict)
         for i in self.universe_objects:
             self.universe_objects[i].close()
@@ -214,19 +321,22 @@ class ChandlerConsole(console_abc.Console_ABC):
                     number=int(u[i].get("number", 0)),
                 )
             else:
-                event("system.error", "No universe type: " + u[i]["type"])
+                async_event("system.error", "No universe type: " + u[i]["type"])
         self.universe_objects = universeObjects
 
         try:
-            universes.discoverColorTagDevices()
+            universes.cl_discover_color_tag_devices()
         except Exception:
-            event("system.error", traceback.format_exc())
+            async_event("system.error", traceback.format_exc())
             print(traceback.format_exc())
 
         self.push_setup()
 
-    def load_show(self, showName):
-        saveLocation = os.path.join(kaithem.misc.vardir, "chandler", "shows", showName)
+    @core.cl_context.entry_point
+    def cl_load_show(self, showName: str):
+        saveLocation = os.path.join(
+            kaithem.misc.vardir, "chandler", "shows", showName
+        )
         d = {}
         if os.path.isdir(saveLocation):
             for i in os.listdir(saveLocation):
@@ -235,10 +345,10 @@ class ChandlerConsole(console_abc.Console_ABC):
                 if os.path.isfile(fn) and fn.endswith(".yaml"):
                     d[i[: -len(".yaml")]] = kaithem.persist.load(fn)
 
-        self.loadDict(d)
-        self.refresh_fixtures()
+        self.cl_load_dict(d)
+        self.cl_reload_fixture_assignment_data()
 
-    def get_setup_data(self, force=True):
+    def get_setup_data(self, force: bool = True):
         d = {
             "fixture_types": self.fixture_classes,
             "universes": self.configured_universes,
@@ -249,8 +359,9 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         return copy.deepcopy(d)
 
-    def loadSetupFile(self, data):
-        data = yaml.load(data, Loader=yaml.SafeLoader)
+    @core.cl_context.entry_point
+    def cl_load_setup_file(self, data_str: str):
+        data = yaml.load(data_str, Loader=yaml.SafeLoader)
         data = snake_compat.snakify_dict_keys(data)
 
         if "fixture_types" in data:
@@ -258,35 +369,78 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         if "universes" in data:
             self.configured_universes = data["universes"]
-            self.create_universes(self.configured_universes)
+            self.cl_create_universes(self.configured_universes)
 
         if "configured_universes" in data:
             self.configured_universes = data["configured_universes"]
-            self.create_universes(self.configured_universes)
+            self.cl_create_universes(self.configured_universes)
 
         # Compatibility with a legacy typo
         if "fixures" in data:
             data["fixure_assignments"] = data["fixures"]
+
         if "fixtures" in data:
             data["fixure_assignments"] = data["fixtures"]
 
         if "fixure_assignments" in data:
             self.fixture_assignments = data["fixure_assignments"]
-            self.refresh_fixtures()
+            self.cl_reload_fixture_assignment_data()
 
         if "fixture_presets" in data:
-            self.fixture_presets = data["fixture_presets"]
+            x = data["fixture_presets"]
+            self.fixture_presets = {
+                i: from_legacy_preset_format(x[i]) for i in x
+            }
 
         self.push_setup()
 
-    def getSetupFile(self):
-        with core.lock:
-            return {
-                "fixture_types": self.fixture_classes,
-                "configured_universes": self.configured_universes,
-                "fixture_assignments": self.fixture_assignments,
-                "fixture_presets": self.fixture_presets,
-            }
+    def cl_import_fixture_presets(self, data_str: str):
+        data = yaml.load(data_str, Loader=yaml.SafeLoader)
+        data = snake_compat.snakify_dict_keys(data)
+
+        # Importing directly from a resource object
+        if "project" in data:
+            data = data["project"]
+            if "setup" in data:
+                data = data["setup"]
+
+        if "fixture_presets" in data:
+            x = data["fixture_presets"]
+            fp = {i: from_legacy_preset_format(x[i]) for i in x}
+
+            for i in fp:
+                self.fixture_presets[i] = fp[i]
+
+        self.push_setup()
+
+    def get_file_timestamp_if_exists(self, filename: str) -> str:
+        try:
+            if not filename:
+                return ""
+            filename = core.resolve_sound(
+                filename, extra_folders=self.media_folders
+            )
+            if not filename:
+                return ""
+            if os.path.isfile(filename):
+                return str(os.stat(filename).st_mtime * 10)
+            else:
+                return ""
+        except (FileNotFoundError, ValueError):
+            return ""
+        except Exception:
+            logger.exception("Failed to get file timestamp")
+            return ""
+
+    @core.cl_context.entry_point
+    def cl_get_setup_file(self):
+        return {
+            "fixture_types": self.fixture_classes,
+            "configured_universes": self.configured_universes,
+            "fixture_assignments": self.fixture_assignments,
+            "fixture_presets": self.fixture_presets,
+            "media_folders": self.media_folders,
+        }
 
     def loadLibraryFile(
         self,
@@ -305,38 +459,48 @@ class ChandlerConsole(console_abc.Console_ABC):
         else:
             raise ValueError("No fixture types in that file")
 
-    def getLibraryFile(self):
-        with core.lock:
-            return {
-                "fixture_types": self.fixture_classes,
-                "universes": self.configured_universes,
-                "fixure_assignments": self.fixture_assignments,
-                "fixture_presets": self.fixture_presets,
-            }
+    @core.cl_context.entry_point
+    def cl_get_library_file(self):
+        return {
+            "fixture_types": self.fixture_classes,
+            "universes": self.configured_universes,
+            "fixure_assignments": self.fixture_assignments,
+            "fixture_presets": self.fixture_presets,
+        }
 
-    def loadSceneFile(self, data, filename: str, errs=False, clear_old=True):
-        data = yaml.load(data, Loader=yaml.SafeLoader)
+    @core.cl_context.entry_point
+    def cl_load_group_file(
+        self,
+        data_str: str,
+        filename: str,
+        errs: bool = False,
+        clear_old: bool = True,
+    ):
+        data = yaml.load(data_str, Loader=yaml.SafeLoader)
 
         data = snake_compat.snakify_dict_keys(data)
 
-        # Detect if the user is trying to upload a single scenefile,
-        # if so, wrap it in a multi-dict of scenes to keep the reading code
+        # Detect if the user is trying to upload a single groupfile,
+        # if so, wrap it in a multi-dict of groups to keep the reading code
         # The same for both
         if "uuid" in data and isinstance(data["uuid"], str):
             # Remove the .yaml
             data = {filename[:-5]: data}
 
-        with core.lock:
-            if clear_old:
-                for i in self.scenes:
-                    if clear_old or (i in data):
-                        self.scenes[i].stop()
-                        self.scenes[i].close()
+        g = copy.copy(self.groups)
 
-                self.scenes = {}
-            self.loadDict(data, errs)
+        if clear_old:
+            for i in g:
+                if clear_old or (i in data):
+                    g[i].stop()
+                    g[i].close()
 
-    def loadDict(self, data: dict[str, Any], errs: bool = False):
+            self.groups = {}
+
+        self.cl_load_dict(data, errs)
+
+    @core.cl_context.entry_point
+    def cl_load_dict(self, data: dict[str, Any], errs: bool = False):
         data = copy.deepcopy(data)
         data = from_legacy(data)
         data = snake_compat.snakify_dict_keys(data)
@@ -344,80 +508,95 @@ class ChandlerConsole(console_abc.Console_ABC):
         # Note that validation could include integer keys, but we handle that
         for i in data:
             try:
-                schemas.validate("chandler/scene", data[i])
+                schemas.validate("chandler/group", data[i])
             except Exception:
-                logger.exception(f"Error Validating scene {i}, loading anyway")
+                logger.exception(f"Error Validating group {i}, loading anyway")
 
             cues = data[i].get("cues", {})
             for j in cues:
                 try:
                     schemas.validate("chandler/cue", cues[j])
                 except Exception:
-                    logger.exception(f"Error Validating cue {j}, loading anyway")
+                    logger.exception(
+                        f"Error Validating cue {j}, loading anyway"
+                    )
 
-        with core.lock:
-            for i in data:
-                # New versions don't have a name key at all, the name is the key
-                if "name" in data[i]:
-                    pass
+        for i in data:
+            # New versions don't have a name key at all, the name is the key
+            if "name" in data[i]:
+                pass
+            else:
+                data[i]["name"] = i
+            n = data[i]["name"]
+
+            # Delete existing groups we own
+            if n in self.groups_by_name:
+                old_id = self.groups_by_name[n].id
+                if old_id in self.groups:
+                    self.groups[old_id].stop()
+                    self.groups[old_id].close()
+                    try:
+                        del self.groups[old_id]
+                    except KeyError:
+                        pass
                 else:
-                    data[i]["name"] = i
-                n = data[i]["name"]
+                    raise ValueError(
+                        "Group "
+                        + i
+                        + " already exists. We cannot overwrite, because it was not created through this board"
+                    )
+            try:
+                x = False
 
-                # Delete existing scenes we own
-                if n in self.scenes_by_name:
-                    old_id = self.scenes_by_name[n].id
-                    if old_id in self.scenes:
-                        self.scenes[old_id].stop()
-                        self.scenes[old_id].close()
-                        try:
-                            del self.scenes[old_id]
-                        except KeyError:
-                            pass
-                    else:
-                        raise ValueError(
-                            "Scene " + i + " already exists. We cannot overwrite, because it was not created through this board"
-                        )
-                try:
-                    x = False
+                # I think this was a legacy save format thing TODO
+                if "default_active" in data[i]:
+                    x = data[i]["default_active"]
+                    del data[i]["default_active"]
+                if "active" in data[i]:
+                    x = data[i]["active"]
+                    del data[i]["active"]
 
-                    # I think this was a legacy save format thing TODO
-                    if "default_active" in data[i]:
-                        x = data[i]["default_active"]
-                        del data[i]["default_active"]
-                    if "active" in data[i]:
-                        x = data[i]["active"]
-                        del data[i]["active"]
+                # Older versions indexed by UUID
+                if "uuid" in data[i]:
+                    uuid = data[i]["uuid"]
+                    del data[i]["uuid"]
+                else:
+                    uuid = i
 
-                    # Older versions indexed by UUID
-                    if "uuid" in data[i]:
-                        uuid = data[i]["uuid"]
-                        del data[i]["uuid"]
-                    else:
-                        uuid = i
+                s = Group(self, id=uuid, default_active=x, **data[i])
 
-                    s = Scene(self, id=uuid, default_active=x, **data[i])
+                self.groups[uuid] = s
+                if x:
+                    s.go()
+                    s.poll_again_flag = True
+                    s.lighting_manager.refresh()
+            except Exception:
+                if not errs:
+                    logger.exception(
+                        "Failed to load group "
+                        + str(i)
+                        + " "
+                        + str(data[i].get("name", ""))
+                    )
+                    print(
+                        "Failed to load group "
+                        + str(i)
+                        + " "
+                        + str(data[i].get("name", ""))
+                        + ": "
+                        + traceback.format_exc(3)
+                    )
+                else:
+                    raise
 
-                    self.scenes[uuid] = s
-                    if x:
-                        s.go()
-                        s.poll_again_flag = True
-                        s.lighting_manager.should_rerender_onto_universes = True
-                except Exception:
-                    if not errs:
-                        logger.exception("Failed to load scene " + str(i) + " " + str(data[i].get("name", "")))
-                        print("Failed to load scene " + str(i) + " " + str(data[i].get("name", "")) + ": " + traceback.format_exc(3))
-                    else:
-                        raise
+    @beartype.beartype
+    def addGroup(self, group: Group):
+        self.groups[group.id] = group
 
-    def addScene(self, scene):
-        if not isinstance(scene, Scene):
-            raise ValueError("Arg must be a Scene")
-        self.scenes[scene.id] = scene
-
-    def rmScene(self, scene):
+    @beartype.beartype
+    def rmGroup(self, group: Group):
         try:
-            del self.scenes[scene.id]
+            del self.groups[group.id]
         except Exception:
             print(traceback.format_exc())
 
@@ -440,22 +619,31 @@ class ChandlerConsole(console_abc.Console_ABC):
                     )
                 except Exception:
                     if time.monotonic() - self.last_logged_gui_send_error < 60:
-                        logger.exception("Error when reporting event. (Log ratelimit: 30)")
+                        logger.exception(
+                            "Error when reporting event. (Log ratelimit: 30)"
+                        )
                         self.last_logged_gui_send_error = time.monotonic()
                 finally:
                     self.gui_send_lock.release()
             else:
                 if time.monotonic() - self.last_logged_gui_send_error < 60:
-                    logger.error("Timeout getting lock to push event. (Log ratelimit: 60)")
+                    logger.error(
+                        "Timeout getting lock to push event. (Log ratelimit: 60)"
+                    )
                     self.last_logged_gui_send_error = time.monotonic()
 
         kaithem.misc.do(f)
 
     def push_setup(self):
+        ps = copy.deepcopy(self.fixture_presets)
+        for i in ps:
+            ps[i]["labelImageTimestamp"] = self.get_file_timestamp_if_exists(
+                ps[i].get("label_image", "")
+            )
         "Errors in fixture list"
-        self.linkSend(["ferrs", self.ferrs])
+        self.linkSend(["ferrs", self.fixture_errors])
         self.linkSend(["fixtureAssignments", self.fixture_assignments])
-        self.linkSend(["fixturePresets", self.fixture_presets])
+        self.linkSend(["fixturePresets", ps])
 
         snapshot = getUniverses()
 
@@ -474,54 +662,69 @@ class ChandlerConsole(console_abc.Console_ABC):
             ]
         )
 
-    def getScenes(self):
-        "Return serializable version of scenes list"
-        with core.lock:
-            sd = {}
-            for i in self.scenes:
-                x = self.scenes[i]
-                sd[x.name] = x.toDict()
+    @core.cl_context.entry_point
+    def cl_get_groups(self):
+        "Return serializable version of groups list"
+        sd = {}
+        for i in self.groups:
+            x = self.groups[i]
+            sd[x.name] = x.toDict()
 
-            return sd
+        return sd
 
-    def check_autosave(self):
+    @core.cl_context.entry_point
+    def cl_check_autosave(self):
         if self.initialized:
-            self.save_project_data()
+            self.cl_save_project_data()
 
-    def get_project_data(self):
-        sd = copy.deepcopy(self.getScenes())
+    @core.cl_context.entry_point
+    def cl_get_project_data(self):
+        sd = copy.deepcopy(self.cl_get_groups())
 
-        project_file: dict[str, Any] = {"scenes": sd, "setup": self.getSetupFile()}
+        project_file: dict[str, Any] = {
+            "groups": sd,
+            "setup": self.cl_get_setup_file(),
+        }
         return project_file
 
-    def save_project_data(self):
-        project_file = self.get_project_data()
+    def cl_save_project_data(self):
+        with core.cl_context:
+            project_file = self.cl_get_project_data()
 
-        if self.last_saved_version == project_file:
-            return
+            if self.last_saved_version == project_file:
+                return
 
-        self.last_saved_version = project_file
+            self.last_saved_version = project_file
 
-        self.save_callback(project_file)
+        # If this is called under the core lock,
+        # The modules lock won't let us get it so we have to do a bg thread
+        def f():
+            self.ml_save_callback(project_file)
 
-    def pushChannelNames(self, u):
+        workers.do(f)
+
+    def pushchannelInfoByUniverseAndNumber(self, u: str):
         "This has expanded to push more data than names"
         if not u[0] == "@":
-            uobj = getUniverse(u)
+            universe_object = getUniverse(u)
 
-            if not uobj:
+            if not universe_object:
                 return
 
             d = {}
 
-            for i in uobj.channels:
-                fixture = uobj.channels[i]()
+            for i in universe_object.channels:
+                fixture = universe_object.channels[i]()
                 if not fixture:
-                    return
+                    continue
 
                 if not fixture.startAddress:
-                    return
-                data = [fixture.name] + fixture.channels[i - fixture.startAddress]
+                    continue
+
+                data = [
+                    fixture.name,
+                    fixture.channels[i - fixture.startAddress],
+                ]
                 d[i] = data
             self.linkSend(["cnames", u, d])
         else:
@@ -530,25 +733,40 @@ class ChandlerConsole(console_abc.Console_ABC):
                 f = universes.fixtures[u[1:]]()
                 if f:
                     for i in range(len(f.channels)):
-                        d[f.channels[i][0]] = [u[1:]] + f.channels[i]
+                        d[f.channels[i]["name"]] = [u[1:], f.channels[i]]
             self.linkSend(["cnames", u, d])
 
+    def pushPreset(self, preset):
+        preset_data = copy.deepcopy(self.fixture_presets.get(preset, {}))
+        preset_data["labelImageTimestamp"] = self.get_file_timestamp_if_exists(
+            preset_data.get("label_image", "")
+        )
+        self.linkSend(["preset", preset, preset_data])
+
     def pushMeta(
-        self, sceneid: str, statusOnly: bool = False, keys: Optional[List[Any] | Set[Any] | Dict[Any, Any] | Iterable[str]] = None
+        self,
+        groupid: str,
+        statusOnly: bool = False,
+        keys: Optional[
+            List[Any] | Set[Any] | Dict[Any, Any] | Iterable[str]
+        ] = None,
     ):
-        "Statusonly=only the stuff relevant to a cue change. Keys is iterabe of what to send, or None for all"
-        scene = self.scenes.get(sceneid, None)
-        # Race condition of deleted scenes
-        if not scene:
+        "Statusonly=only the stuff relevant to a cue change. Keys is iterable of what to send, or None for all"
+        group = self.groups.get(groupid, None)
+        # Race condition of deleted groups
+        if not group:
             return
 
         v = {}
-        if scene.script_context:
+        if group.script_context:
             try:
-                for j in scene.script_context.variables:
+                for j in group.script_context.variables:
                     if not j == "_":
-                        if isinstance(scene.script_context.variables[j], (int, float, str, bool)):
-                            v[j] = scene.script_context.variables[j]
+                        if isinstance(
+                            group.script_context.variables[j],
+                            (int, float, str, bool),
+                        ):
+                            v[j] = group.script_context.variables[j]
 
                         else:
                             v[j] = "__PYTHONDATA__"
@@ -558,50 +776,50 @@ class ChandlerConsole(console_abc.Console_ABC):
         if not statusOnly:
             data: Dict[str, Any] = {
                 # These dynamic runtime vars aren't part of the schema for stuff that gets saved
-                "status": scene.getStatusString(),
-                "blendParams": scene.lighting_manager.blendClass.parameters
-                if hasattr(scene.lighting_manager.blendClass, "parameters")
+                "status": group.getStatusString(),
+                "blendParams": group.lighting_manager.blend_args
+                if hasattr(group.lighting_manager.blendClass, "parameters")
                 else {},
-                "blendDesc": blendmodes.getblenddesc(scene.blend),
-                "cue": scene.cue.id if scene.cue else scene.cues["default"].id,
-                "ext": sceneid not in self.scenes,
-                "id": sceneid,
-                "uuid": sceneid,
+                "blendDesc": blendmodes.getblenddesc(group.blend),
+                "cue": group.cue.id if group.cue else group.cues["default"].id,
+                "ext": groupid not in self.groups,
+                "id": groupid,
+                "uuid": groupid,
                 "vars": v,
-                "timers": scene.runningTimers,
-                "entered_cue": scene.entered_cue,
-                "displayTagValues": scene.display_tag_values,
-                "displayTagMeta": scene.display_tag_meta,
-                "cuelen": scene.cuelen,
-                "name": scene.name,
+                "timers": group.runningTimers,
+                "entered_cue": group.entered_cue,
+                "displayTagValues": group.display_tag_values,
+                "displayTagMeta": group.display_tag_meta,
+                "cuelen": group.cuelen,
+                "name": group.name,
                 # Placeholder because cues are separate in the web thing.
                 "cues": {},
-                "started": scene.started,
+                "started": group.started,
                 # TODO ?? this is confusing because in the files and schemas alpha means
                 # default but everywhere else it means the current.  Maybe unify them.
                 # Maybe unify active default too
-                "alpha": scene.alpha,
-                "default_alpha": scene.default_alpha,
-                "default_active": scene.default_active,
-                "active": scene.is_active(),
+                "alpha": group.alpha,
+                "default_alpha": group.default_alpha,
+                "default_active": group.default_active,
+                "active": group.is_active(),
             }
 
             # Everything else should by as it is in the schema
-            for i in scenes.scene_schema["properties"]:
+            for i in groups.group_schema["properties"]:
                 if i not in data:
-                    data[i] = getattr(scene, i)
+                    data[i] = getattr(group, i)
 
         else:
             data = {
-                "alpha": scene.alpha,
-                "id": sceneid,
-                "active": scene.is_active(),
-                "default_active": scene.default_active,
-                "displayTagValues": scene.display_tag_values,
-                "entered_cue": scene.entered_cue,
-                "cue": scene.cue.id if scene.cue else scene.cues["default"].id,
-                "cuelen": scene.cuelen,
-                "status": scene.getStatusString(),
+                "alpha": group.alpha,
+                "id": groupid,
+                "active": group.is_active(),
+                "default_active": group.default_active,
+                "displayTagValues": group.display_tag_values,
+                "entered_cue": group.entered_cue,
+                "cue": group.cue.id if group.cue else group.cues["default"].id,
+                "cuelen": group.cuelen,
+                "status": group.getStatusString(),
             }
 
         # TODO this do everything then filter approach seems excessively slow.
@@ -614,42 +832,13 @@ class ChandlerConsole(console_abc.Console_ABC):
         d = {i: data[i] for i in data if (not keys or (i in keys))}
         d = snake_compat.camelify_dict_keys(d)
 
-        self.linkSend(["scenemeta", sceneid, d])
+        self.linkSend(["groupmeta", groupid, d])
 
     def pushCueMeta(self, cueid: str):
         try:
             cue = cues[cueid]
 
-            scene = cue.scene()
-            if not scene:
-                raise RuntimeError("Cue belongs to nonexistant scene")
-
-            # Stuff that never gets saved, it's runtime UI stuff
-            d2 = {
-                "id": cueid,
-                "name": cue.name,
-                "next": cue.next_cue if cue.next_cue else "",
-                "scene": scene.id,
-                "number": cue.number / 1000.0,
-                "prev": scene.getParent(cue.name),
-                "hasLightingData": len(cue.values),
-                "default_next": scene.getAfter(cue.name),
-            }
-
-            d = {}
-            # All the stuff that's just a straight 1 to 1 copy of the attributes
-            # are the same as whats in the save file
-            for i in schemas.get_schema("chandler/cue")["properties"]:
-                d[i] = getattr(cue, i)
-
-            # Important that d2 takes priority
-            d.update(d2)
-
-            # not metadata, sent separately
-            d.pop("values")
-
-            # Web frontend still uses ye olde camel case
-            d = snake_compat.camelify_dict_keys(d)
+            d = cue.get_ui_data()
 
             self.linkSend(
                 [
@@ -668,58 +857,89 @@ class ChandlerConsole(console_abc.Console_ABC):
     def pushConfiguredUniverses(self):
         self.linkSend(["confuniverses", self.configured_universes])
 
-    def pushCueList(self, scene: str):
-        s = self.scenes[scene]
+    def pushCueList(self, group: str):
+        s = self.groups[group]
         x = list(s.cues.keys())
         # split list into messages of 100 because we don't want to exceed the widget send limit
         while x:
             self.linkSend(
                 [
-                    "scenecues",
-                    scene,
-                    {i: (s.cues[i].id, s.cues[i].number / 1000.0) for i in x[:100]},
+                    "groupcues",
+                    group,
+                    {
+                        i: (s.cues[i].id, s.cues[i].number / 1000.0)
+                        for i in x[:100]
+                    },
                 ]
             )
             x = x[100:]
 
-    def delscene(self, sc):
+    @core.cl_context.entry_point
+    def cl_del_group(self, sc):
         i = None
-        with core.lock:
-            if sc in self.scenes:
-                i = self.scenes.pop(sc)
+        if sc in self.groups:
+            i = self.groups.pop(sc)
         if i:
             i.stop()
-            self.scenes_by_name.pop(i.name)
+            self.groups_by_name.pop(i.name)
             self.linkSend(["del", i.id])
             persistance.del_checkpoint(i.id)
 
-    def guiPush(self, universes_snapshot):
+    @core.cl_context.entry_point
+    def cl_add_to_active_groups(self, group: Group):
+        if group not in self._active_groups:
+            self._active_groups.append(group)
+
+        self._active_groups = sorted(
+            self._active_groups, key=lambda k: (k.priority, k.started)
+        )
+        self.active_groups = self._active_groups[:]
+
+    @core.cl_context.entry_point
+    def cl_rm_from_active_groups(self, group: Group):
+        if group in self._active_groups:
+            self._active_groups.remove(group)
+            self.active_groups = self._active_groups[:]
+
+        gc.collect()
+        time.sleep(0.01)
+        gc.collect()
+        gc.collect()
+
+    @core.cl_context.entry_point
+    def cl_update_group_priorities(self):
+        self._active_groups = sorted(
+            self._active_groups, key=lambda k: (k.priority, k.started)
+        )
+        self.active_groups = self._active_groups[:]
+
+    @core.cl_context.required
+    def cl_gui_push(self, universes_snapshot):
         "Snapshot is a list of all universes because the getter for that is slow"
-        with core.lock:
-            for i in self.newDataFunctions:
-                i(self)
-            self.newDataFunctions = []
-            for i in universes_snapshot:
-                if self.id not in universes_snapshot[i].statusChanged:
-                    self.linkSend(
-                        [
-                            "universe_status",
-                            i,
-                            universes_snapshot[i].status,
-                            universes_snapshot[i].ok,
-                            universes_snapshot[i].telemetry,
-                        ]
-                    )
-                    universes_snapshot[i].statusChanged[self.id] = True
+        for i in self.newDataFunctions:
+            i(self)
+        self.newDataFunctions = []
+        for i in universes_snapshot:
+            if self.id not in universes_snapshot[i].statusChanged:
+                self.linkSend(
+                    [
+                        "universe_status",
+                        i,
+                        universes_snapshot[i].status,
+                        universes_snapshot[i].ok,
+                        universes_snapshot[i].telemetry,
+                    ]
+                )
+                universes_snapshot[i].statusChanged[self.id] = True
 
-            for i in self.scenes:
-                # Tell clients about any changed alpha values and stuff.
-                if self.id not in self.scenes[i].metadata_already_pushed_by:
-                    self.pushMeta(i, statusOnly=True)
-                    self.scenes[i].metadata_already_pushed_by[self.id] = False
+        for i in self.groups:
+            # Tell clients about any changed alpha values and stuff.
+            if self.id not in self.groups[i].metadata_already_pushed_by:
+                self.pushMeta(i, statusOnly=True)
+                self.groups[i].metadata_already_pushed_by[self.id] = False
 
-            for i in self.active_scenes:
-                # Tell clients about any changed alpha values and stuff.
-                if self.id not in i.metadata_already_pushed_by:
-                    self.pushMeta(i.id)
-                    i.metadata_already_pushed_by[self.id] = False
+        for i in self.active_groups:
+            # Tell clients about any changed alpha values and stuff.
+            if self.id not in i.metadata_already_pushed_by:
+                self.pushMeta(i.id)
+                i.metadata_already_pushed_by[self.id] = False

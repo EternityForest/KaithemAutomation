@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 # SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
+import gc
 import importlib
 import logging
 import os
@@ -10,12 +11,7 @@ from typing import Any, Dict, Optional
 
 import structlog
 
-from kaithem import __version__
-
 from . import config
-
-__version_info__ = __version__.__version_info__
-__version__ = __version__.__version__
 
 structlog.stdlib.recreate_defaults()
 cr = structlog.dev.ConsoleRenderer()
@@ -26,7 +22,9 @@ def import_in_thread(m):
     def f():
         importlib.import_module(m)
 
-    threading.Thread(target=f, daemon=True, name=f"nostartstoplog.importer.{m}").start()
+    threading.Thread(
+        target=f, daemon=True, name=f"nostartstoplog.importer.{m}"
+    ).start()
 
 
 def initialize(cfg: Optional[Dict[str, Any]] = None):
@@ -44,7 +42,6 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
         "mako",
         "mako.lookup",
         "jinja2",
-        "typeguard",
         "multiprocessing",
         "glob",
         "beartype",
@@ -104,7 +101,6 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
         notifications,  # noqa: F401
         persist,  # noqa: F401
         plugin_system,  # noqa: F401
-        selftest,  # noqa: F401
         settings,  # noqa: F401
         signalhandlers,  # noqa: F401
         systasks,  # noqa: F401
@@ -113,7 +109,6 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
         webapproot,  # noqa: F401
         weblogin,  # noqa: F401
         widgets,  # noqa: F401
-        workers,
     )
     from . import config as cfg
     from .chandler import resource_type  # noqa
@@ -126,7 +121,9 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
             from .plugins import CorePluginEventResources
 
             if f.__module__ in CorePluginEventResources.eventsByModuleName:
-                CorePluginEventResources.eventsByModuleName[f.__module__].handle_exception()
+                CorePluginEventResources.eventsByModuleName[
+                    f.__module__
+                ].handle_exception()
             else:
                 print(traceback.format_exc())
 
@@ -135,7 +132,12 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
 
         try:
             if hasattr(f, "__name__") and hasattr(f, "__module__"):
-                logger.exception("Exception in scheduled function " + f.__name__ + " of module " + f.__module__)
+                logger.exception(
+                    "Exception in scheduled function "
+                    + f.__name__
+                    + " of module "
+                    + f.__module__
+                )
         except Exception:
             logger.exception(f"Exception in scheduled function {repr(f)}")
 
@@ -144,7 +146,11 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
         m = f.__module__
         messagebus.post_message(
             "/system/notifications/errors",
-            "Problem in scheduled event function: " + repr(f) + " in module: " + m + ", check logs for more info.",
+            "Problem in scheduled event function: "
+            + repr(f)
+            + " in module: "
+            + m
+            + ", check logs for more info.",
         )
 
     scheduling.handle_first_error = handle_first_error
@@ -166,8 +172,6 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
     modules.initModules()
     logger.info("Loaded modules")
 
-    workers.do(systasks.doUPnP)
-
     try:
         import setproctitle
 
@@ -180,3 +184,8 @@ def start_server():
     from . import webapproot
 
     webapproot.startServer()
+    gc.collect()
+    gc.collect()
+    time.sleep(0.1)
+    gc.collect()
+    gc.collect()

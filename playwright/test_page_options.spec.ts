@@ -1,5 +1,5 @@
 import { test, expect, chromium} from '@playwright/test';
-import { login, logout, deleteModule } from './util';
+import { login, logout, deleteModule, makeModule } from './util';
 
 test('test', async ({ page }) => {
     test.setTimeout(2400000);
@@ -7,12 +7,8 @@ test('test', async ({ page }) => {
     await login(page);
     const brows = await chromium.launch();
 
-    await page.getByRole('link', { name: 'Modules' }).click();
-    await page.getByRole('link', { name: '󰐕 Add' }).click();
-    await page.getByLabel('Name of New Module').click();
-    await page.getByLabel('Name of New Module').fill('testpageoptions');
-    await page.getByRole('button', { name: 'Submit' }).click();
-
+    await makeModule(page, 'testpageoptions');
+    await page.getByTestId('add-resource-button').click();
     await page.getByTestId('add-page').click();
     await page.getByLabel('Name').click();
     await page.getByLabel('Name').fill('test_options');

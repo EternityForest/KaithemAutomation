@@ -17,10 +17,20 @@ from starlette.websockets import WebSocket
 
 from . import auth, directories, settings_overrides
 
-_Lookup = TemplateLookup(directories=[directories.htmldir, os.path.join(directories.htmldir, "makocomponents"), "/"])
+_Lookup = TemplateLookup(
+    directories=[
+        directories.htmldir,
+        os.path.join(directories.htmldir, "makocomponents"),
+        "/",
+    ]
+)
 get_template = _Lookup.get_template
 
 _varLookup = TemplateLookup(directories=[directories.vardir])
+
+
+class KaithemUserPermissionError(PermissionError):
+    pass
 
 
 class HTTPRedirect(Exception):
@@ -45,7 +55,13 @@ class MyCache(jinja2.BytecodeCache):
 
 #
 _jl = jinja2.FileSystemLoader(
-    [directories.htmldir, os.path.join(directories.htmldir, "jinjatemplates"), "/"], encoding="utf-8", followlinks=False
+    [
+        directories.htmldir,
+        os.path.join(directories.htmldir, "jinjatemplates"),
+        "/",
+    ],
+    encoding="utf-8",
+    followlinks=False,
 )
 
 
@@ -65,7 +81,9 @@ str = str
 
 
 def render_jinja_template(n, **kw):
-    return _jl.load(env, n, env.globals).render(imp0rt=importlib.import_module, **kw)
+    return _jl.load(env, n, env.globals).render(
+        imp0rt=importlib.import_module, **kw
+    )
 
 
 def get_vardir_template(fn):
@@ -112,7 +130,21 @@ def get_bar_plugins():
 # There are cases where this may not exactly be perfect,
 # but the point is just an extra guard against user error.
 def isHTTPAllowed(ip):
-    return ip.startswith(("::1", "127.", "::ffff:192.", "::ffff:10.", "192.", "10.", "fc", "fd")) or ip == "::ffff:127.0.0.1"
+    return (
+        ip.startswith(
+            (
+                "::1",
+                "127.",
+                "::ffff:192.",
+                "::ffff:10.",
+                "192.",
+                "10.",
+                "fc",
+                "fd",
+            )
+        )
+        or ip == "::ffff:127.0.0.1"
+    )
 
 
 def getSubdomain():
@@ -159,7 +191,9 @@ def require(permission):
     """
 
     if permission == "__never__":
-        raise RuntimeError("Nobody has the __never__ permission, ever, except in nosecurity mode.")
+        raise RuntimeError(
+            "Nobody has the __never__ permission, ever, except in nosecurity mode."
+        )
 
     if not isinstance(permission, str):
         p = permission
@@ -175,7 +209,10 @@ def require(permission):
         if user == "__no_request__":
             return
 
-        if permission in auth.crossSiteRestrictedPermissions or not auth.getUserSetting(user, "allow-cors"):
+        if (
+            permission in auth.crossSiteRestrictedPermissions
+            or not auth.getUserSetting(user, "allow-cors")
+        ):
             noCrossSite()
 
         # If the special __guest__ user can do it, anybody can.
@@ -192,17 +229,22 @@ def require(permission):
             # This check is really just to be sure nobody accidentally uses HTTP,
             # But localhost and encrypted mesh are legitamate uses of HTTP.
             if not isHTTPAllowed(x):
-                raise PermissionError(permission)
+                raise KaithemUserPermissionError(permission)
 
         if not auth.canUserDoThis(user, permission):
-            raise PermissionError(permission)
+            raise KaithemUserPermissionError(permission)
 
 
 def loginredirect(url):
     if quart.request and not quart.request.method == "GET":
         return quart.redirect("/login")
 
-    return quart.redirect("/login?go=" + base64.b64encode(url.encode()).decode() + "&maxgotime-" + str(time.time() + 300))
+    return quart.redirect(
+        "/login?go="
+        + base64.b64encode(url.encode()).decode()
+        + "&maxgotime-"
+        + str(time.time() + 300)
+    )
 
 
 def geturl():
@@ -244,18 +286,26 @@ def noCrossSite(asgi=None):
             headers = {i.decode(): j.decode() for i, j in headers}
             if headers.get("Origin", ""):
                 if not r.base_url == headers.get("Origin", ""):
-                    raise PermissionError("Cannot make this request from a different origin")
+                    raise PermissionError(
+                        "Cannot make this request from a different origin"
+                    )
 
     else:
         if quart.request.headers.get("Origin", ""):
             # Remove trailing slash
-            if not quart.request.host_url[:-1] == quart.request.headers.get("Origin", ""):
-                raise PermissionError("Cannot make this request from a different origin")
+            if not quart.request.host_url[:-1] == quart.request.headers.get(
+                "Origin", ""
+            ):
+                raise PermissionError(
+                    "Cannot make this request from a different origin"
+                )
 
 
 def strictNoCrossSite():
     if not quart.request.base_url == quart.request.headers.get("Origin", ""):
-        raise PermissionError("Cannot make this request from a different origin, or from a requester that does not provide an origin")
+        raise PermissionError(
+            "Cannot make this request from a different origin, or from a requester that does not provide an origin"
+        )
 
 
 def getAcessingUser(asgi=None, quart_req=None):
@@ -299,7 +349,9 @@ def getAcessingUser(asgi=None, quart_req=None):
                 # Basic auth over http is not secure at all, so we raise an error if we catch it.
                 x = remote_ip
                 if not isHTTPAllowed(x):
-                    raise PermissionError("Cannot make this request from plain http")
+                    raise PermissionError(
+                        "Cannot make this request from plain http"
+                    )
             # Get token using username and password
             auth.userLogin(b[0], b[1])
             # Check the credentials of that token
@@ -318,7 +370,13 @@ def getAcessingUser(asgi=None, quart_req=None):
         user = auth.whoHasToken(cookie["kaithem_auth"])
         if not auth.getUserSetting(user, "allow-cors"):
             if headers.get("Origin", ""):
-                x = headers.get("Origin", "").replace("http://", "").replace("https://", "").replace("ws://", "").replace("wss://", "")
+                x = (
+                    headers.get("Origin", "")
+                    .replace("http://", "")
+                    .replace("https://", "")
+                    .replace("ws://", "")
+                    .replace("wss://", "")
+                )
                 x2 = headers.get("Origin", "")
                 # Cherrypy and tornado compatibility
                 if host not in (x, x2):

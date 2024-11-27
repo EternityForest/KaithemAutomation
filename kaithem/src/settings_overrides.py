@@ -16,13 +16,28 @@ lock = threading.RLock()
 settings_meta: dict[str, dict[str, Any]] = {}
 
 
+@functools.lru_cache(256)
+def normalize_key(key: str) -> str:
+    if key.startswith("/"):
+        key = key[1:]
+    key = key.lower()
+    key = key.replace("  ", " ")
+    key = key.replace("  ", " ")
+    key = key.replace(" ", "_")
+    key = key.replace("-", "_")
+
+    return key
+
+
 def set_meta(key: str, metakey: str, val: Any):
+    key = normalize_key(key)
     with lock:
         settings_meta[key] = settings_meta.get(key, {})
         settings_meta[key][metakey] = val
 
 
 def get_meta(key: str):
+    key = normalize_key(key)
     try:
         return settings_meta[key]
     except KeyError:
@@ -32,12 +47,13 @@ def get_meta(key: str):
 def list_keys() -> list[str]:
     """List all known setting keys"""
     with lock:
-        return [i[0] for i in settings.items() if i[1]]
+        return [normalize_key(i[0]) for i in settings.items() if i[1]]
 
 
 @functools.lru_cache(32)
 def get_by_prefix(prefix: str) -> dict[str, str]:
     r = {}
+    prefix = normalize_key(prefix)
     with lock:
         lst = list_keys()
         for i in lst:
@@ -51,6 +67,7 @@ def get_by_prefix(prefix: str) -> dict[str, str]:
 @functools.lru_cache(256)
 def get_val(key: str) -> str:
     "Returns the highest priority setting for the key"
+    key = normalize_key(key)
     with lock:
         if key in settings:
             p = sorted(list(settings[key].keys()))
@@ -60,7 +77,9 @@ def get_val(key: str) -> str:
 
 
 @beartype.beartype
-def add_val(key: str, value: str, source: str = "<code>", priority: float | int = 0):
+def add_val(
+    key: str, value: str, source: str = "<code>", priority: float | int = 0
+):
     """Add a value for the given key.   If empty string, remove it instead.
     The one with the highest priority is the one that is returned.
     Note that this does not save anything to disk.
@@ -70,6 +89,7 @@ def add_val(key: str, value: str, source: str = "<code>", priority: float | int 
     50= Config File
     """
 
+    key = normalize_key(key)
     value = value.strip()
 
     with lock:

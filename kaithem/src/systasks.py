@@ -2,9 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 import atexit
-import gc
 import logging
-import os
 import platform
 import re
 import socket
@@ -17,7 +15,7 @@ import structlog
 from scullery import scheduling
 from zeroconf import ServiceBrowser, ServiceStateChange
 
-from . import directories, messagebus, persist, unitsofmeasure, util
+from . import messagebus, unitsofmeasure, util
 from .config import config
 
 # very much not thread safe, doesn't matter, it's only for one UI page
@@ -33,7 +31,9 @@ def on_service_state_change(zeroconf, service_type, name, state_change):
         if state_change is ServiceStateChange.Added:
             httpservices.append(
                 (
-                    tuple(sorted([socket.inet_ntoa(i) for i in info.addresses])),
+                    tuple(
+                        sorted([socket.inet_ntoa(i) for i in info.addresses])
+                    ),
                     service_type,
                     name,
                     info.port,
@@ -45,7 +45,11 @@ def on_service_state_change(zeroconf, service_type, name, state_change):
             try:
                 httpservices.remove(
                     (
-                        tuple(sorted([socket.inet_ntoa(i) for i in info.addresses])),
+                        tuple(
+                            sorted(
+                                [socket.inet_ntoa(i) for i in info.addresses]
+                            )
+                        ),
                         service_type,
                         name,
                         info.port,
@@ -58,7 +62,9 @@ def on_service_state_change(zeroconf, service_type, name, state_change):
 # Not common enough to waste CPU all the time on
 # browser = ServiceBrowser(util.zeroconf, "_https._tcp.local.", handlers=[ on_service_state_change])
 
-browser2 = ServiceBrowser(util.zeroconf, "_http._tcp.local.", handlers=[on_service_state_change])
+browser2 = ServiceBrowser(
+    util.zeroconf, "_http._tcp.local.", handlers=[on_service_state_change]
+)
 
 
 # Can't think of anywhere else to put this thing.
@@ -72,11 +78,15 @@ lastsaved = time.time()
 def getcfg():
     global saveinterval, dumplogsinterval, lastdumpedlogs
     if not config["autosave_state"] == "never":
-        saveinterval = unitsofmeasure.time_interval_from_string(config["autosave_state"])
+        saveinterval = unitsofmeasure.time_interval_from_string(
+            config["autosave_state"]
+        )
 
     lastdumpedlogs = time.time()
     if not config["autosave_logs"] == "never":
-        dumplogsinterval = unitsofmeasure.time_interval_from_string(config["autosave_logs"])
+        dumplogsinterval = unitsofmeasure.time_interval_from_string(
+            config["autosave_logs"]
+        )
 
 
 getcfg()
@@ -90,30 +100,7 @@ pageviewsthisminute = 0
 pageviewpublishcountdown = 1
 nminutepagecount = 0
 
-
-upnpMapping = None
 logger = structlog.get_logger(__name__)
-
-
-def doUPnP():
-    global upnpMapping
-    upnpsettingsfile = os.path.join(directories.vardir, "core.settings", "upnpsettings.yaml")
-
-    upnpsettings = persist.getStateFile(upnpsettingsfile)
-    p = upnpsettings.get("wan_port", 0)
-
-    if p:
-        try:
-            lp = config["https_port"]
-            from . import upnpwrapper
-
-            upnpMapping = upnpwrapper.addMapping(p, "TCP", desc="KaithemAutomation web UI", register=True, WANPort=lp)
-        except Exception:
-            logger.exception("Could not create mapping")
-    else:
-        # Going to let GC handle this
-        upnpMapping = None
-        gc.collect()
 
 
 # This gets called when an HTML request is made.
@@ -148,7 +135,7 @@ def check_scheduler():
     rhistory = rhistory[-10:]
     global time_last_minute
     if time_last_minute:
-        if time.time() - (time_last_minute) < 58:
+        if time.monotonic() - (time_last_minute) < 58:
             messagebus.post_message(
                 "/system/notifications/warnings",
                 """Kaithem has detected a scheduled event running
@@ -157,7 +144,34 @@ def check_scheduler():
                   after high load. History:"""
                 + repr(rhistory),
             )
-    time_last_minute = time.time()
+    time_last_minute = time.monotonic()
+
+
+offset = time.time() - time.monotonic()
+
+
+@scheduling.scheduler.every_minute
+def check_time_set():
+    global offset
+    n = time.time() - time.monotonic()
+    if abs(n - offset) > 20:
+        messagebus.post_message(
+            "/system/notifications/warnings",
+            f"System clock has been adjusted by {n - offset} seconds",
+        )
+    elif abs(n - offset) > 2:
+        messagebus.post_message(
+            "/system/notifications",
+            f"System clock is has been adjusted by {n - offset} seconds",
+        )
+
+    if abs(n - offset) > 1:
+        messagebus.post_message(
+            "/system/time_adjusted",
+            f"System clock has been adjusted by {n - offset} seconds",
+        )
+
+    offset = n
 
 
 @scheduling.scheduler.every_minute
@@ -175,7 +189,9 @@ def logstats():
 
     # Only log page views every ten minutes
     if (time.time() > lastpageviews + (60 * 30)) and nminutepagecount > 0:
-        logger.info(f"Requests per minute: {str(round(nminutepagecount / 30, 2))}")
+        logger.info(
+            f"Requests per minute: {str(round(nminutepagecount / 30, 2))}"
+        )
         lastpageviews = time.time()
         nminutepagecount = 0
 
@@ -188,7 +204,9 @@ def logstats():
 
             usedp = round((1 - (free + cache) / float(total)), 3)
             total = round(total / 1024.0, 2)
-            if (time.time() - lastram > (60 * 60)) or ((time.time() - lastram > 600) and usedp > 0.8):
+            if (time.time() - lastram > (60 * 60)) or (
+                (time.time() - lastram > 600) and usedp > 0.8
+            ):
                 logger.info(f"Total ram usage: {str(round(usedp * 100, 1))}")
                 lastram = time.time()
 
@@ -198,7 +216,9 @@ def logstats():
                     if time.time() - lastramwarn > 3600:
                         messagebus.post_message(
                             "/system/notifications/warnings",
-                            "Total System Memory Use rose above " + str(int(config["mem_use_warn"] * 100)) + "%",
+                            "Total System Memory Use rose above "
+                            + str(int(config["mem_use_warn"] * 100))
+                            + "%",
                         )
                         lastramwarn = time.time()
 
@@ -216,8 +236,12 @@ messagebus.subscribe("/system/shutdown", stop_workers)
 
 
 def sd():
-    messagebus.post_message("/system/shutdown", "System about to shut down or restart")
-    messagebus.post_message("/system/notifications/important", "System shutting down now")
+    messagebus.post_message(
+        "/system/shutdown", "System about to shut down or restart"
+    )
+    messagebus.post_message(
+        "/system/notifications/important", "System shutting down now"
+    )
 
 
 sd.priority = 25
@@ -235,35 +259,3 @@ if time.time() < util.min_time:
         "/system/notifications/errors",
         """System Clock may be wrong, or time has been set backwards at some point.""",
     )
-
-
-# If either of these doesn't run at the right time, raise a message
-selftest = [time.monotonic(), time.monotonic()]
-
-lastpost = [0.0]
-
-
-def a():
-    selftest[0] = time.monotonic()
-    if selftest[1] < time.monotonic() - 40:
-        if lastpost[0] < time.monotonic() - 600:
-            lastpost[0] = time.monotonic()
-            messagebus.post_message(
-                "/system/notifications/errors",
-                "Something caused a scheduler continual selftest function not to run.",
-            )
-
-
-def b():
-    selftest[1] = time.monotonic()
-    if selftest[0] < time.monotonic() - 40:
-        if lastpost[0] < time.monotonic() - 600:
-            lastpost[0] = time.monotonic()
-            messagebus.post_message(
-                "/system/notifications/errors",
-                "Something caused a scheduler continual selftest function not to run.",
-            )
-
-
-scheduling.scheduler.every(a, 20)
-scheduling.scheduler.every(b, 20)

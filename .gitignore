@@ -19,3 +19,12 @@ node_modules/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+button_images_pack
+sounds_pack
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/kaithem/src/__pycache__/**
+/kaithem/src/chandler/__pycache__/**

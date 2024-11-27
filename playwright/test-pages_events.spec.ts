@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { login, logout } from './util';
+import { deleteModule, login, logout, makeModule } from './util';
 
 test('test', async ({ page }) => {
     /*
@@ -11,13 +11,12 @@ test('test', async ({ page }) => {
     await login(page);
 
     // Create a module
-    await page.getByRole('link', { name: 'Modules' }).click();
-    await page.getByRole('link', { name: 'Add' }).click();
-    await page.getByLabel('Name of New Module').click();
-    await page.getByLabel('Name of New Module').fill('PlaywrightBasicModuleFeatures');
-    await page.getByRole('button', { name: 'Submit' }).click();
+    await makeModule(page, 'PlaywrightBasicModuleFeatures');
+
 
     // Create a page
+    await page.getByTestId('add-resource-button').click();
+
     await page.getByRole('link', { name: 'Page' }).click();
     await page.getByLabel('Name').click();
     await page.getByLabel('Name').fill('p1');
@@ -41,6 +40,7 @@ test('test', async ({ page }) => {
     await expect(page.getByRole('link', { name: 'p1 (page)' })).toContainText('p1 (page)');
 
     // Create an event
+    await page.getByTestId('add-resource-button').click();
     await page.getByRole('link', { name: 'Event' }).click();
     await page.getByLabel('Name').click();
     await page.getByLabel('Name').fill('e1');
@@ -49,11 +49,20 @@ test('test', async ({ page }) => {
 
     await page.locator('#triggerbox').fill('True');
     await page.getByRole('button', { name: 'Save Changes' }).click();
+
+    await page.goto("http://localhost:8002/modules/module/PlaywrightBasicModuleFeatures")
+    await page.goto("http://localhost:8002/modules/module/PlaywrightBasicModuleFeatures")
+
+    
     await expect(page.getByText('Trigger: True Last Ran:')).toContainText('ago');
     await page.getByRole('link', { name: 'e1 (event)' }).click();
 
+    // Waste some time
+    await page.goto("http://localhost:8002/modules/module/PlaywrightBasicModuleFeatures")
+    await page.goto("http://localhost:8002/modules/module/PlaywrightBasicModuleFeatures")
+
     // Check for the "this last ran X seconds ago"
-    await expect(page.getByRole('paragraph')).toContainText('ago');
+    await expect(page.getByText('Trigger: True')).toContainText('ago');
     await page.goto("http://localhost:8002/modules/module/PlaywrightBasicModuleFeatures#resources");
 
     // Rename the page
@@ -78,16 +87,18 @@ test('test', async ({ page }) => {
     await page.getByLabel('New Name').click();
     await page.getByLabel('New Name').fill('e1_new');
     await page.getByRole('button', { name: 'Submit' }).click();
+    //Waste time
+    await page.goto("http://localhost:8002/modules/module/PlaywrightBasicModuleFeatures")
+    await page.goto("http://localhost:8002/modules/module/PlaywrightBasicModuleFeatures")
+
     await expect(page.getByText('Trigger: True Last Ran:')).toContainText('ago');
 
 
     await page.getByRole('link', { name: 'e1_new (event)' }).click();
     await expect(page.locator('h2')).toContainText('e1_new');
-    await page.getByRole('link', { name: 'Modules' }).click();
-    await page.getByRole('link', { name: 'Delete' }).click();
-    await page.getByLabel('Name').click();
-    await page.getByLabel('Name').fill('PlaywrightBasicModuleFeatures');
-    await page.getByRole('button', { name: 'Submit' }).click();
+ 
+    await deleteModule(page, 'PlaywrightBasicModuleFeatures');
+
     await expect(page.getByRole('heading')).toContainText('Modules');
     await logout(page);
 });

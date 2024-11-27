@@ -68,7 +68,9 @@ class AddNavBarItemAction(ModuleAction):
         if "title" not in kwargs:
             s = SimpleDialog("Add link to nav bar")
             s.text_input("url", title="URL")
-            s.text("List of usable icons: https://pictogrammers.com/library/mdi/")
+            s.text(
+                "List of usable icons: https://pictogrammers.com/library/mdi/"
+            )
             s.text_input("icon", title="MDI Icon", default="circle-box")
             s.text_input("title")
             s.submit_button("Create")
@@ -78,7 +80,13 @@ class AddNavBarItemAction(ModuleAction):
             r = kwargs["title"].lower().replace(" ", "_")
             r += "_navbar"
 
-            v = ("mdi-" + kwargs["icon"]).replace("mdi-mdi-", "mdi-") + " " + kwargs["title"] + " : " + kwargs["url"]
+            v = (
+                ("mdi-" + kwargs["icon"]).replace("mdi-mdi-", "mdi-")
+                + " "
+                + kwargs["title"]
+                + " : "
+                + kwargs["url"]
+            )
             k = "/core/navbar_links/" + r
 
             addConfigResource(self.context["module"], r, k, v)

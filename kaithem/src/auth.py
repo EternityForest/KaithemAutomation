@@ -36,7 +36,14 @@ lock = threading.RLock()
 default_data = {
     "groups": {
         "Administrators": {"permissions": ["__all_permissions__"]},
-        "Guests": {"permissions": ["view_admin_info", "view_admin_info", "view_status", "enumerate_endpoints"]},
+        "Guests": {
+            "permissions": [
+                "view_admin_info",
+                "view_admin_info",
+                "view_status",
+                "enumerate_endpoints",
+            ]
+        },
     },
     "users": {
         "__guest__": {
@@ -104,7 +111,7 @@ BasePermissions: dict[str, str] = {
     "view_devices": "The default permission used to expose device points for reading, but devices can be configured to use others.",
     "write_devices": "The default permission used to expose device points for writing, but devices can be configured to use others.",
     "own_account_settings": "Edit ones own account preferences",
-    "chandler_operator": "Access the Chandler console, jump to cues, change input fields.  Does not allow editing settings or scenes.",
+    "chandler_operator": "Access the Chandler console, jump to cues, change input fields.  Does not allow editing settings or groups.",
     "__guest__": "Everyone always has this permission even when not logged in",
     "__all_permissions__": "Special universal permission that grants all permissions in the system. Use with care.",
 }
@@ -143,14 +150,25 @@ def importPermissionsFromModules() -> None:
     list of modules that can be assigned, and delete any that are no loger defined
     in modules."""
 
-    p2: dict[str, modules_state.ResourceDictType] = {i: {"description": BasePermissions[i]} for i in BasePermissions}
+    p2: dict[str, modules_state.ResourceDictType] = {
+        i: {"description": BasePermissions[i]} for i in BasePermissions
+    }
     with modules_state.modulesLock:
-        for module in modules_state.ActiveModules.copy():  # Iterate over all modules
+        for (
+            module
+        ) in modules_state.ActiveModules.copy():  # Iterate over all modules
             # for every resource of type permission
             for resource in modules_state.ActiveModules[module].copy():
-                if modules_state.ActiveModules[module][resource]["resource_type"] == "permission":
+                if (
+                    modules_state.ActiveModules[module][resource][
+                        "resource_type"
+                    ]
+                    == "permission"
+                ):
                     # add it to the permissions list
-                    p2[resource.split("/")[-1]] = modules_state.ActiveModules[module][resource]
+                    p2[resource.split("/")[-1]] = modules_state.ActiveModules[
+                        module
+                    ][resource]
     global Permissions
     Permissions = p2
 
@@ -182,7 +200,9 @@ def changePassword(user, newpassword, useSystem=False) -> None:
 
         Users[user].pop("salt", None)
         Users[user]["algorithm"] = "argon2id"
-        ph = PasswordHasher(memory_cost=8192, time_cost=1, parallelism=4, hash_len=32)
+        ph = PasswordHasher(
+            memory_cost=8192, time_cost=1, parallelism=4, hash_len=32
+        )
         m = ph.hash(newpassword)
         Users[user]["password"] = m
         dumpDatabase()
@@ -274,7 +294,10 @@ def loadFromData(
         str,
         dict[
             str,
-            dict[str, list[str]] | dict[str, dict[str, int] | list[str]] | dict[str, list[str] | str | dict[str, bool]] | dict[str, str],
+            dict[str, list[str]]
+            | dict[str, dict[str, int] | list[str]]
+            | dict[str, list[str] | str | dict[str, bool]]
+            | dict[str, str],
         ],
     ],
 ) -> bool:
@@ -306,17 +329,30 @@ def initializeAuthentication() -> None:
         # If no file use default but set filename anyway so the dump function will work
         # Gets the highest numbered of all directories that are named after floating point values(i.e. most recent timestamp)
 
-        if os.path.exists(os.path.join(directories.usersdir, "data", "users.json")):
+        if os.path.exists(
+            os.path.join(directories.usersdir, "data", "users.json")
+        ):
             try:
-                tryToLoadFrom(os.path.join(directories.usersdir, "data", "users.json"))
+                tryToLoadFrom(
+                    os.path.join(directories.usersdir, "data", "users.json")
+                )
             except Exception as e:
-                logger.exception("Error loading auth data, no users or groups loaded")
-                messagebus.post_message("/system/notifications/errors", "Error loading auth data, no users or groups loaded:\n" + str(e))
+                logger.exception(
+                    "Error loading auth data, no users or groups loaded"
+                )
+                messagebus.post_message(
+                    "/system/notifications/errors",
+                    "Error loading auth data, no users or groups loaded:\n"
+                    + str(e),
+                )
 
         else:
             loadFromData(default_data)
             addLinuxSystemUser()
-            messagebus.post_message("/system/notifications/warnings", "No auth data found, using default admin user")
+            messagebus.post_message(
+                "/system/notifications/warnings",
+                "No auth data found, using default admin user",
+            )
 
 
 def generateUserPermissions(username: None = None) -> None:
@@ -333,14 +369,18 @@ def generateUserPermissions(username: None = None) -> None:
             for j in Users[i].get("groups", []):
                 # Handle nonexistant groups
                 if j not in Groups:
-                    logger.warning("User " + i + " is member of nonexistant group " + j)
+                    logger.warning(
+                        "User " + i + " is member of nonexistant group " + j
+                    )
 
                 for k in Groups[j]["permissions"]:
                     newp.append(k)
 
                 # A user has access to the highest limit of all the groups he's in
                 for k in Groups[j].get("limits", {}):
-                    limits[k] = max(Groups[j].get("limits", {})[k], limits.get(k, 0))
+                    limits[k] = max(
+                        Groups[j].get("limits", {})[k], limits.get(k, 0)
+                    )
 
             Users[i].limits = limits
 
@@ -352,7 +392,9 @@ def generateUserPermissions(username: None = None) -> None:
 
             for j in Users[i].get("permissions", []):
                 if j not in newp:
-                    messagebus.post_message("/system/permissions/rmfromuser", (i, j))
+                    messagebus.post_message(
+                        "/system/permissions/rmfromuser", (i, j)
+                    )
 
             # Speed up by using a set
             Users[i].permissions = set(newp)
@@ -399,7 +441,10 @@ def userLogin(username, password) -> str:
 
         # pragma: allowlist nextline secret
         if (
-            username in Users and ("password" in Users[username]) and Users[username]["password"] == "system"  # pragma: allowlist secret
+            username in Users
+            and ("password" in Users[username])
+            and Users[username]["password"]
+            == "system"  # pragma: allowlist secret
         ):
             runningUser = getpass.getuser()
             if runningUser in (username, "root"):
@@ -433,9 +478,16 @@ def userLogin(username, password) -> str:
             if Users[username].get("algorithm", "sha256") == "sha256":
                 m = hashlib.sha256()
                 m.update(usr_bytes(password, "utf8"))
-                m.update(base64.b64decode(Users[username]["salt"].encode("utf8")))
+                m.update(
+                    base64.b64decode(Users[username]["salt"].encode("utf8"))
+                )
                 m = m.digest()
-                if hmac.compare_digest(base64.b64decode(Users[username]["password"].encode("utf8")), m):
+                if hmac.compare_digest(
+                    base64.b64decode(
+                        Users[username]["password"].encode("utf8")
+                    ),
+                    m,
+                ):
                     # We can't just always assign a new token because that would break multiple
                     # Logins as same user
                     if not Users[username].token:
@@ -493,11 +545,15 @@ def dumpDatabase() -> bool:
         os.makedirs(p, exist_ok=True)
         util.chmod_private_try(p)
         with open(os.path.join(p, "users.json~"), "w") as f:
-            util.chmod_private_try(os.path.join(p, "users.json~"), execute=False)
+            util.chmod_private_try(
+                os.path.join(p, "users.json~"), execute=False
+            )
             # pretty print
             json.dump(temp, f, sort_keys=True, indent=4, separators=(",", ": "))
 
-        shutil.move(os.path.join(p, "users.json~"), os.path.join(p, "users.json"))
+        shutil.move(
+            os.path.join(p, "users.json~"), os.path.join(p, "users.json")
+        )
 
         authchanged = False
         return True
@@ -624,7 +680,9 @@ def getUserSetting(username: str, setting: str) -> Any:
         return defaultusersettings[setting]
 
 
-def getUserLimit(user: str, limit: str, maximum: int | float = 2**64) -> float | int:
+def getUserLimit(
+    user: str, limit: str, maximum: int | float = 2**64
+) -> float | int:
     """Return the user's limit for any limit category, or 0 if not set.
     Limit to maximum.
     If user has __all_permissions__, limit _is_ maximum.
@@ -636,7 +694,9 @@ def getUserLimit(user: str, limit: str, maximum: int | float = 2**64) -> float |
 
     if user in Users:
         if "__all_permissions__" not in Users[user].permissions:
-            val = max(min(Users[user].limits.get(limit, 0), maximum), guestlimit)
+            val = max(
+                min(Users[user].limits.get(limit, 0), maximum), guestlimit
+            )
         else:
             val = maximum
         return min(val, maximum)
@@ -659,10 +719,16 @@ def canUserDoThis(user: str, permission: str) -> bool:
     if permission == "__guest__":
         return True
     if user not in Users:
-        if "__guest__" in Users and permission in Users["__guest__"].permissions:
+        if (
+            "__guest__" in Users
+            and permission in Users["__guest__"].permissions
+        ):
             return True
         else:
-            if "__guest__" in Users and "__all_permissions__" in Users["__guest__"].permissions:
+            if (
+                "__guest__" in Users
+                and "__all_permissions__" in Users["__guest__"].permissions
+            ):
                 return True
 
         return False
@@ -673,10 +739,16 @@ def canUserDoThis(user: str, permission: str) -> bool:
     if "__all_permissions__" in Users[user].permissions:
         return True
 
-    if "__guest__" in Users and "__all_permissions__" in Users["__guest__"].permissions:
+    if (
+        "__guest__" in Users
+        and "__all_permissions__" in Users["__guest__"].permissions
+    ):
         return True
 
-    if "__guest__" in Users and "__all_permissions__" in Users["__guest__"].permissions:
+    if (
+        "__guest__" in Users
+        and "__all_permissions__" in Users["__guest__"].permissions
+    ):
         return True
 
     return False

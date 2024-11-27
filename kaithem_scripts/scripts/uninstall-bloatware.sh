@@ -31,7 +31,12 @@
 ! apt purge -y smartsim
 ! apt purge -y kicad
 
-# I would like to get rid of this but people seem to like it so much it will stir up trouble... leave it on distros that have it
+## Remove everythng starting with exim
+apt -y purge exim4*
+
+
+# I would like to get rid of this but people seem to like it so much
+# If it will stir up trouble... leave it on distros that have it
 # ! apt-get -y purge firefox
 
 
@@ -51,7 +56,8 @@
 # Might need to use this if you get chrome file chooser crashes.
 # ! apt purge -y xdg-desktop-portal
 
-! apt purge -y mu-editor
+# Actually thi might be useful.
+# ! apt purge -y mu-editor
 
 ! rm -r /opt/Wolfram
 ! rm -r /usr/share/code-the-classics

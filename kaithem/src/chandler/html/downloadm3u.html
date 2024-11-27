@@ -6,4 +6,4 @@ from kaithem.src.chandler import m3u_io
     cherrypy.response.headers['Content-Disposition'] = 'download; filename='+kwargs['name']+'.m3u'
     cherrypy.response.headers['Content-Type'] = 'application/mpegurl'
 %>
-${m3u_io.get_m3u(module.board.scenememory[kwargs['id']] ,kwargs['rel'])}
+${m3u_io.get_m3u(module.board.groupmemory[kwargs['id']] ,kwargs['rel'])}

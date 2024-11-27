@@ -24,7 +24,9 @@ class Command:
         logger.warning("CLI command deleted.  Did someone forget a weak ref?")
 
 
-commands: weakref.WeakValueDictionary[str, Command] = weakref.WeakValueDictionary()
+commands: weakref.WeakValueDictionary[str, Command] = (
+    weakref.WeakValueDictionary()
+)
 
 # This key is meant to ensure that nobody other than the user running
 # the kaithem process can access the api.

@@ -12,25 +12,35 @@ import subprocess
 import threading
 import time
 import traceback
+from typing import Coroutine
 
 import quart
 import quart.utils
 import structlog
+import vignette
 from quart.ctx import copy_current_request_context
 
-from . import auth, directories, kaithemobj, messagebus, pages, persist, quart_app, weblogin
+from . import (
+    auth,
+    directories,
+    kaithemobj,
+    messagebus,
+    pages,
+    persist,
+    quart_app,
+    weblogin,
+)
 
-notificationsfn = os.path.join(directories.vardir, "core.settings", "pushnotifications.toml")
+notificationsfn = os.path.join(
+    directories.vardir, "core.settings", "pushnotifications.toml"
+)
 
 pushsettings = persist.getStateFile(notificationsfn)
 
 
-upnpsettingsfile = os.path.join(directories.vardir, "core.settings", "upnpsettings.yaml")
-
-upnpsettings = persist.getStateFile(upnpsettingsfile)
-
-
-redirectsfn = os.path.join(directories.vardir, "core.settings", "httpredirects.toml")
+redirectsfn = os.path.join(
+    directories.vardir, "core.settings", "httpredirects.toml"
+)
 
 
 if os.path.exists(redirectsfn):
@@ -44,14 +54,6 @@ def setRedirect(url):
     persist.save(redirects, redirectsfn)
 
 
-displayfn = os.path.join(directories.vardir, "core.settings", "display.toml")
-
-if os.path.exists(displayfn):
-    display = persist.load(displayfn)
-else:
-    display = {"__first__": {"rotate": ""}}
-
-
 fix_alsa = """
 /bin/amixer set Master 100%
 /bin/amixer -c 1 set PCM 100%
@@ -60,27 +62,6 @@ fix_alsa = """
 /bin/amixer set Speaker 100%
 exit 0
 """
-
-
-def setScreenRotate(direction):
-    if direction not in ("", "left", "right", "normal", "invert"):
-        raise RuntimeError("Security!!!")
-    os.system(
-        """DISPLAY=:0 xrandr --output $(DISPLAY=:0 xrandr | grep -oP  -m 1 '^(.*) (.*)connected' | cut -d" " -f1) --rotate """ + direction
-    )
-    display["__first__"]["rotate"] = direction
-    persist.save(display, displayfn, private=True)
-
-
-if display.get("__first__", {}).get("rotate", ""):
-    try:
-        os.system(
-            "DISPLAY=:0 xrandr --output $(DISPLAY=:0 xrandr | grep -oP  -m 1 '^(.*) (.*)connected' | cut -d"
-            " -f1) --rotate " + display.get("__first__", {}).get("rotate", "")
-        )
-    except Exception:
-        pass
-
 
 NULL = 0
 
@@ -100,7 +81,9 @@ def ctype_async_raise(thread_obj, exception):
     if not found:
         raise ValueError("Invalid thread object")
 
-    ret = ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(target_tid), ctypes.py_object(exception))
+    ret = ctypes.pythonapi.PyThreadState_SetAsyncExc(
+        ctypes.c_long(target_tid), ctypes.py_object(exception)
+    )
     # ref: http://docs.python.org/c-api/init.html#PyThreadState_SetAsyncExc
     if ret == 0:
         raise ValueError("Invalid thread ID")
@@ -108,7 +91,9 @@ def ctype_async_raise(thread_obj, exception):
         # Huh? Why would we notify more than one threads?
         # Because we punch a hole into C level interpreter.
         # So it is better to clean up the mess.
-        ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(target_tid), NULL)
+        ctypes.pythonapi.PyThreadState_SetAsyncExc(
+            ctypes.c_long(target_tid), NULL
+        )
         raise SystemError("PyThreadState_SetAsyncExc failed")
 
 
@@ -203,16 +188,6 @@ def mdns():
 
 
 @legacy_route
-def upnp():
-    """Return a page showing all of the discovered stuff on the LAN"""
-    try:
-        pages.require("system_admin")
-    except PermissionError:
-        return pages.loginredirect(pages.geturl())
-    return pages.get_template("settings/upnp.html").render()
-
-
-@legacy_route
 def stopsounds():
     """Used to stop all sounds currently being played via kaithem's sound module"""
     try:
@@ -251,13 +226,16 @@ def gcsweep():
 
 @quart_app.app.route("/settings/files", methods=["GET", "POST"])
 @quart_app.app.route("/settings/files/<path:path>", methods=["GET", "POST"])
-async def files(path="", *args, **kwargs):
+async def files(path=""):
     """Return a file manager. Kwargs may contain del=file to delete a file. The rest of the path is the directory to look in."""
     try:
         pages.require("system_admin")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
     dir = os.path.join("/", path)
+
+    kwargs = dict(await quart.request.form)
+    kwargs.update(quart.request.args)
 
     files = await quart.request.files
     if "file" in files:
@@ -306,22 +284,32 @@ async def files(path="", *args, **kwargs):
             if os.path.isdir(dir):
                 return pages.get_template("settings/files.html").render(dir=dir)
             else:
+                if "thumbnail" in kwargs:
+                    t = vignette.try_get_thumbnail(dir)
+                    if t:
+                        return quart.send_file(t)
+                    else:
+                        return ""
+
                 return quart.send_file(dir)
         except Exception:
             return traceback.format_exc()
 
-    return await f()
+    x = await f()
+    if isinstance(x, Coroutine):
+        x = await x
+
+    return x
 
 
-@legacy_route
+@quart_app.app.route("/settings/cnfdel/<path:path>")
 def cnfdel(
-    *args,
+    path,
 ):
     try:
         pages.require("system_admin")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
-    path = os.path.join("/", *args)
     return pages.get_template("settings/cnfdel.html").render(path=path)
 
 
@@ -389,11 +377,6 @@ def changeprefs(**kwargs):
         return pages.loginredirect(pages.geturl())
     pages.postOnly()
 
-    if "tabtospace" in kwargs:
-        auth.setUserSetting(pages.getAcessingUser(), "tabtospace", True)
-    else:
-        auth.setUserSetting(pages.getAcessingUser(), "tabtospace", False)
-
     for i in kwargs:
         if i.startswith("pref_"):
             if i not in ["pref_strftime", "pref_timezone", "email"]:
@@ -401,7 +384,9 @@ def changeprefs(**kwargs):
             # Filter too long values
             auth.setUserSetting(pages.getAcessingUser(), i[5:], kwargs[i][:200])
 
-    auth.setUserSetting(pages.getAcessingUser(), "allow-cors", "allowcors" in kwargs)
+    auth.setUserSetting(
+        pages.getAcessingUser(), "allow-cors", "allowcors" in kwargs
+    )
 
     return quart.redirect("/settings/account")
 
@@ -416,7 +401,9 @@ def changeinfo(**kwargs):
     if len(kwargs["email"]) > 120:
         raise RuntimeError("Limit 120 chars for email address")
     auth.setUserSetting(pages.getAcessingUser(), "email", kwargs["email"])
-    messagebus.post_message("/system/auth/user/changedemail", pages.getAcessingUser())
+    messagebus.post_message(
+        "/system/auth/user/changedemail", pages.getAcessingUser()
+    )
     return quart.redirect("/settings/account")
 
 
@@ -439,7 +426,9 @@ def changepwd(**kwargs):
             return quart.redirect("/errors/mismatch")
     else:
         return quart.redirect("/errors/loginerror")
-    messagebus.post_message("/system/auth/user/selfchangedepassword", pages.getAcessingUser())
+    messagebus.post_message(
+        "/system/auth/user/selfchangedepassword", pages.getAcessingUser()
+    )
 
     return quart.redirect("/")
 
@@ -479,32 +468,19 @@ def set_time_from_web(**kwargs):
         return pages.loginredirect(pages.geturl())
     pages.postOnly()
     t = float(kwargs["time"])
-    subprocess.call(["date", "-s", datetime.datetime.fromtimestamp(t, tz=datetime.timezone.utc).isoformat()])
+    subprocess.call(
+        [
+            "date",
+            "-s",
+            datetime.datetime.fromtimestamp(
+                t, tz=datetime.timezone.utc
+            ).isoformat(),
+        ]
+    )
     try:
         subprocess.call(["sudo", "hwclock", "--systohc"])
     except Exception:
         pass
-
-    return quart.redirect("/settings/system")
-
-
-@legacy_route
-def changealertsettingstarget(**kwargs):
-    try:
-        pages.require("system_admin")
-    except PermissionError:
-        return pages.loginredirect(pages.geturl())
-    pages.postOnly()
-    from . import alerts
-
-    alerts.file["warning"]["interval"] = float(kwargs["warningbeeptime"])
-    alerts.file["error"]["interval"] = float(kwargs["errorbeeptime"])
-    alerts.file["critical"]["interval"] = float(kwargs["critbeeptime"])
-    alerts.file["warning"]["file"] = kwargs["warningsound"]
-    alerts.file["error"]["file"] = kwargs["errorsound"]
-    alerts.file["critical"]["file"] = kwargs["critsound"]
-    alerts.file["all"]["soundcard"] = kwargs["soundcard"]
-    alerts.saveSettings()
 
     return quart.redirect("/settings/system")
 
@@ -527,7 +503,9 @@ def changesettingstarget(**kwargs):
         timezone=kwargs["timezone"],
     )
 
-    messagebus.post_message("/system/settings/changedelocation", pages.getAcessingUser())
+    messagebus.post_message(
+        "/system/settings/changedelocation", pages.getAcessingUser()
+    )
     return quart.redirect("/settings/system")
 
 
@@ -543,7 +521,10 @@ def changepushsettings(**kwargs):
 
     pushsettings.set("apprise_target", t.strip())
 
-    messagebus.post_message("/system/notifications/important", "Push notification config was changed")
+    messagebus.post_message(
+        "/system/notifications/important",
+        "Push notification config was changed",
+    )
 
     return quart.redirect("/settings/system")
 
@@ -556,17 +537,6 @@ def changeredirecttarget(**kwargs):
         return pages.loginredirect(pages.geturl())
     pages.postOnly()
     setRedirect(kwargs["url"])
-    return quart.redirect("/settings/system")
-
-
-@legacy_route
-def changerotationtarget(**kwargs):
-    try:
-        pages.require("system_admin")
-    except PermissionError:
-        return pages.loginredirect(pages.geturl())
-    pages.postOnly()
-    setScreenRotate(kwargs["rotate"])
     return quart.redirect("/settings/system")
 
 
@@ -603,7 +573,9 @@ def ip_geolocate():
         discovered_location["countryCode"],
     )
 
-    messagebus.post_message("/system/settings/changedelocation", pages.getAcessingUser())
+    messagebus.post_message(
+        "/system/settings/changedelocation", pages.getAcessingUser()
+    )
     return quart.redirect("/settings/system")
 
 
@@ -660,7 +632,9 @@ def bytotal():
         pages.require("system_admin")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
-    return pages.get_template("settings/profiler/index.html").render(sort="total")
+    return pages.get_template("settings/profiler/index.html").render(
+        sort="total"
+    )
 
 
 @legacy_route_prf
@@ -680,7 +654,9 @@ def start():
             logging.exception("CPU time profiling not supported")
 
     time.sleep(0.5)
-    messagebus.post_message("/system/settings/activatedprofiler", pages.getAcessingUser())
+    messagebus.post_message(
+        "/system/settings/activatedprofiler", pages.getAcessingUser()
+    )
     return quart.redirect("/settings/profiler")
 
 

@@ -1,6 +1,4 @@
 {
-    "python.pythonPath": "/usr/bin/python3",
-
     "files.exclude": {
         "helpers/debianpackaging/package/usr/**": true,
         ".mypy_cache": true,
@@ -18,16 +16,19 @@
     },
     "python.autoComplete.extraPaths": [
         "kaithem/src/thirdparty",
-        "kaithem/src/docs/thirdparty/python**"
+        "kaithem/src/docs/thirdparty/python**",
+        ".venv/lib/*/site-packages"
     ],
     "python.analysis.extraPaths": [
-        "kaithem/src/docs/thirdparty/"
+        "kaithem/src/docs/thirdparty/",
+        ".venv/lib/*/site-packages"
     ],
     "editor.formatOnSave": false,
     "editor.formatOnType": true,
     "html.format.templating": true,
+    "html.format.wrapLineLength": 80,
     "pylint.args": [
-        " \"--max-line-length=120\""
+        " \"--max-line-length=80\""
     ],
 
     "LineCount.includes": [
@@ -42,6 +43,65 @@
             "**/.isolated_venv/**"
             ],
             "python.testing.pytestEnabled": true,
-            "python.testing.cwd": ""
+            "python.testing.cwd": "",
+            "cSpell.allowCompoundWords": true,
+            "cSpell.words": [
+                "amixer",
+                "app",
+                "asgi",
+                "astype",
+                "asuser",
+                "bytesio",
+                "camelify",
+                "cueid",
+                "damerau",
+                "DGRAM",
+                "dmx",
+                "dtype",
+                "enttec",
+                "enttecopen",
+                "Fadein",
+                "flac",
+                "fstat",
+                "goto",
+                "groupid",
+                "hfader",
+                "id",
+                "insta",
+                "kaithem",
+                "kaithemobj",
+                "mdicons",
+                "mqtt",
+                "Mqtt",
+                "nord",
+                "olde",
+                "onchange",
+                "paho",
+                "py",
+                "pymodule",
+                "recalc",
+                "reentrancy",
+                "REUSEADDR",
+                "rrule",
+                "rtmidi",
+                "sceneid",
+                "snakify",
+                "starlette",
+                "strftime",
+                "stringly",
+                "testid",
+                "tobytes",
+                "tz",
+                "unitsofmeasure",
+                "unurl",
+                "urandom",
+                "Vals",
+                "vue",
+                "webp",
+                "werkzeug",
+                "ws"
+            ],
+            "python.analysis.typeCheckingMode": "standard",
+            "vue-format.break_attr_limit": 2
 
 }

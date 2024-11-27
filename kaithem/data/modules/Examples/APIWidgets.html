@@ -2,9 +2,9 @@
 allow_origins:
 - '*'
 allow_xss: false
-alt-top-banner: ''
-auto-reload: false
-auto-reload-interval: 5.0
+alt_top_banner: ''
+auto_reload: false
+auto_reload_interval: 5.0
 code: ''
 mimetype: text/html
 no_header: false
@@ -13,16 +13,15 @@ require_method:
 - GET
 - POST
 require_permissions: []
-resource-timestamp: 1713116971217800
-resource-type: page
-setupcode: "from kaithem.api.widgets import APIWidget\r\n\r\nt = APIWidget(echo=False,\
+resource_timestamp: 1713116971217800
+resource_type: page
+setupcode: "from kaithem.api.widgets import APIWidget\r\n\r\napi = APIWidget(echo=False,\
   \ id=\"YourWidgetID\")\r\n\r\ndef f(user: str, value, connection_id: str):\r\n \
-  \   t.send_to(f\"Echoing {value} from {user} on {connection_id}\", connection_id)\r\
-  \n\r\nt.attach2(f)\r\n\r\n# This returns an HTML string to embed in a page\r\n#\
-  \ which also includes /static/js/widget.js\r\n\r\nt.render(\"js_var_name\")"
-streaming-response: false
+  \   api.send_to(f\"Echoing {value} from {user} on {connection_id}\", connection_id)\r\
+  \n\r\napi.attach2(f)\r\n"
+streaming_response: false
 template_engine: jinja2
-theme-css-url: ''
+theme_css_url: ''
 
 ---
 {% extends "pagetemplate.j2.html" %}
@@ -30,9 +29,11 @@ theme-css-url: ''
 {% block title %}APIWidget Example{% endblock %}
 
 {% block body %}
-{{t.render("api")}}
 
-<script>
+<script type="module">
+    import { kaithemapi, APIWidget} from "/static/js/widget.mjs"
+    let api = new APIWidget("{{api.uuid}}");
+
     api.upd = (val) => alert(val)
     api.send("MyValue")
 </script>

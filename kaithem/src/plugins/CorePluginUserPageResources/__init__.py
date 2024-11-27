@@ -20,16 +20,26 @@ import mako.template
 import quart
 import quart.utils
 import structlog
+import vignette
 import yaml
 
 # import tornado.exceptions
 from mako.lookup import TemplateLookup
 from quart.ctx import copy_current_request_context
-from scullery import snake_compat
+from scullery import snake_compat, units
 
 from kaithem.api.web import add_asgi_app, render_jinja_template
 from kaithem.api.web.dialogs import SimpleDialog
-from kaithem.src import auth, directories, messagebus, modules_state, pages, settings_overrides, theming, util
+from kaithem.src import (
+    auth,
+    directories,
+    messagebus,
+    modules_state,
+    pages,
+    settings_overrides,
+    theming,
+    util,
+)
 from kaithem.src.util import url
 
 from . import fileserver
@@ -129,19 +139,17 @@ def lookup(module, args):
     else:
         m = {}
 
-    resourcename = "/".join(resource_path)
-
-    # Since . cannot appear in a resource name, replace it with _
-    resourcename = resourcename.replace(".", "_")
-
-    if resourcename in m:
-        return _pages_by_module_resource[module][resourcename]
-
     if "/".join(resource_path + ("__index__",)) in m:
-        return _pages_by_module_resource[module]["/".join(resource_path + ["__index__"])]
+        return _pages_by_module_resource[module][
+            "/".join(resource_path + ["__index__"])
+        ]
     resource_path = list(resource_path)
     while resource_path:
-        resource_path.pop()
+        resourcename = "/".join(resource_path)
+
+        # Since . cannot appear in a resource name, replace it with _
+        resourcename = resourcename.replace(".", "_")
+
         if resourcename in m:
             return _pages_by_module_resource[module][resourcename]
         x = "/".join(resource_path)
@@ -149,10 +157,15 @@ def lookup(module, args):
             return fileserver.by_module_resource[module, x]
 
         if "/".join(resource_path + ["__index__"]) in m:
-            return _pages_by_module_resource[module]["/".join(resource_path + ["__index__"])]
+            return _pages_by_module_resource[module][
+                "/".join(resource_path + ["__index__"])
+            ]
 
         if "/".join(resource_path + ["__default__"]) in m:
             return m["/".join(resource_path + ["__default__"])]
+
+        resource_path.pop()
+
     return None
 
 
@@ -246,16 +259,34 @@ class CompiledPage:
                             )
                         )
                     else:
-                        header = util.readfile(os.path.join(directories.htmldir, "makocomponents", "pageheader.html"))
+                        header = util.readfile(
+                            os.path.join(
+                                directories.htmldir,
+                                "makocomponents",
+                                "pageheader.html",
+                            )
+                        )
                 else:
-                    header = util.readfile(os.path.join(directories.htmldir, "makocomponents", "pageheader.html"))
+                    header = util.readfile(
+                        os.path.join(
+                            directories.htmldir,
+                            "makocomponents",
+                            "pageheader.html",
+                        )
+                    )
 
                 if "no_header" in resource:
                     if resource["no_header"]:
                         header = ""
 
                 if "no_header" not in resource or not (resource["no_header"]):
-                    footer = util.readfile(os.path.join(directories.htmldir, "makocomponents", "pagefooter.html"))
+                    footer = util.readfile(
+                        os.path.join(
+                            directories.htmldir,
+                            "makocomponents",
+                            "pagefooter.html",
+                        )
+                    )
                 else:
                     footer = ""
 
@@ -269,12 +300,18 @@ class CompiledPage:
                 if m in modules_state.scopes:
                     self.scope["module"] = modules_state.scopes[m]
 
-                if "template_engine" not in resource or resource["template_engine"] == "mako":
+                if (
+                    "template_engine" not in resource
+                    or resource["template_engine"] == "mako"
+                ):
                     # Add in the separate code
 
                     usejson = False
 
-                    if "setupcode" in resource and resource["setupcode"].strip():
+                    if (
+                        "setupcode" in resource
+                        and resource["setupcode"].strip()
+                    ):
                         code_header += f"\n<%!\n{resource['setupcode']}\n%>\n"
                         usejson = True
 
@@ -324,10 +361,15 @@ class CompiledPage:
                     )
 
                 elif resource["template_engine"] == "jinja2":
-                    if "setupcode" in resource and resource["setupcode"].strip():
+                    if (
+                        "setupcode" in resource
+                        and resource["setupcode"].strip()
+                    ):
                         exec(resource["setupcode"], self.scope, self.scope)
                     if "code" in resource and resource["code"].strip():
-                        self.code_obj = compile(resource["code"], "Jinja2Page", mode="exec")
+                        self.code_obj = compile(
+                            resource["code"], "Jinja2Page", mode="exec"
+                        )
                     else:
                         self.code_obj = None
 
@@ -335,10 +377,19 @@ class CompiledPage:
                     self.useJinja = True
 
                 elif resource["template_engine"] == "markdown":
-                    header = mako.template.Template(header, uri=f"Template{m}_{r}", lookup=component_lookup).render(**self.scope)
-                    footer = mako.template.Template(footer, uri=f"Template{m}_{r}", lookup=component_lookup).render(**self.scope)
+                    header = mako.template.Template(
+                        header, uri=f"Template{m}_{r}", lookup=component_lookup
+                    ).render(**self.scope)
+                    footer = mako.template.Template(
+                        footer, uri=f"Template{m}_{r}", lookup=component_lookup
+                    ).render(**self.scope)
 
-                    self.text = str(header) + "\r\n" + markdownToSelfRenderingHTML(template, r) + footer
+                    self.text = (
+                        str(header)
+                        + "\r\n"
+                        + markdownToSelfRenderingHTML(template, r)
+                        + footer
+                    )
                 else:
                     self.text = template
 
@@ -382,8 +433,12 @@ def getPageOutput(module, resource):
 
 def getPageHTMLDoc(m, r):
     try:
-        if hasattr(_pages_by_module_resource[m][r].template.module, "__html_doc__"):
-            return str(_pages_by_module_resource[m][r].template.module.__html_doc__)
+        if hasattr(
+            _pages_by_module_resource[m][r].template.module, "__html_doc__"
+        ):
+            return str(
+                _pages_by_module_resource[m][r].template.module.__html_doc__
+            )
     except Exception:
         pass
 
@@ -392,7 +447,10 @@ def getPageInfo(module, resource):
     # There's enough possible trouble with new kinds of events and users stuffing bizzare things
     # in there that i'm Putting this in a try block.
     try:
-        return _pages_by_module_resource[module][resource].template.module.__doc__ or ""
+        return (
+            _pages_by_module_resource[module][resource].template.module.__doc__
+            or ""
+        )
     except Exception:
         return ""
 
@@ -440,7 +498,9 @@ def updateOnePage(resource, module, data: modules_state.ResourceDictType):
 
         # Don't serve file if that's not enabled
         if enable:
-            _pages_by_module_resource[module][resource] = CompiledPage(data, module, resource)
+            _pages_by_module_resource[module][resource] = CompiledPage(
+                data, module, resource
+            )
         lookup.invalidate_cache()
 
 
@@ -450,7 +510,9 @@ def makeDummyPage(resource, module):
 
     # Get the page resource in question
     j = {"resource_type": "page", "body": "Content here", "no_navheader": True}
-    _pages_by_module_resource[module][resource] = CompiledPage(j, module, resource)
+    _pages_by_module_resource[module][resource] = CompiledPage(
+        j, module, resource
+    )
 
 
 # look in the modules and compile all the event code
@@ -461,13 +523,17 @@ def getPagesFromModules():
             _pages_by_module_resource.clear()
             for i in modules_state.ActiveModules.copy():
                 # For each loaded and active module, we make a subdict in _Pages
-                _pages_by_module_resource[i] = {}  # make an empty place for pages in this module
+                _pages_by_module_resource[
+                    i
+                ] = {}  # make an empty place for pages in this module
                 # now we loop over all the resources o the module to see which ones are pages
                 for m in modules_state.ActiveModules[i].copy():
                     j = modules_state.ActiveModules[i][m]
                     if j["resource_type"] == "page":
                         try:
-                            _pages_by_module_resource[i][m] = CompiledPage(j, i, m)
+                            _pages_by_module_resource[i][m] = CompiledPage(
+                                j, i, m
+                            )
                         except Exception:
                             makeDummyPage(m, i)
                             tb = traceback.format_exc(chain=True)
@@ -475,13 +541,19 @@ def getPagesFromModules():
                             # Note that we are logging to the compiled event object
                             _pages_by_module_resource[i][m].errors.append(
                                 [
-                                    time.strftime(settings_overrides.get_val("core/strftime_string")),
+                                    time.strftime(
+                                        settings_overrides.get_val(
+                                            "core/strftime_string"
+                                        )
+                                    ),
                                     tb,
                                     "Error while initializing",
                                 ]
                             )
                             try:
-                                messagebus.post_message(f"system/errors/pages/{i}/{m}", str(tb))
+                                messagebus.post_message(
+                                    f"system/errors/pages/{i}/{m}", str(tb)
+                                )
                             except Exception:
                                 logger.exception("Could not post message")
                             # Keep only the most recent 25 errors
@@ -491,7 +563,11 @@ def getPagesFromModules():
                             if len(_pages_by_module_resource[i][m].errors) == 1:
                                 messagebus.post_message(
                                     "/system/notifications/errors",
-                                    'Page "' + m + '" of module "' + i + '" may need attention',
+                                    'Page "'
+                                    + m
+                                    + '" of module "'
+                                    + i
+                                    + '" may need attention',
                                 )
                         else:
                             try:
@@ -545,8 +621,14 @@ async def catch_all(module, path):
     if "Origin" in quart.request.headers:
         if not page.xss:
             raise RuntimeError("Refusing XSS")
-        if not (quart.request.headers["Origin"] in page.origins or "*" in page.origins):
-            raise RuntimeError("Refusing XSS from this origin: " + quart.request.headers["Origin"])
+        if not (
+            quart.request.headers["Origin"] in page.origins
+            or "*" in page.origins
+        ):
+            raise RuntimeError(
+                "Refusing XSS from this origin: "
+                + quart.request.headers["Origin"]
+            )
         else:
             h["Access-Control-Allow-Origin"] = quart.request.headers["Origin"]
 
@@ -569,10 +651,85 @@ async def catch_all(module, path):
 
     if isinstance(page, fileserver.ServerObj):
         fp = path[len(page.r) + 1 :]
+        if fp.endswith("/"):
+            fp = fp[:-1]
+
         if fp.startswith("/"):
             fp = fp[1:]
+
         fp = os.path.join(page.folder, fp)
-        return await quart.send_file(fp)
+        if os.path.isdir(fp):
+            if quart.request.args.get("thumbnail", "") == "true":
+                return quart.Response(
+                    '<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0"/>',
+                    mimetype="image/svg+xml",
+                )
+
+            # We rely on folders having the trailing slash
+            if not quart.request.url.split("?")[0].endswith("/"):
+                return quart.redirect(quart.request.url.split("?")[0] + "/")
+
+            def get_listing():
+                entries = []
+                folders = []
+                for i in os.listdir(fp):
+                    fn = os.path.join(fp, i)
+
+                    if os.path.isdir(os.path.join(fp, i)):
+                        i = i + "/"
+                        folders.append(
+                            (
+                                i,
+                                units.si_format_number(os.path.getsize(fn)),
+                                os.path.getmtime(fn),
+                            )
+                        )
+                    else:
+                        folders.append(
+                            (
+                                i,
+                                units.si_format_number(os.path.getsize(fn)),
+                                os.path.getmtime(fn),
+                            )
+                        )
+                entries = sorted(folders) + sorted(entries)
+                return render_jinja_template(
+                    os.path.join(
+                        os.path.dirname(__file__),
+                        "html",
+                        "file_listing.j2.html",
+                    ),
+                    entries=entries,
+                )
+
+            return await quart.utils.run_sync(get_listing)()
+
+        else:
+            if quart.request.args.get("thumbnail", "") == "true":
+
+                @copy_current_request_context
+                def f():
+                    try:
+                        x = vignette.get_thumbnail(fp)
+                        if x:
+                            return x
+                        else:
+                            return None
+                    except Exception:
+                        return None
+
+                x = await f()
+
+                if x:
+                    return await quart.send_file(x)
+                else:
+                    return quart.Response(
+                        '<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0"/>',
+                        mimetype="image/svg+xml",
+                    )
+
+            else:
+                return await quart.send_file(fp)
 
     h.update(_headers(page))
     # Check HTTP Method
@@ -637,13 +794,30 @@ async def catch_all(module, path):
             return quart.redirect(e.url)
 
         tb = traceback.format_exc(chain=True)
-        # tb = tornado.exceptions.text_error_template().render()
-        data = "Request from: " + str(quart.request.remote_addr) + "(" + pages.getAcessingUser() + ")\n" + quart.request.request_line + "\n"
+        data = (
+            "Request from: "
+            + str(quart.request.remote_addr)
+            + "("
+            + pages.getAcessingUser()
+            + ")\n"
+            + quart.request.url
+            + "\n"
+        )
         # When an error happens, log it and save the time
         # Note that we are logging to the compiled event object
-        page.errors.append([time.strftime(settings_overrides.get_val("core/strftime_string")), tb, data])
+        page.errors.append(
+            [
+                time.strftime(
+                    settings_overrides.get_val("core/strftime_string")
+                ),
+                tb,
+                data,
+            ]
+        )
         try:
-            messagebus.post_message(f"system/errors/pages/{module}/{'/'.join(args)}", str(tb))
+            messagebus.post_message(
+                f"system/errors/pages/{module}/{'/'.join(args)}", str(tb)
+            )
         except Exception as e:
             logger.exception("Could not post message")
 
@@ -654,7 +828,11 @@ async def catch_all(module, path):
         if len(page.errors) == 1:
             messagebus.post_message(
                 "/system/notifications/errors",
-                'Page "' + "/".join(args) + '" of module "' + module + '" may need attention',
+                'Page "'
+                + "/".join(args)
+                + '" of module "'
+                + module
+                + '" may need attention',
             )
         raise (e)
 
@@ -669,8 +847,13 @@ def _headers(page):
     h["Allow"] = f"{x}, HEAD, OPTIONS"
     if page.xss:
         if "Origin" in quart.request.headers:
-            if quart.request.headers["Origin"] in page.origins or "*" in page.origins:
-                h["Access-Control-Allow-Origin"] = quart.request.headers["Origin"]
+            if (
+                quart.request.headers["Origin"] in page.origins
+                or "*" in page.origins
+            ):
+                h["Access-Control-Allow-Origin"] = quart.request.headers[
+                    "Origin"
+                ]
             h["Access-Control-Allow-Methods"] = x
 
     return h
@@ -724,7 +907,19 @@ class PageType(modules_state.ResourceType):
 
     def scan_dir(
         self, dir: str
-    ) -> dict[str, dict[str, str | list | int | float | bool | dict[str, dict | list | int | float | str | bool | None] | None]]:
+    ) -> dict[
+        str,
+        dict[
+            str,
+            str
+            | list
+            | int
+            | float
+            | bool
+            | dict[str, dict | list | int | float | str | bool | None]
+            | None,
+        ],
+    ]:
         r = {}
 
         for i in os.listdir(dir):
@@ -735,7 +930,9 @@ class PageType(modules_state.ResourceType):
 
     def blurb(self, m, r, value):
         return render_jinja_template(
-            os.path.join(os.path.dirname(__file__), "html", "page_blurb.j2.html"),
+            os.path.join(
+                os.path.dirname(__file__), "html", "page_blurb.j2.html"
+            ),
             getPageErrors=getPageErrors,
             getPageInfo=getPageInfo,
             resource=value,
@@ -746,44 +943,38 @@ class PageType(modules_state.ResourceType):
         )
 
     @beartype.beartype
-    def onload(self, module: str, resourcename: str, value: modules_state.ResourceDictType):
+    def on_load(
+        self,
+        module: str,
+        resourcename: str,
+        value: modules_state.ResourceDictType,
+    ):
         updateOnePage(resourcename, module, value)
 
-    def onmove(self, module, resource, toModule, toResource, resourceobj):
+    def on_move(self, module, resource, to_module, to_resource, resourceobj):
         if module not in _pages_by_module_resource:
-            _pages_by_module_resource[toModule] = {}
+            _pages_by_module_resource[to_module] = {}
 
         x = _pages_by_module_resource[module].pop(resource, None)
         if x:
-            _pages_by_module_resource[toModule][toResource] = x
+            _pages_by_module_resource[to_module][to_resource] = x
 
-    def onupdate(self, module, resource, obj):
-        self.onload(module, resource, obj)
+    def on_update(self, module, resource, obj):
+        self.on_load(module, resource, obj)
 
-    def ondelete(self, module, name, value):
+    def on_delete(self, module, name, value):
         removeOnePage(module, name)
 
-    def oncreaterequest(self, module, name, kwargs):
+    def on_create_request(self, module, name, kwargs):
         from . import pageresourcetemplates
 
         template = kwargs["template"]
         return pageresourcetemplates.templates[template](name)
 
-    def onupdaterequest(self, module, resource, resourceobj, kwargs):
-        if "tabtospace" in kwargs:
-            body = kwargs["body"].replace("\t", "    ")
-        else:
-            body = kwargs["body"]
-
-        if "tabtospace" in kwargs:
-            code = kwargs["code"].replace("\t", "    ")
-        else:
-            code = kwargs["code"]
-
-        if "tabtospace" in kwargs:
-            setupcode = kwargs["setupcode"].replace("\t", "    ")
-        else:
-            setupcode = kwargs["setupcode"]
+    def on_update_request(self, module, resource, resourceobj, kwargs):
+        body = kwargs["body"].replace("\t", "    ")
+        code = kwargs["code"].replace("\t", "    ")
+        setupcode = kwargs["setupcode"].replace("\t", "    ")
 
         resourceobj["body"] = body
         resourceobj["theme_css_url"] = kwargs["themecss"].strip()
@@ -797,7 +988,9 @@ class PageType(modules_state.ResourceType):
 
         resourceobj["no_header"] = "no_header" in kwargs
 
-        resourceobj["allow_origins"] = [i.strip() for i in kwargs["allow_origins"].split(",")]
+        resourceobj["allow_origins"] = [
+            i.strip() for i in kwargs["allow_origins"].split(",")
+        ]
         # Method checkboxes
         resourceobj["require_method"] = []
         if "allow-GET" in kwargs:
@@ -815,15 +1008,18 @@ class PageType(modules_state.ResourceType):
 
         return resourceobj
 
-    def createpage(self, module, path):
+    def create_page(self, module, path):
         d = SimpleDialog(f"New page in {module}")
         d.text_input("name")
         d.selection("template", options=["default"])
 
         d.submit_button("Create")
-        return d.render(f"/modules/module/{url(module)}/addresourcetarget/{self.type}", hidden_inputs={"dir": path})
+        return d.render(
+            f"/modules/module/{url(module)}/addresourcetarget/{self.type}",
+            hidden_inputs={"dir": path},
+        )
 
-    def editpage(self, module, resource, resource_data):
+    def edit_page(self, module, resource, resource_data):
         if "require_permissions" in resource_data:
             requiredpermissions = resource_data["require_permissions"]
         else:
@@ -832,15 +1028,35 @@ class PageType(modules_state.ResourceType):
         d = SimpleDialog(f"{module}: {resource}")
         d.submit_button("GoNow", title="Save and go to page")
 
-        d.code_editor("code", title="Handler Code", language="python", default=resource_data.get("code", ""))
-        d.code_editor("body", title="Page Body", language="html", default=resource_data["body"])
-        d.code_editor("setupcode", title="Setup Code", language="python", default=resource_data.get("setupcode", ""))
+        d.code_editor(
+            "code",
+            title="Handler Code",
+            language="python",
+            default=resource_data.get("code", ""),
+        )
+        d.code_editor(
+            "body",
+            title="Page Body",
+            language="html",
+            default=resource_data["body"],
+        )
+        d.code_editor(
+            "setupcode",
+            title="Setup Code",
+            language="python",
+            default=resource_data.get("setupcode", ""),
+        )
 
         o = ["jinja2", "markdown", "none"]
         if resource_data.get("template_engine", "jinja2") == "mako":
             o.append("mako")
 
-        d.selection("template_engine", title="Template Engine", default=resource_data.get("template_engine", "jinja2"), options=o)
+        d.selection(
+            "template_engine",
+            title="Template Engine",
+            default=resource_data.get("template_engine", "jinja2"),
+            options=o,
+        )
         d.begin_section("Settings")
 
         # These legacy options only matter wth Mako
@@ -849,21 +1065,48 @@ class PageType(modules_state.ResourceType):
             ("no_header", "No extra content at all"),
         ):
             if i[0] in resource_data:
-                d.checkbox(i[0], title=i[1], default=resource_data.get(i[0], False))
+                d.checkbox(
+                    i[0], title=i[1], default=resource_data.get(i[0], False)
+                )
 
-        d.checkbox("allow-GET", title="Allow GET", default="GET" in resource_data.get("require_method"))
-        d.checkbox("allow-POST", title="Allow POST", default="POST" in resource_data.get("require_method"))
-        d.text_input("mimetype", title="MIME", default=resource_data.get("mimetype", "text/html"))
-        d.text_input("allow_origins", title="XSS Origins", default=", ".join(resource_data.get("allow_origins", "")))
-        d.text_input(
-            "themecss", title="Theme", default=resource_data.get("theme_css_url", ""), suggestions=[(i, i) for i in theming.cssthemes]
+        d.checkbox(
+            "allow-GET",
+            title="Allow GET",
+            default="GET" in resource_data.get("require_method"),
         )
-        d.text_input("alttopbanner", title="Alt Top Banner Text", default=resource_data.get("alt_top_banner", ""))
+        d.checkbox(
+            "allow-POST",
+            title="Allow POST",
+            default="POST" in resource_data.get("require_method"),
+        )
+        d.text_input(
+            "mimetype",
+            title="MIME",
+            default=resource_data.get("mimetype", "text/html"),
+        )
+        d.text_input(
+            "allow_origins",
+            title="XSS Origins",
+            default=", ".join(resource_data.get("allow_origins", "")),
+        )
+        d.text_input(
+            "themecss",
+            title="Theme",
+            default=resource_data.get("theme_css_url", ""),
+            suggestions=[(i, i) for i in theming.cssthemes],
+        )
+        d.text_input(
+            "alttopbanner",
+            title="Alt Top Banner Text",
+            default=resource_data.get("alt_top_banner", ""),
+        )
         d.end_section()
 
         d.begin_section("Require Permissions")
         for i in sorted(auth.Permissions.keys()):
-            d.checkbox(f"Permission{i}", title=i, default=i in requiredpermissions)
+            d.checkbox(
+                f"Permission{i}", title=i, default=i in requiredpermissions
+            )
         d.end_section()
 
         if getPageErrors(module, resource):

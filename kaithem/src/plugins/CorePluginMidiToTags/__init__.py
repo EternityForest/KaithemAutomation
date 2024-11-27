@@ -30,7 +30,10 @@ def setTag14(n, v, a=None):
 
 def onMidiMessage(m, d):
     if m.isNoteOn():
-        messagebus.post_message(f"/midi/{d}", ("noteon", m.getChannel(), m.getNoteNumber(), m.getVelocity()))
+        messagebus.post_message(
+            f"/midi/{d}",
+            ("noteon", m.getChannel(), m.getNoteNumber(), m.getVelocity()),
+        )
         setTag(
             f"/midi/{d}/{str(m.getChannel())}.note",
             m.getNoteNumber(),
@@ -38,13 +41,20 @@ def onMidiMessage(m, d):
         )
 
     elif m.isNoteOff():
-        messagebus.post_message(f"/midi/{d}", ("noteoff", m.getChannel(), m.getNoteNumber()))
+        messagebus.post_message(
+            f"/midi/{d}", ("noteoff", m.getChannel(), m.getNoteNumber())
+        )
         setTag(f"/midi/{d}/{str(m.getChannel())}.note", 0, a=0)
 
     elif m.isController():
         messagebus.post_message(
             f"/midi/{d}",
-            ("cc", m.getChannel(), m.getControllerNumber(), m.getControllerValue()),
+            (
+                "cc",
+                m.getChannel(),
+                m.getControllerNumber(),
+                m.getControllerValue(),
+            ),
         )
         setTag(
             f"/midi/{d}/{str(m.getChannel())}.cc.{str(m.getControllerNumber())}",
@@ -53,7 +63,9 @@ def onMidiMessage(m, d):
         )
 
     elif m.isPitchWheel():
-        messagebus.post_message(f"/midi/{d}", ("pitch", m.getChannel(), m.getPitchWheelValue()))
+        messagebus.post_message(
+            f"/midi/{d}", ("pitch", m.getChannel(), m.getPitchWheelValue())
+        )
         setTag14(
             f"/midi/{d}/{str(m.getChannel())}.pitch",
             m.getPitchWheelValue(),
@@ -62,7 +74,13 @@ def onMidiMessage(m, d):
 
 
 def normalize_midi_name(t):
-    t = t.lower().replace(":", "_").replace("[", "").replace("]", "").replace(" ", "_")
+    t = (
+        t.lower()
+        .replace(":", "_")
+        .replace("[", "")
+        .replace("]", "")
+        .replace(" ", "_")
+    )
     t = t.replace("-", "_")
     for i in tagpoints.ILLEGAL_NAME_CHARS:
         t = t.replace(i, "")
@@ -119,9 +137,12 @@ def doScan():
         # Support versions of rtmidi where it does not work the first time
         scanning_connection = rtmidi.MidiIn(name=f"Kaithem{str(ctr)}")
         ctr += 1
-    torm = []
+    to_rm = []
     try:
-        present = [(i, scanning_connection.get_port_name(i)) for i in range(scanning_connection.get_port_count())]
+        present = [
+            (i, scanning_connection.get_port_name(i))
+            for i in range(scanning_connection.get_port_count())
+        ]
         scanning_connection.close_port()
     except Exception:
         scanning_connection = None
@@ -129,8 +150,8 @@ def doScan():
 
     for i in allInputs:
         if i not in present:
-            torm.append(i)
-    for i in torm:
+            to_rm.append(i)
+    for i in to_rm:
         del allInputs[i]
 
     for i in present:

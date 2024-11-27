@@ -1,0 +1,24 @@
+<%inherit file="/pagetemplate.html" />
+<%block name="title">Universe Status</%block>
+<main class="flex-row">
+
+    <section class="window paper">
+
+        <h1>${universe().name}</h1>
+
+        <h2>Values</h2>
+        <div>
+            %for key, value in enumerate(universe().values.tolist()):
+                ${f"{key}: <b>{round(value, 2)}</b>"}
+                %if key in universe().channels:
+                    %try:
+                    (${ universe().channels[key]().name|h})
+                    %except Exception as e:
+                    ${e|h}
+                    %endtry
+                %endif
+                <br>
+            %endfor
+        </div>
+    </section>
+</main>

@@ -29,7 +29,9 @@ def getRootAndroidDir():
     Environment = autoclass("android.os.Environment")
     context = cast("android.content.Context", PythonActivity.mActivity)
 
-    user_services_dir = context.getExternalFilesDir(Environment.getDataDirectory().getAbsolutePath()).getAbsolutePath()
+    user_services_dir = context.getExternalFilesDir(
+        Environment.getDataDirectory().getAbsolutePath()
+    ).getAbsolutePath()
 
     return os.path.join(user_services_dir, "var")
 
@@ -37,14 +39,18 @@ def getRootAndroidDir():
 if "ANDROID_ARGUMENT" in environ:
     vardir = getRootAndroidDir()
     datadir = os.path.normpath(os.path.join(dn, "../data"))
-    logdir = os.path.join(vardir, "logs", socket.gethostname() + "-" + getpass.getuser())
+    logdir = os.path.join(
+        vardir, "logs", socket.gethostname() + "-" + getpass.getuser()
+    )
 else:
     vardir = os.path.normpath(os.path.join(dn, ".."))
     # Set in config now, not a real config entry
     vardir = os.path.join(vardir, os.path.expanduser(config["site_data_dir"]))
 
     datadir = os.path.normpath(os.path.join(dn, "../data"))
-    logdir = os.path.join(vardir, "logs", socket.gethostname() + "-" + getpass.getuser())
+    logdir = os.path.join(
+        vardir, "logs", socket.gethostname() + "-" + getpass.getuser()
+    )
 
 usersdir = os.path.join(vardir, "users")
 
@@ -63,7 +69,16 @@ else:
 
 
 def recreate():
-    global dn, vardir, usersdir, logdir, regdir, moduledir, datadir, htmldir, ssldir
+    global \
+        dn, \
+        vardir, \
+        usersdir, \
+        logdir, \
+        regdir, \
+        moduledir, \
+        datadir, \
+        htmldir, \
+        ssldir
     dn = os.path.dirname(os.path.realpath(__file__))
 
     if "ANDROID_ARGUMENT" in environ:
@@ -73,7 +88,9 @@ def recreate():
         vardir = os.path.join(vd, os.path.expanduser(config["site_data_dir"]))
 
     usersdir = os.path.join(vardir, "users")
-    logdir = os.path.join(vardir, "logs", socket.gethostname() + "-" + getpass.getuser())
+    logdir = os.path.join(
+        vardir, "logs", socket.gethostname() + "-" + getpass.getuser()
+    )
     moduledir = os.path.join(vardir, "modules")
     datadir = os.path.normpath(os.path.join(dn, "../data"))
     htmldir = os.path.join(dn, "html")
