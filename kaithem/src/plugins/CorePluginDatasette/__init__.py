@@ -76,17 +76,18 @@ class DatasetteResourceType(ResourceType):
     def blurb(self, module, resource, data):
         return f"""
         <div class="tool-bar">
-            <a href="/datasette/{module}:{resource}">
+            <a href="/datasette/{data['database_name']}">
             <span class="mdi mdi-database"></span>
             Datasette</a>
         </div>
         """
 
-    def on_load(self, module: str, resource: str, data: ResourceDictType):
-        if data["database_file"] in db_cfg_by_module_resource:
-            raise Exception(f"Database already open: {data['database_file']}")
-
+    def check_conflict(
+        self, module: str, resource: str, data: ResourceDictType
+    ):
         for i in db_cfg_by_module_resource:
+            if i == (module, resource):
+                continue
             if db_cfg_by_module_resource[i].name == data["database_name"]:
                 raise Exception(
                     f"Database already open: {data['database_name']}"
@@ -96,6 +97,8 @@ class DatasetteResourceType(ResourceType):
                     f"Database already open: {data['database_file']}"
                 )
 
+    def on_load(self, module: str, resource: str, data: ResourceDictType):
+        self.check_conflict(module, resource, data)
         db_cfg_by_module_resource[data["database_name"]] = ConfiguredDB(
             module, resource, data
         )
@@ -104,7 +107,8 @@ class DatasetteResourceType(ResourceType):
             relative_file_resource_dir_for_resource(module, resource),
             data["database_file"],
         )
-        db = Database(datasette_instance, abs_fn, True)
+        os.makedirs(os.path.dirname(abs_fn), exist_ok=True)
+        db = Database(datasette_instance, abs_fn, True, mode="rwc")
 
         db_cfg_by_module_resource[data["database_name"]].db = db
 
@@ -119,33 +123,44 @@ class DatasetteResourceType(ResourceType):
         if to_rm:
             del db_cfg_by_module_resource[to_rm]
 
+        try:
+            datasette_instance.remove_database(data["database_name"])
+        except Exception:
+            pass
+
     def on_update(self, module: str, resource: str, data: ResourceDictType):
         self.on_delete(module, resource, data)
         self.on_load(module, resource, data)
 
     def on_create_request(self, module, resource, kwargs):
+        self.check_conflict(module, resource, kwargs)
         d = {"resource_type": self.type}
         d.update(kwargs)
         d.pop("name")
         d.pop("Save", None)
+
+        if not d["database_name"]:
+            raise Exception("Database name required")
+
+        if not d["database_file"]:
+            raise Exception("Database file required")
 
         return d
 
     def on_update_request(
         self, module, resource, data: ResourceDictType, kwargs
     ):
+        self.check_conflict(module, resource, kwargs)
         d: dict[str, Any] = mutable_copy_resource(data)
         d.update(kwargs)
-        d.pop("name", None)
         d.pop("Save", None)
         return d
 
     def create_page(self, module, path):
-        d = dialogs.SimpleDialog("New Logger")
-        d.text_input("name", title="Logger Name")
+        d = dialogs.SimpleDialog("New Datasette Database")
         d.text_input(
             "database_name",
-            title="Database Name in main Datasette listing",
+            title="Database Name (must be unique) in main Datasette listing",
         )
 
         d.text_input("database_file", title="Database File")
@@ -165,7 +180,7 @@ class DatasetteResourceType(ResourceType):
         return d.render(self.get_create_target(module, path))
 
     def edit_page(self, module, resource, data):
-        d = dialogs.SimpleDialog("Editing Logger")
+        d = dialogs.SimpleDialog("Editing Datasette Database")
 
         d.text_input(
             "database_name",

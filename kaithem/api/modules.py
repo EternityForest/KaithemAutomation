@@ -5,7 +5,7 @@ from kaithem.src.modules_state import ResourceDictType
 
 
 def filename_for_resource(module: str, resource: str) -> str:
-    """Given the module and resource, return the actual file for a file resource, or
+    """Given the module and resource for a file, return the actual file for a file resource, or
     file data dir for directory resource"""
 
     return os.path.join(modules.getModuleDir(module), "__filedata__", resource)
@@ -19,8 +19,7 @@ def relative_file_resource_dir_for_resource(module: str, resource: str) -> str:
     """
 
     rf = filename_for_resource(module, resource)
-    rf = os.path.relpath(rf, modules.getModuleDir(module))
-    return os.path.join("__filedata__", rf)
+    return os.path.dirname(rf)
 
 
 def admin_url_for_file_resource(module: str, resource: str) -> str:

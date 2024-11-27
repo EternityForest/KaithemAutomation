@@ -42,12 +42,17 @@ NVRChannel = ">=0.1.7"
 numpy = ">=2.0.0"
 
 #Datasette
-datasette= "*"
+datasette= ">=1.0a16"
 datasette-write = "*"
 datasette-write-ui = "*"
 datasette-edit-schema = "*"
 datasette-column-sum = "*"
 datasette-plot = "^0.1.0"
+datasette-search-all = "*"
+datasette-checkbox = "*"
+datasette-explain = "*"
+datasette-comments = "*"
+datasette-render-images = "*"
 #datasette-cluster-map = "*"
 
 cheroot = "*"
