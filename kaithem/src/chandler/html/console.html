@@ -219,9 +219,13 @@
                         <div class="w-full flex">
                             <cue-countdown :group="i[1]"
                                 :cue="cuemeta[i[1].cue]"></cue-countdown>
-                            <small><span
-                                    v-if="(i[1].active && (''+cuemeta[i[1].cue].length).indexOf('@')>-1)"><i
-                                        class="mdi mdi-clock-end"></i>{{cuemeta[i[1].cue].length.substring(1)}}</span></small>
+                            <small>
+                                <span
+                                    v-if="(i[1].active && (''+cuemeta[i[1].cue].length).indexOf('@')>-1)">
+                                    <i class="mdi mdi-clock-end"></i>
+                                    {{cuemeta[i[1].cue].length.substring(1)}}
+                                </span>
+                            </small>
                         </div>
 
                         <div class="w-full flex"
