@@ -35,7 +35,8 @@ article.universe {
     min-width: 9em;
     flex-basis: fit-content;
     max-width: max-content;
-    flex-grow: 2
+    flex-grow: 2;
+    min-height: 11rem;
 }
 
 article.fixture {
@@ -43,7 +44,7 @@ article.fixture {
     max-width: 16em;
     flex-basis: min-content;
     min-width: 9em;
-    flex-grow: 1;
+    min-height: 11rem;
 }
 
 .indicator {

@@ -66,7 +66,7 @@
                 <template v-for="ps, i of dictView(presets, [])">
                     <dt v-if="ps[0].toLowerCase().includes(filterPresets.toLowerCase())">
                         <div class="tool-bar">
-                            <b>{{ ps[0] }}</b>
+                            <p><b>{{ ps[0] }}</b></p>
                             <button type="button" popovertarget="presetImageLabel"
                                 v-on:click="selectingImageLabelForPreset = ps[0];">
                                 <i class="mdi mdi-image-edit-outline"></i>
