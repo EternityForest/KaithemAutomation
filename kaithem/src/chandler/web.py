@@ -103,6 +103,20 @@ console_fn = os.path.join(html_dir, "console.html")
 schedule_fn = os.path.join(html_dir, "schedulemanager.html")
 
 
+@quart_app.app.route("/chandler/file_thumbnail")
+async def get_file_thumbnail():
+    fn = quart.request.args["file"]
+    try:
+        t = vignette.get_thumbnail(fn)
+    except Exception:
+        t = None
+    if t:
+        return await quart.send_file(t)
+    return await quart.send_file(
+        os.path.join(directories.datadir, "static/img/1x1.png")
+    )
+
+
 @quart_app.app.route("/chandler/editor/<board>")
 def editor(board: str):
     """Index page for web interface"""

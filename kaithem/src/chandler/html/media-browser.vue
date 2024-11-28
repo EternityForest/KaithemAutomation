@@ -48,7 +48,7 @@ It takes a set of action button slots that get passed "filename"
                         <a>..</a>
                     </li>
                     <li v-on:click="setSoundfileDir(i[0])" v-for="i in soundfileslisting[0]">
-                        <a>{{i[0] }}</a>
+                        <a>{{ i[0] }}</a>
                         <slot v-if="selectfolders" :filename="i[0]" :relfilename="i[0].split('/').pop()">
                         </slot>
                     </li>
@@ -63,7 +63,12 @@ It takes a set of action button slots that get passed "filename"
                         </tr>
                     </thead>
                     <tr v-for="i of soundfileslisting[1]">
-                        <td class="w-12rem">{{ i[0] }}</td>
+                        <td class="w-12rem">
+
+                            <header>{{ i[0] }}</header>
+                            <img :src="'/chandler/file_thumbnail?file=' + encodeURIComponent(soundfilesdir + i[0])"
+                                style="max-height: 3rem; max-width: 5rem;">
+                        </td>
                         <td>
                             <slot :filename="soundfilesdir + i[0]" :relfilename="i[1]">
                             </slot>
