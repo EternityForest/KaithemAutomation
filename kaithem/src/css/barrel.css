@@ -463,10 +463,14 @@ p:empty {
 }
 
 
-input[type=checkbox] {
+input[type=checkbox],
+input[type=color] {
     min-width: var(--control-height);
     height: var(--control-height);
+    flex-basis: var(--control-height);
+    border-radius: var(--control-border-radius);
 }
+
 
 dialog {
     position: fixed;

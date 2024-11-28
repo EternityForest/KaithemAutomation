@@ -106,6 +106,11 @@ class ChandlerConsole(console_abc.Console_ABC):
         self.fixture_assignments: Dict[str, Any] = {}
         self.fixture_presets: Dict[str, dict[str, Any]] = {}
 
+        with open(
+            os.path.join(os.path.dirname(__file__), "fixture_presets.yaml")
+        ) as f:
+            self.fixture_presets = yaml.safe_load(f)
+
         self.fixtures: Dict[str, universes.Fixture] = {}
 
         self.universe_objects: Dict[str, universes.Universe] = {}

@@ -102,9 +102,16 @@
                             :src="'../WebMediaServer?file=' + encodeURIComponent(getpresetimage(ps[0]))">
                         <details>
                             <div class="stacked-form">
-                                <label>Category
+                                <label><i class="mdi mdi-format-list-bulleted"></i>Category
                                     <input :disabled="no_edit" v-model="ps[1].category"
+                                        type="text" list="colorcategories"
                                         v-on:change="ps[1].category = $event.target.value.trim(); updatepreset(ps[0], ps[1]);">
+                                </label>
+
+                                <label><i class="mdi mdi-format-color-fill"></i>HTML color
+                                    <input :disabled="no_edit" v-model="ps[1].html_color"
+                                        type="color"
+                                        v-on:change="ps[1].html_color = $event.target.value.trim(); updatepreset(ps[0], ps[1]);">
                                 </label>
                             </div>
                             <summary>Values</summary>
