@@ -9,12 +9,19 @@
         </button>
         <div class="flex-row nogrow max-h-12rem scroll" style="align-items:flex-start;align-content:flex-start">
             <template v-for="ps of recentPresets.toReversed()">
-                <button v-if="checkPresetUsablility(ps)"
-                    @click="setFixturePreset(currentcueid, fixture, ps);" :disabled="no_edit" class="preset-button"
-                    popovertarget="presetForFixture" popovertargetaction="hide">
+                <button v-if="checkPresetUsablility(ps)" @click="setFixturePreset(currentcueid, fixture, ps);"
+                    :disabled="no_edit" class="preset-button" popovertarget="presetForFixture"
+                    popovertargetaction="hide">
                     <img v-if="getpresetimage(ps)"
                         :src="'../WebMediaServer?file=' + encodeURIComponent(getpresetimage(ps))">
-                    <div>{{ ps.split('@')[0] }}</div>
+                    <div class="label" :style="{ 'background-color': presets[ps].html_color || 'transparent' }">
+                        {{ ps.split('@')[0] }}</div>
+                    <div class="label-bottom" :style="{ 'background-color': ps[1].html_color || 'transparent' }">
+                        <small>
+                            {{ ps.split('@')[1] || '' }}
+                        </small>
+                    </div>
+                    <div class="sheen"></div>
                 </button>
 
             </template>
@@ -35,7 +42,16 @@
                 <img v-if="getpresetimage(ps[0])"
                     :src="'../WebMediaServer?file=' + encodeURIComponent(getpresetimage(ps[0]))">
 
-                <div>{{ ps[0].split('@')[0] }}</div>
+
+                <div class="label" :style="{ 'background-color': ps[1].html_color || 'transparent' }">
+                    {{ ps[0].split('@')[0] }}</div>
+                <div class="label-bottom" :style="{ 'background-color': ps[1].html_color || 'transparent' }"><small>
+                        {{ ps[0].split('@')[1] || '' }}
+                    </small>
+                </div>
+
+                <div class="sheen"></div>
+
             </button>
         </div>
 
@@ -51,7 +67,7 @@ var data = {
     'recentPresets': [],
     'presetFilter': '',
 
-    'sorts': ["category", "!values.green","!values.red","!values.blue","!values.white","!values.dim"],
+    'sorts': ["category", "!values.green", "!values.red", "!values.blue", "!values.white", "!values.dim"],
     'setFixturePreset': function (sc, fix, preset) {
         const deleteIndex = this.recentPresets.indexOf(preset);
 
@@ -120,7 +136,7 @@ module.exports = {
     methods: {
         dictView: dictView,
         checkPresetUsablility(preset) {
-            if (! preset.toLocaleLowerCase().includes(this.presetFilter.toLocaleLowerCase())) {
+            if (!preset.toLocaleLowerCase().includes(this.presetFilter.toLocaleLowerCase())) {
                 return false
             }
             if (!preset.includes('@')) {
@@ -140,7 +156,7 @@ module.exports = {
             let clsdata = this.fixtureclasses[this.fixturetype]
 
             if (!clsdata) {
-   
+
                 return false
             }
 

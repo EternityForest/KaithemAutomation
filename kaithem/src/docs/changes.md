@@ -5,6 +5,7 @@ Change Log
 
 - :bug: Fix preset edting dialog
 - :bug: Fix device interactive discovery
+- :sparkles: Default color presets for DMX fixtures
 
 ### 0.86.2
 
@@ -17,7 +18,7 @@ It does not affect anything not using custom HTML/JS
 - :technologist: 80 line limit.
 - :bug: Fix bug where the loop sound feature interacted badly with relative length
 - :sparkles: Widget API will no longer send old failed messages on reconnected after 5 seconds
-- :bug: Fix nuisance gitgub flavor not found error
+- :bug: Fix nuisance github flavor not found error
 - :sparkles: Chandler logic lets you use `=+ tv("TagName")` to trigger when a tag changes to a nonzero value.
 - :sparkles: Improve chandler autocomplete suggestions
 - :lipstick: Alerts more visible on devices pages
