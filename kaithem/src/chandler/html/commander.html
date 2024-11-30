@@ -129,7 +129,7 @@
 
 
 
-<script type="module" src="/static/js/widget.mjs?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61"></script>
+<script type="module" src="/static/js/widget.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0"></script>
 
 
 <div id="app" v-cloak style="display:flex; flex-wrap:wrap; justify-content: center;">
@@ -412,7 +412,7 @@
 
 
 <script type="module">
-    import { appData, appMethods, appComputed, initChandlerVueModel } from "../static/boardapi.mjs?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61";
+    import { appData, appMethods, appComputed, initChandlerVueModel } from "../static/boardapi.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
 
     appData.boardname = window.location.pathname.split('/')[3]
     document.title = appData.boardname
@@ -462,11 +462,11 @@
             computed: appComputed,
             methods: appMethods,
             components: {
-                "combo-box": window.httpVueLoader('../static/vue/ComboBox.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
-                'cue-countdown': window.httpVueLoader('../static/cue-countdown.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
+                "combo-box": window.httpVueLoader('../static/vue/ComboBox.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0'),
+                'cue-countdown': window.httpVueLoader('../static/cue-countdown.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0'),
                 // Currently contains the timers and the display tags for the groups overview
-                'group-ui': window.httpVueLoader('../static/group-ui-controls.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
-                'cue-iter': window.httpVueLoader('../static/cue-iter.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61')
+                'group-ui': window.httpVueLoader('../static/group-ui-controls.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0'),
+                'cue-iter': window.httpVueLoader('../static/cue-iter.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0')
 
             }
         }).mount("#app")

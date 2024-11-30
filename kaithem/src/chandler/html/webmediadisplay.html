@@ -97,7 +97,7 @@
 ${groups.groups[kwargs['group']].slideshow_layout}
 
 <script type="module">
-    import { makePlayer, setLink, setTelemetryName, setTelemetryStatus, sendTelemetry} from  "./static/webmedia.mjs?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61"
+    import { makePlayer, setLink, setTelemetryName, setTelemetryStatus, sendTelemetry} from  "./static/webmedia.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0"
     import { kaithemapi, APIWidget} from "/static/js/widget.mjs"
 
     let link = new APIWidget("${groups.groups[kwargs['group']].media_link_socket.uuid}")
@@ -147,7 +147,7 @@ ${groups.groups[kwargs['group']].slideshow_layout}
         }
     }).mount('slideshow-app')
 
-    import { formatInterval } from "./static/utils.mjs?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61";
+    import { formatInterval } from "./static/utils.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
 
     let player = new makePlayer(document.getElementById('player1'), "${kwargs['group']}")
     let player2 = new makePlayer(document.getElementById('player2'), "${kwargs['group']}")

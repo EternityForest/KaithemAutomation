@@ -12,7 +12,7 @@
 
 
 <script>
-import { formatInterval } from "./utils.mjs?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61";
+import { formatInterval } from "./utils.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
 
 // See boardapi update_countdowns function to actually make it work
 

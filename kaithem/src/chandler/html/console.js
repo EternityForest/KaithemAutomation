@@ -1,7 +1,7 @@
 
 import { kaithemapi } from "/static/js/widget.mjs"
 
-import {appData, appMethods, appComputed,initChandlerVueModel} from "./boardapi.mjs?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61";
+import {appData, appMethods, appComputed,initChandlerVueModel} from "./boardapi.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
 
 appMethods.showPresetDialog = function (fixture) {
     vueapp.$data.selectingPresetFor = fixture
@@ -75,19 +75,19 @@ var vueapp = Vue.createApp(
         },
         methods: appMethods,
         components: {
-            "combo-box": window.httpVueLoader('/static/vue/ComboBox.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
-            "h-fader": window.httpVueLoader('../static/hfader.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
-            'cue-countdown': window.httpVueLoader('../static/cue-countdown.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
-            'cue-table': window.httpVueLoader('../static/cuetable.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
+            "combo-box": window.httpVueLoader('/static/vue/ComboBox.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0'),
+            "h-fader": window.httpVueLoader('../static/hfader.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0'),
+            'cue-countdown': window.httpVueLoader('../static/cue-countdown.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0'),
+            'cue-table': window.httpVueLoader('../static/cuetable.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0'),
 
             // // Currently contains the timers and the display tags for the groups overview
-            'group-ui': window.httpVueLoader('../static/group-ui-controls.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
-            'smooth-range': window.httpVueLoader('/static/vue/smoothrange.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
-            'media-browser': window.httpVueLoader('../static/media-browser.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
-            'slideshow-telemetry': window.httpVueLoader('../static/signagetelemetry.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
-            'fixture-presets-dialog': window.httpVueLoader('../static/fixture-presets-dialog.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
-            'cue-logic-dialog': window.httpVueLoader('../static/cue-logic-dialog.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
-            'preset-editing-dialog': window.httpVueLoader('../static/preset-editing-dialog.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61'),
+            'group-ui': window.httpVueLoader('../static/group-ui-controls.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0'),
+            'smooth-range': window.httpVueLoader('/static/vue/smoothrange.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0'),
+            'media-browser': window.httpVueLoader('../static/media-browser.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0'),
+            'slideshow-telemetry': window.httpVueLoader('../static/signagetelemetry.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0'),
+            'fixture-presets-dialog': window.httpVueLoader('../static/fixture-presets-dialog.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0'),
+            'cue-logic-dialog': window.httpVueLoader('../static/cue-logic-dialog.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0'),
+            'preset-editing-dialog': window.httpVueLoader('../static/preset-editing-dialog.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0'),
 
         },
         computed: appComputed
