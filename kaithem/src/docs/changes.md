@@ -9,6 +9,7 @@ Change Log
 - :sparkles: Library modules loaded as links
 - :bug: Don't change timestamps when loading external module
 - :sparkles: Presets and range effects work better together
+- :bug: Fix gen shortcut button
 
 ### 0.86.2
 

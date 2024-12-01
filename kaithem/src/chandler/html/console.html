@@ -558,12 +558,12 @@
                                     <input :disabled="no_edit"
                                         title="Shortcut code"
                                         style="max-width: 4.5em;"
-                                        v-on:change="apiCommand(slotProps.i[1].id,'setshortcut',$event.target.value)"
+                                        v-on:change="setCueProperty(slotProps.i[1].id,'shortcut',$event.target.value)"
                                         min=0 step=0.1
                                         v-model="slotProps.i[1].shortcut">
                                     <button type="button" style="opacity:0.3"
                                         title="Generate a shortcut code from the cue's number"
-                                        v-on:click="apiCommand(slotProps.i[1].id,'setshortcut','__generate__from__number__')">GEN</button>
+                                        v-on:click="setCueProperty(slotProps.i[1].id,'shortcut','__generate__from__number__')">GEN</button>
                                 </div>
                             </td>
 
