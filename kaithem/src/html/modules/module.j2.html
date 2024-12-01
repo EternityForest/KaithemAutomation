@@ -16,6 +16,9 @@
     <h2>Module {{ name| escape }}</h2>
     <title>Module: {{ name| escape }}</title>
     <section class="flex-row gaps margin">
+        {% if ro %}
+        <p class="warning">This module is read-only, change the save location to make changes.</p>
+        {% endif %}
         <section class="window col-6 padding">
             {{ getModuleHash(name) }}
             <br>

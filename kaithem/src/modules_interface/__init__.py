@@ -15,7 +15,6 @@ from kaithem.src.modules_interface.page_context import module_page_context
 from kaithem.src.modules_state import ActiveModules, check_forbidden
 
 from .. import (
-    auth,
     dialogs,
     directories,
     module_actions,
@@ -183,15 +182,10 @@ async def loadlibmodule(module):
         if name in modules_state.ActiveModules:
             return quart.redirect("/errors/alreadyexists")
 
-        modules.loadModule(
-            os.path.join(directories.datadir, "modules", module), name
-        )
+        fn = os.path.join(directories.datadir, "modules", module)
 
-        auth.importPermissionsFromModules()
-        modules.saveModule(modules_state.ActiveModules[name], name)
-        modules.bookkeeponemodule(name)
-
-        return quart.redirect("/modules")
+        modules.newModule(module, fn)
+        return quart.redirect(f"/modules/module/{util.url(module)}")
 
     return await f()
 

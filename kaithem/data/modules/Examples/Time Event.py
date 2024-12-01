@@ -1,13 +1,13 @@
-## Code outside the data string, and the setup and action blocks is ignored
-## If manually editing, you must reload the code. Delete the resource timestamp so kaithem knows it's new
+# Code outside the data string, setup and action blocks is ignored
+# If manually editing, delete resource timestamp and restart kaithem.
 __data__ = """
 continual: false
 enable: true
 once: true
 priority: interactive
 rate_limit: 0.0
-resource-timestamp: 1699743201983962
-resource-type: event
+resource_timestamp: 1699743201983962
+resource_type: event
 
 """
 
@@ -19,5 +19,5 @@ if __name__ == "__setup__":
     __doc__ = ""
 
 
-def eventAction():
+def event_action():
     pass

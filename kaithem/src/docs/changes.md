@@ -6,6 +6,8 @@ Change Log
 - :bug: Fix preset edting dialog
 - :bug: Fix device interactive discovery
 - :sparkles: Default color presets for DMX fixtures
+- :sparkles: Library modules loaded as links
+- :bug: Don't change timestamps when loading external module
 
 ### 0.86.2
 

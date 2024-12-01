@@ -100,6 +100,7 @@ def resource_page(module, resource):
                 path=resource.split("/"),
                 fullpath=f"{module}/{resource}",
                 module_actions=module_actions,
+                ro=modules_state.is_module_readonly(module),
                 **module_page_context,
             )
 
@@ -115,6 +116,10 @@ def addresource(module, type):
         pages.require("system_admin")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
+
+    if modules_state.is_module_readonly(module):
+        raise PermissionError("Module is read only")
+
     path = request.args.get("dir", "")
 
     if type in ("permission", "directory"):
@@ -146,6 +151,9 @@ async def addresourcetarget(module, rtype, path=""):
         pages.require("system_admin")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
+
+    if modules_state.is_module_readonly(module):
+        raise PermissionError("Module is read only")
 
     kwargs = dict(await request.form)
     kwargs.update(request.args)
@@ -231,6 +239,9 @@ async def resource_update_handler(module, resource):
         pages.require("system_admin")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
+
+    if modules_state.is_module_readonly(module):
+        raise PermissionError("Module is read only")
 
     @copy_current_request_context
     def f():
@@ -367,6 +378,9 @@ async def deleteresource(module, target):
     except PermissionError:
         return pages.loginredirect(pages.geturl())
 
+    if modules_state.is_module_readonly(module):
+        raise PermissionError("Module is read only")
+
     if "module_lock" in modules_state.get_module_metadata(module):
         raise PermissionError("Module is locked")
 
@@ -382,6 +396,9 @@ async def moveresource(module, target):
         pages.require("system_admin")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
+
+    if modules_state.is_module_readonly(module):
+        raise PermissionError("Module is read only")
 
     if "module_lock" in modules_state.get_module_metadata(module):
         raise PermissionError("Module is locked")
@@ -403,6 +420,9 @@ async def deleteresourcetarget(module):
     except PermissionError:
         return pages.loginredirect(pages.geturl())
     kwargs = await quart.request.form
+
+    if modules_state.is_module_readonly(module):
+        raise PermissionError("Module is read only")
 
     @copy_current_request_context
     def f():
@@ -463,6 +483,9 @@ async def moveresourcetarget(module):
         return pages.loginredirect(pages.geturl())
     kwargs = await quart.request.form
 
+    if modules_state.is_module_readonly(module):
+        raise PermissionError("Module is read only")
+
     @copy_current_request_context
     def f():
         resourceobj = modules_state.ActiveModules[module][kwargs["name"]]
@@ -506,6 +529,9 @@ async def module_update(module):
 
         modules_state.recalcModuleHashes()
         if not kwargs["name"] == module:
+            if modules_state.is_module_readonly(module):
+                raise PermissionError("Module is read only, cannot rename")
+
             if "." in kwargs:
                 raise ValueError("No . in resource name")
         with modules_state.modulesLock:

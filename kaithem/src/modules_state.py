@@ -312,6 +312,16 @@ def get_resource_save_location(m: str, r: str) -> str:
     return os.path.dirname(os.path.join(dir, urllib.parse.quote(r, safe=" /")))
 
 
+def is_module_readonly(m: str) -> bool:
+    if m in external_module_locations:
+        if external_module_locations[m].startswith(directories.datadir):
+            if "pipx" in external_module_locations[m]:
+                return True
+            if "/opt/" in external_module_locations[m]:
+                return True
+    return False
+
+
 @beartype.beartype
 def saveModule(
     module: dict[str, ResourceDictType], modulename: str
@@ -324,12 +334,21 @@ def saveModule(
     if "__do__not__save__to__disk__:" in modulename:
         return
 
+    if is_module_readonly(modulename):
+        raise RuntimeError("Cannot save a module in a readonly location")
+
     if modulename in external_module_locations:
         fn = os.path.join(
             directories.moduledir, "data", modulename + ".location"
         )
-        with open(fn, "w") as f:
-            f.write(external_module_locations[modulename])
+        needs_update = True
+        if os.path.isfile(fn):
+            with open(fn, "rb") as f:
+                needs_update = f.read() != external_module_locations[modulename]
+
+        if needs_update:
+            with open(fn, "w") as f:
+                f.write(external_module_locations[modulename])
 
     # Iterate over all of the resources in a module and save them as json files
     # under the URL url module name for the filename.

@@ -14,6 +14,7 @@ import weakref
 import zipfile
 from collections.abc import Callable
 from io import BytesIO
+from typing import Any
 
 import beartype
 import structlog
@@ -644,10 +645,20 @@ def rmResource(
         )
 
 
-def newModule(name: str, location: str | None = None) -> None:
-    "Create a new module by the supplied name, throwing an error if one already exists. If location exists, load from there."
+def newModule(
+    name: str,
+    location: str | None = None,
+    metadata_defaults: dict[str, Any] = {},
+) -> None:
+    """Create a new module by the supplied name,
+    throwing an error if one already exists. If location exists, load from there.
+
+    metadata_defaults is a dictionary of default values, ignored if loading an existing module
+    """
 
     check_forbidden(name)
+    already_exists = False
+
     # If there is no module by that name, create a blank template and the scope obj
     with modulesLock:
         if location:
@@ -662,24 +673,37 @@ def newModule(name: str, location: str | None = None) -> None:
                 )
 
             if os.path.isdir(location):
+                if os.path.isfile(os.path.join(location, "__metadata__.yaml")):
+                    already_exists = True
+
                 loadModule(location, name)
             else:
-                modules_state.ActiveModules[name] = {
+                r: modules_state.ResourceDictType = {
                     "__metadata__": {
                         "resource_type": "module_metadata",
                         "description": "",
                         "resource_timestamp": int(time.time() * 1000000),
                     }
                 }
+                for i in metadata_defaults:
+                    r[i] = copy.deepcopy(metadata_defaults[i])
+
+                modules_state.ActiveModules[name] = r
         else:
-            modules_state.ActiveModules[name] = {
+            r: modules_state.ResourceDictType = {
                 "__metadata__": {
                     "resource_type": "module_metadata",
                     "description": "",
                     "resource_timestamp": int(time.time() * 1000000),
                 }
             }
-        saveModule(modules_state.ActiveModules[name], name)
+            for i in metadata_defaults:
+                r[i] = copy.deepcopy(metadata_defaults[i])
+
+            modules_state.ActiveModules[name] = r
+
+        if not already_exists:
+            saveModule(modules_state.ActiveModules[name], name)
 
         bookkeeponemodule(name)
         # Go directly to the newly created module
