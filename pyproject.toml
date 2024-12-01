@@ -82,8 +82,6 @@ pytz = "*"
 ntplib = "*"
 holidays = "*"
 
-yeelight = "*"
-
 pyserial = "*"
 pygrep = "*"
 python-rtmidi = "1.5.8"

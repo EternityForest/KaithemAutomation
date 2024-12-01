@@ -1024,18 +1024,22 @@ let appData = {
 
     'savePreset': function (v, suggestedname) {
         /*Prompt saving data from the cuevals dict as a preset*/
-        var v2 = {}
+
+        var n = prompt("Preset Name?", suggestedname || "")
+        console.log("Saving preset", n, v)
+
+        var v2 = this.presets[n] || {}
+        v2.values = {}
 
         // Just the vals
         for (var i in v) {
-            v2[i] = v[i].v
+            v2.values[i] = v[i].v
         }
 
-        var n = prompt("Preset Name?", suggestedname || "")
 
         if (n && n.length) {
             this.presets[n] = v2;
-            api_link.send(['preset', n, { values: v2 }]);
+            api_link.send(['preset', n, v2]);
 
         }
     },
