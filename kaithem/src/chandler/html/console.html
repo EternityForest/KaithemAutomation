@@ -733,6 +733,7 @@
                                             :chinfo="channelInfoForUniverseChannel(i[1].u,i[1].ch)"
                                             :currentcueid="currentcueid"
                                             :showdelete="grouptab=='channels'"
+                                            :fixcmd="h"
                                             v-for="i in dictView(h,[])">
                                         </h-fader>
                                     </div>
@@ -786,12 +787,28 @@
                                             v-if="fixtureAssignments[fname.slice(1)]?.label_image"
                                             style="max-height: 4em;"
                                             :src="'../WebMediaServer?file='+encodeURIComponent(fixtureAssignments[fname.slice(1)]?.label_image)+'&ts='+fixtureAssignments[fname.slice(1)]?.labelImageTimestamp">
+
+                                        <div class="preset-icon"
+                                            v-if="h['__preset__'] && h['__preset__'].v">
+
+                                            <img style="max-height: 4em; object-fit: cover;"
+                                                :src="'../WebMediaServer?file=' + encodeURIComponent(getPresetImage(h['__preset__'].v))">
+
+                                            <div class="label"
+                                                :style="{ 'background-color': presets[h['__preset__'].v].html_color || 'transparent' }">
+                                                {{ h['__preset__'].v.split('@')[0] }}
+                                            </div>
+
+                                        </div>
+
                                     </summary>
+
                                     <div class="scroll nomargin padding-bottom">
                                         <h-fader :i="i[1]" :groupid="groupname"
                                             :chinfo="channelInfoForUniverseChannel(i[1].u,i[1].ch)"
                                             :currentcueid="currentcueid"
                                             :showdelete="grouptab=='channels'"
+                                            :fixcmd="h"
                                             v-for="i in dictView(h,[])">
                                         </h-fader>
                                     </div>

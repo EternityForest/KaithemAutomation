@@ -10,7 +10,7 @@
         <div class="flex-row nogrow max-h-12rem scroll" style="align-items:flex-start;align-content:flex-start">
             <template v-for="ps of recentPresets.toReversed()">
                 <button v-if="checkPresetUsablility(ps)" @click="setFixturePreset(currentcueid, fixture, ps);"
-                    :disabled="no_edit" class="preset-button" popovertarget="presetForFixture"
+                    :disabled="no_edit" class="preset-button preset-icon" popovertarget="presetForFixture"
                     popovertargetaction="hide">
                     <img v-if="getpresetimage(ps)"
                         :src="'../WebMediaServer?file=' + encodeURIComponent(getpresetimage(ps))">
@@ -37,7 +37,7 @@
             style="background: var(--alt-control-bg); align-items:flex-start;align-content:flex-start">
             <button
                 v-for="ps of dictView(presets, sorts, function (k, v) { if (checkPresetUsablility(k)) { return 1 } })"
-                @click="setFixturePreset(currentcueid, fixture, ps[0]);" :disabled="no_edit" class="preset-button"
+                @click="setFixturePreset(currentcueid, fixture, ps[0]);" :disabled="no_edit" class="preset-button preset-icon"
                 popovertarget="presetForFixture" popovertargetaction="hide">
                 <img v-if="getpresetimage(ps[0])"
                     :src="'../WebMediaServer?file=' + encodeURIComponent(getpresetimage(ps[0]))">
@@ -123,6 +123,7 @@ var data = {
                 window.api_link.send(['scv', sc, fix, i, selectedPreset.values[i]]);
             }
         }
+        window.api_link.send(['scv', sc, fix, '__preset__', preset]);
     },
 }
 

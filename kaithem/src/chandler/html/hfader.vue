@@ -62,6 +62,15 @@ var hfaderdata =
         }
     },
     'setCueVal': function (sc, u, ch, val) {
+
+        console.log("setCueVal", sc, u, ch, val)
+            if (this.fixcmd["__preset__"]) {
+                if (this.fixcmd['__preset__'].v) {
+                    api_link.send(['scv', sc, u, "__preset__", null]);
+                }
+            }
+        
+
         val = isNaN(parseFloat(val)) ? val : parseFloat(val)
         window.api_link.send(['scv', sc, u, ch, val]);
     },
@@ -99,7 +108,7 @@ module.exports = {
     template: '#h-fader',
     //I is a data object having u,ch, and v, the universe channel and value.
     //Chinfo is the channel info list from the fixtues that you get with channelInfoForUniverseChannel
-    props: ['i', 'chinfo', 'currentcueid', 'groupid','showdelete'],
+    props: ['i', 'chinfo', 'currentcueid', 'groupid','showdelete','fixcmd'],
     data: function () {
         return (hfaderdata)
     },

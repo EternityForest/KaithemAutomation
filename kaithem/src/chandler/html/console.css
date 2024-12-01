@@ -62,6 +62,11 @@ article.fixture {
 }
 
 .preset-button {
+    box-shadow: 4px 5px 3px #00000069;
+    margin: 3px;
+}
+
+.preset-icon {
     aspect-ratio: 16/9;
     overflow: hidden;
     flex-basis: 10rem;
@@ -71,8 +76,6 @@ article.fixture {
     padding: 0px;
     position: relative;
     z-index: 1001;
-    box-shadow: 4px 5px 3px #00000069;
-    margin: 3px;
 
 
     &>img {

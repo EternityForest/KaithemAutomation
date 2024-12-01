@@ -253,6 +253,13 @@ let appMethods = {
         api_link.send(['getcuehistory', sc]);
     },
     'setCueVal': function (sc, u, ch, val) {
+        if (this.cuevals[sc]) {
+            if (this.cuevals[sc][u]) {
+                if (this.cuevals[sc][u]['__preset__']) {
+                    api_link.send(['scv', sc, u, "__preset__", null]);
+                }
+            }
+        }
         val = isNaN(parseFloat(val)) ? val : parseFloat(val)
         api_link.send(['scv', sc, u, ch, val]);
     },
