@@ -1452,7 +1452,9 @@ async function initChandlerVueModel(board, va) {
     await vueapp.initializeState(board)
 
     api_link.upd = f
+    api_link.send(['get_state']);
     api_link.send(['getCommands']);
+
 
     // Exact sync on half seconds
     function unix_time_upd() {

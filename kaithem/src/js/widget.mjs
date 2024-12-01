@@ -328,8 +328,8 @@ if (globalThis.kaithemapi == undefined) {
 	globalThis.kaithemapi = globalThis.kaithemapi()
 
 	if (!window.onerror) {
-		var globalPageErrorHandler = function (msg, url, line) {
-			globalThis.kaithemapi.sendErrorMessage(url + '\n' + line + "\n\n" + msg)
+		var globalPageErrorHandler = function (msg, url, line, col, tb) {
+			globalThis.kaithemapi.sendErrorMessage(url + '\n' + line + "\n\n" + msg + "\n\n" + tb);
 		}
 		window.addEventListener("unhandledrejection", event => {
 			globalThis.kaithemapi.sendErrorMessage(`UNHANDLED PROMISE REJECTION: ${event.reason}`);
@@ -408,7 +408,7 @@ if (globalThis.kaithemapi == undefined) {
 }
 
 class APIWidget {
-    constructor(uuid) {
+    constructor(uuid, handler, defer_connect) {
         this.uuid = uuid
         this.value = "Waiting..."
         this.clean = 0;
@@ -417,11 +417,20 @@ class APIWidget {
 
 		this._timeref = null;
 
-        kaithemapi.subscribe("_ws_timesync_channel", this.onTimeResponse)
-        kaithemapi.subscribe(this.uuid, this._upd.bind(this));
-        setTimeout(this.getTime.bind(this), 500)
+		if (handler) {
+			this.upd = handler;
+		}
+
+		if (!defer_connect) {
+			this.connect();
+		}
     }
 
+	connect() {
+		kaithemapi.subscribe("_ws_timesync_channel", this.onTimeResponse)
+		kaithemapi.subscribe(this.uuid, this._upd.bind(this));
+		setTimeout(this.getTime.bind(this), 500)
+	}
     onTimeResponse(val) {
         {
             if (Math.abs(val[0] - this._txtime) < 0.1) {

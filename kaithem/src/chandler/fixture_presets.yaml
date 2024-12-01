@@ -59,7 +59,7 @@ Cinnamon:
 Cool White:
   category: neutral
   html_color: '#f5fbff'
-  label_image: img/16x9/white-rose.avif
+  label_image: img/16x9/winter-wald-schnee-baume.avif
   values:
     blue: 154
     dim: 255
@@ -135,7 +135,7 @@ Neutral White@rgbw:
 Pale Blue:
   category: teal
   html_color: '#bdddff'
-  label_image: img/16x9/water-blue-pool-background.avif
+  label_image: img/16x9/plumbago-auriculata.avif
   values:
     blue: 255
     dim: 255
@@ -143,9 +143,9 @@ Pale Blue:
     red: 136
     white: 0
 Pale Green:
-  category: teal
+  category: green
   html_color: '#a5ffa3'
-  label_image: img/16x9/green-grass.avif
+  label_image: img/16x9/pale-green-yellow-flower.avif
   values:
     blue: 37
     dim: 255
@@ -183,7 +183,7 @@ Pure Blue:
     green: 0
     red: 0
 Pure Green:
-  category: teal
+  category: green
   html_color: '#00ff40'
   label_image: img/16x9/beech-and-ferns.avif
   values:
@@ -201,9 +201,9 @@ Pure Red:
     green: 0
     red: 255
 Seafoam:
-  category: teal
+  category: green
   html_color: '#00ff88'
-  label_image: img/16x9/water-blue-pool-background.avif
+  label_image: img/16x9/miami-blue-green-water.avif
   values:
     blue: 21
     dim: 255
@@ -240,9 +240,9 @@ Violet:
     red: 255
     white: 0
 Warm Green:
-  category: teal
+  category: green
   html_color: '#c6ff5c'
-  label_image: img/16x9/green-grass.avif
+  label_image: img/16x9/japanese-forest-grass.avif
   values:
     blue: 6
     dim: 255

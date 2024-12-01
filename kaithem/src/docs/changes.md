@@ -10,6 +10,7 @@ Change Log
 - :bug: Don't change timestamps when loading external module
 - :sparkles: Presets and range effects work better together
 - :bug: Fix gen shortcut button
+- :bug: Fix race condition that caused chandler to not reliably load on mobile
 
 ### 0.86.2
 

@@ -191,7 +191,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
     def setup_link(self):
         class WrappedLink(kaithem.widget.APIWidget):
             def on_new_subscriber(s, user: str, connection_id: str, **kw: Any):
-                self.send_everything(connection_id)
+                pass
 
             def on_subscriber_disconnected(
                 s, user: str, connection_id: str, **kw: Any
@@ -344,7 +344,11 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         cmd_name: str = str(msg[0])
 
-        if cmd_name == "getcuedata":
+        if cmd_name == "get_state":
+            self.send_everything(sessionid)
+            return
+
+        elif cmd_name == "getcuedata":
             s = cues[msg[1]]
             self.linkSend(["cuedata", msg[1], s.values])
             self.pushCueMeta(msg[1])

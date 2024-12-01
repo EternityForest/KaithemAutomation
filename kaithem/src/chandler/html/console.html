@@ -803,7 +803,7 @@
                                             :src="'../WebMediaServer?file='+encodeURIComponent(fixtureAssignments[fname.slice(1)]?.label_image)+'&ts='+fixtureAssignments[fname.slice(1)]?.labelImageTimestamp">
 
                                         <div class="preset-icon"
-                                            v-if="h['__preset__'] && h['__preset__'].v">
+                                            v-if="h['__preset__'] && h['__preset__'].v && presets[h['__preset__'].v]">
 
                                             <img style="max-height: 4em; object-fit: cover;"
                                                 :src="'../WebMediaServer?file=' + encodeURIComponent(getPresetImage(h['__preset__'].v))">
