@@ -63,7 +63,7 @@
 
         <div class="menubar tool-bar">
             <button type="button" popovertarget="presetsDialog"><i
-                    class="mdi mdi-palette"></i>Presets</button>
+                    class="mdi mdi-playlist-edit"></i>Presets</button>
             <button type="button" v-on:click="showevents=!showevents"><i
                     class="mdi mdi-flag"></i>Events</button>
 
@@ -372,6 +372,7 @@
 
 
         <fixture-presets-dialog :presets="presets" :fixture="selectingPresetFor"
+            :fordestination="selectingPresetForDestination"
             :fixtureclasses="fixtureClasses"
             :fixturetype="lookupFixtureType(selectingPresetFor)"
             :currentvals="(cuevals[currentcueid]||{})[selectingPresetFor]"
@@ -604,7 +605,7 @@
 
                                 </select>
 
-                                <input :disabled="no_edit"
+                                <input :disabled="no_edit" class="w-12rem"
                                     v-if="Object.keys(groupcues[groupname]).length>40"
                                     autocomplete=off list="cues_in_group"
                                     title="Select a cue to activate when this one ends"
@@ -728,7 +729,8 @@
                                 <details class="undecorated nopadding nomargin"
                                     data-testid="details-fixture-channels-summary">
                                     <summary>Channels</summary>
-                                    <div class="scroll nomargin">
+                                    <div
+                                        class="scroll nomargin flex-row fader-box-inner">
                                         <h-fader :i="i[1]" :groupid="groupname"
                                             :chinfo="channelInfoForUniverseChannel(i[1].u,i[1].ch)"
                                             :currentcueid="currentcueid"
@@ -753,8 +755,20 @@
 
                                     <div class="tool-bar">
                                         <button type="button"
-                                            @click="showPresetDialog(fname)"
-                                            popovertarget="presetForFixture">Presets</button>
+                                            @click="showPresetDialog(fname, false)"
+                                            popovertarget="presetForFixture"
+                                            title="Select a preset for this fixture"
+                                            ><i class="mdi mdi-playlist-play"></i></button>
+
+                                        <button type="button"
+                                            v-if="h.__length__"
+                                            @click="showPresetDialog(fname, true)"
+                                            title="Select a preset for the end of the range effect"
+
+                                            popovertarget="presetForFixture">
+                                            <i class="mdi mdi-playlist-play"></i>
+                                            <i class="mdi mdi-arrow-right"></i>
+                                            </button>
 
                                         <select :disabled="no_edit"
                                             class="w-4rem nogrow"
@@ -803,7 +817,8 @@
 
                                     </summary>
 
-                                    <div class="scroll nomargin padding-bottom">
+                                    <div
+                                        class="scroll nomargin padding-bottom flex-row fader-box-inner">
                                         <h-fader :i="i[1]" :groupid="groupname"
                                             :chinfo="channelInfoForUniverseChannel(i[1].u,i[1].ch)"
                                             :currentcueid="currentcueid"
@@ -822,7 +837,7 @@
                                     <h4>Add Raw Channel</h4>
                                 </header>
 
-                                <div class="stacked-form w-24rem">
+                                <div class="stacked-form w-20rem">
                                     <label>Universe
                                         <combo-box
                                             v-bind:options="useBlankDescriptions(universes)"
@@ -851,7 +866,7 @@
                                     <h4>Add Tag Point</h4>
                                 </header>
 
-                                <div class="stacked-form w-24rem">
+                                <div class="stacked-form w-20rem">
                                     <label>Tag
                                         <input v-model="newcuetag"
                                             list="tagslisting">

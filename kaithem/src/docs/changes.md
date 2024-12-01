@@ -8,6 +8,7 @@ Change Log
 - :sparkles: Default color presets for DMX fixtures
 - :sparkles: Library modules loaded as links
 - :bug: Don't change timestamps when loading external module
+- :sparkles: Presets and range effects work better together
 
 ### 0.86.2
 

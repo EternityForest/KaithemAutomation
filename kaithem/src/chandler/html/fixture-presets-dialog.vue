@@ -3,7 +3,9 @@
 <template>
     <div popover id="presetForFixture" v-if="fixture" class="card paper flex-col"
         style="background: var(--alt-control-bg); position: fixed; width:90vw; height: 90vh; top:5vh; left:5vw; z-index: 100">
-        <header>Presets for {{ fixture }}</header>
+        <header>Presets for {{ fixture }}
+            <span v-if="fordestination"> destination value</span>
+        </header>
         <button class="w-full nogrow" popovertarget="presetForFixture" popovertargetaction="hide">
             <i class="mdi mdi-close"></i>Close
         </button>
@@ -37,8 +39,8 @@
             style="background: var(--alt-control-bg); align-items:flex-start;align-content:flex-start">
             <button
                 v-for="ps of dictView(presets, sorts, function (k, v) { if (checkPresetUsablility(k)) { return 1 } })"
-                @click="setFixturePreset(currentcueid, fixture, ps[0]);" :disabled="no_edit" class="preset-button preset-icon"
-                popovertarget="presetForFixture" popovertargetaction="hide">
+                @click="setFixturePreset(currentcueid, fixture, ps[0]);" :disabled="no_edit"
+                class="preset-button preset-icon" popovertarget="presetForFixture" popovertargetaction="hide">
                 <img v-if="getpresetimage(ps[0])"
                     :src="'../WebMediaServer?file=' + encodeURIComponent(getpresetimage(ps[0]))">
 
@@ -119,18 +121,41 @@ var data = {
         // }
 
         for (var i in this.currentvals) {
+
+            // If just editing destinations
+            // don't use the special vals.
+            if (this.fordestination) {
+                if (i.includes('__')) {
+                    continue
+                }
+            }
+
+            if (i == "__length__") {
+                continue
+            }
+            if (i == "__spacing__") {
+                continue
+            }
+
             if (selectedPreset.values[i] != undefined) {
-                window.api_link.send(['scv', sc, fix, i, selectedPreset.values[i]]);
+                if (this.fordestination) {
+                    window.api_link.send(['scv', sc, fix, "__dest__." + i, selectedPreset.values[i]]);
+                }
+                else {
+                    window.api_link.send(['scv', sc, fix, i, selectedPreset.values[i]]);
+                }
             }
         }
-        window.api_link.send(['scv', sc, fix, '__preset__', preset]);
+        if (!this.fordestination) {
+            window.api_link.send(['scv', sc, fix, '__preset__', preset]);
+        }
     },
 }
 
 module.exports = {
     template: '#template',
 
-    props: ['presets', 'fixture', 'fixtureclasses', 'fixturetype', 'currentcueid', 'currentvals', 'getpresetimage', "no_edit"],
+    props: ['presets', 'fixture', 'fordestination', 'fixtureclasses', 'fixturetype', 'currentcueid', 'currentvals', 'getpresetimage', "no_edit"],
     data: function () {
         return (data)
     },

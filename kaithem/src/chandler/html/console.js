@@ -3,7 +3,13 @@ import { kaithemapi } from "/static/js/widget.mjs"
 
 import {appData, appMethods, appComputed,initChandlerVueModel} from "./boardapi.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
 
-appMethods.showPresetDialog = function (fixture) {
+appMethods.showPresetDialog = function (fixture, dest) {
+    if (dest) {
+        vueapp.$data.selectingPresetForDestination = true
+    }
+    else {
+        vueapp.$data.selectingPresetForDestination = false
+    }
     vueapp.$data.selectingPresetFor = fixture
 }
 
@@ -23,7 +29,8 @@ appData.getExcalidrawCueLink = function (group, cue) {
 }
 
 
-
+// If true preset applies to final val of range effect
+appData.selectingPresetForDestination = false
 
 appData.selectingPresetFor = null
 // Add console specific stuff to the appdata

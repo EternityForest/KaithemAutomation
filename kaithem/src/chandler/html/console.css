@@ -11,8 +11,12 @@ div.hfader {
     border-color: rgba(0, 0, 0, 0.1);
     margin: 3px;
     min-width: 8em;
-    min-height: 4em;
+    min-height: 5em;
 }
+
+div.fader-box-inner:has(> :nth-child(4)) {
+    min-width: 20rem;
+  }
 
 div.hfader span.indicator {
     float: right;
@@ -41,7 +45,7 @@ article.universe {
 
 article.fixture {
     margin: 3px;
-    max-width: 16em;
+    max-width: 24rem;
     flex-basis: min-content;
     min-width: 9em;
     min-height: 11rem;

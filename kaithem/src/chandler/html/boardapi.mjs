@@ -19,8 +19,8 @@ It provides window.api_link
 
 */
 
-import { useBlankDescriptions, formatInterval, dictView }  from "./utils.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
-import { kaithemapi, APIWidget} from "/static/js/widget.mjs"
+import { useBlankDescriptions, formatInterval, dictView } from "./utils.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
+import { kaithemapi, APIWidget } from "/static/js/widget.mjs"
 
 
 let keysdown = {}
@@ -698,7 +698,7 @@ let appMethods = {
 
 let appComputed = {
     "currentcue": function () {
-        if(this.selectedCues[this.groupname]==undefined){
+        if (this.selectedCues[this.groupname] == undefined) {
             return null
         }
         return (this.cuemeta[this.groupcues[this.groupname]
@@ -706,7 +706,7 @@ let appComputed = {
         ])
     },
     "currentcueid": function () {
-        if(this.selectedCues[this.groupname]==undefined){
+        if (this.selectedCues[this.groupname] == undefined) {
             return null
         }
         return (this.groupcues[this.groupname][this
@@ -795,7 +795,7 @@ let appData = {
     'cuePage': {},
     'nuisianceRateLimit': [10, Date.now()],
 
-    'no_edit' : !kaithemapi.checkPermission("system_admin"),
+    'no_edit': !kaithemapi.checkPermission("system_admin"),
 
     'evlog': [
     ],
@@ -887,7 +887,7 @@ let appData = {
         if (x.length > 0) {
             let c = this.fixtureClasses[x]
             if (c) {
-                if(c.color_profile && c.color_profile.length > 0) {
+                if (c.color_profile && c.color_profile.length > 0) {
                     return c.color_profile
                 }
             }
@@ -1040,6 +1040,10 @@ let appData = {
 
         // Just the vals
         for (var i in v) {
+            if (i == "__length__") { continue }
+            if (i == "__spacing__") { continue }
+            if (i == "__preset__") { continue }
+
             v2.values[i] = v[i].v
         }
 
@@ -1443,7 +1447,7 @@ function f(v) {
     }
 }
 
-async function initChandlerVueModel(board,va) {
+async function initChandlerVueModel(board, va) {
     vueapp = va
     await vueapp.initializeState(board)
 
