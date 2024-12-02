@@ -2,7 +2,7 @@
 
 <template>
     <div popover id="presetForFixture" v-if="fixture" class="card paper flex-col"
-        style="background: var(--alt-control-bg); position: fixed; width:90vw; height: 90vh; top:5vh; left:5vw; z-index: 100">
+        style="background: var(--alt-control-bg); position: fixed; width:98vw; height: 90vh; top:1vh; left:1vw; z-index: 100">
         <header>Presets for {{ fixture }}
             <span v-if="fordestination"> destination value</span>
         </header>
@@ -16,9 +16,9 @@
                     popovertargetaction="hide">
                     <img v-if="getpresetimage(ps)"
                         :src="'../WebMediaServer?file=' + encodeURIComponent(getpresetimage(ps))">
-                    <div class="label" :style="{ 'background-color': presets[ps].html_color || 'transparent' }">
+                    <div class="label" :style="{ 'background-color': presets[ps]?.html_color || 'transparent' }">
                         {{ ps.split('@')[0] }}</div>
-                    <div class="label-bottom" :style="{ 'background-color': ps[1].html_color || 'transparent' }">
+                    <div class="label-bottom" :style="{ 'background-color': ps[1]?.html_color || 'transparent' }">
                         <small>
                             {{ ps.split('@')[1] || '' }}
                         </small>
@@ -35,7 +35,7 @@
             <input v-model="presetFilter" placeholder="Search Presets..." />
             <button @click="presetFilter = ''" class="nogrow"><i class="mdi mdi-backspace"></i></button>
         </div>
-        <div class="flex-row grow scroll"
+        <div class="flex-row grow scroll" data-testid="presets-list"
             style="background: var(--alt-control-bg); align-items:flex-start;align-content:flex-start">
             <button
                 v-for="ps of dictView(presets, sorts, function (k, v) { if (checkPresetUsablility(k)) { return 1 } })"
@@ -45,9 +45,9 @@
                     :src="'../WebMediaServer?file=' + encodeURIComponent(getpresetimage(ps[0]))">
 
 
-                <div class="label" :style="{ 'background-color': ps[1].html_color || 'transparent' }">
+                <div class="label" :style="{ 'background-color': ps[1]?.html_color || 'transparent' }">
                     {{ ps[0].split('@')[0] }}</div>
-                <div class="label-bottom" :style="{ 'background-color': ps[1].html_color || 'transparent' }"><small>
+                <div class="label-bottom" :style="{ 'background-color': ps[1]?.html_color || 'transparent' }"><small>
                         {{ ps[0].split('@')[1] || '' }}
                     </small>
                 </div>
@@ -72,6 +72,7 @@ var data = {
 
     'sorts': ["category", "!values.green", "!values.red", "!values.blue", "!values.white", "!values.dim"],
     'setFixturePreset': function (sc, fix, preset) {
+        console.log('setFixturePreset', sc, fix, preset)
         const deleteIndex = this.recentPresets.indexOf(preset);
 
         if (deleteIndex > -1) {
@@ -101,6 +102,8 @@ var data = {
         if (selectedPreset == undefined) {
             return
         }
+
+        console.log(selectedPreset)
 
         selectedPreset = JSON.parse(JSON.stringify(selectedPreset))
 
@@ -137,7 +140,16 @@ var data = {
             if (i == "__spacing__") {
                 continue
             }
+            if (typeof (selectedPreset.values[i]) == 'string') {
+                if(selectedPreset.values[i].length == 0) {
+                    continue
+                }
+                
+            }
 
+            if (selectedPreset.values[i] == '-1') {
+                continue
+            }
             if (selectedPreset.values[i] != undefined) {
                 if (this.fordestination) {
                     window.api_link.send(['scv', sc, fix, "__dest__." + i, selectedPreset.values[i]]);

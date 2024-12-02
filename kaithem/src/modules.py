@@ -788,6 +788,9 @@ def handleResourceChange(
 
         assert isinstance(t, str)
 
+        if resource == "__metadata__":
+            return
+
         if t == "permission":
             auth.importPermissionsFromModules()  # sync auth's list of permissions
         if t == "module-description":

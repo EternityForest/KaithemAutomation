@@ -75,7 +75,8 @@
         <div class="scroll" style="max-height: 36rem; margin-bottom: 0.5em">
             <dl>
                 <template v-for="ps, i of dictView(presets, [])">
-                    <dt v-if="ps[0].toLowerCase().includes(filterPresets.toLowerCase())">
+                    <dt v-if="ps[0].toLowerCase().includes(filterPresets.toLowerCase())" 
+                    :data-testid="'preset-inspector-' +ps[0] + '-heading'">
                         <div class="tool-bar">
                             <p><b>{{ ps[0] }}</b></p>
                             <button type="button" popovertarget="presetImageLabel"
@@ -96,7 +97,8 @@
                                     class="mdi mdi-copy"></i>Copy</button>
                         </div>
                     </dt>
-                    <dd v-if="ps[0].toLowerCase().includes(filterPresets.toLowerCase())">
+                    <dd :data-testid="'preset-inspector-' +ps[0] + '-body'"
+                    v-if="ps[0].toLowerCase().includes(filterPresets.toLowerCase())">
 
                         <img v-if="getpresetimage(ps[0])" style="max-height: 8em; max-width: 8em;"
                             :src="'../WebMediaServer?file=' + encodeURIComponent(getpresetimage(ps[0]))">

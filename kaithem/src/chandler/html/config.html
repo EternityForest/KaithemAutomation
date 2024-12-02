@@ -330,7 +330,7 @@
             </div>
             <hr>
 
-            <select testid="fixture-type-to-edit" v-model="selectedFixtureClass" v-on:change="getfixtureclass(selectedFixtureClass)">
+            <select data-testid="fixture-type-to-edit" v-model="selectedFixtureClass" v-on:change="getfixtureclass(selectedFixtureClass)">
                 <option v-for="i in Object.keys(fixtureClasses)" :value="i">{{i}}</option>
             </select>
 

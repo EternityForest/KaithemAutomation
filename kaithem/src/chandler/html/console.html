@@ -726,9 +726,10 @@
                                 <header>
                                     <h3 class="noselect">{{uname}}</h3>
                                 </header>
-                                <details class="undecorated nopadding nomargin"
-                                    data-testid="details-fixture-channels-summary">
-                                    <summary>Channels</summary>
+                                <details class="undecorated nopadding nomargin">
+                                    <summary
+                                        data-testid="details-fixture-channels-summary">
+                                        Channels</summary>
                                     <div
                                         class="scroll nomargin flex-row fader-box-inner">
                                         <h-fader :i="i[1]" :groupid="groupname"
@@ -758,17 +759,18 @@
                                             @click="showPresetDialog(fname, false)"
                                             popovertarget="presetForFixture"
                                             title="Select a preset for this fixture"
-                                            ><i class="mdi mdi-playlist-play"></i></button>
+                                            data-testid="select-preset-for-fixture"><i
+                                                class="mdi mdi-playlist-play"></i></button>
 
                                         <button type="button"
                                             v-if="h.__length__"
                                             @click="showPresetDialog(fname, true)"
                                             title="Select a preset for the end of the range effect"
-
                                             popovertarget="presetForFixture">
-                                            <i class="mdi mdi-playlist-play"></i>
+                                            <i
+                                                class="mdi mdi-playlist-play"></i>
                                             <i class="mdi mdi-arrow-right"></i>
-                                            </button>
+                                        </button>
 
                                         <select :disabled="no_edit"
                                             class="w-4rem nogrow"
@@ -809,7 +811,7 @@
                                                 :src="'../WebMediaServer?file=' + encodeURIComponent(getPresetImage(h['__preset__'].v))">
 
                                             <div class="label"
-                                                :style="{ 'background-color': presets[h['__preset__'].v].html_color || 'transparent' }">
+                                                :style="{ 'background-color': presets[h['__preset__'].v]?.html_color || 'transparent' }">
                                                 {{ h['__preset__'].v.split('@')[0] }}
                                             </div>
 

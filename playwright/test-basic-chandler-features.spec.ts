@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { sleep, login, logout, makeModule, deleteModule, makeTagPoint } from './util';
+import { sleep, login, logout, chandlerBoardTemplate, deleteModule, makeTagPoint } from './util';
 
 
 
@@ -12,36 +12,8 @@ test('test', async ({ page }) => {
 
     await login(page);
     let module = "PlaywrightChandlerTestModule";
-    //Make module
-    makeModule(page, module);
-
-    // Make chandler board
-    await page.getByTestId('add-resource-button').click();
-
-    await page.getByRole('link', { name: 'Chandler Board' }).click();
-    await page.getByLabel('Resource Name').click();
-    await page.getByLabel('Resource Name').fill('board1');
-    await page.getByRole('button', { name: 'Submit' }).click();
-
-    // Go to chandler editor
-    await page.getByRole('link', { name: 'Modules' }).click();
-    await page.getByRole('link', { name: module }).click();
-    await page.getByRole('link', { name: 'Editor' }).click();
-
-    // Create group
-    await page.getByPlaceholder('New group name').click();
-    await page.getByPlaceholder('New group name').fill('tst1');
-    await page.getByTestId('add-group-button').click();
-    await page.getByRole('button', { name: 'tst1' }).click();
-
-    // make cue c2
-    await page.getByPlaceholder('New cue name').click();
-    await page.getByPlaceholder('New cue name').fill('c2');
-    await page.getByRole('button', { name: 'Add Cue' }).click();
-
-    //select cue
-    await expect(page.locator('#cuesbox')).toContainText('c2');
-    await page.locator('#cuesbox').getByText('default', { exact: true }).click();
+    
+    await chandlerBoardTemplate(page);
 
     // Cue logic
     await page.getByTestId('cue-logic-button').click();

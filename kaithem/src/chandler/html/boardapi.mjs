@@ -1078,7 +1078,7 @@ let appData = {
         if (this.presets[preset.split('@')[0]]?.label_image) {
             return (this.presets[preset.split('@')[0]]?.label_image)
         }
-        return null
+        return "1x1.png"
     },
 
 
