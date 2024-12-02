@@ -37,7 +37,7 @@ test('test', async ({ page }) => {
     await page.getByRole('link', { name: 'PlaywrightBasicModuleFeatures' }).click();
 
     // Make sure it's in the list
-    await expect(page.getByRole('link', { name: 'p1 (page)' })).toContainText('p1 (page)');
+    await expect(page.getByRole('link', { name: 'p1' })).toContainText('p1');
 
     // Create an event
     await page.getByTestId('add-resource-button').click();
@@ -55,7 +55,7 @@ test('test', async ({ page }) => {
 
     
     await expect(page.getByText('Trigger: True Last Ran:')).toContainText('ago');
-    await page.getByRole('link', { name: 'e1 (event)' }).click();
+    await page.getByRole('link', { name: 'e1' }).click();
 
     // Waste some time
     await page.goto("http://localhost:8002/modules/module/PlaywrightBasicModuleFeatures")
@@ -78,7 +78,7 @@ test('test', async ({ page }) => {
     await page.goto("http://localhost:8002/modules/module/PlaywrightBasicModuleFeatures#resources");
 
     //Check page works at new location
-    await page.getByRole('link', { name: 'p1_new (page)' }).click();
+    await page.getByRole('link', { name: 'p1_new' }).click();
     await expect(page.getByRole('heading')).toContainText('PlaywrightBasicModuleFeatures: p1_new');
     await page.goto("http://localhost:8002/modules/module/PlaywrightBasicModuleFeatures#resources");
 
@@ -94,7 +94,7 @@ test('test', async ({ page }) => {
     await expect(page.getByText('Trigger: True Last Ran:')).toContainText('ago');
 
 
-    await page.getByRole('link', { name: 'e1_new (event)' }).click();
+    await page.getByRole('link', { name: 'e1_new' }).click();
     await expect(page.locator('h2')).toContainText('e1_new');
  
     await deleteModule(page, 'PlaywrightBasicModuleFeatures');

@@ -12,7 +12,7 @@ test('test', async ({ page }) => {
     await page.goto('http://localhost:8002/modules');
 
     await page.getByRole('link', { name: 'Examples' }).click();
-    await page.getByRole('link', { name: '󰈻 Time Event (event)' }).click();
+    await page.getByRole('link', { name: 'Time Event' }).click();
     await expect(page.locator('h2')).toContainText('Event Time Event of module Examples');
     await page.getByRole('link', { name: '󱒕 Modules' }).click();
     await page.getByRole('link', { name: 'Examples' }).click();

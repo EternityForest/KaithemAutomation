@@ -61,15 +61,15 @@ test('test', async ({ page }) => {
 
 
     // Go add the __all_permissions__ permission
-    await page.getByRole('link', { name: '󱒕 Modules' }).click();
+    await page.getByRole('link', { name: 'Modules' }).click();
     await page.getByRole('link', { name: 'test_static_server' }).click();
-    await page.getByRole('link', { name: '󰖟 static (fileserver)' }).click();
+    await page.getByRole('link', { name: 'static', exact: true }).click();
     await page.getByText('Require Permissions').click();
     await page.getByLabel('__all_permissions__').check();
     await page.getByRole('button', { name: 'Submit' }).click();
 
     // Ensure it's been added
-    await page.getByRole('link', { name: '󰖟 static (fileserver)' }).click();
+    await page.getByRole('link', { name: 'static', exact: true }).click();
     await page.getByText('Require Permissions').click();
     await expect(page.getByLabel('__all_permissions__')).toBeChecked();
 

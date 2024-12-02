@@ -102,7 +102,7 @@ Lavender:
     blue: 255
     dim: 255
     green: 22
-    red: 63
+    red: 82
 Max White:
   category: neutral
   html_color: '#e5f1ff'
@@ -239,6 +239,16 @@ Violet:
     green: 0
     red: 255
     white: 0
+Dusk Blue:
+  category: teal
+  html_color: '#6f5cff'
+  label_image: img/16x9/sky-at-night.avif
+  values:
+    blue: 255
+    dim: 255
+    green: 38
+    red: 45
+    white: 0
 Warm Green:
   category: green
   html_color: '#c6ff5c'
@@ -247,7 +257,7 @@ Warm Green:
     blue: 6
     dim: 255
     green: 255
-    red: 36
+    red: 70
 Warm White:
   category: neutral
   html_color: '#fffedb'
