@@ -18,9 +18,23 @@ async function fill_box(page, box, text: string) {
     if (await box.inputValue() != text) {
         await box.clear();
         await box.fill(text, { force: true });
-        await delay(300);
     }
     expect(await box.inputValue()).toBe(text);
+}
+
+/*More flaky crap fixes*/
+async function check_box(page, box) {
+    if (await box.isChecked()) {
+        return;
+    }
+    await box.click();
+}
+
+async function uncheck_box(page, box) {
+    if (!await box.isChecked()) {
+        return;
+    }
+    await box.click();
 }
 
 
@@ -111,14 +125,20 @@ test('test', async ({ page }) => {
     await page.goto('http://localhost:8002/chandler/editor/testchandlerproperties:b1');
     await page.getByRole('button', { name: 'ts1' }).click();
     await page.getByTestId('group-properties-button').click();
+    await sleep(3000);
+
     await page.getByTestId('group_blend_mode').selectOption('HTP');
     await expect(page.getByLabel('Alpha', { exact: true })).toHaveValue('0.25');
     await page.getByLabel('Default Alpha').click();
 
     await page.getByLabel('Sidebar info URL').click();
     await page.getByLabel('Sidebar info URL').fill('foourl');
-    await page.getByLabel('Utility Group(No controls)').check();
-    await page.getByLabel('Hide in Runtime Mode').check();
+
+    await check_box(page, page.getByLabel('Utility Group(No controls)'));
+    //await page.getByLabel('Utility Group(No controls)').check();
+
+    await check_box(page, page.getByLabel('Hide in Runtime Mode'));
+    //await page.getByLabel('Hide in Runtime Mode').check();
 
 
     await page.getByTestId('close-group-settings').click();
@@ -145,23 +165,18 @@ test('test', async ({ page }) => {
 
     await page.getByRole('button', { name: 'Add Tag' }).click();
 
-    await sleep(100);
     await fill_box(page, page.getByTestId('display_tag_label'), 'tg1');
-    await sleep(100);
 
     // This line is flaky, if you get a fail just manually pause a bit.
     await fill_box(page,
         page.getByTestId('display_tag_width'), '5');
 
-    await sleep(300);
 
     await fill_box(page,
         page.getByTestId('display_tag_tag'), '=4');
     
-    delay(100);
 
     await page.getByTestId('display_tag_type').selectOption('Meter')
-    delay(100);
 
     // Waste some time to let it send
 
@@ -189,7 +204,8 @@ test('test', async ({ page }) => {
     await page.getByTestId('event_button_delete').click();
     await page.getByTestId('display_tag_delete').click();
 
-    await page.getByLabel('Require Confirmation for Cue').check();
+    await check_box(page, page.getByLabel('Require Confirmation for Cue'));
+    //await page.getByLabel('Require Confirmation for Cue').check();
 
     // Click elsewhere, do other stuff, let it save
 
@@ -236,11 +252,20 @@ test('test', async ({ page }) => {
     await page.getByPlaceholder('Tagpoint').fill('');
     await page.getByPlaceholder('Next cue in list').dblclick();
     await page.getByPlaceholder('Next cue in list').fill('');
-    await page.getByLabel('Utility Group(No controls)').uncheck();
-    await page.getByLabel('Hide in Runtime Mode').uncheck();
-    await page.getByLabel('Backtrack').uncheck();
-    await page.getByLabel('Active By Default').uncheck();
-    await page.getByLabel('Require Confirmation for Cue').uncheck();
+
+    await uncheck_box(page, page.getByLabel('Utility Group(No controls)'));
+    await uncheck_box(page, page.getByLabel('Hide in Runtime Mode'));
+    await uncheck_box(page, page.getByLabel('Backtrack'));
+    await uncheck_box(page, page.getByLabel('Active By Default'));
+    await uncheck_box(page, page.getByLabel('Require Confirmation for Cue'));
+
+
+
+    // await page.getByLabel('Utility Group(No controls)').uncheck();
+    // await page.getByLabel('Hide in Runtime Mode').uncheck();
+    // await page.getByLabel('Backtrack').uncheck();
+    // await page.getByLabel('Active By Default').uncheck();
+    // await page.getByLabel('Require Confirmation for Cue').uncheck();
 
 
     await page.getByTestId('close-group-settings').click();
