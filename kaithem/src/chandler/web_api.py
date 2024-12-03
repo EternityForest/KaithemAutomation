@@ -96,7 +96,7 @@ async def set_group_properties(group_id: str):
             setattr(group, prop, val)
 
             if not old == val:
-                group.board.pushCueMeta(group_id)
+                group.board.push_group_meta(group_id)
 
         return {"success": True}
 

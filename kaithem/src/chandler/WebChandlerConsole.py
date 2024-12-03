@@ -659,10 +659,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             groups.groups[msg[1]].info_display = msg[2]
             self.push_group_meta(msg[1], keys={"info_display"})
 
-        elif cmd_name == "setdisplaytags":
-            groups.groups[msg[1]].set_display_tags(msg[2])
-            self.push_group_meta(msg[1], keys={"display_tags"})
-
         elif cmd_name == "inputtagvalue":
             for i in groups.groups[msg[1]].display_tags:
                 # Defensive programming, don't set a tag that wasn't ever actually configured

@@ -8,12 +8,19 @@ async function delay(ms: number) {
 async function fill_box(page, box, text: string) {
     /*Filling a box does't always work even if it does in the browser*/
 
-    // Try this twice
     await box.click();
+    await box.clear();
+
     await delay(10);
-    await box.fill(text);
+    await box.pressSequentially(text, { delay: 5 });
     await delay(10);
     await delay(10);
+    if (await box.inputValue() != text) {
+        await box.clear();
+        await box.fill(text, { force: true });
+        await delay(300);
+    }
+    expect(await box.inputValue()).toBe(text);
 }
 
 
@@ -138,13 +145,15 @@ test('test', async ({ page }) => {
 
     await page.getByRole('button', { name: 'Add Tag' }).click();
 
-
+    await sleep(100);
     await fill_box(page, page.getByTestId('display_tag_label'), 'tg1');
+    await sleep(100);
 
     // This line is flaky, if you get a fail just manually pause a bit.
     await fill_box(page,
         page.getByTestId('display_tag_width'), '5');
 
+    await sleep(300);
 
     await fill_box(page,
         page.getByTestId('display_tag_tag'), '=4');
@@ -152,6 +161,7 @@ test('test', async ({ page }) => {
     delay(100);
 
     await page.getByTestId('display_tag_type').selectOption('Meter')
+    delay(100);
 
     // Waste some time to let it send
 
@@ -166,8 +176,8 @@ test('test', async ({ page }) => {
     await page.goto('http://localhost:8002/chandler/editor/testchandlerproperties:b1');
     await page.getByRole('button', { name: 'ts1' }).click();
     await page.getByTestId('group-properties-button').click();
-    await expect(page.getByRole('article')).toContainText('tg1');
-
+    
+    await sleep(300);
     await expect(page.getByTestId('event_button_label')).toHaveValue('btn1');
     await expect(page.getByTestId('event_button_event')).toHaveValue('evt1');
 

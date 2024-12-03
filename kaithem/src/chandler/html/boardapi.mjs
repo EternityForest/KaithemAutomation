@@ -134,7 +134,14 @@ let appMethods = {
         }
     },
     // Slowly we want to migrate to these two generic setters
-    'setGroupProperty': function (group, property, value) {
+    'setGroupProperty': async function (group, property, value) {
+
+        // Serialization prevents tests from acting badly and might even be important
+        // in the ui on slow connections
+        if (appData.previousSerializedPromise) {
+            await appData.previousSerializedPromise
+        }
+
         var x = cueSetData[group + property]
         if (x) {
             clearTimeout(x);
@@ -143,7 +150,7 @@ let appMethods = {
         var b = {}
         b[property] = value
 
-        fetch("/chandler/api/set-group-properties/" + group, {
+        appData.previousSerializedPromise = fetch("/chandler/api/set-group-properties/" + group, {
             method: "PUT",
             body: JSON.stringify(b),
             headers: {
@@ -154,9 +161,15 @@ let appMethods = {
                 alert("Error setting property.")
             }
         );
+        await appData.previousSerializedPromise
     },
 
-    'setCueProperty': function (cue, property, value) {
+    'setCueProperty': async function (cue, property, value) {
+
+        if (appData.previousSerializedPromise) {
+            await appData.previousSerializedPromise
+        }
+
         var x = cueSetData[cue + property]
         if (x) {
             clearTimeout(x);
@@ -166,7 +179,7 @@ let appMethods = {
         var b = {}
         b[property] = value
 
-        fetch("/chandler/api/set-cue-properties/" + cue, {
+        appData.previousSerializedPromise = fetch("/chandler/api/set-cue-properties/" + cue, {
             method: "PUT",
             body: JSON.stringify(b),
             headers: {
@@ -177,6 +190,7 @@ let appMethods = {
                 alert("Error setting property.")
             }
         );
+        await appData.previousSerializedPromise
     },
 
     'setCuePropertyDeferred': function (cue, property, value) {
@@ -688,11 +702,6 @@ let appMethods = {
     'setTagInputValue': function (sc, tag, v) {
 
         api_link.send(['inputtagvalue', sc, tag, v])
-    },
-
-    'setDisplayTags': function (sc, i) {
-
-        api_link.send(['setdisplaytags', sc, i])
     }
 }
 
@@ -794,6 +803,8 @@ let appData = {
     //For each group what page are we on
     'cuePage': {},
     'nuisianceRateLimit': [10, Date.now()],
+
+    'previousSerializedPromise': null,
 
     'no_edit': !kaithemapi.checkPermission("system_admin"),
 

@@ -1759,26 +1759,26 @@
                                     <td><input :disabled="no_edit"
                                             v-model="v[0]" class="w-6rem"
                                             data-testid="display_tag_label"
-                                            v-on:change="setDisplayTags(groupname, editingGroup.displayTags);">
+                                            v-on:change="setGroupProperty(groupname, 'displayTags', editingGroup.displayTags);">
                                     </td>
 
                                     <td><input type="number" :disabled="no_edit"
                                             v-model="v[2].width" class="w-4rem"
                                             data-testid="display_tag_width"
-                                            v-on:change="setDisplayTags(groupname, editingGroup.displayTags);">
+                                            v-on:change="setGroupProperty(groupname, 'displayTags', editingGroup.displayTags);">
                                     </td>
 
                                     <td><input :disabled="no_edit" type="text"
                                             list="tagslisting" v-model="v[1]"
                                             data-testid="display_tag_tag"
-                                            v-on:change="setDisplayTags(groupname, editingGroup.displayTags);">
+                                            v-on:change="setGroupProperty(groupname, 'displayTags', editingGroup.displayTags);">
                                     </td>
 
 
                                     <td><select v-model="v[2].type"
                                             class="w-6rem"
                                             data-testid="display_tag_type"
-                                            v-on:change="setDisplayTags(groupname, editingGroup.displayTags);">
+                                            v-on:change="setGroupProperty(groupname, 'displayTags', editingGroup.displayTags);">
                                             <option value="meter">Meter</option>
                                             <option value="text">Text</option>
                                             <option value="led">LED</option>
@@ -1788,7 +1788,7 @@
                                                 Numeric Input</option>
                                             <option value="switch_input">Switch
                                                 Input</option>
-                                            <option value="auto">Invalid
+                                            <option value="null">Don't Show
                                             </option>
 
                                         </select>
@@ -1797,7 +1797,7 @@
                                             <select :disabled="no_edit"
                                                 v-model="v[2].color"
                                                 data-testid="display_tag_led_color"
-                                                v-on:change="setDisplayTags(groupname, editingGroup.displayTags);">
+                                                v-on:change="setGroupProperty(groupname, 'displayTags', editingGroup.displayTags);">
                                                 <option value="red">Red</option>
                                                 <option value="yellow">Yel
                                                 </option>
@@ -1813,7 +1813,7 @@
                                     </td>
 
                                     <td><button data-testid="display_tag_delete"
-                                            v-on:click="editingGroup.displayTags.splice(i, 1); setDisplayTags(groupname, editingGroup.displayTags);">Delete</button>
+                                            v-on:click="editingGroup.displayTags.splice(i, 1); setGroupProperty(groupname, 'displayTags', editingGroup.displayTags);">Delete</button>
 
                                         <a
                                             v-bind:href="'/tagpoints/'+encodeURIComponent(v[1])"><i
@@ -1831,7 +1831,7 @@
                                     <td></td>
 
                                     <td><button
-                                            v-on:click="editingGroup.displayTags.push(['Label','=1', {'type':'auto'}]); setDisplayTags(groupname, editingGroup.displayTags);">Add
+                                            v-on:click="editingGroup.displayTags.push(['Label','=1', {'type':'null'}]); setGroupProperty(groupname, 'displayTags', editingGroup.displayTags);">Add
                                             Tag</button>
                                 </tr>
                             </table>

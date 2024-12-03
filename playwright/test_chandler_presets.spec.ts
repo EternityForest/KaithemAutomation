@@ -122,9 +122,9 @@ test('test', async ({ page }) => {
   await page.getByRole('button', { name: '󰤀 Presets' }).click();
   await page.getByTestId('preset-inspector-testaqua-body').locator('summary').click();
   
-  await expect(page.getByRole('textbox', { name: 'blue' })).toHaveValue('253');
+  await expect(page.getByTestId('preset-inspector-testaqua-body').getByLabel('blue')).toHaveValue('253');
 
-  await page.getByRole('textbox', { name: 'blue' }).fill('233');
+  await  page.getByTestId('preset-inspector-testaqua-body').getByLabel('blue').fill('233');
 
   //It should not affect red at all.  But this line is flaky so we must ignore this part.
   await page.getByTestId('preset-inspector-testaqua-body').getByLabel('red').fill("-1");

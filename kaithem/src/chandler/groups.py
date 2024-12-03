@@ -47,7 +47,7 @@ from .universes import get_on_demand_universe, getUniverse, mapChannel
 logger = structlog.get_logger(__name__)
 
 if TYPE_CHECKING:
-    from . import ChandlerConsole
+    from . import ChandlerConsole, WebChandlerConsole
 
 # Locals for performance... Is this still a thing??
 float = float
@@ -111,12 +111,12 @@ def makeWrappedConnectionClass(parent: Group):
     class Connection(mqtt.MQTTConnection):
         def on_connect(self):
             self_closure_ref.event("board.mqtt.connected")
-            self_closure_ref.pushMeta(statusOnly=True)
+            self_closure_ref.push_to_frontend(statusOnly=True)
             return super().on_connect()
 
         def on_disconnect(self):
             self_closure_ref.event("board.mqtt.disconnected")
-            self_closure_ref.pushMeta(statusOnly=True)
+            self_closure_ref.push_to_frontend(statusOnly=True)
             if self_closure_ref.mqtt_server:
                 self_closure_ref.event("board.mqtt.error", "Disconnected")
             return super().on_disconnect()
@@ -304,7 +304,7 @@ class Group:
             ValueError: _description_
         """
 
-        self.board = chandler_board
+        self.board: WebChandlerConsole.WebConsole = chandler_board
 
         if name and name in self.board.groups_by_name:
             raise RuntimeError("Cannot have 2 groups sharing a name: " + name)
@@ -541,13 +541,13 @@ class Group:
 
         # Name, TagpointName, properties
         # This is the actual configured data.
-        self.display_tags: list[tuple[str, str, dict[str, Any]]] = []
+        self._display_tags: list[tuple[str, str, dict[str, Any]]] = []
 
         # The most recent values of our display tags
         self.display_tag_values: dict[str, Any] = {}
 
         self.display_tag_meta: dict[str, dict[str, Any]] = {}
-        self.set_display_tags(display_tags)
+        self.display_tags = display_tags
 
         self.refresh_rules()
 
@@ -880,7 +880,7 @@ class Group:
         )
         core.add_data_pusher_to_all_boards(lambda s: s.pushCueData(cue.id))
 
-    def pushMeta(
+    def push_to_frontend(
         self,
         cue: str | bool = False,
         statusOnly: bool = False,
@@ -1256,7 +1256,7 @@ class Group:
 
             # Instead we set the flag
             self.poll_again_flag = True
-            self.pushMeta(statusOnly=True)
+            self.push_to_frontend(statusOnly=True)
 
             self.preload_next_cue_sound()
             self.media_player.next(self.cues[cue])
@@ -1638,20 +1638,25 @@ class Group:
             self.display_tag_meta[sn]["unit"] = tag.unit
         self.display_tag_meta[sn]["subtype"] = tag.subtype
 
-        self.pushMeta(keys=["displayTagMeta"])
+        self.push_to_frontend(keys=["displayTagMeta"])
 
         def f(v, t, a):
             self.display_tag_values[sn] = v
-            self.pushMeta(keys=["displayTagValues"])
+            self.push_to_frontend(keys=["displayTagValues"])
 
         tag.subscribe(f)
         self.display_tag_values[sn] = tag.value
-        self.pushMeta(keys=["displayTagValues"])
+        self.push_to_frontend(keys=["displayTagValues"])
 
         return tag, f
 
+    @property
+    def display_tags(self):
+        return self._display_tags
+
+    @display_tags.setter
     @slow_group_lock_context.object_session_entry_point
-    def set_display_tags(self, dt):
+    def display_tags(self, dt):
         dt = dt[:]
         with self.lock:
             self._nl_clear_display_tags()
@@ -1664,7 +1669,7 @@ class Group:
                     i[1] = tagpoints.normalize_tag_name(i[1])
                     # Upgrade legacy format
                     if len(i) == 2:
-                        i.append({"type": "auto"})
+                        i.append({"type": "null"})
 
                     if "type" not in i[2]:
                         i[2]["type"] = "auto"
@@ -1676,7 +1681,7 @@ class Group:
                         logger.error(
                             "Auto type tag display no longer supported"
                         )
-                        continue
+                        i[2]["type"] = "null"
 
                     t = None
 
@@ -1707,13 +1712,15 @@ class Group:
                             self.make_display_tag_subscriber(t)
                         )
                     else:
-                        raise ValueError("Bad tag type?")
+                        if not i[2]["type"] == "null":
+                            raise ValueError("Bad tag type?")
             except Exception:
                 logger.exception("Failed setting up display tags")
                 self.event("board.error", traceback.format_exc())
-            self.display_tags = dt
 
-            self.pushMeta(keys=["display_tags"])
+            if not dt == self._display_tags:
+                self._display_tags = dt
+                self.push_to_frontend(keys=["display_tags"])
 
     def _nl_clear_configured_tags(self):
         for i in self.command_tagSubscriptions:
@@ -1849,8 +1856,6 @@ class Group:
             if self.active:
                 return
 
-            self.set_display_tags(self.display_tags)
-
             self.active = True
 
             if "__setup__" in self.cues:
@@ -1904,7 +1909,7 @@ class Group:
         else:
             self.event("board.mqtt.disconnect")
 
-        self.pushMeta(statusOnly=True)
+        self.push_to_frontend(statusOnly=True)
 
     @slow_group_lock_context.object_session_entry_point
     @beartype
@@ -2051,7 +2056,7 @@ class Group:
         elif self.tapSequence:
             # Just change entered_cue to match the phase.
             self.entered_cue = x
-        self.pushMeta(keys={"bpm"})
+        self.push_to_frontend(keys={"bpm"})
 
     @slow_group_lock_context.object_session_entry_point
     def stop(self):
@@ -2173,7 +2178,7 @@ class Group:
 
         self.music_visualizations = s2
         self.media_link.sendVisualizations()
-        self.pushMeta(keys={"music_visualizations"})
+        self.push_to_frontend(keys={"music_visualizations"})
 
     def setAlpha(self, val: float, sd: bool = False):
         val = min(1, max(0, val))
@@ -2196,9 +2201,9 @@ class Group:
         self.alphaTagClaim.set(val, annotation="GroupObject")
         if sd:
             self.default_alpha = val
-            self.pushMeta(keys={"alpha", "default_alpha"})
+            self.push_to_frontend(keys={"alpha", "default_alpha"})
         else:
-            self.pushMeta(keys={"alpha", "default_alpha"})
+            self.push_to_frontend(keys={"alpha", "default_alpha"})
         self.poll_again_flag = True
         self.lighting_manager.rerender()
 
