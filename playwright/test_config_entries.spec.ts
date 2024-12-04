@@ -20,7 +20,7 @@ test('test', async ({ page }) => {
     await page.getByRole('button', { name: 'Submit' }).click();
 
 
-    await page.getByRole('link', { name: '󰢻 config_entry (config)' }).click();
+    await page.getByRole('link', { name: 'config_entry' }).click();
     await expect(page.getByLabel('test_key test_val')).toHaveValue('test_val');
     await page.getByRole('link', { name: '󰢻 Tools' }).click();
     await page.getByRole('link', { name: '󰢻 System Settings' }).click();

@@ -9,15 +9,20 @@ async function fill_box(page, box, text: string) {
     /*Filling a box does't always work even if it does in the browser*/
 
     await box.click();
-    await box.clear();
 
-    await delay(10);
-    await box.pressSequentially(text, { delay: 5 });
-    await delay(10);
-    await delay(10);
-    if (await box.inputValue() != text) {
+    for (let i = 0; i < 10; i++) {
         await box.clear();
-        await box.fill(text, { force: true });
+        await delay(10*i);
+        await box.pressSequentially(text, { delay: 5 });
+        await delay(10*i +50);
+        if (await box.inputValue() != text) {
+            await box.clear();
+            await box.fill(text, { force: true });
+            await delay(10*i);
+        }
+        else {
+            break;
+        }
     }
     expect(await box.inputValue()).toBe(text);
 }
