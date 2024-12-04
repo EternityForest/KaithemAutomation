@@ -124,7 +124,9 @@ properties:
     type: object
     additionalProperties: true
     default:
-      scale: 1
+      perspective: 100
+      scale_x: 100
+      scale_y: 100
       rotate_z: 0
       rotate_x: 0
       rotate_y: 0

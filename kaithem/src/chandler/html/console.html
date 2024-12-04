@@ -1990,53 +1990,88 @@
                             <div class="stacked-form">
 
                                 <label>Perspective Distance
-                                    <input type="number" :disabled="no_edit"
+                                    <input type="range" min="0" max="500"
+                                        :disabled="no_edit"
                                         v-model="editingGroup.slideshowTransform.perspective"
                                         @change="setGroupProperty(editingGroup.id, 'slideshowTransform', editingGroup.slideshowTransform)"
-                                        @input="setGroupProperty(editingGroup.id, 'slideshowTransform', editingGroup.slideshowTransform)">cm
+                                        @input="setGroupProperty(editingGroup.id, 'slideshowTransform', editingGroup.slideshowTransform)">
+                                    <span>{{editingGroup.slideshowTransform.perspective}}</span>
+
+                                    cm
                                 </label>
 
-                                <label>Scale
-                                    <input type="number" :disabled="no_edit"
-                                        v-model="editingGroup.slideshowTransform.scale"
+                                <label>Scale X
+                                    <input type="range" min="0" max="100"
+                                        :disabled="no_edit"
+                                        v-model="editingGroup.slideshowTransform.scale_x"
                                         @change="setGroupProperty(editingGroup.id, 'slideshowTransform', editingGroup.slideshowTransform)"
-                                        @input="setGroupProperty(editingGroup.id, 'slideshowTransform', editingGroup.slideshowTransform)">%
+                                        @input="setGroupProperty(editingGroup.id, 'slideshowTransform', editingGroup.slideshowTransform)">
+                                    <span>{{editingGroup.slideshowTransform.scale_x}}</span>
+
+                                    %
+                                </label>
+
+                                <label>Scale Y
+                                    <input type="range" min="0" max="100"
+                                        :disabled="no_edit"
+                                        v-model="editingGroup.slideshowTransform.scale_y"
+                                        @change="setGroupProperty(editingGroup.id, 'slideshowTransform', editingGroup.slideshowTransform)"
+                                        @input="setGroupProperty(editingGroup.id, 'slideshowTransform', editingGroup.slideshowTransform)">
+                                    <span>{{editingGroup.slideshowTransform.scale_y}}</span>
+
+                                    %
                                 </label>
 
                                 <label>Translate X
-                                    <input type="number" :disabled="no_edit"
+                                    <input type="range" min="0" max="100"
+                                        :disabled="no_edit"
                                         v-model="editingGroup.slideshowTransform.translate_x"
                                         @change="setGroupProperty(editingGroup.id, 'slideshowTransform', editingGroup.slideshowTransform)"
                                         @input="setGroupProperty(editingGroup.id, 'slideshowTransform', editingGroup.slideshowTransform)">%
+
+                                    <span>{{editingGroup.slideshowTransform.translate_x}}</span>%
                                 </label>
 
                                 <label>Translate Y
-                                    <input type="number" :disabled="no_edit"
+                                    <input type="range" min="0" max="100"
+                                        :disabled="no_edit"
                                         v-model="editingGroup.slideshowTransform.translate_y"
                                         @change="setGroupProperty(editingGroup.id, 'slideshowTransform', editingGroup.slideshowTransform)"
-                                        @input="setGroupProperty(editingGroup.id, 'slideshowTransform', editingGroup.slideshowTransform)">%
+                                        @input="setGroupProperty(editingGroup.id, 'slideshowTransform', editingGroup.slideshowTransform)">
+
+                                    <span>{{editingGroup.slideshowTransform.translate_y}}</span>%
                                 </label>
 
 
                                 <label>Keystone X
-                                    <input type="number" :disabled="no_edit"
+                                    <input type="range" min="-180" max="180"
+                                        :disabled="no_edit"
                                         v-model="editingGroup.slideshowTransform.rotate_x"
                                         @change="setGroupProperty(editingGroup.id, 'slideshowTransform', editingGroup.slideshowTransform)"
-                                        @input="setGroupProperty(editingGroup.id, 'slideshowTransform', editingGroup.slideshowTransform)">deg
+                                        @input="setGroupProperty(editingGroup.id, 'slideshowTransform', editingGroup.slideshowTransform)">
+
+                                    <span>{{editingGroup.slideshowTransform.rotate_x}}</span>deg
                                 </label>
 
                                 <label>Keystone Y
-                                    <input type="number" :disabled="no_edit"
+                                    <input type="range" min="-180" max="180"
+                                        :disabled="no_edit"
                                         v-model="editingGroup.slideshowTransform.rotate_y"
                                         @change="setGroupProperty(editingGroup.id, 'slideshowTransform', editingGroup.slideshowTransform)"
-                                        @input="setGroupProperty(editingGroup.id, 'slideshowTransform', editingGroup.slideshowTransform)">deg
+                                        @input="setGroupProperty(editingGroup.id, 'slideshowTransform', editingGroup.slideshowTransform)">
+                                    <span>{{editingGroup.slideshowTransform.rotate_y}}</span>
+                                    deg
                                 </label>
 
                                 <label>Rotate
-                                    <input type="number" :disabled="no_edit"
+                                    <input type="range" min="-180" max="180"
+                                        :disabled="no_edit"
                                         v-model="editingGroup.slideshowTransform.rotate_z"
                                         @change="setGroupProperty(editingGroup.id, 'slideshowTransform', editingGroup.slideshowTransform)"
-                                        @input="setGroupProperty(editingGroup.id, 'slideshowTransform', editingGroup.slideshowTransform)">deg
+                                        @input="setGroupProperty(editingGroup.id, 'slideshowTransform', editingGroup.slideshowTransform)">
+                                    <span>{{editingGroup.slideshowTransform.rotate_y}}</span>
+
+                                    deg
                                 </label>
 
                             </div>

@@ -11,6 +11,7 @@ Change Log
 - :sparkles: Presets and range effects work better together
 - :bug: Fix gen shortcut button
 - :bug: Fix race condition that caused chandler to not reliably load on mobile
+- :sparkles: Keystone correction, rotation, scaling for Chandler slideshow
 
 ┏━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━┳━━━━━━━━━┳━━━━━━┓
 ┃ Language      ┃ Files ┃     % ┃  Code ┃    % ┃ Comment ┃    % ┃
