@@ -107,6 +107,9 @@ class MediaLinkManager:
         self.web_variables[k] = v
 
     def send_all_media_link_info(self):
+        self.media_link_socket.send(
+            ["transform", self.group.slideshow_transform]
+        )
         self.media_link_socket.send(["volume", self.group.alpha])
 
         self.media_link_socket.send(["text", self.group.cue.markdown])

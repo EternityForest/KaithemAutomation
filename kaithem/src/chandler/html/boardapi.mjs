@@ -229,7 +229,7 @@ let appMethods = {
             clearTimeout(x);
         }
 
-        cueSetData[cue + property] = setTimeout(function () {
+        cueSetData[group + property] = setTimeout(function () {
             var b = {}
             b[property] = value
 

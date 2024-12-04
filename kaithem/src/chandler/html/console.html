@@ -1986,6 +1986,63 @@
                         </div>
 
                         <div class="card w-sm-full">
+                            <header>Slideshow Transform</header>
+                            <div class="stacked-form">
+
+                                <label>Perspective Distance
+                                    <input type="number" :disabled="no_edit"
+                                        v-model="editingGroup.slideshowTransform.perspective"
+                                        @change="setGroupProperty(editingGroup.id, 'slideshowTransform', editingGroup.slideshowTransform)"
+                                        @input="setGroupProperty(editingGroup.id, 'slideshowTransform', editingGroup.slideshowTransform)">cm
+                                </label>
+
+                                <label>Scale
+                                    <input type="number" :disabled="no_edit"
+                                        v-model="editingGroup.slideshowTransform.scale"
+                                        @change="setGroupProperty(editingGroup.id, 'slideshowTransform', editingGroup.slideshowTransform)"
+                                        @input="setGroupProperty(editingGroup.id, 'slideshowTransform', editingGroup.slideshowTransform)">%
+                                </label>
+
+                                <label>Translate X
+                                    <input type="number" :disabled="no_edit"
+                                        v-model="editingGroup.slideshowTransform.translate_x"
+                                        @change="setGroupProperty(editingGroup.id, 'slideshowTransform', editingGroup.slideshowTransform)"
+                                        @input="setGroupProperty(editingGroup.id, 'slideshowTransform', editingGroup.slideshowTransform)">%
+                                </label>
+
+                                <label>Translate Y
+                                    <input type="number" :disabled="no_edit"
+                                        v-model="editingGroup.slideshowTransform.translate_y"
+                                        @change="setGroupProperty(editingGroup.id, 'slideshowTransform', editingGroup.slideshowTransform)"
+                                        @input="setGroupProperty(editingGroup.id, 'slideshowTransform', editingGroup.slideshowTransform)">%
+                                </label>
+
+
+                                <label>Keystone X
+                                    <input type="number" :disabled="no_edit"
+                                        v-model="editingGroup.slideshowTransform.rotate_x"
+                                        @change="setGroupProperty(editingGroup.id, 'slideshowTransform', editingGroup.slideshowTransform)"
+                                        @input="setGroupProperty(editingGroup.id, 'slideshowTransform', editingGroup.slideshowTransform)">deg
+                                </label>
+
+                                <label>Keystone Y
+                                    <input type="number" :disabled="no_edit"
+                                        v-model="editingGroup.slideshowTransform.rotate_y"
+                                        @change="setGroupProperty(editingGroup.id, 'slideshowTransform', editingGroup.slideshowTransform)"
+                                        @input="setGroupProperty(editingGroup.id, 'slideshowTransform', editingGroup.slideshowTransform)">deg
+                                </label>
+
+                                <label>Rotate
+                                    <input type="number" :disabled="no_edit"
+                                        v-model="editingGroup.slideshowTransform.rotate_z"
+                                        @change="setGroupProperty(editingGroup.id, 'slideshowTransform', editingGroup.slideshowTransform)"
+                                        @input="setGroupProperty(editingGroup.id, 'slideshowTransform', editingGroup.slideshowTransform)">deg
+                                </label>
+
+                            </div>
+                        </div>
+
+                        <div class="card w-sm-full">
                             <header>
                                 <h4>Cue Providers</h4>
                             </header>

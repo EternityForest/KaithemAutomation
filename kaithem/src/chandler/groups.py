@@ -558,6 +558,8 @@ class Group:
 
         self.midi_source = midi_source
 
+        self._slideshow_transform: dict[str, float | int] = {}
+
         if active:
             self.goto_cue("default", sendSync=False, cause="start")
             self.go()
@@ -1819,6 +1821,21 @@ class Group:
                     raise ValueError("That tag does not have the event subtype")
 
                 self._nl_subscribe_command_tags()
+
+    @property
+    def slideshow_transform(self):
+        return self._slideshow_transform
+
+    @slideshow_transform.setter
+    def slideshow_transform(self, value: dict[str, float]):
+        if self._slideshow_transform != value:
+            # Just to validate
+            json.dumps(value)
+            self._slideshow_transform = value
+            self.push_to_frontend(keys=["slideshow_transform"])
+            self.media_link_socket.send(
+                ["transform", self._slideshow_transform]
+            )
 
     @slow_group_lock_context.object_session_entry_point
     def next_cue(self, t=None, cause="generic"):
