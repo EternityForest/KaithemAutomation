@@ -1829,8 +1829,13 @@ class Group:
     @slideshow_transform.setter
     def slideshow_transform(self, value: dict[str, float]):
         if self._slideshow_transform != value:
+            value = value.copy()
+            for i in value:
+                value[i] = float(value[i])
+
             # Just to validate
             json.dumps(value)
+
             self._slideshow_transform = value
             self.push_to_frontend(keys=["slideshow_transform"])
             self.media_link_socket.send(
