@@ -12,6 +12,8 @@ Change Log
 - :bug: Fix gen shortcut button
 - :bug: Fix race condition that caused chandler to not reliably load on mobile
 - :sparkles: Keystone correction, rotation, scaling for Chandler slideshow
+- :coffin: /user_static removed, use file server resources instead
+- :bug: Fix world maps page
 
 ┏━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━┳━━━━━━━━━┳━━━━━━┓
 ┃ Language      ┃ Files ┃     % ┃  Code ┃    % ┃ Comment ┃    % ┃
