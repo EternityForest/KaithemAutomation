@@ -100,6 +100,7 @@ class ConfigType(modules_state.ResourceType):
         return d
 
     def on_update_request(self, module, resource, data, kwargs):
+        # TODO must actually use the kwargs if we ever use this
         d = data
         kwargs.pop("name", None)
         kwargs.pop("Save", None)

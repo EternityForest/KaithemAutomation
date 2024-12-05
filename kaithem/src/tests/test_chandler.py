@@ -303,6 +303,7 @@ def test_sched():
 
     assert s.active
     assert s.cue.name == "default"
+    s.cue.next_cue = "__schedule__"
 
     t = datetime.datetime.now() - datetime.timedelta(hours=2)
 
@@ -310,20 +311,26 @@ def test_sched():
     # after_a
 
     s.add_cue("before_a", length=f"@{t.strftime('%l%P')}")
+
     t += datetime.timedelta(hours=1)
-
     s.add_cue("before_b", length=f"@{t.strftime('%l%P')}")
-    t += datetime.timedelta(hours=2)
 
+    t += datetime.timedelta(hours=2)
     s.add_cue("after_a", length=f"@{t.strftime('%l%P')}")
+
     t += datetime.timedelta(hours=2)
     s.add_cue("after_b", length=f"@{t.strftime('%l%P')}", next_cue="before_a")
-
-    s.cue.next_cue = "__schedule__"
 
     s.next_cue()
 
     assert s.cue.name == "after_a"
+
+    t = datetime.timedelta(minutes=-1) + datetime.datetime.now()
+    s.add_cue("sched_at_test", schedule_at=f"@{t.strftime('%l%P')}")
+
+    s.goto_cue("default")
+    s.next_cue()
+    assert s.cue.name == "sched_at_test"
 
     s.close()
     board.rmGroup(s)
@@ -697,7 +704,7 @@ def test_tag_io():
     s = groups.Group(board, name="TestingGroup5", id="TEST")
     board.addGroup(s)
 
-    s.set_display_tags(display_tags)
+    s.display_tags = display_tags
 
     s.go()
 
