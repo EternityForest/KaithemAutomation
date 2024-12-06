@@ -1034,7 +1034,7 @@
                                             <input :disabled="no_edit"
                                                 type="checkbox"
                                                 title="Cause length to be an offset after sound ends"
-                                                v-on:change="setrellen(currentcueid,currentcue.relLength)"
+                                                v-on:change="setCueProperty(currentcueid, 'relLength', currentcue.relLength)"
                                                 v-model="currentcue.relLength"
                                                 title="If checked, the length parameter is interpreted as a delay after the sound cue ends.">
                                         </label>

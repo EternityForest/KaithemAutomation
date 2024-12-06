@@ -503,10 +503,6 @@ let appMethods = {
     'setreentrant': function (cue, v) {
         api_link.send(['setreentrant', cue, v]);
     },
-
-    'setrellen': function (cue, v) {
-        api_link.send(['setrellen', cue, v]);
-    },
     //Only for things of the form command/property, object/operand, argument/value
     'apiCommand': function (sc, p, v) {
 

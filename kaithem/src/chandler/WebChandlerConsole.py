@@ -643,10 +643,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         elif cmd_name == "setnumber":
             cues[msg[1]].setNumber(msg[2])
 
-        elif cmd_name == "setrellen":
-            cues[msg[1]].rel_length = msg[2]
-            self.pushCueMeta(msg[1])
-
         elif cmd_name == "setsoundout":
             cues[msg[1]].sound_output = msg[2]
             self.pushCueMeta(msg[1])
