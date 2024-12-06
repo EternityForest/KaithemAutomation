@@ -990,11 +990,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             cues[msg[1]].probability = msg[2][:2048]
             self.pushCueMeta(msg[1])
 
-        elif cmd_name == "setblend":
-            groups.groups[msg[1]].setBlend(msg[2])
-        elif cmd_name == "setblendarg":
-            groups.groups[msg[1]].setBlendArg(msg[2], msg[3])
-
         elif cmd_name == "setgroupname":
             groups.groups[msg[1]].setName(msg[2])
 

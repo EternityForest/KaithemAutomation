@@ -782,9 +782,6 @@ class ChandlerConsole(console_abc.Console_ABC):
             data: Dict[str, Any] = {
                 # These dynamic runtime vars aren't part of the schema for stuff that gets saved
                 "status": group.getStatusString(),
-                "blendParams": group.lighting_manager.blend_args
-                if hasattr(group.lighting_manager.blendClass, "parameters")
-                else {},
                 "blendDesc": blendmodes.getblenddesc(group.blend),
                 "cue": group.cue.id if group.cue else group.cues["default"].id,
                 "ext": groupid not in self.groups,

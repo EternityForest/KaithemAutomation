@@ -507,14 +507,6 @@ let appMethods = {
     'setrellen': function (cue, v) {
         api_link.send(['setrellen', cue, v]);
     },
-    'setblend': function (sc, v) {
-        api_link.send(['setblend', sc, v]);
-    },
-    'setblendparam': function (sc, k, v) {
-
-        api_link.send(['setblendarg', sc, k, v]);
-    },
-
     //Only for things of the form command/property, object/operand, argument/value
     'apiCommand': function (sc, p, v) {
 

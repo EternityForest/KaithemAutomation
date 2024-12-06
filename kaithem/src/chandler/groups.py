@@ -313,7 +313,7 @@ class Group:
             raise ValueError("Invalid Name")
 
         # Used by blend modes
-        self.blend_args: dict[str, float | int | bool | str] = blend_args or {}
+        self._blend_args: dict[str, float | int | bool | str] = blend_args or {}
 
         self.media_player = group_media.GroupMediaPlayer(self)
         self.lighting_manager = GroupLightingManager(self)
@@ -326,7 +326,7 @@ class Group:
         ]
 
         # Get whatever defaults it sets up for the UI
-        self.blend_args = copy.deepcopy(self.lighting_manager.blend_args)
+        self._blend_args = copy.deepcopy(self.lighting_manager.blend_args)
 
         self.mqttConnection = None
         self.mqttSubscribed: dict[str, bool]
@@ -501,7 +501,9 @@ class Group:
 
         self._priority = priority
 
-        self.setBlend(blend)
+        self._blend: str = ""
+
+        self.blend = blend
         self.default_active = default_active
 
         # Used to indicate that the most recent frame has changed something about the group
@@ -1889,7 +1891,7 @@ class Group:
 
             self.entered_cue = time.time()
 
-            self.setBlend(self.blend)
+            self.refresh_blend()
             self.metadata_already_pushed_by = {}
             self.started = time.time()
 
@@ -2234,31 +2236,48 @@ class Group:
     def add_cue(self, name: str, **kw: Any):
         return Cue(self, name, **kw)
 
-    def setBlend(self, blend: str):
+    @property
+    def blend(self):
+        return self._blend
+
+    @blend.setter
+    def blend(self, blend: str):
         disallow_special(blend)
         blend = str(blend)[:256]
-        self.blend = blend
-        self.lighting_manager.setBlend(blend)
+        # if blend not in blendmodes.blendmodes:
+        #     raise ValueError(f"Invalid blend mode: {blend}")
+        if blend != self._blend:
+            self._blend = blend
+            self.refresh_blend()
+
+    def refresh_blend(self):
+        self.lighting_manager.setBlend(self.blend)
         self.poll_again_flag = True
         self.metadata_already_pushed_by = {}
 
-    def setBlendArg(self, key: str, val: float | bool | str):
-        disallow_special(key, "_")
-        # serializableness check
-        json.dumps(val)
-        self.lighting_manager.setBlendArg(key, val)
+    @property
+    def blend_args(self):
+        return self._blend_args
 
-        if val is None:
-            del self.blend_args[key]
-        else:
-            try:
-                val = float(val)
-            except Exception:
-                pass
-            self.blend_args[key] = val
+    @blend_args.setter
+    def blend_args(self, data: dict[str, Any]):
+        for key, val in data.items():
+            disallow_special(key, "_")
+            # serializableness check
+            json.dumps(val)
+            self.lighting_manager.setBlendArg(key, val)
 
-        self.poll_again_flag = True
-        self.metadata_already_pushed_by = {}
+            if val is None:
+                del self._blend_args[key]
+            else:
+                try:
+                    val = float(val)
+                except Exception:
+                    pass
+                self._blend_args[key] = val
+
+            self.poll_again_flag = True
+            self.metadata_already_pushed_by = {}
 
     def poll(self, force_repaint: bool = False):
         """
@@ -2427,4 +2446,4 @@ class Group:
                 # For blend modes that don't like it when you
                 # change the list of values without resetting
                 if reset:
-                    self.setBlend(self.blend)
+                    self.refresh_blend()

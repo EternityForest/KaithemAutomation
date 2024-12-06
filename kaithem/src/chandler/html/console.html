@@ -30,7 +30,6 @@
 
 <script src="/static/js/thirdparty/vue3.js"></script>
 <script src="/static/js/thirdparty/keyboard.min.js"></script>
-<script src="/static/js/thirdparty/js-yaml.min.js"></script>
 <script src="/static/js/thirdparty/strftime-min.js"></script>
 
 
@@ -1468,7 +1467,7 @@
                                     Blend Mode</span>
                                 <select :disabled="no_edit"
                                     title="This setting controls blending multiple groups together"
-                                    v-on:input="setblend(groupname,$event.target.value)"
+                                    v-on:input="setGroupProperty(groupname,'blend', $event.target.value)"
                                     v-model="editingGroup.blend"
                                     data-testid="group_blend_mode">
 
@@ -1931,12 +1930,12 @@
                                 <p>{{editingGroup.blendDesc}}</p>
                                 <p>
                                     <label
-                                        v-for="k,v of dictView(editingGroup.blendParams,[])">{{k[0]}}:
+                                        v-for="k,v of dictView(editingGroup.blendArgs,[])">{{k[0]}}:
                                         <input :disabled="no_edit" type="number"
                                             style="width:5em" step=0.01
                                             v-bind:title="k[0]"
-                                            v-on:change="setblendparam(groupname,k[0],parseFloat($event.target.value))"
-                                            v-model="editingGroup.blendParams[k[0]]">
+                                            v-on:change="setGroupProperty(groupname,'blendArgs',editingGroup.blendArgs)"
+                                            v-model="editingGroup.blendArgs[k[0]]">
 
                                     </label>
                                 </p>
