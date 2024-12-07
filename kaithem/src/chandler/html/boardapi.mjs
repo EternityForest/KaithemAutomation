@@ -349,11 +349,6 @@ let appMethods = {
     },
 
 
-    'settriggershortcut': function (sc, v) {
-
-        api_link.send(['setCueTriggerShortcut', sc, v]);
-    },
-
     'nextcue': function (sc) {
         if (confirm_for_group(sc)) {
             api_link.send(['nextcue', sc]);
@@ -482,27 +477,10 @@ let appMethods = {
         api_link.send(['setnumber', cue, v]);
     },
 
-    'setfadein': function (cue, v) {
-        api_link.send(['setfadein', cue, v]);
-    },
-
-    'setSoundFadeOut': function (cue, v) {
-        api_link.send(['setSoundFadeOut', cue, v]);
-    },
-
-    'setSoundFadeIn': function (cue, v) {
-        api_link.send(['setSoundFadeIn', cue, v]);
-    },
-
-    'setCueVolume': function (cue, v) {
-        api_link.send(['setCueVolume', cue, v]);
-    },
     'setCueLoops': function (cue, v) {
         api_link.send(['setCueLoops', cue, v]);
     },
-    'setreentrant': function (cue, v) {
-        api_link.send(['setreentrant', cue, v]);
-    },
+
     //Only for things of the form command/property, object/operand, argument/value
     'apiCommand': function (sc, p, v) {
 
@@ -536,10 +514,6 @@ let appMethods = {
         document.getElementById("soundpreview").pause()
     },
 
-    'setlength': function (sc, v) {
-
-        api_link.send(['setlength', sc, v]);
-    },
     'setrandomize': function (sc, v) {
 
         api_link.send(['setrandomize', sc, v]);

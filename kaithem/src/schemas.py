@@ -42,7 +42,7 @@ DefaultValidatingValidator = extend_with_default(Draft202012Validator)
 
 
 @cache
-def get_schema(schemaName: str):
+def get_schema(schemaName: str) -> Dict[str, Any]:
     fn = os.path.join(
         os.path.dirname(os.path.normpath(__file__)),
         "schemas",

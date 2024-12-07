@@ -888,38 +888,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             assert gr
             gr.rmCue(c.id)
 
-        elif cmd_name == "setCueTriggerShortcut":
-            v = msg[2]
-            cues[msg[1]].trigger_shortcut = v
-            self.pushCueMeta(msg[1])
-
-        elif cmd_name == "setfadein":
-            try:
-                v = float(msg[2] or 0)
-            except Exception:
-                v = msg[2]
-            cues[msg[1]].fade_in = v
-            self.pushCueMeta(msg[1])
-
-        elif cmd_name == "setSoundFadeOut":
-            try:
-                v = float(msg[2] or 0)
-            except Exception:
-                v = msg[2]
-            cues[msg[1]].sound_fade_out = v
-            self.pushCueMeta(msg[1])
-
-        elif cmd_name == "setCueVolume":
-            try:
-                v = float(msg[2] or 1)
-            except Exception:
-                v = msg[2]
-            cues[msg[1]].sound_volume = v
-            self.pushCueMeta(msg[1])
-            sc = cues[msg[1]].group()
-            assert sc
-            sc.setAlpha(sc.alpha)
-
         elif cmd_name == "setCueLoops":
             try:
                 v = int(msg[2])
@@ -931,20 +899,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             sc = cues[msg[1]].group()
             assert sc
             sc.setAlpha(sc.alpha)
-
-        elif cmd_name == "setSoundFadeIn":
-            try:
-                v = float(msg[2] or 0)
-            except Exception:
-                v = msg[2]
-            cues[msg[1]].sound_fade_in = v
-            self.pushCueMeta(msg[1])
-
-        elif cmd_name == "setreentrant":
-            v = bool(msg[2])
-
-            cues[msg[1]].reentrant = v
-            self.pushCueMeta(msg[1])
 
         elif cmd_name == "setmqttfeature":
             groups.groups[msg[1]].setMQTTFeature(msg[2], msg[3])
@@ -962,17 +916,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             groups.groups[msg[1]].set_command_tag(msg[2])
 
             self.push_group_meta(msg[1], keys={"command_tag"})
-
-        elif cmd_name == "setlength":
-            try:
-                v = float(msg[2])
-            except Exception:
-                v = msg[2][:256]
-            cues[msg[1]].length = v
-            sc = cues[msg[1]].group()
-            assert sc
-            sc.recalc_cue_len()
-            self.pushCueMeta(msg[1])
 
         elif cmd_name == "setnext":
             if msg[2][:1024]:

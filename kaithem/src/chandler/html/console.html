@@ -568,14 +568,14 @@
 
                             <td class="desktop-only" data-label="Fade In:">
                                 <input :disabled="no_edit" type="number"
-                                    v-on:change="setfadein(slotProps.i[1].id,$event.target.value)"
+                                    v-on:change="setCueProperty(slotProps.i[1].id,'fadeIn',$event.target.value)"
                                     style="width:3em" min=0
                                     v-model="slotProps.i[1].fadeIn">
                             </td>
 
                             <td class="desktop-only" data-label="Length:">
                                 <input :disabled="no_edit"
-                                    v-on:change="setlength(slotProps.i[1].id,$event.target.value);debugCueLen($event.target.value)"
+                                    v-on:change="setCueProperty(slotProps.i[1].id,'length',$event.target.value);debugCueLen($event.target.value)"
                                     class="w-12rem" list="lenoptions"
                                     v-model="slotProps.i[1].length">
                             </td>
@@ -1044,7 +1044,7 @@
                                         <label>Fade sound after end
                                             <input :disabled="no_edit"
                                                 type="number"
-                                                v-on:change="setSoundFadeOut(currentcueid,$event.target.value)"
+                                                v-on:change="setCueProperty(currentcueid,'soundFadeOut',$event.target.value)"
                                                 min=0
                                                 v-model="currentcue.soundFadeOut"
                                                 title="Sound should fade out starting when the cue ends, taking this long.">
@@ -1056,7 +1056,7 @@
                                         <label>Sound fadein:
                                             <input :disabled="no_edit"
                                                 type="number"
-                                                v-on:change="setSoundFadeIn(currentcueid,$event.target.value)"
+                                                v-on:change="setCueProperty(currentcueid,'soundFadeIn',$event.target.value)"
                                                 min=-1
                                                 v-model="currentcue.soundFadeIn"
                                                 title="Sound should fade in if starting from, taking this long. Use -1 to override and disable a global group crossfade.">
@@ -1065,7 +1065,7 @@
 
                                         <label>Cue Volume
                                             <input :disabled="no_edit"
-                                                v-on:change="setCueVolume(currentcueid,$event.target.value)"
+                                                v-on:change="setCueProperty(currentcueid, 'volume',$event.target.value)"
                                                 min=0
                                                 v-model="currentcue.soundVolume">
                                         </label>
@@ -1249,7 +1249,7 @@
                                         <label><input :disabled="no_edit"
                                                 title="If false, dissallow entering cue if it's already running"
                                                 type="checkbox"
-                                                v-on:change="setreentrant(currentcueid,currentcue.reentrant)"
+                                                v-on:change="setCueProperty(currentcueid,'reentrant',currentcue.reentrant)"
                                                 v-model="currentcue.reentrant"><span><i
                                                     class="mdi mdi-replay"></i>Reentrant</span></label>
                                     </p>
@@ -1302,7 +1302,7 @@
                                                 Fadein</span>
                                             <input :disabled="no_edit"
                                                 type="number"
-                                                v-on:change="setfadein(currentcueid,$event.target.value)"
+                                                v-on:change="setCueProperty(currentcueid,'fadeIn',$event.target.value)"
                                                 min=0
                                                 v-model="currentcue.fadeIn">
                                         </label>
@@ -1310,7 +1310,7 @@
                                                     class="mdi mdi-clock-end"></i>
                                                 Length</span>
                                             <input :disabled="no_edit"
-                                                v-on:change="setlength(currentcueid,$event.target.value);debugCueLen($event.target.value)"
+                                                v-on:change="setCueProperty(currentcueid,'length',$event.target.value);debugCueLen($event.target.value)"
                                                 v-model="cuemeta[currentcueid].length"
                                                 min=0>
                                         </label>

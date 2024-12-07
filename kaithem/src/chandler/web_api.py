@@ -1,14 +1,15 @@
 import json
 
 import quart.ctx
+from jsonschema import Draft202012Validator
 from quart import request
 from scullery import snake_compat
 
 from kaithem.api.web import require
 
 from .core import boards, cl_context
-from .cue import cues
-from .groups import groups
+from .cue import cue_schema, cues
+from .groups import group_schema, groups
 from .web import quart_app
 
 
@@ -52,6 +53,19 @@ async def set_cue_properties(cue_id: str):
             prop = snake_compat.camel_to_snake(key)
             # Generic setter for things that are just simple value sets.
 
+            prop_schema = cue_schema["properties"][prop]
+            # Todo do we really want to automatically do this?
+            if prop_schema.get("type") == "string":
+                val = str(val)
+            elif prop_schema.get("type") == "number":
+                val = float(val)
+            elif prop_schema.get("type") == "integer":
+                val = int(val)
+
+            validator = Draft202012Validator(prop_schema)
+            if not validator.is_valid(val):
+                raise ValueError(f"Invalid value for cue {prop}: {val}")
+
             # Try to get the attr, to ensure that it actually exists.
             old = getattr(cues[cue_id], prop)
 
@@ -86,6 +100,19 @@ async def set_group_properties(group_id: str):
         for key in kw:
             val = kw[key]
             prop = snake_compat.camel_to_snake(key)
+
+            prop_schema = group_schema["properties"][prop]
+            # Todo do we really want to automatically do this?
+            if prop_schema.get("type") == "string":
+                val = str(val).strip()
+            elif prop_schema.get("type") == "number":
+                val = float(val)
+            elif prop_schema.get("type") == "integer":
+                val = int(val)
+
+            validator = Draft202012Validator(prop_schema)
+            if not validator.is_valid(val):
+                raise ValueError(f"Invalid value for cue {prop}: {val}")
 
             group = groups[group_id]
             # Generic setter for things that are just simple value sets.

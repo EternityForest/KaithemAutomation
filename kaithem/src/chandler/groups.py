@@ -258,6 +258,18 @@ def checkPermissionsForGroupData(data: dict[str, Any], user: str):
 
 group_schema = schemas.get_schema("chandler/group")
 
+property_update_handlers: dict[
+    str, list[Callable[[Group, str, Any], None]]
+] = {}
+
+
+def add_group_property_update_handler(
+    name: str, handler: Callable[[Group, str, Any], None]
+):
+    if name not in property_update_handlers:
+        property_update_handlers[name] = []
+    property_update_handlers[name].append(handler)
+
 
 class Group:
     "An objecting representing one group. If noe default cue present one is made"
@@ -578,6 +590,12 @@ class Group:
         workers.do(f)
 
         workers.do(self.scan_cue_providers)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        object.__setattr__(self, name, value)
+        if name in property_update_handlers:
+            for i in property_update_handlers[name]:
+                i(self, name, value)
 
     @slow_group_lock_context.object_session_entry_point
     def find_next_scheduled_cue(self):

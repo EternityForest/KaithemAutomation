@@ -51,6 +51,7 @@ stored_as_property = [
     "length_randomize",
     "rules",
     "inherit_rules",
+    "length",
     "schedule_at",
 ]
 
@@ -184,6 +185,17 @@ def get_cue_provider(url: str, group: Group) -> CueProvider:
     return cue_provider_types[scheme](url, group)
 
 
+property_update_handlers: dict[str, list[Callable[[Cue, str, Any], None]]] = {}
+
+
+def add_cue_property_update_handler(
+    name: str, handler: Callable[[Cue, str, Any], None]
+):
+    if name not in property_update_handlers:
+        property_update_handlers[name] = []
+    property_update_handlers[name].append(handler)
+
+
 class Cue:
     "A static set of values with a fade in and out duration"
 
@@ -214,7 +226,7 @@ class Cue:
         self.fade_in: float
         self.sound_fade_out: float
         self.sound_fade_in: float
-        self.length: float | str = 0
+        self._length: float | str = 0
         self.rel_length: bool = False
         self._length_randomize: float
         self.next_cue: str
@@ -310,6 +322,12 @@ class Cue:
 
         cues[self.id] = self
         self.push()
+
+    def __setattr__(self, name, value):
+        object.__setattr__(self, name, value)
+        if name in property_update_handlers:
+            for i in property_update_handlers[name]:
+                i(self, name, value)
 
     @property
     def is_active(self):
@@ -441,6 +459,27 @@ class Cue:
                         self._markdown,
                     ]
                 )
+
+    @property
+    def length(self):
+        return self._length
+
+    @length.setter
+    def length(self, val: int | float | str):
+        try:
+            val = float(val)
+        except Exception:
+            if not isinstance(val, str):
+                raise ValueError("Invalid cue length")
+
+        if val == self._length:
+            return
+        if self.is_active:
+            g = self.getGroup()
+            if g:
+                g.recalc_cue_len()
+        self._length = val
+        self.push()
 
     def validate_rules(self, r: list[list[str | list[list[str]]]]):
         r = r or []
