@@ -904,10 +904,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             groups.groups[msg[1]].setMQTTFeature(msg[2], msg[3])
             self.push_group_meta(msg[1], keys={"mqtt_sync_features"})
 
-        elif cmd_name == "setgroupsoundout":
-            groups.groups[msg[1]].sound_output = msg[2]
-            self.push_group_meta(msg[1], keys={"sound_output"})
-
         elif cmd_name == "setgroupslideoverlay":
             groups.groups[msg[1]].slide_overlay_url = msg[2]
             self.push_group_meta(msg[1], keys={"slide_overlay_url"})
