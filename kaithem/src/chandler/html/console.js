@@ -95,7 +95,7 @@ var vueapp = Vue.createApp(
             'fixture-presets-dialog': window.httpVueLoader('../static/fixture-presets-dialog.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0'),
             'cue-logic-dialog': window.httpVueLoader('../static/cue-logic-dialog.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0'),
             'preset-editing-dialog': window.httpVueLoader('../static/preset-editing-dialog.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0'),
-
+            'cue-media-dialog': window.httpVueLoader('../static/cue-media-dialog.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0'),
         },
         computed: appComputed
     }).mount("#app")
