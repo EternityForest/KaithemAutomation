@@ -13,7 +13,7 @@ function useBlankDescriptions(l, additional) {
 }
 
 
-function formatInterval (seconds) {
+function formatInterval(seconds) {
     var hours = Math.floor(seconds / 3600);
     var minutes = Math.floor((seconds - (hours * 3600)) /
         60);
@@ -28,7 +28,7 @@ function formatInterval (seconds) {
     return time;
 }
 
- function dictView(dict, sorts, filterf, page) {
+function dictView(dict, sorts, filterf, page) {
     //Given a dict  and a list of sort keys sorts,
     //return a list of [key,value] pairs sorted by the sort
     //keys. Earlier sort keys take precendence.
@@ -38,30 +38,14 @@ function formatInterval (seconds) {
     //Keys starting with ! are interpreted as meanng to sort in descending order
 
     var o = []
+    for (var i in dict) {
+        o.push([i, dict[i]]);
+    }
 
     const usePages = page !== undefined
     page = page || 0
     var toSkip = page * 50
 
-    Object.keys(dict).forEach(
-        function (key, index) {
-            if (filterf == undefined || filterf(key, dict[key])) {
-                toSkip -= 1
-
-                if (toSkip > 0) {
-                    return
-                }
-                else {
-                    // overlap between pages
-                    if (toSkip < -60) {
-                        if (usePages) {
-                            return
-                        }
-                    }
-                    o.push([key, dict[key]])
-                }
-            }
-        })
 
     var l = []
     for (var i of sorts) {
@@ -102,7 +86,29 @@ function formatInterval (seconds) {
         }
         return 0
     });
-    return (o)
+
+    let o2 = []
+
+    for (var i of o) {
+        if (filterf == undefined || filterf(i[0], dict[i[0]])) {
+            toSkip -= 1
+
+            if (toSkip > 0) {
+                continue
+            }
+            else {
+                // overlap between pages
+                if (toSkip < -60) {
+                    if (usePages) {
+                        continue
+                    }
+                }
+                o2.push(i)
+            }
+        }
+    }
+
+    return (o2)
 }
 
 export { useBlankDescriptions, dictView, formatInterval }
