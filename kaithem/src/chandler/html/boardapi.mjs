@@ -641,11 +641,6 @@ let appMethods = {
         api_link.send(['setconfuniverses', this.configuredUniverses])
     },
 
-    'setGroupSoundOutput': function (cueid, i) {
-
-        api_link.send(['setgroupsoundout', cueid, i])
-    },
-
     'newCueFromSlide': function (sc, i) {
 
         api_link.send(['newFromSlide', sc, i])

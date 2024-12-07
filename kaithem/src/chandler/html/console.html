@@ -918,10 +918,10 @@
 :currentcue="currentcue"
 :groupname="groupname"
 :setcueproperty="setCueProperty"
-:setgroupsoundoutput="setGroupSoundOutput"
 :testsoundcard="testSoundCard"
 :editinggroup="editingGroup"
 :soundcards="soundCards"
+:setgroupproperty="setGroupProperty"
 ></cue-media-dialog>
 
                     <div class="window w-full modal" popover id="cueTextDialog"
@@ -1345,7 +1345,7 @@
                             <div class="stacked-form">
                                 <label> Sound Output<input
                                         title="If not set by a cue, the global setting for the group is used"
-                                        v-on:change="setGroupSoundOutput(groupname,$event.target.value)"
+                                        v-on:change="setGroupProperty(groupname,'soundOutput',$event.target.value)"
                                         v-model="editingGroup.soundOutput"
                                         placeholder="default"
                                         list="soundcards"></label>
@@ -1365,7 +1365,7 @@
                                     <dd>
                                         <div class="tool-bar">
                                             <button type="button"
-                                                v-on:click="setGroupSoundOutput(groupname,'groupwebplayer')">Set
+                                                v-on:click="setGroupProperty(groupname,'soundOutput','groupwebplayer')">Set
                                                 as
                                                 Group
                                                 Default</button>
@@ -1377,7 +1377,7 @@
                                         <dd>
                                             <div class="tool-bar">
                                                 <button type="button"
-                                                    v-on:click="setGroupSoundOutput(groupname,i)">Set
+                                                    v-on:click="setGroupProperty(groupname,'soundOutput',i)">Set
                                                     as
                                                     Group
                                                     Default</button>

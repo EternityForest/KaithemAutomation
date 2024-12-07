@@ -1,9 +1,8 @@
 <style scoped></style>
 
 <template>
-    <div 
-    v-if="currentcue && editinggroup"
-    class="window w-full modal" popover id="cueMediaDialog" ontoggle="globalThis.handleDialogState(event)">
+    <div v-if="currentcue && editinggroup" class="window w-full modal" popover id="cueMediaDialog"
+        ontoggle="globalThis.handleDialogState(event)">
         <header>
             <div class="tool-bar">
                 <h4>{{ currentcue.name }} Sound</h4>
@@ -98,7 +97,6 @@
                     <p>
                         <label>Relative length
                             <input :disabled="no_edit" type="checkbox"
-                                title="Cause length to be an offset after sound ends"
                                 v-on:change="setcueproperty(currentcue.id, 'relLength', currentcue.relLength)"
                                 v-model="currentcue.relLength"
                                 title="If checked, the length parameter is interpreted as a delay after the sound cue ends.">
@@ -183,7 +181,7 @@
                                         v-on:click="setcueproperty(currentcue.id, 'soundOutput', 'groupwebplayer')">Set
                                         for
                                         Cue</button>
-                                    <button v-on:click="setgroupsoundoutput(groupname, 'groupwebplayer')">Set
+                                    <button v-on:click="setgroupproperty(groupname, 'soundOutput', 'groupwebplayer')">Set
                                         as
                                         Group Default</button>
                                 </div>
@@ -198,7 +196,7 @@
                                             v-on:click="setcueproperty(currentcue.id, 'soundOutput', i)">Set
                                             for
                                             Cue</button>
-                                        <button type="button" v-on:click="setgroupsoundoutput(groupname, i)">Set
+                                        <button type="button" v-on:click="setgroupproperty(groupname,'soundOutput',i)">Set
                                             as
                                             Group
                                             Default</button>
@@ -227,7 +225,7 @@ module.exports = {
 
     props: ["no_edit", "soundcards", "currentcue",
         "editinggroup",
-        "groupname", "setcueproperty", "setgroupsoundoutput", "testsoundcard"],
+        "groupname", "setcueproperty", "setgroupproperty", "testsoundcard"],
     data: function () {
         return (data)
     },
