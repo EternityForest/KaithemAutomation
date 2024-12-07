@@ -19,6 +19,7 @@ import hmac
 import json
 import os
 import shutil
+import sqlite3
 import struct
 import threading
 import time
@@ -30,6 +31,20 @@ import yaml
 from argon2 import PasswordHasher
 
 from . import directories, messagebus, modules_state, util
+
+# Store tokens in a sqlite database
+tokens_db_fn = os.path.join(directories.usersdir, "tokens.db")
+
+db = sqlite3.connect(tokens_db_fn)
+db.row_factory = sqlite3.Row
+
+c = db.cursor()
+
+c.execute(
+    "CREATE TABLE IF NOT EXISTS tokens (username TEXT, tokenhash TEXT, data TEXT)"
+)
+db.commit()
+
 
 lock = threading.RLock()
 
@@ -227,11 +242,21 @@ def removeUser(user) -> None:
         # If the user has a token, delete that too
         if x.token in Tokens:
             Tokens.pop(x.token)
-            try:
-                tokenHashes.pop(hashToken(x.token))
-            except Exception:
-                dumpDatabase()
-                raise
+
+        to_rm = []
+        for i in tokenHashes:
+            u = tokenHashes[i]
+            if u["username"] == user:
+                to_rm.append(i)
+        for i in to_rm:
+            del tokenHashes[i]
+
+        db = sqlite3.connect(tokens_db_fn)
+        c = db.cursor()
+        c.execute("DELETE FROM tokens WHERE username=?", (user,))
+        db.commit()
+        db.close()
+
         dumpDatabase()
 
 
@@ -314,8 +339,17 @@ def loadFromData(
         Tokens = {}
         tokenHashes.clear()
         for user in temp["users"]:
+            db = sqlite3.connect(tokens_db_fn)
+            c = db.cursor()
+            c.execute("SELECT * FROM tokens WHERE username = ?", (user,))
+            try:
+                for row in c.fetchall():
+                    tokenHashes[base64.b64decode(row[1])] = row[0]
+            except Exception:
+                logger.exception("Error loading token")
+
             Users[user] = User(temp["users"][user])
-            assignNewToken(user)
+            assignNewToken(user, False)
         generateUserPermissions()
         return True
 
@@ -619,27 +653,35 @@ def hashToken(token: str) -> bytes:
     return hashlib.sha256(usr_bytes(token, "utf8") + tokenHashSecret).digest()
 
 
-def assignNewToken(user: str) -> None:
-    """Log user out by defining a new token"""
+def assignNewToken(user: str, logout_old: bool = True) -> None:
+    """if logout_old is true, Log user out by defining a new token"""
     global tokenHashes
     with lock:
         # Generate new token
         x = base64.b64encode(os.urandom(24)).decode()
-        # Get the old token, delete it, and assign a new one
-        oldtoken = Users[user].token
 
-        if oldtoken:
-            del Tokens[oldtoken]
-
-            try:
-                del tokenHashes[hashToken(oldtoken)]
-            except KeyError:
-                # Not there?
-                pass
+        if logout_old:
+            to_rm = []
+            for i in tokenHashes:
+                u = tokenHashes[i]
+                if u["username"] == user:
+                    to_rm.append(i)
+            for i in to_rm:
+                del tokenHashes[i]
 
         Users[user].token = x
         Tokens[x] = Users[user]
         tokenHashes[hashToken(x)] = Users[user]
+
+        db = sqlite3.connect(tokens_db_fn)
+        c = db.cursor()
+        c.execute("DELETE FROM tokens WHERE username=?", (user,))
+        c.execute(
+            "INSERT INTO tokens VALUES(?,?,?)",
+            (user, base64.b64encode(hashToken(x)), "{}"),
+        )
+        db.commit()
+        db.close()
 
 
 class UnsetSettingException:
