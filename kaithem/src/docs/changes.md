@@ -1,6 +1,10 @@
 Change Log
 ----------
 
+### 0.87.0
+
+- :sparkles: (possible minor breaking) Persist login sessions across reboots
+
 ### 0.86.3
 
 - :bug: Fix preset edting dialog
