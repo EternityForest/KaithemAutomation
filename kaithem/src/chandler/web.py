@@ -268,6 +268,9 @@ async def media():
         else:
             # TODO: Is the timing attack resistance here enough?
 
+            if kwargs.get("file") == "1x1.png":
+                return os.path.join(directories.datadir, "static/img/1x1.png")
+
             if (
                 "group" in kwargs
                 and groups.groups[

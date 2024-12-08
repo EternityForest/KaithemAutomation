@@ -9,14 +9,14 @@
             </p>
 
             <label>Page
-                <input v-model="page" type="number" min="0" max="99" />
+                <input v-model="page" type="number" min="0" max="99"  style="width: 6em;"/>
             </label>
             <button type="button" v-on:click="page -= 1" :disabled="page == 0">
-                <span class="mdi mdi-page-previous"></span>
-                Prev</button>
+                <span class="mdi mdi-page-previous" title="Previous Page"></span>
+                </button>
             <button type="button" v-on:click="page += 1">
-                <span class="mdi mdi-page-next"></span>
-                Next</button>
+                <span class="mdi mdi-page-next" title="Next Page"></span>
+                </button>
         </div>
 
         <div style="overflow-y: auto;max-height:12em;">
