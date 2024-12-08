@@ -370,6 +370,9 @@ canvas {
 }
 
 
+audio{
+    min-height: var(--control-height);
+}
 
 @media screen {
 
