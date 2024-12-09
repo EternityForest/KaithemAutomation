@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import importlib as _importlib
 import os as _os
 import socket as _socket
 from collections.abc import Callable
+from typing import Any
 
 import jinja2 as _jinja2
 
@@ -21,6 +24,7 @@ _wsgi_apps = []
 _module_plugin_links = []
 
 _file_resource_links = []
+_file_preview_plugins = []
 
 # This is for plugins to use and extend pageheader.
 _jl = _jinja2.FileSystemLoader(
@@ -110,6 +114,20 @@ def add_file_resource_link(
     Input is module, resource
     """
     _file_resource_links.append(filter)
+
+
+def add_file_resource_preview_plugin(
+    filter: None | Callable[[dict[str, Any]], str | None] = None,
+):
+    """Add a preview box to every file resource if filter matches
+    Return value is embedded html or None.
+
+    Input is a dict that may have none to any of the following keys:
+        module, resource, size, timestamp,path
+
+    Usually it will have all of them.
+    """
+    _file_preview_plugins.append(filter)
 
 
 def serve_file(path, contenttype="", name=None):

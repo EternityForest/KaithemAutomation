@@ -62,7 +62,7 @@ def sorted_module_file_list(name: str, path: list):
                 rn = "/".join(path) + "/" + i
             if not os.path.isfile(f):
                 continue
-            yield (i, rn, os.path.getmtime(f), os.path.getsize(f))
+            yield (i, rn, os.path.getmtime(f), os.path.getsize(f), f)
         except Exception:
             logger.exception("Failed to get file info")
 

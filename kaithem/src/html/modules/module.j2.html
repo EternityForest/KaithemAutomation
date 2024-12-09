@@ -177,9 +177,13 @@
             <dd>
 
                 <p><a href="/modules/module/{{ url(name) }}/getfileresource/{{i[1]}}?timestamp={{i[2]}}">Download</a></p>
-                {% if i[1].split(".")[-1] in ('mp3', 'opus','wav', 'm4a','flac') %}
-                <audio controls preload="none" src="/modules/module/{{ url(name) }}/getfileresource/{{i[1]}}?timestamp={{i[2]}}"></audio>
+
+                {% for j in webapi._file_preview_plugins %}
+                {% set prv=j({'module':name,  'resource':i[1], 'timestamp':i[2], 'size':i[3], 'path':i[4]}) %}
+                {% if prv %}
+                {{prv}}
                 {% endif %}
+                {% endfor %}
 
 
             </dd>
