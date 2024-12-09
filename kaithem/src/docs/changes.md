@@ -4,7 +4,8 @@ Change Log
 ### 0.87.0
 
 - :sparkles: (possible minor breaking) Persist login sessions across reboots
-- :bug: Fix deleting file resources from modules pagez
+- :bug: Fix deleting file resources from modules page
+- :sparkles: widget.mjs notficiations on disconnect and reconnect
 
 ### 0.86.3
 
