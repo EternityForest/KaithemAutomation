@@ -426,21 +426,27 @@ async def deleteresourcetarget(module):
 
     @copy_current_request_context
     def f():
-        resourceobj = modules_state.ActiveModules[module][kwargs["name"]]
-
         if "module_lock" in modules_state.get_module_metadata(module):
             raise PermissionError("Module is locked")
 
-        if "resource_lock" in resourceobj and resourceobj["resource_lock"]:
-            raise PermissionError(
-                "This resource can only be edited by manually removing the resource_lock from the file."
-            )
+        if kwargs["name"] not in modules_state.ActiveModules[module]:
+            fn = modules_state.filename_for_resource(module, kwargs["name"])
+            if os.path.isfile(fn):
+                os.remove(fn)
 
-        modules.rmResource(
-            module,
-            kwargs["name"],
-            f"Resource Deleted by {pages.getAcessingUser()}",
-        )
+        else:
+            resourceobj = modules_state.ActiveModules[module][kwargs["name"]]
+
+            if "resource_lock" in resourceobj and resourceobj["resource_lock"]:
+                raise PermissionError(
+                    "This resource can only be edited by manually removing the resource_lock from the file."
+                )
+
+            modules.rmResource(
+                module,
+                kwargs["name"],
+                f"Resource Deleted by {pages.getAcessingUser()}",
+            )
 
         messagebus.post_message(
             "/system/notifications",

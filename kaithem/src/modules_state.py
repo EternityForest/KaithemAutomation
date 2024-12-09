@@ -39,6 +39,13 @@ external_module_locations: dict[str, str] = {}
 prev_versions: dict[tuple, dict] = {}
 
 
+def filename_for_resource(module: str, resource: str) -> str:
+    """Given the module and resource, return the actual file for a file resource, or
+    file data dir for directory resource"""
+
+    return os.path.join(getModuleDir(module), "__filedata__", resource)
+
+
 def get_module_metadata(module: str) -> dict[str, Any]:
     m = ActiveModules[module]
     if "__metadata__" not in m:
