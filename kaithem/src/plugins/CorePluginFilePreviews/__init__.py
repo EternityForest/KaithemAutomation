@@ -87,13 +87,13 @@ def previewer(kw: dict[str, Any]) -> str | None:
         src="{file_url}">
         </audio>"""
 
-    if resource.split(".")[-1] in video_ext:
+    elif resource.split(".")[-1] in video_ext:
         o += f"""<video controls preload="none"  class="max-h-18rem"
         src="{file_url}"
         poster="{thumb_url}"
         ></video>"""
 
-    if resource.split(".")[-1] in ("m3u8", "m3u"):
+    elif resource.split(".")[-1] in ("m3u8", "m3u"):
         o += f"""<iframe
         src="/file-preview-plugin/hls-player.html?url={file_url}">
         </iframe>"""

@@ -34,7 +34,7 @@ from . import directories, messagebus, modules_state, util
 
 # Store tokens in a sqlite database
 tokens_db_fn = os.path.join(directories.usersdir, "tokens.db")
-
+os.makedirs(directories.usersdir, exist_ok=True)
 db = sqlite3.connect(tokens_db_fn)
 db.row_factory = sqlite3.Row
 
