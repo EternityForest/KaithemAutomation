@@ -82,8 +82,8 @@
     <h2>Apps</h2>
     <div class="window paper">
         <div class="flex-row gaps">
-            {% for app in apps %}
-            {{ app.render() }}
+            {% for app in sorted(list(apps.keys())) %}
+            {{ apps[app].render() }}
             {% endfor %}
         </div>
     </div>

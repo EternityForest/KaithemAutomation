@@ -102,6 +102,11 @@ class ConfigType(modules_state.ResourceType):
     def on_delete(self, module, resource, data):
         with core.cl_context:
             entries[module, resource].cl_close()
+            try:
+                apps_page.remove_app(entries[module, resource].app)
+            except Exception:
+                pass
+
             core.boards.pop(f"{module}:{resource}", None)
 
         del entries[module, resource]

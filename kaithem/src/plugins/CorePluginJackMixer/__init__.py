@@ -20,6 +20,7 @@ from scullery import jacktools, scheduling, workers
 
 from kaithem.src import (
     alerts,
+    apps_page,
     dialogs,
     directories,
     gstwrapper,
@@ -1150,6 +1151,18 @@ class MixingBoard:
         self.module = module
         self.resource = resource
 
+        a = apps_page.App(
+            f"{module}:{resource}",
+            f"{resource}",
+            f"/settings/mixer/{module}:{resource}",
+            module=module,
+            resource=resource,
+        )
+
+        a.footer = "Mixing Board"
+        self.app = a
+        apps_page.add_app(a)
+
         self.resourcedata: modules_state.ResourceDictType = data or {
             "presets": {}
         }
@@ -1624,6 +1637,11 @@ class MixingBoard:
             self.running = False
             for i in list(self.channelObjects.keys()):
                 self.channelObjects[i].stop(at_exit=True)
+
+        try:
+            apps_page.remove_app(self.app)
+        except Exception:
+            pass
 
 
 def STOP(*a):

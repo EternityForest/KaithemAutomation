@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import weakref
 
-from kaithem.api.web import nav_bar_plugins
+from kaithem.api.web import nav_bar_plugins, require_permission
 
 from . import pages
 from .modules_state import get_resource_label_image_url
@@ -20,7 +20,10 @@ all_apps: weakref.WeakValueDictionary[str, App] = weakref.WeakValueDictionary()
 
 @app.route("/apps")
 def apps_page():
-    return pages.render_jinja_template("apps.j2.html", apps=all_apps.values())
+    require_permission("view_status")
+    require_permission("enumerate_endpoints")
+
+    return pages.render_jinja_template("apps.j2.html", apps=all_apps)
 
 
 class App:
