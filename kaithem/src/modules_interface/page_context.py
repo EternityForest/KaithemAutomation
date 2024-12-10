@@ -5,7 +5,7 @@ import structlog
 from scullery import scheduling
 
 from kaithem.src import modules, modules_state, pages, unitsofmeasure, util
-from kaithem.src.modules_state import in_folder
+from kaithem.src.modules_state import get_resource_label_image_url, in_folder
 from kaithem.src.util import url
 
 logger = structlog.get_logger(__name__)
@@ -72,16 +72,6 @@ def breadcrumbs(path):
     for i in path.split("/"):
         temp_p += f"{i}/"
         yield (i, temp_p[:-1])
-
-
-def get_resource_label_image_url(module: str, path: str):
-    data = modules_state.ActiveModules[module][path]
-
-    mf = modules_state.getModuleDir(module)
-    mf = os.path.join(mf, "__filedata__/media")
-    fn = os.path.join(mf, data["resource_label_image"])
-    if os.path.isfile(fn):
-        return f"/modules/label_image/{url(module)}/{url(path)}?ts={os.path.getmtime(fn)}"
 
 
 module_page_context = {

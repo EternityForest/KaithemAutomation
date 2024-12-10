@@ -1,0 +1,21 @@
+<a href="{{app.url}}" class="app-button app-icon">
+{% set img=app.get_image() %}
+{% if img %}
+<img src="{{img}}" alt="{{app.title}}">
+{% endif %}
+
+{% if not app.html_color %}
+<div class="label" style="z-index: -1; opacity: 1;">
+</div>
+{% endif %}
+
+<div class="label" style="background-color: {{app.html_color or 'transparent'}}}">
+    {{ app.title }}</div>
+
+<div class="label-bottom" :style="{ 'background-color': ps[1]?.html_color || 'transparent' }">
+    <small>
+        {{ app.footer }}
+    </small>
+</div>
+<div class="sheen"></div>
+</a>

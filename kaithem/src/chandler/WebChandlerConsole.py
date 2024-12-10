@@ -187,6 +187,8 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         self.link = None
         super().__init__(name)
         self.setup_link()
+        # For the apps page link
+        self.app: Any = None
 
     def setup_link(self):
         class WrappedLink(kaithem.widget.APIWidget):

@@ -4,7 +4,7 @@ from typing import Any
 from scullery import messagebus
 from structlog import get_logger
 
-from kaithem.src import dialogs, modules_state
+from kaithem.src import apps_page, dialogs, modules_state
 
 from . import WebChandlerConsole, core
 
@@ -59,6 +59,17 @@ class ConfigType(modules_state.ResourceType):
         entries[module, resource] = WebChandlerConsole.WebConsole(
             f"{module}:{resource}"
         )
+        a = apps_page.App(
+            f"{module}:{resource}",
+            f"{resource}",
+            f"/chandler/commander/{module}:{resource}",
+            module=module,
+            resource=resource,
+        )
+
+        a.footer = "Commander"
+        entries[module, resource].app = a
+        apps_page.add_app(a)
 
         with core.cl_context:
             core.boards[f"{module}:{resource}"] = entries[module, resource]

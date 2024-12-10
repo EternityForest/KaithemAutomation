@@ -266,6 +266,8 @@ async def files(path=""):
                     shutil.rmtree(node)
                 return quart.redirect(quart.request.url.split("?")[0])
 
+            callback = kwargs.get("callback", "")
+
             # if "zipfile" in kwargs:
             #     # Unpack all zip members directly right here,
             #     # Without creating a subfolder.
@@ -282,7 +284,9 @@ async def files(path=""):
             #                 f.close()
 
             if os.path.isdir(dir):
-                return pages.get_template("settings/files.html").render(dir=dir)
+                return pages.get_template("settings/files.html").render(
+                    dir=dir, callback=callback
+                )
             else:
                 if "thumbnail" in kwargs:
                     t = vignette.try_get_thumbnail(dir)
