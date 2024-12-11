@@ -96,8 +96,8 @@
         <section class="window w-full max-h-12rem"
             v-if="Object.keys(sys_alerts).length">
             <div class="flex-row scroll gaps padding">
-                <div class="card" v-for="v,i of sys_alerts">
-                    <header :class="v['barrel-class']" class="padding">
+                <div class="card w-sm-full" v-for="v,i of sys_alerts">
+                    <header :class="v['barrel-class']" class="padding break-word">
                         <i class="mdi mdi-alert"></i>{{i}}
                     </header>
                     <p :class="v['barrel-class']">
