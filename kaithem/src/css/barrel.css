@@ -1399,7 +1399,6 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
 .w-sm-half {
     width: 175px;
     max-width: calc(min(215px, 50vw));
-    flex-grow: 1;
 
     &:is(.margin) {
         max-width: calc(calc(min(215px, 50vw)) - calc(var(--gap) * 2));
@@ -1837,7 +1836,6 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
     .w-sm-full {
         flex-basis: 300px;
         flex-shrink: 1;
-        flex-grow: 1;
     }
 
     .w-sm-quarter {
@@ -1845,9 +1843,7 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
     }
 
     .w-sm-half {
-        flex-basis: 160px;
-        flex-grow: 1;
-
+        flex-basis: 175px;
     }
 
     .w-sm-double {

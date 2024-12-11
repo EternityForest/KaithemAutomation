@@ -68,6 +68,12 @@ class ConfigType(modules_state.ResourceType):
         )
 
         a.footer = "Commander"
+
+        a.links = [
+            ("Commander", f"/chandler/commander/{module}:{resource}"),
+            ("Editor", f"/chandler/editor/{module}:{resource}"),
+            ("Config", f"/chandler/config/{module}:{resource}"),
+        ]
         entries[module, resource].app = a
         apps_page.add_app(a)
 

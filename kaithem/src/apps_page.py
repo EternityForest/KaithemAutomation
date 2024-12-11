@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import weakref
 
-from kaithem.api.web import nav_bar_plugins, require_permission
+from kaithem.api.web import nav_bar_plugins, require
 
 from . import pages
 from .modules_state import get_resource_label_image_url
@@ -20,8 +20,8 @@ all_apps: weakref.WeakValueDictionary[str, App] = weakref.WeakValueDictionary()
 
 @app.route("/apps")
 def apps_page():
-    require_permission("view_status")
-    require_permission("enumerate_endpoints")
+    require("view_status")
+    require("enumerate_endpoints")
 
     return pages.render_jinja_template("apps.j2.html", apps=all_apps)
 
@@ -37,12 +37,24 @@ class App:
         resource: str | None = None,
     ):
         """Represents an app to be shown on the apps page"""
+        id = (
+            id.lower()
+            .replace(" ", "_")
+            .replace("-", "_")
+            .replace(".", "_")
+            .replace("/", "_")
+        )
+        id = id.replace(":", "_").replace("(", "_").replace(")", "_")
+        if id in all_apps:
+            raise ValueError(f"App id {id} is not unique")
         self.id = id
         self.title = title
         self.url = url
         self.icon = image
         self.footer = ""
         self.html_color = ""
+
+        self.links: list[tuple[str, str]] = []
 
         self.module = module
         self.resource = resource
