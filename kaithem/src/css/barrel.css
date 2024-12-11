@@ -1857,6 +1857,15 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
 
 /*Simple utilities */
 
+.break-word {
+    word-break: break-all;
+    word-break: break-word;
+    -ms-hyphens: auto;
+    -moz-hyphens: auto;
+    -webkit-hyphens: auto;
+    hyphens: auto;
+}
+
 .round-feathered {
     mask-image: radial-gradient(circle, rgba(0, 0, 0, 1) 50%, rgba(0, 0, 0, 0.1) 67%, rgba(0, 0, 0, 0) 71%);
     -webkit-mask-image: radial-gradient(circle, rgba(0, 0, 0, 1) 50%, rgba(0, 0, 0, 0.1) 67%, rgba(0, 0, 0, 0) 71%);
