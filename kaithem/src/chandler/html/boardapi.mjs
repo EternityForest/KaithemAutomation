@@ -121,18 +121,6 @@ let appMethods = {
             handleCueInfo(i, v[i])
         }
     },
-
-    'mediaLinkCommand': function (sc, linkid, data) {
-
-        api_link.send(["mediaLinkCommand", sc, linkid, data])
-    },
-
-    'promptRenameDisplay': function (group, link) {
-        var x = prompt("Name?")
-        if (x) {
-            api_link.send(["mediaLinkCommand", group, link, ['setFriendlyName', x]])
-        }
-    },
     // Slowly we want to migrate to these two generic setters
     'setGroupProperty': async function (group, property, value) {
 

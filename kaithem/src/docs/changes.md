@@ -7,6 +7,7 @@ Change Log
 - :bug: Fix deleting file resources from modules page
 - :sparkles: widget.mjs notficiations on disconnect and reconnect
 - :sparkles: "Apps" page for quick access to things like chandler boards.
+- :bug: Fix media link remote "Ding" buttons.
 
 ### 0.86.3
 

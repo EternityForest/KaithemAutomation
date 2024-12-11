@@ -58,7 +58,18 @@ module.exports = {
     methods: {
         formatTime: function (ts) {
             return new Date(ts * 1000).toLocaleString();
-        }
+        },
+        'mediaLinkCommand': function (sc, linkid, data) {
+
+            window.api_link.send(["mediaLinkCommand", sc, linkid, data])
+        },
+
+        'promptRenameDisplay': function (group, link) {
+            var x = prompt("Name?")
+            if (x) {
+                window.api_link.send(["mediaLinkCommand", group, link, ['setFriendlyName', x]])
+            }
+        },
     }
 }
 
