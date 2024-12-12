@@ -136,8 +136,8 @@ class SimpleDialog:
 
         "Add a text input. Datalist can be value, title pairs"
         if suggestions:
-            if f"x-{id(suggestions)}" not in self.datalists:
-                self.datalists[f"x-{id(suggestions)}"] = suggestions
+            if f"x{id(suggestions)}" not in self.datalists:
+                self.datalists[f"x{id(suggestions)}"] = suggestions
 
         title = title or self.name_to_title(name)
 
