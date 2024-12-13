@@ -14,6 +14,7 @@
         "kaithem/data/static/img/icons/**": true,
         "kaithem/src/thirdparty": true
     },
+    "python.defaultInterpreterPath": ".venv/bin/python",
     "python.autoComplete.extraPaths": [
         "kaithem/src/thirdparty",
         "kaithem/src/docs/thirdparty/python**",

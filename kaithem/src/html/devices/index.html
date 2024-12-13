@@ -13,6 +13,11 @@ import urllib.parse
     width:  calc(min(60em, 100vw, 100%));
     }
 
+    .device-card{
+        overflow: auto;
+        max-height: 24rem;
+    }
+
 </style>
 <script type="module" src="/static/js/widget.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0"></script>
 
@@ -120,7 +125,7 @@ else:
         %endif %}
 
 
-    <div class="stacked-form margin-top">
+    <div class="stacked-form margin-top device-card">
         %if hasattr(devObj, 'alerts') and devObj.alerts:
         %for i in devObj.alerts:
         % if devObj.alerts[i].sm.state!='normal':
