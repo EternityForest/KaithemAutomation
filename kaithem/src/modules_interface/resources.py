@@ -515,6 +515,70 @@ async def moveresourcetarget(module):
     return await f()
 
 
+@quart_app.app.route(
+    "/modules/module/<module>/updateresourcemetadata/<path:resource>",
+    methods=["POST"],
+)
+async def update_resource_metadata(module, resource):
+    try:
+        pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+
+    kwargs = await quart.request.form
+    with modules_state.modulesLock:
+        d = modules_state.mutable_copy_resource(
+            modules_state.ActiveModules[module][resource]
+        )
+        for i in kwargs:
+            d[i] = kwargs[i]
+        modules_state.rawInsertResource(module, resource, d)
+
+    return quart.redirect(
+        f"/modules/module/{util.url(module)}/resource/{util.url(resource)}"
+    )
+
+
+@quart_app.app.route(
+    "/modules/module/<module>/resource/<path:resource>/metadata"
+)
+async def resource_metadata_page(module, resource):
+    try:
+        pages.require("view_admin_info")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    d = dialogs.SimpleDialog(f"Update resource metadata in {module}")
+    d.begin_section("Display")
+
+    builtin_img = os.listdir(
+        os.path.join(directories.datadir, "static", "img", "16x9")
+    )
+    builtin_img = ["/static/img/16x9/" + i for i in builtin_img]
+    builtin_img = [(i, i) for i in builtin_img]
+    builtin_img.sort()
+
+    d.text_input(
+        "resource_label_image",
+        title="Label Image URL",
+        suggestions=builtin_img,
+        default=modules_state.ActiveModules[module][resource].get(
+            "resource_label_image", ""
+        ),
+    )
+
+    lnk = "/excalidraw-plugin/edit?"
+    lnk += f"module={module}&resource=media/resource_labels/{resource}.excalidraw.png"
+    lnk += f"&callback=/modules/set_label_image/{module}/{resource}&ratio_guide=16_9"
+    d.link("Draw with Excalidraw", lnk)
+    d.end_section()
+
+    d.submit_button("", title="Save")
+
+    return d.render(
+        f"/modules/module/{util.url(module)}/updateresourcemetadata/{util.url(resource)}"
+    )
+
+
 @quart_app.app.route("/modules/module/<module>/update", methods=["POST"])
 async def module_update(module):
     kwargs = await quart.request.form

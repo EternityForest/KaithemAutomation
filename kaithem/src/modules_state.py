@@ -19,11 +19,17 @@ import yaml
 from stream_zip import ZIP_64, stream_zip
 
 from . import context_restrictions, directories, util
-from .resource_types import ResourceDictType, ResourceType, additionalTypes
+from .resource_types import (
+    ResourceDictType,
+    ResourceType,
+    additionalTypes,
+    mutable_copy_resource,
+)
 from .util import url
 
 # Dummy keeps linter happy
 ResourceType = ResourceType
+mutable_copy_resource = mutable_copy_resource
 
 
 # / is there because we just forbid use of that char for anything but dirs,
@@ -47,6 +53,11 @@ def get_resource_label_image_url(module: str, path: str):
     mf = os.path.join(mf, "__filedata__/media")
     if "resource_label_image" not in data:
         return None
+    if not data["resource_label_image"]:
+        return None
+    if data["resource_label_image"].startswith(("http", "/")):
+        return data["resource_label_image"]
+
     fn = os.path.join(mf, data["resource_label_image"])
     if os.path.isfile(fn):
         return f"/modules/label_image/{url(module)}/{url(path)}?ts={os.path.getmtime(fn)}"

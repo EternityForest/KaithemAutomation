@@ -121,6 +121,9 @@ class SimpleDialog:
         "Add some help text"
         self.items.append(("", f"<p>{s}</p>"))
 
+    def link(self, s: str, url: str):
+        self.items.append(("", f'<p><a href="{url}">{s}</a></p>'))
+
     @beartype.beartype
     def text_input(
         self,
@@ -155,7 +158,7 @@ class SimpleDialog:
             self.items.append(
                 (
                     title,
-                    f'<input name="{name}" list="x-{id(suggestions)}"  value="{html.escape(default)}" {disabled}>',
+                    f'<input name="{name}" list="x{id(suggestions)}"  value="{html.escape(default)}" {disabled}>',
                 )
             )
 

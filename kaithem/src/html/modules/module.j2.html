@@ -245,8 +245,9 @@
                     <a aria-label="Move" data-testid="move-resource-button" class="button nogrow" href="/modules/module/{{ url(name) }}/moveresource/{{ url(i) }}"><span
                             class="mdi mdi-folder-move"></span>
                         </a>
-                    <a aria-label="Sketch Label" class="button nogrow" href="/excalidraw-plugin/edit?module={{ url(name) }}&resource=media/resource_labels/{{ url(i) }}.excalidraw.png&callback=/modules/set_label_image/{{ url(name) }}/{{ url(i) }}&ratio_guide=16_9">
-                            <i class="mdi mdi-image"></i></a>
+                    <a aria-label="Resource Metadata" class="button nogrow"
+                    href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}/metadata">
+                            <i class="mdi mdi-cog"></i></a>
                     <a aria-label="Delete" data-testid="delete-resource-button" class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
                             class="mdi mdi-delete"></i></a>
                 </div>
@@ -254,7 +255,7 @@
             <dd>
                 {% if module[i].get('resource_label_image') %}
                 <img alt="thumbnail" style="max-width: 32em; max-height: 32em"
-                src="{{get_resource_label_image_url(name,i)}}}}">
+                src="{{get_resource_label_image_url(name,i)}}">
                 {% endif %}
                 {{modules.additionalTypes[module[i]['resource_type']]._blurb(name,i,module[i] )}}
             </dd>
@@ -287,7 +288,7 @@
             <dd>
                 {% if module[i].get('resource_label_image') %}
                 <img alt="thumbnail" style="max-width: 32em; max-height: 8em"
-                src="{{get_resource_label_image_url(name,i)}}}}">
+                src="{{get_resource_label_image_url(name,i)}}">
                 {% endif %}
             </dd>
             {% endif %}

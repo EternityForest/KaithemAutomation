@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: Copyright Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
 
+import copy
 import html
 import traceback
 import weakref
@@ -14,6 +15,10 @@ from jsonschema import validate
 
 # Approximately type JSON, could be better
 ResourceDictType = Mapping[str, Any]
+
+
+def mutable_copy_resource(resource: ResourceDictType) -> dict:
+    return copy.deepcopy(resource)  # type: ignore
 
 
 class ResourceType:
