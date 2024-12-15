@@ -492,10 +492,6 @@
                                 style=" user-select: none;"
                                 title="Click the cue name to edit that cue"
                                 v-on:click="selectcue(groupname,slotProps.i[1].name)">
-                                <i v-if="cuemeta[editingGroup.cue].name==slotProps.i[1].name"
-                                    class="mdi mdi-arrow-right-bold-outline nomargin"></i>
-
-
                                 <span
                                     title="Cue number, double click to change."
                                     style="width:6em; margin: 6px"
@@ -545,9 +541,6 @@
                                     v-if="slotProps.i[1].rules && slotProps.i[1].rules.length>0"
                                     title="This cue has rules attatched"><i
                                         class="mdi mdi-script-text-outline nomargin"></i></span>
-
-                                <i v-if="cuemeta[editingGroup.cue].name==slotProps.i[1].name"
-                                    class="mdi mdi-arrow-left-bold-outline nomargin"></i>
 
                             </td>
 
