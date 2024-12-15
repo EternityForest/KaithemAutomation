@@ -553,8 +553,7 @@ async def resource_metadata_page(module, resource):
     builtin_img = os.listdir(
         os.path.join(directories.datadir, "static", "img", "16x9")
     )
-    builtin_img = ["/static/img/16x9/" + i for i in builtin_img]
-    builtin_img = [(i, i) for i in builtin_img]
+    builtin_img = [("/static/img/16x9/" + i, i) for i in builtin_img]
     builtin_img.sort()
 
     d.text_input(

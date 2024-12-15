@@ -8,6 +8,9 @@ Change Log
 - :sparkles: widget.mjs notficiations on disconnect and reconnect
 - :sparkles: "Apps" page for quick access to things like chandler boards.
 - :bug: Fix media link remote "Ding" buttons.
+- :sparkles: Mixer channel beat detection
+- :bug: Fix dealock that could happen if all background thread slots were filled by serialized_async_with_core_lock
+- :bug: Fix pagination of tag points pages
 
 ### 0.86.3
 

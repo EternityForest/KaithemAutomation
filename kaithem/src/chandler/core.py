@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import atexit
 import logging
 import os
 import sys
@@ -14,7 +15,7 @@ from typing import TYPE_CHECKING, Any
 import structlog
 import textdistance
 from icemedia import sound_player
-from scullery import workers
+from scullery import messagebus
 from tinytag import TinyTag
 
 from .. import context_restrictions
@@ -283,9 +284,33 @@ ratelimit = RateLimiter()
 
 
 action_queue = []
-action_queue_lock = threading.RLock()
+action_queue_wake = threading.Semaphore(0)
 
 next_frame_action_queue = []
+
+should_run = [True]
+
+
+def action_queue_thread():
+    while should_run[0]:
+        action_queue_wake.acquire(timeout=10)
+        while action_queue:
+            try:
+                x = action_queue.pop(0)
+                x()
+            except Exception:
+                logging.exception("Error in action queue")
+
+
+def STOP(*a):
+    should_run[0] = False
+    action_queue_wake.release()
+
+
+atexit.register(STOP)
+messagebus.subscribe("/system/shutdown", STOP)
+
+threading.Thread(target=action_queue_thread).start()
 
 
 def serialized_async_with_core_lock(f):
@@ -299,13 +324,7 @@ def serialized_async_with_core_lock(f):
             f()
 
     action_queue.append(g)
-
-    def h():
-        with action_queue_lock:
-            while action_queue:
-                action_queue.pop(False)()
-
-    workers.do(h)
+    action_queue_wake.release()
 
 
 def serialized_async_next_frame(f):

@@ -52,6 +52,70 @@ recorder = None
 ds = None
 
 
+class BeatDetector:
+    def __init__(self, name):
+        self.bpm = 60
+        self.last_beat = time.time()
+        self.fast_avg = 0
+        self.slow_avg = 0
+        self.very_slow_avg = 0
+
+        self.slow_time_constant = 0.05
+        self.very_slow_time_constant = 0.003
+        self.fast_time_constant = 0.2
+
+        self.bpm_time_constant = 0.3
+
+        self.beat_counter_tag = tagpoints.Tag(
+            f"/jackmixer/channels/{name}.beats"
+        )
+        self.beat_counter_tag.writable = False
+        self.beat_counter_tag.subtype = "trigger"
+        self.beat_counter_tag.expose("view_status")
+
+    def update(self, db: float):
+        now = time.time()
+
+        x = now - self.last_beat
+        if x > 0.08:
+            if abs(x - (self.bpm / 60)) < 0.08:
+                threshold = 1.5
+            elif x > 0.15:
+                threshold = 2.5
+            elif x > 0.1:
+                threshold = 4
+            else:
+                threshold = 5
+
+            if db > self.fast_avg + threshold:
+                self.last_beat = now
+                new_bpm = 60 / x
+                tc = self.bpm_time_constant
+
+                if abs(new_bpm - self.bpm) > 5:
+                    tc *= 4
+
+                self.bpm = (new_bpm * tc) + (self.bpm * (1 - tc))
+                self.beat_counter_tag.value += 1
+
+            elif self.slow_avg > self.very_slow_avg + threshold * 0.8:
+                if x > 0.45:
+                    self.last_beat = now
+                    new_bpm = 60 / x
+                    self.beat_counter_tag.value += 1
+
+        self.fast_avg = (db * self.fast_time_constant) + (
+            self.fast_avg * (1 - self.fast_time_constant)
+        )
+
+        self.slow_avg = (db * self.slow_time_constant) + (
+            self.slow_avg * (1 - self.slow_time_constant)
+        )
+        self.very_slow_avg = (db * self.very_slow_time_constant) + (
+            self.very_slow_avg * (1 - self.very_slow_time_constant)
+        )
+
+
 def start_dummy_source_if_needed():
     with dummy_src_lock:
         global ds
@@ -369,6 +433,8 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             self.effectDataById = {}
             self.faderLevel = -60
             self.channels = channels
+
+            self.beat_detector = BeatDetector(name=name)
 
             # Are we already doing a loudness cutoff?
             self.doingFeedbackCutoff = False
@@ -973,11 +1039,12 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             post_messages=True,
             peak_ttl=300 * 1000 * 1000,
             peak_falloff=60,
-            interval=10**9 / 24,
+            interval=10**9 / 30,
         )
 
     def on_level_message(self, src, rms, level):
         if self.board:
+            self.beat_detector.update(rms)
             rms = max(rms, -90)
 
             self.doSoundFuse(rms)

@@ -131,14 +131,14 @@ def dropdownpanel():
     )
 
 
-@quart_app.app.route("/tagpoints")
-def tagpoints_index(*path, show_advanced=""):
+@quart_app.app.route("/tagpoints", methods=["GET", "POST"])
+@quart_app.wrap_sync_route_handler
+def tagpoints_index(*path, show_advanced="", **data):
     # This page could be slow because of the db stuff, so we restrict it more
     try:
         pages.require("system_admin")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
-    data = request.args
 
     return pages.get_template("settings/tagpoints.html").render(
         data=data, module="", resource=""

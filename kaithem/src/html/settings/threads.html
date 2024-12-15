@@ -5,7 +5,10 @@ from kaithem.src import util
 %>
 <style>
     main{
-        min-width: min-content;
+        width: 100vw;
+    }
+    pre{
+        max-width: 100vw !important;
     }
 </style>
 <h1>Running Proceses</h1>
@@ -44,7 +47,7 @@ running a function defined in <b>${i._target.__module__ if hasattr(i,'_target') 
 
 %try:
 <pre>
-${util.saferepr("".join(traceback.format_stack(info[i.ident])))|h}
+${"\n".join(traceback.format_stack(info[i.ident]))}
 </pre>
 <b>Locals</b>
 <pre>

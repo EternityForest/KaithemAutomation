@@ -1100,6 +1100,10 @@ class Group:
         :param generateEvents: Boolean indicating whether to generate events, defaults to True.
         :param cause: The cause of the cue transition, defaults to "generic".
         """
+
+        if cue == "__next__":
+            self.next_cue(cause=cause)
+            return
         # Globally raise an error if there's a big horde of cue transitions happening
         doTransitionRateLimit()
 
