@@ -57,28 +57,30 @@ class BeatDetector:
         self.last_beat = time.time()
         self.peaks = 0
         self.avg = 0
-        self.tc = 1 / 40
-        self.sens = 0.70
-        self.sens_fast = 0.80
+        self.tc = 1 / 20
+        self.sens = 0.75
+        self.sens_fast = 0.83
         self.tag = tagpoints.Tag(f"/jackmixer/channels/{name}.beats")
 
     def update(self, db: float):
         now = time.time()
 
         x = now - self.last_beat
-        if x > 0.23:
+        if x > 0.08:
             sens = self.sens
-            if x < 0.4:
+            if x < 0.23:
                 sens = self.sens_fast
             if db > (1 - sens) * self.avg + sens * self.peaks:
                 if db > self.avg + 1.5:
-                    self.last_beat = now
-                    self.tag.value = self.tag.value + 1
+                    if x > 0.5 or db > self.avg + 3:
+                        self.last_beat = now
+                        self.tag.value = self.tag.value + 1
 
         self.peaks = max(db, self.peaks)
         self.peaks = self.peaks * (1 - self.tc) + db * self.tc
 
         self.avg = self.avg * (1 - self.tc) + db * self.tc
+        self.avg = max(-40, self.avg)
 
 
 def start_dummy_source_if_needed():
