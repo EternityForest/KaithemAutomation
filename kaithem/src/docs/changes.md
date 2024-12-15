@@ -11,6 +11,7 @@ Change Log
 - :sparkles: Mixer channel beat detection
 - :bug: Fix dealock that could happen if all background thread slots were filled by serialized_async_with_core_lock
 - :bug: Fix pagination of tag points pages
+- :sparkles: \_\_next\_\_ special cue
 
 ### 0.86.3
 

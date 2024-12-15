@@ -569,7 +569,7 @@
                             <td class="desktop-only" data-label="Fade In:">
                                 <input :disabled="no_edit" type="number"
                                     v-on:change="setCueProperty(slotProps.i[1].id,'fadeIn',$event.target.value)"
-                                    style="width:3em" min=0
+                                    style="width:5em" min=0 step="0.01"
                                     v-model="slotProps.i[1].fadeIn">
                             </td>
 
@@ -1083,7 +1083,7 @@
                                                 v-on:change="setCueProperty(currentcueid,'lengthRandomize',$event.target.value)"
                                                 title="Randomize the cue length +- this amount"
                                                 v-model="cuemeta[currentcueid].lengthRandomize"
-                                                min=0 step=0.25>
+                                                min=0>
                                         </label>
                                         <label><span><i
                                                     class="mdi mdi-dice-multiple-outline"></i>Probability</span>

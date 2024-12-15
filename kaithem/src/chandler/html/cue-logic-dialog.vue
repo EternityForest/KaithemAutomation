@@ -121,7 +121,6 @@ module.exports = {
     ],
     data: function () {
         let d = {}
-        console.log(this)
         d.gotoGroupCuesCompleter = this.gotoGroupCuesCompleter.bind(this)
         d.gotoGroupNamesCompleter = this.gotoGroupNamesCompleter.bind(this)
         d.cueNamesByGroupName = this.cueNamesByGroupName.bind(this)
@@ -150,7 +149,6 @@ module.exports = {
         },
 
         gotoGroupCuesCompleter: function (a) {
-            console.log(a)
             var c = []
             var n = a[1]
             if (n.indexOf('=GROUP') > -1) {
@@ -175,6 +173,10 @@ module.exports = {
             for (var i in x) {
                 c.push([i, ''])
             }
+            c.push(['__next__', 'Next cue'])
+            c.push(['__random__', ''])
+            c.push(['__shuffle__', ''])
+
             return c;
         },
 
