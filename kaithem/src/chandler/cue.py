@@ -212,6 +212,7 @@ class Cue:
         onEnter: Callable[..., Any] | None = None,
         onExit: Callable[..., Any] | None = None,
         provider: str | None = None,
+        insert_after_number: int | None = None,
         **kw: Any,
     ):
         # declare vars.
@@ -274,11 +275,16 @@ class Cue:
         self.id: str = id or uuid.uuid4().hex
         self.name = name
 
-        # Odd circular dependency
-        try:
-            self.number = number or parent.cues_ordered[-1].number + 5000
-        except Exception:
-            self.number = 5000
+        if insert_after_number is not None:
+            self.number = parent.get_number_for_new_cue(
+                after=insert_after_number
+            )
+        else:
+            # Odd circular dependency
+            try:
+                self.number = number or parent.cues_ordered[-1].number + 5000
+            except Exception:
+                self.number = 5000
 
         # Set up all the underscore internal vals for the properties before settingthe actual
         # properties
@@ -396,6 +402,8 @@ class Cue:
         if name in self.getGroup().cues:
             raise RuntimeError("Cannot duplicate cue names in one group")
 
+        n = self.getGroup().get_number_for_new_cue(after=self.number)
+
         c = Cue(
             self.getGroup(),
             name,
@@ -406,6 +414,7 @@ class Cue:
             next_cue=self.next_cue,
             rel_length=self.rel_length,
             track=self.track,
+            number=n,
         )
 
         core.add_data_pusher_to_all_boards(lambda s: s.pushCueMeta(c.id))

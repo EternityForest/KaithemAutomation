@@ -792,7 +792,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         elif cmd_name == "add_cue":
             n = msg[2].strip()
             if msg[2] not in groups.groups[msg[1]].cues:
-                groups.groups[msg[1]].add_cue(n)
+                groups.groups[msg[1]].add_cue(n, after=int(msg[3]))
 
         elif cmd_name == "rename_cue":
             if not msg[3]:

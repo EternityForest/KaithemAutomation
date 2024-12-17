@@ -1,7 +1,7 @@
 $schema: http://json-schema.org/draft-04/schema#
 type: object
 
-# All of these keys correspond
+# All of these keys correspond to properties in the Cue object
 properties:
   number:
     type: integer
@@ -16,6 +16,7 @@ properties:
   shortcut:
     type: string
     default: ''
+    description: A shortcut code used to enter this cue
 
   checkpoint:
     type: boolean
@@ -43,6 +44,7 @@ properties:
   track:
     type: boolean
     default: true
+    description: Keep values from previous cues
 
   next_cue:
     anyOf:
@@ -94,6 +96,7 @@ properties:
   media_wind_down:
     type: number
     default: 0
+    description: Slow down media at the end for the robot losing power effect
 
   # Todo: migrate to CamelCase or migrate others to snake_case?
   rel_length:

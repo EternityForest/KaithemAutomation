@@ -597,6 +597,47 @@ class Group:
             for i in property_update_handlers[name]:
                 i(self, name, value)
 
+    def get_number_for_new_cue(self, after: int):
+        """Takes the int number times 1000 format"""
+
+        if len(list(self.find_cues_between(after + 1, after + 5000))) == 0:
+            return after + 5000
+        for i in range(1, 5):
+            if (
+                len(list(self.find_cues_between(after + 1, after + (i * 1000))))
+                == 0
+            ):
+                return after + (i * 1000)
+
+        for i in range(1, 10):
+            if (
+                len(list(self.find_cues_between(after + 1, after + (i * 100))))
+                == 0
+            ):
+                return after + (i * 100)
+
+        for i in range(1, 10):
+            if (
+                len(list(self.find_cues_between(after + 1, after + (i * 10))))
+                == 0
+            ):
+                return after + (i * 10)
+
+        raise RuntimeError("Could not find a number for new cue")
+
+    def find_cue_by_number(self, number: int) -> None | Cue:
+        """Takes the int number times 1000 format"""
+        for i in self.cues:
+            if self.cues[i].number == number:
+                return self.cues[i]
+        return None
+
+    def find_cues_between(self, start: int, end: int):
+        """Takes the int number times 1000 format"""
+        for i in self.cues:
+            if self.cues[i].number >= start and self.cues[i].number <= end:
+                yield self.cues[i]
+
     @slow_group_lock_context.object_session_entry_point
     def find_next_scheduled_cue(self):
         now = time.time()
@@ -2255,8 +2296,8 @@ class Group:
 
         self.media_link_socket.send(["volume", val])
 
-    def add_cue(self, name: str, **kw: Any):
-        return Cue(self, name, **kw)
+    def add_cue(self, name: str, after: int | None = None, **kw: Any):
+        return Cue(self, name, insert_after_number=after, **kw)
 
     @property
     def blend(self):

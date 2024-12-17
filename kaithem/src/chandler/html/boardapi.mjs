@@ -349,8 +349,8 @@ let appMethods = {
         }
     },
 
-    'add_cue': function (sc, v) {
-        api_link.send(['add_cue', sc, v]);
+    'add_cue': function (sc, v,after_cue) {
+        api_link.send(['add_cue', sc, v, parseFloat(after_cue.number)*1000]);
         //There's a difference between "not there" undefined and actually set to undefined....
         if (this.groupcues[sc][v] == undefined) {
             //Placeholder so we can at least show a no cue found message till it arrives

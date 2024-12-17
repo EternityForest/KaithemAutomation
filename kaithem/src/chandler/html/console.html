@@ -628,7 +628,7 @@
                     <input :disabled="no_edit" v-model="newcuename"
                         placeholder="New cue name" list="specialcues">
                     <button type="button"
-                        v-on:click="add_cue(groupname,newcuename)">
+                        v-on:click="add_cue(groupname,newcuename, currentcue)">
                         <i class="mdi mdi-plus"></i>Add Cue</button>
                     <button type="button"
                         v-on:click="clonecue(groupname,currentcueid,newcuename)">
