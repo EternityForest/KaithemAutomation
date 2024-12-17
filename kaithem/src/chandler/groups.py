@@ -638,6 +638,15 @@ class Group:
             if self.cues[i].number >= start and self.cues[i].number <= end:
                 yield self.cues[i]
 
+    def pointer_for_cue(self, cue: Cue) -> int:
+        """Returns the index of the cue in the ordered cues list"""
+        c = 0
+        for i in self.cues_ordered:
+            if i == cue:
+                return c
+            c += 1
+        raise RuntimeError("Cue not in group")
+
     @slow_group_lock_context.object_session_entry_point
     def find_next_scheduled_cue(self):
         now = time.time()
@@ -815,11 +824,17 @@ class Group:
         return self.script_context.preprocessArgument(s)
 
     def _nl_insert_cue_sorted(self, c: Cue | None):
-        "Insert a None to just recalt the whole ordering"
+        "Insert a None to just recalc the whole ordering"
+
+        need_sort = True
+        if self.cues_ordered:
+            if c and c.number > self.cues_ordered[-1].number:
+                need_sort = False
         if c:
             self.cues_ordered.append(c)
 
-        self.cues_ordered.sort(key=lambda i: i.number)
+        if need_sort:
+            self.cues_ordered.sort(key=lambda i: i.number)
 
         # We inset cues before we actually have a selected cue.
         if hasattr(self, "cue") and self.cue:
@@ -829,11 +844,6 @@ class Group:
                 print(traceback.format_exc())
         else:
             self.cuePointer = 0
-
-        # Regenerate linked list by brute force when a new cue is added.
-        for i in range(len(self.cues_ordered) - 1):
-            self.cues_ordered[i].next_ll = self.cues_ordered[i + 1]
-        self.cues_ordered[-1].next_ll = None
 
     def getDefaultNext(self):
         if self.default_next.strip():
@@ -848,10 +858,6 @@ class Group:
                 return None
         except Exception:
             return None
-
-    def getAfter(self, cue: str):
-        x = self.cues[cue].next_ll
-        return x.name if x else None
 
     def getParent(self, cue: str) -> str | None:
         "Return the cue that this cue name should backtrack values from or None"
@@ -922,10 +928,6 @@ class Group:
                 self.cuePointer = self.cues_ordered.index(self.cue)
             except Exception:
                 print(traceback.format_exc())
-        # Regenerate linked list by brute force when a new cue is added.
-        for i in range(len(self.cues_ordered) - 1):
-            self.cues_ordered[i].next_ll = self.cues_ordered[i + 1]
-        self.cues_ordered[-1].next_ll = None
 
     @slow_group_lock_context.object_session_entry_point
     def _add_cue(self, cue: Cue, forceAdd=True):

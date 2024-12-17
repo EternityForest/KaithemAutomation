@@ -51,17 +51,30 @@ def get_schedule_jump_point(group: groups.Group) -> None | tuple[str, float]:
     consider: list[Cue] = []
 
     found: dict[str, bool] = {}
+
+    # Start at the current cue, this looop just gets a set of cues to
+    # consider
     pointer = group.cue
+    idx = group.pointer_for_cue(pointer)
+
     for safety_counter in range(1000):
         # The logical next cue, except that __fast_forward also points to the next in sequence
         nextname = ""
-        if pointer.next_ll:
-            nextname = pointer.next_ll.name
-        nxt = (
-            pointer.next_cue
-            if not pointer.next_cue == "__schedule__"
-            else nextname
-        ) or nextname
+
+        if pointer.next_cue and not pointer.next_cue == "__schedule__":
+            nextname = pointer.next_cue
+            if nextname not in group.cues:
+                if not nextname.startswith("__"):
+                    raise RuntimeError(
+                        f"Reference to nonexistent cue {nextname} in group {group.name}"
+                    )
+            c = group.cues[nextname]
+            idx = group.pointer_for_cue(c)
+
+        else:
+            if idx < (len(group.cues_ordered) - 1):
+                nextname = group.cues_ordered[idx + 1].name
+                idx += 1
 
         if pointer is not group.cue:
             if str(pointer.next_cue).startswith("__"):
@@ -80,10 +93,10 @@ def get_schedule_jump_point(group: groups.Group) -> None | tuple[str, float]:
         else:
             break
 
-        if (nxt not in group.cues) or (nxt in found):
+        if (nextname not in group.cues) or (nextname in found):
             break
 
-        pointer = group.cues[nxt]
+        pointer = group.cues[nextname]
 
     times: dict[str, float] = {}
 
@@ -112,8 +125,10 @@ def get_schedule_jump_point(group: groups.Group) -> None | tuple[str, float]:
             # If that turns out to be the most recent,
             # We go to the one after that if it has a next,
             # Else just go to
-            if cue.next_ll:
-                times[cue.next_ll.name] = a2
+            idx = group.pointer_for_cue(cue)
+            if idx < (len(group.cues_ordered) - 1):
+                next_in_sequence = group.cues_ordered[idx + 1]
+                times[next_in_sequence.name] = a2
             elif cue.next_cue in group.cues:
                 times[cue.next_cue] = a2
             else:

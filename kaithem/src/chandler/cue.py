@@ -59,7 +59,6 @@ stored_as_property = [
 slots = list(cue_schema["properties"].keys()) + [
     "id",
     "changed",
-    "next_ll",
     "name",
     "group",
     "inherit",
@@ -324,7 +323,6 @@ class Cue:
         self.onEnter = onEnter
         self.onExit = onExit
 
-        self.next_ll: Cue | None = None
         parent._add_cue(self, forceAdd=forceAdd)
 
         cues[self.id] = self
@@ -802,7 +800,6 @@ class Cue:
             "number": self.number / 1000.0,
             "prev": group.getParent(self.name),
             "hasLightingData": len(self.values),
-            "default_next": group.getAfter(self.name),
             "labelImageTimestamp": self.getGroup().board.get_file_timestamp_if_exists(
                 self.label_image
             ),
