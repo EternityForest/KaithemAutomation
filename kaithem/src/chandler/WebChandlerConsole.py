@@ -890,18 +890,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             assert gr
             gr.rmCue(c.id)
 
-        elif cmd_name == "setCueLoops":
-            try:
-                v = int(msg[2])
-            except Exception:
-                v = msg[2]
-            cues[msg[1]].sound_loops = v if (not v == -1) else 99999999999999999
-
-            self.pushCueMeta(msg[1])
-            sc = cues[msg[1]].group()
-            assert sc
-            sc.setAlpha(sc.alpha)
-
         elif cmd_name == "setmqttfeature":
             groups.groups[msg[1]].setMQTTFeature(msg[2], msg[3])
             self.push_group_meta(msg[1], keys={"mqtt_sync_features"})

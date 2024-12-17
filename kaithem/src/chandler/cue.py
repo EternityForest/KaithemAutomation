@@ -53,6 +53,7 @@ stored_as_property = [
     "inherit_rules",
     "length",
     "schedule_at",
+    "sound_loops",
 ]
 
 slots = list(cue_schema["properties"].keys()) + [
@@ -219,7 +220,7 @@ class Cue:
         self._inherit_rules: str
         self.reentrant: bool
         self.sound_volume: float | str
-        self.sound_loops: int
+        self._sound_loops: int
         self.named_for_sound: bool
         self.notes: str
         self.alpha: float
@@ -479,6 +480,25 @@ class Cue:
             if g:
                 g.recalc_cue_len()
         self._length = val
+        self.push()
+
+    @property
+    def sound_loops(self) -> int:
+        return self._sound_loops
+
+    @sound_loops.setter
+    def sound_loops(self, val: int):
+        if val == self._sound_loops:
+            return
+
+        try:
+            val = int(val)
+        except Exception:
+            pass
+
+        val = val if (not val == -1) else 99999999999999999
+
+        self._sound_loops = val
         self.push()
 
     def validate_rules(self, r: list[list[str | list[list[str]]]]):

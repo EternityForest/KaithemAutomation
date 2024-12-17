@@ -124,13 +124,13 @@
 
                         <label>Cue Volume
                             <input :disabled="no_edit"
-                                v-on:change="setcueproperty(currentcue.id, 'volume', $event.target.value)" min=0
+                                v-on:change="setcueproperty(currentcue.id, 'soundVolume', $event.target.value)" min=0
                                 v-model="currentcue.soundVolume">
                         </label>
 
                         <label>Loops
                             <input :disabled="no_edit" title="-1 means forever"
-                                v-on:change="setCueLoops(currentcue.id, $event.target.value)" min=-1
+                                v-on:change="setcueproperty(currentcue.id, 'soundLoops', $event.target.value)" min=-1
                                 v-model="currentcue.soundLoops">
                         </label>
                     </p>
@@ -181,7 +181,8 @@
                                         v-on:click="setcueproperty(currentcue.id, 'soundOutput', 'groupwebplayer')">Set
                                         for
                                         Cue</button>
-                                    <button v-on:click="setgroupproperty(groupname, 'soundOutput', 'groupwebplayer')">Set
+                                    <button
+                                        v-on:click="setgroupproperty(groupname, 'soundOutput', 'groupwebplayer')">Set
                                         as
                                         Group Default</button>
                                 </div>
@@ -196,7 +197,8 @@
                                             v-on:click="setcueproperty(currentcue.id, 'soundOutput', i)">Set
                                             for
                                             Cue</button>
-                                        <button type="button" v-on:click="setgroupproperty(groupname,'soundOutput',i)">Set
+                                        <button type="button"
+                                            v-on:click="setgroupproperty(groupname, 'soundOutput', i)">Set
                                             as
                                             Group
                                             Default</button>
@@ -231,7 +233,27 @@ module.exports = {
     },
     methods: {
         dictView: dictView,
+        'previewSound': function (s) {
 
+            document.getElementById("soundpreviewdialog").show();
+            var t = ['.mp3', '.ogg', '.wav', '.oga', '.opus', '.aac', '.flac']
+            for (let i of t) {
+                if (s.endsWith(i)) {
+                    document.getElementById("soundpreview").src = "../WebMediaServer?file=" + encodeURIComponent(s);
+                    document.getElementById("soundpreview").currentTime = 0;
+                    document.getElementById("soundpreview").play();
+                    document.getElementById("textpreview").src = "";
+                    document.getElementById("textpreview").style.display = 'none'
+                    document.getElementById("soundpreview").style.display = 'block'
+                    return
+                }
+            }
+            document.getElementById("textpreview").src = "../WebMediaServer?file=" + encodeURIComponent(s);
+            document.getElementById("soundpreview").src = ""
+            document.getElementById("textpreview").style.display = 'block'
+            document.getElementById("soundpreview").style.display = 'none'
+
+        },
     },
 
     "components": {

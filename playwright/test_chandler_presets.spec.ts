@@ -80,6 +80,7 @@ test('test', async ({ page }) => {
   await page.getByRole('button', { name: 'foo' }).click();
 
   await page.getByRole('button', { name: 'Add/Remove' }).click();
+  await sleep(300);
   await page.getByRole('cell', { name: '󰐕 Add' }).getByRole('button').click();
   await page.getByRole('button', { name: '󰢻 Normal View' }).click();
 

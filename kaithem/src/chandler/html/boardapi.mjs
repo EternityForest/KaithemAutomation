@@ -465,36 +465,10 @@ let appMethods = {
         api_link.send(['setnumber', cue, v]);
     },
 
-    'setCueLoops': function (cue, v) {
-        api_link.send(['setCueLoops', cue, v]);
-    },
-
     //Only for things of the form command/property, object/operand, argument/value
     'apiCommand': function (sc, p, v) {
 
         api_link.send([p, sc, v]);
-    },
-
-    'previewSound': function (s) {
-
-        document.getElementById("soundpreviewdialog").show();
-        var t = ['.mp3', '.ogg', '.wav', '.oga', '.opus', '.aac', '.flac']
-        for (let i of t) {
-            if (s.endsWith(i)) {
-                document.getElementById("soundpreview").src = "../WebMediaServer?file=" + encodeURIComponent(s);
-                document.getElementById("soundpreview").currentTime = 0;
-                document.getElementById("soundpreview").play();
-                document.getElementById("textpreview").src = "";
-                document.getElementById("textpreview").style.display = 'none'
-                document.getElementById("soundpreview").style.display = 'block'
-                return
-            }
-        }
-        document.getElementById("textpreview").src = "../WebMediaServer?file=" + encodeURIComponent(s);
-        document.getElementById("soundpreview").src = ""
-        document.getElementById("textpreview").style.display = 'block'
-        document.getElementById("soundpreview").style.display = 'none'
-
     },
 
     'closePreview': function (s) {

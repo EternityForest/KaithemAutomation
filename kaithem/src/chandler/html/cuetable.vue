@@ -55,7 +55,6 @@ module.exports = {
     props: ['groupname', 'groupcues', 'cuemeta',],
     methods: {
         'formatCues': function () {
-            console.log('formatCues')
             var z = {}
             var filt = true
             //list cue objects
