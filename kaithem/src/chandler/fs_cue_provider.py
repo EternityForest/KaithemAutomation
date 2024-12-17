@@ -90,10 +90,10 @@ class FilesystemCueProvider(CueProvider):
     def scan_cues(self) -> dict[str, Cue]:
         cues = {}
         discovered = []
+        c = 0
         for root, dirs, files in os.walk(self.dir):
             # Sorted because we want the media file to come before the bare YAML
             # That will have fn.cue.yaml and be longer than the main
-            c = 0
             for i in files:
                 if not i.startswith("."):
                     n = get_number_from_fn(i)
