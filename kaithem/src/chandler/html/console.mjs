@@ -13,8 +13,8 @@ appMethods.showPresetDialog = function (fixture, dest) {
     this.selectingPresetFor = fixture
 }
 
-appData.selectingImageLabelForPreset = null
-appData.iframeDialog = null
+appData.selectingImageLabelForPreset = Vue.ref(null)
+appData.iframeDialog = Vue.ref(null)
 
 const session_time = new Date().toISOString().slice(0, -8)
 window.session_time = session_time
@@ -30,16 +30,16 @@ appData.getExcalidrawCueLink = function (group, cue) {
 
 
 // If true preset applies to final val of range effect
-appData.selectingPresetForDestination = false
+appData.selectingPresetForDestination = Vue.ref(false)
 
-appData.selectingPresetFor = null
+appData.selectingPresetFor = Vue.ref(null)
 // Add console specific stuff to the appdata
 appData.formatTime = function (t) {
     var date = new Date(t * 1000);
     return date.strftime("%I:%M:%S%p")
 }
 
-appData.boardname = window.location.pathname.split('/')[3]
+appData.boardname = Vue.ref(window.location.pathname.split('/')[3])
 
 document.title = appData.boardname
 
@@ -78,7 +78,7 @@ window.addEventListener('popstate', function (e) {
 
 
 window.setIframeDialog = function (iframe) {
-    appData.iframeDialog = iframe
+    appData.iframeDialog.value = iframe
 }
 const boardname = window.location.pathname.split('/')[3];
 window.boardname = boardname

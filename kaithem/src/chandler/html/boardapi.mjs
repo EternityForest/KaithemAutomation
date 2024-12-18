@@ -56,7 +56,7 @@ let rebindKeys = function (data) {
 }
 
 function playAlert(m) {
-    if (appData.uiAlertSounds) {
+    if (appData.uiAlertSounds.value) {
         var mp3_url = '/static/sounds/72127__kizilsungur__sweetalertsound3.opus';
         (new Audio(mp3_url)).play().catch(() => { })
     }
@@ -66,7 +66,7 @@ function playAlert(m) {
 }
 
 function errorTone(m) {
-    if (appData.uiAlertSounds) {
+    if (appData.uiAlertSounds.value) {
         var mp3_url = '/static/sounds/423166__plasterbrain__minimalist-sci-fi-ui-error.opus';
         (new Audio(mp3_url)).play().catch(() => { })
     }
@@ -124,8 +124,8 @@ let appMethods = {
 
         // Serialization prevents tests from acting badly and might even be important
         // in the ui on slow connections
-        if (appData.previousSerializedPromise) {
-            await appData.previousSerializedPromise
+        if (appData.previousSerializedPromise.value) {
+            await appData.previousSerializedPromise.value
         }
 
         var x = cueSetData[group + property]
@@ -136,7 +136,7 @@ let appMethods = {
         var b = {}
         b[property] = value
 
-        appData.previousSerializedPromise = fetch("/chandler/api/set-group-properties/" + group, {
+        appData.previousSerializedPromise.value = fetch("/chandler/api/set-group-properties/" + group, {
             method: "PUT",
             body: JSON.stringify(b),
             headers: {
@@ -147,13 +147,13 @@ let appMethods = {
                 alert("Error setting property.")
             }
         );
-        await appData.previousSerializedPromise
+        await appData.previousSerializedPromise.value
     },
 
     'setCueProperty': async function (cue, property, value) {
 
-        if (appData.previousSerializedPromise) {
-            await appData.previousSerializedPromise
+        if (appData.previousSerializedPromise.value) {
+            await appData.previousSerializedPromise.value
         }
 
         var x = cueSetData[cue + property]
@@ -165,7 +165,7 @@ let appMethods = {
         var b = {}
         b[property] = value
 
-        appData.previousSerializedPromise = fetch("/chandler/api/set-cue-properties/" + cue, {
+        appData.previousSerializedPromise.value = fetch("/chandler/api/set-cue-properties/" + cue, {
             method: "PUT",
             body: JSON.stringify(b),
             headers: {
@@ -176,7 +176,7 @@ let appMethods = {
                 alert("Error setting property.")
             }
         );
-        await appData.previousSerializedPromise
+        await appData.previousSerializedPromise.value
     },
 
     'setCuePropertyDeferred': function (cue, property, value) {
@@ -430,8 +430,8 @@ let appMethods = {
         readText(t)
     },
     'downloadSetup': function () {
-        appData.downloadReqId = Math.random().toString();
-        api_link.send(['downloadSetup', appData.downloadReqId]);
+        appData.downloadReqId.value = Math.random().toString();
+        api_link.send(['downloadSetup', appData.downloadReqId.value]);
     },
     'jumptocue': function (cue, group) {
         if (confirm_for_group(group)) {
@@ -1039,17 +1039,17 @@ for (var i in appDataDefaults) {
 
 function handleCueInfo(id, cue) {
     //Make an empty list of cues if it's not there yet
-    if (appData.groupcues[cue.group] == undefined) {
-        old_vue_set(appData.groupcues, cue.group, {});
+    if (appData.groupcues.value[cue.group] == undefined) {
+        old_vue_set(appData.groupcues.value, cue.group, {});
     };
-    old_vue_set(appData.groupcues[cue.group], cue.name, id);
+    old_vue_set(appData.groupcues.value[cue.group], cue.name, id);
 
 
     //Make an empty list of cues as a placeholder till the real data arrives
-    if (appData.cuemeta[id] == undefined) {
-        old_vue_set(appData.cuemeta, id, {});
+    if (appData.cuemeta.value[id] == undefined) {
+        old_vue_set(appData.cuemeta.value, id, {});
     };
-    set(appData.cuemeta, id, cue);
+    set(appData.cuemeta.value, id, cue);
 }
 
 
@@ -1059,7 +1059,7 @@ function f(v) {
 
 
     if (c == 'soundfolders') {
-        appData.soundfolders = v[1]
+        appData.soundfolders.value = v[1]
     }
     else if (c == 'ui_alert') {
         playAlert(v[1])
@@ -1067,119 +1067,119 @@ function f(v) {
 
     else if (c == 'slideshow_telemetry') {
         if (v[2] == null) {
-            delete appData.slideshow_telemetry[v[1]]
+            delete appData.slideshow_telemetry.value[v[1]]
         }
         else {
-            if (v[2].status != (appData.slideshow_telemetry[v[1]] || {}).status) {
+            if (v[2].status != (appData.slideshow_telemetry.value[v[1]] || {}).status) {
                 if (v[2].status.includes("FAILED")) {
-                    if (appData.doRateLimit()) {
+                    if (appData.doRateLimit.value()) {
                         errorTone('A slideshow display may need attention');
                         showslideshowtelemetry = true;
                     }
                 }
             }
 
-            appData.slideshow_telemetry[v[1]] = v[2]
+            appData.slideshow_telemetry.value[v[1]] = v[2]
         }
     }
 
     else if (c == 'grouptimers') {
-        if (appData.groupmeta[v[1]]) {
-            appData.groupmeta[v[1]].timers = v[2]
+        if (appData.groupmeta.value[v[1]]) {
+            appData.groupmeta.value[v[1]].timers = v[2]
         }
     }
     else if (c == 'cuehistory') {
-        appData.groupmeta[v[1]].history = v[2]
+        appData.groupmeta.value[v[1]].history = v[2]
     }
     else if (c == "groupmeta") {
         if (v[2].cue) {
-            if (appData.cuemeta[v[2].cue] == undefined) {
+            if (appData.cuemeta.value[v[2].cue] == undefined) {
                 appMethods.getcuemeta(v[2].cue)
             }
         }
 
         if (v[2].alpha != undefined) {
-            old_vue_set(appData.alphas, v[1], v[2].alpha);
+            old_vue_set(appData.alphas.value, v[1], v[2].alpha);
         }
 
         //Just update existing data if we can
-        if (appData.groupmeta[v[1]]) {
-            set(appData.groupmeta, v[1], v[2])
+        if (appData.groupmeta.value[v[1]]) {
+            set(appData.groupmeta.value, v[1], v[2])
         }
         else {
             var meta = v[2];
-            set(appData.groupmeta, v[1], meta);
+            set(appData.groupmeta.value, v[1], meta);
         }
 
-        if (appData.selectedCues[v[1]] == undefined) {
-            old_vue_set(appData.selectedCues, v[1], 'default')
+        if (appData.selectedCues.value[v[1]] == undefined) {
+            old_vue_set(appData.selectedCues.value, v[1], 'default')
         }
         //Make an empty list of cues as a placeholder till the real data arrives
-        if (appData.groupcues[v[1]] == undefined) {
-            old_vue_set(appData.groupcues, v[1], {});
+        if (appData.groupcues.value[v[1]] == undefined) {
+            old_vue_set(appData.groupcues.value, v[1], {});
         };
     }
 
     else if (c == "cuemeta") {
         handleCueInfo(v[1], v[2]);
-        appData.recomputeformattedCues();
+        appData.recomputeformattedCues.value();
     }
 
     else if (c == "event") {
 
-        appData.evlog.unshift(v[1])
-        if (appData.evlog.length > 250) {
-            appData.evlog = appData.evlog.slice(0, 250)
+        appData.evlog.value.unshift(v[1])
+        if (appData.evlog.value.length > 250) {
+            appData.evlog.value = appData.evlog.value.slice(0, 250)
         }
 
         if (v[1][0].includes("error")) {
-            appData.showevents = true;
+            appData.showevents.value = true;
             errorTone('');
         }
     }
     else if (c == "serports") {
-        appData.serports = v[1]
+        appData.serports.value = v[1]
     }
 
     else if (c == 'alerts') {
-        if (JSON.stringify(appData.sys_alerts) != JSON.stringify(v[1])) {
+        if (JSON.stringify(appData.sys_alerts.value) != JSON.stringify(v[1])) {
             if (v[1]) {
                 errorTone()
             }
         }
 
-        appData.sys_alerts = v[1]
+        appData.sys_alerts.value = v[1]
     }
     else if (c == 'confuniverses') {
-        appData.configuredUniverses = v[1]
+        appData.configuredUniverses.value = v[1]
     }
     else if (c == 'universe_status') {
-        appData.universes[v[1]].status = v[2]
-        appData.universes[v[1]].ok = v[3]
-        appData.universes[v[1]].telemetry = v[4]
+        appData.universes.value[v[1]].status = v[2]
+        appData.universes.value[v[1]].ok = v[3]
+        appData.universes.value[v[1]].telemetry = v[4]
     }
 
     else if (c == "varchange") {
-        if (appData.groupmeta[v[1]]) {
-            appData.groupmeta[v[1]]['vars'][v[2]] = v[3]
+        if (appData.groupmeta.value[v[1]]) {
+            appData.groupmeta.value[v[1]]['vars'][v[2]] = v[3]
         }
     }
     else if (c == "delcue") {
-        c = appData.cuemeta[v[1]]
-        old_vue_delete(appData.cuemeta, v[1]);
-        old_vue_delete(appData.cuevals, v[1]);
-        old_vue_delete(appData.groupcues[c.group], c.name);
-        appData.recomputeformattedCues();
+        c = appData.cuemeta.value[v[1]]
+        old_vue_delete(appData.cuemeta.value, v[1]);
+        old_vue_delete(appData.cuevals.value, v[1]);
+        old_vue_delete(appData.groupcues.value[c.group], c.name);
+        appData.recomputeformattedCues.value();
     }
 
     else if (c == "cnames") {
-        old_vue_set(appData.channelInfoByUniverseAndNumber, v[1], v[2])
+        old_vue_set(appData.channelInfoByUniverseAndNumber.value, v[1], v[2])
     }
     else if (c == "universes") {
-        appData.universes = v[1]
+        appData.universes.value = v[1]
     }
     else if (c == "soundoutputs") {
-        appData.soundCards = v[1]
+        appData.soundCards.value = v[1]
     }
 
     else if (c == 'soundsearchresults') {
@@ -1192,8 +1192,8 @@ function f(v) {
         //So if the data isn't in cuemeta, fill in what we can
         d = v[2]
         for (var i in v[2]) {
-            if (appData.cuemeta[d[i][0]] == undefined) {
-                old_vue_set(appData.cuemeta, d[i][0],
+            if (appData.cuemeta.value[d[i][0]] == undefined) {
+                old_vue_set(appData.cuemeta.value, d[i][0],
                     {
                         'name': i,
                         'number': d[
@@ -1202,25 +1202,25 @@ function f(v) {
             }
 
             //Make the empty list
-            if (appData.groupcues[v[1]] == undefined) {
-                old_vue_set(appData.groupcues, v[1], {});
+            if (appData.groupcues.value[v[1]] == undefined) {
+                old_vue_set(appData.groupcues.value, v[1], {});
             };
 
 
-            old_vue_set(appData.groupcues[v[1]], i, d[i][0])
+            old_vue_set(appData.groupcues.value[v[1]], i, d[i][0])
         }
-        appData.recomputeformattedCues();
+        appData.recomputeformattedCues.value();
     }
     else if (c == "cuedata") {
         let d = {}
-        old_vue_set(appData.cuevals, v[1], d)
+        old_vue_set(appData.cuevals.value, v[1], d)
 
         for (var i in v[2]) {
 
-            if (!(i in appData.channelInfoByUniverseAndNumber)) {
+            if (!(i in appData.channelInfoByUniverseAndNumber.value)) {
                 api_link.send(['getcnames', i])
             }
-            old_vue_set(appData.cuevals[v[1]], i, {})
+            old_vue_set(appData.cuevals.value[v[1]], i, {})
 
             for (var j in v[2][i]) {
                 let y = {
@@ -1228,7 +1228,7 @@ function f(v) {
                     'ch': j,
                     "v": v[2][i][j]
                 }
-                old_vue_set(appData.cuevals[v[1]][i], j, y)
+                old_vue_set(appData.cuevals.value[v[1]][i], j, y)
                 //The other 2 don't need to be reactive, v does
                 old_vue_set(y, 'v', v[2][i][j])
 
@@ -1237,7 +1237,7 @@ function f(v) {
     }
 
     else if (c == "commands") {
-        appData.availableCommands = v[1]
+        appData.availableCommands.value = v[1]
     }
 
     else if (c == "scv") {
@@ -1251,11 +1251,11 @@ function f(v) {
 
 
         //Empty universe dict, we are not set up to listen to this yet
-        if (!appData.cuevals[cue]) {
+        if (!appData.cuevals.value[cue]) {
             return
         }
-        if (!appData.cuevals[cue][universe]) {
-            appData.cuevals[cue][universe] = {}
+        if (!appData.cuevals.value[cue][universe]) {
+            appData.cuevals.value[cue][universe] = {}
         }
 
         var needRefresh = false;
@@ -1268,22 +1268,22 @@ function f(v) {
                 "v": value
             }
             old_vue_set(y, 'v', value)
-            old_vue_set(appData.cuevals[cue][universe], channel, y)
+            old_vue_set(appData.cuevals.value[cue][universe], channel, y)
         }
         else {
-            old_vue_delete(appData.cuevals[cue][universe], channel)
+            old_vue_delete(appData.cuevals.value[cue][universe], channel)
             needRefresh = 1;
         }
 
-        if (Object.entries(appData.cuevals[cue][universe]).length == 0) {
-            old_vue_delete(appData.cuevals[cue], universe)
+        if (Object.entries(appData.cuevals.value[cue][universe]).length == 0) {
+            old_vue_delete(appData.cuevals.value[cue], universe)
         }
     }
 
 
     else if (c == "go") {
 
-        old_vue_set(appData.groupmeta[v[1]], 'active', true)
+        old_vue_set(appData.groupmeta.value[v[1]], 'active', true)
 
     }
 
@@ -1293,37 +1293,37 @@ function f(v) {
 
     else if (c == "stop") {
 
-        old_vue_set(appData.groupmeta[v[1]], 'active', false)
+        old_vue_set(appData.groupmeta.value[v[1]], 'active', false)
 
     }
     else if (c == "ferrs") {
 
-        appData.ferrs = v[1]
+        appData.ferrs.value = v[1]
 
     }
     else if (c == "fixtureclasses") {
 
-        appData.fixtureClasses = v[1]
+        appData.fixtureClasses.value = v[1]
     }
     else if (c == "fixtureclass") {
         if (v[2] == null) {
-            old_vue_delete(appData.fixtureClasses, v[1])
+            old_vue_delete(appData.fixtureClasses.value, v[1])
         }
         else {
-            old_vue_set(appData.fixtureClasses, v[1], v[2])
+            old_vue_set(appData.fixtureClasses.value, v[1], v[2])
         }
     }
 
     else if (c == "fixtureAssignments") {
 
-        appData.fixtureAssignments = v[1]
+        appData.fixtureAssignments.value = v[1]
     }
 
     else if (c == "del") {
-        old_vue_delete(appData.selectedCues, v[1])
-        old_vue_delete(appData.groupmeta, v[1])
-        old_vue_delete(appData.mtimes, v[1])
-        appData.editingGroup = null
+        old_vue_delete(appData.selectedCues.value, v[1])
+        old_vue_delete(appData.groupmeta.value, v[1])
+        old_vue_delete(appData.mtimes.value, v[1])
+        appData.editingGroup.value = null
 
     }
 
@@ -1335,16 +1335,16 @@ function f(v) {
     }
 
     else if (c == 'fixturePresets') {
-        appData.presets = v[1]
+        appData.presets.value = v[1]
     }
 
     else if (c == 'preset') {
-        appData.presets[v[1]] = v[2]
+        appData.presets.value[v[1]] = v[2]
     }
 
     else if (c == 'fileDownload') {
 
-        if (v[1] == appData.downloadReqId) {
+        if (v[1] == appData.downloadReqId.value) {
             const file = new File([v[2]], v[3], {
                 type: 'text/plain',
             })
@@ -1363,19 +1363,19 @@ function f(v) {
     }
 
     else if (c == 'shortcuts') {
-        appData.shortcuts = v[1]
+        appData.shortcuts.value = v[1]
     }
 
     else if (c == 'availableTags') {
-        appData.availableTags = v[1]
+        appData.availableTags.value = v[1]
 
     }
     else if (c == 'midiInputs') {
-        appData.midiInputs = v[1]
+        appData.midiInputs.value = v[1]
     }
 
     else if (c == "blendModes") {
-        appData.blendModes = v[1]
+        appData.blendModes.value = v[1]
     }
 }
 
@@ -1389,7 +1389,7 @@ async function initChandlerVueModel(board, va) {
 
     // Exact sync on half seconds
     function unix_time_upd() {
-        appData.unixtime = api_link.now() / 1000
+        appData.unixtime.value = api_link.now() / 1000
         setTimeout(unix_time_upd,
             10000 - (api_link.now() % 10000))
     }
@@ -1428,8 +1428,8 @@ async function initChandlerVueModel(board, va) {
 }
 
 var confirm_for_group = function (sc) {
-    if (appData.groupmeta[sc].requireConfirm) {
-        if (confirm("Confirm Action for Group: " + appData.groupmeta[sc].name)) {
+    if (appData.groupmeta.value[sc].requireConfirm) {
+        if (confirm("Confirm Action for Group: " + appData.groupmeta.value[sc].name)) {
             return true
         }
     }
@@ -1465,7 +1465,7 @@ script.onload = function () {
     initChandlerVueModel(boardname)
 };
 
-let api_link = new APIWidget("WebChandlerConsole:" + appData.boardname);
+let api_link = new APIWidget("WebChandlerConsole:" + appData.boardname.value);
 window.api_link = api_link
 
 export {
