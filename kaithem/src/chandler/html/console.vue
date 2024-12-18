@@ -982,6 +982,7 @@
 
               <template v-for="(h, fname) in cuevals[currentcueid]">
                 <article
+                  v-bind:key="fname"
                   class="fixture card flex-col gaps noselect"
                   v-if="fname[0] == '@'">
                   <header>
@@ -1096,6 +1097,7 @@
                         :currentcueid="currentcueid"
                         :showdelete="grouptab == 'channels'"
                         :fixcmd="h"
+                        v-bind:key="i[1].ch"
                         v-for="i in dictView(h, [])">
                       </h-fader>
                     </div>
@@ -1159,7 +1161,9 @@
                   </header>
                   <div class="scroll">
                     <table>
-                      <tr v-for="(v, i) in fixtureAssignments">
+                      <tr
+                        v-for="(v, i) in fixtureAssignments"
+                        v-bind:key="v.universe + '_' + v.channel">
                         <td>{{ v.universe }}:{{ i }} at {{ v.channel }}</td>
                         <td>
                           <button
@@ -1334,6 +1338,7 @@
                     <p>
                       <datalist id="shortcuts">
                         <option
+                          v-bind:key="i"
                           v-for="i of shortcuts"
                           v-bind:value="i"></option>
                       </datalist>
@@ -1469,6 +1474,7 @@
 
                     <datalist :id="'providers' + groupname">
                       <option
+                        v-bind:key="p"
                         v-for="p in editingGroup.cueProviders"
                         :value="p"></option>
                       <option value="">Internal</option>
@@ -1527,6 +1533,7 @@
 
                     <datalist id="cues_in_group" name="cues_in_group">
                       <option
+                        v-bind:key="i"
                         v-for="i in Object.keys(groupcues[groupname]).sort()"
                         v-bind:value="i">
                         {{ i }}
@@ -1661,7 +1668,9 @@
                     </option>
                     <option title="Limit maximum level">inhibit</option>
 
-                    <option v-for="i in blendModes">{{ i }}</option>
+                    <option v-bind:key="i" v-for="i in blendModes">
+                      {{ i }}
+                    </option>
                   </select>
                 </label>
 
@@ -1875,7 +1884,7 @@
                       </div>
                     </dd>
 
-                    <template v-for="i of soundCards">
+                    <template v-for="i of soundCards" v-bind:key="i">
                       <dt>{{ i || "UNSET" }}</dt>
                       <dd>
                         <div class="tool-bar">
@@ -2062,7 +2071,10 @@
                     <th>Type</th>
                     <th>Action</th>
                   </tr>
-                  <tr v-for="(v, i) in editingGroup.displayTags">
+                  <tr
+                    v-for="(v, i) in editingGroup.displayTags"
+                    v-bind:key="v[0] + '_' + v[1] + v[2]">
+                    >
                     <td>
                       <input
                         :disabled="no_edit"
@@ -2305,6 +2317,7 @@
                   <p>{{ editingGroup.blendDesc }}</p>
                   <p>
                     <label
+                      v-bind:key="k[0]"
                       v-for="(k, v) of dictView(editingGroup.blendArgs, [])"
                       >{{ k[0] }}:
                       <input
@@ -2615,7 +2628,9 @@
 
                 <div>
                   <ul>
-                    <dt v-for="cueprovider of editingGroup.cueProviders">
+                    <dt v-for="cueprovider of editingGroup.cueProviders"
+                    v-bind:key="cueprovider"
+                    >
                       {{ cueprovider }}
                       <button
                         type="button"
@@ -2684,7 +2699,9 @@
                     <th>Cue</th>
                     <th>Time</th>
                   </tr>
-                  <tr v-for="(v, i) of groupmeta[groupname].history">
+                  <tr v-for="(v, i) of groupmeta[groupname].history"
+                  v-bind:key="v[1]"
+                  >
                     <td>{{ v[0] }}</td>
                     <td>{{ new Date(v[1] * 1000).toLocaleString() }}</td>
                   </tr>
