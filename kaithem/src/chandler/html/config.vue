@@ -66,6 +66,7 @@
             <header>
                 <button @click="iframeDialog = null" class="w-full nogrow">
                     <i class="mdi mdi-close"></i>Close
+                </button>
             </header>
             <iframe :src="iframeDialog"></iframe>
         </div>
@@ -508,7 +509,7 @@
 
                     <tr>
                         <td>Name</td>
-                        <td><input v-model="newfixname"></input>
+                        <td><input v-model="newfixname">
                         </td>
                     </tr>
                     <tr>
@@ -634,7 +635,7 @@ var m = {
             'addr': addr
         }
 
-        api_link.send(['setFixtureAssignment', name, d])
+        window.api_link.send(['setFixtureAssignment', name, d])
 
     },
     'showhidefixtures': function () {
@@ -699,8 +700,8 @@ var m = {
 
 }
 
-for (var k in m) {
-    appMethods[k] = m[k]
+for (var ky in m) {
+    appMethods[k] = m[ky]
 }
 
 
@@ -724,6 +725,7 @@ export default {
     setup: function () {
         return appData
     },
+    name: 'config-app',
     methods: appMethods,
     components: {
         'media-browser': httpVueLoader('../static/media-browser.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0')
