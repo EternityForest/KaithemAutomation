@@ -12,7 +12,7 @@ Change Log
 - :bug: Fix dealock that could happen if all background thread slots were filled by serialized_async_with_core_lock
 - :bug: Fix pagination of tag points pages
 - :sparkles: \_\_next\_\_ special cue
-- :sparkles: Creating or cloning cues inserts after selected cue
+- :sparkles: Creating or cloning cues inserts after selected
 
 
 

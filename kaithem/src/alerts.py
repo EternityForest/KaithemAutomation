@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import threading
 import time
+import uuid
 import weakref
 from typing import Any
 
@@ -74,6 +75,7 @@ def getAlertState() -> dict[str, str | dict[str, Any]]:
                             alert.priority, {"warning": 1}
                         ),
                         "message": alert.trip_message,
+                        "id": alert.id,
                     }
             return d
 
@@ -277,9 +279,9 @@ class Alert:
 
         self.sm.add_rule("cleared", "acknowledge", "normal")
 
-        self.description = description
+        self.description: str = description
 
-        self.id = id or str(time.time())
+        self.id: str = id or uuid.uuid4().hex
         all[self.id] = self
 
         def notificationHTML():

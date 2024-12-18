@@ -113,7 +113,10 @@
         class="window w-full max-h-12rem"
         v-if="Object.keys(sys_alerts).length">
         <div class="flex-row scroll gaps padding">
-          <div class="card w-sm-full" v-for="(v, i) of sys_alerts">
+          <div
+            class="card w-sm-full"
+            v-bind:key="v.id"
+            v-for="(v, i) of sys_alerts">
             <header :class="v['barrel-class']" class="padding break-word">
               <i class="mdi mdi-alert"></i>{{ i }}
             </header>
@@ -250,6 +253,7 @@
                 <button
                   type="button"
                   v-for="v of i[1].eventButtons"
+                  v-bind:key="v[1] + '_' + v[0]"
                   v-on:click="groupev(v[1], v[1])">
                   {{ v[0] }}
                 </button>
@@ -355,6 +359,7 @@
               evlisting: i[0] !== 'error',
               evlisting_err: i[0].includes('error'),
             }"
+            v-bind:key="i[2] + '@' + i[1]"
             v-for="i in evlog.filter(
               (d) => d[1].search(evfilt) > -1 || d[0].search(evfilt) > -1
             )">
@@ -780,7 +785,10 @@
                     <option value="">
                       &gt;&gt;&gt; {{ editingGroup.defaultnext }}
                     </option>
-                    <option v-for="j in formatCues" v-bind:value="j[1].name">
+                    <option
+                      v-for="j in formatCues"
+                      v-bind:value="j[1].name"
+                      v-bind:key="j[1].id">
                       {{ j[1].number }}: {{ j[1].name.slice(0, 16) }}
                     </option>
                     <option v-bind:value="slotProps.i[1].next">
@@ -943,7 +951,9 @@
             <div
               class="fadersbox flex-row nopadding"
               style="max-width: 100%; align-items: baseline">
-              <template v-for="(h, uname) in cuevals[currentcueid]">
+              <template
+                v-for="(h, uname) in cuevals[currentcueid]"
+                v-bind:key="uname">
                 <article
                   class="universe card flex-col gaps"
                   v-if="uname[0] != '@'">
@@ -962,6 +972,7 @@
                         :currentcueid="currentcueid"
                         :showdelete="grouptab == 'channels'"
                         :fixcmd="h"
+                        v-bind:key="i[1].ch"
                         v-for="i in dictView(h, [])">
                       </h-fader>
                     </div>
@@ -1971,7 +1982,9 @@
                     <th>Event</th>
                     <th>Action</th>
                   </tr>
-                  <tr v-for="(v, i) in editingGroup.eventButtons">
+                  <tr
+                    v-for="(v, i) in editingGroup.eventButtons"
+                    v-bind:key="v[1] + '_' + v[0]">
                     <td>
                       <input
                         :disabled="no_edit"
