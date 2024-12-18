@@ -2,7 +2,8 @@
 input {
     width: 100%;
 }
-.preview-frame{
+
+.preview-frame {
     width: 400%;
     height: 32em;
     margin: 0px;
@@ -11,7 +12,7 @@ input {
     transform-origin: 0 0;
 }
 
-.preview-frame-wrapper{
+.preview-frame-wrapper {
     overflow: hidden;
     width: 100%;
     height: 8em;
@@ -22,18 +23,17 @@ input {
 <template id="group-ui">
     <div>
 
-        <details v-on:toggle="groupData.doSlideshowEmbed= $event.target.open" style="margin: 0px; padding: 0px;"
-         v-if="groupData.slideOverlayUrl || (cue && (cue.slide || cue.markdown) ) || groupData.doSlideshowEmbed || groupData.soundOutput=='groupwebplayer' || cue.soundOutput=='groupwebplayer'">
+        <details v-on:toggle="groupData.doSlideshowEmbed = $event.target.open" style="margin: 0px; padding: 0px;"
+            v-if="groupData.slideOverlayUrl || (cue && (cue.slide || cue.markdown)) || groupData.doSlideshowEmbed || groupData.soundOutput == 'groupwebplayer' || cue.soundOutput == 'groupwebplayer'">
             <summary class="noselect">
-                <a 
-                    :href="'/chandler/webmediadisplay?group=' + groupData.id">(slideshow)</a>
+                <a :href="'/chandler/webmediadisplay?group=' + groupData.id">(slideshow)</a>
             </summary>
             <div class="preview-frame-wrapper">
-            <iframe v-if="groupData.doSlideshowEmbed" class="preview-frame"
+                <iframe v-if="groupData.doSlideshowEmbed" class="preview-frame"
                     :src="'/chandler/webmediadisplay?group=' + groupData.id"></iframe>
             </div>
         </details>
-        <div  class="noselect" class="flex-row gaps" v-if="groupData.displayTags.length > 0">
+        <div class="noselect flex-row gaps" v-if="groupData.displayTags.length > 0">
 
             <div :style="{ 'min-width': v[2].width + 'rem' }" v-for="v in groupData.displayTags">
                 <label><b>{{ v[0] }}</b></label>
@@ -56,8 +56,10 @@ input {
 
                 <template v-if="v[2].type == 'led'">
                     <div style="min-width: 4em">
-                        <span class="numval"><small>{{ groupData.displayTagValues[v[1]].toFixed(1) }}<small></small></span><input type="checkbox" 
-                        :class="{ 'led': 1, 'led-red':v[2].color=='red', 'led-yellow':v[2].color=='yellow', 'led-green':v[2].color=='green', 'led-blue':v[2].color=='blue',  'led-purple':v[2].color=='purple'}"
+                        <span
+                            class="numval"><small>{{ groupData.displayTagValues[v[1]].toFixed(1) }}</small></span><input
+                            type="checkbox"
+                            :class="{ 'led': 1, 'led-red': v[2].color == 'red', 'led-yellow': v[2].color == 'yellow', 'led-green': v[2].color == 'green', 'led-blue': v[2].color == 'blue', 'led-purple': v[2].color == 'purple' }"
                             v-bind:checked="groupData.displayTagValues[v[1]]" disabled>
                     </div>
                 </template>
@@ -85,27 +87,26 @@ input {
                     </div>
                 </template>
 
-                </div>
             </div>
         </div>
 
-        <table border="0">
-            <tbody>
-                <tr v-for="(v, i) in groupData.timers">
-                    <td>{{ i }}</td>
-                    <td style="width:8em;" v-bind:class="{ warning: (v - unixtime) < 60, blinking: (v - unixtime) < 5 }">
-                        {{ formatInterval((v - unixtime)) }}
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+    <table border="0">
+        <tbody>
+            <tr v-for="(v, i) in groupData.timers">
+                <td>{{ i }}</td>
+                <td style="width:8em;" v-bind:class="{ warning: (v - unixtime) < 60, blinking: (v - unixtime) < 5 }">
+                    {{ formatInterval((v - unixtime)) }}
+                </td>
+            </tr>
+        </tbody>
+    </table>
     </div>
 </template>
 
 
 
 <script>
-import { formatInterval} from "./utils.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
+import { formatInterval } from "./utils.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
 
 
 module.exports = {

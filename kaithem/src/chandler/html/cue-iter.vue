@@ -20,9 +20,9 @@
         </div>
 
         <div style="overflow-y: auto;max-height:42em; display: flex; flex-direction: row; flex-wrap: wrap;">
-                <template v-for="i in formatCues()">
-                    <slot :i="i"></slot>
-                </template>
+            <template v-for="i in formatCues()">
+                <slot :i="i"></slot>
+            </template>
         </div>
     </div>
 </template>
@@ -46,8 +46,7 @@ module.exports = {
             var filt = true
             //list cue objects
             for (var i in this.groupcues[this.groupname]) {
-                var m = this.cuemeta[this.groupcues[this.groupname]
-                [i]]
+                var m = this.cuemeta[this.groupcues[this.groupname][i]]
                 if (m !== undefined) {
                     if ((!filt) | i.toLowerCase().includes(this.cuefilter.toLowerCase())) {
                         z[i] = m

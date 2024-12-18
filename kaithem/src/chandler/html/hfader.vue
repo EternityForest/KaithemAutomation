@@ -65,7 +65,7 @@ var hfaderdata =
     'setCueVal': function (sc, u, ch, val) {
         if (this.fixcmd["__preset__"]) {
             if (this.fixcmd['__preset__'].v) {
-                api_link.send(['scv', sc, u, "__preset__", null]);
+                window.api_link.send(['scv', sc, u, "__preset__", null]);
             }
         }
 

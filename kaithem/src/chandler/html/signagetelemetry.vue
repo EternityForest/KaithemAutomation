@@ -25,7 +25,9 @@
                 <th>Battery</th>
                 <th>Action</th>
             </tr>
-            <tr v-for="v, i of telemetry" :class="{ 'error': v.ts < (unixtime - 70) }">
+            <tr v-for="v, i of telemetry" 
+            v-bind:key="v.id+i"
+            :class="{ 'error': v.ts < (unixtime - 70) }">
                 <td>{{ i }}</td>
                 <td>{{ v.name }}</td>
                 <td :class="{ 'error': v.status.includes('FAIL') }">

@@ -76,7 +76,9 @@
             <dl>
                 <template v-for="ps, i of dictView(presets, [])">
                     <dt v-if="ps[0].toLowerCase().includes(filterPresets.toLowerCase())" 
-                    :data-testid="'preset-inspector-' +ps[0] + '-heading'">
+                    :data-testid="'preset-inspector-' +ps[0] + '-heading'"
+                    v-bind:key="ps[0]"
+                    >
                         <div class="tool-bar">
                             <p><b>{{ ps[0] }}</b></p>
                             <button type="button" popovertarget="presetImageLabel"
@@ -98,7 +100,9 @@
                         </div>
                     </dt>
                     <dd :data-testid="'preset-inspector-' +ps[0] + '-body'"
-                    v-if="ps[0].toLowerCase().includes(filterPresets.toLowerCase())">
+                    v-if="ps[0].toLowerCase().includes(filterPresets.toLowerCase())"
+                    v-bind:key="ps[0]"
+                    >
 
                         <img v-if="getpresetimage(ps[0])" style="max-height: 8em; max-width: 8em;"
                             :src="'../WebMediaServer?file=' + encodeURIComponent(getpresetimage(ps[0]))">
@@ -118,7 +122,9 @@
                             </div>
                             <summary>Values</summary>
                             <div class="stacked-form">
-                                <label v-for="val, field of ps[1].values">
+                                <label v-for="val, field of ps[1].values"
+                                v-bind:key="field"
+                                >
                                     {{ field }}<input :disabled="no_edit" v-model="ps[1].values[field]"
                                         v-on:change="ps[1].values[field] = $event.target.value.trim(); updatepreset(ps[0], ps[1]);">
                                 </label>

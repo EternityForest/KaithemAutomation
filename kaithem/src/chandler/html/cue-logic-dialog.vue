@@ -40,8 +40,8 @@
         <div class="card w-sm-full" style="overflow: visible;">
             <label>Inherit rules from
                 <div style="overflow: visible;">
-                    <combo-box :disabled="no_edit" v-model="currentcue.inheritRules"
-                        :disabled="editinggroup.name == '__rules__'"
+                    <combo-box v-model="currentcue.inheritRules"
+                        :disabled="(editinggroup.name == '__rules__') || (no_edit)"
                         v-on:change="setcueproperty(currentcue.id, 'inheritRules', currentcue.inheritRules)"
                         :options="useBlankDescriptions(groupcues[editinggroup.id])"></combo-box>
                 </div>

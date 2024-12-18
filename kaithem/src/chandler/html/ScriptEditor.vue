@@ -56,7 +56,7 @@ p.small {
     <div class="w-full">
         <div class="flex-row gaps">
 
-            <div class="card paper margin" popover id="blockInspectorEvent" ontoggle="globalThis.handleDialogState(event)" v-if="selectedCommand == 0 && selectedBinding" class="col-3 card min-h-24rem w-sm-full">
+            <div class="card paper margin col-3 card min-h-24rem w-sm-full" popover id="blockInspectorEvent" ontoggle="globalThis.handleDialogState(event)" v-if="selectedCommand == 0 && selectedBinding">
                 <header>
                     <div class="tool-bar">
                         <h4>Event Inspector</h4>
@@ -82,7 +82,7 @@ p.small {
                     actions</button>
             </div>
 
-            <div class="card paper margin" popover ontoggle="globalThis.handleDialogState(event)" id="blockInspectorCommand" v-if="selectedCommand" class="card col-3 min-h-24rem w-sm-full">
+            <div class="card paper margin card col-3 min-h-24rem w-sm-full" popover ontoggle="globalThis.handleDialogState(event)" id="blockInspectorCommand" v-if="selectedCommand">
                 <header>
                     <div class="tool-bar">
                         <h4>Command Inspector</h4>
