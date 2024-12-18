@@ -222,7 +222,7 @@ import {
 var data = {
 }
 
-module.exports = {
+export default {
     template: '#template',
 
     props: ["no_edit", "soundcards", "currentcue",

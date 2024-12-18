@@ -165,7 +165,7 @@ var data = {
     },
 }
 
-module.exports = {
+export default {
     template: '#template',
 
     props: ['presets', 'fixture', 'fordestination', 'fixtureclasses', 'fixturetype', 'currentcueid', 'currentvals', 'getpresetimage', "no_edit"],

@@ -59,7 +59,7 @@
 
 <script>
 //Important note: There are two ways to open the menu. Clicking the menu button turns off filtering.
-module.exports = {
+export default {
 
     emits: ['change', 'input', 'update:modelValue'],
     props: {

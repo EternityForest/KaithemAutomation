@@ -112,7 +112,7 @@ const example_events_base = [
     ["script.poll", 'Run every fast(~24Hz) polling cycle of the script, not the same as =expressions'],
 ]
 
-module.exports = {
+export default {
     template: '#template',
 
     props: ['currentcue', 'editinggroup', 'no_edit', "setcueproperty",

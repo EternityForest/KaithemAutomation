@@ -18,7 +18,7 @@ import { formatInterval } from "./utils.mjs?cache_version=c6d0887e-af6b-11ef-af8
 
 
 
-module.exports = {
+export default {
     template: '#cue-cd',
     props: ['cue', 'group'],
     data: function () {

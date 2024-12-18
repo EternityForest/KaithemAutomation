@@ -151,7 +151,7 @@ var data = {
     "window": window
 }
 
-module.exports = {
+export default {
     template: '#template',
 
     props: [

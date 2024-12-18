@@ -109,7 +109,7 @@ input {
 import { formatInterval } from "./utils.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
 
 
-module.exports = {
+export default {
     template: '#group-ui',
     props: ['unixtime', 'groupData', 'cue'],
     data: function () {

@@ -189,7 +189,7 @@ p.small {
 </template>
 
 <script>
-module.exports = {
+export default {
 
     props: ['modelValue', 'commands', 'disabled', "inspector", "completers", "example_events"],
     components: {
