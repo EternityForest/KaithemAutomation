@@ -1,5 +1,5 @@
 /* This rather hacky file expects this to become the app data for a vue instance
- named vueapp, and provides the chandler API that way.
+
 
  It's slowly being refactored after getting very out of hand.
 
@@ -24,8 +24,8 @@ import { kaithemapi, APIWidget } from "/static/js/widget.mjs"
 
 
 let keysdown = {}
-//Gets replaced with the vue app once we make it elsewhere and connect stuff
-let vueapp = null;
+
+let appData = {}
 
 let keyHandle = function (e) {
     if (keysdown[e.key] != undefined) {
@@ -56,7 +56,7 @@ let rebindKeys = function (data) {
 }
 
 function playAlert(m) {
-    if (vueapp.$data.uiAlertSounds) {
+    if (appData.uiAlertSounds) {
         var mp3_url = '/static/sounds/72127__kizilsungur__sweetalertsound3.opus';
         (new Audio(mp3_url)).play().catch(() => { })
     }
@@ -66,7 +66,7 @@ function playAlert(m) {
 }
 
 function errorTone(m) {
-    if (vueapp.$data.uiAlertSounds) {
+    if (appData.uiAlertSounds) {
         var mp3_url = '/static/sounds/423166__plasterbrain__minimalist-sci-fi-ui-error.opus';
         (new Audio(mp3_url)).play().catch(() => { })
     }
@@ -103,24 +103,22 @@ function set(o, k, v) {
 
 
 
+async function initializeState (board) {
 
+    var v = await fetch("/chandler/api/all-cues/" + board, {
+        method: "GET",
+    })
+
+    v = await v.json()
+
+    for (var i in v) {
+        handleCueInfo(i, v[i])
+    }
+}
 
 let cueSetData = {}
 
 let appMethods = {
-
-    "initializeState": async function (board) {
-
-        var v = await fetch("/chandler/api/all-cues/" + board, {
-            method: "GET",
-        })
-
-        v = await v.json()
-
-        for (var i in v) {
-            handleCueInfo(i, v[i])
-        }
-    },
     // Slowly we want to migrate to these two generic setters
     'setGroupProperty': async function (group, property, value) {
 
@@ -695,8 +693,9 @@ let appComputed = {
 
 
 }
+window.boardname = window.location.pathname.split('/')[3];
 
-let appData = {
+let appDataDefaults = {
     //https://stackoverflow.com/questions/6312993/javascript-seconds-to-time-string-with-format-hhmmss
     'boardname': window.location.pathname.split('/')[3],
     'formatInterval': formatInterval,
@@ -1034,20 +1033,23 @@ let appData = {
     'prompt': prompt,
 }
 
+for (var i in appDataDefaults) {
+    appData[i] = Vue.ref(appDataDefaults[i])
+}
 
 function handleCueInfo(id, cue) {
     //Make an empty list of cues if it's not there yet
-    if (vueapp.$data.groupcues[cue.group] == undefined) {
-        old_vue_set(vueapp.$data.groupcues, cue.group, {});
+    if (appData.groupcues[cue.group] == undefined) {
+        old_vue_set(appData.groupcues, cue.group, {});
     };
-    old_vue_set(vueapp.$data.groupcues[cue.group], cue.name, id);
+    old_vue_set(appData.groupcues[cue.group], cue.name, id);
 
 
     //Make an empty list of cues as a placeholder till the real data arrives
-    if (vueapp.$data.cuemeta[id] == undefined) {
-        old_vue_set(vueapp.$data.cuemeta, id, {});
+    if (appData.cuemeta[id] == undefined) {
+        old_vue_set(appData.cuemeta, id, {});
     };
-    set(vueapp.$data.cuemeta, id, cue);
+    set(appData.cuemeta, id, cue);
 }
 
 
@@ -1057,7 +1059,7 @@ function f(v) {
 
 
     if (c == 'soundfolders') {
-        vueapp.$data.soundfolders = v[1]
+        appData.soundfolders = v[1]
     }
     else if (c == 'ui_alert') {
         playAlert(v[1])
@@ -1065,119 +1067,119 @@ function f(v) {
 
     else if (c == 'slideshow_telemetry') {
         if (v[2] == null) {
-            delete vueapp.$data.slideshow_telemetry[v[1]]
+            delete appData.slideshow_telemetry[v[1]]
         }
         else {
-            if (v[2].status != (vueapp.$data.slideshow_telemetry[v[1]] || {}).status) {
+            if (v[2].status != (appData.slideshow_telemetry[v[1]] || {}).status) {
                 if (v[2].status.includes("FAILED")) {
-                    if (vueapp.$data.doRateLimit()) {
+                    if (appData.doRateLimit()) {
                         errorTone('A slideshow display may need attention');
                         showslideshowtelemetry = true;
                     }
                 }
             }
 
-            vueapp.$data.slideshow_telemetry[v[1]] = v[2]
+            appData.slideshow_telemetry[v[1]] = v[2]
         }
     }
 
     else if (c == 'grouptimers') {
-        if (vueapp.$data.groupmeta[v[1]]) {
-            vueapp.$data.groupmeta[v[1]].timers = v[2]
+        if (appData.groupmeta[v[1]]) {
+            appData.groupmeta[v[1]].timers = v[2]
         }
     }
     else if (c == 'cuehistory') {
-        vueapp.$data.groupmeta[v[1]].history = v[2]
+        appData.groupmeta[v[1]].history = v[2]
     }
     else if (c == "groupmeta") {
         if (v[2].cue) {
-            if (vueapp.$data.cuemeta[v[2].cue] == undefined) {
+            if (appData.cuemeta[v[2].cue] == undefined) {
                 appMethods.getcuemeta(v[2].cue)
             }
         }
 
         if (v[2].alpha != undefined) {
-            old_vue_set(vueapp.$data.alphas, v[1], v[2].alpha);
+            old_vue_set(appData.alphas, v[1], v[2].alpha);
         }
 
         //Just update existing data if we can
-        if (vueapp.$data.groupmeta[v[1]]) {
-            set(vueapp.$data.groupmeta, v[1], v[2])
+        if (appData.groupmeta[v[1]]) {
+            set(appData.groupmeta, v[1], v[2])
         }
         else {
             var meta = v[2];
-            set(vueapp.$data.groupmeta, v[1], meta);
+            set(appData.groupmeta, v[1], meta);
         }
 
-        if (vueapp.$data.selectedCues[v[1]] == undefined) {
-            old_vue_set(vueapp.$data.selectedCues, v[1], 'default')
+        if (appData.selectedCues[v[1]] == undefined) {
+            old_vue_set(appData.selectedCues, v[1], 'default')
         }
         //Make an empty list of cues as a placeholder till the real data arrives
-        if (vueapp.$data.groupcues[v[1]] == undefined) {
-            old_vue_set(vueapp.$data.groupcues, v[1], {});
+        if (appData.groupcues[v[1]] == undefined) {
+            old_vue_set(appData.groupcues, v[1], {});
         };
     }
 
     else if (c == "cuemeta") {
         handleCueInfo(v[1], v[2]);
-        vueapp.$data.recomputeformattedCues();
+        appData.recomputeformattedCues();
     }
 
     else if (c == "event") {
 
-        vueapp.$data.evlog.unshift(v[1])
-        if (vueapp.$data.evlog.length > 250) {
-            vueapp.$data.evlog = vueapp.$data.evlog.slice(0, 250)
+        appData.evlog.unshift(v[1])
+        if (appData.evlog.length > 250) {
+            appData.evlog = appData.evlog.slice(0, 250)
         }
 
         if (v[1][0].includes("error")) {
-            vueapp.$data.showevents = true;
+            appData.showevents = true;
             errorTone('');
         }
     }
     else if (c == "serports") {
-        vueapp.$data.serports = v[1]
+        appData.serports = v[1]
     }
 
     else if (c == 'alerts') {
-        if (JSON.stringify(vueapp.$data.sys_alerts) != JSON.stringify(v[1])) {
+        if (JSON.stringify(appData.sys_alerts) != JSON.stringify(v[1])) {
             if (v[1]) {
                 errorTone()
             }
         }
 
-        vueapp.$data.sys_alerts = v[1]
+        appData.sys_alerts = v[1]
     }
     else if (c == 'confuniverses') {
-        vueapp.$data.configuredUniverses = v[1]
+        appData.configuredUniverses = v[1]
     }
     else if (c == 'universe_status') {
-        vueapp.$data.universes[v[1]].status = v[2]
-        vueapp.$data.universes[v[1]].ok = v[3]
-        vueapp.$data.universes[v[1]].telemetry = v[4]
+        appData.universes[v[1]].status = v[2]
+        appData.universes[v[1]].ok = v[3]
+        appData.universes[v[1]].telemetry = v[4]
     }
 
     else if (c == "varchange") {
-        if (vueapp.$data.groupmeta[v[1]]) {
-            vueapp.$data.groupmeta[v[1]]['vars'][v[2]] = v[3]
+        if (appData.groupmeta[v[1]]) {
+            appData.groupmeta[v[1]]['vars'][v[2]] = v[3]
         }
     }
     else if (c == "delcue") {
-        c = vueapp.$data.cuemeta[v[1]]
-        old_vue_delete(vueapp.$data.cuemeta, v[1]);
-        old_vue_delete(vueapp.$data.cuevals, v[1]);
-        old_vue_delete(vueapp.$data.groupcues[c.group], c.name);
-        vueapp.$data.recomputeformattedCues();
+        c = appData.cuemeta[v[1]]
+        old_vue_delete(appData.cuemeta, v[1]);
+        old_vue_delete(appData.cuevals, v[1]);
+        old_vue_delete(appData.groupcues[c.group], c.name);
+        appData.recomputeformattedCues();
     }
 
     else if (c == "cnames") {
-        old_vue_set(vueapp.$data.channelInfoByUniverseAndNumber, v[1], v[2])
+        old_vue_set(appData.channelInfoByUniverseAndNumber, v[1], v[2])
     }
     else if (c == "universes") {
-        vueapp.$data.universes = v[1]
+        appData.universes = v[1]
     }
     else if (c == "soundoutputs") {
-        vueapp.$data.soundCards = v[1]
+        appData.soundCards = v[1]
     }
 
     else if (c == 'soundsearchresults') {
@@ -1190,8 +1192,8 @@ function f(v) {
         //So if the data isn't in cuemeta, fill in what we can
         d = v[2]
         for (var i in v[2]) {
-            if (vueapp.$data.cuemeta[d[i][0]] == undefined) {
-                old_vue_set(vueapp.$data.cuemeta, d[i][0],
+            if (appData.cuemeta[d[i][0]] == undefined) {
+                old_vue_set(appData.cuemeta, d[i][0],
                     {
                         'name': i,
                         'number': d[
@@ -1200,25 +1202,25 @@ function f(v) {
             }
 
             //Make the empty list
-            if (vueapp.$data.groupcues[v[1]] == undefined) {
-                old_vue_set(vueapp.$data.groupcues, v[1], {});
+            if (appData.groupcues[v[1]] == undefined) {
+                old_vue_set(appData.groupcues, v[1], {});
             };
 
 
-            old_vue_set(vueapp.$data.groupcues[v[1]], i, d[i][0])
+            old_vue_set(appData.groupcues[v[1]], i, d[i][0])
         }
-        vueapp.$data.recomputeformattedCues();
+        appData.recomputeformattedCues();
     }
     else if (c == "cuedata") {
         let d = {}
-        old_vue_set(vueapp.$data.cuevals, v[1], d)
+        old_vue_set(appData.cuevals, v[1], d)
 
         for (var i in v[2]) {
 
-            if (!(i in vueapp.$data.channelInfoByUniverseAndNumber)) {
+            if (!(i in appData.channelInfoByUniverseAndNumber)) {
                 api_link.send(['getcnames', i])
             }
-            old_vue_set(vueapp.$data.cuevals[v[1]], i, {})
+            old_vue_set(appData.cuevals[v[1]], i, {})
 
             for (var j in v[2][i]) {
                 let y = {
@@ -1226,7 +1228,7 @@ function f(v) {
                     'ch': j,
                     "v": v[2][i][j]
                 }
-                old_vue_set(vueapp.$data.cuevals[v[1]][i], j, y)
+                old_vue_set(appData.cuevals[v[1]][i], j, y)
                 //The other 2 don't need to be reactive, v does
                 old_vue_set(y, 'v', v[2][i][j])
 
@@ -1235,7 +1237,7 @@ function f(v) {
     }
 
     else if (c == "commands") {
-        vueapp.$data.availableCommands = v[1]
+        appData.availableCommands = v[1]
     }
 
     else if (c == "scv") {
@@ -1249,11 +1251,11 @@ function f(v) {
 
 
         //Empty universe dict, we are not set up to listen to this yet
-        if (!vueapp.$data.cuevals[cue]) {
+        if (!appData.cuevals[cue]) {
             return
         }
-        if (!vueapp.$data.cuevals[cue][universe]) {
-            vueapp.$data.cuevals[cue][universe] = {}
+        if (!appData.cuevals[cue][universe]) {
+            appData.cuevals[cue][universe] = {}
         }
 
         var needRefresh = false;
@@ -1266,22 +1268,22 @@ function f(v) {
                 "v": value
             }
             old_vue_set(y, 'v', value)
-            old_vue_set(vueapp.$data.cuevals[cue][universe], channel, y)
+            old_vue_set(appData.cuevals[cue][universe], channel, y)
         }
         else {
-            old_vue_delete(vueapp.$data.cuevals[cue][universe], channel)
+            old_vue_delete(appData.cuevals[cue][universe], channel)
             needRefresh = 1;
         }
 
-        if (Object.entries(vueapp.$data.cuevals[cue][universe]).length == 0) {
-            old_vue_delete(vueapp.$data.cuevals[cue], universe)
+        if (Object.entries(appData.cuevals[cue][universe]).length == 0) {
+            old_vue_delete(appData.cuevals[cue], universe)
         }
     }
 
 
     else if (c == "go") {
 
-        old_vue_set(vueapp.$data.groupmeta[v[1]], 'active', true)
+        old_vue_set(appData.groupmeta[v[1]], 'active', true)
 
     }
 
@@ -1291,37 +1293,37 @@ function f(v) {
 
     else if (c == "stop") {
 
-        old_vue_set(vueapp.$data.groupmeta[v[1]], 'active', false)
+        old_vue_set(appData.groupmeta[v[1]], 'active', false)
 
     }
     else if (c == "ferrs") {
 
-        vueapp.$data.ferrs = v[1]
+        appData.ferrs = v[1]
 
     }
     else if (c == "fixtureclasses") {
 
-        vueapp.$data.fixtureClasses = v[1]
+        appData.fixtureClasses = v[1]
     }
     else if (c == "fixtureclass") {
         if (v[2] == null) {
-            old_vue_delete(vueapp.$data.fixtureClasses, v[1])
+            old_vue_delete(appData.fixtureClasses, v[1])
         }
         else {
-            old_vue_set(vueapp.$data.fixtureClasses, v[1], v[2])
+            old_vue_set(appData.fixtureClasses, v[1], v[2])
         }
     }
 
     else if (c == "fixtureAssignments") {
 
-        vueapp.$data.fixtureAssignments = v[1]
+        appData.fixtureAssignments = v[1]
     }
 
     else if (c == "del") {
-        old_vue_delete(vueapp.$data.selectedCues, v[1])
-        old_vue_delete(vueapp.$data.groupmeta, v[1])
-        old_vue_delete(vueapp.$data.mtimes, v[1])
-        vueapp.$data.editingGroup = null
+        old_vue_delete(appData.selectedCues, v[1])
+        old_vue_delete(appData.groupmeta, v[1])
+        old_vue_delete(appData.mtimes, v[1])
+        appData.editingGroup = null
 
     }
 
@@ -1333,16 +1335,16 @@ function f(v) {
     }
 
     else if (c == 'fixturePresets') {
-        vueapp.$data.presets = v[1]
+        appData.presets = v[1]
     }
 
     else if (c == 'preset') {
-        vueapp.$data.presets[v[1]] = v[2]
+        appData.presets[v[1]] = v[2]
     }
 
     else if (c == 'fileDownload') {
 
-        if (v[1] == vueapp.$data.downloadReqId) {
+        if (v[1] == appData.downloadReqId) {
             const file = new File([v[2]], v[3], {
                 type: 'text/plain',
             })
@@ -1361,25 +1363,24 @@ function f(v) {
     }
 
     else if (c == 'shortcuts') {
-        vueapp.$data.shortcuts = v[1]
+        appData.shortcuts = v[1]
     }
 
     else if (c == 'availableTags') {
-        vueapp.$data.availableTags = v[1]
+        appData.availableTags = v[1]
 
     }
     else if (c == 'midiInputs') {
-        vueapp.$data.midiInputs = v[1]
+        appData.midiInputs = v[1]
     }
 
     else if (c == "blendModes") {
-        vueapp.$data.blendModes = v[1]
+        appData.blendModes = v[1]
     }
 }
 
 async function initChandlerVueModel(board, va) {
-    vueapp = va
-    await vueapp.initializeState(board)
+    await initializeState(board)
 
     api_link.upd = f
     api_link.send(['get_state']);
@@ -1388,7 +1389,7 @@ async function initChandlerVueModel(board, va) {
 
     // Exact sync on half seconds
     function unix_time_upd() {
-        vueapp.$data.unixtime = api_link.now() / 1000
+        appData.unixtime = api_link.now() / 1000
         setTimeout(unix_time_upd,
             10000 - (api_link.now() % 10000))
     }
@@ -1427,8 +1428,8 @@ async function initChandlerVueModel(board, va) {
 }
 
 var confirm_for_group = function (sc) {
-    if (vueapp.$data.groupmeta[sc].requireConfirm) {
-        if (confirm("Confirm Action for Group: " + vueapp.$data.groupmeta[sc].name)) {
+    if (appData.groupmeta[sc].requireConfirm) {
+        if (confirm("Confirm Action for Group: " + appData.groupmeta[sc].name)) {
             return true
         }
     }
@@ -1479,5 +1480,6 @@ export {
     dictView,
     appComputed,
     appMethods,
-    appData
+    appData,
+    initializeState
 }
