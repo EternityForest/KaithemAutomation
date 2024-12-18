@@ -29,11 +29,15 @@
     <div id="app" v-cloak class="flex-row gaps">
 
         <datalist id="tagslisting">
-            <option v-for="v, i of availableTags" v-bind:value="i"></option>
+            <option v-for="v, i of availableTags" v-bind:value="i"
+            v-bind:key="i"
+            ></option>
         </datalist>
 
         <datalist id="midiinputs">
-            <option v-for="v, i of midiInputs" v-bind:value="i"></option>
+            <option v-for="v, i of midiInputs" v-bind:value="i"
+            v-bind:key="i"
+            ></option>
         </datalist>
 
         <section id="optionsblock" class="multibar undecorated w-full">
@@ -79,7 +83,9 @@
         <main class="w-full flex-row">
             <section class="window w-full max-h-12rem" v-if="Object.keys(sys_alerts).length">
                 <div class="flex-row scroll gaps padding">
-                    <div class="card w-sm-full" v-for="v, i of sys_alerts">
+                    <div class="card w-sm-full" 
+                    
+                    v-for="v, i of sys_alerts">
                         <header :class="v['barrel-class']" class="padding break-word">
                             <i class="mdi mdi-alert"></i>{{ i }}
                         </header>
@@ -112,7 +118,9 @@
 
                 <div class="h-24rem scroll">
                     <div class="flex-col gaps">
-                        <article v-for="i in formatAllGroups" class="card group relative border"
+                        <article v-for="i in formatAllGroups" 
+                        v-bind:key="i[1].id"
+                        class="card group relative border"
                             v-bind:class="{ 'grey': i[1].doingHandoff, 'run': i[1].active & (!i[1].doingHandoff) }">
                             <header>
                                 <div>
@@ -483,7 +491,7 @@
                                         :disabled="no_edit" v-if="Object.keys(groupcues[groupname]).length < 40"
                                         autocomplete=off title="Select a cue to activate when this one ends"
                                         v-on:change="setnext(slotProps.i[1].id, $event.target.value)">
-                                        <option value="">&gt&gt&gt
+                                        <option value="">&gt;&gt;&gt;
                                             {{ editingGroup.defaultnext }}</option>
                                         <option v-for="j in formatCues" v-bind:value="j[1].name">
                                             {{ j[1].number }}:
@@ -1242,6 +1250,7 @@
                                         </td>
                                         <td><button data-testid="event_button_delete"
                                                 v-on:click="editingGroup.eventButtons.splice(i, 1); setEventButtons(groupname, editingGroup.eventButtons);">Delete</button>
+                                        </td>
                                     </tr>
 
 
@@ -1251,6 +1260,7 @@
                                         <td><button
                                                 v-on:click="editingGroup.eventButtons.push(['', '']); setEventButtons(groupname, editingGroup.eventButtons);">Add
                                                 Button</button>
+                                        </td>
                                     </tr>
                                 </table>
 
@@ -1360,6 +1370,7 @@
                                         <td><button
                                                 v-on:click="editingGroup.displayTags.push(['Label', '=1', { 'type': 'null' }]); setGroupProperty(groupname, 'displayTags', editingGroup.displayTags);">Add
                                                 Tag</button>
+                                        </td>
                                     </tr>
                                 </table>
                             </div>
