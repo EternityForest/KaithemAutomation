@@ -125,7 +125,9 @@ div.highlight {
         <div class="flex-row w-full">
             <section class="window cols-2 max-h-24rem margin max-w-48rem" v-if="Object.keys(sys_alerts).length">
                 <div class="flex-row scroll gaps padding">
-                    <div class="card w-sm-full" v-for="v, i of sys_alerts">
+                    <div class="card w-sm-full" v-for="v, i of sys_alerts"
+                    v-bind:key="v.id"
+                    >
                         <header :class="v['barrel-class']" class="padding break-word">
                             <i class="mdi mdi-alert"></i>{{ i }}
                         </header>
@@ -146,11 +148,11 @@ div.highlight {
                             title="Enter a cue's shortcut code here to activate it. Keybindings are suspended while this is selected."
                             aria-label="Shortcut code" placeholder="Shortcut" v-model="sc_code"
                             v-on:keydown.enter="shortcut()" v-on:focus="keyboardJS.pause();"
-                            v-on:blur="keyboardJS.resume();"></input>
+                            v-on:blur="keyboardJS.resume();">
                         <button v-on:click="shortcut()">Go!</button>
                         <button v-on:click="showPages = !showPages">Toggle Compact</button>
 
-                        </label><i class="mdi mdi-volume-medium"></i>
+                        <label><i class="mdi mdi-volume-medium"></i>
                         <input type="checkbox" class="toggle" v-model="uiAlertSounds"></label>
                         <button onclick="document.documentElement.requestFullscreen()"><i
                                 class="mdi mdi-arrow-expand-all"></i>Fullscreen</button>
@@ -182,6 +184,7 @@ div.highlight {
 
 
                         <article v-if="i" style="position:relative"
+                            v-bind:key="i[1].id"
                             v-bind:class="{ 'card': 1, 'w-sm-full': 1, 'margin': 1, 'group': 1, 'flex-col': 1, 'min-h-18rem': 1, 'max-h-24rem': 1 }">
 
 
@@ -277,6 +280,7 @@ div.highlight {
 
                                 <div class="tool-bar nogrow" v-if="i[1].eventButtons.length > 0">
                                     <button v-for="v of i[1].eventButtons"
+                                        v-bind:key="v[0]+'-'+v[0]"
                                         v-on:click="groupev(v[1], v[1])">{{ v[0] }}</button>
                                 </div>
                             </footer>
@@ -302,7 +306,7 @@ div.highlight {
                     <cue-countdown :group="editingGroup" :cue="cuemeta[editingGroup.cue]"></cue-countdown>
 
                     <button v-if="editingGroup.cuelen" v-on:click="addTimeToGroup(editingGroup.id)"><i
-                            class="mdi mdi-clock"></i></i><i class="mdi mdi-plus"></i>Add Time</button>
+                            class="mdi mdi-clock"></i><i class="mdi mdi-plus"></i>Add Time</button>
                     <button @click="compactCues = !compactCues" class="nogrow"><i
                             class="mdi mdi-view-grid-compact"></i>Compact</button>
                     <button popovertarget="groupDialog" popovertargetaction="hide" class="nogrow"><i
@@ -346,8 +350,7 @@ div.highlight {
                             v-bind:class="{ 'card': 1, 'success': cuemeta[editingGroup.cue].name == cueSlot.i[1].name }">
 
                             <header>
-                                <button class="h-4rem w-full" v-on:click="jumptocue(cueSlot.i[1].id, editingGroup.id)"
-                                    class="cuebutton">
+                                <button class="h-4rem w-full cuebutton" v-on:click="jumptocue(cueSlot.i[1].id, editingGroup.id)">
                                     <span v-if="cueSlot.i[1].shortcut.length > 0"> ({{ cueSlot.i[1].shortcut }})</span>
                                     {{ cueSlot.i[1].name }}
 
@@ -417,7 +420,7 @@ div.highlight {
 
 
 <script type="module">
-import { appData, appMethods, appComputed, initChandlerVueModel } from "../static/boardapi.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
+import { appData, appMethods, appComputed } from "../static/boardapi.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
 import { httpVueLoader } from "../static/httploaderoptions.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
 
 
@@ -452,5 +455,3 @@ export default
 
 
 </script>
-
-<%include file="/pagefooter.html" />
