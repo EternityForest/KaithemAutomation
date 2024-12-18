@@ -113,8 +113,8 @@
                 <button v-on:click="showMediaFolders = !showMediaFolders"><i class="mdi mdi-folder"></i>Media
                     Folders</button>
                 <button v-on:click="showDMXSetup = !showDMXSetup"><i class="mdi mdi-globe"></i>Universes</button>
-                <button v-on:click="showhidefixtures"><i class="mdi mdi-pencil"></i> Fixture Types</button>
-                <button v-on:click="showhidefixtureassignments"><i class="mdi mdi-light-bulb"></i>Fixtures</button>
+                <button v-on:click="showhidefixtures()"><i class="mdi mdi-pencil"></i> Fixture Types</button>
+                <button v-on:click="showhidefixtureassignments()"><i class="mdi mdi-light-bulb"></i>Fixtures</button>
                 <button v-on:click="showimportexport = !showimportexport"><i
                         class="mdi mdi-folder-open"></i>Import/Export</button>
 
@@ -599,30 +599,30 @@ for (var k in d) {
 
 var m = {
     'chTypeChanged': function (i) {
-        const chType = this.fixtureClasses[this.selectedFixtureClass].channels[i].type
+        const chType = appData.fixtureClasses.value[appData.selectedFixtureClass.value].channels[i].type
 
-        this.fixtureClasses[this.selectedFixtureClass].channels[i].name = chType
+        appData.fixtureClasses.value[appData.selectedFixtureClass.value].channels[i].name = chType
         // Set up the  data options param for each channel
 
         if (chType == 'fine') {
-            this.fixtureClasses[this.selectedFixtureClass].channels[i].coarse = 0
+            appData.fixtureClasses.value[appData.selectedFixtureClass.value].channels[i].coarse = 0
         }
 
 
         else if (chType == 'custom') {
-            this.fixtureClasses[this.selectedFixtureClass].channels[i].ranges = []
+            appData.fixtureClasses.value[appData.selectedFixtureClass.value].channels[i].ranges = []
         }
 
         else if (chType == 'fixed') {
-            this.fixtureClasses[this.selectedFixtureClass].channels[i].value = 0
+            appData.fixtureClasses.value[appData.selectedFixtureClass.value].channels[i].value = 0
         }
         else {
-            this.fixtureClasses[this.selectedFixtureClass].channels[i].coarse = undefined
-            this.fixtureClasses[this.selectedFixtureClass].channels[i].value = undefined
-            this.fixtureClasses[this.selectedFixtureClass].channels[i].ranges = undefined
+            appData.fixtureClasses.value[appData.selectedFixtureClass.value].channels[i].coarse = undefined
+            appData.fixtureClasses.value[appData.selectedFixtureClass.value].channels[i].value = undefined
+            appData.fixtureClasses.value[appData.selectedFixtureClass.value].channels[i].ranges = undefined
 
         }
-        this.pushfixture(this.selectedFixtureClass)
+        this.pushfixture(appData.selectedFixtureClass.value)
     },
     'addFixtureAssignment': function (name, t, univ, addr) {
         if (!name) {
@@ -639,13 +639,13 @@ var m = {
 
     },
     'showhidefixtures': function () {
-        this.showFixtureSetup = !this.showFixtureSetup
+        appData.showFixtureSetup.value = !appData.showFixtureSetup.value
         this.getfixtureclasses()
-        this.selectedFixtureClass = ''
+        appData.selectedFixtureClass.value = ''
     },
     'showhidefixtureassignments': function () {
         this.getfixtureclasses()
-        this.showfixtureassg = !this.showfixtureassg;
+        appData.showfixtureassg.value = !appData.showfixtureassg.value;
         window.api_link.send(['getfixtureassg']);
     },
     'getfixtureclasses': function () {
@@ -659,30 +659,30 @@ var m = {
     },
 
     'addfixturetype': function () {
-        let x = prompt("New Fixture Type Name:", this.selectedFixtureType)
+        let x = prompt("New Fixture Type Name:", appData.selectedFixtureType.value)
         if (x) {
-            old_vue_set(this.fixtureClasses, x, { channels: [] })
-            this.selectedFixtureType = x
-            window.api_link.send(['setfixtureclass', x, this.fixtureClasses[x]])
+            old_vue_set(appData.fixtureClasses.value, x, { channels: [] })
+            appData.selectedFixtureType.value = x
+            window.api_link.send(['setfixtureclass', x, appData.fixtureClasses.value[x]])
             window.api_link.send(['getfixtureclass', x])
         }
     },
     'delfixturetype': function () {
         let x = confirm("Really delete?")
         if (x) {
-            old_vue_delete(this.fixtureClasses, this.selectedFixtureType)
-            window.api_link.send(['rmfixtureclass', this.selectedFixtureType])
-            this.selectedFixtureType = '';
+            old_vue_delete(appData.fixtureClasses.value, appData.selectedFixtureType.value)
+            window.api_link.send(['rmfixtureclass', appData.selectedFixtureType.value])
+            appData.selectedFixtureType.value = '';
         }
     },
     'pushfixture': function (i) {
-        window.api_link.send(['setfixtureclass', i, this.fixtureClasses[
+        window.api_link.send(['setfixtureclass', i, appData.fixtureClasses.value[
             i]])
     },
 
 
     'pushfixtureopz': function (i) {
-        window.api_link.send(['setfixtureclassopz', i, this.fixtureClasses[
+        window.api_link.send(['setfixtureclassopz', i, appData.fixtureClasses.value[
             i]])
     },
     'setFixtureAssignment': function (i, v) {
@@ -701,7 +701,7 @@ var m = {
 }
 
 for (var ky in m) {
-    appMethods[k] = m[ky]
+    appMethods[ky] = m[ky]
 }
 
 
@@ -714,10 +714,10 @@ appData.iframeDialog = Vue.ref(null)
 
 appData.getExcalidrawFixtureLink = function (fixture) {
     return '/excalidraw-plugin/edit?module=' +
-        encodeURIComponent(this.boardname.split(":")[0]) +
-        '&resource=' + encodeURIComponent("media/chandler/sketches/fixture_" + this.boardname.split(":")[0] + "_" +
+        encodeURIComponent(appData.boardname.value.split(":")[0]) +
+        '&resource=' + encodeURIComponent("media/chandler/sketches/fixture_" + appData.boardname.value.split(":")[0] + "_" +
             fixture + ".excalidraw.png") +
-        "&callback=" + encodeURIComponent("/chandler/label_image_update_callback/fixture/" + this.boardname + "/" + fixture) +
+        "&callback=" + encodeURIComponent("/chandler/label_image_update_callback/fixture/" + appData.boardname.value + "/" + fixture) +
         "&ratio_guide=16_9"
 }
 
