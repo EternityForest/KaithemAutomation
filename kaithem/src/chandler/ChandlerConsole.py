@@ -872,23 +872,6 @@ class ChandlerConsole(console_abc.Console_ABC):
     def pushConfiguredUniverses(self):
         self.linkSend(["confuniverses", self.configured_universes])
 
-    def pushCueList(self, group: str):
-        s = self.groups[group]
-        x = list(s.cues.keys())
-        # split list into messages of 100 because we don't want to exceed the widget send limit
-        while x:
-            self.linkSend(
-                [
-                    "groupcues",
-                    group,
-                    {
-                        i: (s.cues[i].id, s.cues[i].number / 1000.0)
-                        for i in x[:100]
-                    },
-                ]
-            )
-            x = x[100:]
-
     @core.cl_context.entry_point
     def cl_del_group(self, sc):
         i = None

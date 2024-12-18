@@ -771,7 +771,7 @@ let appDataDefaults = {
     'formatCueVals': function (c) {
         //Return a simplified version of the data in cuevals
         //Meant for direct display
-        op = {}
+        let op = {}
         for (var i in c) {
             op[i] = {}
             for (var j in c[i]) {
@@ -1074,7 +1074,7 @@ function f(v) {
                 if (v[2].status.includes("FAILED")) {
                     if (appData.doRateLimit.value()) {
                         errorTone('A slideshow display may need attention');
-                        showslideshowtelemetry = true;
+                        appData.showslideshowtelemetry.value = true;
                     }
                 }
             }
@@ -1186,30 +1186,6 @@ function f(v) {
         const event = new Event("onsoundsearchresults");
         event.data = [v[1], v[2]]
         window.dispatchEvent(event)
-    }
-    else if (c == 'groupcues') {
-        //Groupcues only gives us cue number and id info.
-        //So if the data isn't in cuemeta, fill in what we can
-        d = v[2]
-        for (var i in v[2]) {
-            if (appData.cuemeta.value[d[i][0]] == undefined) {
-                old_vue_set(appData.cuemeta.value, d[i][0],
-                    {
-                        'name': i,
-                        'number': d[
-                            i][1]
-                    })
-            }
-
-            //Make the empty list
-            if (appData.groupcues.value[v[1]] == undefined) {
-                old_vue_set(appData.groupcues.value, v[1], {});
-            };
-
-
-            old_vue_set(appData.groupcues.value[v[1]], i, d[i][0])
-        }
-        appData.recomputeformattedCues.value();
     }
     else if (c == "cuedata") {
         let d = {}
