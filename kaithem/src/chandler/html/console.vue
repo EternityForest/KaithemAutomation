@@ -346,21 +346,25 @@
       <section
         class="window margin flex-item"
         v-if="showevents"
-        style="position: fixed; z-index: 99; bottom: 0px; width: 78%">
-        <h2>
-          <button type="button" v-on:click="showevents = 0">
-            <i class="mdi mdi-close"></i>Close</button
-          >Event Log
-        </h2>
-        <input type="text" v-model="evfilt" placeholder="Filter events" /><br />
-        <div class="max-h-12rem scroll border" style="height: 6em">
+        style="position: fixed; z-index: 99; bottom: 0px; width: 97%">
+        <header>
+          <div class="tool-bar">
+            <h2>Event Log</h2>
+            <input type="text" v-model="evfilt" placeholder="Filter events" /><br />
+            <button type="button" v-on:click="showevents = 0">
+              <i class="mdi mdi-close"></i>Close
+            </button>
+          </div>
+        </header>
+
+        <div class="max-h-18rem scroll border">
           <div
             v-bind:class="{
               evlisting: i[0] !== 'error',
-              evlisting_err: i[0].includes('error'),
+              error: i[0].includes('error'),
             }"
             v-bind:key="i[2] + '@' + i[1]"
-            v-for="i in evlog.filter(
+            v-for="i in recentEventsLog.filter(
               (d) => d[1].search(evfilt) > -1 || d[0].search(evfilt) > -1
             )">
             {{ i[2] }}:
@@ -2745,9 +2749,8 @@ import {
   newcuevnumber,
   newgroupname,
   no_edit,
-  evlog,
+  recentEventsLog,
   soundCards,
-  showevents,
   availableTags,
   midiInputs,
   blendModes,
@@ -2775,7 +2778,6 @@ import {
   groupcues,
   presets,
   //
-
   setGroupProperty,
   setCueProperty,
   setCuePropertyDeferred,
@@ -2834,7 +2836,7 @@ import {
   getPresetImage,
   updatePreset,
   channelInfoForUniverseChannel,
-  debugCueLen
+  debugCueLen,
 } from "../static/boardapi.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
 
 import {
@@ -2846,25 +2848,32 @@ import {
 
 import { formatTime } from "../static/utils.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
 
+let showevents = Vue.ref(false);
+
+window.addEventListener(
+  "servererrorevent",
+  (e) => {
+    showevents.value = true;
+  },
+  false
+);
 
 let evtosend = Vue.ref("");
 let evtypetosend = Vue.ref("float");
 let evval = Vue.ref("");
 
 function sendEvent(where) {
-    window.api_link.send([
-        "event",
-        evtosend.value,
-        evval.value,
-        evtypetosend.value,
-        where,
-    ]);
+  window.api_link.send([
+    "event",
+    evtosend.value,
+    evval.value,
+    evtypetosend.value,
+    where,
+  ]);
 }
-
 </script>
 
 <script type="module">
-
 export default {
   name: "console-app",
   template: "#template",

@@ -12,6 +12,7 @@ import {
   useBlankDescriptions,
   formatInterval,
   dictView,
+  formatTime,
 } from "./utils.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
 import { kaithemapi, APIWidget } from "/static/js/widget.mjs";
 
@@ -294,7 +295,6 @@ function go(sc) {
   api_link.send(["go", sc]);
 }
 
-
 function shortcut(sc) {
   api_link.send(["shortcut", sc_code.value]);
   sc_code.value = "";
@@ -434,7 +434,6 @@ function setnumber(cue, v) {
   api_link.send(["setnumber", cue, v]);
 }
 
-
 function closePreview(s) {
   document.getElementById("soundpreviewdialog").close();
   document.getElementById("soundpreview").pause();
@@ -452,8 +451,6 @@ function setmqtt(sc, v) {
 function setmqttfeature(sc, feature, v) {
   api_link.send(["setmqttfeature", sc, feature, v]);
 }
-
-
 
 function setcommandtag(sc, v) {
   groupmeta.value[sc].commandTag = v;
@@ -676,14 +673,14 @@ let previousSerializedPromise = Vue.ref(null);
 
 let no_edit = Vue.ref(!kaithemapi.checkPermission("system_admin"));
 
-let evlog = Vue.ref([]);
+// Sorted from most to least recent
+let recentEventsLog = Vue.ref([["Page Load", formatTime(Date.now() / 1000)]]);
 let soundCards = Vue.ref({});
 
 //What universe if any to show the full settings page for
 let universeFullSettings = Vue.ref(false);
 
 let fixtureassg = Vue.ref("");
-let showevents = Vue.ref(false);
 
 let availableTags = Vue.ref({});
 let midiInputs = Vue.ref([]);
@@ -693,7 +690,6 @@ let soundfolders = Vue.ref([]);
 let showimportexport = Vue.ref(false);
 
 let grouptab = Vue.ref("cue");
-let showPresets = Vue.ref(false);
 let configuredUniverses = Vue.ref({
   blah: { type: "enttec", interface: "xyz" },
 });
@@ -704,7 +700,6 @@ let fixtureClasses = Vue.ref({});
 let groupfilter = Vue.ref("");
 let cuefilter = Vue.ref("");
 let keybindmode = Vue.ref("edit");
-let showAddChannels = Vue.ref(false);
 //Keep track of what timers are running in a group
 let grouptimers = Vue.ref({});
 //Formatted for display
@@ -995,13 +990,14 @@ function handleServerMessage(v) {
   } else if (c == "cuemeta") {
     handleCueInfo(v[1], v[2]);
   } else if (c == "event") {
-    evlog.value.unshift(v[1]);
-    if (evlog.value.length > 250) {
-      evlog.value = evlog.value.slice(0, 250);
+    recentEventsLog.value.unshift(v[1]);
+    if (recentEventsLog.value.length > 250) {
+      recentEventsLog.value = recentEventsLog.value.slice(-250);
     }
 
     if (v[1][0].includes("error")) {
-      showevents.value = true;
+      const event = new Event("servererrorevent");
+      window.dispatchEvent(event);
       errorTone("");
     }
   } else if (c == "serports") {
@@ -1259,25 +1255,21 @@ export {
   nuisianceRateLimit,
   previousSerializedPromise,
   no_edit,
-  evlog,
+  recentEventsLog,
   soundCards,
   universeFullSettings,
   fixtureassg,
-  showevents,
   availableTags,
   midiInputs,
   blendModes,
   soundfolders,
   showimportexport,
-
   grouptab,
-  showPresets,
   configuredUniverses,
   fixtureClasses,
   groupfilter,
   cuefilter,
   keybindmode,
-  showAddChannels,
   grouptimers,
   cuevals,
   useBlankDescriptions,

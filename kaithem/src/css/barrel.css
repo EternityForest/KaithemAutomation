@@ -1933,7 +1933,6 @@ iframe.h-center {
 
 .border {
     border: var(--border);
-    border-radius: var(--border-radius);
 }
 
 .noselect {
