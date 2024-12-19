@@ -13,11 +13,6 @@ href="/chandler/static/console.css?cache_version=c6d0887e-af6b-11ef-af85-5fc2044
 
 <script type="module">
     import { httpVueLoader } from "/chandler/static/httploaderoptions.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0"
-    import { appData, appMethods, appComputed } from '../static/console.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0';
-
-    window.appData = appData
-    window.appMethods = appMethods
-    window.appComputed = appComputed
 
     import {initChandlerVueModel} from "../static/boardapi.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
 
@@ -26,5 +21,5 @@ href="/chandler/static/console.css?cache_version=c6d0887e-af6b-11ef-af85-5fc2044
             'console-app': window.httpVueLoader('../static/console.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0')
         }
     }).mount("#outer_container")
-    initChandlerVueModel(window.boardname, window.vueapp)
+    initChandlerVueModel(window.boardname)
 </script>

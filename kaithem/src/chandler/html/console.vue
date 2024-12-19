@@ -474,7 +474,6 @@
       </section>
 
       <fixture-presets-dialog
-        :presets="presets"
         :fixture="selectingPresetFor"
         :fordestination="selectingPresetForDestination"
         :fixtureclasses="fixtureClasses"
@@ -1168,7 +1167,7 @@
                         <td>
                           <button
                             type="button"
-                            v-on:click="addThisFixToCurrentCue(i, 1, 1, 0)">
+                            v-on:click="addfixToCurrentCue(i, 1, 1, 0)">
                             <i class="mdi mdi-plus"></i>Add
                           </button>
                         </td>
@@ -2628,9 +2627,9 @@
 
                 <div>
                   <ul>
-                    <dt v-for="cueprovider of editingGroup.cueProviders"
-                    v-bind:key="cueprovider"
-                    >
+                    <dt
+                      v-for="cueprovider of editingGroup.cueProviders"
+                      v-bind:key="cueprovider">
                       {{ cueprovider }}
                       <button
                         type="button"
@@ -2699,9 +2698,9 @@
                     <th>Cue</th>
                     <th>Time</th>
                   </tr>
-                  <tr v-for="(v, i) of groupmeta[groupname].history"
-                  v-bind:key="v[1]"
-                  >
+                  <tr
+                    v-for="(v, i) of groupmeta[groupname].history"
+                    v-bind:key="v[1]">
                     <td>{{ v[0] }}</td>
                     <td>{{ new Date(v[1] * 1000).toLocaleString() }}</td>
                   </tr>
@@ -2726,32 +2725,235 @@
   </div>
 </template>
 
-
 <script setup>
 import {
-    unixtime, sys_alerts
+  formatAllGroups,
+  formatCues,
+  currentcue,
+  currentcueid,
+
+  // used to be in appData
+  sys_alerts,
+  unixtime,
+  boardname,
+  sc_code,
+  shortcuts,
+  fixtureAssignments,
+  evfilt,
+  newcueu,
+  newcuetag,
+  newcuevnumber,
+  newgroupname,
+  no_edit,
+  evlog,
+  soundCards,
+  showevents,
+  availableTags,
+  midiInputs,
+  blendModes,
+  showimportexport,
+  evtosend,
+  evtypetosend,
+  evval,
+  grouptab,
+  fixtureClasses,
+  groupfilter,
+  keybindmode,
+  cuevals,
+  useBlankDescriptions,
+  slideshow_telemetry,
+  showslideshowtelemetry,
+  dictView,
+  alphas,
+  groupmeta,
+  groupname,
+  editingGroup,
+  universes,
+  newcuename,
+  cuemeta,
+  availableCommands,
+  selectedCues,
+  showPages,
+  uiAlertSounds,
+  groupcues,
+  presets
 } from "../static/boardapi.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
 
+import {
+  showPresetDialog,
+  selectingPresetForDestination,
+  selectingPresetFor,
+  iframeDialog,
+} from "../static/console.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
 
+import { formatTime } from "../static/utils.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
 </script>
-
 
 <script type="module">
 import {
-  appData,
-  appMethods,
-  appComputed,
-} from "./console.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
+  setGroupProperty,
+  setCueProperty,
+  setCuePropertyDeferred,
+  setGroupPropertyDeferred,
+  saveToDisk,
+  sendev,
+  groupev,
+  refreshhistory,
+  setCueVal,
+  selectcue,
+  selectgroup,
+  delgroup,
+  go,
+  goByName,
+  stopByName,
+  shortcut,
+  stop,
+  setalpha,
+  setfade,
+  nextcue,
+  prevcue,
+  add_cue,
+  clonecue,
+  gotonext,
+  rmcue,
+  uploadFileFromElement,
+  downloadSetup,
+  jumptocue,
+  getcuedata,
+  getcuemeta,
+  setnext,
+  setprobability,
+  promptsetnumber,
+  setnumber,
+  apiCommand,
+  closePreview,
+  setrandomize,
+  setcrossfade,
+  setmqtt,
+  setmqttfeature,
+  setvisualization,
+  setcommandtag,
+  setinfodisplay,
+  setbpm,
+  tap,
+  testSoundCard,
+  addGroup,
+  addRangeEffect,
+  addfixToCurrentCue,
+  rmFixCue,
+  addValToCue,
+  addTagToCue,
+  editMode,
+  runMode,
+  refreshPorts,
+  pushSettings,
+  newCueFromSlide,
+  newCueFromSound,
+  setEventButtons,
+  setTagInputValue,
+  addTimeToGroup,
+  formatCueVals,
+  lookupFixtureType,
+  lookupFixtureColorProfile,
+  getfixtureassg,
+  getChannelCompletions,
+  promptRename,
+  promptRenameCue,
+  deleteUniverse,
+  deletePreset,
+  renamePreset,
+  copyPreset,
+  savePreset,
+  getPresetImage,
+  updatePreset,
+  channelInfoForUniverseChannel,
+  debugCueLen,
+} from "./boardapi.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
 
 export default {
-  setup: function () {
-    console.log(appData);
-    return appData;
-  },
   name: "console-app",
-  methods: appMethods,
+  methods: {
+    setGroupProperty,
+    setCueProperty,
+    setCuePropertyDeferred,
+    setGroupPropertyDeferred,
+    saveToDisk,
+    sendev,
+    groupev,
+    refreshhistory,
+    setCueVal,
+    selectcue,
+    selectgroup,
+    delgroup,
+    go,
+    goByName,
+    stopByName,
+    shortcut,
+    stop,
+    setalpha,
+    setfade,
+    nextcue,
+    prevcue,
+    add_cue,
+    clonecue,
+    gotonext,
+    rmcue,
+    uploadFileFromElement,
+    downloadSetup,
+    jumptocue,
+    getcuedata,
+    getcuemeta,
+    setnext,
+    setprobability,
+    promptsetnumber,
+    setnumber,
+    apiCommand,
+    closePreview,
+    setrandomize,
+    setcrossfade,
+    setmqtt,
+    setmqttfeature,
+    setvisualization,
+    setcommandtag,
+    setinfodisplay,
+    setbpm,
+    tap,
+    testSoundCard,
+    addGroup,
+    addRangeEffect,
+    addfixToCurrentCue,
+    rmFixCue,
+    addValToCue,
+    addTagToCue,
+    editMode,
+    runMode,
+    refreshPorts,
+    pushSettings,
+    newCueFromSlide,
+    newCueFromSound,
+    setEventButtons,
+    setTagInputValue,
+    addTimeToGroup,
+
+    formatCueVals,
+    lookupFixtureType,
+    lookupFixtureColorProfile,
+    getfixtureassg,
+    getChannelCompletions,
+    promptRename,
+    promptRenameCue,
+    deleteUniverse,
+    deletePreset,
+
+    renamePreset,
+    copyPreset,
+    savePreset,
+    getPresetImage,
+    updatePreset,
+    channelInfoForUniverseChannel,
+    debugCueLen,
+  },
   template: "#template",
-  computed: appComputed,
   components: {
     "combo-box": window.httpVueLoader(
       "/static/vue/ComboBox.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0"

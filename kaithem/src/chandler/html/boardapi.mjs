@@ -75,7 +75,8 @@ function keyUpHandle(e) {
   keysdown[e.key] = false;
   api_link.send(["event", "keyup." + e.key, 1, "int", "__global__"]);
 }
-function rebindKeys(data) {
+
+function rebindKeys() {
   keyboardJS.reset();
   keyboardJS.bind(keyHandle);
   keyboardJS.bind(null, keyUpHandle);
@@ -520,10 +521,6 @@ function addGroup() {
   api_link.send(["addgroup", newgroupname.value]);
 }
 
-function addMonitorGroup() {
-  api_link.send(["addmonitor", newgroupname.value]);
-}
-
 function addRangeEffect(fix) {
   addfixToCurrentCue(
     fix,
@@ -618,7 +615,7 @@ function setTagInputValue(sc, tag, v) {
   api_link.send(["inputtagvalue", sc, tag, v]);
 }
 
-function currentcue() {
+function _currentcue() {
   if (selectedCues.value[groupname.value] == undefined) {
     return null;
   }
@@ -626,14 +623,19 @@ function currentcue() {
     groupcues.value[groupname.value][selectedCues.value[groupname.value]]
   ];
 }
-function currentcueid() {
+
+let currentcue = Vue.computed(_currentcue);
+
+function _currentcueid() {
   if (selectedCues.value[groupname.value] == undefined) {
     return null;
   }
   return groupcues.value[groupname.value][selectedCues.value[groupname.value]];
 }
 
-function formatCues() {
+let currentcueid = Vue.computed(_currentcueid);
+
+function _formatCues() {
   var z = {};
   var filt = true;
   //list cue objects
@@ -663,7 +665,9 @@ function formatCues() {
   }
 }
 
-function formatAllGroups() {
+let formatCues = Vue.computed(_formatCues);
+
+function _formatAllGroups() {
   /*Sorted list of group objects*/
   var flt = groupfilter.value;
   var x = dictView(groupmeta.value, ["!priority", "!started", "name"]).filter(
@@ -673,6 +677,7 @@ function formatAllGroups() {
   );
   return x;
 }
+let formatAllGroups = Vue.computed(_formatAllGroups);
 
 function _formatGroups() {
   var flt = groupfilter.value;
@@ -744,7 +749,6 @@ let fixtureClasses = Vue.ref({});
 //Filter which groups are shown in the list
 let groupfilter = Vue.ref("");
 let cuefilter = Vue.ref("");
-let currentBindingBank = Vue.ref("default");
 let keybindmode = Vue.ref("edit");
 let showAddChannels = Vue.ref(false);
 //Keep track of what timers are running in a group
@@ -764,10 +768,6 @@ function formatCueVals(c) {
     }
   }
   return op;
-}
-
-function del(a, b) {
-  old_vue_delete(a, b);
 }
 
 function doRateLimit() {
@@ -819,13 +819,6 @@ function getChannelCompletions(u) {
   }
 }
 
-function toggleTransparent(cue, u, c, v) {
-  if (v != null) {
-    setCueVal(cue, u, c, null);
-  } else {
-    setCueVal(cue, u, c, null);
-  }
-}
 function promptRename(s) {
   var x = prompt(
     "Enter new name for group(May break existing references to group)"
@@ -848,15 +841,6 @@ function promptRenameCue(sc, s) {
 function deleteUniverse(u) {
   console.log(u);
   old_vue_delete(configuredUniverses.value, u);
-}
-
-function fuzzyIncludes(s, search) {
-  for (var i of search.toLowerCase().split(" ")) {
-    if (!s.toLowerCase().includes(i)) {
-      return 0;
-    }
-  }
-  return 1;
 }
 
 function deletePreset(p) {
@@ -998,7 +982,9 @@ function handleCueInfo(id, cue) {
   set(cuemeta.value, id, cue);
 }
 
-function f(v) {
+let downloadReqId = Vue.ref("");
+
+function handleServerMessage(v) {
   let c = v[0];
 
   if (c == "soundfolders") {
@@ -1029,7 +1015,7 @@ function f(v) {
   } else if (c == "groupmeta") {
     if (v[2].cue) {
       if (cuemeta.value[v[2].cue] == undefined) {
-        appMethods.getcuemeta(v[2].cue);
+        getcuemeta(v[2].cue);
       }
     }
 
@@ -1123,8 +1109,6 @@ function f(v) {
   } else if (c == "commands") {
     availableCommands.value = v[1];
   } else if (c == "scv") {
-    let x = [];
-
     let cue = v[1];
     let universe = v[2];
     let channel = v[3];
@@ -1138,8 +1122,6 @@ function f(v) {
       cuevals.value[cue][universe] = {};
     }
 
-    var needRefresh = false;
-
     if (v[4] !== null) {
       let y = {
         u: universe,
@@ -1150,7 +1132,6 @@ function f(v) {
       old_vue_set(cuevals.value[cue][universe], channel, y);
     } else {
       old_vue_delete(cuevals.value[cue][universe], channel);
-      needRefresh = 1;
     }
 
     if (Object.entries(cuevals.value[cue][universe]).length == 0) {
@@ -1216,10 +1197,10 @@ function f(v) {
   }
 }
 
-async function initChandlerVueModel(board, va) {
+async function initChandlerVueModel(board) {
   await initializeState(board);
 
-  api_link.upd = f;
+  api_link.upd = handleServerMessage;
   api_link.send(["get_state"]);
   api_link.send(["getCommands"]);
 
@@ -1294,9 +1275,6 @@ window.api_link = api_link;
 export {
   api_link,
   initChandlerVueModel,
-  next,
-  goto,
-
   // Computed method helpers
   formatGroups,
   formatAllGroups,
@@ -1304,7 +1282,7 @@ export {
   currentcue,
   currentcueid,
 
-  // used.value to be in appData
+  // used to be in appData
   sys_alerts,
   unixtime,
   boardname,
@@ -1347,7 +1325,6 @@ export {
   fixtureClasses,
   groupfilter,
   cuefilter,
-  currentBindingBank,
   keybindmode,
   showAddChannels,
   grouptimers,
@@ -1373,6 +1350,10 @@ export {
   formattedCues,
   channelInfoByUniverseAndNumber,
   presets,
+
+  // methods
+  setGroupProperty,
+  setCueProperty,
   setCuePropertyDeferred,
   setGroupPropertyDeferred,
   saveToDisk,
@@ -1418,7 +1399,6 @@ export {
   tap,
   testSoundCard,
   addGroup,
-  addMonitorGroup,
   addRangeEffect,
   addfixToCurrentCue,
   rmFixCue,
@@ -1433,4 +1413,22 @@ export {
   setEventButtons,
   setTagInputValue,
   addTimeToGroup,
+  formatCueVals,
+  lookupFixtureType,
+  lookupFixtureColorProfile,
+  getfixtureassg,
+  getChannelCompletions,
+  promptRename,
+  promptRenameCue,
+  deleteUniverse,
+  deletePreset,
+  renamePreset,
+  copyPreset,
+  savePreset,
+  getPresetImage,
+  updatePreset,
+  channelInfoForUniverseChannel,
+  debugCueLen,
+  next,
+  goto,
 };

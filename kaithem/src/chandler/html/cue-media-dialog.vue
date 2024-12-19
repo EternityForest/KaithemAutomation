@@ -215,6 +215,14 @@
     </div>
 </template>
 
+<script setup>
+import {
+    getExcalidrawCueLink,
+    iframeDialog,
+  } from "../static/console.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
+
+</script>
+
 <script>
 import {
     dictView

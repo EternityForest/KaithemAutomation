@@ -111,4 +111,8 @@ function dictView(dict, sorts, filterf, page) {
     return (o2)
 }
 
-export { useBlankDescriptions, dictView, formatInterval }
+function formatTime (t) {
+    var date = new Date(t * 1000);
+    return date.strftime("%I:%M:%S%p")
+}
+export { useBlankDescriptions, dictView, formatInterval, formatTime }

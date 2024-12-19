@@ -1,27 +1,28 @@
 
-import { kaithemapi } from "/static/js/widget.mjs"
+import{ boardname} from "../static/boardapi.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
 
-import {appData, appMethods, appComputed} from "./boardapi.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
+let selectingPresetForDestination = Vue.ref(false)
+let selectingPresetFor= Vue.ref("")
 
-appMethods.showPresetDialog = function (fixture, dest) {
+function showPresetDialog(fixture, dest) {
     if (dest) {
-        this.selectingPresetForDestination = true
+        selectingPresetForDestination.value = true
     }
     else {
-        this.selectingPresetForDestination = false
+        selectingPresetForDestination.value = false
     }
-    this.selectingPresetFor = fixture
+    selectingPresetFor.value = fixture
 }
 
-appData.selectingImageLabelForPreset = Vue.ref(null)
-appData.iframeDialog = Vue.ref(null)
+let selectingImageLabelForPreset = Vue.ref(null)
+let iframeDialog = Vue.ref(null)
 
 const session_time = new Date().toISOString().slice(0, -8)
 window.session_time = session_time
-appData.getExcalidrawCueLink = function (group, cue) {
+function getExcalidrawCueLink(group, cue) {
     return '/excalidraw-plugin/edit?module=' +
-        encodeURIComponent(this.boardname.split(":")[0]) +
-        '&resource=' + encodeURIComponent("media/chandler/sketches/cue_" + this.boardname.split(":")[1] + "_" +
+        encodeURIComponent(boardname.value.split(":")[0]) +
+        '&resource=' + encodeURIComponent("media/chandler/sketches/cue_" + boardname.value.split(":")[1] + "_" +
             "_" +
             group + "_" + cue.name + ".excalidraw.png") +
         "&callback=" + encodeURIComponent("/chandler/label_image_update_callback/cue/" + cue.id) +
@@ -30,20 +31,14 @@ appData.getExcalidrawCueLink = function (group, cue) {
 
 
 // If true preset applies to final val of range effect
-appData.selectingPresetForDestination = Vue.ref(false)
+selectingPresetForDestination = Vue.ref(false)
 
-appData.selectingPresetFor = Vue.ref(null)
+selectingPresetFor = Vue.ref(null)
 // Add console specific stuff to the appdata
-appData.formatTime = function (t) {
-    var date = new Date(t * 1000);
-    return date.strftime("%I:%M:%S%p")
-}
 
-appData.boardname = Vue.ref(window.location.pathname.split('/')[3])
 
-document.title = appData.boardname
 
-appData.keyboardJS = keyboardJS
+document.title = boardname.value
 
 
 // Blur the active element to cause Onchange events
@@ -78,10 +73,16 @@ window.addEventListener('popstate', function (e) {
 
 
 window.setIframeDialog = function (iframe) {
-    appData.iframeDialog.value = iframe
+    iframeDialog.value = iframe
 }
-const boardname = window.location.pathname.split('/')[3];
 window.boardname = boardname
 
 console.log('boardname', boardname)
-export { appData, appMethods, appComputed }
+export {
+    showPresetDialog,
+    selectingPresetForDestination,
+    selectingPresetFor,
+    getExcalidrawCueLink,
+    iframeDialog,
+    selectingImageLabelForPreset
+}
