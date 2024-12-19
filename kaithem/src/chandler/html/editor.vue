@@ -497,9 +497,14 @@
         :renamepreset="renamePreset"></preset-editing-dialog>
 
       <dialog id="soundpreviewdialog">
+        <header>
+          <div class="tool-bar">
+                    <button type="button" v-on:click="closePreview">OK</button>
+          </div>
+          
+        </header>
         <iframe id="textpreview" style="height: 24em; width: 24em"></iframe>
         <audio controls id="soundpreview"></audio>
-        <button type="button" v-on:click="closePreview">OK</button>
       </dialog>
 
       <div

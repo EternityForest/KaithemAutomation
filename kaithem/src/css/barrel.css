@@ -477,8 +477,8 @@ input[type=color] {
 
 dialog {
     position: fixed;
-    top: 50%;
-    bottom: 50%;
+    top: auto;
+    bottom: auto;
     border: 3px solid;
     border-color: var(--border-color);
     z-index: 1000;

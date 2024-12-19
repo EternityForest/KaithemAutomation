@@ -51,7 +51,7 @@ var prev = history.state
 
 function handleDialogState(e) {
     if (e.newState == 'open') {
-        history.pushState({ el: e.target.id }, null, '#popover')
+        history.pushState({ el: e.target.id }, null, 'editor#popover')
         prev = history.state
     }
     else {
