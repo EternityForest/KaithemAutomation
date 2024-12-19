@@ -111,7 +111,7 @@ export default {
         return (hfaderdata)
     },
     components: {
-        'smooth-range': window.httpVueLoader('/static/vue/smoothrange.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0')
+        'smooth-range': window.httpVueLoader('/static/vue/smoothrange.vue')
     },
 }
 

@@ -23,7 +23,7 @@
 <script type="module">
         import { initChandlerVueModel } from "./boardapi.mjs";
 
-    import {httpVueLoader} from "../static/httploaderoptions.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
+    import {httpVueLoader} from "./httploaderoptions.mjs";
 
     const boardname = window.location.pathname.split("/").at(-1);
     document.title = boardname
@@ -35,7 +35,7 @@
             },
 
             components: {
-                "commander-app": httpVueLoader('../static/commander.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0'),
+                "commander-app": httpVueLoader('./commander.vue'),
             }
         }).mount("#outer_app")
 

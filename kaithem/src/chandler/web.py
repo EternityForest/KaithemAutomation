@@ -273,6 +273,21 @@ async def media():
         raise RuntimeError("???")
 
 
+# Still has to be a template because of the dynamic layouts
+async def webmediadisplay():
+    kwargs = quart.request.args
+
+    def f():
+        r = get_template("webmediadisplay.html").render(
+            kwargs=kwargs,
+            groups=groups,
+        )
+        return r
+
+    r = await quart.utils.run_sync(f)()
+    return quart.Response(r, mimetype="text/html")
+
+
 # The UUID is a cache busting value that gets updated with find and
 # replace for now, it's hacky but we it's a quick fix to let us use
 # relative URLs properly in a way that doesn't break the dev tools
@@ -286,9 +301,8 @@ async def media():
 )
 @quart_app.app.route("/chandler/<path:path>")
 async def default(path: str):
-    kwargs = quart.request.args
     if path in ("webmediadisplay",):
-        pass
+        return await webmediadisplay()
     else:
         try:
             pages.require("chandler_operator")
@@ -301,7 +315,7 @@ async def default(path: str):
         try:
 
             def f():
-                r = render_html_file(os.path.join(html_dir, path), **kwargs)
+                r = render_html_file(os.path.join(html_dir, path))
                 if isinstance(r, str):
                     r = r.encode()
                 return r

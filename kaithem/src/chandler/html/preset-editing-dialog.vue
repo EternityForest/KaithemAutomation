@@ -105,7 +105,7 @@
                     >
 
                         <img v-if="getpresetimage(ps[0])" style="max-height: 8em; max-width: 8em;"
-                            :src="'../WebMediaServer?file=' + encodeURIComponent(getpresetimage(ps[0]))">
+                            :src="'/chandler/WebMediaServer?file=' + encodeURIComponent(getpresetimage(ps[0]))">
                         <details>
                             <div class="stacked-form">
                                 <label><i class="mdi mdi-format-list-bulleted"></i>Category
@@ -143,7 +143,7 @@
 import {
     dictView,
     useBlankDescriptions
-} from "./utils.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
+} from "./utils.mjs";
 
 var data = {
     "filterPresets": "",
@@ -176,7 +176,7 @@ export default {
         }
     },
     "components": {
-        'media-browser': window.httpVueLoader('../static/media-browser.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0'),
+        'media-browser': window.httpVueLoader('/media-browser.vue'),
 
         "combo-box": window.httpVueLoader("/static/vue/ComboBox.vue"),
     },

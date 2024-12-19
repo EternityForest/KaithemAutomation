@@ -924,7 +924,7 @@ function setSoundFolders (folders) {
 import {
 } from "./boardapi.mjs";
 
-import { httpVueLoader } from "../static/httploaderoptions.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
+import { httpVueLoader } from "./httploaderoptions.mjs";
 
 // Legacy compatibility equivalents for the old vue2 apis. TODO get rid of this
 function old_vue_set(o, k, v) {
@@ -980,7 +980,7 @@ export default {
   name: "config-app",
   components: {
     "media-browser": httpVueLoader(
-      "../static/media-browser.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0"
+      "./media-browser.vue"
     ),
   },
 };

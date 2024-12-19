@@ -49,7 +49,7 @@
 </style>
 
 <script src="/static/js/thirdparty/vue3.js"></script>
-<script type="module" src="/static/js/widget.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0"></script>
+<script type="module" src="/static/js/widget.mjs"></script>
 <script src="/static/js/thirdparty/js-yaml.min.js"></script>
 <script src="/static/js/thirdparty/strftime-min.js"></script>
 
@@ -63,7 +63,7 @@
 
 <script type="module">
     import { initChandlerVueModel } from "./boardapi.mjs";
-    import {httpVueLoader} from "../static/httploaderoptions.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
+    import {httpVueLoader} from "./httploaderoptions.mjs";
 
     // Legacy compatibility equivalents for the old vue2 apis. TODO get rid of this
     function old_vue_set(o, k, v) {
@@ -86,7 +86,7 @@
             setup: function () {
             },
             components: {
-                'config-app': httpVueLoader('../static/config.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0')
+                'config-app': httpVueLoader('./config.vue')
             },
         }).mount("#app")
     const boardname = window.location.pathname.split("/").at(-1);

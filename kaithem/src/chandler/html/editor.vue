@@ -660,7 +660,7 @@
                     <img
                       v-if="slotProps.i[1].labelImage.length > 0"
                       :src="
-                        '../WebMediaServer?labelImg=' +
+                        '/chandler/WebMediaServer?labelImg=' +
                         encodeURIComponent(slotProps.i[1].id) +
                         '&timestamp=' +
                         encodeURIComponent(slotProps.i[1].labelImageTimestamp)
@@ -1054,7 +1054,7 @@
                         v-if="fixtureAssignments[fname.slice(1)]?.label_image"
                         style="max-height: 4em"
                         :src="
-                          '../WebMediaServer?file=' +
+                          '/chandler/WebMediaServer?file=' +
                           encodeURIComponent(
                             fixtureAssignments[fname.slice(1)]?.label_image
                           ) +
@@ -1073,7 +1073,7 @@
                         <img
                           style="max-height: 4em; object-fit: cover"
                           :src="
-                            '../WebMediaServer?file=' +
+                            '/chandler/WebMediaServer?file=' +
                             encodeURIComponent(
                               getPresetImage(h['__preset__'].v)
                             )

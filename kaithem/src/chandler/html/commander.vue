@@ -261,7 +261,7 @@ div.highlight {
                   onerror='this.style.display = "none"'
                   v-if="cuemeta[i[1].cue].labelImage"
                   :src="
-                    '../WebMediaServer?labelImg=' +
+                    '/chandler/WebMediaServer?labelImg=' +
                     encodeURIComponent(cuemeta[i[1].cue].id) +
                     '&timestamp=' +
                     encodeURIComponent(cuemeta[i[1].cue].labelImageTimestamp)
@@ -289,7 +289,7 @@ div.highlight {
                       onerror='this.style.display = "none"'
                       v-if="cuemeta[i[1].cue].sound"
                       :src="
-                        '../WebMediaServer?albumArt=' +
+                        '/chandler/WebMediaServer?albumArt=' +
                         encodeURIComponent(i[1].cue)
                       " />
 
@@ -477,7 +477,7 @@ div.highlight {
                 onerror='this.style.display = "none"'
                 v-if="cueSlot.i[1].labelImage"
                 :src="
-                  '../WebMediaServer?labelImg=' +
+                  '/chandler/WebMediaServer?labelImg=' +
                   encodeURIComponent(cueSlot.i[1].id) +
                   '&cacheid=' +
                   encodeURIComponent(cueSlot.i[1].labelImageTime)
@@ -568,7 +568,7 @@ div.highlight {
                   onerror='this.style.display = "none"'
                   v-if="cueSlot.i[1].labelImage"
                   :src="
-                    '../WebMediaServer?labelImg=' +
+                    '/chandler/WebMediaServer?labelImg=' +
                     encodeURIComponent(cueSlot.i[1].id) +
                     '&cacheid=' +
                     encodeURIComponent(cueSlot.i[1].labelImageTime)
@@ -608,7 +608,7 @@ div.highlight {
                   onerror='this.style.display = "none"'
                   v-if="cueSlot.i[1].sound"
                   :src="
-                    '../WebMediaServer?albumArt=' +
+                    '/chandler/WebMediaServer?albumArt=' +
                     encodeURIComponent(cueSlot.i[1].id)
                   " />
               </div>
@@ -668,7 +668,7 @@ import {
   sendGroupEventWithConfirm,
   addTimeToGroup,
 } from "./boardapi.mjs";
-import { httpVueLoader } from "../static/httploaderoptions.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
+import { httpVueLoader } from "./httploaderoptions.mjs";
 
 window.httpVueLoader = httpVueLoader;
 
@@ -688,14 +688,14 @@ export default {
     },
   components: {
     "cue-countdown": window.httpVueLoader(
-      "../static/cue-countdown.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0"
+      "./cue-countdown.vue"
     ),
     // Currently contains the timers and the display tags for the groups overview
     "group-ui": window.httpVueLoader(
-      "../static/group-ui-controls.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0"
+      "./group-ui-controls.vue"
     ),
     "cue-iter": window.httpVueLoader(
-      "../static/cue-iter.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0"
+      "./cue-iter.vue"
     ),
   },
 };

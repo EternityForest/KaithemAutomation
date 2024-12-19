@@ -13,7 +13,7 @@
             </div>
         </header>
 
-        <p><a :href="'../webmediadisplay?group=' + editinggroup.id">Web
+        <p><a :href="'./webmediadisplay?group=' + editinggroup.id">Web
                 Media Display</a></p>
 
         <div class="flex-row gaps">
@@ -41,7 +41,7 @@
                     </label>
                     <label v-if="currentcue.labelImage.length > 0">Label
                         Image Preview
-                        <img :src="'../WebMediaServer?labelImg=' + encodeURIComponent(currentcue.id) + '&timestamp=' + encodeURIComponent(currentcue.labelImageTimestamp)"
+                        <img :src="'/chandler/WebMediaServer?labelImg=' + encodeURIComponent(currentcue.id) + '&timestamp=' + encodeURIComponent(currentcue.labelImageTimestamp)"
                             class="h-center" style="max-height: 4em">
                     </label>
 
@@ -247,7 +247,7 @@ export default {
             var t = ['.mp3', '.ogg', '.wav', '.oga', '.opus', '.aac', '.flac']
             for (let i of t) {
                 if (s.endsWith(i)) {
-                    document.getElementById("soundpreview").src = "../WebMediaServer?file=" + encodeURIComponent(s);
+                    document.getElementById("soundpreview").src = "/chandler/WebMediaServer?file=" + encodeURIComponent(s);
                     document.getElementById("soundpreview").currentTime = 0;
                     document.getElementById("soundpreview").play();
                     document.getElementById("textpreview").src = "";
@@ -256,7 +256,7 @@ export default {
                     return
                 }
             }
-            document.getElementById("textpreview").src = "../WebMediaServer?file=" + encodeURIComponent(s);
+            document.getElementById("textpreview").src = "/chandler/WebMediaServer?file=" + encodeURIComponent(s);
             document.getElementById("soundpreview").src = ""
             document.getElementById("textpreview").style.display = 'block'
             document.getElementById("soundpreview").style.display = 'none'
@@ -265,7 +265,7 @@ export default {
     },
 
     "components": {
-        'media-browser': window.httpVueLoader('../static/media-browser.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0'),
+        'media-browser': window.httpVueLoader('/media-browser.vue'),
     },
 }
 </script>

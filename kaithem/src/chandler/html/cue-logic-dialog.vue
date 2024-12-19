@@ -90,7 +90,7 @@
 </template>
 
 <script>
-import { dictView, useBlankDescriptions, formatInterval } from "./utils.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
+import { dictView, useBlankDescriptions, formatInterval } from "./utils.mjs";
 
 
 const example_events_base = [
@@ -219,7 +219,7 @@ export default {
     },
     "components": {
         "combo-box": window.httpVueLoader("/static/vue/ComboBox.vue"),
-        "script-editor": window.httpVueLoader('../static/ScriptEditor.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0'),
+        "script-editor": window.httpVueLoader('./ScriptEditor.vue'),
     }
     ,
     computed: {

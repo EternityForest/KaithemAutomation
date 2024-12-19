@@ -405,7 +405,7 @@ class makePlayer {
                 f = f.split("milkdrop:")[1]
             }
 
-            var x = "WebMediaServer?group=" + this.group + "&file=" + encodeURIComponent(f);
+            var x = "/chandler/WebMediaServer?group=" + this.group + "&file=" + encodeURIComponent(f);
 
 
             if (this.isHTML(f)) {

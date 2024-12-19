@@ -26,11 +26,11 @@ input {
         <details v-on:toggle="groupData.doSlideshowEmbed = $event.target.open" style="margin: 0px; padding: 0px;"
             v-if="groupData.slideOverlayUrl || (cue && (cue.slide || cue.markdown)) || groupData.doSlideshowEmbed || groupData.soundOutput == 'groupwebplayer' || cue.soundOutput == 'groupwebplayer'">
             <summary class="noselect">
-                <a :href="'/chandler/webmediadisplay?group=' + groupData.id">(slideshow)</a>
+                <a :href="'./webmediadisplay?group=' + groupData.id">(slideshow)</a>
             </summary>
             <div class="preview-frame-wrapper">
                 <iframe v-if="groupData.doSlideshowEmbed" class="preview-frame"
-                    :src="'/chandler/webmediadisplay?group=' + groupData.id"></iframe>
+                    :src="'./webmediadisplay?group=' + groupData.id"></iframe>
             </div>
         </details>
         <div class="noselect flex-row gaps" v-if="groupData.displayTags.length > 0">
@@ -106,7 +106,7 @@ input {
 
 
 <script>
-import { formatInterval } from "./utils.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
+import { formatInterval } from "./utils.mjs";
 
 
 export default {

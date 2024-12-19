@@ -40,7 +40,7 @@
           <img
             v-if="getpresetimage(ps)"
             :src="
-              '../WebMediaServer?file=' + encodeURIComponent(getpresetimage(ps))
+              '/chandler/WebMediaServer?file=' + encodeURIComponent(getpresetimage(ps))
             " />
           <div
             class="label"
@@ -91,7 +91,7 @@
         <img
           v-if="getpresetimage(ps[0])"
           :src="
-            '../WebMediaServer?file=' +
+            '/chandler/WebMediaServer?file=' +
             encodeURIComponent(getpresetimage(ps[0]))
           " />
 
@@ -117,7 +117,7 @@
 
 <script setup>
 import { presets } from "./boardapi.mjs";
-import { dictView } from "./utils.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
+import { dictView } from "./utils.mjs";
 
 const props = defineProps({
   "fixture": String,
