@@ -254,7 +254,7 @@
                   type="button"
                   v-for="v of i[1].eventButtons"
                   v-bind:key="v[1] + '_' + v[0]"
-                  v-on:click="groupev(v[1], v[1])">
+                  v-on:click="sendGroupEventWithConfirm(v[1], v[1])">
                   {{ v[0] }}
                 </button>
               </div>
@@ -384,7 +384,7 @@
             type="text"
             :disabled="no_edit"
             v-model="evtosend"
-            v-on:keydown.enter="sendev"
+            v-on:keydown.enter="sendEvent"
             placeholder="Event Name"
             title="Event Name" />
         </label>
@@ -392,7 +392,7 @@
         <input
           :disabled="no_edit"
           v-model="evval"
-          v-on:keydown.enter="sendev"
+          v-on:keydown.enter="sendEvent"
           title="Event Value"
           placeholder="value" />
 
@@ -402,7 +402,7 @@
           <option value="str">Text</option>
         </select>
 
-        <button type="button" v-on:click="sendev('__global__')">Send</button>
+        <button type="button" v-on:click="sendEvent('__global__')">Send</button>
       </section>
 
       <section
@@ -2279,7 +2279,7 @@
                     <input
                       :disabled="no_edit"
                       v-model="evtosend"
-                      v-on:keydown.enter="sendev"
+                      v-on:keydown.enter="sendEvent"
                       placeholder="Event Name"
                       title="Event Name" />
                   </label>
@@ -2289,7 +2289,7 @@
                     <input
                       :disabled="no_edit"
                       v-model="evval"
-                      v-on:keydown.enter="sendev"
+                      v-on:keydown.enter="sendEvent"
                       title="Event Value"
                       placeholder="value" />
                   </label>
@@ -2302,7 +2302,7 @@
                     </select>
                   </label>
 
-                  <button type="button" v-on:click="sendev(groupname)">
+                  <button type="button" v-on:click="sendEvent(groupname)">
                     Send
                   </button>
                 </div>
@@ -2752,9 +2752,6 @@ import {
   midiInputs,
   blendModes,
   showimportexport,
-  evtosend,
-  evtypetosend,
-  evval,
   grouptab,
   fixtureClasses,
   groupfilter,
@@ -2784,8 +2781,7 @@ import {
   setCuePropertyDeferred,
   setGroupPropertyDeferred,
   saveToDisk,
-  sendev,
-  groupev,
+  sendGroupEventWithConfirm,
   refreshhistory,
   selectcue,
   selectgroup,
@@ -2849,6 +2845,22 @@ import {
 } from "../static/console.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
 
 import { formatTime } from "../static/utils.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
+
+
+let evtosend = Vue.ref("");
+let evtypetosend = Vue.ref("float");
+let evval = Vue.ref("");
+
+function sendEvent(where) {
+    window.api_link.send([
+        "event",
+        evtosend.value,
+        evval.value,
+        evtypetosend.value,
+        where,
+    ]);
+}
+
 </script>
 
 <script type="module">

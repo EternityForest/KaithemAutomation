@@ -386,7 +386,7 @@ div.highlight {
                   <button
                     v-for="v of i[1].eventButtons"
                     v-bind:key="v[0] + '-' + v[0]"
-                    v-on:click="groupev(v[1], v[1])">
+                    v-on:click="sendGroupEventWithConfirm(v[1], v[1])">
                     {{ v[0] }}
                   </button>
                 </div>
@@ -665,7 +665,7 @@ import {
   nextcue,
   setalpha,
   jumptocue,
-  groupev,
+  sendGroupEventWithConfirm,
   addTimeToGroup,
 } from "../static/boardapi.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
 import { httpVueLoader } from "../static/httploaderoptions.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
@@ -683,7 +683,7 @@ export default {
         nextcue,
         setalpha,
         jumptocue,
-        groupev,
+        sendGroupEventWithConfirm,
         addTimeToGroup,
     },
   components: {

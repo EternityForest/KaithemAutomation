@@ -1,16 +1,5 @@
-/* rather.value hacky file expects to.value become the app data for a vue instance
-
-
+/*
  It's slowly being refactored after getting very out of hand.
-
-It provides window.api_link
-
- It provides  appComputed, and appMethods to add to your vue instance.
-
- It also provides some globals:
-
- dictView, formatInterval
-
  Things are done oddly because:
 
  1. It was not originally planned to be feature.value rich
@@ -257,17 +246,7 @@ function saveToDisk() {
   api_link.send(["saveState"]);
 }
 
-function sendev(where) {
-  api_link.send([
-    "event",
-    evtosend.value,
-    evval.value,
-    evtypetosend.value,
-    where,
-  ]);
-}
-
-function groupev(evt, where) {
+function sendGroupEventWithConfirm(evt, where) {
   if (confirm_for_group(where)) {
     api_link.send(["event", evt, "", "str", where]);
   }
@@ -547,7 +526,7 @@ function addValToCue() {
     newcueu.value,
     newcuevnumber.value,
   ]);
-  if (parseInt(newcuevnumber.value) != NaN) {
+  if (!Number.isNaN(parseInt(newcuevnumber.value))) {
     newcuevnumber.value = (parseInt(newcuevnumber.value) + 1).toString();
   }
 }
@@ -712,9 +691,6 @@ let blendModes = Vue.ref([]);
 
 let soundfolders = Vue.ref([]);
 let showimportexport = Vue.ref(false);
-let evtosend = Vue.ref("");
-let evtypetosend = Vue.ref("float");
-let evval = Vue.ref("");
 
 let grouptab = Vue.ref("cue");
 let showPresets = Vue.ref(false);
@@ -1136,7 +1112,6 @@ function handleServerMessage(v) {
   } else if (c == "del") {
     old_vue_delete(selectedCues.value, v[1]);
     old_vue_delete(groupmeta.value, v[1]);
-    old_vue_delete(mtimes.value, v[1]);
     editingGroup.value = null;
   } else if (c == "soundfolderlisting") {
     // Handled in media-browser.vue
@@ -1294,9 +1269,7 @@ export {
   blendModes,
   soundfolders,
   showimportexport,
-  evtosend,
-  evtypetosend,
-  evval,
+
   grouptab,
   showPresets,
   configuredUniverses,
@@ -1335,8 +1308,7 @@ export {
   setCuePropertyDeferred,
   setGroupPropertyDeferred,
   saveToDisk,
-  sendev,
-  groupev,
+  sendGroupEventWithConfirm,
   refreshhistory,
   setCueVal,
   selectcue,
