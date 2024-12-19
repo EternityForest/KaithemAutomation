@@ -19,6 +19,9 @@ apt-get -y install nmap ncdu mc curl fatrace  unzip xdotool neofetch sqlite3
 apt-get -y install vim-tiny jq units git wget htop lsof git-lfs git-repair xloadimage iotop zenity rename sshpass nethogs dstat sysstat
 apt-get install trash-cli -y
 
+# The better alternative to grep, worth learning
+apt-get install ripgrep -y
+
 # Toys
 apt-get -y install robotfindskitten cowsay figlet
 
