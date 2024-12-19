@@ -265,7 +265,7 @@ export default {
     },
 
     "components": {
-        'media-browser': window.httpVueLoader('/media-browser.vue'),
+        'media-browser': window.httpVueLoader('./media-browser.vue'),
     },
 }
 </script>
