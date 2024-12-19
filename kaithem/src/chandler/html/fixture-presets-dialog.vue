@@ -179,22 +179,6 @@ function setFixturePreset(sc, fix, preset) {
 
   selectedPreset = JSON.parse(JSON.stringify(selectedPreset));
 
-  // if (generic) {
-  //     // If using a generic preset, we want to apply the white
-  //     // balance correction if at all possible.
-  //     var cal_white = presets['cal.white@' + fix]
-  //     var cal_white = cal_white || presets['cal.white@' + lookupFixtureType(fix)]
-  //     if (cal_white) {
-  //         for(i of ['red', 'green', 'blue', 'white']) {
-  //             if (cal_white.values[i] != undefined) {
-  //                 if(selectedPreset.values[i] != undefined) {
-  //                     selectedPreset.values[i] *= (cal_white.values[i] / 255)
-  //                     selectedPreset.values[i] = parseInt(selectedPreset.values[i])
-  //                 }
-  //             }
-  //         }
-  //     }
-  // }
 
   for (var i in props.currentvals) {
     // If just editing destinations

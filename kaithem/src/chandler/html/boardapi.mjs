@@ -315,13 +315,6 @@ function go(sc) {
   api_link.send(["go", sc]);
 }
 
-function goByName(sn) {
-  api_link.send(["gobyname", sn]);
-}
-
-function stopByName(sn) {
-  api_link.send(["stopbyname", sn]);
-}
 
 function shortcut(sc) {
   api_link.send(["shortcut", sc_code.value]);
@@ -341,10 +334,6 @@ function stop(sc, sn) {
 function setalpha(sc, v) {
   api_link.send(["setalpha", sc, v]);
   alphas.value[sc] = v;
-}
-
-function setfade(sc, v) {
-  api_link.send(["setfade", sc, v]);
 }
 
 function nextcue(sc) {
@@ -466,18 +455,10 @@ function setnumber(cue, v) {
   api_link.send(["setnumber", cue, v]);
 }
 
-//Only for things of the form command/property, object/operand, argument/value
-function apiCommand(sc, p, v) {
-  api_link.send([p, sc, v]);
-}
 
 function closePreview(s) {
   document.getElementById("soundpreviewdialog").close();
   document.getElementById("soundpreview").pause();
-}
-
-function setrandomize(sc, v) {
-  api_link.send(["setrandomize", sc, v]);
 }
 
 function setcrossfade(sc, v) {
@@ -493,10 +474,7 @@ function setmqttfeature(sc, feature, v) {
   api_link.send(["setmqttfeature", sc, feature, v]);
 }
 
-function setvisualization(sc, v) {
-  groupmeta.value[sc].musicVisualizations = v;
-  api_link.send(["setMusicVisualizations", sc, v]);
-}
+
 
 function setcommandtag(sc, v) {
   groupmeta.value[sc].commandTag = v;
@@ -1365,12 +1343,9 @@ export {
   selectgroup,
   delgroup,
   go,
-  goByName,
-  stopByName,
   shortcut,
   stop,
   setalpha,
-  setfade,
   nextcue,
   prevcue,
   add_cue,
@@ -1380,19 +1355,14 @@ export {
   uploadFileFromElement,
   downloadSetup,
   jumptocue,
-  getcuedata,
-  getcuemeta,
   setnext,
   setprobability,
   promptsetnumber,
   setnumber,
-  apiCommand,
   closePreview,
-  setrandomize,
   setcrossfade,
   setmqtt,
   setmqttfeature,
-  setvisualization,
   setcommandtag,
   setinfodisplay,
   setbpm,
