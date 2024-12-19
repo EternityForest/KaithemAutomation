@@ -1,5 +1,5 @@
 
-import{ boardname} from "../static/boardapi.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
+import{ boardname} from "./boardapi.mjs";
 
 let selectingPresetForDestination = Vue.ref(false)
 let selectingPresetFor= Vue.ref("")

@@ -10,6 +10,9 @@ const options = {
         if (path.includes(".vue")) {
             return;
         }
+        if(!path.startsWith("./")) {
+            path = "./" + path
+        }
         let x = import(path)
         console.log("loading", path, x)
         return x

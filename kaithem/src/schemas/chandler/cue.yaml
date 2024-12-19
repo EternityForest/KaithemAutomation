@@ -17,6 +17,8 @@ properties:
     type: string
     default: ''
     description: A shortcut code used to enter this cue
+    section: basic
+    icon: arrow-down-circle-outline
 
   checkpoint:
     type: boolean
@@ -56,10 +58,13 @@ properties:
   sound:
     type: string
     default: ''
+    icon: music
+    section: media
 
   slide:
     type: string
     default: ''
+    section: media
 
   label_image:
     type: string
@@ -107,6 +112,8 @@ properties:
     description: "If false, the system will block entering the cue if already in the cue"
     type: boolean
     default: true
+    section: basic
+    icon: mdi-replay
 
   length_randomize:
     type: number
@@ -115,6 +122,8 @@ properties:
   inherit_rules:
     type: string
     default: ''
+    section: rules
+    icon: script-text-outline
 
   rules:
     type: array

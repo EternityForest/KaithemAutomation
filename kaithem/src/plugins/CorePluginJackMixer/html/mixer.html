@@ -491,14 +491,14 @@
         loadedPreset: '',
         midiinports: [],
         midioutports: [],
-        recorderPortName: window.location.pathname.split('/')[3].replace(":", "_").replace("/", "_"),
-        recordName: window.location.pathname.split('/')[3].replace(":", "_").replace("/", "_")+"_",
+        recorderPortName: window.location.pathname.split("/").at(-1).replace(":", "_").replace("/", "_"),
+        recordName: window.location.pathname.split("/").at(-1).replace(":", "_").replace("/", "_")+"_",
         recordChannels: 2,
         recordStatus: "",
         channelStatus: {},
         showLabels: false,
         iframeDialog:null,
-        boardname :window.location.pathname.split('/')[3]
+        boardname :window.location.pathname.split("/").at(-1)
       }
     },
 

@@ -153,7 +153,7 @@ div.highlight {
         <header>
           <div class="tool-bar">
             <button id="toolbar-clock">{{ clock }}</button>
-            <a class="button" :href="'/chandler/editor/' + boardname"
+            <a class="button" :href="'/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/editor/' + boardname"
               ><i class="mdi mdi-pencil"></i
             ></a>
 
@@ -641,7 +641,7 @@ import {
     groupcues,
     formatGroups,
 
-} from "../static/boardapi.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
+} from "./boardapi.mjs";
 
 function formatTime(t) {
   var date = new Date(t * 1000);
@@ -667,7 +667,7 @@ import {
   jumptocue,
   sendGroupEventWithConfirm,
   addTimeToGroup,
-} from "../static/boardapi.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
+} from "./boardapi.mjs";
 import { httpVueLoader } from "../static/httploaderoptions.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
 
 window.httpVueLoader = httpVueLoader;

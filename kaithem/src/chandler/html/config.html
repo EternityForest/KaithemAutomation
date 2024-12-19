@@ -1,5 +1,4 @@
-<%inherit file="/pagetemplate.html" />
-<%block name="title">Chandler Editor</%block>
+<base href="/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/">
 
 <style>
     .grey {
@@ -63,7 +62,7 @@
 
 
 <script type="module">
-    import { initChandlerVueModel } from "../static/boardapi.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
+    import { initChandlerVueModel } from "./boardapi.mjs";
     import {httpVueLoader} from "../static/httploaderoptions.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
 
     // Legacy compatibility equivalents for the old vue2 apis. TODO get rid of this
@@ -90,6 +89,6 @@
                 'config-app': httpVueLoader('../static/config.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0')
             },
         }).mount("#app")
-    const boardname = window.location.pathname.split('/')[3];
+    const boardname = window.location.pathname.split("/").at(-1);
     initChandlerVueModel(boardname)
 </script>

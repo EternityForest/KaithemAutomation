@@ -1,0 +1,24 @@
+<div id="outer_container">
+    <console-app></console-app>
+</div>
+
+<base href="/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/">
+
+<link rel="stylesheet" type="text/css" href="./editor.css">
+
+<script src="/static/js/thirdparty/vue3.js"></script>
+<script src="/static/js/thirdparty/keyboard.min.js"></script>
+<script src="/static/js/thirdparty/strftime-min.js"></script>
+
+<script type="module">
+    import { httpVueLoader } from "./httploaderoptions.mjs"
+
+    import {initChandlerVueModel} from "./boardapi.mjs";
+
+    window.vueapp = Vue.createApp({
+        components: {
+            'console-app': window.httpVueLoader('./editor.vue')
+        }
+    }).mount("#outer_container")
+    initChandlerVueModel(window.boardname)
+</script>

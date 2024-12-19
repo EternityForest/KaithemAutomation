@@ -219,14 +219,14 @@
 import {
     getExcalidrawCueLink,
     iframeDialog,
-  } from "../static/console.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
+  } from "./editor.mjs";
 
 </script>
 
 <script>
 import {
     dictView
-} from "./utils.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
+} from "./utils.mjs";
 var data = {
 }
 

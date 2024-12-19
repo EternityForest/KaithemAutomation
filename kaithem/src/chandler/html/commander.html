@@ -1,5 +1,5 @@
-<%include file="/pageheader.html" />
 <script src="/static/js/thirdparty/keyboard.min.js"></script>
+<base href="/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/">
 
 <title>Chandler Commander</title>
 
@@ -21,11 +21,11 @@
 
 
 <script type="module">
-        import { initChandlerVueModel } from "../static/boardapi.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
+        import { initChandlerVueModel } from "./boardapi.mjs";
 
     import {httpVueLoader} from "../static/httploaderoptions.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
 
-    const boardname = window.location.pathname.split('/')[3];
+    const boardname = window.location.pathname.split("/").at(-1);
     document.title = boardname
 
     var vueapp = Vue.createApp(
@@ -41,5 +41,3 @@
 
     initChandlerVueModel(boardname)
 </script>
-
-<%include file="/pagefooter.html" />

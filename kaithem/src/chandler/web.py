@@ -98,7 +98,7 @@ async def label_update_callback(path: str):
 
 html_dir = os.path.join(os.path.dirname(__file__), "html")
 
-console_fn = os.path.join(html_dir, "console.html")
+console_fn = os.path.join(html_dir, "editor.html")
 
 schedule_fn = os.path.join(html_dir, "schedulemanager.html")
 
@@ -117,66 +117,12 @@ async def get_file_thumbnail():
     )
 
 
-@quart_app.app.route("/chandler/editor/<board>")
-def editor(board: str):
-    """Index page for web interface"""
-    try:
-        pages.require("system_admin")
-    except PermissionError:
-        return pages.loginredirect(pages.geturl())
-
-    return render_html_file(console_fn)
-
-
-# @quart_app.app.route("/chandler/scheduler/<board>")
-# def scheduler(board: str):
-#     """Index page for web interface"""
-#     try:
-#         pages.require("system_admin")
-#     except PermissionError:
-#         return pages.loginredirect(pages.geturl())
-
-#     return render_html_file(schedule_fn)
-
-
-@quart_app.app.route("/chandler/commander/<board>")
-def commander(board: str):
-    """Index page for web interface"""
-    try:
-        pages.require("chandler_operator")
-    except PermissionError:
-        return pages.loginredirect(pages.geturl())
-
-    return get_template("commander.html").render()
-
-
-@quart_app.app.route("/chandler/config/<board>")
-def config(board: str):
-    """Config page for web interface"""
-    try:
-        pages.require("system_admin")
-    except PermissionError:
-        return pages.loginredirect(pages.geturl())
-
-    return get_template("config.html").render()
-
-
-@quart_app.app.route("/chandler/config/opz_import/<board>")
+@quart_app.app.route(
+    "/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/opz_import/<board>"
+)
 def opz_import(board: str):
     pages.require("system_admin")
     return get_template("opz_import.html").render()
-
-
-@quart_app.app.route("/chandler/dyn_js/<file>")
-def dyn_js(file):
-    if file == "boardapi.mjs":
-        try:
-            pages.require("view_admin_info")
-        except PermissionError:
-            return pages.loginredirect(pages.geturl())
-
-        return get_template("boardapi.mjs").render()
-    raise RuntimeError("File not found")
 
 
 @quart_app.app.route("/chandler/static/<fn>")
@@ -327,8 +273,19 @@ async def media():
         raise RuntimeError("???")
 
 
+# The UUID is a cache busting value that gets updated with find and
+# replace for now, it's hacky but we it's a quick fix to let us use
+# relative URLs properly in a way that doesn't break the dev tools
+
+
+# This whole thing is more complicated than it seems like it should be,
+# pretty much entirely to keep templates and static files in the same relative
+# namespace
+@quart_app.app.route(
+    "/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/<path:path>"
+)
 @quart_app.app.route("/chandler/<path:path>")
-async def default(path):
+async def default(path: str):
     kwargs = quart.request.args
     if path in ("webmediadisplay",):
         pass
@@ -337,38 +294,49 @@ async def default(path):
             pages.require("chandler_operator")
         except PermissionError:
             return pages.loginredirect(pages.geturl())
-    if "." not in path:
-        path = path + ".html"
-    try:
 
-        def f():
-            r = get_template(path).render(
-                module=core,
-                kaithem=kaithem,
-                kwargs=kwargs,
-                groups=groups,
-                request=quart.request,
+    # Use the dot to distinguish templates vs static files
+    if "." not in path.split("/")[-1]:
+        path = path.split("/")[0] + ".html"
+        try:
+
+            def f():
+                r = render_html_file(os.path.join(html_dir, path), **kwargs)
+                if isinstance(r, str):
+                    r = r.encode()
+                return r
+
+            r = await quart.utils.run_sync(f)()
+            return quart.Response(r, mimetype="text/html")
+        except pages.ServeFileInsteadOfRenderingPageException as e:
+            if not isinstance(e.f_filepath, (str, os.PathLike)):
+                # bytesio not a real path....
+                return quart.Response(e.f_filepath)
+            return await quart.send_file(
+                e.f_filepath,
+                mimetype=e.f_MIME,
+                as_attachment=True,
+                attachment_filename=e.f_name,
             )
-            if isinstance(r, str):
-                r = r.encode()
-            return r
-
-        r = await quart.utils.run_sync(f)()
-        return quart.Response(r, mimetype="text/html")
-    except pages.ServeFileInsteadOfRenderingPageException as e:
-        if not isinstance(e.f_filepath, (str, os.PathLike)):
-            # bytesio not a real path....
-            return quart.Response(e.f_filepath)
+    else:
+        if ".." in path or "/" in path or "\\" in path:
+            raise RuntimeError("confuse a hacker script")
         return await quart.send_file(
-            e.f_filepath,
-            mimetype=e.f_MIME,
-            as_attachment=True,
-            attachment_filename=e.f_name,
+            os.path.join(os.path.dirname(__file__), "html", path)
         )
 
 
 @quart_app.app.route("/chandler/static/<path:file>")
 async def static_chandler_files(file):
+    if ".." in file or "/" in file or "\\" in file:
+        raise RuntimeError("confuse a hacker script")
+    return await quart.send_file(
+        os.path.join(os.path.dirname(__file__), "html", file)
+    )
+
+
+@quart_app.app.route("/chandler/static/<version>/<path:file>")
+async def static_chandler_files_dummy_version(version, file):
     if ".." in file or "/" in file or "\\" in file:
         raise RuntimeError("confuse a hacker script")
     return await quart.send_file(

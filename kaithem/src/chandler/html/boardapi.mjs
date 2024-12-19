@@ -644,10 +644,10 @@ function _formatGroups() {
 }
 let formatGroups = Vue.computed(_formatGroups);
 
-window.boardname = window.location.pathname.split("/")[3];
+window.boardname = window.location.pathname.split("/").at(-1);
 
 //https://stackoverflow.com/questions/6312993/javascript-seconds-to-time-string-with-format-hhmmss
-let boardname = Vue.ref(window.location.pathname.split("/")[3]);
+let boardname = Vue.ref(window.location.pathname.split("/").at(-1));
 let clock = Vue.ref("time_should_be_here");
 let sc_code = Vue.ref("");
 let serports = Vue.ref([]);
@@ -1214,7 +1214,7 @@ function goto(sc, cue) {
 
 var script = document.createElement("script");
 script.onload = function () {
-  const boardname = window.location.pathname.split("/")[3];
+  const boardname = window.location.pathname.split("/").at(-1);
   initChandlerVueModel(boardname);
 };
 

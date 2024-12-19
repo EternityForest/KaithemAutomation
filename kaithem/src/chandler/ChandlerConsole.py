@@ -83,6 +83,10 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         self.id = uuid.uuid4().hex
 
+        for i in "./\\*?\"<>|'":
+            if i in name:
+                raise ValueError(f"Name cannot contain {i}")
+
         self.name = name
 
         # mutable and immutable versions of the active groups list.

@@ -45,7 +45,7 @@
         <p>
           <b>{{ boardname }}</b>
         </p>
-        <a class="button" :href="'/chandler/commander/' + boardname"
+        <a class="button" :href="'/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/commander/' + boardname"
           ><i class="mdi mdi-dance-ballroom"></i
         ></a>
 
@@ -77,7 +77,7 @@
         <a
           aria-label="Settings"
           class="button"
-          :href="'/chandler/config/' + boardname"
+          :href="'/chandler/config/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/' + boardname"
           ><i class="mdi mdi-cog-outline"></i></a
         ><label>
           <i class="mdi mdi-volume-medium"></i
@@ -2837,16 +2837,16 @@ import {
   updatePreset,
   channelInfoForUniverseChannel,
   debugCueLen,
-} from "../static/boardapi.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
+} from "./boardapi.mjs";
 
 import {
   showPresetDialog,
   selectingPresetForDestination,
   selectingPresetFor,
   iframeDialog,
-} from "../static/console.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
+} from "./editor.mjs";
 
-import { formatTime } from "../static/utils.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
+import { formatTime } from "./utils.mjs";
 
 let showevents = Vue.ref(false);
 
@@ -2879,42 +2879,42 @@ export default {
   template: "#template",
   components: {
     "combo-box": window.httpVueLoader(
-      "/static/vue/ComboBox.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0"
+      "/static/vue/ComboBox.vue"
     ),
     "h-fader": window.httpVueLoader(
-      "../static/hfader.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0"
+      "./hfader.vue"
     ),
     "cue-countdown": window.httpVueLoader(
-      "../static/cue-countdown.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0"
+      "./cue-countdown.vue"
     ),
     "cue-table": window.httpVueLoader(
-      "../static/cuetable.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0"
+      "./cuetable.vue"
     ),
 
     // // Currently contains the timers and the display tags for the groups overview
     "group-ui": window.httpVueLoader(
-      "../static/group-ui-controls.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0"
+      "./group-ui-controls.vue"
     ),
     "smooth-range": window.httpVueLoader(
-      "/static/vue/smoothrange.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0"
+      "/static/vue/smoothrange.vue"
     ),
     "media-browser": window.httpVueLoader(
-      "../static/media-browser.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0"
+      "./media-browser.vue"
     ),
     "slideshow-telemetry": window.httpVueLoader(
-      "../static/signagetelemetry.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0"
+      "./signagetelemetry.vue"
     ),
     "fixture-presets-dialog": window.httpVueLoader(
-      "../static/fixture-presets-dialog.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0"
+      "./fixture-presets-dialog.vue"
     ),
     "cue-logic-dialog": window.httpVueLoader(
-      "../static/cue-logic-dialog.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0"
+      "./cue-logic-dialog.vue"
     ),
     "preset-editing-dialog": window.httpVueLoader(
-      "../static/preset-editing-dialog.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0"
+      "./preset-editing-dialog.vue"
     ),
     "cue-media-dialog": window.httpVueLoader(
-      "../static/cue-media-dialog.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0"
+      "./cue-media-dialog.vue"
     ),
   },
 };

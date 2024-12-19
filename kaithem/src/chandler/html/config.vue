@@ -430,7 +430,7 @@
           <button v-on:click="addfixturetype()">
             <i class="mdi mdi-plus"></i>New
           </button>
-          <a class="button" :href="'/chandler/config/opz_import/' + boardname"
+          <a class="button" :href="'/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/opz_import/' + boardname"
             >Import from OP-Z format</a
           >
         </div>
@@ -798,7 +798,7 @@ import {
   pushSettings,
   deleteUniverse,
 
-} from "../static/boardapi.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
+} from "./boardapi.mjs";
 
 
 
@@ -922,7 +922,7 @@ function setSoundFolders (folders) {
 
 <script>
 import {
-} from "../static/boardapi.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
+} from "./boardapi.mjs";
 
 import { httpVueLoader } from "../static/httploaderoptions.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
 
