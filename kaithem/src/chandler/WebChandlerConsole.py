@@ -472,16 +472,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             self.push_group_meta(msg[1])
             return
 
-        elif cmd_name == "gobyname":
-            self.groups_by_name[msg[1]].go()
-            self.push_group_meta(self.groups_by_name[msg[1]].id)
-            return
-
-        elif cmd_name == "stopbyname":
-            self.groups_by_name[msg[1]].stop()
-            self.push_group_meta(msg[1], statusOnly=True)
-            return
-
         elif cmd_name == "stop":
             x = groups.groups[msg[1]]
             x.stop()

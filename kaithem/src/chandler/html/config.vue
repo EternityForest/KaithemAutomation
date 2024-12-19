@@ -47,9 +47,7 @@
 </style>
 
 <template id="template">
-  <datalist
-    name="colorprofiles"
-    id="colorprofiles">
+  <datalist name="colorprofiles" id="colorprofiles">
     <option value="rgb.generic">Typical common RGB LED fixture</option>
     <option value="rgbw.generic">Typical common RGBW LED fixture</option>
 
@@ -68,10 +66,7 @@
     </option>
   </datalist>
 
-  <div
-    id="app"
-    v-cloak
-    class="flex-row gaps">
+  <div id="app" v-cloak class="flex-row gaps">
     <div
       v-if="iframeDialog"
       class="card paper flex-col"
@@ -86,9 +81,7 @@
         z-index: 100;
       ">
       <header>
-        <button
-          @click="iframeDialog = null"
-          class="w-full nogrow">
+        <button @click="iframeDialog = null" class="w-full nogrow">
           <i class="mdi mdi-close"></i>Close
         </button>
       </header>
@@ -126,9 +119,7 @@
         v-model="selectingImageLabelForFixture.label_image" />
 
       <div style="background-color: var(--alt-control-bg)">
-        <media-browser
-          :no_edit="no_edit"
-          :selectfolders="false">
+        <media-browser :no_edit="no_edit" :selectfolders="false">
           <template v-slot="slotProps">
             <button
               v-if="
@@ -183,10 +174,7 @@
           <i class="mdi mdi-folder-open"></i>Import/Export
         </button>
 
-        <a
-          class="button"
-          href="docs/index"
-          target="_blank"
+        <a class="button" href="docs/index" target="_blank"
           ><i class="mdi mdi-help-circle-outline"></i>Help</a
         >
       </div>
@@ -194,10 +182,7 @@
 
     <main class="w-full flex-row">
       <datalist id="serports">
-        <option
-          v-for="i of serports"
-          v-bind:key="i"
-          v-bind:value="i"></option>
+        <option v-for="i of serports" v-bind:key="i" v-bind:value="i"></option>
       </datalist>
 
       <datalist id="universes">
@@ -207,9 +192,7 @@
           v-bind:value="i"></option>
       </datalist>
 
-      <section
-        v-if="showimportexport"
-        class="flex-item window paper h-24rem">
+      <section v-if="showimportexport" class="flex-item window paper h-24rem">
         <header>
           <div class="tool-bar">
             <h3>Import/Export controls</h3>
@@ -219,9 +202,7 @@
           </div>
         </header>
 
-        <div
-          class="tool-bar"
-          style="padding: 0.25em; border-width: 2px">
+        <div class="tool-bar" style="padding: 0.25em; border-width: 2px">
           <p>Download:</p>
           <a
             class="button"
@@ -243,26 +224,15 @@
           >
         </div>
 
-        <div
-          class="tool-bar"
-          style="padding: 0.25em; border-width: 2px">
+        <div class="tool-bar" style="padding: 0.25em; border-width: 2px">
           <p>Upload:</p>
-          <a
-            class="button"
-            href="upload"
-            title="Upload a groups file"
+          <a class="button" href="upload" title="Upload a groups file"
             ><i class="mdi mdi-folder-open"></i>Groups</a
           >
-          <a
-            class="button"
-            href="uploadSetup"
-            title="Upload a groups file"
+          <a class="button" href="uploadSetup" title="Upload a groups file"
             ><i class="mdi mdi-folder-open"></i>Setup</a
           >
-          <a
-            class="button"
-            href="uploadLibrary"
-            title="Upload a groups file"
+          <a class="button" href="uploadLibrary" title="Upload a groups file"
             ><i class="mdi mdi-folder-open"></i>Fixture Lib</a
           >
         </div>
@@ -291,9 +261,7 @@
         </div>
       </section>
 
-      <div
-        v-if="showDMXSetup"
-        class="window margin flex-item w-sm-double">
+      <div v-if="showDMXSetup" class="window margin flex-item w-sm-double">
         <header>
           <div class="tool-bar">
             <h3>Universe Setup</h3>
@@ -310,9 +278,7 @@
 
         <div class="flex-row gaps margin">
           <div class="card">
-            <table
-              border="1"
-              class="paper">
+            <table border="1" class="paper">
               <tr>
                 <th>Universe</th>
                 <th>Status</th>
@@ -325,9 +291,7 @@
                 </td>
 
                 <td>
-                  <a
-                    class="button"
-                    :href="'/chandler/universe_info/' + i"
+                  <a class="button" :href="'/chandler/universe_info/' + i"
                     >Values</a
                   >
                 </td>
@@ -426,9 +390,7 @@
             </td>
           </tr>
         </table>
-        <input
-          placeholder="New Universe Name"
-          v-model="newuniversename" />
+        <input placeholder="New Universe Name" v-model="newuniversename" />
         <button
           v-on:click="
             configuredUniverses[newuniversename] = {
@@ -443,9 +405,7 @@
         </button>
       </div>
 
-      <section
-        v-if="universeFullSettings"
-        class="flex-item window paper">
+      <section v-if="universeFullSettings" class="flex-item window paper">
         <h3>
           <button v-on:click="universeFullSettings = 0">
             <i class="mdi mdi-close"></i>Close</button
@@ -470,9 +430,7 @@
           <button v-on:click="addfixturetype()">
             <i class="mdi mdi-plus"></i>New
           </button>
-          <a
-            class="button"
-            :href="'/chandler/config/opz_import/' + boardname"
+          <a class="button" :href="'/chandler/config/opz_import/' + boardname"
             >Import from OP-Z format</a
           >
         </div>
@@ -482,16 +440,12 @@
           data-testid="fixture-type-to-edit"
           v-model="selectedFixtureClass"
           v-on:change="getfixtureclass(selectedFixtureClass)">
-          <option
-            v-for="i in Object.keys(fixtureClasses)"
-            :value="i">
+          <option v-for="i in Object.keys(fixtureClasses)" :value="i">
             {{ i }}
           </option>
         </select>
 
-        <div
-          v-if="selectedFixtureClass"
-          class="margin">
+        <div v-if="selectedFixtureClass" class="margin">
           <h4>{{ selectedFixtureClass }}</h4>
 
           <div class="tool-bar">
@@ -691,9 +645,7 @@
         </div>
       </section>
 
-      <section
-        v-if="showfixtureassg"
-        class="flex-item window paper">
+      <section v-if="showfixtureassg" class="flex-item window paper">
         <header>
           <div class="tool-bar">
             <h3>Fixture Assignments</h3>
@@ -764,9 +716,7 @@
             <td>Type</td>
             <td>
               <select v-model="newfixtype">
-                <option
-                  v-for="(v, i) in fixtureClasses"
-                  v-bind:value="i">
+                <option v-for="(v, i) in fixtureClasses" v-bind:value="i">
                   {{ i }}
                 </option>
               </select>
@@ -776,18 +726,13 @@
           <tr>
             <td>Universe</td>
             <td>
-              <input
-                v-model="newfixuniverse"
-                list="universes" />
+              <input v-model="newfixuniverse" list="universes" />
             </td>
           </tr>
           <tr>
             <td>Address</td>
             <td>
-              <input
-                type="number"
-                min="1"
-                v-model="newfixaddr" />
+              <input type="number" min="1" v-model="newfixaddr" />
             </td>
           </tr>
         </table>
@@ -810,16 +755,10 @@
         <br />
       </section>
 
-      <section
-        class="window w-full h-8rem"
-        v-if="sys_alerts">
+      <section class="window w-full h-8rem" v-if="sys_alerts">
         <div class="flex-row scroll gaps padding">
-          <div
-            class="card"
-            v-for="(v, i) of sys_alerts">
-            <header
-              :class="v['barrel-class']"
-              class="padding">
+          <div class="card" v-for="(v, i) of sys_alerts">
+            <header :class="v['barrel-class']" class="padding">
               <i class="mdi mdi-alert"></i>{{ i }}
             </header>
             <p :class="v['barrel-class']">
@@ -831,13 +770,160 @@
     </main>
   </div>
 </template>
+<script setup>
+
+import {
+  
+  // used to be in appData
+  sys_alerts,
+  boardname,
+  serports,
+  fixtureAssignments,
+  newfixname,
+  newfixtype,
+  newfixaddr,
+  newfixuniverse,
+  ferrs,
+  no_edit,
+  universeFullSettings,
+  soundfolders,
+  showimportexport,
+  configuredUniverses,
+  fixtureClasses,
+  dictView,
+  universes,
+  
+  saveToDisk,
+  refreshPorts,
+  pushSettings,
+  deleteUniverse,
+
+} from "../static/boardapi.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
+
+
+
+function  chTypeChanged (i) {
+    const chType =
+      fixtureClasses.value[selectedFixtureClass.value].channels[
+        i
+      ].type;
+
+    fixtureClasses.value[selectedFixtureClass.value].channels[
+      i
+    ].name = chType;
+    // Set up the  data options param for each channel
+
+    if (chType == "fine") {
+      fixtureClasses.value[selectedFixtureClass.value].channels[
+        i
+      ].coarse = 0;
+    } else if (chType == "custom") {
+      fixtureClasses.value[selectedFixtureClass.value].channels[
+        i
+      ].ranges = [];
+    } else if (chType == "fixed") {
+      fixtureClasses.value[selectedFixtureClass.value].channels[
+        i
+      ].value = 0;
+    } else {
+      fixtureClasses.value[selectedFixtureClass.value].channels[
+        i
+      ].coarse = undefined;
+      fixtureClasses.value[selectedFixtureClass.value].channels[
+        i
+      ].value = undefined;
+      fixtureClasses.value[selectedFixtureClass.value].channels[
+        i
+      ].ranges = undefined;
+    }
+    this.pushfixture(selectedFixtureClass.value);
+  }
+function addFixtureAssignment (name, t, univ, addr) {
+    if (!name) {
+      return;
+    }
+    var d = {
+      name: name,
+      type: t,
+      universe: univ,
+      addr: addr,
+    };
+
+    window.api_link.send(["setFixtureAssignment", name, d]);
+}
+function getfixtureclasses () {
+    window.api_link.send(["getfixtureclasses"]);
+  }
+function showhidefixtures () {
+    showFixtureSetup.value = !showFixtureSetup.value;
+    getfixtureclasses();
+    selectedFixtureClass.value = "";
+  }
+function showhidefixtureassignments () {
+    getfixtureclasses();
+    showfixtureassg.value = !showfixtureassg.value;
+    window.api_link.send(["getfixtureassg"]);
+  }
+
+function getfixtureclass (i) {
+    if (i == "") {
+      return;
+    }
+    window.api_link.send(["getfixtureclass", i]);
+  }
+
+function addfixturetype () {
+    let x = prompt("New Fixture Type Name:", selectedFixtureType.value);
+    if (x) {
+      old_vue_set(fixtureClasses.value, x, { channels: [] });
+      selectedFixtureType.value = x;
+      window.api_link.send([
+        "setfixtureclass",
+        x,
+        fixtureClasses.value[x],
+      ]);
+      window.api_link.send(["getfixtureclass", x]);
+    }
+  }
+function delfixturetype () {
+    let x = confirm("Really delete?");
+    if (x) {
+      old_vue_delete(
+        fixtureClasses.value,
+        selectedFixtureType.value
+      );
+      window.api_link.send([
+        "rmfixtureclass",
+        selectedFixtureType.value,
+      ]);
+      selectedFixtureType.value = "";
+    }
+  }
+function pushfixture (i) {
+    window.api_link.send([
+      "setfixtureclass",
+      i,
+      fixtureClasses.value[i],
+    ]);
+  }
+
+function setFixtureAssignment (i, v) {
+    window.api_link.send(["setFixtureAssignment", i, v]);
+  }
+
+function rmFixtureAssignment (i) {
+    window.api_link.send(["rmFixtureAssignment", i]);
+  }
+
+function setSoundFolders (folders) {
+    window.api_link.send(["setsoundfolders", folders]);
+  }
+  </script>
 
 <script>
 import {
-  appData,
-  appMethods,
-  appComputed,
 } from "../static/boardapi.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
+
 import { httpVueLoader } from "../static/httploaderoptions.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
 
 // Legacy compatibility equivalents for the old vue2 apis. TODO get rid of this
@@ -854,165 +940,26 @@ window.visibilitychange = function () {
   document.activeElement.blur();
 };
 
-// Add page specific stuff to boardapi which is shared between all
-// the chandler apps
-var d = {
-  showfixtureassg: false,
-  showDMXSetup: false,
-  showMediaFolders: false,
-  showFixtureSetup: false,
-  selectedFixtureClass: "",
-  newuniversename: "",
-};
 
-for (var k in d) {
-  appData[k] = Vue.ref(d[k]);
-}
 
-var m = {
-  chTypeChanged: function (i) {
-    const chType =
-      appData.fixtureClasses.value[appData.selectedFixtureClass.value].channels[
-        i
-      ].type;
+let selectingImageLabelForFixture = Vue.ref(null);
+let iframeDialog = Vue.ref(null);
+let showfixtureassg = Vue.ref(false);
+let showDMXSetup = Vue.ref(false);
+let showMediaFolders = Vue.ref(false);
+let showFixtureSetup = Vue.ref(false);
+let selectedFixtureClass = Vue.ref("");
+let newuniversename = Vue.ref("");
+let selectedFixtureType = Vue.ref("");
 
-    appData.fixtureClasses.value[appData.selectedFixtureClass.value].channels[
-      i
-    ].name = chType;
-    // Set up the  data options param for each channel
-
-    if (chType == "fine") {
-      appData.fixtureClasses.value[appData.selectedFixtureClass.value].channels[
-        i
-      ].coarse = 0;
-    } else if (chType == "custom") {
-      appData.fixtureClasses.value[appData.selectedFixtureClass.value].channels[
-        i
-      ].ranges = [];
-    } else if (chType == "fixed") {
-      appData.fixtureClasses.value[appData.selectedFixtureClass.value].channels[
-        i
-      ].value = 0;
-    } else {
-      appData.fixtureClasses.value[appData.selectedFixtureClass.value].channels[
-        i
-      ].coarse = undefined;
-      appData.fixtureClasses.value[appData.selectedFixtureClass.value].channels[
-        i
-      ].value = undefined;
-      appData.fixtureClasses.value[appData.selectedFixtureClass.value].channels[
-        i
-      ].ranges = undefined;
-    }
-    this.pushfixture(appData.selectedFixtureClass.value);
-  },
-  addFixtureAssignment: function (name, t, univ, addr) {
-    if (!name) {
-      return;
-    }
-    var d = {
-      name: name,
-      type: t,
-      universe: univ,
-      addr: addr,
-    };
-
-    window.api_link.send(["setFixtureAssignment", name, d]);
-  },
-  showhidefixtures: function () {
-    appData.showFixtureSetup.value = !appData.showFixtureSetup.value;
-    this.getfixtureclasses();
-    appData.selectedFixtureClass.value = "";
-  },
-  showhidefixtureassignments: function () {
-    this.getfixtureclasses();
-    appData.showfixtureassg.value = !appData.showfixtureassg.value;
-    window.api_link.send(["getfixtureassg"]);
-  },
-  getfixtureclasses: function () {
-    window.api_link.send(["getfixtureclasses"]);
-  },
-  getfixtureclass: function (i) {
-    if (i == "") {
-      return;
-    }
-    window.api_link.send(["getfixtureclass", i]);
-  },
-
-  addfixturetype: function () {
-    let x = prompt("New Fixture Type Name:", appData.selectedFixtureType.value);
-    if (x) {
-      old_vue_set(appData.fixtureClasses.value, x, { channels: [] });
-      appData.selectedFixtureType.value = x;
-      window.api_link.send([
-        "setfixtureclass",
-        x,
-        appData.fixtureClasses.value[x],
-      ]);
-      window.api_link.send(["getfixtureclass", x]);
-    }
-  },
-  delfixturetype: function () {
-    let x = confirm("Really delete?");
-    if (x) {
-      old_vue_delete(
-        appData.fixtureClasses.value,
-        appData.selectedFixtureType.value
-      );
-      window.api_link.send([
-        "rmfixtureclass",
-        appData.selectedFixtureType.value,
-      ]);
-      appData.selectedFixtureType.value = "";
-    }
-  },
-  pushfixture: function (i) {
-    window.api_link.send([
-      "setfixtureclass",
-      i,
-      appData.fixtureClasses.value[i],
-    ]);
-  },
-
-  pushfixtureopz: function (i) {
-    window.api_link.send([
-      "setfixtureclassopz",
-      i,
-      appData.fixtureClasses.value[i],
-    ]);
-  },
-  setFixtureAssignment: function (i, v) {
-    window.api_link.send(["setFixtureAssignment", i, v]);
-  },
-
-  rmFixtureAssignment: function (i) {
-    window.api_link.send(["rmFixtureAssignment", i]);
-  },
-
-  setSoundFolders: function (folders) {
-    window.api_link.send(["setsoundfolders", folders]);
-  },
-};
-
-for (var ky in m) {
-  appMethods[ky] = m[ky];
-}
-
-appData.formatTime = function (t) {
-  var date = new Date(t * 1000);
-  return date.strftime("%I:%M:%S%p");
-};
-appData.selectingImageLabelForFixture = Vue.ref(null);
-appData.iframeDialog = Vue.ref(null);
-
-appData.getExcalidrawFixtureLink = function (fixture) {
+function getExcalidrawFixtureLink(fixture) {
   return (
     "/excalidraw-plugin/edit?module=" +
-    encodeURIComponent(appData.boardname.value.split(":")[0]) +
+    encodeURIComponent(boardname.value.split(":")[0]) +
     "&resource=" +
     encodeURIComponent(
       "media/chandler/sketches/fixture_" +
-        appData.boardname.value.split(":")[0] +
+        boardname.value.split(":")[0] +
         "_" +
         fixture +
         ".excalidraw.png"
@@ -1020,7 +967,7 @@ appData.getExcalidrawFixtureLink = function (fixture) {
     "&callback=" +
     encodeURIComponent(
       "/chandler/label_image_update_callback/fixture/" +
-        appData.boardname.value +
+        boardname.value +
         "/" +
         fixture
     ) +
@@ -1029,16 +976,12 @@ appData.getExcalidrawFixtureLink = function (fixture) {
 };
 
 export default {
-  setup: function () {
-    return appData;
-  },
+
   name: "config-app",
-  methods: appMethods,
   components: {
     "media-browser": httpVueLoader(
       "../static/media-browser.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0"
     ),
   },
-  computed: appComputed,
 };
 </script>

@@ -30,6 +30,7 @@
       style="align-items: flex-start; align-content: flex-start">
       <template v-for="ps of recentPresets.toReversed()">
         <button
+          v-bind:key="ps"
           v-if="checkPresetUsablility(ps)"
           @click="setFixturePreset(currentcueid, fixture, ps)"
           :disabled="no_edit"
@@ -76,6 +77,7 @@
         align-content: flex-start;
       ">
       <button
+        v-bind:key="ps[0]"
         v-for="ps of dictView(presets, sorts, function (k, v) {
           if (checkPresetUsablility(k)) {
             return 1;
