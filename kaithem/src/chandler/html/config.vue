@@ -779,10 +779,6 @@ import {
   boardname,
   serports,
   fixtureAssignments,
-  newfixname,
-  newfixtype,
-  newfixaddr,
-  newfixuniverse,
   ferrs,
   no_edit,
   universeFullSettings,
@@ -801,6 +797,10 @@ import {
 } from "./boardapi.mjs";
 
 
+let newfixname = Vue.ref("");
+let newfixtype = Vue.ref("");
+let newfixaddr = Vue.ref("");
+let newfixuniverse = Vue.ref("");
 
 function  chTypeChanged (i) {
     const chType =
@@ -849,10 +849,10 @@ function addFixtureAssignment (name, t, univ, addr) {
       addr: addr,
     };
 
-    window.api_link.send(["setFixtureAssignment", name, d]);
+    globalThis.api_link.send(["setFixtureAssignment", name, d]);
 }
 function getfixtureclasses () {
-    window.api_link.send(["getfixtureclasses"]);
+    globalThis.api_link.send(["getfixtureclasses"]);
   }
 function showhidefixtures () {
     showFixtureSetup.value = !showFixtureSetup.value;
@@ -862,14 +862,14 @@ function showhidefixtures () {
 function showhidefixtureassignments () {
     getfixtureclasses();
     showfixtureassg.value = !showfixtureassg.value;
-    window.api_link.send(["getfixtureassg"]);
+    globalThis.api_link.send(["getfixtureassg"]);
   }
 
 function getfixtureclass (i) {
     if (i == "") {
       return;
     }
-    window.api_link.send(["getfixtureclass", i]);
+    globalThis.api_link.send(["getfixtureclass", i]);
   }
 
 function addfixturetype () {
@@ -877,12 +877,12 @@ function addfixturetype () {
     if (x) {
       old_vue_set(fixtureClasses.value, x, { channels: [] });
       selectedFixtureType.value = x;
-      window.api_link.send([
+      globalThis.api_link.send([
         "setfixtureclass",
         x,
         fixtureClasses.value[x],
       ]);
-      window.api_link.send(["getfixtureclass", x]);
+      globalThis.api_link.send(["getfixtureclass", x]);
     }
   }
 function delfixturetype () {
@@ -892,7 +892,7 @@ function delfixturetype () {
         fixtureClasses.value,
         selectedFixtureType.value
       );
-      window.api_link.send([
+      globalThis.api_link.send([
         "rmfixtureclass",
         selectedFixtureType.value,
       ]);
@@ -900,7 +900,7 @@ function delfixturetype () {
     }
   }
 function pushfixture (i) {
-    window.api_link.send([
+    globalThis.api_link.send([
       "setfixtureclass",
       i,
       fixtureClasses.value[i],
@@ -908,15 +908,15 @@ function pushfixture (i) {
   }
 
 function setFixtureAssignment (i, v) {
-    window.api_link.send(["setFixtureAssignment", i, v]);
+    globalThis.api_link.send(["setFixtureAssignment", i, v]);
   }
 
 function rmFixtureAssignment (i) {
-    window.api_link.send(["rmFixtureAssignment", i]);
+    globalThis.api_link.send(["rmFixtureAssignment", i]);
   }
 
 function setSoundFolders (folders) {
-    window.api_link.send(["setsoundfolders", folders]);
+    globalThis.api_link.send(["setsoundfolders", folders]);
   }
   </script>
 
@@ -936,7 +936,7 @@ function old_vue_delete(o, k) {
 }
 
 // Blur the active element to cause Onchange events
-window.visibilitychange = function () {
+globalThis.visibilitychange = function () {
   document.activeElement.blur();
 };
 

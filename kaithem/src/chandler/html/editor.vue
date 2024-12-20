@@ -927,15 +927,15 @@
             <div class="tool-bar">
               <button
                 type="button"
-                v-bind:class="{ highlight: grouptab == 'cue' }"
-                v-on:click="grouptab = 'cue'">
+                v-bind:class="{ highlight: groupChannelsViewMode == 'cue' }"
+                v-on:click="groupChannelsViewMode = 'cue'">
                 <i class="mdi mdi-cog-outline"></i>Normal View
               </button>
               <button
                 type="button"
-                v-bind:class="{ highlight: grouptab == 'channels' }"
+                v-bind:class="{ highlight: groupChannelsViewMode == 'channels' }"
                 data-testid="add-rm-fixtures-button"
-                v-on:click="grouptab = 'channels'">
+                v-on:click="groupChannelsViewMode = 'channels'">
                 <i class="mdi mdi-list-box-outline"></i>Add/Remove Fixtures
               </button>
             </div>
@@ -962,7 +962,7 @@
                         :groupid="groupname"
                         :chinfo="channelInfoForUniverseChannel(i[1].u, i[1].ch)"
                         :currentcueid="currentcueid"
-                        :showdelete="grouptab == 'channels'"
+                        :showdelete="groupChannelsViewMode == 'channels'"
                         :fixcmd="h"
                         v-bind:key="i[1].ch"
                         v-for="i in dictView(h, [])">
@@ -1029,7 +1029,7 @@
                     </div>
                     <button
                       type="button"
-                      v-if="grouptab == 'channels'"
+                      v-if="groupChannelsViewMode == 'channels'"
                       v-on:click="rmFixCue(currentcueid, fname)">
                       <i class="mdi mdi-delete"></i>
                     </button>
@@ -1087,7 +1087,7 @@
                         :groupid="groupname"
                         :chinfo="channelInfoForUniverseChannel(i[1].u, i[1].ch)"
                         :currentcueid="currentcueid"
-                        :showdelete="grouptab == 'channels'"
+                        :showdelete="groupChannelsViewMode == 'channels'"
                         :fixcmd="h"
                         v-bind:key="i[1].ch"
                         v-for="i in dictView(h, [])">
@@ -1096,7 +1096,7 @@
                   </details>
                 </article>
               </template>
-              <div v-if="grouptab == 'channels'" class="flex-row gaps">
+              <div v-if="groupChannelsViewMode == 'channels'" class="flex-row gaps">
                 <div class="card margin">
                   <header>
                     <h4>Add Raw Channel</h4>
@@ -2736,7 +2736,7 @@ import {
   midiInputs,
   blendModes,
   showimportexport,
-  grouptab,
+  groupChannelsViewMode,
   fixtureClasses,
   groupfilter,
   keybindmode,

@@ -15,6 +15,7 @@ import {
   formatTime,
 } from "./utils.mjs";
 import { kaithemapi, APIWidget } from "/static/js/widget.mjs";
+//import { createApp, ref } from "/static/js/thirdparty/vue.esm-browser.js";
 
 let keysdown = {};
 
@@ -615,10 +616,7 @@ let serports = Vue.ref([]);
 let shortcuts = Vue.ref([]);
 //Index by name
 let fixtureAssignments = Vue.ref({});
-let newfixname = Vue.ref("");
-let newfixtype = Vue.ref("");
-let newfixaddr = Vue.ref("");
-let newfixuniverse = Vue.ref("");
+
 //Fixture error info str
 let ferrs = Vue.ref("");
 
@@ -647,7 +645,7 @@ let blendModes = Vue.ref([]);
 let soundfolders = Vue.ref([]);
 let showimportexport = Vue.ref(false);
 
-let grouptab = Vue.ref("cue");
+let groupChannelsViewMode = Vue.ref("cue");
 let configuredUniverses = Vue.ref({
   blah: { type: "enttec", interface: "xyz" },
 });
@@ -1191,10 +1189,6 @@ export {
   serports,
   shortcuts,
   fixtureAssignments,
-  newfixname,
-  newfixtype,
-  newfixaddr,
-  newfixuniverse,
   ferrs,
   cuePage,
   nuisianceRateLimit,
@@ -1209,7 +1203,7 @@ export {
   blendModes,
   soundfolders,
   showimportexport,
-  grouptab,
+  groupChannelsViewMode,
   configuredUniverses,
   fixtureClasses,
   groupfilter,
