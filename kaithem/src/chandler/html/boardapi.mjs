@@ -462,9 +462,7 @@ function testSoundCard(sc, c) {
   api_link.send(["testSoundCard", sc, c]);
 }
 
-function addGroup() {
-  api_link.send(["addgroup", newgroupname.value]);
-}
+
 
 function addRangeEffect(fix) {
   addfixToCurrentCue(
@@ -504,32 +502,7 @@ function rmFixCue(cue, fix) {
   api_link.send(["rmcuef", cue, fix]);
 }
 
-function addValueToCue() {
-  if (!newcueu.value) {
-    return;
-  }
-  api_link.send([
-    "add_cueval",
-    groupcues.value[groupname.value][selectedCues.value[groupname.value]],
-    newcueu.value,
-    newcuevnumber.value,
-  ]);
-  if (!Number.isNaN(Number.parseInt(newcuevnumber.value))) {
-    newcuevnumber.value = (Number.parseInt(newcuevnumber.value) + 1).toString();
-  }
-}
 
-function addTagToCue() {
-  if (!newcuetag.value) {
-    return;
-  }
-  api_link.send([
-    "add_cueval",
-    groupcues.value[groupname.value][selectedCues.value[groupname.value]],
-    newcuetag.value,
-    "value",
-  ]);
-}
 function editMode() {
   keyboardJS.reset();
   keybindmode.value = "edit";
@@ -648,11 +621,8 @@ let newfixaddr = Vue.ref("");
 let newfixuniverse = Vue.ref("");
 //Fixture error info str
 let ferrs = Vue.ref("");
-let evfilt = Vue.ref("");
-let newcueu = Vue.ref("");
-let newcuetag = Vue.ref("");
-let newcuevnumber = Vue.ref("");
-let newgroupname = Vue.ref("");
+
+
 //For each group what page are we on
 let cuePage = Vue.ref({});
 let nuisianceRateLimit = Vue.ref([10, Date.now()]);
@@ -1226,11 +1196,6 @@ export {
   newfixaddr,
   newfixuniverse,
   ferrs,
-  evfilt,
-  newcueu,
-  newcuetag,
-  newcuevnumber,
-  newgroupname,
   cuePage,
   nuisianceRateLimit,
   previousSerializedPromise,
@@ -1308,12 +1273,10 @@ export {
   setbpm,
   tap,
   testSoundCard,
-  addGroup,
   addRangeEffect,
   addfixToCurrentCue,
   rmFixCue,
-  addValueToCue as addValueToCue,
-  addTagToCue,
+
   editMode,
   runMode,
   refreshPorts,

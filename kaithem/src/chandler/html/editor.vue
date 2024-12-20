@@ -1,28 +1,4 @@
 <template id="template">
-  <datalist name="nextcueoptions" id="nextcueoptions">
-    <option>default</option>
-    <option></option>
-    <option>__random__</option>
-    <option>__shuffle__</option>
-    <option>__schedule__</option>
-  </datalist>
-
-  <datalist name="specialcues" id="specialcues">
-    <option value="__rules__">
-      All other cues in the group will inherit rules
-    </option>
-  </datalist>
-
-  <datalist name="lenoptions" id="lenoptions">
-    <option>0.25</option>
-    <option>1</option>
-    <option>2.5</option>
-    <option>5</option>
-    <option>10</option>
-    <option>25</option>
-    <option>@2:30PM</option>
-    <option>@2:30PM every Friday</option>
-  </datalist>
 
   <div id="app" v-cloak class="flex-row gaps">
     <datalist id="tagslisting">
@@ -359,7 +335,7 @@
             <h2>Event Log</h2>
             <input
               type="text"
-              v-model="evfilt"
+              v-model="eventsFilterString"
               placeholder="Filter events" /><br />
             <button type="button" v-on:click="showevents = 0">
               <i class="mdi mdi-close"></i>Close
@@ -370,12 +346,11 @@
         <div class="max-h-18rem scroll border">
           <div
             v-bind:class="{
-              evlisting: i[0] !== 'error',
               error: i[0].includes('error'),
             }"
             v-bind:key="i[2] + '@' + i[1]"
             v-for="i in recentEventsLog.filter(
-              (d) => d[1].search(evfilt) > -1 || d[0].search(evfilt) > -1
+              (d) => d[1].search(eventsFilterString) > -1 || d[0].search(eventsFilterString) > -1
             )">
             {{ i[2] }}:
             <b>{{ i[0] }}</b>
@@ -397,7 +372,7 @@
           <input
             type="text"
             :disabled="no_edit"
-            v-model="evtosend"
+            v-model="eventToSendBox"
             v-on:keydown.enter="sendEvent"
             placeholder="Event Name"
             title="Event Name" />
@@ -405,12 +380,12 @@
 
         <input
           :disabled="no_edit"
-          v-model="evval"
+          v-model="eventValueToSendBox"
           v-on:keydown.enter="sendEvent"
           title="Event Value"
           placeholder="value" />
 
-        <select v-model="evtypetosend">
+        <select v-model="eventTypeToSendSelection">
           <option value="int">Integer</option>
           <option value="float">Real Number</option>
           <option value="str">Text</option>
@@ -477,10 +452,10 @@
 
         <div class="tool-bar" style="padding: 0.25em; border-width: 2px">
           <p>Import Fixture Presets</p>
-          <input type="file" id="psfile" />
+          <input type="file" id="presetsfile" />
           <button
             type="button"
-            @click="uploadFileFromElement('#psfile', 'import-presets')"
+            @click="uploadFileFromElement('#presetsfile', 'import-presets')"
             title="Upload a groups file">
             <i class="mdi mdi-folder-open"></i>Go
           </button>
@@ -2296,7 +2271,7 @@
                     >Event name:
                     <input
                       :disabled="no_edit"
-                      v-model="evtosend"
+                      v-model="eventToSendBox"
                       v-on:keydown.enter="sendEvent"
                       placeholder="Event Name"
                       title="Event Name" />
@@ -2306,14 +2281,14 @@
                     >Value
                     <input
                       :disabled="no_edit"
-                      v-model="evval"
+                      v-model="eventValueToSendBox"
                       v-on:keydown.enter="sendEvent"
                       title="Event Value"
                       placeholder="value" />
                   </label>
                   <label
                     >Type
-                    <select v-model="evtypetosend">
+                    <select v-model="eventTypeToSendSelection">
                       <option value="int">Integer</option>
                       <option value="float">Real Number</option>
                       <option value="str">Text</option>
@@ -2334,15 +2309,15 @@
                   <p>{{ editingGroup.blendDesc }}</p>
                   <p>
                     <label
-                      v-bind:key="k[0]"
-                      v-for="(k, v) of dictView(editingGroup.blendArgs, [])"
-                      >{{ k[0] }}:
+                      v-bind:key="arg[0]"
+                      v-for="arg of dictView(editingGroup.blendArgs, [])"
+                      >{{ arg[0] }}:
                       <input
                         :disabled="no_edit"
                         type="number"
                         style="width: 5em"
                         step="0.01"
-                        v-bind:title="k[0]"
+                        v-bind:title="arg[0]"
                         v-on:change="
                           setGroupProperty(
                             groupname,
@@ -2350,7 +2325,7 @@
                             editingGroup.blendArgs
                           )
                         "
-                        v-model="editingGroup.blendArgs[k[0]]" />
+                        v-model="editingGroup.blendArgs[arg[0]]" />
                     </label>
                   </p>
                 </div>
@@ -2717,7 +2692,7 @@
                     <th>Time</th>
                   </tr>
                   <tr
-                    v-for="(v, i) of groupmeta[groupname].history"
+                    v-for="v of groupmeta[groupname].history"
                     v-bind:key="v[1]">
                     <td>{{ v[0] }}</td>
                     <td>{{ new Date(v[1] * 1000).toLocaleString() }}</td>
@@ -2754,11 +2729,6 @@ import {
   boardname,
   shortcuts,
   fixtureAssignments,
-  evfilt,
-  newcueu,
-  newcuetag,
-  newcuevnumber,
-  newgroupname,
   no_edit,
   recentEventsLog,
   soundCards,
@@ -2823,12 +2793,9 @@ import {
   setbpm,
   tap,
   testSoundCard,
-  addGroup,
   addRangeEffect,
   addfixToCurrentCue,
   rmFixCue,
-  addValueToCue,
-  addTagToCue,
   editMode,
   runMode,
   setEventButtons,
@@ -2856,11 +2823,21 @@ import {
   shortcut,
   closePreview,
   iframeDialog,
+  eventsFilterString,
+  newcueu,
+  newcuetag,
+  newcuevnumber,
+  newgroupname,
+
+  addValueToCue,
+  addTagToCue,
+  addGroup,
 } from "./editor.mjs";
 
 import { formatTime } from "./utils.mjs";
 
 let showevents = Vue.ref(false);
+
 
 globalThis.addEventListener(
   "servererrorevent",
@@ -2870,16 +2847,16 @@ globalThis.addEventListener(
   false
 );
 
-let evtosend = Vue.ref("");
-let evtypetosend = Vue.ref("float");
-let evval = Vue.ref("");
+let eventToSendBox = Vue.ref("");
+let eventTypeToSendSelection = Vue.ref("float");
+let eventValueToSendBox = Vue.ref("");
 
 function sendEvent(where) {
   globalThis.api_link.send([
     "event",
-    evtosend.value,
-    evval.value,
-    evtypetosend.value,
+    eventToSendBox.value,
+    eventValueToSendBox.value,
+    eventTypeToSendSelection.value,
     where,
   ]);
 }
