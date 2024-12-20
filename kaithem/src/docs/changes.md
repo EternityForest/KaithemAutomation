@@ -13,6 +13,7 @@ Change Log
 - :bug: Fix pagination of tag points pages
 - :sparkles: \_\_next\_\_ special cue
 - :sparkles: Creating or cloning cues inserts after selected
+- :bug: Fix importing fixture presets
 
 
 

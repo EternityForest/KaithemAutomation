@@ -7,7 +7,6 @@
 
 
 */
-"use strict";
 
 import {
   useBlankDescriptions,
@@ -47,24 +46,20 @@ let channelInfoByUniverseAndNumber = Vue.ref({});
 
 let presets = Vue.ref({});
 
-function keyHandle(e) {
-  if (keysdown[e.key] != undefined) {
-    if (keysdown[e.key]) {
-      return;
-    }
+function keyHandle(event_) {
+  if (keysdown[event_.key] != undefined && keysdown[event_.key]) {
+    return;
   }
-  keysdown[e.key] = true;
-  e.preventRepeat();
-  api_link.send(["event", "keydown." + e.key, 1, "int", "__global__"]);
+  keysdown[event_.key] = true;
+  event_.preventRepeat();
+  api_link.send(["event", "keydown." + event_.key, 1, "int", "__global__"]);
 }
-function keyUpHandle(e) {
-  if (keysdown[e.key] != undefined) {
-    if (!keysdown[e.key]) {
-      return;
-    }
+function keyUpHandle(event_) {
+  if (keysdown[event_.key] != undefined && !keysdown[event_.key]) {
+    return;
   }
-  keysdown[e.key] = false;
-  api_link.send(["event", "keyup." + e.key, 1, "int", "__global__"]);
+  keysdown[event_.key] = false;
+  api_link.send(["event", "keyup." + event_.key, 1, "int", "__global__"]);
 }
 
 function rebindKeys() {
@@ -126,12 +121,18 @@ async function initializeState(board) {
 
   v = await v.json();
 
-  for (var i in v) {
-    handleCueInfo(i, v[i]);
+  for (var index in v) {
+    handleCueInfo(index, v[index]);
   }
 }
 
 let cueSetData = {};
+
+
+
+function triggerShortcut(sc) {
+  api_link.send(["shortcut", sc]);
+}
 
 // Slowly we want to migrate to these two generic setters
 async function setGroupProperty(group, property, value) {
@@ -158,8 +159,8 @@ async function setGroupProperty(group, property, value) {
         "Content-type": "application/json; charset=UTF-8",
       },
     }
-  ).catch(function (e) {
-    alert("Error setting property.");
+  ).catch(function (error) {
+    alert("Error setting property: " + error);
   });
   await previousSerializedPromise.value;
 }
@@ -187,8 +188,8 @@ async function setCueProperty(cue, property, value) {
         "Content-type": "application/json; charset=UTF-8",
       },
     }
-  ).catch(function (e) {
-    alert("Error setting property.");
+  ).catch(function (error) {
+    alert("Error setting property: " + error);
   });
   await previousSerializedPromise.value;
 }
@@ -212,8 +213,8 @@ function setCuePropertyDeferred(cue, property, value) {
       headers: {
         "Content-type": "application/json; charset=UTF-8",
       },
-    }).catch(function (e) {
-      alert("Error setting property.");
+    }).catch(function (error) {
+      alert("Error setting property: " + error);
     });
     delete cueSetData[cue + property];
   }, 3000);
@@ -237,8 +238,8 @@ function setGroupPropertyDeferred(group, property, value) {
       headers: {
         "Content-type": "application/json; charset=UTF-8",
       },
-    }).catch(function (e) {
-      alert("Error setting property.");
+    }).catch(function (error) {
+      alert("Error setting property: " + error);
     });
     delete cueSetData[group + property];
   }, 3000);
@@ -248,25 +249,22 @@ function saveToDisk() {
   api_link.send(["saveState"]);
 }
 
-function sendGroupEventWithConfirm(evt, where) {
+function sendGroupEventWithConfirm(event_, where) {
   if (confirm_for_group(where)) {
-    api_link.send(["event", evt, "", "str", where]);
+    api_link.send(["event", event_, "", "str", where]);
   }
 }
 
 function refreshhistory(sc) {
   api_link.send(["getcuehistory", sc]);
 }
-function setCueVal(sc, u, ch, val) {
-  if (cuevals.value[sc]) {
-    if (cuevals.value[sc][u]) {
-      if (cuevals.value[sc][u]["__preset__"]) {
-        api_link.send(["scv", sc, u, "__preset__", null]);
-      }
-    }
+function setCueValue(sc, u, ch, value) {
+  if (cuevals.value?.[sc]?.[u]?.["__preset__"]) {
+    api_link.send(["scv", sc, u, "__preset__", null]);
   }
-  val = isNaN(parseFloat(val)) ? val : parseFloat(val);
-  api_link.send(["scv", sc, u, ch, val]);
+
+  value = Number.isNaN(Number.parseFloat(value)) ? value : Number.parseFloat(value);
+  api_link.send(["scv", sc, u, ch, value]);
 }
 
 function selectcue(sc, cue) {
@@ -296,12 +294,8 @@ function go(sc) {
   api_link.send(["go", sc]);
 }
 
-function shortcut(sc) {
-  api_link.send(["shortcut", sc_code.value]);
-  sc_code.value = "";
-}
 
-function stop(sc, sn) {
+function stop(sc) {
   var x = confirm(
     "Really stop group? The cue and all variables will be reset."
   );
@@ -316,24 +310,24 @@ function setalpha(sc, v) {
   alphas.value[sc] = v;
 }
 
-function nextcue(sc) {
+function gotoNextCue(sc) {
   if (confirm_for_group(sc)) {
-    api_link.send(["nextcue", sc]);
+    api_link.send(["gotoNextCue", sc]);
   }
 }
 
-function prevcue(sc) {
+function gotoPreviousCue(sc) {
   if (confirm_for_group(sc)) {
-    api_link.send(["prevcue", sc]);
+    api_link.send(["gotoPreviousCue", sc]);
   }
 }
 
 function add_cue(sc, v, after_cue) {
-  api_link.send(["add_cue", sc, v, parseFloat(after_cue.number) * 1000]);
+  api_link.send(["add_cue", sc, v, Number.parseFloat(after_cue.number) * 1000]);
   //There's a difference between "not there" undefined and actually set to undefined....
   if (groupcues.value[sc][v] == undefined) {
     //Placeholder so we can at least show a no cue found message till it arrives
-    old_vue_set(groupcues.value[sc], v, undefined);
+    old_vue_set(groupcues.value[sc], v);
   }
   if (cueSelectTimeout.value) {
     clearTimeout(cueSelectTimeout.value);
@@ -348,7 +342,7 @@ function clonecue(sc, cue, v) {
   //There's a difference between "not there" undefined and actually set to undefined....
   if (groupcues.value[sc][v] == undefined) {
     //Placeholder so we can at least show a no cue found message till it arrives
-    old_vue_set(groupcues.value[sc], v, undefined);
+    old_vue_set(groupcues.value[sc], v);
   }
   if (cueSelectTimeout.value) {
     clearTimeout(cueSelectTimeout.value);
@@ -387,9 +381,9 @@ function rmcue(cue) {
   api_link.send(["rmcue", cue]);
 }
 
-function uploadFileFromElement(e, type) {
+function uploadFileFromElement(elementselector, type) {
   // Type says what to do with it
-  let t = document.getElementById(e);
+  let t = document.querySelector(elementselector);
 
   async function readText(target) {
     const file = target.files.item(0);
@@ -401,8 +395,8 @@ function uploadFileFromElement(e, type) {
   readText(t);
 }
 function downloadSetup() {
-  downloadReqId.value = Math.random().toString();
-  api_link.send(["downloadSetup", downloadReqId.value]);
+  downloadRequestId.value = Math.random().toString();
+  api_link.send(["downloadSetup", downloadRequestId.value]);
 }
 function jumptocue(cue, group) {
   if (confirm_for_group(group)) {
@@ -435,10 +429,6 @@ function setnumber(cue, v) {
   api_link.send(["setnumber", cue, v]);
 }
 
-function closePreview(s) {
-  document.getElementById("soundpreviewdialog").close();
-  document.getElementById("soundpreview").pause();
-}
 
 function setcrossfade(sc, v) {
   groupmeta.value[sc].crossfade = v;
@@ -492,21 +482,21 @@ function addRangeEffect(fix) {
   );
 }
 
-function addfixToCurrentCue(fix, idx, len, spacing) {
+function addfixToCurrentCue(fix, index, length_, spacing) {
   //Idx and len are for adding range patters to an array of identical fixtures.
   //Otherwise they should be one
-  idx = parseInt(idx);
+  index = Number.parseInt(index);
 
-  if (idx != 1) {
-    fix = fix + "[" + idx + "]";
+  if (index != 1) {
+    fix = fix + "[" + index + "]";
   }
 
   api_link.send([
     "add_cuef",
     groupcues.value[groupname.value][selectedCues.value[groupname.value]],
     fix,
-    idx,
-    len,
+    index,
+    length_,
     spacing,
   ]);
 }
@@ -514,7 +504,7 @@ function rmFixCue(cue, fix) {
   api_link.send(["rmcuef", cue, fix]);
 }
 
-function addValToCue() {
+function addValueToCue() {
   if (!newcueu.value) {
     return;
   }
@@ -524,8 +514,8 @@ function addValToCue() {
     newcueu.value,
     newcuevnumber.value,
   ]);
-  if (!Number.isNaN(parseInt(newcuevnumber.value))) {
-    newcuevnumber.value = (parseInt(newcuevnumber.value) + 1).toString();
+  if (!Number.isNaN(Number.parseInt(newcuevnumber.value))) {
+    newcuevnumber.value = (Number.parseInt(newcuevnumber.value) + 1).toString();
   }
 }
 
@@ -555,16 +545,16 @@ function pushSettings() {
   api_link.send(["setconfuniverses", configuredUniverses.value]);
 }
 
-function newCueFromSlide(sc, i) {
-  api_link.send(["newFromSlide", sc, i]);
+function newCueFromSlide(sc, index) {
+  api_link.send(["newFromSlide", sc, index]);
 }
 
-function newCueFromSound(sc, i) {
-  api_link.send(["newFromSound", sc, i]);
+function newCueFromSound(sc, index) {
+  api_link.send(["newFromSound", sc, index]);
 }
 
-function setEventButtons(sc, i) {
-  api_link.send(["seteventbuttons", sc, i]);
+function setEventButtons(sc, index) {
+  api_link.send(["seteventbuttons", sc, index]);
 }
 function setTagInputValue(sc, tag, v) {
   api_link.send(["inputtagvalue", sc, tag, v]);
@@ -594,15 +584,20 @@ function _formatCues() {
   var z = {};
   var filt = true;
   //list cue objects
-  for (var i in groupcues.value[groupname.value]) {
-    var m = cuemeta.value[groupcues.value[groupname.value][i]];
-    if (m !== undefined) {
-      if (!filt | i.includes(cuefilter.value)) {
-        z[i] = m;
-      }
+  for (var index in groupcues.value[groupname.value]) {
+    var m = cuemeta.value[groupcues.value[groupname.value][index]];
+    if (m !== undefined && !filt | index.includes(cuefilter.value)) {
+      z[index] = m;
     }
   }
-  if (!filt) {
+  if (filt) {
+    return dictView(
+      z,
+      ["number"],
+      undefined,
+      cuePage.value[groupname.value]
+    ).filter((item) => item[1].id);
+  } else {
     formattedCues.value = dictView(
       z,
       ["number"],
@@ -610,13 +605,6 @@ function _formatCues() {
       cuePage.value[groupname.value]
     ).filter((item) => item[1].id);
     return formattedCues.value;
-  } else {
-    return dictView(
-      z,
-      ["number"],
-      undefined,
-      cuePage.value[groupname.value]
-    ).filter((item) => item[1].id);
   }
 }
 
@@ -645,12 +633,11 @@ function _formatGroups() {
 }
 let formatGroups = Vue.computed(_formatGroups);
 
-window.boardname = window.location.pathname.split("/").at(-1);
+globalThis.boardname = globalThis.location.pathname.split("/").at(-1);
 
 //https://stackoverflow.com/questions/6312993/javascript-seconds-to-time-string-with-format-hhmmss
-let boardname = Vue.ref(window.location.pathname.split("/").at(-1));
+let boardname = Vue.ref(globalThis.location.pathname.split("/").at(-1));
 let clock = Vue.ref("time_should_be_here");
-let sc_code = Vue.ref("");
 let serports = Vue.ref([]);
 let shortcuts = Vue.ref([]);
 //Index by name
@@ -711,10 +698,10 @@ function formatCueVals(c) {
   //Return a simplified version of the data in cuevals
   //Meant for direct display
   let op = {};
-  for (var i in c) {
-    op[i] = {};
-    for (var j in c[i]) {
-      op[i][j] = c[i][j].v;
+  for (var index in c) {
+    op[index] = {};
+    for (var index_ in c[index]) {
+      op[index][index_] = c[index][index_].v;
     }
   }
   return op;
@@ -722,7 +709,7 @@ function formatCueVals(c) {
 
 function doRateLimit() {
   nuisianceRateLimit.value[0] +=
-    (Date.now() - nuisianceRateLimit.value[1]) / 180000;
+    (Date.now() - nuisianceRateLimit.value[1]) / 180_000;
   nuisianceRateLimit.value[0] = Math.min(12, nuisianceRateLimit.value[0]);
   if (nuisianceRateLimit.value[0] > 0) {
     nuisianceRateLimit.value[0] -= 1;
@@ -731,9 +718,9 @@ function doRateLimit() {
 }
 
 function lookupFixtureType(f) {
-  for (var i in fixtureAssignments.value) {
-    if ("@" + fixtureAssignments.value[i].name == f) {
-      return fixtureAssignments.value[i].type;
+  for (var index in fixtureAssignments.value) {
+    if ("@" + fixtureAssignments.value[index].name == f) {
+      return fixtureAssignments.value[index].type;
     }
   }
   return "";
@@ -742,18 +729,16 @@ function lookupFixtureType(f) {
 function lookupFixtureColorProfile(f) {
   // If fixture has no color profile, the profile is just the type
   let x = "";
-  for (var i in fixtureAssignments.value) {
-    if ("@" + fixtureAssignments.value[i].name == f) {
-      x = fixtureAssignments.value[i].type;
+  for (var index in fixtureAssignments.value) {
+    if ("@" + fixtureAssignments.value[index].name == f) {
+      x = fixtureAssignments.value[index].type;
       break;
     }
   }
   if (x.length > 0) {
     let c = fixtureClasses.value[x];
-    if (c) {
-      if (c.color_profile && c.color_profile.length > 0) {
-        return c.color_profile;
-      }
+    if (c && c.color_profile && c.color_profile.length > 0) {
+      return c.color_profile;
     }
   }
   return x;
@@ -810,7 +795,7 @@ function addTimeToGroup(group) {
 function renamePreset(p) {
   var n = prompt("Preset Name?");
 
-  if (n && n.length) {
+  if (n && n.length > 0) {
     var b = presets.value[p];
     if (b) {
       delete presets.value[p];
@@ -825,10 +810,10 @@ function renamePreset(p) {
 function copyPreset(p) {
   var n = prompt("Copy to name?");
 
-  if (n && n.length) {
+  if (n && n.length > 0) {
     var b = presets.value[p];
     if (b) {
-      presets.value[n] = JSON.parse(JSON.stringify(b));
+      presets.value[n] = structuredClone(b);
       api_link.send(["preset", n, b]);
     }
   }
@@ -844,31 +829,29 @@ function savePreset(v, suggestedname) {
   v2.values = {};
 
   // Just the vals
-  for (var i in v) {
-    if (i == "__length__") {
+  for (var index in v) {
+    if (index == "__length__") {
       continue;
     }
-    if (i == "__spacing__") {
+    if (index == "__spacing__") {
       continue;
     }
-    if (i == "__preset__") {
+    if (index == "__preset__") {
       continue;
     }
 
-    v2.values[i] = v[i].v;
+    v2.values[index] = v[index].v;
   }
 
-  if (n && n.length) {
+  if (n && n.length > 0) {
     presets.value[n] = v2;
     api_link.send(["preset", n, v2]);
   }
 }
 
-async function debugCueLen(cuelenstr, force) {
-  if (!force) {
-    if (!isNaN(parseFloat(cuelenstr))) {
-      return;
-    }
+async function notifyPopupComputedCueLengthgth(cuelenstr, force) {
+  if (!force && !Number.isNaN(Number.parseFloat(cuelenstr))) {
+    return;
   }
 
   let x = fetch("/chandler/api/eval-cue-length?rule=" + cuelenstr, {
@@ -895,18 +878,18 @@ function getPresetImage(preset) {
   return "1x1.png";
 }
 
-function updatePreset(i, v) {
+function updatePreset(index, v) {
   /*Update given a name and the modified data as would be found in the presets file*/
-  presets.value[i] = v;
-  api_link.send(["preset", i, v]);
+  presets.value[index] = v;
+  api_link.send(["preset", index, v]);
 }
 
 function channelInfoForUniverseChannel(u, c) {
   if (channelInfoByUniverseAndNumber.value[u] == undefined) {
-    return undefined;
+    return;
   }
   if (channelInfoByUniverseAndNumber.value[u][c] == undefined) {
-    return undefined;
+    return;
   }
 
   return channelInfoByUniverseAndNumber.value[u][c][1];
@@ -932,7 +915,7 @@ function handleCueInfo(id, cue) {
   set(cuemeta.value, id, cue);
 }
 
-let downloadReqId = Vue.ref("");
+let downloadRequestId = Vue.ref("");
 
 function handleServerMessage(v) {
   let c = v[0];
@@ -945,13 +928,13 @@ function handleServerMessage(v) {
     if (v[2] == null) {
       delete slideshow_telemetry.value[v[1]];
     } else {
-      if (v[2].status != (slideshow_telemetry.value[v[1]] || {}).status) {
-        if (v[2].status.includes("FAILED")) {
-          if (doRateLimit.value()) {
-            errorTone("A slideshow display may need attention");
-            showslideshowtelemetry.value = true;
-          }
-        }
+      if (
+        v[2].status != (slideshow_telemetry.value[v[1]] || {}).status &&
+        v[2].status.includes("FAILED") &&
+        doRateLimit()
+      ) {
+        errorTone("A slideshow display may need attention");
+        showslideshowtelemetry.value = true;
       }
 
       slideshow_telemetry.value[v[1]] = v[2];
@@ -963,10 +946,8 @@ function handleServerMessage(v) {
   } else if (c == "cuehistory") {
     groupmeta.value[v[1]].history = v[2];
   } else if (c == "groupmeta") {
-    if (v[2].cue) {
-      if (cuemeta.value[v[2].cue] == undefined) {
-        getcuemeta(v[2].cue);
-      }
+    if (v[2].cue && cuemeta.value[v[2].cue] == undefined) {
+      getcuemeta(v[2].cue);
     }
 
     if (v[2].alpha != undefined) {
@@ -998,16 +979,14 @@ function handleServerMessage(v) {
 
     if (v[1][0].includes("error")) {
       const event = new Event("servererrorevent");
-      window.dispatchEvent(event);
+      globalThis.dispatchEvent(event);
       errorTone("");
     }
   } else if (c == "serports") {
     serports.value = v[1];
   } else if (c == "alerts") {
-    if (JSON.stringify(sys_alerts.value) != JSON.stringify(v[1])) {
-      if (v[1]) {
-        errorTone();
-      }
+    if (JSON.stringify(sys_alerts.value) != JSON.stringify(v[1]) && v[1]) {
+      errorTone();
     }
 
     sys_alerts.value = v[1];
@@ -1035,26 +1014,26 @@ function handleServerMessage(v) {
   } else if (c == "soundsearchresults") {
     const event = new Event("onsoundsearchresults");
     event.data = [v[1], v[2]];
-    window.dispatchEvent(event);
+    globalThis.dispatchEvent(event);
   } else if (c == "cuedata") {
     let d = {};
     old_vue_set(cuevals.value, v[1], d);
 
-    for (var i in v[2]) {
-      if (!(i in channelInfoByUniverseAndNumber.value)) {
-        api_link.send(["getcnames", i]);
+    for (var index in v[2]) {
+      if (!(index in channelInfoByUniverseAndNumber.value)) {
+        api_link.send(["getcnames", index]);
       }
-      old_vue_set(cuevals.value[v[1]], i, {});
+      old_vue_set(cuevals.value[v[1]], index, {});
 
-      for (var j in v[2][i]) {
+      for (var index_ in v[2][index]) {
         let y = {
-          u: i,
-          ch: j,
-          v: v[2][i][j],
+          u: index,
+          ch: index_,
+          v: v[2][index][index_],
         };
-        old_vue_set(cuevals.value[v[1]][i], j, y);
+        old_vue_set(cuevals.value[v[1]][index], index_, y);
         //The other 2 don't need to be reactive, v does
-        old_vue_set(y, "v", v[2][i][j]);
+        old_vue_set(y, "v", v[2][index][index_]);
       }
     }
   } else if (c == "commands") {
@@ -1073,7 +1052,9 @@ function handleServerMessage(v) {
       cuevals.value[cue][universe] = {};
     }
 
-    if (v[4] !== null) {
+    if (v[4] === null) {
+      old_vue_delete(cuevals.value[cue][universe], channel);
+    } else {
       let y = {
         u: universe,
         ch: channel,
@@ -1081,17 +1062,15 @@ function handleServerMessage(v) {
       };
       old_vue_set(y, "v", value);
       old_vue_set(cuevals.value[cue][universe], channel, y);
-    } else {
-      old_vue_delete(cuevals.value[cue][universe], channel);
     }
 
-    if (Object.entries(cuevals.value[cue][universe]).length == 0) {
+    if (Object.entries(cuevals.value[cue][universe]).length === 0) {
       old_vue_delete(cuevals.value[cue], universe);
     }
   } else if (c == "go") {
     old_vue_set(groupmeta.value[v[1]], "active", true);
   } else if (c == "refreshPage") {
-    window.reload();
+    globalThis.reload();
   } else if (c == "stop") {
     old_vue_set(groupmeta.value[v[1]], "active", false);
   } else if (c == "ferrs") {
@@ -1114,13 +1093,13 @@ function handleServerMessage(v) {
     // Handled in media-browser.vue
     const event = new Event("onsoundfolderlisting");
     event.data = [v[1], v[2]];
-    window.dispatchEvent(event);
+    globalThis.dispatchEvent(event);
   } else if (c == "fixturePresets") {
     presets.value = v[1];
   } else if (c == "preset") {
     presets.value[v[1]] = v[2];
   } else if (c == "fileDownload") {
-    if (v[1] == downloadReqId.value) {
+    if (v[1] == downloadRequestId.value) {
       const file = new File([v[2]], v[3], {
         type: "text/plain",
       });
@@ -1130,11 +1109,11 @@ function handleServerMessage(v) {
 
       link.href = url;
       link.download = file.name;
-      document.body.appendChild(link);
+      document.body.append(link);
       link.click();
 
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      link.remove();
+      globalThis.URL.revokeObjectURL(url);
     }
   } else if (c == "shortcuts") {
     shortcuts.value = v[1];
@@ -1157,16 +1136,16 @@ async function initChandlerVueModel(board) {
   // Exact sync on half seconds
   function unix_time_upd() {
     unixtime.value = api_link.now() / 1000;
-    setTimeout(unix_time_upd, 10000 - (api_link.now() % 10000));
+    setTimeout(unix_time_upd, 10_000 - (api_link.now() % 10_000));
   }
 
   unix_time_upd();
 
   function clock_upd() {
     var c = new Date(api_link.now()).toLocaleTimeString();
-    const el = document.getElementById("toolbar-clock");
-    if (el) {
-      el.innerHTML = c;
+    const element = document.querySelector("#toolbar-clock");
+    if (element) {
+      element.innerHTML = c;
     }
 
     setTimeout(clock_upd, 1000 - (api_link.now() % 1000));
@@ -1177,16 +1156,18 @@ async function initChandlerVueModel(board) {
   var update_meters = function () {
     var u = api_link.now() / 1000;
 
-    for (var i of document.querySelectorAll("[data-meter-ref]")) {
-      i.value = u - parseFloat(i.dataset.meterRef);
+    for (let index of document.querySelectorAll("[data-meter-ref]")) {
+      index.value = u - Number.parseFloat(index.dataset.meterRef);
     }
 
-    for (var i of document.querySelectorAll("[data-count-ref]")) {
-      let l =
-        parseFloat(i.dataset.countLen) * (60 / parseFloat(i.dataset.countBpm));
-      let e = parseFloat(i.dataset.countRef) + l;
+    for (let index of document.querySelectorAll("[data-count-ref]")) {
+      let durationLength =
+        Number.parseFloat(index.dataset.countLen) *
+        (60 / Number.parseFloat(index.dataset.countBpm));
 
-      i.innerHTML = formatInterval(e - u);
+      let endTime = Number.parseFloat(index.dataset.countRef) + durationLength;
+
+      index.innerHTML = formatInterval(endTime - u);
     }
   };
   setInterval(update_meters, 200);
@@ -1204,7 +1185,7 @@ function confirm_for_group(sc) {
 
 function next(sc) {
   return function () {
-    api_link.send(["nextcuebyname", sc]);
+    api_link.send(["gotoNextCuebyname", sc]);
   };
 }
 function goto(sc, cue) {
@@ -1214,13 +1195,13 @@ function goto(sc, cue) {
 }
 
 var script = document.createElement("script");
-script.onload = function () {
-  const boardname = window.location.pathname.split("/").at(-1);
+script.addEventListener("load", function () {
+  const boardname = globalThis.location.pathname.split("/").at(-1);
   initChandlerVueModel(boardname);
-};
+});
 
 let api_link = new APIWidget("WebChandlerConsole:" + boardname.value);
-window.api_link = api_link;
+globalThis.api_link = api_link;
 
 export {
   api_link,
@@ -1236,9 +1217,7 @@ export {
   sys_alerts,
   unixtime,
   boardname,
-  formatInterval,
   clock,
-  sc_code,
   serports,
   shortcuts,
   fixtureAssignments,
@@ -1273,10 +1252,8 @@ export {
   keybindmode,
   grouptimers,
   cuevals,
-  useBlankDescriptions,
   slideshow_telemetry,
   showslideshowtelemetry,
-  dictView,
   alphas,
   groupmeta,
   groupname,
@@ -1303,16 +1280,15 @@ export {
   saveToDisk,
   sendGroupEventWithConfirm,
   refreshhistory,
-  setCueVal,
+  setCueValue as setCueVal,
   selectcue,
   selectgroup,
   delgroup,
   go,
-  shortcut,
   stop,
   setalpha,
-  nextcue,
-  prevcue,
+  gotoNextCue,
+  gotoPreviousCue,
   add_cue,
   clonecue,
   gotonext,
@@ -1324,7 +1300,6 @@ export {
   setprobability,
   promptsetnumber,
   setnumber,
-  closePreview,
   setcrossfade,
   setmqtt,
   setmqttfeature,
@@ -1337,7 +1312,7 @@ export {
   addRangeEffect,
   addfixToCurrentCue,
   rmFixCue,
-  addValToCue,
+  addValueToCue as addValueToCue,
   addTagToCue,
   editMode,
   runMode,
@@ -1363,7 +1338,10 @@ export {
   getPresetImage,
   updatePreset,
   channelInfoForUniverseChannel,
-  debugCueLen,
+  notifyPopupComputedCueLengthgth as notifyPopupComputedCueLength,
   next,
   goto,
+  triggerShortcut
 };
+
+export { formatInterval, useBlankDescriptions, dictView } from "./utils.mjs";

@@ -430,11 +430,11 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             self.groups_by_name[msg[1]].goto_cue(msg[2], cause="manual")
             return
 
-        elif cmd_name == "nextcue":
+        elif cmd_name == "gotoNextCue":
             groups.groups[msg[1]].next_cue(cause="manual")
             return
 
-        elif cmd_name == "prevcue":
+        elif cmd_name == "gotoPreviousCue":
             groups.groups[msg[1]].prev_cue(cause="manual")
             return
 
@@ -520,7 +520,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             if msg[2] == "setup":
                 self.cl_load_setup_file(msg[1])
 
-            if msg[3] == "import-presets":
+            if msg[2] == "import-presets":
                 self.cl_import_fixture_presets(msg[1])
 
         elif cmd_name == "addgroup":

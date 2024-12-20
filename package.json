@@ -12,6 +12,7 @@
     "@playwright/test": "^1.49.0",
     "@types/node": "^20.12.12",
     "eslint": "^9.17.0",
+    "eslint-plugin-unicorn": "^56.0.1",
     "eslint-plugin-vue": "^9.32.0",
     "globals": "^15.13.0",
     "typescript-eslint": "^8.18.1"

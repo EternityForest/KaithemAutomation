@@ -45,7 +45,12 @@
         <p>
           <b>{{ boardname }}</b>
         </p>
-        <a class="button" :href="'/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/commander/' + boardname"
+        <a
+          class="button"
+          :href="
+            '/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/commander/' +
+            boardname
+          "
           ><i class="mdi mdi-dance-ballroom"></i
         ></a>
 
@@ -77,7 +82,9 @@
         <a
           aria-label="Settings"
           class="button"
-          :href="'/chandler/config/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/' + boardname"
+          :href="
+            '/chandler/config/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/' + boardname
+          "
           ><i class="mdi mdi-cog-outline"></i></a
         ><label>
           <i class="mdi mdi-volume-medium"></i
@@ -111,7 +118,7 @@
     <main class="w-full flex-row">
       <section
         class="window w-full max-h-12rem"
-        v-if="Object.keys(sys_alerts).length">
+        v-if="Object.keys(sys_alerts).length > 0">
         <div class="flex-row scroll gaps padding">
           <div
             class="card w-sm-full"
@@ -214,7 +221,7 @@
                     cuemeta[i[1].cue].rules &&
                     cuemeta[i[1].cue].rules.length > 0
                   "
-                  title="This cue has rules attatched"
+                  title="This cue has rules attached"
                   v-on:click="selectcue(groupname, cuemeta[i[1].cue].name)"
                   ><i class="mdi mdi-script-text-outline"></i
                 ></span>
@@ -230,10 +237,10 @@
                   v-on:click="go(i[0])">
                   <i class="mdi mdi-play"></i>Go!
                 </button>
-                <button type="button" v-on:click="prevcue(i[0])">
+                <button type="button" v-on:click="gotoPreviousCue(i[0])">
                   <i class="mdi mdi-skip-previous"></i>Prev
                 </button>
-                <button type="button" v-on:click="nextcue(i[0])">
+                <button type="button" v-on:click="gotoNextCue(i[0])">
                   Next<i class="mdi mdi-skip-next"></i>
                 </button>
                 <button
@@ -350,7 +357,10 @@
         <header>
           <div class="tool-bar">
             <h2>Event Log</h2>
-            <input type="text" v-model="evfilt" placeholder="Filter events" /><br />
+            <input
+              type="text"
+              v-model="evfilt"
+              placeholder="Filter events" /><br />
             <button type="button" v-on:click="showevents = 0">
               <i class="mdi mdi-close"></i>Close
             </button>
@@ -459,7 +469,7 @@
           <input type="file" id="setupfile" />
           <button
             type="button"
-            @click="uploadFileFromElement('setupfile', 'setup')"
+            @click="uploadFileFromElement('#setupfile', 'setup')"
             title="Upload a groups file">
             <i class="mdi mdi-folder-open"></i>Go
           </button>
@@ -470,7 +480,7 @@
           <input type="file" id="psfile" />
           <button
             type="button"
-            @click="uploadFileFromElement('psfile', 'setup')"
+            @click="uploadFileFromElement('#psfile', 'import-presets')"
             title="Upload a groups file">
             <i class="mdi mdi-folder-open"></i>Go
           </button>
@@ -499,9 +509,8 @@
       <dialog id="soundpreviewdialog">
         <header>
           <div class="tool-bar">
-                    <button type="button" v-on:click="closePreview">OK</button>
+            <button type="button" v-on:click="closePreview">OK</button>
           </div>
-          
         </header>
         <iframe id="textpreview" style="height: 24em; width: 24em"></iframe>
         <audio controls id="soundpreview"></audio>
@@ -772,7 +781,7 @@
                         'length',
                         $event.target.value
                       );
-                      debugCueLen($event.target.value);
+                      notifyPopupComputedCueLength($event.target.value);
                     "
                     class="w-12rem"
                     list="lenoptions"
@@ -1137,7 +1146,7 @@
                     <button
                       type="button"
                       :disabled="no_edit"
-                      v-on:click="addValToCue()">
+                      v-on:click="addValueToCue()">
                       <i class="mdi mdi-plus"></i>Add Channel to Cue
                     </button>
                   </div>
@@ -1438,7 +1447,7 @@
                               'length',
                               $event.target.value
                             );
-                            debugCueLen($event.target.value);
+                            notifyPopupComputedCueLength($event.target.value);
                           "
                           v-model="cuemeta[currentcueid].length"
                           min="0" />
@@ -2740,12 +2749,9 @@ import {
   formatCues,
   currentcue,
   currentcueid,
-
-  // used to be in appData
   sys_alerts,
   unixtime,
   boardname,
-  sc_code,
   shortcuts,
   fixtureAssignments,
   evfilt,
@@ -2794,11 +2800,10 @@ import {
   selectgroup,
   delgroup,
   go,
-  shortcut,
   stop,
   setalpha,
-  nextcue,
-  prevcue,
+  gotoNextCue,
+  gotoPreviousCue,
   add_cue,
   clonecue,
   gotonext,
@@ -2810,7 +2815,6 @@ import {
   setprobability,
   promptsetnumber,
   setnumber,
-  closePreview,
   setcrossfade,
   setmqtt,
   setmqttfeature,
@@ -2823,7 +2827,7 @@ import {
   addRangeEffect,
   addfixToCurrentCue,
   rmFixCue,
-  addValToCue,
+  addValueToCue,
   addTagToCue,
   editMode,
   runMode,
@@ -2841,13 +2845,16 @@ import {
   getPresetImage,
   updatePreset,
   channelInfoForUniverseChannel,
-  debugCueLen,
+  notifyPopupComputedCueLength,
 } from "./boardapi.mjs";
 
 import {
   showPresetDialog,
   selectingPresetForDestination,
   selectingPresetFor,
+  sc_code,
+  shortcut,
+  closePreview,
   iframeDialog,
 } from "./editor.mjs";
 
@@ -2855,7 +2862,7 @@ import { formatTime } from "./utils.mjs";
 
 let showevents = Vue.ref(false);
 
-window.addEventListener(
+globalThis.addEventListener(
   "servererrorevent",
   (e) => {
     showevents.value = true;
@@ -2868,7 +2875,7 @@ let evtypetosend = Vue.ref("float");
 let evval = Vue.ref("");
 
 function sendEvent(where) {
-  window.api_link.send([
+  globalThis.api_link.send([
     "event",
     evtosend.value,
     evval.value,
@@ -2883,44 +2890,24 @@ export default {
   name: "console-app",
   template: "#template",
   components: {
-    "combo-box": window.httpVueLoader(
-      "/static/vue/ComboBox.vue"
-    ),
-    "h-fader": window.httpVueLoader(
-      "./hfader.vue"
-    ),
-    "cue-countdown": window.httpVueLoader(
-      "./cue-countdown.vue"
-    ),
-    "cue-table": window.httpVueLoader(
-      "./cuetable.vue"
-    ),
+    "combo-box": globalThis.httpVueLoader("/static/vue/ComboBox.vue"),
+    "h-fader": globalThis.httpVueLoader("./hfader.vue"),
+    "cue-countdown": globalThis.httpVueLoader("./cue-countdown.vue"),
+    "cue-table": globalThis.httpVueLoader("./cuetable.vue"),
 
     // // Currently contains the timers and the display tags for the groups overview
-    "group-ui": window.httpVueLoader(
-      "./group-ui-controls.vue"
-    ),
-    "smooth-range": window.httpVueLoader(
-      "/static/vue/smoothrange.vue"
-    ),
-    "media-browser": window.httpVueLoader(
-      "./media-browser.vue"
-    ),
-    "slideshow-telemetry": window.httpVueLoader(
-      "./signagetelemetry.vue"
-    ),
-    "fixture-presets-dialog": window.httpVueLoader(
+    "group-ui": globalThis.httpVueLoader("./group-ui-controls.vue"),
+    "smooth-range": globalThis.httpVueLoader("/static/vue/smoothrange.vue"),
+    "media-browser": globalThis.httpVueLoader("./media-browser.vue"),
+    "slideshow-telemetry": globalThis.httpVueLoader("./signagetelemetry.vue"),
+    "fixture-presets-dialog": globalThis.httpVueLoader(
       "./fixture-presets-dialog.vue"
     ),
-    "cue-logic-dialog": window.httpVueLoader(
-      "./cue-logic-dialog.vue"
-    ),
-    "preset-editing-dialog": window.httpVueLoader(
+    "cue-logic-dialog": globalThis.httpVueLoader("./cue-logic-dialog.vue"),
+    "preset-editing-dialog": globalThis.httpVueLoader(
       "./preset-editing-dialog.vue"
     ),
-    "cue-media-dialog": window.httpVueLoader(
-      "./cue-media-dialog.vue"
-    ),
+    "cue-media-dialog": globalThis.httpVueLoader("./cue-media-dialog.vue"),
   },
 };
 </script>

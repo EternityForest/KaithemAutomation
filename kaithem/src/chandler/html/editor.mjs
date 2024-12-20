@@ -1,5 +1,5 @@
 
-import{ boardname} from "./boardapi.mjs";
+import{ boardname, triggerShortcut} from "./boardapi.mjs";
 
 let selectingPresetForDestination = Vue.ref(false)
 let selectingPresetFor= Vue.ref("")
@@ -77,8 +77,22 @@ window.setIframeDialog = function (iframe) {
 }
 window.boardname = boardname
 
-console.log('boardname', boardname)
+let sc_code = Vue.ref("");
+
+function shortcut() {
+  triggerShortcut(sc_code.value);
+  sc_code.value = "";
+}
+
+function closePreview(s) {
+  document.querySelector("#soundpreviewdialog").close();
+  document.querySelector("#soundpreview").pause();
+}
+
 export {
+    sc_code,
+    shortcut,
+    closePreview,
     showPresetDialog,
     selectingPresetForDestination,
     selectingPresetFor,

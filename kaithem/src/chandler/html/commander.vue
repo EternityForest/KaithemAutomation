@@ -153,7 +153,12 @@ div.highlight {
         <header>
           <div class="tool-bar">
             <button id="toolbar-clock">{{ clock }}</button>
-            <a class="button" :href="'/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/editor/' + boardname"
+            <a
+              class="button"
+              :href="
+                '/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/editor/' +
+                boardname
+              "
               ><i class="mdi mdi-pencil"></i
             ></a>
 
@@ -354,10 +359,10 @@ div.highlight {
                     v-on:click="go(i[0])">
                     <i class="mdi mdi-play"></i>
                   </button>
-                  <button v-on:click="prevcue(i[0])">
+                  <button v-on:click="gotoPreviousCue(i[0])">
                     <i class="mdi mdi-skip-previous"></i>
                   </button>
-                  <button v-on:click="nextcue(i[0])">
+                  <button v-on:click="gotoNextCue(i[0])">
                     <i class="mdi mdi-skip-next"></i>
                   </button>
                   <button class="stopbutton" v-on:click="stop(i[0])">
@@ -631,17 +636,23 @@ import {
   unixtime,
   boardname,
   clock,
-  sc_code,
   alphas,
   groupname,
   editingGroup,
   cuemeta,
   showPages,
   uiAlertSounds,
-    groupcues,
-    formatGroups,
-
+  groupcues,
+  formatGroups,
+  triggerShortcut,
 } from "./boardapi.mjs";
+
+const sc_code = Vue.ref("");
+
+function shortcut() {
+  triggerShortcut(sc_code.value);
+  sc_code.value = "";
+}
 
 function formatTime(t) {
   var date = new Date(t * 1000);
@@ -651,7 +662,6 @@ function formatTime(t) {
 const showUtils = Vue.ref(false);
 const compactCues = Vue.ref(true);
 const scratchpad = Vue.ref("Text here is NOT yet saved when page reloads.");
-
 </script>
 
 <script type="module">
@@ -661,8 +671,8 @@ import {
   shortcut,
   selectgroup,
   go,
-  prevcue,
-  nextcue,
+  gotoPreviousCue,
+  gotoNextCue,
   setalpha,
   jumptocue,
   sendGroupEventWithConfirm,
@@ -675,28 +685,21 @@ window.httpVueLoader = httpVueLoader;
 export default {
   name: "commander-app",
   template: "#template",
-    methods: {
-        shortcut,
-        selectgroup,
-        go,
-        prevcue,
-        nextcue,
-        setalpha,
-        jumptocue,
-        sendGroupEventWithConfirm,
-        addTimeToGroup,
-    },
+  methods: {
+    selectgroup,
+    go,
+    gotoPreviousCue,
+    gotoNextCue,
+    setalpha,
+    jumptocue,
+    sendGroupEventWithConfirm,
+    addTimeToGroup,
+  },
   components: {
-    "cue-countdown": window.httpVueLoader(
-      "./cue-countdown.vue"
-    ),
+    "cue-countdown": window.httpVueLoader("./cue-countdown.vue"),
     // Currently contains the timers and the display tags for the groups overview
-    "group-ui": window.httpVueLoader(
-      "./group-ui-controls.vue"
-    ),
-    "cue-iter": window.httpVueLoader(
-      "./cue-iter.vue"
-    ),
+    "group-ui": window.httpVueLoader("./group-ui-controls.vue"),
+    "cue-iter": window.httpVueLoader("./cue-iter.vue"),
   },
 };
 </script>
