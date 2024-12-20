@@ -795,6 +795,7 @@ import {
   deleteUniverse,
 
 } from "./boardapi.mjs";
+import * as Vue from "/static/js/thirdparty/vue.esm-browser.js";
 
 
 let newfixname = Vue.ref("");
@@ -925,6 +926,7 @@ import {
 } from "./boardapi.mjs";
 
 import { httpVueLoader } from "./httploaderoptions.mjs";
+import * as Vue from "/static/js/thirdparty/vue.esm-browser.js";
 
 // Legacy compatibility equivalents for the old vue2 apis. TODO get rid of this
 function old_vue_set(o, k, v) {

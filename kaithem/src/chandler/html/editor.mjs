@@ -6,16 +6,18 @@ import {
   selectedCues,
 } from "./boardapi.mjs";
 
-let selectingPresetForDestination = Vue.ref(false);
-let selectingPresetFor = Vue.ref("");
+import { ref } from "/static/js/thirdparty/vue.esm-browser.js";
+
+let selectingPresetForDestination = ref(false);
+let selectingPresetFor = ref("");
 
 function showPresetDialog(fixture, destination) {
   selectingPresetForDestination.value = destination ? true : false;
   selectingPresetFor.value = fixture;
 }
 
-let selectingImageLabelForPreset = Vue.ref(null);
-let iframeDialog = Vue.ref(null);
+let selectingImageLabelForPreset = ref(null);
+let iframeDialog = ref(null);
 
 const session_time = new Date().toISOString().slice(0, -8);
 globalThis.session_time = session_time;
@@ -41,9 +43,9 @@ function getExcalidrawCueLink(group, cue) {
 }
 
 // If true preset applies to final val of range effect
-selectingPresetForDestination = Vue.ref(false);
+selectingPresetForDestination = ref(false);
 
-selectingPresetFor = Vue.ref(null);
+selectingPresetFor = ref(null);
 // Add console specific stuff to the appdata
 
 document.title = boardname.value;
@@ -85,14 +87,14 @@ globalThis.setIframeDialog = function (iframe) {
 };
 globalThis.boardname = boardname;
 
-let sc_code = Vue.ref("");
+let sc_code = ref("");
 
 function shortcut() {
   triggerShortcut(sc_code.value);
   sc_code.value = "";
 }
 
-function closePreview(s) {
+function closePreview() {
   document.querySelector("#soundpreviewdialog").close();
   document.querySelector("#soundpreview").pause();
 }
@@ -128,11 +130,11 @@ function addGroup() {
   globalThis.api_link.send(["addgroup", newgroupname.value]);
 }
 
-let eventsFilterString = Vue.ref("");
-let newcueu = Vue.ref("");
-let newcuetag = Vue.ref("");
-let newcuevnumber = Vue.ref("");
-let newgroupname = Vue.ref("");
+let eventsFilterString = ref("");
+let newcueu = ref("");
+let newcuetag = ref("");
+let newcuevnumber = ref("");
+let newgroupname = ref("");
 
 
 

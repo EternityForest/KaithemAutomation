@@ -15,37 +15,37 @@ import {
   formatTime,
 } from "./utils.mjs";
 import { kaithemapi, APIWidget } from "/static/js/widget.mjs";
-//import { createApp, ref } from "/static/js/thirdparty/vue.esm-browser.js";
+import { computed, ref } from "/static/js/thirdparty/vue.esm-browser.js";
 
 let keysdown = {};
 
 //Current per group alpha channel
-let alphas = Vue.ref({});
-let groupmeta = Vue.ref({});
-let groupname = Vue.ref(null);
-let editingGroup = Vue.ref(null);
-let universes = Vue.ref({});
-let cues = Vue.ref({});
-let newcuename = Vue.ref("");
-let cuemeta = Vue.ref({});
-let availableCommands = Vue.ref({});
+let alphas = ref({});
+let groupmeta = ref({});
+let groupname = ref(null);
+let editingGroup = ref(null);
+let universes = ref({});
+let cues = ref({});
+let newcuename = ref("");
+let cuemeta = ref({});
+let availableCommands = ref({});
 // per scene user selected for editing
-let selectedCues = Vue.ref({});
-let showPages = Vue.ref(false);
-let uiAlertSounds = Vue.ref(true);
+let selectedCues = ref({});
+let showPages = ref(false);
+let uiAlertSounds = ref(true);
 // Used for things that auto select cues after a delay to set things
 // up but also are cancelable.
-let cueSelectTimeout = Vue.ref(0);
+let cueSelectTimeout = ref(0);
 //go from cue name to cue id
 //groupcues[groupuuid][cuename]=cueid
-let groupcues = Vue.ref({});
-let formattedCues = Vue.ref([]);
+let groupcues = ref({});
+let formattedCues = ref([]);
 //Indexed by universe then channel number
-let channelInfoByUniverseAndNumber = Vue.ref({});
+let channelInfoByUniverseAndNumber = ref({});
 //same info as groupvals, indexed hierarchally, as [universe][channel]
 //Actual objs are shared too so changing one obj change in in the other.
 
-let presets = Vue.ref({});
+let presets = ref({});
 
 function keyHandle(event_) {
   if (keysdown[event_.key] != undefined && keysdown[event_.key]) {
@@ -543,7 +543,7 @@ function _currentcue() {
   ];
 }
 
-let currentcue = Vue.computed(_currentcue);
+let currentcue = computed(_currentcue);
 
 function _currentcueid() {
   if (selectedCues.value[groupname.value] == undefined) {
@@ -552,7 +552,7 @@ function _currentcueid() {
   return groupcues.value[groupname.value][selectedCues.value[groupname.value]];
 }
 
-let currentcueid = Vue.computed(_currentcueid);
+let currentcueid = computed(_currentcueid);
 
 function _formatCues() {
   var z = {};
@@ -582,7 +582,7 @@ function _formatCues() {
   }
 }
 
-let formatCues = Vue.computed(_formatCues);
+let formatCues = computed(_formatCues);
 
 function _formatAllGroups() {
   /*Sorted list of group objects*/
@@ -594,7 +594,7 @@ function _formatAllGroups() {
   );
   return x;
 }
-let formatAllGroups = Vue.computed(_formatAllGroups);
+let formatAllGroups = computed(_formatAllGroups);
 
 function _formatGroups() {
   var flt = groupfilter.value;
@@ -605,63 +605,63 @@ function _formatGroups() {
     }
   );
 }
-let formatGroups = Vue.computed(_formatGroups);
+let formatGroups = computed(_formatGroups);
 
 globalThis.boardname = globalThis.location.pathname.split("/").at(-1);
 
 //https://stackoverflow.com/questions/6312993/javascript-seconds-to-time-string-with-format-hhmmss
-let boardname = Vue.ref(globalThis.location.pathname.split("/").at(-1));
-let clock = Vue.ref("time_should_be_here");
-let serports = Vue.ref([]);
-let shortcuts = Vue.ref([]);
+let boardname = ref(globalThis.location.pathname.split("/").at(-1));
+let clock = ref("time_should_be_here");
+let serports = ref([]);
+let shortcuts = ref([]);
 //Index by name
-let fixtureAssignments = Vue.ref({});
+let fixtureAssignments = ref({});
 
 //Fixture error info str
-let ferrs = Vue.ref("");
+let ferrs = ref("");
 
 
 //For each group what page are we on
-let cuePage = Vue.ref({});
-let nuisianceRateLimit = Vue.ref([10, Date.now()]);
+let cuePage = ref({});
+let nuisianceRateLimit = ref([10, Date.now()]);
 
-let previousSerializedPromise = Vue.ref(null);
+let previousSerializedPromise = ref(null);
 
-let no_edit = Vue.ref(!kaithemapi.checkPermission("system_admin"));
+let no_edit = ref(!kaithemapi.checkPermission("system_admin"));
 
 // Sorted from most to least recent
-let recentEventsLog = Vue.ref([["Page Load", formatTime(Date.now() / 1000)]]);
-let soundCards = Vue.ref({});
+let recentEventsLog = ref([["Page Load", formatTime(Date.now() / 1000)]]);
+let soundCards = ref({});
 
 //What universe if any to show the full settings page for
-let universeFullSettings = Vue.ref(false);
+let universeFullSettings = ref(false);
 
-let fixtureassg = Vue.ref("");
+let fixtureassg = ref("");
 
-let availableTags = Vue.ref({});
-let midiInputs = Vue.ref([]);
-let blendModes = Vue.ref([]);
+let availableTags = ref({});
+let midiInputs = ref([]);
+let blendModes = ref([]);
 
-let soundfolders = Vue.ref([]);
-let showimportexport = Vue.ref(false);
+let soundfolders = ref([]);
+let showimportexport = ref(false);
 
-let groupChannelsViewMode = Vue.ref("cue");
-let configuredUniverses = Vue.ref({
+let groupChannelsViewMode = ref("cue");
+let configuredUniverses = ref({
   blah: { type: "enttec", interface: "xyz" },
 });
 
-let fixtureClasses = Vue.ref({});
+let fixtureClasses = ref({});
 
 //Filter which groups are shown in the list
-let groupfilter = Vue.ref("");
-let cuefilter = Vue.ref("");
-let keybindmode = Vue.ref("edit");
+let groupfilter = ref("");
+let cuefilter = ref("");
+let keybindmode = ref("edit");
 //Keep track of what timers are running in a group
-let grouptimers = Vue.ref({});
+let grouptimers = ref({});
 //Formatted for display
-let cuevals = Vue.ref({});
-let slideshow_telemetry = Vue.ref({});
-let showslideshowtelemetry = Vue.ref(false);
+let cuevals = ref({});
+let slideshow_telemetry = ref({});
+let showslideshowtelemetry = ref(false);
 function formatCueVals(c) {
   //Return a simplified version of the data in cuevals
   //Meant for direct display
@@ -864,10 +864,10 @@ function channelInfoForUniverseChannel(u, c) {
 }
 
 // Current time as float seconds, updated periodically
-let unixtime = Vue.ref(Date.now() / 1000);
+let unixtime = ref(Date.now() / 1000);
 
 //All alarms active on server
-let sys_alerts = Vue.ref({});
+let sys_alerts = ref({});
 
 function handleCueInfo(id, cue) {
   //Make an empty list of cues if it's not there yet
@@ -883,7 +883,7 @@ function handleCueInfo(id, cue) {
   set(cuemeta.value, id, cue);
 }
 
-let downloadRequestId = Vue.ref("");
+let downloadRequestId = ref("");
 
 function handleServerMessage(v) {
   let c = v[0];

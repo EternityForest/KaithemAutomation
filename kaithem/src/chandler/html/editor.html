@@ -31,7 +31,6 @@
 
 <link rel="stylesheet" type="text/css" href="./editor.css">
 
-<script src="/static/js/thirdparty/vue3.js"></script>
 <script src="/static/js/thirdparty/keyboard.min.js"></script>
 <script src="/static/js/thirdparty/strftime-min.js"></script>
 
@@ -39,8 +38,9 @@
   import { httpVueLoader } from "./httploaderoptions.mjs";
 
   import { initChandlerVueModel } from "./boardapi.mjs";
+  import { createApp } from "/static/js/thirdparty/vue.esm-browser.js";
 
-  window.vueapp = Vue.createApp({
+  window.vueapp = createApp({
     components: {
       "console-app": window.httpVueLoader("./editor.vue"),
     },

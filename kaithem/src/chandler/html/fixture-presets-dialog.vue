@@ -118,6 +118,7 @@
 <script setup>
 import { presets } from "./boardapi.mjs";
 import { dictView } from "./utils.mjs";
+import * as Vue from "/static/js/thirdparty/vue.esm-browser.js";
 
 const props = defineProps({
   "fixture": String,

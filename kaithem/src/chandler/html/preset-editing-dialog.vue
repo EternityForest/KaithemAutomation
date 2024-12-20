@@ -212,6 +212,7 @@
 
 <script setup>
 import { dictView } from "./utils.mjs";
+import * as Vue from "/static/js/thirdparty/vue.esm-browser.js";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const props = defineProps({

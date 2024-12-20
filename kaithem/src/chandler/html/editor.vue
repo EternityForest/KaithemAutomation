@@ -2833,10 +2833,11 @@ import {
   addTagToCue,
   addGroup,
 } from "./editor.mjs";
+import {ref } from "/static/js/thirdparty/vue.esm-browser.js";
 
 import { formatTime } from "./utils.mjs";
 
-let showevents = Vue.ref(false);
+let showevents = ref(false);
 
 
 globalThis.addEventListener(
@@ -2847,9 +2848,9 @@ globalThis.addEventListener(
   false
 );
 
-let eventToSendBox = Vue.ref("");
-let eventTypeToSendSelection = Vue.ref("float");
-let eventValueToSendBox = Vue.ref("");
+let eventToSendBox = ref("");
+let eventTypeToSendSelection = ref("float");
+let eventValueToSendBox = ref("");
 
 function sendEvent(where) {
   globalThis.api_link.send([

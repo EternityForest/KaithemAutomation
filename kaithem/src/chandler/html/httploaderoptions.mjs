@@ -1,4 +1,5 @@
 import { loadModule } from '/static/js/thirdparty/vue3-sfc-loader.esm.js'
+import * as Vue from "/static/js/thirdparty/vue.esm-browser.js";
 
 
 const options = {
@@ -10,7 +11,10 @@ const options = {
         if (path.includes(".vue")) {
             return;
         }
-        if(!path.startsWith("./")) {
+        if(path.startsWith("http://") || path.startsWith("https://") || path.startsWith("/")) {
+
+        }
+        else if(!path.startsWith("./")) {
             path = "./" + path
         }
         let x = import(path)

@@ -646,6 +646,7 @@ import {
   formatGroups,
   triggerShortcut,
 } from "./boardapi.mjs";
+import * as Vue from "/static/js/thirdparty/vue.esm-browser.js";
 
 const sc_code = Vue.ref("");
 
