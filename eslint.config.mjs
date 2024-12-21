@@ -5,7 +5,7 @@ import pluginVue from "eslint-plugin-vue";
 import eslintPluginUnicorn from "eslint-plugin-unicorn";
 import importPlugin from "eslint-plugin-import";
 import html from "eslint-plugin-html";
-import html2 from "@html-eslint/eslint-plugin";
+import { default as html2 } from "@html-eslint/eslint-plugin" ;
 
 /** @type {import('eslint').Linter.Config[]} */
 export default [
@@ -13,7 +13,6 @@ export default [
   {
     plugins: {
       html,
-      html2,
     },
     settings: {
       "import/resolver": {
@@ -31,7 +30,7 @@ export default [
       },
     },
   },
-
+  html2.configs["flat/recommended"],
   eslintPluginUnicorn.configs["flat/recommended"],
   { languageOptions: { globals: globals.browser } },
   pluginJs.configs.recommended,
