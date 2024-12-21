@@ -131,7 +131,7 @@ div.highlight {
     <div class="flex-row w-full">
       <section
         class="window cols-2 max-h-24rem margin max-w-48rem"
-        v-if="Object.keys(sys_alerts).length">
+        v-if="Object.keys(sys_alerts).length > 0">
         <div class="flex-row scroll gaps padding">
           <div
             class="card w-sm-full"
@@ -506,7 +506,7 @@ div.highlight {
                     class="mdi mdi-track-light"
                     title="Cue Only"></span>
                   <span
-                    v-if="cueSlot.i[1].length"
+                    v-if="cueSlot.i[1].length > 0"
                     class="mdi mdi-clock-outline"
                     title="Timed Cue"></span>
                   <span
@@ -548,7 +548,7 @@ div.highlight {
                     class="mdi mdi-track-light"
                     title="Cue Only"></span>
                   <span
-                    v-if="cueSlot.i[1].length || cueSlot.i[1].relLength"
+                    v-if="cueSlot.i[1].length > 0 || cueSlot.i[1].relLength"
                     class="mdi mdi-clock-outline"
                     title="Timed Cue"></span>
                   <span
@@ -645,7 +645,17 @@ import {
   groupcues,
   formatGroups,
   triggerShortcut,
-} from "./boardapi.mjs";
+
+  // Methids
+  sys_alerts,
+  selectgroup,
+  go,
+  gotoPreviousCue,
+  gotoNextCue,
+  setalpha,
+  jumptocue,
+  sendGroupEventWithConfirm,
+  addTimeToGroup} from "./boardapi.mjs";
 import * as Vue from "/static/js/thirdparty/vue.esm-browser.js";
 
 const sc_code = Vue.ref("");
@@ -666,22 +676,9 @@ const scratchpad = Vue.ref("Text here is NOT yet saved when page reloads.");
 </script>
 
 <script type="module">
-import {
-  // Methids
-  sys_alerts,
-  shortcut,
-  selectgroup,
-  go,
-  gotoPreviousCue,
-  gotoNextCue,
-  setalpha,
-  jumptocue,
-  sendGroupEventWithConfirm,
-  addTimeToGroup,
-} from "./boardapi.mjs";
 import { httpVueLoader } from "./httploaderoptions.mjs";
 
-window.httpVueLoader = httpVueLoader;
+globalThis.httpVueLoader = httpVueLoader;
 
 export default {
   name: "commander-app",
@@ -697,10 +694,10 @@ export default {
     addTimeToGroup,
   },
   components: {
-    "cue-countdown": window.httpVueLoader("./cue-countdown.vue"),
+    "cue-countdown": globalThis.httpVueLoader("./cue-countdown.vue"),
     // Currently contains the timers and the display tags for the groups overview
-    "group-ui": window.httpVueLoader("./group-ui-controls.vue"),
-    "cue-iter": window.httpVueLoader("./cue-iter.vue"),
+    "group-ui": globalThis.httpVueLoader("./group-ui-controls.vue"),
+    "cue-iter": globalThis.httpVueLoader("./cue-iter.vue"),
   },
 };
 </script>

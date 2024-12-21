@@ -4,10 +4,17 @@ import tseslint from "typescript-eslint";
 import pluginVue from "eslint-plugin-vue";
 import eslintPluginUnicorn from "eslint-plugin-unicorn";
 import importPlugin from "eslint-plugin-import";
+import html from "eslint-plugin-html";
+import html2 from "@html-eslint/eslint-plugin";
 
 /** @type {import('eslint').Linter.Config[]} */
 export default [
+  { files: ["**/*.{js,mjs,cjs,ts,vue,html}"] },
   {
+    plugins: {
+      html,
+      html2,
+    },
     settings: {
       "import/resolver": {
         // You will also need to install and configure the TypeScript resolver
@@ -18,16 +25,13 @@ export default [
         },
 
         alias: {
-          map: [
-            ['/static/js', './kaithem/src/js'],
-          ],
-          extensions: ['.ts', '.js', '.jsx', '.json']
-        }
-
+          map: [["/static/js", "./kaithem/src/js"]],
+          extensions: [".ts", ".js", ".jsx", ".json"],
+        },
       },
     },
   },
-  { files: ["**/*.{js,mjs,cjs,ts,vue}"] },
+
   eslintPluginUnicorn.configs["flat/recommended"],
   { languageOptions: { globals: globals.browser } },
   pluginJs.configs.recommended,

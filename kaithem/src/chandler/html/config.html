@@ -65,30 +65,19 @@
     import {httpVueLoader} from "./httploaderoptions.mjs";
     import * as Vue from "/static/js/thirdparty/vue.esm-browser.js";
 
-    // Legacy compatibility equivalents for the old vue2 apis. TODO get rid of this
-    function old_vue_set(o, k, v) {
-        o[k] = v
-    }
-
-    function old_vue_delete(o, k) {
-        delete o[k]
-    }
-
-
     // Blur the active element to cause Onchange events
-    window.visibilitychange = function () {
+    globalThis.visibilitychange = function () {
         document.activeElement.blur();
     };
 
 
-    var vueapp = Vue.createApp(
+    Vue.createApp(
         {
-            setup: function () {
-            },
+            setup: function () {},
             components: {
                 'config-app': httpVueLoader('./config.vue')
             },
         }).mount("#app")
-    const boardname = window.location.pathname.split("/").at(-1);
+    const boardname = globalThis.location.pathname.split("/").at(-1);
     initChandlerVueModel(boardname)
 </script>

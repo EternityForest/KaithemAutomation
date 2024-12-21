@@ -1729,7 +1729,7 @@
                     v-model="editingGroup.slideOverlayUrl" />
                 </label>
 
-                <label title="Recieve note events from a MIDI input device">
+                <label title="Receive note events from a MIDI input device">
                   <span><i class="mdi mdi-midi-port"></i> MIDI Source:</span>
                   <input
                     :disabled="no_edit"
@@ -1744,7 +1744,7 @@
                     v-model="editingGroup.midiSource" />
                 </label>
 
-                <label title="Recieve shortcut codes from a command-type tag">
+                <label title="Receive shortcut codes from a command-type tag">
                   Command Tag:<input
                     :disabled="no_edit"
                     placeholder="Tagpoint"

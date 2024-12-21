@@ -1,42 +1,38 @@
 <script src="/static/js/thirdparty/keyboard.min.js"></script>
-<base href="/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/">
+<base href="/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/" />
 
 <title>Chandler Commander</title>
 
 <style>
-    main {
+  main {
     width: 100%;
-}
-
+  }
 </style>
 
 <div id="outer_app">
-    <commander-app></commander-app>
+  <commander-app></commander-app>
 </div>
-
-
 
 <script src="/static/js/thirdparty/strftime-min.js"></script>
 
-
 <script type="module">
-        import { initChandlerVueModel } from "./boardapi.mjs";
+  import { initChandlerVueModel } from "./boardapi.mjs";
 
-    import {httpVueLoader} from "./httploaderoptions.mjs";
+  import { httpVueLoader } from "./httploaderoptions.mjs";
+  import * as Vue from "/static/js/thirdparty/vue.esm-browser.js";
 
-    const boardname = window.location.pathname.split("/").at(-1);
-    document.title = boardname
+  const boardname = globalThis.location.pathname.split("/").at(-1);
+  document.title = boardname;
 
-    var vueapp = Vue.createApp(
-        {
-            data: function () {
-                return {};
-            },
+  Vue.createApp({
+    data: function () {
+      return {};
+    },
 
-            components: {
-                "commander-app": httpVueLoader('./commander.vue'),
-            }
-        }).mount("#outer_app")
+    components: {
+      "commander-app": httpVueLoader("./commander.vue"),
+    },
+  }).mount("#outer_app");
 
-    initChandlerVueModel(boardname)
+  initChandlerVueModel(boardname);
 </script>

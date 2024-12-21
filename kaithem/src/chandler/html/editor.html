@@ -40,10 +40,10 @@
   import { initChandlerVueModel } from "./boardapi.mjs";
   import { createApp } from "/static/js/thirdparty/vue.esm-browser.js";
 
-  window.vueapp = createApp({
+  globalThis.vueapp = createApp({
     components: {
-      "console-app": window.httpVueLoader("./editor.vue"),
+      "console-app": httpVueLoader("./editor.vue"),
     },
   }).mount("#outer_container");
-  initChandlerVueModel(window.boardname);
+  initChandlerVueModel(globalThis.boardname);
 </script>
