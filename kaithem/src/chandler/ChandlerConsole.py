@@ -112,8 +112,8 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         with open(
             os.path.join(os.path.dirname(__file__), "fixture_presets.yaml")
-        ) as f:
-            self.fixture_presets = yaml.safe_load(f)
+        ) as fp:
+            self.fixture_presets = yaml.safe_load(fp)
 
         self.fixtures: Dict[str, universes.Fixture] = {}
 
@@ -369,37 +369,60 @@ class ChandlerConsole(console_abc.Console_ABC):
         return copy.deepcopy(d)
 
     @core.cl_context.entry_point
-    def cl_load_setup_file(self, data_str: str):
+    def cl_import_from_resource_file(
+        self,
+        data_str: str,
+        fixture_types: bool = True,
+        universes: bool = True,
+        fixture_assignments: bool = True,
+        fixture_presets: bool = True,
+    ):
         data = yaml.load(data_str, Loader=yaml.SafeLoader)
         data = snake_compat.snakify_dict_keys(data)
 
-        if "fixture_types" in data:
-            self.fixture_classes.update(data["fixture_types"])
+        if "project" in data:
+            if "setup" in data:
+                data = data["project"]
+                data = data["setup"]
 
-        if "universes" in data:
-            self.configured_universes = data["universes"]
-            self.cl_create_universes(self.configured_universes)
+        if fixture_types:
+            if "fixture_types" in data:
+                self.fixture_classes.update(data["fixture_types"])
 
-        if "configured_universes" in data:
-            self.configured_universes = data["configured_universes"]
-            self.cl_create_universes(self.configured_universes)
+        if universes:
+            if "universes" in data:
+                for i in data["universes"]:
+                    self.configured_universes[i] = data["universes"][i]
+                self.cl_create_universes(self.configured_universes)
 
-        # Compatibility with a legacy typo
-        if "fixures" in data:
-            data["fixure_assignments"] = data["fixures"]
+            if "configured_universes" in data:
+                for i in data["configured_universes"]:
+                    self.configured_universes[i] = data["configured_universes"][
+                        i
+                    ]
+                self.cl_create_universes(self.configured_universes)
 
-        if "fixtures" in data:
-            data["fixure_assignments"] = data["fixtures"]
+        if fixture_assignments:
+            # Compatibility with a legacy typo
+            if "fixures" in data:
+                data["fixure_assignments"] = data["fixures"]
 
-        if "fixure_assignments" in data:
-            self.fixture_assignments = data["fixure_assignments"]
-            self.cl_reload_fixture_assignment_data()
+            if "fixtures" in data:
+                data["fixure_assignments"] = data["fixtures"]
 
-        if "fixture_presets" in data:
-            x = data["fixture_presets"]
-            self.fixture_presets = {
-                i: from_legacy_preset_format(x[i]) for i in x
-            }
+            if "fixure_assignments" in data:
+                for i in data["fixure_assignments"]:
+                    self.fixture_assignments[i] = data["fixure_assignments"][i]
+
+                self.cl_reload_fixture_assignment_data()
+
+        if fixture_presets:
+            if "fixture_presets" in data:
+                x = data["fixture_presets"]
+                fp = {i: from_legacy_preset_format(x[i]) for i in x}
+
+                for i in fp:
+                    self.fixture_presets[i] = fp[i]
 
         self.push_setup()
 

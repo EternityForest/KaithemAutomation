@@ -14,6 +14,7 @@ Change Log
 - :sparkles: \_\_next\_\_ special cue
 - :sparkles: Creating or cloning cues inserts after selected
 - :bug: Fix importing fixture presets
+- :sparkles: Rework old chandler import/export feature
 
 
 

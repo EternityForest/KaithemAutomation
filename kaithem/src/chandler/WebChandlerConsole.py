@@ -9,7 +9,6 @@ import time
 import traceback
 from typing import Any
 
-import yaml
 from tinytag import TinyTag
 
 from .. import tagpoints
@@ -506,22 +505,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         elif cmd_name == "saveState":
             self.cl_check_autosave()
-
-        elif cmd_name == "loadShow":
-            self.cl_load_show(msg[1])
-
-        elif cmd_name == "downloadSetup":
-            self.linkSendTo(
-                ["fileDownload", msg[1], yaml.dump(self.cl_get_library_file())],
-                sessionid,
-            )
-
-        elif cmd_name == "fileUpload":
-            if msg[2] == "setup":
-                self.cl_load_setup_file(msg[1])
-
-            if msg[2] == "import-presets":
-                self.cl_import_fixture_presets(msg[1])
 
         elif cmd_name == "addgroup":
             sc = Group(self, msg[1].strip())

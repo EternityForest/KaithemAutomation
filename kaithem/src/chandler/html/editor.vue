@@ -37,9 +37,7 @@
           title="Save the current state now.  If not manually saved, autosave happens every 10min">
           <i class="mdi mdi-content-save"></i>Save
         </button>
-        <button type="button" v-on:click="showimportexport = !showimportexport">
-          <i class="mdi mdi-folder-open"></i>Import/Export
-        </button>
+
       </div>
 
       <div class="menubar tool-bar">
@@ -412,55 +410,6 @@
           :telemetry="slideshow_telemetry"></slideshow-telemetry>
       </section>
 
-      <section v-if="showimportexport" class="flex-item window paper h-24rem">
-        <header>
-          <div class="tool-bar">
-            <h3>Import/Export controls</h3>
-            <button
-              type="button"
-              v-on:click="showimportexport = !showimportexport">
-              <i class="mdi mdi-close"></i>Close
-            </button>
-          </div>
-        </header>
-
-        <p>
-          Setup files include all fixture types, fixture assignments, configured
-          universes, and color presets.
-        </p>
-
-        <div class="tool-bar" style="padding: 0.25em; border-width: 2px">
-          <p>Download:</p>
-          <button
-            type="button"
-            @click="downloadSetup()"
-            title="Download your groups as a file">
-            <i class="mdi mdi-content-save"></i>Setup
-          </button>
-        </div>
-
-        <div class="tool-bar" style="padding: 0.25em; border-width: 2px">
-          <p>Load Setup</p>
-          <input type="file" id="setupfile" />
-          <button
-            type="button"
-            @click="uploadFileFromElement('#setupfile', 'setup')"
-            title="Upload a groups file">
-            <i class="mdi mdi-folder-open"></i>Go
-          </button>
-        </div>
-
-        <div class="tool-bar" style="padding: 0.25em; border-width: 2px">
-          <p>Import Fixture Presets</p>
-          <input type="file" id="presetsfile" />
-          <button
-            type="button"
-            @click="uploadFileFromElement('#presetsfile', 'import-presets')"
-            title="Upload a groups file">
-            <i class="mdi mdi-folder-open"></i>Go
-          </button>
-        </div>
-      </section>
 
       <fixture-presets-dialog
         :fixture="selectingPresetFor"
@@ -2735,7 +2684,6 @@ import {
   availableTags,
   midiInputs,
   blendModes,
-  showimportexport,
   groupChannelsViewMode,
   fixtureClasses,
   groupfilter,
@@ -2778,8 +2726,6 @@ import {
   clonecue,
   gotonext,
   rmcue,
-  uploadFileFromElement,
-  downloadSetup,
   jumptocue,
   setnext,
   setprobability,

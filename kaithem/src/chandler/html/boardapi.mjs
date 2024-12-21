@@ -382,23 +382,8 @@ function rmcue(cue) {
   api_link.send(["rmcue", cue]);
 }
 
-function uploadFileFromElement(elementselector, type) {
-  // Type says what to do with it
-  let t = document.querySelector(elementselector);
 
-  async function readText(target) {
-    const file = target.files.item(0);
-    const text = await file.text();
 
-    api_link.send(["fileUpload", text, type]);
-  }
-
-  readText(t);
-}
-function downloadSetup() {
-  downloadRequestId.value = Math.random().toString();
-  api_link.send(["downloadSetup", downloadRequestId.value]);
-}
 function jumptocue(cue, group) {
   if (confirm_for_group(group)) {
     api_link.send(["jumptocue", cue]);
@@ -643,7 +628,6 @@ let midiInputs = ref([]);
 let blendModes = ref([]);
 
 let soundfolders = ref([]);
-let showimportexport = ref(false);
 
 let groupChannelsViewMode = ref("cue");
 let configuredUniverses = ref({
@@ -1202,7 +1186,6 @@ export {
   midiInputs,
   blendModes,
   soundfolders,
-  showimportexport,
   groupChannelsViewMode,
   configuredUniverses,
   fixtureClasses,
@@ -1252,8 +1235,6 @@ export {
   clonecue,
   gotonext,
   rmcue,
-  uploadFileFromElement,
-  downloadSetup,
   jumptocue,
   setnext,
   setprobability,

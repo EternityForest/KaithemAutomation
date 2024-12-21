@@ -1,6 +1,9 @@
+import datetime
 import json
 
 import quart.ctx
+import quart.utils
+import yaml
 from jsonschema import Draft202012Validator
 from quart import request
 from scullery import snake_compat
@@ -11,6 +14,63 @@ from .core import boards, cl_context
 from .cue import cue_schema, cues
 from .groups import group_schema, groups
 from .web import quart_app
+
+
+@quart_app.app.route("/chandler/api/download/<type>/<board>")
+async def download_chandler_file(type: str, board: str):
+    require("chandler_operator")
+
+    @quart.ctx.copy_current_request_context
+    def f():
+        with cl_context:
+            b = boards[board]
+            if type == "setup-file":
+                f = b.cl_get_setup_file()
+            if type == "library-file":
+                f = b.cl_get_library_file()
+            else:
+                raise RuntimeError(f"Unknown type: {type}")
+
+        return yaml.dump(f)
+
+    r = await quart.utils.run_sync(f)()
+    isodate = datetime.datetime.now().isoformat()
+
+    return quart.Response(
+        r,
+        mimetype="text/yaml",
+        headers={
+            "Content-Disposition": f"attachment; filename={board}-setup-{isodate}.yaml"
+        },
+    )
+
+
+@quart_app.app.route("/chandler/api/import-file/<board>", methods=["POST"])
+async def import_setup(board: str):
+    require("system_admin")
+
+    form = await quart.request.form
+
+    body = (await quart.request.files)["file"].read()
+
+    @quart.ctx.copy_current_request_context
+    def f():
+        with cl_context:
+            b = boards[board]
+
+            b.cl_import_from_resource_file(
+                body,
+                fixture_types="fixture_types" in form,
+                universes="universes" in form,
+                fixture_assignments="fixture_assignments" in form,
+                fixture_presets="fixture_presets" in form,
+            )
+
+        return quart.redirect(
+            f"/chandler/config/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/{board}"
+        )
+
+    return await f()
 
 
 @quart_app.app.route("/chandler/api/all-cues/<board>")

@@ -202,39 +202,49 @@
           </div>
         </header>
 
-        <div class="tool-bar" style="padding: 0.25em; border-width: 2px">
-          <p>Download:</p>
-          <a
-            class="button"
-            href="download"
-            title="Download your groups as a file"
-            ><i class="mdi mdi-content-save"></i>Groups</a
-          >
-          <a
-            class="button"
-            href="downloadSetup"
-            title="Download your groups as a file"
-            ><i class="mdi mdi-content-save"></i>Setup</a
-          >
-          <a
-            class="button"
-            href="downloadLibrary"
-            title="Download your groups as a file"
-            ><i class="mdi mdi-content-save"></i>Fixture Lib</a
-          >
-        </div>
+        <p class="help">
+          To export, use the download feature on the modules page.
+        </p>
 
-        <div class="tool-bar" style="padding: 0.25em; border-width: 2px">
-          <p>Upload:</p>
-          <a class="button" href="upload" title="Upload a groups file"
-            ><i class="mdi mdi-folder-open"></i>Groups</a
-          >
-          <a class="button" href="uploadSetup" title="Upload a groups file"
-            ><i class="mdi mdi-folder-open"></i>Setup</a
-          >
-          <a class="button" href="uploadLibrary" title="Upload a groups file"
-            ><i class="mdi mdi-folder-open"></i>Fixture Lib</a
-          >
+        <div class="card">
+          <header>Import</header>
+
+          <form
+            :action="'/chandler/api/import-file/' + boardname"
+            method="post"
+            enctype="multipart/form-data">
+            <div class="stacked-form">
+              <label
+                >File
+                <input type="file" name="file" />
+              </label>
+
+              <label
+                >Import Universes
+                <input type="checkbox" class="toggle" name="universes" />
+              </label>
+
+              <label
+                >Import Fixture Types Library
+                <input type="checkbox" class="toggle" name="fixture_types" />
+              </label>
+
+              <label
+                >Import Fixture Assignments
+                <input
+                  type="checkbox"
+                  class="toggle"
+                  name="fixture_assignments" />
+              </label>
+
+              <label
+                >Import Presets
+                <input type="checkbox" class="toggle" name="fixture_presets" />
+              </label>
+
+              <input type="submit" value="Import" />
+            </div>
+          </form>
         </div>
       </section>
 
@@ -430,7 +440,12 @@
           <button v-on:click="addfixturetype()">
             <i class="mdi mdi-plus"></i>New
           </button>
-          <a class="button" :href="'/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/opz_import/' + boardname"
+          <a
+            class="button"
+            :href="
+              '/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/opz_import/' +
+              boardname
+            "
             >Import from OP-Z format</a
           >
         </div>
@@ -770,10 +785,9 @@
     </main>
   </div>
 </template>
-<script setup>
 
+<script setup>
 import {
-  
   // used to be in appData
   sys_alerts,
   boardname,
@@ -783,147 +797,116 @@ import {
   no_edit,
   universeFullSettings,
   soundfolders,
-  showimportexport,
   configuredUniverses,
   fixtureClasses,
   dictView,
   universes,
-  
   saveToDisk,
   refreshPorts,
   pushSettings,
   deleteUniverse,
-
 } from "./boardapi.mjs";
 import * as Vue from "/static/js/thirdparty/vue.esm-browser.js";
 
-
+let showimportexport = Vue.ref(false);
 let newfixname = Vue.ref("");
 let newfixtype = Vue.ref("");
 let newfixaddr = Vue.ref("");
 let newfixuniverse = Vue.ref("");
 
-function  chTypeChanged (i) {
-    const chType =
-      fixtureClasses.value[selectedFixtureClass.value].channels[
-        i
-      ].type;
+function chTypeChanged(i) {
+  const chType =
+    fixtureClasses.value[selectedFixtureClass.value].channels[i].type;
 
-    fixtureClasses.value[selectedFixtureClass.value].channels[
-      i
-    ].name = chType;
-    // Set up the  data options param for each channel
+  fixtureClasses.value[selectedFixtureClass.value].channels[i].name = chType;
+  // Set up the  data options param for each channel
 
-    if (chType == "fine") {
-      fixtureClasses.value[selectedFixtureClass.value].channels[
-        i
-      ].coarse = 0;
-    } else if (chType == "custom") {
-      fixtureClasses.value[selectedFixtureClass.value].channels[
-        i
-      ].ranges = [];
-    } else if (chType == "fixed") {
-      fixtureClasses.value[selectedFixtureClass.value].channels[
-        i
-      ].value = 0;
-    } else {
-      fixtureClasses.value[selectedFixtureClass.value].channels[
-        i
-      ].coarse = undefined;
-      fixtureClasses.value[selectedFixtureClass.value].channels[
-        i
-      ].value = undefined;
-      fixtureClasses.value[selectedFixtureClass.value].channels[
-        i
-      ].ranges = undefined;
-    }
-    this.pushfixture(selectedFixtureClass.value);
+  if (chType == "fine") {
+    fixtureClasses.value[selectedFixtureClass.value].channels[i].coarse = 0;
+  } else if (chType == "custom") {
+    fixtureClasses.value[selectedFixtureClass.value].channels[i].ranges = [];
+  } else if (chType == "fixed") {
+    fixtureClasses.value[selectedFixtureClass.value].channels[i].value = 0;
+  } else {
+    fixtureClasses.value[selectedFixtureClass.value].channels[i].coarse =
+      undefined;
+    fixtureClasses.value[selectedFixtureClass.value].channels[i].value =
+      undefined;
+    fixtureClasses.value[selectedFixtureClass.value].channels[i].ranges =
+      undefined;
   }
-function addFixtureAssignment (name, t, univ, addr) {
-    if (!name) {
-      return;
-    }
-    var d = {
-      name: name,
-      type: t,
-      universe: univ,
-      addr: addr,
-    };
-
-    globalThis.api_link.send(["setFixtureAssignment", name, d]);
+  this.pushfixture(selectedFixtureClass.value);
 }
-function getfixtureclasses () {
-    globalThis.api_link.send(["getfixtureclasses"]);
+function addFixtureAssignment(name, t, univ, addr) {
+  if (!name) {
+    return;
   }
-function showhidefixtures () {
-    showFixtureSetup.value = !showFixtureSetup.value;
-    getfixtureclasses();
-    selectedFixtureClass.value = "";
-  }
-function showhidefixtureassignments () {
-    getfixtureclasses();
-    showfixtureassg.value = !showfixtureassg.value;
-    globalThis.api_link.send(["getfixtureassg"]);
-  }
+  var d = {
+    name: name,
+    type: t,
+    universe: univ,
+    addr: addr,
+  };
 
-function getfixtureclass (i) {
-    if (i == "") {
-      return;
-    }
-    globalThis.api_link.send(["getfixtureclass", i]);
-  }
+  globalThis.api_link.send(["setFixtureAssignment", name, d]);
+}
+function getfixtureclasses() {
+  globalThis.api_link.send(["getfixtureclasses"]);
+}
+function showhidefixtures() {
+  showFixtureSetup.value = !showFixtureSetup.value;
+  getfixtureclasses();
+  selectedFixtureClass.value = "";
+}
+function showhidefixtureassignments() {
+  getfixtureclasses();
+  showfixtureassg.value = !showfixtureassg.value;
+  globalThis.api_link.send(["getfixtureassg"]);
+}
 
-function addfixturetype () {
-    let x = prompt("New Fixture Type Name:", selectedFixtureType.value);
-    if (x) {
-      old_vue_set(fixtureClasses.value, x, { channels: [] });
-      selectedFixtureType.value = x;
-      globalThis.api_link.send([
-        "setfixtureclass",
-        x,
-        fixtureClasses.value[x],
-      ]);
-      globalThis.api_link.send(["getfixtureclass", x]);
-    }
+function getfixtureclass(i) {
+  if (i == "") {
+    return;
   }
-function delfixturetype () {
-    let x = confirm("Really delete?");
-    if (x) {
-      old_vue_delete(
-        fixtureClasses.value,
-        selectedFixtureType.value
-      );
-      globalThis.api_link.send([
-        "rmfixtureclass",
-        selectedFixtureType.value,
-      ]);
-      selectedFixtureType.value = "";
-    }
-  }
-function pushfixture (i) {
-    globalThis.api_link.send([
-      "setfixtureclass",
-      i,
-      fixtureClasses.value[i],
-    ]);
-  }
+  globalThis.api_link.send(["getfixtureclass", i]);
+}
 
-function setFixtureAssignment (i, v) {
-    globalThis.api_link.send(["setFixtureAssignment", i, v]);
+function addfixturetype() {
+  let x = prompt("New Fixture Type Name:", selectedFixtureType.value);
+  if (x) {
+    old_vue_set(fixtureClasses.value, x, { channels: [] });
+    selectedFixtureType.value = x;
+    globalThis.api_link.send(["setfixtureclass", x, fixtureClasses.value[x]]);
+    globalThis.api_link.send(["getfixtureclass", x]);
   }
+}
+function delfixturetype() {
+  let x = confirm("Really delete?");
+  if (x) {
+    old_vue_delete(fixtureClasses.value, selectedFixtureType.value);
+    globalThis.api_link.send(["rmfixtureclass", selectedFixtureType.value]);
+    selectedFixtureType.value = "";
+  }
+}
+function pushfixture(i) {
+  globalThis.api_link.send(["setfixtureclass", i, fixtureClasses.value[i]]);
+}
 
-function rmFixtureAssignment (i) {
-    globalThis.api_link.send(["rmFixtureAssignment", i]);
-  }
+function setFixtureAssignment(i, v) {
+  globalThis.api_link.send(["setFixtureAssignment", i, v]);
+}
 
-function setSoundFolders (folders) {
-    globalThis.api_link.send(["setsoundfolders", folders]);
-  }
-  </script>
+function rmFixtureAssignment(i) {
+  globalThis.api_link.send(["rmFixtureAssignment", i]);
+}
+
+function setSoundFolders(folders) {
+  globalThis.api_link.send(["setsoundfolders", folders]);
+}
+</script>
 
 <script>
-import {
-} from "./boardapi.mjs";
+import {} from "./boardapi.mjs";
 
 import { httpVueLoader } from "./httploaderoptions.mjs";
 import * as Vue from "/static/js/thirdparty/vue.esm-browser.js";
@@ -941,8 +924,6 @@ function old_vue_delete(o, k) {
 globalThis.visibilitychange = function () {
   document.activeElement.blur();
 };
-
-
 
 let selectingImageLabelForFixture = Vue.ref(null);
 let iframeDialog = Vue.ref(null);
@@ -975,15 +956,12 @@ function getExcalidrawFixtureLink(fixture) {
     ) +
     "&ratio_guide=16_9"
   );
-};
+}
 
 export default {
-
   name: "config-app",
   components: {
-    "media-browser": httpVueLoader(
-      "./media-browser.vue"
-    ),
+    "media-browser": httpVueLoader("./media-browser.vue"),
   },
 };
 </script>
