@@ -687,6 +687,7 @@
           </tr>
 
           <tr
+            v-bind:key="i[1].name + i[1].universe + i[1].addr"
             v-for="i in dictView(fixtureAssignments, ['universe', 'channel'])">
             <td>{{ i[1].name }}</td>
             <td>{{ i[1].type }}</td>
@@ -731,7 +732,9 @@
             <td>Type</td>
             <td>
               <select v-model="newfixtype">
-                <option v-for="(v, i) in fixtureClasses" v-bind:value="i">
+                <option v-for="(v, i) in fixtureClasses"
+                 v-bind:key="i"
+                 v-bind:value="i">
                   {{ i }}
                 </option>
               </select>
@@ -772,7 +775,9 @@
 
       <section class="window w-full h-8rem" v-if="sys_alerts">
         <div class="flex-row scroll gaps padding">
-          <div class="card" v-for="(v, i) of sys_alerts">
+          <div class="card" v-for="(v, i) of sys_alerts"
+          v-bind:key="v.id"
+          >
             <header :class="v['barrel-class']" class="padding">
               <i class="mdi mdi-alert"></i>{{ i }}
             </header>
@@ -906,8 +911,6 @@ function setSoundFolders(folders) {
 </script>
 
 <script>
-import {} from "./boardapi.mjs";
-
 import { httpVueLoader } from "./httploaderoptions.mjs";
 import * as Vue from "/static/js/thirdparty/vue.esm-browser.js";
 
