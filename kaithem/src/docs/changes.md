@@ -15,8 +15,7 @@ Change Log
 - :sparkles: Creating or cloning cues inserts after selected
 - :bug: Fix importing fixture presets
 - :sparkles: Rework old chandler import/export feature
-
-
+- :technologist: Support for Snap packages is no longer a long term priority
 
 ### 0.86.3
 

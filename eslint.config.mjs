@@ -9,7 +9,13 @@ import { default as html2 } from "@html-eslint/eslint-plugin" ;
 
 /** @type {import('eslint').Linter.Config[]} */
 export default [
-  { files: ["**/*.{js,mjs,cjs,ts,vue,html}"] },
+  { files: ["**/*.{js,mjs,cjs,ts,vue,html}"],
+  },
+  {
+    ignores: ["**/node_modules/**", "**/dist/**", "**/build/**",
+      "**/thirdparty/**", "**/test_*"
+    ],
+  },
   {
     plugins: {
       html,
