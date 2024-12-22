@@ -25,7 +25,7 @@ test('test', async ({ page }) => {
 
     // Action params editor has a cue field
     // When we go into default cue it should redirect to c2
-    await page.getByLabel('cue', { exact: true }).fill('c2');
+    await page.getByTestId('command-arg-cue').fill('c2');
     //Dismiss popup selecter by clicking outside
     await page.getByRole('heading', { name: 'Automation Logic' }).click();
 
@@ -96,7 +96,7 @@ test('test', async ({ page }) => {
     // Click elsewhere to make dropdown suggestions box go
     await page.getByTestId("add-rm-fixtures-button").click();
 
-    await page.getByRole('button', { name: 'Add Channel to Cue' }).first().click();
+    await page.getByTestId("add-channel-to-cue-button").click();
     await expect(page.getByRole('main')).toContainText('dmx');
 
     await expect(page.getByRole('main')).toContainText('25');
@@ -125,7 +125,7 @@ test('test', async ({ page }) => {
     // Click elsewhere to make dropdown suggestions box go
     await page.getByTestId("add-rm-fixtures-button").click();
 
-    await page.locator('div').filter({ hasText: /^Tag Add Channel to Cue$/ }).getByRole('button').click();
+    await page.getByTestId("add-tag-to-cue-button").click();
     await page.locator('summary').filter({ hasText: 'Channels' }).click();
     await page.locator('article').filter({ hasText: '/' }).getByRole('slider').fill('130');
 

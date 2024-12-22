@@ -1073,6 +1073,7 @@
                     <button
                       type="button"
                       :disabled="no_edit"
+                      data-testid="add-channel-to-cue-button"
                       v-on:click="addValueToCue()">
                       <i class="mdi mdi-plus"></i>Add Channel to Cue
                     </button>
@@ -1093,8 +1094,9 @@
                     <button
                       type="button"
                       :disabled="no_edit"
-                      v-on:click="addTagToCue()">
-                      <i class="mdi mdi-plus"></i>Add Channel to Cue
+                      v-on:click="addTagToCue()"
+                      data-testid="add-tag-to-cue-button">
+                      <i class="mdi mdi-plus"></i>Add Tag to Cue
                     </button>
                   </div>
                 </div>

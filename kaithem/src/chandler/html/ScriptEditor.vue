@@ -168,6 +168,7 @@ p.small {
                 {{ commands[selectedCommand[0]].args[i][0] }}
                 <combo-box
                   :disabled="disabled"
+                  :testid="'command-arg-'+commands[selectedCommand[0]].args[i][0] "
                   v-model="selectedCommand[i + 1]"
                   v-on:change="$emit('update:modelValue', rules)"
                   :options="
@@ -260,7 +261,6 @@ p.small {
                     selectedBindingIndex = rules.indexOf(i);
                   ">
                   <template
-                    style="min-width: 6em; max-width: 12em; overflow: hidden"
                     v-if="commands[j[0]]">
                     <div class="w-full h-min-content">
                       <b>{{ j[0] }}</b>
@@ -339,13 +339,6 @@ export default {
   },
 
   computed: {
-    groupNames: function () {
-      var l = [];
-      for (var i in this.groups) {
-        l.push([i, ""]);
-      }
-      return l;
-    },
     selectedBinding: function () {
       if (this.selectedBindingIndex == -1) {
         return 0;
@@ -377,7 +370,6 @@ export default {
             return this.argcompleters["defaultExpressionCompleter"](
               fullCommand
             );
-            return c(fullCommand);
           } catch {
             return [];
           }
@@ -467,8 +459,8 @@ export default {
           this.removeElement(this.rules, b);
         }
       },
-      removeElement: function (array, e) {
-        var index = array.indexOf(e);
+      removeElement: function (array, element) {
+        var index = array.indexOf(element);
         if (index > -1) {
           array.splice(index, 1);
         }
