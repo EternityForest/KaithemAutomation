@@ -49,6 +49,7 @@ def new_empty_module():
 
 def loadAllCustomResourceTypes() -> None:
     # TODO this is O(m * n) time. Is that bad?
+    start_time = time.time()
 
     types: list[tuple[float, str]] = []
     for key, typeobj in additionalTypes.items():
@@ -69,6 +70,7 @@ def loadAllCustomResourceTypes() -> None:
                 r = copy.deepcopy(orig)
                 if hasattr(r, "get"):
                     if r.get("resource_type", "") == loading_rt:
+                        start_time_inner = time.time()
                         try:
                             rt = r["resource_type"]
                             assert isinstance(rt, str)
@@ -82,6 +84,9 @@ def loadAllCustomResourceTypes() -> None:
                             logger.exception(
                                 f"Error loading resource: {str((i, j))}"
                             )
+                        taken = round(time.time() - start_time_inner, 2)
+                        if taken > 1:
+                            logger.info(f"Loading {i}:{j} took {taken}s")
                 if not r == orig:
                     logger.warning(
                         f"Loader tried to modify resource object {i}:{j} during load"
@@ -89,6 +94,9 @@ def loadAllCustomResourceTypes() -> None:
 
     for i in additionalTypes:
         additionalTypes[i].on_finished_loading(None)
+
+    taken = round(time.time() - start_time, 2)
+    logger.info(f"Loaded module resources in {taken}s")
 
 
 class ModuleObject:
@@ -445,8 +453,6 @@ def loadModule(
         modules_state.ActiveModules[modulename] = module
         modules_state.importFiledataFolderStructure(modulename)
         messagebus.post_message("/system/modules/loaded", modulename)
-
-        logger.info("Loaded module " + modulename)
 
 
 def load_modules_from_zip(f: BytesIO, replace: bool = False) -> None:

@@ -20,7 +20,11 @@ structlog.configure(processors=structlog.get_config()["processors"][:-1] + [cr])
 
 def import_in_thread(m):
     def f():
+        start_time = time.time()
         importlib.import_module(m)
+        taken = round(time.time() - start_time, 2)
+        if taken > 5:
+            print(f"Loading {m} took {taken}s")
 
     threading.Thread(
         target=f, daemon=True, name=f"nostartstoplog.importer.{m}"
@@ -29,6 +33,8 @@ def import_in_thread(m):
 
 def initialize(cfg: Optional[Dict[str, Any]] = None):
     "Config priority is default, then cfg param, then cmd line cfg file as highest priority"
+
+    start_time = time.time()
 
     from . import (
         logconfig,  # noqa: F401
@@ -178,6 +184,9 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
         setproctitle.setproctitle("kaithem")
     except Exception:
         logger.warning("error setting process title")
+
+    taken = round(time.time() - start_time, 2)
+    logger.info(f"initialize() took {taken}s")
 
 
 def start_server():
