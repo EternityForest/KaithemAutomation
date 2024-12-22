@@ -1,5 +1,4 @@
 <template id="template">
-
   <div id="app" v-cloak class="flex-row gaps">
     <datalist id="tagslisting">
       <option
@@ -37,7 +36,6 @@
           title="Save the current state now.  If not manually saved, autosave happens every 10min">
           <i class="mdi mdi-content-save"></i>Save
         </button>
-
       </div>
 
       <div class="menubar tool-bar">
@@ -348,7 +346,9 @@
             }"
             v-bind:key="i[2] + '@' + i[1]"
             v-for="i in recentEventsLog.filter(
-              (d) => d[1].search(eventsFilterString) > -1 || d[0].search(eventsFilterString) > -1
+              (d) =>
+                d[1].search(eventsFilterString) > -1 ||
+                d[0].search(eventsFilterString) > -1
             )">
             {{ i[2] }}:
             <b>{{ i[0] }}</b>
@@ -409,7 +409,6 @@
         <slideshow-telemetry
           :telemetry="slideshow_telemetry"></slideshow-telemetry>
       </section>
-
 
       <fixture-presets-dialog
         :fixture="selectingPresetFor"
@@ -882,7 +881,9 @@
               </button>
               <button
                 type="button"
-                v-bind:class="{ highlight: groupChannelsViewMode == 'channels' }"
+                v-bind:class="{
+                  highlight: groupChannelsViewMode == 'channels',
+                }"
                 data-testid="add-rm-fixtures-button"
                 v-on:click="groupChannelsViewMode = 'channels'">
                 <i class="mdi mdi-list-box-outline"></i>Add/Remove Fixtures
@@ -1045,7 +1046,9 @@
                   </details>
                 </article>
               </template>
-              <div v-if="groupChannelsViewMode == 'channels'" class="flex-row gaps">
+              <div
+                v-if="groupChannelsViewMode == 'channels'"
+                class="flex-row gaps">
                 <div class="card margin">
                   <header>
                     <h4>Add Raw Channel</h4>
@@ -1359,6 +1362,7 @@
                             )
                           "
                           min="0"
+                          step="0.1"
                           v-model="currentcue.fadeIn" />
                       </label>
                       <label
@@ -1394,6 +1398,7 @@
                               $event.target.value
                             )
                           "
+                          step="0.1"
                           title="Randomize the cue length +- this amount"
                           v-model="cuemeta[currentcueid].lengthRandomize"
                           min="0" />
@@ -2034,6 +2039,7 @@
                     <td>
                       <input
                         type="number"
+                        step="0.1"
                         :disabled="no_edit"
                         v-model="v[2].width"
                         class="w-4rem"
@@ -2774,17 +2780,15 @@ import {
   newcuetag,
   newcuevnumber,
   newgroupname,
-
   addValueToCue,
   addTagToCue,
   addGroup,
 } from "./editor.mjs";
-import {ref } from "/static/js/thirdparty/vue.esm-browser.js";
+import { ref } from "/static/js/thirdparty/vue.esm-browser.js";
 
 import { formatTime } from "./utils.mjs";
 
 let showevents = ref(false);
-
 
 globalThis.addEventListener(
   "servererrorevent",
