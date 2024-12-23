@@ -226,59 +226,67 @@ p.small {
         </div>
 
         <div class="flex-row gaps col-9">
-          <div v-for="(i, idx) in rules" class="w-sm-double card">
+          <div v-for="(rule, rule_idx) in rules" class="w-sm-double card"
+          :key="rule_idx"
+          >
             <header>
               <div class="tool-bar">
                 <button
                   popovertarget="blockInspectorEvent"
-                  v-bind:class="{ highlight: selectedBinding == i }"
+                  v-bind:class="{ highlight: selectedBinding == rule }"
                   style="flex-grow: 50"
                   v-on:click="
-                    selectedBindingIndex = rules.indexOf(i);
+                    selectedBindingIndex = rules.indexOf(rule);
                     selectedCommandIndex = -1;
                   ">
-                  <b>On {{ i[0] }}</b>
+                  <b>On {{ rule[0] }}</b>
                 </button>
 
-                <button :disabled="disabled" v-on:click="moveCueRuleDown(idx)">
+                <button :disabled="disabled" v-on:click="moveCueRuleDown(rule_idx)">
                   Move down
                 </button>
               </div>
             </header>
 
             <div class="flex-row gaps w-full padding nogaps">
-              <div v-for="j in i[1]" style="display: flex" class="nogrow">
+              <div v-for="(command,command_idx) in rule[1]" 
+              :key="command_idx"
+              style="display: flex" class="nogrow">
                 <button
                   style="align-content: flex-start"
                   popovertarget="blockInspectorCommand"
                   v-bind:class="{
                     'action': 1,
                     'flex-row': 1,
-                    'selected': (selectedBinding == i) & (selectedCommand == j),
+                    'selected': (selectedBinding == rule) & (selectedCommand == command),
                   }"
                   v-on:click="
-                    selectedCommandIndex = i[1].indexOf(j);
-                    selectedBindingIndex = rules.indexOf(i);
+                    selectedCommandIndex = command_idx;
+                    selectedBindingIndex = rules.indexOf(rule);
                   ">
                   <template
-                    v-if="commands[j[0]]">
+                    v-if="commands[command[0]]">
                     <div class="w-full h-min-content">
-                      <b>{{ j[0] }}</b>
+                      <b>{{ command[0] }}</b>
                     </div>
                     <div
                       class="nogrow h-min-content"
                       style="margin: 2px"
-                      v-for="i in commands[j[0]].args.keys()">
-                      {{ j[i + 1] }}
+                      v-for="i in commands[command[0]].args.keys()"
+                      :key="i"
+                      >
+                      {{ command[i + 1] }}
                     </div>
                   </template>
 
-                  <template v-if="!(j[0] in commands)">
+                  <template v-if="!(command[0] in commands)">
                     <div
-                      class="nogrow h-min-content"
+                      class="nogrow h-min-content warning"
                       style="margin: 2px"
-                      v-for="i in j">
-                      {{ i }}
+                      v-for="k in command"
+                      :key="k"
+                      >
+                      {{ k }}
                     </div>
                   </template>
                 </button>
@@ -292,7 +300,7 @@ p.small {
                   style="align-self: stretch; flex-grow: 1"
                   :disabled="disabled"
                   v-on:click="
-                    i[1].push(['pass']);
+                    rule[1].push(['pass']);
                     $emit('update:modelValue', rules);
                   ">
                   <b>Add Action</b>

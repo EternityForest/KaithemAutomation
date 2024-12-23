@@ -8,10 +8,10 @@ Create a module, make a chandler board, test very simple logic,
 make sure tag output features work.
 */
 test('test', async ({ page }) => {
-    test.setTimeout(2400000);
+    test.setTimeout(2_400_000);
 
     await login(page);
-    let module = "PlaywrightChandlerTestModule";
+    const module = "PlaywrightChandlerTestModule";
     
     await chandlerBoardTemplate(page);
 
@@ -49,7 +49,7 @@ test('test', async ({ page }) => {
 
     page.once('dialog', dialog => {
         console.log(`Dialog message: ${dialog.message()}`);
-        dialog.dismiss().catch(() => { });
+        dialog.dismiss().catch(() => {});
     });
     // Delete c3
     await page.getByRole('button', { name: 'Delete Current' }).click();
