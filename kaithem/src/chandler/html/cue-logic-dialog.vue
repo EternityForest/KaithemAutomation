@@ -219,7 +219,7 @@ export default {
     },
     "components": {
         "combo-box": window.httpVueLoader("/static/vue/ComboBox.vue"),
-        "script-editor": window.httpVueLoader('./ScriptEditor.vue'),
+        "script-editor": window.httpVueLoader('./script-editor.vue'),
     }
     ,
     computed: {
