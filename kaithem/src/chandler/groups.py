@@ -21,7 +21,7 @@ import icemedia.sound_player
 import numpy
 import structlog
 from beartype import beartype
-from scullery import workers
+from scullery import messagebus, workers
 
 from .. import alerts, context_restrictions, schemas, tagpoints, util
 from ..kaithemobj import kaithem
@@ -575,7 +575,18 @@ class Group:
         self._slideshow_transform: dict[str, float | int] = {}
 
         if active:
-            self.goto_cue("default", sendSync=False, cause="start")
+            try:
+                # Normally the reentrant check would prevent this from doing
+                # anything in some cases,
+                # but it has special case handling for this first time.
+                self.goto_cue("default", sendSync=False, cause="start")
+            except Exception:
+                logger.exception("Failed to start group properly")
+                messagebus.post_message(
+                    "/system/notifications/errors",
+                    "Failed to start group properly: " + self.name,
+                )
+
             self.go()
             if isinstance(active, (int, float)):
                 self.started = time.time() - active
@@ -1198,7 +1209,19 @@ class Group:
             if not self.active:
                 return
 
+            cue, cuetime = self._parseCueName(cue)
+            cue_entered_time = cuetime or cue_entered_time
+
             if cue in self.cues:
+                if self.cues[cue].error_lockout:
+                    # Todo: we should be able to lock out default as well but
+                    # it could be a problem.
+                    if not cue == "default":
+                        raise RuntimeError(
+                            "Cue error lockout: "
+                            + str(self.cues[cue].error_lockout)
+                        )
+
                 if sendSync:
                     gn = self.mqtt_sync_features.get("syncGroup", False)
                     if gn:
@@ -1210,13 +1233,9 @@ class Group:
                         }
                         self.sendMqttMessage(topic, m)
 
-                if cue == "__stop__":
-                    self.stop()
-                    return
-
-            cue, cuetime = self._parseCueName(cue)
-
-            cue_entered_time = cuetime or cue_entered_time
+            if cue == "__stop__":
+                self.stop()
+                return
 
             if not cue:
                 return
@@ -1577,6 +1596,13 @@ class Group:
                     if x == "__rules__":
                         break
 
+                    if x not in self.cues:
+                        self.event(
+                            "script.error",
+                            f"Could not find cue {x} for cue inheritance in group {self.name}",
+                        )
+                        break
+
                     loopPrevent[x.strip()] = True
 
                     self.script_context.addBindings(self.cues[x].rules)
@@ -1910,23 +1936,24 @@ class Group:
             )
 
     @slow_group_lock_context.object_session_entry_point
-    def next_cue(self, t=None, cause="generic"):
+    def next_cue(self, t=None, cause="generic", force_in_order=False):
         cue = self.cue
         if not cue:
             return
 
         with self.lock:
-            if cue.next_cue and (
+            if (not cue.next_cue) or force_in_order:
+                x = self.getDefaultNext()
+                if x:
+                    self.goto_cue(x, t)
+
+            elif cue.next_cue and (
                 (self.evalExpr(cue.next_cue).split("?")[0] in self.cues)
                 or cue.next_cue.startswith("__")
                 or "|" in cue.next_cue
                 or "*" in cue.next_cue
             ):
                 self.goto_cue(cue.next_cue, t, cause=cause)
-            elif not cue.next_cue:
-                x = self.getDefaultNext()
-                if x:
-                    self.goto_cue(x, t)
 
     @slow_group_lock_context.object_session_entry_point
     def prev_cue(self, cause="generic"):

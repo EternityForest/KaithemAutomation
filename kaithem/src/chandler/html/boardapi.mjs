@@ -180,7 +180,7 @@ async function setCueProperty(cue, property, value) {
   var b = {};
   b[property] = value;
 
-  previousSerializedPromise.value = fetch(
+  let p = fetch(
     "/chandler/api/set-cue-properties/" + cue,
     {
       method: "PUT",
@@ -189,10 +189,18 @@ async function setCueProperty(cue, property, value) {
         "Content-type": "application/json; charset=UTF-8",
       },
     }
-  ).catch(function (error) {
-    alert("Error setting property: " + error);
-  });
-  await previousSerializedPromise.value;
+  )
+  previousSerializedPromise.value = p
+
+  try {
+    let r = await p;
+    if(!r.ok) {
+      alert("Error setting property, possible invalid value: " + value);
+    }
+  }
+  catch (error) {
+    alert("Could not reach server: " + error);
+  }
 }
 
 function setCuePropertyDeferred(cue, property, value) {

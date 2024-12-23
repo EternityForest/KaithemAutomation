@@ -40,7 +40,7 @@
           <img
             v-if="getpresetimage(ps)"
             :src="
-              '/chandler/WebMediaServer?file=' + encodeURIComponent(getpresetimage(ps))
+              '/chandler/WebMediaServer?board=' + boardname + '&file=' + encodeURIComponent(getpresetimage(ps))
             " />
           <div
             class="label"
@@ -91,7 +91,7 @@
         <img
           v-if="getpresetimage(ps[0])"
           :src="
-            '/chandler/WebMediaServer?file=' +
+            '/chandler/WebMediaServer?board=' + boardname + '&file=' +
             encodeURIComponent(getpresetimage(ps[0]))
           " />
 
@@ -116,11 +116,11 @@
 </template>
 
 <script setup>
-import { presets } from "./boardapi.mjs";
+import { presets, boardname} from "./boardapi.mjs";
 import { dictView } from "./utils.mjs";
 import * as Vue from "/static/js/thirdparty/vue.esm-browser.js";
 
-const props = defineProps({
+const properties = defineProps({
   "fixture": String,
   "fordestination": [String, Boolean],
   "fixtureclasses": Object,
@@ -147,7 +147,7 @@ function setFixturePreset(sc, fix, preset) {
   console.log("setFixturePreset", sc, fix, preset);
   const deleteIndex = recentPresets.value.indexOf(preset);
 
-  if (deleteIndex > -1) {
+  if (deleteIndex !== -1) {
     recentPresets.value = recentPresets.value.toSpliced(
       deleteIndex,
       1
@@ -163,13 +163,13 @@ function setFixturePreset(sc, fix, preset) {
 
   // Else use a type specific preset
   if (selectedPreset == undefined) {
-    selectedPreset = presets.value[preset + "@" + props.fixturetype];
+    selectedPreset = presets.value[preset + "@" + properties.fixturetype];
   }
 
   if (selectedPreset == undefined) {
     selectedPreset = presets.value[preset];
     // Could not find fixture or type specific preset.
-    if (preset.indexOf("@") == -1) {
+    if (!preset.includes("@")) {
       generic = true;
     }
   }
@@ -180,17 +180,15 @@ function setFixturePreset(sc, fix, preset) {
 
   console.log(selectedPreset);
 
-  selectedPreset = JSON.parse(JSON.stringify(selectedPreset));
+  selectedPreset = structuredClone(selectedPreset);
 
 
-  for (var i in props.currentvals) {
+  for (var i in properties.currentvals) {
     // If just editing destinations
     // don't use the special vals.
-    if (props.fordestination) {
-      if (i.includes("__")) {
+    if (properties.fordestination && i.includes("__")) {
         continue;
       }
-    }
 
     if (i == "__length__") {
       continue;
@@ -198,18 +196,16 @@ function setFixturePreset(sc, fix, preset) {
     if (i == "__spacing__") {
       continue;
     }
-    if (typeof selectedPreset.values[i] == "string") {
-      if (selectedPreset.values[i].length == 0) {
+    if (typeof selectedPreset.values[i] == "string" && selectedPreset.values[i].length === 0) {
         continue;
       }
-    }
 
     if (selectedPreset.values[i] == "-1") {
       continue;
     }
     if (selectedPreset.values[i] != undefined) {
-      if (props.fordestination) {
-        window.api_link.send([
+      if (properties.fordestination) {
+        globalThis.api_link.send([
           "scv",
           sc,
           fix,
@@ -217,12 +213,12 @@ function setFixturePreset(sc, fix, preset) {
           selectedPreset.values[i],
         ]);
       } else {
-        window.api_link.send(["scv", sc, fix, i, selectedPreset.values[i]]);
+        globalThis.api_link.send(["scv", sc, fix, i, selectedPreset.values[i]]);
       }
     }
   }
-  if (!props.fordestination) {
-    window.api_link.send(["scv", sc, fix, "__preset__", preset]);
+  if (!properties.fordestination) {
+    globalThis.api_link.send(["scv", sc, fix, "__preset__", preset]);
   }
 }
 
@@ -235,32 +231,26 @@ function checkPresetUsablility(preset) {
   if (!preset.includes("@")) {
     return true;
   }
-  if (preset.endsWith(props.fixture)) {
+  if (preset.endsWith(properties.fixture)) {
     return true;
   }
 
-  if (props.fixturetype) {
-    if (preset.endsWith("@" + props.fixturetype)) {
+  if (properties.fixturetype && preset.endsWith("@" + properties.fixturetype)) {
       return true;
     }
-  }
 
-  let clsdata = props.fixtureclasses[props.fixturetype];
+  let clsdata = properties.fixtureclasses[properties.fixturetype];
 
   if (!clsdata) {
     return false;
   }
 
-  if (clsdata) {
-    if (clsdata.color_profile) {
-      if (
+  if (clsdata && clsdata.color_profile && 
         preset.includes("@") &&
         clsdata.color_profile.startsWith(preset.split("@")[1])
       ) {
         return true;
       }
-    }
-  }
 
   return false;
 }

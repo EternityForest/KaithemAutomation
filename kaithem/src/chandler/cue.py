@@ -64,6 +64,7 @@ slots = list(cue_schema["properties"].keys()) + [
     "inherit",
     "onEnter",
     "onExit",
+    "error_lockout",
     "scheduler_object",
     "_scheduled_func",
     "_provider",
@@ -196,6 +197,9 @@ def add_cue_property_update_handler(
     property_update_handlers[name].append(handler)
 
 
+first_property_error_while_loading: list[bool] = [False]
+
+
 class Cue:
     "A static set of values with a fade in and out duration"
 
@@ -215,6 +219,8 @@ class Cue:
         **kw: Any,
     ):
         # declare vars.
+        # Cannot enter cue because it loaded with errors
+        self.error_lockout: bool = False
         self.name: str
         self.number: int
         self._inherit_rules: str
@@ -300,7 +306,33 @@ class Cue:
             # number is special because of auto increment
             if not i == "number":
                 if i in kw:
-                    setattr(self, i, kw[i])
+                    try:
+                        setattr(self, i, kw[i])
+                    except Exception:
+                        self.error_lockout = True
+                        setattr(
+                            self,
+                            i,
+                            copy.deepcopy(
+                                cue_schema["properties"][i]["default"]
+                            ),
+                        )
+                        logging.exception(
+                            "Failed to set "
+                            + i
+                            + " on cue to "
+                            + util.saferepr(kw[i])
+                        )
+                        if not first_property_error_while_loading[0]:
+                            first_property_error_while_loading[0] = True
+                            messagebus.post_message(
+                                "/system/notifications/errors",
+                                "Invalid value for "
+                                + i
+                                + " on cue "
+                                + self.name
+                                + ". Only first such error notified",
+                            )
                 else:
                     setattr(
                         self,
@@ -532,6 +564,7 @@ class Cue:
 
     @inherit_rules.setter
     def inherit_rules(self, r: str):
+        r = r.strip()
         self._inherit_rules = r
         if self.is_active:
             self.getGroup().refresh_rules()
@@ -794,6 +827,7 @@ class Cue:
         # Stuff that never gets saved, it's runtime UI stuff
         d2 = {
             "id": self.id,
+            "error_lockout": self.error_lockout,
             "name": self.name,
             "next": self.next_cue if self.next_cue else "",
             "group": group.id,

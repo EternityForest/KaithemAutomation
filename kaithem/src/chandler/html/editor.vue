@@ -571,6 +571,7 @@
               <tr
                 v-bind:class="{
                   highlight: selectedCues[groupname] == slotProps.i[1].name,
+                  error: slotProps.i[1].errorLockout,
                   success:
                     cuemeta[editingGroup.cue].name == slotProps.i[1].name,
                 }">
@@ -858,6 +859,17 @@
           <div class="tool-bar">
             <p v-if="currentcue.sound">Sound: {{ currentcue.sound }}</p>
             <p v-if="currentcue.slide">Slide: {{ currentcue.slide }}</p>
+          </div>
+
+          <div class="tool-bar error" v-if="currentcue.errorLockout">
+            <p>
+              <i class="mdi mdi-alert"></i>
+              ERROR: Data may be corrupt, check all settings
+            </p>
+
+            <button type="button" v-on:click="setCueProperty(currentcueid, 'errorLockout', false)">
+              <i class="mdi mdi-lock-open"></i>Re-enable
+            </button>
           </div>
 
           <p v-if="currentcue.name.startsWith('__')" class="highlight">
@@ -2823,7 +2835,7 @@ export default {
     "combo-box": globalThis.httpVueLoader("/static/vue/ComboBox.vue"),
     "h-fader": globalThis.httpVueLoader("./hfader.vue"),
     "cue-countdown": globalThis.httpVueLoader("./cue-countdown.vue"),
-    "cue-table": globalThis.httpVueLoader("./cuetable.vue"),
+    "cue-table": globalThis.httpVueLoader("./cue-table.vue"),
 
     // // Currently contains the timers and the display tags for the groups overview
     "group-ui": globalThis.httpVueLoader("./group-ui-controls.vue"),

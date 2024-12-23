@@ -75,8 +75,10 @@ function handleDialogState(event) {
 
 globalThis.handleDialogState = handleDialogState;
 
-globalThis.addEventListener("popstate", function (e) {
+globalThis.addEventListener("popstate", function (_event) {
+  // eslint-disable-next-line unicorn/prefer-query-selector
   if (previous?.el && document.getElementById(previous?.el).hidePopover) {
+    // eslint-disable-next-line unicorn/prefer-query-selector
     document.getElementById(previous?.el).hidePopover();
   }
   previous = history.state;
@@ -136,8 +138,6 @@ let newcuetag = ref("");
 let newcuevnumber = ref("");
 let newgroupname = ref("");
 
-
-
 export {
   sc_code,
   shortcut,
@@ -156,5 +156,4 @@ export {
   addValueToCue,
   addTagToCue,
   addGroup,
-
 };

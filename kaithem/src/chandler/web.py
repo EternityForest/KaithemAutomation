@@ -235,27 +235,28 @@ async def media():
             # elif 'group' in kwargs and kwargs['file'] in groups.groups[kwargs['group']].musicVisualizations:
             #     return(kwargs['file'],name= os.path.basename(kwargs['file']))
             else:
-                # Todo this should be a global api
-                x = None
-                for i in groups.groups:
-                    x = i
-                    break
-                assert x
-                f = groups.groups[x].resolve_media(kwargs["file"])
-                if kaithem.web.has_permission("view_admin_info"):
-                    for i in core.getSoundFolders(
-                        groups.groups[x].board.media_folders
-                    ):
-                        if not i.endswith("/"):
-                            i = i + "/"
-                        if os.path.normpath(f).startswith(i):
-                            # If this is a cloud asset pack asset, get it.
-                            # Only do this under the chandler admin permission
-                            if not os.path.isfile(f):
-                                pages.require("system_admin")
+                if "board" not in kwargs:
+                    if kaithem.web.has_permission("chandler_operator"):
+                        if core.resolve_sound(kwargs["file"]):
+                            return core.resolve_sound(kwargs["file"])
 
-                            kaithem.assetpacks.ensure_file(f)
-                            return f
+                else:
+                    board = core.boards[kwargs["board"]]
+
+                    f = core.resolve_sound(kwargs["file"], board.media_folders)
+
+                    if kaithem.web.has_permission("view_admin_info"):
+                        for i in core.getSoundFolders(board.media_folders):
+                            if not i.endswith("/"):
+                                i = i + "/"
+                            if os.path.normpath(f).startswith(i):
+                                # If this is a cloud asset pack asset, get it.
+                                # Only do this under the chandler admin permission
+                                if not os.path.isfile(f):
+                                    pages.require("system_admin")
+
+                                kaithem.assetpacks.ensure_file(f)
+                                return f
 
                 # Resist discovering what scenes exist
                 time.sleep(
@@ -341,7 +342,7 @@ async def default(path: str):
 
 
 @quart_app.app.route("/chandler/static/<path:file>")
-async def static_chandler_files(file):
+async def static_chandler_a(file):
     if ".." in file or "/" in file or "\\" in file:
         raise RuntimeError("confuse a hacker script")
     return await quart.send_file(

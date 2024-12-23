@@ -16,6 +16,9 @@ Change Log
 - :bug: Fix importing fixture presets
 - :sparkles: Rework old chandler import/export feature
 - :technologist: Support for Snap packages is no longer a long term priority
+- :bug: Fix total failure to load chandler data if cue param is corrupted
+- :bug: Fix issues if inherit_rules is a nonexistant cue.
+- :bug: Fix default cue not starting up properly
 
 ### 0.86.3
 

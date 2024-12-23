@@ -584,6 +584,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                 if "default_active" in data[i]:
                     x = data[i]["default_active"]
                     del data[i]["default_active"]
+
                 if "active" in data[i]:
                     x = data[i]["active"]
                     del data[i]["active"]
@@ -595,7 +596,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                 else:
                     uuid = i
 
-                s = Group(self, id=uuid, default_active=x, **data[i])
+                s = Group(self, id=uuid, active=x, default_active=x, **data[i])
 
                 self.groups[uuid] = s
                 if x:

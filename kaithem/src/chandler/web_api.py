@@ -111,20 +111,24 @@ async def set_cue_properties(cue_id: str):
         for key in kw:
             val = kw[key]
             prop = snake_compat.camel_to_snake(key)
-            # Generic setter for things that are just simple value sets.
 
-            prop_schema = cue_schema["properties"][prop]
-            # Todo do we really want to automatically do this?
-            if prop_schema.get("type") == "string":
-                val = str(val)
-            elif prop_schema.get("type") == "number":
-                val = float(val)
-            elif prop_schema.get("type") == "integer":
-                val = int(val)
+            # there are runtime only properties not in the schema
+            # TODO maybe they should be in the schema too?
+            if prop in cue_schema["properties"]:
+                prop_schema = cue_schema["properties"][prop]
+                # Todo do we really want to automatically do this?
+                if prop_schema.get("type") == "string":
+                    val = str(val)
+                elif prop_schema.get("type") == "number":
+                    val = float(val)
+                elif prop_schema.get("type") == "integer":
+                    val = int(val)
+                elif prop_schema.get("type") == "boolean":
+                    val = bool(val)
 
-            validator = Draft202012Validator(prop_schema)
-            if not validator.is_valid(val):
-                raise ValueError(f"Invalid value for cue {prop}: {val}")
+                validator = Draft202012Validator(prop_schema)
+                if not validator.is_valid(val):
+                    raise ValueError(f"Invalid value for cue {prop}: {val}")
 
             # Try to get the attr, to ensure that it actually exists.
             old = getattr(cues[cue_id], prop)
