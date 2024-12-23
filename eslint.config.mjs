@@ -5,15 +5,19 @@ import pluginVue from "eslint-plugin-vue";
 import eslintPluginUnicorn from "eslint-plugin-unicorn";
 import importPlugin from "eslint-plugin-import";
 import html from "eslint-plugin-html";
-import { default as html2 } from "@html-eslint/eslint-plugin" ;
+import { default as html2 } from "@html-eslint/eslint-plugin";
+// import css from "@eslint/css";
 
 /** @type {import('eslint').Linter.Config[]} */
 export default [
-  { files: ["**/*.{js,mjs,cjs,ts,vue,html}"],
-  },
   {
-    ignores: ["**/node_modules/**", "**/dist/**", "**/build/**",
-      "**/thirdparty/**", "**/test_*"
+    files: ["**/*.{js,mjs,cjs,ts,vue,html}"],
+    ignores: [
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/build/**",
+      "**/thirdparty/**",
+      "**/test_*",
     ],
   },
   {
@@ -43,6 +47,11 @@ export default [
   ...tseslint.configs.recommended,
   ...pluginVue.configs["flat/essential"],
   importPlugin.flatConfigs.recommended,
+  // {
+  //   files: ["**/*.css"],
+  //   language: "css/css",
+  //   ...css.configs.recommended,
+  // },
 
   {
     files: ["**/*.vue"],

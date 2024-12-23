@@ -2,16 +2,15 @@
 *,
 :before,
 :after {
-    box-sizing: border-box;
-
+  box-sizing: border-box;
 }
 
 * {
-    margin: 0;
+  margin: 0;
 }
 
 body {
-    -webkit-font-smoothing: antialiased;
+  -webkit-font-smoothing: antialiased;
 }
 
 img,
@@ -19,15 +18,15 @@ picture,
 video,
 canvas,
 svg {
-    display: block;
-    object-fit: contain;
+  display: block;
+  object-fit: contain;
 }
 
 input,
 button,
 textarea,
 select {
-    font: inherit;
+  font: inherit;
 }
 
 a,
@@ -41,200 +40,230 @@ h6,
 li,
 dt,
 dd {
-    overflow-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 #root,
 #__next {
-    isolation: isolate;
+  isolation: isolate;
 }
 
 :root {
-    color-scheme: light dark;
+  color-scheme: light dark;
 
-    --black-1: #1c1c1c;
-    --black-2: #343A40;
-    --black-3: #545862;
-    --black-4: #5C555D;
+  --black-1: #1c1c1c;
+  --black-2: #343a40;
+  --black-3: #545862;
+  --black-4: #5c555d;
 
-    --grey-1: #e1ded7;
-    --grey-2: #f1f1f1;
-    --grey-3: #F8F9FA;
+  --grey-1: #e1ded7;
+  --grey-2: #f1f1f1;
+  --grey-3: #f8f9fa;
 
-    --red: #e03131;
-    --yellow: #ffd43b;
-    --green: rgb(0, 158, 0);
-    --teal: rgb(102, 190, 179);
-    --blue: rgb(81, 104, 173);
-    --purple: rgb(182, 80, 151);
-    --dark-blue: rgb(40 55 102);
+  --red: #e03131;
+  --yellow: #ffd43b;
+  --green: rgb(0, 158, 0);
+  --teal: rgb(102, 190, 179);
+  --blue: rgb(81, 104, 173);
+  --purple: rgb(182, 80, 151);
+  --dark-blue: rgb(40 55 102);
 
+  --scrollbar-width: 14px;
 
+  /*Text color*/
+  --fg: var(--black-1);
+  /*Nontext items like borders*/
+  --graphical-fg: var(--black-4);
 
-    --scrollbar-width: 14px;
+  /*Headings, links, etc*/
+  --accent-color: var(--dark-blue);
+  /*Main page bg*/
+  --bg: var(--grey-1);
+  /*.paper, items*/
+  --box-bg: var(--grey-2);
+  --highlight-opacity: 25%;
 
-    /*Text color*/
-    --fg: var(--black-1);
-    /*Nontext items like borders*/
-    --graphical-fg: var(--black-4);
+  /*typography*/
 
-    /*Headings, links, etc*/
-    --accent-color: var(--dark-blue);
-    /*Main page bg*/
-    --bg: var(--grey-1);
-    /*.paper, items*/
-    --box-bg: var(--grey-2);
-    --highlight-opacity: 25%;
+  --sans-font: font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans",
+    "Helvetica Neue", sans-serif;
 
-    /*typography*/
+  --serif-font: Iowan Old Style, Apple Garamond, Baskerville, Times New Roman,
+    Droid Serif, Times, Source Serif Pro, serif, Apple Color Emoji,
+    Segoe UI Emoji, Segoe UI Symbol;
+  --mono-font: Menlo, Consolas, Monaco, Liberation Mono, Lucida Console,
+    monospace;
 
-    --sans-font: font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
-    --serif-font: Iowan Old Style, Apple Garamond, Baskerville, Times New Roman, Droid Serif, Times, Source Serif Pro, serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol;
-    --mono-font: Menlo, Consolas, Monaco, Liberation Mono, Lucida Console, monospace;
+  --main-font: var(--sans-font);
+  --font-size: 18px;
+  --line-height: calc(2px + 18px + 2px + 4px);
+  --heading-font: var(--main-font);
+  --control-font: var(--main-font);
 
-    --main-font: var(--sans-font);
-    --font-size: 18px;
-    --line-height: calc(2px + 18px + 2px + 4px);
-    --heading-font: var(--main-font);
-    --control-font: var(--main-font);
+  /*Spacing*/
+  --padding: 8px;
+  --gap: 12px;
 
-    /*Spacing*/
-    --padding: 8px;
-    --gap: 12px;
+  /*Borders*/
+  --border-color: color-mix(in srgb, var(--graphical-fg) 50%, rgb(0 0 0 / 0%));
+  --border-style: solid;
+  --border-radius: 1.2rem;
+  --border-width: 1px;
 
-    /*Borders*/
-    --border-color: color-mix(in srgb, var(--graphical-fg) 50%, rgb(0 0 0 / 0%));
-    --border-style: solid;
-    --border-radius: 1.2rem;
-    --border-width: 1px;
+  --border: var(--border-width) var(--border-style) var(--border-color);
+  /*Inputs, buttons, etc*/
+  --control-height: 1.6rem;
+  --control-border-radius: 0.8rem;
+  --control-border-width: 1px;
 
-    --border: var(--border-width) var(--border-style) var(--border-color);
-    /*Inputs, buttons, etc*/
-    --control-height: 1.6rem;
-    --control-border-radius: 0.8rem;
-    --control-border-width: 1px;
+  /*control-bg also applies to small elements like headers*/
+  --control-bg: var(--grey-1);
+  --control-fg: var(--graphical-fg);
 
-    /*control-bg also applies to small elements like headers*/
-    --control-bg: var(--grey-1);
-    --control-fg: var(--graphical-fg);
+  /*Used for the convex and concave*/
+  --3d-highlight: color-mix(
+    in srgb,
+    var(--control-bg) 62%,
+    rgba(241, 241, 241, 100%)
+  );
+  --3d-shadow: color-mix(in srgb, var(--control-bg) 96%, rgba(0, 0, 0, 100%));
 
-
-    /*Used for the convex and concave*/
-    --3d-highlight: color-mix(in srgb, var(--control-bg) 62%, rgba(241, 241, 241, 100%));
-    --3d-shadow: color-mix(in srgb, var(--control-bg) 96%, rgba(0, 0, 0, 100%));
-
-    /*Concave than convex BG needs to be less intense than other shadows
+  /*Concave than convex BG needs to be less intense than other shadows
     because we stack it with the inset shadow
     Also, we usually don't want it to be that extremely concave
     */
-    --concave-shadow: color-mix(in srgb, var(--3d-shadow) 40%, var(--control-bg));
-    --concave-highlight: color-mix(in srgb, var(--3d-highlight) 60%, var(--control-bg));
+  --concave-shadow: color-mix(in srgb, var(--3d-shadow) 40%, var(--control-bg));
+  --concave-highlight: color-mix(
+    in srgb,
+    var(--3d-highlight) 60%,
+    var(--control-bg)
+  );
 
-    --concave-item-bg: linear-gradient(180deg, var(--concave-shadow) 4px, var(--concave-highlight) 43%);
-    --convex-item-bg: linear-gradient(180deg, var(--concave-highlight) 0%, var(--concave-shadow) 96%);
-    --convex-item-active-bg: linear-gradient(180deg, color-mix(in srgb, var(--concave-shadow) 90%, var(--control-fg)) 3%, color-mix(in srgb, var(--3d-highlight) 90%, var(--control-fg)) 45%);
-    --concave-item-box-shadow: inset 0px 0px 4px 2px color-mix(in srgb, var(--fg) 7%, transparent);
+  --concave-item-bg: linear-gradient(
+    180deg,
+    var(--concave-shadow) 4px,
+    var(--concave-highlight) 43%
+  );
+  --convex-item-bg: linear-gradient(
+    180deg,
+    var(--concave-highlight) 0%,
+    var(--concave-shadow) 96%
+  );
+  --convex-item-active-bg: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--concave-shadow) 90%, var(--control-fg)) 3%,
+    color-mix(in srgb, var(--3d-highlight) 90%, var(--control-fg)) 45%
+  );
+  --concave-item-box-shadow: inset 0px 0px 4px 2px
+    color-mix(in srgb, var(--fg) 7%, transparent);
 
+  /*Used for headers, trays, and anything smaller than a box and bigger than a button*/
+  --alt-control-bg: color-mix(in srgb, var(--control-bg) 90%, #816e23);
+  /*#e1dfd7*/
 
-    /*Used for headers, trays, and anything smaller than a box and bigger than a button*/
-    --alt-control-bg: color-mix(in srgb, var(--control-bg) 90%, #816e23);
-    /*#e1dfd7*/
+  --window-box-shadow: rgb(0 0 0 / 15%) 1px 5px 12px -3px;
+  /*Used for tool bars and cards*/
+  --item-box-shadow: 1px 2px 8px -3px rgba(0, 0, 0, 0.1);
 
-    --window-box-shadow: rgb(0 0 0 / 15%) 1px 5px 12px -3px;
-    /*Used for tool bars and cards*/
-    --item-box-shadow: 1px 2px 8px -3px rgba(0, 0, 0, 0.1);
+  /*Below this line you probably don't need to change stuff*/
+  /* fg color for warning and danger */
+  --highlight-color: var(--teal);
+  --success-color: var(--green);
+  --warning-color: var(--yellow);
+  --danger-color: var(--red);
 
-    /*Below this line you probably don't need to change stuff*/
-    /* fg color for warning and danger */
-    --highlight-color: var(--teal);
-    --success-color: var(--green);
-    --warning-color: var(--yellow);
-    --danger-color: var(--red);
+  --hover-color: color-mix(
+    in srgb,
+    var(--highlight-color) 30%,
+    var(--control-bg)
+  );
 
-    --hover-color: color-mix(in srgb, var(--highlight-color) 30%, var(--control-bg));
+  --control-border-color: color-mix(
+    in srgb,
+    var(--graphical-fg) 35%,
+    rgb(0 0 0 / 0%)
+  );
 
-    --control-border-color: color-mix(in srgb, var(--graphical-fg) 35%, rgb(0 0 0 / 0%));
+  /*Intensity of table borders is less than normal borders, to balance the density*/
+  --table-border-strength: 50%;
 
-    /*Intensity of table borders is less than normal borders, to balance the density*/
-    --table-border-strength: 50%;
+  --thin-border: 1px solid var(--border-color);
+  --control-border: var(--control-border-width) solid
+    var(--control-border-color);
 
-    --thin-border: 1px solid var(--border-color);
-    --control-border: var(--control-border-width) solid var(--control-border-color);
-
-
-    --heading-text-shadow: none;
-    --control-text-shadow: none;
-    --slider-thumb: var(--convex-item-bg);
+  --heading-text-shadow: none;
+  --control-text-shadow: none;
+  --slider-thumb: var(--convex-item-bg);
 }
 
 /*Less likely stuff for user to change, intermediate vars in complex logic*/
 :root {
-    --header-padding: var(--gap);
-    --success-fg: color-mix(in srgb, var(--success-color) 30%, var(--fg));
-    --warning-fg: color-mix(in srgb, var(--warning-color) 30%, var(--fg));
-    --danger-fg: color-mix(in srgb, var(--danger-color) 30%, var(--fg));
-    --contrasting-bg-color: var(--control-bg);
+  --header-padding: var(--gap);
+  --success-fg: color-mix(in srgb, var(--success-color) 30%, var(--fg));
+  --warning-fg: color-mix(in srgb, var(--warning-color) 30%, var(--fg));
+  --danger-fg: color-mix(in srgb, var(--danger-color) 30%, var(--fg));
+  --contrasting-bg-color: var(--control-bg);
 }
 
-
 @media print {
-    :root {
-        --bg: white !important;
-        --box-bg: white !important;
-        --fg: black !important;
-        --accent-color: black !important;
-        --alt-control-bg: white !important;
-        --main-font: var(--serif-font) !important;
-        --control-bg: white !important;
-        --concave-item-bg: white !important;
-        --convex-item-bg: white !important;
-        --control-fg: black !important;
-        --graphical-fg: grey !important;
-        --concave-item-box-shadow: none !important;
-        --heading-font: var(--sans-font) !important;
-        --hover-color: transparent !important;
-        --heading-text-shadow: none !important;
-        --control-text-shadow: none !important;
-        --border-color: black !important;
-        --item-box-shadow: none !important;
-        --window-box-shadow: none !important
+  :root {
+    --bg: white !important;
+    --box-bg: white !important;
+    --fg: black !important;
+    --accent-color: black !important;
+    --alt-control-bg: white !important;
+    --main-font: var(--serif-font) !important;
+    --control-bg: white !important;
+    --concave-item-bg: white !important;
+    --convex-item-bg: white !important;
+    --control-fg: black !important;
+    --graphical-fg: grey !important;
+    --concave-item-box-shadow: none !important;
+    --heading-font: var(--sans-font) !important;
+    --hover-color: transparent !important;
+    --heading-text-shadow: none !important;
+    --control-text-shadow: none !important;
+    --border-color: black !important;
+    --item-box-shadow: none !important;
+    --window-box-shadow: none !important
+    ;
+  }
+
+  * {
+    color: var(--fg) !important;
+  }
+
+  a::after {
+    content: " (" attr(href) ") ";
+    color: gray;
+    font-size: 80%;
+  }
+
+  a:local-link::after {
+    content: "";
+  }
+
+  a[href^="/"]::after {
+    content: "";
+  }
+
+  details.help:not([open]) {
+    display: none;
+  }
+
+  input[type="checkbox"] {
+    background: none !important;
+
+    &.toggle::before {
+      border-color: black !important;
+      background-color: black !important;
     }
+  }
 
-    * {
-        color: var(--fg) !important;
-    }
-
-    a::after {
-        content: " (" attr(href) ") ";
-        color: gray;
-        font-size: 80%;
-    }
-
-    a:local-link::after {
-        content: "";
-    }
-
-    a[href^="/"]::after {
-        content: "";
-    }
-
-    details.help:not([open]) {
-        display: none;
-    }
-
-    input[type="checkbox"] {
-        background: none !important;
-
-        &.toggle::before {
-            border-color: black !important;
-            background-color: black !important;
-
-        }
-    }
-
-    form {
-        break-inside: avoid;
-    }
+  form {
+    break-inside: avoid;
+  }
 }
 
 /* Stuff that should print as is */
@@ -243,118 +272,115 @@ dd {
 .danger,
 .success,
 meter,
-input[type=range],
+input[type="range"],
 .round-feathered,
 .print-exact {
-    -webkit-print-color-adjust: exact;
-    /* Chrome, Safari 6 – 15.3, Edge */
-    color-adjust: exact;
-    /* Firefox 48 – 96 */
-    print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+  /* Chrome, Safari 6 – 15.3, Edge */
+  color-adjust: exact;
+  /* Firefox 48 – 96 */
+  print-color-adjust: exact;
 }
 
 @media (prefers-color-scheme: dark) {
-    :root {
-        --black-1: #222222;
-        --black-2: #2c2c2c;
-        --black-3: #4e4c4c;
-        --black-4: #404040;
-        --grey-1: #969494;
-        --grey-2: #adadad;
-        --grey-3: #dfd6d6;
-        --warning-color: #ffd943;
-        --danger-color: #ff4242;
-        --highlight-color: #7788aa;
+  :root {
+    --black-1: #222222;
+    --black-2: #2c2c2c;
+    --black-3: #4e4c4c;
+    --black-4: #404040;
+    --grey-1: #969494;
+    --grey-2: #adadad;
+    --grey-3: #dfd6d6;
+    --warning-color: #ffd943;
+    --danger-color: #ff4242;
+    --highlight-color: #7788aa;
 
-        --bg: var(--black-1);
-        --box-bg: var(--black-2);
-        --control-bg: var(--black-4);
-        --accent-color: var(--grey-2);
+    --bg: var(--black-1);
+    --box-bg: var(--black-2);
+    --control-bg: var(--black-4);
+    --accent-color: var(--grey-2);
 
-        --fg: var(--grey-3);
-        --graphical-fg: var(--grey-1);
+    --fg: var(--grey-3);
+    --graphical-fg: var(--grey-1);
 
-        --3d-highlight: var(--control-bg);
-        --3d-shadow: var(--control-bg);
-    }
+    --3d-highlight: var(--control-bg);
+    --3d-shadow: var(--control-bg);
+  }
 }
 
 @media screen and (max-width: 460px) {
-    :root {
-        --scrollbar-width: 3px;
-        --padding: 4px;
-        --gap: 1px;
-    }
+  :root {
+    --scrollbar-width: 3px;
+    --padding: 4px;
+    --gap: 1px;
+  }
 }
 
 @media screen and (max-width: 600px) {
-    .tool-bar {
-        --control-border-radius: 6px;
-    }
+  .tool-bar {
+    --control-border-radius: 6px;
+  }
 }
-
-
-
 
 :modal,
 .modal {
-    &::backdrop {
-        content: "";
-        background-color: black;
-        opacity: 0.3;
-    }
+  &::backdrop {
+    content: "";
+    background-color: black;
+    opacity: 0.3;
+  }
 }
 
 [popover] {
-    max-height: 100vh;
-    overflow: scroll;
+  max-height: 100vh;
+  overflow: scroll;
 }
 
 [popover]:not(:popover-open):not(dialog[open]) {
-    display: none !important;
+  display: none !important;
 }
 /*****************Typography****************************/
 
 @media screen and (max-width: 820px) {
-    .desktop-only {
-        display: none;
-    }
+  .desktop-only {
+    display: none;
+  }
 }
 @media screen and (min-width: 820px) {
-    .mobile-only {
-        display: none;
-    }
+  .mobile-only {
+    display: none;
+  }
 }
 
 /*Overall page layout */
 
 main {
-    margin: auto;
-    width: calc(min(45em, 100vw, 100%));
-    max-width: 100%;
-    min-width: calc(min(min-content, 100vw));
+  margin: auto;
+  width: calc(min(45em, 100vw, 100%));
+  max-width: 100%;
+  min-width: calc(min(min-content, 100vw));
 }
 
 html {
-    background: var(--bg);
-    /*This might not all be needed on new browsers*/
-    background-size: cover, unset;
-    background-repeat: repeat, repeat;
-    min-height: 100vh;
-    padding: 0px;
-    margin: 0px;
+  background: var(--bg);
+  /*This might not all be needed on new browsers*/
+  background-size: cover, unset;
+  background-repeat: repeat, repeat;
+  min-height: 100vh;
+  padding: 0px;
+  margin: 0px;
 }
 
 body {
-    font-family: var(--main-font);
-    line-height: var(--line-height);
-    font-size: var(--font-size);
-    margin: 0px;
-    padding: 0px;
-    color: var(--fg);
-    /* Disables pull-to-refresh but allows overscroll glow effects. */
-    overscroll-behavior-y: contain;
-    overscroll-behavior-x: contain;
+  font-family: var(--main-font);
+  line-height: var(--line-height);
+  font-size: var(--font-size);
+  margin: 0px;
+  padding: 0px;
+  color: var(--fg);
+  /* Disables pull-to-refresh but allows overscroll glow effects. */
+  overscroll-behavior-y: contain;
+  overscroll-behavior-x: contain;
 }
 
 /*Classless styles */
@@ -364,124 +390,120 @@ figure,
 video,
 fieldset,
 canvas {
-    max-width: 100%;
-    margin-left: 0px;
-    margin-right: 0px;
+  max-width: 100%;
+  margin-left: 0px;
+  margin-right: 0px;
 }
 
-
-audio{
-    min-height: var(--control-height);
+audio {
+  min-height: var(--control-height);
 }
 
 @media screen {
-
-    dl,
-    ul,
-    ol {
-        &:not(.tool-bar, .nomargin) {
-            margin: var(--padding);
-        }
+  dl,
+  ul,
+  ol {
+    &:not(.tool-bar, .nomargin) {
+      margin: var(--padding);
     }
+  }
 }
 
 dl,
 ul,
 ol {
-    &:is(.tool-bar) {
-        padding: 0px;
-    }
+  &:is(.tool-bar) {
+    padding: 0px;
+  }
 }
 
 dt {
-    margin-block-end: var(--padding);
-    break-after: avoid;
+  margin-block-end: var(--padding);
+  break-after: avoid;
 }
 
 li,
 dd,
 dt {
-    max-width: 100%;
+  max-width: 100%;
 }
 
 figcaption {
-    margin-inline-start: var(--gap);
+  margin-inline-start: var(--gap);
 }
 
 p {
-    margin: var(--padding);
+  margin: var(--padding);
 
-    &>img,
-    &>a>img {
-        float: left;
-        /*Try to center in screen.  This assumes there's always a scrollbar which isn't great*/
-        max-width: calc(100vw - calc(var(--padding) *2 + var(--scrollbar-width)));
-    }
+  & > img,
+  & > a > img {
+    float: left;
+    /*Try to center in screen.  This assumes there's always a scrollbar which isn't great*/
+    max-width: calc(100vw - calc(var(--padding) * 2 + var(--scrollbar-width)));
+  }
 }
 
-
-
-
-
-
 /*Stack labels on the form elements*/
-label>:is(input:not(input[type=radio], input[type=checkbox]), select, button, div) {
-    display: block;
+label
+  > :is(
+    input:not(input[type="radio"], input[type="checkbox"]),
+    select,
+    button,
+    div
+  ) {
+  display: block;
 
-    &.flex-row,
-    &.flex-column {
-        display: flex;
-    }
+  &.flex-row,
+  &.flex-column {
+    display: flex;
+  }
 }
 
 label:has(*) {
-    display: inline-block;
-    width: fit-content;
-    text-align: start;
+  display: inline-block;
+  width: fit-content;
+  text-align: start;
 }
 
 form {
-    color: var(--control-fg);
-    text-shadow: var(--control-text-shadow);
+  color: var(--control-fg);
+  text-shadow: var(--control-text-shadow);
 }
 
 label {
-    color: var(--control-fg);
-    min-width: max-content;
-    padding-inline-start: calc(var(--padding)/2);
+  color: var(--control-fg);
+  min-width: max-content;
+  padding-inline-start: calc(var(--padding) / 2);
 
-    &>input[type=checkbox]:first-child,
-    &>input[type=radio]:first-child {
-        margin-inline-end: calc(var(--padding) / 2);
-    }
+  & > input[type="checkbox"]:first-child,
+  & > input[type="radio"]:first-child {
+    margin-inline-end: calc(var(--padding) / 2);
+  }
 }
 
 span {
-    border-radius: 4px;
+  border-radius: 4px;
 }
-
 
 p:empty {
-    padding: var(--padding);
+  padding: var(--padding);
 }
 
-
-input[type=checkbox],
-input[type=color] {
-    min-width: var(--control-height);
-    height: var(--control-height);
-    flex-basis: var(--control-height);
-    border-radius: var(--control-border-radius);
+input[type="checkbox"],
+input[type="color"] {
+  min-width: var(--control-height);
+  height: var(--control-height);
+  flex-basis: var(--control-height);
+  border-radius: var(--control-border-radius);
 }
-
 
 dialog {
-    position: fixed;
-    top: auto;
-    bottom: auto;
-    border: 3px solid;
-    border-color: var(--border-color);
-    z-index: 1000;
+  position: fixed;
+  top: auto;
+  bottom: auto;
+  border: 3px solid;
+  border-color: var(--border-color);
+  z-index: 1000;
 }
 
 span,
@@ -489,89 +511,86 @@ button,
 input,
 textarea,
 select {
-    color: inherit;
+  color: inherit;
 }
-
 
 textarea:disabled,
 input:disabled,
 button:disabled {
-    &:not(.specificity_hack) {
-        background: color-mix(in srgb, var(--control-fg) 25%, var(--box-bg) 50%);
-        color: var(--control-fg);
-    }
+  &:not(.specificity_hack) {
+    background: color-mix(in srgb, var(--control-fg) 25%, var(--box-bg) 50%);
+    color: var(--control-fg);
+  }
 }
 
 details {
-    margin: 0.4em;
-    border: var(--border);
-    padding-left: 0.4em;
-    border-radius: var(--border-radius);
+  margin: 0.4em;
+  border: var(--border);
+  padding-left: 0.4em;
+  border-radius: var(--border-radius);
 
-    &>summary {
-        padding-left: calc(var(--border-radius) / 2);
-    }
+  & > summary {
+    padding-left: calc(var(--border-radius) / 2);
+  }
 }
 
 details.help {
-    border: none;
-
+  border: none;
 }
 
-
 td details {
-    display: inline-block;
+  display: inline-block;
 }
 
 button {
-    border-style: solid;
-    color: var(--control-fg);
+  border-style: solid;
+  color: var(--control-fg);
 }
-
 
 button:active,
 a:active,
-input:is([type='submit'], [type='button']):active {
-    background: var(--convex-item-active-bg) !important;
-    box-shadow: var(--concave-item-box-shadow) !important;
-    color: var(--control-fg);
+input:is([type="submit"], [type="button"]):active {
+  background: var(--convex-item-active-bg) !important;
+  box-shadow: var(--concave-item-box-shadow) !important;
+  color: var(--control-fg);
 }
 
 summary h2:first-child {
-    display: inline;
+  display: inline;
 }
 
-
 blockquote {
-    white-space: pre-line;
-    border-left: 3px solid var(--graphical-fg);
-    font-style: italic;
-    border-color: var(--border-color);
-    margin: var(--gap);
-    padding: var(--padding);
-    padding-inline-start: calc(var(--padding) * 3);
-    color: var(--control-fg);
-    position: relative;
+  white-space: pre-line;
+  border-left: 3px solid var(--graphical-fg);
+  font-style: italic;
+  border-color: var(--border-color);
+  margin: var(--gap);
+  padding: var(--padding);
+  padding-inline-start: calc(var(--padding) * 3);
+  color: var(--control-fg);
+  position: relative;
 }
 
 @media screen and (max-width: 600px) {
-    blockquote {
-        padding-inline-start: var(--padding);
-    }
+  blockquote {
+    padding-inline-start: var(--padding);
+  }
 }
 
 a {
-    text-decoration-style: dotted;
-    text-decoration-thickness: 1.2px;
-    color: var(--accent-color);
-    text-decoration-color: color-mix(in srgb, var(--accent-color) 38%, rgb(0 0 0 / 0%));
+  text-decoration-style: dotted;
+  text-decoration-thickness: 1.2px;
+  color: var(--accent-color);
+  text-decoration-color: color-mix(
+    in srgb,
+    var(--accent-color) 38%,
+    rgb(0 0 0 / 0%)
+  );
 }
 
 .tool-bar a {
-    color: var(--control-fg);
+  color: var(--control-fg);
 }
-
-
 
 button,
 .button,
@@ -580,94 +599,87 @@ label,
 select,
 textarea,
 input {
-    border-radius: var(--control-border-radius);
-    border-color: var(--control-border-color);
-    font-family: var(--control-font);
-    border-width: var(--control-border-width);
+  border-radius: var(--control-border-radius);
+  border-color: var(--control-border-color);
+  font-family: var(--control-font);
+  border-width: var(--control-border-width);
 }
 
 button,
 .button,
 input,
 select {
-    min-height: calc(min(var(--control-height), 100%));
-    width: fit-content;
-    flex-basis: min-content;
-    /*Don't set button height, remember they can be multiine*/
+  min-height: calc(min(var(--control-height), 100%));
+  width: fit-content;
+  flex-basis: min-content;
+  /*Don't set button height, remember they can be multiine*/
 }
 
 button,
 .button,
-input:is([type='submit'], [type='button']),
+input:is([type="submit"], [type="button"]),
 label,
 .tool-bar :is(p, h1, h2, h3, h4, h5) {
-    text-shadow: var(--control-text-shadow);
+  text-shadow: var(--control-text-shadow);
 }
-.tool-bar input[type='file'] {
-    padding: 0px;
+.tool-bar input[type="file"] {
+  padding: 0px;
 }
 
 button,
 .button,
-input:is([type='submit'], [type='button']) {
-    background: var(--convex-item-bg);
-    text-decoration: none;
-    border: var(--control-border);
-    color: var(--control-fg);
-    text-shadow: var(--control-text-shadow);
-    display: inline-block;
-    padding-inline: var(--padding);
+input:is([type="submit"], [type="button"]) {
+  background: var(--convex-item-bg);
+  text-decoration: none;
+  border: var(--control-border);
+  color: var(--control-fg);
+  text-shadow: var(--control-text-shadow);
+  display: inline-block;
+  padding-inline: var(--padding);
 }
 
-input:not([type='submit'], [type='range'], [type='checkbox'], [type="radio"]),
+input:not([type="submit"], [type="range"], [type="checkbox"], [type="radio"]),
 select {
-    background: var(--concave-item-bg);
-    box-shadow: var(--concave-item-box-shadow);
-    padding-inline: var(--padding);
+  background: var(--concave-item-bg);
+  box-shadow: var(--concave-item-box-shadow);
+  padding-inline: var(--padding);
 }
 
 select {
-    padding: 3px;
-    padding-bottom: 0px;
+  padding: 3px;
+  padding-bottom: 0px;
 }
 
-
-
-
-
-input:not([type='checkbox'], [type="radio"]),
+input:not([type="checkbox"], [type="radio"]),
 textarea {
-    border: var(--control-border);
-    box-shadow: var(--concave-item-box-shadow);
+  border: var(--control-border);
+  box-shadow: var(--concave-item-box-shadow);
 }
 
 textarea {
-    background-color: var(--control-bg);
-    color: var(--control-fg);
-    padding: var(--padding);
-    font-size: var(--font-size);
+  background-color: var(--control-bg);
+  color: var(--control-fg);
+  padding: var(--padding);
+  font-size: var(--font-size);
 }
 
 fieldset {
-    border: var(--control-border-width) solid var(--control-border-color);
-    border-radius: var(--border-radius);
+  border: var(--control-border-width) solid var(--control-border-color);
+  border-radius: var(--border-radius);
 }
 
 /*Border radius looks bad if it's smashed right up close to containing box and not the same radius*/
-header>* {
-    border-radius: var(--border-radius);
+header > * {
+  border-radius: var(--border-radius);
 }
-
 
 p,
 div {
-    border-color: var(--border-color);
+  border-color: var(--border-color);
 }
 
-
-
 dd {
-    margin-bottom: 1.5em;
+  margin-bottom: 1.5em;
 }
 
 /********************Basic Layout******************************/
@@ -675,7 +687,7 @@ dd {
 /*Headings and lines */
 
 h1 {
-    text-align: center;
+  text-align: center;
 }
 
 h1,
@@ -687,602 +699,587 @@ h6,
 h1 *,
 h2 *,
 h3 * {
-    color: var(--accent-color);
-    clear: both;
-    font-family: var(--heading-font);
-    /*Having a heading at the end of the page is terrible*/
-    break-after: avoid;
+  color: var(--accent-color);
+  clear: both;
+  font-family: var(--heading-font);
+  /*Having a heading at the end of the page is terrible*/
+  break-after: avoid;
 }
-
 
 h3 button,
 h3 .button {
-    font-size: 100%;
-    font-family: var(--main-font);
+  font-size: 100%;
+  font-family: var(--main-font);
 }
 
 h1,
 h2,
 h3,
 h4 {
-    margin-bottom: var(--padding);
-    margin-top: var(--padding);
-    padding-inline-end: var(--header-padding);
-    padding-inline-start: var(--header-padding);
-    text-shadow: var(--heading-text-shadow);
+  margin-bottom: var(--padding);
+  margin-top: var(--padding);
+  padding-inline-end: var(--header-padding);
+  padding-inline-start: var(--header-padding);
+  text-shadow: var(--heading-text-shadow);
 }
-
-
-
 
 h2:first-of-type,
 h3:first-of-type {
-    margin-top: 0px;
+  margin-top: 0px;
 }
 
 hr {
-    background-color: transparent;
-    border: none;
-    border-top: var(--border);
-    height: var(--border-width);
-    margin: var(--padding);
+  background-color: transparent;
+  border: none;
+  border-top: var(--border);
+  height: var(--border-width);
+  margin: var(--padding);
 }
-
 
 header,
 footer {
-    width: 100%;
-    box-sizing: border-box;
-    margin: 0px;
-    flex-grow: 0;
-    min-height: var(--control-height);
-    background-color: var(--alt-control-bg);
-    color: var(--control-fg);
-    --graphical-fg: var(--control-fg);
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0px;
+  flex-grow: 0;
+  min-height: var(--control-height);
+  background-color: var(--alt-control-bg);
+  color: var(--control-fg);
+  --graphical-fg: var(--control-fg);
 
-    & :is(a, h1, h2, h3, h4, h5, h6) {
-
-        &,
-        & * {
-            color: var(--control-fg);
-        }
+  & :is(a, h1, h2, h3, h4, h5, h6) {
+    &,
+    & * {
+      color: var(--control-fg);
     }
+  }
 }
 
 /*Headers and footers */
 footer {
-    border-radius: 0px 0px inherit inherit;
-    border-top: var(--border);
+  border-radius: 0px 0px inherit inherit;
+  border-top: var(--border);
 }
 
 header {
-    border-radius: inherit inherit 0px 0px;
-    border-bottom: var(--border);
-    break-after: avoid;
+  border-radius: inherit inherit 0px 0px;
+  border-bottom: var(--border);
+  break-after: avoid;
 
+  & :is(h1, h2, h3, h4, h5, h6) {
+    padding-inline-start: var(--padding);
+    text-align: start;
 
-    & :is(h1, h2, h3, h4, h5, h6) {
-        padding-inline-start: var(--padding);
-        text-align: start;
+    &:has(button:only-child) {
+      padding: 0px;
+      --header-padding: 0px;
+    }
+  }
 
-
-        &:has(button:only-child) {
-            padding: 0px;
-            --header-padding: 0px;
-        }
+  &:not(.undecorated) {
+    & > :only-child,
+    & > :only-child > :only-child,
+    & :is(h1, h2, h3, h4, h5, h6) > button {
+      border: none;
+      text-align: start;
+      max-height: 100%;
     }
 
-    &:not(.undecorated) {
+    & > :only-child,
+    & :is(h1, h2, h3, h4, h5, h6) > button,
+    :is(h1, h2, h3, h4, h5, h6) {
+      margin-top: 0px;
+      flex-grow: 1;
+      margin: 0px;
 
-        &>:only-child,
-        &>:only-child>:only-child,
-        & :is(h1, h2, h3, h4, h5, h6)>button {
-            border: none;
-            text-align: start;
-            max-height: 100%;
-        }
-
-        &>:only-child,
-        & :is(h1, h2, h3, h4, h5, h6)>button,
-        :is(h1, h2, h3, h4, h5, h6) {
-            margin-top: 0px;
-            flex-grow: 1;
-            margin: 0px;
-
-            &:not(.highlight, .danger, .warning, .success, .tool-bar) {
-                --control-bg: none;
-                --convex-item-bg: none;
-            }
-        }
-
-
-        /*Treat toolbar only children of a header specially*/
-        &>.tool-bar:only-child {
-
-            &>:not(.specificity-hack),
-            &>:is(p, label)>:not(.specificity_hack) {
-                border-radius: 0px;
-            }
-
-            &>label {
-                gap: 2px;
-            }
-
-            &>label,
-            &>p {
-                &>* {
-                    height: var(--control-height);
-                }
-            }
-
-            /*Line up with right wall*/
-            &>:is(p):last-child {
-                padding-inline-end: 0px;
-            }
-
-
-            & :is(p, h1, h2, h3, h4, h5, h6, label) {
-                background: none;
-                border: none;
-            }
-
-            & :is(input, select, button, .button) {
-                color: var(--control-fg);
-                border-top: none;
-                border-bottom: none;
-                border-radius: 0px;
-            }
-
-            & input,
-            & label>input {
-                border: var(--control-border);
-            }
-
-        }
+      &:not(.highlight, .danger, .warning, .success, .tool-bar) {
+        --control-bg: none;
+        --convex-item-bg: none;
+      }
     }
+
+    /*Treat toolbar only children of a header specially*/
+    & > .tool-bar:only-child {
+      & > :not(.specificity-hack),
+      & > :is(p, label) > :not(.specificity_hack) {
+        border-radius: 0px;
+      }
+
+      & > label {
+        gap: 2px;
+      }
+
+      & > label,
+      & > p {
+        & > * {
+          height: var(--control-height);
+        }
+      }
+
+      /*Line up with right wall*/
+      & > :is(p):last-child {
+        padding-inline-end: 0px;
+      }
+
+      & :is(p, h1, h2, h3, h4, h5, h6, label) {
+        background: none;
+        border: none;
+      }
+
+      & :is(input, select, button, .button) {
+        color: var(--control-fg);
+        border-top: none;
+        border-bottom: none;
+        border-radius: 0px;
+      }
+
+      & input,
+      & label > input {
+        border: var(--control-border);
+      }
+    }
+  }
 }
 
-:is(section, article, div):not(.window, .card)> :is(header, footer) {
-    border-radius: var(--border-radius);
-    border: var(--border);
-    margin-left: auto;
-    margin-right: auto;
-    max-width: 100%;
+:is(section, article, div):not(.window, .card) > :is(header, footer) {
+  border-radius: var(--border-radius);
+  border: var(--border);
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 100%;
 }
-
-
-
-
-
-
 
 /*****************************General***********************************************************************************/
 
 /**Basic styling**/
 iframe {
-    border-style: solid;
-    border-width: var(--border-width);
+  border-style: solid;
+  border-width: var(--border-width);
 }
 
 /*Tables*/
 
-
-
 table {
-    border-width: var(--border-width);
-    border-color: var(--border-color);
-    border-collapse: separate;
-    border-spacing: 0;
-    border-radius: var(--border-radius);
+  border-width: var(--border-width);
+  border-color: var(--border-color);
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: var(--border-radius);
+  border: none;
+
+  & tr {
     border: none;
+  }
 
-    & tr {
-        border: none;
+  & td {
+    border-top: none;
+    border-right: none;
+    border-color: color-mix(
+      in srgb,
+      var(--border-color) var(--table-border-strength),
+      transparent
+    );
+    padding: var(--border-width);
+    width: min-content;
+    max-width: 45%;
+  }
+
+  & * {
+    border-color: var(--border-color);
+  }
+
+  & > thead {
+    & > tr:last-child > th {
+      border-bottom: var(--border);
+    }
+  }
+
+  & > thead > tr:first-child > th,
+  & > :first-child > tr:first-child > :is(td, th) {
+    border-top: var(--border);
+  }
+
+  /*This makes tables easier to read by coloring alternate rows differently.*/
+  & tr:nth-child(odd) td {
+    background-color: color-mix(
+      in srgb,
+      var(--highlight-color) 2%,
+      transparent
+    );
+  }
+
+  & tr:nth-child(even) td {
+    background-color: color-mix(in srgb, var(--accent-color) 2%, transparent);
+  }
+
+  & tbody {
+    border-radius: var(--border-radius);
+  }
+
+  & td input,
+  & td select {
+    border: var(--border);
+
+    margin: 0px;
+    width: auto;
+  }
+
+  & th {
+    width: max-content;
+    color: var(--control-fg);
+  }
+
+  & tr th,
+  & tr td {
+    border-right: 1px
+      color-mix(
+        in srgb,
+        var(--border-color) var(--table-border-strength),
+        transparent
+      )
+      solid;
+    border-bottom: 1px
+      color-mix(
+        in srgb,
+        var(--border-color) var(--table-border-strength),
+        transparent
+      )
+      solid;
+    padding: calc(var(--padding) / 3);
+
+    &:first-child,
+    &:first-child {
+      border-left: var(--border-width) solid var(--border-color);
+    }
+  }
+
+  & tr th,
+  & tr:first-child td {
+    text-align: left;
+  }
+
+  & tr:last-child td {
+    border-bottom: var(--border-width) solid var(--border-color);
+  }
+
+  & tr td:last-child,
+  & tr th:last-child {
+    border-right: var(--border-width) solid var(--border-color);
+  }
+
+  /* top-left border-radius */
+
+  & > thead > tr:first-child :first-child:is(td, th),
+  &:not(:has(thead)) tr:first-child :first-child:is(td, th) {
+    border-top-left-radius: var(--border-radius);
+  }
+
+  /* top-right border-radius */
+
+  & > thead > tr:first-child :last-child:is(td, th),
+  &:not(:has(thead)) tr:first-child > :last-child:is(td, th) {
+    border-top-right-radius: var(--border-radius);
+  }
+
+  /* bottom-left border-radius */
+  &:not(:has(tfoot)) {
+    & > tbody > tr:last-child > :first-child:is(td, th) {
+      border-bottom-left-radius: var(--border-radius);
     }
 
-    & td {
-        border-top: none;
-        border-right: none;
-        border-color: color-mix(in srgb, var(--border-color) var(--table-border-strength), transparent);
-        padding: var(--border-width);
-        width: min-content;
-        max-width: 45%;
+    /* bottom-right border-radius */
+    & > tr:last-child > :last-child:is(td, th),
+    & > tbody > tr:last-child > :last-child:is(td, th) {
+      border-bottom-right-radius: var(--border-radius);
+    }
+  }
+
+  & tfoot > tr:last-child {
+    & > :last-child:is(td, th) {
+      border-bottom-right-radius: var(--border-radius);
     }
 
-    & * {
-        border-color: var(--border-color);
-
+    & > :first-child:is(td, th) {
+      border-bottom-left-radius: var(--border-radius);
     }
 
-    &>thead {
-        &>tr:last-child>th {
-            border-bottom: var(--border);
-        }
+    & :is(td, th) {
+      border-bottom: var(--border-width) solid var(--border-color);
     }
+  }
 
-    &>thead>tr:first-child>th,
-    &>:first-child>tr:first-child>:is(td, th) {
-        border-top: var(--border);
+  &:has(thead) {
+    & > tbody > tr:first-child > td {
+      border-top: none;
     }
+  }
 
-    /*This makes tables easier to read by coloring alternate rows differently.*/
-    & tr:nth-child(odd) td {
-        background-color: color-mix(in srgb, var(--highlight-color) 2%, transparent);
+  &:not(:has(tbody)),
+  & > tbody {
+    & > tr:first-child > td {
+      border-top: var(--border-width) solid var(--border-color);
+      border-top-width: var(--border-width);
     }
-
-    & tr:nth-child(even) td {
-        background-color: color-mix(in srgb, var(--accent-color) 2%, transparent);
-    }
-
-    & tbody {
-        border-radius: var(--border-radius);
-    }
-
-
-
-    & td input,
-    & td select {
-        border: var(--border);
-
-        margin: 0px;
-        width: auto;
-    }
-
-
-
-    & th {
-        width: max-content;
-        color: var(--control-fg);
-    }
-
-    & tr th,
-    & tr td {
-        border-right: 1px color-mix(in srgb, var(--border-color) var(--table-border-strength), transparent) solid;
-        border-bottom: 1px color-mix(in srgb, var(--border-color) var(--table-border-strength), transparent) solid;
-        padding: calc(var(--padding)/3);
-
-        &:first-child,
-        &:first-child {
-            border-left: var(--border-width) solid var(--border-color);
-        }
-    }
-
-
-
-    & tr th,
-    & tr:first-child td {
-        text-align: left;
-    }
-
-    & tr:last-child td {
-        border-bottom: var(--border-width) solid var(--border-color);
-    }
-
-    & tr td:last-child,
-    & tr th:last-child {
-        border-right: var(--border-width) solid var(--border-color);
-    }
-
-    /* top-left border-radius */
-
-    &>thead>tr:first-child :first-child:is(td, th),
-    &:not(:has(thead)) tr:first-child :first-child:is(td, th) {
-        border-top-left-radius: var(--border-radius);
-
-    }
-
-
-    /* top-right border-radius */
-
-    &>thead>tr:first-child :last-child:is(td, th),
-    &:not(:has(thead)) tr:first-child>:last-child:is(td, th) {
-        border-top-right-radius: var(--border-radius);
-
-    }
-
-    /* bottom-left border-radius */
-    &:not(:has(tfoot)) {
-
-        &>tbody>tr:last-child>:first-child:is(td, th) {
-            border-bottom-left-radius: var(--border-radius);
-        }
-
-        /* bottom-right border-radius */
-        &>tr:last-child>:last-child:is(td, th),
-        &>tbody>tr:last-child>:last-child:is(td, th) {
-            border-bottom-right-radius: var(--border-radius);
-        }
-    }
-
-    & tfoot>tr:last-child {
-        &>:last-child:is(td, th) {
-            border-bottom-right-radius: var(--border-radius);
-        }
-
-        &>:first-child:is(td, th) {
-            border-bottom-left-radius: var(--border-radius);
-        }
-
-        & :is(td, th) {
-            border-bottom: var(--border-width) solid var(--border-color);
-        }
-    }
-
-
-    &:has(thead) {
-        &>tbody>tr:first-child>td {
-            border-top: none;
-        }
-    }
-
-    &:not(:has(tbody)),
-    &>tbody {
-        &>tr:first-child>td {
-            border-top: var(--border-width) solid var(--border-color);
-            border-top-width: var(--border-width);
-        }
-    }
+  }
 }
-
-
-
-
-
 
 /* Components */
 
 .decorative-image {
-    display: none;
-    background-size: contain;
+  display: none;
+  background-size: contain;
 }
 
-
 .card {
-    border-style: solid;
-    border-width: var(--border-width);
-    border-radius: var(--border-radius);
-    overflow-x: auto;
-    flex-basis: fit-content;
-    border-color: var(--border-color);
+  border-style: solid;
+  border-width: var(--border-width);
+  border-radius: var(--border-radius);
+  overflow-x: auto;
+  flex-basis: fit-content;
+  border-color: var(--border-color);
 }
 
 /*From the old geocities size*/
 .badge-88 {
-    width: 88px;
-    height: 31px;
-    border-radius: 6px;
-    font-size: 12pt;
-    overflow: hidden;
-    border-style: solid;
-    border-width: 1px;
-    background-color: var(--control-bg);
-    border-color: var(--graphical-fg);
-    vertical-align: center;
+  width: 88px;
+  height: 31px;
+  border-radius: 6px;
+  font-size: 12pt;
+  overflow: hidden;
+  border-style: solid;
+  border-width: 1px;
+  background-color: var(--control-bg);
+  border-color: var(--graphical-fg);
+  vertical-align: center;
 
-    & p {
-        margin: 0px;
-        padding: 2px;
-    }
+  & p {
+    margin: 0px;
+    padding: 2px;
+  }
 }
 
 /*This handles the old style "section box", but also top level HTML section elements. It's basicattly for independant sections of content.*/
 .window {
-    background: var(--box-bg);
-    border: var(--border);
-    max-width: 100vw;
-    overflow: auto;
-    border-radius: var(--border-radius);
-    border-color: var(--border-color);
-    text-align: left;
-    flex-grow: 1;
-    flex-basis: min-content;
-    box-shadow: var(--window-box-shadow);
-    break-inside: avoid;
+  background: var(--box-bg);
+  border: var(--border);
+  max-width: 100vw;
+  overflow: auto;
+  border-radius: var(--border-radius);
+  border-color: var(--border-color);
+  text-align: left;
+  flex-grow: 1;
+  flex-basis: min-content;
+  box-shadow: var(--window-box-shadow);
+  break-inside: avoid;
 }
-
 
 .card,
 .tool-bar {
-    box-shadow: var(--item-box-shadow);
-    break-inside: avoid;
+  box-shadow: var(--item-box-shadow);
+  break-inside: avoid;
 }
 
 header:not(.undecorated) .tool-bar {
-    box-shadow: none;
+  box-shadow: none;
 }
 
-
 .two-columns {
-    column-count: 2;
-    column-fill: auto;
-    break-inside: avoid;
-    column-gap: var(--gap);
+  column-count: 2;
+  column-fill: auto;
+  break-inside: avoid;
+  column-gap: var(--gap);
 }
 
 .balance-columns {
-    column-fill: balance;
+  column-fill: balance;
 }
 
 .pagebreak {
-    break-before: always;
+  break-before: always;
 }
 
 .nobreaks {
-    break-inside: avoid;
+  break-inside: avoid;
 }
 
 @media print {
-    .noprint {
-        display: none;
-    }
+  .noprint {
+    display: none;
+  }
 }
 
 /*Flex rows and cols */
 .max-content {
-    width: max-content;
-    height: min-content;
-    flex-basis: max-content;
+  width: max-content;
+  height: min-content;
+  flex-basis: max-content;
 }
 
 .min-content {
-    width: min-content;
-    height: min-content;
-    flex-basis: min-content;
+  width: min-content;
+  height: min-content;
+  flex-basis: min-content;
 }
 
 .stacked-form {
+  display: flex;
+  flex-direction: column;
+
+  & label:has(*) {
+    display: inline-block;
+    text-align: start;
+  }
+
+  & > *,
+  & fieldset > * {
+    margin-block-end: var(--padding);
+    margin-block-start: 0px;
+    margin-inline-start: var(--padding);
+    margin-inline-end: var(--padding);
+  }
+
+  & :is(textarea) {
+    width: 100%;
+    margin-inline-start: 0px;
+    margin-inline-end: 0px;
+  }
+
+  & > :is(p, div, section),
+  & > fieldset > :is(p, div, section) {
+    &:not(.tool-bar) {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      width: calc(100% - calc(var(--padding) * 2));
+      padding: 0px;
+      gap: var(--padding);
+    }
+
+    & > :first-child {
+      margin-inline-start: 0px;
+    }
+  }
+
+  & > *,
+  & > label > * {
+    width: auto;
+  }
+
+  & label {
+    width: auto;
     display: flex;
     flex-direction: column;
+    flex-grow: 0;
+    padding: 0px;
 
-    & label:has(*) {
-        display: inline-block;
-        text-align: start;
+    & > :is(input:not(input[type="radio"], input[type="checkbox"])) {
+      width: 100%;
+      max-width: 100%;
     }
 
-
-    &>*,
-    & fieldset>* {
-        margin-block-end: var(--padding);
-        margin-block-start: 0px;
-        margin-inline-start: var(--padding);
-        margin-inline-end: var(--padding);
+    & > :is(select) {
+      max-width: max-content;
     }
 
-    & :is(textarea) {
-        width: 100%;
-        margin-inline-start: 0px;
-        margin-inline-end: 0px;
+    &:has(input[type="radio"], input[type="checkbox"]) {
+      flex-direction: row;
     }
+  }
 
-    &>:is(p, div, section),
-    &>fieldset>:is(p, div, section) {
-        &:not(.tool-bar) {
-            display: flex;
-            flex-direction: row;
-            flex-wrap: wrap;
-            width: calc(100% - calc(var(--padding) * 2));
-            padding: 0px;
-            gap: var(--padding);
-        }
+  /*Inline rows of controls*/
+  & > p > label {
+    flex-grow: 1;
+    flex-basis: min-content;
+  }
 
-        &>:first-child {
-            margin-inline-start: 0px;
-        }
-    }
-
-    &>*,
-    &>label>* {
-        width: auto;
-    }
-
-
-    & label {
-        width: auto;
-        display: flex;
-        flex-direction: column;
-        flex-grow: 0;
-        padding: 0px;
-
-        &>:is(input:not(input[type=radio], input[type=checkbox])) {
-            width: 100%;
-            max-width: 100%;
-        }
-
-        &>:is(select) {
-            max-width: max-content;
-        }
-
-        &:has(input[type="radio"], input[type="checkbox"]) {
-            flex-direction: row;
-        }
-    }
-
-    /*Inline rows of controls*/
-    &>p>label {
-        flex-grow: 1;
-        flex-basis: min-content;
-    }
-
-
-    & :is(input:not([type='checkbox'], [type="radio"]), select, label) {
-        min-width: 6em;
-    }
+  & :is(input:not([type="checkbox"], [type="radio"]), select, label) {
+    min-width: 6em;
+  }
 }
 
 /*This is a fallback for Firefox.  It's not great but it makes
 it usable.  Remove when FF fully supports :has()*/
 .stacked-form *::has(input[type="radio"], input[type="checkbox"]) {
-    flex-direction: row;
+  flex-direction: row;
 }
 
-.stacked-form label input[type='checkbox'],
-.stacked-form label input[type='radio'] {
-    place-self: baseline;
+.stacked-form label input[type="checkbox"],
+.stacked-form label input[type="radio"] {
+  place-self: baseline;
 }
 
 .flex-col {
-    display: flex;
-    /*I don't think there's many use cases for wrapping a column 
+  display: flex;
+  /*I don't think there's many use cases for wrapping a column 
     and in behaves badly in edge cases, so no wrap*/
-    flex-wrap: nowrap;
-    flex-direction: column;
+  flex-wrap: nowrap;
+  flex-direction: column;
 
-    &>hr {
-        flex-grow: 0;
-    }
+  & > hr {
+    flex-grow: 0;
+  }
 
-    /*Nicer input stacking*/
-    &>label:has(+input) {
-        margin-block-end: 4px;
-    }
+  /*Nicer input stacking*/
+  & > label:has(+ input) {
+    margin-block-end: 4px;
+  }
 
-    &>.tool-bar {
-        flex-grow: 0;
-    }
+  & > .tool-bar {
+    flex-grow: 0;
+  }
 }
 
-.flex-col>* {
-    flex: 1 1 auto;
-    flex-basis: fit-content;
+.flex-col > * {
+  flex: 1 1 auto;
+  flex-basis: fit-content;
 }
 
-.flex-col.gaps>* {
-    margin-block-end: var(--gap);
+.flex-col.gaps > * {
+  margin-block-end: var(--gap);
 
+  & > :last-child:not(label, input, button, select, .tool-bar) {
+    margin-block-end: 0px;
+  }
 
-    &>:last-child:not(label, input, button, select, .tool-bar) {
-        margin-block-end: 0px;
-    }
-
-    /*Todo find out what this is for*/
-    &>:nth-last-child(2):not(label, input, button, select, .tool-bar, p, .card, .window) {
-        margin-block-end: 0px;
-    }
+  /*Todo find out what this is for*/
+  &
+    > :nth-last-child(2):not(
+      label,
+      input,
+      button,
+      select,
+      .tool-bar,
+      p,
+      .card,
+      .window
+    ) {
+    margin-block-end: 0px;
+  }
 }
 
 .flex-col footer,
 .flex-col header {
-    flex-grow: 0;
+  flex-grow: 0;
 
-    &:not(.margin-bottom) {
-        margin-block-end: 0px;
-    }
+  &:not(.margin-bottom) {
+    margin-block-end: 0px;
+  }
 }
 
 .flex-row {
-    display: flex;
-    flex-wrap: wrap;
-    flex-direction: row;
-    align-items: stretch;
+  display: flex;
+  flex-wrap: wrap;
+  flex-direction: row;
+  align-items: stretch;
 }
 
 .flex-row.gaps {
-    gap: var(--gap);
+  gap: var(--gap);
 }
 
-.flex-row>* {
-    flex-basis: min-content;
-    margin: 0px;
+.flex-row > * {
+  flex-basis: min-content;
+  margin: 0px;
 }
 
 /*Grid and sizing*/
@@ -1299,796 +1296,784 @@ it usable.  Remove when FF fully supports :has()*/
 .col-10,
 .col-11,
 .col-12 {
-    flex-basis: calc(var(--this-col-width-internal) * 8.33%);
-    width: calc(var(--this-col-width-internal) * 8.33%);
-    margin-inline-end: 0px;
+  flex-basis: calc(var(--this-col-width-internal) * 8.33%);
+  width: calc(var(--this-col-width-internal) * 8.33%);
+  margin-inline-end: 0px;
 
+  /*Img and video would become 1:1 pixel style*/
+  &:not(img, video) {
+    min-width: min-content;
+  }
 
+  &:is(.gaps > *) {
+    flex-grow: var(--this-col-width-internal);
+    flex-basis: calc(calc(var(--this-col-width-internal) * 8.33%) - var(--gap));
+    width: calc(calc(var(--this-col-width-internal) * 8.33%) - var(--gap));
+  }
 
-    /*Img and video would become 1:1 pixel style*/
-    &:not(img, video) {
-        min-width: min-content;
-    }
-
-    &:is(.gaps>*) {
-        flex-grow: var(--this-col-width-internal);
-        flex-basis: calc(calc(var(--this-col-width-internal) * 8.33%) - var(--gap));
-        width: calc(calc(var(--this-col-width-internal) * 8.33%) - var(--gap));
-    }
-
-    &.margin {
-        flex-grow: var(--this-col-width-internal);
-        flex-basis: calc(calc(var(--this-col-width-internal) * 8.33%) - calc(var(--gap) * 2));
-        width: calc(calc(var(--this-col-width-internal) * 8.33%) - calc(var(--gap) * 2));
-    }
+  &.margin {
+    flex-grow: var(--this-col-width-internal);
+    flex-basis: calc(
+      calc(var(--this-col-width-internal) * 8.33%) - calc(var(--gap) * 2)
+    );
+    width: calc(
+      calc(var(--this-col-width-internal) * 8.33%) - calc(var(--gap) * 2)
+    );
+  }
 }
 
-
-
-
 .col-1 {
-    --this-col-width-internal: 1;
+  --this-col-width-internal: 1;
 }
 
 .col-2 {
-    --this-col-width-internal: 2;
+  --this-col-width-internal: 2;
 }
 
 .col-3 {
-    --this-col-width-internal: 3;
+  --this-col-width-internal: 3;
 }
 
 .col-4 {
-    --this-col-width-internal: 4;
+  --this-col-width-internal: 4;
 }
 
 .col-5 {
-    --this-col-width-internal: 5;
+  --this-col-width-internal: 5;
 }
 
 .col-6 {
-    --this-col-width-internal: 6;
+  --this-col-width-internal: 6;
 }
 
 .col-7 {
-    --this-col-width-internal: 7;
+  --this-col-width-internal: 7;
 }
 
 .col-8 {
-    --this-col-width-internal: 8;
+  --this-col-width-internal: 8;
 }
 
 .col-9 {
-    --this-col-width-internal: 9;
+  --this-col-width-internal: 9;
 }
 
 .col-10 {
-    --this-col-width-internal: 10;
+  --this-col-width-internal: 10;
 }
 
 .col-11 {
-    --this-col-width-internal: 11;
+  --this-col-width-internal: 11;
 }
 
 .col-12 {
-    --this-col-width-internal: 12;
-    flex-grow: 1;
+  --this-col-width-internal: 12;
+  flex-grow: 1;
 }
-
 
 /*Sizes that are relative to approximately the width of a phone screen.
 A little smaller in flex to allow for expansion or fitting lots on a row*/
 .w-sm-full {
-    width: min(min(430px, 100%), 100vw);
-    max-width: calc(min(430px, 100vw));
+  width: min(min(430px, 100%), 100vw);
+  max-width: calc(min(430px, 100vw));
 
-    &:is(.margin) {
-        max-width: calc(calc(min(430px, 100vw)) - calc(var(--gap) * 2));
-    }
+  &:is(.margin) {
+    max-width: calc(calc(min(430px, 100vw)) - calc(var(--gap) * 2));
+  }
 }
 
 .w-sm-quarter {
-    width: 80px;
-    max-width: calc(min(160px, 25vw));
+  width: 80px;
+  max-width: calc(min(160px, 25vw));
 
-    &:is(.margin) {
-        max-width: calc(calc(min(160, 25vw)) - calc(var(--gap) * 2));
-    }
+  &:is(.margin) {
+    max-width: calc(calc(min(160, 25vw)) - calc(var(--gap) * 2));
+  }
 }
 
 .w-sm-half {
-    width: 175px;
-    max-width: calc(min(215px, 50vw));
+  width: 175px;
+  max-width: calc(min(215px, 50vw));
 
-    &:is(.margin) {
-        max-width: calc(calc(min(215px, 50vw)) - calc(var(--gap) * 2));
-    }
+  &:is(.margin) {
+    max-width: calc(calc(min(215px, 50vw)) - calc(var(--gap) * 2));
+  }
 }
 
 .w-sm-double {
-    width: min(min(28cm, 96vw), 100%);
-    max-width: min(28cm, 96vw);
+  width: min(min(28cm, 96vw), 100%);
+  max-width: min(28cm, 96vw);
 
-    &:is(.margin) {
-        max-width: calc(calc(min(28cm, 100vw)) - calc(var(--gap) * 2));
-    }
+  &:is(.margin) {
+    max-width: calc(calc(min(28cm, 100vw)) - calc(var(--gap) * 2));
+  }
 }
 
 @media screen and (max-width: 600px) {
-    .w-sm-double {
-        width: min(430px, 100%);
-        max-width: calc(min(430px, 100vw));
-    }
+  .w-sm-double {
+    width: min(430px, 100%);
+    max-width: calc(min(430px, 100vw));
+  }
 }
 
-
 .w-full {
-    width: 100%;
-    max-width: 100%;
+  width: 100%;
+  max-width: 100%;
 
-    &:is(.margin) {
-        max-width: calc(100% - calc(var(--gap) * 2));
-    }
+  &:is(.margin) {
+    max-width: calc(100% - calc(var(--gap) * 2));
+  }
 }
 
 .h-full {
-    height: 100vh
+  height: 100vh;
 }
 
 .h-half {
-    height: 46vh;
+  height: 46vh;
 }
 
 .h-quarter {
-    height: 22vh;
+  height: 22vh;
 }
 
 .scroll {
-    overflow: auto;
-
+  overflow: auto;
 }
 
 /*This user added margin is likely unwanted on tiny screens*/
 @media screen and (max-width: 600px) {
-    .scroll {
-        /*Scroll boxes should never be full screen, or else you woul
+  .scroll {
+    /*Scroll boxes should never be full screen, or else you woul
         Have nowhere outside it to grab and scroll the whole page*/
-        max-height: 70vh;
-    }
+    max-height: 70vh;
+  }
 }
 
-
 .w-1rem {
-    width: 1rem;
+  width: 1rem;
 }
 
 .w-2rem {
-    width: 2rem;
+  width: 2rem;
 }
 
 .w-4rem {
-    width: 4rem;
+  width: 4rem;
 }
 
 .w-6rem {
-    width: 6rem;
+  width: 6rem;
 }
 
 .w-8rem {
-    width: 8rem;
+  width: 8rem;
 }
 
 .w-12rem {
-    width: 12rem;
+  width: 12rem;
 }
 
 .w-16rem {
-    width: 16rem;
+  width: 16rem;
 }
 
 .w-18rem {
-    width: 18rem;
+  width: 18rem;
 }
 
 .w-20rem {
-    width: 20rem;
+  width: 20rem;
 }
 
 .w-24rem {
-    width: 24rem;
+  width: 24rem;
 }
-
 
 .control-height {
-    height: var(--control-height)
+  height: var(--control-height);
 }
 
-
 .max-w-1rem {
-    max-width: 1rem;
+  max-width: 1rem;
 }
 
 .max-w-2rem {
-    max-width: 2rem;
+  max-width: 2rem;
 }
 
 .max-w-4rem {
-    max-width: 4rem;
+  max-width: 4rem;
 }
 
 .max-w-6rem {
-    max-width: 6rem;
+  max-width: 6rem;
 }
 
 .max-w-8rem {
-    max-width: 8rem;
+  max-width: 8rem;
 }
 
 .max-w-12rem {
-    max-width: 12rem;
+  max-width: 12rem;
 }
 
 .max-w-16rem {
-    max-width: 16rem;
+  max-width: 16rem;
 }
 
 .max-w-18rem {
-    max-width: 18rem;
+  max-width: 18rem;
 }
 
 .max-w-20rem {
-    max-width: 20rem;
+  max-width: 20rem;
 }
 
 .max-w-24rem {
-    max-width: 24rem;
+  max-width: 24rem;
 }
 
 .max-w-36rem {
-    max-width: 36rem;
+  max-width: 36rem;
 }
 
 .max-w-48rem {
-    max-width: 48rem;
+  max-width: 48rem;
 }
 
 .max-w-60rem {
-    max-width: 60rem;
+  max-width: 60rem;
 }
 
-
-
-
 .max-h-1rem {
-    max-height: 1rem;
+  max-height: 1rem;
 }
 
 .max-h-2rem {
-    max-height: 2rem;
+  max-height: 2rem;
 }
 
 .max-h-4rem {
-    max-height: 4rem;
+  max-height: 4rem;
 }
 
 .max-h-6rem {
-    max-height: 6rem;
+  max-height: 6rem;
 }
 
 .max-h-8rem {
-    max-height: 8rem;
+  max-height: 8rem;
 }
 
 .max-h-12rem {
-    max-height: 12rem;
+  max-height: 12rem;
 }
 
 .max-h-16rem {
-    max-height: 16rem;
+  max-height: 16rem;
 }
 
 .max-h-18rem {
-    max-height: 18rem;
+  max-height: 18rem;
 }
 
 .max-h-20rem {
-    max-height: 20rem;
+  max-height: 20rem;
 }
 
 .max-h-24rem {
-    max-height: 24rem;
+  max-height: 24rem;
 }
 
 .max-h-36rem {
-    max-height: 36rem;
+  max-height: 36rem;
 }
 
 .max-h-48rem {
-    max-height: 48rem;
+  max-height: 48rem;
 }
 
 .max-h-60rem {
-    max-height: 60rem;
+  max-height: 60rem;
 }
 
-
-
 .min-h-1rem {
-    min-height: 1rem;
+  min-height: 1rem;
 }
 
 .min-h-2rem {
-    min-height: 2rem;
+  min-height: 2rem;
 }
 
 .min-h-4rem {
-    min-height: 4rem;
+  min-height: 4rem;
 }
 
 .min-h-6rem {
-    min-height: 6rem;
+  min-height: 6rem;
 }
 
 .min-h-8rem {
-    min-height: 8rem;
+  min-height: 8rem;
 }
 
 .min-h-12rem {
-    min-height: 12rem;
+  min-height: 12rem;
 }
 
 .min-h-16rem {
-    min-height: 16rem;
+  min-height: 16rem;
 }
 
 .min-h-18rem {
-    min-height: 18rem;
+  min-height: 18rem;
 }
 
 .min-h-20rem {
-    min-height: 20rem;
+  min-height: 20rem;
 }
 
 .min-h-24rem {
-    min-height: 24rem;
+  min-height: 24rem;
 }
 
 .min-h-36rem {
-    min-height: 36rem;
+  min-height: 36rem;
 }
 
 .min-h-48rem {
-    min-height: 48rem;
+  min-height: 48rem;
 }
 
 .min-h-60rem {
-    min-height: 60rem;
+  min-height: 60rem;
 }
 
-
-
 .h-1rem {
-    height: 1rem;
+  height: 1rem;
 }
 
 .h-2rem {
-    height: 2rem;
+  height: 2rem;
 }
 
 .h-4rem {
-    height: 4rem;
+  height: 4rem;
 }
 
 .h-6rem {
-    height: 6rem;
+  height: 6rem;
 }
 
 .h-8rem {
-    height: 8rem;
+  height: 8rem;
 }
 
 .h-12rem {
-    height: 12rem;
+  height: 12rem;
 }
 
 .h-16rem {
-    height: 16rem;
+  height: 16rem;
 }
 
 .h-18rem {
-    height: 18rem;
+  height: 18rem;
 }
 
 .h-24rem {
-    height: 24rem;
+  height: 24rem;
 }
 
 .h-36rem {
-    height: 36rem;
+  height: 36rem;
 }
 
 .h-48rem {
-    height: 48rem;
+  height: 48rem;
 }
 
 .h-60rem {
-    height: 60rem;
+  height: 60rem;
 }
 
 .h-min-content {
-    height: min-content;
+  height: min-content;
 }
 
 .h-max-content {
-    height: min-content;
+  height: min-content;
 }
 
 .h-fit-content {
-    height: min-content;
+  height: min-content;
 }
 
 .flex-col,
 .stacked-form {
-    &>.h-1rem {
-        flex-basis: 1rem;
-    }
+  & > .h-1rem {
+    flex-basis: 1rem;
+  }
 
-    &>.h-2rem {
-        flex-basis: 2rem;
-    }
+  & > .h-2rem {
+    flex-basis: 2rem;
+  }
 
-    &>.h-4rem {
-        flex-basis: 4rem;
-    }
+  & > .h-4rem {
+    flex-basis: 4rem;
+  }
 
-    &>.h-6rem {
-        flex-basis: 6rem;
-    }
+  & > .h-6rem {
+    flex-basis: 6rem;
+  }
 
-    &>.h-8rem {
-        flex-basis: 8rem;
-    }
+  & > .h-8rem {
+    flex-basis: 8rem;
+  }
 
+  & > .h-12rem {
+    flex-basis: 12rem;
+  }
 
-    &>.h-12rem {
-        flex-basis: 12rem;
-    }
+  & > .h-16rem {
+    flex-basis: 16rem;
+  }
 
-    &>.h-16rem {
-        flex-basis: 16rem;
-    }
+  & > .h-18rem {
+    flex-basis: 16rem;
+  }
 
-    &>.h-18rem {
-        flex-basis: 16rem;
-    }
+  & > .h-24rem {
+    flex-basis: 24rem;
+  }
 
-    &>.h-24rem {
-        flex-basis: 24rem;
-    }
+  & > .h-36rem {
+    flex-basis: 36rem;
+  }
 
-    &>.h-36rem {
-        flex-basis: 36rem;
-    }
+  & > .h-48rem {
+    flex-basis: 48rem;
+  }
 
-    &>.h-48rem {
-        flex-basis: 48rem;
-    }
+  & > .h-60rem {
+    flex-basis: 60rem;
+  }
 
-    &>.h-60rem {
-        flex-basis: 60rem;
-    }
-
-    &>.h-min-content {
-        flex-basis: min-content;
-    }
+  & > .h-min-content {
+    flex-basis: min-content;
+  }
 }
-
 
 :is(.flex-row, .tool-bar) {
-    &>.w-1rem {
-        flex-basis: 1rem;
-    }
+  & > .w-1rem {
+    flex-basis: 1rem;
+  }
 
-    &>.w-2rem {
-        flex-basis: 2rem;
-    }
+  & > .w-2rem {
+    flex-basis: 2rem;
+  }
 
-    &>.w-4rem {
-        flex-basis: 4rem;
-    }
+  & > .w-4rem {
+    flex-basis: 4rem;
+  }
 
-    &>.w-6rem {
-        flex-basis: 6rem;
-    }
+  & > .w-6rem {
+    flex-basis: 6rem;
+  }
 
-    &>.w-8rem {
-        flex-basis: 8rem;
-    }
+  & > .w-8rem {
+    flex-basis: 8rem;
+  }
 
-    &>.w-12rem {
-        flex-basis: 12rem;
-    }
+  & > .w-12rem {
+    flex-basis: 12rem;
+  }
 
-    &>.w-16rem {
-        flex-basis: 16rem;
-    }
+  & > .w-16rem {
+    flex-basis: 16rem;
+  }
 
-    &>.w-18rem {
-        flex-basis: 18rem;
-    }
+  & > .w-18rem {
+    flex-basis: 18rem;
+  }
 
-    &>.w-20rem {
-        flex-basis: 18rem;
-    }
+  & > .w-20rem {
+    flex-basis: 18rem;
+  }
 
-    &>.w-24rem {
-        flex-basis: 24rem;
-    }
+  & > .w-24rem {
+    flex-basis: 24rem;
+  }
 
-    &>.w-min-content {
-        flex-basis: min-content;
-    }
+  & > .w-min-content {
+    flex-basis: min-content;
+  }
 
-    &>.w-full {
-        flex-basis: 100%;
-    }
+  & > .w-full {
+    flex-basis: 100%;
+  }
 
-    .w-sm-full {
-        flex-basis: 300px;
-        flex-shrink: 1;
-    }
+  .w-sm-full {
+    flex-basis: 300px;
+    flex-shrink: 1;
+  }
 
-    .w-sm-quarter {
-        flex-basis: 70px;
-    }
+  .w-sm-quarter {
+    flex-basis: 70px;
+  }
 
-    .w-sm-half {
-        flex-basis: 175px;
-    }
+  .w-sm-half {
+    flex-basis: 175px;
+  }
 
-    .w-sm-double {
-        flex-basis: 16cm;
-        flex-shrink: 1;
-        flex-grow: 1;
-    }
-
+  .w-sm-double {
+    flex-basis: 16cm;
+    flex-shrink: 1;
+    flex-grow: 1;
+  }
 }
-
 
 /*Simple utilities */
 
 .break-word {
-    word-break: break-all;
-    word-break: break-word;
-    -ms-hyphens: auto;
-    -moz-hyphens: auto;
-    -webkit-hyphens: auto;
-    hyphens: auto;
+  word-break: break-all;
+  word-break: break-word;
+  -ms-hyphens: auto;
+  -moz-hyphens: auto;
+  -webkit-hyphens: auto;
+  hyphens: auto;
 }
 
 .round-feathered {
-    mask-image: radial-gradient(circle, rgba(0, 0, 0, 1) 50%, rgba(0, 0, 0, 0.1) 67%, rgba(0, 0, 0, 0) 71%);
-    -webkit-mask-image: radial-gradient(circle, rgba(0, 0, 0, 1) 50%, rgba(0, 0, 0, 0.1) 67%, rgba(0, 0, 0, 0) 71%);
-    -webkit-print-color-adjust: exact;
-    /* Chrome, Safari 6 – 15.3, Edge */
-    color-adjust: exact;
-    /* Firefox 48 – 96 */
-    print-color-adjust: exact;
+  mask-image: radial-gradient(
+    circle,
+    rgba(0, 0, 0, 1) 50%,
+    rgba(0, 0, 0, 0.1) 67%,
+    rgba(0, 0, 0, 0) 71%
+  );
+  -webkit-mask-image: radial-gradient(
+    circle,
+    rgba(0, 0, 0, 1) 50%,
+    rgba(0, 0, 0, 0.1) 67%,
+    rgba(0, 0, 0, 0) 71%
+  );
+  -webkit-print-color-adjust: exact;
+  /* Chrome, Safari 6 – 15.3, Edge */
+  color-adjust: exact;
+  /* Firefox 48 – 96 */
+  print-color-adjust: exact;
 }
 
 .paper {
-    background: var(--box-bg);
+  background: var(--box-bg);
 }
 
 .readability-outline {
-    text-shadow:
-        2px 2px 2px var(--contrasting-bg-color),
-        -2px 2px 3px var(--contrasting-bg-color),
-        -2px -2px 3px var(--contrasting-bg-color),
-        2px -2px 2px var(--contrasting-bg-color)
+  text-shadow:
+    2px 2px 2px var(--contrasting-bg-color),
+    -2px 2px 3px var(--contrasting-bg-color),
+    -2px -2px 3px var(--contrasting-bg-color),
+    2px -2px 2px var(--contrasting-bg-color);
 }
 
-
 pre {
-    width: fit-content;
+  width: fit-content;
 }
 
 /*Don't let people use non-pre elements or they
 will get a nasty surprise later when the auto formatter
 ruins it*/
 pre.poem {
-    white-space: pre-wrap;
-    font-family: inherit;
-    width: fit-content;
-    line-height: var(--line-height);
-    break-inside: avoid;
+  white-space: pre-wrap;
+  font-family: inherit;
+  width: fit-content;
+  line-height: var(--line-height);
+  break-inside: avoid;
 
-    & p {
-        white-space: pre-wrap;
-        margin-bottom: 2.4ex;
-    }
+  & p {
+    white-space: pre-wrap;
+    margin-bottom: 2.4ex;
+  }
 }
 
 .v-center {
-    margin-top: auto;
-    margin-bottom: auto;
+  margin-top: auto;
+  margin-bottom: auto;
 }
 
 .h-center {
-    margin-left: auto;
-    margin-right: auto;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 img.h-center,
 iframe.h-center {
-    display: block;
+  display: block;
 }
 
 .undecorated {
-    border: none !important;
-    box-shadow: none !important;
-    background: transparent !important;
-    backdrop-filter: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
 }
 
 .border {
-    border: var(--border);
+  border: var(--border);
 }
 
 .noselect {
-    user-select: none;
+  user-select: none;
 }
 
 .nogaps {
-    gap: 0px;
+  gap: 0px;
 
-    &>:not(.specificity_hack) {
-        margin: 0px;
-        margin-block-end: 0px;
-    }
+  & > :not(.specificity_hack) {
+    margin: 0px;
+    margin-block-end: 0px;
+  }
 }
 
 .rounded {
-    border-radius: var(--border-radius);
+  border-radius: var(--border-radius);
 }
 
 .padding {
-    padding: var(--padding);
+  padding: var(--padding);
 }
 
 header.padding,
 footer.padding {
-    padding: calc(max(4px, calc(var(--padding) / 3)));
+  padding: calc(max(4px, calc(var(--padding) / 3)));
 }
 
 .font-normal {
-    font-style: normal;
+  font-style: normal;
 }
 
 .nopadding {
-    padding: 0px;
+  padding: 0px;
 }
 
 .nogrow {
-    flex-grow: 0 !important;
+  flex-grow: 0 !important;
 }
 
 .noshrink {
-    flex-grow: 0;
+  flex-grow: 0;
 }
 
 .grow {
-    flex-grow: 1;
+  flex-grow: 1;
 }
 
 .margin {
-    margin: var(--gap);
+  margin: var(--gap);
 }
 
 .margin-top {
-    margin-top: var(--gap);
+  margin-top: var(--gap);
 }
 
 .margin-bottom {
-    margin-bottom: var(--gap);
+  margin-bottom: var(--gap);
 }
 
 .nomargin {
-    margin: 0px;
+  margin: 0px;
 }
 
 .margin-indent {
-    margin-inline-start: var(--gap);
+  margin-inline-start: var(--gap);
 }
 
 /*This user added margin is likely unwanted on tiny screens where*/
 @media screen and (max-width: 500px) {
+  .window,
+  .window.margin,
+  .card.w-sm-full,
+  .card.w-sm-double {
+    margin-left: 0px;
+    margin-right: 0px;
 
-    .window,
-    .window.margin,
-    .card.w-sm-full,
-    .card.w-sm-double {
-        margin-left: 0px;
-        margin-right: 0px;
-
-        &.margin {
-            margin-top: 4px;
-            margin-bottom: 4px;
-        }
+    &.margin {
+      margin-top: 4px;
+      margin-bottom: 4px;
     }
+  }
 }
 
 .relative {
-    position: relative;
+  position: relative;
 }
 
 .block {
-    display: block;
+  display: block;
 }
 
 .inline {
-    display: inline;
+  display: inline;
 }
 
 .inline.block,
 .inline-block {
-    display: inline-block;
+  display: inline-block;
 }
 
 .inline-flex,
 .flex-row.inline,
 .flex-col.inline,
 .tool-bar.inline {
-    display: inline-flex;
+  display: inline-flex;
 }
 
-
-
 .align-left {
-    text-align: left;
-    justify-content: left;
+  text-align: left;
+  justify-content: left;
 }
 
 .align-right {
-    text-align: right;
-    justify-content: right;
+  text-align: right;
+  justify-content: right;
 }
 
 .align-center {
-    text-align: center;
-    justify-content: center;
-    place-items: center;
+  text-align: center;
+  justify-content: center;
+  place-items: center;
 }
 
 .flex-col.align-center {
-    place-items: center;
+  place-items: center;
 }
 
 .float-left {
-    float: left;
+  float: left;
 }
 
 .float-right {
-    float: right;
+  float: right;
 }
 
 .left {
-    margin-left: 0px;
-    margin-right: auto;
+  margin-left: 0px;
+  margin-right: auto;
 }
 
 .right {
-    margin-left: auto;
-    margin-right: 0px;
+  margin-left: auto;
+  margin-right: 0px;
 }
 
 /*Overrides to not break the margin class*/
 .left.margin {
-    margin-left: var(--padding);
+  margin-left: var(--padding);
 }
 
 .right.margin {
-    margin-right: var(--padding);
+  margin-right: var(--padding);
 }
 
 /*Colorways*/
@@ -2096,51 +2081,68 @@ footer.padding {
 /*danger is the canonical*/
 
 .highlight:not(.specificity_hack) {
-    --highlight-tint: color-mix(in srgb, var(--highlight-color) var(--highlight-opacity), transparent);
-    --alt-control-bg: var(--highlight-tint);
-    background-color: var(--highlight-tint);
+  --highlight-tint: color-mix(
+    in srgb,
+    var(--highlight-color) var(--highlight-opacity),
+    transparent
+  );
+  --alt-control-bg: var(--highlight-tint);
+  background-color: var(--highlight-tint);
 
-    &:not(meter),
-    & :not(meter) {
-        --control-bg: var(--highlight-tint);
-    }
-
+  &:not(meter),
+  & :not(meter) {
+    --control-bg: var(--highlight-tint);
+  }
 }
 
 .success:not(.specificity_hack) {
-    --highlight-tint: color-mix(in srgb, var(--success-color) var(--highlight-opacity), transparent);
-    --alt-control-bg: var(--highlight-tint);
-    background-color: var(--highlight-tint);
-    --fg: var(--success-fg);
-    --graphical-fg: var(--success-fg);
-    color: var(--fg);
+  --highlight-tint: color-mix(
+    in srgb,
+    var(--success-color) var(--highlight-opacity),
+    transparent
+  );
+  --alt-control-bg: var(--highlight-tint);
+  background-color: var(--highlight-tint);
+  --fg: var(--success-fg);
+  --graphical-fg: var(--success-fg);
+  color: var(--fg);
 }
 
 .warning:not(.specificity_hack),
 .warn:not(.specificity_hack) {
-    --highlight-tint: color-mix(in srgb, var(--warning-color) var(--highlight-opacity), transparent);
-    --alt-control-bg: var(--highlight-tint);
-    background-color: var(--highlight-tint);
+  --highlight-tint: color-mix(
+    in srgb,
+    var(--warning-color) var(--highlight-opacity),
+    transparent
+  );
+  --alt-control-bg: var(--highlight-tint);
+  background-color: var(--highlight-tint);
 
-
-    --fg: var(--warning-fg);
-    --graphical-fg: var(--warning-fg);
-    color: var(--fg);
+  --fg: var(--warning-fg);
+  --graphical-fg: var(--warning-fg);
+  color: var(--fg);
 }
 
 .error:not(.specificity_hack),
 .danger:not(.specificity_hack),
 .bad:not(.specificity_hack),
 input:invalid:not(.specificity_hack) {
-    --highlight-tint: color-mix(in srgb, var(--danger-color) var(--highlight-opacity), transparent);
-    --alt-control-bg: var(--highlight-tint);
-    background-color: var(--highlight-tint);
+  --highlight-tint: color-mix(
+    in srgb,
+    var(--danger-color) var(--highlight-opacity),
+    transparent
+  );
+  --alt-control-bg: var(--highlight-tint);
+  background-color: var(--highlight-tint);
 
-
-    --fg: var(--danger-fg);
-    --graphical-fg: var(--danger-fg);
-    background-color: color-mix(in srgb, var(--danger-color) var(--highlight-opacity), transparent);
-    color: var(--fg);
+  --fg: var(--danger-fg);
+  --graphical-fg: var(--danger-fg);
+  background-color: color-mix(
+    in srgb,
+    var(--danger-color) var(--highlight-opacity),
+    transparent
+  );
+  color: var(--fg);
 }
 
 /*Apply control bg only to some elements, not meters*/
@@ -2151,530 +2153,648 @@ input:invalid:not(.specificity_hack) {
 .success:not(.specificity_hack),
 .warning:not(.specificity_hack),
 input:invalid:not(.specificity_hack) {
+  &:not(meter),
+  & :is(input, button, textarea, select, .button) {
+    --control-bg: var(--highlight-tint);
 
-    &:not(meter),
-    & :is(input, button, textarea, select, .button) {
-        --control-bg: var(--highlight-tint);
-
-        /* Hacky duplication */
-        --concave-shadow: color-mix(in srgb, var(--3d-shadow) 40%, var(--control-bg));
-        --concave-highlight: color-mix(in srgb, var(--3d-highlight) 60%, var(--control-bg));
-        --concave-item-bg: linear-gradient(180deg, var(--concave-shadow) 4px, var(--concave-highlight) 43%);
-        --convex-item-bg: linear-gradient(180deg, var(--concave-highlight) 0%, var(--concave-shadow) 96%);
-    }
+    /* Hacky duplication */
+    --concave-shadow: color-mix(
+      in srgb,
+      var(--3d-shadow) 40%,
+      var(--control-bg)
+    );
+    --concave-highlight: color-mix(
+      in srgb,
+      var(--3d-highlight) 60%,
+      var(--control-bg)
+    );
+    --concave-item-bg: linear-gradient(
+      180deg,
+      var(--concave-shadow) 4px,
+      var(--concave-highlight) 43%
+    );
+    --convex-item-bg: linear-gradient(
+      180deg,
+      var(--concave-highlight) 0%,
+      var(--concave-shadow) 96%
+    );
+  }
 }
 
 .highlight.paper {
-    background-color: color-mix(in srgb, var(--highlight-color) 35%, var(--box-bg))
+  background-color: color-mix(
+    in srgb,
+    var(--highlight-color) 35%,
+    var(--box-bg)
+  );
 }
 
 .success.paper {
-    background-color: color-mix(in srgb, var(--success-color) 35%, var(--box-bg))
+  background-color: color-mix(in srgb, var(--success-color) 35%, var(--box-bg));
 }
 
 .warning.paper {
-    background-color: color-mix(in srgb, var(--warning-color) 25%, var(--box-bg))
+  background-color: color-mix(in srgb, var(--warning-color) 25%, var(--box-bg));
 }
 
 .error.paper {
-    background-color: color-mix(in srgb, var(--error-color) 25%, var(--box-bg));
+  background-color: color-mix(in srgb, var(--error-color) 25%, var(--box-bg));
 }
-
-
 
 /******************The tool bar *************************/
 /*This class very much needs some refactoring */
 .multibar {
-    flex-basis: content;
-    flex-grow: 5;
-    flex-direction: row;
-    display: flex;
-    height: fit-content;
-    flex-basis: max-content;
-    flex-wrap: wrap;
+  flex-basis: content;
+  flex-grow: 5;
+  flex-direction: row;
+  display: flex;
+  height: fit-content;
+  flex-basis: max-content;
+  flex-wrap: wrap;
 }
 
 .multibar .tool-bar {
-    width: unset;
+  width: unset;
 }
 
 .tool-bar,
 .pagination {
-    --tool-bar-element-border: var(--control-border);
-    --header-padding: 0px;
-    flex-basis: max-content;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: stretch;
-    border-radius: var(--control-border-radius);
-    min-height: var(--control-height);
-    flex-grow: 1;
-    vertical-align: middle;
-    height: fit-content;
-    align-items: flex-start;
-    align-content: flex-start;
+  --tool-bar-element-border: var(--control-border);
+  --header-padding: 0px;
+  flex-basis: max-content;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  border-radius: var(--control-border-radius);
+  min-height: var(--control-height);
+  flex-grow: 1;
+  vertical-align: middle;
+  height: fit-content;
+  align-items: flex-start;
+  align-content: flex-start;
+  box-sizing: border-box;
+  background-clip: content-box;
+  gap: 0px;
+  line-height: calc(
+    var(--control-height) - calc(var(--control-border-width) * 2 + 1px)
+  );
+
+  & > * {
+    text-wrap: nowrap;
+  }
+
+  /*Undo any effect something else set on convex elements for consistency*/
+  & :is(button, .button) {
+    box-shadow: none;
+    display: inline-block;
+  }
+
+  & > li {
+    display: inline;
+  }
+
+  & img {
+    display: inline;
+  }
+
+  & a {
+    display: block;
+    text-align: center;
+    padding-inline-start: var(--padding);
+    padding-inline-end: var(--padding);
+  }
+
+  & > *,
+  & > input,
+  & > a {
     box-sizing: border-box;
-    background-clip: content-box;
-    gap: 0px;
-    line-height: calc(var(--control-height) - calc(var(--control-border-width) * 2 + 1px));
+    font-size: inherit;
+    height: var(--control-height);
+    color: var(--control-fg);
+  }
 
-    &>* {
-        text-wrap: nowrap;
+  & :is(a, .button, select, input, meter, button, label, li) {
+    border-radius: 0px;
+    flex-shrink: 1;
+    border-radius: 0px;
+  }
+
+  & :is(a, .button, select, button) {
+    align-items: stretch;
+    border-radius: 0px;
+    flex-shrink: 1;
+    border-radius: 0px;
+  }
+
+  & :only-child {
+    flex-grow: 1;
+  }
+
+  & form {
+    border: 0px !important;
+    margin: 0px !important;
+    padding: 0px !important;
+    flex-grow: 50;
+    border: 0px !important;
+    display: flex;
+    flex-basis: fit-content;
+    border: none !important;
+    border-radius: var(--control-border-radius);
+  }
+
+  & form :is(button, input[type="button"], select) {
+    flex-grow: 1;
+  }
+
+  & :is(h1, h2, h3, h4, h5, h6) * {
+    border: none;
+    margin: 0px;
+    padding: 0px;
+
+    & :first-child {
+      flex-grow: 10;
+    }
+  }
+
+  & :is(h1, h2, h3, h4, h5, h6) {
+    margin: 0px;
+    padding-top: 1px;
+    padding-bottom: 0px;
+    vertical-align: middle;
+    text-align: center;
+    display: flex;
+    min-width: fit-content;
+    flex-grow: 50;
+  }
+
+  & p {
+    &:not(:has(input)) {
+      padding-inline-start: var(--padding);
+      padding-inline-end: var(--padding);
+      padding-top: 1px;
     }
 
-    /*Undo any effect something else set on convex elements for consistency*/
-    & :is(button, .button) {
-        box-shadow: none;
-        display: inline-block;
+    min-width: fit-content;
+    display: flex;
+    flex-grow: 2;
+    margin: 0px;
+
+    &:has(
+        input:not(
+            [type="submit"],
+            [type="range"],
+            [type="checkbox"],
+            [type="radio"],
+            [type="button"]
+          )
+      ) {
+      flex-grow: 50;
     }
 
+    & :first-child {
+      flex-grow: 5;
+    }
+  }
 
+  & :is(a, .button, button) {
+    width: fit-content;
+  }
 
-    &>li {
-        display: inline;
+  & :is(a, .button, button, input[type="submit"]) {
+    flex-grow: 1;
+  }
+
+  /*Most likely to make good use of the extra space*/
+
+  & input:not([type="submit"], [type="checkbox"], [type="radio"]),
+  & select {
+    flex-grow: 50;
+  }
+
+  & li,
+  & a,
+  & p,
+  & div,
+  & h1,
+  & h2,
+  & h3,
+  & h4,
+  & h5,
+  & label,
+  & meter,
+  & input[type="submit"] {
+    background: var(--convex-item-bg);
+  }
+
+  & meter,
+  & input[type="range"] {
+    min-height: 100%;
+    flex-grow: 25;
+    width: 4em;
+    flex-basis: 4em;
+  }
+
+  & input[type="range"] {
+    flex-basis: 4em;
+    flex-grow: 20;
+    background: var(--concave-item-bg);
+  }
+
+  /*repeat here, specificity issue*/
+  & input[type="checkbox"].toggle {
+    width: calc(var(--control-height) * 1.77) !important;
+    min-width: calc(var(--control-height) * 1.77) !important;
+  }
+
+  & > label,
+  li {
+    margin: 0px;
+    padding-top: 0px;
+    padding-bottom: 0px;
+    vertical-align: middle;
+    min-width: fit-content;
+    padding-top: 1px;
+
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: var(--padding);
+    border-top: var(--tool-bar-element-border);
+    border-bottom: var(--tool-bar-element-border);
+    border: 0px;
+    text-align: right;
+    place-content: flex-start;
+    align-items: flex-start;
+
+    &:has(
+        input:not(
+            [type="submit"],
+            [type="range"],
+            [type="checkbox"],
+            [type="radio"],
+            [type="button"]
+          )
+      ) {
+      flex-grow: 50;
     }
 
-    & img {
-        display: inline;
+    &:has(meter) {
+      flex-grow: 10;
     }
 
-    & a {
-        display: block;
-        text-align: center;
-        padding-inline-start: var(--padding);
-        padding-inline-end: var(--padding);
+    & > input {
+      background-color: var(--alt-control-bg);
+
+      &:not([type="checkbox"], [type="radio"]) {
+        flex-grow: 5;
+        border-top: none;
+        border-bottom: none;
+        border-inline-end: none;
+      }
     }
 
-    &>*,
-    &>input,
-    &>a {
-        box-sizing: border-box;
-        font-size: inherit;
-        height: var(--control-height);
-        color: var(--control-fg);
+    & > :is(input, select, meter):not(.specificity-hack) {
+      max-height: 100%;
     }
 
-
-    & :is(a, .button, select, input, meter, button, label, li) {
-        border-radius: 0px;
-        flex-shrink: 1;
-        border-radius: 0px;
+    &:last-child {
+      padding-inline-end: 0px;
     }
 
-    & :is(a, .button, select, button) {
-        align-items: stretch;
-        border-radius: 0px;
-        flex-shrink: 1;
-        border-radius: 0px;
+    &:first-child:not(li) {
+      flex-grow: 0.05;
     }
 
+    &:is(input, select) {
+      border: none;
+    }
+  }
 
-    & :only-child {
-        flex-grow: 1;
+  /*:not(i) is for icons*/
+  &
+    > :is(
+      a,
+      .button,
+      li,
+      select,
+      p,
+      h1,
+      h2,
+      h3,
+      h4,
+      h5,
+      h6,
+      label,
+      input,
+      meter,
+      button,
+      .input-group-prepend
+    ):first-child,
+  &
+    :is(
+      a,
+      .button,
+      li,
+      select,
+      p,
+      h1,
+      h2,
+      h3,
+      h4,
+      h5,
+      h6,
+      input,
+      meter,
+      button,
+      form,
+      .input-group-prepend
+    ):first-child
+    :first-child:not(i) {
+    border-radius: var(--control-border-radius) 0px 0px
+      var(--control-border-radius);
+    margin-inline-start: 0px;
+  }
+
+  &
+    > :is(
+      a,
+      .button,
+      li,
+      select,
+      p,
+      h1,
+      h2,
+      h3,
+      h4,
+      h5,
+      h6,
+      label,
+      input,
+      meter,
+      button,
+      .input-group-append
+    ):last-child,
+  &
+    :is(
+      a,
+      .button,
+      li,
+      select,
+      p,
+      h1,
+      h2,
+      h3,
+      h4,
+      h5,
+      h6,
+      label,
+      meter,
+      button,
+      form,
+      .input-group-append
+    ):last-child
+    :last-child:not(i):not(.toggle) {
+    border-radius: 0px var(--control-border-radius) var(--control-border-radius)
+      0px;
+    margin-inline-end: 0px;
+  }
+
+  &
+    > :is(
+      a,
+      .button,
+      li,
+      select,
+      p,
+      h1,
+      h2,
+      h3,
+      h4,
+      h5,
+      h6,
+      label,
+      input,
+      meter,
+      button,
+      .input-group-append
+    ):first-child:last-child {
+    border-radius: var(--control-border-radius) var(--control-border-radius)
+      var(--control-border-radius) var(--control-border-radius);
+  }
+
+  & meter::-webkit-meter-inner-element {
+    -webkit-appearance: inherit;
+    box-sizing: inherit;
+    border: var(--control-border);
+    height: var(--control-height);
+  }
+
+  & > *:not(meter),
+  & > form > *:not(meter) {
+    border: var(--tool-bar-element-border);
+  }
+
+  & > meter {
+    height: var(--control-height);
+    border: var(--tool-bar-element-border);
+    padding: 0px;
+  }
+
+  & > input:not([type="submit"]) {
+    border: var(--tool-bar-element-border);
+  }
+
+  & label {
+    /*Label BG should match element bg*/
+    &:has(input[type="range"]) {
+      background: var(--concave-item-bg);
     }
 
-
-
-    & form {
-        border: 0px !important;
-        margin: 0px !important;
-        padding: 0px !important;
-        flex-grow: 50;
-        border: 0px !important;
-        display: flex;
-        flex-basis: fit-content;
-        border: none !important;
-        border-radius: var(--control-border-radius);
+    & > input[type="range"] {
+      background: none;
     }
+  }
 
-    & form :is(button, input[type=button], select) {
-        flex-grow: 1;
-    }
-
-    & :is(h1, h2, h3, h4, h5, h6) * {
-        border: none;
-        margin: 0px;
-        padding: 0px;
-
-        & :first-child {
-            flex-grow: 10;
-        }
-    }
-
-
-    & :is(h1, h2, h3, h4, h5, h6) {
-        margin: 0px;
-        padding-top: 1px;
-        padding-bottom: 0px;
-        vertical-align: middle;
-        text-align: center;
-        display: flex;
-        min-width: fit-content;
-        flex-grow: 50;
-    }
-
-    & p {
-        &:not(:has(input)) {
-            padding-inline-start: var(--padding);
-            padding-inline-end: var(--padding);
-            padding-top: 1px;
-        }
-
-        min-width: fit-content;
-        display: flex;
-        flex-grow: 2;
-        margin: 0px;
-
-        &:has(input:not([type='submit'], [type='range'], [type='checkbox'], [type="radio"], [type="button"])) {
-            flex-grow: 50;
-        }
-
-        & :first-child {
-            flex-grow: 5;
-        }
-    }
-
-    & :is(a, .button, button) {
-        width: fit-content;
-    }
-
-    & :is(a, .button, button, input[type=submit]) {
-        flex-grow: 1;
-    }
-
-    /*Most likely to make good use of the extra space*/
-
-    & input:not([type="submit"], [type="checkbox"], [type="radio"]),
-    & select {
-        flex-grow: 50;
-    }
-
-    & li,
-    & a,
-    & p,
-    & div,
-    & h1,
-
-    & h2,
-    & h3,
-    & h4,
-    & h5,
-    & label,
-    & meter,
-    & input[type=submit] {
-        background: var(--convex-item-bg);
-    }
-
-    & meter,
-    & input[type=range] {
-        min-height: 100%;
-        flex-grow: 25;
-        width: 4em;
-        flex-basis: 4em;
-    }
-
-    & input[type=range] {
-        flex-basis: 4em;
-        flex-grow: 20;
-        background: var(--concave-item-bg);
-    }
-
-    /*repeat here, specificity issue*/
-    & input[type="checkbox"].toggle {
-        width: calc(var(--control-height) * 1.77) !important;
-        min-width: calc(var(--control-height) * 1.77) !important;
-    }
-
-
-
-    &>label,
-    li {
-        margin: 0px;
-        padding-top: 0px;
-        padding-bottom: 0px;
-        vertical-align: middle;
-        min-width: fit-content;
-        padding-top: 1px;
-
-        display: inline-flex;
-        flex-wrap: wrap;
-        gap: var(--padding);
-        border-top: var(--tool-bar-element-border);
-        border-bottom: var(--tool-bar-element-border);
-        border: 0px;
-        text-align: right;
-        place-content: flex-start;
-        align-items: flex-start;
-
-        &:has(input:not([type='submit'], [type='range'], [type='checkbox'], [type="radio"], [type="button"])) {
-            flex-grow: 50;
-        }
-
-        &:has(meter) {
-            flex-grow: 10;
-        }
-
-        &>input {
-            background-color: var(--alt-control-bg);
-
-            &:not([type="checkbox"], [type="radio"]) {
-                flex-grow: 5;
-                border-top: none;
-                border-bottom: none;
-                border-inline-end: none;
-            }
-        }
-
-        &> :is(input, select, meter):not(.specificity-hack) {
-            max-height: 100%;
-        }
-
-        &:last-child {
-            padding-inline-end: 0px;
-        }
-
-        &:first-child:not(li) {
-            flex-grow: .05;
-        }
-
-        &:is(input, select) {
-            border: none;
-        }
-
-    }
-
-
-
-
-    /*:not(i) is for icons*/
-    &> :is(a, .button, li, select, p, h1, h2, h3, h4, h5, h6, label, input, meter, button, .input-group-prepend):first-child,
-    & :is(a, .button, li, select, p, h1, h2, h3, h4, h5, h6, input, meter, button, form, .input-group-prepend):first-child :first-child:not(i) {
-        border-radius: var(--control-border-radius) 0px 0px var(--control-border-radius);
-        margin-inline-start: 0px;
-
-    }
-
-    &> :is(a, .button, li, select, p, h1, h2, h3, h4, h5, h6, label, input, meter, button, .input-group-append):last-child,
-    & :is(a, .button, li, select, p, h1, h2, h3, h4, h5, h6, label, meter, button, form, .input-group-append):last-child :last-child:not(i):not(.toggle) {
-        border-radius: 0px var(--control-border-radius) var(--control-border-radius) 0px;
-        margin-inline-end: 0px;
-    }
-
-
-
-    &> :is(a, .button, li, select, p, h1, h2, h3, h4, h5, h6, label, input, meter, button, .input-group-append):first-child:last-child {
-        border-radius: var(--control-border-radius) var(--control-border-radius) var(--control-border-radius) var(--control-border-radius);
-    }
-
-    & meter::-webkit-meter-inner-element {
-        -webkit-appearance: inherit;
-        box-sizing: inherit;
-        border: var(--control-border);
-        height: var(--control-height);
-    }
-
-
-    &>*:not(meter),
-    &>form>*:not(meter) {
-        border: var(--tool-bar-element-border);
-    }
-
-    &>meter {
-        height: var(--control-height);
-        border: var(--tool-bar-element-border);
-        padding: 0px;
-    }
-
-    &>input:not([type="submit"]) {
-        border: var(--tool-bar-element-border);
-    }
-
-    & label {
-
-        /*Label BG should match element bg*/
-        &:has(input[type="range"]) {
-            background: var(--concave-item-bg);
-        }
-
-        &>input[type="range"] {
-            background: none;
-        }
-    }
-
-    & .spacer {
-        flex-grow: 1;
-    }
-
+  & .spacer {
+    flex-grow: 1;
+  }
 }
 
-.flex-col>.tool-bar {
-    flex-grow: 0;
+.flex-col > .tool-bar {
+  flex-grow: 0;
 }
-
-
-
 
 /*Meters, ranges, Scrollbars*/
 
 /* Firefox */
 * {
-    scrollbar-width: var(--scrollbar-width);
-    scrollbar-color: var(--control-fg) var(--control-bg);
+  scrollbar-width: var(--scrollbar-width);
+  scrollbar-color: var(--control-fg) var(--control-bg);
 }
 
 /* Other browsers */
 ::-webkit-scrollbar {
-    width: var(--scrollbar-width);
-    background-color: color-mix(in srgb, var(--accent-color) 30%, transparent);
+  width: var(--scrollbar-width);
+  background-color: color-mix(in srgb, var(--accent-color) 30%, transparent);
 }
 
 ::-webkit-scrollbar-track {
-    background-color: color-mix(in srgb, var(--accent-color) 15%, var(--control-bg));
-    border-radius: 0px;
+  background-color: color-mix(
+    in srgb,
+    var(--accent-color) 15%,
+    var(--control-bg)
+  );
+  border-radius: 0px;
 }
 
 ::-webkit-scrollbar-thumb {
-    background-color: var(--control-fg);
-    border-radius: calc(min(var(--border-radius), 5px));
-    border: none;
+  background-color: var(--control-fg);
+  border-radius: calc(min(var(--border-radius), 5px));
+  border: none;
 }
 
-
 ::-webkit-scrollbar-corner {
-    background-color: color-mix(in srgb, var(--accent-color) 20%, var(--control-bg));
-    border-radius: 0px 0px 4px 0px;
+  background-color: color-mix(
+    in srgb,
+    var(--accent-color) 20%,
+    var(--control-bg)
+  );
+  border-radius: 0px 0px 4px 0px;
 }
 
 ::-webkit-scrollbar-button {
-    background-color: color-mix(in srgb, var(--accent-color) 20%, var(--control-bg));
-    ;
+  background-color: color-mix(
+    in srgb,
+    var(--accent-color) 20%,
+    var(--control-bg)
+  );
 }
 
 ::-webkit-scrollbar-button:vertical:decrement {
-    border-radius: 6px 6px 0px 0px;
+  border-radius: 6px 6px 0px 0px;
 }
 
 ::-webkit-scrollbar-button:vertical:increment {
-    border-radius: 0px 0px 0px 0px;
-
+  border-radius: 0px 0px 0px 0px;
 }
 
 /* The Range inputs */
 
-
 /****/
-input[type=range] {
-    -webkit-appearance: none;
-    appearance: none;
-    background-color: transparent;
-    border: none;
-    --concave-item-box-shadow: none;
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background-color: transparent;
+  border: none;
+  --concave-item-box-shadow: none;
 }
 
 input[type="range"]::-webkit-slider-runnable-track {
-    background-color: color-mix(in srgb, var(--control-bg) 70%, var(--control-fg));
-    border: var(--control-border);
-    border-radius: 250px;
-    height: calc(var(--control-height) / 3);
+  background-color: color-mix(
+    in srgb,
+    var(--control-bg) 70%,
+    var(--control-fg)
+  );
+  border: var(--control-border);
+  border-radius: 250px;
+  height: calc(var(--control-height) / 3);
 }
 
-input[type=range]::-webkit-slider-thumb {
-    margin-top: -7.8px;
-    width: calc(var(--control-height) / 1.6);
-    height: calc(var(--control-height) / 1.2);
-    background: var(--slider-thumb);
-    border: var(--control-border);
-    border-width: 2px;
-    border-radius: 100px;
-    -webkit-appearance: none;
+input[type="range"]::-webkit-slider-thumb {
+  margin-top: -7.8px;
+  width: calc(var(--control-height) / 1.6);
+  height: calc(var(--control-height) / 1.2);
+  background: var(--slider-thumb);
+  border: var(--control-border);
+  border-width: 2px;
+  border-radius: 100px;
+  -webkit-appearance: none;
 }
 
 input[type="range"]::-moz-range-track {
-    background-color: color-mix(in srgb, var(--control-bg) 70%, var(--control-fg));
-    border: var(--control-border);
-    border-radius: 250px;
-    height: calc(var(--control-height) / 3);
+  background-color: color-mix(
+    in srgb,
+    var(--control-bg) 70%,
+    var(--control-fg)
+  );
+  border: var(--control-border);
+  border-radius: 250px;
+  height: calc(var(--control-height) / 3);
 }
 
-input[type=range]::-moz-range-thumb {
-    width: calc(var(--control-height) / 1.6);
-    height: calc(var(--control-height) / 1.2);
-    background: var(--slider-thumb);
-    border: var(--control-border);
-    border-width: 2px;
-    border-radius: 100px;
+input[type="range"]::-moz-range-thumb {
+  width: calc(var(--control-height) / 1.6);
+  height: calc(var(--control-height) / 1.2);
+  background: var(--slider-thumb);
+  border: var(--control-border);
+  border-width: 2px;
+  border-radius: 100px;
 }
 
 /*Meter element */
 
-
 progress {
-    height: var(--control-height);
+  height: var(--control-height);
 
-    /* For Firefox */
-    background: var(--control-bg);
-    box-shadow: var(--concave-item-box-shadow);
-    border-radius: var(--control-border-radius);
+  /* For Firefox */
+  background: var(--control-bg);
+  box-shadow: var(--concave-item-box-shadow);
+  border-radius: var(--control-border-radius);
 }
 
 progress::-webkit-progress-bar {
-    background: var(--control-bg);
-    box-shadow: var(--concave-item-box-shadow);
-    border-radius: var(--control-border-radius);
+  background: var(--control-bg);
+  box-shadow: var(--concave-item-box-shadow);
+  border-radius: var(--control-border-radius);
 }
 
 progress::-webkit-progress-value {
-    background-color: var(--highlight-color);
-    border-radius: var(--control-border-radius);
+  background-color: var(--highlight-color);
+  border-radius: var(--control-border-radius);
 }
 
 progress::-moz-progress-bar {
-    background-color: var(--highlight-color);
-    border-radius: var(--control-border-radius);
+  background-color: var(--highlight-color);
+  border-radius: var(--control-border-radius);
 }
 
-
-
-
 meter {
-    height: var(--control-height);
+  height: var(--control-height);
 
-    /* For Firefox */
-    border-radius: var(--control-border-radius);
-    border-color: var(--control-border-color);
-    padding: 0px;
+  /* For Firefox */
+  border-radius: var(--control-border-radius);
+  border-color: var(--control-border-color);
+  padding: 0px;
 }
 
 /*Try to make it look kinda like webkit*/
 @supports (-moz-appearance: none) {
+  meter,
+  .tool-bar > label > meter {
+    height: 12px;
+    margin-top: calc((calc(var(--control-height) - 12px)) / 2);
+    box-shadow: var(--concave-item-box-shadow);
+    background: var(--concave-item-bg);
+    min-height: 12px;
+    border-radius: 60px;
+  }
 
-    meter,
-    .tool-bar>label>meter {
-        height: 12px;
-        margin-top: calc((calc(var(--control-height) - 12px)) / 2);
-        box-shadow: var(--concave-item-box-shadow);
-        background: var(--concave-item-bg);
+  .tool-bar {
+    & label {
+      & meter {
         min-height: 12px;
-        border-radius: 60px;
+      }
     }
-
-    .tool-bar {
-        & label {
-            & meter {
-                min-height: 12px;
-            }
-        }
-    }
+  }
 }
 
 *::-moz-meter-bar {
-    width: 100% !important;
-    display: block !important;
-    flex-grow: 1;
-    height: 10px;
-    background: var(--control-bg);
-    border: var(--thin-border);
-    border-radius: var(--control-border-radius);
+  width: 100% !important;
+  display: block !important;
+  flex-grow: 1;
+  height: 10px;
+  background: var(--control-bg);
+  border: var(--thin-border);
+  border-radius: var(--control-border-radius);
 }
 
 /* WebKit */
@@ -2682,225 +2802,254 @@ meter {
 meter::-webkit-meter-optimum-value,
 meter::-webkit-meter-suboptimum-value,
 meter::-webkit-meter-even-less-good-value {
-    transition: 0.15s linear width;
+  transition: 0.15s linear width;
 }
 
 meter::-webkit-meter-bar {
-    border-color: var(--control-border-color);
-    background: var(--control-bg);
-    box-shadow: var(--concave-item-box-shadow);
-    border-radius: var(--control-border-radius);
+  border-color: var(--control-border-color);
+  background: var(--control-bg);
+  box-shadow: var(--concave-item-box-shadow);
+  border-radius: var(--control-border-radius);
 }
 
 meter::-webkit-meter-optimum-value,
 meter::-webkit-meter-suboptimum-value,
 meter::-webkit-meter-even-less-good-value {
-    border-radius: var(--control-border-radius);
+  border-radius: var(--control-border-radius);
 }
 
 meter::-webkit-meter-optimum-value {
-    background: var(--success-color);
+  background: var(--success-color);
 }
 
 meter::-webkit-meter-suboptimum-value {
-    background: var(--warning-color);
+  background: var(--warning-color);
 }
 
 meter::-webkit-meter-even-less-good-value {
-    background: var(--danger-color);
+  background: var(--danger-color);
 }
 
 meter:-moz-meter-optimum::-moz-meter-bar {
-    background: var(--success-color);
+  background: var(--success-color);
 }
 
 meter:-moz-meter-sub-optimum::-moz-meter-bar {
-    background: var(--warning-color);
+  background: var(--warning-color);
 }
 
 meter:-moz-meter-sub-sub-optimum::-moz-meter-bar {
-    background: var(--danger-color);
+  background: var(--danger-color);
 }
 
 /*Checkbox*/
 
-input[type='checkbox'],
-input[type='radio'],
-:is(input[type='checkbox'], input[type='radio'])::before {
-    -webkit-print-color-adjust: exact;
-    /* Chrome, Safari 6 – 15.3, Edge */
-    color-adjust: exact;
-    /* Firefox 48 – 96 */
-    print-color-adjust: exact;
+input[type="checkbox"],
+input[type="radio"],
+:is(input[type="checkbox"], input[type="radio"])::before {
+  -webkit-print-color-adjust: exact;
+  /* Chrome, Safari 6 – 15.3, Edge */
+  color-adjust: exact;
+  /* Firefox 48 – 96 */
+  print-color-adjust: exact;
 }
 
-input[type='checkbox'],
-input[type='radio'] {
-    -webkit-appearance: none;
-    border-radius: 50px;
-    appearance: none;
-    background: var(--concave-item-bg);
-    box-shadow: var(--concave-item-box-shadow);
-    border: var(--control-border);
-    width: var(--control-height);
-    flex-basis: var(--control-height);
-    height: var(--control-height);
-    flex-grow: 0 !important;
-    --slider-position: 0px;
+input[type="checkbox"],
+input[type="radio"] {
+  -webkit-appearance: none;
+  border-radius: 50px;
+  appearance: none;
+  background: var(--concave-item-bg);
+  box-shadow: var(--concave-item-box-shadow);
+  border: var(--control-border);
+  width: var(--control-height);
+  flex-basis: var(--control-height);
+  height: var(--control-height);
+  flex-grow: 0 !important;
+  --slider-position: 0px;
 }
 
 input[type="radio"] {
+  &::before {
+    transition:
+      background 0.4s ease,
+      height 0.1s ease,
+      width 0.1s ease;
+    background: none;
+    content: "";
+    position: relative;
+    display: inline-block;
+    box-sizing: border-box;
+    border: none;
+    border-radius: 50px;
+    margin: 0px;
+    padding: 0px;
+    top: 5px;
+    left: 5px;
+    height: 0px;
+    width: 0px;
+  }
 
-    &::before {
-        transition: background 0.4s ease, height 0.1s ease, width 0.1s ease;
-        background: none;
-        content: "";
-        position: relative;
-        display: inline-block;
-        box-sizing: border-box;
-        border: none;
-        border-radius: 50px;
-        margin: 0px;
-        padding: 0px;
-        top: 5px;
-        left: 5px;
-        height: 0px;
-        width: 0px;
-    }
-
-    &:checked::before {
-        transition: background 0.4s ease, height 0.1s ease, width 0.1s ease;
-        height: calc(calc(var(--control-height) - calc(var(--control-border-width) *2)) - 10px);
-        width: calc(calc(var(--control-height) - calc(var(--control-border-width) *2)) - 10px);
-        background: var(--control-fg);
-    }
+  &:checked::before {
+    transition:
+      background 0.4s ease,
+      height 0.1s ease,
+      width 0.1s ease;
+    height: calc(
+      calc(var(--control-height) - calc(var(--control-border-width) * 2)) - 10px
+    );
+    width: calc(
+      calc(var(--control-height) - calc(var(--control-border-width) * 2)) - 10px
+    );
+    background: var(--control-fg);
+  }
 }
-
 
 .numval,
 input[type="number"] {
-    font-family: Fira Code, monospace;
-
+  font-family:
+    Fira Code,
+    monospace;
 }
 
-input[type='checkbox'].led {
-    border-radius: 50%;
-    margin: 0px 0px;
-    width: var(--line-height);
-    height: var(--line-height);
+input[type="checkbox"].led {
+  border-radius: 50%;
+  margin: 0px 0px;
+  width: var(--line-height);
+  height: var(--line-height);
 
-    background: rgb(6, 65, 3);
-    box-shadow: #55555500 0 -1px 7px 1px, inset #6d6d6d 0 -1px 9px, rgba(44, 44, 44, 0) 0 2px 12px;
+  background: rgb(6, 65, 3);
+  box-shadow:
+    #55555500 0 -1px 7px 1px,
+    inset #6d6d6d 0 -1px 9px,
+    rgba(44, 44, 44, 0) 0 2px 12px;
 
+  &.led-red:checked {
+    background: rgb(255, 0, 0);
+    box-shadow:
+      inset #7d3e3e 0 -1px 9px,
+      rgba(243, 0, 0, 0.74) 0 2px 12px;
+  }
 
+  &.led-yellow:checked {
+    background: rgb(251, 255, 0);
+    box-shadow:
+      inset #7d7c3e 0 -1px 9px,
+      rgba(243, 239, 0, 0.74) 0 2px 12px;
+  }
 
-    &.led-red:checked {
-        background: rgb(255, 0, 0);
-        box-shadow: inset #7d3e3e 0 -1px 9px, rgba(243, 0, 0, 0.74) 0 2px 12px;
-    }
+  &.led-green:checked {
+    background: rgb(0 255 0);
+    box-shadow:
+      inset #3f7d3e 0 -1px 9px,
+      rgb(0 243 46 / 74%) 0 2px 12px;
+  }
 
-    &.led-yellow:checked {
-        background: rgb(251, 255, 0);
-        box-shadow: inset #7d7c3e 0 -1px 9px, rgba(243, 239, 0, 0.74) 0 2px 12px;
-    }
+  &.led-cyan:checked {
+    background: rgb(0, 247, 255);
+    box-shadow:
+      inset #3e7d78 0 -1px 9px,
+      rgba(0, 227, 243, 0.74) 0 2px 12px;
+  }
 
-    &.led-green:checked {
-        background: rgb(0 255 0);
-        box-shadow: inset #3f7d3e 0 -1px 9px, rgb(0 243 46 / 74%) 0 2px 12px;
-    }
+  &.led-blue:checked {
+    background: rgb(0, 4, 255);
+    box-shadow:
+      inset #443e7d 0 -1px 9px,
+      rgba(0, 16, 243, 0.74) 0 2px 12px;
+  }
 
-    &.led-cyan:checked {
-        background: rgb(0, 247, 255);
-        box-shadow: inset #3e7d78 0 -1px 9px, rgba(0, 227, 243, 0.74) 0 2px 12px;
-    }
-
-    &.led-blue:checked {
-        background: rgb(0, 4, 255);
-        box-shadow: inset #443e7d 0 -1px 9px, rgba(0, 16, 243, 0.74) 0 2px 12px;
-    }
-
-    &.led-purple:checked {
-        background: rgb(255, 0, 234);
-        box-shadow: inset #7d3e7a 0 -1px 9px, rgba(243, 0, 243, 0.74) 0 2px 12px;
-    }
+  &.led-purple:checked {
+    background: rgb(255, 0, 234);
+    box-shadow:
+      inset #7d3e7a 0 -1px 9px,
+      rgba(243, 0, 243, 0.74) 0 2px 12px;
+  }
 }
 
-input[type='checkbox']:not(.toggle, .led) {
-    border-radius: calc(var(--control-border-radius) / 2);
+input[type="checkbox"]:not(.toggle, .led) {
+  border-radius: calc(var(--control-border-radius) / 2);
 
-    &:checked {
-        position: relative;
-    }
+  &:checked {
+    position: relative;
+  }
 
-    &::before {
-        transition: border-color 0.4s ease, width 0.25s ease, height 0.25s ease;
-        width: 0px;
-        height: 0px;
-        content: "";
-        background: transparent;
-        border-color: transparent;
-        display: block;
-        position: relative;
+  &::before {
+    transition:
+      border-color 0.4s ease,
+      width 0.25s ease,
+      height 0.25s ease;
+    width: 0px;
+    height: 0px;
+    content: "";
+    background: transparent;
+    border-color: transparent;
+    display: block;
+    position: relative;
+  }
 
-    }
+  &:checked::before {
+    transition:
+      border-color 0.4s ease,
+      width 0.25s ease,
+      height 0.25s ease;
+    content: "";
+    transform: rotate(45deg);
 
-    &:checked::before {
-        transition: border-color 0.4s ease, width 0.25s ease, height 0.25s ease;
-        content: "";
-        transform: rotate(45deg);
+    margin: 0px;
+    padding: 0px;
+    border-color: var(--control-fg);
 
-        margin: 0px;
-        padding: 0px;
-        border-color: var(--control-fg);
+    border-bottom: 4px solid;
+    border-right: 4px solid;
+    left: calc(var(--control-height) / 4);
 
-        border-bottom: 4px solid;
-        border-right: 4px solid;
-        left: calc(var(--control-height) / 4);
-
-        height: calc(var(--control-height) / 1.3);
-        width: calc(var(--control-height) / 2.3);
-    }
+    height: calc(var(--control-height) / 1.3);
+    width: calc(var(--control-height) / 2.3);
+  }
 }
 
 input[type="checkbox"].toggle {
+  border-radius: 50px;
+  width: calc(var(--control-height) * 1.77) !important;
+  min-width: calc(var(--control-height) * 1.77) !important;
+
+  --slider-position: var(--control-border-width);
+
+  &:checked {
+    background: var(--highlight-color);
+    position: relative;
+    --slider-position: calc(
+      calc(var(--control-height) * 0.777) + var(--control-border-width)
+    );
+  }
+
+  &:before {
+    content: "";
+    position: relative;
+    display: inline-block;
+    box-sizing: border-box;
+    border: var(--control-border);
+    left: var(--slider-position);
+    top: var(--control-border-width);
     border-radius: 50px;
-    width: calc(var(--control-height) * 1.77) !important;
-    min-width: calc(var(--control-height) * 1.77) !important;
-
-    --slider-position: var(--control-border-width);
-
-    &:checked {
-        background: var(--highlight-color);
-        position: relative;
-        --slider-position: calc(calc(var(--control-height) * 0.777) + var(--control-border-width));
-    }
-
-    &:before {
-        content: "";
-        position: relative;
-        display: inline-block;
-        box-sizing: border-box;
-        border: var(--control-border);
-        left: var(--slider-position);
-        top: var(--control-border-width);
-        border-radius: 50px;
-        margin: 0px;
-        padding: 0px;
-        height: calc(100% - calc(var(--control-border-width) *2));
-        aspect-ratio: 1;
-        background: var(--convex-item-bg);
-        transition: left 0.25s ease, background 0.4s ease;
-    }
-
+    margin: 0px;
+    padding: 0px;
+    height: calc(100% - calc(var(--control-border-width) * 2));
+    aspect-ratio: 1;
+    background: var(--convex-item-bg);
+    transition:
+      left 0.25s ease,
+      background 0.4s ease;
+  }
 }
 
 /*Catch icons*/
 i[class],
 button i[class] {
-    color: var(--graphical-fg);
-    vertical-align: text-top;
+  color: var(--graphical-fg);
+  vertical-align: text-top;
 }
-
 
 /*Animation and behavior*/
 button,
@@ -2909,51 +3058,51 @@ input,
 select,
 tr,
 label {
-    &::after {
-        transition: color 0.2s ease;
-    }
+  &::after {
+    transition: color 0.2s ease;
+  }
 }
 
-
 @media (hover: hover) {
-
-    button:hover,
-    .button:hover,
-    a:hover,
-    button:hover :not(i, b, small, span),
-    a:hover :not(i, b, small, span),
-    .tool-bar>:hover,
-    .tool-bar>a:hover,
-    input:not([type='submit']):not([type='range']):hover,
-    header:not(.undecorated)>:only-child :is(button, .button, input:is([type='submit'], [type='button'])):hover,
-    header:not(.undecorated)>.tool-bar:only-child :is(input, button, select, a):hover,
-    input:hover,
-    select:hover,
-    tr:hover {
-        &:not(:active):not(.specificity_hack) {
-            color: var(--accent-color);
-            --fg: var(--accent-color);
-            background: var(--hover-color);
-            --control-fg: var(--accent-color);
-        }
+  button:hover,
+  .button:hover,
+  a:hover,
+  button:hover :not(i, b, small, span),
+  a:hover :not(i, b, small, span),
+  .tool-bar > :hover,
+  .tool-bar > a:hover,
+  input:not([type="submit"]):not([type="range"]):hover,
+  header:not(.undecorated)
+    > :only-child
+    :is(button, .button, input:is([type="submit"], [type="button"])):hover,
+  header:not(.undecorated)
+    > .tool-bar:only-child
+    :is(input, button, select, a):hover,
+  input:hover,
+  select:hover,
+  tr:hover {
+    &:not(:active):not(.specificity_hack) {
+      color: var(--accent-color);
+      --fg: var(--accent-color);
+      background: var(--hover-color);
+      --control-fg: var(--accent-color);
     }
+  }
 
-    /*Non toolbsar things don't have a background normally*/
-    .tool-bar input[type='range']:hover,
-    .tool-bar label:hover {
-        background: var(--hover-color);
-    }
-
+  /*Non toolbsar things don't have a background normally*/
+  .tool-bar input[type="range"]:hover,
+  .tool-bar label:hover {
+    background: var(--hover-color);
+  }
 }
 
 ::selection {
-    background: var(--highlight-color);
+  background: var(--highlight-color);
 }
 
 ::-moz-selection {
-    background: var(--highlight-color);
+  background: var(--highlight-color);
 }
-
 
 /*Vue*/
 
@@ -2961,124 +3110,123 @@ label {
 
 [v-cloak],
 [x-cloak] {
-    display: block;
-    padding: 50px 0;
+  display: block;
+  padding: 50px 0;
 }
 
 @keyframes spinner {
-    to {
-        transform: rotate(360deg);
-    }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 [v-cloak]:before,
 [x-cloak]:before {
-    content: "";
-    box-sizing: border-box;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: min(4em, 80%);
-    height: min(4em, 80%);
-    margin-top: -10px;
-    margin-left: -10px;
-    border-radius: 50%;
-    border: 8px solid var(--control-bg);
-    border-top-color: var(--control-fg);
-    animation: spinner 0.6s linear infinite;
-    text-indent: 100%;
-    white-space: nowrap;
-    overflow: hidden;
+  content: "";
+  box-sizing: border-box;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(4em, 80%);
+  height: min(4em, 80%);
+  margin-top: -10px;
+  margin-left: -10px;
+  border-radius: 50%;
+  border: 8px solid var(--control-bg);
+  border-top-color: var(--control-fg);
+  animation: spinner 0.6s linear infinite;
+  text-indent: 100%;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
-[v-cloak]>*,
-[x-cloak]>* {
-    display: none !important;
+[v-cloak] > *,
+[x-cloak] > * {
+  display: none !important;
 }
 
 /* JSON Editor Compatibility */
 
 .je-modal {
-    border-radius: var(--border-radius);
-    background-color: var(--box-bg);
-    border: var(--border);
-    box-shadow: var(--window-box-shadow);
-    position: absolute;
-    z-index: 10;
+  border-radius: var(--border-radius);
+  background-color: var(--box-bg);
+  border: var(--border);
+  box-shadow: var(--window-box-shadow);
+  position: absolute;
+  z-index: 10;
 }
 
 .je-indented-panel:not(.specificity_hack) {
-    border: none;
-    margin: 3px;
-    padding: 3px;
-
+  border: none;
+  margin: 3px;
+  padding: 3px;
 }
 
 .je-object__container {
-    margin: 3px;
-    border: var(--border);
-    border-radius: var(--border-radius);
-    padding: var(--padding);
-    box-shadow: var(--item-box-shadow);
+  margin: 3px;
+  border: var(--border);
+  border-radius: var(--border-radius);
+  padding: var(--padding);
+  box-shadow: var(--item-box-shadow);
 }
 
 .je-tab--top:not(.specificity_hack) {
-    border-color: var(--fg-color);
-    border-width: 2px;
-    border-top-left-radius: var(--control-border-radius);
-    border-top-right-radius: var(--control-border-radius);
-    box-shadow: var(--window-box-shadow);
-    background: var(--control-bg) !important;
+  border-color: var(--fg-color);
+  border-width: 2px;
+  border-top-left-radius: var(--control-border-radius);
+  border-top-right-radius: var(--control-border-radius);
+  box-shadow: var(--window-box-shadow);
+  background: var(--control-bg) !important;
 }
 
-
-.je-header>span {
-    font-weight: bold;
+.je-header > span {
+  font-weight: bold;
 }
 
 .je-indented-panel--top:not(.specificity) {
-    margin-left: 3px;
-    padding-left: 3px;
+  margin-left: 3px;
+  padding-left: 3px;
 }
 
 .je-indented-panel {
-    .form-control {
-        display: flex;
-        flex-direction: column;
+  .form-control {
+    display: flex;
+    flex-direction: column;
 
-        &>label:is(:first-child) {
-            font-weight: bold;
-        }
-        &>input, &>select, &>textarea, &>p{
-            margin-left: var(--gap);'
-        }
-        &>p{
-            color: var(--graphical-fg);
-            font-size: 80%;
-        }
+    & > label:is(:first-child) {
+      font-weight: bold;
     }
+    & > input,
+    & > select,
+    & > textarea,
+    & > p {
+      margin-left: var(--gap);
+    }
+    & > p {
+      color: var(--graphical-fg);
+      font-size: 80%;
+    }
+  }
 }
 
-.json-editor-btn-edit_properties{
-    border:none;
-    padding:4px;
-    &:before{
-        content:"⚙️"
-    }
-    span{
-        display:none;
-    }
+.json-editor-btn-edit_properties {
+  border: none;
+  padding: 4px;
+  &:before {
+    content: "⚙️";
+  }
+  span {
+    display: none;
+  }
 }
 
-.json-editor-btn-add 
-{
-    border:none;
-    padding:4px;
-    &:before{
-        content:"➕"
-    }
-    span{
-        display:none;
-    }
+.json-editor-btn-add {
+  border: none;
+  padding: 4px;
+  &:before {
+    content: "➕";
+  }
+  span {
+    display: none;
+  }
 }
-

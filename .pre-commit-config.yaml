@@ -122,3 +122,14 @@ repos:
     -   id: detect-secrets
         args: ['--baseline', '.secrets.baseline']
         exclude: default\.nix|kaithem/src/js/thirdparty/.*
+
+
+  - repo: local
+    hooks:
+      - id: do-eslint
+        name: do-eslint
+        entry: bash scripts/eslint-hook.sh
+        language: system
+        files: \.(js|mjs|vue|css)$
+        pass_filenames: false
+        exclude: kaithem/src/js/thirdparty/.*

@@ -5,6 +5,7 @@
         "chaojie.better-mako",
         "redhat.vscode-yaml",
         "littlefoxteam.vscode-python-test-adapter",
-        "streetsidesoftware.code-spell-checker"
+        "streetsidesoftware.code-spell-checker",
+        "coolbear.systemd-unit-file"
     ]
 }
