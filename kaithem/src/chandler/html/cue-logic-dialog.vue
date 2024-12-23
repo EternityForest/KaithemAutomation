@@ -151,7 +151,7 @@ export default {
         gotoGroupCuesCompleter: function (a) {
             var c = []
             var n = a[1]
-            if (n.indexOf('=GROUP') > -1) {
+            if (n.includes('=GROUP')) {
                 n = this.editinggroup.name
             }
 
@@ -173,9 +173,7 @@ export default {
             for (var i in x) {
                 c.push([i, ''])
             }
-            c.push(['__next__', 'Next cue'])
-            c.push(['__random__', ''])
-            c.push(['__shuffle__', ''])
+            c.push(['__next__', 'Next cue'], ['__random__', ''], ['__shuffle__', ''])
 
             return c;
         },
@@ -218,30 +216,30 @@ export default {
         },
     },
     "components": {
-        "combo-box": window.httpVueLoader("/static/vue/ComboBox.vue"),
-        "script-editor": window.httpVueLoader('./script-editor.vue'),
+        "combo-box": globalThis.httpVueLoader("/static/vue/ComboBox.vue"),
+        "script-editor": globalThis.httpVueLoader('./script-editor.vue'),
     }
     ,
     computed: {
         example_events: function () {
-            var ev = [];
+            var event_ = [];
 
             for (var i in example_events_base) {
-                ev.push(example_events_base[i])
+                event_.push(example_events_base[i])
             }
 
             for (var n in this.availabletags) {
                 let i = this.availabletags[n]
-                ev.push(["=tv('" + n + "')", "While tag is nonzero"])
+                event_.push(["=tv('" + n + "')", "While tag is nonzero"])
                 if (i == "trigger") {
-                    ev.push(["=+tv('" + n + "')", "On every nonzero change"])
+                    event_.push(["=+tv('" + n + "')", "On every nonzero change"])
                 }
                 if (i == "bool") {
-                    ev.push(["=/tv('" + n + "')", "When tag newly becomes nonzero(edge trigger)"])
+                    event_.push(["=/tv('" + n + "')", "When tag newly becomes nonzero(edge trigger)"])
                 }
             }
 
-            return ev
+            return event_
         }
     }
 }
