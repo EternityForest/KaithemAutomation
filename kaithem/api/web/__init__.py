@@ -22,7 +22,6 @@ _asgi_apps = []
 _wsgi_apps = []
 
 _module_plugin_links = []
-_viewer_link_for_mime_type: dict[str, Callable[[str], str | None]] = {}
 _file_resource_links = []
 _file_preview_plugins = []
 
@@ -100,16 +99,6 @@ def add_wsgi_app(prefix: str, app, permission="system_admin"):
     if prefix.endswith(".*"):
         prefix = prefix[:-2]
     _wsgi_apps.append((prefix, app, permission))
-
-
-def add_file_viewer_hook(mime_type: str, hook: Callable[[str], str | None]):
-    """Add a hook to handle a mime type.
-    Hook takes a URL at which a raw file can be accessed and returns a link to the viewer.
-
-    This is much more limited than the file resource APIs as it must be able to handle
-    any arbitrary URL with or without any read access.
-    """
-    _viewer_link_for_mime_type[mime_type] = hook
 
 
 def add_module_plugin_link(link: str, destination: str):

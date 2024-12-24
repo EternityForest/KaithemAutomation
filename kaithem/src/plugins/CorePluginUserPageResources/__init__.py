@@ -667,6 +667,18 @@ async def catch_all(module, path):
         # to use the preview plugins
         selected_resource_name = os.path.relpath(fp, module_folder_root)
 
+        rel_path = quart.request.path
+        if rel_path.endswith("/"):
+            rel_path = rel_path[:-1]
+
+        # We need to reverse engineer the filename into a relative resource name
+
+        if not os.path.exists(fp):
+            return quart.Response(
+                '<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0"/>',
+                mimetype="image/svg+xml",
+            )
+
         if os.path.isdir(fp):
             if quart.request.args.get("thumbnail", "") == "true":
                 return quart.Response(
@@ -694,12 +706,14 @@ async def catch_all(module, path):
                             )
                         )
                     else:
+                        access_path = rel_path + "/" + i
                         entries.append(
                             (
                                 i,
                                 units.si_format_number(os.path.getsize(fn)),
                                 os.path.getmtime(fn),
                                 selected_resource_name + "/" + i,
+                                access_path,
                             )
                         )
                 entries = sorted(folders) + sorted(entries)
@@ -716,7 +730,7 @@ async def catch_all(module, path):
             return await quart.utils.run_sync(get_listing)()
 
         else:
-            if quart.request.args.get("thumbnail", "") == "true":
+            if kwargs.get("thumbnail", ""):
 
                 @copy_current_request_context
                 def f():

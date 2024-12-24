@@ -1,41 +1,49 @@
-{% extends "pagetemplate_nonav.j2.html" %}
-{% set webapi = imp0rt( 'kaithem.api.web' ) %}
-
-{% block body %}
+{% extends "pagetemplate_nonav.j2.html" %} {% set webapi = imp0rt(
+'kaithem.api.web' ) %} {% block body %}
 <main>
-    <section class="window paper w-sm-double margin">
-        <header>
-            <h2>Files</h2>
-        </header>
-        <dl>
-            <dt><span class="mdi mdi-folder"></span><a href="..">..</a></dt>
-            <dd></dd>
-            {% for i in entries %}
-            <dt>
-                {% if i[0].endswith("/") %}
-                <span class="mdi mdi-folder"></span>
-                {% else %}
-                <span class="mdi mdi-file-outline"></span>
-                {% endif %}
+  <section class="window paper w-sm-double margin">
+    <header>
+      <h2>Files</h2>
+    </header>
+    <dl>
+      <dt><span class="mdi mdi-folder"></span><a href="..">..</a></dt>
+      <dd></dd>
+      {% for i in entries %}
+      <dt>
+        <div class="tool-bar">
+          <p class="nogrow">
+            {% if i[0].endswith("/") %}
+            <span class="mdi mdi-folder"></span>
+            {% else %}
+            <span class="mdi mdi-file-outline"></span>
+            {% endif %}
+          </p>
 
-                <a href="./{{i[0]}}?timestamp={{i[2]}}">{{i[0]}} ({{i[1]}})</a>
-            </dt>
-            <dd>
+          {% if i[0].endswith("/") %}
+          <a href="./{{i[0]}}?timestamp={{i[2]}}"> {{i[0]}}({{i[1]}}) </a>
+          {% else %}
+          <p>{{i[0]}}({{i[1]}})</p>
 
-                {% if not i[0].endswith("/") %}
-
-                {% for j in webapi._file_preview_plugins %}
-                {% set prv=j({'module':module, 'resource':i[3], 'timestamp':i[2]}) %}
-                {% if prv %}
-                {{prv}}
-                {% endif %}
-                {% endfor %}
-
-                {% endif %}
-            </dd>
-            {% endfor %}
-        </dl>
-    </section>
+          {% endif %} {% if not i[0].endswith("/") %}
+          <a
+            class="nogrow"
+            href="./{{i[0]}}?timestamp={{i[2]}}"
+            title="Download"
+            aria-label="Download {{i[0]}}">
+            <span class="mdi mdi-download-box"></span>
+          </a>
+          {% endif %}
+        </div>
+      </dt>
+      <dd>
+        {% if not i[0].endswith("/") %} {% for j in webapi._file_preview_plugins
+        %} {% set prv=j({'module':module, 'resource':i[3], 'timestamp':i[2],
+        'access_url':i[4],'thumbnail_url':i[4]+"?thumbnail=true"})%} {% if prv %}
+        {{prv}} {% endif %} {% endfor %} {% endif %}
+      </dd>
+      {% endfor %}
+    </dl>
+  </section>
 </main>
 
 {% endblock %}

@@ -64,8 +64,15 @@ def previewer(kw: dict[str, Any]) -> str | None:
     mime = mimetypes.guess_type(resource)[0]
     o = '<div class="flex-col">'
 
-    file_url = f"/modules/module/{ url(module) }/getfileresource/{resource}?timestamp={kw.get('timestamp', 0)}"
-    thumb_url = f"/modules/module/{ url(module) }/getfileresourcethumb/{resource}?timestamp={kw.get('timestamp', 0)}"
+    if "access_url" in kw:
+        file_url = kw["access_url"]
+    else:
+        file_url = f"/modules/module/{ url(module) }/getfileresource/{resource}?timestamp={kw.get('timestamp', 0)}"
+
+    if "thumbnail_url" in kw:
+        thumb_url = kw["thumbnail_url"]
+    else:
+        thumb_url = f"/modules/module/{ url(module) }/getfileresourcethumb/{resource}?timestamp={kw.get('timestamp', 0)}"
 
     if resource.split(".")[-1] in thumbnailable or mime in thumbnailable_mime:
         if resource.split(".")[-1] not in video_ext:
