@@ -658,6 +658,15 @@ async def catch_all(module, path):
             fp = fp[1:]
 
         fp = os.path.join(page.folder, fp)
+
+        module_folder_root = os.path.join(
+            modules_state.getModuleDir(module), "__filedata__"
+        )
+
+        # we need to reverse engineer the filename into a relative resource name
+        # to use the preview plugins
+        selected_resource_name = os.path.relpath(fp, module_folder_root)
+
         if os.path.isdir(fp):
             if quart.request.args.get("thumbnail", "") == "true":
                 return quart.Response(
@@ -685,11 +694,12 @@ async def catch_all(module, path):
                             )
                         )
                     else:
-                        folders.append(
+                        entries.append(
                             (
                                 i,
                                 units.si_format_number(os.path.getsize(fn)),
                                 os.path.getmtime(fn),
+                                selected_resource_name + "/" + i,
                             )
                         )
                 entries = sorted(folders) + sorted(entries)
@@ -699,6 +709,7 @@ async def catch_all(module, path):
                         "html",
                         "file_listing.j2.html",
                     ),
+                    module=module,
                     entries=entries,
                 )
 

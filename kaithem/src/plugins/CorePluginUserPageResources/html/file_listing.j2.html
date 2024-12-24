@@ -1,4 +1,6 @@
 {% extends "pagetemplate_nonav.j2.html" %}
+{% set webapi = imp0rt( 'kaithem.api.web' ) %}
+
 {% block body %}
 <main>
     <section class="window paper w-sm-double margin">
@@ -19,10 +21,17 @@
                 <a href="./{{i[0]}}?timestamp={{i[2]}}">{{i[0]}} ({{i[1]}})</a>
             </dt>
             <dd>
-                {% if i[0].split(".")[-1] in ('mp3', 'opus','wav', 'm4a','flac') %}
-                <audio controls preload="none" src="./{{i[0]}}?timestamp={{i[2]}}"></audio>
+
+                {% if not i[0].endswith("/") %}
+
+                {% for j in webapi._file_preview_plugins %}
+                {% set prv=j({'module':module, 'resource':i[3], 'timestamp':i[2]}) %}
+                {% if prv %}
+                {{prv}}
                 {% endif %}
-                <img src="./{{i[0]}}?thumbnail=true&timestamp={{i[2]}}" alt="thumbnail">
+                {% endfor %}
+
+                {% endif %}
             </dd>
             {% endfor %}
         </dl>

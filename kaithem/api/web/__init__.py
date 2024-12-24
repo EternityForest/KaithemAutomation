@@ -22,7 +22,7 @@ _asgi_apps = []
 _wsgi_apps = []
 
 _module_plugin_links = []
-
+_viewer_link_for_mime_type: dict[str, Callable[[str], str | None]] = {}
 _file_resource_links = []
 _file_preview_plugins = []
 
@@ -74,11 +74,17 @@ def render_jinja_template(template_filename: str, **kw):
     )
 
 
-def render_html_file(body: str, title: str = "Kaithem"):
-    with open(body) as f:
+def render_html_file(body_fn: str, title: str = "Kaithem"):
+    """Given a file raw html, render it in completed page, with header and footer"""
+    with open(body_fn) as f:
         body = f.read()
 
     title = title or _socket.gethostname()
+    return render_jinja_template("generic_page.j2.html", body=body, title=title)
+
+
+def render_html_string(body: str, title: str = "Kaithem"):
+    """Given a string raw html, render it in completed page, with header and footer"""
     return render_jinja_template("generic_page.j2.html", body=body, title=title)
 
 
@@ -94,6 +100,16 @@ def add_wsgi_app(prefix: str, app, permission="system_admin"):
     if prefix.endswith(".*"):
         prefix = prefix[:-2]
     _wsgi_apps.append((prefix, app, permission))
+
+
+def add_file_viewer_hook(mime_type: str, hook: Callable[[str], str | None]):
+    """Add a hook to handle a mime type.
+    Hook takes a URL at which a raw file can be accessed and returns a link to the viewer.
+
+    This is much more limited than the file resource APIs as it must be able to handle
+    any arbitrary URL with or without any read access.
+    """
+    _viewer_link_for_mime_type[mime_type] = hook
 
 
 def add_module_plugin_link(link: str, destination: str):
@@ -123,9 +139,11 @@ def add_file_resource_preview_plugin(
     Return value is embedded html or None.
 
     Input is a dict that may have none to any of the following keys:
-        module, resource, size, timestamp,path
+        module, resource, size, timestamp, path
+        access_url, thumbnail_url
 
-    Usually it will have all of them.
+    You should use the access_url rather than getting it yourself,
+    if it exists, because it may give you a url with specific permissions
     """
     _file_preview_plugins.append(filter)
 
