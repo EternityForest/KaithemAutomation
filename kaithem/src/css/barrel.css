@@ -612,7 +612,6 @@ select {
   min-height: calc(min(var(--control-height), 100%));
   width: fit-content;
   flex-basis: min-content;
-  height: var(--control-height);
   line-height: calc(var(--control-height) - calc(var(--control-border-width ) * 2))
   /*Don't set button height, remember they can be multiine*/
 }
