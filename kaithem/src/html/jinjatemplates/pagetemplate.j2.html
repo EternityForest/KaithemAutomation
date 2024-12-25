@@ -97,7 +97,7 @@
   {% if not quart.request.args.get("kaithem_disable_header",0) %}
   <header class="undecorated noprint">
 
-    <div class="tool-bar w-full" style="position: relative;">
+    <div class="tool-bar w-full noselect" style="position: relative;">
       {% if pages.canUserDoThis("view_status") %}
       <button style="flex-grow: 0"
         onclick="document.getElementById('kaithem-main-dropdown-panel').style.display='block';document.getElementById('kaithem-main-dropdown-iframe').src='/dropdownpanel'">

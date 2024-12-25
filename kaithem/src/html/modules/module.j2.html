@@ -78,8 +78,9 @@ webapi = imp0rt( 'kaithem.api.web' ) %} {% block body %}
   <div class="window h-18rem paper modal margin" popover id="addresource">
     <header>
       <div class="tool-bar">
-        <h3>Add Resource</h3>
+        <p>Add Resource</p>
         <button
+          class="nogrow"
           aria-label="Close"
           type="button"
           popovertarget="addresource"
@@ -127,7 +128,7 @@ webapi = imp0rt( 'kaithem.api.web' ) %} {% block body %}
   </div>
 
   <section class="window padding">
-    <div class="tool-bar w-full">
+    <div class="tool-bar w-full noselect">
       <button
         type="button"
         popovertarget="addresource"
@@ -167,7 +168,7 @@ webapi = imp0rt( 'kaithem.api.web' ) %} {% block body %}
       </form>
     </div>
     <hr />
-    <div class="pathnav tool-bar w-full">
+    <div class="pathnav tool-bar w-full noselect">
       <p>Location:</p>
       <a class="button" href="/modules/module/{{ url(name) }}#resources"
         >{{ name| escape }}</a
@@ -190,7 +191,7 @@ webapi = imp0rt( 'kaithem.api.web' ) %} {% block body %}
       {% endif %} {% for i in sorted_module_path_list(name, path) %} {% if
       module[i]['resource_type'] == 'directory' %}
       <dt>
-        <div class="tool-bar w-full">
+        <div class="tool-bar w-full noselect">
           <p>
             <a
               href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}#resources"
@@ -214,7 +215,7 @@ webapi = imp0rt( 'kaithem.api.web' ) %} {% block body %}
     <dl>
       {% for i in sorted_module_file_list(name, path) %}
       <dt>
-        <div class="tool-bar w-full inline">
+        <div class="tool-bar w-full inline noselect">
           <p>{{ i[0] | escape }}</p>
 
           {% for j in webapi._file_resource_links %} {% if j(name, i[1]) %}
@@ -255,7 +256,7 @@ webapi = imp0rt( 'kaithem.api.web' ) %} {% block body %}
       resource_type <% continue %> {% endif %} {% if module[i]['resource_type']
       == 'permission' %}
       <dt>
-        <div class="tool-bar w-full inline">
+        <div class="tool-bar w-full inline noselect">
           <p class="nogrow">
             <i class="mdi mdi-key"></i>
           </p>
@@ -277,7 +278,7 @@ webapi = imp0rt( 'kaithem.api.web' ) %} {% block body %}
       modules_state.additionalTypes %} {% if
       modules.additionalTypes[module[i]['resource_type']].mdi_icon %}
       <dt>
-        <div class="tool-bar w-full inline">
+        <div class="tool-bar w-full inline noselect">
           <p class="nogrow">
             <i
               class="mdi mdi-{{modules.additionalTypes[module[i]['resource_type']].mdi_icon}}"></i>
@@ -325,7 +326,7 @@ webapi = imp0rt( 'kaithem.api.web' ) %} {% block body %}
         {% if module[i].get('resource_label_image') %}
         <img
           alt="thumbnail"
-          class="control-rounded max-h-8rem v-center"
+          class="control-rounded max-h-8rem v-center noselect"
           src="{{get_resource_label_image_url(name,i)}}" />
         {% endif %}
 
@@ -338,7 +339,7 @@ webapi = imp0rt( 'kaithem.api.web' ) %} {% block body %}
       </dd>
       {% endif %} {% endif %} {% if module[i]['resource_type'] == 'device' %}
       <dt>
-        <div class="tool-bar w-full">
+        <div class="tool-bar w-full noselect">
           <p class="nogrow">
             <i class="mdi mdi-chip"></i>
           </p>
@@ -379,7 +380,7 @@ webapi = imp0rt( 'kaithem.api.web' ) %} {% block body %}
         {% if module[i].get('resource_label_image') %}
         <img
           alt="thumbnail"
-          class="control-rounded max-h-8rem v-center"
+          class="control-rounded max-h-8rem v-center noselect"
           src="{{get_resource_label_image_url(name,i)}}" />
         {% endif %}
       </dd>

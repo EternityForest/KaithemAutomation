@@ -38,7 +38,7 @@ It takes a set of action button slots that get passed "filename"
                         target="_blank">{{ soundfilesdir }}</a>
                 </h4>
 
-                <ul class="w-full">
+                <ul class="w-full noselect">
                     <li v-on:click="setSoundfileDir('')"><a>&ltTOP DIRECTORY&gt</a></li>
                     <li v-on:click="setSoundfileDir(soundfilesdir)">
                         <a><i class="mdi mdi-refresh"></i>Refresh</a>

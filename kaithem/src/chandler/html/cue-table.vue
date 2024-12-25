@@ -32,7 +32,7 @@
 
     <div style="overflow-y: auto; max-height: 12em">
       <table class="reflow w-full" border="1">
-        <thead>
+        <thead class="noselect">
           <slot name="header"></slot>
         </thead>
 

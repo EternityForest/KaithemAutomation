@@ -202,7 +202,7 @@
                 STATUS: {{ i[1].status }}
               </p>
 
-              <div class="tool-bar noselect" v-if="!i[1].utility">
+              <div class="tool-bar" v-if="!i[1].utility">
                 <button
                   type="button"
                   :class="{ success: i[1].active, warning: i[1].status }"
@@ -227,7 +227,7 @@
                 :src="i[1].infoDisplay"></iframe>
 
               <div
-                class="tool-bar noselect"
+                class="tool-bar"
                 v-if="i[1].eventButtons.length > 0">
                 <button
                   type="button"
@@ -884,7 +884,7 @@
           >
 
           <div class="undecorated">
-            <div class="tool-bar">
+            <div class="tool-bar noselect">
               <button
                 type="button"
                 v-bind:class="{ highlight: groupChannelsViewMode == 'cue' }"
@@ -2024,7 +2024,7 @@
                 </details>
 
                 <table border="1" class="w-full">
-                  <tr>
+                  <tr class="noselect">
                     <th>Label</th>
                     <th>Width</th>
                     <th>Tag</th>

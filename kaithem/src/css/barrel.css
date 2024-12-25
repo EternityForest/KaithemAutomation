@@ -1128,6 +1128,10 @@ header:not(.undecorated) .tool-bar {
     text-align: start;
   }
 
+  & button, & .button{
+    user-select: none;
+  }
+  
   & > *,
   & fieldset > * {
     margin-block-end: var(--padding);
@@ -1169,6 +1173,7 @@ header:not(.undecorated) .tool-bar {
     flex-direction: column;
     flex-grow: 0;
     padding: 0px;
+    user-select: none;
 
     & > :is(input:not(input[type="radio"], input[type="checkbox"])) {
       width: 100%;
@@ -1925,6 +1930,10 @@ iframe.h-center {
   user-select: none;
 }
 
+.selectable{
+  user-select: auto !important;
+}
+
 .nogaps {
   gap: 0px;
 
@@ -2221,6 +2230,10 @@ input:invalid:not(.specificity_hack) {
   height: fit-content;
   flex-basis: max-content;
   flex-wrap: wrap;
+}
+
+.tool-bar{
+  user-select: none;
 }
 
 .multibar .tool-bar {
