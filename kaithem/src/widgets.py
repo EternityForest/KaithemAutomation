@@ -1012,7 +1012,7 @@ class ScrollingWindow(Widget):
         %(content)s
         </div>
         <script type="module">
-        import { kaithemapi } from "/static/js/widget.mjs"
+        import { kaithemapi } from "/static/js/widget.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0"
         var d=document.getElementById('%(htmlid)s');
         d.scrollTop = d.scrollHeight;
         var upd=function(val){

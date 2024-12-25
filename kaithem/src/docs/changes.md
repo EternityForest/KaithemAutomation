@@ -91,7 +91,7 @@ and import it's special API script:
 
 ```html
 <script type="module">
-   import { kaithemapi, APIWidget} from "/static/js/widget.mjs"
+   import { kaithemapi, APIWidget} from "/static/js/widget.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0"
     let api = new APIWidget("widget_id")
     api.upd = (val) => alert(val)
     api.send("MyValue")
@@ -100,7 +100,7 @@ and import it's special API script:
 
 Use:
 ```js
-import { kaithemapi } from "/static/js/widget.mjs"
+import { kaithemapi } from "/static/js/widget.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0"
 ```
 if you need to access the widget API directly.
 

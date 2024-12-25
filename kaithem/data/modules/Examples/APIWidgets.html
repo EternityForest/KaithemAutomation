@@ -31,7 +31,7 @@ theme_css_url: ''
 {% block body %}
 
 <script type="module">
-    import { kaithemapi, APIWidget} from "/static/js/widget.mjs"
+    import { kaithemapi, APIWidget} from "/static/js/widget.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0"
     let api = new APIWidget("{{api.uuid}}");
 
     api.upd = (val) => alert(val)
