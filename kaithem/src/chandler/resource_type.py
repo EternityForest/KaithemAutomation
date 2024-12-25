@@ -41,7 +41,7 @@ class ConfigType(modules_state.ResourceType):
         <div class="tool-bar">
             <a href="/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/editor/{module}:{resource}">
             <span class="mdi mdi-pencil-box"></span>
-            Editor</a>
+            Edit</a>
 
             <a href="/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/commander/{module}:{resource}">
             <span class="mdi mdi-dance-ballroom"></span>
@@ -49,7 +49,7 @@ class ConfigType(modules_state.ResourceType):
 
             <a href="/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/config/{module}:{resource}">
             <span class="mdi mdi-cog-outline"></span>
-            Fixtures Config</a>
+            Config</a>
         </div>
         """
 

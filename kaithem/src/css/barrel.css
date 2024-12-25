@@ -679,9 +679,6 @@ div {
   border-color: var(--border-color);
 }
 
-dd {
-  margin-bottom: 1.5em;
-}
 
 /********************Basic Layout******************************/
 
@@ -1947,6 +1944,14 @@ iframe.h-center {
 
 .padding {
   padding: var(--padding);
+}
+
+.padding-inline {
+  padding-inline: var(--padding);
+}
+
+.padding-block {
+  padding-block: var(--padding);
 }
 
 header.padding,

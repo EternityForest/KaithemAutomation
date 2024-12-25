@@ -1,310 +1,398 @@
-{% extends "pagetemplate.j2.html" %}
-{% set time = imp0rt( 'time' ) %}
-{% set webapi = imp0rt( 'kaithem.api.web' ) %}
-
-{% block body %}
+{% extends "pagetemplate.j2.html" %} {% set time = imp0rt( 'time' ) %} {% set
+webapi = imp0rt( 'kaithem.api.web' ) %} {% block body %}
 <style>
-    dd {
-        min-height: 3em;
-        margin-left: 1em;
-        border-left: var(--border);
-        border-width: 3px;
-        padding-left: 1em;
-    }
+  dd {
+    min-height: 3em;
+    margin-left: 1em;
+    border-left: var(--border);
+    border-width: 3px;
+    padding-left: 1em;
+  }
 </style>
 <main>
-    <h2>Module {{ name| escape }}</h2>
-    <title>Module: {{ name| escape }}</title>
-    <section class="flex-row gaps margin">
-        {% if ro %}
-        <p class="warning">This module is read-only, change the save location to make changes.</p>
-        {% endif %}
-        <section class="window col-6 padding">
-            {{ getModuleHash(name) }}
-            <br>
-            <b>{{ getModuleWordHash(name) }}</b>
-            <br><br>
-            <a href="/modules/yamldownload/{{ url(name) }}.zip">Download this module as a zip file</a>
-            <br>
-            <form action="/modules/module/{{ url(name) }}/obj/module" method="post">
-                <button>View module namespace object</button>
-            </form>
-        </section>
-        <section class="window col-6 padding">
-            <form class="flex-col" action="/modules/module/{{ url(name) }}/update" method="POST" name="user">
-                <h4>Name:</h4>
-                <input required="required" class="modulename" name="name" type="text" value="{{ name| escape }}">
-                <h4>Info:</h4>
-                <textarea name="description" class="description" rows="5">{{ getDesc(module)| escape }}</textarea>
-                <h4>Save Location(blank=default):</h4>
-                <input type="text" name="location" title="Enter a directory name on the server's local filesystem"
-                    value="{{ external_module_locations.get(name,'') | escape }}">
-
-                <hr>
-                {% if pages.canUserDoThis("system_admin") %}
-                <input type="submit" value="Save Changes">
-
-                {% else %}
-                <p class="warning">You must have the "system_admin" permission to make changes. Are you logged
-                    in?
-                </p>
-                {% endif %}
-            </form>
-
-            <details>
-                <summary><b>Quick Actions</b></summary>
-                <iframe src="/modules/actions/{{ url(name) }}?dir={{ url('/'.join(path) ) }}"></iframe>
-            </details>
-        </section>
+  <h2>Module {{ name| escape }}</h2>
+  <title>Module: {{ name| escape }}</title>
+  <section class="flex-row gaps margin">
+    {% if ro %}
+    <p class="warning">
+      This module is read-only, change the save location to make changes.
+    </p>
+    {% endif %}
+    <section class="window col-6 padding">
+      {{ getModuleHash(name) }}
+      <br />
+      <b>{{ getModuleWordHash(name) }}</b>
+      <br /><br />
+      <a href="/modules/yamldownload/{{ url(name) }}.zip"
+        >Download this module as a zip file</a
+      >
+      <br />
+      <form action="/modules/module/{{ url(name) }}/obj/module" method="post">
+        <button>View module namespace object</button>
+      </form>
     </section>
+    <section class="window col-6 padding">
+      <form
+        class="flex-col"
+        action="/modules/module/{{ url(name) }}/update"
+        method="POST"
+        name="user">
+        <h4>Name:</h4>
+        <input
+          required="required"
+          class="modulename"
+          name="name"
+          type="text"
+          value="{{ name| escape }}" />
+        <h4>Info:</h4>
+        <textarea name="description" class="description" rows="5">
+{{ getDesc(module)| escape }}</textarea
+        >
+        <h4>Save Location(blank=default):</h4>
+        <input
+          type="text"
+          name="location"
+          title="Enter a directory name on the server's local filesystem"
+          value="{{ external_module_locations.get(name,'') | escape }}" />
 
-    <div class="window h-18rem paper modal margin" popover id="addresource">
-        <header>
-            <div class="tool-bar">
-                <h3>Add Resource</h3>
-                <button aria-label="Close" type="button" popovertarget="addresource" popovertargetaction="close">
-                    <span class="mdi mdi-close"></span></button>
-            </div>
+        <hr />
+        {% if pages.canUserDoThis("system_admin") %}
+        <input type="submit" value="Save Changes" />
 
-        </header>
-        <div class="w-full flex-row">
-            <a class="button" data-testid="add-permission"
-                href="/modules/module/{{ url(name) }}/addresource/permission?dir={{ url('/'.join(path) ) }}"><i
-                    class="mdi mdi-key"></i>Permission</a>
-            <a class="button" data-testid="add-folder"
-                href="/modules/module/{{ url(name) }}/addresource/directory?dir={{ url('/'.join(path) ) }}"><i
-                    class="mdi mdi-folder-outline"></i>Folder</a>
-            <a class="button" data-testid="add-device"
-                href="/modules/module/{{ url(name) }}/addresource/device?dir={{ url('/'.join(path) ) }}"><i
-                    class="mdi mdi-chip"></i>Device</a>
-            <a class="button" data-testid="add-file"
-                href="/modules/module/{{ url(name) }}/addfileresource?dir={{ url('/'.join(path) ) }}"><i
-                    class="mdi mdi-file-document"></i>Add File</a>
-            {% for i in modules.additionalTypes %}
-            {% if modules.additionalTypes[i].mdi_icon %}
-            <a class="button" data-testid="add-{{ i }}"
-                href="/modules/module/{{ url(name) }}/addresource/{{ i| urlencode }}?dir={{ url('/'.join(path) ) }}">
-                <i
-                    class="mdi mdi-{{modules.additionalTypes[i].mdi_icon}}"></i>{{ modules.additionalTypes[i].title or i.capitalize()| escape }}</a>
-            {% endif %}
-            {% endfor %}
+        {% else %}
+        <p class="warning">
+          You must have the "system_admin" permission to make changes. Are you
+          logged in?
+        </p>
+        {% endif %}
+      </form>
 
-        </div>
+      <details>
+        <summary><b>Quick Actions</b></summary>
+        <iframe
+          src="/modules/actions/{{ url(name) }}?dir={{ url('/'.join(path) ) }}"></iframe>
+      </details>
+    </section>
+  </section>
+
+  <div class="window h-18rem paper modal margin" popover id="addresource">
+    <header>
+      <div class="tool-bar">
+        <h3>Add Resource</h3>
+        <button
+          aria-label="Close"
+          type="button"
+          popovertarget="addresource"
+          popovertargetaction="close">
+          <span class="mdi mdi-close"></span>
+        </button>
+      </div>
+    </header>
+    <div class="w-full flex-row">
+      <a
+        class="button"
+        data-testid="add-permission"
+        href="/modules/module/{{ url(name) }}/addresource/permission?dir={{ url('/'.join(path) ) }}"
+        ><i class="mdi mdi-key"></i>Permission</a
+      >
+      <a
+        class="button"
+        data-testid="add-folder"
+        href="/modules/module/{{ url(name) }}/addresource/directory?dir={{ url('/'.join(path) ) }}"
+        ><i class="mdi mdi-folder-outline"></i>Folder</a
+      >
+      <a
+        class="button"
+        data-testid="add-device"
+        href="/modules/module/{{ url(name) }}/addresource/device?dir={{ url('/'.join(path) ) }}"
+        ><i class="mdi mdi-chip"></i>Device</a
+      >
+      <a
+        class="button"
+        data-testid="add-file"
+        href="/modules/module/{{ url(name) }}/addfileresource?dir={{ url('/'.join(path) ) }}"
+        ><i class="mdi mdi-file-document"></i>Add File</a
+      >
+      {% for i in modules.additionalTypes %} {% if
+      modules.additionalTypes[i].mdi_icon %}
+      <a
+        class="button"
+        data-testid="add-{{ i }}"
+        href="/modules/module/{{ url(name) }}/addresource/{{ i| urlencode }}?dir={{ url('/'.join(path) ) }}">
+        <i class="mdi mdi-{{modules.additionalTypes[i].mdi_icon}}"></i>{{
+        modules.additionalTypes[i].title or i.capitalize()| escape }}</a
+      >
+      {% endif %} {% endfor %}
+    </div>
+  </div>
+
+  <section class="window padding">
+    <div class="tool-bar w-full">
+      <button
+        type="button"
+        popovertarget="addresource"
+        data-testid="add-resource-button">
+        <i class="mdi mdi-plus"></i>Add Resource
+      </button>
+
+      {% for i in webapi._module_plugin_links %}
+      <a
+        class="button"
+        href="{{ i[1] }}?module={{ url(name) }}&dir={{ url('/'.join(path) ) }}"
+        >{{ i[0] }}</a
+      >
+      {% endfor %}
+
+      <form action="/modules/module/{{url(name)}}/scanfiles" method="POST">
+        <button
+          type="submit"
+          title="Scan any manually added files in __filedata__">
+          Rescan Files
+        </button>
+      </form>
+      <a
+        class="button"
+        href="/modules/module/{{ url(name) }}/uploadresource?dir={{ '/'.join(path) | urlencode | escape}}">
+        <i class="mdi mdi-upload-box"></i>Upload</a
+      >
+
+      <form
+        style="display: inline-flex"
+        action="/modules/search/{{ url(name) }}"
+        method="POST">
+        <input size="8" name="search" placeholder="Search this module" />
+        <button type="submit" value="search">
+          <i class="mdi mdi-search-web"> </i>
+        </button>
+      </form>
+    </div>
+    <hr />
+    <div class="pathnav tool-bar w-full">
+      <p>Location:</p>
+      <a class="button" href="/modules/module/{{ url(name) }}#resources"
+        >{{ name| escape }}</a
+      >
+      {% if path %} {% for i in breadcrumbs('/'.join(path)) %}
+      <a
+        class="button"
+        href="/modules/module/{{ url(name) }}/resource/{{ i[1] }}#resources"
+        >{{ i[0]| escape }}</a
+      >
+      {% endfor %} {% endif %}
     </div>
 
-    <section class="window padding">
+    <h3>Folders</h3>
+    <dl class="margin-top">
+      {% if path and len(path[0].split("/"))>1 %}
+      <dt class="specialentry">
+        <a href="urlForPath(module, path)#resources">..</a>
+      </dt>
+      {% endif %} {% for i in sorted_module_path_list(name, path) %} {% if
+      module[i]['resource_type'] == 'directory' %}
+      <dt>
         <div class="tool-bar w-full">
-
-             <button type="button" popovertarget="addresource" data-testid="add-resource-button">
-                <i class="mdi mdi-plus"></i>Add Resource
-             </button>
-
-            {% for i in webapi._module_plugin_links %}
-            <a class="button" href="{{ i[1] }}?module={{ url(name) }}&dir={{ url('/'.join(path) ) }}">{{ i[0] }}</a>
-            {% endfor %}
-
-            <form action="/modules/module/{{url(name)}}/scanfiles" method="POST">
-                <button type="submit" title="Scan any manually added files in __filedata__">Rescan Files</button>
-            </form>
-            <a class="button" href="/modules/module/{{ url(name) }}/uploadresource?dir={{ '/'.join(path) | urlencode | escape}}">
-                <i class="mdi mdi-upload-box"></i>Upload</a>
-
-            <form style="display:inline-flex;" action="/modules/search/{{ url(name) }}" method="POST">
-                <input size="8" name="search" placeholder="Search this module" />
-                <button type="submit" value="search"> <i class="mdi mdi-search-web">
-                    </i></button>
-
-            </form>
-
+          <p>
+            <a
+              href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}#resources"
+              ><i class="mdi mdi-folder-outline"></i
+              ><b>{{ i.split('/')[-1] | escape }}</b></a
+            >
+          </p>
+          <a
+            aria-label="Delete"
+            class="button nogrow"
+            href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}">
+            <i class="mdi mdi-delete"></i
+          ></a>
         </div>
-        <hr>
-        <div class="pathnav tool-bar w-full">
-            <p>Location:</p>
-            <a class="button" href="/modules/module/{{ url(name) }}#resources">{{ name| escape }}</a>
-            {% if path %}
-            {% for i in breadcrumbs('/'.join(path)) %}
-            <a class="button" href="/modules/module/{{ url(name) }}/resource/{{ i[1] }}#resources">{{ i[0]| escape }}</a>
-            {% endfor %}
-            {% endif %}
+      </dt>
+      {% endif %} {% endfor %}
+    </dl>
+
+    <h3>Files</h3>
+
+    <dl>
+      {% for i in sorted_module_file_list(name, path) %}
+      <dt>
+        <div class="tool-bar w-full inline">
+          <p>{{ i[0] | escape }}</p>
+
+          {% for j in webapi._file_resource_links %} {% if j(name, i[1]) %}
+          <a class="button" href="{{j(name,  i[1])[1] }}"
+            >{{ j(name, i[1])[0] }}</a
+          >
+          {% endif %} {% endfor %}
+
+          <a
+            aria-label="Delete"
+            class="button nogrow"
+            href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i[1]) }}">
+            <i class="mdi mdi-delete"></i
+          ></a>
+        </div>
+      </dt>
+
+      <dd>
+        <p>
+          <a
+            href="/modules/module/{{ url(name) }}/getfileresource/{{i[1]}}?timestamp={{i[2]}}"
+            >Download</a
+          >
+        </p>
+
+        {% for j in webapi._file_preview_plugins %} {% set prv=j({'module':name,
+        'resource':i[1], 'timestamp':i[2], 'size':i[3], 'path':i[4]}) %} {% if
+        prv %} {{prv}} {% endif %} {% endfor %}
+      </dd>
+
+      {% endfor %}
+    </dl>
+
+    <h3>Resources</h3>
+    <dl class="margin-top">
+      {% for i in sorted_module_path_list(name, path) %} {% if not
+      'resource_type' in module[i] %} OBJECT {{ i| escape }} MISSING
+      resource_type <% continue %> {% endif %} {% if module[i]['resource_type']
+      == 'permission' %}
+      <dt>
+        <div class="tool-bar w-full inline">
+          <p class="nogrow">
+            <i class="mdi mdi-key"></i>
+          </p>
+          <p>
+            <a href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}">
+              {{ i.split("/")[-1] | escape }}</a
+            >
+          </p>
+
+          <a
+            aria-label="Delete"
+            class="button nogrow"
+            href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"
+            ><i class="mdi mdi-delete"></i
+          ></a>
+        </div>
+      </dt>
+      {% endif %} {% if module[i]['resource_type'] in
+      modules_state.additionalTypes %} {% if
+      modules.additionalTypes[module[i]['resource_type']].mdi_icon %}
+      <dt>
+        <div class="tool-bar w-full inline">
+          <p class="nogrow">
+            <i
+              class="mdi mdi-{{modules.additionalTypes[module[i]['resource_type']].mdi_icon}}"></i>
+          </p>
+          <p>
+            {% if module[i]['resource_lock'] in modules_state.additionalTypes %}
+            <span class="mdi mdi-lock-outline"></span>LOCKED {% endif %}
+
+            <a
+              href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}"
+              title="{{module[i]['resource_type']}}">
+              <b>{{ i.split("/")[-1] | escape }}</b></a
+            >
+          </p>
+
+          <a
+            aria-label="Download"
+            class="button nogrow"
+            href="/modules/module/{{ url(name) }}/download_resource/{{ url(i) }}"
+            ><span class="mdi mdi-download-box"></span>
+          </a>
+          <a
+            aria-label="Move"
+            data-testid="move-resource-button"
+            class="button nogrow"
+            href="/modules/module/{{ url(name) }}/moveresource/{{ url(i) }}"
+            ><span class="mdi mdi-folder-move"></span>
+          </a>
+          <a
+            aria-label="Resource Metadata"
+            class="button nogrow"
+            href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}/metadata">
+            <i class="mdi mdi-cog"></i
+          ></a>
+          <a
+            aria-label="Delete"
+            data-testid="delete-resource-button"
+            class="button nogrow"
+            href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"
+            ><i class="mdi mdi-delete"></i
+          ></a>
+        </div>
+      </dt>
+      <dd class="flex-row">
+        {% if module[i].get('resource_label_image') %}
+        <img
+          alt="thumbnail"
+          class="control-rounded max-h-8rem v-center"
+          src="{{get_resource_label_image_url(name,i)}}" />
+        {% endif %}
+
+        <div class="grow padding-inline">
+        {{modules.additionalTypes[module[i]['resource_type']]._blurb(name,i,module[i]
+        )}}
         </div>
 
-        <h3>Folders</h3>
-        <dl class="margin-top">
-            {% if path and len(path[0].split("/"))>1 %}
-            <dt class="specialentry">
-                <a href="urlForPath(module, path)#resources">..</a>
-            </dt>
-            {% endif %}
 
-            {% for i in sorted_module_path_list(name, path) %}
-            {% if module[i]['resource_type'] == 'directory' %}
-            <dt>
-                <div class="tool-bar w-full">
-                    <p>
-                        <a href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}#resources"><i
-                                class="mdi mdi-folder-outline"></i><b>{{ i.split('/')[-1] | escape }}</b></a>
-                    </p>
-                    <a aria-label="Delete" class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}">
-                        <i class="mdi mdi-delete"></i></a>
-                </div>
-            </dt>
-            {% endif %}
-            {% endfor %}
-        </dl>
-
-
-        <h3>Files</h3>
-
-        <dl>
-            {% for i in sorted_module_file_list(name, path) %}
-            <dt>
-                <div class="tool-bar w-full inline">
-                    <p>
-                        {{ i[0] | escape }}
-                    </p>
-
-                    {% for j in webapi._file_resource_links %}
-                    {% if j(name,  i[1]) %}
-                    <a class="button" href="{{j(name,  i[1])[1] }}">{{ j(name,  i[1])[0] }}</a>
-                    {% endif %}
-                    {% endfor %}
-
-                    <a aria-label="Delete" class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i[1]) }}">
-                        <i class="mdi mdi-delete"></i></a>
-                </div>
-            </dt>
-
-            <dd>
-
-                <p><a href="/modules/module/{{ url(name) }}/getfileresource/{{i[1]}}?timestamp={{i[2]}}">Download</a></p>
-
-                {% for j in webapi._file_preview_plugins %}
-                {% set prv=j({'module':name,  'resource':i[1], 'timestamp':i[2], 'size':i[3], 'path':i[4]}) %}
-                {% if prv %}
-                {{prv}}
-                {% endif %}
-                {% endfor %}
-
-
-            </dd>
-
-
-            {% endfor %}
-        </dl>
-
-        <h3>Resources</h3>
-        <dl class="margin-top">
-            {% for i in sorted_module_path_list(name, path) %}
-            {% if not 'resource_type' in module[i] %}
-            OBJECT {{ i| escape }} MISSING resource_type
-            <%
-                    continue
-                    %>
-            {% endif %}
-
-            {% if module[i]['resource_type'] == 'permission' %}
-            <dt>
-                <div class="tool-bar w-full inline">
-                    <p class="nogrow">
-                        <i
-                        class="mdi mdi-key"></i>
-                    </p>
-                    <p>
-                        <a href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}">
-                            {{ i.split("/")[-1] | escape }}</a>
-                    </p>
-
-                    <a aria-label="Delete" class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
-                            class="mdi mdi-delete"></i></a>
-                </div>
-            </dt>
-            {% endif %}
-
-            {% if module[i]['resource_type'] in modules_state.additionalTypes %}
-            {% if modules.additionalTypes[module[i]['resource_type']].mdi_icon %}
-            <dt>
-                <div class="tool-bar w-full inline">
-                    <p class="nogrow">
-                        <i
-                        class="mdi mdi-{{modules.additionalTypes[module[i]['resource_type']].mdi_icon}}"></i>
-                    </p>
-                    <p>
-                        {% if module[i]['resource_lock'] in modules_state.additionalTypes %}
-                            <span class="mdi mdi-lock-outline"></span>LOCKED
-                        {% endif %}
-
-                        <a href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}"
-                        title="{{module[i]['resource_type']}}"
-                        >
-                            <b>{{ i.split("/")[-1] | escape }}</b></a>
-                    </p>
-
-                    <a aria-label="Download" class="button nogrow" href="/modules/module/{{ url(name) }}/download_resource/{{ url(i) }}"><span
-                            class="mdi mdi-download-box"></span>
-                        </a>
-                    <a aria-label="Move" data-testid="move-resource-button" class="button nogrow" href="/modules/module/{{ url(name) }}/moveresource/{{ url(i) }}"><span
-                            class="mdi mdi-folder-move"></span>
-                        </a>
-                    <a aria-label="Resource Metadata" class="button nogrow"
-                    href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}/metadata">
-                            <i class="mdi mdi-cog"></i></a>
-                    <a aria-label="Delete" data-testid="delete-resource-button" class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
-                            class="mdi mdi-delete"></i></a>
-                </div>
-            </dt>
-            <dd>
-                {% if module[i].get('resource_label_image') %}
-                <img alt="thumbnail" style="max-width: 32em; max-height: 32em"
-                class="control-rounded"
-                src="{{get_resource_label_image_url(name,i)}}">
-                {% endif %}
-                {{modules.additionalTypes[module[i]['resource_type']]._blurb(name,i,module[i] )}}
-            </dd>
-            {% endif %}
-            {% endif %}
-
-
-            {% if module[i]['resource_type'] == 'device' %}
-            <dt>
-                <div class="tool-bar w-full">
-                    <p class="nogrow">
-                        <i
-                        class="mdi mdi-chip"></i>
-                    </p>
-                    <p>
-                        <a class="deviceslink"
-                            href="/device/{{module[i].get('device',{}).get('name','').replace('/','%2F')|escape}}/manage">
-                             {{ i.split("/")[-1] | escape }}</a>
-                    </p>
-                    <a aria-label="Sketch Label" class="button nogrow" href="/excalidraw-plugin/edit?module={{ url(name) }}&resource=media/resource_labels/{{ url(i) }}.excalidraw.png&callback=/modules/set_label_image/{{ url(name) }}/{{ url(i) }}">
-                        <i class="mdi mdi-image"></i></a>
-                    <a aria-label="Download" class="button nogrow" href="/modules/module/{{ url(name) }}/download_resource/{{ url(i) }}"><span
-                            class="mdi mdi-download-box"></span>
-                    </a>
-                    <a aria-label="Delete" class="button nogrow" href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"><i
-                            class="mdi mdi-delete"></i></a>
-                    <br>
-                </div>
-            </dt>
-            <dd>
-                {% if module[i].get('resource_label_image') %}
-                <img alt="thumbnail" style="max-width: 32em; max-height: 8em"
-                class="control-rounded"
-                src="{{get_resource_label_image_url(name,i)}}">
-                {% endif %}
-            </dd>
-            {% endif %}
-
-            {% endfor %}
-        </dl>
-    </section>
+      </dd>
+      {% endif %} {% endif %} {% if module[i]['resource_type'] == 'device' %}
+      <dt>
+        <div class="tool-bar w-full">
+          <p class="nogrow">
+            <i class="mdi mdi-chip"></i>
+          </p>
+          <p>
+            <a
+              class="deviceslink"
+              href="/device/{{module[i].get('device',{}).get('name','').replace('/','%2F')|escape}}/manage">
+              {{ i.split("/")[-1] | escape }}</a
+            >
+          </p>
+          <a
+            aria-label="Sketch Label"
+            class="button nogrow"
+            href="/excalidraw-plugin/edit?module={{ url(name) }}&resource=media/resource_labels/{{ url(i) }}.excalidraw.png&callback=/modules/set_label_image/{{ url(name) }}/{{ url(i) }}">
+            <i class="mdi mdi-image"></i
+          ></a>
+          <a
+            aria-label="Download"
+            class="button nogrow"
+            href="/modules/module/{{ url(name) }}/download_resource/{{ url(i) }}"
+            ><span class="mdi mdi-download-box"></span>
+          </a>
+          <a
+            aria-label="Resource Metadata"
+            class="button nogrow"
+            href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}/metadata">
+            <i class="mdi mdi-cog"></i
+          ></a>
+          <a
+            aria-label="Delete"
+            class="button nogrow"
+            href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"
+            ><i class="mdi mdi-delete"></i
+          ></a>
+        </div>
+      </dt>
+      <dd>
+        {% if module[i].get('resource_label_image') %}
+        <img
+          alt="thumbnail"
+          class="control-rounded max-h-8rem v-center"
+          src="{{get_resource_label_image_url(name,i)}}" />
+        {% endif %}
+      </dd>
+      {% endif %} {% endfor %}
+    </dl>
+  </section>
 </main>
 
 <script>
-    // Fix going back after a change and seeing old data
-    const perfEntries = performance.getEntriesByType('navigation');
-    if (perfEntries.length && perfEntries[0].type === 'back_forward') {
-        window.location.reload()
-    }
+  // Fix going back after a change and seeing old data
+  const perfEntries = performance.getEntriesByType("navigation");
+  if (perfEntries.length && perfEntries[0].type === "back_forward") {
+    window.location.reload();
+  }
 </script>
 {% endblock %}
