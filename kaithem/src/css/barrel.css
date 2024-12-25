@@ -1942,6 +1942,10 @@ iframe.h-center {
   border-radius: var(--border-radius);
 }
 
+.control-rounded {
+  border-radius: var(--control-border-radius);
+}
+
 .padding {
   padding: var(--padding);
 }

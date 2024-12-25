@@ -532,6 +532,7 @@ async def update_resource_metadata(module, resource):
         )
         for i in kwargs:
             d[i] = kwargs[i]
+
         modules_state.rawInsertResource(module, resource, d)
 
     return quart.redirect(
@@ -553,8 +554,30 @@ async def resource_metadata_page(module, resource):
     builtin_img = os.listdir(
         os.path.join(directories.datadir, "static", "img", "16x9")
     )
-    builtin_img = [("/static/img/16x9/" + i, i) for i in builtin_img]
+    builtin_img = [("16x9/" + i, i) for i in builtin_img]
     builtin_img.sort()
+
+    for i in modules_state.ActiveModules.keys():
+        file_data_dir = os.path.join(
+            modules_state.getModuleDir(i),
+            "__filedata__",
+            "media",
+            "16x9",
+        )
+
+        if os.path.isdir(file_data_dir):
+            for j in os.listdir(file_data_dir):
+                if j.endswith(
+                    (".png", ".jpg", ".avif", ".png", ".gif", ".svg")
+                ):
+                    fn = os.path.join(file_data_dir, j)
+                    if os.path.isfile(fn):
+                        builtin_img.append(
+                            (
+                                f"16x9/{j}",
+                                j,
+                            )
+                        )
 
     d.text_input(
         "resource_label_image",

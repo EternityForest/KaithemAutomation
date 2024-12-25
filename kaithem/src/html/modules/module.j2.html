@@ -255,6 +255,7 @@
             <dd>
                 {% if module[i].get('resource_label_image') %}
                 <img alt="thumbnail" style="max-width: 32em; max-height: 32em"
+                class="control-rounded"
                 src="{{get_resource_label_image_url(name,i)}}">
                 {% endif %}
                 {{modules.additionalTypes[module[i]['resource_type']]._blurb(name,i,module[i] )}}
@@ -288,6 +289,7 @@
             <dd>
                 {% if module[i].get('resource_label_image') %}
                 <img alt="thumbnail" style="max-width: 32em; max-height: 8em"
+                class="control-rounded"
                 src="{{get_resource_label_image_url(name,i)}}">
                 {% endif %}
             </dd>

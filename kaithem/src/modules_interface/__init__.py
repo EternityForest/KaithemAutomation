@@ -230,15 +230,22 @@ async def get_resource_label_image(module: str, path: str):
     @quart.ctx.copy_current_request_context
     def f():
         data = modules_state.ActiveModules[module][path]
+        label = data["resource_label_image"]
 
-        mf = modules_state.getModuleDir(module)
-        mf = os.path.join(mf, "__filedata__/media")
+        for module_i in modules_state.ActiveModules:
+            mf = modules_state.getModuleDir(module_i)
+            mf = os.path.join(mf, "__filedata__/media")
 
-        if os.path.isfile(os.path.join(mf, data["resource_label_image"])):
-            return os.path.join(mf, data["resource_label_image"])
+            if os.path.isfile(os.path.join(mf, label)):
+                return os.path.join(mf, label)
+
+        if os.path.isfile(
+            os.path.join(directories.datadir, "static", "img", label)
+        ):
+            return os.path.join(directories.datadir, "static", "img", label)
 
     fn = await f()
-    return await quart.send_file(fn)
+    return await quart.send_file(fn, cache_timeout=3600 * 8)
 
 
 @quart_app.app.route(

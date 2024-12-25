@@ -6,6 +6,7 @@ enable: true
 once: true
 priority: interactive
 rate_limit: 0.0
+resource_label_image: 16x9/prague-astronomical-clock.avif
 resource_timestamp: 1699743201983962
 resource_type: event
 
