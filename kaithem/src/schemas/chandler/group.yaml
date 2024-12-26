@@ -6,7 +6,7 @@ properties:
     type: boolean
 
   alpha:
-    description: The default alpha, called default_alpha in the code
+    description: The default alpha, stored as default_alpha in code after init
     type: number
 
   require_confirm:

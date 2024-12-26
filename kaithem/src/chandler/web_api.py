@@ -165,18 +165,21 @@ async def set_group_properties(group_id: str):
             val = kw[key]
             prop = snake_compat.camel_to_snake(key)
 
-            prop_schema = group_schema["properties"][prop]
-            # Todo do we really want to automatically do this?
-            if prop_schema.get("type") == "string":
-                val = str(val).strip()
-            elif prop_schema.get("type") == "number":
-                val = float(val)
-            elif prop_schema.get("type") == "integer":
-                val = int(val)
+            if prop in group_schema["properties"]:
+                prop_schema = group_schema["properties"][prop]
+                # Todo do we really want to automatically do this?
+                if prop_schema.get("type") == "string":
+                    val = str(val).strip()
+                elif prop_schema.get("type") == "number":
+                    val = float(val)
+                elif prop_schema.get("type") == "integer":
+                    val = int(val)
+                elif prop_schema.get("type") == "boolean":
+                    val = bool(val)
 
-            validator = Draft202012Validator(prop_schema)
-            if not validator.is_valid(val):
-                raise ValueError(f"Invalid value for cue {prop}: {val}")
+                validator = Draft202012Validator(prop_schema)
+                if not validator.is_valid(val):
+                    raise ValueError(f"Invalid value for cue {prop}: {val}")
 
             group = groups[group_id]
             # Generic setter for things that are just simple value sets.

@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { deleteModule, login, logout, makeModule, sleep } from './util';
 
+
+
 test('test', async ({ page }) => {
   await login(page);
 
@@ -15,7 +17,7 @@ test('test', async ({ page }) => {
 
   await page.getByRole('link', { name: '󱒕 Modules' }).click();
   await page.getByRole('link', { name: 'test_presets' }).click();
-  await page.getByRole('link', { name: '󰏬 Editor' }).click();
+  await page.getByRole('link', { name: '󰏬 Edit' }).click();
 
 
   await page.getByPlaceholder('New group name').click();
@@ -74,7 +76,7 @@ test('test', async ({ page }) => {
 
   await page.getByRole('link', { name: '󱒕 Modules' }).click();
   await page.getByRole('link', { name: 'test_presets' }).click();
-  await page.getByRole('link', { name: '󰏬 Editor' }).click();
+  await page.getByRole('link', { name: '󰏬 Edit' }).click();
 
 
   await page.getByRole('button', { name: 'foo' }).click();
@@ -102,9 +104,12 @@ test('test', async ({ page }) => {
   await page.locator('div').filter({ hasText: /^blue253\.0$/ }).getByRole('slider').fill('234');
   await page.locator('div').filter({ hasText: /^blue234\.0$/ }).getByRole('slider').fill('0');
   await page.locator('div').filter({ hasText: /^green255\.0$/ }).getByRole('slider').fill('0');
-
+  
+  await sleep(600);
+  
   await page.getByTestId('select-preset-for-fixture').click();
   await page.getByTestId("presets-list").getByRole('button', { name: 'testaqua' }).click();
+  await sleep(300);
 
   await expect(page.locator('div').filter({ hasText: /^blue253\.0$/ }).getByRole('slider')).toHaveValue('253');
 

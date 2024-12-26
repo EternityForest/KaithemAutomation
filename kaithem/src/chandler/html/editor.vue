@@ -15,7 +15,7 @@
     </datalist>
 
     <section id="optionsblock" class="multibar undecorated w-full">
-      <div class="menubar tool-bar">
+      <div class="menubar tool-bar noselect">
         <p id="toolbar-clock"></p>
         <p>
           <b>{{ boardname }}</b>
@@ -38,7 +38,7 @@
         </button>
       </div>
 
-      <div class="menubar tool-bar">
+      <div class="menubar tool-bar noselect">
         <button type="button" popovertarget="presetsDialog">
           <i class="mdi mdi-playlist-edit"></i>Presets
         </button>
@@ -70,7 +70,7 @@
         </button>
       </div>
 
-      <div class="menubar tool-bar">
+      <div class="menubar tool-bar noselect">
         <p><b>Keys:</b></p>
         <button
           type="button"
@@ -113,7 +113,7 @@
             class="decorative-image-h-bar decorative-image"
             style="min-height: 3em; margin: auto"></div>
 
-          <div class="tool-bar">
+          <div class="tool-bar noselect">
             <input
               size="8"
               type="text"
@@ -126,7 +126,7 @@
               v-on:blur="keyboardJS.resume()" />
             <button type="button" v-on:click="shortcut()">Go!</button>
           </div>
-          <div class="tool-bar">
+          <div class="tool-bar noselect">
             <input
               type="text"
               v-model="groupfilter"
@@ -202,7 +202,7 @@
                 STATUS: {{ i[1].status }}
               </p>
 
-              <div class="tool-bar" v-if="!i[1].utility">
+              <div class="tool-bar noselect" v-if="!i[1].utility">
                 <button
                   type="button"
                   :class="{ success: i[1].active, warning: i[1].status }"
@@ -227,7 +227,7 @@
                 :src="i[1].infoDisplay"></iframe>
 
               <div
-                class="tool-bar"
+                class="tool-bar noselect"
                 v-if="i[1].eventButtons.length > 0">
                 <button
                   type="button"
@@ -305,7 +305,7 @@
         </div>
 
         <footer class="padding">
-          <div class="tool-bar">
+          <div class="tool-bar noselect">
             <input
               type="text"
               :disabled="no_edit"
@@ -327,7 +327,7 @@
         v-if="showevents"
         style="position: fixed; z-index: 99; bottom: 0px; width: 97%">
         <header>
-          <div class="tool-bar">
+          <div class="tool-bar noselect">
             <h2>Event Log</h2>
             <input
               type="text"
@@ -396,7 +396,7 @@
         v-if="showslideshowtelemetry"
         class="flex-item window paper h-24rem margin">
         <header>
-          <div class="tool-bar">
+          <div class="tool-bar noselect">
             <h3>Slideshow Players</h3>
             <button
               type="button"
@@ -431,7 +431,7 @@
 
       <dialog id="soundpreviewdialog">
         <header>
-          <div class="tool-bar">
+          <div class="tool-bar noselect">
             <button type="button" v-on:click="closePreview">OK</button>
           </div>
         </header>
@@ -489,7 +489,7 @@
           <p class="warning" v-if="editingGroup.status">
             STATUS: {{ editingGroup.status }}
           </p>
-          <div class="tool-bar">
+          <div class="tool-bar noselect">
             <h3>
               <span
                 v-on:dblclick="promptRename(groupname)"
@@ -648,7 +648,7 @@
                 </td>
 
                 <td class="desktop-only" data-label="Shortcut:">
-                  <div class="tool-bar" style="width: 8em">
+                  <div class="tool-bar noselect" style="width: 8em">
                     <input
                       :disabled="no_edit"
                       title="Shortcut code"
@@ -781,7 +781,7 @@
             </template>
           </cue-table>
 
-          <div class="tool-bar">
+          <div class="tool-bar noselect">
             <input
               :disabled="no_edit"
               v-model="newcuename"
@@ -806,7 +806,7 @@
         <hr />
 
         <div v-if="currentcue">
-          <div class="tool-bar">
+          <div class="tool-bar noselect">
             <h3>
               <i class="mdi mdi-pencil nomargin nogrow"></i>Editing Cue:
               {{ currentcue.name }}
@@ -841,7 +841,7 @@
               Logic({{ currentcue.rules.length }})
             </button>
           </div>
-          <div class="tool-bar w-full">
+          <div class="tool-bar noselect w-full">
             <label class="grow" for="cuenotes"
               ><span><i class="mdi mdi-text"></i>Notes</span>
             </label>
@@ -856,18 +856,20 @@
               v-model="cuemeta[currentcueid].notes" />
           </div>
 
-          <div class="tool-bar">
+          <div class="tool-bar noselect">
             <p v-if="currentcue.sound">Sound: {{ currentcue.sound }}</p>
             <p v-if="currentcue.slide">Slide: {{ currentcue.slide }}</p>
           </div>
 
-          <div class="tool-bar error" v-if="currentcue.errorLockout">
+          <div class="tool-bar noselect error" v-if="currentcue.errorLockout">
             <p>
               <i class="mdi mdi-alert"></i>
               ERROR: Data may be corrupt, check all settings
             </p>
 
-            <button type="button" v-on:click="setCueProperty(currentcueid, 'errorLockout', false)">
+            <button
+              type="button"
+              v-on:click="setCueProperty(currentcueid, 'errorLockout', false)">
               <i class="mdi mdi-lock-open"></i>Re-enable
             </button>
           </div>
@@ -884,7 +886,7 @@
           >
 
           <div class="undecorated">
-            <div class="tool-bar noselect">
+            <div class="tool-bar noselect noselect">
               <button
                 type="button"
                 v-bind:class="{ highlight: groupChannelsViewMode == 'cue' }"
@@ -944,7 +946,7 @@
                       {{ fname }}
                     </h4>
 
-                    <div class="tool-bar">
+                    <div class="tool-bar noselect">
                       <button
                         type="button"
                         @click="showPresetDialog(fname, false)"
@@ -1159,7 +1161,7 @@
               id="cueTextDialog"
               ontoggle="globalThis.handleDialogState(event)">
               <header>
-                <div class="tool-bar">
+                <div class="tool-bar noselect">
                   <h4>{{ currentcue.name }} Text</h4>
                   <button
                     class="nogrow"
@@ -1195,7 +1197,7 @@
               id="cuePropsDialog"
               ontoggle="globalThis.handleDialogState(event)">
               <header>
-                <div class="tool-bar">
+                <div class="tool-bar noselect">
                   <h4>{{ currentcue.name }}</h4>
                   <button
                     class="nogrow"
@@ -1213,7 +1215,7 @@
                   <fieldset class="stacked-form w-sm-full">
                     <legend>Basic</legend>
                     <label>Action</label>
-                    <div class="tool-bar">
+                    <div class="tool-bar noselect">
                       <button
                         type="button"
                         v-on:click="
@@ -1511,7 +1513,7 @@
             id="groupNotesDialog"
             ontoggle="globalThis.handleDialogState(event)">
             <header>
-              <div class="tool-bar">
+              <div class="tool-bar noselect">
                 <h4>{{ editingGroup.name }} Notes</h4>
                 <button
                   class="nogrow"
@@ -1550,7 +1552,7 @@
             id="groupPropsDialog"
             ontoggle="globalThis.handleDialogState(event)">
             <header>
-              <div class="tool-bar">
+              <div class="tool-bar noselect">
                 <h4>Group Settings</h4>
                 <button
                   class="nogrow"
@@ -1829,7 +1831,7 @@
                   <dl>
                     <dt>Web Player</dt>
                     <dd>
-                      <div class="tool-bar">
+                      <div class="tool-bar noselect">
                         <button
                           type="button"
                           v-on:click="
@@ -1847,7 +1849,7 @@
                     <template v-for="i of soundCards" v-bind:key="i">
                       <dt>{{ i || "UNSET" }}</dt>
                       <dd>
-                        <div class="tool-bar">
+                        <div class="tool-bar noselect">
                           <button
                             type="button"
                             v-on:click="
@@ -2024,7 +2026,7 @@
                 </details>
 
                 <table border="1" class="w-full">
-                  <tr class="noselect">
+                  <tr class="">
                     <th>Label</th>
                     <th>Width</th>
                     <th>Tag</th>
@@ -2034,7 +2036,6 @@
                   <tr
                     v-for="(v, i) in editingGroup.displayTags"
                     v-bind:key="v[0] + '_' + v[1] + v[2]">
-                    >
                     <td>
                       <input
                         :disabled="no_edit"

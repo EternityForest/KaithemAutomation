@@ -36,6 +36,7 @@
           <label
             >Sound
             <input
+              data-testid="cue-sound-control"
               :disabled="no_edit"
               placeholder="No sound file"
               v-bind:value="currentcue.sound"
@@ -46,6 +47,7 @@
           <label
             >Web player slide
             <input
+              data-testid="cue-slide-control"
               :disabled="no_edit"
               placeholder="No media file"
               v-bind:value="currentcue.slide"
@@ -59,6 +61,7 @@
             <input
               :disabled="no_edit"
               placeholder="No picture file"
+              data-testid="cue-label-image-control"
               v-bind:value="currentcue.labelImage"
               v-on:change="
                 setcueproperty(
@@ -165,9 +168,10 @@
               <option value="groupwebplayer">
                 Play media file in web player
               </option>
-              <option v-for="i of soundcards" 
-              v-bind:key="i"
-              v-bind:value="i"></option>
+              <option
+                v-for="i of soundcards"
+                v-bind:key="i"
+                v-bind:value="i"></option>
               <option value="@auto"></option>
               <option value="@pulse:hw:0,0"></option>
               <option value="@alsa:hw:0,0"></option>
@@ -359,9 +363,7 @@
                 </div>
               </dd>
 
-              <template v-for="i of soundcards"
-              v-bind:key="i"
-              >
+              <template v-for="i of soundcards" v-bind:key="i">
                 <dt>{{ i || "UNSET" }}</dt>
                 <dd>
                   <div class="tool-bar">
@@ -397,40 +399,40 @@
 
 <script setup>
 import { getExcalidrawCueLink, iframeDialog } from "./editor.mjs";
-import { newCueFromSound, newCueFromSlide} from "./boardapi.mjs";
+import { newCueFromSound, newCueFromSlide } from "./boardapi.mjs";
 
 defineProps([
-    "no_edit",
-    "soundcards",
-    "currentcue",
-    "editinggroup",
-    "groupname",
-    "setcueproperty",
-    "setgroupproperty",
-    "testsoundcard",
-])
+  "no_edit",
+  "soundcards",
+  "currentcue",
+  "editinggroup",
+  "groupname",
+  "setcueproperty",
+  "setgroupproperty",
+  "testsoundcard",
+]);
 
-function previewSound (s) {
-      document.querySelector("#soundpreviewdialog").show();
-      var t = [".mp3", ".ogg", ".wav", ".oga", ".opus", ".aac", ".flac"];
-      for (let i of t) {
-        if (s.endsWith(i)) {
-          document.querySelector("#soundpreview").src =
-            "/chandler/WebMediaServer?file=" + encodeURIComponent(s);
-          document.querySelector("#soundpreview").currentTime = 0;
-          document.querySelector("#soundpreview").play();
-          document.querySelector("#textpreview").src = "";
-          document.querySelector("#textpreview").style.display = "none";
-          document.querySelector("#soundpreview").style.display = "block";
-          return;
-        }
-      }
-      document.querySelector("#textpreview").src =
+function previewSound(s) {
+  document.querySelector("#soundpreviewdialog").show();
+  var t = [".mp3", ".ogg", ".wav", ".oga", ".opus", ".aac", ".flac"];
+  for (let i of t) {
+    if (s.endsWith(i)) {
+      document.querySelector("#soundpreview").src =
         "/chandler/WebMediaServer?file=" + encodeURIComponent(s);
-      document.querySelector("#soundpreview").src = "";
-      document.querySelector("#textpreview").style.display = "block";
-      document.querySelector("#soundpreview").style.display = "none";
+      document.querySelector("#soundpreview").currentTime = 0;
+      document.querySelector("#soundpreview").play();
+      document.querySelector("#textpreview").src = "";
+      document.querySelector("#textpreview").style.display = "none";
+      document.querySelector("#soundpreview").style.display = "block";
+      return;
     }
+  }
+  document.querySelector("#textpreview").src =
+    "/chandler/WebMediaServer?file=" + encodeURIComponent(s);
+  document.querySelector("#soundpreview").src = "";
+  document.querySelector("#textpreview").style.display = "block";
+  document.querySelector("#soundpreview").style.display = "none";
+}
 </script>
 
 <script>

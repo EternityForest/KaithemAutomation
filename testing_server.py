@@ -31,7 +31,7 @@ shutil.copy(
 def open2(path, mode="r", *args, **kwargs):
     if not (str(path).startswith("/dev/shm/")) and not path == "/dev/null":
         if "w" in mode or "a" in mode:
-            if "__pycache__" not in str(path):
+            if "__pycache__" not in str(path) and "/.cache/" not in str(path):
                 raise RuntimeError(
                     "Unit testing is not allowed to write outside of /dev/shm: "
                     + str(path)

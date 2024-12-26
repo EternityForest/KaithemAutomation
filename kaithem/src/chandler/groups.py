@@ -463,6 +463,8 @@ class Group:
         self.alphaTagHandler = alphaTagHandler
 
         self.active = False
+
+        # Whatever alpha we start with is the default
         self.default_alpha = alpha
         self.name = name
 

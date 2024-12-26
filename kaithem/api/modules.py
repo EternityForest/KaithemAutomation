@@ -1,3 +1,5 @@
+import os
+
 from kaithem.src import modules, modules_state, util
 from kaithem.src.modules_state import ResourceDictType
 
@@ -64,3 +66,12 @@ def scan_file_resources(module: str):
     """
     modules_state.importFiledataFolderStructure(module)
     modules_state.recalcModuleHashes()
+
+
+def resolve_file_resource(relative_path: str) -> str | None:
+    """Given a name of a file resource, return the full path to it,
+    if it can be found in any module"""
+    for i in modules_state.ActiveModules:
+        path = modules_state.filename_for_resource(i, relative_path)
+        if os.path.isfile(path):
+            return path

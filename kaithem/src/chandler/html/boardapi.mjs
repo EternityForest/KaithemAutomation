@@ -151,7 +151,7 @@ async function setGroupProperty(group, property, value) {
   var b = {};
   b[property] = value;
 
-  previousSerializedPromise.value = fetch(
+  let response = fetch(
     "/chandler/api/set-group-properties/" + group,
     {
       method: "PUT",
@@ -161,9 +161,16 @@ async function setGroupProperty(group, property, value) {
       },
     }
   ).catch(function (error) {
-    alert("Error setting property: " + error);
+    alert("Could not reach server:" + error);
   });
-  await previousSerializedPromise.value;
+
+  previousSerializedPromise.value = response
+  let v = await previousSerializedPromise.value;
+
+  if(!v.ok) {
+    alert("Error setting property, possible invalid value: " + value);
+  }
+
 }
 
 async function setCueProperty(cue, property, value) {
@@ -618,7 +625,15 @@ let ferrs = ref("");
 let cuePage = ref({});
 let nuisianceRateLimit = ref([10, Date.now()]);
 
+
+// This is a global the whole app can use to await serialized promises.
 let previousSerializedPromise = ref(null);
+if(globalThis.previousSerializedPromise) {
+  previousSerializedPromise = globalThis.previousSerializedPromise
+}
+else {
+  globalThis.previousSerializedPromise = previousSerializedPromise
+}
 
 let no_edit = ref(!kaithemapi.checkPermission("system_admin"));
 

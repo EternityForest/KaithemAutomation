@@ -10,18 +10,25 @@ async function fill_box(page, box, text: string) {
 
     await box.click();
 
+    await box.clear();
+    await box.fill(text, { force: true });
+    delay(30);
+    if(await box.inputValue() == text) {
+        return;
+    }
+
     for (let i = 0; i < 10; i++) {
         await box.clear();
         await delay(10*i);
         await box.pressSequentially(text, { delay: 5 });
         await delay(10*i +50);
-        if (await box.inputValue() != text) {
+        if (await box.inputValue() == text) {
+            break;
+        }
+        else {
             await box.clear();
             await box.fill(text, { force: true });
             await delay(10*i);
-        }
-        else {
-            break;
         }
     }
     expect(await box.inputValue()).toBe(text);
@@ -44,7 +51,7 @@ async function uncheck_box(page, box) {
 
 
 test('test', async ({ page }) => {
-    test.setTimeout(4800000);
+    test.setTimeout(4_800_000);
 
     await login(page);
 
@@ -60,7 +67,7 @@ test('test', async ({ page }) => {
     await page.getByRole('button', { name: 'Submit' }).click();
     await page.getByRole('link', { name: '󱒕 Modules' }).click();
     await page.getByRole('link', { name: 'testchandlerproperties' }).click();
-    await page.getByRole('link', { name: '󰏬 Editor' }).click();
+    await page.getByRole('link', { name: '󰏬 Edit' }).click();
 
 
     // Now on the editor
@@ -80,6 +87,17 @@ test('test', async ({ page }) => {
     await page.getByLabel('Priority').fill('42');
     await page.getByLabel('Default Alpha').click();
     await page.getByLabel('Default Alpha').fill('0.22');
+
+    // This one line is flaky.
+    const inputvalue = await page.getByLabel('Default Alpha').inputValue();
+    if(!(inputvalue == '0.22')) {
+        await delay(2500)
+        await page.getByLabel('Default Alpha').click();
+        await page.getByLabel('Default Alpha').fill('0.22');
+    }
+    await delay(200);
+    expect(await page.getByLabel('Default Alpha').inputValue()).toBe('0.22');
+
     await page.getByRole('heading', { name: 'Sound' }).click();
 
     // This doesn't seem to work the first time despite working in manual
@@ -102,6 +120,9 @@ test('test', async ({ page }) => {
     // Click away
     await page.getByLabel('Sync Group Name').click();
 
+    await page.evaluate(async () => {
+        await globalThis.previousSerializedPromise
+    })
 
     // Check that the stuff is there
     await page.goto('http://localhost:8002/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/editor/testchandlerproperties:b1');
@@ -125,7 +146,9 @@ test('test', async ({ page }) => {
     await page.getByTestId('close-group-settings').click();
     await page.getByTestId('close-group').click();
 
-
+    await page.evaluate(async () => {
+        await globalThis.previousSerializedPromise
+    })
     // More settings
     await page.goto('http://localhost:8002/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/editor/testchandlerproperties:b1');
     await page.getByRole('button', { name: 'ts1' }).click();
@@ -148,7 +171,9 @@ test('test', async ({ page }) => {
 
     await page.getByTestId('close-group-settings').click();
     await page.getByTestId('close-group').click();
-
+    await page.evaluate(async () => {
+        await globalThis.previousSerializedPromise
+    })
 
     // More checking
     await page.goto('http://localhost:8002/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/editor/testchandlerproperties:b1');
@@ -191,7 +216,9 @@ test('test', async ({ page }) => {
     await page.getByTestId('close-group').click();
     
     await sleep(300);
-
+    await page.evaluate(async () => {
+        await globalThis.previousSerializedPromise
+    })
 
     await page.goto('http://localhost:8002/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/editor/testchandlerproperties:b1');
     await page.getByRole('button', { name: 'ts1' }).click();
@@ -217,6 +244,9 @@ test('test', async ({ page }) => {
     await page.getByTestId('close-group-settings').click();
     await page.getByTestId('close-group').click();
 
+    await page.evaluate(async () => {
+        await globalThis.previousSerializedPromise
+    })
 
     await page.goto('http://localhost:8002/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/editor/testchandlerproperties:b1');
     await page.getByRole('button', { name: 'ts1' }).click();
@@ -276,6 +306,9 @@ test('test', async ({ page }) => {
     await page.getByTestId('close-group-settings').click();
     await page.getByTestId('close-group').click();
 
+    await page.evaluate(async () => {
+        await globalThis.previousSerializedPromise
+    })
     // Check that it worked
     await page.goto('http://localhost:8002/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/editor/testchandlerproperties:b1');
     await page.getByRole('button', { name: 'ts1' }).click();
@@ -305,6 +338,9 @@ test('test', async ({ page }) => {
     await page.getByTestId('close-group-settings').click();
     await page.getByTestId('close-group').click();
 
+    await page.evaluate(async () => {
+        await globalThis.previousSerializedPromise
+    })
 
     await page.goto('http://localhost:8002/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/editor/testchandlerproperties:b1');
     await page.getByRole('button', { name: 'ts1' }).click();
