@@ -178,9 +178,7 @@ function setFixturePreset(sc, fix, preset) {
     return;
   }
 
-  console.log(selectedPreset);
-
-  selectedPreset = structuredClone(selectedPreset);
+  selectedPreset = structuredClone(Vue.toRaw(selectedPreset));
 
 
   for (var i in properties.currentvals) {
