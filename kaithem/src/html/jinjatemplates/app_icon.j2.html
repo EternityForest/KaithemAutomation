@@ -9,7 +9,7 @@
     </div>
     {% endif %}
 
-    <div class="label flex-row"
+    <header class="label flex-row"
         style="background-color: {{app.html_color or 'transparent'}}}">
         <div class="grow">
             <a href="{{app.url}}">
@@ -20,7 +20,7 @@
             popovertarget="extras-{{app.id}}" popovertargetaction="close">
             <span class="mdi mdi-menu"></span>
         </button>
-    </div>
+    </header>
 
     <div class="label-bottom"
         :style="{ 'background-color': ps[1]?.html_color || 'transparent' }">

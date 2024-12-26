@@ -9,7 +9,8 @@
   margin: 0;
 }
 
-body {
+body,
+[popover] {
   -webkit-font-smoothing: antialiased;
 }
 
@@ -371,7 +372,8 @@ html {
   margin: 0px;
 }
 
-body {
+body,
+[popover] {
   font-family: var(--main-font);
   line-height: var(--line-height);
   font-size: var(--font-size);
@@ -612,7 +614,9 @@ select {
   min-height: calc(min(var(--control-height), 100%));
   width: fit-content;
   flex-basis: min-content;
-  line-height: calc(var(--control-height) - calc(var(--control-border-width ) * 2))
+  line-height: calc(
+    var(--control-height) - calc(var(--control-border-width) * 2)
+  );
   /*Don't set button height, remember they can be multiine*/
 }
 
@@ -678,7 +682,6 @@ p,
 div {
   border-color: var(--border-color);
 }
-
 
 /********************Basic Layout******************************/
 
@@ -1128,10 +1131,11 @@ header:not(.undecorated) .tool-bar {
     text-align: start;
   }
 
-  & button, & .button{
+  & button,
+  & .button {
     user-select: none;
   }
-  
+
   & > *,
   & fieldset > * {
     margin-block-end: var(--padding);
@@ -1930,7 +1934,7 @@ iframe.h-center {
   user-select: none;
 }
 
-.selectable{
+.selectable {
   user-select: auto !important;
 }
 
@@ -2232,7 +2236,7 @@ input:invalid:not(.specificity_hack) {
   flex-wrap: wrap;
 }
 
-.tool-bar{
+.tool-bar {
   user-select: none;
 }
 
