@@ -215,7 +215,7 @@ import { dictView } from "./utils.mjs";
 import * as Vue from "/static/js/thirdparty/vue.esm-browser.js";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const props = defineProps({
+const properties = defineProps({
   getpresetimage: Function,
   presets: Object,
   no_edit: Boolean,
@@ -229,26 +229,26 @@ const filterPresets = Vue.ref("");
 const selectingImageLabelForPreset = Vue.ref("");
 
 function setIframeDialog(url) {
-  window.setIframeDialog(url);
+  globalThis.setIframeDialog(url);
 }
 function getExcalidrawPresetLink(preset) {
   return (
     "/excalidraw-plugin/edit?module=" +
-    encodeURIComponent(window.boardname.split(":")[0]) +
+    encodeURIComponent(globalThis.boardname.split(":")[0]) +
     "&resource=" +
     encodeURIComponent(
       "media/chandler/sketches/preset_" +
-        window.boardname.split(":")[1] +
+        globalThis.boardname.split(":")[1] +
         "_" +
         preset +
         "_" +
-        window.session_time +
+        globalThis.session_time +
         ".excalidraw.png"
     ) +
     "&callback=" +
     encodeURIComponent(
       "/chandler/label_image_update_callback/preset/" +
-        window.boardname +
+        globalThis.boardname +
         "/" +
         preset
     ) +
@@ -261,7 +261,7 @@ function getExcalidrawPresetLink(preset) {
 export default {
   template: "#template",
   components: {
-    "media-browser": window.httpVueLoader("./media-browser.vue"),
+    "media-browser": globalThis.httpVueLoader("./media-browser.vue"),
   },
   computed: {},
 };

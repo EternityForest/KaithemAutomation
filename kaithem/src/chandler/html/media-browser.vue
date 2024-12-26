@@ -101,21 +101,21 @@ var filebrowserdata = {
 
 
     'doSoundSearch': function (s) {
-        window.api_link.send(["searchsounds", s])
+        globalThis.api_link.send(["searchsounds", s])
     },
     'setSoundfileDir': function (i) {
 
-        if (!((i == '') | (i[0] == '/'))) {
-            this.soundfilesdir += i;
+        if ((i == '') | (i[0] == '/')) {
+            this.soundfilesdir = i;
         }
         else {
-            this.soundfilesdir = i;
+            this.soundfilesdir += i;
         }
         this.soundfileslisting = [
             [],
             []
         ]
-        window.api_link.send(['listsoundfolder', i])
+        globalThis.api_link.send(['listsoundfolder', i])
     },
 }
 
@@ -133,7 +133,7 @@ export default {
         }
         this.listener1 = onsoundfolderlisting.bind(this)
 
-        window.addEventListener('onsoundfolderlisting', this.listener1)
+        globalThis.addEventListener('onsoundfolderlisting', this.listener1)
         function onsoundsearchresults(e) {
             const v = e.data
             console.log(v)
@@ -144,14 +144,14 @@ export default {
         }
         this.listener2 = onsoundsearchresults.bind(this)
 
-        window.addEventListener('onsoundsearchresults', this.listener2)
+        globalThis.addEventListener('onsoundsearchresults', this.listener2)
 
         return (filebrowserdata)
     },
 
-    destroyed: function () {
-        window.removeEventListener('onsoundfolderlisting', this.listener1)
-        window.removeEventListener('onsoundsearchresults', this.listener2)
+    unmounted: function () {
+        globalThis.removeEventListener('onsoundfolderlisting', this.listener1)
+        globalThis.removeEventListener('onsoundsearchresults', this.listener2)
     }
 }
 

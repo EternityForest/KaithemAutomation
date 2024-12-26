@@ -63,13 +63,13 @@ export default {
         },
         'mediaLinkCommand': function (sc, linkid, data) {
 
-            window.api_link.send(["mediaLinkCommand", sc, linkid, data])
+            globalThis.api_link.send(["mediaLinkCommand", sc, linkid, data])
         },
 
         'promptRenameDisplay': function (group, link) {
             var x = prompt("Name?")
             if (x) {
-                window.api_link.send(["mediaLinkCommand", group, link, ['setFriendlyName', x]])
+                globalThis.api_link.send(["mediaLinkCommand", group, link, ['setFriendlyName', x]])
             }
         },
     }
