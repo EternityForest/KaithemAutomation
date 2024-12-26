@@ -1,8 +1,8 @@
 :root {
-  --bg: radial-gradient(circle, rgb(255 255 255 / 70%) 0%, rgb(188 193 162 / 64%)), url(banderole/pergament-papier-hintergrund-braun.webp);
-  --box-bg: #e7e5ca7a;
+  --bg: radial-gradient(circle, rgb(255 255 255 / 70%) 0%, rgb(188 193 162 / 64%)), url(banderole/pergament-papier-hintergrund-braun.avif);
+  --box-bg: #e7e5caf1;
   --fg: #522f28;
-  --graphical-fg: rgb(98 69 39 / 81%);
+  --graphical-fg: rgb(75 45 14 / 81%);
   --control-fg: rgb(98 69 39 / 81%);
   --accent-color: var(--graphical-fg);
   --main-font: var(--serif-font);
@@ -10,7 +10,7 @@
 
   --convex-item-active-bg: none;
   --concave-item-box-shadow: inset 0px 0px 4px 2px #3838381f;
-  --control-bg: #b6921717;
+  --control-bg: #e5dcbe;
   --concave-item-bg: var(--control-bg);
   --convex-item-bg: var(--control-bg);
   --border-width: 1px;
@@ -18,6 +18,7 @@
   --control-border-color: #412f1b42;
   --window-box-shadow: 3px 3px 12px 1px rgb(83 49 10 / 31%);
   --item-box-shadow: 1px 1px 3px 0px rgb(0 0 0 / 16%);
+  --slider-thumb: var(--highlight-color);
 }
 
 ::selection {
@@ -56,9 +57,6 @@ details[open] {
   border-color: #412f1b;
 }
 
-.highlight {
-  border-width: 3px;
-}
 
 .warning {
   background-color: rgba(217 217 45 / 71%);
@@ -81,7 +79,6 @@ details[open] {
 
 header:not(.undecorated) .tool-bar {
   transform: none;
-  padding: 4px;
 }
 
 a {

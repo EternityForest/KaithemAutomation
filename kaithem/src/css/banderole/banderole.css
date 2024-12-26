@@ -1,6 +1,6 @@
 :root {
   --bg: radial-gradient(circle, rgb(255 255 255 / 70%) 0%, rgb(188 193 162 / 64%)), url(banderole/pergament-papier-hintergrund-braun.avif);
-  --box-bg: #e7e5ca7a;
+  --box-bg: #e7e5caf1;
   --fg: #522f28;
   --graphical-fg: rgb(75 45 14 / 81%);
   --control-fg: rgb(98 69 39 / 81%);
