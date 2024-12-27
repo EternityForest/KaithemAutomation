@@ -6,6 +6,7 @@ import importlib.machinery
 import importlib.util
 import logging
 import os
+import sys
 import threading
 import time
 import traceback
@@ -67,6 +68,19 @@ def load_plugins():
                 # or it would not know that it was the same module we might
                 # import elsewhere
                 import_in_thread("kaithem.src.plugins." + i)
+
+        # Search every module on the import path
+        for i in sys.path:
+            for j in os.listdir(i):
+                if j.startswith("kaithem_plugin_"):
+                    try:
+                        import_in_thread(j)
+                    except Exception:
+                        messagebus.post_message(
+                            "/system/notifications/errors",
+                            f"Error loading plugin: {j}",
+                        )
+                        logger.exception("Error loading plugin " + j)
 
         # core before user plugins
         for i in range(240000):

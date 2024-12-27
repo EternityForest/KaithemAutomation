@@ -5,7 +5,7 @@
 # Use poetry self add poetry-plugin-freeze
 
 name = "kaithem"
-version = "0.86.3"
+version = "0.90.0"
 description = "Home/commercial automation server"
 license = "GPL-3.0-only"
 packages = [{ include = "kaithem" }, { include = "kaithem_cli" }, { include = "kaithem_scripts" }]
@@ -41,19 +41,6 @@ NVRChannel = ">=0.1.7"
 # New numpy needs new opencv
 numpy = ">=2.0.0"
 
-#Datasette
-datasette= ">=1.0a16"
-datasette-write = "*"
-datasette-write-ui = "*"
-datasette-edit-schema = "*"
-datasette-column-sum = "*"
-datasette-plot = "^0.1.0"
-datasette-search-all = "*"
-datasette-checkbox = "*"
-datasette-explain = "*"
-datasette-comments = "*"
-datasette-render-images = "*"
-#datasette-cluster-map = "*"
 
 cheroot = "*"
 mako = "*"
@@ -121,7 +108,6 @@ argon2-cffi = "^23.1.0"
 msgpack-types = "^0.2.0"
 niquests = "^3.6.3"
 
-datasette-pretty-json = "^0.3"
 quart = "^0.19.6"
 hypercorn = {extras = ["uvloop"], version = "^0.17.3"}
 structlog = "^24.1.0"

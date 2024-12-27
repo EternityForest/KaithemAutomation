@@ -1,9 +1,9 @@
 Change Log
 ----------
 
-### 0.87.0
+### 0.90.0
 
-- :sparkles: (possible minor breaking) Persist login sessions across reboots
+- :sparkles: Persist login sessions across reboots
 - :bug: Fix deleting file resources from modules page
 - :sparkles: widget.mjs notficiations on disconnect and reconnect
 - :sparkles: "Apps" page for quick access to things like chandler boards.
