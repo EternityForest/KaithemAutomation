@@ -41,7 +41,7 @@
               placeholder="No sound file"
               v-bind:value="currentcue.sound"
               v-on:change="
-                setcueproperty(currentcue.id, 'sound', currentcue.sound)
+                setCueProperty(currentcue.id, 'sound', currentcue.sound)
               " />
           </label>
           <label
@@ -52,7 +52,7 @@
               placeholder="No media file"
               v-bind:value="currentcue.slide"
               v-on:change="
-                setcueproperty(currentcue.id, 'slide', currentcue.slide)
+                setCueProperty(currentcue.id, 'slide', currentcue.slide)
               " />
           </label>
 
@@ -64,7 +64,7 @@
               data-testid="cue-label-image-control"
               v-bind:value="currentcue.labelImage"
               v-on:change="
-                setcueproperty(
+                setCueProperty(
                   currentcue.id,
                   'labelImage',
                   currentcue.labelImage
@@ -102,7 +102,7 @@
                 :disabled="no_edit"
                 v-bind:value="currentcue.soundStartPosition"
                 v-on:change="
-                  setcueproperty(
+                  setCueProperty(
                     currentcue.id,
                     'soundStartPosition',
                     currentcue.soundStartPosition
@@ -118,7 +118,7 @@
                 v-bind:value="currentcue.mediaSpeed"
                 step="0.1"
                 v-on:change="
-                  setcueproperty(
+                  setCueProperty(
                     currentcue.id,
                     'mediaSpeed',
                     currentcue.mediaSpeed
@@ -136,7 +136,7 @@
                 v-bind:value="currentcue.mediaWindUp"
                 step="0.1"
                 v-on:change="
-                  setcueproperty(
+                  setCueProperty(
                     currentcue.id,
                     'mediaWindUp',
                     currentcue.mediaWindUp
@@ -152,7 +152,7 @@
                 v-bind:value="currentcue.mediaWindDown"
                 step="0.1"
                 v-on:change="
-                  setcueproperty(
+                  setCueProperty(
                     currentcue.id,
                     'mediaWindDown',
                     currentcue.mediaWindDown
@@ -180,7 +180,7 @@
             <input
               title="Using mplayer -ao syntax, or one of kaithem's device aliases, set the output device"
               v-on:change="
-                setcueproperty(
+                setCueProperty(
                   currentcue.id,
                   'soundOutput',
                   $event.target.value
@@ -198,7 +198,7 @@
                 :disabled="no_edit"
                 type="checkbox"
                 v-on:change="
-                  setcueproperty(
+                  setCueProperty(
                     currentcue.id,
                     'relLength',
                     currentcue.relLength
@@ -215,7 +215,7 @@
                 type="number"
                 step="0.1"
                 v-on:change="
-                  setcueproperty(
+                  setCueProperty(
                     currentcue.id,
                     'soundFadeOut',
                     $event.target.value
@@ -235,7 +235,7 @@
                 type="number"
                 step="0.1"
                 v-on:change="
-                  setcueproperty(
+                  setCueProperty(
                     currentcue.id,
                     'soundFadeIn',
                     $event.target.value
@@ -251,7 +251,7 @@
               <input
                 :disabled="no_edit"
                 v-on:change="
-                  setcueproperty(
+                  setCueProperty(
                     currentcue.id,
                     'soundVolume',
                     $event.target.value
@@ -267,7 +267,7 @@
                 :disabled="no_edit"
                 title="-1 means forever"
                 v-on:change="
-                  setcueproperty(
+                  setCueProperty(
                     currentcue.id,
                     'soundLoops',
                     $event.target.value
@@ -286,7 +286,7 @@
           <template v-slot="slotProps">
             <button
               v-on:click="
-                setcueproperty(currentcue.id, 'sound', slotProps.filename)
+                setCueProperty(currentcue.id, 'sound', slotProps.filename)
               ">
               Set(sound)
             </button>
@@ -298,7 +298,7 @@
             </button>
             <button
               v-on:click="
-                setcueproperty(currentcue.id, 'slide', slotProps.filename)
+                setCueProperty(currentcue.id, 'slide', slotProps.filename)
               ">
               Set(slide)
             </button>
@@ -308,7 +308,7 @@
 
             <button
               v-on:click="
-                setcueproperty(
+                setCueProperty(
                   currentcue.id,
                   'labelImage',
                   slotProps.relfilename
@@ -342,7 +342,7 @@
                 <div class="tool-bar">
                   <button
                     v-on:click="
-                      setcueproperty(
+                      setCueProperty(
                         currentcue.id,
                         'soundOutput',
                         'groupwebplayer'
@@ -370,7 +370,7 @@
                     <button
                       type="button"
                       v-on:click="
-                        setcueproperty(currentcue.id, 'soundOutput', i)
+                        setCueProperty(currentcue.id, 'soundOutput', i)
                       ">
                       Set for Cue
                     </button>
@@ -399,7 +399,7 @@
 
 <script setup>
 import { getExcalidrawCueLink, iframeDialog } from "./editor.mjs";
-import { newCueFromSound, newCueFromSlide } from "./boardapi.mjs";
+import { newCueFromSound, newCueFromSlide, setCueProperty} from "./boardapi.mjs";
 
 defineProps([
   "no_edit",
@@ -407,7 +407,6 @@ defineProps([
   "currentcue",
   "editinggroup",
   "groupname",
-  "setcueproperty",
   "setgroupproperty",
   "testsoundcard",
 ]);
