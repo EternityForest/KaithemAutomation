@@ -3075,7 +3075,7 @@ input[type="checkbox"].toggle {
 i[class],
 button i[class] {
   color: var(--graphical-fg);
-  vertical-align: text-top;
+  vertical-align: middle;
 }
 
 /*Animation and behavior*/
