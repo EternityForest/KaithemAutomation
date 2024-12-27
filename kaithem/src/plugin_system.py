@@ -74,7 +74,8 @@ def load_plugins():
             for j in os.listdir(i):
                 if j.startswith("kaithem_plugin_"):
                     try:
-                        import_in_thread(j)
+                        # Might just be dist info stuff
+                        import_in_thread(j.split("-")[0].split(".")[0])
                     except Exception:
                         messagebus.post_message(
                             "/system/notifications/errors",

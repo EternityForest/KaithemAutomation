@@ -146,7 +146,9 @@ def addresource(module, type):
     "/modules/module/<module>/addresourcetarget/<rtype>", methods=["POST"]
 )
 async def addresourcetarget(module, rtype, path=""):
-    """Path can be passed as the dir kwarg, or as path component in the url"""
+    """Path can be passed as the dir kwarg, or as path component in the url.
+    Expects a name in the kwargs
+    """
     try:
         pages.require("system_admin")
     except PermissionError:
