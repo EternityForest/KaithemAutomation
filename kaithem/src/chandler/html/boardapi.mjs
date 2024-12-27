@@ -14,7 +14,10 @@ import {
   dictView,
   formatTime,
 } from "./utils.mjs";
-import { kaithemapi, APIWidget } from "/static/js/widget.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
+import {
+  kaithemapi,
+  APIWidget,
+} from "/static/js/widget.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
 import { computed, ref } from "/static/js/thirdparty/vue.esm-browser.js";
 
 let keysdown = {};
@@ -129,8 +132,6 @@ async function initializeState(board) {
 
 let cueSetData = {};
 
-
-
 function triggerShortcut(sc) {
   api_link.send(["shortcut", sc]);
 }
@@ -151,26 +152,22 @@ async function setGroupProperty(group, property, value) {
   var b = {};
   b[property] = value;
 
-  let response = fetch(
-    "/chandler/api/set-group-properties/" + group,
-    {
-      method: "PUT",
-      body: JSON.stringify(b),
-      headers: {
-        "Content-type": "application/json; charset=UTF-8",
-      },
-    }
-  ).catch(function (error) {
+  let response = fetch("/chandler/api/set-group-properties/" + group, {
+    method: "PUT",
+    body: JSON.stringify(b),
+    headers: {
+      "Content-type": "application/json; charset=UTF-8",
+    },
+  }).catch(function (error) {
     alert("Could not reach server:" + error);
   });
 
-  previousSerializedPromise.value = response
+  previousSerializedPromise.value = response;
   let v = await previousSerializedPromise.value;
 
-  if(!v.ok) {
+  if (!v.ok) {
     alert("Error setting property, possible invalid value: " + value);
   }
-
 }
 
 async function setCueProperty(cue, property, value) {
@@ -187,25 +184,21 @@ async function setCueProperty(cue, property, value) {
   var b = {};
   b[property] = value;
 
-  let p = fetch(
-    "/chandler/api/set-cue-properties/" + cue,
-    {
-      method: "PUT",
-      body: JSON.stringify(b),
-      headers: {
-        "Content-type": "application/json; charset=UTF-8",
-      },
-    }
-  )
-  previousSerializedPromise.value = p
+  let p = fetch("/chandler/api/set-cue-properties/" + cue, {
+    method: "PUT",
+    body: JSON.stringify(b),
+    headers: {
+      "Content-type": "application/json; charset=UTF-8",
+    },
+  });
+  previousSerializedPromise.value = p;
 
   try {
     let r = await p;
-    if(!r.ok) {
+    if (!r.ok) {
       alert("Error setting property, possible invalid value: " + value);
     }
-  }
-  catch (error) {
+  } catch (error) {
     alert("Could not reach server: " + error);
   }
 }
@@ -279,7 +272,9 @@ function setCueValue(sc, u, ch, value) {
     api_link.send(["scv", sc, u, "__preset__", null]);
   }
 
-  value = Number.isNaN(Number.parseFloat(value)) ? value : Number.parseFloat(value);
+  value = Number.isNaN(Number.parseFloat(value))
+    ? value
+    : Number.parseFloat(value);
   api_link.send(["scv", sc, u, ch, value]);
 }
 
@@ -299,17 +294,31 @@ function selectgroup(sc, sn) {
   editingGroup.value = sc;
   groupname.value = sn;
 }
-function delgroup(sc) {
+
+async function delgroup(group) {
   var r = confirm("Really delete group?");
   if (r == true) {
-    api_link.send(["del", sc]);
+    await previousSerializedPromise.value;
+
+    let result = fetch(
+      "/chandler/api/delete-group/" + boardname.value + "/" + group
+    ).catch(function (error) {
+      alert("Could not reach server:" + error);
+    });
+
+    previousSerializedPromise.value = result;
+    let result2 = await result;
+    if (!result2.ok) {
+      {
+        alert("Error deleting group: " + result.statusText);
+      }
+    }
   }
 }
 
 function go(sc) {
   api_link.send(["go", sc]);
 }
-
 
 function stop(sc) {
   var x = confirm(
@@ -397,8 +406,6 @@ function rmcue(cue) {
   api_link.send(["rmcue", cue]);
 }
 
-
-
 function jumptocue(cue, group) {
   if (confirm_for_group(group)) {
     api_link.send(["jumptocue", cue]);
@@ -429,7 +436,6 @@ function promptsetnumber(cue) {
 function setnumber(cue, v) {
   api_link.send(["setnumber", cue, v]);
 }
-
 
 function setcrossfade(sc, v) {
   groupmeta.value[sc].crossfade = v;
@@ -462,8 +468,6 @@ function tap(sc) {
 function testSoundCard(sc, c) {
   api_link.send(["testSoundCard", sc, c]);
 }
-
-
 
 function addRangeEffect(fix) {
   addfixToCurrentCue(
@@ -502,7 +506,6 @@ function addfixToCurrentCue(fix, index, length_, spacing) {
 function rmFixCue(cue, fix) {
   api_link.send(["rmcuef", cue, fix]);
 }
-
 
 function editMode() {
   keyboardJS.reset();
@@ -620,19 +623,16 @@ let fixtureAssignments = ref({});
 //Fixture error info str
 let ferrs = ref("");
 
-
 //For each group what page are we on
 let cuePage = ref({});
 let nuisianceRateLimit = ref([10, Date.now()]);
 
-
 // This is a global the whole app can use to await serialized promises.
 let previousSerializedPromise = ref(null);
-if(globalThis.previousSerializedPromise) {
-  previousSerializedPromise = globalThis.previousSerializedPromise
-}
-else {
-  globalThis.previousSerializedPromise = previousSerializedPromise
+if (globalThis.previousSerializedPromise) {
+  previousSerializedPromise = globalThis.previousSerializedPromise;
+} else {
+  globalThis.previousSerializedPromise = previousSerializedPromise;
 }
 
 let no_edit = ref(!kaithemapi.checkPermission("system_admin"));
@@ -1274,7 +1274,6 @@ export {
   addRangeEffect,
   addfixToCurrentCue,
   rmFixCue,
-
   editMode,
   runMode,
   refreshPorts,
@@ -1302,7 +1301,7 @@ export {
   notifyPopupComputedCueLengthgth as notifyPopupComputedCueLength,
   next,
   goto,
-  triggerShortcut
+  triggerShortcut,
 };
 
 export { formatInterval, useBlankDescriptions, dictView } from "./utils.mjs";

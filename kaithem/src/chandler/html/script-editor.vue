@@ -81,7 +81,6 @@ p.small {
               >Run on
               <combo-box
                 :disabled="disabled"
-                @update:modelValue=""
                 v-model="selectedBinding[0]"
                 v-bind:options="example_events"
                 v-on:change="$emit('update:modelValue', rules)"></combo-box>
@@ -92,7 +91,6 @@ p.small {
             :disabled="disabled"
             v-on:click="
               deleteBinding(selectedBinding);
-              $emit('update:modelValue', rules);
             ">
             Remove binding and all actions
           </button>
@@ -464,7 +462,9 @@ export default {
       },
       deleteBinding: function (b) {
         if (confirm("really delete binding?")) {
+          console.log("jhgf")
           this.removeElement(this.rules, b);
+          this.$emit('update:modelValue', this.rules);
         }
       },
       removeElement: function (array, element) {

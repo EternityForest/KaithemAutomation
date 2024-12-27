@@ -8,12 +8,24 @@ from jsonschema import Draft202012Validator
 from quart import request
 from scullery import snake_compat
 
-from kaithem.api.web import require
+from kaithem.api.web import require, user
 
 from .core import boards, cl_context
 from .cue import cue_schema, cues
-from .groups import group_schema, groups
+from .groups import checkPermissionsForGroupData, group_schema, groups
 from .web import quart_app
+
+
+@quart_app.app.route("/chandler/api/delete-group/<board>/<group_id>")
+async def delete_chandler_group(board: str, group_id: str):
+    require("system_admin")
+    x = groups[group_id]
+    checkPermissionsForGroupData(x.toDict(), user())
+    x.stop()
+    board_obj = boards[board]
+    board_obj.cl_del_group(group_id)
+
+    return {"success": True}
 
 
 @quart_app.app.route("/chandler/api/download/<type>/<board>")

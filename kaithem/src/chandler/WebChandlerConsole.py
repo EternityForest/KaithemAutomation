@@ -891,14 +891,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         elif cmd_name == "setgroupname":
             groups.groups[msg[1]].setName(msg[2])
 
-        elif cmd_name == "del":
-            # X is there in case the active_groups listing was the last string reference, we want to be able to push the data still
-            x = groups.groups[msg[1]]
-            groups.checkPermissionsForGroupData(x.toDict(), user)
-
-            x.stop()
-            self.cl_del_group(msg[1])
-
         elif cmd_name == "setsoundfolders":
             self.media_folders = [
                 i.strip().replace("\r", "").replace("\t", " ")
