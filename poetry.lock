@@ -147,41 +147,6 @@ dev = ["cogapp", "pre-commit", "pytest", "wheel"]
 tests = ["pytest"]
 
 [[package]]
-name = "asgi-csrf"
-version = "0.11"
-description = "ASGI middleware for protecting against CSRF attacks"
-optional = false
-python-versions = ">=3.9"
-files = [
-    {file = "asgi_csrf-0.11-py3-none-any.whl", hash = "sha256:03ac140115f39d4295288a9adf74fdc6ae607f6ef44abee8466520458207242b"},
-    {file = "asgi_csrf-0.11.tar.gz", hash = "sha256:e19a4f87d5af3feabde04c57921ee15510c3bfb0565627df9cb20bcb303282c2"},
-]
-
-[package.dependencies]
-itsdangerous = "*"
-python-multipart = ">=0.0.13"
-
-[package.extras]
-test = ["asgi-lifespan", "httpx (>=0.16)", "pytest", "pytest-asyncio", "pytest-cov", "starlette"]
-
-[[package]]
-name = "asgiref"
-version = "3.8.1"
-description = "ASGI specs, helper code, and adapters"
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "asgiref-3.8.1-py3-none-any.whl", hash = "sha256:3e1e3ecc849832fe52ccf2cb6686b7a55f82bb1d6aee72a58826471390335e47"},
-    {file = "asgiref-3.8.1.tar.gz", hash = "sha256:c343bd80a0bec947a9860adb4c432ffa7db769836c64238fc34bdc3fec84d590"},
-]
-
-[package.dependencies]
-typing-extensions = {version = ">=4", markers = "python_version < \"3.11\""}
-
-[package.extras]
-tests = ["mypy (>=0.800)", "pytest", "pytest-asyncio"]
-
-[[package]]
 name = "astroid"
 version = "3.3.8"
 description = "An abstract syntax tree for Python with inference support."
@@ -235,20 +200,6 @@ files = [
     {file = "async_timeout-5.0.1-py3-none-any.whl", hash = "sha256:39e3809566ff85354557ec2398b55e096c8364bacac9405a7a1fa429e77fe76c"},
     {file = "async_timeout-5.0.1.tar.gz", hash = "sha256:d9321a7a3d5a6a5e187e824d2fa0793ce379a202935782d555d6e9d2735677d3"},
 ]
-
-[[package]]
-name = "asyncinject"
-version = "0.6"
-description = "Run async workflows using pytest-fixtures-style dependency injection"
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "asyncinject-0.6-py3-none-any.whl", hash = "sha256:2f1c9d03e50a51877bdc1b5907a206c47ed9bd1ddca25aee4d62ed2297b2e90a"},
-    {file = "asyncinject-0.6.tar.gz", hash = "sha256:ee8e879e3c18eaa5fd0b6962ac447ee80f21b201f5d12986f59fa6e0638ba774"},
-]
-
-[package.extras]
-test = ["pytest", "pytest-asyncio"]
 
 [[package]]
 name = "attrs"
@@ -593,23 +544,6 @@ files = [
 colorama = {version = "*", markers = "platform_system == \"Windows\""}
 
 [[package]]
-name = "click-default-group"
-version = "1.2.4"
-description = "click_default_group"
-optional = false
-python-versions = ">=2.7"
-files = [
-    {file = "click_default_group-1.2.4-py2.py3-none-any.whl", hash = "sha256:9b60486923720e7fc61731bdb32b617039aba820e22e1c88766b1125592eaa5f"},
-    {file = "click_default_group-1.2.4.tar.gz", hash = "sha256:eb3f3c99ec0d456ca6cd2a7f08f7d4e91771bef51b01bdd9580cc6450fe1251e"},
-]
-
-[package.dependencies]
-click = "*"
-
-[package.extras]
-test = ["pytest"]
-
-[[package]]
 name = "colorama"
 version = "0.4.6"
 description = "Cross-platform colored terminal text."
@@ -765,235 +699,6 @@ sdist = ["build (>=1.0.0)"]
 ssh = ["bcrypt (>=3.1.5)"]
 test = ["certifi (>=2024)", "cryptography-vectors (==44.0.0)", "pretend (>=0.7)", "pytest (>=7.4.0)", "pytest-benchmark (>=4.0)", "pytest-cov (>=2.10.1)", "pytest-xdist (>=3.5.0)"]
 test-randomorder = ["pytest-randomly"]
-
-[[package]]
-name = "datasette"
-version = "1.0a16"
-description = "An open source multi-tool for exploring and publishing data"
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "datasette-1.0a16-py3-none-any.whl", hash = "sha256:6ae52961c23a9a34f2574d85189349a323b3b625645b597e5999ae390c0d48f3"},
-    {file = "datasette-1.0a16.tar.gz", hash = "sha256:bc147c466352e3982bc155939bcff04d7c0161999e713b5adec958239303b38b"},
-]
-
-[package.dependencies]
-aiofiles = ">=0.4"
-asgi-csrf = ">=0.10"
-asgiref = ">=3.2.10"
-asyncinject = ">=0.5"
-click = ">=7.1.1"
-click-default-group = ">=1.2.3"
-httpx = ">=0.20"
-hupper = ">=1.9"
-itsdangerous = ">=1.1"
-janus = ">=0.6.2"
-Jinja2 = ">=2.10.3"
-mergedeep = ">=1.1.1"
-pip = "*"
-pluggy = ">=1.0"
-PyYAML = ">=5.3"
-setuptools = "*"
-sqlite-utils = ">=3.30"
-uvicorn = ">=0.11"
-
-[package.extras]
-docs = ["Sphinx (==7.4.7)", "blacken-docs", "codespell (>=2.2.5)", "furo (==2024.8.6)", "ruamel.yaml", "sphinx-autobuild", "sphinx-copybutton", "sphinx-inline-tabs"]
-rich = ["rich"]
-test = ["beautifulsoup4 (>=4.8.1)", "black (==24.8.0)", "blacken-docs (==1.18.0)", "cogapp (>=3.3.0)", "pytest (>=5.2.2)", "pytest-asyncio (>=0.17)", "pytest-timeout (>=1.4.2)", "pytest-xdist (>=2.2.1)", "trustme (>=0.7)"]
-
-[[package]]
-name = "datasette-checkbox"
-version = "0.1a2"
-description = "Add interactive checkboxes to columns in Datasette"
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "datasette_checkbox-0.1a2-py3-none-any.whl", hash = "sha256:6496e48f9071774c56ba86640f980055b9a8c232f1275c7d2a29bb5b69063fb6"},
-    {file = "datasette_checkbox-0.1a2.tar.gz", hash = "sha256:1ea626cffb3173f66fa3eaccedabc27b8618ef4134616870478d970914f5492a"},
-]
-
-[package.dependencies]
-datasette = ">=1.0a15"
-
-[package.extras]
-test = ["pytest", "pytest-asyncio"]
-
-[[package]]
-name = "datasette-column-sum"
-version = "0.1a0"
-description = "Sum the values in numeric Datasette columns"
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "datasette-column-sum-0.1a0.tar.gz", hash = "sha256:b02693f45788456cc02317c6acc70dc05c01cc0fddd4d0c4e451ca0a60714190"},
-    {file = "datasette_column_sum-0.1a0-py3-none-any.whl", hash = "sha256:85ee99b11c0e8beca944a7fd0d8a938b2a72834b66fa0d1ed987664327f9e209"},
-]
-
-[package.dependencies]
-datasette = ">=1.0a12"
-
-[package.extras]
-playwright = ["pytest-playwright"]
-test = ["datasette-test", "nest-asyncio", "pytest", "pytest-asyncio"]
-
-[[package]]
-name = "datasette-comments"
-version = "0.1.0"
-description = "A Datasette plugin for commenting on tables, rows, and values"
-optional = false
-python-versions = "*"
-files = [
-    {file = "datasette-comments-0.1.0.tar.gz", hash = "sha256:5b29abdb2bb9b115fae4f68c0d84560213ba63682dc6711fc571a86b0ee9cbfb"},
-    {file = "datasette_comments-0.1.0-py3-none-any.whl", hash = "sha256:d740f93c66dd50c3b6e1bf5bc3ae1518dea1f4a57a1c780ff669bf5e328b9da5"},
-]
-
-[package.dependencies]
-datasette = ">=1.0a6"
-python-ulid = "*"
-sqlite-migrate = "0.1b0"
-
-[package.extras]
-test = ["pytest", "pytest-asyncio", "pytest-playwright", "syrupy"]
-
-[[package]]
-name = "datasette-edit-schema"
-version = "0.7.1"
-description = "Datasette plugin for modifying table schemas"
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "datasette-edit-schema-0.7.1.tar.gz", hash = "sha256:e7de83533bbb441ed0f392b2cae9a2871931be917f69cbad1d60c79cac1dbe08"},
-    {file = "datasette_edit_schema-0.7.1-py3-none-any.whl", hash = "sha256:060dbd8d0c96038aafd7d8efcb5efdf98f785edd4603eca555678e47f5efcbf1"},
-]
-
-[package.dependencies]
-datasette = ">=0.63"
-sqlite-utils = ">=3.35"
-
-[package.extras]
-test = ["beautifulsoup4", "html5lib", "pytest", "pytest-asyncio"]
-
-[[package]]
-name = "datasette-explain"
-version = "0.2.1"
-description = "Explain SQL queries executed using Datasette"
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "datasette-explain-0.2.1.tar.gz", hash = "sha256:fcb0dfd852b08f535335de35d9f4ec90db28ce2e1052e63e0dc658a668bf602d"},
-    {file = "datasette_explain-0.2.1-py3-none-any.whl", hash = "sha256:65e7ef571df083206e8e33237dd7e6433715c2da2e457c6a25989cdabc86446e"},
-]
-
-[package.dependencies]
-datasette = "*"
-
-[package.extras]
-test = ["pytest", "pytest-asyncio"]
-
-[[package]]
-name = "datasette-plot"
-version = "0.1.0"
-description = "Observable Plot Datasette plugin"
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "datasette-plot-0.1.0.tar.gz", hash = "sha256:f53de0a222b9daa00e31727ec153eee33c20595cc7bcf67ccd780f5a2da4a268"},
-    {file = "datasette_plot-0.1.0-py3-none-any.whl", hash = "sha256:088eabe1424b4529282da2d6ab4886344fed07b44f6e118dbfe8cbcb598cc91f"},
-]
-
-[package.dependencies]
-datasette = ">=1.0a6"
-
-[package.extras]
-test = ["pytest", "pytest-asyncio", "ruff"]
-
-[[package]]
-name = "datasette-pretty-json"
-version = "0.3"
-description = "Datasette plugin that pretty-prints any column values that are valid JSON objects or arrays"
-optional = false
-python-versions = "*"
-files = [
-    {file = "datasette-pretty-json-0.3.tar.gz", hash = "sha256:f23ef3eae6c0df13305368f716e5cb385050d8fbeceb6d0ebcf6618d60f2ddaf"},
-    {file = "datasette_pretty_json-0.3-py3-none-any.whl", hash = "sha256:ead45c4840de41cbaa22b7977b9abad1f1ff0b5bc5fed975592ee41e2520f188"},
-]
-
-[package.dependencies]
-datasette = "*"
-
-[package.extras]
-test = ["pytest"]
-
-[[package]]
-name = "datasette-render-images"
-version = "0.4"
-description = "Datasette plugin that renders binary blob images using data-uris"
-optional = false
-python-versions = "*"
-files = [
-    {file = "datasette-render-images-0.4.tar.gz", hash = "sha256:384ea7b7acad8f015df246d2847d5f9d4e0b98dbb20bb011c9722d27f1f8c8d4"},
-    {file = "datasette_render_images-0.4-py3-none-any.whl", hash = "sha256:337a5871a126637d706a7a8db4b2939ff6fa4f337a9e8aaeb476aca3bdb8835b"},
-]
-
-[package.dependencies]
-datasette = "*"
-
-[package.extras]
-test = ["pytest"]
-
-[[package]]
-name = "datasette-search-all"
-version = "1.1.4"
-description = "Datasette plugin for searching all searchable tables at once"
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "datasette_search_all-1.1.4-py3-none-any.whl", hash = "sha256:8590099131899f5cb9d51d90a857ed3a828a5d8e2003fd3f0f5939a1a6bc7a8d"},
-    {file = "datasette_search_all-1.1.4.tar.gz", hash = "sha256:371de80eff4f2f0e5ba70cc8efcdd68c1089ebf03d743febced250012d678911"},
-]
-
-[package.dependencies]
-datasette = ">=0.63.1"
-
-[package.extras]
-playwright = ["pytest-playwright"]
-test = ["nest-asyncio", "pytest", "pytest-asyncio", "sqlite-utils"]
-
-[[package]]
-name = "datasette-write"
-version = "0.4"
-description = "Datasette plugin providing a UI for writing to a database"
-optional = false
-python-versions = "*"
-files = [
-    {file = "datasette_write-0.4-py3-none-any.whl", hash = "sha256:810b55b65cc0383d406fa6cd14a0f642280700cacddf683505f58c14f1928849"},
-    {file = "datasette_write-0.4.tar.gz", hash = "sha256:4b599b05950921b1bceb7a800583de9d7cf2b1071d642ba16fbb2df13d47f665"},
-]
-
-[package.dependencies]
-datasette = ">=0.64.6"
-
-[package.extras]
-test = ["beautifulsoup4", "httpx", "pytest", "pytest-asyncio"]
-
-[[package]]
-name = "datasette-write-ui"
-version = "0.0.1a11"
-description = ""
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "datasette_write_ui-0.0.1a11-py3-none-any.whl", hash = "sha256:4cf97c3b4a3546c0c230a80c435ce5da11b3fc5563eaa3fc676d028230d9ba17"},
-    {file = "datasette_write_ui-0.0.1a11.tar.gz", hash = "sha256:51fbf1566bdc192f85ab1663b97fbeacffc7cc7d845013186bb48f62b3c94e8c"},
-]
-
-[package.dependencies]
-datasette = ">=1.0a1"
-sqlite-utils = "*"
-
-[package.extras]
-test = ["pytest", "pytest-asyncio"]
 
 [[package]]
 name = "ephem"
@@ -1332,66 +1037,6 @@ files = [
 ]
 
 [[package]]
-name = "httpcore"
-version = "1.0.7"
-description = "A minimal low-level HTTP client."
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "httpcore-1.0.7-py3-none-any.whl", hash = "sha256:a3fff8f43dc260d5bd363d9f9cf1830fa3a458b332856f34282de498ed420edd"},
-    {file = "httpcore-1.0.7.tar.gz", hash = "sha256:8551cb62a169ec7162ac7be8d4817d561f60e08eaa485234898414bb5a8a0b4c"},
-]
-
-[package.dependencies]
-certifi = "*"
-h11 = ">=0.13,<0.15"
-
-[package.extras]
-asyncio = ["anyio (>=4.0,<5.0)"]
-http2 = ["h2 (>=3,<5)"]
-socks = ["socksio (==1.*)"]
-trio = ["trio (>=0.22.0,<1.0)"]
-
-[[package]]
-name = "httpx"
-version = "0.28.1"
-description = "The next generation HTTP client."
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "httpx-0.28.1-py3-none-any.whl", hash = "sha256:d909fcccc110f8c7faf814ca82a9a4d816bc5a6dbfea25d6591d6985b8ba59ad"},
-    {file = "httpx-0.28.1.tar.gz", hash = "sha256:75e98c5f16b0f35b567856f597f06ff2270a374470a5c2392242528e3e3e42fc"},
-]
-
-[package.dependencies]
-anyio = "*"
-certifi = "*"
-httpcore = "==1.*"
-idna = "*"
-
-[package.extras]
-brotli = ["brotli", "brotlicffi"]
-cli = ["click (==8.*)", "pygments (==2.*)", "rich (>=10,<14)"]
-http2 = ["h2 (>=3,<5)"]
-socks = ["socksio (==1.*)"]
-zstd = ["zstandard (>=0.18.0)"]
-
-[[package]]
-name = "hupper"
-version = "1.12.1"
-description = "Integrated process monitor for developing and reloading daemons."
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "hupper-1.12.1-py3-none-any.whl", hash = "sha256:e872b959f09d90be5fb615bd2e62de89a0b57efc037bdf9637fb09cdf8552b19"},
-    {file = "hupper-1.12.1.tar.gz", hash = "sha256:06bf54170ff4ecf4c84ad5f188dee3901173ab449c2608ad05b9bfd6b13e32eb"},
-]
-
-[package.extras]
-docs = ["Sphinx", "pylons-sphinx-themes", "setuptools", "watchdog"]
-testing = ["mock", "pytest", "pytest-cov", "watchdog"]
-
-[[package]]
 name = "hypercorn"
 version = "0.17.3"
 description = "A ASGI Server based on Hyper libraries and inspired by Gunicorn"
@@ -1580,17 +1225,6 @@ CFFI = ">=1.0"
 
 [package.extras]
 numpy = ["NumPy"]
-
-[[package]]
-name = "janus"
-version = "2.0.0"
-description = "Mixed sync-async queue to interoperate between asyncio tasks and classic threads"
-optional = false
-python-versions = ">=3.9"
-files = [
-    {file = "janus-2.0.0-py3-none-any.whl", hash = "sha256:7e6449d34eab04cd016befbd7d8c0d8acaaaab67cb59e076a69149f9031745f9"},
-    {file = "janus-2.0.0.tar.gz", hash = "sha256:0970f38e0e725400496c834a368a67ee551dc3b5ad0a257e132f5b46f2e77770"},
-]
 
 [[package]]
 name = "jaraco-functools"
@@ -2101,17 +1735,6 @@ python-versions = ">=3.7"
 files = [
     {file = "mdurl-0.1.2-py3-none-any.whl", hash = "sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8"},
     {file = "mdurl-0.1.2.tar.gz", hash = "sha256:bb413d29f5eea38f31dd4754dd7377d4465116fb207585f97bf925588687c1ba"},
-]
-
-[[package]]
-name = "mergedeep"
-version = "1.3.4"
-description = "A deep merge function for 🐍."
-optional = false
-python-versions = ">=3.6"
-files = [
-    {file = "mergedeep-1.3.4-py3-none-any.whl", hash = "sha256:70775750742b25c0d8f36c55aed03d24c3384d17c951b3175d898bd778ef0307"},
-    {file = "mergedeep-1.3.4.tar.gz", hash = "sha256:0096d52e9dad9939c3d975a774666af186eda617e6ca84df4c94dec30004f2a8"},
 ]
 
 [[package]]
@@ -3108,17 +2731,6 @@ files = [
 ]
 
 [[package]]
-name = "python-multipart"
-version = "0.0.20"
-description = "A streaming multipart parser for Python"
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "python_multipart-0.0.20-py3-none-any.whl", hash = "sha256:8a62d3a8335e06589fe01f2a3e178cdcc632f3fbe0d492ad9ee0ec35aab1f104"},
-    {file = "python_multipart-0.0.20.tar.gz", hash = "sha256:8dd0cab45b8e23064ae09147625994d090fa46f5b0d1e13af944c331a7fa9d13"},
-]
-
-[[package]]
 name = "python-pam"
 version = "2.0.2"
 description = "Python PAM module using ctypes, py3"
@@ -3163,20 +2775,6 @@ files = [
     {file = "python_rtmidi-1.5.8-cp39-cp39-win_amd64.whl", hash = "sha256:dd2bcbea822488fca6b8d9fc7e78a91da12914f3b88dc086f051cb65a643449f"},
     {file = "python_rtmidi-1.5.8.tar.gz", hash = "sha256:7f9ade68b068ae09000ecb562ae9521da3a234361ad5449e83fc734544d004fa"},
 ]
-
-[[package]]
-name = "python-ulid"
-version = "3.0.0"
-description = "Universally unique lexicographically sortable identifier"
-optional = false
-python-versions = ">=3.9"
-files = [
-    {file = "python_ulid-3.0.0-py3-none-any.whl", hash = "sha256:e4c4942ff50dbd79167ad01ac725ec58f924b4018025ce22c858bfcff99a5e31"},
-    {file = "python_ulid-3.0.0.tar.gz", hash = "sha256:e50296a47dc8209d28629a22fc81ca26c00982c78934bd7766377ba37ea49a9f"},
-]
-
-[package.extras]
-pydantic = ["pydantic (>=2.0)"]
 
 [[package]]
 name = "python-xlib"
@@ -3833,63 +3431,6 @@ files = [
 ]
 
 [[package]]
-name = "sqlite-fts4"
-version = "1.0.3"
-description = "Python functions for working with SQLite FTS4 search"
-optional = false
-python-versions = "*"
-files = [
-    {file = "sqlite-fts4-1.0.3.tar.gz", hash = "sha256:78b05eeaf6680e9dbed8986bde011e9c086a06cb0c931b3cf7da94c214e8930c"},
-    {file = "sqlite_fts4-1.0.3-py3-none-any.whl", hash = "sha256:0359edd8dea6fd73c848989e1e2b1f31a50fe5f9d7272299ff0e8dbaa62d035f"},
-]
-
-[package.extras]
-test = ["pytest"]
-
-[[package]]
-name = "sqlite-migrate"
-version = "0.1b0"
-description = "A simple database migration system for SQLite, based on sqlite-utils"
-optional = false
-python-versions = "*"
-files = [
-    {file = "sqlite-migrate-0.1b0.tar.gz", hash = "sha256:8d502b3ca4b9c45e56012bd35c03d23235f0823c976d4ce940cbb40e33087ded"},
-    {file = "sqlite_migrate-0.1b0-py3-none-any.whl", hash = "sha256:a4125e35e1de3dc56b6b6ec60e9833ce0ce20192b929ddcb2d4246c5098859c6"},
-]
-
-[package.dependencies]
-sqlite-utils = "*"
-
-[package.extras]
-test = ["black", "mypy", "pytest", "ruff"]
-
-[[package]]
-name = "sqlite-utils"
-version = "3.38"
-description = "CLI tool and Python library for manipulating SQLite databases"
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "sqlite_utils-3.38-py3-none-any.whl", hash = "sha256:8a27441015c3b2ef475f555861f7a2592f73bc60d247af9803a11b65fc605bf9"},
-    {file = "sqlite_utils-3.38.tar.gz", hash = "sha256:1ae77b931384052205a15478d429464f6c67a3ac3b4eafd3c674ac900f623aab"},
-]
-
-[package.dependencies]
-click = "*"
-click-default-group = ">=1.2.3"
-pluggy = "*"
-python-dateutil = "*"
-sqlite-fts4 = "*"
-tabulate = "*"
-
-[package.extras]
-docs = ["beanbag-docutils (>=2.0)", "codespell", "furo", "pygments-csv-lexer", "sphinx-autobuild", "sphinx-copybutton"]
-flake8 = ["flake8"]
-mypy = ["data-science-types", "mypy", "types-click", "types-pluggy", "types-python-dateutil", "types-tabulate"]
-test = ["black (>=24.1.1)", "cogapp", "hypothesis", "pytest"]
-tui = ["trogon"]
-
-[[package]]
 name = "stamina"
 version = "24.3.0"
 description = "Production-grade retries made easy."
@@ -3960,20 +3501,6 @@ dev = ["freezegun (>=0.2.8)", "mypy (>=1.4)", "pretend", "pytest (>=6.0)", "pyte
 docs = ["cogapp", "furo", "myst-parser", "sphinx", "sphinx-notfound-page", "sphinxcontrib-mermaid", "sphinxext-opengraph", "twisted"]
 tests = ["freezegun (>=0.2.8)", "pretend", "pytest (>=6.0)", "pytest-asyncio (>=0.17)", "simplejson"]
 typing = ["mypy (>=1.4)", "rich", "twisted"]
-
-[[package]]
-name = "tabulate"
-version = "0.9.0"
-description = "Pretty-print tabular data"
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "tabulate-0.9.0-py3-none-any.whl", hash = "sha256:024ca478df22e9340661486f85298cff5f6dcdba14f3813e8830015b9ed1948f"},
-    {file = "tabulate-0.9.0.tar.gz", hash = "sha256:0095b12bf5966de529c0feb1fa08671671b3368eec77d7ef7ab114be2c068b3c"},
-]
-
-[package.extras]
-widechars = ["wcwidth"]
 
 [[package]]
 name = "taskgroup"
@@ -4276,25 +3803,6 @@ tornado = ["tornado (>=5.0)"]
 trio = ["exceptiongroup", "trio (>=0.22.0)"]
 twisted = ["twisted"]
 zmq = ["zmq"]
-
-[[package]]
-name = "uvicorn"
-version = "0.34.0"
-description = "The lightning-fast ASGI server."
-optional = false
-python-versions = ">=3.9"
-files = [
-    {file = "uvicorn-0.34.0-py3-none-any.whl", hash = "sha256:023dc038422502fa28a09c7a30bf2b6991512da7dcdb8fd35fe57cfc154126f4"},
-    {file = "uvicorn-0.34.0.tar.gz", hash = "sha256:404051050cd7e905de2c9a7e61790943440b3416f49cb409f965d9dcd0fa73e9"},
-]
-
-[package.dependencies]
-click = ">=7.0"
-h11 = ">=0.8"
-typing-extensions = {version = ">=4.0", markers = "python_version < \"3.11\""}
-
-[package.extras]
-standard = ["colorama (>=0.4)", "httptools (>=0.6.3)", "python-dotenv (>=0.13)", "pyyaml (>=5.1)", "uvloop (>=0.14.0,!=0.15.0,!=0.15.1)", "watchfiles (>=0.13)", "websockets (>=10.4)"]
 
 [[package]]
 name = "uvloop"
@@ -4789,4 +4297,4 @@ ifaddr = ">=0.1.7"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10.0, <3.13"
-content-hash = "3888bd2d8dbb252a21e1cb6ae0b5e18f6dafb283fa13fbf02f9999451d4f6b2a"
+content-hash = "18408f5df723633fae1e49b82ed470f8076163945026143ebedc663960ebc29e"
