@@ -10,9 +10,11 @@ The class loads its __slots__ from a schema at runtime.
 from __future__ import annotations
 
 import copy
+import datetime
 import json
 import logging
 import random
+import time
 import traceback
 import uuid
 import weakref
@@ -20,13 +22,14 @@ from decimal import Decimal
 from typing import TYPE_CHECKING, Any, Callable
 
 from beartype import beartype
-from scullery import snake_compat
+from scullery import messagebus, scheduling, snake_compat
 
-from .. import schemas
+from .. import schemas, util
 from ..kaithemobj import kaithem
 from . import core
 from .core import disallow_special
 from .global_actions import normalize_shortcut, shortcut_codes
+from .mathutils import dt_to_ts
 
 if TYPE_CHECKING:
     from .groups import Group
@@ -48,17 +51,22 @@ stored_as_property = [
     "length_randomize",
     "rules",
     "inherit_rules",
+    "length",
+    "schedule_at",
+    "sound_loops",
 ]
 
 slots = list(cue_schema["properties"].keys()) + [
     "id",
     "changed",
-    "next_ll",
     "name",
     "group",
     "inherit",
     "onEnter",
     "onExit",
+    "error_lockout",
+    "scheduler_object",
+    "_scheduled_func",
     "_provider",
     "__weakref__",
 ]
@@ -128,6 +136,15 @@ def fnToCueName(fn: str):
 cue_provider_types: dict[str, type[CueProvider]] = {}
 
 
+@beartype
+def recalc_all_cue_schedules(*a, **k):
+    for i in cues.values():
+        i.schedule()
+
+
+messagebus.subscribe("/system/time_adjusted", recalc_all_cue_schedules)
+
+
 class CueProvider:
     def __init__(self, url: str, group: Group, *a, **k):
         self.discovered_cues: dict[str, Cue] = {}
@@ -169,6 +186,20 @@ def get_cue_provider(url: str, group: Group) -> CueProvider:
     return cue_provider_types[scheme](url, group)
 
 
+property_update_handlers: dict[str, list[Callable[[Cue, str, Any], None]]] = {}
+
+
+def add_cue_property_update_handler(
+    name: str, handler: Callable[[Cue, str, Any], None]
+):
+    if name not in property_update_handlers:
+        property_update_handlers[name] = []
+    property_update_handlers[name].append(handler)
+
+
+first_property_error_while_loading: list[bool] = [False]
+
+
 class Cue:
     "A static set of values with a fade in and out duration"
 
@@ -184,22 +215,25 @@ class Cue:
         onEnter: Callable[..., Any] | None = None,
         onExit: Callable[..., Any] | None = None,
         provider: str | None = None,
+        insert_after_number: int | None = None,
         **kw: Any,
     ):
         # declare vars.
+        # Cannot enter cue because it loaded with errors
+        self.error_lockout: bool = False
         self.name: str
         self.number: int
         self._inherit_rules: str
         self.reentrant: bool
         self.sound_volume: float | str
-        self.sound_loops: int
+        self._sound_loops: int
         self.named_for_sound: bool
         self.notes: str
         self.alpha: float
         self.fade_in: float
         self.sound_fade_out: float
         self.sound_fade_in: float
-        self.length: float | str = 0
+        self._length: float | str = 0
         self.rel_length: bool = False
         self._length_randomize: float
         self.next_cue: str
@@ -230,6 +264,11 @@ class Cue:
         self._sound = ""
         self._rules: list[list[str | list[list[str]]]] = []
 
+        # Natural language recurring start tim
+        self._schedule_at: str = ""
+        self.scheduler_object: scheduling.Event | None = None
+        self._scheduled_func: Callable[..., Any] | None = None
+
         if id:
             disallow_special(id)
 
@@ -241,11 +280,16 @@ class Cue:
         self.id: str = id or uuid.uuid4().hex
         self.name = name
 
-        # Odd circular dependency
-        try:
-            self.number = number or parent.cues_ordered[-1].number + 5000
-        except Exception:
-            self.number = 5000
+        if insert_after_number is not None:
+            self.number = parent.get_number_for_new_cue(
+                after=insert_after_number
+            )
+        else:
+            # Odd circular dependency
+            try:
+                self.number = number or parent.cues_ordered[-1].number + 5000
+            except Exception:
+                self.number = 5000
 
         # Set up all the underscore internal vals for the properties before settingthe actual
         # properties
@@ -262,7 +306,33 @@ class Cue:
             # number is special because of auto increment
             if not i == "number":
                 if i in kw:
-                    setattr(self, i, kw[i])
+                    try:
+                        setattr(self, i, kw[i])
+                    except Exception:
+                        self.error_lockout = True
+                        setattr(
+                            self,
+                            i,
+                            copy.deepcopy(
+                                cue_schema["properties"][i]["default"]
+                            ),
+                        )
+                        logging.exception(
+                            "Failed to set "
+                            + i
+                            + " on cue to "
+                            + util.saferepr(kw[i])
+                        )
+                        if not first_property_error_while_loading[0]:
+                            first_property_error_while_loading[0] = True
+                            messagebus.post_message(
+                                "/system/notifications/errors",
+                                "Invalid value for "
+                                + i
+                                + " on cue "
+                                + self.name
+                                + ". Only first such error notified",
+                            )
                 else:
                     setattr(
                         self,
@@ -285,11 +355,16 @@ class Cue:
         self.onEnter = onEnter
         self.onExit = onExit
 
-        self.next_ll: Cue | None = None
         parent._add_cue(self, forceAdd=forceAdd)
 
         cues[self.id] = self
         self.push()
+
+    def __setattr__(self, name, value):
+        object.__setattr__(self, name, value)
+        if name in property_update_handlers:
+            for i in property_update_handlers[name]:
+                i(self, name, value)
 
     @property
     def is_active(self):
@@ -357,6 +432,8 @@ class Cue:
         if name in self.getGroup().cues:
             raise RuntimeError("Cannot duplicate cue names in one group")
 
+        n = self.getGroup().get_number_for_new_cue(after=self.number)
+
         c = Cue(
             self.getGroup(),
             name,
@@ -367,6 +444,7 @@ class Cue:
             next_cue=self.next_cue,
             rel_length=self.rel_length,
             track=self.track,
+            number=n,
         )
 
         core.add_data_pusher_to_all_boards(lambda s: s.pushCueMeta(c.id))
@@ -422,6 +500,46 @@ class Cue:
                     ]
                 )
 
+    @property
+    def length(self):
+        return self._length
+
+    @length.setter
+    def length(self, val: int | float | str):
+        try:
+            val = float(val)
+        except Exception:
+            if not isinstance(val, str):
+                raise ValueError("Invalid cue length")
+
+        if val == self._length:
+            return
+        if self.is_active:
+            g = self.getGroup()
+            if g:
+                g.recalc_cue_len()
+        self._length = val
+        self.push()
+
+    @property
+    def sound_loops(self) -> int:
+        return self._sound_loops
+
+    @sound_loops.setter
+    def sound_loops(self, val: int):
+        if val == self._sound_loops:
+            return
+
+        try:
+            val = int(val)
+        except Exception:
+            pass
+
+        val = val if (not val == -1) else 99999999999999999
+
+        self._sound_loops = val
+        self.push()
+
     def validate_rules(self, r: list[list[str | list[list[str]]]]):
         r = r or []
         s = json.dumps(r, ensure_ascii=False)
@@ -446,6 +564,7 @@ class Cue:
 
     @inherit_rules.setter
     def inherit_rules(self, r: str):
+        r = r.strip()
         self._inherit_rules = r
         if self.is_active:
             self.getGroup().refresh_rules()
@@ -464,6 +583,88 @@ class Cue:
             if g:
                 g.recalc_randomize_modifier()
             self.push()
+
+    def goto_if_scene_active(self, ts: float | None = None):
+        """Go to this cue if the scene it belongs to is active"""
+        if ts is None:
+            ts = time.time()
+        x = self.getGroup()
+        if x and x.is_active:
+            x.goto_cue(self.name, ts)
+
+    @property
+    def schedule_at(self):
+        return self._schedule_at
+
+    @schedule_at.setter
+    def schedule_at(self, val: str):
+        if val and (not val.startswith("@")):
+            val = "@" + val
+
+        if val == self._schedule_at:
+            return
+
+        self._schedule_at = val
+        if not self.schedule():
+            raise RuntimeError("Failed to schedule cue for any future time.")
+
+    def schedule(self) -> bool:
+        s = False
+        try:
+            val = self.schedule_at
+            x = self.scheduler_object
+
+            if x:
+                scheduling.scheduler.remove(x)
+                self.scheduler_object = None
+
+            # Sanity check
+            if time.time() > 1732341365:
+                if len(self._schedule_at) > 1:
+                    ref = datetime.datetime.now()
+
+                    selector = util.get_rrule_selector(val[1:], ref)
+                    a: datetime.datetime = selector.after(ref)
+
+                    if a:
+                        if not a.tzinfo:
+                            a = a.astimezone()
+
+                        a2 = dt_to_ts(a)
+
+                        def f():
+                            try:
+                                self.goto_if_scene_active(a2)
+                            except Exception:
+                                print(traceback.format_exc())
+
+                        self.scheduler_object = scheduling.scheduler.schedule(
+                            f, a2, True
+                        )
+                        self._scheduled_func = f
+
+            s = True
+
+        except Exception:
+            print(traceback.format_exc())
+            try:
+                g = self.getGroup()
+                if g:
+                    g.event("error", f"Failed to schedule {self._schedule_at}")
+            except Exception:
+                print(traceback.format_exc())
+
+        try:
+            g = self.getGroup()
+            if g:
+                g.find_next_scheduled_cue()
+        except Exception:
+            logging.exception("Failed to find next scheduled cue")
+            print(traceback.format_exc())
+
+        self.push()
+
+        return s
 
     @property
     def slide(self):
@@ -626,17 +827,20 @@ class Cue:
         # Stuff that never gets saved, it's runtime UI stuff
         d2 = {
             "id": self.id,
+            "error_lockout": self.error_lockout,
             "name": self.name,
             "next": self.next_cue if self.next_cue else "",
             "group": group.id,
             "number": self.number / 1000.0,
             "prev": group.getParent(self.name),
             "hasLightingData": len(self.values),
-            "default_next": group.getAfter(self.name),
             "labelImageTimestamp": self.getGroup().board.get_file_timestamp_if_exists(
                 self.label_image
             ),
             "provider": self.provider,
+            "scheduled_for": self.scheduler_object.time
+            if self.scheduler_object
+            else None,
         }
 
         d = {}

@@ -1,10 +1,59 @@
 Change Log
 ----------
 
+### 0.87.0
+
+- :sparkles: (possible minor breaking) Persist login sessions across reboots
+- :bug: Fix deleting file resources from modules page
+- :sparkles: widget.mjs notficiations on disconnect and reconnect
+- :sparkles: "Apps" page for quick access to things like chandler boards.
+- :bug: Fix media link remote "Ding" buttons.
+- :sparkles: Mixer channel beat detection
+- :bug: Fix dealock that could happen if all background thread slots were filled by serialized_async_with_core_lock
+- :bug: Fix pagination of tag points pages
+- :sparkles: \_\_next\_\_ special cue
+- :sparkles: Creating or cloning cues inserts after selected
+- :bug: Fix importing fixture presets
+- :sparkles: Rework old chandler import/export feature
+- :technologist: Support for Snap packages is no longer a long term priority
+- :bug: Fix total failure to load chandler data if cue param is corrupted
+- :bug: Fix issues if inherit_rules is a nonexistant cue.
+- :bug: Fix default cue not starting up properly
+
 ### 0.86.3
 
 - :bug: Fix preset edting dialog
 - :bug: Fix device interactive discovery
+- :sparkles: ~30 default color presets matched to common DMX fixtures
+- :sparkles: Library modules loaded as links
+- :bug: Don't change timestamps when loading external module
+- :sparkles: Presets and range effects work better together
+- :bug: Fix gen shortcut button
+- :bug: Fix race condition that caused chandler to not reliably load on mobile
+- :sparkles: Keystone correction, rotation, scaling for Chandler slideshow
+- :coffin: /user_static removed, use file server resources instead
+- :bug: Fix world maps page
+
+┏━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━┳━━━━━━━━━┳━━━━━━┓
+┃ Language      ┃ Files ┃     % ┃  Code ┃    % ┃ Comment ┃    % ┃
+┡━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━╇━━━━━━━━━╇━━━━━━┩
+│ Python        │   127 │  28.7 │ 24539 │ 62.2 │    3990 │ 10.1 │
+│ HTML          │    58 │  13.1 │  7372 │ 76.3 │     105 │  1.1 │
+│ Markdown      │    33 │   7.5 │  4269 │ 68.0 │      17 │  0.3 │
+│ RHTML         │    55 │  12.4 │  3171 │ 70.9 │      17 │  0.4 │
+│ CSS           │    17 │   3.8 │  2878 │ 57.9 │     225 │  4.5 │
+│ JavaScript    │    17 │   3.8 │  1602 │ 53.1 │     145 │  4.8 │
+│ YAML          │    12 │   2.7 │  1151 │ 80.2 │      81 │  5.6 │
+│ Text only     │     3 │   0.7 │   159 │ 86.4 │       0 │  0.0 │
+│ Bash          │     2 │   0.5 │    84 │ 61.3 │      26 │ 19.0 │
+│ JSON          │     1 │   0.2 │     4 │ 57.1 │       0 │  0.0 │
+│ __unknown__   │    21 │   4.8 │     0 │  0.0 │       0 │  0.0 │
+│ __empty__     │     1 │   0.2 │     0 │  0.0 │       0 │  0.0 │
+│ __duplicate__ │     8 │   1.8 │     0 │  0.0 │       0 │  0.0 │
+│ __binary__    │    87 │  19.7 │     0 │  0.0 │       0 │  0.0 │
+├───────────────┼───────┼───────┼───────┼──────┼─────────┼──────┤
+│ Sum           │   442 │ 100.0 │ 45229 │ 65.0 │    4606 │  6.6 │
+└───────────────┴───────┴───────┴───────┴──────┴─────────┴──────┘
 
 ### 0.86.2
 
@@ -17,7 +66,7 @@ It does not affect anything not using custom HTML/JS
 - :technologist: 80 line limit.
 - :bug: Fix bug where the loop sound feature interacted badly with relative length
 - :sparkles: Widget API will no longer send old failed messages on reconnected after 5 seconds
-- :bug: Fix nuisance gitgub flavor not found error
+- :bug: Fix nuisance github flavor not found error
 - :sparkles: Chandler logic lets you use `=+ tv("TagName")` to trigger when a tag changes to a nonzero value.
 - :sparkles: Improve chandler autocomplete suggestions
 - :lipstick: Alerts more visible on devices pages
@@ -42,7 +91,7 @@ and import it's special API script:
 
 ```html
 <script type="module">
-   import { kaithemapi, APIWidget} from "/static/js/widget.mjs"
+   import { kaithemapi, APIWidget} from "/static/js/widget.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0"
     let api = new APIWidget("widget_id")
     api.upd = (val) => alert(val)
     api.send("MyValue")
@@ -51,7 +100,7 @@ and import it's special API script:
 
 Use:
 ```js
-import { kaithemapi } from "/static/js/widget.mjs"
+import { kaithemapi } from "/static/js/widget.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0"
 ```
 if you need to access the widget API directly.
 

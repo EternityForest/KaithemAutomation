@@ -44,7 +44,7 @@ Upload zip and unpack:
 <tr><th>Path</th><th>Size</th><th>Action</th></tr>
 %for i in sorted(os.listdir(dir)):
 
-<tr><td><a href="/settings/files/${util.url(os.path.join(dir,i))}">${i+("/" if os.path.isdir(os.path.join(dir,i)) else '')|h}</a></td>
+<tr><td><a href="/settings/files/${util.url(os.path.join(dir,i))}?callback=${callback}">${i+("/" if os.path.isdir(os.path.join(dir,i)) else '')|h}</a></td>
 <td>${size(i)}B</td>\
 
 <td><div style="display: flex; flex-direction:column;"><a class="button" href="/settings/cnfdel/${util.url(os.path.join(dir,i))}">Delete</a>
@@ -53,7 +53,9 @@ Upload zip and unpack:
 <a class="button" href="/settings/hlsplayer/${util.url(os.path.join(dir,i))}">Play in browser</a>
 %endif
 
-
+%if callback:
+<a class="button" href="${callback}?path=${util.url(os.path.join(dir,i))}">Choose</a>
+%endif
 </div>
 </td>
 

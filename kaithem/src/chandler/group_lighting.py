@@ -191,8 +191,8 @@ class GroupLightingManager:
 
                 if "__spacing__" in source_cue.values[i]:
                     s = source_cue.values[i]["__spacing__"]
-                    assert s
-                    chCount = int(self.group.evalExprFloat(s))
+                    if s:
+                        chCount = int(self.group.evalExprFloat(s))
 
                 universe_object = universes.getUniverse(universe)
 

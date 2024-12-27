@@ -9,7 +9,6 @@ import time
 import traceback
 from typing import Any
 
-import yaml
 from tinytag import TinyTag
 
 from .. import tagpoints
@@ -187,11 +186,13 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         self.link = None
         super().__init__(name)
         self.setup_link()
+        # For the apps page link
+        self.app: Any = None
 
     def setup_link(self):
         class WrappedLink(kaithem.widget.APIWidget):
             def on_new_subscriber(s, user: str, connection_id: str, **kw: Any):
-                self.send_everything(connection_id)
+                pass
 
             def on_subscriber_disconnected(
                 s, user: str, connection_id: str, **kw: Any
@@ -281,7 +282,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         for i in self.groups:
             s = self.groups[i]
-            self.pushMeta(i)
+            self.push_group_meta(i)
             if self.groups[i].cue:
                 try:
                     self.pushCueMeta(self.groups[i].cue.id)
@@ -309,7 +310,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         for i in self.active_groups:
             # Tell clients about any changed alpha values and stuff.
             if i.id not in self.groups:
-                self.pushMeta(i.id)
+                self.push_group_meta(i.id)
         self.pushConfiguredUniverses()
         self.linkSend(["serports", getSerPorts()])
 
@@ -344,7 +345,11 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         cmd_name: str = str(msg[0])
 
-        if cmd_name == "getcuedata":
+        if cmd_name == "get_state":
+            self.send_everything(sessionid)
+            return
+
+        elif cmd_name == "getcuedata":
             s = cues[msg[1]]
             self.linkSend(["cuedata", msg[1], s.values])
             self.pushCueMeta(msg[1])
@@ -424,11 +429,11 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             self.groups_by_name[msg[1]].goto_cue(msg[2], cause="manual")
             return
 
-        elif cmd_name == "nextcue":
+        elif cmd_name == "gotoNextCue":
             groups.groups[msg[1]].next_cue(cause="manual")
             return
 
-        elif cmd_name == "prevcue":
+        elif cmd_name == "gotoPreviousCue":
             groups.groups[msg[1]].prev_cue(cause="manual")
             return
 
@@ -448,7 +453,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             "Just this time, add a little extra"
             if groups.groups[msg[1]].cuelen:
                 groups.groups[msg[1]].cuelen += float(msg[2]) * 60
-                self.pushMeta(msg[1])
+                self.push_group_meta(msg[1])
             return
 
         elif cmd_name == "gotonext":
@@ -463,23 +468,13 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         elif cmd_name == "go":
             groups.groups[msg[1]].go()
-            self.pushMeta(msg[1])
-            return
-
-        elif cmd_name == "gobyname":
-            self.groups_by_name[msg[1]].go()
-            self.pushMeta(self.groups_by_name[msg[1]].id)
-            return
-
-        elif cmd_name == "stopbyname":
-            self.groups_by_name[msg[1]].stop()
-            self.pushMeta(msg[1], statusOnly=True)
+            self.push_group_meta(msg[1])
             return
 
         elif cmd_name == "stop":
             x = groups.groups[msg[1]]
             x.stop()
-            self.pushMeta(msg[1], statusOnly=True)
+            self.push_group_meta(msg[1], statusOnly=True)
             return
 
         elif cmd_name == "testSoundCard":
@@ -511,26 +506,10 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         elif cmd_name == "saveState":
             self.cl_check_autosave()
 
-        elif cmd_name == "loadShow":
-            self.cl_load_show(msg[1])
-
-        elif cmd_name == "downloadSetup":
-            self.linkSendTo(
-                ["fileDownload", msg[1], yaml.dump(self.cl_get_library_file())],
-                sessionid,
-            )
-
-        elif cmd_name == "fileUpload":
-            if msg[2] == "setup":
-                self.cl_load_setup_file(msg[1])
-
-            if msg[3] == "import-presets":
-                self.cl_import_fixture_presets(msg[1])
-
         elif cmd_name == "addgroup":
             sc = Group(self, msg[1].strip())
             self.groups[sc.id] = sc
-            self.pushMeta(sc.id)
+            self.push_group_meta(sc.id)
             sc.go()
 
         elif cmd_name == "setconfuniverses":
@@ -639,25 +618,17 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         elif cmd_name == "setnumber":
             cues[msg[1]].setNumber(msg[2])
 
-        elif cmd_name == "setrellen":
-            cues[msg[1]].rel_length = msg[2]
-            self.pushCueMeta(msg[1])
-
         elif cmd_name == "setsoundout":
             cues[msg[1]].sound_output = msg[2]
             self.pushCueMeta(msg[1])
 
         elif cmd_name == "seteventbuttons":
             groups.groups[msg[1]].event_buttons = msg[2]
-            self.pushMeta(msg[1], keys={"event_buttons"})
+            self.push_group_meta(msg[1], keys={"event_buttons"})
 
         elif cmd_name == "setinfodisplay":
             groups.groups[msg[1]].info_display = msg[2]
-            self.pushMeta(msg[1], keys={"info_display"})
-
-        elif cmd_name == "setdisplaytags":
-            groups.groups[msg[1]].set_display_tags(msg[2])
-            self.pushMeta(msg[1], keys={"display_tags"})
+            self.push_group_meta(msg[1], keys={"info_display"})
 
         elif cmd_name == "inputtagvalue":
             for i in groups.groups[msg[1]].display_tags:
@@ -669,7 +640,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         elif cmd_name == "setMqttServer":
             if kaithem.users.check_permission(user, "system_admin"):
                 groups.groups[msg[1]].setMqttServer(msg[2])
-                self.pushMeta(msg[1], keys={"mqtt_server"})
+                self.push_group_meta(msg[1], keys={"mqtt_server"})
 
         elif cmd_name == "add_cueval":
             sc = cues[msg[1]].group()
@@ -794,7 +765,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         elif cmd_name == "add_cue":
             n = msg[2].strip()
             if msg[2] not in groups.groups[msg[1]].cues:
-                groups.groups[msg[1]].add_cue(n)
+                groups.groups[msg[1]].add_cue(n, after=int(msg[3]))
 
         elif cmd_name == "rename_cue":
             if not msg[3]:
@@ -892,91 +863,18 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             assert gr
             gr.rmCue(c.id)
 
-        elif cmd_name == "setCueTriggerShortcut":
-            v = msg[2]
-            cues[msg[1]].trigger_shortcut = v
-            self.pushCueMeta(msg[1])
-
-        elif cmd_name == "setfadein":
-            try:
-                v = float(msg[2] or 0)
-            except Exception:
-                v = msg[2]
-            cues[msg[1]].fade_in = v
-            self.pushCueMeta(msg[1])
-
-        elif cmd_name == "setSoundFadeOut":
-            try:
-                v = float(msg[2] or 0)
-            except Exception:
-                v = msg[2]
-            cues[msg[1]].sound_fade_out = v
-            self.pushCueMeta(msg[1])
-
-        elif cmd_name == "setCueVolume":
-            try:
-                v = float(msg[2] or 1)
-            except Exception:
-                v = msg[2]
-            cues[msg[1]].sound_volume = v
-            self.pushCueMeta(msg[1])
-            sc = cues[msg[1]].group()
-            assert sc
-            sc.setAlpha(sc.alpha)
-
-        elif cmd_name == "setCueLoops":
-            try:
-                v = int(msg[2])
-            except Exception:
-                v = msg[2]
-            cues[msg[1]].sound_loops = v if (not v == -1) else 99999999999999999
-
-            self.pushCueMeta(msg[1])
-            sc = cues[msg[1]].group()
-            assert sc
-            sc.setAlpha(sc.alpha)
-
-        elif cmd_name == "setSoundFadeIn":
-            try:
-                v = float(msg[2] or 0)
-            except Exception:
-                v = msg[2]
-            cues[msg[1]].sound_fade_in = v
-            self.pushCueMeta(msg[1])
-
-        elif cmd_name == "setreentrant":
-            v = bool(msg[2])
-
-            cues[msg[1]].reentrant = v
-            self.pushCueMeta(msg[1])
-
         elif cmd_name == "setmqttfeature":
             groups.groups[msg[1]].setMQTTFeature(msg[2], msg[3])
-            self.pushMeta(msg[1], keys={"mqtt_sync_features"})
-
-        elif cmd_name == "setgroupsoundout":
-            groups.groups[msg[1]].sound_output = msg[2]
-            self.pushMeta(msg[1], keys={"sound_output"})
+            self.push_group_meta(msg[1], keys={"mqtt_sync_features"})
 
         elif cmd_name == "setgroupslideoverlay":
             groups.groups[msg[1]].slide_overlay_url = msg[2]
-            self.pushMeta(msg[1], keys={"slide_overlay_url"})
+            self.push_group_meta(msg[1], keys={"slide_overlay_url"})
 
         elif cmd_name == "setgroupcommandtag":
             groups.groups[msg[1]].set_command_tag(msg[2])
 
-            self.pushMeta(msg[1], keys={"command_tag"})
-
-        elif cmd_name == "setlength":
-            try:
-                v = float(msg[2])
-            except Exception:
-                v = msg[2][:256]
-            cues[msg[1]].length = v
-            sc = cues[msg[1]].group()
-            assert sc
-            sc.recalc_cue_len()
-            self.pushCueMeta(msg[1])
+            self.push_group_meta(msg[1], keys={"command_tag"})
 
         elif cmd_name == "setnext":
             if msg[2][:1024]:
@@ -990,21 +888,8 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             cues[msg[1]].probability = msg[2][:2048]
             self.pushCueMeta(msg[1])
 
-        elif cmd_name == "setblend":
-            groups.groups[msg[1]].setBlend(msg[2])
-        elif cmd_name == "setblendarg":
-            groups.groups[msg[1]].setBlendArg(msg[2], msg[3])
-
         elif cmd_name == "setgroupname":
             groups.groups[msg[1]].setName(msg[2])
-
-        elif cmd_name == "del":
-            # X is there in case the active_groups listing was the last string reference, we want to be able to push the data still
-            x = groups.groups[msg[1]]
-            groups.checkPermissionsForGroupData(x.toDict(), user)
-
-            x.stop()
-            self.cl_del_group(msg[1])
 
         elif cmd_name == "setsoundfolders":
             self.media_folders = [

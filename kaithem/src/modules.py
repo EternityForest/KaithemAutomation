@@ -14,6 +14,7 @@ import weakref
 import zipfile
 from collections.abc import Callable
 from io import BytesIO
+from typing import Any
 
 import beartype
 import structlog
@@ -48,6 +49,7 @@ def new_empty_module():
 
 def loadAllCustomResourceTypes() -> None:
     # TODO this is O(m * n) time. Is that bad?
+    start_time = time.time()
 
     types: list[tuple[float, str]] = []
     for key, typeobj in additionalTypes.items():
@@ -68,6 +70,7 @@ def loadAllCustomResourceTypes() -> None:
                 r = copy.deepcopy(orig)
                 if hasattr(r, "get"):
                     if r.get("resource_type", "") == loading_rt:
+                        start_time_inner = time.time()
                         try:
                             rt = r["resource_type"]
                             assert isinstance(rt, str)
@@ -81,6 +84,9 @@ def loadAllCustomResourceTypes() -> None:
                             logger.exception(
                                 f"Error loading resource: {str((i, j))}"
                             )
+                        taken = round(time.time() - start_time_inner, 2)
+                        if taken > 1:
+                            logger.info(f"Loading {i}:{j} took {taken}s")
                 if not r == orig:
                     logger.warning(
                         f"Loader tried to modify resource object {i}:{j} during load"
@@ -88,6 +94,9 @@ def loadAllCustomResourceTypes() -> None:
 
     for i in additionalTypes:
         additionalTypes[i].on_finished_loading(None)
+
+    taken = round(time.time() - start_time, 2)
+    logger.info(f"Loaded module resources in {taken}s")
 
 
 class ModuleObject:
@@ -445,8 +454,6 @@ def loadModule(
         modules_state.importFiledataFolderStructure(modulename)
         messagebus.post_message("/system/modules/loaded", modulename)
 
-        logger.info("Loaded module " + modulename)
-
 
 def load_modules_from_zip(f: BytesIO, replace: bool = False) -> None:
     """Given a zip file, import all modules found therin.
@@ -644,10 +651,20 @@ def rmResource(
         )
 
 
-def newModule(name: str, location: str | None = None) -> None:
-    "Create a new module by the supplied name, throwing an error if one already exists. If location exists, load from there."
+def newModule(
+    name: str,
+    location: str | None = None,
+    metadata_defaults: dict[str, Any] = {},
+) -> None:
+    """Create a new module by the supplied name,
+    throwing an error if one already exists. If location exists, load from there.
+
+    metadata_defaults is a dictionary of default values, ignored if loading an existing module
+    """
 
     check_forbidden(name)
+    already_exists = False
+
     # If there is no module by that name, create a blank template and the scope obj
     with modulesLock:
         if location:
@@ -662,24 +679,37 @@ def newModule(name: str, location: str | None = None) -> None:
                 )
 
             if os.path.isdir(location):
+                if os.path.isfile(os.path.join(location, "__metadata__.yaml")):
+                    already_exists = True
+
                 loadModule(location, name)
             else:
-                modules_state.ActiveModules[name] = {
+                r: modules_state.ResourceDictType = {
                     "__metadata__": {
                         "resource_type": "module_metadata",
                         "description": "",
                         "resource_timestamp": int(time.time() * 1000000),
                     }
                 }
+                for i in metadata_defaults:
+                    r[i] = copy.deepcopy(metadata_defaults[i])
+
+                modules_state.ActiveModules[name] = r
         else:
-            modules_state.ActiveModules[name] = {
+            r: modules_state.ResourceDictType = {
                 "__metadata__": {
                     "resource_type": "module_metadata",
                     "description": "",
                     "resource_timestamp": int(time.time() * 1000000),
                 }
             }
-        saveModule(modules_state.ActiveModules[name], name)
+            for i in metadata_defaults:
+                r[i] = copy.deepcopy(metadata_defaults[i])
+
+            modules_state.ActiveModules[name] = r
+
+        if not already_exists:
+            saveModule(modules_state.ActiveModules[name], name)
 
         bookkeeponemodule(name)
         # Go directly to the newly created module
@@ -763,6 +793,9 @@ def handleResourceChange(
         resourceobj = modules_state.ActiveModules[module][resource]
 
         assert isinstance(t, str)
+
+        if resource == "__metadata__":
+            return
 
         if t == "permission":
             auth.importPermissionsFromModules()  # sync auth's list of permissions

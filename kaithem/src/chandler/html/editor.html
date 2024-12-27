@@ -1,0 +1,49 @@
+<datalist name="nextcueoptions" id="nextcueoptions">
+  <option>default</option>
+  <option></option>
+  <option>__random__</option>
+  <option>__shuffle__</option>
+  <option>__schedule__</option>
+</datalist>
+
+<datalist name="specialcues" id="specialcues">
+  <option value="__rules__">
+    All other cues in the group will inherit rules
+  </option>
+</datalist>
+
+<datalist name="lenoptions" id="lenoptions">
+  <option>0.25</option>
+  <option>1</option>
+  <option>2.5</option>
+  <option>5</option>
+  <option>10</option>
+  <option>25</option>
+  <option>@2:30PM</option>
+  <option>@2:30PM every Friday</option>
+</datalist>
+
+<div id="outer_container">
+  <console-app></console-app>
+</div>
+
+<base href="/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/">
+
+<link rel="stylesheet" type="text/css" href="./editor.css">
+
+<script src="/static/js/thirdparty/keyboard.min.js"></script>
+<script src="/static/js/thirdparty/strftime-min.js"></script>
+
+<script type="module">
+  import { httpVueLoader } from "./httploaderoptions.mjs";
+
+  import { initChandlerVueModel } from "./boardapi.mjs";
+  import { createApp } from "/static/js/thirdparty/vue.esm-browser.js";
+
+  globalThis.vueapp = createApp({
+    components: {
+      "console-app": httpVueLoader("./editor.vue"),
+    },
+  }).mount("#outer_container");
+  initChandlerVueModel(globalThis.boardname);
+</script>

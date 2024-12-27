@@ -16,13 +16,14 @@ import uuid
 
 import quart
 import structlog
+from icemedia.iceflow import GstreamerPipeline as Pipeline
 from scullery import jacktools, scheduling, workers
 
 from kaithem.src import (
     alerts,
+    apps_page,
     dialogs,
     directories,
-    gstwrapper,
     messagebus,
     modules_state,
     pages,
@@ -49,6 +50,37 @@ recorder = None
 
 
 ds = None
+
+
+class BeatDetector:
+    def __init__(self, name):
+        self.last_beat = time.time()
+        self.peaks = 0
+        self.avg = 0
+        self.tc = 1 / 20
+        self.sens = 0.75
+        self.sens_fast = 0.83
+        self.tag = tagpoints.Tag(f"/jackmixer/channels/{name}.beats")
+
+    def update(self, db: float):
+        now = time.time()
+
+        x = now - self.last_beat
+        if x > 0.08:
+            sens = self.sens
+            if x < 0.23:
+                sens = self.sens_fast
+            if db > (1 - sens) * self.avg + sens * self.peaks:
+                if db > self.avg + 1.5:
+                    if x > 0.5 or db > self.avg + 3:
+                        self.last_beat = now
+                        self.tag.value = self.tag.value + 1
+
+        self.peaks = max(db, self.peaks)
+        self.peaks = self.peaks * (1 - self.tc) + db * self.tc
+
+        self.avg = self.avg * (1 - self.tc) + db * self.tc
+        self.avg = max(-40, self.avg)
 
 
 def start_dummy_source_if_needed():
@@ -97,50 +129,6 @@ def onPortRemove(t, m):
 
 messagebus.subscribe("/system/jack/newport/", onPortAdd)
 messagebus.subscribe("/system/jack/rmport/", onPortRemove)
-
-
-def logReport():
-    if not util.which("jackd"):
-        log.error("Jackd not found. Mixing will not work")
-    if not util.which("a2jmidid"):
-        log.error("A2jmidid not found, MIDI may not work")
-    if not util.which("fluidsynth"):
-        log.error("Fluidsynth not found. MIDI playing will not work,")
-    try:
-        if not gstwrapper.does_element_exist("tee"):
-            log.error(
-                "Gstreamer or python bindings not installed properly. Mixing will not work"
-            )
-    except Exception:
-        log.exception(
-            "Gstreamer or python bindings not installed properly. Mixing will not work"
-        )
-    if not gstwrapper.does_element_exist("pipewiresrc"):
-        log.error("Gstreamer JACK plugin not found. Mixing will not work")
-
-    for i in effectTemplates:
-        e = effectTemplates[i]
-        if "gstElement" in e:
-            if not gstwrapper.does_element_exist(e["gstElement"]):
-                log.warning(
-                    "GST element "
-                    + e["gstElement"]
-                    + " not found. Some effects in the mixer will not work."
-                )
-        if "gstMonoElement" in e:
-            if not gstwrapper.does_element_exist(e["gstMonoElement"]):
-                log.warning(
-                    "GST element "
-                    + e["gstMonoElement"]
-                    + " not found. Some effects in the mixer will not work."
-                )
-        if "gstStereoElement" in e:
-            if not gstwrapper.does_element_exist(e["gstStereoElement"]):
-                log.warning(
-                    "GST element "
-                    + e["gstStereoElement"]
-                    + " not found. Some effects in the mixer will not work."
-                )
 
 
 effectTemplates_data = mixerfx.effectTemplates_data
@@ -224,50 +212,9 @@ class BaseChannel:
     pass
 
 
-class FluidSynthChannel(BaseChannel):
-    "Represents one MIDI connection with a single plugin that remaps all channels to one"
-
-    def __init__(self, board, name, input, output, mapToChannel=0):
-        self.name = name
-
-        self.input = jacktools.MonoAirwire(input, f"{self.name}-midi:*")
-        self.output = jacktools.airwire(self.name, output)
-
-    def start(self):
-        if self.map:
-            self.process = subprocess.Popen(
-                [
-                    "fluidsynth",
-                    "-a",
-                    "jack",
-                    "-m",
-                    "jack",
-                    "-c",
-                    "0",
-                    "-r",
-                    "0",
-                    "-o",
-                    "audio.jack.id",
-                    self.name,
-                    "-o",
-                    "audio.jack.multi",
-                    "True",
-                    "-o",
-                    "midi.jack.id",
-                    f"{self.name}-midi",
-                ],
-                stdin=subprocess.DEVNULL,
-                stdout=subprocess.DEVNULL,
-            )
-            self.input.connect()
-            self.output.connect()
-        else:
-            self.airwire.connect()
-
-
-class Recorder(gstwrapper.Pipeline):
+class Recorder(Pipeline):
     def __init__(self, name="krecorder", channels=2, pattern="mixer_"):
-        gstwrapper.Pipeline.__init__(self, name, realtime=70)
+        Pipeline.__init__(self, name, realtime=70)
 
         self.src = self.add_element(
             "pipewiresrc",
@@ -321,7 +268,7 @@ class Recorder(gstwrapper.Pipeline):
         self.add_element("filesink", location=filename)
 
 
-class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
+class ChannelStrip(Pipeline, BaseChannel):
     def __init__(
         self,
         name,
@@ -340,7 +287,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             self.sends = []
             self.sendAirwires: dict = {}
 
-            gstwrapper.Pipeline.__init__(self, name)
+            Pipeline.__init__(self, name)
 
             start_dummy_source_if_needed()
             self.board: MixingBoard = board
@@ -368,6 +315,8 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             self.effectDataById = {}
             self.faderLevel = -60
             self.channels = channels
+
+            self.beat_detector = BeatDetector(name=name)
 
             # Are we already doing a loudness cutoff?
             self.doingFeedbackCutoff = False
@@ -613,7 +562,7 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
 
         name = self.name
 
-        gstwrapper.Pipeline.stop(self)
+        Pipeline.stop(self)
 
         if not at_exit:
             # wait till jack catches up
@@ -972,11 +921,12 @@ class ChannelStrip(gstwrapper.Pipeline, BaseChannel):
             post_messages=True,
             peak_ttl=300 * 1000 * 1000,
             peak_falloff=60,
-            interval=10**9 / 24,
+            interval=10**9 / 30,
         )
 
     def on_level_message(self, src, rms, level):
         if self.board:
+            self.beat_detector.update(rms)
             rms = max(rms, -90)
 
             self.doSoundFuse(rms)
@@ -1149,6 +1099,18 @@ class MixingBoard:
 
         self.module = module
         self.resource = resource
+
+        a = apps_page.App(
+            f"{module}:{resource}",
+            f"{resource}",
+            f"/settings/mixer/{module}:{resource}",
+            module=module,
+            resource=resource,
+        )
+
+        a.footer = "Mixing Board"
+        self.app = a
+        apps_page.add_app(a)
 
         self.resourcedata: modules_state.ResourceDictType = data or {
             "presets": {}
@@ -1625,6 +1587,11 @@ class MixingBoard:
             for i in list(self.channelObjects.keys()):
                 self.channelObjects[i].stop(at_exit=True)
 
+        try:
+            apps_page.remove_app(self.app)
+        except Exception:
+            pass
+
 
 def STOP(*a):
     global ds
@@ -1731,8 +1698,8 @@ class MixingBoardType(modules_state.ResourceType):
         d = {"resource_type": self.type}
         return d
 
-    def on_update_request(self, module, resource, resourceobj, kwargs):
-        d = resourceobj
+    def on_update_request(self, module, resource, data, kwargs):
+        d = data
         kwargs.pop("name", None)
         kwargs.pop("Save", None)
         return d

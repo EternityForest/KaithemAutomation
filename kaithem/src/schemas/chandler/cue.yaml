@@ -1,15 +1,24 @@
 $schema: http://json-schema.org/draft-04/schema#
 type: object
 
-# All of these keys correspond
+# All of these keys correspond to properties in the Cue object
 properties:
   number:
     type: integer
     description: The actual value times 1000, because we use fixed point rather than deal with decimals.
 
+  schedule_at:
+    type: string
+    default: ''
+    description: Natural language recurring schedule, like 'every 2 hours'
+
+
   shortcut:
     type: string
     default: ''
+    description: A shortcut code used to enter this cue
+    section: basic
+    icon: arrow-down-circle-outline
 
   checkpoint:
     type: boolean
@@ -37,6 +46,7 @@ properties:
   track:
     type: boolean
     default: true
+    description: Keep values from previous cues
 
   next_cue:
     anyOf:
@@ -48,10 +58,13 @@ properties:
   sound:
     type: string
     default: ''
+    icon: music
+    section: media
 
   slide:
     type: string
     default: ''
+    section: media
 
   label_image:
     type: string
@@ -88,6 +101,7 @@ properties:
   media_wind_down:
     type: number
     default: 0
+    description: Slow down media at the end for the robot losing power effect
 
   # Todo: migrate to CamelCase or migrate others to snake_case?
   rel_length:
@@ -98,6 +112,8 @@ properties:
     description: "If false, the system will block entering the cue if already in the cue"
     type: boolean
     default: true
+    section: basic
+    icon: mdi-replay
 
   length_randomize:
     type: number
@@ -106,6 +122,8 @@ properties:
   inherit_rules:
     type: string
     default: ''
+    section: rules
+    icon: script-text-outline
 
   rules:
     type: array

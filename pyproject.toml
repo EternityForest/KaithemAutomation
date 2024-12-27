@@ -5,7 +5,7 @@
 # Use poetry self add poetry-plugin-freeze
 
 name = "kaithem"
-version = "0.86.2"
+version = "0.86.3"
 description = "Home/commercial automation server"
 license = "GPL-3.0-only"
 packages = [{ include = "kaithem" }, { include = "kaithem_cli" }, { include = "kaithem_scripts" }]
@@ -35,7 +35,7 @@ python = "^3.10.0, <3.13"
 # First party
 scullery = ">=0.2.0"
 iot-devices = ">=0.21.1"
-icemedia = ">=0.1.8"
+icemedia = ">=0.1.9"
 NVRChannel = ">=0.1.7"
 
 # New numpy needs new opencv
@@ -95,8 +95,6 @@ pygments = "*"
 pytz = "*"
 ntplib = "*"
 holidays = "*"
-
-yeelight = "*"
 
 pyserial = "*"
 pygrep = "*"

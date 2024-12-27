@@ -26,7 +26,7 @@ test('test', async ({ page }) => {
     await page.getByRole('button', { name: 'Submit' }).click();
 
     // Go to the page
-    await page.getByRole('link', { name: '󰖟 test_options (page)' }).click();
+    await page.getByRole('link', { name: 'test_options' }).click();
 
     // Make sure we can see the options
     await page.getByText('Settings', { exact: true }).click();
@@ -87,7 +87,7 @@ test('test', async ({ page }) => {
     await page.getByRole('button', { name: 'Submit' }).click();
 
 
-    await page.getByRole('link', { name: '󰖟 test_options (page)' }).click();
+    await page.getByRole('link', { name: 'test_options' }).click();
     await page.getByText('Settings', { exact: true }).click();
 
     await expect(page.getByLabel('Allow POST')).not.toBeChecked();

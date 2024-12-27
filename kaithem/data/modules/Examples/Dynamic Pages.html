@@ -2,9 +2,9 @@
 allow_origins:
 - '*'
 allow_xss: false
-alt-top-banner: ''
-auto-reload: false
-auto-reload-interval: 5.0
+alt_top_banner: ''
+auto_reload: false
+auto_reload_interval: 5.0
 code: "# This code runs at every page load\r\n\r\ncounters[0] += 1"
 mimetype: text/html
 no_header: true
@@ -13,13 +13,14 @@ require_method:
 - GET
 - POST
 require_permissions: []
-resource-timestamp: 1699171048334713
-resource-type: page
+resource_label_image: 16x9/old-lantern.avif
+resource_timestamp: 1699171048334713
+resource_type: page
 setupcode: "# This code runs once when the page is creates\r\n# All varibles in code\
   \ are accessible in the page body.\r\n\r\ncounters = [0]"
-streaming-response: false
+streaming_response: false
 template_engine: jinja2
-theme-css-url: ''
+theme_css_url: ''
 
 ---
 {% extends "pagetemplate.j2.html" %}

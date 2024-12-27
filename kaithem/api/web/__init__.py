@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import importlib as _importlib
 import os as _os
 import socket as _socket
 from collections.abc import Callable
+from typing import Any
 
 import jinja2 as _jinja2
 
@@ -19,8 +22,8 @@ _asgi_apps = []
 _wsgi_apps = []
 
 _module_plugin_links = []
-
 _file_resource_links = []
+_file_preview_plugins = []
 
 # This is for plugins to use and extend pageheader.
 _jl = _jinja2.FileSystemLoader(
@@ -70,11 +73,17 @@ def render_jinja_template(template_filename: str, **kw):
     )
 
 
-def render_html_file(body: str, title: str = "Kaithem"):
-    with open(body) as f:
+def render_html_file(body_fn: str, title: str = "Kaithem"):
+    """Given a file raw html, render it in completed page, with header and footer"""
+    with open(body_fn) as f:
         body = f.read()
 
     title = title or _socket.gethostname()
+    return render_jinja_template("generic_page.j2.html", body=body, title=title)
+
+
+def render_html_string(body: str, title: str = "Kaithem"):
+    """Given a string raw html, render it in completed page, with header and footer"""
     return render_jinja_template("generic_page.j2.html", body=body, title=title)
 
 
@@ -110,6 +119,22 @@ def add_file_resource_link(
     Input is module, resource
     """
     _file_resource_links.append(filter)
+
+
+def add_file_resource_preview_plugin(
+    filter: None | Callable[[dict[str, Any]], str | None] = None,
+):
+    """Add a preview box to every file resource if filter matches
+    Return value is embedded html or None.
+
+    Input is a dict that may have none to any of the following keys:
+        module, resource, size, timestamp, path
+        access_url, thumbnail_url
+
+    You should use the access_url rather than getting it yourself,
+    if it exists, because it may give you a url with specific permissions
+    """
+    _file_preview_plugins.append(filter)
 
 
 def serve_file(path, contenttype="", name=None):

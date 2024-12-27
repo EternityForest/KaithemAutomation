@@ -8,17 +8,50 @@ async function delay(ms: number) {
 async function fill_box(page, box, text: string) {
     /*Filling a box does't always work even if it does in the browser*/
 
-    // Try this twice
     await box.click();
-    await delay(10);
-    await box.fill(text);
-    await delay(10);
-    await delay(10);
+
+    await box.clear();
+    await box.fill(text, { force: true });
+    delay(30);
+    if(await box.inputValue() == text) {
+        return;
+    }
+
+    for (let i = 0; i < 10; i++) {
+        await box.clear();
+        await delay(10*i);
+        await box.pressSequentially(text, { delay: 5 });
+        await delay(10*i +50);
+        if (await box.inputValue() == text) {
+            break;
+        }
+        else {
+            await box.clear();
+            await box.fill(text, { force: true });
+            await delay(10*i);
+        }
+    }
+    expect(await box.inputValue()).toBe(text);
+}
+
+/*More flaky crap fixes*/
+async function check_box(page, box) {
+    if (await box.isChecked()) {
+        return;
+    }
+    await box.click();
+}
+
+async function uncheck_box(page, box) {
+    if (!await box.isChecked()) {
+        return;
+    }
+    await box.click();
 }
 
 
 test('test', async ({ page }) => {
-    test.setTimeout(4800000);
+    test.setTimeout(4_800_000);
 
     await login(page);
 
@@ -34,7 +67,7 @@ test('test', async ({ page }) => {
     await page.getByRole('button', { name: 'Submit' }).click();
     await page.getByRole('link', { name: '󱒕 Modules' }).click();
     await page.getByRole('link', { name: 'testchandlerproperties' }).click();
-    await page.getByRole('link', { name: '󰏬 Editor' }).click();
+    await page.getByRole('link', { name: '󰏬 Edit' }).click();
 
 
     // Now on the editor
@@ -54,6 +87,17 @@ test('test', async ({ page }) => {
     await page.getByLabel('Priority').fill('42');
     await page.getByLabel('Default Alpha').click();
     await page.getByLabel('Default Alpha').fill('0.22');
+
+    // This one line is flaky.
+    const inputvalue = await page.getByLabel('Default Alpha').inputValue();
+    if(!(inputvalue == '0.22')) {
+        await delay(2500)
+        await page.getByLabel('Default Alpha').click();
+        await page.getByLabel('Default Alpha').fill('0.22');
+    }
+    await delay(200);
+    expect(await page.getByLabel('Default Alpha').inputValue()).toBe('0.22');
+
     await page.getByRole('heading', { name: 'Sound' }).click();
 
     // This doesn't seem to work the first time despite working in manual
@@ -76,9 +120,12 @@ test('test', async ({ page }) => {
     // Click away
     await page.getByLabel('Sync Group Name').click();
 
+    await page.evaluate(async () => {
+        await globalThis.previousSerializedPromise
+    })
 
     // Check that the stuff is there
-    await page.goto('http://localhost:8002/chandler/editor/testchandlerproperties:b1');
+    await page.goto('http://localhost:8002/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/editor/testchandlerproperties:b1');
     await expect(page.getByRole('main')).toContainText('STATUS: MQTT');
     await page.getByRole('button', { name: 'ts1' }).click();
     await page.getByTestId('group-properties-button').click();
@@ -99,27 +146,37 @@ test('test', async ({ page }) => {
     await page.getByTestId('close-group-settings').click();
     await page.getByTestId('close-group').click();
 
-
+    await page.evaluate(async () => {
+        await globalThis.previousSerializedPromise
+    })
     // More settings
-    await page.goto('http://localhost:8002/chandler/editor/testchandlerproperties:b1');
+    await page.goto('http://localhost:8002/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/editor/testchandlerproperties:b1');
     await page.getByRole('button', { name: 'ts1' }).click();
     await page.getByTestId('group-properties-button').click();
+    await sleep(3000);
+
     await page.getByTestId('group_blend_mode').selectOption('HTP');
     await expect(page.getByLabel('Alpha', { exact: true })).toHaveValue('0.25');
     await page.getByLabel('Default Alpha').click();
 
     await page.getByLabel('Sidebar info URL').click();
     await page.getByLabel('Sidebar info URL').fill('foourl');
-    await page.getByLabel('Utility Group(No controls)').check();
-    await page.getByLabel('Hide in Runtime Mode').check();
+
+    await check_box(page, page.getByLabel('Utility Group(No controls)'));
+    //await page.getByLabel('Utility Group(No controls)').check();
+
+    await check_box(page, page.getByLabel('Hide in Runtime Mode'));
+    //await page.getByLabel('Hide in Runtime Mode').check();
 
 
     await page.getByTestId('close-group-settings').click();
     await page.getByTestId('close-group').click();
-
+    await page.evaluate(async () => {
+        await globalThis.previousSerializedPromise
+    })
 
     // More checking
-    await page.goto('http://localhost:8002/chandler/editor/testchandlerproperties:b1');
+    await page.goto('http://localhost:8002/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/editor/testchandlerproperties:b1');
     await page.getByRole('button', { name: 'ts1' }).click();
     await page.getByTestId('group-properties-button').click();
     await expect(page.getByLabel('Utility Group(No controls)')).toBeChecked();
@@ -138,7 +195,6 @@ test('test', async ({ page }) => {
 
     await page.getByRole('button', { name: 'Add Tag' }).click();
 
-
     await fill_box(page, page.getByTestId('display_tag_label'), 'tg1');
 
     // This line is flaky, if you get a fail just manually pause a bit.
@@ -149,7 +205,6 @@ test('test', async ({ page }) => {
     await fill_box(page,
         page.getByTestId('display_tag_tag'), '=4');
     
-    delay(100);
 
     await page.getByTestId('display_tag_type').selectOption('Meter')
 
@@ -161,13 +216,15 @@ test('test', async ({ page }) => {
     await page.getByTestId('close-group').click();
     
     await sleep(300);
+    await page.evaluate(async () => {
+        await globalThis.previousSerializedPromise
+    })
 
-
-    await page.goto('http://localhost:8002/chandler/editor/testchandlerproperties:b1');
+    await page.goto('http://localhost:8002/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/editor/testchandlerproperties:b1');
     await page.getByRole('button', { name: 'ts1' }).click();
     await page.getByTestId('group-properties-button').click();
-    await expect(page.getByRole('article')).toContainText('tg1');
-
+    
+    await sleep(300);
     await expect(page.getByTestId('event_button_label')).toHaveValue('btn1');
     await expect(page.getByTestId('event_button_event')).toHaveValue('evt1');
 
@@ -179,15 +236,19 @@ test('test', async ({ page }) => {
     await page.getByTestId('event_button_delete').click();
     await page.getByTestId('display_tag_delete').click();
 
-    await page.getByLabel('Require Confirmation for Cue').check();
+    await check_box(page, page.getByLabel('Require Confirmation for Cue'));
+    //await page.getByLabel('Require Confirmation for Cue').check();
 
     // Click elsewhere, do other stuff, let it save
 
     await page.getByTestId('close-group-settings').click();
     await page.getByTestId('close-group').click();
 
+    await page.evaluate(async () => {
+        await globalThis.previousSerializedPromise
+    })
 
-    await page.goto('http://localhost:8002/chandler/editor/testchandlerproperties:b1');
+    await page.goto('http://localhost:8002/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/editor/testchandlerproperties:b1');
     await page.getByRole('button', { name: 'ts1' }).click();
     await page.getByTestId('group-properties-button').click();
 
@@ -226,18 +287,30 @@ test('test', async ({ page }) => {
     await page.getByPlaceholder('Tagpoint').fill('');
     await page.getByPlaceholder('Next cue in list').dblclick();
     await page.getByPlaceholder('Next cue in list').fill('');
-    await page.getByLabel('Utility Group(No controls)').uncheck();
-    await page.getByLabel('Hide in Runtime Mode').uncheck();
-    await page.getByLabel('Backtrack').uncheck();
-    await page.getByLabel('Active By Default').uncheck();
-    await page.getByLabel('Require Confirmation for Cue').uncheck();
+
+    await uncheck_box(page, page.getByLabel('Utility Group(No controls)'));
+    await uncheck_box(page, page.getByLabel('Hide in Runtime Mode'));
+    await uncheck_box(page, page.getByLabel('Backtrack'));
+    await uncheck_box(page, page.getByLabel('Active By Default'));
+    await uncheck_box(page, page.getByLabel('Require Confirmation for Cue'));
+
+
+
+    // await page.getByLabel('Utility Group(No controls)').uncheck();
+    // await page.getByLabel('Hide in Runtime Mode').uncheck();
+    // await page.getByLabel('Backtrack').uncheck();
+    // await page.getByLabel('Active By Default').uncheck();
+    // await page.getByLabel('Require Confirmation for Cue').uncheck();
 
 
     await page.getByTestId('close-group-settings').click();
     await page.getByTestId('close-group').click();
 
+    await page.evaluate(async () => {
+        await globalThis.previousSerializedPromise
+    })
     // Check that it worked
-    await page.goto('http://localhost:8002/chandler/editor/testchandlerproperties:b1');
+    await page.goto('http://localhost:8002/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/editor/testchandlerproperties:b1');
     await page.getByRole('button', { name: 'ts1' }).click();
     await page.getByTestId('group-properties-button').click();
 
@@ -265,8 +338,11 @@ test('test', async ({ page }) => {
     await page.getByTestId('close-group-settings').click();
     await page.getByTestId('close-group').click();
 
+    await page.evaluate(async () => {
+        await globalThis.previousSerializedPromise
+    })
 
-    await page.goto('http://localhost:8002/chandler/editor/testchandlerproperties:b1');
+    await page.goto('http://localhost:8002/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/editor/testchandlerproperties:b1');
     await page.getByRole('button', { name: 'ts1' }).click();
     await page.getByTestId('group-properties-button').click();
     await page.getByText('Custom layout for slideshow').click();

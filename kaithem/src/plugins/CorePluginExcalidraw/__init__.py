@@ -119,7 +119,7 @@ def filter_excalidraw_resources(
         )
 
         return (
-            '<span class="mdi mdi-fountain-pen-tip"></span>Edit Excalidraw',
+            '<span class="mdi mdi-fountain-pen-tip"></span>Edit',
             s,
         )
 

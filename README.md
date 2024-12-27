@@ -26,6 +26,8 @@ You automate things by directly writing python and HTML via a web IDE, or by usi
 
 ![Collage](screenshots/collage.avif)
 
+![Preset Selector](screenshots/preset-selection.avif)
+
 See the barrel.css [demo](https://eternityforest.github.io/barrel.css/) for more themes
 
 

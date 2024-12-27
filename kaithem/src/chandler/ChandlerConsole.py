@@ -83,6 +83,10 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         self.id = uuid.uuid4().hex
 
+        for i in "./\\*?\"<>|'":
+            if i in name:
+                raise ValueError(f"Name cannot contain {i}")
+
         self.name = name
 
         # mutable and immutable versions of the active groups list.
@@ -105,6 +109,11 @@ class ChandlerConsole(console_abc.Console_ABC):
         self.configured_universes: Dict[str, dict[str, Any]] = {}
         self.fixture_assignments: Dict[str, Any] = {}
         self.fixture_presets: Dict[str, dict[str, Any]] = {}
+
+        with open(
+            os.path.join(os.path.dirname(__file__), "fixture_presets.yaml")
+        ) as fp:
+            self.fixture_presets = yaml.safe_load(fp)
 
         self.fixtures: Dict[str, universes.Fixture] = {}
 
@@ -360,37 +369,60 @@ class ChandlerConsole(console_abc.Console_ABC):
         return copy.deepcopy(d)
 
     @core.cl_context.entry_point
-    def cl_load_setup_file(self, data_str: str):
+    def cl_import_from_resource_file(
+        self,
+        data_str: str,
+        fixture_types: bool = True,
+        universes: bool = True,
+        fixture_assignments: bool = True,
+        fixture_presets: bool = True,
+    ):
         data = yaml.load(data_str, Loader=yaml.SafeLoader)
         data = snake_compat.snakify_dict_keys(data)
 
-        if "fixture_types" in data:
-            self.fixture_classes.update(data["fixture_types"])
+        if "project" in data:
+            if "setup" in data:
+                data = data["project"]
+                data = data["setup"]
 
-        if "universes" in data:
-            self.configured_universes = data["universes"]
-            self.cl_create_universes(self.configured_universes)
+        if fixture_types:
+            if "fixture_types" in data:
+                self.fixture_classes.update(data["fixture_types"])
 
-        if "configured_universes" in data:
-            self.configured_universes = data["configured_universes"]
-            self.cl_create_universes(self.configured_universes)
+        if universes:
+            if "universes" in data:
+                for i in data["universes"]:
+                    self.configured_universes[i] = data["universes"][i]
+                self.cl_create_universes(self.configured_universes)
 
-        # Compatibility with a legacy typo
-        if "fixures" in data:
-            data["fixure_assignments"] = data["fixures"]
+            if "configured_universes" in data:
+                for i in data["configured_universes"]:
+                    self.configured_universes[i] = data["configured_universes"][
+                        i
+                    ]
+                self.cl_create_universes(self.configured_universes)
 
-        if "fixtures" in data:
-            data["fixure_assignments"] = data["fixtures"]
+        if fixture_assignments:
+            # Compatibility with a legacy typo
+            if "fixures" in data:
+                data["fixure_assignments"] = data["fixures"]
 
-        if "fixure_assignments" in data:
-            self.fixture_assignments = data["fixure_assignments"]
-            self.cl_reload_fixture_assignment_data()
+            if "fixtures" in data:
+                data["fixure_assignments"] = data["fixtures"]
 
-        if "fixture_presets" in data:
-            x = data["fixture_presets"]
-            self.fixture_presets = {
-                i: from_legacy_preset_format(x[i]) for i in x
-            }
+            if "fixure_assignments" in data:
+                for i in data["fixure_assignments"]:
+                    self.fixture_assignments[i] = data["fixure_assignments"][i]
+
+                self.cl_reload_fixture_assignment_data()
+
+        if fixture_presets:
+            if "fixture_presets" in data:
+                x = data["fixture_presets"]
+                fp = {i: from_legacy_preset_format(x[i]) for i in x}
+
+                for i in fp:
+                    self.fixture_presets[i] = fp[i]
 
         self.push_setup()
 
@@ -552,6 +584,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                 if "default_active" in data[i]:
                     x = data[i]["default_active"]
                     del data[i]["default_active"]
+
                 if "active" in data[i]:
                     x = data[i]["active"]
                     del data[i]["active"]
@@ -563,7 +596,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                 else:
                     uuid = i
 
-                s = Group(self, id=uuid, default_active=x, **data[i])
+                s = Group(self, id=uuid, active=x, default_active=x, **data[i])
 
                 self.groups[uuid] = s
                 if x:
@@ -743,7 +776,7 @@ class ChandlerConsole(console_abc.Console_ABC):
         )
         self.linkSend(["preset", preset, preset_data])
 
-    def pushMeta(
+    def push_group_meta(
         self,
         groupid: str,
         statusOnly: bool = False,
@@ -777,9 +810,6 @@ class ChandlerConsole(console_abc.Console_ABC):
             data: Dict[str, Any] = {
                 # These dynamic runtime vars aren't part of the schema for stuff that gets saved
                 "status": group.getStatusString(),
-                "blendParams": group.lighting_manager.blend_args
-                if hasattr(group.lighting_manager.blendClass, "parameters")
-                else {},
                 "blendDesc": blendmodes.getblenddesc(group.blend),
                 "cue": group.cue.id if group.cue else group.cues["default"].id,
                 "ext": groupid not in self.groups,
@@ -803,6 +833,19 @@ class ChandlerConsole(console_abc.Console_ABC):
                 "default_active": group.default_active,
                 "active": group.is_active(),
             }
+
+            if (
+                group.next_scheduled_cue
+                and group.next_scheduled_cue.scheduler_object
+            ):
+                # Too race conditiony feeling with this property access chain TODO?
+                try:
+                    data["next_scheduled_cue"] = [
+                        group.next_scheduled_cue.name,
+                        group.next_scheduled_cue.scheduler_object.time,
+                    ]
+                except Exception:
+                    print(traceback.format_exc())
 
             # Everything else should by as it is in the schema
             for i in groups.group_schema["properties"]:
@@ -856,23 +899,6 @@ class ChandlerConsole(console_abc.Console_ABC):
 
     def pushConfiguredUniverses(self):
         self.linkSend(["confuniverses", self.configured_universes])
-
-    def pushCueList(self, group: str):
-        s = self.groups[group]
-        x = list(s.cues.keys())
-        # split list into messages of 100 because we don't want to exceed the widget send limit
-        while x:
-            self.linkSend(
-                [
-                    "groupcues",
-                    group,
-                    {
-                        i: (s.cues[i].id, s.cues[i].number / 1000.0)
-                        for i in x[:100]
-                    },
-                ]
-            )
-            x = x[100:]
 
     @core.cl_context.entry_point
     def cl_del_group(self, sc):
@@ -935,11 +961,11 @@ class ChandlerConsole(console_abc.Console_ABC):
         for i in self.groups:
             # Tell clients about any changed alpha values and stuff.
             if self.id not in self.groups[i].metadata_already_pushed_by:
-                self.pushMeta(i, statusOnly=True)
+                self.push_group_meta(i, statusOnly=True)
                 self.groups[i].metadata_already_pushed_by[self.id] = False
 
         for i in self.active_groups:
             # Tell clients about any changed alpha values and stuff.
             if self.id not in i.metadata_already_pushed_by:
-                self.pushMeta(i.id)
+                self.push_group_meta(i.id)
                 i.metadata_already_pushed_by[self.id] = False

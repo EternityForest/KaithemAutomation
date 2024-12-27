@@ -4,7 +4,7 @@ from typing import Any
 from scullery import messagebus
 from structlog import get_logger
 
-from kaithem.src import dialogs, modules_state
+from kaithem.src import apps_page, dialogs, modules_state
 
 from . import WebChandlerConsole, core
 
@@ -39,17 +39,17 @@ class ConfigType(modules_state.ResourceType):
     def blurb(self, module, resource, data):
         return f"""
         <div class="tool-bar">
-            <a href="/chandler/editor/{module}:{resource}">
+            <a href="/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/editor/{module}:{resource}">
             <span class="mdi mdi-pencil-box"></span>
-            Editor</a>
+            Edit</a>
 
-            <a href="/chandler/commander/{module}:{resource}">
+            <a href="/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/commander/{module}:{resource}">
             <span class="mdi mdi-dance-ballroom"></span>
             Commander</a>
 
-            <a href="/chandler/config/{module}:{resource}">
+            <a href="/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/config/{module}:{resource}">
             <span class="mdi mdi-cog-outline"></span>
-            Fixtures Config</a>
+            Config</a>
         </div>
         """
 
@@ -59,6 +59,32 @@ class ConfigType(modules_state.ResourceType):
         entries[module, resource] = WebChandlerConsole.WebConsole(
             f"{module}:{resource}"
         )
+        a = apps_page.App(
+            f"{module}:{resource}",
+            f"{resource}",
+            f"/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/commander/{module}:{resource}",
+            module=module,
+            resource=resource,
+        )
+
+        a.footer = "Commander"
+
+        a.links = [
+            (
+                "Commander",
+                f"/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/commander/{module}:{resource}",
+            ),
+            (
+                "Editor",
+                f"/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/editor/{module}:{resource}",
+            ),
+            (
+                "Config",
+                f"/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/config/{module}:{resource}",
+            ),
+        ]
+        entries[module, resource].app = a
+        apps_page.add_app(a)
 
         with core.cl_context:
             core.boards[f"{module}:{resource}"] = entries[module, resource]
@@ -91,6 +117,11 @@ class ConfigType(modules_state.ResourceType):
     def on_delete(self, module, resource, data):
         with core.cl_context:
             entries[module, resource].cl_close()
+            try:
+                apps_page.remove_app(entries[module, resource].app)
+            except Exception:
+                pass
+
             core.boards.pop(f"{module}:{resource}", None)
 
         del entries[module, resource]
@@ -100,6 +131,7 @@ class ConfigType(modules_state.ResourceType):
         return d
 
     def on_update_request(self, module, resource, data, kwargs):
+        # TODO must actually use the kwargs if we ever use this
         d = data
         kwargs.pop("name", None)
         kwargs.pop("Save", None)

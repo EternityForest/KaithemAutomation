@@ -9,7 +9,6 @@ import os
 import signal
 import sys
 import time
-import traceback
 
 import iot_devices
 import iot_devices.host
@@ -89,54 +88,6 @@ async def favicon():
     return await send_file(fn, cache_timeout=3600 * 24)
 
 
-# Todo: is this to slow for async??
-@quart_app.app.route("/user_static/<path:args>")
-async def user_static(*args):
-    "Very simple file server feature!"
-    try:
-        pages.require("enumerate_endpoints")
-    except PermissionError:
-        return pages.loginredirect(pages.geturl())
-    if not args:
-        if os.path.exists(
-            os.path.join(directories.vardir, "static", "index.html")
-        ):
-            return await quart.send_file(
-                os.path.join(directories.vardir, "static", "index.html")
-            )
-
-    try:
-        dir = "/".join(args)
-        for i in dir:
-            if "/" in i:
-                raise RuntimeError("Security violation")
-
-        for i in dir:
-            if ".." in i:
-                raise RuntimeError("Security violation")
-
-        dir = os.path.join(directories.vardir, "static", dir)
-
-        if not os.path.normpath(dir).startswith(
-            os.path.join(directories.vardir, "static")
-        ):
-            raise RuntimeError("Security violation")
-
-        if os.path.isfile(dir):
-            return await quart.send_file(dir)
-        else:
-            x = [
-                (i + "/" if os.path.isdir(os.path.join(dir, i)) else i)
-                for i in os.listdir(dir)
-            ]
-            x = "\r\n".join(
-                ['<a href="' + i + '">' + i + "</a><br>" for i in x]
-            )
-            return x
-    except Exception:
-        return traceback.format_exc()
-
-
 @quart_app.app.route("/")
 def index_default(*path, **data):
     r = settings.redirects.get("/", {}).get("url", "")
@@ -180,14 +131,14 @@ def dropdownpanel():
     )
 
 
-@quart_app.app.route("/tagpoints")
-def tagpoints_index(*path, show_advanced=""):
+@quart_app.app.route("/tagpoints", methods=["GET", "POST"])
+@quart_app.wrap_sync_route_handler
+def tagpoints_index(*path, show_advanced="", **data):
     # This page could be slow because of the db stuff, so we restrict it more
     try:
         pages.require("system_admin")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
-    data = request.args
 
     return pages.get_template("settings/tagpoints.html").render(
         data=data, module="", resource=""

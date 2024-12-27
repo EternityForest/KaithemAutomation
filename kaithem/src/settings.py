@@ -21,6 +21,7 @@ import vignette
 from quart.ctx import copy_current_request_context
 
 from . import (
+    apps_page,
     auth,
     directories,
     kaithemobj,
@@ -266,6 +267,8 @@ async def files(path=""):
                     shutil.rmtree(node)
                 return quart.redirect(quart.request.url.split("?")[0])
 
+            callback = kwargs.get("callback", "")
+
             # if "zipfile" in kwargs:
             #     # Unpack all zip members directly right here,
             #     # Without creating a subfolder.
@@ -282,7 +285,9 @@ async def files(path=""):
             #                 f.close()
 
             if os.path.isdir(dir):
-                return pages.get_template("settings/files.html").render(dir=dir)
+                return pages.get_template("settings/files.html").render(
+                    dir=dir, callback=callback
+                )
             else:
                 if "thumbnail" in kwargs:
                     t = vignette.try_get_thumbnail(dir)
@@ -340,6 +345,15 @@ def account():
     except PermissionError:
         return pages.loginredirect(pages.geturl())
     return pages.get_template("settings/user_settings.html").render()
+
+
+a = apps_page.App(
+    "coreplugins_leaflet",
+    "World Map",
+    "/settings/leaflet",
+)
+a.icon = "/static/img/16x9/nautical-map.avif"
+apps_page.add_app(a)
 
 
 @legacy_route

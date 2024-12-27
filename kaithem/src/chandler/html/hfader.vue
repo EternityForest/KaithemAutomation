@@ -6,7 +6,8 @@
 
         <div>
             <b v-if="chinfo" class="noselect" v-bind:title="'Actual channel:' + i.u + ':' + i.ch">{{ i.ch }}</b>
-            <button v-if="showdelete" v-on:click="rmValFromCue(currentcueid,i.u, i.ch)"><i class="mdi mdi-delete"></i>Remove</button>
+            <button v-if="showdelete" v-on:click="rmValFromCue(currentcueid, i.u, i.ch)"><i
+                    class="mdi mdi-delete"></i>Remove</button>
         </div>
 
         <span v-if="typeof (i.v) == 'string'">
@@ -62,6 +63,12 @@ var hfaderdata =
         }
     },
     'setCueVal': function (sc, u, ch, val) {
+        if (this.fixcmd["__preset__"]) {
+            if (this.fixcmd['__preset__'].v) {
+                window.api_link.send(['scv', sc, u, "__preset__", null]);
+            }
+        }
+
         val = isNaN(parseFloat(val)) ? val : parseFloat(val)
         window.api_link.send(['scv', sc, u, ch, val]);
     },
@@ -83,7 +90,7 @@ var hfaderdata =
             }
         }
 
-        return ({min:0, max:255, name:""})
+        return ({ min: 0, max: 255, name: "" })
     },
 
     'rmValFromCue': function (cue, universe, ch) {
@@ -95,16 +102,16 @@ var hfaderdata =
     },
 }
 
-module.exports = {
+export default {
     template: '#h-fader',
     //I is a data object having u,ch, and v, the universe channel and value.
     //Chinfo is the channel info list from the fixtues that you get with channelInfoForUniverseChannel
-    props: ['i', 'chinfo', 'currentcueid', 'groupid','showdelete'],
+    props: ['i', 'chinfo', 'currentcueid', 'groupid', 'showdelete', 'fixcmd'],
     data: function () {
         return (hfaderdata)
     },
     components: {
-        'smooth-range': window.httpVueLoader('/static/vue/smoothrange.vue?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61')
+        'smooth-range': window.httpVueLoader('/static/vue/smoothrange.vue')
     },
 }
 

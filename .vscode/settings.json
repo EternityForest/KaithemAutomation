@@ -14,6 +14,7 @@
         "kaithem/data/static/img/icons/**": true,
         "kaithem/src/thirdparty": true
     },
+    "python.defaultInterpreterPath": ".venv/bin/python",
     "python.autoComplete.extraPaths": [
         "kaithem/src/thirdparty",
         "kaithem/src/docs/thirdparty/python**",
@@ -82,6 +83,7 @@
                 "recalc",
                 "reentrancy",
                 "REUSEADDR",
+                "rgbw",
                 "rrule",
                 "rtmidi",
                 "sceneid",
@@ -91,6 +93,8 @@
                 "stringly",
                 "testid",
                 "tobytes",
+                "ts",
+                "eslint",
                 "tz",
                 "unitsofmeasure",
                 "unurl",
@@ -99,9 +103,45 @@
                 "vue",
                 "webp",
                 "werkzeug",
-                "ws"
+                "ws",
+                "no",
+                "margin",
+                "m3u",
+                "m3u8"
             ],
             "python.analysis.typeCheckingMode": "standard",
-            "vue-format.break_attr_limit": 2
+            "vue-format.break_attr_limit": 2,
+            "prettier.bracketSameLine": true,
+            "prettier.quoteProps": "consistent",
+            "prettier.singleAttributePerLine": false,
+            "prettier.vueIndentScriptAndStyle": false,
+            "[html]": {
+                "editor.defaultFormatter": "esbenp.prettier-vscode"
+            },
+            "[vue]": {
+                "editor.defaultFormatter": "esbenp.prettier-vscode"
+            },
+            "[javascript]": {
+                "editor.defaultFormatter": "esbenp.prettier-vscode"
+            },
+            "[typescript]": {
+                "editor.defaultFormatter": "esbenp.prettier-vscode"
+            },
+            "[python]": {
+                "editor.defaultFormatter": "charliermarsh.ruff",
+                "editor.formatOnSave": true
+            },
+            "[yaml]": {
+                "editor.defaultFormatter": "esbenp.prettier-vscode"
+            },
+            "[json]": {
+                "editor.defaultFormatter": "esbenp.prettier-vscode"
+            },
+            "[jsonc]": {
+                "editor.defaultFormatter": "esbenp.prettier-vscode"
+            },
+            "[css]": {
+                "editor.defaultFormatter": "esbenp.prettier-vscode"
+            }
 
 }

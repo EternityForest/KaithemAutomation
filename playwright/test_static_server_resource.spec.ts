@@ -1,8 +1,8 @@
 import { test, expect, chromium } from '@playwright/test';
-import { login, logout, makeModule, deleteModule, makeTagPoint } from './util';
+import { login, logout, makeModule, deleteModule } from './util';
 
 test('test', async ({ page }) => {
-    test.setTimeout(2400000);
+    test.setTimeout(2_400_000);
 
     await login(page);
 
@@ -46,7 +46,7 @@ test('test', async ({ page }) => {
     await page.getByRole('link', { name: 'test_static_server' }).click();
     await page.getByRole('link', { name: 'Browse' }).click();
     await expect(page.locator('dl')).toContainText('linux.png');
-    await page.getByRole('link', { name: 'linux.png (4.59K)' }).click();
+    await page.getByLabel('Download linux.png').click();
     await expect(page.getByRole('img')).toBeVisible();
     await page.goto('http://localhost:8002/');
 
@@ -61,15 +61,15 @@ test('test', async ({ page }) => {
 
 
     // Go add the __all_permissions__ permission
-    await page.getByRole('link', { name: '󱒕 Modules' }).click();
+    await page.getByRole('link', { name: 'Modules' }).click();
     await page.getByRole('link', { name: 'test_static_server' }).click();
-    await page.getByRole('link', { name: '󰖟 static (fileserver)' }).click();
+    await page.getByRole('link', { name: 'static', exact: true }).click();
     await page.getByText('Require Permissions').click();
     await page.getByLabel('__all_permissions__').check();
     await page.getByRole('button', { name: 'Submit' }).click();
 
     // Ensure it's been added
-    await page.getByRole('link', { name: '󰖟 static (fileserver)' }).click();
+    await page.getByRole('link', { name: 'static', exact: true }).click();
     await page.getByText('Require Permissions').click();
     await expect(page.getByLabel('__all_permissions__')).toBeChecked();
 

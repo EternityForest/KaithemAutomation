@@ -8,7 +8,7 @@ def filename_for_resource(module: str, resource: str) -> str:
     """Given the module and resource for a file, return the actual file for a file resource, or
     file data dir for directory resource"""
 
-    return os.path.join(modules.getModuleDir(module), "__filedata__", resource)
+    return modules_state.filename_for_resource(module, resource)
 
 
 def relative_file_resource_dir_for_resource(module: str, resource: str) -> str:
@@ -77,3 +77,12 @@ def scan_file_resources(module: str):
     """
     modules_state.importFiledataFolderStructure(module)
     modules_state.recalcModuleHashes()
+
+
+def resolve_file_resource(relative_path: str) -> str | None:
+    """Given a name of a file resource, return the full path to it,
+    if it can be found in any module"""
+    for i in modules_state.ActiveModules:
+        path = modules_state.filename_for_resource(i, relative_path)
+        if os.path.isfile(path):
+            return path

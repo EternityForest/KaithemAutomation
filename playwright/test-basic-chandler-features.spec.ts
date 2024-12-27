@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { sleep, login, logout, makeModule, deleteModule, makeTagPoint } from './util';
+import { sleep, login, logout, chandlerBoardTemplate, deleteModule, makeTagPoint } from './util';
 
 
 
@@ -8,40 +8,12 @@ Create a module, make a chandler board, test very simple logic,
 make sure tag output features work.
 */
 test('test', async ({ page }) => {
-    test.setTimeout(2400000);
+    test.setTimeout(2_400_000);
 
     await login(page);
-    let module = "PlaywrightChandlerTestModule";
-    //Make module
-    makeModule(page, module);
-
-    // Make chandler board
-    await page.getByTestId('add-resource-button').click();
-
-    await page.getByRole('link', { name: 'Chandler Board' }).click();
-    await page.getByLabel('Resource Name').click();
-    await page.getByLabel('Resource Name').fill('board1');
-    await page.getByRole('button', { name: 'Submit' }).click();
-
-    // Go to chandler editor
-    await page.getByRole('link', { name: 'Modules' }).click();
-    await page.getByRole('link', { name: module }).click();
-    await page.getByRole('link', { name: 'Editor' }).click();
-
-    // Create group
-    await page.getByPlaceholder('New group name').click();
-    await page.getByPlaceholder('New group name').fill('tst1');
-    await page.getByTestId('add-group-button').click();
-    await page.getByRole('button', { name: 'tst1' }).click();
-
-    // make cue c2
-    await page.getByPlaceholder('New cue name').click();
-    await page.getByPlaceholder('New cue name').fill('c2');
-    await page.getByRole('button', { name: 'Add Cue' }).click();
-
-    //select cue
-    await expect(page.locator('#cuesbox')).toContainText('c2');
-    await page.locator('#cuesbox').getByText('default', { exact: true }).click();
+    const module = "PlaywrightChandlerTestModule";
+    
+    await chandlerBoardTemplate(page);
 
     // Cue logic
     await page.getByTestId('cue-logic-button').click();
@@ -53,7 +25,7 @@ test('test', async ({ page }) => {
 
     // Action params editor has a cue field
     // When we go into default cue it should redirect to c2
-    await page.getByLabel('cue', { exact: true }).fill('c2');
+    await page.getByTestId('command-arg-cue').fill('c2');
     //Dismiss popup selecter by clicking outside
     await page.getByRole('heading', { name: 'Automation Logic' }).click();
 
@@ -77,7 +49,7 @@ test('test', async ({ page }) => {
 
     page.once('dialog', dialog => {
         console.log(`Dialog message: ${dialog.message()}`);
-        dialog.dismiss().catch(() => { });
+        dialog.dismiss().catch(() => {});
     });
     // Delete c3
     await page.getByRole('button', { name: 'Delete Current' }).click();
@@ -124,7 +96,7 @@ test('test', async ({ page }) => {
     // Click elsewhere to make dropdown suggestions box go
     await page.getByTestId("add-rm-fixtures-button").click();
 
-    await page.getByRole('button', { name: 'Add Channel to Cue' }).first().click();
+    await page.getByTestId("add-channel-to-cue-button").click();
     await expect(page.getByRole('main')).toContainText('dmx');
 
     await expect(page.getByRole('main')).toContainText('25');
@@ -153,7 +125,7 @@ test('test', async ({ page }) => {
     // Click elsewhere to make dropdown suggestions box go
     await page.getByTestId("add-rm-fixtures-button").click();
 
-    await page.locator('div').filter({ hasText: /^Tag Add Channel to Cue$/ }).getByRole('button').click();
+    await page.getByTestId("add-tag-to-cue-button").click();
     await page.locator('summary').filter({ hasText: 'Channels' }).click();
     await page.locator('article').filter({ hasText: '/' }).getByRole('slider').fill('130');
 
@@ -170,7 +142,7 @@ test('test', async ({ page }) => {
     await expect(page.getByRole('row', { name: '/test_chandler_tag' })).toContainText('130');
 
 
-    await page.goto('http://localhost:8002/chandler/editor/PlaywrightChandlerTestModule:board1');
+    await page.goto('http://localhost:8002/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/editor/PlaywrightChandlerTestModule:board1');
 
     await page.getByRole('button', { name: 'tst1' }).click();
     await page.getByTestId('add-rm-fixtures-button').click();
@@ -179,7 +151,7 @@ test('test', async ({ page }) => {
     await expect(page.getByRole('heading', { name: '/test_chandler_tag' })).toHaveCount(1);
 
     await page.getByRole('button', { name: '󰆴 Remove' }).click();
-    await page.goto('http://localhost:8002/chandler/editor/PlaywrightChandlerTestModule:board1');
+    await page.goto('http://localhost:8002/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/editor/PlaywrightChandlerTestModule:board1');
     await page.getByRole('button', { name: 'tst1' }).click();
 
     await expect(page.getByRole('heading', { name: '/test_chandler_tag' })).toHaveCount(0);

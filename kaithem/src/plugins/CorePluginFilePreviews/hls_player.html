@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>hls player</title>
+    <style>
+    </style>
+    <script src="/static/js/thirdparty/hls.js"></script>
+    <script src="/static/js/thirdparty/striftime-min.js"></script>
+</head>
+
+<body>
+    <video id="video" style="max-width: 100vw; max-height: 100vh"
+        controls></video>
+
+    <script>
+        var video = document.getElementById('video');
+
+        // path from url param
+        var videoSrc = new URLSearchParams(window.location.search).get('url');
+
+        if (Hls.isSupported()) {
+            var hls = new Hls();
+            hls.loadSource(videoSrc);
+            hls.attachMedia(video);
+        }
+        else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = videoSrc;
+        }
+        else {
+            alert("No HLS")
+        }
+
+        fragOffset = null
+
+        const hlsInstance = hls;
+        hlsInstance.on(window.Hls.Events.FRAG_CHANGED, function (event, data) {
+            document.getElementById('seg').innerHTML = data.frag.relurl
+            d = new Date(data.frag.programDateTime)
+            document.getElementById('time').innerHTML = d.toLocaleString()
+            document.getElementById('gmt').innerHTML = d.toISOString()
+
+            fragOffset = data.frag.start
+            fragStart = data.frag.programDateTime
+        });
+
+        function updateTime() {
+            if (fragOffset == null) {
+                return
+            }
+            timeIntoFrag = (document.getElementById('video').currentTime * 1000) - (fragOffset * 1000)
+            d = new Date(timeIntoFrag + fragStart)
+            document.getElementById('time').innerHTML = d.toLocaleString()
+            document.getElementById('gmt').innerHTML = d.toISOString()
+        }
+
+        setInterval(updateTime, 300)
+    </script>
+</body>
+
+</html>

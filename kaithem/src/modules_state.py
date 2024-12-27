@@ -19,10 +19,17 @@ import yaml
 from stream_zip import ZIP_64, stream_zip
 
 from . import context_restrictions, directories, util
-from .resource_types import ResourceDictType, ResourceType, additionalTypes
+from .resource_types import (
+    ResourceDictType,
+    ResourceType,
+    additionalTypes,
+    mutable_copy_resource,
+)
+from .util import url
 
 # Dummy keeps linter happy
 ResourceType = ResourceType
+mutable_copy_resource = mutable_copy_resource
 
 
 # / is there because we just forbid use of that char for anything but dirs,
@@ -37,6 +44,26 @@ external_module_locations: dict[str, str] = {}
 
 
 prev_versions: dict[tuple, dict] = {}
+
+
+def get_resource_label_image_url(module: str, path: str):
+    data = ActiveModules[module][path]
+
+    if "resource_label_image" not in data:
+        return None
+    if not data["resource_label_image"]:
+        return None
+    if data["resource_label_image"].startswith(("http", "/")):
+        return data["resource_label_image"]
+
+    return f"/modules/label_image/{url(module)}/{url(path)}"
+
+
+def filename_for_resource(module: str, resource: str) -> str:
+    """Given the module and resource, return the actual file for a file resource, or
+    file data dir for directory resource"""
+
+    return os.path.join(getModuleDir(module), "__filedata__", resource)
 
 
 def get_module_metadata(module: str) -> dict[str, Any]:
@@ -312,6 +339,16 @@ def get_resource_save_location(m: str, r: str) -> str:
     return os.path.dirname(os.path.join(dir, urllib.parse.quote(r, safe=" /")))
 
 
+def is_module_readonly(m: str) -> bool:
+    if m in external_module_locations:
+        if external_module_locations[m].startswith(directories.datadir):
+            if "pipx" in external_module_locations[m]:
+                return True
+            if "/opt/" in external_module_locations[m]:
+                return True
+    return False
+
+
 @beartype.beartype
 def saveModule(
     module: dict[str, ResourceDictType], modulename: str
@@ -324,12 +361,21 @@ def saveModule(
     if "__do__not__save__to__disk__:" in modulename:
         return
 
+    if is_module_readonly(modulename):
+        raise RuntimeError("Cannot save a module in a readonly location")
+
     if modulename in external_module_locations:
         fn = os.path.join(
             directories.moduledir, "data", modulename + ".location"
         )
-        with open(fn, "w") as f:
-            f.write(external_module_locations[modulename])
+        needs_update = True
+        if os.path.isfile(fn):
+            with open(fn, "rb") as f:
+                needs_update = f.read() != external_module_locations[modulename]
+
+        if needs_update:
+            with open(fn, "w") as f:
+                f.write(external_module_locations[modulename])
 
     # Iterate over all of the resources in a module and save them as json files
     # under the URL url module name for the filename.

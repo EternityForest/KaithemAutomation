@@ -100,6 +100,7 @@ def resource_page(module, resource):
                 path=resource.split("/"),
                 fullpath=f"{module}/{resource}",
                 module_actions=module_actions,
+                ro=modules_state.is_module_readonly(module),
                 **module_page_context,
             )
 
@@ -115,6 +116,10 @@ def addresource(module, type):
         pages.require("system_admin")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
+
+    if modules_state.is_module_readonly(module):
+        raise PermissionError("Module is read only")
+
     path = request.args.get("dir", "")
 
     if type in ("permission", "directory"):
@@ -146,6 +151,9 @@ async def addresourcetarget(module, rtype, path=""):
         pages.require("system_admin")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
+
+    if modules_state.is_module_readonly(module):
+        raise PermissionError("Module is read only")
 
     kwargs = dict(await request.form)
     kwargs.update(request.args)
@@ -231,6 +239,9 @@ async def resource_update_handler(module, resource):
         pages.require("system_admin")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
+
+    if modules_state.is_module_readonly(module):
+        raise PermissionError("Module is read only")
 
     @copy_current_request_context
     def f():
@@ -367,6 +378,9 @@ async def deleteresource(module, target):
     except PermissionError:
         return pages.loginredirect(pages.geturl())
 
+    if modules_state.is_module_readonly(module):
+        raise PermissionError("Module is read only")
+
     if "module_lock" in modules_state.get_module_metadata(module):
         raise PermissionError("Module is locked")
 
@@ -382,6 +396,9 @@ async def moveresource(module, target):
         pages.require("system_admin")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
+
+    if modules_state.is_module_readonly(module):
+        raise PermissionError("Module is read only")
 
     if "module_lock" in modules_state.get_module_metadata(module):
         raise PermissionError("Module is locked")
@@ -404,23 +421,32 @@ async def deleteresourcetarget(module):
         return pages.loginredirect(pages.geturl())
     kwargs = await quart.request.form
 
+    if modules_state.is_module_readonly(module):
+        raise PermissionError("Module is read only")
+
     @copy_current_request_context
     def f():
-        resourceobj = modules_state.ActiveModules[module][kwargs["name"]]
-
         if "module_lock" in modules_state.get_module_metadata(module):
             raise PermissionError("Module is locked")
 
-        if "resource_lock" in resourceobj and resourceobj["resource_lock"]:
-            raise PermissionError(
-                "This resource can only be edited by manually removing the resource_lock from the file."
-            )
+        if kwargs["name"] not in modules_state.ActiveModules[module]:
+            fn = modules_state.filename_for_resource(module, kwargs["name"])
+            if os.path.isfile(fn):
+                os.remove(fn)
 
-        modules.rmResource(
-            module,
-            kwargs["name"],
-            f"Resource Deleted by {pages.getAcessingUser()}",
-        )
+        else:
+            resourceobj = modules_state.ActiveModules[module][kwargs["name"]]
+
+            if "resource_lock" in resourceobj and resourceobj["resource_lock"]:
+                raise PermissionError(
+                    "This resource can only be edited by manually removing the resource_lock from the file."
+                )
+
+            modules.rmResource(
+                module,
+                kwargs["name"],
+                f"Resource Deleted by {pages.getAcessingUser()}",
+            )
 
         messagebus.post_message(
             "/system/notifications",
@@ -463,6 +489,9 @@ async def moveresourcetarget(module):
         return pages.loginredirect(pages.geturl())
     kwargs = await quart.request.form
 
+    if modules_state.is_module_readonly(module):
+        raise PermissionError("Module is read only")
+
     @copy_current_request_context
     def f():
         resourceobj = modules_state.ActiveModules[module][kwargs["name"]]
@@ -486,6 +515,92 @@ async def moveresourcetarget(module):
     return await f()
 
 
+@quart_app.app.route(
+    "/modules/module/<module>/updateresourcemetadata/<path:resource>",
+    methods=["POST"],
+)
+async def update_resource_metadata(module, resource):
+    try:
+        pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+
+    kwargs = await quart.request.form
+    with modules_state.modulesLock:
+        d = modules_state.mutable_copy_resource(
+            modules_state.ActiveModules[module][resource]
+        )
+        for i in kwargs:
+            d[i] = kwargs[i]
+
+        modules_state.rawInsertResource(module, resource, d)
+
+    return quart.redirect(
+        f"/modules/module/{util.url(module)}/resource/{util.url(resource)}"
+    )
+
+
+@quart_app.app.route(
+    "/modules/module/<module>/resource/<path:resource>/metadata"
+)
+async def resource_metadata_page(module, resource):
+    try:
+        pages.require("view_admin_info")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    d = dialogs.SimpleDialog(f"Update resource metadata in {module}")
+    d.begin_section("Display")
+
+    builtin_img = os.listdir(
+        os.path.join(directories.datadir, "static", "img", "16x9")
+    )
+    builtin_img = [("16x9/" + i, i) for i in builtin_img]
+    builtin_img.sort()
+
+    for i in modules_state.ActiveModules.keys():
+        file_data_dir = os.path.join(
+            modules_state.getModuleDir(i),
+            "__filedata__",
+            "media",
+            "16x9",
+        )
+
+        if os.path.isdir(file_data_dir):
+            for j in os.listdir(file_data_dir):
+                if j.endswith(
+                    (".png", ".jpg", ".avif", ".png", ".gif", ".svg")
+                ):
+                    fn = os.path.join(file_data_dir, j)
+                    if os.path.isfile(fn):
+                        builtin_img.append(
+                            (
+                                f"16x9/{j}",
+                                j,
+                            )
+                        )
+
+    d.text_input(
+        "resource_label_image",
+        title="Label Image URL",
+        suggestions=builtin_img,
+        default=modules_state.ActiveModules[module][resource].get(
+            "resource_label_image", ""
+        ),
+    )
+
+    lnk = "/excalidraw-plugin/edit?"
+    lnk += f"module={module}&resource=media/resource_labels/{resource}.excalidraw.png"
+    lnk += f"&callback=/modules/set_label_image/{module}/{resource}&ratio_guide=16_9"
+    d.link("Draw with Excalidraw", lnk)
+    d.end_section()
+
+    d.submit_button("", title="Save")
+
+    return d.render(
+        f"/modules/module/{util.url(module)}/updateresourcemetadata/{util.url(resource)}"
+    )
+
+
 @quart_app.app.route("/modules/module/<module>/update", methods=["POST"])
 async def module_update(module):
     kwargs = await quart.request.form
@@ -506,6 +621,9 @@ async def module_update(module):
 
         modules_state.recalcModuleHashes()
         if not kwargs["name"] == module:
+            if modules_state.is_module_readonly(module):
+                raise PermissionError("Module is read only, cannot rename")
+
             if "." in kwargs:
                 raise ValueError("No . in resource name")
         with modules_state.modulesLock:

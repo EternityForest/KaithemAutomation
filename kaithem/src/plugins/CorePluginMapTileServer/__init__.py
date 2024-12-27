@@ -1,10 +1,12 @@
 # SPDX-FileCopyrightText: Copyright Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
 
+import io
 import os
 import random
 
 import niquests
+import PIL
 import quart
 
 from kaithem.src import directories, pages, quart_app
@@ -12,6 +14,10 @@ from kaithem.src import directories, pages, quart_app
 
 def get_fn(x, y, z, map="openstreetmap"):
     return os.path.join(directories.vardir, "maptiles", map, z, x, f"{y}.png")
+
+
+def get_avif_fn(x, y, z, map="openstreetmap"):
+    return os.path.join(directories.vardir, "maptiles", map, z, x, f"{y}.avif")
 
 
 async def fetch(f) -> bytes:
@@ -25,6 +31,9 @@ async def fetch(f) -> bytes:
 async def get_tile(x, y, z, map="openstreetmap"):
     if pages.canUserDoThis("system_admin", pages.getAcessingUser()):
         if os.path.isfile(get_fn(x, y, z)):
+            return
+
+        if os.path.isfile(get_avif_fn(x, y, z)):
             return
 
         os.makedirs(os.path.dirname(get_fn(x, y, z)), exist_ok=True)
@@ -49,6 +58,12 @@ async def serve_map_tile(z, x, y):
     if pages.canUserDoThis("/users/maptiles.view", pages.getAcessingUser()):
         if os.path.exists(get_fn(x, y, z, map)):
             return await quart.send_file(get_fn(x, y, z, map))
+
+        if os.path.exists(get_avif_fn(x, y, z, map)):
+            img = PIL.Image.open(get_avif_fn(x, y, z, map))
+            b = io.BytesIO()
+            img.save(b, format="png")
+            return quart.Response(b.getvalue(), mimetype="image/png")
 
         if os.path.exists(
             os.path.join(

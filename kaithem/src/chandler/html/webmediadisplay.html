@@ -25,6 +25,7 @@
         padding: 0px;
         color: aliceblue;
         text-align: center;
+        position: relative;
     }
 
 
@@ -97,8 +98,8 @@
 ${groups.groups[kwargs['group']].slideshow_layout}
 
 <script type="module">
-    import { makePlayer, setLink, setTelemetryName, setTelemetryStatus, sendTelemetry} from  "./static/webmedia.mjs?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61"
-    import { kaithemapi, APIWidget} from "/static/js/widget.mjs"
+    import { makePlayer, setLink, setTelemetryName, setTelemetryStatus, sendTelemetry} from  "./webmedia.mjs"
+    import { kaithemapi, APIWidget} from "/static/js/widget.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0"
 
     let link = new APIWidget("${groups.groups[kwargs['group']].media_link_socket.uuid}")
     var conv = new showdown.Converter({ metadata: true });
@@ -147,7 +148,7 @@ ${groups.groups[kwargs['group']].slideshow_layout}
         }
     }).mount('slideshow-app')
 
-    import { formatInterval } from "./static/utils.mjs?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61";
+    import { formatInterval } from "./utils.mjs";
 
     let player = new makePlayer(document.getElementById('player1'), "${kwargs['group']}")
     let player2 = new makePlayer(document.getElementById('player2'), "${kwargs['group']}")
@@ -261,6 +262,50 @@ ${groups.groups[kwargs['group']].slideshow_layout}
         else if (v[0] == 'web_var') {
             app.$data[v[0]] = v[1]
             renderCueText()
+        }
+
+        else if (v[0] == 'transform') {
+            let data = v[1]
+            this.transform = data
+            let el = document.getElementsByTagName('body')[0]
+
+
+            if (data.scale_y){
+                el.style.height = data.scale_y + "vh"
+            }
+            if (data.scale_x){
+                el.style.width = data.scale_x + "vw"
+            }
+
+            if (data.translate_x) {
+                el.style.left = data.translate_x + "vw"
+            }
+
+            if (data.translate_y) {
+                el.style.top = data.translate_y + "vh"
+            }
+
+            let t = ""
+
+            if (data.perspective) {
+                t += "perspective(" + data.perspective + "cm)"
+            }
+
+            if (data.rotate_x) {
+                t += "rotate3D(1,0,0, "+ data.rotate_x + "deg)"
+            }
+
+            if (data.rotate_y) {
+                t += "rotate3D(0, 1, 0, "+ data.rotate_y + "deg)"
+            }
+
+            if (data.rotate_z) {
+                t += "rotateZ(" + data.rotate_z + "deg)"
+            }
+
+            el.style.transform = t
+
+
         }
     }
 

@@ -121,6 +121,9 @@ class SimpleDialog:
         "Add some help text"
         self.items.append(("", f"<p>{s}</p>"))
 
+    def link(self, s: str, url: str):
+        self.items.append(("", f'<p><a href="{url}">{s}</a></p>'))
+
     @beartype.beartype
     def text_input(
         self,
@@ -136,8 +139,8 @@ class SimpleDialog:
 
         "Add a text input. Datalist can be value, title pairs"
         if suggestions:
-            if f"x-{id(suggestions)}" not in self.datalists:
-                self.datalists[f"x-{id(suggestions)}"] = suggestions
+            if f"x{id(suggestions)}" not in self.datalists:
+                self.datalists[f"x{id(suggestions)}"] = suggestions
 
         title = title or self.name_to_title(name)
 
@@ -155,7 +158,7 @@ class SimpleDialog:
             self.items.append(
                 (
                     title,
-                    f'<input name="{name}" list="x-{id(suggestions)}"  value="{html.escape(default)}" {disabled}>',
+                    f'<input name="{name}" list="x{id(suggestions)}"  value="{html.escape(default)}" {disabled}>',
                 )
             )
 

@@ -21,7 +21,7 @@ import icemedia.sound_player
 import numpy
 import structlog
 from beartype import beartype
-from scullery import workers
+from scullery import messagebus, workers
 
 from .. import alerts, context_restrictions, schemas, tagpoints, util
 from ..kaithemobj import kaithem
@@ -39,6 +39,7 @@ from .fs_cue_provider import FilesystemCueProvider
 from .global_actions import cl_trigger_shortcut_code
 from .group_context_commands import add_context_commands, rootContext
 from .group_lighting import GroupLightingManager
+from .group_scheduling import get_schedule_jump_point
 from .mathutils import dt_to_ts, ease, number_to_note
 from .signage import MediaLinkManager
 from .universes import get_on_demand_universe, getUniverse, mapChannel
@@ -46,7 +47,7 @@ from .universes import get_on_demand_universe, getUniverse, mapChannel
 logger = structlog.get_logger(__name__)
 
 if TYPE_CHECKING:
-    from . import ChandlerConsole
+    from . import ChandlerConsole, WebChandlerConsole
 
 # Locals for performance... Is this still a thing??
 float = float
@@ -110,12 +111,12 @@ def makeWrappedConnectionClass(parent: Group):
     class Connection(mqtt.MQTTConnection):
         def on_connect(self):
             self_closure_ref.event("board.mqtt.connected")
-            self_closure_ref.pushMeta(statusOnly=True)
+            self_closure_ref.push_to_frontend(statusOnly=True)
             return super().on_connect()
 
         def on_disconnect(self):
             self_closure_ref.event("board.mqtt.disconnected")
-            self_closure_ref.pushMeta(statusOnly=True)
+            self_closure_ref.push_to_frontend(statusOnly=True)
             if self_closure_ref.mqtt_server:
                 self_closure_ref.event("board.mqtt.error", "Disconnected")
             return super().on_disconnect()
@@ -257,6 +258,18 @@ def checkPermissionsForGroupData(data: dict[str, Any], user: str):
 
 group_schema = schemas.get_schema("chandler/group")
 
+property_update_handlers: dict[
+    str, list[Callable[[Group, str, Any], None]]
+] = {}
+
+
+def add_group_property_update_handler(
+    name: str, handler: Callable[[Group, str, Any], None]
+):
+    if name not in property_update_handlers:
+        property_update_handlers[name] = []
+    property_update_handlers[name].append(handler)
+
 
 class Group:
     "An objecting representing one group. If noe default cue present one is made"
@@ -303,7 +316,7 @@ class Group:
             ValueError: _description_
         """
 
-        self.board = chandler_board
+        self.board: WebChandlerConsole.WebConsole = chandler_board
 
         if name and name in self.board.groups_by_name:
             raise RuntimeError("Cannot have 2 groups sharing a name: " + name)
@@ -312,7 +325,7 @@ class Group:
             raise ValueError("Invalid Name")
 
         # Used by blend modes
-        self.blend_args: dict[str, float | int | bool | str] = blend_args or {}
+        self._blend_args: dict[str, float | int | bool | str] = blend_args or {}
 
         self.media_player = group_media.GroupMediaPlayer(self)
         self.lighting_manager = GroupLightingManager(self)
@@ -325,7 +338,7 @@ class Group:
         ]
 
         # Get whatever defaults it sets up for the UI
-        self.blend_args = copy.deepcopy(self.lighting_manager.blend_args)
+        self._blend_args = copy.deepcopy(self.lighting_manager.blend_args)
 
         self.mqttConnection = None
         self.mqttSubscribed: dict[str, bool]
@@ -450,6 +463,8 @@ class Group:
         self.alphaTagHandler = alphaTagHandler
 
         self.active = False
+
+        # Whatever alpha we start with is the default
         self.default_alpha = alpha
         self.name = name
 
@@ -461,6 +476,8 @@ class Group:
 
         # The list of cues as an actual list that is maintained sorted by number
         self.cues_ordered: list[Cue] = []
+
+        self.next_scheduled_cue: Cue | None = None
 
         if cues:
             for j in cues:
@@ -498,7 +515,9 @@ class Group:
 
         self._priority = priority
 
-        self.setBlend(blend)
+        self._blend: str = ""
+
+        self.blend = blend
         self.default_active = default_active
 
         # Used to indicate that the most recent frame has changed something about the group
@@ -538,13 +557,13 @@ class Group:
 
         # Name, TagpointName, properties
         # This is the actual configured data.
-        self.display_tags: list[tuple[str, str, dict[str, Any]]] = []
+        self._display_tags: list[tuple[str, str, dict[str, Any]]] = []
 
         # The most recent values of our display tags
         self.display_tag_values: dict[str, Any] = {}
 
         self.display_tag_meta: dict[str, dict[str, Any]] = {}
-        self.set_display_tags(display_tags)
+        self.display_tags = display_tags
 
         self.refresh_rules()
 
@@ -555,8 +574,21 @@ class Group:
 
         self.midi_source = midi_source
 
+        self._slideshow_transform: dict[str, float | int] = {}
+
         if active:
-            self.goto_cue("default", sendSync=False, cause="start")
+            try:
+                # Normally the reentrant check would prevent this from doing
+                # anything in some cases,
+                # but it has special case handling for this first time.
+                self.goto_cue("default", sendSync=False, cause="start")
+            except Exception:
+                logger.exception("Failed to start group properly")
+                messagebus.post_message(
+                    "/system/notifications/errors",
+                    "Failed to start group properly: " + self.name,
+                )
+
             self.go()
             if isinstance(active, (int, float)):
                 self.started = time.time() - active
@@ -571,6 +603,88 @@ class Group:
         workers.do(f)
 
         workers.do(self.scan_cue_providers)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        object.__setattr__(self, name, value)
+        if name in property_update_handlers:
+            for i in property_update_handlers[name]:
+                i(self, name, value)
+
+    def get_number_for_new_cue(self, after: int):
+        """Takes the int number times 1000 format"""
+
+        if len(list(self.find_cues_between(after + 1, after + 5000))) == 0:
+            return after + 5000
+        for i in range(1, 5):
+            if (
+                len(list(self.find_cues_between(after + 1, after + (i * 1000))))
+                == 0
+            ):
+                return after + (i * 1000)
+
+        for i in range(1, 10):
+            if (
+                len(list(self.find_cues_between(after + 1, after + (i * 100))))
+                == 0
+            ):
+                return after + (i * 100)
+
+        for i in range(1, 10):
+            if (
+                len(list(self.find_cues_between(after + 1, after + (i * 10))))
+                == 0
+            ):
+                return after + (i * 10)
+
+        raise RuntimeError("Could not find a number for new cue")
+
+    def find_cue_by_number(self, number: int) -> None | Cue:
+        """Takes the int number times 1000 format"""
+        for i in self.cues:
+            if self.cues[i].number == number:
+                return self.cues[i]
+        return None
+
+    def find_cues_between(self, start: int, end: int):
+        """Takes the int number times 1000 format"""
+        for i in self.cues:
+            if self.cues[i].number >= start and self.cues[i].number <= end:
+                yield self.cues[i]
+
+    def pointer_for_cue(self, cue: Cue) -> int:
+        """Returns the index of the cue in the ordered cues list"""
+        c = 0
+        for i in self.cues_ordered:
+            if i == cue:
+                return c
+            c += 1
+        raise RuntimeError("Cue not in group")
+
+    @slow_group_lock_context.object_session_entry_point
+    def find_next_scheduled_cue(self):
+        now = time.time()
+
+        t = 10**20
+        sc = self.next_scheduled_cue
+
+        if sc:
+            so = sc.scheduler_object
+            if so:
+                t2 = so.time
+                if t2 > now and t2 < t:
+                    t = t2
+
+        for i in self.cues:
+            c = self.cues[i]
+
+            so = c.scheduler_object
+            if so:
+                t2 = so.time
+                if t2 > now and t2 < t:
+                    t = t2
+                    sc = c
+
+        self.next_scheduled_cue = sc
 
     def check_error_codes(self):
         if self.error_codes:
@@ -723,11 +837,17 @@ class Group:
         return self.script_context.preprocessArgument(s)
 
     def _nl_insert_cue_sorted(self, c: Cue | None):
-        "Insert a None to just recalt the whole ordering"
+        "Insert a None to just recalc the whole ordering"
+
+        need_sort = True
+        if self.cues_ordered:
+            if c and c.number > self.cues_ordered[-1].number:
+                need_sort = False
         if c:
             self.cues_ordered.append(c)
 
-        self.cues_ordered.sort(key=lambda i: i.number)
+        if need_sort:
+            self.cues_ordered.sort(key=lambda i: i.number)
 
         # We inset cues before we actually have a selected cue.
         if hasattr(self, "cue") and self.cue:
@@ -737,11 +857,6 @@ class Group:
                 print(traceback.format_exc())
         else:
             self.cuePointer = 0
-
-        # Regenerate linked list by brute force when a new cue is added.
-        for i in range(len(self.cues_ordered) - 1):
-            self.cues_ordered[i].next_ll = self.cues_ordered[i + 1]
-        self.cues_ordered[-1].next_ll = None
 
     def getDefaultNext(self):
         if self.default_next.strip():
@@ -756,10 +871,6 @@ class Group:
                 return None
         except Exception:
             return None
-
-    def getAfter(self, cue: str):
-        x = self.cues[cue].next_ll
-        return x.name if x else None
 
     def getParent(self, cue: str) -> str | None:
         "Return the cue that this cue name should backtrack values from or None"
@@ -830,10 +941,6 @@ class Group:
                 self.cuePointer = self.cues_ordered.index(self.cue)
             except Exception:
                 print(traceback.format_exc())
-        # Regenerate linked list by brute force when a new cue is added.
-        for i in range(len(self.cues_ordered) - 1):
-            self.cues_ordered[i].next_ll = self.cues_ordered[i + 1]
-        self.cues_ordered[-1].next_ll = None
 
     @slow_group_lock_context.object_session_entry_point
     def _add_cue(self, cue: Cue, forceAdd=True):
@@ -851,7 +958,7 @@ class Group:
         )
         core.add_data_pusher_to_all_boards(lambda s: s.pushCueData(cue.id))
 
-    def pushMeta(
+    def push_to_frontend(
         self,
         cue: str | bool = False,
         statusOnly: bool = False,
@@ -864,7 +971,9 @@ class Group:
             )
 
         core.add_data_pusher_to_all_boards(
-            lambda s: s.pushMeta(self.id, statusOnly=statusOnly, keys=keys)
+            lambda s: s.push_group_meta(
+                self.id, statusOnly=statusOnly, keys=keys
+            )
         )
 
     @slow_group_lock_context.object_session_entry_point
@@ -932,6 +1041,7 @@ class Group:
 
         return random.choices(names, weights=weights)[0]
 
+    @slow_group_lock_context.required
     def _parseCueName(self, cue_name: str) -> tuple[str, float | int]:
         """
         Take a raw cue name and find an actual matching cue. Handles things like shuffle
@@ -966,115 +1076,7 @@ class Group:
             return ("", 0)
 
         elif cue_name == "__schedule__":
-            # Fast forward through scheduled @time endings.
-
-            # Avoid confusing stuff even though we technically could implement it.
-            if self.default_next.strip():
-                raise RuntimeError(
-                    "Group's default next is not empty, __schedule__ doesn't work here."
-                )
-
-            def processlen(raw_length) -> str:
-                # Return length but always a string and empty if it was 0
-                try:
-                    raw_length = float(raw_length)
-                    if raw_length:
-                        return str(raw_length)
-                    else:
-                        return ""
-                except Exception:
-                    return str(raw_length)
-
-            consider: list[Cue] = []
-
-            found: dict[str, bool] = {}
-            pointer = self.cue
-            for safety_counter in range(1000):
-                # The logical next cue, except that __fast_forward also points to the next in sequence
-                nextname = ""
-                if pointer.next_ll:
-                    nextname = pointer.next_ll.name
-                nxt = (
-                    pointer.next_cue
-                    if not pointer.next_cue == "__schedule__"
-                    else nextname
-                ) or nextname
-
-                if pointer is not self.cue:
-                    if str(pointer.next_cue).startswith("__"):
-                        raise RuntimeError(
-                            "Found special __ cue, fast forward not possible"
-                        )
-
-                    if str(pointer.length).startswith("="):
-                        raise RuntimeError(
-                            "Found special =expression length cue, fast forward not possible"
-                        )
-
-                if processlen(pointer.length) or pointer is self.cue:
-                    consider.append(pointer)
-                    found[pointer.name] = True
-                else:
-                    break
-
-                if (nxt not in self.cues) or (nxt in found):
-                    break
-
-                pointer = self.cues[nxt]
-
-            times: dict[str, float] = {}
-
-            last = None
-
-            scheduled_count = 0
-
-            # Follow chain of next cues to get a set to consider
-            for cue in consider:
-                if processlen(cue.length).startswith("@"):
-                    scheduled_count += 1
-                    ref = datetime.datetime.now()
-                    selector = util.get_rrule_selector(
-                        processlen(cue.length)[1:], ref
-                    )
-                    a: datetime.datetime = selector.before(ref)
-
-                    # Hasn't happened yet, can't fast forward past it
-                    if not a:
-                        break
-
-                    if not a.tzinfo:
-                        a = a.astimezone()
-
-                    a2 = dt_to_ts(a)
-
-                    # We found the end time of the cue.
-                    # If that turns out to be the most recent,
-                    # We go to the one after that if it has a next,
-                    # Else just go to
-                    if cue.next_ll:
-                        times[cue.next_ll.name] = a2
-                    elif cue.next_cue in self.cues:
-                        times[cue.next_cue] = a2
-                    else:
-                        times[cue.name] = a2
-
-                    last = a2
-
-                else:
-                    if last:
-                        times[cue.name] = last + float(cue.length)
-
-            # Can't fast forward without a scheduled cue
-            if scheduled_count:
-                most_recent: tuple[float, str | None] = (0.0, None)
-
-                # Find the scheduled one that occurred most recently
-                for entry in times:
-                    if times[entry] > most_recent[0]:
-                        if times[entry] < time.time():
-                            most_recent = times[entry], entry
-                if most_recent[1]:
-                    return (most_recent[1], most_recent[0])
+            return get_schedule_jump_point(self) or ("", 0)
 
         elif cue_name == "__random__":
             x = [
@@ -1154,6 +1156,10 @@ class Group:
         :param generateEvents: Boolean indicating whether to generate events, defaults to True.
         :param cause: The cause of the cue transition, defaults to "generic".
         """
+
+        if cue == "__next__":
+            self.next_cue(cause=cause)
+            return
         # Globally raise an error if there's a big horde of cue transitions happening
         doTransitionRateLimit()
 
@@ -1205,7 +1211,19 @@ class Group:
             if not self.active:
                 return
 
+            cue, cuetime = self._parseCueName(cue)
+            cue_entered_time = cuetime or cue_entered_time
+
             if cue in self.cues:
+                if self.cues[cue].error_lockout:
+                    # Todo: we should be able to lock out default as well but
+                    # it could be a problem.
+                    if not cue == "default":
+                        raise RuntimeError(
+                            "Cue error lockout: "
+                            + str(self.cues[cue].error_lockout)
+                        )
+
                 if sendSync:
                     gn = self.mqtt_sync_features.get("syncGroup", False)
                     if gn:
@@ -1217,13 +1235,9 @@ class Group:
                         }
                         self.sendMqttMessage(topic, m)
 
-                if cue == "__stop__":
-                    self.stop()
-                    return
-
-            cue, cuetime = self._parseCueName(cue)
-
-            cue_entered_time = cuetime or cue_entered_time
+            if cue == "__stop__":
+                self.stop()
+                return
 
             if not cue:
                 return
@@ -1332,7 +1346,7 @@ class Group:
 
             # Instead we set the flag
             self.poll_again_flag = True
-            self.pushMeta(statusOnly=True)
+            self.push_to_frontend(statusOnly=True)
 
             self.preload_next_cue_sound()
             self.media_player.next(self.cues[cue])
@@ -1346,6 +1360,10 @@ class Group:
 
         if self.cue.name == "__setup__":
             self.goto_cue("default", sendSync=False)
+
+        # Suppose we manually enter a scheduled cue, we don't want it to re-enter
+        # At that time it was already scheduled
+        self.cue.schedule()
 
     def preload_next_cue_sound(self):
         # Preload the next cue's sound if we know what it is
@@ -1580,6 +1598,13 @@ class Group:
                     if x == "__rules__":
                         break
 
+                    if x not in self.cues:
+                        self.event(
+                            "script.error",
+                            f"Could not find cue {x} for cue inheritance in group {self.name}",
+                        )
+                        break
+
                     loopPrevent[x.strip()] = True
 
                     self.script_context.addBindings(self.cues[x].rules)
@@ -1710,20 +1735,25 @@ class Group:
             self.display_tag_meta[sn]["unit"] = tag.unit
         self.display_tag_meta[sn]["subtype"] = tag.subtype
 
-        self.pushMeta(keys=["displayTagMeta"])
+        self.push_to_frontend(keys=["displayTagMeta"])
 
         def f(v, t, a):
             self.display_tag_values[sn] = v
-            self.pushMeta(keys=["displayTagValues"])
+            self.push_to_frontend(keys=["displayTagValues"])
 
         tag.subscribe(f)
         self.display_tag_values[sn] = tag.value
-        self.pushMeta(keys=["displayTagValues"])
+        self.push_to_frontend(keys=["displayTagValues"])
 
         return tag, f
 
+    @property
+    def display_tags(self):
+        return self._display_tags
+
+    @display_tags.setter
     @slow_group_lock_context.object_session_entry_point
-    def set_display_tags(self, dt):
+    def display_tags(self, dt):
         dt = dt[:]
         with self.lock:
             self._nl_clear_display_tags()
@@ -1736,7 +1766,7 @@ class Group:
                     i[1] = tagpoints.normalize_tag_name(i[1])
                     # Upgrade legacy format
                     if len(i) == 2:
-                        i.append({"type": "auto"})
+                        i.append({"type": "null"})
 
                     if "type" not in i[2]:
                         i[2]["type"] = "auto"
@@ -1748,7 +1778,7 @@ class Group:
                         logger.error(
                             "Auto type tag display no longer supported"
                         )
-                        continue
+                        i[2]["type"] = "null"
 
                     t = None
 
@@ -1779,13 +1809,15 @@ class Group:
                             self.make_display_tag_subscriber(t)
                         )
                     else:
-                        raise ValueError("Bad tag type?")
+                        if not i[2]["type"] == "null":
+                            raise ValueError("Bad tag type?")
             except Exception:
                 logger.exception("Failed setting up display tags")
                 self.event("board.error", traceback.format_exc())
-            self.display_tags = dt
 
-            self.pushMeta(keys=["display_tags"])
+            if not dt == self._display_tags:
+                self._display_tags = dt
+                self.push_to_frontend(keys=["display_tags"])
 
     def _nl_clear_configured_tags(self):
         for i in self.command_tagSubscriptions:
@@ -1885,24 +1917,45 @@ class Group:
 
                 self._nl_subscribe_command_tags()
 
+    @property
+    def slideshow_transform(self):
+        return self._slideshow_transform
+
+    @slideshow_transform.setter
+    def slideshow_transform(self, value: dict[str, float]):
+        if self._slideshow_transform != value:
+            value = value.copy()
+            for i in value:
+                value[i] = float(value[i])
+
+            # Just to validate
+            json.dumps(value)
+
+            self._slideshow_transform = value
+            self.push_to_frontend(keys=["slideshow_transform"])
+            self.media_link_socket.send(
+                ["transform", self._slideshow_transform]
+            )
+
     @slow_group_lock_context.object_session_entry_point
-    def next_cue(self, t=None, cause="generic"):
+    def next_cue(self, t=None, cause="generic", force_in_order=False):
         cue = self.cue
         if not cue:
             return
 
         with self.lock:
-            if cue.next_cue and (
+            if (not cue.next_cue) or force_in_order:
+                x = self.getDefaultNext()
+                if x:
+                    self.goto_cue(x, t)
+
+            elif cue.next_cue and (
                 (self.evalExpr(cue.next_cue).split("?")[0] in self.cues)
                 or cue.next_cue.startswith("__")
                 or "|" in cue.next_cue
                 or "*" in cue.next_cue
             ):
                 self.goto_cue(cue.next_cue, t, cause=cause)
-            elif not cue.next_cue:
-                x = self.getDefaultNext()
-                if x:
-                    self.goto_cue(x, t)
 
     @slow_group_lock_context.object_session_entry_point
     def prev_cue(self, cause="generic"):
@@ -1921,8 +1974,6 @@ class Group:
             if self.active:
                 return
 
-            self.set_display_tags(self.display_tags)
-
             self.active = True
 
             if "__setup__" in self.cues:
@@ -1934,7 +1985,7 @@ class Group:
 
             self.entered_cue = time.time()
 
-            self.setBlend(self.blend)
+            self.refresh_blend()
             self.metadata_already_pushed_by = {}
             self.started = time.time()
 
@@ -1976,7 +2027,7 @@ class Group:
         else:
             self.event("board.mqtt.disconnect")
 
-        self.pushMeta(statusOnly=True)
+        self.push_to_frontend(statusOnly=True)
 
     @slow_group_lock_context.object_session_entry_point
     @beartype
@@ -2123,7 +2174,7 @@ class Group:
         elif self.tapSequence:
             # Just change entered_cue to match the phase.
             self.entered_cue = x
-        self.pushMeta(keys={"bpm"})
+        self.push_to_frontend(keys={"bpm"})
 
     @slow_group_lock_context.object_session_entry_point
     def stop(self):
@@ -2245,7 +2296,7 @@ class Group:
 
         self.music_visualizations = s2
         self.media_link.sendVisualizations()
-        self.pushMeta(keys={"music_visualizations"})
+        self.push_to_frontend(keys={"music_visualizations"})
 
     def setAlpha(self, val: float, sd: bool = False):
         val = min(1, max(0, val))
@@ -2268,42 +2319,59 @@ class Group:
         self.alphaTagClaim.set(val, annotation="GroupObject")
         if sd:
             self.default_alpha = val
-            self.pushMeta(keys={"alpha", "default_alpha"})
+            self.push_to_frontend(keys={"alpha", "default_alpha"})
         else:
-            self.pushMeta(keys={"alpha", "default_alpha"})
+            self.push_to_frontend(keys={"alpha", "default_alpha"})
         self.poll_again_flag = True
         self.lighting_manager.rerender()
 
         self.media_link_socket.send(["volume", val])
 
-    def add_cue(self, name: str, **kw: Any):
-        return Cue(self, name, **kw)
+    def add_cue(self, name: str, after: int | None = None, **kw: Any):
+        return Cue(self, name, insert_after_number=after, **kw)
 
-    def setBlend(self, blend: str):
+    @property
+    def blend(self):
+        return self._blend
+
+    @blend.setter
+    def blend(self, blend: str):
         disallow_special(blend)
         blend = str(blend)[:256]
-        self.blend = blend
-        self.lighting_manager.setBlend(blend)
+        # if blend not in blendmodes.blendmodes:
+        #     raise ValueError(f"Invalid blend mode: {blend}")
+        if blend != self._blend:
+            self._blend = blend
+            self.refresh_blend()
+
+    def refresh_blend(self):
+        self.lighting_manager.setBlend(self.blend)
         self.poll_again_flag = True
         self.metadata_already_pushed_by = {}
 
-    def setBlendArg(self, key: str, val: float | bool | str):
-        disallow_special(key, "_")
-        # serializableness check
-        json.dumps(val)
-        self.lighting_manager.setBlendArg(key, val)
+    @property
+    def blend_args(self):
+        return self._blend_args
 
-        if val is None:
-            del self.blend_args[key]
-        else:
-            try:
-                val = float(val)
-            except Exception:
-                pass
-            self.blend_args[key] = val
+    @blend_args.setter
+    def blend_args(self, data: dict[str, Any]):
+        for key, val in data.items():
+            disallow_special(key, "_")
+            # serializableness check
+            json.dumps(val)
+            self.lighting_manager.setBlendArg(key, val)
 
-        self.poll_again_flag = True
-        self.metadata_already_pushed_by = {}
+            if val is None:
+                del self._blend_args[key]
+            else:
+                try:
+                    val = float(val)
+                except Exception:
+                    pass
+                self._blend_args[key] = val
+
+            self.poll_again_flag = True
+            self.metadata_already_pushed_by = {}
 
     def poll(self, force_repaint: bool = False):
         """
@@ -2472,4 +2540,4 @@ class Group:
                 # For blend modes that don't like it when you
                 # change the list of values without resetting
                 if reset:
-                    self.setBlend(self.blend)
+                    self.refresh_blend()

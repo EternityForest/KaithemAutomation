@@ -22,7 +22,7 @@ It takes a set of action button slots that get passed "filename"
                         <th>File</th>
                         <th>Action</th>
                     </tr>
-                    <tr v-for="i in soundsearchresults">
+                    <tr v-for="i in soundsearchresults" v-bind:key="i[1]">
                         <td v-bind:title="'Found in' + i[0]">{{ i[1] }}</td>
                         <td>
                             <slot :filename="soundfilesdir + i[1]" :relfilename="i[1]">
@@ -38,7 +38,7 @@ It takes a set of action button slots that get passed "filename"
                         target="_blank">{{ soundfilesdir }}</a>
                 </h4>
 
-                <ul class="w-full">
+                <ul class="w-full noselect">
                     <li v-on:click="setSoundfileDir('')"><a>&ltTOP DIRECTORY&gt</a></li>
                     <li v-on:click="setSoundfileDir(soundfilesdir)">
                         <a><i class="mdi mdi-refresh"></i>Refresh</a>
@@ -47,8 +47,11 @@ It takes a set of action button slots that get passed "filename"
                         v-on:click="setSoundfileDir(((soundfilesdir.match(/(.*)[\/\\]/)[1] || '').match(/(.*)[\/\\]/)[1] || '') + '/')">
                         <a>..</a>
                     </li>
-                    <li v-on:click="setSoundfileDir(i[0])" v-for="i in soundfileslisting[0]">
-                        <a>{{i[0] }}</a>
+                    <li v-on:click="setSoundfileDir(i[0])" 
+                    v-for="i in soundfileslisting[0]"
+                    v-bind:key="i[0]"
+                    >
+                        <a>{{ i[0] }}</a>
                         <slot v-if="selectfolders" :filename="i[0]" :relfilename="i[0].split('/').pop()">
                         </slot>
                     </li>
@@ -62,8 +65,15 @@ It takes a set of action button slots that get passed "filename"
 
                         </tr>
                     </thead>
-                    <tr v-for="i of soundfileslisting[1]">
-                        <td class="w-12rem">{{ i[0] }}</td>
+                    <tr v-for="i of soundfileslisting[1]"
+                    v-bind:key="i[0]"
+                    >
+                        <td class="w-12rem">
+
+                            <header>{{ i[0] }}</header>
+                            <img :src="'/chandler/file_thumbnail?file=' + encodeURIComponent(soundfilesdir + i[0])"
+                                style="max-height: 3rem; max-width: 5rem;">
+                        </td>
                         <td>
                             <slot :filename="soundfilesdir + i[0]" :relfilename="i[1]">
                             </slot>
@@ -91,29 +101,29 @@ var filebrowserdata = {
 
 
     'doSoundSearch': function (s) {
-        window.api_link.send(["searchsounds", s])
+        globalThis.api_link.send(["searchsounds", s])
     },
     'setSoundfileDir': function (i) {
 
-        if (!((i == '') | (i[0] == '/'))) {
-            this.soundfilesdir += i;
+        if ((i == '') | (i[0] == '/')) {
+            this.soundfilesdir = i;
         }
         else {
-            this.soundfilesdir = i;
+            this.soundfilesdir += i;
         }
         this.soundfileslisting = [
             [],
             []
         ]
-        window.api_link.send(['listsoundfolder', i])
+        globalThis.api_link.send(['listsoundfolder', i])
     },
 }
 
-module.exports = {
+export default {
     template: '#mediabrowser',
     //I is a data object having u,ch, and v, the universe channel and value.
     //Chinfo is the channel info list from the fixtues that you get with channelInfoForUniverseChannel
-    props: ['no_edit', 'select_folder'],
+    props: ['no_edit', 'selectfolders'],
     data: function () {
         function onsoundfolderlisting(e) {
             const v = e.data
@@ -123,7 +133,7 @@ module.exports = {
         }
         this.listener1 = onsoundfolderlisting.bind(this)
 
-        window.addEventListener('onsoundfolderlisting', this.listener1)
+        globalThis.addEventListener('onsoundfolderlisting', this.listener1)
         function onsoundsearchresults(e) {
             const v = e.data
             console.log(v)
@@ -134,14 +144,14 @@ module.exports = {
         }
         this.listener2 = onsoundsearchresults.bind(this)
 
-        window.addEventListener('onsoundsearchresults', this.listener2)
+        globalThis.addEventListener('onsoundsearchresults', this.listener2)
 
         return (filebrowserdata)
     },
 
-    destroyed: function () {
-        window.removeEventListener('onsoundfolderlisting', this.listener1)
-        window.removeEventListener('onsoundsearchresults', this.listener2)
+    unmounted: function () {
+        globalThis.removeEventListener('onsoundfolderlisting', this.listener1)
+        globalThis.removeEventListener('onsoundsearchresults', this.listener2)
     }
 }
 

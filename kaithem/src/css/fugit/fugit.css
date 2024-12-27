@@ -12,7 +12,7 @@
   --graphical-fg: var(--phosphor-color);
   --accent-color: color-mix(in srgb, var(--phosphor-color) 50%, rgb(255 155 0));
   --fg: var(--phosphor-color);
-  --box-bg: #41401975;
+  --box-bg: #22220df5;
   --bg: linear-gradient(#4b3700bd 1px, transparent 1px), linear-gradient(to right, #4b3700ab 1px, #000000 1px);
   --main-font: 'ModernDos';
 
@@ -40,7 +40,7 @@ a {
 
 
 html {
-  opacity: 0.8;
+  opacity: 0.95;
   background-size: 20px 20px;
   min-height: 100vh;
   padding: 0px;
@@ -195,7 +195,7 @@ header {
 
 
 .highlight,
-.highlight * {
+.highlight *:not(i, span, b, small, a) {
   text-shadow: none;
   font-weight: bolder;
   color: var(--black-1) !important;

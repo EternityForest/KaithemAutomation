@@ -29,9 +29,9 @@ else:
     extraUrlStuff =''
 %>
 <title>${normalizednormalizedTagName|h}</title>
-<script type="module" src="/static/js/widget.mjs?cache_version=452dc529-8f57-41e0-8fb3-c485ce1dfd61"></script>
+<script type="module" src="/static/js/widget.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0"></script>
 
-<script type="module" src="/static/js/picodash.mjs"></script>
+<script type="module" src="/static/js/picodash.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0"></script>
 
 <h2><a href="/tagpoints/${extraUrlStuff}">(back)</a><a href="/tagpoints/${normalizednormalizedTagName|u}?show_advanced=y">(Advanced View)</a> Tag Point: <small>${normalizednormalizedTagName}</small></h2>
 <div class="window paper">
@@ -196,31 +196,6 @@ else:
 %endif
 </tr>
 </table>
-
-
-
-<details>
-<summary><h3>WebAPI exposure</h3></summary>
-<div class="help">
-
-    <p>This section allows you to directly expose tags via the WebSockets API, for use in places like the integratedFreeBoard Dashboard creator. </p>
-
-    <p>Empty read perms disable exposing the tag, unless it is exposed via code.
-        Any values set here override those in code, blank values default to the one set in code.
-        These settings control access to the tag in the FreeBoard dashboard creator</p>
-
-<p>At least one read permisson has to be defined to enable the api, even if there are write permissions, so write-only tags are not possible. Empty fields disable exposure, unless settings
-    are iunherited from runtime
-</p>
-
-<p>Permissions are a comma separated list, The user must have all of them</p>
-
-<p>Tags can be exposed in code with tag.expose(), but config overrides runtime on a per-field basis.</p>
-
-<>To un-expose something wth an exposed runtime config, use the special permission __never__ to disallow all users.</p>
-</div>
-
-</details>
 
 <h3>Alerting</h3>
 

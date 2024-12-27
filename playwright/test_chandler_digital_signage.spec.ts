@@ -36,7 +36,7 @@ test('test', async ({ page }) => {
 
     await page.getByRole('link', { name: '󱒕 Modules' }).click();
     await page.getByRole('link', { name: 'test_digital_signage' }).click();
-    await page.getByRole('link', { name: '󰏬 Editor' }).click();
+    await page.getByRole('link', { name: '󰏬 Edit' }).click();
 
 
     await page.getByPlaceholder('New group name').dblclick();

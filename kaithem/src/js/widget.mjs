@@ -6,7 +6,7 @@ try { globalThis.kaithemapi } catch { globalThis.kaithemapi = undefined }
 if (globalThis.kaithemapi == undefined) {
 
 	var KaithemWidgetApiSnackbar = function (m, d) {
-		picodash.snackbar.createSnackbar(m, (d||10)*1000);
+		picodash.snackbar.createSnackbar(m, (d || 10) * 1000);
 	}
 
 	globalThis.kaithemapi = function () {
@@ -172,6 +172,7 @@ if (globalThis.kaithemapi == undefined) {
 
 			can_show_error: 1,
 			usual_delay: 0,
+			last_connected: 0,
 			reconnect_timeout: 1500,
 
 			reconnector: null,
@@ -184,6 +185,14 @@ if (globalThis.kaithemapi == undefined) {
 				this.connection = new WebSocket(window.location.protocol.replace("http", "ws") + "//" + window.location.host + '/widgets/ws');
 
 				this.connection.onclose = function (e) {
+
+
+					picodash.snackbar.createSnackbar("Lost connection to server", {
+						timeout: 5000,
+						accent: 'error'
+					});
+
+
 					apiobj.lastDisconnect = Date.now();
 					console.log(e);
 					if (apiobj.reconnector) {
@@ -259,6 +268,21 @@ if (globalThis.kaithemapi == undefined) {
 					}
 				}
 				this.connection.onopen = function (e) {
+
+					try {
+						if (apiobj.last_connected) {
+							picodash.snackbar.createSnackbar("Reconnected", {
+								timeout: 5000,
+								accent: 'success'
+							});
+						}
+					}
+					catch (e) {
+						console.log(e)
+					}
+
+					apiobj.last_connected = Date.now();
+
 					// Do not send very old messages on reconnect
 					if (apiobj.lastDisconnect < (Date.now() - 5000)) {
 						apiobj.toSend = [];
@@ -328,8 +352,8 @@ if (globalThis.kaithemapi == undefined) {
 	globalThis.kaithemapi = globalThis.kaithemapi()
 
 	if (!window.onerror) {
-		var globalPageErrorHandler = function (msg, url, line) {
-			globalThis.kaithemapi.sendErrorMessage(url + '\n' + line + "\n\n" + msg)
+		var globalPageErrorHandler = function (msg, url, line, col, tb) {
+			globalThis.kaithemapi.sendErrorMessage(url + '\n' + line + "\n\n" + msg + "\n\n" + tb);
 		}
 		window.addEventListener("unhandledrejection", event => {
 			globalThis.kaithemapi.sendErrorMessage(`UNHANDLED PROMISE REJECTION: ${event.reason}`);
@@ -408,100 +432,109 @@ if (globalThis.kaithemapi == undefined) {
 }
 
 class APIWidget {
-    constructor(uuid) {
-        this.uuid = uuid
-        this.value = "Waiting..."
-        this.clean = 0;
-        this._maxsyncdelay = 250
-        this.timeSyncInterval = 120 * 1000;
+	constructor(uuid, handler, defer_connect) {
+		this.uuid = uuid
+		this.value = "Waiting..."
+		this.clean = 0;
+		this._maxsyncdelay = 250
+		this.timeSyncInterval = 120 * 1000;
 
 		this._timeref = null;
 
-        kaithemapi.subscribe("_ws_timesync_channel", this.onTimeResponse)
-        kaithemapi.subscribe(this.uuid, this._upd.bind(this));
-        setTimeout(this.getTime.bind(this), 500)
-    }
+		if (handler) {
+			this.upd = handler;
+		}
 
-    onTimeResponse(val) {
-        {
-            if (Math.abs(val[0] - this._txtime) < 0.1) {
-                {
-                    var t = performance.now();
-                    if (t - this._txtime < this._maxsyncdelay) {
-                        {
-                            this._timeref = [(t + this._txtime) / 2, val[1]]
+		if (!defer_connect) {
+			this.connect();
+		}
+	}
 
-                            this._maxsyncdelay = (t - this._txtime) * 1.2;
-                        }
-                    }
-                    else {
-                        {
+	connect() {
+		kaithemapi.subscribe("_ws_timesync_channel", this.onTimeResponse)
+		kaithemapi.subscribe(this.uuid, this._upd.bind(this));
+		setTimeout(this.getTime.bind(this), 500)
+	}
+	onTimeResponse(val) {
+		{
+			if (Math.abs(val[0] - this._txtime) < 0.1) {
+				{
+					var t = performance.now();
+					if (t - this._txtime < this._maxsyncdelay) {
+						{
+							this._timeref = [(t + this._txtime) / 2, val[1]]
 
-                            this._maxsyncdelay = this._maxsyncdelay * 2;
-                        }
-                    }
-                }
-            }
-        }
-    }
+							this._maxsyncdelay = (t - this._txtime) * 1.2;
+						}
+					}
+					else {
+						{
 
-    _upd(val) {
-        {
-            if (this.clean == 0) {
-                {
-                    this.value = val;
-                }
-            }
-            else {
-                {
-                    this.clean -= 1;
-                }
-            }
-            this.upd(val)
-        }
-    }
-
-    upd(val) {
-        {
-        }
-    }
-    getTime() {
-        {
-            var x = performance.now()
-            this._txtime = x;
-            kaithemapi.sendValue("_ws_timesync_channel", x)
-        }
-    }
-
-
-    now(val) {
-        {
-            var t = performance.now()
-            if (t - this._txtime > this.timeSyncInterval) {
-                {
-                    this.getTime();
-                }
+							this._maxsyncdelay = this._maxsyncdelay * 2;
+						}
+					}
+				}
 			}
-			if(this._timeref == null){
+		}
+	}
+
+	_upd(val) {
+		{
+			if (this.clean == 0) {
+				{
+					this.value = val;
+				}
+			}
+			else {
+				{
+					this.clean -= 1;
+				}
+			}
+			this.upd(val)
+		}
+	}
+
+	upd(val) {
+		{
+		}
+	}
+	getTime() {
+		{
+			var x = performance.now()
+			this._txtime = x;
+			kaithemapi.sendValue("_ws_timesync_channel", x)
+		}
+	}
+
+
+	now(val) {
+		{
+			var t = performance.now()
+			if (t - this._txtime > this.timeSyncInterval) {
+				{
+					this.getTime();
+				}
+			}
+			if (this._timeref == null) {
 				return Date.now();
 			}
-            return ((t - this._timeref[0]) + this._timeref[1])
-        }
-    }
+			return ((t - this._timeref[0]) + this._timeref[1])
+		}
+	}
 
-    set(val) {
-        {
-            kaithemapi.setValue(this.uuid, val);
-            this.clean = 2;
-        }
-    }
+	set(val) {
+		{
+			kaithemapi.setValue(this.uuid, val);
+			this.clean = 2;
+		}
+	}
 
-    send(val) {
-        {
-            kaithemapi.sendValue(this.uuid, val);
-            this.clean = 2;
-        }
-    }
+	send(val) {
+		{
+			kaithemapi.sendValue(this.uuid, val);
+			this.clean = 2;
+		}
+	}
 }
 
 let kaithemapi = globalThis.kaithemapi

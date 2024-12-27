@@ -8,10 +8,22 @@ from typing import TYPE_CHECKING
 from icemedia import sound_player
 from tinytag import TinyTag
 
+from .cue import Cue, add_cue_property_update_handler
 from .soundmanager import fadeSound, play_sound, stop_sound
 
 if TYPE_CHECKING:
     from . import groups
+
+
+def on_cue_volume_change(cue: Cue, key: str, value: float):
+    """Setting the alpha again will cause it to take effect"""
+    if cue.is_active:
+        g = cue.getGroup()
+        if g:
+            g.setAlpha(g.alpha)
+
+
+add_cue_property_update_handler("cue_volume", on_cue_volume_change)
 
 
 class GroupMediaPlayer:

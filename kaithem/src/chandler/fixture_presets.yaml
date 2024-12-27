@@ -1,0 +1,289 @@
+Aqua:
+  category: teal
+  html_color: '#7accff'
+  labelImageTimestamp: '17327521057.82068'
+  label_image: img/16x9/water-blue-pool-background.avif
+  values:
+    blue: 152
+    dim: 255
+    green: 255
+    red: 0
+Bastard Amber:
+  category: amber
+  html_color: '#ffdb9e'
+  labelImageTimestamp: '17327521057.75068'
+  label_image: img/16x9/beach-sunset.avif
+  values:
+    blue: 5
+    dim: 255
+    green: 70
+    red: 255
+Blackout:
+  category: neutral
+  html_color: '#080707'
+  label_image: img/16x9/abstract-stars.avif
+  values:
+    blue: 0
+    dim: 0
+    green: 0
+    red: 0
+Broadway Pink:
+  category: violet
+  html_color: '#ff0088'
+  label_image: img/16x9/pink-glitter.avif
+  values:
+    blue: 22
+    dim: 255
+    green: 7
+    red: 255
+Candle Amber:
+  category: amber
+  html_color: '#fffdc7'
+  label_image: img/16x9/old-lantern.avif
+  values:
+    blue: 16
+    dim: 255
+    green: 142
+    red: 255
+    white: 0
+Cinnamon:
+  category: amber
+  html_color: '#ff4d00'
+  label_image: img/16x9/chili.avif
+  values:
+    blue: 0
+    dim: 255
+    green: 11
+    red: 255
+    white: 0
+Cool White:
+  category: neutral
+  html_color: '#f5fbff'
+  label_image: img/16x9/winter-wald-schnee-baume.avif
+  values:
+    blue: 154
+    dim: 255
+    green: 194
+    red: 214
+    white: 0
+Cool White@rgbw:
+  category: neutral
+  html_color: '#f0fdff'
+  values:
+    blue: 117
+    dim: 255
+    green: 147
+    red: 195
+    white: 255
+Amber:
+  category: amber
+  html_color: '#f49b1f'
+  label_image: img/16x9/burning-fire.avif
+  values:
+    blue: 0
+    dim: 255
+    green: 37
+    red: 255
+Lace Pink:
+  category: violet
+  html_color: '#ffd1e5'
+  label_image: img/16x9/pink-rhododendron.avif
+  values:
+    blue: 67
+    dim: 255
+    green: 99
+    red: 255
+    white: 0
+Lavender:
+  category: violet
+  html_color: '#ac75ff'
+  label_image: img/16x9/pink-lavender-background.avif
+  values:
+    blue: 255
+    dim: 255
+    green: 22
+    red: 82
+Max White:
+  category: neutral
+  html_color: '#e5f1ff'
+  labelImageTimestamp: ''
+  label_image: img/16x9/white-rose.avif
+  values:
+    blue: '255'
+    dim: 255
+    green: '255'
+    red: 255
+Neutral White:
+  category: neutral
+  html_color: '#ffffff'
+  label_image: img/16x9/white-rose.avif
+  values:
+    blue: 64
+    dim: 255
+    green: 194
+    red: 255
+    white: 0
+Neutral White@rgbw:
+  category: neutral
+  html_color: '#ffffff'
+  values:
+    blue: 34
+    dim: 255
+    green: 186
+    red: 255
+    white: 255
+Pale Blue:
+  category: teal
+  html_color: '#bdddff'
+  label_image: img/16x9/plumbago-auriculata.avif
+  values:
+    blue: 255
+    dim: 255
+    green: 204
+    red: 136
+    white: 0
+Pale Green:
+  category: green
+  html_color: '#a5ffa3'
+  label_image: img/16x9/pale-green-yellow-flower.avif
+  values:
+    blue: 37
+    dim: 255
+    green: 255
+    red: 140
+    white: 0
+Pale Yellow:
+  category: amber
+  html_color: '#fdff75'
+  label_image: img/16x9/awesome-yellow-flower.avif
+  values:
+    blue: 9
+    dim: 255
+    green: 202
+    red: 255
+    white: 0
+Pumpkin:
+  html_color: '#ffa200'
+  labelImageTimestamp: ''
+  label_image: img/16x9/pumpkins.avif
+  values:
+    blue: 0
+    dim: 255
+    green: 71
+    red: 255
+    white: 0
+Pure Blue:
+  category: teal
+  html_color: '#0033ff'
+  labelImageTimestamp: '17193754991.475132'
+  label_image: img/16x9/underwater.avif
+  values:
+    blue: 255
+    dim: 255
+    green: 0
+    red: 0
+Pure Green:
+  category: green
+  html_color: '#00ff40'
+  label_image: img/16x9/beech-and-ferns.avif
+  values:
+    blue: 0
+    dim: 255
+    green: 255
+    red: 0
+Pure Red:
+  category: amber
+  html_color: '#ff0000'
+  label_image: img/16x9/chili.avif
+  values:
+    blue: 0
+    dim: 255
+    green: 0
+    red: 255
+Seafoam:
+  category: green
+  html_color: '#00ff88'
+  label_image: img/16x9/miami-blue-green-water.avif
+  values:
+    blue: 21
+    dim: 255
+    green: 255
+    red: 0
+    white: 0
+Surprise Pink:
+  category: violet
+  html_color: '#e8d8e9'
+  label_image: img/16x9/pink-rhododendron.avif
+  values:
+    blue: 255
+    dim: 255
+    green: 96
+    red: 255
+Teal:
+  category: teal
+  html_color: '#00fffb'
+  label_image: img/16x9/water-blue-pool-background.avif
+  values:
+    blue: 67
+    dim: 255
+    green: 255
+    red: 0
+    white: 0
+Violet:
+  category: violet
+  html_color: '#ff00dd'
+  label_image: img/16x9/pink-lavender-background.avif
+  values:
+    blue: 168
+    dim: 255
+    green: 0
+    red: 255
+    white: 0
+Dusk Blue:
+  category: teal
+  html_color: '#6f5cff'
+  label_image: img/16x9/sky-at-night.avif
+  values:
+    blue: 255
+    dim: 255
+    green: 38
+    red: 45
+    white: 0
+Warm Green:
+  category: green
+  html_color: '#c6ff5c'
+  label_image: img/16x9/japanese-forest-grass.avif
+  values:
+    blue: 6
+    dim: 255
+    green: 255
+    red: 70
+Warm White:
+  category: neutral
+  html_color: '#fffedb'
+  label_image: img/16x9/old-bulb-on.avif
+  values:
+    blue: 32
+    dim: 255
+    green: 170
+    red: 255
+    white: 0
+Warm White@rgbw:
+  category: neutral
+  html_color: '#fff5d1'
+  values:
+    blue: 0
+    dim: 255
+    green: 165
+    red: 255
+    white: 255
+Yellow:
+  category: amber
+  html_color: '#fbff00'
+  label_image: img/16x9/awesome-yellow-flower.avif
+  values:
+    blue: 0
+    dim: 255
+    green: 179
+    red: 255
+    white: 0

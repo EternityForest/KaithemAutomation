@@ -1,0 +1,54 @@
+<div class="app-button app-icon w-sm-half">
+    {% set img=app.get_image() %}
+    {% if img %}
+    <img src="{{img}}" alt="{{app.title}}">
+    {% endif %}
+
+    {% if not app.html_color %}
+    <div class="label" style="z-index: -1; opacity: 1;">
+    </div>
+    {% endif %}
+
+    <header class="label flex-row"
+        style="background-color: {{app.html_color or 'transparent'}}}">
+        <div class="grow">
+            <a href="{{app.url}}">
+                {{ app.title }}
+            </a>
+        </div>
+        <button type="button" aria-label="Extras"
+            popovertarget="extras-{{app.id}}" popovertargetaction="close">
+            <span class="mdi mdi-menu"></span>
+        </button>
+    </header>
+
+    <div class="label-bottom"
+        :style="{ 'background-color': ps[1]?.html_color || 'transparent' }">
+        <small>
+            {{ app.footer }}
+        </small>
+    </div>
+    <div class="sheen"></div>
+
+    <div popover id="extras-{{app.id}}" class="popover card paper popup">
+        <header>
+            <div class="tool-bar">
+                <h3>{{ app.title }}</h3>
+                <button type="button" aria-label="Close"
+                    class="nogrow"
+                    popovertarget="extras-{{app.id}}"
+                    popoveraction="hide">
+                    <span class="mdi mdi-close"></span>
+                </button>
+            </div>
+        </header>
+        <div>
+            <ul>
+                {% for link in app.links %}
+                <li>
+                    <a href="{{link[1]}}">{{link[0]}}</a>
+                </li>
+                {% endfor %}
+        </div>
+    </div>
+</div>

@@ -25,7 +25,9 @@
                 <th>Battery</th>
                 <th>Action</th>
             </tr>
-            <tr v-for="v, i of telemetry" :class="{ 'error': v.ts < (unixtime - 70) }">
+            <tr v-for="v, i of telemetry" 
+            v-bind:key="v.id+i"
+            :class="{ 'error': v.ts < (unixtime - 70) }">
                 <td>{{ i }}</td>
                 <td>{{ v.name }}</td>
                 <td :class="{ 'error': v.status.includes('FAIL') }">
@@ -47,7 +49,7 @@
 
 
 <script>
-module.exports = {
+export default {
     template: '#telemetry',
     //I is a data object having u,ch, and v, the universe channel and value.
     //Chinfo is the channel info list from the fixtues that you get with channelInfoForUniverseChannel
@@ -58,7 +60,18 @@ module.exports = {
     methods: {
         formatTime: function (ts) {
             return new Date(ts * 1000).toLocaleString();
-        }
+        },
+        'mediaLinkCommand': function (sc, linkid, data) {
+
+            globalThis.api_link.send(["mediaLinkCommand", sc, linkid, data])
+        },
+
+        'promptRenameDisplay': function (group, link) {
+            var x = prompt("Name?")
+            if (x) {
+                globalThis.api_link.send(["mediaLinkCommand", group, link, ['setFriendlyName', x]])
+            }
+        },
     }
 }
 
