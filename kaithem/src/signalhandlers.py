@@ -36,7 +36,7 @@ signal.signal(signal.SIGUSR1, dumpThreads)
 
 
 def stop(*args):
-    shutdown.stop()
+    shutdown.shutdown()
 
 
 # signal.signal(signal.SIGINT, stop)
