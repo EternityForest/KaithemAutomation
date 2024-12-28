@@ -1,9 +1,16 @@
 from scullery import messagebus
 
+from kaithem.src import shutdown as shutdownapi
+
 _shutdown_handler_refs = []
 
 # True if the system is shutting down
-shutdown = False
+shutdown: bool = False
+
+
+def shutdown_now():
+    """Shut down the system now"""
+    shutdownapi.shutdown()
 
 
 def at_shutdown(f):

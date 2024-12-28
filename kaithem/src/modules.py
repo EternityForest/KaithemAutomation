@@ -802,7 +802,12 @@ def handleResourceChange(
         if t == "module-description":
             pass
         else:
-            if not newly_added:
-                additionalTypes[t].on_update(module, resource, resourceobj)
+            if t not in additionalTypes:
+                logger.warning(
+                    f"Unknown resource type {t} for resource {resource} in module {module}"
+                )
             else:
-                additionalTypes[t].on_load(module, resource, resourceobj)
+                if not newly_added:
+                    additionalTypes[t].on_update(module, resource, resourceobj)
+                else:
+                    additionalTypes[t].on_load(module, resource, resourceobj)

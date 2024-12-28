@@ -1035,6 +1035,13 @@ let unixtime = ref(Date.now() / 1000);
 let sys_alerts = ref({});
 
 function handleCueInfo(id, cue) {
+  if (cue == null) {
+    if (cuemeta.value[id] != undefined) {
+      delete cuemeta.value[id];
+    }
+    return;
+  }
+
   //Make an empty list of cues if it's not there yet
   if (groupcues.value[cue.group] == undefined) {
     old_vue_set(groupcues.value, cue.group, {});
@@ -1157,6 +1164,14 @@ function handleServerMessage(v) {
       gettingCueDataPromises[v[1]]();
       delete gettingCueDataPromises[v[1]];
     }
+
+    if (v[2] == null) {
+      if (cuevals.value[v[1]]) {
+        old_vue_delete(cuevals.value, v[1]);
+      }
+      return;
+    }
+
     let d = {};
     old_vue_set(cuevals.value, v[1], d);
 

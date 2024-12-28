@@ -1,11 +1,9 @@
 import os
 import signal
-import threading
 import time
 import traceback
 
-import icemedia.sound_player
-from scullery import messagebus
+from . import shutdown
 
 
 def dumpThreads(*a):
@@ -38,13 +36,7 @@ signal.signal(signal.SIGUSR1, dumpThreads)
 
 
 def stop(*args):
-    threading.Thread(
-        target=icemedia.sound_player.stop_all_sounds, daemon=True
-    ).start()
-    messagebus.post_message(
-        "/system/notifications/shutdown", "Recieved SIGINT or SIGTERM."
-    )
-    messagebus.post_message("/system/shutdown", "Recieved SIGINT or SIGTERM.")
+    shutdown.stop()
 
 
 # signal.signal(signal.SIGINT, stop)

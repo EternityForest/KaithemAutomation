@@ -8,14 +8,16 @@ name = "kaithem"
 version = "0.90.0"
 description = "Home/commercial automation server"
 license = "GPL-3.0-only"
-packages = [{ include = "kaithem" }, { include = "kaithem_cli" }, { include = "kaithem_scripts" }]
+packages = [
+    { include = "kaithem" },
+    { include = "kaithem_cli" },
+    { include = "kaithem_scripts" },
+]
 authors = ["Daniel Dunn"]
 readme = "README.md"
 
 # These are dev documents that don't need to be in the final package
-exclude = [
-    "*.dev.excalidraw.svg"
-]
+exclude = ["*.dev.excalidraw.svg"]
 
 
 [tool.poetry.group.dev.dependencies]
@@ -109,7 +111,7 @@ msgpack-types = "^0.2.0"
 niquests = "^3.6.3"
 
 quart = "^0.19.6"
-hypercorn = {extras = ["uvloop"], version = "^0.17.3"}
+hypercorn = { extras = ["uvloop"], version = "^0.17.3" }
 structlog = "^24.1.0"
 rich = "^13.7.1"
 colorama = "^0.4.6"
@@ -184,3 +186,7 @@ aiohappyeyeballs = ">0.0.1"
 
 # Apache Software License 2.0
 async-interrupt = ">0.0.1"
+
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"

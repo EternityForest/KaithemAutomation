@@ -4,22 +4,16 @@ from kaithem.src import modules, modules_state, util
 from kaithem.src.modules_state import ResourceDictType
 
 
-def filename_for_resource(module: str, resource: str) -> str:
+def filename_for_file_resource(module: str, resource: str) -> str:
     """Given the module and resource for a file, return the actual file for a file resource, or
     file data dir for directory resource"""
 
-    return modules_state.filename_for_resource(module, resource)
+    return modules_state.filename_for_file_resource(module, resource)
 
 
-def relative_file_resource_dir_for_resource(module: str, resource: str) -> str:
-    """File resources are physically stored separately, but every resource still nominally
-    has a place in hte file resources directory, even though it is not actually there.
-
-    For a resource foo/baz in module bar, this returns BAR_DIR/__filedata__/foo/
-    """
-
-    rf = filename_for_resource(module, resource)
-    return os.path.dirname(rf)
+def filename_for_resource(module: str, resource: str) -> str:
+    """DEPRECATED: use filename_for_file_resource instead"""
+    return filename_for_file_resource(module, resource)
 
 
 def admin_url_for_file_resource(module: str, resource: str) -> str:
@@ -83,6 +77,6 @@ def resolve_file_resource(relative_path: str) -> str | None:
     """Given a name of a file resource, return the full path to it,
     if it can be found in any module"""
     for i in modules_state.ActiveModules:
-        path = modules_state.filename_for_resource(i, relative_path)
+        path = modules_state.filename_for_file_resource(i, relative_path)
         if os.path.isfile(path):
             return path

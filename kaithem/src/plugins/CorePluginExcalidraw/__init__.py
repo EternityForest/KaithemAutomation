@@ -10,7 +10,7 @@ import quart.utils
 
 from kaithem.api.modules import (
     admin_url_for_file_resource,
-    filename_for_resource,
+    filename_for_file_resource,
     scan_file_resources,
 )
 from kaithem.api.web import (
@@ -38,7 +38,7 @@ async def excalidraw_quick_save():
     kw = quart.request.args
 
     for i in files:
-        fn = filename_for_resource(kw["module"], kw["resource"])
+        fn = filename_for_file_resource(kw["module"], kw["resource"])
 
         os.makedirs(os.path.dirname(fn), exist_ok=True)
 
@@ -60,7 +60,7 @@ async def excalidraw_edit():
         url = admin_url_for_file_resource(
             quart.request.args["module"], quart.request.args["resource"]
         )
-        fn = filename_for_resource(
+        fn = filename_for_file_resource(
             quart.request.args["module"], quart.request.args["resource"]
         )
         if not os.path.isfile(fn):

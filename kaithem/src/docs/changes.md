@@ -20,6 +20,7 @@ Change Log
 - :bug: Fix issues if inherit_rules is a nonexistant cue.
 - :bug: Fix default cue not starting up properly
 - :bug: Fix chandler board leaving behind fixture assignments when deleted
+- :coffin: filename_for_resource is deprecated due to confusing name, use filename_for_file_resource instead.
 
 ### 0.86.3
 

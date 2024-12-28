@@ -432,7 +432,9 @@ async def deleteresourcetarget(module):
             raise PermissionError("Module is locked")
 
         if kwargs["name"] not in modules_state.ActiveModules[module]:
-            fn = modules_state.filename_for_resource(module, kwargs["name"])
+            fn = modules_state.filename_for_file_resource(
+                module, kwargs["name"]
+            )
             if os.path.isfile(fn):
                 os.remove(fn)
 

@@ -350,6 +350,9 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             return
 
         elif cmd_name == "getcuedata":
+            if msg[1] not in cues:
+                self.linkSend(["cuedata", msg[1], None])
+                return
             s = cues[msg[1]]
             self.linkSend(["cuedata", msg[1], s.values])
             self.pushCueMeta(msg[1])
@@ -366,6 +369,9 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             return
 
         elif cmd_name == "getcuemeta":
+            if msg[1] not in cues:
+                self.linkSend(["cuemeta", msg[1], None])
+                return
             s = cues[msg[1]]
             self.pushCueMeta(msg[1])
             return

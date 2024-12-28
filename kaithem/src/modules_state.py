@@ -59,7 +59,7 @@ def get_resource_label_image_url(module: str, path: str):
     return f"/modules/label_image/{url(module)}/{url(path)}"
 
 
-def filename_for_resource(module: str, resource: str) -> str:
+def filename_for_file_resource(module: str, resource: str) -> str:
     """Given the module and resource, return the actual file for a file resource, or
     file data dir for directory resource"""
 

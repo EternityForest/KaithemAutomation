@@ -223,7 +223,10 @@ def require(permission):
                 return
 
         # Anything guest can't do needs https
-        if not quart.request.scheme == "https":
+        if not (
+            quart.request.scheme == "https"
+            or quart.request.remote_addr == "<local>"
+        ):
             x = quart.request.remote_addr
             # Allow localhost, and Yggdrasil mesh.
             # This check is really just to be sure nobody accidentally uses HTTP,

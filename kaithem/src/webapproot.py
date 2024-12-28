@@ -40,6 +40,7 @@ from . import (
     quart_app,
     settings,
     settings_overrides,
+    shutdown,
     signalhandlers,
     staticfiles,  # noqa: F401
     systasks,
@@ -312,6 +313,8 @@ def startServer():
     #         )
     #         https_server.listen(config["https_port"], bindto)
     shutdown_event = asyncio.Event()
+
+    shutdown.add_shutdown_event(shutdown_event)
 
     def _signal_handler(*_) -> None:
         shutdown_event.set()

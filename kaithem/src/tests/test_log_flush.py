@@ -7,6 +7,7 @@ if "--collect-only" not in sys.argv:
 
 
 def test_log_flush():
+    assert kaithem
     kaithem.src.pylogginghandler.syslogger.flush()
 
     ls = os.listdir(os.path.join(directories.logdir, "dumps"))

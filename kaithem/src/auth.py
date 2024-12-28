@@ -579,10 +579,8 @@ def dumpDatabase() -> bool:
 
         os.makedirs(p, exist_ok=True)
         util.chmod_private_try(p)
-        with open(os.path.join(p, "users.json~"), "w") as f:
-            util.chmod_private_try(
-                os.path.join(p, "users.json~"), execute=False
-            )
+
+        with util.open_private_text_write(os.path.join(p, "users.json~")) as f:
             # pretty print
             json.dump(temp, f, sort_keys=True, indent=4, separators=(",", ": "))
 

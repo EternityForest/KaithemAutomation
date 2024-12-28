@@ -5,7 +5,6 @@
 # It starts the whole app, pointed at a ram sandbox, to run things.
 
 import os
-import signal
 import sys
 import threading
 
@@ -31,7 +30,9 @@ def cleanup(request):
                     except KeyError:
                         pass
 
-        os.kill(os.getpid(), signal.SIGTERM)
+        from kaithem.api import lifespan
+
+        lifespan.shutdown_now()
 
     request.addfinalizer(remove_test_dir)
 
@@ -55,9 +56,13 @@ if "--collect-only" not in sys.argv:
         if not (str(path).startswith("/dev/shm/")) and not path == "/dev/null":
             if "w" in mode or "a" in mode:
                 if "__pycache__" not in str(path):
-                    raise RuntimeError(
-                        "Unit testing is not allowed to write outside of /dev/shm"
-                    )
+                    if ".cache/" not in str(path) and not path.startswith(
+                        "/run/"
+                    ):
+                        raise RuntimeError(
+                            "Unit testing is not allowed to write outside of /dev/shm: "
+                            + str(path)
+                        )
 
         return old_open(path, mode, *args, **kwargs)
 
@@ -110,85 +115,7 @@ chandlerapi.add_command("foo_command", foo_command)
     </section>
 </main>
 {% endblock %}
-    """
-
-    test_group = """
-active: true
-alpha: 1
-backtrack: true
-blend: normal
-blend_args: {}
-bpm: 60
-command_tag: ''
-crossfade: 0
-cues:
-c1:
-    length: 0.5
-    number: 10000
-    track: false
-    values:
-    /unit_testing/t2:
-        value: 183.0
-
-default:
-    length: 0.5
-    number: 5000
-    values:
-    /unit_testing/t1:
-        value: 132.0
-default_next: ''
-display_tags: []
-event_buttons: []
-hide: false
-info_display: ''
-midi_source: ''
-mqtt_server: ''
-mqtt_sync_features: {}
-music_visualizations: ''
-notes: ''
-priority: 50
-slide_overlay_url: ''
-slideshow_layout: |
-<style>
-    slideshow-app {
-        display: flex;
-        flex-wrap: wrap;
-        flex-direction: row;
-    }
-
-    main{
-        display: flex;
-        flex-direction: column;
-        flex-grow:10;
-    }
-
-    media-player {
-        flex-grow: 5;
-    }
-
-    .sidebar {
-        background: linear-gradient(175deg, rgba(36,36,36,1) 0%, rgba(77,77,77,1) 100%);
-        max-width: calc(max(30%, min(24em, 100%) ));
-        text-wrap: wrap;
-    }
-
-</style>
-
-
-<slideshow-app>
-    <main>
-        <header></header>
-        <media-player></media-player>
-        <footer></footer>
-    </main>
-    <div class="sidebar" v-if="cueText" v-html="cueText">
-    </div>
-</slideshow-app>
-sound_output: ''
-utility: false
-uuid: efcae37b3e78437cad5098eadf3a172d
-
-    """
+"""
 
     with open("/dev/shm/kaithem_tests/plugins/Test/__init__.py", "w") as f:
         f.write(pp)
@@ -196,14 +123,13 @@ uuid: efcae37b3e78437cad5098eadf3a172d
     with open("/dev/shm/kaithem_tests/plugins/Test/template.html", "w") as f:
         f.write(pt)
 
-    os.makedirs("/dev/shm/kaithem_tests/chandler/groups")
-
-    with open(
-        "/dev/shm/kaithem_tests/chandler/groups/unit_testing.yaml", "w"
-    ) as f:
-        f.write(test_group)
-
     kaithem.initialize_app(cfg)
+    # This causes problems if imported before the app is initialized
+    from kaithem.src import auth  # noqa
+
+    auth.add_user("admin", "test-admin-password")
+    auth.add_user_to_group("admin", "Administrators")
+
     # TODO Sound can't be imported before config init, eventually
     # A refactor should fix that
     import kaithem.src.sound  # noqa

@@ -7,7 +7,7 @@
 - [Modules](#modules)
   - [admin_url_for_file_resource](#admin_url_for_file_resource)
   - [delete_resource](#delete_resource)
-  - [filename_for_resource](#filename_for_resource)
+  - [filename_for_file_resource](#filename_for_file_resource)
   - [get_resource_data](#get_resource_data)
   - [insert_resource](#insert_resource)
   - [list_resources](#list_resources)
@@ -38,7 +38,7 @@ def delete_resource(module: str, resource: str): ...
 
 
 
-## filename_for_resource
+## filename_for_file_resource
 
 [Show source in modules.py:7](../../../api/modules.py#L7)
 
@@ -48,7 +48,7 @@ file data dir for directory resource
 #### Signature
 
 ```python
-def filename_for_resource(module: str, resource: str) -> str: ...
+def filename_for_file_resource(module: str, resource: str) -> str: ...
 ```
 
 
