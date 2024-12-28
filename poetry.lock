@@ -1167,13 +1167,13 @@ files = [
 
 [[package]]
 name = "iot-devices"
-version = "0.21.1"
+version = "0.22.0"
 description = "Framework for creating and using device drives, and a library of devices."
 optional = false
 python-versions = "<4.0,>=3.10"
 files = [
-    {file = "iot_devices-0.21.1-py3-none-any.whl", hash = "sha256:27d66ec08d41771d2fc9c4bf4f37d82156a3848d0b2b99cd8891ccab0b65ac34"},
-    {file = "iot_devices-0.21.1.tar.gz", hash = "sha256:7106518e8455e90c6307cdd5dc5097ee2390556809bdc22c296b079250b27070"},
+    {file = "iot_devices-0.22.0-py3-none-any.whl", hash = "sha256:0bdbff30dee3573bc4af3f618fe115099cdba0a4b3569b7cb05d4bda9fb203bb"},
+    {file = "iot_devices-0.22.0.tar.gz", hash = "sha256:1d2f876ff8902db62aafa59cae0a9b49fccbd8a9f8909ab56f714b9a9dfb667d"},
 ]
 
 [package.dependencies]

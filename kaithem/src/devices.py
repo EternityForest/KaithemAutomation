@@ -514,6 +514,7 @@ class Device(iot_devices.device.Device):
 
         # The new devices spec has a way more limited idea of what a data point is.
         self.datapoints: dict[str, Any] = {}
+        self.datapoint_timestamps: dict[str, float] = {}
 
         self.name = data.get("name", None) or name
         # Time, msg
@@ -772,7 +773,10 @@ class Device(iot_devices.device.Device):
                 t.subscribe(handler)
 
             self.tagPoints[name] = t
-            self.datapoints[name] = default
+
+            vta = t.vta
+            self.datapoints[name] = vta[0]
+            self.datapoint_timestamps[name] = vta[1]
 
             messagebus.post_message("/system/tags/configured", t.name)
 
@@ -817,7 +821,10 @@ class Device(iot_devices.device.Device):
                 t.subscribe(handler)
 
             self.tagPoints[name] = t
-            self.datapoints[name] = ""
+
+            vta = t.vta
+            self.datapoints[name] = vta[0]
+            self.datapoint_timestamps[name] = vta[1]
 
             messagebus.post_message("/system/tags/configured", t.name)
 
@@ -859,8 +866,10 @@ class Device(iot_devices.device.Device):
                 t.subscribe(handler)
 
             self.tagPoints[name] = t
-            self.datapoints[name] = None
+            vta = t.vta
 
+            self.datapoints[name] = vta[0]
+            self.datapoint_timestamps[name] = vta[1]
             messagebus.post_message("/system/tags/configured", t.name)
 
     def bytestream_data_point(
@@ -895,7 +904,10 @@ class Device(iot_devices.device.Device):
                 t.subscribe(handler)
 
             self.tagPoints[name] = t
-            self.datapoints[name] = None
+
+            vta = t.vta
+            self.datapoints[name] = vta[0]
+            self.datapoint_timestamps[name] = vta[1]
 
             messagebus.post_message("/system/tags/configured", t.name)
 
