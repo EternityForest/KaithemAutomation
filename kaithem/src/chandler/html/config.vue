@@ -211,7 +211,7 @@
 
           <form
             :action="'/chandler/api/import-file/' + boardname"
-            method="post"
+            method="POST"
             enctype="multipart/form-data">
             <div class="stacked-form">
               <label
@@ -338,9 +338,10 @@
 
           <option value="enttec"></option>
           <option value="artnet"></option>
+          <option value="null">Disabled/Unused</option>
         </datalist>
 
-        <table border="1">
+        <table border="1" data-testid="universe-configuration-table">
           <tr>
             <th>Universe</th>
             <th>Type</th>

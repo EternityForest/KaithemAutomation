@@ -31,7 +31,7 @@ if (globalThis.kaithemapi == undefined) {
 				"__WIDGETERROR__": [
 					function (m) {
 						console.error(m);
-						if (lastDidSnackbarError < Date.now() + 60000) {
+						if (lastDidSnackbarError < Date.now() + 60_000) {
 							lastDidSnackbarError = Date.now()
 							KaithemWidgetApiSnackbar("Ratelimited msg" + m)
 						}
@@ -50,14 +50,14 @@ if (globalThis.kaithemapi == undefined) {
 
 				"__KEYMAP__": [
 					function (m) {
-						self.uuidToWidgetId[m[0]] = m[1];
-						self.widgetIDtoUUID[m[1]] = m[0];
+						globalThis.uuidToWidgetId[m[0]] = m[1];
+						globalThis.widgetIDtoUUID[m[1]] = m[0];
 					}
 				],
 
 				"__FORCEREFRESH__": [
 					function (m) {
-						window.location.reload();
+						globalThis.location.reload();
 					}
 				]
 
@@ -75,7 +75,7 @@ if (globalThis.kaithemapi == undefined) {
 
 			//Doe nothinh untiul we connect, we just send that buffered data in the connection handler.
 			//Todo don't dynamically define this at all?
-			poll_ratelimited: function () { },
+			poll_ratelimited: function () {},
 
 			subscribe: function (key, callback) {
 
@@ -89,24 +89,22 @@ if (globalThis.kaithemapi == undefined) {
 				}
 
 				//If the ws is open, send the subs list, else wait for the connection handler to do it when we first reconnect.
-				if (this.connection) {
-					if (this.connection.readyState == 1) {
+				if (this.connection && this.connection.readyState == 1) {
 						var j = { "subsc": Object.keys(this.serverMsgCallbacks), "upd": [] }
 						this.connection.send(JSON.stringify(j))
 					}
-				}
 			},
 
 			unsubscribe: function (key, callback) {
-				var arr = this.serverMsgCallbacks[key];
+				var array = this.serverMsgCallbacks[key];
 
 
-				if (key in arr) {
+				if (key in array) {
 
-					for (var i = 0; i < arr.length; i++) { if (arr[i] === callback) { arr.splice(i, 1); } }
+					for (var i = 0; i < array.length; i++) { if (array[i] === callback) { array.splice(i, 1); } }
 				}
 
-				if (arr.length == 0) {
+				if (array.length === 0) {
 
 					//Delete the now unused mapping
 					if (key in this.uuidToWidgetId) {
@@ -120,24 +118,29 @@ if (globalThis.kaithemapi == undefined) {
 
 
 					//If the ws is open, send the subs list. If not, we by definition aren't subscribed, and we already removed it from the local list.
-					if (this.connection) {
-						if (this.connection.readyState == 1) {
+					if (this.connection && this.connection.readyState == 1) {
 							var j = { "unsub": [key], "upd": [] }
 							this.connection.send(JSON.stringify(j))
 						}
-					}
 				}
 			},
 
 			sendErrorMessage: function (error) {
-				if (this.lastErrMsg) {
-					if (this.lastErrMsg > (Date.now() - 10000)) {
+				if (this.lastErrMsg && this.lastErrMsg > (Date.now() - 10_000)) {
 						return
 					}
-				}
 				this.lastErrMsg = Date.now();
 
+				try {
+					error = error+"\n"+error.stack
+				}
+				catch (error_) {
+					console.error(error_)
+				}
+
 				this.sendValue("__ERROR__", error)
+
+
 			},
 
 			register: function (key, callback) {
@@ -167,7 +170,7 @@ if (globalThis.kaithemapi == undefined) {
 			},
 
 			wsPrefix: function () {
-				return window.location.protocol.replace("http", "ws") + "//" + window.location.host
+				return globalThis.location.protocol.replace("http", "ws") + "//" + globalThis.location.host
 			},
 
 			can_show_error: 1,
@@ -177,14 +180,14 @@ if (globalThis.kaithemapi == undefined) {
 
 			reconnector: null,
 			// Very first time, give it some extra before clearing old msgs
-			lastDisconnect: Date.now() + 15000,
+			lastDisconnect: Date.now() + 15_000,
 
 			connect: function () {
 				var apiobj = this
 
-				this.connection = new WebSocket(window.location.protocol.replace("http", "ws") + "//" + window.location.host + '/widgets/ws');
+				this.connection = new WebSocket(globalThis.location.protocol.replace("http", "ws") + "//" + globalThis.location.host + '/widgets/ws');
 
-				this.connection.onclose = function (e) {
+				this.connection.addEventListener('close', function (e) {
 
 
 					picodash.snackbar.createSnackbar("Lost connection to server", {
@@ -200,7 +203,7 @@ if (globalThis.kaithemapi == undefined) {
 						apiobj.reconnector = null;
 					}
 					apiobj.reconnector = setTimeout(function () { apiobj.connect() }, apiobj.reconnect_timeout);
-				};
+				});
 
 				this.connection.onerror = function (e) {
 					apiobj.lastDisconnect = Date.now();
@@ -210,7 +213,7 @@ if (globalThis.kaithemapi == undefined) {
 						apiobj.reconnector = null;
 					}
 					if (apiobj.connection.readyState != 1) {
-						apiobj.reconnect_timeout = Math.min(apiobj.reconnect_timeout * 2, 20000);
+						apiobj.reconnect_timeout = Math.min(apiobj.reconnect_timeout * 2, 20_000);
 						apiobj.reconnector = setTimeout(function () { apiobj.connect() }, apiobj.reconnect_timeout);
 					}
 				};
@@ -227,9 +230,9 @@ if (globalThis.kaithemapi == undefined) {
 								try {
 									apiobj.connection.handleIncoming(decode(buffer2));
 								}
-								catch (err) {
-									apiobj.sendErrorMessage(window.location.href + "\n" + err.stack)
-									console.error(err.stack)
+								catch (error) {
+									apiobj.sendErrorMessage(globalThis.location.href + "\n" + error.stack)
+									console.error(error.stack)
 								}
 							})
 
@@ -239,9 +242,9 @@ if (globalThis.kaithemapi == undefined) {
 							apiobj.connection.handleIncoming(resp)
 						}
 					}
-					catch (err) {
-						apiobj.sendErrorMessage(window.location.href + "\n" + err.stack)
-						console.error(err.stack)
+					catch (error) {
+						apiobj.sendErrorMessage(globalThis.location.href + "\n" + error.stack)
+						console.error(error.stack)
 					}
 
 
@@ -249,14 +252,13 @@ if (globalThis.kaithemapi == undefined) {
 
 				this.connection.handleIncoming = function (resp) {
 					//Iterate messages
-					for (var n = 0; n < resp.length; n++) {
-						let i = resp[n]
+					for (let i of resp) {
 						for (var j in apiobj.serverMsgCallbacks[i[0]]) {
-							if (resp[n].length > 1) {
-								apiobj.serverMsgCallbacks[i[0]][j](resp[n][1]);
+							if (i.length > 1) {
+								apiobj.serverMsgCallbacks[i[0]][j](i[1]);
 							}
 							else {
-								if (this.alreadyPostedAlertOnce) { }
+								if (this.alreadyPostedAlertOnce) {}
 								else {
 									this.alreadyPostedAlertOnce = true
 									if (this.enableWidgetGoneAlert) {
@@ -267,7 +269,7 @@ if (globalThis.kaithemapi == undefined) {
 						}
 					}
 				}
-				this.connection.onopen = function (e) {
+				this.connection.addEventListener('open', function (e) {
 
 					try {
 						if (apiobj.last_connected) {
@@ -277,8 +279,8 @@ if (globalThis.kaithemapi == undefined) {
 							});
 						}
 					}
-					catch (e) {
-						console.log(e)
+					catch (error) {
+						console.log(error)
 					}
 
 					apiobj.last_connected = Date.now();
@@ -288,17 +290,16 @@ if (globalThis.kaithemapi == undefined) {
 						apiobj.toSend = [];
 					}
 
-					var j = JSON.stringify({ "subsc": Object.keys(apiobj.serverMsgCallbacks), "req": [], "upd": [["__url__", window.location.href]] })
+					var j = JSON.stringify({ "subsc": Object.keys(apiobj.serverMsgCallbacks), "req": [], "upd": [["__url__", globalThis.location.href]] })
 					apiobj.connection.send(j)
 					console.log("WS Connection Initialized");
 					apiobj.reconnect_timeout = 1500;
-					window.setTimeout(function () { apiobj.wpoll() }, 250);
-				}
+					globalThis.setTimeout(function () { apiobj.wpoll() }, 250);
+				})
 
 				this.wpoll = function () {
 					//Don't bother sending if we aren'y connected
-					if (this.connection.readyState == 1) {
-						if (this.toSend.length > 0) {
+					if (this.connection.readyState == 1 && this.toSend.length > 0) {
 							var toSend = { 'upd': this.toSend, };
 							if (this.use_mp0) {
 								var j = new Blob([encode(toSend)]);
@@ -311,10 +312,8 @@ if (globalThis.kaithemapi == undefined) {
 							this.toSend = [];
 						}
 
-					}
-
 					if (this.toSend && (this.toSend.length > 0)) {
-						window.setTimeout(this.poll_ratelimited.bind(this), 120);
+						globalThis.setTimeout(this.poll_ratelimited.bind(this), 120);
 					}
 
 				}
@@ -351,32 +350,32 @@ if (globalThis.kaithemapi == undefined) {
 	}
 	globalThis.kaithemapi = globalThis.kaithemapi()
 
-	if (!window.onerror) {
-		var globalPageErrorHandler = function (msg, url, line, col, tb) {
-			globalThis.kaithemapi.sendErrorMessage(url + '\n' + line + "\n\n" + msg + "\n\n" + tb);
+	if (!globalThis.onerror) {
+		var globalPageErrorHandler = function (message, url, line, col, tb) {
+			globalThis.kaithemapi.sendErrorMessage(url + '\n' + line + "\n\n" + message + "\n\n" + tb);
 		}
-		window.addEventListener("unhandledrejection", event => {
+		globalThis.addEventListener("unhandledrejection", event => {
 			globalThis.kaithemapi.sendErrorMessage(`UNHANDLED PROMISE REJECTION: ${event.reason}`);
 		});
 
-		window.onerror = globalPageErrorHandler
+		globalThis.onerror = globalPageErrorHandler
 	}
 	//Backwards compatibility hack
 	//Todo deprecate someday? or not.
 	let __kwidget_doBattery = function () {
-		if (navigator.userAgent.indexOf("Firefox") == -1) {
+		if (!navigator.userAgent.includes("Firefox")) {
 
 			try {
 				navigator.getBattery().then(function (battery) {
 					globalThis.kaithemapi.sendValue("__BATTERY__", { 'level': battery.level, 'charging': battery.charging })
 				});
 			}
-			catch (e) {
-				console.log(e)
+			catch (error) {
+				console.log(error)
 			}
 
 			try {
-				if ('AmbientLightSensor' in window) {
+				if ('AmbientLightSensor' in globalThis) {
 					const sensor = new AmbientLightSensor();
 					sensor.addEventListener('reading', event => {
 						globalThis.kaithemapi.sendValue("__SENSORS__", { 'ambientLight': sensor.illuminance })
@@ -389,7 +388,7 @@ if (globalThis.kaithemapi == undefined) {
 		}
 	}
 
-	if (navigator.userAgent.indexOf("Firefox") == -1) {
+	if (!navigator.userAgent.includes("Firefox")) {
 		try {
 			navigator.permissions.query({ name: 'idle-detection' }).then(async function (result) {
 				if (result.state === 'granted') {
@@ -406,25 +405,25 @@ if (globalThis.kaithemapi == undefined) {
 						});
 
 						await idleDetector.start({
-							threshold: 240000,
+							threshold: 240_000,
 							signal,
 						});
-					} catch (err) {
+					} catch (error) {
 						// Deal with initialization errors like permission denied,
 						// running outside of top-level frame, etc.
-						console.error(err.name, err.message);
+						console.error(error.name, error.message);
 					}
 				}
 			});
 		}
-		catch (e) {
+		catch {
 			//No logging, FF would spam a bunch of logs
 			//console.log(e)
 		}
 	}
 
 	setTimeout(__kwidget_doBattery, 60)
-	setInterval(__kwidget_doBattery, 1800000)
+	setInterval(__kwidget_doBattery, 1_800_000)
 
 	window.addEventListener('load', function () {
 		setTimeout(function () { globalThis.kaithemapi.connect() }, 10)
@@ -455,14 +454,14 @@ class APIWidget {
 		kaithemapi.subscribe(this.uuid, this._upd.bind(this));
 		setTimeout(this.getTime.bind(this), 500)
 	}
-	onTimeResponse(val) {
+	onTimeResponse(value) {
 		{
-			if (Math.abs(val[0] - this._txtime) < 0.1) {
+			if (Math.abs(value[0] - this._txtime) < 0.1) {
 				{
 					var t = performance.now();
 					if (t - this._txtime < this._maxsyncdelay) {
 						{
-							this._timeref = [(t + this._txtime) / 2, val[1]]
+							this._timeref = [(t + this._txtime) / 2, value[1]]
 
 							this._maxsyncdelay = (t - this._txtime) * 1.2;
 						}
@@ -478,11 +477,11 @@ class APIWidget {
 		}
 	}
 
-	_upd(val) {
+	_upd(value) {
 		{
 			if (this.clean == 0) {
 				{
-					this.value = val;
+					this.value = value;
 				}
 			}
 			else {
@@ -490,13 +489,12 @@ class APIWidget {
 					this.clean -= 1;
 				}
 			}
-			this.upd(val)
+			this.upd(value)
 		}
 	}
 
-	upd(val) {
-		{
-		}
+	upd(value) {
+		{}
 	}
 	getTime() {
 		{
@@ -507,7 +505,7 @@ class APIWidget {
 	}
 
 
-	now(val) {
+	now(value) {
 		{
 			var t = performance.now()
 			if (t - this._txtime > this.timeSyncInterval) {
@@ -522,16 +520,16 @@ class APIWidget {
 		}
 	}
 
-	set(val) {
+	set(value) {
 		{
-			kaithemapi.setValue(this.uuid, val);
+			kaithemapi.setValue(this.uuid, value);
 			this.clean = 2;
 		}
 	}
 
-	send(val) {
+	send(value) {
 		{
-			kaithemapi.sendValue(this.uuid, val);
+			kaithemapi.sendValue(this.uuid, value);
 			this.clean = 2;
 		}
 	}

@@ -69,7 +69,9 @@ async def delete_chandler_group(board: str, group_id: str):
     return {"success": True}
 
 
-@quart_app.app.route("/chandler/api/import-file/<board>", methods=["PUT"])
+@quart_app.app.route(
+    "/chandler/api/import-file/<board>", methods=["PUT", "POST"]
+)
 async def import_setup(board: str):
     require("system_admin")
 

@@ -512,11 +512,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
             d["channels"] = ch_info
 
-            self.fixture_classes[msg[1]] = d
-            self.cl_reload_fixture_assignment_data()
-            self.linkSend(
-                ["fixtureclass", msg[1], self.fixture_classes[msg[1]]]
-            )
+            self.cl_set_fixture_type(msg[1], d)
 
         elif cmd_name == "setfixtureclassopz":
             x = []

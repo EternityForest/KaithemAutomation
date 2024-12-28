@@ -314,6 +314,9 @@ class ChandlerConsole(console_abc.Console_ABC):
         universeObjects: dict[str, universes.Universe] = {}
         u: Dict[str, Dict[Any, Any]] = data
         for i in u:
+            if u[i]["type"] == "null":
+                continue
+
             if u[i]["type"] == "enttecopen" or u[i]["type"] == "rawdmx":
                 universeObjects[i] = universes.EnttecOpenUniverse(
                     i,
@@ -388,13 +391,14 @@ class ChandlerConsole(console_abc.Console_ABC):
         data = snake_compat.snakify_dict_keys(data)
 
         if "project" in data:
+            data = data["project"]
             if "setup" in data:
-                data = data["project"]
                 data = data["setup"]
 
         if fixture_types:
             if "fixture_types" in data:
-                self.fixture_classes.update(data["fixture_types"])
+                for i in data["fixture_types"]:
+                    self.cl_set_fixture_type(i, data["fixture_types"][i])
 
         if universes:
             if "universes" in data:
@@ -412,14 +416,14 @@ class ChandlerConsole(console_abc.Console_ABC):
         if fixture_assignments:
             # Compatibility with a legacy typo
             if "fixures" in data:
-                data["fixure_assignments"] = data["fixures"]
+                data["fixture_assignments"] = data["fixures"]
 
             if "fixtures" in data:
-                data["fixure_assignments"] = data["fixtures"]
+                data["fixture_assignments"] = data["fixtures"]
 
-            if "fixure_assignments" in data:
-                for i in data["fixure_assignments"]:
-                    self.fixture_assignments[i] = data["fixure_assignments"][i]
+            if "fixture_assignments" in data:
+                for i in data["fixture_assignments"]:
+                    self.fixture_assignments[i] = data["fixture_assignments"][i]
 
                 self.cl_reload_fixture_assignment_data()
 
@@ -906,6 +910,12 @@ class ChandlerConsole(console_abc.Console_ABC):
 
     def pushConfiguredUniverses(self):
         self.linkSend(["confuniverses", self.configured_universes])
+
+    @core.cl_context.entry_point
+    def cl_set_fixture_type(self, type: str, library: dict[str, Any]):
+        self.fixture_classes[type] = library
+        self.cl_reload_fixture_assignment_data()
+        self.linkSend(["fixtureclass", type, self.fixture_classes[type]])
 
     @core.cl_context.entry_point
     def cl_del_group(self, sc):

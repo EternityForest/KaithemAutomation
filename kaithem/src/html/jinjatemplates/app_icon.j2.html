@@ -1,4 +1,6 @@
-<div class="app-button app-icon w-sm-half">
+<div class="app-button app-icon w-sm-half"
+data-testid="app-{{app.id}}"
+>
     {% set img=app.get_image() %}
     {% if img %}
     <img src="{{img}}" alt="{{app.title}}">
@@ -17,6 +19,7 @@
             </a>
         </div>
         <button type="button" aria-label="Extras"
+            data-testid="extras-button-{{app.id}}"
             popovertarget="extras-{{app.id}}" popovertargetaction="close">
             <span class="mdi mdi-menu"></span>
         </button>

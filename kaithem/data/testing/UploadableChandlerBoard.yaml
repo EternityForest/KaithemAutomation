@@ -1,0 +1,108 @@
+project:
+  groups:
+    UploadedScene:
+      active: true
+      alpha: 1
+      backtrack: true
+      blend: normal
+      blend_args: {}
+      bpm: 60
+      command_tag: ''
+      crossfade: 0
+      cue_providers: []
+      cues:
+        Cue2:
+          number: 10000
+        default:
+          number: 5000
+      default_next: ''
+      display_tags: []
+      event_buttons: []
+      hide: false
+      info_display: ''
+      midi_source: ''
+      mqtt_server: ''
+      mqtt_sync_features: {}
+      music_visualizations: ''
+      notes: ''
+      priority: 50
+      require_confirm: false
+      slide_overlay_url: ''
+      slideshow_layout: |
+        <style>
+            slideshow-app {
+                display: flex;
+                flex-wrap: wrap;
+                flex-direction: row;
+            }
+
+            main{
+              display: flex;
+              flex-direction: column;
+              flex-grow:10;
+            }
+
+            media-player {
+                flex-grow: 5;
+            }
+
+            .sidebar {
+                background: linear-gradient(175deg, rgba(36,36,36,1) 0%, rgba(77,77,77,1) 100%);
+                max-width: calc(max(30%, min(24em, 100%) ));
+                text-wrap: wrap;
+            }
+
+        </style>
+
+
+        <slideshow-app>
+            <main>
+                <header></header>
+                <media-player></media-player>
+                <footer></footer>
+            </main>
+            <div class="sidebar" v-if="cueText" v-html="cueText">
+            </div>
+        </slideshow-app>
+      slideshow_transform: {}
+      sound_output: ''
+      utility: false
+      uuid: 7f27ac4299a947c18ac320f73d8266f2 # pragma: allowlist secret
+  setup:
+    configured_universes:
+      uploadeduniverse:
+        channel_config: {}
+        channels: 512
+        framerate: 44
+        number: 1
+        type: "null"
+
+    fixture_assignments:
+      UploadedFixture:
+        addr: 123
+        name: UploadedFixture
+        type: UploadedFixtureType
+        universe: dummy
+    fixture_presets:
+      UploadablePreset:
+        category: amber
+        html_color: '#f49b1f'
+        labelImageTimestamp: '17352705143.639206'
+        label_image: img/16x9/burning-fire.avif
+        values:
+          blue: '123'
+          dim: '234'
+          green: '111'
+          red: '111'
+    fixture_types:
+      UploadedFixtureType:
+        channels:
+        - name: white
+          type: white
+      UnusedUploadedFixtureType:
+        channels:
+        - name: red
+          type: red
+    media_folders: []
+resource_timestamp: 1735424552272704
+resource_type: chandler_board
