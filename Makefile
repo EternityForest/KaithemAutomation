@@ -131,3 +131,5 @@ dev-run-all-tests:
 	@killall -9 coverage
 	@coverage run -a -m pytest
 	@coverage html -i
+	@npx playwright show-report &
+	@open htmlcov/index.html

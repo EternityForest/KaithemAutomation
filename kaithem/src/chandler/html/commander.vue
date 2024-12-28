@@ -284,7 +284,7 @@ div.highlight {
                       style="border-bottom-right-radius: 0.5em"
                       :class="{ success: i[1].active, grow: 1 }"
                       v-if="i[1].active && cuemeta[i[1].cue]">
-                      {{ cuemeta[i[1].cue].name }}
+                      <span data-testid="active-cue-name">{{ cuemeta[i[1].cue].name }}</span>
                       <small>{{ formatTime(i[1].enteredCue) }}</small>
                     </div>
 
@@ -655,6 +655,7 @@ import {
   setalpha,
   jumpToCueWithConfirmationIfNeeded,
   sendGroupEventWithConfirm,
+  stop,
   addTimeToGroup} from "./boardapi.mjs";
 import * as Vue from "/static/js/thirdparty/vue.esm-browser.js";
 

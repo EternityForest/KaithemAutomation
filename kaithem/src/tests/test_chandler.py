@@ -51,7 +51,7 @@ listener 7801
         s2.setMqttServer("localhost:7801")
         s2.setMQTTFeature("syncGroup", True)
         s2.add_cue("c2")
-
+        time.sleep(0.2)
         s.goto_cue("c2")
         time.sleep(0.2)
 

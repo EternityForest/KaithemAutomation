@@ -348,7 +348,11 @@ async function delgroup(group) {
 
 async function go(group) {
   await doSerialized(async () => {
-    const result = fetch("/chandler/api/group-go/" + group).catch(
+    const result = fetch("/chandler/api/group-go/" + group,
+      {
+        method: "PUT",
+      }
+    ).catch(
       function (error) {
         alert("Could not reach server:" + error);
       }
@@ -360,14 +364,25 @@ async function go(group) {
   });
 }
 
-function stop(sc) {
+async function stop(group) {
   var x = confirm(
     "Really stop group? The cue and all variables will be reset."
   );
 
   if (x) {
-    api_link.send(["stop", sc]);
-  }
+    const result = fetch("/chandler/api/group-stop/" + group,
+      {
+        method: "PUT",
+      }
+    ).catch(
+      function (error) {
+        alert("Could not reach server:" + error);
+      }
+    );
+    const result2 = await result;
+    if (!result2.ok) {
+      alert("Error activating group: " + result.statusText);
+    }  }
 }
 
 function setalpha(sc, v) {
@@ -1225,8 +1240,6 @@ function handleServerMessage(v) {
     }
   } else if (c == "refreshPage") {
     globalThis.reload();
-  } else if (c == "stop") {
-    old_vue_set(groupmeta.value[v[1]], "active", false);
   } else if (c == "ferrs") {
     ferrs.value = v[1];
   } else if (c == "fixtureclasses") {

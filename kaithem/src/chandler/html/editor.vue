@@ -22,6 +22,7 @@
         </p>
         <a
           class="button"
+          data-testid="commander-link"
           :href="
             '/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/commander/' +
             boardname
@@ -175,6 +176,7 @@
               </header>
               <p v-if="cuemeta[i[1].cue]">
                 <span v-if="i[1].active && cuemeta[i[1].cue]"
+                  data-testid="sidebar-active-cue-name"
                   >{{ cuemeta[i[1].cue].name }}
                   <small>{{ formatTime(i[1].enteredCue) }}</small></span
                 >

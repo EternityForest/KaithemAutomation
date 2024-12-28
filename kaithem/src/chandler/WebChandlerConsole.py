@@ -458,12 +458,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                     print(traceback.format_exc())
             return
 
-        elif cmd_name == "stop":
-            x = groups.groups[msg[1]]
-            x.stop()
-            self.push_group_meta(msg[1], statusOnly=True)
-            return
-
         elif cmd_name == "testSoundCard":
             kaithem.sound.test(output=msg[1])
             return
