@@ -18,7 +18,7 @@ test("test", async ({ page }) => {
   await login(page);
   const module = "PlaywrightChandlerTestModule";
 
-  await chandlerBoardTemplate(page);
+  await chandlerBoardTemplate(page, module);
 
   // Cue logic
   await page.getByTestId("cue-logic-button").click();

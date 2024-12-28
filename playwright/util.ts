@@ -103,8 +103,7 @@ async function makeTagPoint(page: Page, module: string, name: string) {
     await page.getByRole('button', { name: 'Submit' }).click();
 }
 
-async function chandlerBoardTemplate(page: Page) {
-    let module = "PlaywrightChandlerTestModule";
+async function chandlerBoardTemplate(page: Page, module: string) {
     //Make module
     makeModule(page, module);
 

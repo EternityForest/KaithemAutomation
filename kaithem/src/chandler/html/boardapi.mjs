@@ -18,7 +18,7 @@ import {
   kaithemapi,
   APIWidget,
 } from "/static/js/widget.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
-import { computed, ref } from "/static/js/thirdparty/vue.esm-browser.js";
+import { computed, ref, toRaw } from "/static/js/thirdparty/vue.esm-browser.js";
 
 let keysdown = {};
 
@@ -961,7 +961,7 @@ function copyPreset(p) {
   if (n && n.length > 0) {
     var b = presets.value[p];
     if (b) {
-      presets.value[n] = structuredClone(b);
+      presets.value[n] = structuredClone(toRaw(b));
       api_link.send(["preset", n, b]);
     }
   }

@@ -1,10 +1,8 @@
-import datetime
 import json
 
 import quart.ctx
 import quart.utils
 import structlog
-import yaml
 from jsonschema import Draft202012Validator
 from quart import request
 from scullery import snake_compat
@@ -69,35 +67,6 @@ async def delete_chandler_group(board: str, group_id: str):
     board_obj.cl_del_group(group_id)
 
     return {"success": True}
-
-
-@quart_app.app.route("/chandler/api/download/<type>/<board>")
-async def download_chandler_file(type: str, board: str):
-    require("chandler_operator")
-
-    @quart.ctx.copy_current_request_context
-    def f():
-        with cl_context:
-            b = boards[board]
-            if type == "setup-file":
-                f = b.cl_get_setup_file()
-            if type == "library-file":
-                f = b.cl_get_library_file()
-            else:
-                raise RuntimeError(f"Unknown type: {type}")
-
-        return yaml.dump(f)
-
-    r = await quart.utils.run_sync(f)()
-    isodate = datetime.datetime.now().isoformat()
-
-    return quart.Response(
-        r,
-        mimetype="text/yaml",
-        headers={
-            "Content-Disposition": f"attachment; filename={board}-setup-{isodate}.yaml"
-        },
-    )
 
 
 @quart_app.app.route("/chandler/api/import-file/<board>", methods=["PUT"])
