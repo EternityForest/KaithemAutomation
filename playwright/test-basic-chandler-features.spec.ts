@@ -118,6 +118,12 @@ test('test', async ({ page }) => {
     await page.getByRole('link', { name: 'Modules' }).click();
     await page.getByRole('link', { name: module }).click();
     await page.getByRole('link', { name: 'Edit' }).click();
+
+    await page.evaluate(async () => {
+        globalThis.testMode = true;
+    });
+    
+
     await page.getByRole('button', { name: 'tst1' }).click();
     await page.getByTestId("add-rm-fixtures-button").click();
     await page.getByLabel('Tag', { exact: true }).click();
@@ -130,7 +136,11 @@ test('test', async ({ page }) => {
     await page.locator('article').filter({ hasText: '/' }).getByRole('slider').fill('130');
 
     await page.getByRole('button', { name: 'Go', exact: true }).first().click();
-
+    
+    await page.evaluate(async () => {
+        await globalThis.doSerialized();
+      });
+    await sleep(500);
 
     // Go back and make sure it actually worked
     await page.goto('http://localhost:8002/tagpoints')
@@ -144,6 +154,12 @@ test('test', async ({ page }) => {
 
     await page.goto('http://localhost:8002/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/editor/PlaywrightChandlerTestModule:board1');
 
+
+    await page.evaluate(async () => {
+        globalThis.testMode = true;
+    });
+    
+
     await page.getByRole('button', { name: 'tst1' }).click();
     await page.getByTestId('add-rm-fixtures-button').click();
     await page.getByText('Channels').click();
@@ -151,8 +167,17 @@ test('test', async ({ page }) => {
     await expect(page.getByRole('heading', { name: '/test_chandler_tag' })).toHaveCount(1);
 
     await page.getByRole('button', { name: '󰆴 Remove' }).click();
+
+    await page.evaluate(async () => {
+        await globalThis.doSerialized();
+    });
+    
     await page.goto('http://localhost:8002/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/editor/PlaywrightChandlerTestModule:board1');
     await page.getByRole('button', { name: 'tst1' }).click();
+    await page.evaluate(async () => {
+        await globalThis.doSerialized();
+    });
+    await sleep(500);
 
     await expect(page.getByRole('heading', { name: '/test_chandler_tag' })).toHaveCount(0);
 

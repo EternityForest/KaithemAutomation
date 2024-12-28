@@ -183,7 +183,7 @@ async function restSetCueValue(cue, universe, channel, value) {
         "?" +
         new URLSearchParams({ value: JSON.stringify(value) }).toString(),
       {
-        method: "POST",
+        method: "PUT",
       }
     ).catch(function (error) {
       alert("Could not reach server:" + error);
@@ -293,7 +293,6 @@ function refreshhistory(sc) {
 }
 
 async function setCueValue(sc, u, ch, value) {
-
   if (globalThis.testMode) {
     await restSetCueValue(sc, u, ch, value);
     return;
@@ -330,7 +329,9 @@ async function delgroup(group) {
   if (r == true) {
     await doSerialized(async () => {
       let result = fetch(
-        "/chandler/api/delete-group/" + boardname.value + "/" + group
+        "/chandler/api/delete-group/" + boardname.value + "/" + group, {
+          method: "PUT",
+        }
       ).catch(function (error) {
         alert("Could not reach server:" + error);
       });
@@ -345,8 +346,18 @@ async function delgroup(group) {
   }
 }
 
-function go(sc) {
-  api_link.send(["go", sc]);
+async function go(group) {
+  await doSerialized(async () => {
+    const result = fetch("/chandler/api/group-go/" + group).catch(
+      function (error) {
+        alert("Could not reach server:" + error);
+      }
+    );
+    const result2 = await result;
+    if (!result2.ok) {
+      alert("Error activating group: " + result.statusText);
+    }
+  });
 }
 
 function stop(sc) {
@@ -435,9 +446,23 @@ function rmcue(cue) {
   api_link.send(["rmcue", cue]);
 }
 
-function jumptocue(cue, group) {
+
+async function jumpToCueWithConfirmationIfNeeded(cueid, group) {
   if (confirm_for_group(group)) {
-    api_link.send(["jumptocue", cue]);
+    await doSerialized(async () => {
+      const result = fetch(
+        "/chandler/api/go-to-cue-by-cue-id/" + cueid,
+        {
+          method: "PUT",
+        }
+      ).catch(function (error) {
+        alert("Could not reach server:" + error);
+      });
+      const result2 = await result;
+      if (!result2.ok) {
+        alert("Error activating cue: " + result.statusText);
+      }
+    });
   }
 }
 
@@ -1183,8 +1208,6 @@ function handleServerMessage(v) {
     if (Object.entries(cuevals.value[cue][universe]).length === 0) {
       old_vue_delete(cuevals.value[cue], universe);
     }
-  } else if (c == "go") {
-    old_vue_set(groupmeta.value[v[1]], "active", true);
   } else if (c == "refreshPage") {
     globalThis.reload();
   } else if (c == "stop") {
@@ -1299,15 +1322,29 @@ function confirm_for_group(sc) {
   }
 }
 
+// Suspected unused
+// TODO: remove
 function next(sc) {
   return function () {
     api_link.send(["gotoNextCuebyname", sc]);
   };
 }
-function goto(sc, cue) {
-  return function () {
-    api_link.send(["jumpbyname", sc, cue]);
-  };
+
+async function goto(group, cue) {
+  await doSerialized(async () => {
+    const result = fetch(
+      "/chandler/api/go-to-cue-by-name/" + group + "/" + cue,
+      {
+        method: "PUT",
+      }
+    ).catch(function (error) {
+      alert("Could not reach server:" + error);
+    });
+    const result2 = await result;
+    if (!result2.ok) {
+      alert("Error activating cue: " + result.statusText);
+    }
+  });
 }
 
 var script = document.createElement("script");
@@ -1401,7 +1438,7 @@ export {
   clonecue,
   gotonext,
   rmcue,
-  jumptocue,
+  jumpToCueWithConfirmationIfNeeded,
   setnext,
   setprobability,
   promptsetnumber,

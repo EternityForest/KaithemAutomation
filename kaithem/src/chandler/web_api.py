@@ -19,7 +19,47 @@ from .web import quart_app
 logger = structlog.get_logger(__name__)
 
 
-@quart_app.app.route("/chandler/api/delete-group/<board>/<group_id>")
+@quart_app.app.route(
+    "/chandler/api/go-to-cue-by-cue-id/<cue_id>", methods=["PUT"]
+)
+async def api_go_to_cue_by_cue_id(cue_id: str):
+    require("system_admin")
+    c = cues[cue_id]
+    g = c.group()
+    assert g
+    g.goto_cue(c.name)
+    return {"success": True}
+
+
+@quart_app.app.route(
+    "/chandler/api/go-to-cue-by-name/<group>/<cue_name>", methods=["PUT"]
+)
+async def api_go_to_cue_by_name(group: str, cue_name: str):
+    require("system_admin")
+    g = groups[group]
+    g.goto_cue(cue_name)
+    return {"success": True}
+
+
+@quart_app.app.route("/chandler/api/group-go/<group_id>", methods=["PUT"])
+async def group_go(group_id: str):
+    require("system_admin")
+    x = groups[group_id]
+    x.go()
+    return {"success": True}
+
+
+@quart_app.app.route("/chandler/api/group-stop/<group_id>", methods=["PUT"])
+async def group_stop(group_id: str):
+    require("system_admin")
+    x = groups[group_id]
+    x.stop()
+    return {"success": True}
+
+
+@quart_app.app.route(
+    "/chandler/api/delete-group/<board>/<group_id>", methods=["PUT"]
+)
 async def delete_chandler_group(board: str, group_id: str):
     require("system_admin")
     x = groups[group_id]
@@ -60,7 +100,7 @@ async def download_chandler_file(type: str, board: str):
     )
 
 
-@quart_app.app.route("/chandler/api/import-file/<board>", methods=["POST"])
+@quart_app.app.route("/chandler/api/import-file/<board>", methods=["PUT"])
 async def import_setup(board: str):
     require("system_admin")
 
@@ -169,7 +209,7 @@ async def set_cue_properties(cue_id: str):
 
 @quart_app.app.route(
     "/chandler/api/set-cue-value/<cue_id>/<universe>/<channel>",
-    methods=["POST"],
+    methods=["PUT"],
 )
 async def set_cue_value_rest(cue_id: str, universe: str, channel: str | int):
     require("system_admin")

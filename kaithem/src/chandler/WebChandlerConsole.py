@@ -415,21 +415,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         # User level runtime stuff that can't change config
 
-        if cmd_name == "jumptocue":
-            sc = cues[msg[1]].group()
-            assert sc
-
-            if not sc.active:
-                sc.go()
-
-            sc.goto_cue(cues[msg[1]].name, cause="manual")
-            return
-
-        elif cmd_name == "jumpbyname":
-            self.groups_by_name[msg[1]].goto_cue(msg[2], cause="manual")
-            return
-
-        elif cmd_name == "gotoNextCue":
+        if cmd_name == "gotoNextCue":
             groups.groups[msg[1]].next_cue(cause="manual")
             return
 
@@ -464,11 +450,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                         s.next_cue(cause="manual")
                 except Exception:
                     print(traceback.format_exc())
-            return
-
-        elif cmd_name == "go":
-            groups.groups[msg[1]].go()
-            self.push_group_meta(msg[1])
             return
 
         elif cmd_name == "stop":

@@ -773,7 +773,7 @@
                   <button
                     type="button"
                     style="min-width: 90%"
-                    v-on:click="jumptocue(slotProps.i[1].id, editingGroup.id)">
+                    v-on:click="jumpToCueWithConfirmationIfNeeded(slotProps.i[1].id, editingGroup.id)">
                     Go
                   </button>
                 </td>
@@ -2747,7 +2747,7 @@ import {
   clonecue,
   gotonext,
   rmcue,
-  jumptocue,
+  jumpToCueWithConfirmationIfNeeded,
   setnext,
   setprobability,
   promptsetnumber,

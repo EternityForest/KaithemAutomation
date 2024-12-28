@@ -465,7 +465,7 @@ div.highlight {
             :groupname="groupname">
             <button
               v-if="compactCues"
-              v-on:click="jumptocue(cueSlot.i[1].id, editingGroup.id)"
+              v-on:click="jumpToCueWithConfirmationIfNeeded(cueSlot.i[1].id, editingGroup.id)"
               class="compact-cuebutton"
               v-bind:class="{
                 success: cuemeta[editingGroup.cue].name == cueSlot.i[1].name,
@@ -527,7 +527,7 @@ div.highlight {
               <header>
                 <button
                   class="h-4rem w-full cuebutton"
-                  v-on:click="jumptocue(cueSlot.i[1].id, editingGroup.id)">
+                  v-on:click="jumpToCueWithConfirmationIfNeeded(cueSlot.i[1].id, editingGroup.id)">
                   <span v-if="cueSlot.i[1].shortcut.length > 0">
                     ({{ cueSlot.i[1].shortcut }})</span
                   >
@@ -653,7 +653,7 @@ import {
   gotoPreviousCue,
   gotoNextCue,
   setalpha,
-  jumptocue,
+  jumpToCueWithConfirmationIfNeeded,
   sendGroupEventWithConfirm,
   addTimeToGroup} from "./boardapi.mjs";
 import * as Vue from "/static/js/thirdparty/vue.esm-browser.js";
@@ -689,7 +689,7 @@ export default {
     gotoPreviousCue,
     gotoNextCue,
     setalpha,
-    jumptocue,
+    jumpToCueWithConfirmationIfNeeded,
     sendGroupEventWithConfirm,
     addTimeToGroup,
   },

@@ -49,15 +49,23 @@ test("test", async ({ page }) => {
 
   await page.getByLabel("Type:").first().selectOption("intensity");
   await page.getByRole("button", { name: "Add Channel" }).click();
+  await sleep(500);
   await page.getByLabel("Type:").nth(1).selectOption("red");
   await page.getByRole("button", { name: "Add Channel" }).click();
+  await sleep(500);
+
   await page.getByLabel("Type:").nth(2).selectOption("green");
   await page.getByRole("button", { name: "Add Channel" }).click();
+  await sleep(500);
+
   await page.getByLabel("Type:").nth(3).selectOption("blue");
   await page.getByRole("button", { name: "󰅖 Close" }).click();
+  await sleep(500);
 
   await page.getByRole("button", { name: "Fixtures" }).click();
   await page.locator("select").selectOption("textfixtype");
+  await sleep(500);
+
   await page.getByRole("textbox").click();
   await page.getByRole("textbox").fill("test1");
   await page
@@ -92,7 +100,7 @@ test("test", async ({ page }) => {
   });
 
   await page.getByRole("button", { name: "Add/Remove" }).click();
-  await sleep(300);
+  await sleep(500);
   await page.getByRole("cell", { name: "󰐕 Add" }).getByRole("button").click();
   await page.getByRole("button", { name: "󰢻 Normal View" }).click();
 
@@ -104,20 +112,10 @@ test("test", async ({ page }) => {
     .locator("div")
     .filter({ hasText: /^blue0\.000$/ })
     .getByRole("slider")
-    .fill("126");
-  await page
-    .locator("div")
-    .filter({ hasText: /^blue126\.0$/ })
-    .getByRole("slider")
     .fill("253");
   await page
     .locator("div")
     .filter({ hasText: /^green0\.000$/ })
-    .getByRole("slider")
-    .fill("37");
-  await page
-    .locator("div")
-    .filter({ hasText: /^green37\.00$/ })
     .getByRole("slider")
     .fill("255");
 
@@ -266,7 +264,7 @@ test("test", async ({ page }) => {
   //await expect(page.locator('div').filter({ hasText: /^red15\.0$/ }).getByRole('slider')).toHaveValue('15');
 
   // Rendering may have latency under load
-  await sleep(300);
+  await sleep(3000);
 
   await page.goto(
     "http://localhost:8002/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/config/test_presets:p"

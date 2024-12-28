@@ -28,3 +28,6 @@ sounds_pack
 /playwright/.cache/
 /kaithem/src/__pycache__/**
 /kaithem/src/chandler/__pycache__/**
+/coverage.xml
+/index.html
+/index.html.*
