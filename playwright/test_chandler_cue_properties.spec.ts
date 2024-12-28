@@ -27,8 +27,22 @@ test("test", async ({ page }) => {
   await page.getByTestId("add-group-button").click();
   await page.getByRole("button", { name: "tst" }).click();
   await page.getByTestId("cue-media-dialog-button").click();
+
+  await page.evaluate(async () => {
+    await globalThis.doSerialized()
+  });
+
   await page.getByLabel("Sound start s into file.").click();
+  await sleep(500);
   await page.getByLabel("Sound start s into file.").fill("1");
+  await sleep(500);
+  await page.getByLabel("Sound start s into file.").fill("1");
+  await page.getByLabel("Sound start s into file.").fill("1");
+  await page.getByLabel("Sound start s into file.").fill("1");
+  await sleep(500);
+  await page.getByLabel("Sound start s into file.").fill("1");
+
+
   await page.getByLabel("Media Speed").click();
   await page.getByLabel("Media Speed").fill("1.2");
   await page.getByLabel("Windup").click();
@@ -42,6 +56,7 @@ test("test", async ({ page }) => {
   });
   await expect(page.getByLabel("Relative length")).not.toBeChecked();
   await page.getByLabel("Relative length").check();
+  
   await page.getByLabel("Fade sound after end").click();
   await page.getByLabel("Fade sound after end").fill("0.6");
   await page.getByLabel("Sound fadein:").click();
@@ -60,8 +75,6 @@ test("test", async ({ page }) => {
     .click();
   await page.getByTestId("media-browser-container").getByText("img/").click();
   await page.getByTestId("media-browser-container").getByText("16x9/").click();
-
-  await sleep(150);
 
   await page
     .locator("tr")
@@ -82,7 +95,6 @@ test("test", async ({ page }) => {
     .getByText("/sounds")
     .click();
 
-await sleep(150);
 
   await page
     .locator("tr")
@@ -96,12 +108,15 @@ await sleep(150);
     .getByRole("button", { name: "Set(Slide)" })
     .click();
 
-  await sleep(500);
+    await page.evaluate(async () => {
+      await globalThis.doSerialized()
+    })
+  
   await page.getByTestId("close-cue-media").click();
   await page.getByTestId("close-group").click();
 
     await page.evaluate(async () => {
-        await globalThis.previousSerializedPromise
+        await globalThis.doSerialized()
     })
   // Verify
   await page.getByRole("link", { name: "󱒕 Modules" }).click();
@@ -109,6 +124,9 @@ await sleep(150);
   await page.getByRole("link", { name: "󰏬 Edit" }).click();
   await page.getByRole("button", { name: "tst" }).click();
   await page.getByTestId("cue-media-dialog-button").click();
+  await page.evaluate(async () => {
+    await globalThis.doSerialized()
+})
   await expect(page.getByTestId("cue-label-image-control")).toHaveValue(
     "img/16x9/apples-display.avif"
   );

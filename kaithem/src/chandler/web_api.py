@@ -3,6 +3,7 @@ import json
 
 import quart.ctx
 import quart.utils
+import structlog
 import yaml
 from jsonschema import Draft202012Validator
 from quart import request
@@ -14,6 +15,8 @@ from .core import boards, cl_context
 from .cue import cue_schema, cues
 from .groups import checkPermissionsForGroupData, group_schema, groups
 from .web import quart_app
+
+logger = structlog.get_logger(__name__)
 
 
 @quart_app.app.route("/chandler/api/delete-group/<board>/<group_id>")
@@ -152,6 +155,12 @@ async def set_cue_properties(cue_id: str):
                 group = cue.group()
                 if group:
                     group.board.pushCueMeta(cue_id)
+
+            if not getattr(cues[cue_id], prop) == val:
+                pass
+                # logger.warning(
+                #     f"""User set property {prop} on cue {cue_id} to {val} but it was set to {getattr(cues[cue_id], prop)}"""
+                # )
 
         return {"success": True}
 

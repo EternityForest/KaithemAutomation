@@ -41,7 +41,7 @@
               placeholder="No sound file"
               v-bind:value="currentcue.sound"
               v-on:change="
-                setCueProperty(currentcue.id, 'sound', currentcue.sound)
+                setCueProperty(currentcue.id, 'sound', $event.target.value)
               " />
           </label>
           <label
@@ -52,7 +52,7 @@
               placeholder="No media file"
               v-bind:value="currentcue.slide"
               v-on:change="
-                setCueProperty(currentcue.id, 'slide', currentcue.slide)
+                setCueProperty(currentcue.id, 'slide', $event.target.value)
               " />
           </label>
 
@@ -64,11 +64,7 @@
               data-testid="cue-label-image-control"
               v-bind:value="currentcue.labelImage"
               v-on:change="
-                setCueProperty(
-                  currentcue.id,
-                  'labelImage',
-                  currentcue.labelImage
-                )
+                setCueProperty(currentcue.id, 'labelImage', $event.target.value)
               " />
             <button
               class="button"
@@ -105,7 +101,7 @@
                   setCueProperty(
                     currentcue.id,
                     'soundStartPosition',
-                    currentcue.soundStartPosition
+                    $event.target.value
                   )
                 " />s into file.
             </label>
@@ -121,7 +117,7 @@
                   setCueProperty(
                     currentcue.id,
                     'mediaSpeed',
-                    currentcue.mediaSpeed
+                    $event.target.value
                   )
                 " />
             </label>
@@ -139,7 +135,7 @@
                   setCueProperty(
                     currentcue.id,
                     'mediaWindUp',
-                    currentcue.mediaWindUp
+                    $event.target.value
                   )
                 " />
             </label>
@@ -155,7 +151,7 @@
                   setCueProperty(
                     currentcue.id,
                     'mediaWindDown',
-                    currentcue.mediaWindDown
+                    $event.target.value
                   )
                 " />
             </label>
@@ -201,10 +197,10 @@
                   setCueProperty(
                     currentcue.id,
                     'relLength',
-                    currentcue.relLength
+                    $event.target.checked
                   )
                 "
-                v-bind:value="currentcue.relLength"
+                v-bind:checked="currentcue.relLength"
                 title="If checked, the length parameter is interpreted as a delay after the sound cue ends." />
             </label>
 
@@ -399,7 +395,11 @@
 
 <script setup>
 import { getExcalidrawCueLink, iframeDialog } from "./editor.mjs";
-import { newCueFromSound, newCueFromSlide, setCueProperty} from "./boardapi.mjs";
+import {
+  newCueFromSound,
+  newCueFromSlide,
+  setCueProperty,
+} from "./boardapi.mjs";
 
 defineProps([
   "no_edit",

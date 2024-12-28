@@ -138,69 +138,61 @@ function triggerShortcut(sc) {
 
 // Slowly we want to migrate to these two generic setters
 async function setGroupProperty(group, property, value) {
-  // Serialization prevents tests from acting badly and might even be important
-  // in the ui on slow connections
-  if (previousSerializedPromise.value) {
-    await previousSerializedPromise.value;
-  }
+  await doSerialized(async () => {
+    var x = cueSetData[group + property];
+    if (x) {
+      clearTimeout(x);
+      delete cueSetData[group + property];
+    }
+    var b = {};
+    b[property] = value;
 
-  var x = cueSetData[group + property];
-  if (x) {
-    clearTimeout(x);
-    delete cueSetData[group + property];
-  }
-  var b = {};
-  b[property] = value;
+    let response = fetch("/chandler/api/set-group-properties/" + group, {
+      method: "PUT",
+      body: JSON.stringify(b),
+      headers: {
+        "Content-type": "application/json; charset=UTF-8",
+      },
+    }).catch(function (error) {
+      alert("Could not reach server:" + error);
+    });
 
-  let response = fetch("/chandler/api/set-group-properties/" + group, {
-    method: "PUT",
-    body: JSON.stringify(b),
-    headers: {
-      "Content-type": "application/json; charset=UTF-8",
-    },
-  }).catch(function (error) {
-    alert("Could not reach server:" + error);
+    let v = await response;
+
+    if (!v.ok) {
+      alert("Error setting property, possible invalid value: " + value);
+    }
   });
-
-  previousSerializedPromise.value = response;
-  let v = await previousSerializedPromise.value;
-
-  if (!v.ok) {
-    alert("Error setting property, possible invalid value: " + value);
-  }
 }
 
 async function setCueProperty(cue, property, value) {
-  if (previousSerializedPromise.value) {
-    await previousSerializedPromise.value;
-  }
-
-  var x = cueSetData[cue + property];
-  if (x) {
-    clearTimeout(x);
-    delete cueSetData[cue + property];
-  }
-
-  var b = {};
-  b[property] = value;
-
-  let p = fetch("/chandler/api/set-cue-properties/" + cue, {
-    method: "PUT",
-    body: JSON.stringify(b),
-    headers: {
-      "Content-type": "application/json; charset=UTF-8",
-    },
-  });
-  previousSerializedPromise.value = p;
-
-  try {
-    let r = await p;
-    if (!r.ok) {
-      alert("Error setting property, possible invalid value: " + value);
+  await doSerialized(async () => {
+    var x = cueSetData[cue + property];
+    if (x) {
+      clearTimeout(x);
+      delete cueSetData[cue + property];
     }
-  } catch (error) {
-    alert("Could not reach server: " + error);
-  }
+
+    var b = {};
+    b[property] = value;
+
+    let p = fetch("/chandler/api/set-cue-properties/" + cue, {
+      method: "PUT",
+      body: JSON.stringify(b),
+      headers: {
+        "Content-type": "application/json; charset=UTF-8",
+      },
+    });
+
+    try {
+      let r = await p;
+      if (!r.ok) {
+        alert("Error setting property, possible invalid value: " + value);
+      }
+    } catch (error) {
+      alert("Could not reach server: " + error);
+    }
+  });
 }
 
 function setCuePropertyDeferred(cue, property, value) {
@@ -298,21 +290,20 @@ function selectgroup(sc, sn) {
 async function delgroup(group) {
   var r = confirm("Really delete group?");
   if (r == true) {
-    await previousSerializedPromise.value;
+    await doSerialized(async () => {
+      let result = fetch(
+        "/chandler/api/delete-group/" + boardname.value + "/" + group
+      ).catch(function (error) {
+        alert("Could not reach server:" + error);
+      });
 
-    let result = fetch(
-      "/chandler/api/delete-group/" + boardname.value + "/" + group
-    ).catch(function (error) {
-      alert("Could not reach server:" + error);
-    });
-
-    previousSerializedPromise.value = result;
-    let result2 = await result;
-    if (!result2.ok) {
-      {
-        alert("Error deleting group: " + result.statusText);
+      let result2 = await result;
+      if (!result2.ok) {
+        {
+          alert("Error deleting group: " + result.statusText);
+        }
       }
-    }
+    });
   }
 }
 
@@ -411,12 +402,49 @@ function jumptocue(cue, group) {
     api_link.send(["jumptocue", cue]);
   }
 }
-function getcuedata(c) {
-  api_link.send(["getcuedata", c]);
+
+const gettingCueDataPromises = {};
+async function getcuedata(c) {
+  await doSerialized(async () => {
+    const p = new Promise((resolve, _reject) => {
+      gettingCueDataPromises[c] = resolve
+    });
+    const timeoutPromise = new Promise((_resolve, reject) => {
+      setTimeout(() => {
+        reject();
+      }, 5000);
+    });
+    api_link.send(["getcuedata", c]);
+    try {
+      await Promise.race([p, timeoutPromise]);
+    } catch (error) {
+      console.log("Error getting cue data", error);
+    }
+  });
 }
-function getcuemeta(c) {
-  api_link.send(["getcuemeta", c]);
+
+const gettingCueMetaPromises = {};
+
+async function getcuemeta(c) {
+  await doSerialized(async () => {
+    const p = new Promise((_resolve, _reject) => {
+      gettingCueMetaPromises[c] = _resolve
+    });
+    const timeoutPromise = new Promise((_resolve, reject) => {
+      setTimeout(() => {
+        reject();
+        alert("Timeout waiting for cue data.");
+      }, 5000);
+    });
+    api_link.send(["getcuemeta", c]);
+    try {
+      await Promise.race([p, timeoutPromise]);
+    } catch (error) {
+      console.log("Error getting cue data", error);
+    }
+  });
 }
+
 function setnext(sc, cue, v) {
   api_link.send(["setnext", sc, cue, v]);
 }
@@ -629,10 +657,64 @@ let nuisianceRateLimit = ref([10, Date.now()]);
 
 // This is a global the whole app can use to await serialized promises.
 let previousSerializedPromise = ref(null);
+
 if (globalThis.previousSerializedPromise) {
   previousSerializedPromise = globalThis.previousSerializedPromise;
 } else {
   globalThis.previousSerializedPromise = previousSerializedPromise;
+}
+
+/*
+This function waits until the previous action has completed before
+doing the callback.
+
+Timeout does not apply to callback, only waiting for previous actions.
+Can call without a callback to just wait for previous actions.
+*/
+async function doSerialized(callback, timeout) {
+  try {
+    if (previousSerializedPromise.value) {
+      if (timeout > 0) {
+        const timeoutPromise = new Promise((_resolve, reject) => {
+          setTimeout(() => {
+            reject();
+          }, timeout);
+        });
+        try {
+          await Promise.race([previousSerializedPromise.value, timeoutPromise]);
+        } catch (error) {
+          console.log("Error in previous serialized promise", error);
+        }
+      } else {
+        await previousSerializedPromise.value;
+      }
+    }
+  } catch (error) {
+    console.log("Eror in previous serialized promise", error);
+  }
+  if (callback) {
+    previousSerializedPromise.value = callback();
+    return await previousSerializedPromise.value;
+  }
+}
+
+// Used for tests
+globalThis.doSerialized = doSerialized;
+
+/*Like doSerialized but also times out on callback, not just
+waiting for previous actions*/
+async function doSerializedWithTimeout(callback, timeout) {
+  const timeoutPromise = new Promise((_resolve, reject) => {
+    setTimeout(() => {
+      reject();
+      alert("Timeout waiting for action.");
+    }, timeout);
+  });
+
+  return doSerialized(
+    () => Promise.race([callback(), timeoutPromise]),
+    timeout
+  );
 }
 
 let no_edit = ref(!kaithemapi.checkPermission("system_admin"));
@@ -945,6 +1027,10 @@ function handleServerMessage(v) {
       old_vue_set(groupcues.value, v[1], {});
     }
   } else if (c == "cuemeta") {
+    if (gettingCueMetaPromises[v[1]]) {
+      gettingCueMetaPromises[v[1]]();
+      delete gettingCueMetaPromises[v[1]];
+    }
     handleCueInfo(v[1], v[2]);
   } else if (c == "event") {
     recentEventsLog.value.unshift(v[1]);
@@ -991,6 +1077,10 @@ function handleServerMessage(v) {
     event.data = [v[1], v[2]];
     globalThis.dispatchEvent(event);
   } else if (c == "cuedata") {
+    if (gettingCueDataPromises[v[1]]) {
+      gettingCueDataPromises[v[1]]();
+      delete gettingCueDataPromises[v[1]];
+    }
     let d = {};
     old_vue_set(cuevals.value, v[1], d);
 
@@ -1200,6 +1290,8 @@ export {
   cuePage,
   nuisianceRateLimit,
   previousSerializedPromise,
+  doSerialized,
+  doSerializedWithTimeout,
   no_edit,
   recentEventsLog,
   soundCards,

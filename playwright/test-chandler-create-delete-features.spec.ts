@@ -129,7 +129,7 @@ test("test", async ({ page }) => {
     await page.getByLabel("Delete Group").click();
     
   await page.evaluate(async () => {
-    await globalThis.previousSerializedPromise
+    await globalThis.doSerialized()
 })
   await expect(page.getByRole("button", { name: "test" })).toBeHidden();
 

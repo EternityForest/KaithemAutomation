@@ -119,7 +119,7 @@ async function chandlerBoardTemplate(page: Page) {
     // Go to chandler editor
     await page.getByRole('link', { name: 'Modules' }).click();
     await page.getByRole('link', { name: module }).click();
-    await page.getByRole('link', { name: 'Editor' }).click();
+    await page.getByRole('link', { name: 'Edit' }).click();
 
     // Create group
     await page.getByPlaceholder('New group name').click();

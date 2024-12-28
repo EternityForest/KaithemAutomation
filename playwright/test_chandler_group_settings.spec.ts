@@ -121,7 +121,7 @@ test('test', async ({ page }) => {
     await page.getByLabel('Sync Group Name').click();
 
     await page.evaluate(async () => {
-        await globalThis.previousSerializedPromise
+        await globalThis.doSerialized()
     })
 
     // Check that the stuff is there
@@ -147,7 +147,7 @@ test('test', async ({ page }) => {
     await page.getByTestId('close-group').click();
 
     await page.evaluate(async () => {
-        await globalThis.previousSerializedPromise
+        await globalThis.doSerialized()
     })
     // More settings
     await page.goto('http://localhost:8002/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/editor/testchandlerproperties:b1');
@@ -172,7 +172,7 @@ test('test', async ({ page }) => {
     await page.getByTestId('close-group-settings').click();
     await page.getByTestId('close-group').click();
     await page.evaluate(async () => {
-        await globalThis.previousSerializedPromise
+        await globalThis.doSerialized()
     })
 
     // More checking
@@ -195,7 +195,15 @@ test('test', async ({ page }) => {
 
     await page.getByRole('button', { name: 'Add Tag' }).click();
 
+    await sleep(300);
+
     await fill_box(page, page.getByTestId('display_tag_label'), 'tg1');
+
+    await sleep(300);
+    await page.evaluate(async () => {
+        await globalThis.doSerialized()
+    })
+
 
     // This line is flaky, if you get a fail just manually pause a bit.
     await fill_box(page,
@@ -217,7 +225,7 @@ test('test', async ({ page }) => {
     
     await sleep(300);
     await page.evaluate(async () => {
-        await globalThis.previousSerializedPromise
+        await globalThis.doSerialized()
     })
 
     await page.goto('http://localhost:8002/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/editor/testchandlerproperties:b1');
@@ -245,7 +253,7 @@ test('test', async ({ page }) => {
     await page.getByTestId('close-group').click();
 
     await page.evaluate(async () => {
-        await globalThis.previousSerializedPromise
+        await globalThis.doSerialized()
     })
 
     await page.goto('http://localhost:8002/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/editor/testchandlerproperties:b1');
@@ -307,7 +315,7 @@ test('test', async ({ page }) => {
     await page.getByTestId('close-group').click();
 
     await page.evaluate(async () => {
-        await globalThis.previousSerializedPromise
+        await globalThis.doSerialized()
     })
     // Check that it worked
     await page.goto('http://localhost:8002/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/editor/testchandlerproperties:b1');
@@ -339,7 +347,7 @@ test('test', async ({ page }) => {
     await page.getByTestId('close-group').click();
 
     await page.evaluate(async () => {
-        await globalThis.previousSerializedPromise
+        await globalThis.doSerialized()
     })
 
     await page.goto('http://localhost:8002/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/editor/testchandlerproperties:b1');
