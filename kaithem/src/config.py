@@ -55,6 +55,7 @@ def load(cfg: dict[str, Any]):
     # Manually specify a confifuration file, or else there must be one in /etc/kaithem
     _argp.add_argument("-d")
     _argp.add_argument("-p")
+    _argp.add_argument("--process-title")
 
     # Debig runners put weird stuff that breaks things
     if "pytest" in sys.argv[0]:
@@ -110,6 +111,10 @@ def load(cfg: dict[str, Any]):
 
     if argcmd.p:
         config["https_port"] = int(argcmd.p)
+
+    if argcmd.process_title:
+        config["process_title"] = argcmd.process_title
+
     return config
 
 

@@ -194,6 +194,10 @@ properties:
     get_public_ip:
         type: boolean
 
+    process_title:
+        type: string
+        default: "kaithem"
+
 
     core/favicon_ico:
         type: string

@@ -178,6 +178,8 @@ class ChandlerConsole(console_abc.Console_ABC):
         except Exception:
             logger.exception("Could not close correctly")
 
+        self.cl_delete_assigned_fixtures()
+
     @core.cl_context.entry_point
     def cl_load_project(self, data: dict[str, Any]):
         for i in self.groups:
@@ -248,8 +250,9 @@ class ChandlerConsole(console_abc.Console_ABC):
         self.initialized = True
 
     @core.cl_context.entry_point
-    def cl_reload_fixture_assignment_data(self):
-        self.fixture_errors = ""
+    def cl_delete_assigned_fixtures(self):
+        """Clear the fixture objects without actually touching the config
+        that generates them"""
         try:
             for i in self.fixtures:
                 self.fixtures[i].cl_assign(None, None)
@@ -265,6 +268,10 @@ class ChandlerConsole(console_abc.Console_ABC):
         except Exception:
             pass
 
+    @core.cl_context.entry_point
+    def cl_reload_fixture_assignment_data(self):
+        self.fixture_errors = ""
+        self.cl_delete_assigned_fixtures()
         self.fixtures = {}
         for key, i in self.fixture_assignments.items():
             try:

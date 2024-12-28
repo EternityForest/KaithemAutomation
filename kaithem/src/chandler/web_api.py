@@ -168,6 +168,44 @@ async def set_cue_properties(cue_id: str):
 
 
 @quart_app.app.route(
+    "/chandler/api/set-cue-value/<cue_id>/<universe>/<channel>",
+    methods=["POST"],
+)
+async def set_cue_value_rest(cue_id: str, universe: str, channel: str | int):
+    require("system_admin")
+    v = json.loads(quart.request.args["value"])
+
+    cue = cues[cue_id]
+    group = cue.group()
+    if group:
+        board = group.board
+        group.board.pushCueMeta(cue_id)
+    else:
+        raise RuntimeError("Cue has no group")
+
+    # If it looks like an int, it should be an int.
+    if isinstance(channel, str):
+        try:
+            channel = int(channel)
+        except ValueError:
+            pass
+
+    if isinstance(v, str):
+        try:
+            v = float(v)
+        except ValueError:
+            pass
+
+    cue.set_value_immediate(universe, channel, v)
+
+    if v is None:
+        # Count of values in the metadata changed
+        board.pushCueMeta(cue_id)
+
+    return {"success": True}
+
+
+@quart_app.app.route(
     "/chandler/api/set-group-properties/<group_id>", methods=["PUT"]
 )
 async def set_group_properties(group_id: str):

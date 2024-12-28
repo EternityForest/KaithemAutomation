@@ -4,7 +4,37 @@
 
 # It starts the whole app, pointed at a ram sandbox, to run things.
 
+import os
+import signal
 import sys
+import threading
+
+import pytest
+
+print("Conftest.py", sys.argv)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def cleanup(request):
+    def remove_test_dir():
+        # TODO what is keeping it running?
+        # List all non daemon threads and what they are doing
+
+        print("Test finished, listing remaining threads")
+        frames = sys._current_frames()
+        for thread in threading.enumerate():
+            if not thread.isDaemon():
+                print(thread, thread.is_alive(), thread.name)
+                if thread.ident:
+                    try:
+                        print(thread.name, frames[thread.ident])
+                    except KeyError:
+                        pass
+
+        os.kill(os.getpid(), signal.SIGTERM)
+
+    request.addfinalizer(remove_test_dir)
+
 
 if "--collect-only" not in sys.argv:
     import builtins

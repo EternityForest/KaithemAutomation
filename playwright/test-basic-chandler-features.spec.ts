@@ -117,7 +117,7 @@ test('test', async ({ page }) => {
     // to the cue
     await page.getByRole('link', { name: 'Modules' }).click();
     await page.getByRole('link', { name: module }).click();
-    await page.getByRole('link', { name: 'Editor' }).click();
+    await page.getByRole('link', { name: 'Edit' }).click();
     await page.getByRole('button', { name: 'tst1' }).click();
     await page.getByTestId("add-rm-fixtures-button").click();
     await page.getByLabel('Tag', { exact: true }).click();

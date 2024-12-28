@@ -19,6 +19,7 @@ Change Log
 - :bug: Fix total failure to load chandler data if cue param is corrupted
 - :bug: Fix issues if inherit_rules is a nonexistant cue.
 - :bug: Fix default cue not starting up properly
+- :bug: Fix chandler board leaving behind fixture assignments when deleted
 
 ### 0.86.3
 

@@ -151,6 +151,10 @@ full_time_intervals: no
 #Must be a YAML file containing a list of strings.
 quotes_file: default
 
+
+process_title: kaithem
+
+
 ### Dynamically overridable in a module
 
 #Should be a path. If it is relative, starts in the datadir

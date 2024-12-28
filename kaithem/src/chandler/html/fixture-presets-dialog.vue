@@ -40,7 +40,10 @@
           <img
             v-if="getpresetimage(ps)"
             :src="
-              '/chandler/WebMediaServer?board=' + boardname + '&file=' + encodeURIComponent(getpresetimage(ps))
+              '/chandler/WebMediaServer?board=' +
+              boardname +
+              '&file=' +
+              encodeURIComponent(getpresetimage(ps))
             " />
           <div
             class="label"
@@ -91,7 +94,9 @@
         <img
           v-if="getpresetimage(ps[0])"
           :src="
-            '/chandler/WebMediaServer?board=' + boardname + '&file=' +
+            '/chandler/WebMediaServer?board=' +
+            boardname +
+            '&file=' +
             encodeURIComponent(getpresetimage(ps[0]))
           " />
 
@@ -116,20 +121,20 @@
 </template>
 
 <script setup>
-import { presets, boardname} from "./boardapi.mjs";
+import { presets, boardname, restSetCueValue } from "./boardapi.mjs";
 import { dictView } from "./utils.mjs";
 import * as Vue from "/static/js/thirdparty/vue.esm-browser.js";
 
 const properties = defineProps({
-  "fixture": String,
-  "fordestination": [String, Boolean],
-  "fixtureclasses": Object,
-  "fixturetype": String,
-  "currentcueid": String,
-  "currentvals": Object,
-  "getpresetimage": Function,
-  "no_edit": Boolean
-})
+  fixture: String,
+  fordestination: [String, Boolean],
+  fixtureclasses: Object,
+  fixturetype: String,
+  currentcueid: String,
+  currentvals: Object,
+  getpresetimage: Function,
+  no_edit: Boolean,
+});
 
 const recentPresets = Vue.ref([]);
 const presetFilter = Vue.ref("");
@@ -148,10 +153,7 @@ function setFixturePreset(sc, fix, preset) {
   const deleteIndex = recentPresets.value.indexOf(preset);
 
   if (deleteIndex !== -1) {
-    recentPresets.value = recentPresets.value.toSpliced(
-      deleteIndex,
-      1
-    );
+    recentPresets.value = recentPresets.value.toSpliced(deleteIndex, 1);
   }
   recentPresets.value = recentPresets.value.slice(-8);
   recentPresets.value.push(preset);
@@ -180,13 +182,12 @@ function setFixturePreset(sc, fix, preset) {
 
   selectedPreset = structuredClone(Vue.toRaw(selectedPreset));
 
-
   for (var i in properties.currentvals) {
     // If just editing destinations
     // don't use the special vals.
     if (properties.fordestination && i.includes("__")) {
-        continue;
-      }
+      continue;
+    }
 
     if (i == "__length__") {
       continue;
@@ -194,29 +195,26 @@ function setFixturePreset(sc, fix, preset) {
     if (i == "__spacing__") {
       continue;
     }
-    if (typeof selectedPreset.values[i] == "string" && selectedPreset.values[i].length === 0) {
-        continue;
-      }
+    if (
+      typeof selectedPreset.values[i] == "string" &&
+      selectedPreset.values[i].length === 0
+    ) {
+      continue;
+    }
 
     if (selectedPreset.values[i] == "-1") {
       continue;
     }
     if (selectedPreset.values[i] != undefined) {
       if (properties.fordestination) {
-        globalThis.api_link.send([
-          "scv",
-          sc,
-          fix,
-          "__dest__." + i,
-          selectedPreset.values[i],
-        ]);
+        restSetCueValue(sc, fix, "__dest__." + i, selectedPreset.values[i]);
       } else {
-        globalThis.api_link.send(["scv", sc, fix, i, selectedPreset.values[i]]);
+        restSetCueValue(sc, fix, i, selectedPreset.values[i]);
       }
     }
   }
   if (!properties.fordestination) {
-    globalThis.api_link.send(["scv", sc, fix, "__preset__", preset]);
+    restSetCueValue(sc, fix, "__preset__", preset);
   }
 }
 
@@ -234,8 +232,8 @@ function checkPresetUsablility(preset) {
   }
 
   if (properties.fixturetype && preset.endsWith("@" + properties.fixturetype)) {
-      return true;
-    }
+    return true;
+  }
 
   let clsdata = properties.fixtureclasses[properties.fixturetype];
 
@@ -243,12 +241,14 @@ function checkPresetUsablility(preset) {
     return false;
   }
 
-  if (clsdata && clsdata.color_profile && 
-        preset.includes("@") &&
-        clsdata.color_profile.startsWith(preset.split("@")[1])
-      ) {
-        return true;
-      }
+  if (
+    clsdata &&
+    clsdata.color_profile &&
+    preset.includes("@") &&
+    clsdata.color_profile.startsWith(preset.split("@")[1])
+  ) {
+    return true;
+  }
 
   return false;
 }

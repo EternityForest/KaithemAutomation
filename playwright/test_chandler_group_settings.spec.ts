@@ -5,34 +5,6 @@ async function delay(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function fill_box(page, box, text: string) {
-    /*Filling a box does't always work even if it does in the browser*/
-
-    await box.click();
-
-    await box.clear();
-    await box.fill(text, { force: true });
-    delay(30);
-    if(await box.inputValue() == text) {
-        return;
-    }
-
-    for (let i = 0; i < 10; i++) {
-        await box.clear();
-        await delay(10*i);
-        await box.pressSequentially(text, { delay: 5 });
-        await delay(10*i +50);
-        if (await box.inputValue() == text) {
-            break;
-        }
-        else {
-            await box.clear();
-            await box.fill(text, { force: true });
-            await delay(10*i);
-        }
-    }
-    expect(await box.inputValue()).toBe(text);
-}
 
 /*More flaky crap fixes*/
 async function check_box(page, box) {
@@ -194,10 +166,12 @@ test('test', async ({ page }) => {
     await page.getByTestId('event_button_event').fill('evt1');
 
     await page.getByRole('button', { name: 'Add Tag' }).click();
+    await page.evaluate(async () => {
+        await globalThis.doSerialized()
+    })
 
-    await sleep(300);
 
-    await fill_box(page, page.getByTestId('display_tag_label'), 'tg1');
+    await page.getByTestId('display_tag_label').fill('tg1');
 
     await sleep(300);
     await page.evaluate(async () => {
@@ -206,16 +180,15 @@ test('test', async ({ page }) => {
 
 
     // This line is flaky, if you get a fail just manually pause a bit.
-    await fill_box(page,
-        page.getByTestId('display_tag_width'), '5');
-
-
-    await fill_box(page,
-        page.getByTestId('display_tag_tag'), '=4');
+    await page.getByTestId('display_tag_width').fill('5');
+    await page.getByTestId('display_tag_tag').fill('=4');
     
 
     await page.getByTestId('display_tag_type').selectOption('Meter')
 
+    await page.evaluate(async () => {
+        await globalThis.doSerialized()
+    })
     // Waste some time to let it send
 
     await page.getByTestId('close-group-settings').click();

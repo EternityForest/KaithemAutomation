@@ -165,6 +165,38 @@ async function setGroupProperty(group, property, value) {
   });
 }
 
+async function restSetCueValue(cue, universe, channel, value) {
+  await doSerialized(async () => {
+    var x = cueSetData[cue + "value"];
+    if (x) {
+      clearTimeout(x);
+      delete cueSetData[cue + "value"];
+    }
+
+    let response = fetch(
+      "/chandler/api/set-cue-value/" +
+        cue +
+        "/" +
+        universe +
+        "/" +
+        channel +
+        "?" +
+        new URLSearchParams({ value: JSON.stringify(value) }).toString(),
+      {
+        method: "POST",
+      }
+    ).catch(function (error) {
+      alert("Could not reach server:" + error);
+    });
+
+    let v = await response;
+
+    if (!v.ok) {
+      alert("Error setting value, possible invalid value: " + value);
+    }
+  });
+}
+
 async function setCueProperty(cue, property, value) {
   await doSerialized(async () => {
     var x = cueSetData[cue + property];
@@ -259,7 +291,13 @@ function sendGroupEventWithConfirm(event_, where) {
 function refreshhistory(sc) {
   api_link.send(["getcuehistory", sc]);
 }
-function setCueValue(sc, u, ch, value) {
+
+async function setCueValue(sc, u, ch, value) {
+
+  if (globalThis.testMode) {
+    await restSetCueValue(sc, u, ch, value);
+    return;
+  }
   if (cuevals.value?.[sc]?.[u]?.["__preset__"]) {
     api_link.send(["scv", sc, u, "__preset__", null]);
   }
@@ -407,7 +445,7 @@ const gettingCueDataPromises = {};
 async function getcuedata(c) {
   await doSerialized(async () => {
     const p = new Promise((resolve, _reject) => {
-      gettingCueDataPromises[c] = resolve
+      gettingCueDataPromises[c] = resolve;
     });
     const timeoutPromise = new Promise((_resolve, reject) => {
       setTimeout(() => {
@@ -428,7 +466,7 @@ const gettingCueMetaPromises = {};
 async function getcuemeta(c) {
   await doSerialized(async () => {
     const p = new Promise((_resolve, _reject) => {
-      gettingCueMetaPromises[c] = _resolve
+      gettingCueMetaPromises[c] = _resolve;
     });
     const timeoutPromise = new Promise((_resolve, reject) => {
       setTimeout(() => {
@@ -670,32 +708,45 @@ doing the callback.
 
 Timeout does not apply to callback, only waiting for previous actions.
 Can call without a callback to just wait for previous actions.
+
+This basically adds each new function to a chain, so if the timeout
+on one expires, the next ones can go even if ones before it don't,
+so it is pretty much a "soft" approximate serialization.
+
+It mostly exists to allow tests to wait for previous actions.
 */
 async function doSerialized(callback, timeout) {
-  try {
-    if (previousSerializedPromise.value) {
-      if (timeout > 0) {
-        const timeoutPromise = new Promise((_resolve, reject) => {
-          setTimeout(() => {
-            reject();
-          }, timeout);
-        });
-        try {
-          await Promise.race([previousSerializedPromise.value, timeoutPromise]);
-        } catch (error) {
-          console.log("Error in previous serialized promise", error);
+  let previous = previousSerializedPromise.value;
+
+  const f = async () => {
+    try {
+      if (previous) {
+        if (timeout > 0) {
+          const timeoutPromise = new Promise((_resolve, reject) => {
+            setTimeout(() => {
+              reject();
+            }, timeout);
+          });
+          try {
+            await Promise.race([previous, timeoutPromise]);
+          } catch (error) {
+            console.log("Error in previous serialized promise", error);
+          }
+        } else {
+          await previous;
         }
-      } else {
-        await previousSerializedPromise.value;
       }
+    } catch (error) {
+      console.log("Eror in previous serialized promise", error);
     }
-  } catch (error) {
-    console.log("Eror in previous serialized promise", error);
-  }
-  if (callback) {
-    previousSerializedPromise.value = callback();
-    return await previousSerializedPromise.value;
-  }
+    if (callback) {
+      return await callback();
+    }
+  };
+
+  const p = f();
+  previousSerializedPromise.value = p;
+  return await p;
 }
 
 // Used for tests
@@ -1394,6 +1445,7 @@ export {
   next,
   goto,
   triggerShortcut,
+  restSetCueValue,
 };
 
 export { formatInterval, useBlankDescriptions, dictView } from "./utils.mjs";

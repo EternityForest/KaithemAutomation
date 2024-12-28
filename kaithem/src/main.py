@@ -181,7 +181,12 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
     try:
         import setproctitle
 
-        setproctitle.setproctitle("kaithem")
+        if cfg:
+            title = cfg.get("process_title", "kaithem")
+        else:
+            title = "kaithem"
+
+        setproctitle.setproctitle(title)
     except Exception:
         logger.warning("error setting process title")
 

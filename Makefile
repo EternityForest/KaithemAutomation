@@ -113,3 +113,21 @@ dev-import-16_9_buttons:
 .PHONY: dev-scalene-profile
 dev-scalene-profile:
 	@scalene --profile-all --use-virtual-time --cpu-sampling-rate=0.001 dev_run.py
+
+
+.PHONY: dev-run-all-tests
+dev-run-all-tests:
+	@echo "Starting test server and running all playwright and pytest tests"
+	@echo "Stopping any other process named coverage"
+	@coverage erase
+	@killall -9 coverage
+	@coverage run testing_server.py --process-title kmakefiletest &
+	@echo "Waiting for server to start"
+	@sleep 5
+	@wget --retry-connrefused --waitretry=1 --read-timeout=20 --quiet --timeout=15 -t 0 http://localhost:8002
+	@npx playwright test --headed --reporter=html  --workers 1
+	@killall coverage
+	@sleep 5
+	@killall -9 coverage
+	@coverage run -a -m pytest
+	@coverage html -i
