@@ -62,34 +62,6 @@ def validate(schemaName: str, data: Any):
     get_validator(schemaName).validate(data)
 
 
-def clean_data_inplace(
-    schemaName: str, data: Dict[str, Any], deprecated_only: bool = False
-):
-    "Remove top level keys not in the schema or that are deprecated."
-
-    sc = get_schema(schemaName)
-
-    to_remove = []
-
-    if not deprecated_only:
-        if not sc.get("additionalProperties", True):
-            for i in data:
-                if i not in sc["properties"]:
-                    # print(f"Removing property not in schema {i}")
-                    to_remove.append(i)
-
-    # Check for deprecation
-    for i in data:
-        if (i in sc["properties"]) and sc["properties"][i].get(
-            "deprecated", False
-        ):
-            # print(f"Removing deprecated property {i}")
-            to_remove.append(i)
-
-    for i in to_remove:
-        data.pop(i)
-
-
 def suppress_defaults(schemaName: str, data: Dict[str, Any]):
     "Remove top level keys that are the same as the default value in the schema"
 

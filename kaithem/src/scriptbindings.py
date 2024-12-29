@@ -93,49 +93,6 @@ class NamespaceGetter:
         return self.__attr_dict[f"{self.__attr_prefix}.{k}"]
 
 
-def DummyObject():
-    "Operations with this succeed, but return other"
-
-    def __add__(self, other):
-        return other
-
-    def __sub__(self, other):
-        return other
-
-    def __mul__(self, other):
-        return other
-
-    def __floordiv__(self, other):
-        return other
-
-    def __truediv__(self, other):
-        return other
-
-    def __mod__(self, other):
-        return other
-
-    def __pow__(self, other):
-        return other
-
-    def __and__(self, other):
-        return other
-
-    def __xor__(self, other):
-        return other
-
-    def __or__(self, other):
-        return other
-
-    def __int__(self):
-        return 0
-
-    def __neg__(self):
-        return 0
-
-    def __str__(self):
-        return ""
-
-
 def paramDefault(p):
     if isinstance(p, int):
         return f"={str(p)}"

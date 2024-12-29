@@ -153,11 +153,6 @@ class ChandlerConsole(console_abc.Console_ABC):
         self.ml_save_callback = dummy
         self.should_run = True
 
-    def worker_loop(self):
-        while self.should_run:
-            self.cl_check_autosave()
-            time.sleep(10)
-
     @core.cl_context.required
     def cl_close(self):
         for i in self.groups:
@@ -353,33 +348,6 @@ class ChandlerConsole(console_abc.Console_ABC):
         self.push_setup()
 
     @core.cl_context.entry_point
-    def cl_load_show(self, showName: str):
-        saveLocation = os.path.join(
-            kaithem.misc.vardir, "chandler", "shows", showName
-        )
-        d = {}
-        if os.path.isdir(saveLocation):
-            for i in os.listdir(saveLocation):
-                fn = os.path.join(saveLocation, i)
-
-                if os.path.isfile(fn) and fn.endswith(".yaml"):
-                    d[i[: -len(".yaml")]] = kaithem.persist.load(fn)
-
-        self.cl_load_dict(d)
-        self.cl_reload_fixture_assignment_data()
-
-    def get_setup_data(self, force: bool = True):
-        d = {
-            "fixture_types": self.fixture_classes,
-            "universes": self.configured_universes,
-            "fixture_assignments": self.fixture_assignments,
-            "fixture_presets": self.fixture_presets,
-            #'config':
-        }
-
-        return copy.deepcopy(d)
-
-    @core.cl_context.entry_point
     def cl_import_from_resource_file(
         self,
         data_str: str,
@@ -438,25 +406,6 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         self.push_setup()
 
-    def cl_import_fixture_presets(self, data_str: str):
-        data = yaml.load(data_str, Loader=yaml.SafeLoader)
-        data = snake_compat.snakify_dict_keys(data)
-
-        # Importing directly from a resource object
-        if "project" in data:
-            data = data["project"]
-            if "setup" in data:
-                data = data["setup"]
-
-        if "fixture_presets" in data:
-            x = data["fixture_presets"]
-            fp = {i: from_legacy_preset_format(x[i]) for i in x}
-
-            for i in fp:
-                self.fixture_presets[i] = fp[i]
-
-        self.push_setup()
-
     def get_file_timestamp_if_exists(self, filename: str) -> str:
         try:
             if not filename:
@@ -484,32 +433,6 @@ class ChandlerConsole(console_abc.Console_ABC):
             "fixture_assignments": self.fixture_assignments,
             "fixture_presets": self.fixture_presets,
             "media_folders": self.media_folders,
-        }
-
-    def loadLibraryFile(
-        self,
-        data_file_str: str,
-        _asuser: bool = False,
-        filename: Optional[str] = None,
-        errs: bool = False,
-    ):
-        data = yaml.load(data_file_str, Loader=yaml.SafeLoader)
-        data = snake_compat.snakify_dict_keys(data)
-
-        if "fixture_types" in data:
-            assert isinstance(data["fixtureTypes"], Dict)
-
-            self.fixture_classes.update(data["fixtureTypes"])
-        else:
-            raise ValueError("No fixture types in that file")
-
-    @core.cl_context.entry_point
-    def cl_get_library_file(self):
-        return {
-            "fixture_types": self.fixture_classes,
-            "universes": self.configured_universes,
-            "fixure_assignments": self.fixture_assignments,
-            "fixture_presets": self.fixture_presets,
         }
 
     @core.cl_context.entry_point
