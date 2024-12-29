@@ -1,7 +1,7 @@
 Change Log
 ----------
 
-### 0.90.0
+### 0.87.0
 
 - :sparkles: Persist login sessions across reboots
 - :bug: Fix deleting file resources from modules page
