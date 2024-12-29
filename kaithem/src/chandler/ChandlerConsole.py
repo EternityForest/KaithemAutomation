@@ -166,12 +166,13 @@ class ChandlerConsole(console_abc.Console_ABC):
         self.groups = {}
 
         for i in self.configured_universes:
-            try:
-                u = universes.universes[i]()
-                if u is not None:
-                    u.close()
-            except Exception:
-                logger.exception("Could not close universe")
+            if not self.configured_universes[i]["type"] == "null":
+                try:
+                    u = universes.universes[i]()
+                    if u is not None:
+                        u.close()
+                except Exception:
+                    logger.exception("Could not close universe")
 
         try:
             self.autosave_checker.unregister()

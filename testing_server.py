@@ -55,7 +55,16 @@ cfg = {
 api = kaithem.initialize_app(cfg)
 
 # This causes problems if imported before the app is initialized
-from kaithem.src import auth  # noqa
+from kaithem.src import auth, directories  # noqa
+
+# Fake map tile to make sure we are reading from the cache
+os.makedirs(
+    "/dev/shm/kaithem_test_env/maptiles/openstreetmap/0/0/", exist_ok=True
+)
+shutil.copy(
+    "kaithem/data/static/img/1x1.png",
+    "/dev/shm/kaithem_test_env/maptiles/openstreetmap/0/0/0.png",
+)
 
 auth.add_user("admin", "test-admin-password")
 auth.add_user_to_group("admin", "Administrators")

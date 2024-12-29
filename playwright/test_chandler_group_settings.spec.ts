@@ -173,7 +173,8 @@ test('test', async ({ page }) => {
 
     await page.getByTestId('display_tag_label').fill('tg1');
 
-    await sleep(300);
+    // This one display tag width line is always flaky.
+    await sleep(3000);
     await page.evaluate(async () => {
         await globalThis.doSerialized()
     })
@@ -181,8 +182,22 @@ test('test', async ({ page }) => {
 
     // This line is flaky, if you get a fail just manually pause a bit.
     await page.getByTestId('display_tag_width').fill('5');
+    await page.getByTestId('display_tag_width').click();
+    await sleep(300);
+    await page.getByTestId('display_tag_width').fill('5');
+
+    await sleep(3000);
+    await page.evaluate(async () => {
+        await globalThis.doSerialized()
+    })
+
     await page.getByTestId('display_tag_tag').fill('=4');
-    
+
+    await sleep(300);
+    await page.evaluate(async () => {
+        await globalThis.doSerialized()
+    })
+
 
     await page.getByTestId('display_tag_type').selectOption('Meter')
 
