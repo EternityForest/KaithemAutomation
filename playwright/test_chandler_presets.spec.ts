@@ -264,7 +264,7 @@ test("test", async ({ page }) => {
   //await expect(page.locator('div').filter({ hasText: /^red15\.0$/ }).getByRole('slider')).toHaveValue('15');
 
   // Rendering may have latency under load
-  await sleep(3000);
+  await sleep(1000);
 
   await page.goto(
     "http://localhost:8002/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/config/test_presets:p"

@@ -18,7 +18,7 @@ test('test', async ({ page }) => {
     await page.getByLabel('Name').click();
     await page.getByLabel('Name').fill('public');
     await page.getByRole('button', { name: 'Submit' }).click();
-    await page.getByRole('link', { name: '󰉖 public' }).click();
+    await page.getByRole('link', { name: 'public' }).click();
 
     // Add a file to folder
     await page.getByTestId('add-resource-button').click();

@@ -17,7 +17,7 @@ test('test', async ({ page }) => {
     await page.getByLabel('Name').click();
     await page.getByLabel('Name').fill('media');
     await page.getByRole('button', { name: 'Submit' }).click();
-    await page.getByRole('link', { name: '󰉖 media' }).click();
+    await page.getByRole('link', { name: 'media' }).click();
     await page.getByTestId('add-resource-button').click();
 
     await page.getByTestId('add-file').click();

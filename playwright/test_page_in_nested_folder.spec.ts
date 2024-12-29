@@ -17,7 +17,7 @@ test('test', async ({ page }) => {
     await page.getByRole('button', { name: 'Submit' }).click();
 
     //Go in the folder
-    await page.getByRole('link', { name: '󰉖 testfolder' }).click();
+    await page.getByRole('link', { name: 'testfolder' }).click();
 
     // Make a nested folder in the folder
     await page.getByTestId('add-resource-button').click();
@@ -33,9 +33,9 @@ test('test', async ({ page }) => {
 
 
     // Go in the first folder
-    await page.getByRole('link', { name: '󰉖 testfolder' }).click();
+    await page.getByRole('link', { name: 'testfolder' }).click();
     // Go in the nested folder
-    await page.getByRole('link', { name: '󰉖 testfolder2' }).click();
+    await page.getByRole('link', { name: 'testfolder2' }).click();
 
     //Make a page there
     await page.getByTestId('add-resource-button').click();
