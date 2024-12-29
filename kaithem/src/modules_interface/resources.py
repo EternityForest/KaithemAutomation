@@ -84,7 +84,7 @@ def resource_page(module, resource):
             )
             d.submit_button("Submit")
             return d.render(
-                f"/modules/module/{url(module)}/updateresource/{url(resource)}/"
+                f"/modules/module/{url(module)}/updateresource/{url(resource)}"
             )
 
         if resourceinquestion["resource_type"] == "directory":
@@ -539,9 +539,9 @@ async def update_resource_metadata(module, resource):
 
         modules_state.rawInsertResource(module, resource, d)
 
-    return quart.redirect(
-        f"/modules/module/{util.url(module)}/resource/{util.url(resource)}"
-    )
+    path = "/".join(resource.split("/")[:-1])
+
+    return quart.redirect(f"/modules/module/{util.url(module)}/resource/{path}")
 
 
 @quart_app.app.route(

@@ -104,18 +104,11 @@ webapi = imp0rt( 'kaithem.api.web' ) %} {% block body %}
       >
       <a
         class="button"
-        data-testid="add-device"
-        href="/modules/module/{{ url(name) }}/addresource/device?dir={{ url('/'.join(path) ) }}"
-        ><i class="mdi mdi-chip"></i>Device</a
-      >
-      <a
-        class="button"
         data-testid="add-file"
         href="/modules/module/{{ url(name) }}/addfileresource?dir={{ url('/'.join(path) ) }}"
         ><i class="mdi mdi-file-document"></i>Add File</a
       >
-      {% for i in modules.additionalTypes %} {% if
-      modules.additionalTypes[i].mdi_icon %}
+      {% for i in modules.additionalTypes %}
       <a
         class="button"
         data-testid="add-{{ i }}"
@@ -123,7 +116,7 @@ webapi = imp0rt( 'kaithem.api.web' ) %} {% block body %}
         <i class="mdi mdi-{{modules.additionalTypes[i].mdi_icon}}"></i>{{
         modules.additionalTypes[i].title or i.capitalize()| escape }}</a
       >
-      {% endif %} {% endfor %}
+      {% endfor %}
     </div>
   </div>
 
@@ -192,13 +185,13 @@ webapi = imp0rt( 'kaithem.api.web' ) %} {% block body %}
       module[i]['resource_type'] == 'directory' %}
       <dt>
         <div class="tool-bar w-full noselect">
-          <p>
-            <a
+          <p class="nogrow">
+                     <i class="mdi mdi-folder-outline"></i>
+
+          </p> <a
               href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}#resources"
-              ><i class="mdi mdi-folder-outline"></i
               ><b>{{ i.split('/')[-1] | escape }}</b></a
             >
-          </p>
           <a
             aria-label="Delete"
             class="button nogrow"
@@ -275,8 +268,7 @@ webapi = imp0rt( 'kaithem.api.web' ) %} {% block body %}
         </div>
       </dt>
       {% endif %} {% if module[i]['resource_type'] in
-      modules_state.additionalTypes %} {% if
-      modules.additionalTypes[module[i]['resource_type']].mdi_icon %}
+      modules_state.additionalTypes %}
       <dt>
         <div class="tool-bar w-full inline noselect">
           <p class="nogrow">
@@ -331,31 +323,24 @@ webapi = imp0rt( 'kaithem.api.web' ) %} {% block body %}
         {% endif %}
 
         <div class="grow padding-inline">
-        {{modules.additionalTypes[module[i]['resource_type']]._blurb(name,i,module[i]
-        )}}
+          {{modules.additionalTypes[module[i]['resource_type']]._blurb(name,i,module[i]
+          )}}
         </div>
-
-
       </dd>
-      {% endif %} {% endif %} {% if module[i]['resource_type'] == 'device' %}
+
+      {% elif module[i]['resource_type'] not in("directory", "permission") and
+      not i.startswith("__") %}
       <dt>
-        <div class="tool-bar w-full noselect">
+        <div class="tool-bar w-full inline noselect">
           <p class="nogrow">
-            <i class="mdi mdi-chip"></i>
+            <i class="mdi mdi-file-question-outline"></i>
           </p>
           <p>
-            <a
-              class="deviceslink"
-              href="/device/{{module[i].get('device',{}).get('name','').replace('/','%2F')|escape}}/manage">
-              {{ i.split("/")[-1] | escape }}</a
-            >
+            {% if module[i]['resource_lock'] in modules_state.additionalTypes %}
+            <span class="mdi mdi-lock-outline"></span>LOCKED {% endif %}
+            <b>{{ i.split("/")[-1] | escape }}</b>
           </p>
-          <a
-            aria-label="Sketch Label"
-            class="button nogrow"
-            href="/excalidraw-plugin/edit?module={{ url(name) }}&resource=media/resource_labels/{{ url(i) }}.excalidraw.png&callback=/modules/set_label_image/{{ url(name) }}/{{ url(i) }}">
-            <i class="mdi mdi-image"></i
-          ></a>
+
           <a
             aria-label="Download"
             class="button nogrow"
@@ -368,22 +353,22 @@ webapi = imp0rt( 'kaithem.api.web' ) %} {% block body %}
             href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}/metadata">
             <i class="mdi mdi-cog"></i
           ></a>
-          <a
-            aria-label="Delete"
-            class="button nogrow"
-            href="/modules/module/{{ url(name) }}/deleteresource/{{ url(i) }}"
-            ><i class="mdi mdi-delete"></i
-          ></a>
         </div>
       </dt>
-      <dd>
+      <dd class="flex-row">
         {% if module[i].get('resource_label_image') %}
         <img
           alt="thumbnail"
           class="control-rounded max-h-8rem v-center noselect"
           src="{{get_resource_label_image_url(name,i)}}" />
         {% endif %}
+
+        <div class="grow padding-inline error">
+          Unknown resource type: {{module[i]['resource_type']}}. You may be
+          missing a plugin.
+        </div>
       </dd>
+
       {% endif %} {% endfor %}
     </dl>
   </section>

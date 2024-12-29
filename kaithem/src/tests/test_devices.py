@@ -5,7 +5,7 @@ import time
 
 import yaml
 
-if "--collect-only" not in sys.argv:
+if "--collect-only" not in sys.argv:  # pragma: no cover
     from kaithem.src import quart_app
 
     dir = "/dev/shm/kaithem_tests/"

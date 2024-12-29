@@ -37,7 +37,7 @@ def cleanup(request):
     request.addfinalizer(remove_test_dir)
 
 
-if "--collect-only" not in sys.argv:
+if "--collect-only" not in sys.argv:  # pragma: no cover
     import builtins
     import os
     import shutil

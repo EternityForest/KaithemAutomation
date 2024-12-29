@@ -15,6 +15,7 @@ from typing import Any
 
 import iot_devices.device
 import iot_devices.host
+import quart
 import structlog
 
 # SPDX-FileCopyrightText: Copyright 2018 Daniel Dunn
@@ -265,16 +266,10 @@ class DeviceResourceType(ResourceType):
         )
 
     def edit_page(self, module, resource, value):
-        with modules_state.modulesLock:
-            n = resource.split(SUBDEVICE_SEPARATOR)[-1]
-            if "name" in value["device"]:
-                n = value["device"]["name"]
-        return pages.get_template("devices/device.html").render(
-            data=remote_devices[n].config, obj=remote_devices[n], name=n
-        )
+        return quart.redirect("/device/" + value["device"]["name"] + "/manage")
 
 
-drt = DeviceResourceType("device")
+drt = DeviceResourceType("device", mdi_icon="chip")
 additionalTypes["device"] = drt
 
 

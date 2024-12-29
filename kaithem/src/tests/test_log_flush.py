@@ -1,7 +1,7 @@
 import os
 import sys
 
-if "--collect-only" not in sys.argv:
+if "--collect-only" not in sys.argv:  # pragma: no cover
     import kaithem.src.pylogginghandler
     from kaithem.src import directories
 

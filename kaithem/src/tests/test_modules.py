@@ -8,7 +8,7 @@ import sys
 import time
 import weakref
 
-if "--collect-only" not in sys.argv:
+if "--collect-only" not in sys.argv:  # pragma: no cover
     from kaithem.api import tags
     from kaithem.src import modules, modules_state
     from kaithem.src.plugins import CorePluginEventResources

@@ -8,7 +8,7 @@ import time
 
 import stamina
 
-if "--collect-only" not in sys.argv:
+if "--collect-only" not in sys.argv:  # pragma: no cover
     from kaithem.src import tagpoints
     from kaithem.src.chandler import WebChandlerConsole, core, groups, universes
     from kaithem.src.sound import play_logs

@@ -136,7 +136,8 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.coverage.run]
-omit = ["*/tests/*", "*/thirdparty/*", "*/selftest/*"]
+# omit the deprecated old file and system gstreamer
+omit = ["*/thirdparty/*", "*/selftest/*", "*/kaithemobj.py/*", "/usr/lib/**"]
 
 [tool.liccheck]
 authorized_licenses = [
