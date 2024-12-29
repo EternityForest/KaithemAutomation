@@ -964,6 +964,7 @@ class ChandlerConsole(console_abc.Console_ABC):
         self.newDataFunctions = []
         for i in universes_snapshot:
             if self.id not in universes_snapshot[i].statusChanged:
+                # TODO just resend the whole universe object to prevent nuisance errors
                 self.linkSend(
                     [
                         "universe_status",

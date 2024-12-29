@@ -1,7 +1,7 @@
 <style scoped></style>
 
 <template id="cue-table">
-  <div>
+  <div class="flex-col">
     <div class="tool-bar">
       <p style="flex-grow: 300">
         <input

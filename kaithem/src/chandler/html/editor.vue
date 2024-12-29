@@ -695,6 +695,7 @@
                     style="width: 5em"
                     min="0"
                     step="0.01"
+                    title="Fade In"
                     v-model="slotProps.i[1].fadeIn" />
                 </td>
 
@@ -711,6 +712,7 @@
                     "
                     class="w-12rem"
                     list="lenoptions"
+                    title="Cue Length"
                     v-model="slotProps.i[1].length" />
                 </td>
 
@@ -745,6 +747,7 @@
 
                   <input
                     :disabled="no_edit"
+                    name="nextcue"
                     class="w-12rem"
                     v-if="Object.keys(groupcues[groupname]).length > 40"
                     autocomplete="off"
