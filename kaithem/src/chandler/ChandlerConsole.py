@@ -126,14 +126,14 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         self.initialized = False
 
-        def f(self: ChandlerConsole, *dummy: tuple[Any]):
-            self.linkSend(
-                ["soundoutputs", [i for i in kaithem.sound.outputs()]]
-            )
+        def f(t, m):
+            if not m.clientName.startswith("kplayer"):
+                time.sleep(0.1)
+                self.on_soundcards_changed()
 
         self.callback_jackports = f
-        kaithem.message.subscribe("/system/jack/newport/", f)
-        kaithem.message.subscribe("/system/jack/delport/", f)
+        kaithem.message.subscribe("/system/jack/newport", f)
+        kaithem.message.subscribe("/system/jack/delport", f)
 
         # Use only for stuff in background threads, to avoid pileups that clog the
         # Whole worker pool
@@ -152,6 +152,9 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         self.ml_save_callback = dummy
         self.should_run = True
+
+    def on_soundcards_changed(self):
+        self.linkSend(["soundoutputs", [i for i in kaithem.sound.outputs()]])
 
     @core.cl_context.required
     def cl_close(self):

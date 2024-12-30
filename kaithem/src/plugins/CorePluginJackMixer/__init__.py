@@ -118,17 +118,18 @@ def start_dummy_source_if_needed():
 
 
 def onPortAdd(t, m):
-    # m[1] is true of input
-    global_api.send(["newport", m.name, {}, m.isInput])
+    # Not everty tiny sound effects needs to mess up the UI
+    if not m.clientName.startswith("kplayer"):
+        global_api.send(["newport", m.name, {}, m.isInput])
 
 
 def onPortRemove(t, m):
-    # m[1] is true of input
-    global_api.send(["rmport", m.name])
+    if not m.clientName.startswith("kplayer"):
+        global_api.send(["rmport", m.name])
 
 
-messagebus.subscribe("/system/jack/newport/", onPortAdd)
-messagebus.subscribe("/system/jack/rmport/", onPortRemove)
+messagebus.subscribe("/system/jack/newport", onPortAdd)
+messagebus.subscribe("/system/jack/delport", onPortRemove)
 
 
 effectTemplates_data = mixerfx.effectTemplates_data

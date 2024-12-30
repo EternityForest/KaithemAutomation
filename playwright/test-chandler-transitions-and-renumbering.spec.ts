@@ -79,10 +79,12 @@ test("test", async ({ page }) => {
   await expect(page.getByTestId("sidebar-active-cue-name")).toContainText(
     "default"
   );
+
+  // Times are just approximate because of performance issues
   await page.getByRole("button", { name: "Next 󰒭" }).click();
-  await sleep(5000);
+  await sleep(1000);
   await expect(page.getByTestId("sidebar-active-cue-name")).toContainText("c2");
-  await sleep(4000);
+  await sleep(4500);
   await expect(page.getByTestId("sidebar-active-cue-name")).toContainText("c3");
 
   // Ensure the tag point is actually fading in slowly
