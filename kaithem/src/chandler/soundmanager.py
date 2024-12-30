@@ -2,7 +2,9 @@ import threading
 from functools import wraps
 from typing import Any, Callable, List, Optional
 
-from ..kaithemobj import kaithem
+from icemedia import sound_player
+from scullery import workers
+
 from . import core
 
 soundActionSerializer = threading.RLock()
@@ -24,10 +26,10 @@ def doSoundAction(g: Callable[..., Any]):
             finally:
                 soundActionSerializer.release()
 
-    kaithem.misc.do(f)
+    workers.do(f)
 
 
-@wraps(kaithem.sound.play)
+@wraps(sound_player.play_sound)
 def play_sound(
     filename: str,
     handle: str = "PRIMARY",
@@ -41,7 +43,7 @@ def play_sound(
     if core.ratelimit.limit():
 
         def doFunction():
-            kaithem.sound.play(
+            sound_player.play_sound(
                 filename=filename,
                 handle=handle,
                 extraPaths=extraPaths,
@@ -59,7 +61,7 @@ def stop_sound(handle: str = "PRIMARY"):
     if core.ratelimit.limit():
 
         def doFunction():
-            kaithem.sound.stop(handle)
+            sound_player.stop_sound(handle)
 
         doSoundAction(doFunction)
 
@@ -80,7 +82,7 @@ def fadeSound(
     if core.ratelimit.limit():
 
         def doFunction():
-            kaithem.sound.fade_to(
+            sound_player.fade_to(
                 file,
                 length=length,
                 block=block,
@@ -98,4 +100,4 @@ def fadeSound(
     else:
         # A bit of a race condition here, if the sound had not started yet. But if we are triggering rate limit we
         # have other issues.
-        kaithem.sound.stop(handle)
+        sound_player.stop_sound(handle)

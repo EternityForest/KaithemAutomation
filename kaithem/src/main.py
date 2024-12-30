@@ -105,7 +105,6 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
         module_object_inspector,  # noqa: F401
         modules,  # noqa: F401
         notifications,  # noqa: F401
-        persist,  # noqa: F401
         plugin_system,  # noqa: F401
         settings,  # noqa: F401
         signalhandlers,  # noqa: F401

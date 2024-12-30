@@ -159,7 +159,7 @@ def serializeResource(name: str, obj: ResourceDictType) -> dict[str, str]:
     """Returns data as a dict of file base names
     to file contents, to be written in appropriate folder"""
 
-    r = copy.deepcopy(obj)
+    r = mutable_copy_resource(obj)
     rt = r["resource_type"]
     assert isinstance(rt, str)
 
@@ -267,7 +267,7 @@ def save_resource(
                 )
 
     if resourceData["resource_type"] == "directory":
-        d = dict(copy.deepcopy(resourceData))
+        d = mutable_copy_resource(resourceData)
         d.pop("resource_type", None)
 
         # As the folder on disk is enough to create the resource internally, we don't need to clutter
@@ -282,7 +282,7 @@ def save_resource(
 def rawInsertResource(
     module: str, resource: str, resource_data: ResourceDictType
 ):
-    resourceData: dict[str, Any] = copy.deepcopy(resource_data)  # type: ignore
+    resourceData = mutable_copy_resource(resource_data)
     check_forbidden(resource)
     assert resource[0] != "/"
 

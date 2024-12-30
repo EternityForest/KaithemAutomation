@@ -46,27 +46,27 @@ save_before_shutdown: no
 
 #How fast to poll for events of specific priorities. Times in seconds
 priority_response:
-    realtime: 0.0166
-    interactive: 0.085
-    high: 0.8
-    medium: 2.5
-    low: 45
-    verylow: 120
+  realtime: 0.0166
+  interactive: 0.085
+  high: 0.8
+  medium: 2.5
+  low: 45
+  verylow: 120
 
 #should an error occur while polling or running an event,
 #how long to wait before polling that event again in seconds
 error_backoff:
-    realtime: 1 #Assume realtime really does need to be fast
-    interactive: 5
-    high: 7
-    medium: 9
-    #Those last two are already really slow.
-    low: 45
-    verylow: 120
+  realtime: 1 #Assume realtime really does need to be fast
+  interactive: 5
+  high: 7
+  medium: 9
+  #Those last two are already really slow.
+  low: 45
+  verylow: 120
 
 #List of possible audio backend players in order of preference. Support sox and mpg123.
 audio_backends:
-    - mpv
+  - mpv
 
 #How many times to retry loading an event before marking it as a failure and moving on
 max_load_attempts: 3
@@ -77,7 +77,7 @@ max_load_attempts: 3
 
 #By default, log these topics unless the user changes the settings via the web interface.
 log_topics:
-    - /system/notifications/
+  - /system/notifications/
 
 #How many log entries per file, before we start a new file
 log_dump_size: 25000
@@ -105,10 +105,9 @@ notifications_to_keep: 250
 #can also be "never"
 autosave_logs: never
 
-
 #List of topic that will be printed to stdout if anything is published to them
 print_topics:
-    - /system/notifications/
+  - /system/notifications/
 
 #Log Requests to /system/http/access
 log_http: yes
@@ -122,18 +121,18 @@ non_logged_topic_limit: 100
 #Where to look for audio files that are specified with relative paths. Earlier entries used first.
 #Default refers to the sounds kaithem ships with.
 audio_paths:
-    - __default__
+  - __default__
 
 #####################THEMING AND BRANDING#######################################
 #This HTML Goes into the top box on the main page. It is configurable in case a deployment wants to add branding.
 front_page_banner: |
-    Kaithem is free software licensed under the GPLv3.<br>
-    Any and all activities on this server may be monitored and logged by the machine's admin.  You can configure this homepage
-    to redirect to a different page in the Settings.
+  Kaithem is free software licensed under the GPLv3.<br>
+  Any and all activities on this server may be monitored and logged by the machine's admin.  You can configure this homepage
+  to redirect to a different page in the Settings.
 
 #This HTML is used as the top banner for deployment branding, in pages without a nav bar
 top_banner_html: |
-    <div class="tool-bar"><h1 align="center"><a href="/index" style="text-decoration:none;color:inherit; background-color:transparent;">Kaithem@HOSTNAME</a></h1></div>
+  <div class="tool-bar"><h1 align="center"><a href="/index" style="text-decoration:none;color:inherit; background-color:transparent;">Kaithem@HOSTNAME</a></h1></div>
 
 #This text shows up in the about box. Good for misc info like copyrights of site specific data, lega stuff, etc
 about_box_banner: "This space can be customized with site specific data in the config file."
@@ -151,9 +150,7 @@ full_time_intervals: no
 #Must be a YAML file containing a list of strings.
 quotes_file: default
 
-
 process_title: kaithem
-
 
 ### Dynamically overridable in a module
 
@@ -163,6 +160,8 @@ core/favicon_ico: img/favicon.ico
 #How to format times and dates
 core/strftime_string: "%A, %B %d, %Y at %I:%M:%S %p Server Time"
 
+# Notification target
+core/apprise_target: ""
 #####################MISC#######################################################
 
 get_public_ip: no

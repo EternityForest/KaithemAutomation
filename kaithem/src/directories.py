@@ -68,40 +68,6 @@ else:
     ssldir = os.path.join(ssldir)
 
 
-def recreate():
-    global \
-        dn, \
-        vardir, \
-        usersdir, \
-        logdir, \
-        regdir, \
-        moduledir, \
-        datadir, \
-        htmldir, \
-        ssldir
-    dn = os.path.dirname(os.path.realpath(__file__))
-
-    if "ANDROID_ARGUMENT" in environ:
-        vardir = getRootAndroidDir()
-    else:
-        vd = os.path.normpath(os.path.join(dn, ".."))
-        vardir = os.path.join(vd, os.path.expanduser(config["site_data_dir"]))
-
-    usersdir = os.path.join(vardir, "users")
-    logdir = os.path.join(
-        vardir, "logs", socket.gethostname() + "-" + getpass.getuser()
-    )
-    moduledir = os.path.join(vardir, "modules")
-    datadir = os.path.normpath(os.path.join(dn, "../data"))
-    htmldir = os.path.join(dn, "html")
-
-    ssldir = os.path.expanduser(config["ssl_dir"])
-    if not ssldir.startswith("/"):
-        ssldir = os.path.join(vardir, ssldir)
-    else:
-        ssldir = os.path.join(ssldir)
-
-
 def chownIf(f, usr):
     if not pwd.getpwuid(os.stat(f).st_uid).pw_name == usr:
         shutil.chown(f, usr, usr)

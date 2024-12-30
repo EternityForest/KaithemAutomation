@@ -139,9 +139,6 @@ crossSiteRestrictedPermissions.pop("enumerate_endpoints")
 
 Permissions = {i: {"description": BasePermissions[i]} for i in BasePermissions}
 
-"""True only if auth module stuff changed since last save, used to prevent unneccesary disk writes.
-YOU MUST SET THIS EVERY TIME YOU CHANGE THE STATE AND WANT IT TO BE PERSISTANT"""
-authchanged = False
 
 # This __local_secret is really important, otherwise
 # the timing attack might be even worse.
@@ -190,9 +187,7 @@ def importPermissionsFromModules() -> None:
 
 def changeUsername(old, new) -> None:
     "Change a user's username"
-    global authchanged
     with lock:
-        authchanged = True
         # this should work because tokens stores object references ad we are not deleting
         # the actual user object
         Users[new] = Users.pop(old)
@@ -202,12 +197,10 @@ def changeUsername(old, new) -> None:
 
 def changePassword(user, newpassword, useSystem=False) -> None:
     "Change a user's password"
-    global authchanged
     if len(newpassword) > 256:
         raise ValueError("Password cannot be longer than 256 bytes")
 
     with lock:
-        authchanged = True
         if useSystem:
             Users[user]["password"] = "system"  # pragma: allowlist secret
             dumpDatabase()
@@ -224,9 +217,7 @@ def changePassword(user, newpassword, useSystem=False) -> None:
 
 
 def add_user(username, password, useSystem=False) -> None:
-    global authchanged
     with lock:
-        authchanged = True
         if username not in Users:  # stop overwriting attempts
             Users[username] = User({"username": username, "groups": []})
             Users[username].limits = {}
@@ -235,9 +226,8 @@ def add_user(username, password, useSystem=False) -> None:
 
 
 def removeUser(user) -> None:
-    global authchanged, tokenHashes
+    global tokenHashes
     with lock:
-        authchanged = True
         x = Users.pop(user)
         # If the user has a token, delete that too
         if x.token in Tokens:
@@ -261,9 +251,7 @@ def removeUser(user) -> None:
 
 
 def removeGroup(group) -> None:
-    global authchanged
     with lock:
-        authchanged = True
         Groups.pop(group)
         # Remove all references to that group from all users
         for i in Users:
@@ -274,18 +262,14 @@ def removeGroup(group) -> None:
 
 
 def addGroup(groupname) -> None:
-    global authchanged
     with lock:
-        authchanged = True
         if groupname not in Groups:  # stop from overwriting
             Groups[groupname] = {"permissions": []}
         dumpDatabase()
 
 
 def add_user_to_group(username, group) -> None:
-    global authchanged
     with lock:
-        authchanged = True
         # Don't add multiple copies of a group
         if group not in Users[username]["groups"]:
             Users[username]["groups"].append(group)
@@ -295,9 +279,7 @@ def add_user_to_group(username, group) -> None:
 
 
 def removeUserFromGroup(username, group) -> None:
-    global authchanged
     with lock:
-        authchanged = True
         Users[username]["groups"].remove(group)
         # Regenerate the per-user permissions cache for that user
         generateUserPermissions(username)
@@ -443,12 +425,10 @@ def addLinuxSystemUser() -> None:
     The rationale for this is that the system user has full acess to everything anyway.  Restrict to LAN for the obvious reason
     we might to that on a local system.
     """
-    global authchanged
     import getpass
 
     username = getpass.getuser()
     with lock:
-        authchanged = True
         if username not in Users:  # stop overwriting attempts
             Users[username] = User(
                 {
@@ -564,9 +544,6 @@ def checkTokenPermission(token, permission) -> bool:
 def dumpDatabase() -> bool:
     """Save the state of the users and groups to a file."""
     with lock:
-        global authchanged
-        if not authchanged:
-            return False
         x = Users.copy()
         for i in x:
             # Don't save the login history.
@@ -587,15 +564,11 @@ def dumpDatabase() -> bool:
         shutil.move(
             os.path.join(p, "users.json~"), os.path.join(p, "users.json")
         )
-
-        authchanged = False
         return True
 
 
 def setGroupLimit(group, limit, val) -> None:
     with lock:
-        global authchanged
-        authchanged = True
         if val == 0:
             try:
                 Groups[group].get("limits", {}).pop(limit)
@@ -614,17 +587,13 @@ def setGroupLimit(group, limit, val) -> None:
 def addGroupPermission(group: str, permission: str) -> None:
     """Add a permission to a group"""
     with lock:
-        global authchanged
-        authchanged = True
         if permission not in Groups[group]["permissions"]:
             Groups[group]["permissions"].append(permission)
         dumpDatabase()
 
 
 def removeGroupPermission(group, permission) -> None:
-    global authchanged
     with lock:
-        authchanged = True
         Groups[group]["permissions"].remove(permission)
         dumpDatabase()
 
@@ -699,8 +668,6 @@ class UnsetSettingException:
 
 def setUserSetting(user, setting, value) -> None:
     with lock:
-        global authchanged
-        authchanged = True
         un = user
         if user == "__guest__":
             return

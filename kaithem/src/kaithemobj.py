@@ -27,7 +27,6 @@ from . import (
     geolocation,
     messagebus,
     pages,
-    persist,
     scriptbindings,
     tagfilters,
     tagpoints,
@@ -40,18 +39,6 @@ from . import astrallibwrapper as sky
 
 bootTime = time.time()
 
-
-# Persist is one of the ones that we want to be usable outside of kaithem, so we add our path resolution stuff here.
-
-
-def resolve_path(fn: str, expand: bool = False):
-    if not fn.startswith((os.pathsep, "~", "$")):
-        fn = os.path.join(directories.vardir, fn)
-
-    return (os.path.expandvars(os.path.expanduser(fn))) if expand else fn
-
-
-persist.resolve_path = resolve_path
 
 # This exception is what we raise from within the page handler to serve a static file
 
@@ -512,7 +499,7 @@ class Kaithem:
         def load(
             fn: str, *args: tuple[Any], **kwargs: Dict[str, Any]
         ) -> bytes | str | Dict[Any, Any] | List[Any]:
-            return persist.load(fn, *args, **kwargs)
+            return sculleryPersist.load(fn, *args, **kwargs)
 
         @staticmethod
         def save(
@@ -521,7 +508,7 @@ class Kaithem:
             *args: tuple[Any],
             **kwargs: Dict[str, Any],
         ):
-            return persist.save(data, fn, *args, **kwargs)
+            return sculleryPersist.save(data, fn, *args, **kwargs)
 
     class string:
         @staticmethod

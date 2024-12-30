@@ -5,6 +5,8 @@ from __future__ import annotations
 import copy
 import time
 
+from scullery import messagebus
+
 from kaithem.src import dialogs, modules_state, settings_overrides
 
 
@@ -158,6 +160,11 @@ class ConfigType(modules_state.ResourceType):
 
         d.submit_button("Save")
         return d.render(self.get_update_target(module, name))
+
+    def on_finished_loading(self, module: str | None):
+        messagebus.post_message("/system/config_loaded_from_resources", None)
+        settings_overrides.config_loaded_from_resources = True
+        return super().on_finished_loading(module)
 
 
 drt = ConfigType("config", mdi_icon="cog-outline")

@@ -15,6 +15,7 @@ import threading
 
 import structlog
 import uvloop
+from scullery import messagebus
 
 uvloop.install()
 
@@ -27,6 +28,11 @@ if not os.environ.get("VIRTUAL_ENV"):
     if "pipx" in sys.executable:
         os.environ["VIRTUAL_ENV"] = os.path.dirname(
             os.path.dirname(sys.executable)
+        )
+    else:
+        messagebus.post_message(
+            "/system/notifications/warnings",
+            "No virtual environment detected.  This may cause issues.",
         )
 
 try:

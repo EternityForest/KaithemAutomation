@@ -1,6 +1,11 @@
 Change Log
 ----------
 
+### 0.89.0
+- :technologist: Lots of dead code gone, guided by test conerage metrics.
+- :coffin: The Apprise notification setting is gone.  Use a config entries resource on core/apprise_target instead
+
+
 ### 0.87.0
 
 - :sparkles: Persist login sessions across reboots

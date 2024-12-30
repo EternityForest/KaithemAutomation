@@ -66,7 +66,8 @@ def loadAllCustomResourceTypes() -> None:
             ):
                 orig = modules_state.ActiveModules[i][j]
                 # Be defensive in case something on loader code
-                # Tries to modify something
+                # Tries to modify something.  Note that modifying it isn't
+                # actually supported.
                 r = copy.deepcopy(orig)
                 if hasattr(r, "get"):
                     if r.get("resource_type", "") == loading_rt:

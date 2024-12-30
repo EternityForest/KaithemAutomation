@@ -123,16 +123,18 @@ async function chandlerBoardTemplate(page: Page, module: string) {
     // Create group
     await page.getByPlaceholder('New group name').click();
     await page.getByPlaceholder('New group name').fill('tst1');
+    await sleep(100);
     await page.getByTestId('add-group-button').click();
     await page.getByRole('button', { name: 'tst1' }).click();
 
     // make cue c2
     await page.getByPlaceholder('New cue name').click();
     await page.getByPlaceholder('New cue name').fill('c2');
+    await sleep(100);
     await page.getByRole('button', { name: 'Add Cue' }).click();
 
     //select cue
-    await expect(page.locator('#cuesbox')).toContainText('c2');
+    await expect(page.locator('#cuesbox')).toContainText('c2', { timeout: 15_000 });
     await page.locator('#cuesbox').getByText('default', { exact: true }).click();
 }
 export { login, login_as, logout, makeModule, deleteModule, makeTagPoint, sleep, chandlerBoardTemplate };

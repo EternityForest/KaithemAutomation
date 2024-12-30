@@ -18,7 +18,9 @@ import quart
 import quart.utils
 import structlog
 import vignette
+from icemedia import sound_player
 from quart.ctx import copy_current_request_context
+from scullery import persist
 
 from . import (
     apps_page,
@@ -27,17 +29,9 @@ from . import (
     kaithemobj,
     messagebus,
     pages,
-    persist,
     quart_app,
     weblogin,
 )
-
-notificationsfn = os.path.join(
-    directories.vardir, "core.settings", "pushnotifications.toml"
-)
-
-pushsettings = persist.getStateFile(notificationsfn)
-
 
 redirectsfn = os.path.join(
     directories.vardir, "core.settings", "httpredirects.toml"
@@ -196,7 +190,7 @@ def stopsounds():
     except PermissionError:
         return pages.loginredirect(pages.geturl())
     pages.postOnly()
-    kaithemobj.kaithem.sound.stop_all()
+    sound_player.stop_all_sounds()
     return quart.redirect("/settings")
 
 
@@ -520,26 +514,6 @@ def changesettingstarget(**kwargs):
     messagebus.post_message(
         "/system/settings/changedelocation", pages.getAcessingUser()
     )
-    return quart.redirect("/settings/system")
-
-
-@legacy_route
-def changepushsettings(**kwargs):
-    try:
-        pages.require("system_admin")
-    except PermissionError:
-        return pages.loginredirect(pages.geturl())
-    pages.postOnly()
-
-    t = kwargs["apprise_target"]
-
-    pushsettings.set("apprise_target", t.strip())
-
-    messagebus.post_message(
-        "/system/notifications/important",
-        "Push notification config was changed",
-    )
-
     return quart.redirect("/settings/system")
 
 

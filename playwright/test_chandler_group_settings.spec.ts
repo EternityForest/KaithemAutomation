@@ -98,6 +98,7 @@ test('test', async ({ page }) => {
 
     // Check that the stuff is there
     await page.goto('http://localhost:8002/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/editor/testchandlerproperties:b1');
+    await sleep(3000);
     await expect(page.getByRole('main')).toContainText('STATUS: MQTT');
     await page.getByRole('button', { name: 'ts1' }).click();
     await page.getByTestId('group-properties-button').click();

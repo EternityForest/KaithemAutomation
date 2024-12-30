@@ -3,11 +3,6 @@
 from kaithem.src import config,sound,persist,directories,geolocation,alerts,settings, settings_overrides
 import yaml,os
 
-notificationsfn = os.path.join(
-    directories.vardir, "core.settings", "pushnotifications.toml")
-
-pushsettings = persist.getStateFile(notificationsfn)
-
 
 location = geolocation.getLocation('default')
 
@@ -20,28 +15,6 @@ location = geolocation.getLocation('default')
 <a href="/settings/save">Flush Logs</a><br>
 
 </div>
-
-<h2>Push Notifications</h2>
-<section class="window paper">
-<form method="POST" action="/settings/changepushsettings">
-    <p>
-        This allows you to get Kaithem notifications via any AppRise supported target.
-        Only important notifications and errors are supported for now. Failed notifications can be retried later when internet
-        returns.
-    </p>
-
-    <p>The simplest way to get started is to set the target to "ntfy://your_secret_topic_name", and use
-        <a href="https://ntfy.sh/">ntfy.sh</a> via the web or the Android app, to subscribe to the topic.  No account setup is needed.  "dbus://"" will give linux desktop notifications.</p>
-
-<table border=1>
-<tr>
-<td>Apprise Target</td>
-<td><input name="apprise_target" value="${pushsettings.get('apprise_target','')}"></td>
-</tr>
-</table>
-<input type="submit" >
-</form>
-</section>
 
 <h2>New Config Keys</h2>
 <p>These are set through entries in modules</p>

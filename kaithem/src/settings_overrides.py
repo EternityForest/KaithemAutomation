@@ -15,6 +15,8 @@ lock = threading.RLock()
 
 settings_meta: dict[str, dict[str, Any]] = {}
 
+config_loaded_from_resources = False
+
 
 @functools.lru_cache(256)
 def normalize_key(key: str) -> str:

@@ -1,7 +1,6 @@
 {% set notifications = imp0rt( 'kaithem.src.notifications' ) %}
 {% set theming = imp0rt( 'kaithem.src.theming' ) %}
 {% set auth = imp0rt( 'kaithem.src.auth' ) %}
-{% set persist = imp0rt( 'kaithem.src.persist' ) %}
 {% set socket = imp0rt( 'socket' ) %}
 {% set quart = imp0rt( 'quart' ) %}
 {% set base64 = imp0rt( 'base64' ) %}
@@ -130,20 +129,6 @@
 
       <a href="/settings">
         <i class="mdi mdi-cog-outline"></i>
-
-        {% if auth.authchanged %}
-        <span title="The users, groups, user settings, or permissions have unsaved changes">*</span>
-        {% endif %}
-
-
-        {% if  persist.dirty %}
-        <span title="The there are persistance files with unsaved changes">*</span>
-        {% endif %}
-
-
-        {% if  persist.unsavedFiles %}
-        <span title="Something has an unsaved file">*</span>
-        {% endif %}
         Tools</a>
 
       <a href="/helpmenu"><i class="mdi mdi-book-open-blank-variant-outline"></i>Help</a>

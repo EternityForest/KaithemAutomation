@@ -314,18 +314,6 @@ def createDevicePage(module, resource, type):
     )
 
 
-@app.route("/devices/deleteDevice/<name>")
-def delete_device_dialog(name):
-    try:
-        pages.require("system_admin")
-    except PermissionError:
-        return pages.loginredirect(pages.geturl())
-    d = pages.get_template("devices/confirmdelete.html").render(name=name)
-    return Response(
-        d, mimetype="text/html", headers={"X-Frame-Options": "SAMEORIGIN"}
-    )
-
-
 @app.route("/devices/settarget/<name>/<tag>", methods=["POST"])
 @wrap_sync_route_handler
 def settarget(name, tag, **kwargs):

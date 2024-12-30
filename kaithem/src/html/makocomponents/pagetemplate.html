@@ -1,6 +1,6 @@
 <%!
 from kaithem.src.config import config
-from kaithem.src import auth,util,notifications,pages,modules,modules_state,theming,devices,persist, settings_overrides
+from kaithem.src import auth,util,notifications,pages,modules,modules_state,theming,devices, settings_overrides
 import quart,socket,base64
 %>
 
@@ -136,19 +136,6 @@ import quart,socket,base64
         <a href="/settings" >
           <i class="mdi mdi-cog-outline"></i>
 
-          %if auth.authchanged:
-          <span title="The users, groups, user settings, or permissions have unsaved changes">*</span>
-          %endif
-
-
-          %if  persist.dirty:
-          <span title="The there are persistance files with unsaved changes">*</span>
-          %endif
-
-
-          %if  persist.unsavedFiles:
-          <span title="Something has an unsaved file">*</span>
-          %endif
 Tools</a>
 
         %if "kaithem_auth" in quart.request.cookies:

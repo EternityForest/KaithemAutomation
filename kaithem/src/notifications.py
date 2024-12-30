@@ -3,7 +3,6 @@
 
 import json
 import logging
-import os
 import threading
 import time
 
@@ -11,15 +10,15 @@ import quart
 import structlog
 from scullery import scheduling
 
-from . import (
-    directories,
+from kaithem.src import (
     messagebus,
     pages,
-    persist,
     quart_app,
+    settings_overrides,
     widgets,
     workers,
 )
+
 from .config import config
 from .unitsofmeasure import strftime
 
@@ -28,13 +27,6 @@ mlogger = structlog.get_logger("system.msgbuslog")
 logger = structlog.get_logger("notifications")
 
 notificationslog = []
-
-
-notificationsfn = os.path.join(
-    directories.vardir, "core.settings", "pushnotifications.toml"
-)
-
-pushsettings = persist.getStateFile(notificationsfn)
 
 
 class API(widgets.APIWidget):
@@ -108,7 +100,7 @@ apprise_lock = threading.RLock()
 
 
 @scheduling.scheduler.every_hour
-def apprise():
+def apprise(*dummy):
     if apprise_lock.acquire(blocking=False):
         try:
             while pending_notifications:
@@ -123,7 +115,7 @@ def apprise():
                     if len(pending_notifications) < 35:
                         pending_notifications.append(f)
 
-                    logging.error("Error pushing AppRise notification")
+                    logging.exception("Error pushing AppRise notification")
                     # If one fails, retry all of them later.
                     return
         finally:
@@ -162,7 +154,11 @@ def subscriber(topic, message):
                 pending_notifications.pop(0)
 
             def f():
-                if pushsettings.get("apprise_target", None):
+                apprise_target = settings_overrides.get_val(
+                    "core/apprise_target"
+                )
+
+                if apprise_target:
                     import apprise
 
                     # Create an Apprise instance
@@ -170,7 +166,7 @@ def subscriber(topic, message):
 
                     # Add all of the notification services by their server url.
                     # A sample email notification:
-                    apobj.add(pushsettings.get("apprise_target", None))
+                    apobj.add(apprise_target)
 
                     # Then notify these services any time you desire. The below would
                     # notify all of the services loaded into our Apprise object.
@@ -183,12 +179,21 @@ def subscriber(topic, message):
                         + ts,
                     )
 
-            pending_notifications.append(f)
+            # Don't just queue up an insane number
+            if len(pending_notifications) < 35:
+                pending_notifications.append(f)
+            else:
+                logging.error("Too many apprise notifications pending")
 
-            workers.do(apprise)
+            # Don't do anythnig with this until we have loaded the config
+            # to be able to say where it should go.
+            if settings_overrides.config_loaded_from_resources:
+                workers.do(apprise)
 
 
 messagebus.subscribe("/system/notifications/#", subscriber)
+
+messagebus.subscribe("/system/config_loaded_from_resources", apprise)
 
 
 def printer(t, m):

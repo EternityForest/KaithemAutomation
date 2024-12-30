@@ -125,13 +125,13 @@ class ResourceType:
 
     def on_create_request(
         self, module: str, resource: str, kwargs
-    ) -> ResourceDictType:
+    ) -> ResourceDictType:  # pragma: no cover
         """Must return a resource object given kwargs from createpage.
         Called on submitting create form
         """
         return {"resource_type": "example"}
 
-    def edit_page(self, module: str, resource: str, data):
+    def edit_page(self, module: str, resource: str, data):  # pragma: no cover
         """Given current resource data, return a manager page.
         It may submit to get_update_target()
         """
@@ -139,35 +139,37 @@ class ResourceType:
 
     def on_update_request(
         self, module: str, resource: str, data: ResourceDictType, kwargs
-    ):
+    ):  # pragma: no cover
         "Called with the kwargs from editpage.  Gets old resource obj, must return new"
         return data
 
-    def on_load(self, module: str, resource: str, data: ResourceDictType):
+    def on_load(
+        self, module: str, resource: str, data: ResourceDictType
+    ):  # pragma: no cover
         """Called when loaded from disk."""
 
-    def on_finished_loading(self, module: str | None):
+    def on_finished_loading(self, module: str | None):  # pragma: no cover
         """Called with module name when every resource has finished loading with onload(),
         and before any events or pages are loaded.
 
         Called during init with None when ALL modules are done loading.
         """
 
-    def on_delete_module(self, module: str):
+    def on_delete_module(self, module: str):  # pragma: no cover
         """Called before the resource deleter callbacks"""
 
     def on_move(
         self, module: str, resource: str, to_module: str, to_resource: str, data
-    ):
+    ):  # pragma: no cover
         """Called when object has been moved.  All additionaltypes must be movable."""
 
-    def on_delete(self, module, resource: str, data):
+    def on_delete(self, module, resource: str, data):  # pragma: no cover
         pass
 
-    def on_update(self, module, resource: str, data):
+    def on_update(self, module, resource: str, data):  # pragma: no cover
         """Called when something has updated the data.  Usually the web UI but could be anything."""
 
-    def flush_unsaved(self, module, resource):
+    def flush_unsaved(self, module, resource):  # pragma: no cover
         """Called when the resource should save any unsaved data it has back to the resource."""
 
 
