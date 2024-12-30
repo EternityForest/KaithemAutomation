@@ -47,6 +47,12 @@ test('test', async ({ page }) => {
     await page.getByPlaceholder('New group name').fill('ts1');
     await page.getByTestId('add-group-button').click();
     await page.getByRole('button', { name: 'ts1' }).click();
+
+
+    await page.evaluate(async () => {
+        await globalThis.doSerialized()
+    })
+
     await page.getByTestId('group-properties-button').click();
     await page.getByLabel('Slideshow Overlay').click();
     await page.getByLabel('Slideshow Overlay').fill('overlay');

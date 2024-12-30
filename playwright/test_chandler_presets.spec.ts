@@ -1,7 +1,9 @@
 import { test, expect } from "@playwright/test";
-import { deleteModule, login, logout, makeModule, sleep } from "./util";
+import { deleteModule, login, makeModule, sleep } from "./util";
 
 test("test", async ({ page }) => {
+  test.setTimeout(120_000);
+
   await login(page);
 
   makeModule(page, "test_presets");

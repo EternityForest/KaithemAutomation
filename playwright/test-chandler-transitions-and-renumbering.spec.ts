@@ -80,6 +80,12 @@ test("test", async ({ page }) => {
     "default"
   );
 
+  // Let background stuff run before trying the time sensitive flaky stuff
+  await page.evaluate(async () => {
+    await globalThis.doSerialized();
+  });
+  await sleep(1000);
+
   // Times are just approximate because of performance issues
   await page.getByRole("button", { name: "Next 󰒭" }).click();
   await sleep(1000);

@@ -322,7 +322,7 @@ class Group:
             raise RuntimeError("Cannot have 2 groups sharing a name: " + name)
 
         if not name.strip():
-            raise ValueError("Invalid Name")
+            raise ValueError("Invalid Name: " + str(name)[:128])
 
         # Used by blend modes
         self._blend_args: dict[str, float | int | bool | str] = blend_args or {}
