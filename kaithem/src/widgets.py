@@ -18,7 +18,7 @@ import time
 import traceback
 import weakref
 import asyncio
-from collections.abc import Callable
+from collections.abc import Callable, Coroutine
 from typing import Optional, Any
 from starlette.requests import Request
 from quart.ctx import copy_current_request_context
@@ -273,11 +273,12 @@ class WebSocketHandler:
         )
         self.parent = parent
         self.user = user
-        self.widget_wslock = threading.Lock()
         self.subCount = 0
         self.peer_address = ""
         self.batteryStatus = None
         self.cookie = dict[str, Any] | None
+
+        self.sending_queue: list[str | bytes] = []
 
         self.loop = loop
 
@@ -311,17 +312,18 @@ class WebSocketHandler:
             self.closeUnderLock()
 
     def send(self, b: bytes | str):
-        with self.widget_wslock:
+        async def f():
+            d = self.sending_queue.pop(0)
+            if isinstance(d, str):
+                await self.parent.send_text(d)
+            else:
+                await self.parent.send_bytes(d)
 
-            async def f():
-                if isinstance(b, str):
-                    await self.parent.send_text(b)
-                else:
-                    await self.parent.send_bytes(b)
+        self.sending_queue.append(b)
+        # TIL this can actually run in the same thread it seems like?
+        asyncio.run_coroutine_threadsafe(f(), self.loop)
 
-            asyncio.run_coroutine_threadsafe(f(), self.loop)
-
-    def close(self, *a: Any) -> None:
+    def sl_close(self, *a: Any) -> None:
         with subscriptionLock:
             while self.subscriptions:
                 i = self.subscriptions.pop(0)
@@ -338,8 +340,9 @@ class WebSocketHandler:
 
     def closeUnderLock(self):
         def f():
-            with self.widget_wslock:
-                self.close()
+            self.sl_close()
+
+        workers.do(f)
 
     def received_message(self, message: bytes | str, asgi):
         global lastLoggedUserError
@@ -529,12 +532,12 @@ class RawWidgetDataHandler:
             .replace("-", "")
             .replace("+", "")[:-2]
         )
-        self.widget_wslock = threading.Lock()
         self.subCount = 0
         ws_connections[self.connection_id] = self
         messagebus.subscribe(
             "/system/permissions/rmfromuser", self.onPermissionRemoved
         )
+        self.sending_queue: list[str | bytes] = []
         self.user = user
         self.parent = parent
         self.peer_address = ""
@@ -574,23 +577,23 @@ class RawWidgetDataHandler:
 
     def closeUnderLock(self):
         def f():
-            with self.widget_wslock:
-                self.close()
+            self.sl_close()
 
         workers.do(f)
 
     def send(self, b: bytes | str):
-        with self.widget_wslock:
+        async def f():
+            d = self.sending_queue.pop(0)
+            if isinstance(d, str):
+                await self.parent.send_text(d)
+            else:
+                await self.parent.send_bytes(d)
 
-            async def f():
-                if isinstance(b, str):
-                    await self.parent.send_text(b)
-                else:
-                    await self.parent.send_bytes(b)
+        self.sending_queue.append(b)
+        asyncio.run_coroutine_threadsafe(f(), self.loop)
 
-            asyncio.run_coroutine_threadsafe(f(), self.loop)
-
-    def close(self, *a):
+    def sl_close(self, *a):
+        "SL is because we use subscription lock"
         with subscriptionLock:
             while self.subscriptions:
                 i = self.subscriptions.pop(0)
@@ -781,6 +784,7 @@ class Widget:
             widgets[self.uuid] = self
 
     def on_new_subscriber(self, user, connection_id, **kw):
+        """Watch for race conditions between connecting, data updates, and requests."""
         pass
 
     def on_subscriber_disconnected(
