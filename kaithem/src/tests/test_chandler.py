@@ -2,6 +2,7 @@
 
 
 import datetime
+import gc
 import subprocess
 import sys
 import time
@@ -683,6 +684,73 @@ def test_cue_logic():
 
     assert "TestingGroup5" not in board.groups_by_name
     assert "TestingGroup6" not in board.groups_by_name
+
+
+def test_cue_logic_tags():
+    sending_group = groups.Group(board, name="sending_group", id="TEST")
+    recv_group = groups.Group(board, name="recv_group", id="TEST2")
+    board.addGroup(sending_group)
+    board.addGroup(recv_group)
+
+    sending_group.go()
+    recv_group.go()
+
+    assert sending_group.active
+    core.wait_frame()
+
+    assert sending_group in board.active_groups
+    assert sending_group.cue.name == "default"
+
+    test_set_tag = tagpoints.Tag("/test_set_tag")
+    logic_test_tag = tagpoints.Tag("/logic_test_tag")
+
+    test_set_tag_initial_subscribers = len(test_set_tag.subscribers)
+    logic_test_tag_initial_subscribers = len(logic_test_tag.subscribers)
+
+    assert test_set_tag_initial_subscribers == 0
+    assert logic_test_tag_initial_subscribers == 0
+
+    # This should set a tag, and also, when a different tag gets set,
+    # trigger a transition in the receiving group
+    sending_group.add_cue(
+        "cue2",
+        rules=[
+            ["=tv('/logic_test_tag')", [["goto", "recv_group", "cue2"]]],
+            ["cue.enter", [["set_tag", "/test_set_tag", "5"]]],
+        ],
+    )
+
+    recv_group.add_cue("cue2")
+
+    sending_group.goto_cue("cue2")
+
+    # Events are sometimes delayed a frame
+    core.wait_frame()
+    core.wait_frame()
+    assert test_set_tag.value == 5
+
+    # Now set the tag and test the transition
+    logic_test_tag.value = 1
+
+    core.wait_frame()
+    core.wait_frame()
+    assert recv_group.cue.name == "cue2"
+
+    sending_group.close()
+    recv_group.close()
+
+    board.rmGroup(sending_group)
+    board.rmGroup(recv_group)
+    core.wait_frame()
+
+    assert "TestingGroup5" not in board.groups_by_name
+    assert "TestingGroup6" not in board.groups_by_name
+
+    gc.collect()
+
+    # Ensure that any subscribers cleaned up.
+    assert len(test_set_tag.subscribers) == test_set_tag_initial_subscribers
+    assert len(logic_test_tag.subscribers) == logic_test_tag_initial_subscribers
 
 
 def test_commands():

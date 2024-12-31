@@ -500,9 +500,12 @@ class Device(iot_devices.device.Device):
 
         # A list of all the tag points owned by the device
         self.tagPoints: dict[str, tagpoints.GenericTagPointClass[Any]] = {}
+
         # Where we stash our claims on the tags
+        # todo: unused?
         self.tagClaims: dict[str, tagpoints.Claim] = {}
 
+        # Same dict keys as tagpoints, but a list of handlers
         self._deviceSpecIntegrationHandlers: dict[
             str, Callable[[Any, float, Any], None]
         ] = {}
@@ -608,6 +611,15 @@ class Device(iot_devices.device.Device):
                     logger.exception("Error releasing alerts")
         except Exception:
             logger.exception("Error releasing alerts")
+
+        try:
+            for i in self._deviceSpecIntegrationHandlers:
+                if i in self.tagPoints:
+                    self.tagPoints[i].unsubscribe(
+                        self._deviceSpecIntegrationHandlers[i]
+                    )
+        except Exception:
+            logger.exception("Error unsubscribing from tagpoints")
 
     def status(self):
         return "norm"

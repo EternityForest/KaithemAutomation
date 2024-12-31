@@ -25,6 +25,7 @@ Change Log
 - :bug: Fix a very uncommon deadlock in the widgets module discovered through automated testing.
 - :bug: Fix saved presets not showing up in list in mixer
 - :bug: Fix cue shortcut codes not correctly cleaned up
+- :sparkles: Log a warning if a tag point is not explicitly unsubscribed
 
 
 ### 0.86.3

@@ -985,11 +985,13 @@ class BaseChandlerScriptContext:
             self.risingEdgeDetects = {}
 
     def clearState(self):
+        """Only called manually at times like stopping a chandler group"""
         with self.gil:
             self.variables = {}
             self.changedVariables = {}
             for i in self.tagClaims:
-                self.tagClaims[i].release()
+                if not self.tagClaims[i].name == "default":
+                    self.tagClaims[i].release()
             self.tagClaims = {}
 
 
@@ -1019,8 +1021,8 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
         # All tag point changes happen async
         self.do_async(f)
 
-    def setupTag(self, tag):
-        if tag in self.tagpoints:
+    def setupTag(self, tag: tagpoints.GenericTagPointClass[Any]):
+        if tag.name in self.tagpoints:
             return
 
         def onchange(v, ts, an):
@@ -1029,6 +1031,7 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
         tag.subscribe(onchange)
         self.need_refresh_for_tag[tag.name] = True
         self.tagHandlers[tag.name] = (tag, onchange)
+        self.tagpoints[tag.name] = tag
 
     def canGetTagpoint(self, t):
         if t not in self.tagpoints and len(self.tagpoints) > 128:
@@ -1065,8 +1068,11 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
         ):
             """Set a Tagpoint.
 
-            If a priority is given, set the given claim priority.
-            If priority empty or zero, just set the default base value layer.
+            If a priority is given, set the given claim priority, and the claim
+            will persist until it is released or the group is stopped.
+
+            If priority empty or zero, just set the default base value layer,
+            and the value will stay until overwritten or the tag is deleted.
 
             Use a value of None to unset existing tags. If the tag does not
 

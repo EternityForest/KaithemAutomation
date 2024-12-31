@@ -845,6 +845,18 @@ class Group:
             if x:
                 x.disconnect()
 
+            try:
+                if self.cueTagHandler:
+                    self.cueTag.unsubscribe(self.cueTagHandler)
+            except Exception:
+                print(traceback.format_exc())
+
+            try:
+                if self.alphaTagHandler:
+                    self.alphaTag.unsubscribe(self.alphaTagHandler)
+            except Exception:
+                print(traceback.format_exc())
+
     def evalExprFloat(self, s: str | int | float) -> float:
         f = self.evalExpr(s)
         assert isinstance(f, (int, float))
