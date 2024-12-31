@@ -719,6 +719,7 @@ class BaseChandlerScriptContext:
         else:
             raise ValueError(f"No such command: {c}")
 
+    # todo: unused?
     def syncEvent(self, evt, val=None, timeout=20):
         "Handle an event synchronously, in the current thread."
         if self.gil.acquire(timeout=20):

@@ -135,6 +135,7 @@ effectTemplates_data = mixerfx.effectTemplates_data
 effectTemplates = effectTemplates_data
 
 
+# todo: unused
 def cleanupEffectData(fx):
     x = effectTemplates.get(fx["type"], {})
     for i in x:
