@@ -23,6 +23,7 @@ Change Log
 - :coffin: filename_for_resource is deprecated due to confusing name, use filename_for_file_resource instead.
 - :bug: Fix list of ports not updating until refresh
 - :bug: Fix a very uncommon deadlock in the widgets module discovered through automated testing.
+- :bug: Fix saved presets not showing up in list in mixer
 
 ### 0.86.3
 

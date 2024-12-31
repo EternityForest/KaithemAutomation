@@ -42,8 +42,6 @@ channels: dict[str, dict] = {}
 
 log = structlog.get_logger("system.mixer")
 
-presetsDir = os.path.join(directories.mixerdir, "presets")
-
 dummy_src_lock = threading.Lock()
 
 recorder = None
@@ -330,6 +328,11 @@ class ChannelStrip(Pipeline, BaseChannel):
                     client_name=f"{name}_in",
                     always_copy=True,
                     stream_properties={"node.autoconnect": "false"},
+                    # Try to prevent connectiong to some nonsese video thing
+                    # and doing
+                    # video-info video-info.c:540:gst_video_info_from_caps:
+                    # wrong name 'audio/x-raw', expected video/ or image/
+                    connect_when_available="audio",
                 )
 
                 self.capsfilter = self.add_element(
@@ -1246,15 +1249,9 @@ class MixingBoard:
                 self.lock.release()
 
     def sendPresets(self):
-        if os.path.isdir(presetsDir):
-            x = [
-                i[: -len(".yaml")]
-                for i in os.listdir(presetsDir)
-                if i.endswith(".yaml")
-            ]
-        else:
-            x = []
-        self.api.send(["presets", x])
+        self.api.send(
+            ["presets", list(self.resourcedata.get("presets", {}).keys())]
+        )
 
     def createChannel(self, name, data={}):
         if not self.running:
@@ -1412,8 +1409,13 @@ class MixingBoard:
             self.api.send(["loadedPreset", self.loadedPreset])
 
     def deletePreset(self, presetName):
-        if os.path.exists(os.path.join(presetsDir, f"{presetName}.yaml")):
-            os.remove(os.path.join(presetsDir, f"{presetName}.yaml"))
+        if presetName not in self.resourcedata["presets"]:
+            raise ValueError("No such preset")
+        with self.lock:
+            del self.resourcedata["presets"][presetName]
+            modules_state.rawInsertResource(
+                self.module, self.resource, self.resourcedata
+            )
 
     def loadPreset(self, presetName: str):
         with self.lock:

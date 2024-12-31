@@ -50,12 +50,12 @@ test("test", async ({ page }) => {
     .click();
   await page
     .getByTestId("media-browser-container")
-    .getByText("/home/daniel/Projects/")
+    .getByText("kaithem/data/static/")
     .click();
   await page
     .getByTestId("media-browser-container")
     .getByText(
-      "/home/daniel/Projects/KaithemAutomation/kaithem/data/static/sounds/"
+      "kaithem/data/static/sounds/"
     )
     .click();
   await page

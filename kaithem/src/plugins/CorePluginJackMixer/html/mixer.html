@@ -69,7 +69,9 @@
           <button class="{bold: activePane=='status'}" v-on:click="activePane='status'">Status</button>
           <button v-on:click="showLabels= !showLabels">Labels</button>
 
-          <button v-on:click="showAddEffect=true">Show Effects Menu</button>
+          <button v-on:click="showAddEffect=true"
+          data-testid="show-effects-menu"
+          >Show Effects Menu</button>
           <p>Preset:</p><input list="presets" v-model="loadedPreset" placeholder="Preset name"><button
             v-on:click="confirmSavePreset(loadedPreset)">Save</button>
 
@@ -172,7 +174,9 @@
 
 
         <div class="flex" v-if="activePane=='mixer' && ui_ready">
-          <article class="channel window flex-col margin w-sm-full" v-for="(channel,channelname) in channels">
+          <article class="channel window flex-col margin w-sm-full" v-for="(channel,channelname) in channels"
+          :data-testid="'channel-box-' + channelname"
+          >
             <header>
               <div v-if="channel.type=='audio' || !channel.type">
                 <div>
@@ -181,10 +185,16 @@
                 <div class="menubar tool-bar">
                   <h3 style="display: inline-block;">{{channelname}}({{channel.channels}})
                   </h3>
-                  <p :class="{'error': channelStatus[channelname] != 'running', 'success': channelStatus[channelname] == 'running'}"><small>{{channelStatus[channelname]}}</small></p>
-                  <button v-on:click="ding(channelname)"><i class="mdi mdi-bell"></i></button>
+                  <p :class="{'error': channelStatus[channelname] != 'running', 'success': channelStatus[channelname] == 'running'}"><small
+                    data-testid="channel-status"
+                    >{{channelStatus[channelname]}}</small></p>
+                  <button
+                  data-testid="ding-button"
+                  v-on:click="ding(channelname)"><i class="mdi mdi-bell"></i></button>
                   <button v-on:click="api.send(['refreshChannel', channelname])"><i class="mdi mdi-refresh"></i></button>
-                  <button v-on:click="confirmDelete(channelname)"><i class="mdi mdi-trash-can"></i></button>
+                  <button v-on:click="confirmDelete(channelname)"
+                  data-testid="delete-button"
+                  ><i class="mdi mdi-trash-can"></i></button>
 
                 </div>
 
@@ -207,13 +217,18 @@
 
               <div class="tool-bar">
                 <label>In:<input v-model="channel.input" list="outports"
+                  data-testid="channel-input"
                     v-on:change="setInput(channelname, $event.target.value)"></label>
               </div>
 
               <div class="chain scroll h-24rem noselect">
-                <div v-for="effect, index in channel.effects" class="effect">
+                <div v-for="effect, index in channel.effects" class="effect"
+                :data-testid="'effect-box-'+ effect.type"
+                >
                   <details class="undecorated">
-                    <summary>
+                    <summary
+                    data-testid="effect-title-id"
+                    >
                       <div class="menubar tool-bar inline" style="width: 85%;">
                         <p v-bind:title="effect.id">
                           <b>{{effect.displayType}}</b>
@@ -222,7 +237,9 @@
                         </button>
                         <button v-on:click="moveEffectDown(channelname, index)"><span class="mdi mdi-arrow-down"></span>
                         </button>
-                        <button v-if="effect.type!='fader'" v-on:click="deleteEffect(channelname, index)"><span class="mdi mdi-trash-can"></span>
+                        <button
+                        data-testid="delete-effect-button"
+                        v-if="effect.type!='fader'" v-on:click="deleteEffect(channelname, index)"><span class="mdi mdi-trash-can"></span>
                         </button>
                       </div>
                     </summary>
@@ -230,7 +247,9 @@
 
 
                     <table class="col-12 h-center" border=1>
-                      <tr v-for="param in sortedParams(effect.params)" class="param">
+                      <tr v-for="param in sortedParams(effect.params)" class="param"
+                      :data-testid="'param-row-' + param.name"
+                      >
 
                         <template v-if="param.type=='float'">
                           <td>{{param.displayName}}</td>
@@ -240,7 +259,7 @@
                               </smooth-range>
                           </td>
 
-                          <td>{{param.value}}</td>
+                          <td data-testid="param-value">{{param.value}}</td>
                         </template>
 
                         <template v-if="param.type=='int'">
@@ -305,7 +324,9 @@
 
                 </div>
 
-                <div class="effect" v-if="showAddEffect">
+                <div class="effect" v-if="showAddEffect"
+                data-testid="effects-menu"
+                >
                   <h3>Add Effect<button v-on:click="showAddEffect=false">Hide</button></h3>
                   <div class="tool-bar"><input v-model="fxSearch" placeholder="Search"><button
                       v-on:click="fxSearch=''"><i class="mdi mdi-backspace"></i></button></div>
@@ -314,7 +335,9 @@
                       <div  v-if="canUseEffect(i, channel.channels) && (i.displayType+i.help).toLowerCase().includes(fxSearch)">
                         <h4>{{i.displayType}}</h4>
                         <p>{{i.help}}</p>
-                        <button v-on:click="api.send(['addEffect', channelname, i.type])">Add</button>
+                        <button
+                        :data-testid="'add-effect-' + i.type"
+                        v-on:click="api.send(['addEffect', channelname, i.type])">Add</button>
                       </div>
                     </template>
                   </div>
@@ -324,6 +347,7 @@
               <div class="tool-bar">
                 <p>Connect output: </p><input v-model="channel.output" list="inports"
                   v-on:change="setOutput(channelname, $event.target.value)"
+                  data-testid="channel-output"
                   title="The output of this channel will be automatically connected to this port">
               </div>
 
@@ -344,6 +368,7 @@
               <div class="tool-bar">
                 <smooth-range
                   v-model="channel.fader"
+                  data-testid="channel-fader"
                   v-on:input="setFader(channelname, parseFloat($event.target.value))"
                   step="0.5" min="-60" max="20"
                   v-bind:title="channel.fader"></smooth-range>
@@ -357,8 +382,9 @@
               </div>
 
               <div class="tool-bar"><meter min="-70" max="10" high="-5"
+                data-testid="channel-level-meter"
                   v-bind:value="channel.level"></meter>
-                <p style="width:5em;">{{channel.level}}db</p>
+                <p style="width:5em;" data-testid="channel-level-value">{{channel.level}}db</p>
               </div>
 
             </footer>
@@ -373,10 +399,15 @@
           <div class="grow"></div>
           <h4>New Channel</h4>
           <div class="tool-bar">
-            <input v-model="newchannelname" style="max-width: 8em;"><button
+            <input v-model="newchannelname" style="max-width: 8em;"
+            data-testid="new-channel-name">
+            ><button
+              data-testid="add-mono-channel"
               v-on:click="api.send(['addChannel', newchannelname,1])">Add
               Mono</button>
-            <button v-on:click="api.send(['addChannel', newchannelname,2])">Add Stereo</button>
+            <button v-on:click="api.send(['addChannel', newchannelname,2])"
+            data-testid="add-stereo-channel">
+            Add Stereo</button>
           </div>
       <footer></footer>
         </article>

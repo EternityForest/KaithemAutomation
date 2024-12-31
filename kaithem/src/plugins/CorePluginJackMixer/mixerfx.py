@@ -102,7 +102,7 @@ effectTemplates_data = {
         "type": "audiotestsrc",
         "displayType": "Noise generator",
         "help": "Noise generator",
-        "monoGstElement": "audiotestsrc",
+        "gstElement": "audiotestsrc",
         "params": {
             "wave": {
                 "type": "enum",
@@ -365,28 +365,6 @@ effectTemplates_data = {
         "gstSetup": {},
         "sidechain": False,
         "preSupportElements": [],
-    },
-    "tonegenerator": {
-        "type": "tonegenerator",
-        "displayType": "Tone Generator",
-        "help": "Tone gen",
-        "gstElement": "audiotestsrc",
-        "params": {
-            "freq": {
-                "type": "float",
-                "displayName": "Frequency",
-                "value": 440,
-                "min": 10,
-                "max": 20000,
-                "sort": 0,
-            }
-        },
-        "gstSetup": {},
-        "sidechain": False,
-        "noConnectInput": True,
-        "preSupportElements": [
-            {"gstElement": "fakesink", "gstSetup": {}},
-        ],
     },
     "3beqp": {
         "type": "3beqp",
