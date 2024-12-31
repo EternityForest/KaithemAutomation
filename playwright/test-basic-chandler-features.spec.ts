@@ -6,6 +6,7 @@ import {
   chandlerBoardTemplate,
   deleteModule,
   makeTagPoint,
+  waitForTasks
 } from "./util";
 
 /*
@@ -161,9 +162,7 @@ test("test", async ({ page }) => {
 
   await page.getByRole("button", { name: "Go", exact: true }).first().click();
 
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
+await waitForTasks(page)
   await sleep(500);
 
   // Go back and make sure it actually worked
@@ -195,17 +194,13 @@ test("test", async ({ page }) => {
 
   await page.getByRole("button", { name: "󰆴 Remove" }).click();
 
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
+await waitForTasks(page)
 
   await page.goto(
     "http://localhost:8002/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/editor/PlaywrightChandlerTestModule:board1"
   );
   await page.getByRole("button", { name: "tst1" }).click();
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
+await waitForTasks(page)
   await sleep(500);
 
   await expect(

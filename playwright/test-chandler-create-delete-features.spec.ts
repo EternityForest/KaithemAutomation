@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { login, logout, makeModule, deleteModule } from "./util";
+import { login, logout, makeModule, deleteModule, waitForTasks} from "./util";
 
 test("test", async ({ page }) => {
     test.setTimeout(600_000);
@@ -128,9 +128,7 @@ test("test", async ({ page }) => {
   });
     await page.getByLabel("Delete Group").click();
     
-  await page.evaluate(async () => {
-    await globalThis.doSerialized()
-})
+    await waitForTasks(page)
   await expect(page.getByRole("button", { name: "test" })).toBeHidden();
 
   // Ensure we can remake one with same name

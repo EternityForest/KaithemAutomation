@@ -428,7 +428,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         elif cmd_name == "gotoPreviousCue":
             groups.groups[msg[1]].prev_cue(cause="manual")
             return
-
+        # TODO suspected unused
         elif cmd_name == "nextcuebyname":
             self.groups_by_name[msg[1]].next_cue(cause="manual")
             return
