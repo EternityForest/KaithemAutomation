@@ -174,6 +174,9 @@ def test_duplicate_group_name():
     assert grp1 in board.active_groups
 
     grp1.close()
+    core.wait_frame()
+    core.wait_frame()
+
     assert grp1 not in board.active_groups
     board.rmGroup(grp1)
 
@@ -496,6 +499,56 @@ def test_play_sound():
     assert "TestingGroup2" not in board.groups_by_name
 
 
+def test_rename_cue():
+    grp = groups.Group(board, "TestRenameCues", id="dfsghyuhygfds")
+    cue2 = grp.add_cue("cue2")
+
+    # No rename default
+    with pytest.raises(RuntimeError):
+        grp.rename_cue("default", "default2")
+
+    # No rename to already existing
+    with pytest.raises(RuntimeError):
+        grp.rename_cue("cue2", "default")
+
+    with pytest.raises(ValueError):
+        grp.rename_cue("cue2", "?<>,")
+
+    with pytest.raises(ValueError):
+        grp.rename_cue("cue2", " ")
+
+    grp.go()
+    grp.goto_cue("cue2")
+
+    core.wait_frame()
+    core.wait_frame()
+    core.wait_frame()
+
+    assert grp.cue.name == "cue2"
+    # No rename active cue
+    with pytest.raises(RuntimeError):
+        grp.rename_cue("cue2", "foo")
+
+    grp.goto_cue("default")
+
+    # wait to let gui push actions pointing at old cue finish
+    core.wait_frame()
+    core.wait_frame()
+    grp.rename_cue("cue2", "cue3")
+    core.wait_frame()
+    core.wait_frame()
+
+    assert "cue3" in grp.cues
+    assert "cue2" not in grp.cues
+    assert cue2.name == "cue3"
+
+    grp.close()
+    board.rmGroup(grp)
+    core.wait_frame()
+
+    assert "TestRenameCues" not in board.groups_by_name
+
+
 def test_trigger_shortcuts():
     s = groups.Group(board, name="TestingGroup3", id="TEST")
     s2 = groups.Group(board, name="TestingGroup4", id="TEST2")
@@ -545,12 +598,20 @@ def test_shortcuts():
     assert grp in board.active_groups
     assert grp.cue.name == "default"
 
-    grp.add_cue("cue2", shortcut="__generate__from__number__")
+    grp.add_cue("cue2_blah", shortcut="__generate__from__number__")
 
-    cue2 = grp.cues["cue2"]
+    cue2 = grp.cues["cue2_blah"]
 
     # Test setting to same value
     cue2.shortcut = cue2.shortcut
+
+    core.wait_frame()
+    core.wait_frame()
+
+    # Make sure renaming cues doesn't break shortcuts
+    grp.rename_cue("cue2_blah", "cue2")
+    assert cue2.name == "cue2"
+
     core.wait_frame()
     core.wait_frame()
 

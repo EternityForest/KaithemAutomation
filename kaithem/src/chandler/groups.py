@@ -1918,13 +1918,19 @@ class Group:
     @slow_group_lock_context.object_session_entry_point
     def rename_cue(self, old: str, new: str):
         disallow_special(new, allowedCueNameSpecials)
+        new = new.strip()
+        if not new:
+            raise ValueError("Can't rename to empty string")
+
         if new[0] in "1234567890 \t_":
             new = "x" + new
 
         if self.cue.name == old:
             raise RuntimeError("Can't rename active cue")
+
         if new in self.cues:
             raise RuntimeError("Already exists")
+
         if old == "default":
             raise RuntimeError("Can't rename default cue")
 

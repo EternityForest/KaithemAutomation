@@ -649,6 +649,7 @@ class BaseChandlerScriptContext:
                     )
                     raise
 
+    # todo: unused
     def getCommandDataForEditor(self):
         """Get the data, as python dict which can be JSONed,
         which must be bound to the commands prop of the editor,
