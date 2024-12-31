@@ -37,6 +37,7 @@ from .modules_state import (
 logger = structlog.get_logger(__name__)
 
 
+# todo: unused
 def new_empty_module():
     return {
         "__metadata__": {

@@ -24,6 +24,8 @@ Change Log
 - :bug: Fix list of ports not updating until refresh
 - :bug: Fix a very uncommon deadlock in the widgets module discovered through automated testing.
 - :bug: Fix saved presets not showing up in list in mixer
+- :bug: Fix cue shortcut codes not correctly cleaned up
+
 
 ### 0.86.3
 

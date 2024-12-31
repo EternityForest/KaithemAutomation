@@ -58,6 +58,7 @@ stored_as_property = [
 
 slots = list(cue_schema["properties"].keys()) + [
     "id",
+    "closing",
     "changed",
     "name",
     "group",
@@ -221,6 +222,11 @@ class Cue:
         # declare vars.
         # Cannot enter cue because it loaded with errors
         self.error_lockout: bool = False
+
+        # Used for the deletion cleanup, mostly
+        # Just for shortcuts.
+        self.closing: bool = False
+
         self.name: str
         self.number: int
         self._inherit_rules: str
@@ -728,6 +734,11 @@ class Cue:
 
         self.push()
 
+    def close(self):
+        self.closing = True
+        if self._shortcut:
+            self.shortcut = ""
+
     @property
     def shortcut(self):
         return self._shortcut
@@ -741,10 +752,14 @@ class Cue:
         if code == "__generate__from__number__":
             code = number_to_shortcut(self.number)
 
+        old_code = self._shortcut
+
+        # There's a brief time window before this works
+        # but that is perfectly fine
         def f():
-            if self._shortcut in shortcut_codes:
+            if old_code in shortcut_codes:
                 try:
-                    shortcut_codes[self._shortcut].remove(self)
+                    shortcut_codes[old_code].remove(self)
                 except ValueError:
                     pass
                 except Exception:
@@ -776,8 +791,10 @@ class Cue:
             push = False
 
         self._shortcut = code
-        if push:
-            self.push()
+
+        if not self.closing:
+            if push:
+                self.push()
 
     # TODO what is the difference with immediate?
     # document it

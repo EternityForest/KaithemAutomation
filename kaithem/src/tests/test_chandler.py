@@ -10,7 +10,13 @@ import stamina
 
 if "--collect-only" not in sys.argv:  # pragma: no cover
     from kaithem.src import tagpoints
-    from kaithem.src.chandler import WebChandlerConsole, core, groups, universes
+    from kaithem.src.chandler import (
+        WebChandlerConsole,
+        core,
+        global_actions,
+        groups,
+        universes,
+    )
     from kaithem.src.sound import play_logs
 
     core.boards["test_board"] = WebChandlerConsole.WebConsole()
@@ -171,6 +177,10 @@ def test_cue_track_setting():
 
     grp.go()
     grp.cue.set_value_immediate("dmx2", 1, 255)
+
+    # Non existant universes need test coverage to be sure
+    # it doesn't crash anything
+    grp.cue.set_value_immediate("nonexistent", 1, 255)
 
     core.wait_frame()
     core.wait_frame()
@@ -502,6 +512,73 @@ def test_trigger_shortcuts():
 
     assert "TestingGroup3" not in board.groups_by_name
     assert "TestingGroup4" not in board.groups_by_name
+
+
+def test_shortcuts():
+    grp = groups.Group(board, name="TestingGroup3", id="TEST")
+    board.addGroup(grp)
+
+    grp.go()
+
+    assert grp.active
+    core.wait_frame()
+
+    assert grp in board.active_groups
+    assert grp.cue.name == "default"
+
+    grp.add_cue("cue2", shortcut="__generate__from__number__")
+
+    cue2 = grp.cues["cue2"]
+
+    # Test setting to same value
+    cue2.shortcut = cue2.shortcut
+    core.wait_frame()
+    core.wait_frame()
+
+    assert len(global_actions.shortcut_codes[cue2.shortcut]) == 1
+
+    # Todo maybe we shouldn't store numbers as ints with a multiplier
+    global_actions.cl_trigger_shortcut_code(str(int(cue2.number / 1000)))
+
+    # Setting the shortcut is not expected to be instant
+    core.wait_frame()
+    core.wait_frame()
+
+    assert grp.cue.name == "cue2"
+
+    grp.goto_cue("default")
+    core.wait_frame()
+    core.wait_frame()
+    assert grp.cue.name == "default"
+
+    old_shortcut = cue2.shortcut
+    cue2.shortcut = "shortcut2"
+
+    core.wait_frame()
+    core.wait_frame()
+
+    # Ensure the old shortcut does not still work
+    global_actions.cl_trigger_shortcut_code(old_shortcut)
+    core.wait_frame()
+    core.wait_frame()
+    assert grp.cue.name == "default"
+
+    # Ensure the new shortcut works
+    global_actions.cl_trigger_shortcut_code("shortcut2")
+    core.wait_frame()
+    core.wait_frame()
+    assert grp.cue.name == "cue2"
+
+    grp.close()
+    board.rmGroup(grp)
+    core.wait_frame()
+
+    assert "TestingGroup3" not in board.groups_by_name
+
+    # Make sure the shortcut was removed
+    assert ("shortcut2" not in global_actions.shortcut_codes) or (
+        len(global_actions.shortcut_codes["shortcut2"]) == 0
+    )
 
 
 def test_cue_logic():

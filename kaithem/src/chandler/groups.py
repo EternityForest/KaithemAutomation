@@ -829,6 +829,16 @@ class Group:
         core.serialized_async_with_core_lock(f)
 
         with self.lock:
+            # Todo this error should never happen it would
+            # mean the shortcuts state got corrupted
+            try:
+                for i in self.cues:
+                    try:
+                        self.cues[i].close()
+                    except Exception:
+                        print(traceback.format_exc())
+            except Exception:
+                print(traceback.format_exc())
             self.stop()
             self.mqtt_server = ""
             x = self.mqttConnection
@@ -934,6 +944,11 @@ class Group:
                 id = self.cues[cue].id
             else:
                 raise RuntimeError("Cue does not seem to exist")
+
+            try:
+                self.cues[name].close()
+            except Exception:
+                print(traceback.format_exc())
 
             self.cues_ordered.remove(self.cues[name])
 

@@ -213,6 +213,7 @@ def url(u: str, safe: str | Iterable[str] = ""):
     return quote(u, safe)
 
 
+# todo: unused
 def SaveAllState():
     # fix circular import by putting it here
     from . import messagebus, pylogginghandler
@@ -234,6 +235,7 @@ def SaveAllState():
 # It looks like a lot of people might have contributed to this little bit of code.
 
 
+# todo: unused
 def in_directory(file: str, directory: str) -> bool:
     # make both absolute
     directory = os.path.join(os.path.realpath(directory), "")
@@ -278,6 +280,7 @@ def search_paths(fn: str, paths: List[str]) -> str | None:
             return os.path.join(i, fn)
 
 
+# todo: unused
 def getHighestNumberedTimeDirectory(where, n=0):
     """Given a directory containing entirely folders named after floating point values get the name of the highest. ignore files.
     and also ignoring non-timestapt float looking named directories
@@ -296,6 +299,7 @@ def getHighestNumberedTimeDirectory(where, n=0):
     return asnumbers[sorted(asnumbers.keys(), reverse=True)[n]]
 
 
+# todo: unused
 def deleteAllButHighestNumberedNDirectories(where, N):
     """In a directory full of folders named after time values, we delete all but the highest N directores ignoring files
     and also ignoring non-timestapt float looking named directories
@@ -401,6 +405,7 @@ def roundto(n, s):
         return n - n % s
 
 
+# todo: unused except a few places, might be able to get rid
 def split_escape(
     s: str, separator: str, escape=None, preserve_escapes=False
 ) -> list[str]:
@@ -429,6 +434,7 @@ def split_escape(
         return tokens
 
 
+# todo: unused maybe?
 def unescape(s: str, escape="\\") -> str:
     s2 = ""
     literal = False
@@ -553,10 +559,14 @@ def lrucache(n=10):
     return LruCache
 
 
+# todo: unused
 def display_yaml(d):
     d = copy.deepcopy(d)
     _yaml_esc(d)
     return yaml.dump(d)
+
+
+# todo: unused
 
 
 def _yaml_esc(s, depth=0, r=""):
