@@ -34,9 +34,9 @@ def followAttributes(root, path):
 @quart_app.app.route(
     "/modules/module/<module>/obj/<path:path>", methods=["POST"]
 )
-async def obj_inspect(module, path=""):
-    kwargs = await request.form
-    path = path.split("/")
+async def obj_inspect(module, path):
+    kwargs = request.args
+    path = path.split("/") + kwargs.get("objpath", "").split("/")
     # There might be a password or something important in the actual module object. Best to restrict who can access it.
     try:
         pages.require("system_admin")

@@ -52,11 +52,38 @@ def align_dtsart_for_rrule(dt: datetime.datetime, rrule: str):
     return dt
 
 
+def validate_selector(rule: dateutil.rrule.rrule):
+    for i in [
+        "easter",
+        "hour",
+        "minute",
+        "month",
+        "monthday",
+        "weekday",
+        "year",
+        "second",
+        "weekno",
+        "yearday",
+        "nweekday",
+        "nmonthday",
+    ]:
+        propname = "_by" + i
+        if hasattr(rule, propname):
+            val = getattr(rule, propname)
+            if val is not None:
+                return True
+
+    raise ValueError("Invalid selector, it might cause an infinite loop")
+
+
 def get_rrule_selector(s: str, ref: datetime.datetime | None = None):
     """
     Given a natural expression like every tuesday get a dateutil rrule obj.
     Has the old recur behavior or something like ir
     """
+
+    if "second" in s.lower():
+        raise ValueError("Seconds not supported due to slowing down the sys")
     s = s.replace("noon", "12pm")
     s = s.replace("midnight", "12am")
 
@@ -80,6 +107,7 @@ def get_rrule_selector(s: str, ref: datetime.datetime | None = None):
                     d = align_dtsart_for_rrule(d, rule)
 
                     selector = dateutil.rrule.rrulestr(rule, dtstart=d)
+                    validate_selector(selector)
                     return selector
             raise Exception()
 
@@ -92,12 +120,14 @@ def get_rrule_selector(s: str, ref: datetime.datetime | None = None):
                 freq=dateutil.rrule.YEARLY, dtstart=dt, count=1
             )
             selector._dtstart -= datetime.timedelta(weeks=52 + 3)  # noqa
+            validate_selector(selector)
 
             return selector
 
     rule = r.get_RFC_rrule()
     selector = dateutil.rrule.rrulestr(rule)
     selector._dtstart -= datetime.timedelta(weeks=52 + 3)  # noqa
+    validate_selector(selector)
     return selector
 
 

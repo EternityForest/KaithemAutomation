@@ -137,24 +137,11 @@ def DummyObject():
 
 
 def paramDefault(p):
-    if isinstance(p, int):
-        return f"={str(p)}"
-
     if isinstance(p, (int, float)):
-        return f"={str(p)}"
+        return f"{str(p)}"
 
     if isinstance(p, str):
-        # Wrap strings that look like numbers in quotes
-        if p and not p.strip().startswith("="):
-            try:
-                float(p)
-                return f"='{repr(p)}'"
-            except Exception:
-                return f"={repr(p)}"
-
-        # Presever things starting with = unchanged
-        else:
-            return str(p)
+        return str(p)
 
     if isinstance(p, bool):
         return 1 if p else 0
@@ -1073,10 +1060,15 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
         BaseChandlerScriptContext.__init__(self, *a, **k)
 
         def setTag(
-            tagName=f"{self.tagDefaultPrefix}foo", value="=0", priority=75
+            tagName=f"{self.tagDefaultPrefix}foo", value="=0", priority="0"
         ):
-            """Set a Tagpoint with the given claim priority.
+            """Set a Tagpoint.
+
+            If a priority is given, set the given claim priority.
+            If priority empty or zero, just set the default base value layer.
+
             Use a value of None to unset existing tags. If the tag does not
+
             exist, the type is auto-guessed based on the type of the value.
             None will silently return and do nothing if the tag does not exist.
             """
@@ -1087,7 +1079,11 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
             self.need_refresh_for_tag = {}
 
             tagType = None
-            priority = float(priority)
+            if str(priority).strip():
+                priority = float(priority)
+            else:
+                priority = None
+
             if not tagType:
                 if isinstance(value, str):
                     tagType = tagpoints.StringTag
@@ -1110,12 +1106,18 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
                         return True
                 else:
                     self.setupTag(tagType(tagName))
-                    tc = tagType(tagName).claim(
-                        value=value,
-                        priority=priority,
-                        name=f"{self.contextName}at{str(id(self))}",
-                    )
+
+                    if priority:
+                        tc = tagType(tagName).claim(
+                            value=value,
+                            priority=priority,
+                            name=f"{self.contextName}at{str(id(self))}",
+                        )
+                    else:
+                        tc = tagType(tagName).defaultClaim
+
                     self.tagClaims[tagName] = tc
+
                 tc.set(value)
                 self.setVar(f"$tag:{tagName}", value, True)
             else:
