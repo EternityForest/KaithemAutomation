@@ -153,6 +153,64 @@ def test_fixtures():
     assert "TestingGroup1" not in board.groups_by_name
 
 
+def test_cue_track_setting():
+    u = {
+        "dmx2": {
+            "channels": 512,
+            "framerate": 44,
+            "number": 1,
+            "type": "enttecopen",
+        }
+    }
+
+    # Todo replace with a setter method
+    board.configured_universes = u
+    board.cl_create_universes(u)
+
+    grp = groups.Group(board, "TestNonTracking", id="TEST")
+
+    grp.go()
+    grp.cue.set_value_immediate("dmx2", 1, 255)
+
+    core.wait_frame()
+    core.wait_frame()
+    core.wait_frame()
+
+    assert int(universes.universes["dmx2"]().values[1]) == 255
+
+    # This is a tracking cue so it keeps the value
+    grp.add_cue("test1")
+    grp.goto_cue("test1")
+    core.wait_frame()
+    core.wait_frame()
+    time.sleep(0.1)
+    assert grp.cue.name == "test1"
+    assert int(universes.universes["dmx2"]().values[1]) == 255
+
+    # This is not a tracking cue so it doesn't keep the value
+    grp.add_cue("test2", track=False)
+    grp.goto_cue("test2")
+    core.wait_frame()
+    core.wait_frame()
+    time.sleep(0.1)
+    assert grp.cue.name == "test2"
+    assert int(universes.universes["dmx2"]().values[1]) == 0
+
+    grp.close()
+    board.rmGroup(grp)
+    core.wait_frame()
+    assert "TestNonTracking" not in board.groups_by_name
+    core.wait_frame()
+
+    board.configured_universes = {}
+    board.cl_create_universes(board.configured_universes)
+
+    core.wait_frame()
+    core.wait_frame()
+
+    assert "dmx2" not in universes.universes
+
+
 def test_make_group():
     s = groups.Group(board, "TestingGroup1", id="TEST")
     # Must add groups to the board so we can save them and test the saving
@@ -205,6 +263,10 @@ def test_setup_cue():
 
     assert s.active
 
+    # Make code coverage happy about __repr__
+    assert repr(s)
+    assert repr(s.cue)
+
     core.wait_frame()
     assert s in board.active_groups
     assert s.cue.name == "default"
@@ -216,6 +278,10 @@ def test_setup_cue():
 
     assert s.cueHistory[-2][0] == "__setup__"
     assert s.cue.name == "default"
+
+    # Need to get coverage on go on cue that's already active
+    # TODO maybe more detailed tests
+    s.go()
 
     s.close()
     board.rmGroup(s)
@@ -471,6 +537,66 @@ def test_cue_logic():
 
     assert s2.cue.name == "cue2"
     assert s.alpha == 0.76
+
+    # Test variable based rules
+    s2.script_context.setVar("test_var", 1)
+    s2.cue.rules = [
+        ["=test_var", [["goto", "TestingGroup6", "default"]]],
+    ]
+    assert s2.cue.name == "cue2"
+
+    core.wait_frame()
+    core.wait_frame()
+    assert s2.cue.name == "default"
+
+    # Test var change rules
+    s2.cues["cue2"].rules = [
+        ["=~test_var", [["goto", "TestingGroup6", "default"]]],
+    ]
+    s2.goto_cue("cue2")
+    core.wait_frame()
+    core.wait_frame()
+    assert s2.cue.name == "cue2"
+
+    s2.script_context.setVar("test_var", 0)
+    core.wait_frame()
+    core.wait_frame()
+    assert s2.cue.name == "default"
+
+    # Test rising edge rules
+    s2.script_context.setVar("test_var", 1)
+    s2.cues["cue2"].rules = [
+        ["=/test_var", [["goto", "TestingGroup6", "default"]]],
+    ]
+    s2.goto_cue("cue2")
+    s2.script_context.setVar("test_var", 1)
+    core.wait_frame()
+    core.wait_frame()
+    assert s2.cue.name == "cue2"
+
+    s2.script_context.setVar("test_var", 0)
+    s2.script_context.setVar("test_var", 1)
+    core.wait_frame()
+    core.wait_frame()
+    assert s2.cue.name == "default"
+
+    # Test change-to-nonzero rules
+    s2.script_context.setVar("test_var", 1)
+    s2.cues["cue2"].rules = [
+        ["=+test_var", [["goto", "TestingGroup6", "default"]]],
+    ]
+    s2.goto_cue("cue2")
+
+    # Going to zero should do nothing
+    s2.script_context.setVar("test_var", 0)
+    core.wait_frame()
+    core.wait_frame()
+    assert s2.cue.name == "cue2"
+
+    s2.script_context.setVar("test_var", 1)
+    core.wait_frame()
+    core.wait_frame()
+    assert s2.cue.name == "default"
 
     s.close()
     s2.close()

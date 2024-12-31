@@ -2035,6 +2035,7 @@ class Group:
             self.board.cl_update_group_priorities
         )
 
+    # todo: unused
     def mqttStatusEvent(self, value: str, timestamp: float, annotation: Any):
         if value == "connected":
             self.event("board.mqtt.connect")

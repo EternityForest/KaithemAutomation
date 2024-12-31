@@ -139,6 +139,13 @@ build-backend = "poetry.core.masonry.api"
 # omit the deprecated old file and system gstreamer
 omit = ["*/thirdparty/*", "*/selftest/*", "*/kaithemobj.py/*", "/usr/lib/**"]
 
+[tool.coverage.report]
+
+exclude_also = [
+    "if TYPE_CHECKING",
+    ]
+
+
 [tool.liccheck]
 authorized_licenses = [
     "BSD",

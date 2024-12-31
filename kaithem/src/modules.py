@@ -305,6 +305,7 @@ def _detect_ignorable(path: str) -> bool:
     return False
 
 
+# Todo: unused?
 @beartype.beartype
 def load_one_yaml_resource(folder: str, relpath: str, module: str):
     if not relpath.endswith(".yaml") or relpath.endswith(".json"):

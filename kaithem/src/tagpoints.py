@@ -2066,6 +2066,7 @@ class Claim(Generic[T]):
             return True
         return False
 
+    # todo: unused, use @total_ordering
     def __le__(self, other):
         if self.released:
             if not other.released:

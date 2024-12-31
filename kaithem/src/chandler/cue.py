@@ -779,6 +779,8 @@ class Cue:
         if push:
             self.push()
 
+    # TODO what is the difference with immediate?
+    # document it
     def set_value_immediate(
         self, universe: str, channel: str | int, value: str | int | float | None
     ):
