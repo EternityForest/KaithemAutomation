@@ -499,9 +499,17 @@ def test_play_sound():
     assert "TestingGroup2" not in board.groups_by_name
 
 
-def test_rename_cue():
+def test_renaming():
     grp = groups.Group(board, "TestRenameCues", id="dfsghyuhygfds")
     cue2 = grp.add_cue("cue2")
+
+    grp.setName("TestRenameCues2")
+    core.wait_frame()
+    core.wait_frame()
+
+    assert grp.name == "TestRenameCues2"
+    assert "TestRenameCues" not in board.groups_by_name
+    assert "TestRenameCues2" in board.groups_by_name
 
     # No rename default
     with pytest.raises(RuntimeError):

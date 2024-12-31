@@ -27,6 +27,8 @@ Change Log
 - :bug: Fix cue shortcut codes not correctly cleaned up
 - :sparkles: Log a warning if a tag point is not explicitly unsubscribed
 - :bug: Spurious "Still Running" indicator in events
+- :bug: Fix slideshow transform sometimes not being editable
+- :bug: Fix blend mode detail editing
 
 
 ### 0.86.3

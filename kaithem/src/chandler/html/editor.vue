@@ -2369,7 +2369,7 @@
                         min="0"
                         max="500"
                         :disabled="no_edit"
-                        v-model="editingGroup.slideshowTransform.perspective"
+                        v-model.number="editingGroup.slideshowTransform.perspective"
                         @change="
                           setGroupProperty(
                             editingGroup.id,
@@ -2396,7 +2396,7 @@
                         min="0"
                         max="100"
                         :disabled="no_edit"
-                        v-model="editingGroup.slideshowTransform.scale_x"
+                        v-model.number="editingGroup.slideshowTransform.scale_x"
                         @change="
                           setGroupProperty(
                             editingGroup.id,
@@ -2425,7 +2425,7 @@
                         min="0"
                         max="100"
                         :disabled="no_edit"
-                        v-model="editingGroup.slideshowTransform.scale_y"
+                        v-model.number="editingGroup.slideshowTransform.scale_y"
                         @change="
                           setGroupProperty(
                             editingGroup.id,
@@ -2452,7 +2452,7 @@
                         min="0"
                         max="100"
                         :disabled="no_edit"
-                        v-model="editingGroup.slideshowTransform.translate_x"
+                        v-model.number="editingGroup.slideshowTransform.translate_x"
                         @change="
                           setGroupProperty(
                             editingGroup.id,
@@ -2466,7 +2466,7 @@
                             'slideshowTransform',
                             editingGroup.slideshowTransform
                           )
-                        " />%
+                        " />
 
                       {{ editingGroup.slideshowTransform.translate_x }}%</span
                     >
@@ -2480,7 +2480,7 @@
                         min="0"
                         max="100"
                         :disabled="no_edit"
-                        v-model="editingGroup.slideshowTransform.translate_y"
+                        v-model.number="editingGroup.slideshowTransform.translate_y"
                         @change="
                           setGroupProperty(
                             editingGroup.id,
@@ -2508,7 +2508,7 @@
                         min="-180"
                         max="180"
                         :disabled="no_edit"
-                        v-model="editingGroup.slideshowTransform.rotate_x"
+                        v-model.number="editingGroup.slideshowTransform.rotate_x"
                         @change="
                           setGroupProperty(
                             editingGroup.id,
@@ -2536,7 +2536,7 @@
                         min="-180"
                         max="180"
                         :disabled="no_edit"
-                        v-model="editingGroup.slideshowTransform.rotate_y"
+                        v-model.number="editingGroup.slideshowTransform.rotate_y"
                         @change="
                           setGroupProperty(
                             editingGroup.id,
@@ -2563,7 +2563,7 @@
                         min="-180"
                         max="180"
                         :disabled="no_edit"
-                        v-model="editingGroup.slideshowTransform.rotate_z"
+                        v-model.number="editingGroup.slideshowTransform.rotate_z"
                         @change="
                           setGroupProperty(
                             editingGroup.id,

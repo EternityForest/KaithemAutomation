@@ -2394,6 +2394,11 @@ class Group:
 
     def refresh_blend(self):
         self.lighting_manager.setBlend(self.blend)
+        # Todo why are there two places we store this? refactor
+        # this is just a quick hack to validate json
+        self.blend_args = json.loads(
+            json.dumps(self.lighting_manager.blend_args)
+        )
         self.poll_again_flag = True
         self.metadata_already_pushed_by = {}
 
