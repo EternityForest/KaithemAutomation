@@ -93,7 +93,17 @@ def normalize_midi_name(t):
 
 def is_static_media(s: str):
     "True if it's definitely media that does not have a length"
-    for i in (".bmp", ".jpg", ".html", ".webp", ".php"):
+    for i in (
+        ".bmp",
+        ".jpg",
+        ".html",
+        ".webp",
+        ".php",
+        ".svg",
+        ".png",
+        ".gif",
+        ".avif",
+    ):
         if s.startswith(i):
             return True
 
@@ -125,7 +135,10 @@ def makeWrappedConnectionClass(parent: Group):
             if isinstance(m, bytes):
                 m2 = m.decode()
             else:
-                m2 = str(m)
+                # This is just a fallback for Mqtt api changes
+                # I don't think it's even needed
+                # TODO: Remove?
+                m2 = str(m)  # pragma: no cover
             gn = self_closure_ref.mqtt_sync_features.get("syncGroup", False)
             if gn:
                 topic = f"/kaithem/chandler/syncgroup/{gn}"
@@ -638,6 +651,7 @@ class Group:
 
         raise RuntimeError("Could not find a number for new cue")
 
+    # TODO: Unused?
     def find_cue_by_number(self, number: int) -> None | Cue:
         """Takes the int number times 1000 format"""
         for i in self.cues:

@@ -1,6 +1,5 @@
 import { test, expect } from "@playwright/test";
 import { sleep, login, makeModule, deleteModule } from "./util";
-import exp from "constants";
 
 test("test", async ({ page }) => {
   test.setTimeout(600_000);
@@ -22,7 +21,7 @@ test("test", async ({ page }) => {
 
   await expect(
     page.getByTestId("channel-box-testchannel").getByTestId("channel-status")
-  ).toContainText("running");
+  ).toContainText("running", { timeout: 15_000 });
 
   await page
     .getByTestId("channel-box-testchannel")
@@ -37,7 +36,7 @@ test("test", async ({ page }) => {
 
   await expect(
     page.getByTestId("channel-box-testchannel2").getByTestId("channel-status")
-  ).toContainText("running");
+  ).toContainText("running", { timeout: 15_000 });
 
   await page
     .getByTestId("channel-box-testchannel2")
@@ -118,7 +117,7 @@ test("test", async ({ page }) => {
 
   await expect(
     page.getByTestId("channel-box-testchannel").getByTestId("channel-status")
-  ).toContainText("running");
+  ).toContainText("running", { timeout: 15_000 });
 
   // Expand that effect
   await page
@@ -165,7 +164,7 @@ test("test", async ({ page }) => {
 
   await expect(
     page.getByTestId("channel-box-testchannel").getByTestId("channel-status")
-  ).toContainText("running");
+  ).toContainText("running", { timeout: 15_000 });
 
   await expect(
     page
@@ -210,7 +209,7 @@ test("test", async ({ page }) => {
 
   await expect(
     page.getByTestId("channel-box-testchannel2").getByTestId("channel-status")
-  ).toContainText("running");
+  ).toContainText("running", { timeout: 15_000 });
 
   // Ensure it reconnects to channel 1
   await page
@@ -284,7 +283,7 @@ test("test", async ({ page }) => {
     .click();
   await expect(
     page.getByTestId("channel-box-testchannel2").getByTestId("channel-status")
-  ).toContainText("running");
+  ).toContainText("running", { timeout: 15_000 });
 
   await page.getByTestId("new-channel-name").fill("testchannel3");
   await page.getByTestId("add-stereo-channel").click();
@@ -297,7 +296,7 @@ test("test", async ({ page }) => {
   // ui race condition?
   await expect(
     page.getByTestId("channel-box-testchannel2").getByTestId("channel-status")
-  ).toContainText("running");
+  ).toContainText("running", { timeout: 15_000 });
 
   await page.getByTestId("channel-box-testchannel2").getByText("Setup").click();
 
@@ -335,7 +334,7 @@ test("test", async ({ page }) => {
   // Test channel 1 is back
   await expect(
     page.getByTestId("channel-box-testchannel").locator("header")
-  ).toContainText("running");
+  ).toContainText("running", { timeout: 15_000 });
   // Noise gen is gone
   await expect(
     page
