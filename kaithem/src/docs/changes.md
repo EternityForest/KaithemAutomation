@@ -26,6 +26,7 @@ Change Log
 - :bug: Fix saved presets not showing up in list in mixer
 - :bug: Fix cue shortcut codes not correctly cleaned up
 - :sparkles: Log a warning if a tag point is not explicitly unsubscribed
+- :bug: Spurious "Still Running" indicator in events
 
 
 ### 0.86.3

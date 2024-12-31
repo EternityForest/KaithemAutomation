@@ -7,6 +7,7 @@ import subprocess
 import sys
 import time
 
+import pytest
 import stamina
 
 if "--collect-only" not in sys.argv:  # pragma: no cover
@@ -158,6 +159,23 @@ def test_fixtures():
     core.wait_frame()
 
     assert "TestingGroup1" not in board.groups_by_name
+
+
+def test_duplicate_group_name():
+    grp1 = groups.Group(board, "TestGroup1", id="TEST")
+    board.addGroup(grp1)
+    grp1.go()
+    core.wait_frame()
+    assert grp1 in board.active_groups
+
+    with pytest.raises(RuntimeError):
+        groups.Group(board, "TestGroup1", id="TEST")
+
+    assert grp1 in board.active_groups
+
+    grp1.close()
+    assert grp1 not in board.active_groups
+    board.rmGroup(grp1)
 
 
 def test_cue_track_setting():
