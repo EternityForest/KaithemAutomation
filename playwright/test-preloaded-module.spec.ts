@@ -28,5 +28,27 @@ test("test", async ({ page }) => {
     page.getByRole("heading", { name: "testpermission1234" })
   ).toBeVisible();
 
-    await logout(page);
+  await page.getByRole("link", { name: "󰘚 Devices" }).click();
+  await page.getByRole("link", { name: "󰘚 Devices" }).click();
+
+  await expect(
+    page.getByRole("link", { name: "PreloadedDemoDevice", exact: true })
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "PreloadedDemoDevice/subdevice" })
+  ).toBeVisible();
+
+  // Ensure it displays the fact it's not supported
+  await page
+    .getByRole("link", { name: "NonexistentTypePreloadedDemoDevice" })
+    .click();
+  await expect(page.getByText("This device type has no").first()).toBeVisible();
+
+  await page.getByRole("link", { name: "󱒕 Modules" }).click();
+  await page.getByRole("link", { name: "TestingServerModule" }).click();
+
+  // This is the nonsense resource type
+  await expect(page.getByText("Unknown resource type:")).toBeVisible();
+
+  await logout(page);
 });

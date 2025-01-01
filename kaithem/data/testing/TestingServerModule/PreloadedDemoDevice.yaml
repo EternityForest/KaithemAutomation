@@ -1,0 +1,5 @@
+device:
+  name: PreloadedDemoDevice
+  type: DemoDevice
+resource_timestamp: 1735703044328524
+resource_type: device
