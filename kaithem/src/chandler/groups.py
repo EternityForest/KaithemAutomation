@@ -2201,7 +2201,7 @@ class Group:
 
         if self.tapSequence:
             f = max((1 / self.tapSequence) ** 2, 0.0025)
-            self.bpm = self.bpm * (1 - f) + (60 / (x)) * f
+            self.bpm = int(self.bpm * (1 - f) + (60 / (x)) * f)
         self.tapSequence += 1
 
         ts = t - self.entered_cue

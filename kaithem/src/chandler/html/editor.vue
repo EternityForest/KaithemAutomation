@@ -1684,7 +1684,7 @@
                       :disabled="no_edit"
                       type="number"
                       min="0"
-                      max="100"
+                      max="300"
                       v-on:change="
                         setbpm(groupname, parseFloat($event.target.value))
                       "
@@ -1818,11 +1818,11 @@
                   /></label>
 
                   <label>
-                    Crossfade for non-silent Sounds
+                    Crossfade Media
                     <input
                       :disabled="no_edit"
                       type="number"
-                      max="1"
+                      max="60"
                       step="0.01"
                       min="0"
                       v-on:change="
