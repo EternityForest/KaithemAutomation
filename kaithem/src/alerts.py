@@ -289,6 +289,7 @@ class Alert:
 
         self.notificationHTML = notificationHTML
 
+    # todo: unused
     def __html_repr__(self):
         return """<small>State machine object at {}<br></small>
             <b>State:</b> {}<br>

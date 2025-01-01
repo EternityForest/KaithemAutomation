@@ -5,6 +5,7 @@ import {
   logout,
   chandlerBoardTemplate,
   deleteModule,
+  waitForTasks
 } from "./util";
 
 /*/
@@ -19,9 +20,7 @@ test("test", async ({ page }) => {
 
   await chandlerBoardTemplate(page, module);
 
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
+await waitForTasks(page)
 
   await page
     .getByRole("row", { name: "c2" })
@@ -32,9 +31,7 @@ test("test", async ({ page }) => {
   await page.getByPlaceholder("New cue name").fill("c3");
   await page.getByRole("button", { name: "󰐕 Add Cue" }).click();
 
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
+await waitForTasks(page)
 
   // Reassign the number to be the last cue.  It will be six because we inserted it
   // just after five
@@ -44,28 +41,21 @@ test("test", async ({ page }) => {
   });
   await page.getByText("6", { exact: true }).dblclick();
 
+
+await waitForTasks(page)
   await sleep(150);
 
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
-
-  // Give it a 10 second fade.  Numeric inputs are flaky
-  await page.getByRole("row", { name: "c3" }).getByRole("spinbutton").fill("10");
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
-  await page.getByRole("row", { name: "c3" }).getByRole("spinbutton").fill("10");
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
+  // Give it a 5 second fade.  Numeric inputs are flaky
+  await page.getByRole("row", { name: "c3" }).getByRole("spinbutton").fill("5");
+  await waitForTasks(page)
+  await sleep(500);
+  await page.getByRole("row", { name: "c3" }).getByRole("spinbutton").fill("5");
+await waitForTasks(page)
 
   // select to c3
   await page.getByRole("cell", { name: "c3" }).click();
 
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
+await waitForTasks(page)
 
   await page.getByTestId("add-rm-fixtures-button").click();
   await page.getByLabel("Tag", { exact: true }).click();
@@ -79,6 +69,10 @@ test("test", async ({ page }) => {
   await expect(page.getByTestId("sidebar-active-cue-name")).toContainText(
     "default"
   );
+
+  // Let background stuff run before trying the time sensitive flaky stuff
+await waitForTasks(page)
+  await sleep(1000);
 
   // Times are just approximate because of performance issues
   await page.getByRole("button", { name: "Next 󰒭" }).click();
@@ -128,9 +122,7 @@ test("test", async ({ page }) => {
   await page.getByRole("link", { name: "Editor" }).click();
 
   await page.getByRole("button", { name: "tst1" }).click();
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
+await waitForTasks(page)
 
   // Set c3 to end in 0.25s
   await page
@@ -150,9 +142,7 @@ test("test", async ({ page }) => {
 
   // Now we make c3 point to default as the next cue
   await page.getByRole("button", { name: "tst1" }).click();
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
+await waitForTasks(page)
 
   await page
     .getByRole("row", { name: "c3" })
@@ -169,16 +159,12 @@ test("test", async ({ page }) => {
   await page.getByRole("button", { name: "tst1" }).click();
   await page.getByRole("cell", { name: "c3 " }).click();
 
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
+await waitForTasks(page)
 
   await page.getByPlaceholder("New cue name").fill("c4");
   await page.getByRole("button", { name: "󰐕 Add Cue" }).click();
 
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
+await waitForTasks(page)
   //Set c2 back to zero length
   await page
     .getByRole("row", { name: "c2" })
@@ -188,9 +174,7 @@ test("test", async ({ page }) => {
   // Set a global default, EVERY cue's "Next" points to c2 now if not explicitly set
   // Per cue
   await page.getByTestId("group-properties-button").click();
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
+await waitForTasks(page)
   await page.getByPlaceholder("Next cue in list").click();
   await page.getByPlaceholder("Next cue in list").fill("c2");
   await page.getByTestId("close-group-settings").click();
@@ -201,7 +185,9 @@ test("test", async ({ page }) => {
     .getByRole("row", { name: "c4" })
     .getByRole("button", { name: "Go", exact: true })
     .click();
-  await sleep(50);
+    await waitForTasks(page)
+
+  await sleep(1000);
 
   await page.getByTestId("close-group").click();
 

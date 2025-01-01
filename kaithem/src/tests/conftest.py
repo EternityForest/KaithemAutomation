@@ -22,7 +22,7 @@ def cleanup(request):
         print("Test finished, listing remaining threads")
         frames = sys._current_frames()
         for thread in threading.enumerate():
-            if not thread.isDaemon():
+            if not thread.daemon:
                 print(thread, thread.is_alive(), thread.name)
                 if thread.ident:
                     try:

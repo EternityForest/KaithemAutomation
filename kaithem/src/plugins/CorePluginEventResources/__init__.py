@@ -272,7 +272,7 @@ def getEventCompleted(m, r):
     try:
         return (
             _events_by_module_resource[m, r].lastcompleted
-            > _events_by_module_resource[m.r].lastexecuted
+            > _events_by_module_resource[m, r].lastexecuted
         )
     except Exception:
         return False
@@ -1784,6 +1784,7 @@ def getEventsFromModules(only: str | None = None):
                     + "please edit and reload.",
                 )
     try:
+        # todo i think this is ancient
         devices.warnAboutUnsupportedDevices()
     except Exception:
         logger.info("Error checking validity of device instances")
@@ -2079,6 +2080,7 @@ class EventType(modules_state.ResourceType):
             resource=resource,
             time=time,
             getEventCompleted=getEventCompleted,
+            round=round,
         )
 
     def on_finished_loading(self, module: str | None):

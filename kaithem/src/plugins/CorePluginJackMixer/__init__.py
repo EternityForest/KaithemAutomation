@@ -42,8 +42,6 @@ channels: dict[str, dict] = {}
 
 log = structlog.get_logger("system.mixer")
 
-presetsDir = os.path.join(directories.mixerdir, "presets")
-
 dummy_src_lock = threading.Lock()
 
 recorder = None
@@ -137,6 +135,7 @@ effectTemplates_data = mixerfx.effectTemplates_data
 effectTemplates = effectTemplates_data
 
 
+# todo: unused
 def cleanupEffectData(fx):
     x = effectTemplates.get(fx["type"], {})
     for i in x:
@@ -241,7 +240,10 @@ class Recorder(Pipeline):
                     print(traceback.format_exc())
                 time.sleep(0.1)
 
-                self.silencein.connect()
+                try:
+                    self.silencein.connect()
+                except Exception:
+                    log.exception("Failed to connect silence")
 
         workers.do(f)
 
@@ -281,6 +283,20 @@ class ChannelStrip(Pipeline, BaseChannel):
     ):
         try:
             self.name = name
+
+            # Wait up to 5s before even trying to do anything
+            # to see if the ports from perhaps a previous iteration
+            # are still there
+            for i in range(10):
+                if not self.check_ports():
+                    break
+                else:
+                    time.sleep(0.5)
+            if self.check_ports():
+                raise Exception(
+                    "The ports that this channel needs already exist"
+                )
+
             self.input = input
             self._input = None
             self.outputs = outputs
@@ -330,6 +346,11 @@ class ChannelStrip(Pipeline, BaseChannel):
                     client_name=f"{name}_in",
                     always_copy=True,
                     stream_properties={"node.autoconnect": "false"},
+                    # Try to prevent connectiong to some nonsese video thing
+                    # and doing
+                    # video-info video-info.c:540:gst_video_info_from_caps:
+                    # wrong name 'audio/x-raw', expected video/ or image/
+                    connect_when_available="audio",
                 )
 
                 self.capsfilter = self.add_element(
@@ -531,7 +552,10 @@ class ChannelStrip(Pipeline, BaseChannel):
             x = jacktools.Airwire(
                 f"{self.name}_out", i, force_combining=(self.channels == 1)
             )
-            x.connect()
+            try:
+                x.connect()
+            except Exception:
+                log.exception("Failed to conneect airwire")
             self._outputs.append(x)
 
         self.setInput(self.input)
@@ -550,6 +574,13 @@ class ChannelStrip(Pipeline, BaseChannel):
 
     def stop(self, at_exit=False):
         self.stopMPVThread = None
+
+        try:
+            if hasattr(self, "faderTag"):
+                self.faderTag.unsubscribe(self._faderTagHandler)
+        except Exception:
+            log.exception("Failed to unsubscribe from fader tag")
+
         with self.lock:
             # At exit don't bother, I don't think it's really needed
             # At all now that pipewire crashes less than the old daemon
@@ -607,7 +638,10 @@ class ChannelStrip(Pipeline, BaseChannel):
                     f"{self.name}_in",
                     force_combining=(self.channels == 1),
                 )
-                self._input.connect()
+                try:
+                    self._input.connect()
+                except Exception:
+                    log.exception("Failed to conneect airwire")
             else:
                 t = threading.Thread(target=self.mpv_input_loop, daemon=True)
                 t.start()
@@ -623,8 +657,11 @@ class ChannelStrip(Pipeline, BaseChannel):
                 x = jacktools.Airwire(
                     f"{self.name}_out", i, force_combining=(self.channels == 1)
                 )
-                x.connect()
                 self._outputs.append(x)
+                try:
+                    x.connect()
+                except Exception:
+                    log.exception("Failed to conneect airwire")
 
     def addSend(self, target, id, volume=-60):
         # I hate doing things like this...
@@ -672,7 +709,10 @@ class ChannelStrip(Pipeline, BaseChannel):
                 cname, target, force_combining=(self.channels == 1)
             )
             self.sends.append(vl)
-            self.sendAirwires[id].connect()
+            try:
+                self.sendAirwires[id].connect()
+            except Exception:
+                log.exception("Failed to conneect airwire")
             self.sendAirwires[id].send_source = cname
 
     def loadData(self, d):
@@ -1246,15 +1286,9 @@ class MixingBoard:
                 self.lock.release()
 
     def sendPresets(self):
-        if os.path.isdir(presetsDir):
-            x = [
-                i[: -len(".yaml")]
-                for i in os.listdir(presetsDir)
-                if i.endswith(".yaml")
-            ]
-        else:
-            x = []
-        self.api.send(["presets", x])
+        self.api.send(
+            ["presets", list(self.resourcedata.get("presets", {}).keys())]
+        )
 
     def createChannel(self, name, data={}):
         if not self.running:
@@ -1412,8 +1446,13 @@ class MixingBoard:
             self.api.send(["loadedPreset", self.loadedPreset])
 
     def deletePreset(self, presetName):
-        if os.path.exists(os.path.join(presetsDir, f"{presetName}.yaml")):
-            os.remove(os.path.join(presetsDir, f"{presetName}.yaml"))
+        if presetName not in self.resourcedata["presets"]:
+            raise ValueError("No such preset")
+        with self.lock:
+            del self.resourcedata["presets"][presetName]
+            modules_state.rawInsertResource(
+                self.module, self.resource, self.resourcedata
+            )
 
     def loadPreset(self, presetName: str):
         with self.lock:
@@ -1587,6 +1626,11 @@ class MixingBoard:
             self.running = False
             for i in list(self.channelObjects.keys()):
                 self.channelObjects[i].stop(at_exit=True)
+
+        try:
+            self.checker.unregister()
+        except Exception:
+            log.exception("Failed to unregister checker")
 
         try:
             apps_page.remove_app(self.app)

@@ -12,7 +12,7 @@ test("test", async ({ page }) => {
   test.setTimeout(2_400_000);
 
   await login(page);
-  const module = "PlaywrightChandlerTestModule";
+  const module = "PlaywrightChandlerTestModule3";
 
   await chandlerBoardTemplate(page, module);
 
@@ -140,17 +140,17 @@ test("test", async ({ page }) => {
   // Back to main editor to check presets
   await page.getByRole("link", { name: "󰀻 Apps" }).click();
 
-  await page.getByTestId("extras-button-playwrightchandlertestmodule_board1").click();
+  await page.getByTestId("extras-button-playwrightchandlertestmodule3_board1").click();
   await page.getByRole("link", { name: "Editor" }).click();
   await page.getByRole("button", { name: "󰤀 Presets" }).click();
   await page.getByPlaceholder("Filter").fill("upl");
   await page.getByText("UploadablePreset").click();
 
   await page.getByRole("button", { name: "󰅖 Close" }).click();
-  await page.getByText("PlaywrightChandlerTestModule:").click();
+  await page.getByText("PlaywrightChandlerTestModule3:").click();
   await page.getByRole("link", { name: "󱒕 Modules" }).click();
   await page.getByLabel("Delete").click();
   await page.getByLabel("Name").click();
-  await page.getByLabel("Name").fill("PlaywrightChandlerTestModule");
+  await page.getByLabel("Name").fill("PlaywrightChandlerTestModule3");
   await page.getByRole("button", { name: "Submit" }).click();
 });

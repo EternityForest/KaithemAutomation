@@ -21,6 +21,7 @@ apt-get install trash-cli -y
 
 # The better alternative to grep, worth learning
 apt-get install ripgrep -y
+apt-get install tmux -y
 
 # Toys
 apt-get -y install robotfindskitten cowsay figlet

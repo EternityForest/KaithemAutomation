@@ -37,6 +37,7 @@ from .modules_state import (
 logger = structlog.get_logger(__name__)
 
 
+# todo: unused
 def new_empty_module():
     return {
         "__metadata__": {
@@ -306,6 +307,7 @@ def _detect_ignorable(path: str) -> bool:
     return False
 
 
+# Todo: unused?
 @beartype.beartype
 def load_one_yaml_resource(folder: str, relpath: str, module: str):
     if not relpath.endswith(".yaml") or relpath.endswith(".json"):
@@ -503,6 +505,16 @@ def load_modules_from_zip(f: BytesIO, replace: bool = False) -> None:
                             temp_module_folder,
                             os.path.join(directories.vardir, "modules", "data"),
                         )
+
+                        # Purely defensive try catch since we're adding close to release
+                        # Todo: Remove?
+                        try:
+                            modules_state.importFiledataFolderStructure(i)
+                        except Exception:
+                            messagebus.post_message(
+                                "/system/notifications/errors",
+                                f"Error importing filedata for module {i}",
+                            )
                     except Exception:
                         if old_module_dir and m_backup:
                             try:

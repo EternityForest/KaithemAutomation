@@ -120,6 +120,12 @@ async function chandlerBoardTemplate(page: Page, module: string) {
     await page.getByRole('link', { name: module }).click();
     await page.getByRole('link', { name: 'Edit' }).click();
 
+    // Wait a bit before trying to fill out this so it doesn't get overwritten
+    
+    await sleep(500);
+    await page.evaluate(async () => {
+        await globalThis.doSerialized();
+    });
     // Create group
     await page.getByPlaceholder('New group name').click();
     await page.getByPlaceholder('New group name').fill('tst1');
@@ -137,4 +143,18 @@ async function chandlerBoardTemplate(page: Page, module: string) {
     await expect(page.locator('#cuesbox')).toContainText('c2', { timeout: 15_000 });
     await page.locator('#cuesbox').getByText('default', { exact: true }).click();
 }
-export { login, login_as, logout, makeModule, deleteModule, makeTagPoint, sleep, chandlerBoardTemplate };
+
+async function waitForTasks(page) {
+    return await page.evaluate(async () => {
+        let safety = 100;  
+        while (!globalThis.doSerialized) {
+            safety-=1;
+            if(safety < 0) {
+                break;
+            }
+            sleep(100);
+        }
+        await globalThis.doSerialized();
+      });
+}
+export { login, login_as, logout, waitForTasks, makeModule, deleteModule, makeTagPoint, sleep, chandlerBoardTemplate };

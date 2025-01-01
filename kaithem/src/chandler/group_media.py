@@ -31,7 +31,7 @@ class GroupMediaPlayer:
         self.group = group
         self.cue = None
 
-    def next(self, cue: groups.Cue):
+    def next(self, previous_cue: groups.Cue, cue: groups.Cue):
         "Call this whenever the media changes"
 
         if self.cue:
@@ -45,42 +45,46 @@ class GroupMediaPlayer:
 
         fade_len = max(
             0,
-            self.group.cue.sound_fade_out
+            previous_cue.sound_fade_out
             or self.group.crossfade
-            or self.group.evalExprFloat(cue.fade_in),
+            or self.group.evalExprFloat(cue.fade_in or 0),
+            self.group.evalExprFloat(previous_cue.media_wind_down or 0),
         )
 
         if not cue.sound == "__keep__":
             # Don't stop audio of we're about to crossfade to the next track
             if not (self.group.crossfade and cue.sound):
-                if (
-                    self.group.cue.sound_fade_out
-                    or self.group.cue.media_wind_down
-                ):
+                if previous_cue.sound_fade_out or previous_cue.media_wind_down:
                     fadeSound(
                         None,
-                        length=self.group.cue.sound_fade_out,
+                        length=previous_cue.sound_fade_out,
                         handle=str(self.group.id),
                         winddown=self.group.evalExprFloat(
-                            self.group.cue.media_wind_down or 0
+                            previous_cue.media_wind_down or 0
                         ),
                     )
                 else:
                     if not fade_len:
                         stop_sound(str(self.group.id))
+                    elif not cue.sound:
+                        fadeSound(
+                            None,
+                            length=fade_len,
+                            handle=str(self.group.id),
+                            winddown=self.group.evalExprFloat(
+                                previous_cue.media_wind_down or 0
+                            ),
+                        )
 
             # There is no next sound so crossfade to silence
             elif self.group.crossfade and (not cue.sound):
-                if (
-                    self.group.cue.sound_fade_out
-                    or self.group.cue.media_wind_down
-                ):
+                if previous_cue.sound_fade_out or previous_cue.media_wind_down:
                     fadeSound(
                         None,
-                        length=self.group.cue.sound_fade_out,
+                        length=previous_cue.sound_fade_out,
                         handle=str(self.group.id),
                         winddown=self.group.evalExprFloat(
-                            self.group.cue.media_wind_down or 0
+                            previous_cue.media_wind_down or 0
                         ),
                     )
                 else:
@@ -152,7 +156,7 @@ class GroupMediaPlayer:
                             or (cue.fade_in > 0)
                             or (cue.sound_fade_in > 0)
                             or cue.media_wind_up
-                            or self.group.cue.media_wind_down
+                            or previous_cue.media_wind_down
                         ):
                             play_sound(
                                 sound,
@@ -189,7 +193,7 @@ class GroupMediaPlayer:
                                     cue.media_wind_up or 0
                                 ),
                                 winddown=self.group.evalExprFloat(
-                                    self.group.cue.media_wind_down or 0
+                                    previous_cue.media_wind_down or 0
                                 ),
                                 speed=spd,
                             )

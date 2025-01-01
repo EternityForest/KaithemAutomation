@@ -288,7 +288,7 @@
 
         <div class="flex-row gaps margin">
           <div class="card">
-            <table border="1" class="paper">
+            <table border="1" class="paper" data-testid="universe-status-table">
               <tr>
                 <th>Universe</th>
                 <th>Status</th>

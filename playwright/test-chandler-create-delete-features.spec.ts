@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { login, logout, makeModule, deleteModule } from "./util";
+import { login, logout, makeModule, deleteModule, waitForTasks, sleep} from "./util";
 
 test("test", async ({ page }) => {
     test.setTimeout(600_000);
@@ -50,12 +50,12 @@ test("test", async ({ page }) => {
     .click();
   await page
     .getByTestId("media-browser-container")
-    .getByText("/home/daniel/Projects/")
+    .getByText("kaithem/data/static/")
     .click();
   await page
     .getByTestId("media-browser-container")
     .getByText(
-      "/home/daniel/Projects/KaithemAutomation/kaithem/data/static/sounds/"
+      "kaithem/data/static/sounds/"
     )
     .click();
   await page
@@ -91,6 +91,9 @@ test("test", async ({ page }) => {
   });
   await page.getByRole("button", { name: "󰆴 Delete Current" }).click();
 
+  await waitForTasks(page);
+  await sleep(300);
+
   await expect(
     page.locator("#cuesbox").getByText("x220176 gameaudio confirm")
   ).toBeHidden();
@@ -117,6 +120,8 @@ test("test", async ({ page }) => {
     .getByRole("button", { name: "Remove binding and all actions" })
     .click();
 
+  await waitForTasks(page);
+  
   await expect(page.getByRole("button", { name: "On cue.enter" })).toBeHidden();
 
   await page.getByTestId("close-logic").click();
@@ -128,9 +133,7 @@ test("test", async ({ page }) => {
   });
     await page.getByLabel("Delete Group").click();
     
-  await page.evaluate(async () => {
-    await globalThis.doSerialized()
-})
+    await waitForTasks(page)
   await expect(page.getByRole("button", { name: "test" })).toBeHidden();
 
   // Ensure we can remake one with same name

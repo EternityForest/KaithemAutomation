@@ -37,7 +37,7 @@ python = "^3.10.0, <3.13"
 # First party
 scullery = ">=0.2.0"
 iot-devices = ">=0.21.1"
-icemedia = ">=0.1.9"
+icemedia = ">=0.1.20"
 NVRChannel = ">=0.1.7"
 
 # New numpy needs new opencv
@@ -138,6 +138,13 @@ build-backend = "poetry.core.masonry.api"
 [tool.coverage.run]
 # omit the deprecated old file and system gstreamer
 omit = ["*/thirdparty/*", "*/selftest/*", "*/kaithemobj.py/*", "/usr/lib/**"]
+
+[tool.coverage.report]
+
+exclude_also = [
+    "if TYPE_CHECKING",
+    ]
+
 
 [tool.liccheck]
 authorized_licenses = [

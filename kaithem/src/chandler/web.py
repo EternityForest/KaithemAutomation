@@ -103,9 +103,31 @@ console_fn = os.path.join(html_dir, "editor.html")
 schedule_fn = os.path.join(html_dir, "schedulemanager.html")
 
 
+icon_types = {
+    "png",
+    "jpg",
+    "jpeg",
+    "avif",
+    "webp",
+    "svg",
+    "gif",
+    "heic",
+    "heif",
+    "tiff",
+    "bmp",
+    "ico",
+}
+
+
 @quart_app.app.route("/chandler/file_thumbnail")
 async def get_file_thumbnail():
     fn = quart.request.args["file"]
+
+    if fn.split(".")[-1] in icon_types:
+        if os.path.isfile(fn):
+            if os.path.getsize(fn) < 1024 * 32:
+                return await quart.send_file(fn)
+
     try:
         t = vignette.get_thumbnail(fn)
     except Exception:

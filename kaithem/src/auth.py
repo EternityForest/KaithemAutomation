@@ -584,6 +584,7 @@ def setGroupLimit(group, limit, val) -> None:
         dumpDatabase()
 
 
+# Todo: just add the permission and safe at the end
 def addGroupPermission(group: str, permission: str) -> None:
     """Add a permission to a group"""
     with lock:
@@ -592,6 +593,7 @@ def addGroupPermission(group: str, permission: str) -> None:
         dumpDatabase()
 
 
+# Unused?
 def removeGroupPermission(group, permission) -> None:
     with lock:
         Groups[group]["permissions"].remove(permission)

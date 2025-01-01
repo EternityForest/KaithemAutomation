@@ -125,11 +125,12 @@ dev-run-all-tests:
 	@echo "Waiting for server to start"
 	@sleep 5
 	@wget --retry-connrefused --waitretry=1 --read-timeout=20 --quiet --timeout=15 -t 0 http://localhost:8002
-	@npx playwright test --headed --reporter=html  --workers 1
+	@npx playwright test --reporter=html  --workers 1 --max-failures 1
+	@echo "Stopping server"
 	@killall coverage
-	@sleep 5
+	@sleep 15
 	@killall -9 coverage
-	@coverage run -a -m pytest
+	@coverage run --append -m pytest
 	@coverage html -i
 	@npx playwright show-report &
 	@open htmlcov/index.html

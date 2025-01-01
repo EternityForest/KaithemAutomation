@@ -14,6 +14,20 @@ import kaithem
 if os.path.exists("/dev/shm/kaithem_test_env/"):
     shutil.rmtree("/dev/shm/kaithem_test_env/")
 
+
+# Only load this here, not in the pytest unit tests,
+# for those we specifically want to run in a clean environment
+
+os.makedirs("/dev/shm/kaithem_test_env/modules/data", exist_ok=True)
+shutil.copytree(
+    os.path.join(
+        os.path.dirname(__file__),
+        "kaithem/data/testing/TestingServerModule",
+    ),
+    "/dev/shm/kaithem_test_env/modules/data/TestingServerModule",
+)
+
+
 # Ensure tests don't do anything outside the sandbox
 old_open = open
 

@@ -94,24 +94,11 @@ class NamespaceGetter:
 
 
 def paramDefault(p):
-    if isinstance(p, int):
-        return f"={str(p)}"
-
     if isinstance(p, (int, float)):
-        return f"={str(p)}"
+        return f"{str(p)}"
 
     if isinstance(p, str):
-        # Wrap strings that look like numbers in quotes
-        if p and not p.strip().startswith("="):
-            try:
-                float(p)
-                return f"='{repr(p)}'"
-            except Exception:
-                return f"={repr(p)}"
-
-        # Presever things starting with = unchanged
-        else:
-            return str(p)
+        return str(p)
 
     if isinstance(p, bool):
         return 1 if p else 0
@@ -619,6 +606,7 @@ class BaseChandlerScriptContext:
                     )
                     raise
 
+    # todo: unused
     def getCommandDataForEditor(self):
         """Get the data, as python dict which can be JSONed,
         which must be bound to the commands prop of the editor,
@@ -689,6 +677,7 @@ class BaseChandlerScriptContext:
         else:
             raise ValueError(f"No such command: {c}")
 
+    # todo: unused?
     def syncEvent(self, evt, val=None, timeout=20):
         "Handle an event synchronously, in the current thread."
         if self.gil.acquire(timeout=20):
@@ -954,11 +943,13 @@ class BaseChandlerScriptContext:
             self.risingEdgeDetects = {}
 
     def clearState(self):
+        """Only called manually at times like stopping a chandler group"""
         with self.gil:
             self.variables = {}
             self.changedVariables = {}
             for i in self.tagClaims:
-                self.tagClaims[i].release()
+                if not self.tagClaims[i].name == "default":
+                    self.tagClaims[i].release()
             self.tagClaims = {}
 
 
@@ -988,8 +979,8 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
         # All tag point changes happen async
         self.do_async(f)
 
-    def setupTag(self, tag):
-        if tag in self.tagpoints:
+    def setupTag(self, tag: tagpoints.GenericTagPointClass[Any]):
+        if tag.name in self.tagpoints:
             return
 
         def onchange(v, ts, an):
@@ -998,6 +989,7 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
         tag.subscribe(onchange)
         self.need_refresh_for_tag[tag.name] = True
         self.tagHandlers[tag.name] = (tag, onchange)
+        self.tagpoints[tag.name] = tag
 
     def canGetTagpoint(self, t):
         if t not in self.tagpoints and len(self.tagpoints) > 128:
@@ -1030,10 +1022,18 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
         BaseChandlerScriptContext.__init__(self, *a, **k)
 
         def setTag(
-            tagName=f"{self.tagDefaultPrefix}foo", value="=0", priority=75
+            tagName=f"{self.tagDefaultPrefix}foo", value="=0", priority="0"
         ):
-            """Set a Tagpoint with the given claim priority.
+            """Set a Tagpoint.
+
+            If a priority is given, set the given claim priority, and the claim
+            will persist until it is released or the group is stopped.
+
+            If priority empty or zero, just set the default base value layer,
+            and the value will stay until overwritten or the tag is deleted.
+
             Use a value of None to unset existing tags. If the tag does not
+
             exist, the type is auto-guessed based on the type of the value.
             None will silently return and do nothing if the tag does not exist.
             """
@@ -1044,7 +1044,11 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
             self.need_refresh_for_tag = {}
 
             tagType = None
-            priority = float(priority)
+            if str(priority).strip():
+                priority = float(priority)
+            else:
+                priority = None
+
             if not tagType:
                 if isinstance(value, str):
                     tagType = tagpoints.StringTag
@@ -1067,12 +1071,18 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
                         return True
                 else:
                     self.setupTag(tagType(tagName))
-                    tc = tagType(tagName).claim(
-                        value=value,
-                        priority=priority,
-                        name=f"{self.contextName}at{str(id(self))}",
-                    )
+
+                    if priority:
+                        tc = tagType(tagName).claim(
+                            value=value,
+                            priority=priority,
+                            name=f"{self.contextName}at{str(id(self))}",
+                        )
+                    else:
+                        tc = tagType(tagName).defaultClaim
+
                     self.tagClaims[tagName] = tc
+
                 tc.set(value)
                 self.setVar(f"$tag:{tagName}", value, True)
             else:

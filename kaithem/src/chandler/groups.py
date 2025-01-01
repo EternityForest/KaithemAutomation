@@ -93,7 +93,18 @@ def normalize_midi_name(t):
 
 def is_static_media(s: str):
     "True if it's definitely media that does not have a length"
-    for i in (".bmp", ".jpg", ".html", ".webp", ".php"):
+    for i in (
+        ".bmp",
+        ".jpg",
+        ".jpeg",
+        ".html",
+        ".webp",
+        ".php",
+        ".svg",
+        ".png",
+        ".gif",
+        ".avif",
+    ):
         if s.startswith(i):
             return True
 
@@ -125,7 +136,10 @@ def makeWrappedConnectionClass(parent: Group):
             if isinstance(m, bytes):
                 m2 = m.decode()
             else:
-                m2 = str(m)
+                # This is just a fallback for Mqtt api changes
+                # I don't think it's even needed
+                # TODO: Remove?
+                m2 = str(m)  # pragma: no cover
             gn = self_closure_ref.mqtt_sync_features.get("syncGroup", False)
             if gn:
                 topic = f"/kaithem/chandler/syncgroup/{gn}"
@@ -322,7 +336,7 @@ class Group:
             raise RuntimeError("Cannot have 2 groups sharing a name: " + name)
 
         if not name.strip():
-            raise ValueError("Invalid Name")
+            raise ValueError("Invalid Name: " + str(name)[:128])
 
         # Used by blend modes
         self._blend_args: dict[str, float | int | bool | str] = blend_args or {}
@@ -638,6 +652,7 @@ class Group:
 
         raise RuntimeError("Could not find a number for new cue")
 
+    # TODO: Unused?
     def find_cue_by_number(self, number: int) -> None | Cue:
         """Takes the int number times 1000 format"""
         for i in self.cues:
@@ -815,11 +830,33 @@ class Group:
         core.serialized_async_with_core_lock(f)
 
         with self.lock:
+            # Todo this error should never happen it would
+            # mean the shortcuts state got corrupted
+            try:
+                for i in self.cues:
+                    try:
+                        self.cues[i].close()
+                    except Exception:
+                        print(traceback.format_exc())
+            except Exception:
+                print(traceback.format_exc())
             self.stop()
             self.mqtt_server = ""
             x = self.mqttConnection
             if x:
                 x.disconnect()
+
+            try:
+                if self.cueTagHandler:
+                    self.cueTag.unsubscribe(self.cueTagHandler)
+            except Exception:
+                print(traceback.format_exc())
+
+            try:
+                if self.alphaTagHandler:
+                    self.alphaTag.unsubscribe(self.alphaTagHandler)
+            except Exception:
+                print(traceback.format_exc())
 
     def evalExprFloat(self, s: str | int | float) -> float:
         f = self.evalExpr(s)
@@ -920,6 +957,11 @@ class Group:
                 id = self.cues[cue].id
             else:
                 raise RuntimeError("Cue does not seem to exist")
+
+            try:
+                self.cues[name].close()
+            except Exception:
+                print(traceback.format_exc())
 
             self.cues_ordered.remove(self.cues[name])
 
@@ -1214,6 +1256,8 @@ class Group:
             cue, cuetime = self._parseCueName(cue)
             cue_entered_time = cuetime or cue_entered_time
 
+            previous_cue = self.cue
+
             if cue in self.cues:
                 if self.cues[cue].error_lockout:
                     # Todo: we should be able to lock out default as well but
@@ -1328,6 +1372,7 @@ class Group:
                     cl_trigger_shortcut_code(sc, exclude=self)
 
                 core.serialized_async_with_core_lock(f)
+
             self.cue = self.cues[cue]
 
             if self.cue.checkpoint:
@@ -1349,7 +1394,7 @@ class Group:
             self.push_to_frontend(statusOnly=True)
 
             self.preload_next_cue_sound()
-            self.media_player.next(self.cues[cue])
+            self.media_player.next(previous_cue, self.cues[cue])
             self.media_link.next(self.cues[cue])
 
             # Do this last because it's what we use for the rate limiting
@@ -1877,13 +1922,19 @@ class Group:
     @slow_group_lock_context.object_session_entry_point
     def rename_cue(self, old: str, new: str):
         disallow_special(new, allowedCueNameSpecials)
+        new = new.strip()
+        if not new:
+            raise ValueError("Can't rename to empty string")
+
         if new[0] in "1234567890 \t_":
             new = "x" + new
 
         if self.cue.name == old:
             raise RuntimeError("Can't rename active cue")
+
         if new in self.cues:
             raise RuntimeError("Already exists")
+
         if old == "default":
             raise RuntimeError("Can't rename default cue")
 
@@ -2021,6 +2072,7 @@ class Group:
             self.board.cl_update_group_priorities
         )
 
+    # todo: unused
     def mqttStatusEvent(self, value: str, timestamp: float, annotation: Any):
         if value == "connected":
             self.event("board.mqtt.connect")
@@ -2153,7 +2205,7 @@ class Group:
 
         if self.tapSequence:
             f = max((1 / self.tapSequence) ** 2, 0.0025)
-            self.bpm = self.bpm * (1 - f) + (60 / (x)) * f
+            self.bpm = int(self.bpm * (1 - f) + (60 / (x)) * f)
         self.tapSequence += 1
 
         ts = t - self.entered_cue
@@ -2346,6 +2398,11 @@ class Group:
 
     def refresh_blend(self):
         self.lighting_manager.setBlend(self.blend)
+        # Todo why are there two places we store this? refactor
+        # this is just a quick hack to validate json
+        self.blend_args = json.loads(
+            json.dumps(self.lighting_manager.blend_args)
+        )
         self.poll_again_flag = True
         self.metadata_already_pushed_by = {}
 

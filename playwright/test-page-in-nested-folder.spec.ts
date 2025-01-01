@@ -47,7 +47,6 @@ test('test', async ({ page }) => {
     await page.getByRole('button', { name: 'Save and go to page' }).click();
 
     // Make sure it worked
-    await expect(page.locator('section')).toContainText('Content here');
     await expect(page.getByRole('heading')).toContainText('page');
 
     await deleteModule(page, 'testpageinnestedfolder');

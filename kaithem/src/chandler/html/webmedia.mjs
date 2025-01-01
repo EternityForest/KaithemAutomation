@@ -355,7 +355,7 @@ class makePlayer {
         }
 
 
-        this.playMedia = async function (t, f, st, sessionTag) {
+        this.playMedia = async function (t, f, start_at_pos, sessionTag) {
 
             var ts = link.now() / 1000
 
@@ -425,12 +425,13 @@ class makePlayer {
                 t.children[0].volume = 0;
 
 
-                this.intended_start_pos = st
+                this.intended_start_pos = start_at_pos
                 this.intended_start_ts = ts
 
-                let st = st - ((link.now() / 1000) - ts)
-                st = Math.max(st, 0)
-                t.children[0].currentTime = st;
+                start_at_pos = start_at_pos - ((link.now() / 1000) - ts)
+                start_at_pos = Math.max(start_at_pos, 0)
+
+                t.children[0].currentTime = start_at_pos;
                 t.children[0].controls = true;
 
                 try {

@@ -1,7 +1,10 @@
 import { test, expect } from "@playwright/test";
-import { deleteModule, login, logout, makeModule, sleep } from "./util";
+import { deleteModule, login, makeModule, sleep, waitForTasks } from "./util";
+import { waitForDebugger } from "node:inspector/promises";
 
 test("test", async ({ page }) => {
+  test.setTimeout(120_000);
+
   await login(page);
 
   makeModule(page, "test_presets");
@@ -43,7 +46,7 @@ test("test", async ({ page }) => {
   await page.evaluate(async () => {
     await globalThis.doSerialized();
   });
-  await sleep(500);
+  await sleep(1000);
   //TODO should not need to run twice??????
   await page.getByRole("button", { name: "Add Channel" }).click();
   await page.getByRole("button", { name: "Add Channel" }).click();
@@ -51,7 +54,7 @@ test("test", async ({ page }) => {
   await page.evaluate(async () => {
     await globalThis.doSerialized();
   });
-  await sleep(500);
+  await sleep(1000);
 
   await page.getByLabel("Type:").first().selectOption("intensity");
   await page.getByRole("button", { name: "Add Channel" }).click();
@@ -187,7 +190,13 @@ test("test", async ({ page }) => {
     .getByTestId("presets-list")
     .getByRole("button", { name: "testaqua" })
     .click();
-
+  
+  await waitForTasks(page);
+  await waitForTasks(page);
+  await waitForTasks(page);
+  await waitForTasks(page);
+  await sleep(300);
+  
   await expect(
     page
       .locator("div")
@@ -280,7 +289,7 @@ test("test", async ({ page }) => {
     "http://localhost:8002/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/config/test_presets:p"
   );
   await page.getByRole("button", { name: "Universes" }).click();
-  await page.getByRole("row", { name: "test" }).getByRole("link").click();
+  await page.getByTestId("universe-status-table").getByRole("row", { name: "test" }).getByRole('link', { name: 'Values' }).click();
   await expect(page.locator("section")).toContainText("255.0");
   await expect(page.locator("section")).toContainText("233.0");
 

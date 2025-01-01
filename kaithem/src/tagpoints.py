@@ -1168,13 +1168,22 @@ class GenericTagPointClass(Generic[T]):
         except Exception:
             desc = str(f)
 
-        def errcheck(*a: Any):
+        def errcheck(r: weakref.ref[Any]):
             if time.time() < timestamp - 0.5:
                 logger.warning(
                     "Function: "
                     + desc
-                    + " was deleted 0.5s after being subscribed.  This is probably not what you wanted."
+                    + " was deleted <0.5s after being subscribed.  This is probably not what you wanted."
                 )
+            try:
+                if r in self.subscribers:
+                    logger.warning(
+                        f"Tag point subscriber {desc} on tag {self.name} was not explicitly unsubscribed."
+                    )
+            # Could be iteration errors or something here,
+            # this check isn't that important
+            except Exception:
+                print(traceback.format_exc())
 
         if self.lock.acquire(timeout=20):
             try:
@@ -2066,6 +2075,7 @@ class Claim(Generic[T]):
             return True
         return False
 
+    # todo: unused, use @total_ordering
     def __le__(self, other):
         if self.released:
             if not other.released:

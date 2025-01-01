@@ -18,6 +18,8 @@ import {
   kaithemapi,
   APIWidget,
 } from "/static/js/widget.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
+import picodash from '/static/js/thirdparty/picodash/picodash-base.esm.js'
+
 import { computed, ref, toRaw } from "/static/js/thirdparty/vue.esm-browser.js";
 
 let keysdown = {};
@@ -78,7 +80,9 @@ function playAlert(m) {
     new Audio(mp3_url).play().catch(() => {});
   }
   if (m) {
-    KaithemWidgetApiSnackbar(m, 60);
+    picodash.snackbar.createSnackbar(m, {
+      timeout: 60 * 1000,
+    });
   }
 }
 
@@ -89,7 +93,12 @@ function errorTone(m) {
     new Audio(mp3_url).play().catch(() => {});
   }
   if (m) {
-    KaithemWidgetApiSnackbar(m, 60);
+    picodash.snackbar.createSnackbar(m,
+      {
+        accent: "error",
+        timeout: 60 * 1000,
+      }
+    );
   }
 }
 // Legacy compatibility equivalents for the old vue2 apis. TODO get rid of this
@@ -463,6 +472,16 @@ function rmcue(cue) {
 
 
 async function jumpToCueWithConfirmationIfNeeded(cueid, group) {
+
+  if(!groupmeta.value[group].active) {
+    // picodash.snackbar.createSnackbar("Group is not active", {
+    //   timeout: 3000,
+    //   accent: "error"
+    // });
+
+    alert("Group is not active");
+    return;
+  }
   if (confirm_for_group(group)) {
     await doSerialized(async () => {
       const result = fetch(

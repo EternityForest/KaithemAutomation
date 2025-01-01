@@ -43,6 +43,8 @@ def from_legacy_preset_format(
 def from_legacy_fixture_class_format(
     d: List[Any] | Dict[str, Any],
 ) -> dict[str, Any]:
+    # todo: remove this evetually
+    # pragma: no cover
     if "channels" not in d:
         c = d
         a: List[dict[str, Any]] = []
@@ -65,6 +67,7 @@ def from_legacy_fixture_class_format(
         return d
 
 
+# pragma: no cover
 def from_legacy(d: Dict[str, Any]) -> Dict[str, Any]:
     if "mediaWindup" in d:
         d["media_wind_up"] = d.pop("mediaWindup")
@@ -618,6 +621,10 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         snapshot = getUniverses()
 
+        # We don't need to send status data for every tag point universe
+        # and the frontend doesn't even know how to handle stuff with slashes
+        # in the name like tags have.
+        # TODO: this special casng feels hacky
         self.linkSend(
             [
                 "universes",
@@ -629,6 +636,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                         "telemetry": snapshot[i].telemetry,
                     }
                     for i in snapshot
+                    if not isinstance(snapshot[i], universes.OneTagpoint)
                 },
             ]
         )
