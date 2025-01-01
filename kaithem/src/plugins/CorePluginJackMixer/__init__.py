@@ -240,7 +240,10 @@ class Recorder(Pipeline):
                     print(traceback.format_exc())
                 time.sleep(0.1)
 
-                self.silencein.connect()
+                try:
+                    self.silencein.connect()
+                except Exception:
+                    log.exception("Failed to connect silence")
 
         workers.do(f)
 
@@ -535,7 +538,10 @@ class ChannelStrip(Pipeline, BaseChannel):
             x = jacktools.Airwire(
                 f"{self.name}_out", i, force_combining=(self.channels == 1)
             )
-            x.connect()
+            try:
+                x.connect()
+            except Exception:
+                log.exception("Failed to conneect airwire")
             self._outputs.append(x)
 
         self.setInput(self.input)
@@ -611,7 +617,10 @@ class ChannelStrip(Pipeline, BaseChannel):
                     f"{self.name}_in",
                     force_combining=(self.channels == 1),
                 )
-                self._input.connect()
+                try:
+                    self._input.connect()
+                except Exception:
+                    log.exception("Failed to conneect airwire")
             else:
                 t = threading.Thread(target=self.mpv_input_loop, daemon=True)
                 t.start()
@@ -627,8 +636,11 @@ class ChannelStrip(Pipeline, BaseChannel):
                 x = jacktools.Airwire(
                     f"{self.name}_out", i, force_combining=(self.channels == 1)
                 )
-                x.connect()
                 self._outputs.append(x)
+                try:
+                    x.connect()
+                except Exception:
+                    log.exception("Failed to conneect airwire")
 
     def addSend(self, target, id, volume=-60):
         # I hate doing things like this...
@@ -676,7 +688,10 @@ class ChannelStrip(Pipeline, BaseChannel):
                 cname, target, force_combining=(self.channels == 1)
             )
             self.sends.append(vl)
-            self.sendAirwires[id].connect()
+            try:
+                self.sendAirwires[id].connect()
+            except Exception:
+                log.exception("Failed to conneect airwire")
             self.sendAirwires[id].send_source = cname
 
     def loadData(self, d):
