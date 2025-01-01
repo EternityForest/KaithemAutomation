@@ -560,6 +560,13 @@ class ChannelStrip(Pipeline, BaseChannel):
 
     def stop(self, at_exit=False):
         self.stopMPVThread = None
+
+        try:
+            if hasattr(self, "faderTag"):
+                self.faderTag.unsubscribe(self._faderTagHandler)
+        except Exception:
+            log.exception("Failed to unsubscribe from fader tag")
+
         with self.lock:
             # At exit don't bother, I don't think it's really needed
             # At all now that pipewire crashes less than the old daemon
