@@ -40,6 +40,7 @@ jacktools.on_jack_failure = onFail
 jacktools.on_jack_start = onStart
 
 
+# todo: unused
 def checkIfProcessRunning(processName):
     """
     Check if there is any running process that contains the given name processName, but only if it is OUR process

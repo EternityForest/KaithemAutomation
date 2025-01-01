@@ -6,8 +6,15 @@ Change Log
 This release is all about coverage-guided tests.  I am quite
 embarassed that these bugs were just sitting around so long!
 
-- :coffin: filename_for_resource is deprecated due to confusing name, use filename_for_file_resource instead.
 
+#### Breaking changes
+
+- :coffin: filename_for_resource is deprecated due to confusing name, use filename_for_file
+_resource instead.
+- :bug: Map MIDI names to message bus topics without the 128:0 part that can change between sessions.
+- :bug: MIDI channels in Chandler events, message bus topics, and tag names are one-based, to match almost every other app, instead of zero based to match the raw binary.
+
+#### Other Changes
 
 - :sparkles: Persist login sessions across reboots
 - :bug: Fix deleting file resources from modules page
