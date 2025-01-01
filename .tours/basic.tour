@@ -1,0 +1,61 @@
+{
+  "$schema": "https://aka.ms/codetour-schema",
+  "title": "basic",
+  "steps": [
+    {
+      "file": "dev_run.py",
+      "description": "This file is just here as a handy entry point for debugging.",
+      "line": 9
+    },
+    {
+      "file": "testing_server.py",
+      "description": "This file is a handy entry point for running with a few things set up in a predictable way for testing.",
+      "line": 3
+    },
+    {
+      "file": "kaithem/__init__.py",
+      "description": "",
+      "line": 15
+    },
+    {
+      "file": "kaithem/src/main.py",
+      "description": "Here's where everything really starts!",
+      "line": 34
+    },
+    {
+      "file": "kaithem/src/main.py",
+      "description": "All plugins get loaded here",
+      "line": 174
+    },
+    {
+      "file": "kaithem/src/main.py",
+      "description": "After initialize(), we're ready to start up the server",
+      "line": 195
+    },
+    {
+      "file": "kaithem/src/webapproot.py",
+      "description": "We use Quart and ASGI",
+      "line": 249
+    },
+    {
+      "file": "kaithem/src/webapproot.py",
+      "description": "We use Hypercorn as the outer ASGI server, allowing other apps to be integrated with the system",
+      "line": 282
+    },
+    {
+      "file": "kaithem/api/__init__.py",
+      "description": "We have an extension API meant to be stable",
+      "line": 8
+    },
+    {
+      "file": "kaithem/src/chandler/__init__.py",
+      "description": "Most user facing automation stuff is under this Chandler module",
+      "line": 5
+    },
+    {
+      "file": "kaithem/src/modules.py",
+      "description": "A Kaithem module is not the same as a python module!!!",
+      "line": 4
+    }
+  ]
+}

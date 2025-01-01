@@ -1784,6 +1784,7 @@ def getEventsFromModules(only: str | None = None):
                     + "please edit and reload.",
                 )
     try:
+        # todo i think this is ancient
         devices.warnAboutUnsupportedDevices()
     except Exception:
         logger.info("Error checking validity of device instances")

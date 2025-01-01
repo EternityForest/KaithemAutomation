@@ -199,6 +199,11 @@ test("test", async ({ page }) => {
 
   await expect(page.getByTestId("channel-box-testchannel2")).toBeHidden();
 
+
+  // Try to work around failure to reconnect.
+  // Todo figure that out and fix it high priority
+  await sleep(3000);
+
   // Remake it
   await page.getByTestId("new-channel-name").dblclick();
   await page.getByTestId("new-channel-name").fill("testchannel2");

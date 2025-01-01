@@ -184,7 +184,9 @@ await waitForTasks(page)
     .getByRole("row", { name: "c4" })
     .getByRole("button", { name: "Go", exact: true })
     .click();
-  await sleep(50);
+    await waitForTasks(page)
+
+  await sleep(1000);
 
   await page.getByTestId("close-group").click();
 
