@@ -283,6 +283,20 @@ class ChannelStrip(Pipeline, BaseChannel):
     ):
         try:
             self.name = name
+
+            # Wait up to 5s before even trying to do anything
+            # to see if the ports from perhaps a previous iteration
+            # are still there
+            for i in range(10):
+                if not self.check_ports():
+                    break
+                else:
+                    time.sleep(0.5)
+            if self.check_ports():
+                raise Exception(
+                    "The ports that this channel needs already exist"
+                )
+
             self.input = input
             self._input = None
             self.outputs = outputs
@@ -1612,6 +1626,11 @@ class MixingBoard:
             self.running = False
             for i in list(self.channelObjects.keys()):
                 self.channelObjects[i].stop(at_exit=True)
+
+        try:
+            self.checker.unregister()
+        except Exception:
+            log.exception("Failed to unregister checker")
 
         try:
             apps_page.remove_app(self.app)

@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
-import { deleteModule, login, makeModule, sleep } from "./util";
+import { deleteModule, login, makeModule, sleep, waitForTasks } from "./util";
+import { waitForDebugger } from "node:inspector/promises";
 
 test("test", async ({ page }) => {
   test.setTimeout(120_000);
@@ -189,7 +190,13 @@ test("test", async ({ page }) => {
     .getByTestId("presets-list")
     .getByRole("button", { name: "testaqua" })
     .click();
-
+  
+  await waitForTasks(page);
+  await waitForTasks(page);
+  await waitForTasks(page);
+  await waitForTasks(page);
+  await sleep(300);
+  
   await expect(
     page
       .locator("div")

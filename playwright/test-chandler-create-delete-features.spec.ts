@@ -120,6 +120,8 @@ test("test", async ({ page }) => {
     .getByRole("button", { name: "Remove binding and all actions" })
     .click();
 
+  await waitForTasks(page);
+  
   await expect(page.getByRole("button", { name: "On cue.enter" })).toBeHidden();
 
   await page.getByTestId("close-logic").click();

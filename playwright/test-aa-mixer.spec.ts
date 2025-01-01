@@ -241,8 +241,6 @@ test("test", async ({ page }) => {
     .getByTestId("ding-button")
     .click();
 
-  await sleep(300);
-
   await expect(
     page
       .getByTestId("channel-box-testchannel2")
