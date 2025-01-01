@@ -1,3 +1,67 @@
+import pytest
+
+
+def test_tags_fail():
+    from kaithem.src import tagpoints
+
+    # Numeric tag make sure it doesn't take strings
+    t = tagpoints.Tag("/system/unit_test_tag")
+
+    with pytest.raises(TypeError):
+        t.claim(10, "TestClaim", "wrong")
+
+    assert isinstance(t.value, float)
+
+    with pytest.raises(RuntimeError):
+        # Normally we never get this far and the getter function
+        # Would return the existing one, but lets test the low
+        # level feature of ensuring no duplicate tgs with the same name
+        tagpoints.NumericTagPointClass("/system/unit_test_tag")
+
+    # Empty tag
+    with pytest.raises(ValueError):
+        tagpoints.Tag("")
+
+    # All numbers
+    with pytest.raises(ValueError):
+        tagpoints.Tag("907686")
+
+    # Has a non allowed special char
+    with pytest.raises(ValueError):
+        tagpoints.Tag("fail #")
+
+
+def test_aliases():
+    import gc
+
+    from kaithem.src import tagpoints
+
+    t = tagpoints.Tag("/system/unit_test_tag_alias")
+    t.value = 30
+
+    assert t.value == 30
+
+    t.add_alias("tag_alias_1")
+    t.add_alias("tag_alias_2")
+
+    assert tagpoints.Tag("tag_alias_1").value == 30
+    assert tagpoints.Tag("tag_alias_2").value == 30
+
+    t.remove_alias("tag_alias_2")
+    assert tagpoints.Tag("tag_alias_2").value == 0
+
+    tagpoints.Tag("tag_alias_1").value = 40
+
+    assert t.value == 40
+
+    del t
+    gc.collect()
+    gc.collect()
+
+    assert tagpoints.Tag("/system/unit_test_tag_alias").value == 0
+    assert tagpoints.Tag("tag_alias_1").value == 0
+
+
 def test_tags():
     import gc
     import time

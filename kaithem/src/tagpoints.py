@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import copy
 import functools
+import gc
 import json
 import math
 import random
@@ -241,17 +242,28 @@ class GenericTagPointClass(Generic[T]):
         try:
             return f"<Tag Point: {self.name}={str(self._value)[:20]}>"
         except Exception:
-            return f"<Tag Point: {self.name}>"
+            try:
+                return f"<Tag Point: {self.name}>"
+            except Exception:
+                return f"<Tag Point: No name, not initialzed yet at {hex(id(self))}>"
 
     @beartype.beartype
     def __init__(self, name: str):
         global allTagsAtomic
         _name: str = normalize_tag_name(name)
+
+        # If the tag already exists it could just need
+        # garbage collection
+        if _name in allTags:
+            gc.collect()
+            gc.collect()
+
         if _name in allTags:
             raise RuntimeError(
                 "Tag with this name already exists, use the getter function to get it instead"
             )
 
+        self.name: str = _name
         # Used to store loggers sey elsewhere.
         self.configLoggers: weakref.WeakValueDictionary[str, object] = (
             weakref.WeakValueDictionary()
@@ -329,7 +341,6 @@ class GenericTagPointClass(Generic[T]):
             ],
         ] = {}
 
-        self.name: str = _name
         # The cached actual value from the claims
         self._cachedRawClaimVal: T = copy.deepcopy(self.default_data)
         # The cached output of processValue
@@ -1074,6 +1085,15 @@ class GenericTagPointClass(Generic[T]):
             messagebus.post_message(
                 "/system/tags/deleted", self.name, synchronous=True
             )
+
+            for i in self.aliases:
+                try:
+                    if i in allTags:
+                        if allTags[i]() is self or allTags[i]() is None:
+                            del allTags[i]
+                            allTagsAtomic = allTags.copy()
+                except Exception:
+                    logger.exception("Tag may have already been deleted")
 
         for i in list(self._alarmGCRefs.keys()):
             pollStuff = self._alarmGCRefs.pop(i, None)

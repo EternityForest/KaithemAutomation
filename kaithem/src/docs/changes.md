@@ -39,6 +39,7 @@ embarassed that these bugs were just sitting around so long!
 - :bug: Media wind down sounds much better
 - :sparkles: UI notification if you try jumping to cue in inactive group
 - :bug: Fix file data not showing up till manual rescan after uploading zip module
+- :bug: Fix tag point aliases not being correctly cleaned up
 
 
 ### 0.86.3
