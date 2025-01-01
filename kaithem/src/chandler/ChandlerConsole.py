@@ -698,6 +698,10 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         snapshot = getUniverses()
 
+        # We don't need to send status data for every tag point universe
+        # and the frontend doesn't even know how to handle stuff with slashes
+        # in the name like tags have.
+        # TODO: this special casng feels hacky
         self.linkSend(
             [
                 "universes",
@@ -709,6 +713,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                         "telemetry": snapshot[i].telemetry,
                     }
                     for i in snapshot
+                    if not isinstance(snapshot[i], universes.OneTagpoint)
                 },
             ]
         )
