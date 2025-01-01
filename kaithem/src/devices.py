@@ -600,6 +600,15 @@ class Device(iot_devices.device.Device):
                 remote_devices_atomic = wrcopy(remote_devices)
 
             try:
+                for i in self._deviceSpecIntegrationHandlers:
+                    if i in self.tagPoints:
+                        self.tagPoints[i].unsubscribe(
+                            self._deviceSpecIntegrationHandlers[i]
+                        )
+            except Exception:
+                logger.exception("Error unsubscribing from tagpoints")
+
+            try:
                 del self.tagPoints
             except Exception:
                 pass
@@ -611,15 +620,6 @@ class Device(iot_devices.device.Device):
                     logger.exception("Error releasing alerts")
         except Exception:
             logger.exception("Error releasing alerts")
-
-        try:
-            for i in self._deviceSpecIntegrationHandlers:
-                if i in self.tagPoints:
-                    self.tagPoints[i].unsubscribe(
-                        self._deviceSpecIntegrationHandlers[i]
-                    )
-        except Exception:
-            logger.exception("Error unsubscribing from tagpoints")
 
     def status(self):
         return "norm"

@@ -30,6 +30,9 @@ Change Log
 - :bug: Fix slideshow transform sometimes not being editable
 - :bug: Fix blend mode detail editing
 - :bug: Fix sound not playing in web player
+- :bug: Fix edge case where silent cues that had fade in set did not fade out
+- :bug: Media wind down sounds much better
+- :sparkles: UI notification if you try jumping to cue in inactive group
 
 
 ### 0.86.3

@@ -1077,13 +1077,13 @@ files = [
 
 [[package]]
 name = "icemedia"
-version = "0.1.9"
+version = "0.1.20"
 description = "Media handling library with GStreamer wrapper, sound player, and Jack manager"
 optional = false
 python-versions = "<4.0,>=3.10"
 files = [
-    {file = "icemedia-0.1.9-py3-none-any.whl", hash = "sha256:21b95277404d83b19132c3f86aad85e749ce9aa689aa3e800e7421324aab1309"},
-    {file = "icemedia-0.1.9.tar.gz", hash = "sha256:c668862442b4da9615e144e1e90f017d1d6eccf22ee4d5d48be923a9ab98922a"},
+    {file = "icemedia-0.1.20-py3-none-any.whl", hash = "sha256:811930b59029a544d33c4dc6a26da698ef9c0e4979a2581dda30ae6d5e506161"},
+    {file = "icemedia-0.1.20.tar.gz", hash = "sha256:b16b1ea2a536bfb8df6072426d78053c064779a2d09591143324b8f6862f80dd"},
 ]
 
 [package.dependencies]
@@ -3690,13 +3690,13 @@ referencing = "*"
 
 [[package]]
 name = "types-pyyaml"
-version = "6.0.12.20241221"
+version = "6.0.12.20241230"
 description = "Typing stubs for PyYAML"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "types_PyYAML-6.0.12.20241221-py3-none-any.whl", hash = "sha256:0657a4ff8411a030a2116a196e8e008ea679696b5b1a8e1a6aa8ebb737b34688"},
-    {file = "types_pyyaml-6.0.12.20241221.tar.gz", hash = "sha256:4f149aa893ff6a46889a30af4c794b23833014c469cc57cbc3ad77498a58996f"},
+    {file = "types_PyYAML-6.0.12.20241230-py3-none-any.whl", hash = "sha256:fa4d32565219b68e6dee5f67534c722e53c00d1cfc09c435ef04d7353e1e96e6"},
+    {file = "types_pyyaml-6.0.12.20241230.tar.gz", hash = "sha256:7f07622dbd34bb9c8b264fe860a17e0efcad00d50b5f27e93984909d9363498c"},
 ]
 
 [[package]]
@@ -3758,13 +3758,13 @@ zstd = ["zstandard (>=0.18.0)"]
 
 [[package]]
 name = "urllib3-future"
-version = "2.12.904"
+version = "2.12.905"
 description = "urllib3.future is a powerful HTTP 1.1, 2, and 3 client with both sync and async interfaces"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "urllib3_future-2.12.904-py3-none-any.whl", hash = "sha256:2746c2739642b3e5cd7c25d3c0392026a61f756a4681fbacea6506888d437397"},
-    {file = "urllib3_future-2.12.904.tar.gz", hash = "sha256:69da08d40d34dec3055bb7a4de06701de6dba0eb8fb3deaabf9a5e9dc526688b"},
+    {file = "urllib3_future-2.12.905-py3-none-any.whl", hash = "sha256:c556d1e5df0b430a67e779e0c093db4dc160ce035516a4bf5f7909900beeead2"},
+    {file = "urllib3_future-2.12.905.tar.gz", hash = "sha256:9d08c8f1ba5a86f21d114e16c195423123ff0d691f7941873933b0e817d8a26a"},
 ]
 
 [package.dependencies]
@@ -3775,7 +3775,7 @@ qh3 = {version = ">=1.2.0,<2.0.0", markers = "(platform_python_implementation !=
 [package.extras]
 brotli = ["brotli (>=1.0.9)", "brotlicffi (>=0.8.0)"]
 qh3 = ["qh3 (>=1.2.0,<2.0.0)"]
-socks = ["python-socks (>=2.0,<3.0)"]
+socks = ["python-socks (>=2.0,<=2.5.3)"]
 ws = ["wsproto (>=1.2,<2)"]
 zstd = ["zstandard (>=0.18.0)"]
 
@@ -4297,4 +4297,4 @@ ifaddr = ">=0.1.7"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10.0, <3.13"
-content-hash = "18408f5df723633fae1e49b82ed470f8076163945026143ebedc663960ebc29e"
+content-hash = "85b169f6c8bbba4e8be501d5cd5f61a471947f84eb4aee85aa54e387bdc342c6"

@@ -1255,6 +1255,8 @@ class Group:
             cue, cuetime = self._parseCueName(cue)
             cue_entered_time = cuetime or cue_entered_time
 
+            previous_cue = self.cue
+
             if cue in self.cues:
                 if self.cues[cue].error_lockout:
                     # Todo: we should be able to lock out default as well but
@@ -1369,6 +1371,7 @@ class Group:
                     cl_trigger_shortcut_code(sc, exclude=self)
 
                 core.serialized_async_with_core_lock(f)
+
             self.cue = self.cues[cue]
 
             if self.cue.checkpoint:
@@ -1390,7 +1393,7 @@ class Group:
             self.push_to_frontend(statusOnly=True)
 
             self.preload_next_cue_sound()
-            self.media_player.next(self.cues[cue])
+            self.media_player.next(previous_cue, self.cues[cue])
             self.media_link.next(self.cues[cue])
 
             # Do this last because it's what we use for the rate limiting

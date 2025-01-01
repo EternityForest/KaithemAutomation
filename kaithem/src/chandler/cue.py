@@ -722,7 +722,8 @@ class Cue:
                     break
             assert s
 
-        if s.strip() and self.sound and self.named_for_sound:
+        s = s.strip()
+        if s and self.sound and self.named_for_sound:
             self.push()
             raise RuntimeError(
                 """This cue was named for a specific sound file,
