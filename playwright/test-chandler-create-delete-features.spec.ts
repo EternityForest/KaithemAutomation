@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { login, logout, makeModule, deleteModule, waitForTasks} from "./util";
+import { login, logout, makeModule, deleteModule, waitForTasks, sleep} from "./util";
 
 test("test", async ({ page }) => {
     test.setTimeout(600_000);
@@ -90,6 +90,9 @@ test("test", async ({ page }) => {
     dialog.accept().catch(() => {});
   });
   await page.getByRole("button", { name: "󰆴 Delete Current" }).click();
+
+  await waitForTasks(page);
+  await sleep(300);
 
   await expect(
     page.locator("#cuesbox").getByText("x220176 gameaudio confirm")

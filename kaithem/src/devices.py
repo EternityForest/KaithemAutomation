@@ -600,11 +600,13 @@ class Device(iot_devices.device.Device):
                 remote_devices_atomic = wrcopy(remote_devices)
 
             try:
-                for i in self._deviceSpecIntegrationHandlers:
-                    if i in self.tagPoints:
-                        self.tagPoints[i].unsubscribe(
-                            self._deviceSpecIntegrationHandlers[i]
-                        )
+                # TODO don't forget about this if tagPoints becomes just tagpoints
+                if hasattr(self, "tagPoints"):
+                    for i in self._deviceSpecIntegrationHandlers:
+                        if i in self.tagPoints:
+                            self.tagPoints[i].unsubscribe(
+                                self._deviceSpecIntegrationHandlers[i]
+                            )
             except Exception:
                 logger.exception("Error unsubscribing from tagpoints")
 

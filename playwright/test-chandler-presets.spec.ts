@@ -282,7 +282,7 @@ test("test", async ({ page }) => {
     "http://localhost:8002/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/config/test_presets:p"
   );
   await page.getByRole("button", { name: "Universes" }).click();
-  await page.getByRole("row", { name: "test" }).getByRole("link").click();
+  await page.getByTestId("universe-status-table").getByRole("row", { name: "test" }).getByRole('link', { name: 'Values' }).click();
   await expect(page.locator("section")).toContainText("255.0");
   await expect(page.locator("section")).toContainText("233.0");
 

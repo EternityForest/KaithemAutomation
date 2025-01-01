@@ -137,7 +137,9 @@ test("test", async ({ page }) => {
   );
   await page.getByRole("button", { name: "ts1" }).click();
   await page.getByTestId("group-properties-button").click();
-  await sleep(3000);
+  await waitForTasks(page);
+  await sleep(1000);
+
 
   await page.getByTestId("group_blend_mode").selectOption("HTP");
   await expect(page.getByLabel("Alpha", { exact: true })).toHaveValue("0.25");
@@ -186,22 +188,16 @@ test("test", async ({ page }) => {
   await page.getByTestId("display_tag_label").fill("tg1");
 
   // This one display tag width line is always flaky.
-  await sleep(3000);
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
+  await waitForTasks(page);
+  await sleep(1000);
 
   // This line is flaky, if you get a fail just manually pause a bit.
   await page.getByTestId("display_tag_width").fill("5");
   await page.getByTestId("display_tag_width").click();
   await sleep(300);
   await page.getByTestId("display_tag_width").fill("5");
-
-  await sleep(3000);
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
-
+  await waitForTasks(page);
+  await sleep(1000);
   await page.getByTestId("display_tag_tag").fill("=4");
 
   await sleep(300);
@@ -215,6 +211,15 @@ test("test", async ({ page }) => {
     await globalThis.doSerialized();
   });
   // Waste some time to let it send
+    
+    //TODO why is this flaky??? it shou;dn't need retry!!
+    await page.getByTestId("display_tag_type").selectOption("Meter");
+    
+  await page.evaluate(async () => {
+    await globalThis.doSerialized();
+  });
+
+  await sleep(600);
 
   await page.getByTestId("close-group-settings").click();
 

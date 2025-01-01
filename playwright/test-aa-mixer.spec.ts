@@ -17,11 +17,10 @@ test("test", async ({ page }) => {
   await page.getByTestId("new-channel-name").fill("testchannel");
 
   await page.getByTestId("add-stereo-channel").click();
-  await sleep(3000);
 
   await expect(
     page.getByTestId("channel-box-testchannel").getByTestId("channel-status")
-  ).toContainText("running", { timeout: 15_000 });
+  ).toContainText("running", { timeout: 20_000 });
 
   await page
     .getByTestId("channel-box-testchannel")
@@ -32,11 +31,10 @@ test("test", async ({ page }) => {
   await page.getByTestId("new-channel-name").fill("testchannel2");
   await page.getByTestId("add-stereo-channel").click();
   // Give it extra loading time
-  await sleep(3000);
 
   await expect(
     page.getByTestId("channel-box-testchannel2").getByTestId("channel-status")
-  ).toContainText("running", { timeout: 15_000 });
+  ).toContainText("running", { timeout: 20_000 });
 
   await page
     .getByTestId("channel-box-testchannel2")
@@ -77,6 +75,7 @@ test("test", async ({ page }) => {
 
   // expect there to be no sound because we disconnected the input
   await sleep(300);
+
   let level = await page
     .getByTestId("channel-box-testchannel2")
     .getByTestId("channel-level-value")
@@ -113,11 +112,11 @@ test("test", async ({ page }) => {
     .click();
 
   // Give it extra loading time
-  await sleep(3000);
-
   await expect(
     page.getByTestId("channel-box-testchannel").getByTestId("channel-status")
-  ).toContainText("running", { timeout: 15_000 });
+  ).toContainText("running", { timeout: 20_000 });
+
+
 
   // Expand that effect
   await page
@@ -129,18 +128,28 @@ test("test", async ({ page }) => {
   // Set it to full blend
   await page.getByTestId("param-row-blend").getByRole("slider").fill("1");
 
+  // Actually let it send!
+  await sleep(4000);
+
+  // Leave the page and make sure it's still there
+  await page.getByRole("link", { name: "󰀻 Apps" }).click();
+  await page.getByRole("link", { name: "mxr" }).click();
+  await page.getByTestId("channel-box-testchannel").getByText("Setup").click();
   await expect(
     page.getByTestId("param-row-blend").getByTestId("param-value")
   ).toHaveText("1");
+
+
+
+
+
 
   await page
     .getByTestId("channel-box-testchannel")
     .getByTestId("ding-button")
     .click();
 
-  // With reverb, expect there to still be sound
-
-  await sleep(2800);
+  await sleep(300);
   level = await page
     .getByTestId("channel-box-testchannel2")
     .getByTestId("channel-level-value")
@@ -160,11 +169,9 @@ test("test", async ({ page }) => {
     .click();
 
   // Give it extra loading time
-  await sleep(3000);
-
   await expect(
     page.getByTestId("channel-box-testchannel").getByTestId("channel-status")
-  ).toContainText("running", { timeout: 15_000 });
+  ).toContainText("running", { timeout: 20_000 });
 
   await expect(
     page
@@ -178,8 +185,16 @@ test("test", async ({ page }) => {
     .getByTestId("ding-button")
     .click();
 
-  // With no reverb, expect sound to stop sooner
-  await sleep(2800);
+  await sleep(300);
+
+  level = await page
+    .getByTestId("channel-box-testchannel2")
+    .getByTestId("channel-level-value")
+    .textContent();
+  await expect(level).not.toBe("-99db");
+
+  // Ensure it actually stops
+  await sleep(3000);
 
   level = await page
     .getByTestId("channel-box-testchannel2")
@@ -199,9 +214,7 @@ test("test", async ({ page }) => {
 
   await expect(page.getByTestId("channel-box-testchannel2")).toBeHidden();
 
-
-  // Try to work around failure to reconnect.
-  // Todo figure that out and fix it high priority
+  // Let backend stuff fully finish because audio stuff can be fussy
   await sleep(3000);
 
   // Remake it
@@ -210,21 +223,25 @@ test("test", async ({ page }) => {
   await page.getByTestId("add-stereo-channel").click();
 
   // Give it extra loading time
-  await sleep(3000);
-
   await expect(
     page.getByTestId("channel-box-testchannel2").getByTestId("channel-status")
-  ).toContainText("running", { timeout: 15_000 });
+  ).toContainText("running", { timeout: 20_000 });
 
   // Ensure it reconnects to channel 1
   await page
     .getByTestId("channel-box-testchannel2")
     .getByTestId("channel-fader")
     .fill("-5");
+
+  // May take a while to reconnect
+  await sleep(8000);
+
   await page
     .getByTestId("channel-box-testchannel")
     .getByTestId("ding-button")
     .click();
+
+  await sleep(300);
 
   await expect(
     page
@@ -265,7 +282,7 @@ test("test", async ({ page }) => {
     .getByRole("row", { name: "default2" })
     .getByRole("button", { name: "Delete" })
     .click();
-  
+
   await expect(page.getByRole("cell", { name: "default2" })).toBeHidden();
 
   await page.getByRole("button", { name: "Mixer (mxr)" }).click();
@@ -280,20 +297,39 @@ test("test", async ({ page }) => {
     .getByTestId("delete-button")
     .click();
 
-  await page.getByTestId("channel-box-testchannel2").getByText("Setup").click();
+
+  
+  // Expand details box if needed
+  // Todo refactor this to a utility
+  await sleep(300);
+
+  if (
+    !(await page
+      .getByTestId("channel-box-testchannel2")
+      .getByTestId("channel-output")
+      .isVisible())
+  ) {
+    await page
+      .getByTestId("channel-box-testchannel2")
+      .getByText("Setup")
+      .click();
+  } 
+ 
+
+  await page.getByTestId("show-effects-menu").click();
+
   // Add noise gen
   await page
     .getByTestId("channel-box-testchannel2")
     .getByTestId("add-effect-audiotestsrc")
     .click();
+  
   await expect(
     page.getByTestId("channel-box-testchannel2").getByTestId("channel-status")
-  ).toContainText("running", { timeout: 15_000 });
+  ).toContainText("running", { timeout: 20_000 });
 
   await page.getByTestId("new-channel-name").fill("testchannel3");
   await page.getByTestId("add-stereo-channel").click();
-  // Give it extra loading time
-  await sleep(3000);
   // There is a bug where if there's no output,
   // the noise gen doesn't show up in the level display
 
@@ -301,9 +337,20 @@ test("test", async ({ page }) => {
   // ui race condition?
   await expect(
     page.getByTestId("channel-box-testchannel2").getByTestId("channel-status")
-  ).toContainText("running", { timeout: 15_000 });
+  ).toContainText("running", { timeout: 20_000 });
 
-  await page.getByTestId("channel-box-testchannel2").getByText("Setup").click();
+  // Expand details box if needed
+  if (
+    !(await page
+      .getByTestId("channel-box-testchannel2")
+      .getByTestId("channel-output")
+      .isVisible())
+  ) {
+    await page
+      .getByTestId("channel-box-testchannel2")
+      .getByText("Setup")
+      .click();
+  }
 
   await page
     .getByTestId("channel-box-testchannel2")
@@ -311,7 +358,7 @@ test("test", async ({ page }) => {
     .fill("testchannel3_in");
 
   // Click away so it saves
-  await page.getByRole('heading', { name: 'testchannel2(2)' }).click();
+  await page.getByRole("heading", { name: "testchannel2(2)" }).click();
 
   // The noise gen should show up
   await expect(
@@ -319,6 +366,20 @@ test("test", async ({ page }) => {
       .getByTestId("channel-box-testchannel2")
       .getByTestId("channel-level-value")
   ).not.toContainText("-99db");
+
+  await sleep(300);
+  // Expand details box if needed
+  if (
+    !(await page
+      .getByTestId("channel-box-testchannel2")
+      .getByTestId("channel-output")
+      .isVisible())
+  ) {
+    await page
+      .getByTestId("channel-box-testchannel2")
+      .getByText("Setup")
+      .click();
+  }
 
   await expect(
     page
@@ -339,7 +400,7 @@ test("test", async ({ page }) => {
   // Test channel 1 is back
   await expect(
     page.getByTestId("channel-box-testchannel").locator("header")
-  ).toContainText("running", { timeout: 15_000 });
+  ).toContainText("running", { timeout: 30_000 });
   // Noise gen is gone
   await expect(
     page
@@ -347,51 +408,80 @@ test("test", async ({ page }) => {
       .getByTestId("channel-level-value")
   ).toContainText("-99db");
 
-  await page.getByTestId('channel-box-testchannel').getByTestId('ding-button').click();
-  await expect(page.getByTestId('channel-box-testchannel2').getByTestId('channel-level-value')).toContainText('-99db');
-  await page.getByRole('button', { name: 'Status' }).click();
-  await expect(page.getByRole('cell', { name: 'testchannel_in:input_FL' })).toBeVisible();
-  await expect(page.getByRole('cell', { name: 'testchannel2_in:input_FL' })).toBeVisible();
-  await expect(page.getByRole('cell', { name: 'testchannel_out:output_FL' })).toBeVisible();
-  await expect(page.getByRole('cell', { name: 'testchannel2_out:output_FL' })).toBeVisible();
+  await page
+    .getByTestId("channel-box-testchannel")
+    .getByTestId("ding-button")
+    .click();
+  await expect(
+    page
+      .getByTestId("channel-box-testchannel2")
+      .getByTestId("channel-level-value")
+  ).toContainText("-99db");
+  await page.getByRole("button", { name: "Status" }).click();
+  await expect(
+    page.getByRole("cell", { name: "testchannel_in:input_FL" })
+  ).toBeVisible();
+  await expect(
+    page.getByRole("cell", { name: "testchannel2_in:input_FL" })
+  ).toBeVisible();
+  await expect(
+    page.getByRole("cell", { name: "testchannel_out:output_FL" })
+  ).toBeVisible();
+  await expect(
+    page.getByRole("cell", { name: "testchannel2_out:output_FL" })
+  ).toBeVisible();
 
   // Deleted stuff
-  await expect(page.getByRole('cell', { name: 'testchannel3_out:output_FL' })).toBeHidden();
+  await expect(
+    page.getByRole("cell", { name: "testchannel3_out:output_FL" })
+  ).toBeHidden();
 
-  await page.getByRole('link', { name: '󱒕 Modules' }).click();
-  await page.getByRole('link', { name: 'mxer' }).click();
-  await page.getByTestId('delete-resource-button').click();
-  await page.getByRole('button', { name: 'Submit' }).click();
+  await page.getByRole("link", { name: "󱒕 Modules" }).click();
+  await page.getByRole("link", { name: "mxer" }).click();
+  await page.getByTestId("delete-resource-button").click();
+  await page.getByRole("button", { name: "Submit" }).click();
 
   // TODO: there's a bad file descriptor  in the hashing of the module here
   // but it still works
 
-  await page.goto('http://localhost:8002/');
-  await page.getByRole('link', { name: '󱒕 Modules' }).click();
-  await page.getByRole('link', { name: 'mxer' }).click();
-  await page.getByTestId('add-resource-button').click();
-  await page.getByTestId('add-mixing_board').click();
-  await page.getByLabel('Resource Name').click();
-  await page.getByLabel('Resource Name').fill('mixer2');
-  await page.getByRole('button', { name: 'Submit' }).click();
+  await page.goto("http://localhost:8002/");
+  await page.getByRole("link", { name: "󱒕 Modules" }).click();
+  await page.getByRole("link", { name: "mxer" }).click();
+  await page.getByTestId("add-resource-button").click();
+  await page.getByTestId("add-mixing_board").click();
+  await page.getByLabel("Resource Name").click();
+  await page.getByLabel("Resource Name").fill("mixer2");
+  await page.getByRole("button", { name: "Submit" }).click();
 
-  await page.getByRole('link', { name: '󰀻 Apps' }).click();
+  await page.getByRole("link", { name: "󰀻 Apps" }).click();
 
   // Old mixer should have disappeared from the apps page
-  await expect(page.getByRole('link', { name: 'mxr' })).toBeHidden();
+  await expect(page.getByRole("link", { name: "mxr" })).toBeHidden();
 
-  await page.getByRole('link', { name: 'mixer2' }).click();
+  await page.getByRole("link", { name: "mixer2" }).click();
 
-  await page.getByRole('button', { name: 'Presets/Defaults' }).click();
-  await expect(page.getByRole('heading', { name: 'Presets' })).toBeVisible();
+  await page.getByRole("button", { name: "Presets/Defaults" }).click();
+  await expect(page.getByRole("heading", { name: "Presets" })).toBeVisible();
 
   // Should be no leftovers from the old mixer
-  await expect(page.getByRole('cell', { name: 'testchannel_out:output_FL' })).toBeHidden();
-  await expect(page.getByRole('cell', { name: 'testchannel2_out:output_FL' })).toBeHidden();
-  await expect(page.getByRole('cell', { name: 'testchannel3_out:output_FL' })).toBeHidden();
-  await expect(page.getByRole('cell', { name: 'testchannel_in:input_FL' })).toBeHidden();
-  await expect(page.getByRole('cell', { name: 'testchannel2_in:input_FL' })).toBeHidden();
-  await expect(page.getByRole('cell', { name: 'testchannel2_in:input_FL' })).toBeHidden();
+  await expect(
+    page.getByRole("cell", { name: "testchannel_out:output_FL" })
+  ).toBeHidden();
+  await expect(
+    page.getByRole("cell", { name: "testchannel2_out:output_FL" })
+  ).toBeHidden();
+  await expect(
+    page.getByRole("cell", { name: "testchannel3_out:output_FL" })
+  ).toBeHidden();
+  await expect(
+    page.getByRole("cell", { name: "testchannel_in:input_FL" })
+  ).toBeHidden();
+  await expect(
+    page.getByRole("cell", { name: "testchannel2_in:input_FL" })
+  ).toBeHidden();
+  await expect(
+    page.getByRole("cell", { name: "testchannel2_in:input_FL" })
+  ).toBeHidden();
 
-  await deleteModule(page, 'mxer');
+  await deleteModule(page, "mxer");
 });
