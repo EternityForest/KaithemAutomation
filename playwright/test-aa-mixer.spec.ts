@@ -481,5 +481,90 @@ test("test", async ({ page }) => {
     page.getByRole("cell", { name: "testchannel2_in:input_FL" })
   ).toBeHidden();
 
+
+
+  // Test of editing the params
+  await page.getByRole('button', { name: 'Mixer (mixer2)' }).click();
+  await page.getByTestId('new-channel-name').click();
+  await page.getByTestId('new-channel-name').fill('ch1');
+  await page.getByTestId('add-mono-channel').click();
+
+  await expect(
+    page.getByTestId("channel-box-ch1").getByTestId("channel-status")
+  ).toContainText("running", { timeout: 20_000 });
+
+  await page.getByText('Setup').click();
+  await page.getByTestId('show-effects-menu').click();
+  await page.getByTestId('add-effect-3beq').click();
+  await page.getByRole('button', { name: 'Hide' }).click();
+
+  await expect(
+    page.getByTestId("channel-box-ch1").getByTestId("channel-status")
+  ).toContainText("running", { timeout: 20_000 });
+
+
+  await expect(page.getByTestId('effect-box-fader').getByText('Fader')).toBeVisible();
+  await expect(page.getByText('3 Band EQ')).toBeVisible();
+
+  // Might need time to stabilize
+  await sleep(500);
+  await expect(page.getByTestId('effect-chain').locator("div").first()).toContainText('Fader');
+  await expect(page.getByTestId('effect-chain').locator("div").last()).toContainText('3 Band EQ');
+
+
+
+  // Move it up by one, confirm the ordering works
+  await page.getByTestId('effect-box-3beq').getByTestId("move-effect-up-button").click();
+  
+  await sleep(500);
+
+  await expect(page.getByTestId('effect-chain').locator("div").first()).toContainText('3 Band EQ');
+  await expect(page.getByTestId('effect-chain').locator("div").last()).toContainText('Fader');
+
+  
+  await expect(
+    page.getByTestId("channel-box-ch1").getByTestId("channel-status")
+  ).toContainText("running", { timeout: 20_000 }); 
+ 
+ 
+  await expect(page.getByText('3 Band EQ')).toBeVisible();
+  await expect(page.getByTestId('effect-box-fader').getByText('Fader')).toBeVisible();
+  await page.getByTestId('effect-box-3beq').getByTestId('effect-title-id').click();
+  await page.getByText('3 Band EQ').click();
+  await page.getByTestId('param-row-0:gain').getByRole('slider').fill('5');
+  await page.getByTestId('param-row-1:gain').getByRole('slider').fill('3');
+  await page.getByRole('checkbox').check();
+
+
+  // Reload the page
+  await page.getByRole('link', { name: '󰀻 Apps' }).click();
+  await page.getByTestId('app-mxer_mixer2').locator('div').filter({ hasText: 'mixer2' }).first().click();
+  await page.getByRole('link', { name: 'mixer2' }).click();
+  
+  
+  
+  await page.getByText('Setup').click();
+  await expect(page.getByText('3 Band EQ')).toBeVisible();
+
+  await sleep(500);
+  // Recheck ordering
+  await expect(page.getByTestId('effect-chain').locator("div").first()).toContainText('3 Band EQ');
+  await expect(page.getByTestId('effect-chain').locator("div").last()).toContainText('Fader');
+
+
+  await expect(page.getByTestId('effect-box-fader').getByText('Fader')).toBeVisible();
+  await page.getByText('3 Band EQ').click();
+  await expect(page.getByRole('checkbox')).toBeChecked();
+  await expect(page.getByTestId('param-row-0:gain').getByRole('slider')).toHaveValue('5');
+  await expect(page.getByTestId('param-row-1:gain').getByRole('slider')).toHaveValue('3');
+  await expect(page.getByTestId('param-row-2:gain').getByRole('slider')).toHaveValue('0');
+  
+  // The refresh button
+  await page.getByRole('button', { name: '󰑐' }).click();
+  await expect(page.getByTestId('channel-status')).toBeVisible();
+  //await expect(page.locator('p').filter({ hasText: 'loading' })).toBeVisible();
+  await expect(page.locator('p').filter({ hasText: 'running' })).toBeVisible();
+  
+  
   await deleteModule(page, "mxer");
 });
