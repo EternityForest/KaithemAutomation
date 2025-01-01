@@ -38,6 +38,7 @@ embarassed that these bugs were just sitting around so long!
 - :bug: Fix edge case where silent cues that had fade in set did not fade out
 - :bug: Media wind down sounds much better
 - :sparkles: UI notification if you try jumping to cue in inactive group
+- :bug: Fix file data not showing up till manual rescan after uploading zip module
 
 
 ### 0.86.3

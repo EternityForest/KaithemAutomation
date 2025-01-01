@@ -504,6 +504,16 @@ def load_modules_from_zip(f: BytesIO, replace: bool = False) -> None:
                             temp_module_folder,
                             os.path.join(directories.vardir, "modules", "data"),
                         )
+
+                        # Purely defensive try catch since we're adding close to release
+                        # Todo: Remove?
+                        try:
+                            modules_state.importFiledataFolderStructure(i)
+                        except Exception:
+                            messagebus.post_message(
+                                "/system/notifications/errors",
+                                f"Error importing filedata for module {i}",
+                            )
                     except Exception:
                         if old_module_dir and m_backup:
                             try:
