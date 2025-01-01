@@ -29,6 +29,7 @@ Change Log
 - :bug: Spurious "Still Running" indicator in events
 - :bug: Fix slideshow transform sometimes not being editable
 - :bug: Fix blend mode detail editing
+- :bug: Fix sound not playing in web player
 
 
 ### 0.86.3
