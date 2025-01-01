@@ -88,8 +88,8 @@ test("test", async ({ page }) => {
   await page.getByLabel("Require Confirmation for Cue").click();
   await page.getByLabel("Sound Output").click();
   await page.getByLabel("Sound Output").fill("defaultout");
-  await page.getByLabel("Crossfade for non-silent").click();
-  await page.getByLabel("Crossfade for non-silent").fill("0.56");
+  await page.getByLabel("Crossfade Media").click();
+  await page.getByLabel("Crossfade Media").fill("0.56");
   await page.getByLabel("MQTT Server").click();
   await page.getByLabel("MQTT Server").fill("ppp");
   await page.getByLabel("Sync Group Name").click();
@@ -121,7 +121,7 @@ test("test", async ({ page }) => {
   await expect(page.getByPlaceholder("Tagpoint")).toHaveValue("cmdtag");
   await expect(page.getByPlaceholder("Next cue in list")).toHaveValue("foo");
   await expect(page.getByLabel("Sound Output")).toHaveValue("defaultout");
-  await expect(page.getByLabel("Crossfade for non-silent")).toHaveValue("0.56");
+  await expect(page.getByLabel("Crossfade Media")).toHaveValue("0.56");
   await expect(page.getByLabel("MQTT Server")).toHaveValue("ppp");
   await expect(page.getByLabel("Sync Group Name")).toHaveValue("grp");
 
@@ -268,13 +268,13 @@ test("test", async ({ page }) => {
 
   await page.getByLabel("Sound Output").click();
   await page.getByLabel("Sound Output").fill("");
-  await page.getByLabel("Crossfade for non-silent").click();
-  await page.getByLabel("Crossfade for non-silent").click();
-  await page.getByLabel("Crossfade for non-silent").dblclick();
-  await page.getByLabel("Crossfade for non-silent").fill("");
+  await page.getByLabel("Crossfade Media").click();
+  await page.getByLabel("Crossfade Media").click();
+  await page.getByLabel("Crossfade Media").dblclick();
+  await page.getByLabel("Crossfade Media").fill("");
   await page.getByLabel("Default Alpha").click();
-  await page.getByLabel("Crossfade for non-silent").click();
-  await page.getByLabel("Crossfade for non-silent").fill("0");
+  await page.getByLabel("Crossfade Media").click();
+  await page.getByLabel("Crossfade Media").fill("0");
   await page.getByRole("heading", { name: "Sound" }).click();
   await page.getByLabel("MQTT Server").dblclick();
   await page.getByLabel("MQTT Server").fill("");
@@ -328,7 +328,7 @@ test("test", async ({ page }) => {
   await expect(page.getByLabel("MIDI Source")).toBeEmpty();
   await expect(page.getByPlaceholder("Tagpoint")).toBeEmpty();
   await expect(page.getByPlaceholder("Next cue in list")).toBeEmpty();
-  await expect(page.getByLabel("Crossfade for non-silent")).toHaveValue("0");
+  await expect(page.getByLabel("Crossfade Media")).toHaveValue("0");
   await expect(page.getByLabel("Sound Output")).toBeEmpty();
   await expect(page.getByLabel("Utility Group(No controls)")).not.toBeChecked();
   await expect(page.getByLabel("Hide in Runtime Mode")).not.toBeChecked();

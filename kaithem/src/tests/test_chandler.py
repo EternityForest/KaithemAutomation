@@ -613,8 +613,13 @@ def test_shortcuts():
     # Test setting to same value
     cue2.shortcut = cue2.shortcut
 
+    # Try to stop a nuisance KeyError,
+    # if the rename takes effect before
+    # the sending of the data to the UI
+    # it wuld try to send data that was renamed away.
     core.wait_frame()
     core.wait_frame()
+    time.sleep(1)
 
     # Make sure renaming cues doesn't break shortcuts
     grp.rename_cue("cue2_blah", "cue2")

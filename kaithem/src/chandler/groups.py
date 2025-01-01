@@ -96,6 +96,7 @@ def is_static_media(s: str):
     for i in (
         ".bmp",
         ".jpg",
+        ".jpeg",
         ".html",
         ".webp",
         ".php",

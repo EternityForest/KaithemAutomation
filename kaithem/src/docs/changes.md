@@ -3,6 +3,12 @@ Change Log
 
 ### 0.87.0
 
+This release is all about coverage-guided tests.  I am quite
+embarassed that these bugs were just sitting around so long!
+
+- :coffin: filename_for_resource is deprecated due to confusing name, use filename_for_file_resource instead.
+
+
 - :sparkles: Persist login sessions across reboots
 - :bug: Fix deleting file resources from modules page
 - :sparkles: widget.mjs notficiations on disconnect and reconnect
@@ -20,7 +26,6 @@ Change Log
 - :bug: Fix issues if inherit_rules is a nonexistant cue.
 - :bug: Fix default cue not starting up properly
 - :bug: Fix chandler board leaving behind fixture assignments when deleted
-- :coffin: filename_for_resource is deprecated due to confusing name, use filename_for_file_resource instead.
 - :bug: Fix list of ports not updating until refresh
 - :bug: Fix a very uncommon deadlock in the widgets module discovered through automated testing.
 - :bug: Fix saved presets not showing up in list in mixer

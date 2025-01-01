@@ -2449,7 +2449,7 @@
                     <span
                       ><input
                         type="range"
-                        min="0"
+                        min="-100"
                         max="100"
                         :disabled="no_edit"
                         v-model.number="editingGroup.slideshowTransform.translate_x"
@@ -2477,7 +2477,7 @@
                     <span
                       ><input
                         type="range"
-                        min="0"
+                        min="-100"
                         max="100"
                         :disabled="no_edit"
                         v-model.number="editingGroup.slideshowTransform.translate_y"

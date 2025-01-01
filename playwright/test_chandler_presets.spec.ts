@@ -45,7 +45,7 @@ test("test", async ({ page }) => {
   await page.evaluate(async () => {
     await globalThis.doSerialized();
   });
-  await sleep(500);
+  await sleep(1000);
   //TODO should not need to run twice??????
   await page.getByRole("button", { name: "Add Channel" }).click();
   await page.getByRole("button", { name: "Add Channel" }).click();
@@ -53,7 +53,7 @@ test("test", async ({ page }) => {
   await page.evaluate(async () => {
     await globalThis.doSerialized();
   });
-  await sleep(500);
+  await sleep(1000);
 
   await page.getByLabel("Type:").first().selectOption("intensity");
   await page.getByRole("button", { name: "Add Channel" }).click();
