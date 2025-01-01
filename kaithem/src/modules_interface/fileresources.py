@@ -28,6 +28,22 @@ async def getfileresource(module, resource):
         raise FileNotFoundError(f"File not found: {f}")
 
 
+icon_types = {
+    "png",
+    "jpg",
+    "jpeg",
+    "avif",
+    "webp",
+    "svg",
+    "gif",
+    "heic",
+    "heif",
+    "tiff",
+    "bmp",
+    "ico",
+}
+
+
 @quart_app.app.route(
     "/modules/module/<module>/getfileresourcethumb/<path:resource>"
 )
@@ -39,6 +55,12 @@ async def getfileresourcethumb(module, resource):
 
     d = modules.getModuleDir(module)
     f = os.path.join(d, "__filedata__", resource)
+
+    if f.split(".")[-1] in icon_types:
+        if os.path.isfile(f):
+            if os.path.getsize(f) < 1024 * 32:
+                return await quart.send_file(f)
+
     try:
         t = vignette.get_thumbnail(f)
     except Exception:
