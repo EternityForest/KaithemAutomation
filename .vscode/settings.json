@@ -28,6 +28,7 @@
     "editor.formatOnType": true,
     "html.format.templating": true,
     "html.format.wrapLineLength": 80,
+    "commentAnchors.tags.matchCase": false,
     "pylint.args": [
         " \"--max-line-length=80\""
     ],

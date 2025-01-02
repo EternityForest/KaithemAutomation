@@ -6,6 +6,16 @@
         "redhat.vscode-yaml",
         "littlefoxteam.vscode-python-test-adapter",
         "streetsidesoftware.code-spell-checker",
-        "coolbear.systemd-unit-file"
+        "coolbear.systemd-unit-file",
+        "hbenl.vscode-test-explorer",
+        "dbaeumer.vscode-eslint",
+        "vue.volar",
+        "esbenp.prettier-vscode",
+        "tamasfe.even-better-toml",
+        "exodiusstudios.comment-anchors",
+        "jzmstrjp.color-the-tag-name",
+        "ecmel.vscode-html-css",
+        "ms-vscode.vscode-typescript-next",
+        "samuelcolvin.jinjahtml"
     ]
 }

@@ -155,9 +155,10 @@ class Fixture:
         if self.startAddress:
             return self
 
+    # TODO: refactor out this common code with manual cleanup
     def __del__(self):
         def f():
-            # Todo think more about if theres a race condition
+            # Todo: think more about if theres a race condition
             if self.name not in fixtures:
                 return
 
