@@ -77,13 +77,20 @@ p.small {
 
           <h4>Parameters</h4>
           <div class="stacked-form">
+            <datalist id="example_events">
+              <option
+                v-for="(v, _i) in example_events"
+                v-bind:value="v[0]"
+                v-bind:key="v[0]">{{ v[1] }}</option>
+            </datalist>
             <label
-              >Run on
-              <combo-box
+              >Run on(type to search)
+              <input
                 :disabled="disabled"
                 v-model="selectedBinding[0]"
-                v-bind:options="example_events"
-                v-on:change="$emit('update:modelValue', rules)"></combo-box>
+                list="example_events"
+                v-on:change="$emit('update:modelValue', rules)"
+                />
             </label>
           </div>
           <h4>Delete</h4>

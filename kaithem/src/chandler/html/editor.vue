@@ -9,9 +9,9 @@
 
     <datalist id="midiinputs">
       <option
-        v-for="(v, i) of midiInputs"
-        v-bind:value="i"
-        v-bind:key="i"></option>
+        v-for="(v, _i) of midiInputs"
+        v-bind:value="v"
+        v-bind:key="v"></option>
     </datalist>
 
     <section id="optionsblock" class="multibar undecorated w-full">
@@ -1814,7 +1814,6 @@
                       "
                       v-model="editingGroup.soundOutput"
                       placeholder="default"
-                      list="soundcards"
                   /></label>
 
                   <label>

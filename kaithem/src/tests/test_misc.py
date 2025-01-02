@@ -19,6 +19,25 @@ def test_private_ip_check():
     assert not util.is_private_ip("89.207.132.170")
 
 
+def test_midi_scanner():
+    import rtmidi
+
+    from kaithem.api.midi import list_midi_inputs
+
+    midiout = rtmidi.MidiOut(name="test457")
+    midiout.open_virtual_port("test123")
+    found = 0
+    try:
+        x = list_midi_inputs(force_update=True)
+        for i in x:
+            if "test123" in i and "test457" in i:
+                found += 1
+    finally:
+        midiout.close_port()
+
+    assert found == 1
+
+
 def test_midi_scanner_does_not_leave_behind_ports():
     """There was a bug where the midi scanner would leave behind ports.
     This test makes sure that doesn't happen."""

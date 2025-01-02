@@ -868,6 +868,35 @@ def test_commands():
             assert s.alpha == 0.76
 
 
+# def test_exit_cue_action():
+# TODO: As events are async,  exit happens before enter sometimes
+#     with TempGroup() as s:
+#         s.add_cue(
+#             "cue2",
+#             rules=[
+#                 ["cue.exist", [["goto", s.name, "default"]]],
+#             ],
+#         )
+
+#         s.add_cue("cue2")
+
+#         s.goto_cue("cue2")
+
+#         core.wait_frame()
+#         core.wait_frame()
+
+#         # Nothing happens, it's an exit action
+#         assert s2.cue.name == "cue2"
+
+#         s.goto_cue("cue2")
+
+#         core.wait_frame()
+#         core.wait_frame()
+
+#         # Exiting and reentering the cue causes a redirect that interrupts the goto
+#         assert s2.cue.name == "default"
+
+
 def test_tag_backtrack_feature():
     with TempGroup() as s:
         s.cues["default"].set_value_immediate("/test_bt", "value", 1)

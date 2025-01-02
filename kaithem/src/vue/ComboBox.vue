@@ -39,9 +39,13 @@
 <div style="display:inline-block;position:relative; overflow: visible;">
 
         <datalist :id="uid">
-                <option  v-for="i in pinned" :value="i[0]">{{ i[1] }}</option>
+                <option  
+                v-bind:key="i[0]"
+                v-for="i in pinned" :value="i[0]">{{ i[1] }}</option>
 
-                <option  v-for="i in options" :value="i[0]">{{ i[1] }}</option>
+                <option 
+                v-bind:key="i[0]"
+                v-for="i in options" :value="i[0]">{{ i[1] }}</option>
 
         </datalist>
 
@@ -92,7 +96,7 @@ export default {
     data: function () {
         return ({
             'log': console.log,
-            uid: Date.now()+Math.random(),
+            uid: "id"+(Date.now()+Math.random()).toString().replace('.','')
         })
     }
 }
