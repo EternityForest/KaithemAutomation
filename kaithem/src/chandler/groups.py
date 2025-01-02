@@ -1672,6 +1672,7 @@ class Group:
             # topic = f"/kaithem/chandler/syncgroup/{gn}"
             m = json.loads(message)
 
+            # Ignore messages from self
             if not self.mqttNodeSessionID == m["senderSessionID"]:
                 # # Don't listen to old messages, those are just out of sync nonsense that could be
                 # # some error.  However if the time is like, really old.  more than 10 hours, assume that

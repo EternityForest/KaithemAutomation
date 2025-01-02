@@ -110,7 +110,7 @@ def test_mqtt():
     cfg = """
 persistence false
 allow_anonymous true
-listener 7801
+listener 38527
 """
     with open("/dev/shm/kaithem_tests/mosquitto.conf", "w") as f:
         f.write(cfg)
@@ -123,22 +123,26 @@ listener 7801
 
     try:
         with TempGroup() as s:
-            s.setMqttServer("localhost:7801")
+            s.setMqttServer("localhost:38527")
             s.setMQTTFeature("syncGroup", True)
             s.add_cue("c2")
 
             with TempGroup() as s2:
-                s2.setMqttServer("localhost:7801")
+                s2.setMqttServer("localhost:38527")
                 s2.setMQTTFeature("syncGroup", True)
                 s2.add_cue("c2")
-                time.sleep(0.2)
+                time.sleep(0.5)
                 s.goto_cue("c2")
                 time.sleep(0.2)
 
-        for attempt in stamina.retry_context(on=AssertionError, attempts=50):
-            with attempt:
-                assert s2.cue.name == "c2"
+                for attempt in stamina.retry_context(
+                    on=AssertionError, attempts=50
+                ):
+                    with attempt:
+                        assert s2.cue.name == "c2"
     finally:
+        pr.terminate()
+        time.sleep(2)
         pr.kill()
 
 
@@ -590,6 +594,31 @@ def test_renaming():
         assert "cue3" in grp.cues
         assert "cue2" not in grp.cues
         assert cue2.name == "cue3"
+
+
+def add_cue_fail():
+    with TempGroup() as grp:
+        grp.add_cue("cue2")
+        # No duplicate
+        with pytest.raises(RuntimeError):
+            grp.add_cue("cue2")
+        with pytest.raises(RuntimeError):
+            grp.add_cue("default")
+
+        with pytest.raises(ValueError):
+            grp.add_cue(
+                "#!$&()&^",
+            )
+
+        with pytest.raises(ValueError):
+            grp.add_cue("")
+
+        with pytest.raises(ValueError):
+            grp.add_cue(" ")
+
+        # Trailing space
+        with pytest.raises(ValueError):
+            grp.add_cue("steamedhams ")
 
 
 def test_trigger_shortcuts():
