@@ -11,8 +11,15 @@ Change Log
 This release is all about coverage-guided tests.  I am quite
 embarassed that these bugs were just sitting around so long!
 
-- :coffin: filename_for_resource is deprecated due to confusing name, use filename_for_file_resource instead.
 
+#### Breaking changes
+
+- :coffin: filename_for_resource is deprecated due to confusing name, use filename_for_file
+_resource instead.
+- :bug: Map MIDI names to message bus topics without the 128:0 part that can change between sessions.
+- :bug: MIDI channels in Chandler events, message bus topics, and tag names are one-based, to match almost every other app, instead of zero based to match the raw binary.
+
+#### Other Changes
 
 - :sparkles: Persist login sessions across reboots
 - :bug: Fix deleting file resources from modules page
@@ -20,7 +27,7 @@ embarassed that these bugs were just sitting around so long!
 - :sparkles: "Apps" page for quick access to things like chandler boards.
 - :bug: Fix media link remote "Ding" buttons.
 - :sparkles: Mixer channel beat detection
-- :bug: Fix dealock that could happen if all background thread slots were filled by serialized_async_with_core_lock
+- :bug: Fix deadlock that could happen if all background thread slots were filled by serialized_async_with_core_lock
 - :bug: Fix pagination of tag points pages
 - :sparkles: \_\_next\_\_ special cue
 - :sparkles: Creating or cloning cues inserts after selected
@@ -35,7 +42,7 @@ embarassed that these bugs were just sitting around so long!
 - :bug: Fix a very uncommon deadlock in the widgets module discovered through automated testing.
 - :bug: Fix saved presets not showing up in list in mixer
 - :bug: Fix cue shortcut codes not correctly cleaned up
-- :sparkles: Log a warning if a tag point is not explicitly unsubscribed
+- :technologist: Log a warning if a tag point is not explicitly unsubscribed
 - :bug: Spurious "Still Running" indicator in events
 - :bug: Fix slideshow transform sometimes not being editable
 - :bug: Fix blend mode detail editing
@@ -44,6 +51,8 @@ embarassed that these bugs were just sitting around so long!
 - :bug: Media wind down sounds much better
 - :sparkles: UI notification if you try jumping to cue in inactive group
 - :bug: Fix file data not showing up till manual rescan after uploading zip module
+- :bug: Fix tag point aliases not being correctly cleaned up
+- :bug: Fix not being able to move internal module to external
 
 
 ### 0.86.3

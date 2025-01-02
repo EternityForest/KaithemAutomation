@@ -5,10 +5,12 @@
 
 import copy
 import os
+import shutil
 import time
 
 import quart
 import quart.utils
+import structlog
 from quart import request
 from quart.ctx import copy_current_request_context
 from scullery import messagebus
@@ -31,6 +33,8 @@ from kaithem.src.modules_state import (
     prev_versions,
 )
 from kaithem.src.util import url
+
+logger = structlog.get_logger(__name__)
 
 
 @quart_app.app.route("/modules/module/<module>/resource/<path:resource>")
@@ -540,8 +544,12 @@ async def update_resource_metadata(module, resource):
         modules_state.rawInsertResource(module, resource, d)
 
     path = "/".join(resource.split("/")[:-1])
-
-    return quart.redirect(f"/modules/module/{util.url(module)}/resource/{path}")
+    if len(path) > 0:
+        return quart.redirect(
+            f"/modules/module/{util.url(module)}/resource/{path}"
+        )
+    else:
+        return quart.redirect(f"/modules/module/{util.url(module)}")
 
 
 @quart_app.app.route(
@@ -608,7 +616,7 @@ async def resource_metadata_page(module, resource):
 @quart_app.app.route("/modules/module/<module>/update", methods=["POST"])
 async def module_update(module):
     kwargs = await quart.request.form
-    # This is the target used to change the name and description(basic info) of a module
+    "This is the target used to change the name and description(basic info) of a module"
     try:
         pages.require("system_admin")
     except PermissionError:
@@ -623,64 +631,100 @@ async def module_update(module):
                 "This module can only be edited by manually removing the module_lock from the file."
             )
 
-        modules_state.recalcModuleHashes()
         if not kwargs["name"] == module:
             if modules_state.is_module_readonly(module):
                 raise PermissionError("Module is read only, cannot rename")
 
             if "." in kwargs:
                 raise ValueError("No . in resource name")
+
         with modules_state.modulesLock:
-            if "location" in kwargs and kwargs["location"]:
-                external_module_locations[kwargs["name"]] = kwargs["location"]
-                # We can't just do a delete and then set, what if something odd happens between?
-                if (
-                    not kwargs["name"] == module
-                    and module in external_module_locations
-                ):
-                    del external_module_locations[module]
-            else:
-                # We must delete this before deleting the actual external_module_locations entry
-                # If this fails, we can still save, and will reload correctly.
-                # But if there was no entry, but there was a file,
-                # It would reload from the external, but save to the internal,
-                # Which would be very confusing. We want to load from where we saved.
+            old_external_module_location = external_module_locations.get(
+                module, None
+            )
+            new_location = kwargs.get("location", None).strip() or None
 
-                # If we somehow have no file but an entry, saving will remake the file.
-                # If there's no entry, we will only be able to save by saving the whole state.
-                if os.path.isfile(
-                    os.path.join(
-                        directories.moduledir,
-                        "data",
-                        f"__{util.url(module)}.location",
+            # Where it *would* be if it was an internal module
+            internal_location = os.path.join(
+                directories.vardir, "modules", "data", kwargs["name"]
+            )
+
+            # Where the ext location marker would be.
+            # We don't yet know if it actually exists.
+            ext_location_marker = os.path.join(
+                directories.moduledir,
+                "data",
+                f"__{util.url(module)}.location",
+            )
+            if not new_location == old_external_module_location:
+                logger.info(f"Moving module {module} to {new_location}")
+
+                if not new_location:
+                    if not old_external_module_location:
+                        raise RuntimeError(
+                            "Module was not external or internal, state may be corrupt"
+                        )
+
+                    # This means saving to an internal module
+
+                    if os.path.exists(internal_location):
+                        raise ValueError(
+                            f"Module {kwargs['name']} already exists as internal"
+                        )
+                    shutil.copytree(
+                        old_external_module_location, internal_location
                     )
-                ):
-                    if module in external_module_locations:
-                        os.remove(external_module_locations[module])
+                    # Delete the external module location marker
+                    if os.path.isfile(ext_location_marker):
+                        os.remove(ext_location_marker)
 
-                if module in external_module_locations:
-                    external_module_locations.pop(module)
+                    if module in external_module_locations:
+                        del external_module_locations[module]
+                else:
+                    # This means saving to an external module
+                    if os.path.exists(new_location):
+                        if os.listdir(new_location):
+                            raise ValueError(
+                                f"Module {kwargs['name']} already exists as external"
+                            )
+
+                    old_location = (
+                        old_external_module_location or internal_location
+                    )
+
+                    shutil.copytree(
+                        old_location,
+                        new_location,
+                    )
+
+                    external_module_locations[kwargs["name"]] = new_location
+
             # Missing descriptions have caused a lot of bugs
             if "__metadata__" in modules_state.ActiveModules[module]:
                 dsc = dict(
                     copy.deepcopy(
-                        modules_state.ActiveModules[module]["__metadata__"][
-                            "text"
-                        ]
+                        modules_state.ActiveModules[module]["__metadata__"]
                     )
                 )
                 dsc["description"] = kwargs["description"]
-                modules_state.ActiveModules[module]["__metadata__"] = dsc
+
             else:
-                modules_state.ActiveModules[module]["__metadata__"] = {
+                dsc = {
                     "resource_type": "module-description",
                     "description": kwargs["description"],
                     "resource_timestamp": int(time.time() * 1000000),
                 }
 
+            modules_state.rawInsertResource(module, "__metadata__", dsc)
+
             # Renaming reloads the entire module.
             # TODO This needs to handle custom resource types if we ever implement them.
             if not kwargs["name"] == module:
+                if module in external_module_locations:
+                    external_module_locations[kwargs["name"]] = (
+                        external_module_locations.pop(module)
+                    )
+
                 modules_state.ActiveModules[kwargs["name"]] = (
                     modules_state.ActiveModules.pop(module)
                 )
@@ -692,9 +736,7 @@ async def module_update(module):
                 for r, obj in modules_state.ActiveModules[
                     kwargs["name"]
                 ].items():
-                    rt = modules_state.ActiveModules[kwargs["name"]][
-                        "resource_type"
-                    ]
+                    rt = obj["resource_type"]
                     assert isinstance(rt, str)
                     if rt in modules_state.additionalTypes:
                         modules_state.additionalTypes[rt].on_delete(
@@ -705,7 +747,9 @@ async def module_update(module):
                 modules.bookkeeponemodule(kwargs["name"], update=True)
                 # Just for fun, we should probably also sync the permissions
                 auth.importPermissionsFromModules()
+                modules_state.importFiledataFolderStructure(kwargs["name"])
 
+        modules_state.recalcModuleHashes()
         return quart.redirect(f"/modules/module/{util.url(kwargs['name'])}")
 
     return await f()

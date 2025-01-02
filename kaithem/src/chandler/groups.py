@@ -23,6 +23,8 @@ import structlog
 from beartype import beartype
 from scullery import messagebus, workers
 
+from kaithem.api.midi import normalize_midi_port_name
+
 from .. import alerts, context_restrictions, schemas, tagpoints, util
 from ..kaithemobj import kaithem
 from . import core, group_media, mqtt, persistance
@@ -73,22 +75,6 @@ groups: weakref.WeakValueDictionary[str, Group] = weakref.WeakValueDictionary()
 slow_group_lock_context = context_restrictions.Context("Group Lock")
 
 core.cl_context.opens_before(slow_group_lock_context)
-
-
-def normalize_midi_name(t):
-    "Same function as in the core plugin midi to tags"
-    t = (
-        t.lower()
-        .replace(":", "_")
-        .replace("[", "")
-        .replace("]", "")
-        .replace(" ", "_")
-    )
-    t = t.replace("-", "_")
-    for i in tagpoints.ILLEGAL_NAME_CHARS:
-        t = t.replace(i, "")
-
-    return t
 
 
 def is_static_media(s: str):
@@ -2316,12 +2302,12 @@ class Group:
 
         if not s:
             kaithem.message.unsubscribe(
-                "/midi/" + normalize_midi_name(s),
+                "/midi/" + normalize_midi_port_name(s),
                 self.onMidiMessage,
             )
         else:
             kaithem.message.subscribe(
-                "/midi/" + normalize_midi_name(s),
+                "/midi/" + normalize_midi_port_name(s),
                 self.onMidiMessage,
             )
 

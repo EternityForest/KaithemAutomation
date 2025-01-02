@@ -441,16 +441,22 @@ def wordHashModule(module: str) -> str:
 def getModuleHash(m: str) -> str:
     global modulehashes
 
-    if m not in modulehashes:
-        modulehashes[m] = hashModule(m)
-    return modulehashes[m].upper()
+    try:
+        if m not in modulehashes:
+            modulehashes[m] = hashModule(m)
+        return modulehashes[m].upper()
+    except Exception:
+        return "ERRORHASHINGMODULETRYAGAIN"
 
 
 def getModuleWordHash(m: str) -> str:
     global modulewordhashes
-    if m not in modulewordhashes:
-        modulewordhashes[m] = wordHashModule(m)
-    return modulewordhashes[m].upper()
+    try:
+        if m not in modulewordhashes:
+            modulewordhashes[m] = wordHashModule(m)
+        return modulewordhashes[m].upper()
+    except Exception:
+        return "ERRORHASHINGMODULETRYAGAIN"
 
 
 def recalcModuleHashes() -> None:

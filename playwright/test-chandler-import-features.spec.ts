@@ -2,6 +2,8 @@ import { test, expect } from "@playwright/test";
 import {
   login,
   chandlerBoardTemplate,
+  sleep,
+  waitForTasks
 } from "./util";
 
 /*
@@ -107,6 +109,9 @@ test("test", async ({ page }) => {
     page.getByRole("cell", { name: "123" }).getByRole("textbox")
   ).toHaveValue("123");
   await page.getByRole("button", { name: "Universes" }).click();
+
+  await sleep(1000);
+  await waitForTasks(page);
 
   // We did not import the universes so it shouldn't be there
   await expect(

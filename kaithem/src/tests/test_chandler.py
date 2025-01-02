@@ -70,9 +70,104 @@ listener 7801
         pr.kill()
 
 
+def test_tap_tempo():
+    grp = groups.Group(board, "TestingGroup1", id="TEST")
+    board.addGroup(grp)
+    grp.go()
+    core.wait_frame()
+    core.wait_frame()
+
+    grp.tap()
+    time.sleep(0.5)
+    grp.tap()
+    time.sleep(0.5)
+    grp.tap()
+
+    core.wait_frame()
+    assert abs(grp.bpm - 120) < 10
+
+    grp.close()
+    core.wait_frame()
+    core.wait_frame()
+    board.rmGroup(grp)
+    core.wait_frame()
+    core.wait_frame()
+    assert "TestingGroup1" not in board.groups_by_name
+
+
+def test_midi():
+    import rtmidi
+
+    from kaithem.api import midi
+    from kaithem.src.chandler import WebChandlerConsole
+    from kaithem.src.plugins import CorePluginMidiToTags
+
+    # TODO thi belongs in it's on test
+    non_normalized = "Midi Through:Midi Through Port-0 14:0"
+    normalized = midi.normalize_midi_port_name(non_normalized)
+
+    assert normalized == "midi_through_midi_through_port_0"
+    # Make sure redoing it doesn't change it
+    assert midi.normalize_midi_port_name(normalized) == normalized
+
+    # Create virtual midi input
+    midiout = rtmidi.MidiOut(name="Kaithem Test")
+    midiout.open_virtual_port("virtualoutput")
+
+    # Hack so we don't have to wait ten seconds
+    CorePluginMidiToTags.doScan()
+
+    note_on = [0x90, 60, 112]  # channel 1, middle C, velocity 112
+    note_off = [0x80, 60, 0]
+
+    grp = groups.Group(board, "TestingGroup1", id="TEST")
+    board.addGroup(grp)
+    grp.go()
+    core.wait_frame()
+    core.wait_frame()
+
+    grp.add_cue("cue2")
+
+    grp.midi_source = "kaithem_test_virtualoutput"
+
+    # Ensure that this name is something a user could find
+    # Via UI
+    assert grp.midi_source in WebChandlerConsole.list_midi_inputs()
+
+    # Note we have converted to the note name here
+    grp.cue.rules = [
+        ["midi.note:1.C5", [["goto", "=GROUP", "cue2"]]],
+    ]
+
+    grp.cues["cue2"].rules = [
+        ["midi.noteoff:1.C5", [["goto", "=GROUP", "default"]]],
+    ]
+
+    core.wait_frame()
+    core.wait_frame()
+
+    assert grp.cue.name == "default"
+    midiout.send_message(note_on)
+    core.wait_frame()
+    core.wait_frame()
+
+    assert grp.cue.name == "cue2"
+    midiout.send_message(note_off)
+    core.wait_frame()
+    core.wait_frame()
+    assert grp.cue.name == "default"
+
+    midiout.close_port()
+
+    grp.close()
+    board.rmGroup(grp)
+    core.wait_frame()
+    assert "TestingGroup1" not in board.groups_by_name
+
+
 def test_fixtures():
     """Create a universe, a fixture type, and a fixture,
-    add the fixture to a group, check the universe vals
+    add the fixture to a group, che/ck the universe vals
     """
     u = {
         "dmx": {

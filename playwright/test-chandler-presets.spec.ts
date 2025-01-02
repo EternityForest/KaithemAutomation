@@ -181,9 +181,8 @@ test("test", async ({ page }) => {
     .getByRole("slider")
     .fill("50");
   // Avoid race condition with the presets, make sure nothing is still queued when it happens
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
+  await waitForTasks(page);
+  await sleep(500);
 
   await page.getByTestId("select-preset-for-fixture").click();
   await page
@@ -196,7 +195,7 @@ test("test", async ({ page }) => {
   await waitForTasks(page);
   await waitForTasks(page);
   await sleep(300);
-  
+
   await expect(
     page
       .locator("div")

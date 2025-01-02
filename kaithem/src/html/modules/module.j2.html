@@ -52,6 +52,7 @@ webapi = imp0rt( 'kaithem.api.web' ) %} {% block body %}
         <input
           type="text"
           name="location"
+          data-testid="module-save-location"
           title="Enter a directory name on the server's local filesystem"
           value="{{ external_module_locations.get(name,'') | escape }}" />
 

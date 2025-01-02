@@ -11,6 +11,8 @@ from typing import Any
 
 from tinytag import TinyTag
 
+from kaithem.api.midi import list_midi_inputs
+
 from .. import tagpoints
 from ..alerts import getAlertState
 from ..auth import canUserDoThis
@@ -29,31 +31,6 @@ from .global_actions import cl_event
 from .groups import Group, cues
 
 once = [0]
-
-
-def listRtmidi():
-    try:
-        import rtmidi
-    except ImportError:
-        if once[0] == 0:
-            kaithem.message.post(
-                "/system/notifications/errors/",
-                "python-rtmidi is missing. Most MIDI related features will not work.",
-            )
-            once[0] = 1
-        return []
-    try:
-        try:
-            m = rtmidi.MidiIn()
-        except Exception:
-            m = rtmidi.MidiIn()
-
-        x = [(m.get_port_name(i)) for i in range(m.get_port_count())]
-        m.close_port()
-        return x
-    except Exception:
-        core.logger.exception("Error in MIDI system")
-        return []
 
 
 def limitedTagsListing():
@@ -267,7 +244,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         self.linkSend(["soundoutputs", [i for i in kaithem.sound.outputs()]])
 
-        self.linkSend(["midiInputs", listRtmidi()])
+        self.linkSend(["midiInputs", list_midi_inputs()])
 
         self.linkSend(["blendModes", list(blendmodes.blendmodes.keys())])
         self.linkSend(["fixtureclasses", self.fixture_classes])

@@ -221,7 +221,7 @@
                     v-on:change="setInput(channelname, $event.target.value)"></label>
               </div>
 
-              <div class="chain scroll h-24rem noselect">
+              <div class="chain scroll h-24rem noselect" data-testid="effect-chain">
                 <div v-for="effect, index in channel.effects" class="effect"
                 :data-testid="'effect-box-'+ effect.type"
                 >
@@ -233,7 +233,9 @@
                         <p v-bind:title="effect.id">
                           <b>{{effect.displayType}}</b>
                         </p>
-                        <button v-on:click="moveEffectUp(channelname, index)"><span class="mdi mdi-arrow-up"></span>
+                        <button v-on:click="moveEffectUp(channelname, index)"
+                        data-testid="move-effect-up-button"
+                        ><span class="mdi mdi-arrow-up"></span>
                         </button>
                         <button v-on:click="moveEffectDown(channelname, index)"><span class="mdi mdi-arrow-down"></span>
                         </button>

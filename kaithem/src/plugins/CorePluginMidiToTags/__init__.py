@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
 
+import re
 import traceback
 
 from scullery import messagebus, scheduling
@@ -73,7 +74,10 @@ def onMidiMessage(m, d):
         )
 
 
-def normalize_midi_name(t):
+def normalize_midi_name(t: str):
+    # Replace the "128:0" part
+    t = re.sub(r"\d+:\d+", "", t)
+
     t = (
         t.lower()
         .replace(":", "_")
@@ -81,10 +85,13 @@ def normalize_midi_name(t):
         .replace("]", "")
         .replace(" ", "_")
     )
+
     t = t.replace("-", "_")
     for i in tagpoints.ILLEGAL_NAME_CHARS:
         t = t.replace(i, "")
 
+    t = t.strip("_")
+    t = t.strip()
     return t
 
 
@@ -92,6 +99,10 @@ def onMidiMessageTuple(m, d):
     sb = m[0][0]
     code = sb & 240
     ch = sb & 15
+
+    # Convert to one-based
+    ch += 1
+
     a = m[0][1]
     b = m[0][2]
 
