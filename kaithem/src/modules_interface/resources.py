@@ -544,8 +544,12 @@ async def update_resource_metadata(module, resource):
         modules_state.rawInsertResource(module, resource, d)
 
     path = "/".join(resource.split("/")[:-1])
-
-    return quart.redirect(f"/modules/module/{util.url(module)}/resource/{path}")
+    if len(path) > 0:
+        return quart.redirect(
+            f"/modules/module/{util.url(module)}/resource/{path}"
+        )
+    else:
+        return quart.redirect(f"/modules/module/{util.url(module)}")
 
 
 @quart_app.app.route(
