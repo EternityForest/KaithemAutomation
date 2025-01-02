@@ -2003,7 +2003,10 @@ class Group:
                 self.goto_cue(c, cause=cause)
 
     def __repr__(self):
-        return f"<Group {self.name}>"
+        try:
+            return f"<Group {self.name} {id(self)}>"
+        except Exception:
+            return f"<Group {id(self)} not properly initialized>"
 
     @slow_group_lock_context.object_session_entry_point
     def go(self):
