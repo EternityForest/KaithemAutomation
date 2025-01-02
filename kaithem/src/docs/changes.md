@@ -37,7 +37,7 @@ _resource instead.
 - :bug: Fix a very uncommon deadlock in the widgets module discovered through automated testing.
 - :bug: Fix saved presets not showing up in list in mixer
 - :bug: Fix cue shortcut codes not correctly cleaned up
-- :sparkles: Log a warning if a tag point is not explicitly unsubscribed
+- :technologist: Log a warning if a tag point is not explicitly unsubscribed
 - :bug: Spurious "Still Running" indicator in events
 - :bug: Fix slideshow transform sometimes not being editable
 - :bug: Fix blend mode detail editing
