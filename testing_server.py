@@ -10,6 +10,10 @@ import shutil
 
 import kaithem
 
+# test module setting spec moves the module here
+if os.path.exists("/dev/shm/test_ext_module_location"):
+    shutil.rmtree("/dev/shm/test_ext_module_location")
+
 # Clean up the test environment.
 if os.path.exists("/dev/shm/kaithem_test_env/"):
     shutil.rmtree("/dev/shm/kaithem_test_env/")

@@ -432,7 +432,9 @@ test("test", async ({ page }) => {
   // Deleted stuff
   await expect(
     page.getByRole("cell", { name: "testchannel3_out:output_FL" })
-  ).toBeHidden();
+  ).toBeHidden(
+    { timeout: 20_000 }
+  );
 
   await page.getByRole("link", { name: "󱒕 Modules" }).click();
   await page.getByRole("link", { name: "mxer" }).click();

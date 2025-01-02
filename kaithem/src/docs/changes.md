@@ -47,6 +47,7 @@ _resource instead.
 - :sparkles: UI notification if you try jumping to cue in inactive group
 - :bug: Fix file data not showing up till manual rescan after uploading zip module
 - :bug: Fix tag point aliases not being correctly cleaned up
+- :bug: Fix not being able to move internal module to external
 
 
 ### 0.86.3

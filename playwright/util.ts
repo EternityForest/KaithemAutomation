@@ -143,17 +143,17 @@ async function chandlerBoardTemplate(page: Page, module: string) {
 }
 
 async function waitForTasks(page) {
-    return await page.evaluate(async () => {
+    await page.evaluate(async () => {
         let safety = 100;  
         while (!globalThis.doSerialized) {
             safety-=1;
             if(safety < 0) {
                 break;
             }
-            sleep(100);
+            await new Promise(resolve => setTimeout(resolve, 50));
         }
         await globalThis.doSerialized();
-        await sleep(100);
     });
+    await sleep(100);
 }
 export { login, login_as, logout, waitForTasks, makeModule, deleteModule, makeTagPoint, sleep, chandlerBoardTemplate };

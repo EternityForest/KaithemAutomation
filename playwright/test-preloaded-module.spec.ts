@@ -52,5 +52,6 @@ test("test", async ({ page }) => {
   // This is the nonsense resource type
   await expect(page.getByText("Unknown resource type:")).toBeVisible();
 
+    
   await logout(page);
 });
