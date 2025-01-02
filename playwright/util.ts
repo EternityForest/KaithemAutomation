@@ -153,6 +153,7 @@ async function waitForTasks(page) {
             sleep(100);
         }
         await globalThis.doSerialized();
-      });
+        await sleep(100);
+    });
 }
 export { login, login_as, logout, waitForTasks, makeModule, deleteModule, makeTagPoint, sleep, chandlerBoardTemplate };

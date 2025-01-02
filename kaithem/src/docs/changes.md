@@ -22,7 +22,7 @@ _resource instead.
 - :sparkles: "Apps" page for quick access to things like chandler boards.
 - :bug: Fix media link remote "Ding" buttons.
 - :sparkles: Mixer channel beat detection
-- :bug: Fix dealock that could happen if all background thread slots were filled by serialized_async_with_core_lock
+- :bug: Fix deadlock that could happen if all background thread slots were filled by serialized_async_with_core_lock
 - :bug: Fix pagination of tag points pages
 - :sparkles: \_\_next\_\_ special cue
 - :sparkles: Creating or cloning cues inserts after selected

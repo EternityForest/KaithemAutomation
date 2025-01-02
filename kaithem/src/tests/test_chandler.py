@@ -70,6 +70,31 @@ listener 7801
         pr.kill()
 
 
+def test_tap_tempo():
+    grp = groups.Group(board, "TestingGroup1", id="TEST")
+    board.addGroup(grp)
+    grp.go()
+    core.wait_frame()
+    core.wait_frame()
+
+    grp.tap()
+    time.sleep(0.5)
+    grp.tap()
+    time.sleep(0.5)
+    grp.tap()
+
+    core.wait_frame()
+    assert abs(grp.bpm - 120) < 10
+
+    grp.close()
+    core.wait_frame()
+    core.wait_frame()
+    board.rmGroup(grp)
+    core.wait_frame()
+    core.wait_frame()
+    assert "TestingGroup1" not in board.groups_by_name
+
+
 def test_midi():
     import rtmidi
 

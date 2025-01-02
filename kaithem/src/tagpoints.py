@@ -1077,6 +1077,9 @@ class GenericTagPointClass(Generic[T]):
 
         global allTagsAtomic
         with lock:
+            if not hasattr(self, "name"):
+                logger.error("Tag deleted before it even got initialized")
+                return
             try:
                 del allTags[self.name]
                 allTagsAtomic = allTags.copy()
