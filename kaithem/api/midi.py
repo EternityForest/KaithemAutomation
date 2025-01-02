@@ -67,9 +67,9 @@ def _list_midi_inputs() -> list[str]:
             del m
 
 
-def list_midi_inputs() -> list[str]:
+def list_midi_inputs(force_update: bool = False) -> list[str]:
     global inputs_cache
-    if time.monotonic() - inputs_cache[0] > 1:
+    if force_update or (time.monotonic() - inputs_cache[0] > 1):
         inputs_cache = (time.monotonic(), _list_midi_inputs())
 
     return inputs_cache[1]

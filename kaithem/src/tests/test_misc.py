@@ -1,7 +1,9 @@
+import gc
 import sys
+import time
 
 if "--collect-only" not in sys.argv:  # pragma: no cover
-    from kaithem.src import util
+    from kaithem.api import util
 
 
 def test_private_ip_check():
@@ -15,3 +17,26 @@ def test_private_ip_check():
 
     assert not util.is_private_ip("100.27.132.170")
     assert not util.is_private_ip("89.207.132.170")
+
+
+def test_midi_scanner_does_not_leave_behind_ports():
+    """There was a bug where the midi scanner would leave behind ports.
+    This test makes sure that doesn't happen."""
+    from kaithem.api.midi import list_midi_inputs
+
+    num = len(list_midi_inputs(force_update=True))
+    time.sleep(0.1)
+    for i in range(5):
+        list_midi_inputs(force_update=True)
+        time.sleep(0.1)
+
+    gc.collect()
+    gc.collect()
+
+    for i in range(5):
+        if len(list_midi_inputs(force_update=True)) == num:
+            break
+        time.sleep(0.1)
+
+    # TODO could be brittle if other stuff is running
+    assert len(list_midi_inputs(force_update=True)) == num
