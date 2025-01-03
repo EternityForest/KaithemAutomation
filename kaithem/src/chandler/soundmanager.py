@@ -58,12 +58,10 @@ def play_sound(
 
 
 def stop_sound(handle: str = "PRIMARY"):
-    if core.ratelimit.limit():
+    def doFunction():
+        sound_player.stop_sound(handle)
 
-        def doFunction():
-            sound_player.stop_sound(handle)
-
-        doSoundAction(doFunction)
+    doSoundAction(doFunction)
 
 
 def fadeSound(

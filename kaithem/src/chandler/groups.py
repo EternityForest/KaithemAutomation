@@ -21,7 +21,7 @@ import icemedia.sound_player
 import numpy
 import structlog
 from beartype import beartype
-from scullery import messagebus, workers
+from scullery import messagebus, ratelimits, workers
 
 from kaithem.api.midi import normalize_midi_port_name
 
@@ -140,23 +140,7 @@ def makeWrappedConnectionClass(parent: Group):
     return Connection
 
 
-cueTransitionsLimitCount = 0
-cueTransitionsHorizon = 0
-
-
-def doTransitionRateLimit():
-    global cueTransitionsHorizon, cueTransitionsLimitCount
-    # This doesn't need locking. It can tolerate being approximate.
-    if time.monotonic() > cueTransitionsHorizon - 0.3:
-        cueTransitionsHorizon = time.monotonic()
-        cueTransitionsLimitCount = 0
-
-    # Limit to less than 2 per 100ms
-    if cueTransitionsLimitCount > 6:
-        raise RuntimeError(
-            "Too many cue transitions extremely fast.  You may have a problem somewhere."
-        )
-    cueTransitionsLimitCount += 2
+cue_transition_rate_limiter = ratelimits.RateLimiter(hz=20, burst=20)
 
 
 class DebugScriptContext(kaithem.chandlerscript.ChandlerScriptContext):
@@ -1189,7 +1173,8 @@ class Group:
             self.next_cue(cause=cause)
             return
         # Globally raise an error if there's a big horde of cue transitions happening
-        doTransitionRateLimit()
+        if cue_transition_rate_limiter.limit() < 1:
+            raise RuntimeError("Too many cue transitions happening")
 
         # Wait until a full frame has passed since the last cue change
         # So the previous cue's effects can propagate.

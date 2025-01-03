@@ -543,6 +543,97 @@ def test_play_sound():
         assert play_logs[-1][2].endswith(".opus")
 
 
+def test_sound_ratelimit():
+    with TempGroup() as grp:
+        grp.add_cue("cue2", sound="alert.ogg")
+
+        x = core.ratelimit.current_limit
+        loglen = len([i for i in play_logs if i[0] == "play"])
+
+        grp.goto_cue("cue2")
+        core.wait_frame()
+        core.wait_frame()
+        loglen2 = len([i for i in play_logs if i[0] == "play"])
+
+        # sanity check the test method
+        assert loglen2 > loglen
+
+        core.wait_frame()
+        core.wait_frame()
+
+        assert core.ratelimit.current_limit < x
+
+        core.ratelimit.current_limit = 0
+        core.ratelimit.timestamp = time.monotonic()
+        grp.goto_cue("cue2")
+
+        core.wait_frame()
+        core.wait_frame()
+
+        # no new sounds because of the rate limit
+        loglen3 = len([i for i in play_logs if i[0] == "play"])
+        assert loglen3 == loglen2
+
+        core.ratelimit.current_limit = x
+
+
+def test_transition_ratelimit():
+    with TempGroup() as grp:
+        grp.add_cue("cue2")
+        core.wait_frame()
+        core.wait_frame()
+
+        # Call the limiter now to set it;s horizon and make the amount
+        # of credits gained predictable
+        groups.cue_transition_rate_limiter.limit()
+
+        # Ensure the level goes down
+        # I don't think we need to test this again in the sound rate limit
+        # as lng as they both use the same rate limiter object
+        x = groups.cue_transition_rate_limiter.current_limit
+        t = time.monotonic()
+        grp.goto_cue("cue2")
+        taken = time.monotonic() - t
+        gained_credits = groups.cue_transition_rate_limiter.rate * taken
+        # The value should be one minus the prior value plus whatever credits we calculate it should
+        # have gained in that time.
+        assert (
+            abs(
+                (x + gained_credits - 1)
+                - groups.cue_transition_rate_limiter.current_limit
+            )
+            < 0.1
+        )
+
+        # Sanity check that it's changing at all
+        assert groups.cue_transition_rate_limiter.current_limit != x
+
+        # This should use up one credit but the delay should give us two.
+        # I don't think we need to test this again in the sound rate limit
+        # as lng as they both use the same rate limiter object
+        groups.cue_transition_rate_limiter.current_limit = 0
+        groups.cue_transition_rate_limiter.timestamp = time.monotonic()
+
+        time.sleep(2 * (1 / groups.cue_transition_rate_limiter.rate))
+        grp.goto_cue("cue2")
+
+        # We should have gained about two and used one
+        assert groups.cue_transition_rate_limiter.current_limit > 1
+        assert groups.cue_transition_rate_limiter.current_limit < 2
+
+        groups.cue_transition_rate_limiter.current_limit = 0
+        groups.cue_transition_rate_limiter.timestamp = time.monotonic()
+
+        with pytest.raises(RuntimeError):
+            grp.goto_cue("cue2")
+
+        # Set it back to unbreak future tests
+        groups.cue_transition_rate_limiter.current_limit = x
+
+        core.wait_frame()
+        core.wait_frame()
+
+
 def test_renaming():
     with TempGroup() as grp:
         cue2 = grp.add_cue("cue2")

@@ -16,6 +16,7 @@ import structlog
 import textdistance
 from icemedia import sound_player
 from scullery import messagebus
+from scullery.ratelimits import RateLimiter
 from tinytag import TinyTag
 
 from .. import context_restrictions
@@ -259,28 +260,7 @@ def resolve_sound_fuzzy(
     return sound
 
 
-class RateLimiter:
-    def __init__(self) -> None:
-        self.t = 0
-        self.c = 0
-
-    def limit(self):
-        self.c = min(32, self.c + ((time.monotonic() - self.t) * 12))
-
-        self.c -= 1
-        self.t = time.monotonic()
-
-        if self.c < 5:
-            time.sleep(0.3)
-        if self.c < 3:
-            time.sleep(1)
-        elif self.c < 1:
-            return 0
-
-        return 1
-
-
-ratelimit = RateLimiter()
+ratelimit = RateLimiter(hz=12, burst=32)
 
 
 action_queue = []
