@@ -48,7 +48,7 @@ _resource instead.
 - :bug: Fix file data not showing up till manual rescan after uploading zip module
 - :bug: Fix tag point aliases not being correctly cleaned up
 - :bug: Fix not being able to move internal module to external
-
+- :bug: Fix bug where failed add_data_pusher_to_all_boards function would retry forever
 
 ### 0.86.3
 
