@@ -218,6 +218,7 @@ div.highlight {
                 'flex-col': 1,
                 'min-h-18rem': 1,
                 'max-h-24rem': 1,
+                'noselect': 1
               }">
               <header class="flex-row gaps">
                 <h3>
@@ -405,7 +406,7 @@ div.highlight {
     <div
       popover
       id="groupDialog"
-      class="window paper margin modal w-full"
+      class="window paper margin modal w-full noselect"
       v-if="editingGroup && cuemeta[editingGroup.cue]">
       <header>
         <div class="tool-bar">

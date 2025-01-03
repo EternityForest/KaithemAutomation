@@ -150,7 +150,7 @@
             <article
               v-for="i in formatAllGroups"
               v-bind:key="i[1].id"
-              class="card group relative border"
+              class="card group relative border noselect"
               v-bind:class="{
                 grey: i[1].doingHandoff,
                 run: i[1].active & !i[1].doingHandoff,
