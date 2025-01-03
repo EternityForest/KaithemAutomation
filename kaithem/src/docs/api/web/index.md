@@ -10,10 +10,12 @@
     - [MyCache().load_bytecode](#mycache()load_bytecode)
   - [add_asgi_app](#add_asgi_app)
   - [add_file_resource_link](#add_file_resource_link)
+  - [add_file_resource_preview_plugin](#add_file_resource_preview_plugin)
   - [add_module_plugin_link](#add_module_plugin_link)
   - [add_wsgi_app](#add_wsgi_app)
   - [has_permission](#has_permission)
   - [render_html_file](#render_html_file)
+  - [render_html_string](#render_html_string)
   - [render_jinja_template](#render_jinja_template)
   - [require](#require)
   - [serve_file](#serve_file)
@@ -22,7 +24,7 @@
 
 ## MyCache
 
-[Show source in __init__.py:33](../../../../api/web/__init__.py#L33)
+[Show source in __init__.py:36](../../../../api/web/__init__.py#L36)
 
 #### Signature
 
@@ -33,7 +35,7 @@ class MyCache(_jinja2.BytecodeCache):
 
 ### MyCache().dump_bytecode
 
-[Show source in __init__.py:42](../../../../api/web/__init__.py#L42)
+[Show source in __init__.py:45](../../../../api/web/__init__.py#L45)
 
 #### Signature
 
@@ -43,7 +45,7 @@ def dump_bytecode(self, bucket): ...
 
 ### MyCache().load_bytecode
 
-[Show source in __init__.py:37](../../../../api/web/__init__.py#L37)
+[Show source in __init__.py:40](../../../../api/web/__init__.py#L40)
 
 #### Signature
 
@@ -55,7 +57,7 @@ def load_bytecode(self, bucket): ...
 
 ## add_asgi_app
 
-[Show source in __init__.py:81](../../../../api/web/__init__.py#L81)
+[Show source in __init__.py:90](../../../../api/web/__init__.py#L90)
 
 Mount an ASGI application to handle all URLs matching the prefix
 
@@ -69,7 +71,7 @@ def add_asgi_app(prefix: str, app, permission="system_admin"): ...
 
 ## add_file_resource_link
 
-[Show source in __init__.py:104](../../../../api/web/__init__.py#L104)
+[Show source in __init__.py:113](../../../../api/web/__init__.py#L113)
 
 Add a link to every file resource if filter matches
 Return value is link html, destination tuple or None.
@@ -86,9 +88,33 @@ def add_file_resource_link(
 
 
 
+## add_file_resource_preview_plugin
+
+[Show source in __init__.py:124](../../../../api/web/__init__.py#L124)
+
+Add a preview box to every file resource if filter matches
+Return value is embedded html or None.
+
+Input is a dict that may have none to any of the following keys:
+    module, resource, size, timestamp, path
+    access_url, thumbnail_url
+
+You should use the access_url rather than getting it yourself,
+if it exists, because it may give you a url with specific permissions
+
+#### Signature
+
+```python
+def add_file_resource_preview_plugin(
+    filter: None | Callable[[dict[str, Any]], str | None] = None,
+): ...
+```
+
+
+
 ## add_module_plugin_link
 
-[Show source in __init__.py:95](../../../../api/web/__init__.py#L95)
+[Show source in __init__.py:104](../../../../api/web/__init__.py#L104)
 
 Add a link to module pages. Destination must be an absolute URL with no params
 It will get the module and dir params added to it.
@@ -105,7 +131,7 @@ def add_module_plugin_link(link: str, destination: str): ...
 
 ## add_wsgi_app
 
-[Show source in __init__.py:88](../../../../api/web/__init__.py#L88)
+[Show source in __init__.py:97](../../../../api/web/__init__.py#L97)
 
 Mount a WSGI application to handle all URLs matching the prefix
 
@@ -119,34 +145,53 @@ def add_wsgi_app(prefix: str, app, permission="system_admin"): ...
 
 ## has_permission
 
-[Show source in __init__.py:135](../../../../api/web/__init__.py#L135)
+[Show source in __init__.py:160](../../../../api/web/__init__.py#L160)
 
 Return True if the user accessing the current web request
-has the permssion specified
+has the permssion specified.
+
+If not running in a Quart context, you must use the asgi parameter
+and specify a scope, or specify a user directly.
 
 #### Signature
 
 ```python
-def has_permission(permission: str, asgi=None) -> bool: ...
+def has_permission(permission: str, asgi=None, user=None) -> bool: ...
 ```
 
 
 
 ## render_html_file
 
-[Show source in __init__.py:73](../../../../api/web/__init__.py#L73)
+[Show source in __init__.py:76](../../../../api/web/__init__.py#L76)
+
+Given a file raw html, render it in completed page, with header and footer
 
 #### Signature
 
 ```python
-def render_html_file(body: str, title: str = "Kaithem"): ...
+def render_html_file(body_fn: str, title: str = "Kaithem"): ...
+```
+
+
+
+## render_html_string
+
+[Show source in __init__.py:85](../../../../api/web/__init__.py#L85)
+
+Given a string raw html, render it in completed page, with header and footer
+
+#### Signature
+
+```python
+def render_html_string(body: str, title: str = "Kaithem"): ...
 ```
 
 
 
 ## render_jinja_template
 
-[Show source in __init__.py:52](../../../../api/web/__init__.py#L52)
+[Show source in __init__.py:55](../../../../api/web/__init__.py#L55)
 
 Given the filename of a template, render it in a context where it has
 access to certain Kaithem standard templates
@@ -173,7 +218,7 @@ def render_jinja_template(template_filename: str, **kw): ...
 
 ## require
 
-[Show source in __init__.py:141](../../../../api/web/__init__.py#L141)
+[Show source in __init__.py:172](../../../../api/web/__init__.py#L172)
 
 Raise an exception if the user accessing the current web request in a Quart context
 does not have the permssion specified
@@ -188,7 +233,7 @@ def require(permission: str): ...
 
 ## serve_file
 
-[Show source in __init__.py:115](../../../../api/web/__init__.py#L115)
+[Show source in __init__.py:140](../../../../api/web/__init__.py#L140)
 
 Call from within a Quart handler to server a file.
 
@@ -202,7 +247,7 @@ def serve_file(path, contenttype="", name=None): ...
 
 ## user
 
-[Show source in __init__.py:120](../../../../api/web/__init__.py#L120)
+[Show source in __init__.py:145](../../../../api/web/__init__.py#L145)
 
 asgi: The ASGI scope object that is currently active, required if
       this is called from outside a Quart context.

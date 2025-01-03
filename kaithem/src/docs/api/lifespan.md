@@ -6,15 +6,16 @@
 
 #### Attributes
 
-- `shutdown` - True if the system is shutting down: False
+- `shutdown`: `bool` - True if the system is shutting down: False
 
 
 - [Lifespan](#lifespan)
   - [at_shutdown](#at_shutdown)
+  - [shutdown_now](#shutdown_now)
 
 ## at_shutdown
 
-[Show source in lifespan.py:9](../../../api/lifespan.py#L9)
+[Show source in lifespan.py:16](../../../api/lifespan.py#L16)
 
 Register a function to be called when the system shuts down,
 before atexit would trigger
@@ -23,4 +24,18 @@ before atexit would trigger
 
 ```python
 def at_shutdown(f): ...
+```
+
+
+
+## shutdown_now
+
+[Show source in lifespan.py:11](../../../api/lifespan.py#L11)
+
+Shut down the system now
+
+#### Signature
+
+```python
+def shutdown_now(): ...
 ```
