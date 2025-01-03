@@ -16,7 +16,7 @@ test('test', async ({ page }) => {
     await page.getByRole('button', { name: 'Submit' }).click();
     await page.getByRole('button', { name: 'Save and go to page' }).click();
 
-    //Searh for that page
+    //Search for that page
     await page.getByRole('link', { name: '󱒕 Modules' }).click();
     await page.getByRole('link', { name: 'test_search' }).click();
     await page.getByPlaceholder('Search this module').click();

@@ -230,13 +230,17 @@ p.small {
           </button>
         </div>
 
-        <div class="flex-row gaps col-9">
+        <div class="flex-row gaps col-9"
+        data-testid="rules-box"
+        >
           <div v-for="(rule, rule_idx) in rules" class="w-sm-double card"
+          data-testid="rule-box-row"
           :key="rule_idx"
           >
             <header>
               <div class="tool-bar">
                 <button
+                  data-testid="rule-trigger"
                   popovertarget="blockInspectorEvent"
                   v-bind:class="{ highlight: selectedBinding == rule }"
                   style="flex-grow: 50"
@@ -255,6 +259,7 @@ p.small {
 
             <div class="flex-row gaps w-full padding nogaps">
               <div v-for="(command,command_idx) in rule[1]" 
+              data-testid="rule-command"
               :key="command_idx"
               style="display: flex" class="nogrow">
                 <button
