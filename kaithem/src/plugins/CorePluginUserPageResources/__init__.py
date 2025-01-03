@@ -4,6 +4,7 @@ from __future__ import annotations
 
 # This file handles the display of user-created pages
 import copy
+import functools
 import gc
 import importlib
 import os
@@ -131,7 +132,7 @@ def markdownToSelfRenderingHTML(content, title):
     return x
 
 
-@util.lrucache(50)
+@functools.lru_cache(maxsize=64)
 def lookup(module, args):
     resource_path = args
     if module in _pages_by_module_resource:
@@ -465,7 +466,7 @@ def removeOnePage(module, resource):
             if resource in _pages_by_module_resource[module]:
                 del _pages_by_module_resource[module][resource]
     gc.collect()
-    lookup.invalidate_cache()
+    lookup.cache_clear()
 
 
 # Delete all __events in a module from the cache
@@ -474,7 +475,7 @@ def removeModulePages(module):
     if module in _pages_by_module_resource:
         del _pages_by_module_resource[module]
     gc.collect()
-    lookup.invalidate_cache()
+    lookup.cache_clear()
 
 
 # This piece of code will update the actual event object based on the event resource definition in the module
@@ -501,7 +502,7 @@ def updateOnePage(resource, module, data: modules_state.ResourceDictType):
             _pages_by_module_resource[module][resource] = CompiledPage(
                 data, module, resource
             )
-        lookup.invalidate_cache()
+        lookup.cache_clear()
 
 
 def makeDummyPage(resource, module):
@@ -575,7 +576,7 @@ def getPagesFromModules():
                             except KeyError:
                                 pass
 
-    lookup.invalidate_cache()
+    lookup.cache_clear()
 
 
 def streamGen(e):

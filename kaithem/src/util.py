@@ -1,7 +1,6 @@
 # SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
 
-import collections
 import datetime
 import difflib
 import getpass
@@ -393,38 +392,3 @@ currentUser = None
 def getUser():
     global currentUser
     return currentUser or getpass.getuser()
-
-
-def lrucache(n=10):
-    class LruCache:
-        def __init__(self, f):
-            self.f = f
-            self.n = n
-            self.cache = collections.OrderedDict()
-
-        def invalidate_cache(self, *args, **kwargs):
-            if (not args) and not kwargs:
-                self.cache = collections.OrderedDict()
-            else:
-                self.cache.pop(self.fargs(args, kwargs))
-
-        def fargs(self, a, kw):
-            "Serialize kwargs as (k,v) pairs so we can use the args as a key"
-            # This has the issue of undefined ordering. But a few duplicate
-            # cache entries won't be too much of a performance hit I don't think
-            k = []
-            for i in kw.items():
-                k.append(i)
-            return (a, tuple(k))
-
-        def __call__(self, *args, **kwargs):
-            x = self.fargs(args, kwargs)
-            if x in self.cache:
-                self.cache[x] = self.cache.pop(x)
-            else:
-                self.cache[x] = self.f(*args, **kwargs)
-                if len(self.cache) > self.n:
-                    self.cache.popitem(last=False)
-            return self.cache[x]
-
-    return LruCache
