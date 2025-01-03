@@ -3,8 +3,13 @@ Change Log
 
 ### 0.87.0
 
-This release is all about coverage-guided tests.  I am quite
-embarassed that these bugs were just sitting around so long!
+This release is all about adding coverage-guided tests, along with a checklist of manual
+QA tests.
+
+A large number of bugs were found by adding tests to functions with low coverage. I am quite embarassed that these bugs were just sitting around so long, but the system is up to 70% backend coverage, and they're fixed now!
+
+Some dead code is also gone, some small UI annoyances are fixed, an we have the new Apps
+page for faster access to certain resources.
 
 
 #### Breaking changes
