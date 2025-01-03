@@ -2253,7 +2253,6 @@ class EventType(modules_state.ResourceType):
             name=resource,
             event=event,
             priority=priority,
-            split_escape=util.split_escape,
             url=util.url,
             format_time_interval=unitsofmeasure.format_time_interval,
             strftime=unitsofmeasure.strftime,

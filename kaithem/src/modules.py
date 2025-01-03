@@ -37,17 +37,6 @@ from .modules_state import (
 logger = structlog.get_logger(__name__)
 
 
-# todo: unused
-def new_empty_module():
-    return {
-        "__metadata__": {
-            "resource_type": "module_metadata",
-            "description": "",
-            "resource_timestamp": int(time.time() * 1000000),
-        }
-    }
-
-
 def loadAllCustomResourceTypes() -> None:
     # TODO this is O(m * n) time. Is that bad?
     start_time = time.time()
@@ -305,40 +294,6 @@ def _detect_ignorable(path: str) -> bool:
     if os.path.basename(path) in [".gitignore", ".gitconfig"]:
         return True
     return False
-
-
-# Todo: unused?
-@beartype.beartype
-def load_one_yaml_resource(folder: str, relpath: str, module: str):
-    if not relpath.endswith(".yaml") or relpath.endswith(".json"):
-        return "Wrong extension"
-    try:
-        r: ResourceDictType | None
-        r, resourcename = readResourceFromFile(
-            os.path.join(folder, relpath), relpath, modulename=module
-        )
-        assert isinstance(r, dict)
-        assert isinstance(resourcename, str)
-        assert "resource_type" in r
-    except Exception:
-        messagebus.post_message(
-            "/system/notifications/errors",
-            f"Error loadingresource from: {os.path.join(folder, relpath)}",
-        )
-        logger.exception(
-            f"Error loading resource from file {os.path.join(folder, relpath)}"
-        )
-        raise
-    if not r:
-        return
-
-    modules_state.ActiveModules[module][resourcename] = r
-
-    if "resource_type" not in r:
-        logger.warning(f"No resource type found for {str(resourcename)}")
-        return
-
-    handleResourceChange(module, resourcename)
 
 
 def loadModule(

@@ -2,20 +2,17 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 import collections
-import copy
 import datetime
 import difflib
 import getpass
 import hashlib
 import os
 import reprlib
-import shutil
 import stat
 import struct
 import sys
 import threading
 import time
-import traceback
 import types
 import weakref
 from typing import Iterable, List
@@ -26,7 +23,6 @@ from urllib.request import urlopen  # noqa
 import dateutil.rrule
 import recurrent
 import structlog
-import yaml
 import zeroconf
 
 
@@ -213,39 +209,6 @@ def url(u: str, safe: str | Iterable[str] = ""):
     return quote(u, safe)
 
 
-# todo: unused
-def SaveAllState():
-    # fix circular import by putting it here
-    from . import messagebus, pylogginghandler
-
-    with savelock:
-        try:
-            x = False
-            messagebus.post_message("/system/save", None, synchronous=True)
-            pylogginghandler.syslogger.flush()
-            return x
-        except Exception:
-            messagebus.post_message(
-                "/system/notifications/errors",
-                "Failed to save state:" + traceback.format_exc(8),
-            )
-
-
-# http://stackoverflow.com/questions/3812849/how-to-check-whether-a-directory-is-a-sub-directory-of-another-directory
-# It looks like a lot of people might have contributed to this little bit of code.
-
-
-# todo: unused
-def in_directory(file: str, directory: str) -> bool:
-    # make both absolute
-    directory = os.path.join(os.path.realpath(directory), "")
-    file = os.path.realpath(file)
-
-    # return true, if the common prefix of both is equal to directory
-    # e.g. /a/b/c/d.rst and directory is /a/b, the common prefix is /a/b
-    return os.path.commonprefix([file, directory]) == directory
-
-
 def readfile(f):
     with open(f) as fh:
         r = fh.read()
@@ -278,41 +241,6 @@ def search_paths(fn: str, paths: List[str]) -> str | None:
     for i in paths:
         if os.path.exists(os.path.join(i, fn)):
             return os.path.join(i, fn)
-
-
-# todo: unused
-def getHighestNumberedTimeDirectory(where, n=0):
-    """Given a directory containing entirely folders named after floating point values get the name of the highest. ignore files.
-    and also ignoring non-timestapt float looking named directories
-
-    n is normally 0, but setting it to 1 gets the second highest time dir, etc.
-    """
-    asnumbers = {}
-    global min_time
-
-    for i in get_immediate_subdirectories(where):
-        try:
-            asnumbers[float(i)] = i
-        except ValueError:
-            pass
-    min_time = max(sorted(asnumbers.keys(), reverse=True)[0], min_time)
-    return asnumbers[sorted(asnumbers.keys(), reverse=True)[n]]
-
-
-# todo: unused
-def deleteAllButHighestNumberedNDirectories(where, N):
-    """In a directory full of folders named after time values, we delete all but the highest N directores ignoring files
-    and also ignoring non-timestapt float looking named directories
-    """
-    asnumbers = {}
-    for i in get_immediate_subdirectories(where):
-        try:
-            asnumbers[float(i)] = i
-        except ValueError:
-            pass
-
-    for i in sorted(asnumbers.keys())[0:-N]:
-        shutil.rmtree(os.path.join(where, asnumbers[i]))
 
 
 def disallowSpecialChars(s, allow=""):
@@ -403,63 +331,6 @@ def roundto(n, s):
         return n + (s - (n % s))
     else:
         return n - n % s
-
-
-# todo: unused except a few places, might be able to get rid
-def split_escape(
-    s: str, separator: str, escape=None, preserve_escapes=False
-) -> list[str]:
-    current_token = ""
-    tokens: list[str] = []
-    literal = False
-
-    for i in s:
-        if literal:
-            current_token += i
-            literal = False
-        elif i == separator:
-            tokens += [current_token]
-            current_token = ""
-
-        elif i == escape:
-            literal = True
-            if preserve_escapes:
-                current_token += i
-        else:
-            current_token += i
-
-    if current_token:
-        return tokens + [current_token]
-    else:
-        return tokens
-
-
-# todo: unused maybe?
-def unescape(s: str, escape="\\") -> str:
-    s2 = ""
-    literal = False
-    for i in s:
-        if literal:
-            s2 += i
-            literal = False
-        elif i == escape:
-            literal = True
-        else:
-            s2 += i
-    return s2
-
-
-def resourcename_escape(s):
-    return s.replace("\\", "\\\\").replace("/", "\\/")
-
-
-def module_onelevelup(s):
-    return "/".join(
-        [
-            i.replace("\\", "\\\\").replace("/", "\\/")
-            for i in split_escape(s, "/", "\\")[:-1]
-        ]
-    )
 
 
 numberlock = threading.Lock()
@@ -557,29 +428,3 @@ def lrucache(n=10):
             return self.cache[x]
 
     return LruCache
-
-
-# todo: unused
-def display_yaml(d):
-    d = copy.deepcopy(d)
-    _yaml_esc(d)
-    return yaml.dump(d)
-
-
-# todo: unused
-
-
-def _yaml_esc(s, depth=0, r=""):
-    if depth > 20:
-        raise RuntimeError()
-    if isinstance(s, (str, float, int)):
-        return
-    if isinstance(s, list):
-        x = range(len(s))
-    else:
-        x = s
-    for i in x:
-        if isinstance(s[i], str):
-            s[i] = s[i].replace("\t", "\\t").replace("\r", r)
-        else:
-            _yaml_esc(s[i])

@@ -8,7 +8,7 @@ from kaithem.src import modules_state, pages, quart_app, util
 
 
 def followAttributes(root, path):
-    pathlist = util.split_escape(path, ",", escape="\\")
+    pathlist = path.split(",")
     for i in pathlist:
         # Following references works by specifying the exact obj id
         if i.startswith("r"):

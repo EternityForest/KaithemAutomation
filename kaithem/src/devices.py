@@ -501,10 +501,6 @@ class Device(iot_devices.device.Device):
         # A list of all the tag points owned by the device
         self.tagPoints: dict[str, tagpoints.GenericTagPointClass[Any]] = {}
 
-        # Where we stash our claims on the tags
-        # todo: unused?
-        self.tagClaims: dict[str, tagpoints.Claim] = {}
-
         # Same dict keys as tagpoints, but a list of handlers
         self._deviceSpecIntegrationHandlers: dict[
             str, Callable[[Any, float, Any], None]

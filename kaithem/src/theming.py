@@ -31,7 +31,6 @@ if "web" not in file:
 
 def saveTheme(*a, **k):
     persist.save(file, fn, private=True)
-    persist.unsavedFiles.pop(fn, "")
 
 
 cssthemes = weakref.WeakValueDictionary()

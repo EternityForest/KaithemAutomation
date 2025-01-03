@@ -151,10 +151,6 @@ class Fixture:
         global last_state_update
         last_state_update = time.time()
 
-    def getChannelByName(self, name: str):
-        if self.startAddress:
-            return self
-
     # TODO: refactor out this common code with manual cleanup
     def __del__(self):
         def f():

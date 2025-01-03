@@ -3,7 +3,7 @@ import sys
 import time
 
 if "--collect-only" not in sys.argv:  # pragma: no cover
-    from kaithem.api import util
+    from kaithem.src import util
 
 
 def test_private_ip_check():

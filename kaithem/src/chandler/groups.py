@@ -622,14 +622,6 @@ class Group:
 
         raise RuntimeError("Could not find a number for new cue")
 
-    # TODO: Unused?
-    def find_cue_by_number(self, number: int) -> None | Cue:
-        """Takes the int number times 1000 format"""
-        for i in self.cues:
-            if self.cues[i].number == number:
-                return self.cues[i]
-        return None
-
     def find_cues_between(self, start: int, end: int):
         """Takes the int number times 1000 format"""
         for i in self.cues:
@@ -2046,15 +2038,6 @@ class Group:
         core.serialized_async_with_core_lock(
             self.board.cl_update_group_priorities
         )
-
-    # todo: unused
-    def mqttStatusEvent(self, value: str, timestamp: float, annotation: Any):
-        if value == "connected":
-            self.event("board.mqtt.connect")
-        else:
-            self.event("board.mqtt.disconnect")
-
-        self.push_to_frontend(statusOnly=True)
 
     @slow_group_lock_context.object_session_entry_point
     @beartype

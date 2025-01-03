@@ -107,11 +107,6 @@ def get_tag_meta(t):
     return r
 
 
-# For the tag numbering feature.
-# Maps assigned numbers to names,
-# only for tags where someone has requested a number.
-assigned_unique_numbers: dict[int, str] = {}
-
 logger = structlog.get_logger(__name__)
 
 exposedTags: weakref.WeakValueDictionary[str, GenericTagPointClass[Any]] = (
@@ -432,26 +427,6 @@ class GenericTagPointClass(Generic[T]):
         if self.name.startswith("="):
             self.exprClaim = self.createGetterFromExpression(self.name)
             self.writable = False
-
-    # todo: unused
-    def get_unique_number(self):
-        """Return a number uniquely representing this tag.
-        It will
-        """
-        with lock:
-            if self.unique_int:
-                return self.unique_int
-            else:
-                for i in range(1000000):
-                    if i not in assigned_unique_numbers:
-                        assigned_unique_numbers[i] = self.name
-                        self.unique_int = i
-                        break
-                    elif assigned_unique_numbers[i] == self.name:
-                        self.unique_int = i
-                        break
-
-                return self.unique_int
 
     # In reality value, timestamp, annotation are all stored together as a tuple
 
@@ -1390,7 +1365,7 @@ class GenericTagPointClass(Generic[T]):
 
         active_claim = self.active_claim
         if active_claim is None:
-            active_claim = self.getTopClaim()
+            active_claim = self.get_top_claim()
 
         active_claim_value = active_claim.value
 
@@ -1752,7 +1727,7 @@ class GenericTagPointClass(Generic[T]):
             self, value, name, priority, timestamp, annotation, expiration
         )
 
-    def getTopClaim(self) -> Claim[T]:
+    def get_top_claim(self) -> Claim[T]:
         x = [i for i in self.claims.values()]
         # Eliminate dead ones
         x = [i for i in x if i and not i.released]
@@ -1776,7 +1751,7 @@ class GenericTagPointClass(Generic[T]):
                 raise ValueError("Cannot delete the default claim")
 
             self.claims[name].released = True
-            o = self.getTopClaim()
+            o = self.get_top_claim()
             # All claims gone means this is probably in a __del__ function as it is disappearing
             if not o:
                 return

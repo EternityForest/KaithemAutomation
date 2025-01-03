@@ -135,21 +135,6 @@ effectTemplates_data = mixerfx.effectTemplates_data
 effectTemplates = effectTemplates_data
 
 
-# todo: unused
-def cleanupEffectData(fx):
-    x = effectTemplates.get(fx["type"], {})
-    for i in x:
-        if i not in fx:
-            fx[i] == x[i]
-
-    if "help" not in fx:
-        fx["help"] = ""
-    if "displayName" not in fx:
-        fx["displayName"] = fx["type"]
-    if "gstSetup" not in fx:
-        fx["gstSetup"] = {}
-
-
 channelTemplate = {
     "type": "audio",
     "effects": [effectTemplates["fader"]],

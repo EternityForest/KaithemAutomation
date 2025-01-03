@@ -606,20 +606,6 @@ class BaseChandlerScriptContext:
                     )
                     raise
 
-    # todo: unused
-    def getCommandDataForEditor(self):
-        """Get the data, as python dict which can be JSONed,
-        which must be bound to the commands prop of the editor,
-        so that the editor can know what commands we have"""
-        with self.gil:
-            c = self.commands.scriptcommands
-            info = {}
-            for i in c:
-                f = c[i]
-                info[i] = get_function_info(f)
-
-            return info
-
     def do_async(self, f):
         self.event_queue.append(f)
         workers.do(self.doEventQueue)
@@ -676,23 +662,6 @@ class BaseChandlerScriptContext:
                 )
         else:
             raise ValueError(f"No such command: {c}")
-
-    # todo: unused?
-    def syncEvent(self, evt, val=None, timeout=20):
-        "Handle an event synchronously, in the current thread."
-        if self.gil.acquire(timeout=20):
-            try:
-                depth = self.eventRecursionDepth.d
-            except Exception:
-                # Hasn't been set in this thread
-                depth = 0
-
-            try:
-                return self._event(evt, val, depth)
-            finally:
-                self.gil.release()
-        else:
-            raise RuntimeError("Could not get GIL to run this event")
 
     def stopAfterThisHandler(self):
         "Don't handle any more bindings for this event, but continue the current binding"

@@ -62,6 +62,76 @@ def test_aliases():
     assert tagpoints.Tag("tag_alias_1").value == 0
 
 
+def test_tags_basic():
+    import time
+
+    from kaithem.src import tagpoints
+
+    t = tagpoints.Tag("/system/unit_test_tag_5457647")
+    ts = time.time()
+
+    gotTagValue = []
+    got_tag_error = []
+
+    def onError(tag, function, val):
+        got_tag_error.append((tag, function, val))
+
+    tagpoints.subscriber_error_handlers.append(onError)
+
+    def f(value, timestamp, annotation):
+        gotTagValue.append((value, timestamp, annotation))
+
+    t.subscribe(f)
+
+    t.set_claim_val("default", 50, ts, "TestAnnotation")
+
+    # Makr sure subscribers work
+    assert len(gotTagValue) == 1
+    assert len(got_tag_error) == 0
+    assert gotTagValue[0] == (50, ts, "TestAnnotation")
+
+    assert t.value == 50
+    assert t.timestamp == ts
+    assert t.annotation == "TestAnnotation"
+
+    assert t.vta == (50, ts, "TestAnnotation")
+
+    # Make sure setting None uses the time
+    t.set_claim_val("default", 50, None, "TestAnnotation")
+    assert abs(t.timestamp - time.time()) < 0.1
+
+
+def test_tags_error():
+    import time
+
+    from kaithem.src import tagpoints
+
+    t = tagpoints.Tag("/system/unit_test_tag_545j7647")
+    ts = time.time()
+
+    got_tag_error = []
+
+    def onError(tag, function, val):
+        got_tag_error.append((tag, function, val))
+
+    tagpoints.subscriber_error_handlers.append(onError)
+
+    def f(value, timestamp, annotation):
+        raise Exception("Test Error")
+
+    t.subscribe(f)
+    t.set_claim_val("default", 50, ts, "TestAnnotation")
+
+    # Makr sure subscribers work
+    assert len(got_tag_error) == 1
+    assert got_tag_error[0] == (t, f, 50)
+
+    assert t.value == 50
+    assert t.timestamp == ts
+    assert t.annotation == "TestAnnotation"
+    assert t.vta == (50, ts, "TestAnnotation")
+
+
 def test_tags():
     import gc
     import time

@@ -493,8 +493,6 @@ class Kaithem:
             messagebus.unsubscribe(topic, callback)
 
     class persist:
-        unsaved = sculleryPersist.unsavedFiles
-
         @staticmethod
         def load(
             fn: str, *args: tuple[Any], **kwargs: Dict[str, Any]

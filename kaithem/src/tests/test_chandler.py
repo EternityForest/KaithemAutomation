@@ -73,6 +73,31 @@ staticdir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 staticdir = os.path.join(staticdir, "data", "static")
 
 
+# TODO i feel like these low level things need more testing
+def test_internal_action_queue():
+    logs = []
+
+    def f():
+        logs.append(time.time())
+
+    def err():
+        raise ValueError("test")
+
+    core.serialized_async_with_core_lock(f)
+    time.sleep(0.5)
+    assert len(logs) == 1
+
+    # Ensure that it runs in the background
+    # not here in this thread crashing stuff
+    core.serialized_async_with_core_lock(err)
+    time.sleep(0.5)
+    assert len(logs) == 1
+
+    core.serialized_async_with_core_lock(f)
+    time.sleep(0.5)
+    assert len(logs) == 2
+
+
 def test_slide_rel_len():
     with TempGroup() as grp:
         grp.cue.slide = os.path.join(
@@ -547,6 +572,10 @@ def test_sound_ratelimit():
     with TempGroup() as grp:
         grp.add_cue("cue2", sound="alert.ogg")
 
+        # Call it just to set the timestamp and make the amount
+        # of credits gained predictable
+        core.ratelimit.limit()
+
         x = core.ratelimit.current_limit
         loglen = len([i for i in play_logs if i[0] == "play"])
 
@@ -557,10 +586,6 @@ def test_sound_ratelimit():
 
         # sanity check the test method
         assert loglen2 > loglen
-
-        core.wait_frame()
-        core.wait_frame()
-
         assert core.ratelimit.current_limit < x
 
         core.ratelimit.current_limit = 0

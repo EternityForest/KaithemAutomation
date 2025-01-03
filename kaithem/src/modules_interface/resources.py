@@ -479,7 +479,7 @@ async def deleteresourcetarget(module):
                 "/modules/module/"
                 + util.url(module)
                 + "/resource/"
-                + util.url(util.module_onelevelup(kwargs["name"]))
+                + util.url("/".join(kwargs["name"].split("/")[:-1]))
             )
         else:
             return quart.redirect(f"/modules/module/{util.url(module)}")

@@ -13,7 +13,6 @@ from scullery import statemachines
 from . import (
     messagebus,
     pages,
-    unitsofmeasure,
     widgets,
 )
 
@@ -288,21 +287,6 @@ class Alert:
             return ""
 
         self.notificationHTML = notificationHTML
-
-    # todo: unused
-    def __html_repr__(self):
-        return """<small>State machine object at {}<br></small>
-            <b>State:</b> {}<br>
-            <b>Entered</b> {} ago at {}<br>
-            {}""".format(
-            hex(id(self)),
-            self.sm.state,
-            unitsofmeasure.format_time_interval(
-                time.time() - self.sm.entered_state, 2
-            ),
-            unitsofmeasure.strftime(self.sm.entered_state),
-            ("\n" if self.description else "") + self.description,
-        )
 
     def format(self):
         return {

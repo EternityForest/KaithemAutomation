@@ -1,6 +1,5 @@
 # SPDX-FileCopyrightText: Copyright 2019 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
-import os
 import traceback
 
 # Used by other stuff, yes this really is supposed to be there
@@ -38,36 +37,6 @@ def onStart():
 
 jacktools.on_jack_failure = onFail
 jacktools.on_jack_start = onStart
-
-
-# todo: unused
-def checkIfProcessRunning(processName):
-    """
-    Check if there is any running process that contains the given name processName, but only if it is OUR process
-    """
-    try:
-        import psutil
-    except Exception:
-        return False
-
-    # Iterate over the all the running process
-    for proc in psutil.process_iter():
-        try:
-            # Check if process name contains the given name string.
-            if processName.lower() in proc.name().lower():
-                if proc.uids()[0] == os.geteuid():
-                    return True
-        except (
-            psutil.NoSuchProcess,
-            psutil.AccessDenied,
-            psutil.ZombieProcess,
-        ):
-            pass
-    return False
-
-
-pipewireprocess1 = None
-pipewireprocess2 = None
 
 
 try:
