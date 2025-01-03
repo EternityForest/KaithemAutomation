@@ -278,6 +278,11 @@ class Cue:
         if id:
             disallow_special(id)
 
+        if not name.strip():
+            raise ValueError("Cue name cannot be empty")
+        if not name.strip() == name:
+            raise ValueError("Cue name cannot have leading or trailing spaces")
+
         disallow_special(name, allowedCueNameSpecials)
         if name[0] in "1234567890":
             name = "x" + name

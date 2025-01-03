@@ -5,6 +5,8 @@ which can be used for things like subscribing to "/midi/portname".
 
 """
 
+import time
+
 import structlog
 from scullery import messagebus
 
@@ -22,9 +24,10 @@ def normalize_midi_port_name(name: str) -> str:
 
 
 once: list[int] = [0]
+inputs_cache: tuple[float, list[str]] = (0.0, [])
 
 
-def list_midi_inputs() -> list[str]:
+def _list_midi_inputs() -> list[str]:
     """
     These correspond to topics at /midi/portname you could
     subscribe to.
@@ -39,18 +42,34 @@ def list_midi_inputs() -> list[str]:
             )
             once[0] = 1
         return []
+    m = None
     try:
         try:
             m = rtmidi.MidiIn()
         except Exception:
+            logger.exception("Error in MIDI system, trying again")
             m = rtmidi.MidiIn()
 
         x = [
             normalize_midi_port_name(m.get_port_name(i))
             for i in range(m.get_port_count())
         ]
-        m.close_port()
         return x
     except Exception:
         logger.exception("Error in MIDI system")
         return []
+    finally:
+        if m:
+            try:
+                m.close_port()
+            except Exception:
+                logger.exception("Error in MIDI system")
+            del m
+
+
+def list_midi_inputs(force_update: bool = False) -> list[str]:
+    global inputs_cache
+    if force_update or (time.monotonic() - inputs_cache[0] > 1):
+        inputs_cache = (time.monotonic(), _list_midi_inputs())
+
+    return inputs_cache[1]

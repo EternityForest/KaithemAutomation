@@ -433,6 +433,7 @@ class GenericTagPointClass(Generic[T]):
             self.exprClaim = self.createGetterFromExpression(self.name)
             self.writable = False
 
+    # todo: unused
     def get_unique_number(self):
         """Return a number uniquely representing this tag.
         It will

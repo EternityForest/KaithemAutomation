@@ -403,7 +403,7 @@
           <div class="tool-bar">
             <input v-model="newchannelname" style="max-width: 8em;"
             data-testid="new-channel-name">
-            ><button
+            <button
               data-testid="add-mono-channel"
               v-on:click="api.send(['addChannel', newchannelname,1])">Add
               Mono</button>

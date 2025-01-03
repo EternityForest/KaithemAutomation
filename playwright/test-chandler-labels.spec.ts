@@ -7,10 +7,6 @@ import {
   sleep,
 } from "./util";
 
-/*/
-Create a module, make a chandler board, test very simple logic,
-make sure tag output features work.
-*/
 test("test", async ({ page }) => {
   test.setTimeout(2_400_000);
 

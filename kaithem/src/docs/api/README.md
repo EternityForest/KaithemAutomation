@@ -7,6 +7,7 @@ A full list of `Kaithemautomation` project modules.
 - [Chandler](./chandler.md#chandler)
 - [Devices](./devices.md#devices)
 - [Lifespan](./lifespan.md#lifespan)
+- [Midi](./midi.md#midi)
 - [Modules](./modules.md#modules)
 - [Settings](./settings.md#settings)
 - [Tags](./tags.md#tags)

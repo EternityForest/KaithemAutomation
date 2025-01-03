@@ -3,9 +3,11 @@
 
 import datetime
 import gc
+import os
 import subprocess
 import sys
 import time
+import uuid
 
 import pytest
 import stamina
@@ -26,13 +28,89 @@ if "--collect-only" not in sys.argv:  # pragma: no cover
     board = core.boards["test_board"]
 
 
+class TempGroup:
+    """Gives a running group and then cleans it up.
+    Asserts a whole bunch of stuff every time.
+    """
+
+    def __init__(self, name: str | None = None):
+        self.name = name or ("test_group_" + str(uuid.uuid4()).replace("-", ""))
+
+    def __enter__(self):
+        self.group = groups.Group(board, self.name)
+        assert self.group.name == self.name
+        board.addGroup(self.group)
+        self.group.go()
+        core.wait_frame()
+        core.wait_frame()
+        assert self.group.active
+        assert self.group.alpha == 1
+        assert self.group.cue.name == "default"
+        assert self.name in board.groups_by_name
+        assert self.group in board.active_groups
+        assert self.group.id in board.groups
+        assert self.group.id in groups.groups
+        return self.group
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.group.close()
+        core.wait_frame()
+        core.wait_frame()
+        board.rmGroup(self.group)
+        core.wait_frame()
+        core.wait_frame()
+        assert self.name not in board.groups_by_name
+        assert self.group not in board.active_groups
+        assert self.group.id not in board.groups
+        assert self.group.id not in groups.groups
+
+        del self.group
+        gc.collect()
+        core.wait_frame()
+
+
+staticdir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+staticdir = os.path.join(staticdir, "data", "static")
+
+
+def test_slide_rel_len():
+    with TempGroup() as grp:
+        grp.cue.slide = os.path.join(
+            staticdir, "sounds", "320181__dland__hint.opus"
+        )
+        grp.cue.rel_length = True
+        grp.cue.length = 0.1
+        grp.add_cue("cue2")
+        grp.goto_cue("default")
+
+        # Don't depend too much on the exact value
+        assert grp.cuelen > 0.3
+        assert grp.cuelen < 1
+        time.sleep(2)
+        assert grp.cue.name
+
+
+def test_sound_rel_len():
+    with TempGroup() as grp:
+        grp.cue.sound = os.path.join(
+            staticdir, "sounds", "320181__dland__hint.opus"
+        )
+        grp.cue.rel_length = True
+        grp.cue.length = 0.1
+        grp.goto_cue("default")
+
+        # Don't depend too much on the exact value
+        assert grp.cuelen > 0.3
+        assert grp.cuelen < 1
+
+
 def test_mqtt():
     """Spins up mosquitto and tests that the MQTT feature works"""
 
     cfg = """
 persistence false
 allow_anonymous true
-listener 7801
+listener 38527
 """
     with open("/dev/shm/kaithem_tests/mosquitto.conf", "w") as f:
         f.write(cfg)
@@ -44,55 +122,40 @@ listener 7801
     assert pr.poll() is None
 
     try:
-        s = groups.Group(board, "TestingSceneMQTT")
-        # Must add scenes to the board so we can save them and test the saving
-        board.addGroup(s)
-        s.go()
+        with TempGroup() as s:
+            s.setMqttServer("localhost:38527")
+            s.setMQTTFeature("syncGroup", True)
+            s.add_cue("c2")
 
-        s.setMqttServer("localhost:7801")
-        s.setMQTTFeature("syncGroup", True)
-        s.add_cue("c2")
+            with TempGroup() as s2:
+                s2.setMqttServer("localhost:38527")
+                s2.setMQTTFeature("syncGroup", True)
+                s2.add_cue("c2")
+                time.sleep(0.5)
+                s.goto_cue("c2")
+                time.sleep(0.2)
 
-        s2 = groups.Group(board, "TestingSceneMQTT2")
-        s2.go()
-        board.addGroup(s2)
-        s2.setMqttServer("localhost:7801")
-        s2.setMQTTFeature("syncGroup", True)
-        s2.add_cue("c2")
-        time.sleep(0.2)
-        s.goto_cue("c2")
-        time.sleep(0.2)
-
-        for attempt in stamina.retry_context(on=AssertionError, attempts=50):
-            with attempt:
-                assert s2.cue.name == "c2"
+                for attempt in stamina.retry_context(
+                    on=AssertionError, attempts=50
+                ):
+                    with attempt:
+                        assert s2.cue.name == "c2"
     finally:
+        pr.terminate()
+        time.sleep(2)
         pr.kill()
 
 
 def test_tap_tempo():
-    grp = groups.Group(board, "TestingGroup1", id="TEST")
-    board.addGroup(grp)
-    grp.go()
-    core.wait_frame()
-    core.wait_frame()
+    with TempGroup() as grp:
+        grp.tap()
+        time.sleep(0.5)
+        grp.tap()
+        time.sleep(0.5)
+        grp.tap()
 
-    grp.tap()
-    time.sleep(0.5)
-    grp.tap()
-    time.sleep(0.5)
-    grp.tap()
-
-    core.wait_frame()
-    assert abs(grp.bpm - 120) < 10
-
-    grp.close()
-    core.wait_frame()
-    core.wait_frame()
-    board.rmGroup(grp)
-    core.wait_frame()
-    core.wait_frame()
-    assert "TestingGroup1" not in board.groups_by_name
+        core.wait_frame()
+        assert abs(grp.bpm - 120) < 10
 
 
 def test_midi():
@@ -120,49 +183,39 @@ def test_midi():
     note_on = [0x90, 60, 112]  # channel 1, middle C, velocity 112
     note_off = [0x80, 60, 0]
 
-    grp = groups.Group(board, "TestingGroup1", id="TEST")
-    board.addGroup(grp)
-    grp.go()
-    core.wait_frame()
-    core.wait_frame()
+    with TempGroup() as grp:
+        grp.add_cue("cue2")
 
-    grp.add_cue("cue2")
+        grp.midi_source = "kaithem_test_virtualoutput"
 
-    grp.midi_source = "kaithem_test_virtualoutput"
+        # Ensure that this name is something a user could find
+        # Via UI
+        assert grp.midi_source in WebChandlerConsole.list_midi_inputs()
 
-    # Ensure that this name is something a user could find
-    # Via UI
-    assert grp.midi_source in WebChandlerConsole.list_midi_inputs()
+        # Note we have converted to the note name here
+        grp.cue.rules = [
+            ["midi.note:1.C5", [["goto", "=GROUP", "cue2"]]],
+        ]
 
-    # Note we have converted to the note name here
-    grp.cue.rules = [
-        ["midi.note:1.C5", [["goto", "=GROUP", "cue2"]]],
-    ]
+        grp.cues["cue2"].rules = [
+            ["midi.noteoff:1.C5", [["goto", "=GROUP", "default"]]],
+        ]
 
-    grp.cues["cue2"].rules = [
-        ["midi.noteoff:1.C5", [["goto", "=GROUP", "default"]]],
-    ]
+        core.wait_frame()
+        core.wait_frame()
 
-    core.wait_frame()
-    core.wait_frame()
+        assert grp.cue.name == "default"
+        midiout.send_message(note_on)
+        core.wait_frame()
+        core.wait_frame()
 
-    assert grp.cue.name == "default"
-    midiout.send_message(note_on)
-    core.wait_frame()
-    core.wait_frame()
+        assert grp.cue.name == "cue2"
+        midiout.send_message(note_off)
+        core.wait_frame()
+        core.wait_frame()
+        assert grp.cue.name == "default"
 
-    assert grp.cue.name == "cue2"
-    midiout.send_message(note_off)
-    core.wait_frame()
-    core.wait_frame()
-    assert grp.cue.name == "default"
-
-    midiout.close_port()
-
-    grp.close()
-    board.rmGroup(grp)
-    core.wait_frame()
-    assert "TestingGroup1" not in board.groups_by_name
+        midiout.close_port()
 
 
 def test_fixtures():
@@ -222,38 +275,35 @@ def test_fixtures():
         "test",
     )
 
-    s = groups.Group(board, "TestingGroup1", id="TEST")
-    # Must add groups to the board so we can save them and test the saving
-    board.addGroup(s)
-    s.go()
-    cid = s.cue.id
-    ## 0s are the pattern spacing
-    core.wait_frame()
+    with TempGroup() as grp:
+        cid = grp.cue.id
+        ## 0s are the pattern spacing
+        core.wait_frame()
 
-    board._onmsg("__admin__", ["add_cuef", cid, "testFixture", 0, 0, 0], "test")
-    core.wait_frame()
+        board._onmsg(
+            "__admin__", ["add_cuef", cid, "testFixture", 0, 0, 0], "test"
+        )
+        core.wait_frame()
 
-    board._onmsg("__admin__", ["scv", cid, "@testFixture", "red", 39], "test")
-    board._onmsg("__admin__", ["scv", cid, "@testFixture", "dim", 64.5], "test")
+        board._onmsg(
+            "__admin__", ["scv", cid, "@testFixture", "red", 39], "test"
+        )
+        board._onmsg(
+            "__admin__", ["scv", cid, "@testFixture", "dim", 64.5], "test"
+        )
 
-    core.wait_frame()
+        core.wait_frame()
 
-    assert universes.universes["dmx"]().values[0] == 0
-    assert universes.universes["dmx"]().values[1] == 39
+        assert universes.universes["dmx"]().values[0] == 0
+        assert universes.universes["dmx"]().values[1] == 39
 
-    assert int(universes.universes["dmx"]().values[4]) == 64
-    assert int(universes.universes["dmx"]().values[5]) == 127
-    assert int(universes.universes["dmx"]().values[6]) == 4
+        assert int(universes.universes["dmx"]().values[4]) == 64
+        assert int(universes.universes["dmx"]().values[5]) == 127
+        assert int(universes.universes["dmx"]().values[6]) == 4
 
-    assert board.cl_get_project_data()["setup"]["fixture_assignments"][
-        "testFixture"
-    ]
-
-    s.close()
-    board.rmGroup(s)
-    core.wait_frame()
-
-    assert "TestingGroup1" not in board.groups_by_name
+        assert board.cl_get_project_data()["setup"]["fixture_assignments"][
+            "testFixture"
+        ]
 
 
 def test_duplicate_group_name():
@@ -261,6 +311,8 @@ def test_duplicate_group_name():
     board.addGroup(grp1)
     grp1.go()
     core.wait_frame()
+    core.wait_frame()
+
     assert grp1 in board.active_groups
 
     with pytest.raises(RuntimeError):
@@ -290,44 +342,36 @@ def test_cue_track_setting():
     board.configured_universes = u
     board.cl_create_universes(u)
 
-    grp = groups.Group(board, "TestNonTracking", id="TEST")
+    with TempGroup() as grp:
+        grp.cue.set_value_immediate("dmx2", 1, 255)
 
-    grp.go()
-    grp.cue.set_value_immediate("dmx2", 1, 255)
+        # Non existant universes need test coverage to be sure
+        # it doesn't crash anything
+        grp.cue.set_value_immediate("nonexistent", 1, 255)
 
-    # Non existant universes need test coverage to be sure
-    # it doesn't crash anything
-    grp.cue.set_value_immediate("nonexistent", 1, 255)
+        core.wait_frame()
+        core.wait_frame()
+        core.wait_frame()
 
-    core.wait_frame()
-    core.wait_frame()
-    core.wait_frame()
+        assert int(universes.universes["dmx2"]().values[1]) == 255
 
-    assert int(universes.universes["dmx2"]().values[1]) == 255
+        # This is a tracking cue so it keeps the value
+        grp.add_cue("test1")
+        grp.goto_cue("test1")
+        core.wait_frame()
+        core.wait_frame()
+        time.sleep(0.1)
+        assert grp.cue.name == "test1"
+        assert int(universes.universes["dmx2"]().values[1]) == 255
 
-    # This is a tracking cue so it keeps the value
-    grp.add_cue("test1")
-    grp.goto_cue("test1")
-    core.wait_frame()
-    core.wait_frame()
-    time.sleep(0.1)
-    assert grp.cue.name == "test1"
-    assert int(universes.universes["dmx2"]().values[1]) == 255
-
-    # This is not a tracking cue so it doesn't keep the value
-    grp.add_cue("test2", track=False)
-    grp.goto_cue("test2")
-    core.wait_frame()
-    core.wait_frame()
-    time.sleep(0.1)
-    assert grp.cue.name == "test2"
-    assert int(universes.universes["dmx2"]().values[1]) == 0
-
-    grp.close()
-    board.rmGroup(grp)
-    core.wait_frame()
-    assert "TestNonTracking" not in board.groups_by_name
-    core.wait_frame()
+        # This is not a tracking cue so it doesn't keep the value
+        grp.add_cue("test2", track=False)
+        grp.goto_cue("test2")
+        core.wait_frame()
+        core.wait_frame()
+        time.sleep(0.1)
+        assert grp.cue.name == "test2"
+        assert int(universes.universes["dmx2"]().values[1]) == 0
 
     board.configured_universes = {}
     board.cl_create_universes(board.configured_universes)
@@ -381,387 +425,281 @@ def test_setup_cue():
     # Ensure that if a setup cue exists, we go there first
     # then go to default
 
-    s = groups.Group(board, "TestingGroup1", id="TEST")
-    board.addGroup(s)
+    with TempGroup() as grp:
+        # Make code coverage happy about __repr__
+        assert repr(grp)
+        assert repr(grp.cue)
 
-    assert "TEST" in groups.groups
+        core.wait_frame()
+        assert grp in board.active_groups
+        assert grp.cue.name == "default"
 
-    s.go()
+        grp.add_cue("__setup__")
 
-    assert s.active
+        grp.stop()
+        grp.go()
 
-    # Make code coverage happy about __repr__
-    assert repr(s)
-    assert repr(s.cue)
-
-    core.wait_frame()
-    assert s in board.active_groups
-    assert s.cue.name == "default"
-
-    s.add_cue("__setup__")
-
-    s.stop()
-    s.go()
-
-    assert s.cueHistory[-2][0] == "__setup__"
-    assert s.cue.name == "default"
-
-    # Need to get coverage on go on cue that's already active
-    # TODO maybe more detailed tests
-    s.go()
-
-    s.close()
-    board.rmGroup(s)
-    core.wait_frame()
-
-    assert "TestingGroup1" not in board.groups_by_name
+        assert grp.cueHistory[-2][0] == "__setup__"
+        assert grp.cue.name == "default"
 
 
 def test_checkpoint():
     # Ensure that if a a checkpoint cue exists, we go there
 
-    s = groups.Group(board, "TestingGroup1", id="TEST")
-    board.addGroup(s)
+    with TempGroup() as grp:
+        assert grp in board.active_groups
+        assert grp.cue.name == "default"
 
-    assert "TEST" in groups.groups
+        grp.add_cue("checkpoint", checkpoint=True)
 
-    s.go()
+        grp.stop()
+        grp.go()
 
-    assert s.active
-    core.wait_frame()
+        assert grp.cue.name == "default"
 
-    assert s in board.active_groups
-    assert s.cue.name == "default"
+        grp.goto_cue("checkpoint")
 
-    s.add_cue("checkpoint", checkpoint=True)
+        grp.stop()
+        grp.go()
 
-    s.stop()
-    s.go()
-
-    assert s.cue.name == "default"
-
-    s.goto_cue("checkpoint")
-
-    s.stop()
-    s.go()
-
-    assert s.cue.name == "checkpoint"
-
-    s.close()
-    board.rmGroup(s)
-    core.wait_frame()
-
-    assert "TestingGroup1" not in board.groups_by_name
+        assert grp.cue.name == "checkpoint"
 
 
 def test_shuffle():
-    s = groups.Group(board, "TestingGroup1", id="TEST")
-    # Must add groups to the board so we can save them and test the saving
-    board.addGroup(s)
+    with TempGroup() as grp:
+        grp.add_cue("cue2", next_cue="shuffle:x_*")
 
-    s.go()
+        for i in range(250):
+            grp.add_cue(f"x_{i}")
 
-    assert s.active
-    assert s.cue.name == "default"
+        grp.goto_cue("cue2")
 
-    s.add_cue("cue2", next_cue="shuffle:x_*")
+        grp.next_cue()
+        assert grp.cue.name != "cue2"
 
-    for i in range(250):
-        s.add_cue(f"x_{i}")
+        x = grp.cue.name
+        grp.goto_cue("cue2")
 
-    s.goto_cue("cue2")
-
-    s.next_cue()
-    assert s.cue.name != "cue2"
-
-    x = s.cue.name
-    s.goto_cue("cue2")
-
-    s.next_cue()
-    assert s.cue.name != x
-
-    s.close()
-    board.rmGroup(s)
-    core.wait_frame()
-
-    assert "TestingGroup1" not in board.groups_by_name
+        grp.next_cue()
+        assert grp.cue.name != x
 
 
 def test_sched():
-    s = groups.Group(board, "TestingGroup1", id="TEST")
-    # Must add groups to the board so we can save them and test the saving
-    board.addGroup(s)
+    with TempGroup() as grp:
+        grp.cue.next_cue = "__schedule__"
 
-    s.go()
+        t = datetime.datetime.now() - datetime.timedelta(hours=2)
 
-    assert s.active
-    assert s.cue.name == "default"
-    s.cue.next_cue = "__schedule__"
+        # Make a looping schedule.  Before_b ends before the current time, we want to be in
+        # after_a
 
-    t = datetime.datetime.now() - datetime.timedelta(hours=2)
+        grp.add_cue("before_a", length=f"@{t.strftime('%l%P')}")
 
-    # Make a looping schedule.  Before_b ends before the current time, we want to be in
-    # after_a
+        t += datetime.timedelta(hours=1)
+        grp.add_cue("before_b", length=f"@{t.strftime('%l%P')}")
 
-    s.add_cue("before_a", length=f"@{t.strftime('%l%P')}")
+        t += datetime.timedelta(hours=2)
+        grp.add_cue("after_a", length=f"@{t.strftime('%l%P')}")
 
-    t += datetime.timedelta(hours=1)
-    s.add_cue("before_b", length=f"@{t.strftime('%l%P')}")
+        t += datetime.timedelta(hours=2)
+        grp.add_cue(
+            "after_b", length=f"@{t.strftime('%l%P')}", next_cue="before_a"
+        )
 
-    t += datetime.timedelta(hours=2)
-    s.add_cue("after_a", length=f"@{t.strftime('%l%P')}")
+        grp.next_cue()
 
-    t += datetime.timedelta(hours=2)
-    s.add_cue("after_b", length=f"@{t.strftime('%l%P')}", next_cue="before_a")
+        assert grp.cue.name == "after_a"
 
-    s.next_cue()
+        t = datetime.timedelta(minutes=-1) + datetime.datetime.now()
+        grp.add_cue("sched_at_test", schedule_at=f"@{t.strftime('%l%P')}")
 
-    assert s.cue.name == "after_a"
-
-    t = datetime.timedelta(minutes=-1) + datetime.datetime.now()
-    s.add_cue("sched_at_test", schedule_at=f"@{t.strftime('%l%P')}")
-
-    s.goto_cue("default")
-    s.next_cue()
-    assert s.cue.name == "sched_at_test"
-
-    s.close()
-    board.rmGroup(s)
-    core.wait_frame()
-
-    assert "TestingGroup1" not in board.groups_by_name
+        grp.goto_cue("default")
+        grp.next_cue()
+        assert grp.cue.name == "sched_at_test"
 
 
 def test_timer_group():
-    s = groups.Group(board, "TestingGroup1", id="TEST")
-    # Must add groups to the board so we can save them and test the saving
-    board.addGroup(s)
-
-    assert "TEST" in groups.groups
-
-    s.go()
-
-    assert s.active
-    core.wait_frame()
-
-    assert s in board.active_groups
-    assert s.cue.name == "default"
-
-    s.add_cue("cue2", length="@8pm")
-    s.goto_cue("cue2")
-    assert s.cue.name == "cue2"
-    assert isinstance(s.cuelen, float)
-    assert s.cuelen
-
-    s.close()
-    board.rmGroup(s)
-    core.wait_frame()
-
-    assert "TestingGroup1" not in board.groups_by_name
+    with TempGroup() as grp:
+        grp.add_cue("cue2", length="@8pm")
+        grp.goto_cue("cue2")
+        assert grp.cue.name == "cue2"
+        assert isinstance(grp.cuelen, float)
+        assert grp.cuelen
 
 
 def test_play_sound():
-    s = groups.Group(board, "TestingGroup2", id="TEST")
-    board.addGroup(s)
+    with TempGroup() as grp:
+        grp.add_cue("cue2", sound="alert.ogg")
+        grp.goto_cue("cue2")
 
-    assert "TEST" in groups.groups
+        # Asyc from the frames can't just frame wait
+        time.sleep(1)
+        time.sleep(1)
 
-    s.go()
-
-    assert s.active
-    core.wait_frame()
-
-    assert s in board.active_groups
-    assert s.cue.name == "default"
-
-    s.add_cue("cue2", sound="alert.ogg")
-    s.goto_cue("cue2")
-
-    # Asyc from the frames can't just frame wait
-    time.sleep(1)
-    time.sleep(1)
-
-    # Dummy test sounds end right away
-    assert play_logs[-1][0] == "play"
-    assert play_logs[-1][1] == "TEST"
-    # Resolver should have found an opus file
-    assert play_logs[-1][2].endswith(".opus")
-
-    s.close()
-    board.rmGroup(s)
-    core.wait_frame()
-
-    assert "TestingGroup2" not in board.groups_by_name
+        # Dummy test sounds end right away
+        assert play_logs[-1][0] == "play"
+        assert play_logs[-1][1] == grp.id
+        # Resolver should have found an opus file
+        assert play_logs[-1][2].endswith(".opus")
 
 
 def test_renaming():
-    grp = groups.Group(board, "TestRenameCues", id="dfsghyuhygfds")
-    cue2 = grp.add_cue("cue2")
+    with TempGroup() as grp:
+        cue2 = grp.add_cue("cue2")
+        old_name = grp.name
 
-    grp.setName("TestRenameCues2")
-    core.wait_frame()
-    core.wait_frame()
+        grp.setName("TestRenameCues2")
+        core.wait_frame()
+        core.wait_frame()
 
-    assert grp.name == "TestRenameCues2"
-    assert "TestRenameCues" not in board.groups_by_name
-    assert "TestRenameCues2" in board.groups_by_name
+        assert grp.name == "TestRenameCues2"
+        assert old_name not in board.groups_by_name
+        assert "TestRenameCues2" in board.groups_by_name
 
-    # No rename default
-    with pytest.raises(RuntimeError):
-        grp.rename_cue("default", "default2")
+        # No rename default
+        with pytest.raises(RuntimeError):
+            grp.rename_cue("default", "default2")
 
-    # No rename to already existing
-    with pytest.raises(RuntimeError):
-        grp.rename_cue("cue2", "default")
+        # No rename to already existing
+        with pytest.raises(RuntimeError):
+            grp.rename_cue("cue2", "default")
 
-    with pytest.raises(ValueError):
-        grp.rename_cue("cue2", "?<>,")
+        with pytest.raises(ValueError):
+            grp.rename_cue("cue2", "?<>,")
 
-    with pytest.raises(ValueError):
-        grp.rename_cue("cue2", " ")
+        with pytest.raises(ValueError):
+            grp.rename_cue("cue2", " ")
 
-    grp.go()
-    grp.goto_cue("cue2")
+        grp.go()
+        grp.goto_cue("cue2")
 
-    core.wait_frame()
-    core.wait_frame()
-    core.wait_frame()
+        core.wait_frame()
+        core.wait_frame()
+        core.wait_frame()
 
-    assert grp.cue.name == "cue2"
-    # No rename active cue
-    with pytest.raises(RuntimeError):
-        grp.rename_cue("cue2", "foo")
+        assert grp.cue.name == "cue2"
+        # No rename active cue
+        with pytest.raises(RuntimeError):
+            grp.rename_cue("cue2", "foo")
 
-    grp.goto_cue("default")
+        grp.goto_cue("default")
 
-    # wait to let gui push actions pointing at old cue finish
-    core.wait_frame()
-    core.wait_frame()
-    grp.rename_cue("cue2", "cue3")
-    core.wait_frame()
-    core.wait_frame()
+        # wait to let gui push actions pointing at old cue finish
+        core.wait_frame()
+        core.wait_frame()
+        grp.rename_cue("cue2", "cue3")
+        core.wait_frame()
+        core.wait_frame()
 
-    assert "cue3" in grp.cues
-    assert "cue2" not in grp.cues
-    assert cue2.name == "cue3"
+        assert "cue3" in grp.cues
+        assert "cue2" not in grp.cues
+        assert cue2.name == "cue3"
 
-    grp.close()
-    board.rmGroup(grp)
-    core.wait_frame()
 
-    assert "TestRenameCues" not in board.groups_by_name
+def add_cue_fail():
+    with TempGroup() as grp:
+        grp.add_cue("cue2")
+        # No duplicate
+        with pytest.raises(RuntimeError):
+            grp.add_cue("cue2")
+        with pytest.raises(RuntimeError):
+            grp.add_cue("default")
+
+        with pytest.raises(ValueError):
+            grp.add_cue(
+                "#!$&()&^",
+            )
+
+        with pytest.raises(ValueError):
+            grp.add_cue("")
+
+        with pytest.raises(ValueError):
+            grp.add_cue(" ")
+
+        # Trailing space
+        with pytest.raises(ValueError):
+            grp.add_cue("steamedhams ")
 
 
 def test_trigger_shortcuts():
-    s = groups.Group(board, name="TestingGroup3", id="TEST")
-    s2 = groups.Group(board, name="TestingGroup4", id="TEST2")
-    board.addGroup(s)
-    board.addGroup(s2)
+    with TempGroup() as s:
+        with TempGroup() as s2:
+            s.add_cue("cue2", trigger_shortcut="foo")
 
-    s.go()
-    s2.go()
+            s2.add_cue("cue2", shortcut="foo")
 
-    assert s.active
-    core.wait_frame()
+            s.goto_cue("cue2")
 
-    assert s in board.active_groups
-    assert s.cue.name == "default"
+            core.wait_frame()
+            core.wait_frame()
 
-    s.add_cue("cue2", trigger_shortcut="foo")
-
-    s2.add_cue("cue2", shortcut="foo")
-
-    s.goto_cue("cue2")
-
-    core.wait_frame()
-    core.wait_frame()
-
-    # Cue2 in s should trigger the shortcut code foo, which triggers Cue2 in s2
-    assert s2.cue.name == "cue2"
-
-    s.close()
-    s2.close()
-    board.rmGroup(s)
-    board.rmGroup(s2)
-    core.wait_frame()
-
-    assert "TestingGroup3" not in board.groups_by_name
-    assert "TestingGroup4" not in board.groups_by_name
+            # Cue2 in s should trigger the shortcut code foo, which triggers Cue2 in s2
+            assert s2.cue.name == "cue2"
 
 
 def test_shortcuts():
-    grp = groups.Group(board, name="TestingGroup3", id="TEST")
-    board.addGroup(grp)
+    with TempGroup() as grp:
+        assert grp.active
+        core.wait_frame()
 
-    grp.go()
+        assert grp in board.active_groups
+        assert grp.cue.name == "default"
 
-    assert grp.active
-    core.wait_frame()
+        grp.add_cue("cue2_blah", shortcut="__generate__from__number__")
 
-    assert grp in board.active_groups
-    assert grp.cue.name == "default"
+        cue2 = grp.cues["cue2_blah"]
 
-    grp.add_cue("cue2_blah", shortcut="__generate__from__number__")
+        # Test setting to same value
+        cue2.shortcut = cue2.shortcut
 
-    cue2 = grp.cues["cue2_blah"]
+        # Try to stop a nuisance KeyError,
+        # if the rename takes effect before
+        # the sending of the data to the UI
+        # it wuld try to send data that was renamed away.
+        core.wait_frame()
+        core.wait_frame()
+        time.sleep(1)
 
-    # Test setting to same value
-    cue2.shortcut = cue2.shortcut
+        # Make sure renaming cues doesn't break shortcuts
+        grp.rename_cue("cue2_blah", "cue2")
+        assert cue2.name == "cue2"
 
-    # Try to stop a nuisance KeyError,
-    # if the rename takes effect before
-    # the sending of the data to the UI
-    # it wuld try to send data that was renamed away.
-    core.wait_frame()
-    core.wait_frame()
-    time.sleep(1)
+        core.wait_frame()
+        core.wait_frame()
 
-    # Make sure renaming cues doesn't break shortcuts
-    grp.rename_cue("cue2_blah", "cue2")
-    assert cue2.name == "cue2"
+        assert len(global_actions.shortcut_codes[cue2.shortcut]) == 1
 
-    core.wait_frame()
-    core.wait_frame()
+        # Todo maybe we shouldn't store numbers as ints with a multiplier
+        global_actions.cl_trigger_shortcut_code(str(int(cue2.number / 1000)))
 
-    assert len(global_actions.shortcut_codes[cue2.shortcut]) == 1
+        # Setting the shortcut is not expected to be instant
+        core.wait_frame()
+        core.wait_frame()
 
-    # Todo maybe we shouldn't store numbers as ints with a multiplier
-    global_actions.cl_trigger_shortcut_code(str(int(cue2.number / 1000)))
+        assert grp.cue.name == "cue2"
 
-    # Setting the shortcut is not expected to be instant
-    core.wait_frame()
-    core.wait_frame()
+        grp.goto_cue("default")
+        core.wait_frame()
+        core.wait_frame()
+        assert grp.cue.name == "default"
 
-    assert grp.cue.name == "cue2"
+        old_shortcut = cue2.shortcut
+        cue2.shortcut = "shortcut2"
 
-    grp.goto_cue("default")
-    core.wait_frame()
-    core.wait_frame()
-    assert grp.cue.name == "default"
+        core.wait_frame()
+        core.wait_frame()
 
-    old_shortcut = cue2.shortcut
-    cue2.shortcut = "shortcut2"
+        # Ensure the old shortcut does not still work
+        global_actions.cl_trigger_shortcut_code(old_shortcut)
+        core.wait_frame()
+        core.wait_frame()
+        assert grp.cue.name == "default"
 
-    core.wait_frame()
-    core.wait_frame()
-
-    # Ensure the old shortcut does not still work
-    global_actions.cl_trigger_shortcut_code(old_shortcut)
-    core.wait_frame()
-    core.wait_frame()
-    assert grp.cue.name == "default"
-
-    # Ensure the new shortcut works
-    global_actions.cl_trigger_shortcut_code("shortcut2")
-    core.wait_frame()
-    core.wait_frame()
-    assert grp.cue.name == "cue2"
-
-    grp.close()
-    board.rmGroup(grp)
-    core.wait_frame()
-
-    assert "TestingGroup3" not in board.groups_by_name
+        # Ensure the new shortcut works
+        global_actions.cl_trigger_shortcut_code("shortcut2")
+        core.wait_frame()
+        core.wait_frame()
+        assert grp.cue.name == "cue2"
 
     # Make sure the shortcut was removed
     assert ("shortcut2" not in global_actions.shortcut_codes) or (
@@ -770,165 +708,133 @@ def test_shortcuts():
 
 
 def test_cue_logic():
-    s = groups.Group(board, name="TestingGroup5", id="TEST")
-    s2 = groups.Group(board, name="TestingGroup6", id="TEST2")
-    board.addGroup(s)
-    board.addGroup(s2)
+    with TempGroup() as s:
+        with TempGroup() as s2:
+            s.add_cue(
+                "cue2",
+                rules=[
+                    ["cue.enter", [["goto", s2.name, "cue2"]]],
+                    ["cue.enter", [["set_alpha", "=GROUP", "0.76"]]],
+                ],
+            )
 
-    s.go()
-    s2.go()
+            s2.add_cue("cue2")
+            s.goto_cue("cue2")
 
-    assert s.active
-    core.wait_frame()
+            # Events are sometimes delayed a frame
+            core.wait_frame()
+            core.wait_frame()
 
-    assert s in board.active_groups
-    assert s.cue.name == "default"
+            assert s2.cue.name == "cue2"
+            assert s.alpha == 0.76
 
-    s.add_cue(
-        "cue2",
-        rules=[
-            ["cue.enter", [["goto", "TestingGroup6", "cue2"]]],
-            ["cue.enter", [["set_alpha", "=GROUP", "0.76"]]],
-        ],
-    )
+            # Test variable based rules
+            s2.script_context.setVar("test_var", 1)
+            s2.cue.rules = [
+                ["=test_var", [["goto", s2.name, "default"]]],
+            ]
+            assert s2.cue.name == "cue2"
 
-    s2.add_cue("cue2")
+            core.wait_frame()
+            core.wait_frame()
+            assert s2.cue.name == "default"
 
-    s.goto_cue("cue2")
+            # Test var change rules
+            s2.cues["cue2"].rules = [
+                ["=~test_var", [["goto", s2.name, "default"]]],
+            ]
+            s2.goto_cue("cue2")
+            core.wait_frame()
+            core.wait_frame()
+            assert s2.cue.name == "cue2"
 
-    # Events are sometimes delayed a frame
-    core.wait_frame()
-    core.wait_frame()
+            s2.script_context.setVar("test_var", 0)
+            core.wait_frame()
+            core.wait_frame()
+            assert s2.cue.name == "default"
 
-    assert s2.cue.name == "cue2"
-    assert s.alpha == 0.76
+            # Test rising edge rules
+            s2.script_context.setVar("test_var", 1)
+            s2.cues["cue2"].rules = [
+                ["=/test_var", [["goto", s2.name, "default"]]],
+            ]
+            s2.goto_cue("cue2")
+            s2.script_context.setVar("test_var", 1)
+            core.wait_frame()
+            core.wait_frame()
+            assert s2.cue.name == "cue2"
 
-    # Test variable based rules
-    s2.script_context.setVar("test_var", 1)
-    s2.cue.rules = [
-        ["=test_var", [["goto", "TestingGroup6", "default"]]],
-    ]
-    assert s2.cue.name == "cue2"
+            s2.script_context.setVar("test_var", 0)
+            s2.script_context.setVar("test_var", 1)
+            core.wait_frame()
+            core.wait_frame()
+            assert s2.cue.name == "default"
 
-    core.wait_frame()
-    core.wait_frame()
-    assert s2.cue.name == "default"
+            # Test change-to-nonzero rules
+            s2.script_context.setVar("test_var", 1)
+            s2.cues["cue2"].rules = [
+                ["=+test_var", [["goto", s2.name, "default"]]],
+            ]
+            s2.goto_cue("cue2")
 
-    # Test var change rules
-    s2.cues["cue2"].rules = [
-        ["=~test_var", [["goto", "TestingGroup6", "default"]]],
-    ]
-    s2.goto_cue("cue2")
-    core.wait_frame()
-    core.wait_frame()
-    assert s2.cue.name == "cue2"
+            # Going to zero should do nothing
+            s2.script_context.setVar("test_var", 0)
+            core.wait_frame()
+            core.wait_frame()
+            assert s2.cue.name == "cue2"
 
-    s2.script_context.setVar("test_var", 0)
-    core.wait_frame()
-    core.wait_frame()
-    assert s2.cue.name == "default"
-
-    # Test rising edge rules
-    s2.script_context.setVar("test_var", 1)
-    s2.cues["cue2"].rules = [
-        ["=/test_var", [["goto", "TestingGroup6", "default"]]],
-    ]
-    s2.goto_cue("cue2")
-    s2.script_context.setVar("test_var", 1)
-    core.wait_frame()
-    core.wait_frame()
-    assert s2.cue.name == "cue2"
-
-    s2.script_context.setVar("test_var", 0)
-    s2.script_context.setVar("test_var", 1)
-    core.wait_frame()
-    core.wait_frame()
-    assert s2.cue.name == "default"
-
-    # Test change-to-nonzero rules
-    s2.script_context.setVar("test_var", 1)
-    s2.cues["cue2"].rules = [
-        ["=+test_var", [["goto", "TestingGroup6", "default"]]],
-    ]
-    s2.goto_cue("cue2")
-
-    # Going to zero should do nothing
-    s2.script_context.setVar("test_var", 0)
-    core.wait_frame()
-    core.wait_frame()
-    assert s2.cue.name == "cue2"
-
-    s2.script_context.setVar("test_var", 1)
-    core.wait_frame()
-    core.wait_frame()
-    assert s2.cue.name == "default"
-
-    s.close()
-    s2.close()
-    board.rmGroup(s)
-    board.rmGroup(s2)
-    core.wait_frame()
-
-    assert "TestingGroup5" not in board.groups_by_name
-    assert "TestingGroup6" not in board.groups_by_name
+            s2.script_context.setVar("test_var", 1)
+            core.wait_frame()
+            core.wait_frame()
+            assert s2.cue.name == "default"
 
 
 def test_cue_logic_tags():
-    sending_group = groups.Group(board, name="sending_group", id="TEST")
-    recv_group = groups.Group(board, name="recv_group", id="TEST2")
-    board.addGroup(sending_group)
-    board.addGroup(recv_group)
+    with TempGroup("sending_group") as sending_group:
+        with TempGroup("recv_group") as recv_group:
+            assert sending_group.active
+            core.wait_frame()
 
-    sending_group.go()
-    recv_group.go()
+            assert sending_group in board.active_groups
+            assert sending_group.cue.name == "default"
 
-    assert sending_group.active
-    core.wait_frame()
+            test_set_tag = tagpoints.Tag("/test_set_tag")
+            logic_test_tag = tagpoints.Tag("/logic_test_tag")
 
-    assert sending_group in board.active_groups
-    assert sending_group.cue.name == "default"
+            test_set_tag_initial_subscribers = len(test_set_tag.subscribers)
+            logic_test_tag_initial_subscribers = len(logic_test_tag.subscribers)
 
-    test_set_tag = tagpoints.Tag("/test_set_tag")
-    logic_test_tag = tagpoints.Tag("/logic_test_tag")
+            assert test_set_tag_initial_subscribers == 0
+            assert logic_test_tag_initial_subscribers == 0
 
-    test_set_tag_initial_subscribers = len(test_set_tag.subscribers)
-    logic_test_tag_initial_subscribers = len(logic_test_tag.subscribers)
+            # This should set a tag, and also, when a different tag gets set,
+            # trigger a transition in the receiving group
+            sending_group.add_cue(
+                "cue2",
+                rules=[
+                    [
+                        "=tv('/logic_test_tag')",
+                        [["goto", "recv_group", "cue2"]],
+                    ],
+                    ["cue.enter", [["set_tag", "/test_set_tag", "5"]]],
+                ],
+            )
 
-    assert test_set_tag_initial_subscribers == 0
-    assert logic_test_tag_initial_subscribers == 0
+            recv_group.add_cue("cue2")
 
-    # This should set a tag, and also, when a different tag gets set,
-    # trigger a transition in the receiving group
-    sending_group.add_cue(
-        "cue2",
-        rules=[
-            ["=tv('/logic_test_tag')", [["goto", "recv_group", "cue2"]]],
-            ["cue.enter", [["set_tag", "/test_set_tag", "5"]]],
-        ],
-    )
+            sending_group.goto_cue("cue2")
 
-    recv_group.add_cue("cue2")
+            # Events are sometimes delayed a frame
+            core.wait_frame()
+            core.wait_frame()
+            assert test_set_tag.value == 5
 
-    sending_group.goto_cue("cue2")
+            # Now set the tag and test the transition
+            logic_test_tag.value = 1
 
-    # Events are sometimes delayed a frame
-    core.wait_frame()
-    core.wait_frame()
-    assert test_set_tag.value == 5
-
-    # Now set the tag and test the transition
-    logic_test_tag.value = 1
-
-    core.wait_frame()
-    core.wait_frame()
-    assert recv_group.cue.name == "cue2"
-
-    sending_group.close()
-    recv_group.close()
-
-    board.rmGroup(sending_group)
-    board.rmGroup(recv_group)
-    core.wait_frame()
+            core.wait_frame()
+            core.wait_frame()
+            assert recv_group.cue.name == "cue2"
 
     assert "TestingGroup5" not in board.groups_by_name
     assert "TestingGroup6" not in board.groups_by_name
@@ -941,212 +847,196 @@ def test_cue_logic_tags():
 
 
 def test_commands():
-    s = groups.Group(board, name="TestingGroup5", id="TEST")
-    s2 = groups.Group(board, name="TestingGroup6", id="TEST2")
-    board.addGroup(s)
-    board.addGroup(s2)
+    with TempGroup() as s:
+        with TempGroup() as s2:
+            s.add_cue(
+                "cue2",
+                rules=[
+                    ["cue.enter", [["goto", s2.name, "cue2"]]],
+                    ["cue.enter", [["set_alpha", "=GROUP", "0.76"]]],
+                ],
+            )
 
-    s.go()
-    s2.go()
+            s2.add_cue("cue2")
 
-    assert s.active
-    core.wait_frame()
-    assert s in board.active_groups
-    assert s.cue.name == "default"
+            s.goto_cue("cue2")
 
-    s.add_cue(
-        "cue2",
-        rules=[
-            ["cue.enter", [["goto", "TestingGroup6", "cue2"]]],
-            ["cue.enter", [["set_alpha", "=GROUP", "0.76"]]],
-        ],
-    )
+            core.wait_frame()
+            core.wait_frame()
 
-    s2.add_cue("cue2")
+            assert s2.cue.name == "cue2"
+            assert s.alpha == 0.76
 
-    s.goto_cue("cue2")
 
-    core.wait_frame()
-    core.wait_frame()
+# def test_exit_cue_action():
+# TODO: As events are async,  exit happens before enter sometimes
+#     with TempGroup() as s:
+#         s.add_cue(
+#             "cue2",
+#             rules=[
+#                 ["cue.exist", [["goto", s.name, "default"]]],
+#             ],
+#         )
 
-    assert s2.cue.name == "cue2"
-    assert s.alpha == 0.76
+#         s.add_cue("cue2")
 
-    s.close()
-    s2.close()
-    board.rmGroup(s)
-    board.rmGroup(s2)
-    core.wait_frame()
+#         s.goto_cue("cue2")
 
-    assert "TestingGroup5" not in board.groups_by_name
-    assert "TestingGroup6" not in board.groups_by_name
+#         core.wait_frame()
+#         core.wait_frame()
+
+#         # Nothing happens, it's an exit action
+#         assert s2.cue.name == "cue2"
+
+#         s.goto_cue("cue2")
+
+#         core.wait_frame()
+#         core.wait_frame()
+
+#         # Exiting and reentering the cue causes a redirect that interrupts the goto
+#         assert s2.cue.name == "default"
 
 
 def test_tag_backtrack_feature():
-    s = groups.Group(board, name="TestingGroup7", id="TEST")
-    board.addGroup(s)
+    with TempGroup() as s:
+        s.cues["default"].set_value_immediate("/test_bt", "value", 1)
 
-    s.go()
-    core.wait_frame()
-    s.cues["default"].set_value_immediate("/test_bt", "value", 1)
+        # Set values and check that tags change
+        # First time allow two frames because it creates a new universe for the tag
 
-    # Set values and check that tags change
-    # First time allow two frames because it creates a new universe for the tag
+        core.wait_frame()
+        core.wait_frame()
+        assert tagpoints.Tag("/test_bt").value == 1
 
-    core.wait_frame()
-    core.wait_frame()
-    assert tagpoints.Tag("/test_bt").value == 1
+        s.cues["default"].set_value_immediate("/test_bt", "value", 2)
+        core.wait_frame()
+        assert tagpoints.Tag("/test_bt").value == 2
 
-    s.cues["default"].set_value_immediate("/test_bt", "value", 2)
-    core.wait_frame()
-    assert tagpoints.Tag("/test_bt").value == 2
+        c2 = s.add_cue("c2")
+        c2.set_value_immediate("/test_bt", "value", 5)
 
-    c2 = s.add_cue("c2")
-    c2.set_value_immediate("/test_bt", "value", 5)
+        s.add_cue("c3")
 
-    s.add_cue("c3")
+        # c3 has no lighting values, however as c2 is between default and c3 in sequence,
+        # Skipping should backtrack.
+        s.goto_cue("c3")
+        core.wait_frame()
 
-    # c3 has no lighting values, however as c2 is between default and c3 in sequence,
-    # Skipping should backtrack.
-    s.goto_cue("c3")
-    core.wait_frame()
-
-    assert tagpoints.Tag("/test_bt").value == 5
-    s.close()
-    core.wait_frame()
+        assert tagpoints.Tag("/test_bt").value == 5
 
 
 def test_priorities():
-    s = groups.Group(board, name="TestingGroup7", id="TEST")
-    s2 = groups.Group(board, name="TestingGroup8", id="TEST2")
+    with TempGroup() as s:
+        with TempGroup() as s2:
+            # Set values and check that tags change
+            s.cues["default"].set_value_immediate("/test_p", "value", 1)
+            s2.cues["default"].set_value_immediate("/test_p", "value", 2)
 
-    board.addGroup(s)
-    board.addGroup(s)
+            core.wait_frame()
 
-    s.go()
-    s2.go()
+            assert tagpoints.Tag("/test_p").value == 2
 
-    # Set values and check that tags change
-    s.cues["default"].set_value_immediate("/test_p", "value", 1)
-    s2.cues["default"].set_value_immediate("/test_p", "value", 2)
+            # Change priority and confirm stacking order changes
+            s.priority = 51
 
-    core.wait_frame()
+            core.wait_frame()
+            core.wait_frame()
 
-    assert tagpoints.Tag("/test_p").value == 2
-
-    # Change priority and confirm stacking order changes
-    s.priority = 51
-
-    core.wait_frame()
-    core.wait_frame()
-
-    assert tagpoints.Tag("/test_p").value == 1
+            assert tagpoints.Tag("/test_p").value == 1
 
 
 def test_lighting_value_set_tag_flicker():
-    s = groups.Group(board, name="TestingGroup5", id="TEST")
-    s2 = groups.Group(board, name="TestingGroup6", id="TEST2")
-    board.addGroup(s)
-    board.addGroup(s2)
+    with TempGroup() as s:
+        with TempGroup() as s2:
+            # Set values and check that tags change
+            s.cues["default"].set_value_immediate("/test1", "value", 50)
+            s.cues["default"].set_value_immediate("/test2", "value", 60)
 
-    s.go()
-    s2.go()
+            core.wait_frame()
 
-    # Set values and check that tags change
-    s.cues["default"].set_value_immediate("/test1", "value", 50)
-    s.cues["default"].set_value_immediate("/test2", "value", 60)
+            assert tagpoints.Tag("/test1").value == 50
+            assert tagpoints.Tag("/test2").value == 60
 
-    core.wait_frame()
+            # Half the alpha should have half the resulting values
+            s.setAlpha(0.50)
+            core.wait_frame()
 
-    assert tagpoints.Tag("/test1").value == 50
-    assert tagpoints.Tag("/test2").value == 60
+            assert tagpoints.Tag("/test1").value == 25
+            assert tagpoints.Tag("/test2").value == 30
 
-    # Half the alpha should have half the resulting values
-    s.setAlpha(0.50)
-    core.wait_frame()
+            s.stop()
+            core.wait_frame()
 
-    assert tagpoints.Tag("/test1").value == 25
-    assert tagpoints.Tag("/test2").value == 30
+            assert tagpoints.Tag("/test1").value == 0
+            assert tagpoints.Tag("/test2").value == 0
 
-    s.stop()
-    core.wait_frame()
+            s.default_alpha = 0.5
+            s.go()
+            core.wait_frame()
 
-    assert tagpoints.Tag("/test1").value == 0
-    assert tagpoints.Tag("/test2").value == 0
+            assert tagpoints.Tag("/test1").value == 25
+            assert tagpoints.Tag("/test2").value == 30
 
-    s.default_alpha = 0.5
-    s.go()
-    core.wait_frame()
+            # Move it up and set it as a flicker layer
+            s2.blend = "flicker"
+            s2.priority = 65
 
-    assert tagpoints.Tag("/test1").value == 25
-    assert tagpoints.Tag("/test2").value == 30
+            # Set values and check that tags change
+            s2.cues["default"].set_value_immediate("/test1", "value", 255)
+            s2.cues["default"].set_value_immediate("/test2", "value", 255)
 
-    # Move it up and set it as a flicker layer
-    s2.blend = "flicker"
-    s2.priority = 65
+            # Ensure the values are changing
+            t1 = tagpoints.Tag("/test1").value
+            t2 = tagpoints.Tag("/test2").value
+            core.wait_frame()
 
-    # Set values and check that tags change
-    s2.cues["default"].set_value_immediate("/test1", "value", 255)
-    s2.cues["default"].set_value_immediate("/test2", "value", 255)
+            for attempt in stamina.retry_context(on=AssertionError):
+                with attempt:
+                    assert t1 != tagpoints.Tag("/test1").value
+                    assert t2 != tagpoints.Tag("/test2").value
 
-    # Ensure the values are changing
-    t1 = tagpoints.Tag("/test1").value
-    t2 = tagpoints.Tag("/test2").value
-    core.wait_frame()
+            # Stop flickering, should be back to normal
+            s2.stop()
+            core.wait_frame()
 
-    for attempt in stamina.retry_context(on=AssertionError):
-        with attempt:
-            assert t1 != tagpoints.Tag("/test1").value
-            assert t2 != tagpoints.Tag("/test2").value
+            for attempt in stamina.retry_context(on=AssertionError):
+                with attempt:
+                    assert t1 == tagpoints.Tag("/test1").value
+                    assert t2 == tagpoints.Tag("/test2").value
 
-    # Stop flickering, should be back to normal
-    s2.stop()
-    core.wait_frame()
+            s2.go()
+            core.wait_frame()
 
-    for attempt in stamina.retry_context(on=AssertionError):
-        with attempt:
-            assert t1 == tagpoints.Tag("/test1").value
-            assert t2 == tagpoints.Tag("/test2").value
+            for attempt in stamina.retry_context(on=AssertionError):
+                with attempt:
+                    # Flicker starts again
+                    assert t1 != tagpoints.Tag("/test1").value
+                    assert t2 != tagpoints.Tag("/test2").value
 
-    s2.go()
-    core.wait_frame()
+            t1 = tagpoints.Tag("/test1").value
+            t2 = tagpoints.Tag("/test2").value
+            core.wait_frame()
 
-    for attempt in stamina.retry_context(on=AssertionError):
-        with attempt:
-            # Flicker starts again
-            assert t1 != tagpoints.Tag("/test1").value
-            assert t2 != tagpoints.Tag("/test2").value
+            for attempt in stamina.retry_context(on=AssertionError):
+                with attempt:
+                    assert t1 != tagpoints.Tag("/test1").value
+                    assert t2 != tagpoints.Tag("/test2").value
 
-    t1 = tagpoints.Tag("/test1").value
-    t2 = tagpoints.Tag("/test2").value
-    core.wait_frame()
+            # # Make sure cue vals saved
+            # p = os.path.join(directories.vardir, "chandler", "groups", "TestingGroup5.yaml")
+            # with open(p) as f:
+            #     f2 = yaml.load(f, Loader=yaml.SafeLoader)
 
-    for attempt in stamina.retry_context(on=AssertionError):
-        with attempt:
-            assert t1 != tagpoints.Tag("/test1").value
-            assert t2 != tagpoints.Tag("/test2").value
+            # assert f2["cues"]["default"]["values"]["/test1"]["value"] == 50
+            # assert f2["cues"]["default"]["values"]["/test2"]["value"] == 60
 
-    # # Make sure cue vals saved
-    # p = os.path.join(directories.vardir, "chandler", "groups", "TestingGroup5.yaml")
-    # with open(p) as f:
-    #     f2 = yaml.load(f, Loader=yaml.SafeLoader)
+            # # Make sure group settings saved
+            # p = os.path.join(directories.vardir, "chandler", "groups", "TestingGroup6.yaml")
+            # with open(p) as f:
+            #     f2 = yaml.load(f, Loader=yaml.SafeLoader)
 
-    # assert f2["cues"]["default"]["values"]["/test1"]["value"] == 50
-    # assert f2["cues"]["default"]["values"]["/test2"]["value"] == 60
-
-    # # Make sure group settings saved
-    # p = os.path.join(directories.vardir, "chandler", "groups", "TestingGroup6.yaml")
-    # with open(p) as f:
-    #     f2 = yaml.load(f, Loader=yaml.SafeLoader)
-
-    # assert f2["blend"] == "flicker"
-    # assert f2["priority"] == 65
-
-    s.close()
-    s2.close()
-    board.rmGroup(s)
-    board.rmGroup(s2)
-    core.wait_frame()
+            # assert f2["blend"] == "flicker"
+            # assert f2["priority"] == 65
 
 
 def test_tag_io():
@@ -1159,119 +1049,156 @@ def test_tag_io():
         ["Label", "/ghjgy", {"type": "numeric_input"}],
     ]
 
-    s = groups.Group(board, name="TestingGroup5", id="TEST")
-    board.addGroup(s)
+    with TempGroup() as s:
+        s.display_tags = display_tags
 
-    s.display_tags = display_tags
+        # Simulate user input
+        board._onmsg(
+            "__admin__",
+            ["inputtagvalue", s.id, "/ghjgy", 97],
+            "nonexistantsession",
+        )
+        core.wait_frame()
+        # Make sure the input tag thing actually sets the value
+        assert tagpoints.Tag("ghjgy").value == 97
 
-    s.go()
+        # Validate that the output display tag actually exists
+        assert "=177" in tagpoints.allTagsAtomic
 
-    # Simulate user input
-    board._onmsg(
-        "__admin__", ["inputtagvalue", s.id, "/ghjgy", 97], "nonexistantsession"
-    )
-    core.wait_frame()
-    # Make sure the input tag thing actually sets the value
-    assert tagpoints.Tag("ghjgy").value == 97
+        # # Make sure cue vals saved
+        # p = os.path.join(directories.vardir, "chandler", "groups", "TestingGroup5.yaml")
+        # with open(p) as f:
+        #     f2 = yaml.load(f, Loader=yaml.SafeLoader)
 
-    # Validate that the output display tag actually exists
-    assert "=177" in tagpoints.allTagsAtomic
-
-    # # Make sure cue vals saved
-    # p = os.path.join(directories.vardir, "chandler", "groups", "TestingGroup5.yaml")
-    # with open(p) as f:
-    #     f2 = yaml.load(f, Loader=yaml.SafeLoader)
-
-    # assert f2["display_tags"] == display_tags
-
-    s.close()
-    board.rmGroup(s)
-    core.wait_frame()
+        # assert f2["display_tags"] == display_tags
 
 
 def test_cue_logic_plugin():
     # foo_command is from conftest.py written into dev shm plugins
     # folder
 
-    s = groups.Group(board, name="TestingGroup5", id="TEST")
-    s2 = groups.Group(board, name="TestingGroup6", id="TEST2")
-    board.addGroup(s)
-    board.addGroup(s2)
+    with TempGroup() as s:
+        with TempGroup() as s2:
+            assert s.active
+            core.wait_frame()
 
-    s.go()
-    s2.go()
+            assert s in board.active_groups
+            assert s.cue.name == "default"
 
-    assert s.active
-    core.wait_frame()
+            # Foo command just triggers it's arg
+            # as both an event and shortcut code
+            s.add_cue(
+                "cue2",
+                rules=[
+                    ["cue.enter", [["foo_command", "test_val"]]],
+                ],
+            )
 
-    assert s in board.active_groups
-    assert s.cue.name == "default"
+            s2.add_cue("cue2", shortcut="test_val")
+            # Registering a new cue with a shortcut listener is not instant
+            core.wait_frame()
+            core.wait_frame()
 
-    # Foo command just triggers it's arg
-    # as both an event and shortcut code
-    s.add_cue(
-        "cue2",
-        rules=[
-            ["cue.enter", [["foo_command", "test_val"]]],
-        ],
-    )
+            s.goto_cue("cue2")
 
-    s2.add_cue("cue2", shortcut="test_val")
-    # Registering a new cue with a shortcut listener is not instant
-    core.wait_frame()
-    core.wait_frame()
+            core.wait_frame()
 
-    s.goto_cue("cue2")
+            # not frame synced yet?
+            for attempt in stamina.retry_context(
+                on=AssertionError, attempts=10
+            ):
+                with attempt:
+                    assert s2.cue.name == "cue2"
 
-    core.wait_frame()
+            s2.stop()
+            s.stop()
+            core.wait_frame()
 
-    # not frame synced yet?
-    for attempt in stamina.retry_context(on=AssertionError, attempts=10):
-        with attempt:
+            assert s2.cue.name == "default"
+            assert s2.entered_cue == 0
+
+            s.cues["default"].rules = [
+                ["cue.enter", [["foo_command", "test_val"]]],
+            ]
+
+            core.wait_frame()
+            core.wait_frame()
+
+            assert s2.cue.name == "default"
+            assert s2.entered_cue == 0
+
+            s2.go()
+            core.wait_frame()
+            core.wait_frame()
+            assert s2.cue.name == "default"
+
+            s.go()
+
+            core.wait_frame()
+            core.wait_frame()
+
+            # Script events are not currently frame synced
+            for i in range(10):
+                if not s2.cue.name == "cue2":
+                    time.sleep(0.25)
+
             assert s2.cue.name == "cue2"
 
-    s2.stop()
-    s.stop()
-    core.wait_frame()
 
-    assert s2.cue.name == "default"
-    assert s2.entered_cue == 0
+def test_cue_logic_inherit_rules_cue():
+    with TempGroup() as grp:
+        grp.add_cue(
+            "__rules__",
+            rules=[
+                ["cue.enter", [["set_alpha", "=GROUP", "0.7"]]],
+            ],
+        )
 
-    s.cues["default"].rules = [
-        ["cue.enter", [["foo_command", "test_val"]]],
-    ]
+        grp.goto_cue("default")
 
-    core.wait_frame()
-    core.wait_frame()
+        core.wait_frame()
+        core.wait_frame()
 
-    assert s2.cue.name == "default"
-    assert s2.entered_cue == 0
+        assert grp.alpha == 0.7
 
-    s2.go()
-    core.wait_frame()
-    core.wait_frame()
-    assert s2.cue.name == "default"
 
-    s.go()
+def test_cue_logic_inherit():
+    with TempGroup() as s:
+        s.add_cue(
+            "cue2",
+            rules=[
+                ["cue.enter", [["set_alpha", "=GROUP", "0.7"]]],
+            ],
+        )
 
-    core.wait_frame()
-    core.wait_frame()
+        s.cues["default"].inherit_rules = "cue2"
 
-    # Script events are not currently frame synced
-    for i in range(10):
-        if not s2.cue.name == "cue2":
-            time.sleep(0.25)
+        s.goto_cue("default")
 
-    assert s2.cue.name == "cue2"
+        core.wait_frame()
+        core.wait_frame()
 
-    s.close()
-    s2.close()
-    board.rmGroup(s)
-    board.rmGroup(s2)
-    core.wait_frame()
+        assert s.alpha == 0.7
 
-    assert "TestingGroup5" not in board.groups_by_name
-    assert "TestingGroup6" not in board.groups_by_name
+
+def test_cue_logic_inherit_loop():
+    with TempGroup() as s:
+        s.add_cue(
+            "cue2",
+            rules=[
+                ["cue.enter", [["set_alpha", "=GROUP", "0.7"]]],
+            ],
+            inherit_rules="default",
+        )
+
+        s.cues["default"].inherit_rules = "cue2"
+
+        s.goto_cue("default")
+
+        core.wait_frame()
+        core.wait_frame()
+
+        assert s.alpha == 0.7
 
 
 # def test_group_loaded_from_yaml():

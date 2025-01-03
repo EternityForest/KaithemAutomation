@@ -8,8 +8,13 @@ Change Log
 
 ### 0.87.0
 
-This release is all about coverage-guided tests.  I am quite
-embarassed that these bugs were just sitting around so long!
+This release is all about adding coverage-guided tests, along with a checklist of manual
+QA tests.
+
+A large number of bugs were found by adding tests to functions with low coverage. I am quite embarassed that these bugs were just sitting around so long, but the system is up to 70% backend coverage, and they're fixed now!
+
+Some dead code is also gone, some small UI annoyances are fixed, an we have the new Apps
+page for faster access to certain resources.
 
 
 #### Breaking changes
@@ -53,7 +58,7 @@ _resource instead.
 - :bug: Fix file data not showing up till manual rescan after uploading zip module
 - :bug: Fix tag point aliases not being correctly cleaned up
 - :bug: Fix not being able to move internal module to external
-
+- :bug: Fix bug where failed add_data_pusher_to_all_boards function would retry forever
 
 ### 0.86.3
 

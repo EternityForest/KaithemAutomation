@@ -894,9 +894,9 @@ class ChandlerConsole(console_abc.Console_ABC):
     @core.cl_context.required
     def cl_gui_push(self, universes_snapshot):
         "Snapshot is a list of all universes because the getter for that is slow"
-        for i in self.newDataFunctions:
-            i(self)
-        self.newDataFunctions = []
+        while self.newDataFunctions:
+            self.newDataFunctions.pop(0)(self)
+
         for i in universes_snapshot:
             if self.id not in universes_snapshot[i].statusChanged:
                 # TODO just resend the whole universe object to prevent nuisance errors
