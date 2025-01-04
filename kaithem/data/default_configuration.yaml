@@ -154,6 +154,14 @@ process_title: kaithem
 
 ### Dynamically overridable in a module
 
+
+# Defaults to theme_url, but this new style can be overridden by
+# users
+core/css_theme: ""
+
+# Redirect / to this page
+core/homepage_redirect: ""
+
 #Should be a path. If it is relative, starts in the datadir
 core/favicon_ico: img/favicon.ico
 

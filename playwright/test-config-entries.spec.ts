@@ -15,25 +15,33 @@ test('test', async ({ page }) => {
     await page.getByLabel('Resource Name').press('Tab');
     await page.getByLabel('Config Key').fill('test_key');
     await page.getByLabel('Config Key').press('Tab');
-    await page.getByLabel('Config Value').fill('test_val');
+
     await page.getByRole('button', { name: 'Submit' }).click();
+
+    await page.getByLabel('test_key').fill('test_val');
     await page.getByRole('button', { name: 'Submit' }).click();
 
 
     await page.getByRole('link', { name: 'config_entry' }).click();
-    await expect(page.getByLabel('test_key test_val')).toHaveValue('test_val');
+
+    await expect(page.getByLabel('test_key')).toHaveValue('test_val');
+
     await page.getByRole('link', { name: '󰢻 Tools' }).click();
     await page.getByRole('link', { name: '󰢻 System Settings' }).click();
     await expect(page.locator('dl')).toContainText('test_key');
     await expect(page.locator('dl')).toContainText('test_val');
+
+
+
     await page.getByRole('link', { name: '󱒕 Modules' }).click();
     await page.getByRole('link', { name: 'test_config' }).click();
     await page.getByTestId("delete-resource-button").click();
     await page.getByRole('button', { name: 'Submit' }).click();
+
+
     await page.getByRole('link', { name: '󰢻 Tools' }).click();
     await page.getByRole('link', { name: '󰢻 System Settings' }).click();
-
-    await expect(page.getByLabel('test_key test_val')).not.toBeVisible();
+    await expect(page.getByLabel('test_key')).not.toBeVisible();
 
 
     await deleteModule(page, 'test_config');

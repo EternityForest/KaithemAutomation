@@ -2,8 +2,17 @@ Change Log
 ----------
 
 ### 0.89.0
+
+This release moves some of the last few settings to module resources, so that all settings can be managed consistently in the same way.  It also improves autocomplete for them.
+
+#### :boom: BREAKING
+
+- :coffin: The Apprise notification setting is gone.  Use a config entries resource(created in a module) on core/apprise_target instead
+- :coffin: CSS theme setting is gone, use core/css_theme
+- :coffin:  Homepage redirect setting is now core/homepage_redirect
+
+#### Others
 - :technologist: Lots of dead code gone, guided by test conerage metrics.
-- :coffin: The Apprise notification setting is gone.  Use a config entries resource on core/apprise_target instead
 - :sparkles: Map tile server will clear files older than 3 months if cache gets bigger than 32GB(defaults)
 - :sparkles: Maps app has USGS arial imagery(US only in high res, low res globally).
 

@@ -20,34 +20,16 @@ import structlog
 import vignette
 from icemedia import sound_player
 from quart.ctx import copy_current_request_context
-from scullery import persist
 
 from . import (
     apps_page,
     auth,
-    directories,
     kaithemobj,
     messagebus,
     pages,
     quart_app,
     weblogin,
 )
-
-redirectsfn = os.path.join(
-    directories.vardir, "core.settings", "httpredirects.toml"
-)
-
-
-if os.path.exists(redirectsfn):
-    redirects = persist.load(redirectsfn)
-else:
-    redirects = {"/": {"url": ""}}
-
-
-def setRedirect(url):
-    redirects["/"]["url"] = url
-    persist.save(redirects, redirectsfn)
-
 
 fix_alsa = """
 /bin/amixer set Master 100%
@@ -451,15 +433,6 @@ def system():
 
 
 @legacy_route
-def theming():
-    try:
-        pages.require("system_admin")
-    except PermissionError:
-        return pages.loginredirect(pages.geturl())
-    return pages.get_template("settings/theming.html").render()
-
-
-@legacy_route
 def settime():
     try:
         pages.require("system_admin")
@@ -515,31 +488,6 @@ def changesettingstarget(**kwargs):
         "/system/settings/changedelocation", pages.getAcessingUser()
     )
     return quart.redirect("/settings/system")
-
-
-@legacy_route
-def changeredirecttarget(**kwargs):
-    try:
-        pages.require("system_admin")
-    except PermissionError:
-        return pages.loginredirect(pages.geturl())
-    pages.postOnly()
-    setRedirect(kwargs["url"])
-    return quart.redirect("/settings/system")
-
-
-@legacy_route
-def settheming(**kwargs):
-    try:
-        pages.require("system_admin")
-    except PermissionError:
-        return pages.loginredirect(pages.geturl())
-    pages.postOnly()
-    from . import theming
-
-    theming.file["web"]["csstheme"] = kwargs["cssfile"]
-    theming.saveTheme()
-    return quart.redirect("/settings/theming")
 
 
 @legacy_route

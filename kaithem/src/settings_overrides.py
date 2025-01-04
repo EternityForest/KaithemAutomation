@@ -17,6 +17,28 @@ settings_meta: dict[str, dict[str, Any]] = {}
 
 config_loaded_from_resources = False
 
+suggestions_by_key: dict[str, list[tuple[str, str]]] = {}
+
+
+def add_suggestion(key: str, value: str, description: str = ""):
+    """Add a suggestion for the given key"""
+    key = normalize_key(key)
+    if key not in suggestions_by_key:
+        suggestions_by_key[key] = []
+
+    suggestions_by_key[key].append((value, description))
+
+
+def clear_suggestions(key: str):
+    key = normalize_key(key)
+    if key in suggestions_by_key:
+        del suggestions_by_key[key]
+
+
+def set_description(key: str, description: str):
+    key = normalize_key(key)
+    set_meta(key, "description", description)
+
 
 @functools.lru_cache(256)
 def normalize_key(key: str) -> str:

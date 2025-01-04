@@ -38,7 +38,6 @@ from . import (
     notifications,
     pages,
     quart_app,
-    settings,
     settings_overrides,
     shutdown,
     signalhandlers,
@@ -91,7 +90,7 @@ async def favicon():
 
 @quart_app.app.route("/")
 def index_default(*path, **data):
-    r = settings.redirects.get("/", {}).get("url", "")
+    r = settings_overrides.get_val("core/homepage_redirect")
     if r:
         return quart.redirect(r)
 

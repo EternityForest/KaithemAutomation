@@ -75,35 +75,31 @@ class ConfigType(modules_state.ResourceType):
         if x:
             entries[to_module, to_resource] = x
 
-    def on_update(self, module, resource, obj):
-        self.on_load(module, resource, obj)
+    def on_update(self, module, resource, data):
+        self.on_load(module, resource, data)
 
-    def on_delete(self, module, name, value):
-        del entries[module, name]
+    def on_delete(self, module, resource, value):
+        del entries[module, resource]
 
-    def on_create_request(self, module, name, kwargs):
+    def on_create_request(self, module, resource, kwargs):
         kwargs = dict(kwargs)
         pr = kwargs.pop("config_priority", "50")
         d = {
             "resource_type": self.type,
-            "data": {kwargs["key"]: kwargs["value"]},
+            "data": {kwargs["key"]: ""},
         }
         d["config_priority"] = float(pr.strip())
 
         return d
 
-    def on_update_request(self, module, resource, resourceobj, kwargs):
-        d = resourceobj
+    def on_update_request(self, module, resource, data, kwargs):
+        d = modules_state.mutable_copy_resource(data)
         kwargs = dict(kwargs)
         kwargs.pop("name", None)
         kwargs.pop("Save", None)
 
-        n = kwargs.pop("_newkey", None)
-        v = kwargs.pop("_newv", None)
+        new_key = kwargs.pop("_newkey", None)
         pr = kwargs.pop("config_priority")
-
-        if n and v:
-            d["data"][n] = v.strip()
 
         for i in kwargs:
             for c in r"""~!@#$%^&*()+`-=[]\{}|;':"',<>?""":
@@ -122,6 +118,11 @@ class ConfigType(modules_state.ResourceType):
             if d["data"][i].strip()
         }
 
+        # While creating new keys, we can have an empty value
+        if new_key:
+            if new_key not in d["data"]:
+                d["data"][new_key] = ""
+
         d["config_priority"] = float(pr.strip())
         return d
 
@@ -130,10 +131,13 @@ class ConfigType(modules_state.ResourceType):
         d.text_input(
             "name",
             title="Resource Name",
+        )
+        d.text_input(
+            "key",
+            title="Config Key",
             suggestions=[(i, i) for i in settings_overrides.list_keys()],
         )
-        d.text_input("key", title="Config Key")
-        d.text_input("value", title="Config Value", multiline=True)
+
         d.text_input("config_priority", title="Config Priority", default="50")
 
         d.submit_button("Save")
@@ -144,10 +148,16 @@ class ConfigType(modules_state.ResourceType):
 
         d.text("Empty the key field to delete an entry")
 
-        suggestions = [(i, i) for i in settings_overrides.list_keys()]
-
         for i in sorted(list(value["data"].keys())):
-            d.text_input(i, title=i, default=value["data"][i], multiline=True)
+            options = settings_overrides.suggestions_by_key.get(i, [])
+            d.text_input(
+                i,
+                title=i,
+                default=value["data"][i],
+                multiline=True if not options else False,
+                suggestions=options,
+            )
+
         d.text("")
         d.text_input(
             "config_priority",
@@ -155,8 +165,8 @@ class ConfigType(modules_state.ResourceType):
             default=str(value.get("config-priority", "50")),
         )
 
+        suggestions = [(i, i) for i in settings_overrides.list_keys()]
         d.text_input("_newkey", title="Add New Key?", suggestions=suggestions)
-        d.text_input("_newv", title="Value For New Key?", multiline=True)
 
         d.submit_button("Save")
         return d.render(self.get_update_target(module, name))

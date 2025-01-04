@@ -7,7 +7,7 @@ import weakref
 
 from scullery import persist
 
-from . import directories
+from . import directories, settings_overrides
 from .config import config
 
 fn = os.path.join(directories.vardir, "core.settings", "theming.toml")
@@ -43,6 +43,8 @@ class Theme:
         self.css_url = css_url
         cssthemes[name] = self
 
+        settings_overrides.add_suggestion("core/css_theme", name)
+
 
 scrapbook = Theme("scrapbook", "/static/css/scrapbook/scrapbook_green.css")
 fugit = Theme("fugit", "/static/css/fugit/fugit.css")
@@ -57,8 +59,13 @@ show_black = Theme("show_black", "/static/css/show_black.css")
 forest = Theme("forest", "/static/css/forest.css")
 
 
+settings_overrides.set_description(
+    "core/css_theme", "Barrel theme URL or any predefined theme name"
+)
+
+
 def getCSSTheme():
-    x = file["web"]["csstheme"] or config["theme_url"]
+    x = settings_overrides.get_val("core/css_theme") or config["theme_url"]
 
     try:
         if x in cssthemes:

@@ -28,21 +28,6 @@ location = geolocation.getLocation('default')
 </dl>
 </section>
 
-<h2>Alternate Homepage</h2>
-<section class="window paper">
-<details class="help"><summary><i class="mdi mdi-help-circle-outline"></i></summary>
-This lets you make the root go to a different page.  Use /index to access the normal homepage.
-</details>
-<form method="POST" action="/settings/changeredirecttarget">
-<table border=1>
-<tr>
-<td>URL to redirect / to</td>
-<td><input name="url" value="${settings.redirects.get('/',{}).get('url','')}".></td>
-</tr>
-</table>
-<input type="submit" >
-</form>
-</section>
 
 
 <h2>Server Location</h2>

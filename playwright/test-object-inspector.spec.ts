@@ -11,20 +11,6 @@ test("test", async ({ page }) => {
     await login(page);
 
 
-    // Test theme settings
-    await page.getByRole('link', { name: '󰢻 Tools' }).click();
-    await page.getByRole('link', { name: '󰏘 Appearance and Theming' }).click();
-    await page.getByLabel('CSS Themefile(Empty for').click();
-    await page.getByLabel('CSS Themefile(Empty for').fill('scrapbook');
-    await page.getByRole('button', { name: 'Submit' }).click();
-    await expect(page.getByLabel('CSS Themefile(Empty for')).toHaveValue('scrapbook');
-    await expect(page.getByRole('list').getByText('fugit')).toBeVisible();
-    await expect(page.getByRole('list').getByText('banderole')).toBeVisible();
-    await expect(page.getByRole('list').getByText('nord')).toBeVisible();
-    await page.getByLabel('CSS Themefile(Empty for').fill('simple_light');
-    await page.getByRole('button', { name: 'Submit' }).click();
-
-
     // Test message bus LOGS
     await page.getByRole('link', { name: '󰢻 Tools' }).click();
     await page.getByRole('link', { name: 'Message Bus Logs' }).click();
