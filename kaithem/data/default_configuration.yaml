@@ -162,6 +162,18 @@ core/strftime_string: "%A, %B %d, %Y at %I:%M:%S %p Server Time"
 
 # Notification target
 core/apprise_target: ""
+
+
+# Map tile caching.  It uses a very simple strategy, it deletes
+# files that have not been accessed in that many days, but only
+# if the cache is larger than that then the limit.
+
+# Values below 100 days get ignored, as we only update modification
+# timestamps ever three months to protect the SD card or SSD
+core_plugin_map_tile_server/max_age_days: 100
+core_plugin_map_tile_server/cache_size_mb: 32000
+
+
 #####################MISC#######################################################
 
 get_public_ip: no

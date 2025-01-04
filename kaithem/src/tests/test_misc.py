@@ -1,9 +1,62 @@
 import gc
+import os
+import shutil
 import sys
 import time
 
 if "--collect-only" not in sys.argv:  # pragma: no cover
     from kaithem.src import util
+
+
+def test_map_tiles_cleanup():
+    from kaithem.src import settings_overrides
+    from kaithem.src.plugins import CorePluginMapTileServer
+
+    settings_overrides.add_val(
+        "core_plugin_map_tile_server/max_age_days", "10", priority=100
+    )
+    settings_overrides.add_val(
+        "core_plugin_map_tile_server/cache_size_mb", "0", priority=100
+    )
+    try:
+        os.makedirs(
+            "/dev/shm/kaithem_tests/maptiles/openstreetmap/0/0/",
+            exist_ok=True,
+        )
+
+        shutil.copy(
+            "kaithem/data/static/img/1x1.png",
+            "/dev/shm/kaithem_tests/maptiles/openstreetmap/0/0/0.png",
+        )
+        shutil.copy(
+            "kaithem/data/static/img/1x1.png",
+            "/dev/shm/kaithem_tests/maptiles/openstreetmap/0/0/1.png",
+        )
+
+        four_months_ago = time.time() - 60 * 60 * 24 * 30 * 4
+
+        os.utime(
+            "/dev/shm/kaithem_tests/maptiles/openstreetmap/0/0/0.png",
+            (four_months_ago, four_months_ago),
+        )
+
+        CorePluginMapTileServer.clean()
+
+        assert not os.path.exists(
+            "/dev/shm/kaithem_tests/maptiles/openstreetmap/0/0/0.png"
+        )
+
+        assert os.path.exists(
+            "/dev/shm/kaithem_tests/maptiles/openstreetmap/0/0/1.png"
+        )
+
+    finally:
+        settings_overrides.add_val(
+            "core_plugin_map_tile_server/max_age_days", ""
+        )
+        settings_overrides.add_val(
+            "core_plugin_map_tile_server/cache_size_mb", ""
+        )
 
 
 def test_private_ip_check():

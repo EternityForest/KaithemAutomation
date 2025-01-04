@@ -4,6 +4,8 @@ Change Log
 ### 0.89.0
 - :technologist: Lots of dead code gone, guided by test conerage metrics.
 - :coffin: The Apprise notification setting is gone.  Use a config entries resource on core/apprise_target instead
+- :sparkles: Map tile server will clear files older than 3 months if cache gets bigger than 32GB(defaults)
+- :sparkles: Maps app has USGS arial imagery(US only in high res, low res globally).
 
 
 ### 0.87.0
