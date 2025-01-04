@@ -52,7 +52,7 @@ class FileServerType(modules_state.ResourceType):
             module, resourcename, value
         )
         if lookup:
-            lookup.invalidate_cache()
+            lookup.cache_clear()
 
     def on_move(self, module, resource, to_module, to_resource, resourceobj):
         x = by_module_resource.pop((module, resource), None)
@@ -60,7 +60,7 @@ class FileServerType(modules_state.ResourceType):
             by_module_resource[to_module, to_resource] = x
 
         if lookup:
-            lookup.invalidate_cache()
+            lookup.cache_clear()
 
     def on_update(self, module, resource, obj):
         self.on_load(module, resource, obj)
