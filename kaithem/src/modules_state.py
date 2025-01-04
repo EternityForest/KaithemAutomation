@@ -132,29 +132,6 @@ def getModuleDir(module: str) -> str:
 external_module_locations = {}
 
 
-def parseTarget(t: str, module: str, in_ext: bool = False):
-    if t.startswith("$MODULERESOURCES/"):
-        t = t[len("$MODULERESOURCES/") :]
-    return t
-
-
-def getExt(r: ResourceDictType):
-    if r["resource_type"] == "directory":
-        return ""
-
-    elif r["resource_type"] == "page":
-        if r.get("template_engine", "") == "markdown":
-            return ".md"
-        else:
-            return ".html"
-
-    elif r["resource_type"] == "event":
-        return ".py"
-
-    else:
-        return ".yaml"
-
-
 def serializeResource(name: str, obj: ResourceDictType) -> dict[str, str]:
     """Returns data as a dict of file base names
     to file contents, to be written in appropriate folder"""

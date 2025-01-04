@@ -712,7 +712,7 @@ def test_renaming():
         assert cue2.name == "cue3"
 
 
-def add_cue_fail():
+def test_add_cue_fail():
     with TempGroup() as grp:
         grp.add_cue("cue2")
         # No duplicate
