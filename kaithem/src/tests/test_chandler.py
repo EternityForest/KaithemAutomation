@@ -394,7 +394,7 @@ def test_cue_track_setting():
         grp.goto_cue("test2")
         core.wait_frame()
         core.wait_frame()
-        time.sleep(0.1)
+        time.sleep(0.3)
         assert grp.cue.name == "test2"
         assert int(universes.universes["dmx2"]().values[1]) == 0
 

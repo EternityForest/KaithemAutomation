@@ -126,14 +126,15 @@ class ResourceType:
     def on_create_request(
         self, module: str, resource: str, kwargs
     ) -> ResourceDictType:  # pragma: no cover
-        """Must return a resource object given kwargs from createpage.
-        Called on submitting create form
+        """Must return a resource object given all the kwargs from the createpage.
+        Called on submitting create form.  This should not actually do anything
+        besides create the resource object.
         """
         return {"resource_type": "example"}
 
     def edit_page(self, module: str, resource: str, data):  # pragma: no cover
         """Given current resource data, return a manager page.
-        It may submit to get_update_target()
+        It may submit a form to the URL at get_update_target()
         """
         return str(data)
 
@@ -146,7 +147,7 @@ class ResourceType:
     def on_load(
         self, module: str, resource: str, data: ResourceDictType
     ):  # pragma: no cover
-        """Called when loaded from disk."""
+        """Called when loaded from disk, or otherwise created for the first time."""
 
     def on_finished_loading(self, module: str | None):  # pragma: no cover
         """Called with module name when every resource has finished loading with onload(),
@@ -167,7 +168,8 @@ class ResourceType:
         pass
 
     def on_update(self, module, resource: str, data):  # pragma: no cover
-        """Called when something has updated the data.  Usually the web UI but could be anything."""
+        """Called when something has updated the data on a resource that already exists.
+        Usually the web UI but could be anything."""
 
     def flush_unsaved(self, module, resource):  # pragma: no cover
         """Called when the resource should save any unsaved data it has back to the resource."""

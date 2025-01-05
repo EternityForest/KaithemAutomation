@@ -36,7 +36,7 @@ line-length = 80
 python = "^3.10.0, <3.13"
 # First party
 scullery = ">=0.3.0"
-iot-devices = ">=0.21.1"
+iot-devices = ">=0.23.0"
 icemedia = ">=0.1.20"
 NVRChannel = ">=0.1.7"
 

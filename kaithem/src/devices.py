@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import gc
+import json
 import os
 import shutil
 import textwrap
@@ -378,35 +379,6 @@ class Device(iot_devices.device.Device):
     def data(self, v):
         return self.config.update(v)
 
-    def setDataKey(self, key: str, val):
-        "Lets a device set it's own persistent stored data"
-
-        v = str(val)
-
-        with modules_state.modulesLock:
-            self.config[key] = v
-
-            if (
-                not self.config.get("is_ephemeral", False)
-                and not key.startswith("temp.")
-                and not key.startswith("kaithem.temp.")
-            ):
-                if self.parent_module:
-                    assert self.parent_resource
-                    devdata = modules_state.ActiveModules[self.parent_module][
-                        self.parent_resource
-                    ]["device"]
-                    assert isinstance(devdata, dict)
-                    devdata[key] = v
-
-                    modules_state.rawInsertResource(
-                        self.parent_module,
-                        self.parent_resource,
-                        modules_state.ActiveModules[self.parent_module][
-                            self.parent_resource
-                        ],
-                    )
-
     @staticmethod
     def makeUIMsgHandler(wr):
         def f(u, v):
@@ -435,13 +407,12 @@ class Device(iot_devices.device.Device):
         global remote_devices_atomic
         global remote_devices
 
-        try:
-            self.title: str = data.get("title", "").strip() or name
-        except Exception:
+        if not hasattr(self, "title"):
             self.title = name
 
-        self.k_use_default_alerts = data.get(
-            "kaithem.use_default_alerts", "true"
+        # Legacy stuff used strings
+        self.k_use_default_alerts = str(
+            data.get("kaithem.use_default_alerts", "true")
         ).lower() in ("yes", "on", "true", "1")
 
         # Which points to show in overview
@@ -962,21 +933,61 @@ class Device(iot_devices.device.Device):
         return self.tagPoints[key].value
 
     def set_config_option(self, key, value):
-        self.setDataKey(key, value)
+        super().set_config_option(key, value)
+        "Lets a device set it's own persistent stored data"
 
-    def set_config_default(self, key: str, value: str):
-        """sets an option in self.config if it does not exist or is blank. used for subclassing as you may want to persist.
+        with modules_state.modulesLock:
+            self.config[key] = value
 
-        Calls into set_config_option, you should not need to subclass this.
-        """
+            if (
+                not self.config.get("is_ephemeral", False)
+                and not key.startswith("temp.")
+                and not key.startswith("kaithem.temp.")
+            ):
+                if self.parent_module:
+                    assert self.parent_resource
+                    # Todo why are we mutating in place?
+                    devdata = modules_state.ActiveModules[self.parent_module][
+                        self.parent_resource
+                    ]["device"]
 
-        if key not in self.config or not self.config[key].strip():
-            self.set_config_option(key, value.strip())
+                    assert isinstance(devdata, dict)
+                    devdata[key] = value
+
+                    modules_state.rawInsertResource(
+                        self.parent_module,
+                        self.parent_resource,
+                        modules_state.ActiveModules[self.parent_module][
+                            self.parent_resource
+                        ],
+                    )
 
     def on_data_change(self, name: str, value, timestamp: float, annotation):
         """used for subclassing, this is how you watch for data changes.
         Kaithem does not need this, we have direct observable tag points.
         """
+
+    def get_full_schema(self):
+        s = super().get_full_schema()
+        s["properties"]["kaithem.read_perms"] = {
+            "type": "string",
+            "title": "Read Permissions",
+            "description": "The permissions required to read this device, comma separated",
+        }
+
+        s["properties"]["kaithem.write_perms"] = {
+            "type": "string",
+            "title": "Write Permissions",
+            "description": "The permissions required to read this device, comma separated",
+        }
+        s["properties"]["kaithem.use_default_alerts"] = {
+            "type": "boolean",
+            "title": "Enable the device's default alerts",
+            "default": True,
+            "description": "The permissions required to read this device, comma separated",
+        }
+
+        return s
 
     # Lifecycle
 
@@ -989,38 +1000,6 @@ class Device(iot_devices.device.Device):
         return directories.vardir
 
     # UI Integration
-
-    def on_ui_message(
-        self, msg: float | int | str | bool | None | dict | list, **kw
-    ):
-        """recieve a json message from the ui page.  the host is responsible for providing a window.send_ui_message(msg)
-        function to the manage and create forms, and a set_ui_message_callback(f) function.
-
-        these messages are not directed at anyone in particular, have no semantics, and will be recieved by all
-        manage forms including yourself.  they are only meant for very tiny amounts of general interest data and fast commands.
-
-        this lowest common denominator approach is to ensure that the ui can be fully served over mqtt if desired.
-
-        """
-
-    def send_ui_message(
-        self, msg: float | int | str | bool | None | dict | list
-    ):
-        """
-        send a message to everyone including yourself.
-        """
-        self._admin_ws_channel.send(msg)
-
-    def get_management_form(self) -> str | None:
-        """must return a snippet of html suitable for insertion into a form tag, but not the form tag itself.
-        the host application is responsible for implementing the post target, the authentication, etc.
-
-        when the user posts the form, the config options will be used to first close the device, then build
-        a completely new device.
-
-        the host is responsible for the name and type parts of config, and everything other than the device.* keys.
-        """
-        return ""
 
     def handle_exception(self):
         try:
@@ -1176,11 +1155,19 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
         time.sleep(0.01)
         gc.collect()
 
+        decoded = json.loads(kwargs["json"])
+
         savable_data = {
-            i: kwargs[i]
-            for i in kwargs
+            i: decoded[i]
+            for i in decoded
             if ((not i.startswith("temp.")) and not i.startswith("filedata."))
         }
+
+        # Special case for our video region editor
+        if "property_device_regions" in kwargs:
+            savable_data["device.regions"] = kwargs["property_device_regions"]
+        else:
+            savable_data.pop("property_device_regions", None)
 
         # Propagate subdevice status even if it is just loaded as a placeholder
         if configuredAsSubdevice or subdevice:
@@ -1237,21 +1224,14 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
                     f.write(kwargs[i])
 
         if not subdevice:
-            remote_devices[name] = makeDevice(name, kwargs)
+            remote_devices[name] = makeDevice(name, savable_data)
         else:
             kwargs["is_subdevice"] = "true"
 
-            # Don't pass our special internal keys to that mechanism that expects to only see standard iot_devices keys.
-            k = {
-                i: kwargs[i]
-                for i in kwargs
-                if not i.startswith("filedata.")
-                and not i.startswith("temp.kaithem.")
-            }
             subdevice_data_cache[name] = savable_data
             device_location_cache[name] = newparent_module, newparent_resource
 
-            remote_devices[name].update_config(k)
+            remote_devices[name].update_config(savable_data)
 
         # Only actually update data structures
         # after updating the device runtime successfully

@@ -48,7 +48,7 @@
             </header>
             <div class="nopadding nomargin flex-row param-box">
                 {% for i in sorted(devs[dev]().config.keys()) %}
-                {% if (not devs[dev]().config_properties.get(i,{}).get("secret",False)) or devs[dev]().config[i] in ('password', 'admin', '1234', '12345678', '123456', 'raspberry','')  %}
+                {% if (not devs[dev]().json_schema.get("properties", {}).get(i,{}).get("format",False) == "password") %}
 
                 {% if devs[dev]().config[i] and not len(str(devs[dev]().config[i])) > 512 and not i in ('subclass','notes', 'description', 'name', 'type')  %}
                 <div class="param">
@@ -136,7 +136,7 @@
                 <div class="two-columns balance-columns">
                     <dl class="nopadding nomargin">
                         {% for i in sorted(devs[dev]().config.keys()) %}
-                        {% if devs[dev]().config_properties.get(i,{}).get("secret",False) %}
+                        {% if devs[dev]().json_schema.get("properties", {}).get(i,{}).get("format",False) == "password" %}
 
                         {% if devs[dev]().config[i] and not len(str(devs[dev]().config[i])) > 512 and not i in ('subclass','notes', 'description', 'name', 'type')  %}
                         <dt class="nomargin"><small>

@@ -46,7 +46,7 @@ shutil.copy(
 )
 
 
-def open2(path, mode="r", *args, **kwargs):
+def open2(path, mode: str = "r", *args, **kwargs):
     if not (str(path).startswith("/dev/shm/")) and not path == "/dev/null":
         if "w" in mode or "a" in mode:
             if "__pycache__" not in str(path) and "/.cache/" not in str(path):

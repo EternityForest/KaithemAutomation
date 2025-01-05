@@ -21,6 +21,9 @@
     .tagbox {
         text-align: center;
     }
+    .je-textarea {
+        height: 8rem;
+    }
 </style>
 <script type="module" src="/static/js/widget.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0"></script>
 <script src="/static/js/thirdparty/mpegts.js"></script>
@@ -106,7 +109,7 @@
             <button type="submit">Search for auto-setup configurations</button>
         </form>
         {% endif %}
-        <form method="POST" action="/devices/updateDevice/{{ url(name) }}">
+        <form method="POST" action="/devices/updateDevice/{{ url(name) }}" id="mainform">
 
             {% if obj.parent_module %}
             <h2>Module/Resource</h2>
@@ -139,33 +142,6 @@
                 </table>
             </details>
 
-            <details>
-                <summary>
-                    <b>Basic</b>
-                </summary>
-                <table border="1" style="width:100%">
-
-                    <tr>
-                        <td>Device Type</td>
-                        <td>{{ data.get('type','')| escape }}</td>
-                    </tr>
-                    <tr>
-                        <td>Device Name</td>
-                        <td><input name="name" value="{{ name| escape }}" {% if hasattr(obj,"_kaithem_is_subdevice") %}
-                                disabled {% endif %}></td>
-                    </tr>
-
-                    <tr>
-                        <td>Device Title(Blank=use name)</td>
-                        <td><input name="title" value="{{ data.get('title','')| escape }}"></td>
-                    </tr>
-
-                </table>
-
-                <h3>Description</h3>
-
-                <textarea class="h-6rem w-full" name="description">{{ data.get('description','') }}</textarea>
-            </details>
 
             {% if hasattr(obj,"device_type") and obj.device_type == "ESPHomeDevice" %}
             <details>
@@ -178,13 +154,6 @@
             </details>
             {% endif %}
 
-            <details>
-                <summary>
-                    <b>Notes</b>
-                </summary>
-
-                <textarea class="h-24rem w-full" name="notes">{{ data.get('notes','') }}</textarea>
-            </details>
 
             <input type="hidden" name="type" value="{{ data.get('type','') }}">
 
@@ -198,9 +167,9 @@
 
                 <script>
                     showdown.setFlavor('github');
-                    var c = document.getElementById("desc").innerHTML;
+                    var c = document.querySelector("#desc").innerHTML;
                     var converter = new showdown.Converter();
-                    document.getElementById("desc").innerHTML = converter.makeHtml(c);
+                    document.querySelector("#desc").innerHTML = converter.makeHtml(c);
                 </script>
 
                 {% endif %}
@@ -214,9 +183,9 @@
 
                 <script>
                     showdown.setFlavor('github');
-                    var c = document.getElementById("readme").innerHTML;
+                    var c = document.querySelector("#readme").innerHTML;
                     var converter = new showdown.Converter();
-                    document.getElementById("readme").innerHTML = converter.makeHtml(c);
+                    document.querySelector("#readme").innerHTML = converter.makeHtml(c);
                 </script>
                 {% endif %}
             </details>
@@ -230,103 +199,31 @@
                     <b><i class="mdi mdi-cog-outline"></i>Settings</b>
                 </summary>
 
-                <table style="width:100%">
-                    {% for i in devices_interface.getshownkeys(obj) %}
-                    <tr>
-                        {% if i.startswith('device.') %}
-                        <td style="max-width: 30%;">
-                            {% if obj.config_properties.get(i,{}).get("description",'') %}
-                            <details>
-                                <summary><i class="mdi mdi-help-circle-outline"></i><b>{{ i[7:]| escape }}</b>
-                                </summary>
-                                {{ obj.config_properties.get(i,{}).get("description",'')|escape}}
-                            </details>
-                            {% else %}
-                            <b>{{ i[7:]| escape }}</b>
-                            {% endif %}
-                        </td>
-                        {% else %}
-                        <td> <b>{{ i| escape }}</b></td>
-                        {% endif %}
 
 
-                        <td>
-                            {% if obj.config_properties.get(i,{}).get("type") =='bool' %}
+                <input id="jsoninput" type="hidden" name="json">
+                <script src="/static/js/thirdparty/jsoneditor.min.js"></script>
+                <div id="editor-container"></div>
 
-                            <select name="{{ i| escape }}">
-                                <option value="no">False/Off</option>
-                                <option
-                                    {{ 'selected' if obj.config[i].lower().strip() in ('true','yes','on','enable','active','enabled','1') else ''  }}
-                                    value="yes">True/On</option>
-                            </select>
-                            {% else %}
-                            {% if obj.config_properties.get(i,{}).get("secret",False) %}
-                            <input name="{{ i| escape }}" id="property_{{ i| escape }}"
-                                value="{{ obj.config[i]| escape }}" type="password" onfocus="this.type='text'"
-                                onblur="this.type='password'">
-                            {% else %}
-                            <input name="{{ i| escape }}" id="property_{{ i| escape }}"
-                                value="{{ obj.config[i]| escape }}" class="w-full">
-                            {% endif %}
+               <script>
+                const config = {
+                    schema: {{obj.get_full_schema()|tojson}},
+                    disable_array_delete_all_rows: true,
+                    array_controls_top: true,
+                    disable_array_delete_last_row: true,
+                    disable_edit_json: true,
+                    ajax: true,
+                    theme: "barebones",
+               }
+                var editor = new JSONEditor(document.querySelector('#editor-container'), config)
+                window.editor = editor
 
-                            {% endif %}
-
-                            {% if obj.config_properties.get(i,{}).get("type") =='local_fs_dir' %}
-
-                            <a class="button" href="/settings/files/{{ url(os.path.expanduser(obj.config[i])) }}"><i
-                                    class="mdi mdi-folder"></i>Browse
-                                {{ os.path.expanduser(obj.config[i])| escape }}</a>
-                            {% endif %}
-
-
-                        </td>
-                    </tr>
-                    {% endfor %}
-
-                    <tr>
-                        <td><b>Enable Default Alerts</b></td>
-                        <td>
-
-                            <select name="kaithem.use_default_alerts">
-
-                                <option value="no">False/Off</option>
-                                <option
-                                    {{ 'selected' if data.get('kaithem.use_default_alerts','true') in ('true','yes','on','enable','active','enabled','1') else ''  }}
-                                    value="yes">True/On</option>
-                            </select>
-                        </td>
-                    </tr>
-                </table>
-
-
-                <h3>Permissions</h3>
-                <div>
-                    <details class="help">
-                        <summary><i class="mdi mdi-help-circle-outline"></i></summary>
-                        Set a default for all tag points exposed by this device. You can further
-                        refine this in the tag points manager.
-                        It is preferable to do things at the device-level, as devices can be
-                        bundle into modules, and you don't have to handle
-                        settings individually for every tag. Leave blank to disable. These are
-                        used to make data points show up in the
-                    </details>
-
-                    <details class="help">
-                        <summary><i class="mdi mdi-help-circle-outline"></i></summary>
-                        Currently this is only supported for the newer cross-framework devices.
-                    </details>
-
-                    <div class="tool-bar">
-                        <label>Read:<input name="kaithem.read_perms" list="k_perms"
-                                value="{{ data.get('kaithem.read_perms','')| escape }}"
-                                placeholder="system_admin"></label>
-                        <label>Write:<input name="kaithem.write_perms" list="k_perms"
-                                value="{{ data.get('kaithem.write_perms','')| escape }}"
-                                placeholder="system_admin"></label>
-                    </div>
-
-                </div>
-
+                const v= async () => {
+                    await editor.promise
+                    editor.setValue({{data|tojson}})
+                }
+                v()
+              </script>
             </details>
 
 
@@ -478,7 +375,7 @@
     let _generic_ws_channel = new APIWidget("{{obj._generic_ws_channel.uuid}}")
     let _admin_ws_channel = new APIWidget("{{obj._admin_ws_channel.uuid}}")
 
-    window._generic_ws_channel = _generic_ws_channel
+    globalThis._generic_ws_channel = _generic_ws_channel
 
     var fakesOn = false;
     function setFake(k, v) {
@@ -491,7 +388,7 @@
 
     }
 
-    window.setFake = setFake
+    globalThis.setFake = setFake
 
     function send_ui_message(m) {
         _admin_ws_channel.send(m)
@@ -501,8 +398,8 @@
         _admin_ws_channel.upd = f
     }
 
-    window.send_ui_message = send_ui_message
-    window.set_ui_message_handler = set_ui_message_handler
+    globalThis.send_ui_message = send_ui_message
+    globalThis.set_ui_message_handler = set_ui_message_handler
 
 </script>
 
@@ -576,40 +473,11 @@
     }
 </script>
 
-<script src="/static/js/thirdparty/src-min-noconflict/ace.js"></script>
-<script src="/static/js/thirdparty/jquery3.js"></script>
-
 <script>
-    // Hook up ACE editor to all textareas with data-editor attribute
-    $(function () {
-        $('textarea[data-editor]').each(function () {
-            var textarea = $(this);
-            var mode = textarea.data('editor');
-            var editDiv = $('<div>', {
-                position: 'absolute',
-                width: textarea.width(),
-                height: textarea.height(),
-                'class': textarea.attr('class')
-            }).insertBefore(textarea);
-            textarea.css('display', 'none');
-            var editor = ace.edit(editDiv[0]);
-            editor.renderer.setShowGutter(true);
-            editor.getSession().setValue(textarea.val());
-            editor.getSession().setMode("ace/mode/" + mode);
-            // editor.setTheme("ace/theme/idle_fingers");
-            editor.setOptions({
-                fontFamily: "CodingFont",
-                fontSize: "12pt"
-            });
-            editor.getSession().on('change', function () {
-                wasChanged = true;
-            })
-            // copy back to textarea on form submit...
-            textarea.closest('form').submit(function () {
-                textarea.val(editor.getSession().getValue());
-            })
-        });
-    });
+    let mainform = document.querySelector("#mainform")
+    mainform.addEventListener("submit", function (e) {
+        document.querySelector('#jsoninput').value = JSON.stringify(globalThis.editor.getValue())
+    })
 </script>
 
 {% endblock %}

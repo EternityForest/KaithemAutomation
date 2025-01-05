@@ -34,15 +34,15 @@ test("test", async ({ page }) => {
   await page.getByRole("link", { name: "󰘚 Devices" }).click();
 
   await expect(
-    page.getByRole("link", { name: "PreloadedDemoDevice", exact: true })
+    page.getByRole("link", { name: "Preloadeddemodevice", exact: true })
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "PreloadedDemoDevice/subdevice" })
+    page.getByRole("heading", { name: "Preloadeddemodevice/subdevice" })
   ).toBeVisible();
 
   // Ensure it displays the fact it's not supported
   await page
-    .getByRole("link", { name: "NonexistentTypePreloadedDemoDevice" })
+    .getByRole("link", { name: "NonexistenttypePreloadeddemodevice" })
     .click();
   await expect(page.getByText("This device type has no").first()).toBeVisible();
 
