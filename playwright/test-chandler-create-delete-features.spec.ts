@@ -1,8 +1,15 @@
 import { test, expect } from "@playwright/test";
-import { login, logout, makeModule, deleteModule, waitForTasks, sleep} from "./util";
+import {
+  login,
+  logout,
+  makeModule,
+  deleteModule,
+  waitForTasks,
+  sleep,
+} from "./util";
 
 test("test", async ({ page }) => {
-    test.setTimeout(600_000);
+  test.setTimeout(600_000);
 
   await page.goto("http://localhost:8002/");
   await login(page);
@@ -54,9 +61,7 @@ test("test", async ({ page }) => {
     .click();
   await page
     .getByTestId("media-browser-container")
-    .getByText(
-      "kaithem/data/static/sounds/"
-    )
+    .getByText("kaithem/data/static/sounds/")
     .click();
   await page
     .getByRole("row", { name: "220176__gameaudio__confirm-" })
@@ -121,7 +126,7 @@ test("test", async ({ page }) => {
     .click();
 
   await waitForTasks(page);
-  
+  await sleep(300);
   await expect(page.getByRole("button", { name: "On cue.enter" })).toBeHidden();
 
   await page.getByTestId("close-logic").click();
@@ -131,9 +136,11 @@ test("test", async ({ page }) => {
     console.log(`Dialog message: ${dialog.message()}`);
     dialog.accept().catch(() => {});
   });
-    await page.getByLabel("Delete Group").click();
-    
-    await waitForTasks(page)
+  await page.getByLabel("Delete Group").click();
+
+  await waitForTasks(page);
+  // Todo delete group should be synchronous
+  await sleep(600);
   await expect(page.getByRole("button", { name: "test" })).toBeHidden();
 
   // Ensure we can remake one with same name

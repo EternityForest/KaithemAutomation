@@ -121,11 +121,8 @@ async function chandlerBoardTemplate(page: Page, module: string) {
     await page.getByRole('link', { name: 'Edit' }).click();
 
     // Wait a bit before trying to fill out this so it doesn't get overwritten
-    
+    await waitForTasks(page);
     await sleep(500);
-    await page.evaluate(async () => {
-        await globalThis.doSerialized();
-    });
     // Create group
     await page.getByPlaceholder('New group name').click();
     await page.getByPlaceholder('New group name').fill('tst1');
@@ -145,6 +142,7 @@ async function chandlerBoardTemplate(page: Page, module: string) {
 }
 
 async function waitForTasks(page) {
+    await sleep(10);
     await page.evaluate(async () => {
         let safety = 100;  
         while (!globalThis.doSerialized) {

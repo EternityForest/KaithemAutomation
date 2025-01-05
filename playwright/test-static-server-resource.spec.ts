@@ -1,5 +1,6 @@
 import { test, expect, chromium } from '@playwright/test';
 import { login, logout, makeModule, deleteModule } from './util';
+import { assert } from 'console';
 
 test('test', async ({ page }) => {
     test.setTimeout(2_400_000);
@@ -111,8 +112,8 @@ test('test', async ({ page }) => {
     const context2 = await brows.newContext();
     const page2 = await context2.newPage();
     await login(page2);
-    await page2.goto('http://localhost:8002/pages/test_static_server/static2/linux.png');
-    await expect(page2.getByRole('heading')).toContainText('Error');
+    const resp = await page2.request.get('http://localhost:8002/pages/test_static_server/static2/linux.png');
+    await expect(resp.status()).toBe(404);
     await context2.close();
 
 

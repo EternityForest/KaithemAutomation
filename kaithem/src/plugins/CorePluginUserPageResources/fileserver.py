@@ -69,7 +69,7 @@ class FileServerType(modules_state.ResourceType):
         by_module_resource[module, name].close()
         del by_module_resource[module, name]
         if lookup:
-            lookup.invalidate_cache()
+            lookup.cache_clear()
 
     def on_create_request(self, module, name, kwargs):
         resourceobj = {

@@ -714,8 +714,9 @@ def rmModule(module: str, message: str = "deleted") -> None:
                 assert isinstance(rt, str)
                 additionalTypes[rt].on_delete(module, k, j[k])
             except Exception:
+                logging.exception("Error deleting resource type")
                 messagebus.post_message(
-                    "/system/modules/errors/unloading",
+                    "/system/notifications/errors",
                     f"Error deleting resource: {module},{k}",
                 )
 

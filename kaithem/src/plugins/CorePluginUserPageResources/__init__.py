@@ -22,6 +22,7 @@ import quart
 import quart.utils
 import structlog
 import vignette
+import werkzeug.wrappers.response
 import yaml
 
 # import tornado.exceptions
@@ -601,7 +602,9 @@ def handle_preflight():
 
 
 @app.route("/pages/<module>/<path:path>")
-async def catch_all(module, path):
+async def catch_all(
+    module, path
+) -> quart.Response | werkzeug.wrappers.response.Response:
     kwargs = dict(await quart.request.form)
     kwargs.update(quart.request.args)
 
@@ -617,7 +620,7 @@ async def catch_all(module, path):
         rn = "/".join(args)
         x = modules_state.ActiveModules[module].get(rn, None)
 
-        quart.abort(404)
+        return quart.abort(404)
 
     if "Origin" in quart.request.headers:
         if not page.xss:
