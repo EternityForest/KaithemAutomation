@@ -285,18 +285,6 @@
                 {% endif %}
             </details>
 
-            {% if hasattr( obj,"text_config_files") %}
-            {% for i in obj.text_config_files %}
-            <details>
-                <summary>
-                    <b><i class="mdi mdi-file-alt"></i>{{ i| escape }}</b>
-                </summary>
-                <textarea class="h-24rem w-full"
-                    name="filedata.{{ i }}">{{ read(obj.get_config_folder()+"/"+i)| escape }}</textarea>
-            </details>
-            {% endfor %}
-            {% endif %}
-
             {% if obj.get_config_folder(create=False) %}
             <details>
                 <summary>

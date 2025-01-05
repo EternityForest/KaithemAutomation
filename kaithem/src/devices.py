@@ -1179,10 +1179,6 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
         if "kaithem.write_perms" not in savable_data:
             savable_data["kaithem.write_perms"] = old_write_perms or ""
 
-        # Save file data
-
-        fd = {i: kwargs[i] for i in kwargs if i.startswith("filedata.")}
-
         # handle moved config folder
         if not new_dev_conf_folder == old_dev_conf_folder:
             if new_dev_conf_folder:
@@ -1202,26 +1198,6 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
                             f"Defensive check failed: {old_dev_conf_folder}"
                         )
                     shutil.rmtree(old_dev_conf_folder)
-
-        for i in fd:
-            i2 = i[len("filedata.") :]
-            fl = new_dev_conf_folder
-
-            if fl is None:
-                raise RuntimeError(f"{name} has no config dir")
-
-            do = False
-            if os.path.exists(os.path.join(fl, i2)):
-                with open(os.path.join(fl, i2)) as f:
-                    if not f.read() == kwargs[i]:
-                        do = True
-            else:
-                do = True
-
-            if do:
-                os.makedirs(fl, exist_ok=True, mode=0o700)
-                with open(os.path.join(fl, i2), "w") as f:
-                    f.write(kwargs[i])
 
         if not subdevice:
             remote_devices[name] = makeDevice(name, savable_data)
@@ -1390,12 +1366,7 @@ def makeDevice(name, data, cls=None):
     # Except a whitelist of known short string only keys that we need to easily access from
     # within the device integration code
     new_data = {
-        i: new_data[i]
-        for i in new_data
-        if (
-            (not i.startswith("temp.kaithem."))
-            and (not i.startswith("filedata."))
-        )
+        i: new_data[i] for i in new_data if (not i.startswith("temp.kaithem."))
     }
 
     try:

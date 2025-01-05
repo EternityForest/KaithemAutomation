@@ -10,12 +10,13 @@ This release moves some of the last few settings to module resources, so that al
 - :coffin: The Apprise notification setting is gone.  Use a config entries resource(created in a module) on core/apprise_target instead
 - :coffin: CSS theme setting is gone, use core/css_theme
 - :coffin:  Homepage redirect setting is now core/homepage_redirect
+- :coffin:  No device ever used this, but the on-page text file editor is removed.
 
 #### Others
 - :technologist: Lots of dead code gone, guided by test conerage metrics.
 - :sparkles: Map tile server will clear files older than 3 months if cache gets bigger than 32GB(defaults)
 - :sparkles: Maps app has USGS arial imagery(US only in high res, low res globally).
-
+- :sparkles: New iot_devices version that supports nested config.
 
 ### 0.87.0
 
