@@ -588,6 +588,10 @@ def rmResource(
             fr = os.path.join(getModuleDir(module), "__filedata__", resource)
             if os.path.isfile(fr):
                 os.remove(fr)
+            else:
+                logger.warning(
+                    f"Resource {resource} not found in module {module}"
+                )
             return
 
         r = modules_state.ActiveModules[module][resource]

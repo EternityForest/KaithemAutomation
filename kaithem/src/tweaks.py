@@ -6,10 +6,8 @@ import faulthandler
 # fix https://github.com/python/cpython/issues/91216
 # TODO this is a yucky hack
 import importlib.metadata
-import logging
 import mimetypes
 import os
-import re
 import sys
 import threading
 
@@ -70,51 +68,6 @@ faulthandler.enable()
 
 
 threadlogger = structlog.get_logger(__name__)
-
-
-class rtMidiFixer:
-    def __init__(self, obj):
-        self.__obj = obj
-
-    def __getattr__(self, attr):
-        if hasattr(self.__obj, attr):
-            return getattr(self.__obj, attr)
-        # Convert from camel to snake API
-        name = re.sub(r"(?<!^)(?=[A-Z])", "_", attr).lower()
-        return getattr(self.__obj, name)
-
-    def delete(self):
-        # Let GC do this
-        pass
-
-    def __del__(self):
-        try:
-            self.__obj.delete()
-        except AttributeError:
-            self.__obj.close_port()
-        self.__obj = None
-
-
-try:
-    import rtmidi
-
-    if hasattr(rtmidi, "MidiIn"):
-
-        def mget(*a, **k):
-            m = rtmidi.MidiIn(*a, **k)
-            return rtMidiFixer(m)
-
-        rtmidi.RtMidiIn = mget
-
-    if hasattr(rtmidi, "MidiOut"):
-
-        def moget(*a, **k):
-            m = rtmidi.MidiOut(*a, **k)
-            return rtMidiFixer(m)
-
-        rtmidi.RtMidiOut = moget
-except Exception:
-    logging.exception("RtMidi compatibility error")
 
 
 def installThreadLogging():

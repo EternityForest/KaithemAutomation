@@ -47,8 +47,10 @@ def test_make_demo_device():
         {
             "temp.kaithem.store_in_module": n,
             "temp.kaithem.store_in_resource": "devtest",
-            "device.fixed_number_multiplier": "10000909000",
-            "type": "DemoDevice",
+            "json": """{
+                "device.fixed_number_multiplier": "10000909000",
+                "type": "DemoDevice"
+            }""",
         },
     )
 
@@ -68,7 +70,28 @@ def test_make_demo_device():
         == "10000909000"
     )
 
-    assert tagpoints.allTagsAtomic["/devices/pytest_demo.random"]().value > 1
+    assert tagpoints.allTagsAtomic["/devices/pytest_demo.random"]().value > 100
+
+    devices.updateDevice(
+        "pytest_demo/subdevice",
+        {
+            "temp.kaithem.store_in_module": n,
+            "temp.kaithem.store_in_resource": "devtest_subdevice",
+            "json": """{
+                "device.echo_number": "6",
+                "type": "DemoDevice"
+            }""",
+        },
+    )
+
+    devices.remote_devices["pytest_demo/subdevice"].request_data_point("random")
+
+    assert (
+        devices.remote_devices["pytest_demo/subdevice"].config[
+            "device.echo_number"
+        ]
+        == "6"
+    )
 
     devices_interface.delete_device("pytest_demo")
 
@@ -83,9 +106,32 @@ def test_make_demo_device():
 
     assert "pytest_demo" not in devices.remote_devices
     assert "pytest_demo" not in devices.remote_devices_atomic
+    assert "pytest_demo/subdevice" not in devices.remote_devices
+
+    assert "pytest_demo/subdevice" in devices.device_location_cache
+
+    # Remake it
+    devices_interface.create_device_from_kwargs(
+        module=n, resource="devtest", type="DemoDevice", name="pytest_demo"
+    )
+
+    # Ensure it picks up config from the module
+    assert (
+        devices.remote_devices["pytest_demo/subdevice"].config[
+            "device.echo_number"
+        ]
+        == "6"
+    )
+
+    devices_interface.delete_device("pytest_demo")
 
     assert len(devices.remote_devices) == 0
     assert len(devices.remote_devices_atomic) == 0
+
+    modules.rmResource(n, "devtest_subdevice")
+
+    assert "pytest_demo/subdevice" not in devices.device_location_cache
+    assert "pytest_demo/subdevice" not in devices.subdevice_data_cache
 
     assert not os.path.exists(
         os.path.join(dir, "modules/data/", n, "devtest.yaml")

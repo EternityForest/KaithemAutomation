@@ -17,6 +17,8 @@ This release moves some of the last few settings to module resources, so that al
 - :sparkles: Map tile server will clear files older than 3 months if cache gets bigger than 32GB(defaults)
 - :sparkles: Maps app has USGS arial imagery(US only in high res, low res globally).
 - :sparkles: New iot_devices version that supports nested config.
+- :bug: Fix editing subdevices
+
 
 ### 0.87.0
 

@@ -38,12 +38,6 @@ logger = structlog.get_logger(__name__)
 ILLEGAL_NAME_CHARS = "{}|\\<>,?-=+)(*&^%$#@!~`\n\r\t\0"
 
 
-def replace_illegal_chars(name):
-    for i in ILLEGAL_NAME_CHARS:
-        name = name.replace(i, "")
-    return name
-
-
 def to_sk(s: str):
     s2 = ""
     last = "a"
@@ -54,17 +48,6 @@ def to_sk(s: str):
                 continue
         s2 += i
     return s2
-
-
-def _make_tag_info_helper(t: GenericTagPointClass[Any]):
-    def f():
-        x = t.current_source
-        if x == "default":
-            return ""
-        else:
-            return f"({x})"
-
-    return f
 
 
 def get_tag_meta(t):

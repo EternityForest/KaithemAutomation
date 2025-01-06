@@ -83,15 +83,6 @@ def delete_bookkeep(name, confdir=False):
                     del remote_devices[i]
                 except KeyError:
                     pass
-
-                try:
-                    del subdevice_data_cache[i]
-                except KeyError:
-                    pass
-                try:
-                    del device_location_cache[i]
-                except KeyError:
-                    pass
             try:
                 del remote_devices[name]
             except KeyError:
@@ -564,7 +555,7 @@ class Device(iot_devices.device.Device):
         with modules_state.modulesLock:
             if self.name in remote_devices:
                 del remote_devices[self.name]
-                remote_devices_atomic = wrcopy(remote_devices)
+            remote_devices_atomic = wrcopy(remote_devices)
 
             try:
                 # TODO don't forget about this if tagPoints becomes just tagpoints
@@ -1087,10 +1078,12 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
         if devname not in remote_devices:
             raise RuntimeError("No such device to update")
 
-        subdevice = hasattr(remote_devices[devname], "_kaithem_is_subdevice")
+        current_device_object = remote_devices[devname]
 
-        parent_module = remote_devices[devname].parent_module
-        parent_resource = remote_devices[devname].parent_resource
+        subdevice = hasattr(current_device_object, "_kaithem_is_subdevice")
+
+        parent_module = current_device_object.parent_module
+        parent_resource = current_device_object.parent_resource
         old_dev_conf_folder = get_config_folder_from_info(
             parent_module,
             parent_resource,
@@ -1116,38 +1109,42 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
             always_return=True,
         )
 
-        assert parent_module
-        assert parent_resource
-        dt = modules_state.ActiveModules[parent_module][parent_resource][
-            "device"
-        ]
+        if parent_module and parent_resource:
+            dt = modules_state.ActiveModules[parent_module][parent_resource][
+                "device"
+            ]
 
-        assert isinstance(dt, dict)
+            assert isinstance(dt, dict)
 
-        # Not the same as currently being a subdevice. We have placeholders to edit subdevices that don't exist.
-        configuredAsSubdevice = dt.get("is_subdevice", False) in (
-            "true",
-            True,
-            "True",
-            "yes",
-            "Yes",
-            1,
-            "1",
-        )
-        configuredAsSubdevice = (
-            configuredAsSubdevice or dt.get("parent_device", "").strip()
-        )  # type: ignore
+            # Not the same as currently being a subdevice.
+            # We have placeholders to edit subdevices that don't exist.
+            configuredAsSubdevice = dt.get("is_subdevice", False) in (
+                "true",
+                True,
+                "True",
+                "yes",
+                "Yes",
+                1,
+                "1",
+            )
+            configuredAsSubdevice = (
+                configuredAsSubdevice or dt.get("parent_device", "").strip()
+            )  # type: ignore
+        else:
+            configuredAsSubdevice = current_device_object.config.get(
+                "is_subdevice", False
+            )
 
-        old_read_perms = remote_devices[devname].config.get(
+        old_read_perms = current_device_object.config.get(
             "kaithem.read_perms", ""
         )
 
-        old_write_perms = remote_devices[devname].config.get(
+        old_write_perms = current_device_object.config.get(
             "kaithem.write_perms", ""
         )
 
         if not subdevice:
-            remote_devices[devname].close()
+            current_device_object.close()
             messagebus.post_message("/devices/removed/", devname)
 
         gc.collect()
@@ -1162,6 +1159,14 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
             for i in decoded
             if ((not i.startswith("temp.")) and not i.startswith("filedata."))
         }
+
+        if "name" in savable_data:
+            if savable_data["name"] != name:
+                raise ValueError("Internal error: device data inconsistent")
+        else:
+            # We might update this from some odd place that doesn't
+            # Explicitly put name in data.
+            savable_data["name"] = name
 
         # Special case for our video region editor
         if "property_device_regions" in kwargs:
@@ -1214,12 +1219,14 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
 
         # Delete and then recreate because we may be renaming to a different name
 
-        assert parent_module
-        assert parent_resource
+        # This might be created as a subdevice rather than a configured device
 
-        if not parent_resource:
-            raise RuntimeError("?????????????")
-        modules_state.rawDeleteResource(parent_module, parent_resource)
+        assert (parent_module and parent_resource) or (
+            not parent_module and not parent_resource
+        )
+
+        if parent_module and parent_resource:
+            modules_state.rawDeleteResource(parent_module, parent_resource)
 
         # set the location info
         remote_devices[name].parent_module = newparent_module
