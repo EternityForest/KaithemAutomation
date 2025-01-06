@@ -509,7 +509,7 @@ def test_shuffle():
         assert grp.cue.name != x
 
 
-def test_sched():
+def test_sched_end():
     with TempGroup() as grp:
         grp.cue.next_cue = "__schedule__"
 

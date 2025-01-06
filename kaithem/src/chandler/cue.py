@@ -21,6 +21,7 @@ import weakref
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any, Callable
 
+import dateutil.tz
 from beartype import beartype
 from scullery import messagebus, scheduling, snake_compat
 
@@ -639,7 +640,7 @@ class Cue:
 
                     if a:
                         if not a.tzinfo:
-                            a = a.astimezone()
+                            a = a.replace(tzinfo=dateutil.tz.tzlocal())
 
                         a2 = dt_to_ts(a)
 

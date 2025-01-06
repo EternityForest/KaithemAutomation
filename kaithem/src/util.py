@@ -6,6 +6,7 @@ import difflib
 import getpass
 import hashlib
 import os
+import re
 import reprlib
 import stat
 import struct
@@ -81,6 +82,11 @@ def get_rrule_selector(s: str, ref: datetime.datetime | None = None):
         raise ValueError("Seconds not supported due to slowing down the sys")
     s = s.replace("noon", "12pm")
     s = s.replace("midnight", "12am")
+
+    if re.search(r"\d\d:\d\d:\d\d", s):
+        raise ValueError(
+            "Times with seconds would not work right with parser library."
+        )
 
     ref = ref or datetime.datetime.now()
 
