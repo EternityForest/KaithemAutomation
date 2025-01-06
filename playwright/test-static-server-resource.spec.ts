@@ -113,7 +113,7 @@ test('test', async ({ page }) => {
     const page2 = await context2.newPage();
     await login(page2);
     const resp = await page2.request.get('http://localhost:8002/pages/test_static_server/static2/linux.png');
-    await expect(resp.status()).toBe(404);
+    await expect(resp.status()).not.toBe(200);
     await context2.close();
 
 

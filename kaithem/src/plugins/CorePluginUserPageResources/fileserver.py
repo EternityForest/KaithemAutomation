@@ -39,22 +39,20 @@ class ServerObj:
 
 class FileServerType(modules_state.ResourceType):
     @beartype.beartype
-    def blurb(self, m, r, value):
-        return f'<a href="/pages/{url(m)}/{quote(r)}">Browse</a>'
+    def blurb(self, module, resource, data):
+        return f'<a href="/pages/{url(module)}/{quote(resource)}">Browse</a>'
 
     def on_load(
         self,
         module: str,
-        resourcename: str,
-        value: modules_state.ResourceDictType,
+        resource: str,
+        data: modules_state.ResourceDictType,
     ):
-        by_module_resource[module, resourcename] = ServerObj(
-            module, resourcename, value
-        )
+        by_module_resource[module, resource] = ServerObj(module, resource, data)
         if lookup:
             lookup.cache_clear()
 
-    def on_move(self, module, resource, to_module, to_resource, resourceobj):
+    def on_move(self, module, resource, to_module, to_resource, data):
         x = by_module_resource.pop((module, resource), None)
         if x:
             by_module_resource[to_module, to_resource] = x
@@ -62,16 +60,16 @@ class FileServerType(modules_state.ResourceType):
         if lookup:
             lookup.cache_clear()
 
-    def on_update(self, module, resource, obj):
-        self.on_load(module, resource, obj)
+    def on_update(self, module, resource, data):
+        self.on_load(module, resource, data)
 
-    def on_delete(self, module, name, value):
-        by_module_resource[module, name].close()
-        del by_module_resource[module, name]
+    def on_delete(self, module, resource, data):
+        by_module_resource[module, resource].close()
+        del by_module_resource[module, resource]
         if lookup:
             lookup.cache_clear()
 
-    def on_create_request(self, module, name, kwargs):
+    def on_create_request(self, module, resource, kwargs):
         resourceobj = {
             "resource_type": self.type,
             "folder": kwargs["folder"],
@@ -79,21 +77,21 @@ class FileServerType(modules_state.ResourceType):
 
         return resourceobj
 
-    def on_update_request(self, module, resource, resourceobj, kwargs):
-        resourceobj = {
+    def on_update_request(self, module, resource, data, kwargs):
+        data = {
             "resource_type": self.type,
             "folder": kwargs["folder"],
         }
 
-        resourceobj["require_permissions"] = []
+        data["require_permissions"] = []
         for i in kwargs:
             # Since HTTP args don't have namespaces we prefix all the permission
             # checkboxes with permission
             if i[:10] == "Permission":
                 if kwargs[i] in ("true", "on"):
-                    resourceobj["require_permissions"].append(i[10:])
+                    data["require_permissions"].append(i[10:])
 
-        return resourceobj
+        return data
 
     def create_page(self, module, path):
         d = SimpleDialog(f"New File Server in {module}")
@@ -116,9 +114,9 @@ class FileServerType(modules_state.ResourceType):
             hidden_inputs={"path": path},
         )
 
-    def edit_page(self, module, resource, resource_data):
-        if "require_permissions" in resource_data:
-            requiredpermissions = resource_data["require_permissions"]
+    def edit_page(self, module, resource, data):
+        if "require_permissions" in data:
+            requiredpermissions = data["require_permissions"]
         else:
             requiredpermissions = []
 
@@ -126,7 +124,7 @@ class FileServerType(modules_state.ResourceType):
 
         d.text_input(
             "folder",
-            default=resource_data.get("folder", "$MODULE/__filedata__/public"),
+            default=data.get("folder", "$MODULE/__filedata__/public"),
         )
 
         d.begin_section("Require Permissions")

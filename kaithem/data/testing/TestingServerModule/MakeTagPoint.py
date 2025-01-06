@@ -20,6 +20,9 @@ if __name__ == "__setup__":
     from kaithem.api.tags import NumericTag
 
     t = NumericTag("/test_preloaded_module")
+    t2 = NumericTag("/test_preloaded_module2")
+
+    t2.expose("__guest__")
 
 
 def event_action():

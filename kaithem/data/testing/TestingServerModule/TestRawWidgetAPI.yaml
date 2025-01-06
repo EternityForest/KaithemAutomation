@@ -1,0 +1,26 @@
+allow_origins:
+- ''
+alt_top_banner: ''
+body: "{% extends \"pagetemplate.j2.html\" %}\r\n\r\n{% block title %} TestWidgetAPI\
+  \ {% endblock %}\r\n\r\n{% block body %}\r\n\r\n<script>\r\n    const url=\"ws://localhost:8002/widgets/wsraw?widgetid=tag%3A%2Ftest_preloaded_module2\"\
+  \r\n    // Establish WebSocket connection\r\n    const socket = new WebSocket(url);\r\
+  \n    \r\n    // Update HTML element when message is received\r\n    socket.onmessage\
+  \ = (event) => {\r\n      const element = document.getElementById('test');\r\n \
+  \     element.textContent = 'Got response!';\r\n    };\r\n\r\n</script>\r\n\r\n\
+  <main>\r\n  <h2>TestWidgetAPI</h2>\r\n  <section id=\"test\">\r\n    Content here\r\
+  \n  </section>\r\n</main>\r\n\r\n{% endblock %}\r\n"
+code: "import time\r\nfrom scullery import workers\r\nfrom kaithem.api.tags import\
+  \ NumericTag\r\n\r\nt = NumericTag(\"/test_preloaded_module2\")\r\n\r\ndef stp():\r\
+  \n    time.sleep(3)\r\n    t.value = time.time()\r\n\r\nworkers.do(stp)"
+mimetype: text/html
+no_header: true
+no_navheader: true
+require_method:
+- GET
+- POST
+require_permissions: []
+resource_timestamp: 1736123575152017
+resource_type: page
+setupcode: ''
+template_engine: jinja2
+theme_css_url: ''
