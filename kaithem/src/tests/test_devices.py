@@ -13,6 +13,51 @@ if "--collect-only" not in sys.argv:  # pragma: no cover
     tc = quart_app.app.test_client()
 
 
+def test_error_in_device():
+    from scullery import messagebus
+
+    from kaithem.src import (
+        devices,
+        devices_interface,
+        modules,
+        modules_state,
+    )
+
+    n = "test" + str(time.time()).replace(".", "_")
+
+    modules.newModule(n)
+
+    assert n in modules_state.ActiveModules
+
+    devices_interface.create_device_from_kwargs(
+        module=n, resource="devtest", type="DemoDevice", name="pytest_demo2"
+    )
+
+    got_errs = [0]
+
+    def message_handler(toppic, data: str):
+        data = data.lower()
+        if "pytest_demo2" in data:
+            if "error" in data:
+                got_errs[0] += 1
+
+    messagebus.subscribe("/system/notifications/errors", message_handler)
+
+    assert "pytest_demo2" in devices.remote_devices_atomic
+
+    d = devices.remote_devices["pytest_demo2"]
+    d.set_data_point("test_error", 1)
+    time.sleep(0.5)
+    assert got_errs[0] == 1
+
+    # Only the first one goes to the notifications
+    d.set_data_point("test_error", 2)
+    time.sleep(0.5)
+    assert got_errs[0] == 1
+
+    modules.rmResource(n, "devtest")
+
+
 def test_make_demo_device():
     from kaithem.src import (
         devices,

@@ -46,8 +46,9 @@ dummy_src_lock = threading.Lock()
 
 recorder = None
 
-
-ds = None
+# Some things will auto connect to sys inputs if we don't give
+# them a source
+dummy_silence_source = None
 
 
 class BeatDetector:
@@ -83,9 +84,13 @@ class BeatDetector:
 
 def start_dummy_source_if_needed():
     with dummy_src_lock:
-        global ds
-        if ds:
-            return
+        global dummy_silence_source
+        if dummy_silence_source is not None:
+            try:
+                if dummy_silence_source.poll() is None:
+                    return
+            except Exception:
+                logging.info("Exception checking dummy source, retrying")
 
         for i in range(25):
             if [
@@ -96,7 +101,7 @@ def start_dummy_source_if_needed():
                 return
             time.sleep(0.1)
 
-        ds = subprocess.Popen(
+        dummy_silence_source = subprocess.Popen(
             "gst-launch-1.0 audiotestsrc volume=0 ! pipewiresink client-name=SILENCE",
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
@@ -301,9 +306,6 @@ class ChannelStrip(Pipeline, BaseChannel):
             self.levelTag.writable = False
             self.levelTag.expose("view_status")
 
-            # When it changes the thread exits
-            self.stopMPVThread = 1
-
             # Set default
             self.levelTag.value = -90
             self.lastLevel = 0
@@ -401,52 +403,6 @@ class ChannelStrip(Pipeline, BaseChannel):
         ]:
             return False
         return True
-
-    def mpv_input_loop(self):
-        command = self.input.strip()
-        if not (
-            (command.startswith(("http://", "https://")))
-            and command.endswith(".m3u")
-            or command.endswith(".m3u8")
-        ):
-            return
-        from subprocess import Popen
-
-        n = f"{self.name}_src"
-        line = [
-            "mpv",
-            command,
-            "--profile=low-latency",
-            "--no-cache",
-            "--ao=jack",
-            f"--jack-port={self.name}_in",
-            f"--jack-name={n}",
-            "--vo=null",
-            "--no-video",
-        ]
-
-        x = jacktools.Airwire(
-            n, f"{self.name}_in", force_combining=(self.channels == 1)
-        )
-        x.connect()
-
-        p = Popen(line)
-
-        initial = self.stopMPVThread
-
-        while self.stopMPVThread == initial:
-            time.sleep(1)
-            rc = p.poll()
-            if rc is not None:
-                if not rc == 0:
-                    for i in range(20):
-                        time.sleep(0.25)
-                        if not self.stopMPVThread == initial:
-                            return
-
-                p = Popen(line)
-
-        p.terminate()
 
     @property
     def soundFuseSetting(self):
@@ -558,8 +514,6 @@ class ChannelStrip(Pipeline, BaseChannel):
                 log.exception("Failed to conneect airwire")
 
     def stop(self, at_exit=False):
-        self.stopMPVThread = None
-
         try:
             if hasattr(self, "faderTag"):
                 self.faderTag.unsubscribe(self._faderTagHandler)
@@ -605,31 +559,19 @@ class ChannelStrip(Pipeline, BaseChannel):
         return c
 
     def setInput(self, input):
-        # Stop whatever was there before
-        self.stopMPVThread = time.time()
-        if (
-            "://" in input
-            and ("http://" not in input)
-            and ("https://" not in input)
-        ):
-            return
         with self.lock:
             self.input = input
             if self._input:
                 self._input.disconnect()
-            if "://" not in self.input:
-                self._input = jacktools.Airwire(
-                    self.input,
-                    f"{self.name}_in",
-                    force_combining=(self.channels == 1),
-                )
-                try:
-                    self._input.connect()
-                except Exception:
-                    log.exception("Failed to conneect airwire")
-            else:
-                t = threading.Thread(target=self.mpv_input_loop, daemon=True)
-                t.start()
+            self._input = jacktools.Airwire(
+                self.input,
+                f"{self.name}_in",
+                force_combining=(self.channels == 1),
+            )
+            try:
+                self._input.connect()
+            except Exception:
+                log.exception("Failed to conneect airwire")
 
     def setOutputs(self, outputs):
         with self.lock:
@@ -1620,11 +1562,11 @@ class MixingBoard:
         try:
             apps_page.remove_app(self.app)
         except Exception:
-            pass
+            log.exception("Failed to remove app icon")
 
 
 def STOP(*a):
-    global ds
+    global dummy_silence_source
     # Shut down in opposite order we started in
     for board in boards.values():
         with board.lock:
@@ -1633,9 +1575,9 @@ def STOP(*a):
                 board.channelObjects[i].stop(at_exit=True)
 
     try:
-        if ds:
-            ds.terminate()
-            ds = None
+        if dummy_silence_source is not None:
+            dummy_silence_source.terminate()
+            dummy_silence_source = None
     except Exception:
         logging.exception("Exception stopping dummy source")
 

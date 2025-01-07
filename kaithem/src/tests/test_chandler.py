@@ -73,6 +73,28 @@ staticdir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 staticdir = os.path.join(staticdir, "data", "static")
 
 
+def test_cue_provider():
+    with TempGroup() as grp:
+        grp.cue_providers = [
+            "file://"
+            + os.path.join(staticdir, "sounds")
+            + "?import_media=sound"
+        ]
+        time.sleep(0.3)
+        assert len(grp.cues) > 2
+        assert grp.cues_ordered[1].sound
+
+    with TempGroup() as grp:
+        grp.cue_providers = [
+            "file://"
+            + os.path.join(staticdir, "sounds")
+            + "?import_media=slide"
+        ]
+        time.sleep(0.3)
+        assert len(grp.cues) > 2
+        assert grp.cues_ordered[1].slide
+
+
 # TODO i feel like these low level things need more testing
 def test_internal_action_queue():
     logs = []

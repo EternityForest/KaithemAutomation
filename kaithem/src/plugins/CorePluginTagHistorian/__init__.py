@@ -219,6 +219,15 @@ class TagLogger:
             return (list(reversed(d)) + x)[-maxRecords:]
 
     def __del__(self):
+        try:
+            if id(self) in historian.children:
+                del historian.children[id(self)]
+                logger.warning("Logger was deleted without being closed")
+        # Del always does nuisance stuff at shutdown
+        except Exception:
+            pass
+
+    def close(self):
         with historian.lock:
             del historian.children[id(self)]
 
@@ -599,6 +608,11 @@ class LoggerType(modules_state.ResourceType):
         self.on_load(module, resource, obj)
 
     def on_delete(self, module, name, value):
+        try:
+            loggers[module, name].close()
+        except Exception:
+            logger.exception("Error closing logger")
+
         del loggers[module, name]
 
     def on_create_request(self, module, name, kwargs):

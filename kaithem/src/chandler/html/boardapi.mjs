@@ -132,11 +132,20 @@ async function initializeState(board) {
     method: "GET",
   });
 
+  if (!v.ok) {
+    picodash.snackbar.createSnackbar("Error getting state.  Board might be nonexistent", {
+      timeout: 600_000,
+      accent: "error"
+    });
+    return;
+  }
+
   v = await v.json();
 
   for (var index in v) {
     handleCueInfo(index, v[index]);
   }
+
 }
 
 let cueSetData = {};

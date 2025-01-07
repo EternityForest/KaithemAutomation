@@ -443,6 +443,8 @@ test("test", async ({ page }) => {
 
   await page.getByRole("link", { name: "󰀻 Apps" }).click();
 
+  await sleep(200);
+  
   // Old mixer should have disappeared from the apps page
   await expect(page.getByRole("link", { name: "mxr" })).toBeHidden();
 
