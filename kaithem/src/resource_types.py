@@ -3,6 +3,7 @@
 
 import copy
 import html
+import threading
 import traceback
 import weakref
 from collections.abc import Mapping
@@ -15,6 +16,8 @@ from jsonschema import validate
 
 # Approximately type JSON, could be better
 ResourceDictType = Mapping[str, Any]
+
+edit_page_redirect = threading.local()
 
 
 def mutable_copy_resource(resource: ResourceDictType) -> dict[str, Any]:
@@ -52,6 +55,16 @@ class ResourceType:
         self.schema: dict | None = schema
         self.priority = priority
         self.title = title or type.capitalize()
+
+    def set_edit_page_redirect(self, url="__repeat__"):
+        """Call this from an update handler to say that after submitting,
+        the system should redirect back to the edit page for further edits.
+
+        Only applies to the current request.
+
+        Call with a URL to redirect to somewhere else specific.
+        """
+        edit_page_redirect.value = url
 
     def scan_dir(self, dir: str) -> dict[str, ResourceDictType]:
         """Given a directory path, scan for any resources stored
@@ -92,13 +105,13 @@ class ResourceType:
         just the resource specific stuff.
         """
 
-    def get_create_target(self, module: str, folder):
+    def get_create_target(self, module: str, folder) -> str:
         return f"/modules/module/{module}/addresourcetarget/{self.type}?dir={quote(folder,safe='')}"
 
-    def get_update_target(self, module: str, resource):
+    def get_update_target(self, module: str, resource) -> str:
         return f"/modules/module/{quote(module)}/updateresource/{resource}"
 
-    def _blurb(self, module: str, resource: str, data):
+    def _blurb(self, module: str, resource: str, data) -> str:
         try:
             return self.blurb(module, resource, data)
         except Exception:
@@ -108,7 +121,7 @@ class ResourceType:
         """Empty or a single overview div"""
         return ""
 
-    def create_page(self, module: str, path):
+    def create_page(self, module: str, path) -> str:
         """
         Called when the user clicks the create button.
 
@@ -132,7 +145,9 @@ class ResourceType:
         """
         return {"resource_type": "example"}
 
-    def edit_page(self, module: str, resource: str, data):  # pragma: no cover
+    def edit_page(
+        self, module: str, resource: str, data
+    ) -> str:  # pragma: no cover
         """Given current resource data, return a manager page.
         It may submit a form to the URL at get_update_target()
         """
@@ -140,7 +155,7 @@ class ResourceType:
 
     def on_update_request(
         self, module: str, resource: str, data: ResourceDictType, kwargs
-    ):  # pragma: no cover
+    ) -> ResourceDictType:  # pragma: no cover
         "Called with the kwargs from editpage.  Gets old resource obj, must return new"
         return data
 

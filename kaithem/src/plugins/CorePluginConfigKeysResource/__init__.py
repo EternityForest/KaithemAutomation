@@ -46,6 +46,8 @@ class Entries:
                 del entries[self.source]
         except KeyError:
             pass
+        # Only exists for defensive and nuisance reasons
+        # pragma: no cover
         except Exception:
             if entries is not None:
                 raise
@@ -59,18 +61,18 @@ entries: dict[tuple[str, str], Entries] = {}
 
 
 class ConfigType(modules_state.ResourceType):
-    def on_load(self, module, resourcename, value):
-        x = entries.pop((module, resourcename), None)
+    def on_load(self, module, resource, data):
+        x = entries.pop((module, resource), None)
         x2 = Entries(
-            (module, resourcename),
-            value["data"],
-            float(value.get("config_priority", 50)),
+            (module, resource),
+            data["data"],
+            float(data.get("config_priority", 50)),
         )
         if x:
             x.close()
-        entries[module, resourcename] = x2
+        entries[module, resource] = x2
 
-    def on_move(self, module, resource, to_module, to_resource, resourceobj):
+    def on_move(self, module, resource, to_module, to_resource, data):
         x = entries.pop((module, resource), None)
         if x:
             entries[to_module, to_resource] = x
@@ -78,7 +80,7 @@ class ConfigType(modules_state.ResourceType):
     def on_update(self, module, resource, data):
         self.on_load(module, resource, data)
 
-    def on_delete(self, module, resource, value):
+    def on_delete(self, module, resource, data):
         del entries[module, resource]
 
     def on_create_request(self, module, resource, kwargs):
@@ -102,7 +104,7 @@ class ConfigType(modules_state.ResourceType):
         pr = kwargs.pop("config_priority")
 
         for i in kwargs:
-            for c in r"""~!@#$%^&*()+`-=[]\{}|;':"',<>?""":
+            for c in r"""~!@#$%^&*()+`-=[]\{}|;':"',<>? """:
                 if c in i:
                     raise ValueError(
                         f"Special char {c} is forbidden in keys: " + i
@@ -122,6 +124,7 @@ class ConfigType(modules_state.ResourceType):
         if new_key:
             if new_key not in d["data"]:
                 d["data"][new_key] = ""
+                self.set_edit_page_redirect("__repeat__")
 
         d["config_priority"] = float(pr.strip())
         return d
@@ -143,17 +146,17 @@ class ConfigType(modules_state.ResourceType):
         d.submit_button("Save")
         return d.render(self.get_create_target(module, path))
 
-    def edit_page(self, module, name, value):
+    def edit_page(self, module, resource, data):
         d = dialogs.SimpleDialog("Editing Config Entries")
 
         d.text("Empty the key field to delete an entry")
 
-        for i in sorted(list(value["data"].keys())):
+        for i in sorted(list(data["data"].keys())):
             options = settings_overrides.suggestions_by_key.get(i, [])
             d.text_input(
                 i,
                 title=i,
-                default=value["data"][i],
+                default=data["data"][i],
                 multiline=True if not options else False,
                 suggestions=options,
             )
@@ -162,14 +165,14 @@ class ConfigType(modules_state.ResourceType):
         d.text_input(
             "config_priority",
             title="Config Priority",
-            default=str(value.get("config-priority", "50")),
+            default=str(data.get("config-priority", "50")),
         )
 
         suggestions = [(i, i) for i in settings_overrides.list_keys()]
         d.text_input("_newkey", title="Add New Key?", suggestions=suggestions)
 
         d.submit_button("Save")
-        return d.render(self.get_update_target(module, name))
+        return d.render(self.get_update_target(module, resource))
 
     def on_finished_loading(self, module: str | None):
         messagebus.post_message("/system/config_loaded_from_resources", None)

@@ -21,8 +21,12 @@ if __name__ == "__setup__":
     import time
 
     def f():
-        while 1:
-            time.sleep(1)
+        try:
+            while 1:
+                time.sleep(1)
+        # No annoying error at shutdown
+        except NameError:
+            pass
 
     t = threading.Thread(target=f, daemon=True, name="stoppable_thread")
     t.start()

@@ -17,21 +17,28 @@ test('test', async ({ page }) => {
     await page.getByLabel('Config Key').press('Tab');
 
     await page.getByRole('button', { name: 'Submit' }).click();
-
+    
+    await page.getByLabel('Add New Key').fill('test_key_2');
     await page.getByLabel('test_key').fill('test_val');
     await page.getByRole('button', { name: 'Submit' }).click();
 
+    await page.getByLabel('test_key_2').fill('test_val_2');
+    await page.getByRole('button', { name: 'Submit' }).click();
 
     await page.getByRole('link', { name: 'config_entry' }).click();
 
-    await expect(page.getByLabel('test_key')).toHaveValue('test_val');
+    // Todo why is the content part of the name to Playwright?
+    await expect(page.getByLabel('test_key test_val', { exact: true })).toHaveValue('test_val');
+    await expect(page.getByLabel('test_key_2 test_val_2', { exact: true })).toHaveValue('test_val_2');
 
     await page.getByRole('link', { name: '󰢻 Tools' }).click();
+
     await page.getByRole('link', { name: '󰢻 System Settings' }).click();
     await expect(page.locator('dl')).toContainText('test_key');
     await expect(page.locator('dl')).toContainText('test_val');
 
-
+    await expect(page.locator('dl')).toContainText('test_key_2');
+    await expect(page.locator('dl')).toContainText('test_val_2');
 
     await page.getByRole('link', { name: '󱒕 Modules' }).click();
     await page.getByRole('link', { name: 'test_config' }).click();
@@ -42,7 +49,9 @@ test('test', async ({ page }) => {
     await page.getByRole('link', { name: '󰢻 Tools' }).click();
     await page.getByRole('link', { name: '󰢻 System Settings' }).click();
     await expect(page.getByLabel('test_key')).not.toBeVisible();
-
+    await expect(page.getByLabel('test_key_2')).not.toBeVisible();
+    await expect(page.locator('dl')).not.toContainText('test_key');
+    await expect(page.locator('dl')).not.toContainText('test_val');
 
     await deleteModule(page, 'test_config');
 

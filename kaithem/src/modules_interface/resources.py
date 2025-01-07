@@ -24,6 +24,7 @@ from kaithem.src import (
     modules_state,
     pages,
     quart_app,
+    resource_types,
     util,
 )
 from kaithem.src.modules_interface.page_context import module_page_context
@@ -275,6 +276,8 @@ async def resource_update_handler(module, resource):
             t = resourceobj["resource_type"]
             resourceobj["resource_timestamp"] = int(time.time() * 1000000)
 
+            resource_types.edit_page_redirect.value = None
+
             if t in modules_state.additionalTypes:
                 n = modules_state.additionalTypes[t].on_update_request(
                     module, resource, old_resource, kwargs
@@ -318,6 +321,15 @@ async def resource_update_handler(module, resource):
             r = kwargs["name"]
         if "GoNow" in kwargs:
             return quart.redirect(f"/pages/{module}/{r}")
+
+        if resource_types.edit_page_redirect.value is not None:
+            if resource_types.edit_page_redirect.value == "__repeat__":
+                return quart.redirect(
+                    f"/modules/module/{util.url(module)}/resource/{util.url(r)}"
+                )
+            else:
+                return quart.redirect(resource_types.edit_page_redirect.value)
+
         # Return user to the module page. If name has a folder, return the
         # user to it;s containing folder.
         x = r.split("/")
