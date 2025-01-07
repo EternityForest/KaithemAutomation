@@ -705,8 +705,8 @@ class Group:
                         self._add_cue(cue)
                     discovered[cue.id] = i
 
-            for i in self.cues:
-                if self.cues[i].provider:
+            for i in list(self.cues.keys()):
+                if i in self.cues and self.cues[i].provider:
                     if self.cues[i].id not in discovered:
                         self.rmCue(self.cues[i].name, allow_rm_external=True)
 

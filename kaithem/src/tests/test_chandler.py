@@ -80,9 +80,19 @@ def test_cue_provider():
             + os.path.join(staticdir, "sounds")
             + "?import_media=sound"
         ]
-        time.sleep(0.3)
+        for i in range(30):
+            if not len(grp.cues) > 2:
+                time.sleep(0.1)
+
         assert len(grp.cues) > 2
         assert grp.cues_ordered[1].sound
+
+        grp.cue_providers = []
+
+        for i in range(30):
+            if not len(grp.cues) == 1:
+                time.sleep(0.1)
+        assert len(grp.cues) == 1
 
     with TempGroup() as grp:
         grp.cue_providers = [

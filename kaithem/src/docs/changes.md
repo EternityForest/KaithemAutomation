@@ -21,7 +21,7 @@ This release moves some of the last few settings to module resources, so that al
 - :sparkles: Maps app has USGS arial imagery(US only in high res, low res globally).
 - :sparkles: New iot_devices version that supports nested config.
 - :bug: Fix editing subdevices
-
+- :bug: Fix cues not going away when removing a cue provider.
 
 ### 0.87.0
 
