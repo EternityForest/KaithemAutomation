@@ -399,14 +399,6 @@ def loadModule(
                 "resource_timestamp": int(time.time() * 1000000),
             }
 
-        # Legacy upgrade TODO: Remove at some point
-        if "__description" in module:
-            md = dict(copy.deepcopy(module["__metadata__"]))
-            md["description"] = module["__description"]["text"]
-            module["__metadata__"] = md
-
-            del module["__description"]
-
         scopes[modulename] = ModuleObject(modulename)
         modules_state.ActiveModules[modulename] = module
         modules_state.importFiledataFolderStructure(modulename)

@@ -12,6 +12,7 @@ This release moves some of the last few settings to module resources, so that al
 - :coffin:  Homepage redirect setting is now core/homepage_redirect
 - :coffin:  No device ever used this, but the on-page text file editor is removed.
 - :coffin: The global kaithem API object is fully gone
+- :coffin: Chandler boards from older versions may not work right, but they should have already been auto-migrated long ago.
 
 #### Others
 - :technologist: Lots of dead code gone, guided by test conerage metrics.

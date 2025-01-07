@@ -1,8 +1,6 @@
 # SPDX-FileCopyrightText: Copyright 2014 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-only
 
-
-# Long lines, legacy stuff rarely touched...
 # ruff: noqa
 
 from __future__ import annotations

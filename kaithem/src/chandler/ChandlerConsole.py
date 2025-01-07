@@ -31,53 +31,6 @@ from .groups import Group, cues
 from .universes import getUniverse, getUniverses
 
 
-def from_legacy_preset_format(
-    d: Dict[str, Any],
-) -> dict[str, dict[int | str, float | int | str]]:
-    if "values" not in d:
-        return {"values": d}  # type: ignore
-    else:
-        return d
-
-
-def from_legacy_fixture_class_format(
-    d: List[Any] | Dict[str, Any],
-) -> dict[str, Any]:
-    # todo: remove this evetually
-    # pragma: no cover
-    if "channels" not in d:
-        c = d
-        a: List[dict[str, Any]] = []
-        for i in c:
-            o: dict[str, Any] = {}
-            o["name"] = i[0]
-            o["type"] = i[1]
-
-            if o["type"] == "fine":
-                o["coarse"] = i[2]
-
-            elif o["type"] == "fixed":
-                o["value"] = i[2]
-
-            a.append(o)
-
-        return {"channels": a}  # type: ignore
-    else:
-        assert isinstance(d, dict)
-        return d
-
-
-# pragma: no cover
-def from_legacy(d: Dict[str, Any]) -> Dict[str, Any]:
-    if "mediaWindup" in d:
-        d["media_wind_up"] = d.pop("mediaWindup")
-    if "mediaWinduown" in d:
-        d["media_wind_down"] = d.pop("mediaWinduown")
-    if "fadein" in d:
-        d["fade_in"] = d.pop("fadein")
-    return d
-
-
 class ChandlerConsole(console_abc.Console_ABC):
     "Represents a web GUI board. Pretty much the whole GUI app is part of this class"
 
@@ -206,16 +159,13 @@ class ChandlerConsole(console_abc.Console_ABC):
             self.fixture_classes = {}
             ft = data2["fixture_types"]
             for i in ft:
-                self.fixture_classes[i] = from_legacy_fixture_class_format(
-                    ft[i]
-                )
+                assert isinstance(ft[i], dict)
+                self.fixture_classes[i] = ft[i]
 
             self.fixture_assignments = data2["fixture_assignments"]
 
             x = data2.get("fixture_presets", {})
-            self.fixture_presets = {
-                i: from_legacy_preset_format(x[i]) for i in x
-            }
+            self.fixture_presets = {i: x[i] for i in x}
 
             default_media_folders: list[str] = []
 
@@ -244,7 +194,7 @@ class ChandlerConsole(console_abc.Console_ABC):
         if "groups" in data:
             d = data["groups"]
 
-            self.cl_load_dict(d)
+            self.cl_load_groups_from_dict(d)
             self.linkSend(["refreshPage", self.fixture_assignments])
 
     @core.cl_context.entry_point
@@ -407,7 +357,7 @@ class ChandlerConsole(console_abc.Console_ABC):
         if fixture_presets:
             if "fixture_presets" in data:
                 x = data["fixture_presets"]
-                fp = {i: from_legacy_preset_format(x[i]) for i in x}
+                fp = {i: x[i] for i in x}
 
                 for i in fp:
                     self.fixture_presets[i] = fp[i]
@@ -472,12 +422,13 @@ class ChandlerConsole(console_abc.Console_ABC):
 
             self.groups = {}
 
-        self.cl_load_dict(data, errs)
+        self.cl_load_groups_from_dict(data, errs)
 
     @core.cl_context.entry_point
-    def cl_load_dict(self, data: dict[str, Any], errs: bool = False):
+    def cl_load_groups_from_dict(
+        self, data: dict[str, Any], errs: bool = False
+    ):
         data = copy.deepcopy(data)
-        data = from_legacy(data)
         data = snake_compat.snakify_dict_keys(data)
 
         # Note that validation could include integer keys, but we handle that
