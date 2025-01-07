@@ -2,8 +2,6 @@ from typing import Any, Dict, Optional
 
 from .src import main
 
-# Config keys exactly the same as config.yaml.  Note that not all take effect instantly.
-config = main.config
 started = False
 
 

@@ -11,7 +11,7 @@ from typing import Any, Dict, Optional
 
 import structlog
 
-from . import config
+from . import config as config_module
 
 structlog.stdlib.recreate_defaults()
 cr = structlog.dev.ConsoleRenderer()
@@ -31,7 +31,7 @@ def import_in_thread(m):
     ).start()
 
 
-def initialize(cfg: Optional[Dict[str, Any]] = None):
+def initialize(config: Optional[Dict[str, Any]] = None):
     "Config priority is default, then cfg param, then cmd line cfg file as highest priority"
 
     start_time = time.time()
@@ -64,10 +64,9 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
 
     # config needs to be available before init for overrides
     # but it can't be initialized until after pathsetup which may
-    config.initialize(cfg)
+    config_module.initialize(config)
     from . import (
         geolocation,
-        pylogginghandler,  # noqa: F401
     )
 
     geolocation.use_api_if_needed()
@@ -114,7 +113,6 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
         weblogin,  # noqa: F401
         widgets,  # noqa: F401
     )
-    from . import config as cfg
     from .chandler import resource_type  # noqa
 
     def handle_error(f):
@@ -179,14 +177,15 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
     try:
         import setproctitle
 
-        if cfg:
-            title = cfg.get("process_title", "kaithem")
-        else:
+        try:
+            title = config_module.config.get("process_title", "kaithem")
+        except Exception:
+            logging.exception("error getting process title")
             title = "kaithem"
 
         setproctitle.setproctitle(title)
     except Exception:
-        logger.warning("error setting process title")
+        logger.exception("error setting process title")
 
     taken = round(time.time() - start_time, 2)
     logger.info(f"initialize() took {taken}s")

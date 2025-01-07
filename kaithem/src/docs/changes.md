@@ -13,7 +13,8 @@ This release moves some of the last few settings to module resources, so that al
 - :coffin:  No device ever used this, but the on-page text file editor is removed.
 - :coffin: The global kaithem API object is fully gone
 - :coffin: Chandler boards from older versions may not work right, but they should have already been auto-migrated long ago.
-- :coffin: MPV integration with the JACK mixer removed.  I don't think anyone ever used this.
+- :coffin: MPV integration with the JACK mixer removed.  I don't think anyone ever used this
+- :coffin: Removed the system event logging feature. Bring your own logs, like systemd offers Tag point logger resources are here to stay.
 
 #### Others
 - :technologist: Lots of dead code gone, guided by test conerage metrics.
@@ -22,6 +23,8 @@ This release moves some of the last few settings to module resources, so that al
 - :sparkles: New iot_devices version that supports nested config.
 - :bug: Fix editing subdevices
 - :bug: Fix cues not going away when removing a cue provider.
+- :coffin: Remove long time interval formatting option
+
 
 ### 0.87.0
 

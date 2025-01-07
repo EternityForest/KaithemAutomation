@@ -3,15 +3,22 @@
 
 
 import io
+import logging
 import os
 import re
+from collections import deque
 
 import quart
+from scullery import ratelimits, workers
 
-from . import directories, pages, pylogginghandler, quart_app, util, widgets
+from . import directories, pages, quart_app, util, widgets
 
 syslogwidget = widgets.ScrollingWindow(2500)
 syslogwidget.require("view_admin_info")
+
+buffer = deque(maxlen=1000)
+
+ratelimiter = ratelimits.RateLimiter(1, 60)
 
 
 def _strip_ansi_colour(text: str):
@@ -38,34 +45,34 @@ def strip_ansi_colour(text: str) -> str:
     return "".join(_strip_ansi_colour(text))
 
 
-try:
-    try:
-        import html
-
-        esc = html.escape
-    except Exception:
-        import cgi
-
-        esc = cgi.escape
-except Exception:
-
-    def esc(t):
-        return t
-
-
-def f(r):
-    t = strip_ansi_colour(pylogginghandler.syslogger.format(r))
-    if r.levelname in ["ERROR", "CRITICAL"]:
+def f():
+    record: logging.LogRecord = buffer.popleft()
+    t = strip_ansi_colour(handler.format(record))
+    if record.levelname in ["ERROR", "CRITICAL"]:
         syslogwidget.write('<pre class="danger">' + t + "</pre>")
-    elif r.levelname in ["WARNING"]:
+    elif record.levelname in ["WARNING"]:
         syslogwidget.write('<pre class="danger">' + t + "</pre>")
-    elif r.name == "system.notifications.important":
+    elif record.name == "system.notifications.important":
         syslogwidget.write('<pre class="highlight">' + t + "</pre>")
     else:
         syslogwidget.write("<pre>" + t + "</pre>")
 
 
-pylogginghandler.syslogger.callback = f
+class WebHandler(logging.Handler):
+    def emit(self, record: logging.LogRecord):
+        if ratelimiter.limit():
+            if len(buffer) > 1024:
+                buffer.popleft()
+            buffer.append(record)
+            workers.do(f)
+        else:
+            print("Web log window rate limit exceeded, dropping")
+
+
+handler = WebHandler()
+handler.setLevel(logging.INFO)
+rootlogger = logging.getLogger()
+rootlogger.addHandler(handler)
 
 
 def listlogdumps():

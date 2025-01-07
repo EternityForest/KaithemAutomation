@@ -9,7 +9,6 @@ import pytz
 from scullery.units import *  # noqa
 
 from . import auth, pages
-from .config import config
 
 try:
     from zoneinfo import ZoneInfo
@@ -70,48 +69,6 @@ def time_interval_from_string(s):
     return total
 
 
-def format_time_interval_long(t, max_units, clock=False):
-    """Take a length of time t in seconds, and return a nicely formatted string
-    like "2 hours, 4 minutes, 12 seconds".
-    max_units is the maximum number of units to use in the string(7 will add a milliseconds field to times in years)
-
-    """
-    if clock:
-        frac = t % 1
-        t -= frac
-        seconds = t % 60
-        t -= seconds
-        minutes = (t - (int(t / 3600) * 3600)) / 60
-        t -= t % 3600
-        hours = t / 3600
-
-        s = "%02d:%02d" % (hours, minutes)
-        if max_units > 2:
-            s += ":%02d" % (seconds)
-        if max_units > 3:
-            # Adding 0.01 seems to help with some kind of obnoxious rounding bug thing. Prob a better way to do things.
-            s += ":%03d" % (0.01 + frac * 1000)
-
-        return s
-    s = ""
-
-    for i in sorted(time_as_seconds.items(), key=lambda x: x[1], reverse=True):
-        if max_units == 0:
-            return s[:-2]
-        x = t % i[1]
-        b = t - x
-        y = (t - x) / i[1]
-
-        t = t - b
-        if y > 1:
-            s += str(int(round(y))) + " " + i[0] + "s, "
-            max_units -= 1
-        elif y == 1:
-            s += str(int(round(y))) + " " + i[0] + ", "
-            max_units -= 1
-    return s[:-2]
-
-
 def format_time_interval_abbr(t, max_units, clock=False):
     """Take a length of time t in seconds, and return a nicely formatted string
     like "2 hours, 4 minutes, 12 seconds".
@@ -158,10 +115,7 @@ def format_time_interval_abbr(t, max_units, clock=False):
     return s[:-1]
 
 
-if not config["full_time_intervals"]:
-    format_time_interval = format_time_interval_abbr
-else:
-    format_time_interval = format_time_interval_long
+format_time_interval = format_time_interval_abbr
 
 
 def str_to_int_si_multipliers(s):

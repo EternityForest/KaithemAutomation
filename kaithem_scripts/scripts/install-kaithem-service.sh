@@ -43,6 +43,11 @@ Restart=on-failure
 RestartSec=15
 Type=simple
 
+# Pretty low rate limits because we are prioritizing
+# SD card protection
+LogRateLimitIntervalSec=600
+LogRateLimitBurst=300
+
 [Install]
 WantedBy=default.target
 EOF

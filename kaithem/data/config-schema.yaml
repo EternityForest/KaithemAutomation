@@ -19,7 +19,7 @@ properties:
     host:
         type: string
         default: "default"
-        description: "IP to bind to. Default all interfaces unless local_access-only set"
+        description: "IP to bind to. Default all interfaces unless local_access_only set"
 
     location:
         type: string
@@ -29,7 +29,7 @@ properties:
     ssl_dir:
         type: string
 
-    site_data-dir:
+    site_data_dir:
         type: string
 
     worker_threads:
@@ -37,22 +37,22 @@ properties:
         maximum: 800
         minumum: 1
 
-    task_queue-size:
+    task_queue_size:
         type: integer
         minimum: 1
 
-    local_access-only:
+    local_access_only:
         type: boolean
 
     autosave_state:
         type: string
         pattern: ((.*(([0-9]*)\D*?(year|month|week|day|hour|minute|second|millisecond)s?).*)+)|never
 
-    wait_for-workers:
+    wait_for_workers:
         type: number
         minimum: 0.2
 
-    save_before-shutdown:
+    save_before_shutdown:
         type: boolean
 
     priority_response:
@@ -106,7 +106,7 @@ properties:
         type: array
         uniqueItems: yes
 
-    max_load-attempts:
+    max_load_attempts:
         type: integer
         minimum: 1
         maximum: 500
@@ -187,9 +187,6 @@ properties:
 
     quotes_file:
         type: string
-
-    full_time_intervals:
-        type: boolean
 
     get_public_ip:
         type: boolean

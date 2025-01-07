@@ -183,6 +183,13 @@ EOF
 
 systemctl enable tmp.mount
 
+# This does not actually matter if we're logging to a ramdisk
+# but it might matter in alternate configurations.
+cat << EOF > /etc/systemd/journald.conf
+[Journal]
+# Every 6 hours
+SyncIntervalSec=21600
+EOF
 
 cat << EOF > /etc/systemd/system/var-log.mount
 [Unit]
