@@ -7,7 +7,7 @@
 name = "kaithem"
 version = "0.87.0"
 description = "Home/commercial automation server"
-license = "GPL-3.0-only"
+license = "GPL-3.0-or-later"
 packages = [
     { include = "kaithem" },
     { include = "kaithem_cli" },

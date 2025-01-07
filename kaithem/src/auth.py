@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
-# SPDX-License-Identifier: GPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 """This file manages the concept of Users, Groups, and Permissions.
 A "User" is a user of the system who can belong to zero or more "Groups" each of which can have

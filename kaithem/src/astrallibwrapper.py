@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
-# SPDX-License-Identifier: GPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 """This file is an wrapper around some of the pyephem library, a pure python
 library providing all of kaithem's astronomical functions"""

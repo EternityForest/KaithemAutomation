@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
-# SPDX-License-Identifier: GPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 # NOTICE: A LOT OF LOCKS ARE USED IN THIS FILE. WHEN TWO LOCKS ARE USED,
 # ALWAYS GET _event_list_lock LAST

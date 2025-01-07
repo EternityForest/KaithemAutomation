@@ -24,7 +24,7 @@ This release moves some of the last few settings to module resources, so that al
 - :bug: Fix editing subdevices
 - :bug: Fix cues not going away when removing a cue provider.
 - :coffin: Remove long time interval formatting option
-
+- :sparkles: Relicense to GPL v3 or later instead of just GPLv3
 
 ### 0.87.0
 

@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
-# SPDX-License-Identifier: GPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 # This is for the ability to move directories.
 # State is for modules ad persistance files

@@ -20,7 +20,7 @@ import quart
 import structlog
 
 # SPDX-FileCopyrightText: Copyright 2018 Daniel Dunn
-# SPDX-License-Identifier: GPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-or-later
 from . import (
     alerts,
     directories,

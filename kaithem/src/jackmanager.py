@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: Copyright 2019 Daniel Dunn
-# SPDX-License-Identifier: GPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-or-later
 import traceback
 
 # Used by other stuff, yes this really is supposed to be there
