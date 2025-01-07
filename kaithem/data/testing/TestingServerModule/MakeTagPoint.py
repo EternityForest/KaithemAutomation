@@ -24,6 +24,8 @@ if __name__ == "__setup__":
 
     t2.expose("__guest__")
 
+    print("Also test print")
+
 
 def event_action():
     t.value = 123

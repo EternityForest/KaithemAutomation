@@ -6,6 +6,7 @@ import io
 import logging
 import os
 import re
+import time
 from collections import deque
 
 import quart
@@ -19,6 +20,20 @@ syslogwidget.require("view_admin_info")
 buffer = deque(maxlen=1000)
 
 ratelimiter = ratelimits.RateLimiter(1, 60)
+
+recent: list[str] = []
+
+
+def expect_log(text: str):
+    """Used for unit test purposes."""
+    global recent
+    start = time.time()
+    while time.time() - start < 5:
+        for i in recent:
+            if text in i:
+                return
+
+    raise RuntimeError("Expected log not found: " + text)
 
 
 def _strip_ansi_colour(text: str):
@@ -46,6 +61,7 @@ def strip_ansi_colour(text: str) -> str:
 
 
 def f():
+    global recent
     record: logging.LogRecord = buffer.popleft()
     t = strip_ansi_colour(handler.format(record))
     if record.levelname in ["ERROR", "CRITICAL"]:
@@ -56,6 +72,9 @@ def f():
         syslogwidget.write('<pre class="highlight">' + t + "</pre>")
     else:
         syslogwidget.write("<pre>" + t + "</pre>")
+
+    recent.append(t)
+    recent = recent[-32:]
 
 
 class WebHandler(logging.Handler):

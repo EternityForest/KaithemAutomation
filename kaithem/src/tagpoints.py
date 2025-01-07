@@ -1465,7 +1465,10 @@ class GenericTagPointClass(Generic[T]):
 
         for i in ILLEGAL_NAME_CHARS:
             if i in alias:
-                raise RuntimeError(f"Alias cannot contain {i}")
+                raise ValueError(f"Alias cannot contain {i}")
+
+        if not alias.strip():
+            raise ValueError("Alias cannot be empty")
 
         alias = normalize_tag_name(alias)
         with lock:

@@ -129,6 +129,10 @@ def test_delete_cue():
         with pytest.raises(RuntimeError):
             grp.rmCue("default")
 
+        # Non-existent
+        with pytest.raises(RuntimeError):
+            grp.rmCue("kjhgfvtdtjvddrbvgfvfhtjvhdgf")
+
         grp.goto_cue("cue3")
 
         grp.rmCue("cue3")
@@ -142,10 +146,6 @@ def test_delete_cue():
         # which is probably redundant since we on't allow deleting default
         with pytest.raises(RuntimeError):
             grp.rmCue("default")
-
-        # Non-existent
-        with pytest.raises(RuntimeError):
-            grp.rmCue("kjhgfvtdtjvddrbvgfvfhtjvhdgf")
 
         grp.add_cue("cue4")
         assert len(grp.cues) == 2
@@ -468,7 +468,9 @@ def test_cue_track_setting():
         core.wait_frame()
         core.wait_frame()
 
-        assert int(universes.universes["dmx2"]().values[1]) == 255
+        for attempt in stamina.retry_context(on=AssertionError):
+            with attempt:
+                assert int(universes.universes["dmx2"]().values[1]) == 255
 
         # This is a tracking cue so it keeps the value
         grp.add_cue("test1")
@@ -476,17 +478,23 @@ def test_cue_track_setting():
         core.wait_frame()
         core.wait_frame()
         time.sleep(0.1)
-        assert grp.cue.name == "test1"
-        assert int(universes.universes["dmx2"]().values[1]) == 255
+
+        for attempt in stamina.retry_context(on=AssertionError):
+            with attempt:
+                assert grp.cue.name == "test1"
+                assert int(universes.universes["dmx2"]().values[1]) == 255
 
         # This is not a tracking cue so it doesn't keep the value
         grp.add_cue("test2", track=False)
         grp.goto_cue("test2")
         core.wait_frame()
         core.wait_frame()
-        time.sleep(0.3)
-        assert grp.cue.name == "test2"
-        assert int(universes.universes["dmx2"]().values[1]) == 0
+        time.sleep(0.1)
+
+        for attempt in stamina.retry_context(on=AssertionError):
+            with attempt:
+                assert grp.cue.name == "test2"
+                assert int(universes.universes["dmx2"]().values[1]) == 0
 
     board.configured_universes = {}
     board.cl_create_universes(board.configured_universes)
@@ -604,6 +612,7 @@ def test_shuffle_2():
         grp.add_cue("cue2")
         grp.add_cue("cue3")
         grp.add_cue("cue4")
+        grp.add_cue("__rules__")
 
         used = ["default"]
 
@@ -611,12 +620,14 @@ def test_shuffle_2():
         core.wait_frame()
         core.wait_frame()
         assert grp.cue.name not in used
+        assert grp.cue.name != "__rules__"
         used.append(grp.cue.name)
 
         grp.goto_cue("__shuffle__")
         core.wait_frame()
         core.wait_frame()
         assert grp.cue.name not in used
+        assert grp.cue.name != "__rules__"
         used.append(grp.cue.name)
 
         # After shuffling through all we repeat
@@ -625,6 +636,7 @@ def test_shuffle_2():
         core.wait_frame()
         core.wait_frame()
         assert grp.cue.name != prev
+        assert grp.cue.name != "__rules__"
 
 
 def test_pipe():

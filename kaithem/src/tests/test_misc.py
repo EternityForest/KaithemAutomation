@@ -8,6 +8,29 @@ if "--collect-only" not in sys.argv:  # pragma: no cover
     from kaithem.src import util
 
 
+def test_message_bus():
+    from kaithem.src import logviewer, messagebus
+
+    got = []
+
+    def good_subscriber(topic, val):
+        got.append((topic, val))
+
+    messagebus.subscribe("test", good_subscriber)
+    messagebus.post("test", "hello")
+    time.sleep(0.2)
+    assert len(got) == 1
+    assert got[0] == ("/test", "hello")
+
+    def bad_subscriber(topic, val):
+        raise RuntimeError("bad")
+
+    messagebus.subscribe("test2", bad_subscriber)
+    messagebus.post("test2", "hello")
+    time.sleep(0.2)
+    logviewer.expect_log("bad_subscriber")
+
+
 def test_map_tiles_cleanup():
     from kaithem.src import settings_overrides
     from kaithem.src.plugins import CorePluginMapTileServer

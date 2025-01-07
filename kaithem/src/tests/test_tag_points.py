@@ -36,10 +36,21 @@ def test_aliases():
 
     from kaithem.src import tagpoints
 
+    t = tagpoints.Tag("/foo1234")
+
     t = tagpoints.Tag("/system/unit_test_tag_alias")
     t.value = 30
 
     assert t.value == 30
+
+    with pytest.raises(RuntimeError):
+        t.add_alias("foo1234")
+    with pytest.raises(ValueError):
+        t.add_alias("")
+    with pytest.raises(ValueError):
+        t.add_alias(" ")
+    with pytest.raises(ValueError):
+        t.add_alias("foo #")
 
     t.add_alias("tag_alias_1")
     t.add_alias("tag_alias_2")

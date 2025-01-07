@@ -119,18 +119,20 @@ dev-scalene-profile:
 dev-run-all-tests:
 	@echo "Starting test server and running all playwright and pytest tests"
 	@echo "Stopping any other process named coverage"
-	@coverage erase
+	@killall -9 kmakefiletest
 	@killall -9 coverage
+	@sleep 1
+	@coverage erase
 	@coverage run testing_server.py --process-title kmakefiletest &
 	@echo "Waiting for server to start"
 	@sleep 5
 	@wget --retry-connrefused --waitretry=1 --read-timeout=20 --quiet --timeout=15 -t 0 http://localhost:8002
 	@npx playwright test --reporter=html  --workers 1 --max-failures 1
-	@sleep 10
-	@echo "Stopping server"
-	@killall coverage
 	@sleep 5
-	@killall -9 coverage
+	@echo "Stopping server"
+	@killall kmakefiletest
+	@sleep 10
+	@killall -9 kmakefiletest
 	@coverage run --append -m pytest
 	@coverage html -i
 	@npx playwright show-report &

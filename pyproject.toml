@@ -139,6 +139,7 @@ build-backend = "poetry.core.masonry.api"
 [tool.coverage.run]
 # omit the deprecated old file and system gstreamer
 omit = ["*/thirdparty/*", "*/selftest/*", "/usr/lib/**"]
+sigterm = true
 
 [tool.coverage.report]
 
