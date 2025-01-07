@@ -18,11 +18,11 @@ import numpy
 import serial
 import serial.tools.list_ports
 import structlog
+from scullery import messagebus, workers
 
-from kaithem.api import lifespan
+from kaithem.api import devices, lifespan, tags
 from kaithem.src import alerts
 
-from ..kaithemobj import kaithem
 from . import core
 from .core import disallow_special
 
@@ -182,7 +182,7 @@ class Fixture:
             global last_state_update
             last_state_update = time.time()
 
-        kaithem.misc.do(f)
+        workers.do(f)
 
     def rm(self):
         try:
@@ -418,7 +418,9 @@ class Universe:
         last_state_update = time.time()
 
         if self.refresh_on_create:
-            kaithem.message.post("/chandler/command/refreshFixtures", self.name)
+            messagebus.post_message(
+                "/chandler/command/refreshFixtures", self.name
+            )
             self.refresh_groups()
 
     def close(self):
@@ -1089,7 +1091,7 @@ def onDelTag(t, m):
                 cl_discover_color_tag_devices()
 
 
-kaithem.message.subscribe("/system/tags/deleted", onDelTag)
+messagebus.subscribe("/system/tags/deleted", onDelTag)
 
 
 def onAddTag(t, m):
@@ -1104,8 +1106,8 @@ def onAddTag(t, m):
     cl_discover_color_tag_devices()
 
 
-kaithem.message.subscribe("/system/tags/created", onAddTag)
-kaithem.message.subscribe("/system/tags/configured", onAddTag)
+messagebus.subscribe("/system/tags/created", onAddTag)
+messagebus.subscribe("/system/tags/configured", onAddTag)
 
 
 def cl_discover_color_tag_devices():
@@ -1132,8 +1134,8 @@ def cl_discover_color_tag_devices():
         else:
             u[name] = _universes[name]()
 
-    for i in kaithem.devices:
-        d = kaithem.devices[i]
+    for i in devices.all_devices:
+        d = devices.all_devices[i]
         c = None
         ft = None
 
@@ -1208,7 +1210,7 @@ class ColorTagUniverse(Universe):
                 finally:
                     self.lock.release()
 
-        kaithem.misc.do(f)
+        workers.do(f)
 
     def _onFrame(self):
         c = colorzero.Color.from_rgb(
@@ -1244,7 +1246,7 @@ class OneTagpoint(Universe):
         self.status = "OK"
         self.number = number
         self.statusChanged = {}
-        self.tagpoint = kaithem.tags[name]
+        self.tagpoint = tags.NumericTag(name)
         self.claim = None
 
         self.count = 3

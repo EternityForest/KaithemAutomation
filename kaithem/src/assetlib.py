@@ -199,3 +199,6 @@ def fetch_file(owner, repo, folder, path):
 
     with open(fn, "wb") as f:
         f.write(d.content)
+
+
+assetpacks = AssetPacks(os.path.join(directories.vardir, "assets"))

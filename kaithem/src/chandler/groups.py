@@ -21,12 +21,20 @@ import icemedia.sound_player
 import numpy
 import structlog
 from beartype import beartype
+from icemedia import sound_player
 from scullery import messagebus, ratelimits, workers
 
+from kaithem.api import tags, web
 from kaithem.api.midi import normalize_midi_port_name
 
-from .. import alerts, context_restrictions, schemas, tagpoints, util
-from ..kaithemobj import kaithem
+from .. import (
+    alerts,
+    context_restrictions,
+    schemas,
+    scriptbindings,
+    tagpoints,
+    util,
+)
 from . import core, group_media, mqtt, persistance
 from .core import disallow_special
 from .cue import (
@@ -143,7 +151,7 @@ def makeWrappedConnectionClass(parent: Group):
 cue_transition_rate_limiter = ratelimits.RateLimiter(hz=20, burst=20)
 
 
-class DebugScriptContext(kaithem.chandlerscript.ChandlerScriptContext):
+class DebugScriptContext(scriptbindings.ChandlerScriptContext):
     def __init__(self, groupObj: Group, *a, **k):
         self.groupObj = weakref.ref(groupObj)
         self.groupName: str = groupObj.name
@@ -192,7 +200,7 @@ class DebugScriptContext(kaithem.chandlerscript.ChandlerScriptContext):
         val: str | float | int | bool | None = None,
         timestamp=None,
     ):
-        kaithem.chandlerscript.ChandlerScriptContext.event(
+        scriptbindings.ChandlerScriptContext.event(
             self, evt, val, timestamp=timestamp
         )
         try:
@@ -233,10 +241,9 @@ def checkPermissionsForGroupData(data: dict[str, Any], user: str):
 
     """
     if "mqtt_server" in data and data["mqtt_server"].strip():
-        if not kaithem.users.check_permission(user, "system_admin"):
+        if not web.has_permission("system_admin", user=user):
             raise ValueError(
-                "You cannot do this action on this group without system_admin, because it uses advanced features: MQTT:"
-                + str(kaithem.web.user(None))
+                "You cannot do this action on this group without system_admin, because it uses advanced features."
             )
 
 
@@ -372,9 +379,7 @@ class Group:
         self.default_next = str(default_next).strip()
 
         # TagPoint for managing the current cue
-        self.cueTag = kaithem.tags.StringTag(
-            "/chandler/groups/" + name + ".cue"
-        )
+        self.cueTag = tags.StringTag("/chandler/groups/" + name + ".cue")
         self.cueTag.expose("view_status", "chandler_operator")
 
         self.cueTagClaim = self.cueTag.claim(
@@ -406,13 +411,13 @@ class Group:
         self.cueTag.subscribe(cueTagHandler)
 
         # This is used to expose the state of the music cue mostly.
-        self.cueInfoTag = kaithem.tags.ObjectTag(
+        self.cueInfoTag = tags.ObjectTag(
             "/chandler/groups/" + name + ".cueInfo"
         )
         self.cueInfoTag.value = {"audio.meta": {}}
         self.cueInfoTag.expose("view_status", "chandler_operator")
 
-        self.albumArtTag = kaithem.tags.StringTag(
+        self.albumArtTag = tags.StringTag(
             "/chandler/groups/" + name + ".albumArt"
         )
         self.albumArtTag.expose("view_status")
@@ -427,7 +432,7 @@ class Group:
         self.cuelen = 0.0
 
         # TagPoint for managing the current alpha
-        self.alphaTag = kaithem.tags["/chandler/groups/" + name + ".alpha"]
+        self.alphaTag = tags.NumericTag("/chandler/groups/" + name + ".alpha")
         self.alphaTag.min = 0
         self.alphaTag.max = 1
         self.alphaTag.expose("view_status", "chandler_operator")
@@ -1397,7 +1402,7 @@ class Group:
                     out = "@auto"
 
                 try:
-                    kaithem.sound.preload(sound, out)
+                    sound_player.preload(sound)
                 except Exception:
                     print(traceback.format_exc())
 
@@ -1736,7 +1741,7 @@ class Group:
 
         sn = tag_name
         self.display_tag_meta[sn] = {}
-        if isinstance(tag, kaithem.tags.NumericTagPointClass):
+        if isinstance(tag, tags.NumericTagPointClass):
             self.display_tag_meta[sn]["min"] = tag.min
             self.display_tag_meta[sn]["max"] = tag.max
             self.display_tag_meta[sn]["hi"] = tag.hi
@@ -1796,22 +1801,22 @@ class Group:
                         i[2].pop("pattern", None)
 
                     if i[2]["type"] == "numeric_input":
-                        t = kaithem.tags[i[1]]
+                        t = tags.NumericTag(i[1])
 
                     elif i[2]["type"] == "switch_input":
-                        t = kaithem.tags[i[1]]
+                        t = tags.NumericTag(i[1])
 
                     elif i[2]["type"] == "string_input":
-                        t = kaithem.tags.StringTag(i[1])
+                        t = tags.StringTag(i[1])
 
                     elif i[2]["type"] == "text":
-                        t = kaithem.tags.StringTag(i[1])
+                        t = tags.StringTag(i[1])
 
                     elif i[2]["type"] == "meter":
-                        t = kaithem.tags[i[1]]
+                        t = tags.NumericTag(i[1])
 
                     elif i[2]["type"] == "led":
-                        t = kaithem.tags[i[1]]
+                        t = tags.NumericTag(i[1])
 
                     if t:
                         self.display_tag_subscription_refs.append(
@@ -1878,7 +1883,7 @@ class Group:
             return
 
         for i in [self.command_tag]:
-            t = kaithem.tags.ObjectTag(i)
+            t = tags.ObjectTag(i)
             s = self.command_tag_subscriber()
             self.command_tagSubscriptions.append((t, s))
             t.subscribe(s)
@@ -1926,7 +1931,7 @@ class Group:
             self.command_tag = tag_name
 
             if tag_name:
-                tag = kaithem.tags.ObjectTag(tag_name)
+                tag = tags.ObjectTag(tag_name)
                 if tag.subtype and not tag.subtype == "event":
                     raise ValueError("That tag does not have the event subtype")
 
@@ -2273,12 +2278,12 @@ class Group:
             return
 
         if not s:
-            kaithem.message.unsubscribe(
+            messagebus.unsubscribe(
                 "/midi/" + normalize_midi_port_name(s),
                 self.onMidiMessage,
             )
         else:
-            kaithem.message.subscribe(
+            messagebus.subscribe(
                 "/midi/" + normalize_midi_port_name(s),
                 self.onMidiMessage,
             )
@@ -2321,7 +2326,7 @@ class Group:
             )
             self.cueVolume = 1
 
-        kaithem.sound.setvol(val * self.cueVolume, str(self.id))
+        sound_player.setvol(val * self.cueVolume, str(self.id))
 
         if not self.is_active() and val > 0:
             self.go()

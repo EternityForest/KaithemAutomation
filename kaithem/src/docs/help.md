@@ -300,13 +300,6 @@ event's page.
 A blank object that you can assign properties to, which will persist
 when the event is modified, but not across reboots.
 
-# [/docs/mdtemplate/kaithemobj.md](The Kaithem Object)
-This object provides useful APIs and is available in many contexts.
-
-
-## [/docs/mdtemplate/kaithemobj.md] The Widgets API
-
-
 The Internal Message Bus
 ------------------------
 

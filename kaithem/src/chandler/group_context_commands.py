@@ -7,12 +7,11 @@ if TYPE_CHECKING:
 
 import time as _time
 
-from kaithem.src.kaithemobj import kaithem
-
+from .. import scriptbindings
 from . import core
 from .global_actions import cl_event, cl_trigger_shortcut_code
 
-rootContext = kaithem.chandlerscript.ChandlerScriptContext()
+rootContext = scriptbindings.ChandlerScriptContext()
 
 
 # Dummies just for the introspection
@@ -92,11 +91,11 @@ def add_context_commands(context_group: groups.Group):
 
         # Track layers of recursion
         newcause = "script.0"
-        if kaithem.chandlerscript.context_info.event[0] in (
+        if scriptbindings.context_info.event[0] in (
             "cue.enter",
             "cue.exit",
         ):
-            cause = kaithem.chandlerscript.context_info.event[1][1]
+            cause = scriptbindings.context_info.event[1][1]
             # Nasty hack, but i don't thing we need more layers and parsing might be slower.
             if cause == "script.0":
                 newcause = "script.1"

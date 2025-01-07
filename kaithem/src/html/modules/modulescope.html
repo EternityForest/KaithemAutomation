@@ -1,6 +1,6 @@
 <%!
 from kaithem.src.util import url
-from kaithem.src import pages,unitsofmeasure,util,widgets,kaithemobj
+from kaithem.src import pages,unitsofmeasure,util,widgets
 import json,re,quart
 %>
 <style>
@@ -18,9 +18,9 @@ if "cmd" in kwargs:
     if not quart.request.method=="POST":
         raise RuntimeError("/errors/wrongmethod")
     if re.match('([a-zA-Z_][a-zA-Z0-9_]* *=[^=])|(import )|(del )',kwargs['cmd']):
-        exec(kwargs['cmd'], {"kaithem":kaithemobj.kaithem},obj.__dict__)
+        exec(kwargs['cmd'], {},obj.__dict__)
     else:
-        result =eval(kwargs['cmd'], {"kaithem":kaithemobj.kaithem},obj.__dict__)
+        result =eval(kwargs['cmd'], {},obj.__dict__)
 
 %>
 
@@ -43,7 +43,7 @@ if "cmd" in kwargs:
 <a id="cmd"></a>
 <h2>Command Interpreter</h2>
 <p>You can enter single line commands here. Commands execute in the scope of the object's __dict__, so obj.cheese
-here would just be cheese. the kaithem object is available as kaithem as usual. You can call functions and get the result, and you can set and delete values.
+here would just be cheese. You can call functions and get the result, and you can set and delete values.
 multiline code doesn't work however. Be careful when refreshing this page as it may resend. Using this will add a __builtins__ to the module object.<p>
 %if "cmd" in kwargs:
 %if not quart.request.method=="POST":

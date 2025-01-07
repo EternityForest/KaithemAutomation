@@ -663,11 +663,6 @@ class Device(iot_devices.device.Device):
 
         return m
 
-    def serve_file(self, fn, mime="", name=None):
-        from . import kaithemobj
-
-        return kaithemobj.kaithem.web.serve_file(fn, mime, name)
-
     def __setupTagPerms(self, t, writable=True):
         # Devices can have a default exposure
         read_perms = (
@@ -679,16 +674,6 @@ class Device(iot_devices.device.Device):
             or "system_admin"
         )
         t.expose(read_perms, write_perms if writable else [])
-
-    def handle_web_request(self, relpath, params, method, **kwargs):
-        "To be called by the framework"
-        return "No web content here"
-
-    def web_serve_file(self, path, filename=None, mime=None):
-        """
-        From within your web handler, you can return the result of this to serve that file
-        """
-        return pages.serveFile(path, mime or "", filename)
 
     def numeric_data_point(
         self,

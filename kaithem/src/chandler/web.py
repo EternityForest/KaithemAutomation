@@ -15,11 +15,10 @@ from tinytag import TinyTag
 if TYPE_CHECKING:
     pass
 
-from kaithem.api.web import render_html_file
+from kaithem.api.web import has_permission, render_html_file
 from kaithem.src import quart_app
 
-from .. import directories, pages, util
-from ..kaithemobj import kaithem
+from .. import assetlib, directories, pages, util
 from . import (
     core,
     groups,
@@ -258,7 +257,7 @@ async def media():
             #     return(kwargs['file'],name= os.path.basename(kwargs['file']))
             else:
                 if "board" not in kwargs:
-                    if kaithem.web.has_permission("chandler_operator"):
+                    if has_permission("chandler_operator"):
                         if core.resolve_sound(kwargs["file"]):
                             return core.resolve_sound(kwargs["file"])
 
@@ -267,7 +266,7 @@ async def media():
 
                     f = core.resolve_sound(kwargs["file"], board.media_folders)
 
-                    if kaithem.web.has_permission("view_admin_info"):
+                    if has_permission("view_admin_info"):
                         for i in core.getSoundFolders(board.media_folders):
                             if not i.endswith("/"):
                                 i = i + "/"
@@ -277,7 +276,7 @@ async def media():
                                 if not os.path.isfile(f):
                                     pages.require("system_admin")
 
-                                kaithem.assetpacks.ensure_file(f)
+                                assetlib.assetpacks.ensure_file(f)
                                 return f
 
                 # Resist discovering what scenes exist

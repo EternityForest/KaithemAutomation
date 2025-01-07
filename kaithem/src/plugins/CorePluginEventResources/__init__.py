@@ -36,7 +36,6 @@ from kaithem.api.web import has_permission, render_jinja_template
 from kaithem.api.web.dialogs import SimpleDialog
 from kaithem.src import (
     devices,
-    kaithemobj,
     messagebus,
     modules_state,
     settings_overrides,
@@ -646,29 +645,24 @@ class BaseEvent:
         # Check the current time minus the last time against the rate limit
         # Don't execute more often than ratelimit
 
-        try:
-            kaithemobj.kaithem.context.event = (self.module, self.resource)
-
-            if time.time() - self.lastexecuted > self.ratelimit:
-                # Set the varible so we know when the last time the body actually ran
-                self.lastexecuted = time.time()
-                try:
-                    # Action could be any number of things, so this method mut be implemented by
-                    # A derived class or inherited from a mixin.
-                    self._do_action()
-                    self.lastcompleted = time.time()
-                    self.history.append((self.lastexecuted, self.lastcompleted))
-                    if len(self.history) > 250:
-                        self.history.pop(0)
-                    # messagebus.post_message('/system/events/ran',[self.module, self.resource])
-                except Exception as e:
-                    # This is not a child of system
-                    logger.exception(
-                        f"Error running event {self.resource} of {self.module}"
-                    )
-                    self.handle_exception(e)
-        finally:
-            kaithemobj.kaithem.context.event = None
+        if time.time() - self.lastexecuted > self.ratelimit:
+            # Set the varible so we know when the last time the body actually ran
+            self.lastexecuted = time.time()
+            try:
+                # Action could be any number of things, so this method mut be implemented by
+                # A derived class or inherited from a mixin.
+                self._do_action()
+                self.lastcompleted = time.time()
+                self.history.append((self.lastexecuted, self.lastcompleted))
+                if len(self.history) > 250:
+                    self.history.pop(0)
+                # messagebus.post_message('/system/events/ran',[self.module, self.resource])
+            except Exception as e:
+                # This is not a child of system
+                logger.exception(
+                    f"Error running event {self.resource} of {self.module}"
+                )
+                self.handle_exception(e)
 
     def handle_exception(self, e: Exception = None, tb: str = None) -> None:
         global _lastGC
@@ -869,7 +863,6 @@ class CompileCodeStringsMixin(BaseEvent):
         )
 
         try:
-            self.pymodule.__dict__["kaithem"] = kaithemobj.kaithem
             self.pymodule.__dict__["module"] = (
                 modules_state.scopes[self.module]
                 if self.module in modules_state.scopes
@@ -895,18 +888,12 @@ class CompileCodeStringsMixin(BaseEvent):
                 # Just a marker so we know it got called
                 flag.append(0)
                 try:
-                    kaithemobj.kaithem.context.event = (
-                        self.module,
-                        self.resource,
-                    )
                     exec(initializer, self.pymodule.__dict__)
                 except Exception as e:
                     logger.exception(
                         f"Error in event code for {self.module}:{self.resource}"
                     )
                     err.append(e)
-                finally:
-                    kaithemobj.kaithem.context.event = None
 
         # For reasons I don't yet understand, this blocked for a long time
         # when it used workers.do.
@@ -1059,12 +1046,9 @@ class ChangedEvalEvent(CompileCodeStringsMixin):
     def _check(self):
         if self.disable:
             return
-        try:
-            kaithemobj.kaithem.context.event = (self.module, self.resource)
-            # Evaluate the function that gives us the values we are looking for changes in
-            self.latest = self.pymodule._event_trigger()
-        finally:
-            kaithemobj.kaithem.context.event = None
+
+        # Evaluate the function that gives us the values we are looking for changes in
+        self.latest = self.pymodule._event_trigger()
 
         # If this is the very first reading,
         if not self.at_least_one_reading:

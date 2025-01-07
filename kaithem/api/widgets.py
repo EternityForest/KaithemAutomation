@@ -1,3 +1,5 @@
+import dataclasses
+
 from kaithem.src import widgets
 
 
@@ -36,6 +38,18 @@ def widget_docstring():
     ```
 
     """
+
+
+@dataclasses.dataclass
+class PeerInfo:
+    address: str
+    battery: str | None
+
+
+def peer_info_for_connection(connection_id: str):
+    """Get the peer address for a connection"""
+    c = widgets.ws_connections[connection_id]
+    return PeerInfo(address=c.peer_address, battery=c.batteryStatus)
 
 
 APIWidget = widgets.APIWidget

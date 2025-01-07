@@ -87,7 +87,7 @@ def getAlertState() -> dict[str, str | dict[str, Any]]:
 
 
 def pushAlertState():
-    messagebus.post("/system/alerts/state", getAlertState())
+    messagebus.post_message("/system/alerts/state", getAlertState())
 
 
 priorities = {

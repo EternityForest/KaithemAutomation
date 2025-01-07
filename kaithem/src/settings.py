@@ -24,11 +24,11 @@ from quart.ctx import copy_current_request_context
 from . import (
     apps_page,
     auth,
-    kaithemobj,
     messagebus,
     pages,
     quart_app,
     weblogin,
+    widgets,
 )
 
 fix_alsa = """
@@ -310,7 +310,7 @@ def snackbar(msg, duration):
     except PermissionError:
         return pages.loginredirect(pages.geturl())
     pages.postOnly()
-    kaithemobj.widgets.sendGlobalAlert(msg, float(duration))
+    widgets.sendGlobalAlert(msg, float(duration))
     return pages.get_template("settings/broadcast.html").render()
 
 

@@ -11,7 +11,7 @@ import quart
 import quart.utils
 import structlog
 
-from . import auth, kaithemobj, messagebus, pages, quart_app, util
+from . import auth, messagebus, pages, quart_app, util
 
 logger = structlog.get_logger(__name__)
 failureRecords = collections.OrderedDict()
@@ -66,9 +66,7 @@ def login_index():
         x = quart.request.remote_addr
         if not pages.isHTTPAllowed(x):
             return quart.redirect("/errors/gosecure")
-    return pages.get_template("login.html").render(
-        target=kwargs.get("go", "/"), kaithemobj=kaithemobj
-    )
+    return pages.get_template("login.html").render(target=kwargs.get("go", "/"))
 
 
 @quart_app.app.route("/login/login", methods=["POST"])

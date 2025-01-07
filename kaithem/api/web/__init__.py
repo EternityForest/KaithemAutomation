@@ -157,7 +157,7 @@ def user(asgi=None) -> str:
         return ""
 
 
-def has_permission(permission: str, asgi=None, user=None) -> bool:
+def has_permission(permission: str, asgi=None, user: str | None = None) -> bool:
     """Return True if the user accessing the current web request
     has the permssion specified.
 

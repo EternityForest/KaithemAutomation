@@ -1,4 +1,5 @@
 import threading
+import traceback
 from functools import wraps
 from typing import Any, Callable, List, Optional
 
@@ -10,6 +11,35 @@ from . import core
 soundActionSerializer = threading.RLock()
 
 soundActionQueue: List[Callable[..., Any]] = []
+
+
+def list_outputs() -> list[str]:
+    try:
+        from .. import jackmanager
+
+        # Always
+        try:
+            x = [
+                i.name
+                for i in jackmanager.get_ports(is_audio=True, is_input=True)
+            ]
+        except Exception:
+            print(traceback.format_exc())
+            x = []
+
+        prefixes = {}
+        op = []
+
+        for i in x:
+            if i.split(":")[0] not in prefixes:
+                prefixes[i.split(":")[0]] = i
+                op.append(i.split(":")[0])
+            op.append(i)
+
+        return [""] + op
+    except Exception:
+        print(traceback.format_exc())
+        return []
 
 
 # We must serialize sound actions to avoid a race condition where the stop

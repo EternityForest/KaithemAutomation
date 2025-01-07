@@ -19,8 +19,7 @@ from scullery import messagebus
 from scullery.ratelimits import RateLimiter
 from tinytag import TinyTag
 
-from .. import context_restrictions
-from ..kaithemobj import kaithem
+from .. import assetlib, config, context_restrictions, directories
 from . import console_abc
 
 if TYPE_CHECKING:
@@ -97,7 +96,7 @@ cl_context = context_restrictions.Context(
 
 logger = structlog.get_logger(__name__)
 
-saveLocation = os.path.join(kaithem.misc.vardir, "chandler")
+saveLocation = os.path.join(directories.vardir, "chandler")
 
 
 # Shared info that other modules use, it's here to avoid circular dependencies
@@ -126,7 +125,7 @@ def disallow_special(
     return s
 
 
-musicLocation = os.path.join(kaithem.misc.vardir, "chandler", "music")
+musicLocation = os.path.join(directories.vardir, "chandler", "music")
 
 
 """Only change this under core.cl_context"""
@@ -163,18 +162,20 @@ def getSoundFolders(extra_folders: list[str] | None = None) -> dict[str, str]:
     "path:displayname dict"
     soundfolders: dict[str, str] = {}
 
-    soundfolders[kaithem.assetpacks.assetlib] = "Online Assets Library"
+    soundfolders[assetlib.assetpacks.assetlib] = "Online Assets Library"
 
-    soundfolders[os.path.join(kaithem.misc.datadir, "static")] = "Builtin"
+    soundfolders[os.path.join(directories.datadir, "static")] = "Builtin"
     soundfolders[musicLocation] = "Chandler music folder"
-    for i in [i for i in kaithem.sound.directories if not i.startswith("__")]:
+    for i in [
+        i for i in config.config["audio_paths"] if not i.startswith("__")
+    ]:
         soundfolders[i] = i
 
-    modulesdata = os.path.join(kaithem.misc.vardir, "modules", "data")
+    modulesdata = os.path.join(directories.vardir, "modules", "data")
     if os.path.exists(modulesdata):
         for i in os.listdir(modulesdata):
             x = os.path.join(
-                kaithem.misc.vardir,
+                directories.vardir,
                 "modules",
                 "data",
                 i,

@@ -7,6 +7,7 @@
     import sys
     import gc
     import multiprocessing
+    import subprocess
     import re
     import threading
     import random
@@ -19,7 +20,7 @@
     from kaithem.src import settings_overrides
     from icemedia import sound_player as sound
     from kaithem.src import util
-    from kaithem.src import kaithemobj
+    from kaithem.src import astrallibwrapper as sky
     from kaithem.src import workers
     from kaithem.src.config import config
 
@@ -28,7 +29,14 @@
     except Exception as e:
         __version__ = str(e)
 
-
+    def sensors():
+        try:
+            if util.which("sensors"):
+                return subprocess.check_output("sensors").decode("utf8")
+            else:
+                return '"sensors" command failed(lm_sensors not available)'
+        except Exception:
+            return "sensors call failed"
 
     if os.name != "nt":
         import fcntl
@@ -240,12 +248,12 @@ except Exception:
 <table border=1 class="w-full">
     <tr>
         <td>Moon Age(Days, approx)</td>
-        <td>${kaithemobj.kaithem.time.moon_age()}</td>
+        <td>${sky.moon_age()}</td>
     </tr>
 
     <tr>
         <td>Moon Illumination(approx)</td>
-        <td>${kaithemobj.kaithem.time.moon_percent()}%</td>
+        <td>${sky.moon_illumination()}%</td>
     </tr>
 </table>
 
@@ -426,7 +434,7 @@ except Exception:
 <h3>lm_sensors output(Requires lm_sensors to be installed)</h3>
 <pre>
 
-${kaithemobj.kaithem.sys.sensors()|h}
+${sensors()|h}
 </pre>
 <%
 def module_version(m, name):

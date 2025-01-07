@@ -10,11 +10,10 @@ from typing import Any, Dict, Iterable, List, Optional, Set
 
 import beartype
 import yaml
-from scullery import scheduling, snake_compat, workers
+from scullery import messagebus, scheduling, snake_compat, workers
 
 # The frontend's ephemeral state is using CamelCase conventions for now
-from .. import schemas
-from ..kaithemobj import kaithem
+from .. import schemas, unitsofmeasure
 from . import (
     blendmodes,
     console_abc,
@@ -23,6 +22,7 @@ from . import (
     group_lighting,
     groups,
     persistance,
+    soundmanager,
     universes,
 )
 from .core import logger
@@ -135,8 +135,8 @@ class ChandlerConsole(console_abc.Console_ABC):
                 self.on_soundcards_changed()
 
         self.callback_jackports = f
-        kaithem.message.subscribe("/system/jack/newport", f)
-        kaithem.message.subscribe("/system/jack/delport", f)
+        messagebus.subscribe("/system/jack/newport", f)
+        messagebus.subscribe("/system/jack/delport", f)
 
         # Use only for stuff in background threads, to avoid pileups that clog the
         # Whole worker pool
@@ -157,7 +157,9 @@ class ChandlerConsole(console_abc.Console_ABC):
         self.should_run = True
 
     def on_soundcards_changed(self):
-        self.linkSend(["soundoutputs", [i for i in kaithem.sound.outputs()]])
+        self.linkSend(
+            ["soundoutputs", [i for i in soundmanager.list_outputs()]]
+        )
 
     @core.cl_context.required
     def cl_close(self):
@@ -585,7 +587,9 @@ class ChandlerConsole(console_abc.Console_ABC):
                             [
                                 event,
                                 target,
-                                kaithem.time.strftime(time_unix or time.time()),
+                                unitsofmeasure.strftime(
+                                    time_unix or time.time()
+                                ),
                                 value,
                                 info,
                             ],
@@ -606,7 +610,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                     )
                     self.last_logged_gui_send_error = time.monotonic()
 
-        kaithem.misc.do(f)
+        workers.do(f)
 
     def push_setup(self):
         ps = copy.deepcopy(self.fixture_presets)

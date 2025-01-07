@@ -1,11 +1,9 @@
 <%!
-from kaithem.src import notifications,auth,unitsofmeasure,pages,alerts
+from kaithem.src import notifications,auth,unitsofmeasure,pages,alerts,theming
 import time
 from kaithem.src.config import config
 from kaithem.src.unitsofmeasure import format_time_interval
-from kaithem.src import kaithemobj
 
-kaithem = kaithemobj.kaithem
 
 pcolor={
     "critical": "pink",
@@ -28,7 +26,7 @@ scolor={
 
 %>
 <head>
-<link rel="stylesheet" type="text/css" href="${kaithem.web.theming.getCSSTheme() or config['theme-url']}">
+<link rel="stylesheet" type="text/css" href="${theming.getCSSTheme() or config['theme-url']}">
 </head>
 <script src="/static/js/thirdparty/vue2.js"></script>
 <script src="/static/js/thirdparty/strftime-min.js"></script>

@@ -99,7 +99,6 @@ def initialize(cfg: Optional[Dict[str, Any]] = None):
         devices,  # noqa: F401
         directories,
         gis,  # noqa: F401
-        kaithemobj,  # noqa: F401
         logviewer,  # noqa: F401
         messagelogging,  # noqa: F401
         module_object_inspector,  # noqa: F401

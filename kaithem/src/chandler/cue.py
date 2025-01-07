@@ -25,8 +25,7 @@ import dateutil.tz
 from beartype import beartype
 from scullery import messagebus, scheduling, snake_compat
 
-from .. import schemas, util
-from ..kaithemobj import kaithem
+from .. import assetlib, schemas, util
 from . import core
 from .core import disallow_special
 from .global_actions import normalize_shortcut, shortcut_codes
@@ -684,7 +683,7 @@ class Cue:
 
     @slide.setter
     def slide(self, val: str):
-        kaithem.assetpacks.ensure_file(val)
+        assetlib.assetpacks.ensure_file(val)
         g = self.getGroup()
         b = g.board
 
@@ -710,7 +709,7 @@ class Cue:
     @sound.setter
     def sound(self, val: str):
         # If it's a cloud asset, get it first
-        kaithem.assetpacks.ensure_file(val)
+        assetlib.assetpacks.ensure_file(val)
 
         g = self.getGroup()
         b = g.board

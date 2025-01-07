@@ -9,20 +9,25 @@ import time
 import traceback
 from typing import Any
 
+from icemedia import sound_player
+from scullery import messagebus
 from tinytag import TinyTag
 
+from kaithem.api import tags
 from kaithem.api.midi import list_midi_inputs
+from kaithem.api.web import has_permission
+from kaithem.api.widgets import APIWidget
 
-from .. import tagpoints
+from .. import assetlib, directories, scriptbindings, tagpoints
 from ..alerts import getAlertState
 from ..auth import canUserDoThis
-from ..kaithemobj import kaithem
 from . import (
     ChandlerConsole,
     blendmodes,
     core,
     global_actions,
     groups,
+    soundmanager,
     universes,
 )
 from .core import disallow_special
@@ -91,7 +96,7 @@ def listsoundfolder(path: str, extra_folders: list[str] = []):
     #    return [[],[]]
 
     # x = os.listdir(path)
-    x = kaithem.assetpacks.ls(path)
+    x = assetlib.assetpacks.ls(path)
 
     return (
         sorted(
@@ -167,7 +172,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         self.app: Any = None
 
     def setup_link(self):
-        class WrappedLink(kaithem.widget.APIWidget):
+        class WrappedLink(APIWidget):
             def on_new_subscriber(s, user: str, connection_id: str, **kw: Any):
                 pass
 
@@ -204,7 +209,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         self.onmsg = f
         self.link.attach2(self.onmsg)
 
-        kaithem.message.subscribe("/system/alerts/state", self.push_sys_alerts)
+        messagebus.subscribe("/system/alerts/state", self.push_sys_alerts)
 
     def push_sys_alerts(self, t: str, m: dict[str, Any]):
         self.linkSend(["alerts", m])
@@ -242,7 +247,9 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         self.linkSend(["availableTags", limitedTagsListing()])
 
-        self.linkSend(["soundoutputs", [i for i in kaithem.sound.outputs()]])
+        self.linkSend(
+            ["soundoutputs", [i for i in soundmanager.list_outputs()]]
+        )
 
         self.linkSend(["midiInputs", list_midi_inputs()])
 
@@ -291,7 +298,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         self.pushConfiguredUniverses()
         self.linkSend(["serports", getSerPorts()])
 
-        shows = os.path.join(kaithem.misc.vardir, "chandler", "shows")
+        shows = os.path.join(directories.vardir, "chandler", "shows")
         if os.path.isdir(shows):
             self.linkSend(
                 [
@@ -304,7 +311,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 ]
             )
 
-        setups = os.path.join(kaithem.misc.vardir, "chandler", "setups")
+        setups = os.path.join(directories.vardir, "chandler", "setups")
         if os.path.isdir(setups):
             self.linkSend(
                 [
@@ -368,7 +375,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             ch_info = {}
             for i in c:
                 f = c[i]
-                ch_info[i] = kaithem.chandlerscript.get_function_info(f)
+                ch_info[i] = scriptbindings.get_function_info(f)
             self.linkSend(["commands", ch_info])
             return
 
@@ -390,8 +397,8 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         else:
             # Not in allowed read only commands, need chandler_operator below this point
             # Right now there's no separate chandler view, just operator
-            if not kaithem.users.check_permission(user, "chandler_operator"):
-                if not kaithem.users.check_permission(user, "system_admin"):
+            if not has_permission("chandler_operator", user=user):
+                if not has_permission("system_admin", user=user):
                     raise PermissionError(
                         cmd_name + "requires chandler_operator or system_admin"
                     )
@@ -436,7 +443,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             return
 
         elif cmd_name == "testSoundCard":
-            kaithem.sound.test(output=msg[1])
+            sound_player.test(output=msg[1])
             return
 
         elif cmd_name == "setalpha":
@@ -449,7 +456,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         else:
             # Not in allowed runtime only commands
-            if not kaithem.users.check_permission(user, "system_admin"):
+            if not has_permission("system_admin", user=user):
                 raise PermissionError(cmd_name + "requires system_admin")
 
         ###
@@ -471,7 +478,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             sc.go()
 
         elif cmd_name == "setconfuniverses":
-            if kaithem.users.check_permission(user, "system_admin"):
+            if has_permission("system_admin", user=user):
                 self.configured_universes = msg[1]
                 self.cl_create_universes(self.configured_universes)
             else:
@@ -588,11 +595,11 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             for i in groups.groups[msg[1]].display_tags:
                 # Defensive programming, don't set a tag that wasn't ever actually configured
                 if msg[2] == i[1]:
-                    kaithem.tags.all_tags_raw[msg[2]]().value = msg[3]
+                    tags.existing_tag(msg[2]).value = msg[3]
                     return
 
         elif cmd_name == "setMqttServer":
-            if kaithem.users.check_permission(user, "system_admin"):
+            if has_permission("system_admin", user=user):
                 groups.groups[msg[1]].setMqttServer(msg[2])
                 self.push_group_meta(msg[1], keys={"mqtt_server"})
 
@@ -751,9 +758,9 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             bn = os.path.basename(msg[2])
             bn = fnToCueName(bn)
             try:
-                tags = TinyTag.get(msg[2])
-                if tags.artist and tags.title:
-                    bn = tags.title + " ~ " + tags.artist
+                media_tags = TinyTag.get(msg[2])
+                if media_tags.artist and media_tags.title:
+                    bn = media_tags.title + " ~ " + media_tags.artist
             except Exception:
                 print(traceback.format_exc())
 

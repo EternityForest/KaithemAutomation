@@ -212,9 +212,6 @@ class CompiledPage:
         # Mako template code.   It's main use is for self modifying pages
 
         self.localAPI = CompiledPageAPIObject(self)
-        from kaithem.src import kaithemobj
-
-        self.kaithemobj = kaithemobj
 
         def refreshFromResource():
             # For compatibility with older versions, we provide defaults
@@ -293,7 +290,6 @@ class CompiledPage:
                     footer = ""
 
                 self.scope = {
-                    "kaithem": self.kaithemobj.kaithem,
                     "page": self.localAPI,
                     "print": self.new_print,
                     "_k_alt_top_banner": self.alt_top_banner,
@@ -775,11 +771,8 @@ async def catch_all(
             if t in theming.cssthemes:
                 t = theming.cssthemes[t].css_url
 
-            from kaithem.src import kaithemobj
-
             if hasattr(page, "template"):
                 s = {
-                    "kaithem": kaithemobj.kaithem,
                     "request": quart.request,
                     "module": modules_state.scopes[module],
                     "path": args,

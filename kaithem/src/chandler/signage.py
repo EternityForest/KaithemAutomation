@@ -5,7 +5,6 @@ import time
 from typing import TYPE_CHECKING, Any
 
 import kaithem.api.widgets as widgets
-from kaithem.src.kaithemobj import kaithem
 
 from . import core
 
@@ -49,7 +48,7 @@ class MediaLinkManager:
                 )
 
                 if remain:
-                    ip = kaithem.widget.ws_connections[id].peer_address
+                    ip = widgets.peer_info_for_connection(id).address
                     n = ip + "@" + groupObj.name
 
                     if v[1]["status"] == "disconnect":
@@ -64,9 +63,7 @@ class MediaLinkManager:
                         "ip": ip,
                         "id": id,
                         "ts": time.time(),
-                        "battery": kaithem.widget.ws_connections[
-                            id
-                        ].batteryStatus,
+                        "battery": widgets.peer_info_for_connection(id).battery,
                         "group": groupObj.name,
                     }
                     self.slideshow_telemetry.move_to_end(n)
