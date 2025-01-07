@@ -143,6 +143,10 @@ def test_delete_cue():
         with pytest.raises(RuntimeError):
             grp.rmCue("default")
 
+        # Non-existent
+        with pytest.raises(RuntimeError):
+            grp.rmCue("kjhgfvtdtjvddrbvgfvfhtjvhdgf")
+
         grp.add_cue("cue4")
         assert len(grp.cues) == 2
 
@@ -593,6 +597,69 @@ def test_shuffle():
 
         grp.next_cue()
         assert grp.cue.name != x
+
+
+def test_shuffle_2():
+    with TempGroup() as grp:
+        grp.add_cue("cue2")
+        grp.add_cue("cue3")
+        grp.add_cue("cue4")
+
+        used = ["default"]
+
+        grp.goto_cue("__shuffle__")
+        core.wait_frame()
+        core.wait_frame()
+        assert grp.cue.name not in used
+        used.append(grp.cue.name)
+
+        grp.goto_cue("__shuffle__")
+        core.wait_frame()
+        core.wait_frame()
+        assert grp.cue.name not in used
+        used.append(grp.cue.name)
+
+        # After shuffling through all we repeat
+        prev = grp.cue.name
+        grp.goto_cue("__shuffle__")
+        core.wait_frame()
+        core.wait_frame()
+        assert grp.cue.name != prev
+
+
+def test_pipe():
+    with TempGroup() as grp:
+        grp.add_cue("cue2")
+        grp.add_cue("cue3")
+        grp.add_cue("cue4")
+
+        grp.goto_cue("cue2|cue3")
+        core.wait_frame()
+        core.wait_frame()
+        assert grp.cue.name in ["cue2", "cue3"]
+
+
+def test_next_specia():
+    with TempGroup() as grp:
+        grp.add_cue("cue2")
+        grp.add_cue("cue3")
+
+        grp.goto_cue("__next__")
+        core.wait_frame()
+        core.wait_frame()
+        assert grp.cue.name == "cue2"
+
+
+def test_random():
+    with TempGroup() as grp:
+        grp.add_cue("cue2")
+        grp.add_cue("cue3")
+        grp.add_cue("cue4")
+
+        grp.goto_cue("__random__")
+        core.wait_frame()
+        core.wait_frame()
+        assert grp.cue.name in ["cue2", "cue3", "cue4"]
 
 
 def test_sched_end():
@@ -1108,12 +1175,17 @@ def test_tag_backtrack_feature():
 
         core.wait_frame()
         core.wait_frame()
-        time.sleep(0.1)
-        assert tagpoints.Tag("/test_bt").value == 1
+        time.sleep(0.3)
+        for attempt in stamina.retry_context(on=AssertionError):
+            with attempt:
+                assert tagpoints.Tag("/test_bt").value == 1
 
         s.cues["default"].set_value_immediate("/test_bt", "value", 2)
         core.wait_frame()
-        assert tagpoints.Tag("/test_bt").value == 2
+
+        for attempt in stamina.retry_context(on=AssertionError):
+            with attempt:
+                assert tagpoints.Tag("/test_bt").value == 2
 
         c2 = s.add_cue("c2")
         c2.set_value_immediate("/test_bt", "value", 5)

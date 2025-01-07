@@ -923,8 +923,7 @@ class Group:
             if self.cue and self.cue.name == name:
                 try:
                     self.goto_cue("default", cause="deletion")
-                except Exception:
-                    # pragma: no cover
+                except Exception:  # pragma: no cover
                     raise RuntimeError(
                         "Failed to go to default before deleting cue"
                     )
@@ -939,9 +938,8 @@ class Group:
 
             try:
                 self.cues[name].close()
-            except Exception:
+            except Exception:  # pragma: no cover
                 # Entirely defensive
-                # pragma: no cover
                 print(traceback.format_exc())
 
             del self.cues[name]
@@ -953,9 +951,8 @@ class Group:
                     )
             try:
                 self.cuePointer = self.cues_ordered.index(self.cue)
-            except Exception:
+            except Exception:  # pragma: no cover
                 # Entirely defensive
-                # pragma: no cover
                 print(traceback.format_exc())
 
     @slow_group_lock_context.object_session_entry_point
