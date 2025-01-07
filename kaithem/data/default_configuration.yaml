@@ -30,11 +30,6 @@ max_frame_rate: 60
 #If yes, don't allow acess from any computer except this one.
 local_access_only: no
 
-#How often to automatically save the entire server state. Does not dump log files to avoid tons of short files
-#must be [number] [unit] like 2 hours. units: second,minute,hour,day,week,year
-#can also be "never"
-autosave_state: 30 minutes
-
 #When the system shuts down, this is how many seconds to wait for the worker threads to finish before
 #Just quitting anyway. This will let any tasks that were ["semi_atomic"] finish so you don't have
 #Sprinklers that never shut down or something.
@@ -75,35 +70,16 @@ max_load_attempts: 3
 #Notice: to actually control what topics are logged, use the kaithem/var/whattosave.txt or edit
 #through the web interface
 
+# Note that we just log to stdout, we leave the actual logging to something like systemd-journald
+
 #By default, log these topics unless the user changes the settings via the web interface.
 log_topics:
   - /system/notifications/
 
-#How many log entries per file, before we start a new file
-log_dump_size: 25000
-
-#How many log entries to buffer before dumping all at once to reduce SD wear.
-#Note that log files can also get dumped manually or on the ["autosave_logs"] times
-#If using an HDD, you almost certainly want this to be exactly 1
-log_buffer: 25000
-
-#How many bytes of log files to keep before deleting the oldest until the total filesize is under the limit
-#Size is in bytes but you can use k,m,g for thousand million and billion
-keep_log_files: 8m
-
-#Level of prettyprinting vs filsize for logs. Can be: tiny, normal, pretty, none
-#Everything but normal and none is now deprecated
-log_format: none
-
-#Type of data compression for log files. Can be: bz2, gzip, or none
-log_compress: none
 
 #How many old system notifications to show on front page(does not affect logging)
 notifications_to_keep: 250
 
-#How often to automatically dump the log file. must be [number] [unit] like 2 hours. units: second,minute,hour,day,week,year
-#can also be "never"
-autosave_logs: never
 
 #List of topic that will be printed to stdout if anything is published to them
 print_topics:

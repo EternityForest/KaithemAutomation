@@ -15,7 +15,7 @@ import structlog
 from scullery import scheduling
 from zeroconf import ServiceBrowser, ServiceStateChange
 
-from . import messagebus, unitsofmeasure, util
+from . import messagebus, util
 from .config import config
 
 # very much not thread safe, doesn't matter, it's only for one UI page
@@ -74,22 +74,6 @@ logger = structlog.get_logger(__name__)
 
 lastsaved = time.time()
 
-
-def getcfg():
-    global saveinterval, dumplogsinterval, lastdumpedlogs
-    if not config["autosave_state"] == "never":
-        saveinterval = unitsofmeasure.time_interval_from_string(
-            config["autosave_state"]
-        )
-
-    lastdumpedlogs = time.time()
-    if not config["autosave_logs"] == "never":
-        dumplogsinterval = unitsofmeasure.time_interval_from_string(
-            config["autosave_logs"]
-        )
-
-
-getcfg()
 
 lastgotip = time.time()
 

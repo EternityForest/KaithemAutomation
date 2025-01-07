@@ -44,10 +44,6 @@ properties:
     local_access_only:
         type: boolean
 
-    autosave_state:
-        type: string
-        pattern: ((.*(([0-9]*)\D*?(year|month|week|day|hour|minute|second|millisecond)s?).*)+)|never
-
     wait_for_workers:
         type: number
         minimum: 0.2
@@ -117,43 +113,11 @@ properties:
         items:
             type: string
 
-    log_dump-size:
-        type: integer
-        minimum: 1
-
-    log_buffer:
-        type: integer
-        minimum: 1
-
-    keep_log_files:
-        type: string
-        pattern: "[0-9]*(k|m|g|K|M|G)"
-
-    #Everything excrpt null and normal is deprecated
-    log_format:
-        type: string
-        enum:
-            - tiny
-            - normal
-            - pretty
-            - none
-
-    log_compress:
-        type: string
-        enum:
-            - none
-            - gzip
-            - bz2
-
     errors_to_keep:
         type: integer
 
     notifications_to_keep:
         type: integer
-
-    autosave_logs:
-        type: string
-        pattern: ((.*(([0-9]*)\D*?(year|month|week|day|hour|minute|second|millisecond)s?).*)+)|never
 
 
     log_http:

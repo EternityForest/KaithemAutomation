@@ -126,9 +126,10 @@ dev-run-all-tests:
 	@sleep 5
 	@wget --retry-connrefused --waitretry=1 --read-timeout=20 --quiet --timeout=15 -t 0 http://localhost:8002
 	@npx playwright test --reporter=html  --workers 1 --max-failures 1
+	@sleep 10
 	@echo "Stopping server"
 	@killall coverage
-	@sleep 15
+	@sleep 5
 	@killall -9 coverage
 	@coverage run --append -m pytest
 	@coverage html -i
