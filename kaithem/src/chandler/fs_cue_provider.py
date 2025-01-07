@@ -109,7 +109,8 @@ class FilesystemCueProvider(CueProvider):
                 if not name:
                     continue
                 fn = os.path.join(root, i)
-                id = "file://" + fn
+
+                id = self.group.id + ":file:" + fn
                 id = fnToCueName(id)
                 id = disallow_special(id, replaceMode="_")
 

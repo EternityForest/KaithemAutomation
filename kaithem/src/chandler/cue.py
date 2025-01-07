@@ -289,6 +289,10 @@ class Cue:
 
         # This is so we can loop through them and push to gui
         self.id: str = id or uuid.uuid4().hex
+
+        if self.id in cues:
+            raise ValueError("Cue ID already exists")
+
         self.name = name
 
         if insert_after_number is not None:

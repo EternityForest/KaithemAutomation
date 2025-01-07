@@ -73,6 +73,12 @@ staticdir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 staticdir = os.path.join(staticdir, "data", "static")
 
 
+def test_cue_unique():
+    with TempGroup() as grp:
+        with pytest.raises(ValueError):
+            grp.add_cue("cue2", id=grp.cues["default"].id)
+
+
 def test_cue_provider():
     with TempGroup() as grp:
         grp.cue_providers = [
@@ -86,6 +92,11 @@ def test_cue_provider():
 
         assert len(grp.cues) > 2
         assert grp.cues_ordered[1].sound
+
+        # Can't just delete provider cue because we don't know how
+        # we would save that.
+        with pytest.raises(RuntimeError):
+            grp.rmCue(grp.cues_ordered[1].name)
 
         grp.cue_providers = []
 
@@ -103,6 +114,49 @@ def test_cue_provider():
         time.sleep(0.3)
         assert len(grp.cues) > 2
         assert grp.cues_ordered[1].slide
+
+
+def test_delete_cue():
+    with TempGroup() as grp:
+        grp.add_cue("cue2")
+        grp.add_cue("cue3")
+
+        assert len(grp.cues) == 3
+        grp.rmCue("cue2")
+        assert len(grp.cues) == 2
+        assert "cue2" not in grp.cues
+
+        with pytest.raises(RuntimeError):
+            grp.rmCue("default")
+
+        grp.goto_cue("cue3")
+
+        grp.rmCue("cue3")
+        core.wait_frame()
+        core.wait_frame()
+        assert len(grp.cues) == 1
+        assert "cue3" not in grp.cues
+        assert grp.cue.name == "default"
+
+        # This is for the "cannot have no cues" thing
+        # which is probably redundant since we on't allow deleting default
+        with pytest.raises(RuntimeError):
+            grp.rmCue("default")
+
+        grp.add_cue("cue4")
+        assert len(grp.cues) == 2
+
+        with TempGroup() as grp2:
+            grp2.add_cue("cue4")
+            # Can't delete from another group
+            with pytest.raises(RuntimeError):
+                grp.rmCue(grp2.cues["cue4"].id)
+
+        assert len(grp.cues) == 2
+
+        # Test deleting by ID
+        grp.rmCue(grp.cues["cue4"].id)
+        assert len(grp.cues) == 1
 
 
 # TODO i feel like these low level things need more testing

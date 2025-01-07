@@ -896,25 +896,10 @@ class Group:
 
     @slow_group_lock_context.object_session_entry_point
     def rmCue(self, cue: str, allow_rm_external: bool = False):
+        """Remove cue by either name or uuid"""
         with self.lock:
             if not len(self.cues) > 1:
                 raise RuntimeError("Cannot have group with no cues")
-
-            if cue in cues:
-                if cues[cue].name == "default":
-                    raise RuntimeError("Cannot delete the cue named default")
-
-                if cues[cue].provider:
-                    if not allow_rm_external:
-                        raise RuntimeError(
-                            "Cannot delete the cue with a provider"
-                        )
-
-            if self.cue and self.name == cue:
-                try:
-                    self.goto_cue("default", cause="deletion")
-                except Exception:
-                    self.goto_cue(self.cues_ordered[0].name, cause="deletion")
 
             if cue in cues:
                 id = cue
@@ -925,21 +910,41 @@ class Group:
             else:
                 raise RuntimeError("Cue does not seem to exist")
 
-            try:
-                self.cues[name].close()
-            except Exception:
-                print(traceback.format_exc())
+            if name == "default":
+                raise RuntimeError("Cannot delete the cue named default")
+
+            if name not in self.cues or self.cues[name].id != id:
+                raise RuntimeError("Cue is not part of this group")
+
+            if self.cues[name].provider:
+                if not allow_rm_external:
+                    raise RuntimeError("Cannot delete the cue with a provider")
+
+            if self.cue and self.cue.name == name:
+                try:
+                    self.goto_cue("default", cause="deletion")
+                except Exception:
+                    # pragma: no cover
+                    raise RuntimeError(
+                        "Failed to go to default before deleting cue"
+                    )
 
             self.cues_ordered.remove(self.cues[name])
 
-            if cue in cues:
-                id = cue
-                self.cues[cues[cue].name].shortcut = ""
-                del self.cues[cues[cue].name]
-            elif cue in self.cues:
-                id = self.cues[cue].id
-                self.cues[cue].shortcut = ""
-                del self.cues[cue]
+            if id in cues:
+                del cues[id]
+
+            # Clean up the shortcut ref
+            self.cues[name].shortcut = ""
+
+            try:
+                self.cues[name].close()
+            except Exception:
+                # Entirely defensive
+                # pragma: no cover
+                print(traceback.format_exc())
+
+            del self.cues[name]
 
             for board in core.iter_boards():
                 if len(board.newDataFunctions) < 100:
@@ -949,6 +954,8 @@ class Group:
             try:
                 self.cuePointer = self.cues_ordered.index(self.cue)
             except Exception:
+                # Entirely defensive
+                # pragma: no cover
                 print(traceback.format_exc())
 
     @slow_group_lock_context.object_session_entry_point
