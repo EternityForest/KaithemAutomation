@@ -4,14 +4,14 @@
 # This file manages a work queue that feeds a threadpool
 # Tasks will be performed on a best effort basis and errors will be caught and ignored.
 
-import atexit
 import traceback
 
 from scullery import workers
 from scullery.workers import (
-    EXIT,
     do,  # noqa
 )
+
+from kaithem.api import lifespan
 
 from . import config as cfg
 
@@ -54,4 +54,4 @@ workers.start(count, qsize, wait)
 
 # Only now do we do the import, as we will actually have everything loaded
 
-atexit.register(EXIT)
+lifespan.at_shutdown(workers.stop)

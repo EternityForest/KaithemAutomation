@@ -2,9 +2,9 @@
 allow_origins:
 - '*'
 allow_xss: false
-alt-top-banner: ''
-auto-reload: false
-auto-reload-interval: 5.0
+alt_top_banner: ''
+auto_reload: false
+auto_reload_interval: 5.0
 code: "__doc__= \"#Python Code here runs every page load\"\r\n\r\nif 'starttime' in\
   \ kwargs:\r\n  starttime = datetime.datetime.fromisoformat(kwargs['starttime'])\r\
   \nelse:\r\n  starttime= datetime.datetime.fromisoformat('1900-01-01'+\"+00:00\"\
@@ -12,12 +12,12 @@ code: "__doc__= \"#Python Code here runs every page load\"\r\n\r\nif 'starttime'
   l=''\r\n\r\ndef parse(s):\r\n  if not \"Z\" in s and not '+' in s:\r\n    x= datetime.datetime.fromisoformat(s+\"\
   +00:00\")\r\n  else:\r\n    x= datetime.datetime.fromisoformat(s.replace(\"Z\",\"\
   +00:00\"))\r\n\r\n    if x.tzinfo is None:\r\n      x=x.replace(tzinfo=datetime.timezone.utc)\r\
-  \n  return x\r\n\r\nfor i in kaithem.devices:\r\n  if kaithem.devices[i].device_type_name\
-  \ in ['NVRChannel']:\r\n    canDo=True\r\n    for j in  kaithem.devices[i].config.get(\"\
-  kaithem.read_perms\",'').strip().split(\",\"):\r\n      if not kaithem.web.has_permission(j.strip()):\r\
+  \n  return x\r\n\r\nfor i in all_devices:\r\n  if all_devices[i].device_type_name\
+  \ in ['NVRChannel']:\r\n    canDo=True\r\n    for j in  all_devices[i].config.get(\"\
+  kaithem.read_perms\",'').strip().split(\",\"):\r\n      if not web.has_permission(j.strip()):\r\
   \n        canDo=False\r\n    if canDo:\r\n      if not 'filter' in kwargs or not\
   \ kwargs['filter'].strip() or  kwargs['filter'].strip().lower() in i.lower():\r\n\
-  \        dirs.append((os.path.join(os.path.expanduser(kaithem.devices[i].config['device.storage_dir']),i,'recordings'),\
+  \        dirs.append((os.path.join(os.path.expanduser(all_devices[i].config['device.storage_dir']),i,'recordings'),\
   \ i))\r\n\r\n\r\nenough = 0\r\n\r\nfor t in dirs:\r\n  i=t[0]\r\n  if not os.path.isdir(i):\r\
   \n    continue\r\n  for j in os.listdir(i):\r\n    j2 = os.path.join(i,j)\r\n  \
   \  if not os.path.isdir(j2):\r\n      continue\r\n    \r\n    #Parse the day folders\r\
@@ -47,14 +47,15 @@ require_method:
 - POST
 require_permissions:
 - view_nvr
-resource-timestamp: 1713106900940510
-resource-type: page
+resource_timestamp: 1713106900940510
+resource_type: page
 setupcode: "#Code Here runs once when page is first rendered. Good place for import\
   \ statements.\r\nimport json\r\nimport os\r\nimport datetime\r\nimport traceback\r\
-  \nimport re\r\n"
-streaming-response: false
+  \nimport re\r\nfrom kaithem.api.devices import all_devices\r\nfrom kaithem.api import\
+  \ web"
+streaming_response: false
 template_engine: jinja2
-theme-css-url: ''
+theme_css_url: ''
 
 ---
 {{output}}

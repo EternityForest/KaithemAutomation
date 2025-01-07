@@ -22,13 +22,17 @@ template_engine: mako
 #Code Here runs once when page is first rendered. Good place for import statements.
 import subprocess
 import os
+
+from kaithem.api.devices import all_devices
+from kaithem.api.web import serve_file
+from kaithem.api.web import has_permission
 %>
 
 <%
 
-device = kaithem.devices[path[1]]
-for i in kaithem.devices[path[1]].config.get('kaithem.read_perms','').strip().split(","):
-    if not kaithem.web.has_permission(i):
+device = all_devices[path[1]]
+for i in all_devices[path[1]].config.get('kaithem.read_perms','').strip().split(","):
+    if not has_permission(i):
         raise RuntimeError("Missing permission for that camera: "+repr(i))
 
 
@@ -54,7 +58,7 @@ env = {}
 env.update(os.environ)
 p = subprocess.Popen(["ffmpeg", "-i", clip, "-bsf:a", "aac_adtstoasc", "-vcodec", "copy", "-c", "copy", "-crf", "50", '-movflags', 'frag_keyframe+empty_moov', '-f', 'mp4', "pipe:1"], stdout=subprocess.PIPE, env=env)
 
-kaithem.web.serve_file(p.stdout, "video/mp4", path[1]+".mp4" )
+serve_file(p.stdout, "video/mp4", path[1]+".mp4" )
 %>
 
 <h2>serve_mp4</h2>

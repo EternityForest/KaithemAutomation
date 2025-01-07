@@ -15,7 +15,7 @@ require_permissions:
 - view_nvr
 resource_timestamp: 1675750898769122
 resource_type: page
-setupcode: ''
+setupcode: from kaithem.api.devices import all_devices
 streaming_response: false
 template_engine: mako
 theme_css_url: ''
@@ -243,8 +243,8 @@ __doc__= "#Python Code here runs every page load"
         },
 
         cameraUrls:{
-          %for i in kaithem.devices:
-          %if kaithem.devices[i].device_type_name =='NVRChannel':
+          %for i in all_devices:
+          %if all_devices[i].device_type_name =='NVRChannel':
           '${i}': "rtplayer?play=${i|u}",
           %endif
           %endfor

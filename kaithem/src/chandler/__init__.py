@@ -1,8 +1,9 @@
-import atexit
 import threading
 import time
 
 from scullery import messagebus
+
+from kaithem.api import lifespan
 
 from . import ChandlerConsole, core, group_lighting, universes
 
@@ -162,5 +163,5 @@ def STOP(*a):
     run[0] = False
 
 
-atexit.register(STOP)
+lifespan.at_shutdown(STOP)
 messagebus.subscribe("/system/shutdown", STOP)

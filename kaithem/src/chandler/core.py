@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import atexit
 import logging
 import os
 import sys
@@ -18,6 +17,8 @@ from icemedia import sound_player
 from scullery import messagebus
 from scullery.ratelimits import RateLimiter
 from tinytag import TinyTag
+
+from kaithem.api import lifespan
 
 from .. import assetlib, config, context_restrictions, directories
 from . import console_abc
@@ -288,7 +289,7 @@ def STOP(*a):
     action_queue_wake.release()
 
 
-atexit.register(STOP)
+lifespan.at_shutdown(STOP)
 messagebus.subscribe("/system/shutdown", STOP)
 
 threading.Thread(target=action_queue_thread).start()

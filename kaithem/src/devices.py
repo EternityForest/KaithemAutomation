@@ -61,6 +61,7 @@ recent_scanned_tags = {}
 callable = callable
 
 
+# Store evices here so we can close in reverse order
 load_order: list[weakref.ref[Device]] = []
 
 
@@ -482,7 +483,7 @@ class Device(iot_devices.device.Device):
 
             global load_order
             load_order.append(weakref.ref(self))
-            load_order = load_order[-1000:]
+            load_order = load_order[-2048:]
 
     def handleException(self):
         try:
@@ -1288,10 +1289,17 @@ def wrapCrossFramework(dt2, desc):
         def close(self, *a, **k):
             with modules_state.modulesLock:
                 for i in list(self.subdevices.keys()):
+                    subdevice_name = self.subdevices[i].name
+                    # TODO what is deleting device from self.subdevices
+                    # here?
                     self.subdevices[i].close()
-                    if self.subdevices[i].name in remote_devices:
-                        del remote_devices[self.subdevices[i].name]
-                    del self.subdevices[i]
+                    if subdevice_name in remote_devices:
+                        del remote_devices[subdevice_name]
+
+                    try:
+                        del self.subdevices[i]
+                    except KeyError:
+                        pass
 
                 global remote_devices_atomic
                 remote_devices_atomic = wrcopy(remote_devices)

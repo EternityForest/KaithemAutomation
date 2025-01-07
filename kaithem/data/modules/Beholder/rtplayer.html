@@ -16,14 +16,13 @@ require_permissions:
 - view_nvr
 resource_timestamp: 1690502472006620
 resource_type: page
-setupcode: ''
+setupcode: "from kaithem.api.devices import all_devices\r\nfrom kaithem.src import\
+  \ theming"
 streaming_response: false
 template_engine: mako
 theme_css_url: ''
 
 ---
-
-
 <script src="/static/js/thirdparty/evm/jsfeat.js"></script>
 <script src="/static/js/thirdparty/evm/compat.js"></script>
 <script src="/static/js/thirdparty/evm/color.js"></script>
@@ -77,16 +76,16 @@ theme_css_url: ''
 
 %if 'controls' in kwargs:
 <link rel="stylesheet" type="text/css"
-        href="${kaithem.web.theming.getCSSTheme()}">
+        href="${theming.getCSSTheme()}">
 
 <div class="tool-bar" style="opacity:40%">
         <button type="button"
                 onclick="window.startEVM(document.querySelector('video'), document.querySelector('canvas'))">Amplify
                 Motion</button>
         <button type="button" id="recbutton"
-                onclick="globalThis.kaithemapi.sendValue('${kaithem.devices[kwargs['play']].tagpoints['record'].data_source_widget.uuid}',true)">Record</button>
+                onclick="globalThis.kaithemapi.sendValue('${all_devices[kwargs['play']].tagpoints['record'].data_source_widget.uuid}',true)">Record</button>
         <button type="button" id="stoprecbutton"
-                onclick="globalThis.kaithemapi.sendValue('${kaithem.devices[kwargs['play']].tagpoints['record'].data_source_widget.uuid}',false)">Stop
+                onclick="globalThis.kaithemapi.sendValue('${all_devices[kwargs['play']].tagpoints['record'].data_source_widget.uuid}',false)">Stop
                 Record</button>
 </div>
 %else:
@@ -118,7 +117,7 @@ theme_css_url: ''
         var player = mpegts.createPlayer({
                 type: 'mpegts',  // could also be mpegts, m2ts, flv
                 isLive: true,
-                url: kaithemapi.wsPrefix() + "/widgets/wsraw?widgetid=${kaithem.devices[kwargs['play']].tagpoints['raw_feed'].data_source_widget.uuid|u}",
+                url: kaithemapi.wsPrefix() + "/widgets/wsraw?widgetid=${all_devices[kwargs['play']].tagpoints['raw_feed'].data_source_widget.uuid|u}",
                 liveBufferLatencyChasing: true,
                 liveBufferLatencyMaxLatency: 2,
                 liveBufferLatencyMinRemain: 1,
@@ -162,7 +161,7 @@ theme_css_url: ''
                 }
         }
 
-        kaithemapi.subscribe("${kaithem.devices[kwargs['play']].tagpoints['record'].data_source_widget.uuid}", onrecordchange)
+        kaithemapi.subscribe("${all_devices[kwargs['play']].tagpoints['record'].data_source_widget.uuid}", onrecordchange)
 
         var evm_started = false
 

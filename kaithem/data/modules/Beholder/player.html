@@ -2,8 +2,10 @@
 allow_origins:
 - '*'
 allow_xss: false
-auto-reload: false
-auto-reload-interval: 5.0
+alt_top_banner: ''
+auto_reload: false
+auto_reload_interval: 5.0
+code: ''
 mimetype: text/html
 no_header: true
 no_navheader: true
@@ -11,14 +13,16 @@ require_method:
 - GET
 require_permissions:
 - view_nvr
-resource-timestamp: 1645351009054098
-resource-type: page
+resource_timestamp: 1645351009054098
+resource_type: page
+setupcode: from kaithem.src import theming
 template_engine: mako
+theme_css_url: ''
 
 ---
 <script src="/static/js/thirdparty/hls.js"></script>
 <script src="/static/js/thirdparty/striftime-min.js"></script>
-<link rel="stylesheet" type="text/css" href="${kaithem.web.theming.getCSSTheme()}">
+<link rel="stylesheet" type="text/css" href="${theming.getCSSTheme()}">
 
 <div>
 <video id="video" style="max-width: 98%; max-height: 98%" controls></video>

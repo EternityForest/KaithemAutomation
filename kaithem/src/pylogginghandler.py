@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 
-import atexit
 import bz2
 import gc
 import getpass
@@ -18,6 +17,8 @@ import threading
 import time
 import traceback
 import weakref
+
+from kaithem.api import lifespan
 
 from . import directories, messagebus, unitsofmeasure, util
 from .config import config
@@ -53,7 +54,7 @@ def at_exit():
             print(traceback.format_exc())
 
 
-atexit.register(at_exit)
+lifespan.at_shutdown(at_exit)
 
 
 class KFormatter(logging.Formatter):
