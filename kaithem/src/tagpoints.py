@@ -116,41 +116,6 @@ _default_display_units = {
 }
 
 
-class _Alert(alerts.Alert):
-    def __init__(
-        self,
-        name: str,
-        priority: str = "info",
-        zone: str | None = None,
-        trip_delay: int | float = 0,
-        auto_ack: bool | float | int = False,
-        permissions: list[str] = [],
-        ackPermissions: list[str] = [],
-        id: str | None = None,
-        description: str = "",
-        silent: bool = False,
-    ):
-        self.source_tags: dict[str, weakref.ref[GenericTagPointClass[Any]]] = {}
-        self.recalcFunction: Callable[[Any, float, Any], Any]
-        self.notificationHTML: Callable[[], str]
-
-        # Eval context of the alarm expression
-        self.eval_context: dict[str, Any] = {}
-
-        super().__init__(
-            name,
-            priority,
-            zone,
-            trip_delay,
-            auto_ack,
-            permissions,
-            ackPermissions,
-            id,
-            description,
-            silent,
-        )
-
-
 @functools.lru_cache(4096, False)
 def normalize_tag_name(name: str, replacementChar: str | None = None) -> str:
     "Normalize hte name, and raise errors on anything just plain invalid, unless a replacement char is supplied"
@@ -338,7 +303,6 @@ class GenericTagPointClass(Generic[T]):
         self.handler: typing.Callable[..., Any] | None = None
 
         self.lastPushedValue: T | None = None
-        self.onSourceChanged: typing.Callable[..., Any] | None = None
 
         with lock:
             allTags[_name] = weakref.ref(self)
@@ -474,7 +438,7 @@ class GenericTagPointClass(Generic[T]):
 
                     exposedTags[self.name] = self
                     if self.apiClaim:
-                        self.apiClaim.setPriority(expose_priority)
+                        self.apiClaim.set_priority(expose_priority)
                     self._apiPush()
 
                     # We don't want the web connection to be able to keep the tag alive
@@ -987,7 +951,7 @@ class GenericTagPointClass(Generic[T]):
                 self.subscribers_atomic = copy.copy(self.subscribers)
             finally:
                 self.lock.release()
-        else:
+        else:  # pragma: no cover
             self.testForDeadlock()
             raise RuntimeError(
                 "Cannot get lock to subscribe to this tag. Is there a long running subscriber?"
@@ -1012,7 +976,8 @@ class GenericTagPointClass(Generic[T]):
                 self.subscribers_atomic = copy.copy(self.subscribers)
             finally:
                 self.lock.release()
-        else:
+
+        else:  # pragma: no cover
             self.testForDeadlock()
             raise RuntimeError(
                 "Cannot get lock to subscribe to this tag. Is there a long running subscriber?"
@@ -1028,7 +993,7 @@ class GenericTagPointClass(Generic[T]):
                 self._get_value()
             finally:
                 self.lock.release()
-        else:
+        else:  # pragma: no cover
             self.testForDeadlock()
 
     def _push(self):
@@ -1159,7 +1124,9 @@ class GenericTagPointClass(Generic[T]):
 
                     # Viewing the state is pretty critical, we don't want to block
                     # that too long or we might interfere with manual recovery
-                    if not self.lock.acquire(timeout=10 if force else 1):
+                    if not self.lock.acquire(
+                        timeout=10 if force else 1
+                    ):  # pragma: no cover
                         self.testForDeadlock()
                         if force:
                             raise RuntimeError("Error getting lock")
@@ -1181,7 +1148,7 @@ class GenericTagPointClass(Generic[T]):
                             # Race here. Data might not always match timestamp an annotation, if we weren't under lock
                             self.vta = (active_claim_value, t, None)
 
-                            # Set the timestamp on the claim, so that it will not become expired
+                            # Refresh the timestamp on the claim
                             active_claim.vta = self.vta
 
                             active_claim.cachedValue = (x, t)
@@ -1231,13 +1198,6 @@ class GenericTagPointClass(Generic[T]):
             "Push on repeats was causing too much trouble and too much confusion and has been removed"
         )
 
-    def handleSourceChanged(self, name):
-        if self.onSourceChanged:
-            try:
-                self.onSourceChanged(name)
-            except Exception:
-                logger.exception("Error handling changed source")
-
     def add_alias(self, alias: str):
         """Adds an alias of this tag, allowing access by another name."""
         global allTagsAtomic
@@ -1281,7 +1241,6 @@ class GenericTagPointClass(Generic[T]):
         priority: float | None = None,
         timestamp: float | None = None,
         annotation: Any = None,
-        expiration: int | float = 0,
     ) -> Claim[T]:
         """Adds a 'claim', a request to set the tag's value either to a literal
         number or to a getter function.
@@ -1316,7 +1275,7 @@ class GenericTagPointClass(Generic[T]):
             if claim is None:
                 priority = priority or 50
                 claim = self.claimFactory(
-                    value, name, priority, timestamp, annotation, expiration
+                    value, name, priority, timestamp, annotation
                 )
 
             else:
@@ -1324,7 +1283,7 @@ class GenericTagPointClass(Generic[T]):
                 claim.released = False
                 # Inherit priority from the old claim if nobody has changed it
                 if priority is None:
-                    priority = claim.priority
+                    priority = claim.effective_priority
                 if priority is None:
                     priority = 50
 
@@ -1334,30 +1293,29 @@ class GenericTagPointClass(Generic[T]):
             self.claims[name] = claim
 
             if self.active_claim:
-                ac = self.active_claim
+                active_claim = self.active_claim
             else:
-                ac = None
+                active_claim = None
 
             oldAcPriority = 0
             oldAcTimestamp = 0
 
-            if ac:
-                oldAcPriority = ac.priority
-                oldAcTimestamp = ac.timestamp
+            if active_claim:
+                oldAcPriority = active_claim.effective_priority
+                oldAcTimestamp = active_claim.timestamp
 
-            claim.priority = priority
+            claim.effective_priority = priority
             claim.vta = value, timestamp, annotation
 
             # If we have priority on them, or if we have the same priority but are newer
             if (
-                (ac is None)
+                (active_claim is None)
                 or (priority > oldAcPriority)
                 or (
                     (priority == oldAcPriority) and (timestamp > oldAcTimestamp)
                 )
             ):
                 self.active_claim = self.claims[name]
-                self.handleSourceChanged(name)
 
                 if callable(self.vta[0]) or callable(value):
                     needsManagePolling = True
@@ -1371,7 +1329,7 @@ class GenericTagPointClass(Generic[T]):
 
             # If priority has been changed on the existing active claim
             # We need to handle it
-            elif name == ac.name:
+            elif name == active_claim.name:
                 # Basically we find the highest priority claim
 
                 c = [i for i in self.claims.values()]
@@ -1386,7 +1344,6 @@ class GenericTagPointClass(Generic[T]):
 
                         if not i == self.active_claim:
                             self.active_claim = i
-                            self.handleSourceChanged(i.name)
                         else:
                             self.active_claim = i
                         break
@@ -1435,9 +1392,12 @@ class GenericTagPointClass(Generic[T]):
                 #  the slower claim function that handles creating
                 # and switching claims
                 if (ac is None) or (
-                    co.priority >= ac.priority and timestamp >= ac.timestamp
+                    co.effective_priority >= ac.effective_priority
+                    and timestamp >= ac.timestamp
                 ):
-                    self.claim(val, claim, co.priority, timestamp, annotation)
+                    self.claim(
+                        val, claim, co.effective_priority, timestamp, annotation
+                    )
                     return
 
             # Grab the claim obj and set it's val
@@ -1488,11 +1448,8 @@ class GenericTagPointClass(Generic[T]):
         priority: float,
         timestamp: float,
         annotation: Any,
-        expiration: int | float = 0,
     ):
-        return Claim[T](
-            self, value, name, priority, timestamp, annotation, expiration
-        )
+        return Claim[T](self, value, name, priority, timestamp, annotation)
 
     def get_top_claim(self) -> Claim[T]:
         x = [i for i in self.claims.values()]
@@ -1523,9 +1480,7 @@ class GenericTagPointClass(Generic[T]):
             if not o:
                 return
 
-            if self.active_claim:
-                doChange = self.active_claim is not o
-            else:
+            if not self.active_claim:
                 raise RuntimeError("Corrupt state")
 
             self.vta = (o.value, o.timestamp, o.annotation)
@@ -1534,8 +1489,7 @@ class GenericTagPointClass(Generic[T]):
             self._get_value()
             self._push()
             self._manage_polling()
-            if doChange:
-                self.handleSourceChanged(self.active_claim.name)
+
         finally:
             self.lock.release()
 
@@ -1587,11 +1541,8 @@ class NumericTagPointClass(GenericTagPointClass[float]):
         priority: float,
         timestamp: float,
         annotation: Any,
-        expiration: int | float = 0,
     ):
-        return NumericClaim(
-            self, value, name, priority, timestamp, annotation, expiration
-        )
+        return NumericClaim(self, value, name, priority, timestamp, annotation)
 
     @property
     def min(self) -> float | int:
@@ -1791,7 +1742,6 @@ class Claim(Generic[T]):
         priority: int | float = 50.0,
         timestamp: int | float | None = None,
         annotation=None,
-        expiration: int | float = 0,
     ):
         self.name = name
         self.tag = tag
@@ -1812,22 +1762,14 @@ class Claim(Generic[T]):
         # It is in unix time.
         self.lastGotValue = 0.0
 
+        self.effective_priority = priority
+
+        # The priority set in code, regardless of whether we released or not
         self.priority = priority
-
-        # The priority set in code, regardless of whether we expired or not
-        self.realPriority = priority
-        self.expired = False
-
-        # What priority should we take on in the expired state.
-        self.expiredPriority = 0
-
-        # How long with no new data should we wait before declaring ourselves expired.
-        self.expiration = expiration
 
         self.poller = None
 
         self.released = False
-        self._managePolling()
 
     def __del__(self):
         if self.name != "default":
@@ -1839,53 +1781,21 @@ class Claim(Generic[T]):
         if self.released:
             if not other.released:
                 return True
-        if (self.priority, self.timestamp) < (other.priority, other.timestamp):
+        if (self.effective_priority, self.timestamp) < (
+            other.priority,
+            other.timestamp,
+        ):
             return True
         return False
 
     def __eq__(self, other) -> bool:
         if not self.released == other.released:
             return False
-        if not self.priority == other.priority:
+        if not self.effective_priority == other.priority:
             return False
         if not self.timestamp == other.timestamp:
             return False
         return True
-
-    def expirePoll(self, force: bool = False):
-        # Quick check and slower locked check.  If we are too old, set our effective
-        # priority to the expired priority.
-
-        # Expiry for callables is based on the function return value.
-        # Expiry for  direct values is based on the timestamp of when external code set it.
-        if callable(self.value):
-            ts = self.cachedValue[1]
-        else:
-            ts = self.timestamp
-
-        if not self.expired:
-            if ts < (time.time() - self.expiration):
-                # First we must try to refresh the callable.
-                self.refreshCallable()
-                if self.tag.lock.acquire(timeout=90):
-                    try:
-                        if callable(self.value):
-                            ts = self.cachedValue[1]
-                        else:
-                            ts = self.timestamp
-
-                        if ts < (time.time() - self.expiration):
-                            self.setPriority(self.expiredPriority, False)
-                            self.expired = True
-                    finally:
-                        self.tag.lock.release()
-                else:
-                    raise RuntimeError(
-                        "Cannot get lock to set priority, waited 90s"
-                    )
-        else:
-            # If we are already expired just refresh now.
-            self.refreshCallable()
 
     def refreshCallable(self):
         # Only call the getter under lock in case it happens to not be threadsafe
@@ -1896,56 +1806,9 @@ class Claim(Generic[T]):
                     x = self.value()
                     if x is not None:
                         self.cachedValue = (x, time.time())
-                        self.unexpire()
                 finally:
                     self.tag.lock.release()
 
-            else:
-                raise RuntimeError(
-                    "Cannot get lock to set priority, waited 90s"
-                )
-
-    def set_expiration(
-        self, expiration: float, expiredPriority: int | float = 1
-    ):
-        """Set the time in seconds before this claim is regarded as stale, and what priority to revert to in the stale state.
-        Note that that if you use a getter with this, it will constantly poll in the background
-        """
-        if self.tag.lock.acquire(timeout=90):
-            try:
-                self.expiration = expiration
-                self.expiredPriority = expiredPriority
-                self._managePolling()
-
-            finally:
-                self.tag.lock.release()
-        else:
-            raise RuntimeError("Cannot get lock, waited 90s")
-
-    def _managePolling(self):
-        interval = self.expiration
-        if interval:
-            if not self.poller or not (interval == self.poller.interval):
-                if self.poller:
-                    self.poller.unregister()
-                self.poller = scheduling.scheduler.schedule_repeating(
-                    self.expirePoll, interval, sync=False
-                )
-        else:
-            if self.poller:
-                self.poller.unregister()
-                self.poller = None
-
-    def unexpire(self):
-        # If we are expired, un-expire ourselves.
-        if self.expired:
-            if self.tag.lock.acquire(timeout=90):
-                try:
-                    if self.expired:
-                        self.expired = False
-                        self.setPriority(self.realPriority, False)
-                finally:
-                    self.tag.lock.release()
             else:
                 raise RuntimeError(
                     "Cannot get lock to set priority, waited 90s"
@@ -1969,19 +1832,15 @@ class Claim(Generic[T]):
         # Not threadsafe here if multiple threads use the same claim, value, timestamp, and annotation can
         self.vta = (value, self.timestamp, self.annotation)
 
-        # If we are expired, un-expi
-        if self.expired:
-            self.unexpire()
-
         # In the released state we must do it all over again
-        elif self.released:
+        if self.released:
             if self.tag.lock.acquire(timeout=60):
                 try:
                     self.tag.claim(
                         value=self.value,
                         timestamp=self.timestamp,
                         annotation=self.annotation,
-                        priority=self.priority,
+                        priority=self.effective_priority,
                         name=self.name,
                     )
                 finally:
@@ -2006,22 +1865,17 @@ class Claim(Generic[T]):
 
         self.tag.release(self.name)
 
-        # Unregister the polling.
-        if self.poller:
-            self.poller.unregister()
-            self.poller = None
-
-    def setPriority(self, priority: float, realPriority: bool = True):
+    def set_priority(self, priority: float, realPriority: bool = True):
         if self.tag.lock.acquire(timeout=60):
             try:
                 if realPriority:
-                    self.realPriority = priority
-                self.priority = priority
+                    self.priority = priority
+                self.effective_priority = priority
                 self.tag.claim(
                     value=self.value,
                     timestamp=self.timestamp,
                     annotation=self.annotation,
-                    priority=self.priority,
+                    priority=self.effective_priority,
                     name=self.name,
                 )
             finally:
@@ -2049,12 +1903,9 @@ class NumericClaim(Claim[float]):
         priority: int | float = 50,
         timestamp: int | float | None = None,
         annotation=None,
-        expiration: int | float = 0,
     ):
         self.tag: NumericTagPointClass
-        Claim.__init__(
-            self, tag, value, name, priority, timestamp, annotation, expiration
-        )
+        Claim.__init__(self, tag, value, name, priority, timestamp, annotation)
 
     def set_as(
         self,

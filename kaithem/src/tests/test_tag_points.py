@@ -79,6 +79,10 @@ def test_tags_basic():
     from kaithem.src import tagpoints
 
     t = tagpoints.Tag("/system/unit_test_tag_5457647")
+    # TODO should probably actualluly do some assertions here,
+    # but at least we can check that it doesn't block up.
+    t.testForDeadlock()
+
     ts = time.time()
 
     gotTagValue = []
@@ -126,6 +130,25 @@ def test_tags_claim_release():
     assert t.value == 40
 
     claim2.release()
+    assert t.value == 51
+    claim1.release()
+    assert t.value == 0
+
+
+def test_tags_claim_change_active_claim_priority():
+    import time
+
+    from kaithem.src import tagpoints
+
+    t = tagpoints.Tag("/system/unit_test_tag_545j7647")
+    claim1 = t.claim(51, "c1", 51, time.time(), "TestAnnotation")
+    claim2 = t.claim(52, "c2", 52, time.time(), "TestAnnotation2")
+
+    assert t.value == 52
+    t.set_claim_val("c2", 40, time.time(), "TestAnnotation")
+    assert t.value == 40
+
+    claim2.set_priority(49)
     assert t.value == 51
     claim1.release()
     assert t.value == 0
@@ -281,18 +304,6 @@ def test_tags():
 
     gc.collect()
     gc.collect()
-
-    t1 = tagpoints.Tag("/system/unit_test_tag/expireTest")
-    t1.value = 0
-
-    c1 = t1.claim(5, priority=70)
-    c1.set_expiration(0.5)
-    assert t1.value == 5
-    time.sleep(1)
-    assert t1.value == 0
-
-    c1.set(30)
-    assert t1.value == 30
 
     t1 = tagpoints.StringTag("/system/unit_test_tag/sync1Str")
     t2 = tagpoints.StringTag("/system/unit_test_tag/sync2Str")

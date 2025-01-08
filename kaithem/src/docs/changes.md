@@ -16,6 +16,7 @@ This release moves some of the last few settings to module resources, so that al
 - :coffin: MPV integration with the JACK mixer removed.  I don't think anyone ever used this
 - :coffin: Removed the system event logging feature. Bring your own logs, like systemd offers Tag point logger resources are here to stay.
 - :coffin: remove numpy and other undocumented utils from tag context
+- :coffin: Remove never used tag point claim expiration mechanism
 
 #### Others
 - :technologist: Lots of dead code gone, guided by test conerage metrics.
