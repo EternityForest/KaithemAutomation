@@ -112,6 +112,25 @@ def test_tags_basic():
     assert abs(t.timestamp - time.time()) < 0.1
 
 
+def test_tags_claim_release():
+    import time
+
+    from kaithem.src import tagpoints
+
+    t = tagpoints.Tag("/system/unit_test_tag_545j7647")
+    claim1 = t.claim(51, "c1", 51, time.time(), "TestAnnotation")
+    claim2 = t.claim(52, "c2", 52, time.time(), "TestAnnotation2")
+
+    assert t.value == 52
+    t.set_claim_val("c2", 40, time.time(), "TestAnnotation")
+    assert t.value == 40
+
+    claim2.release()
+    assert t.value == 51
+    claim1.release()
+    assert t.value == 0
+
+
 def test_tags_error():
     import time
 
@@ -250,15 +269,15 @@ def test_tags():
     t2.set_alarm("TestTagAlarm", "value>40", priority="debug")
 
     time.sleep(0.5)
-    assert t2.alarms["TestTagAlarm"].sm.state == "active"
+    assert t2.alerts["TestTagAlarm"].sm.state == "active"
 
     t.value = 0
     time.sleep(1)
-    assert t2.alarms["TestTagAlarm"].sm.state == "cleared"
+    assert t2.alerts["TestTagAlarm"].sm.state == "cleared"
 
-    t2.alarms["TestTagAlarm"].acknowledge()
+    t2.alerts["TestTagAlarm"].acknowledge()
 
-    assert t2.alarms["TestTagAlarm"].sm.state == "normal"
+    assert t2.alerts["TestTagAlarm"].sm.state == "normal"
 
     gc.collect()
     gc.collect()

@@ -206,10 +206,10 @@ else:
     </tr>
 
 
-%for i in tag.alarms:
+%for i in tag.alerts:
     <tr>
         <td>${i}</td>
-        <td>${tag.alarms[i].sm.state}</td>
+        <td>${tag.alerts[i].sm.state}</td>
     </tr>
 %endfor
 

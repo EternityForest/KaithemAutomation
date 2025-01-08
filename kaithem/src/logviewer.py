@@ -19,7 +19,7 @@ syslogwidget.require("view_admin_info")
 
 buffer = deque(maxlen=1000)
 
-ratelimiter = ratelimits.RateLimiter(1, 60)
+ratelimiter = ratelimits.RateLimiter(1, 240)
 
 recent: list[str] = []
 

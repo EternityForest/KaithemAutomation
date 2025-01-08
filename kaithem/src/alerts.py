@@ -8,7 +8,7 @@ from typing import Any
 
 import structlog
 from beartype import beartype
-from scullery import statemachines
+from scullery import statemachines, workers
 
 from . import (
     messagebus,
@@ -444,13 +444,24 @@ class Alert:
         sendMessage()
         pushAlertState()
 
+    def close(self):
+        try:
+            if not system_shutdown.is_set():
+                self.acknowledge("<DELETED>")
+                self.clear()
+
+                def f():
+                    with lock:
+                        cleanup()
+
+                workers.do(f)
+                sendMessage()
+                pushAlertState()
+        except Exception:
+            logger.exception("Error cleaning up tag")
+
     def __del__(self):
-        if not system_shutdown.is_set():
-            self.acknowledge("<DELETED>")
-            self.clear()
-            cleanup()
-            sendMessage()
-            pushAlertState()
+        self.close()
 
     def acknowledge(self, by="unknown", notes=""):
         notes = notes[:64]

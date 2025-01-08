@@ -54,12 +54,14 @@ def tags_docstring():
     thread, if the application can handle it.
 
 
-    ### Expression Tags Any tag having a name that begins with an equals sign
+    ### Expression Tags
+
+    Any tag having a name that begins with an equals sign
     will be created with a getter that evaluates the name as an expression. The
     priority of the expression source will be 98.
 
     You have access to time, math, random, re, plus the tag itself as 'tag', and
-    anything else you put in tag.eval_context in code.
+    anything else you put in tag.context in code.
 
 
     #### the tv(n) function
@@ -114,15 +116,6 @@ def tags_docstring():
 
 
     The signature of f must be: f(value, timestamp, annotation)
-
-    #### TagPoint.set_handler(f)
-
-    Similar to subscribe, except the handler is us called before the value is
-    actually stored, before any subscribers, and any errors are simply unhandled
-    and will we raised in the thread that tried to set the value.
-
-    A tag may only have one handler, and the tag strongly references it.
-
 
 
     #### TagPoint.unit A string that determines the unit of a tag. Units are

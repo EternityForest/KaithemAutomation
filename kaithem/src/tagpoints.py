@@ -7,8 +7,6 @@ import copy
 import functools
 import gc
 import json
-import math
-import random
 import re
 import threading
 import time
@@ -25,8 +23,6 @@ from typing import (
 )
 
 import beartype
-import dateutil
-import dateutil.parser
 import structlog
 from scullery import scheduling
 
@@ -139,7 +135,7 @@ class _Alert(alerts.Alert):
         self.notificationHTML: Callable[[], str]
 
         # Eval context of the alarm expression
-        self.context: dict[str, Any] = {}
+        self.eval_context: dict[str, Any] = {}
 
         super().__init__(
             name,
@@ -222,7 +218,7 @@ class GenericTagPointClass(Generic[T]):
         except Exception:
             try:
                 return f"<Tag Point: {self.name}>"
-            except Exception:
+            except Exception:  # pragma: no cover
                 return f"<Tag Point: No name, not initialzed yet at {hex(id(self))}>"
 
     @beartype.beartype
@@ -287,8 +283,6 @@ class GenericTagPointClass(Generic[T]):
             None,
         )
 
-        self.alarms: dict[str, _Alert] = {}
-
         # Used to optionally record a list of allowed values
         self._enum: list[Any] | None = None
 
@@ -302,22 +296,10 @@ class GenericTagPointClass(Generic[T]):
 
         self.unreliable: bool = False
 
-        # Track the recalc function used by the poller, the poller itself, and the recalc alarm subscribe
-        # function subscribed to us, respectively
-
-        # The last is a function that is used as a subscriber which just causes the tag to be recalced.
-        # We give that to other tags in case the alarm polling depends on other tags.
-
-        # We need it so we don't get GCed
-        self._alarmGCRefs: dict[
-            str,
-            tuple[
-                Callable[[], Any],
-                scheduling.RepeatingEvent,
-                Callable[..., Any],
-                Callable[..., Any],
-            ],
-        ] = {}
+        self._can_post_alert_error = True
+        # Our alerts and the callbacks to check them
+        self.alerts: dict[str, alerts.Alert] = {}
+        self._alert_poll_functions: dict[str, Callable[[], Any]] = {}
 
         # The cached actual value from the claims
         self._cachedRawClaimVal: T = copy.deepcopy(self.default_data)
@@ -338,6 +320,12 @@ class GenericTagPointClass(Generic[T]):
         # The "Owner" of a tag can use this to say if anyone else should write it
         self.writable = True
 
+        self.eval_context = {
+            "tv": self._context_get_numeric_tag_value,
+            "stv": self._context_get_string_tag_value,
+            "tag": self,
+        }
+
         # When was the last time we got *real* new data
         self.last_got_value: int | float = 0
 
@@ -348,28 +336,6 @@ class GenericTagPointClass(Generic[T]):
         self.owner: str = ""
 
         self.handler: typing.Callable[..., Any] | None = None
-
-        # Used for the expressions in alert conditions and such
-        self.eval_context: dict[str, Any] = {
-            "math": math,
-            "time": time,
-            # Cannot reference ourself strongly.  We want to avoid laking any references to tht tags
-            # go away cleanly
-            "tag": weakref.proxy(self),
-            "re": re,
-            "random": random,
-            # It is perfect;y fine that these reference ourself, because when we pass this to an alarm,
-            # We have alarm specific ones.
-            "tv": self._context_get_numeric_tag_value,
-            "stv": self._context_get_string_tag_value,
-            "dateutil": dateutil,
-        }
-        try:
-            import numpy as np
-
-            self.eval_context["np"] = np
-        except ImportError:
-            pass
 
         self.lastPushedValue: T | None = None
         self.onSourceChanged: typing.Callable[..., Any] | None = None
@@ -619,6 +585,10 @@ class GenericTagPointClass(Generic[T]):
         "Just re-get the value as needed"
         # It's a getter, ignore the mypy unused thing.
         self.poll()
+        # These can need recalc even if the tag val doesn't
+        # change because another dependency tag might have
+        # It might mean doing it twice but that's fine.
+        self.recalc_alerts()
 
     def _context_get_numeric_tag_value(self, n: str) -> float:
         "Get the tag value, adding it to the list of source tags. Creates tag if it isn't there"
@@ -652,8 +622,16 @@ class GenericTagPointClass(Generic[T]):
         release_condition: str | None = "",
         auto_ack: bool | str = "no",
         trip_delay: float | int | str = "0",
-    ) -> _Alert | None:
+    ) -> None:
+        self._can_post_alert_error = True
         with lock:
+            if condition is None:
+                if name in self.alerts:
+                    self.alerts[name].close()
+                    self.alerts.pop(name, None)
+                    self._alert_poll_functions.pop(name, None)
+                return
+
             if not name:
                 raise RuntimeError("Empty string name")
 
@@ -662,28 +640,53 @@ class GenericTagPointClass(Generic[T]):
             if auto_ack is False:
                 auto_ack = "no"
 
-            trip_delay = str(trip_delay)
+            trip_delay = float(trip_delay)
 
-            d: dict[str, str | int | bool | float | None] = {
-                "condition": condition,
-                "priority": priority,
-                "auto_ack": auto_ack,
-                "trip_delay": trip_delay,
-                "release_condition": release_condition,
-            }
+            trip_code = compile(condition, "<string>", "eval")
+            if release_condition:
+                release_code = compile(release_condition, "<string>", "eval")
+            else:
+                release_code = None
 
-            # Remove empties to make way for defaults
-            d = {i: d[i] for i in d if d[i]}
+            alert = alerts.Alert(f"{self.name}:{name}")
 
-            self._alarm_from_data(name, d)
+            def poll():
+                trip = eval(trip_code, self.eval_context)
+                if trip:
+                    alert.trip()
+                    return
+                if release_code:
+                    release = eval(release_code, self.eval_context)
+                    if release:
+                        alert.release()
+                        return
+                else:
+                    alert.release()
 
-            if name in self.alarms:
-                x = self.alarms[name]
-                # Alarms have to have a reference to the config data
-                x.tagpoint_config_data = d
-                x.tagpoint_name = self.name
-                return x
-        return None
+            self.alerts[name] = alert
+            self._alert_poll_functions[name] = poll
+
+        self.recalc_alerts()
+
+    def recalc_alarm_self_subscriber(
+        self, value: T, timestamp: float, annotation: Any
+    ):
+        self.recalc_alerts()
+
+    def recalc_alerts(self):
+        self.eval_context["value"] = self.value
+        try:
+            with self.lock:
+                for i in self._alert_poll_functions:
+                    self._alert_poll_functions[i]()
+        except Exception:
+            if self._can_post_alert_error:
+                self._can_post_alert_error = False
+                messagebus.post_message(
+                    "/system/notifications/errors",
+                    "Error in tag alarm expression",
+                )
+                logger.exception("Error in tag alarm")
 
     @staticmethod
     def _makeTagAlarmHTMLFunc(selfwr: weakref.ref[GenericTagPointClass[T]]):
@@ -700,219 +703,6 @@ class GenericTagPointClass(Generic[T]):
 
         return notificationHTML
 
-    @staticmethod
-    def _getAlarmContextGetters(
-        obj: _Alert,
-        context: dict[str, Any],
-        recalc: weakref.ref[Callable[..., None]],
-    ):
-        # Note that it these go to an alarm which is held if active, or another tag that could be held elsewhere
-        # It cannot reference any tag directly or preserve any references, we would not want that.
-
-        # that could keep this tag alive long after it should be gone
-
-        # Functions used for getting other tag values
-
-        # You must keep a reference to recalc2 locally!!!!!!!!!
-
-        #
-
-        def recalc2(*a: Any, **k: Any):
-            f = recalc()
-            if f:
-                f()
-
-        def _context_get_numeric_tag_value(n):
-            """Since an alarm can use values from other tags, we must track those values, and from there
-            recalc the alarm whenever they should change.
-            """
-            if n in obj.source_tags:
-                t = obj.source_tags[n]()
-                if t:
-                    return t.value
-
-            t = Tag(n)
-            obj.source_tags[n] = weakref.ref(t)
-            # When any source tag updates, we want to recalculate.
-            obj.source_tags[n]().subscribe(obj.recalcFunction)
-            return t.value
-
-        def context_get_string_tag_value(n):
-            """Since an alarm can use values from other tags, we must track those values, and from there
-            recalc the alarm whenever they should change.
-            """
-            if n in obj.source_tags:
-                t = obj.source_tags[n]()
-                if t:
-                    return t.value
-
-            t = StringTag(n)
-            obj.source_tags[n] = weakref.ref(t)
-            # When any source tag updates, we want to recalculate.
-            obj.source_tags[n]().subscribe(obj.recalcFunction)
-            return t.value
-
-        context["tv"] = _context_get_numeric_tag_value
-        context["stv"] = context_get_string_tag_value
-
-        return recalc2
-
-    @beartype.beartype
-    def _alarm_from_data(
-        self, name: str, d: dict[str, str | None | int | bool | float]
-    ) -> Callable[..., None]:
-        if not d.get("condition", ""):
-            return
-
-        if d.get("condition", "").strip() in ("False", "None", "0"):
-            return
-        tripCondition = d["condition"]
-
-        release_condition: str | None = d.get("release_condition", None)
-
-        priority: str = d.get("priority", "warning") or "warning"
-        auto_ack: bool = d.get("auto_ack", "").lower() in (
-            "yes",
-            "true",
-            "y",
-            "auto",
-        )
-        trip_delay = float(d.get("trip_delay", 0) or 0)
-
-        # Shallow copy, because we are going to override the tag getter
-        context = copy.copy(self.eval_context)
-
-        tripCondition = compile(
-            tripCondition, f"{self.name}.alarms.{name}_trip", "eval"
-        )
-        if release_condition:
-            release_condition = compile(
-                release_condition, f"{self.name}.alarms.{name}_release", "eval"
-            )
-
-        n = self.name.replace("=", "expr_")
-        for i in ILLEGAL_NAME_CHARS:
-            n = n.replace(i, "_")
-
-        # This is technically unnecessary, the weakref/GC based cleanup could handle it eventually,
-        # But we want a real complete guarantee that it happens *right now*
-        oldAlert = self.alarms.get(name, None)
-        try:
-            if oldAlert:
-                for i in oldAlert.source_tags:
-                    try:
-                        t = oldAlert.source_tags[i]()
-                        if t:
-                            t.unsubscribe(oldAlert.recalcFunction)
-                    except Exception:
-                        logger.exception(
-                            "cleanup err, could be because it was already deleted"
-                        )
-
-                refs = self._alarmGCRefs.pop(name, None)
-                if refs:
-                    self.unsubscribe(refs[2])
-
-                    # This is the poller
-                    try:
-                        refs[1].unregister()
-                    except Exception:
-                        logger.exception("cleanup err!!!")
-
-        except Exception:
-            logger.exception("cleanup err")
-
-        obj = _Alert(
-            f"{n}.alarms.{name}",
-            priority=priority,
-            auto_ack=auto_ack,
-            trip_delay=trip_delay,
-        )
-
-        obj.source_tags = {}
-
-        # We don't need to weakref-ify this directly, as it just goes to the poller and the poller doesn't
-        # keep strong references.
-
-        def alarm_recalc_function(*a: Any, **k: Any) -> None:
-            """Recalc with same val vor this tag, but perhaps
-            a new value for
-            other tags that may be fetched in the expression eval"""
-
-            if not self:
-                obj.release()
-                return
-
-            # To avoid false alarms and confusion, we never
-            # trigger an alarm on missing or default data.
-            if self.timestamp == 0:
-                obj.release()
-                return
-
-            try:
-                if eval(tripCondition, context, context):
-                    obj.trip(f"Tag value:{str(context['value'])[:128]}")
-                elif release_condition:
-                    if eval(release_condition, context, context):
-                        obj.release()
-                else:
-                    obj.release()
-            except Exception as e:
-                obj.error(str(e))
-                raise
-
-        def alarmPollFunction(value: T, timestamp: float, annotation: Any):
-            "Given a new tag value, recalc the alarm expression"
-            context["value"] = value
-            context["timestamp"] = timestamp
-            context["annotation"] = annotation
-
-            alarm_recalc_function()
-
-        obj.notificationHTML = self._makeTagAlarmHTMLFunc(weakref.ref(self))
-
-        generatedRecalcFuncWeMustKeepARefTo = self._getAlarmContextGetters(
-            obj, context, weakref.ref(alarm_recalc_function)
-        )
-
-        self._alarmGCRefs[name] = (
-            alarm_recalc_function,
-            scheduling.scheduler.schedule_repeating(
-                alarm_recalc_function, 60, sync=False
-            ),
-            alarmPollFunction,
-            generatedRecalcFuncWeMustKeepARefTo,
-        )
-
-        # Do it with this indirection so that it doesn't do anything
-        # bad with some kind of race when we delete things, and so that it doesn't hold references
-        def recalcPoll(*a: Any, **k: Any) -> None:
-            if name in self._alarmGCRefs:
-                try:
-                    x = self._alarmGCRefs[name][0]
-                except KeyError:
-                    return
-                x()
-
-        obj.recalcFunction = recalcPoll
-
-        # Store our new modified context.
-        obj.context = context
-
-        self.subscribe(alarmPollFunction)
-        self.alarms[name] = obj
-
-        try:
-            alarmPollFunction(self.value, self.timestamp, self.annotation)
-        except Exception:
-            logger.exception(f"Error in test run of alarm function for :{name}")
-            messagebus.post_message(
-                "/system/notifications/errors",
-                f"Error with tag point alarm\n{traceback.format_exc()}",
-            )
-
-        return alarmPollFunction
-
     def createGetterFromExpression(
         self: GenericTagPointClass[T], e: str, priority: int | float = 98
     ) -> Claim[T]:
@@ -927,14 +717,9 @@ class GenericTagPointClass(Generic[T]):
 
         self.source_tags = {}
 
-        def recalc(*a):
-            self()
-
-        self.recalcHelper = recalc
-
         c = compile(e[1:], f"{self.name}_expr", "eval")
 
-        def f():
+        def f() -> T:
             return eval(c, self.eval_context, self.eval_context)
 
         # Overriding these tags would be extremely confusing because the
@@ -1057,15 +842,6 @@ class GenericTagPointClass(Generic[T]):
                 except Exception:
                     logger.exception("Tag may have already been deleted")
 
-        for i in list(self._alarmGCRefs.keys()):
-            pollStuff = self._alarmGCRefs.pop(i, None)
-
-            if pollStuff:
-                try:
-                    scheduling.scheduler.unregister(pollStuff[1])
-                except Exception:
-                    logger.exception("Maybe already unsubbed?")
-
         if self._poller:
             try:
                 # Scheduling is fully able to do this for us
@@ -1167,7 +943,7 @@ class GenericTagPointClass(Generic[T]):
             except Exception:
                 print(traceback.format_exc())
 
-        if self.lock.acquire(timeout=20):
+        if self.lock.acquire(timeout=60):
             try:
                 ref: (
                     weakref.WeakMethod[Callable[[T, float, Any], Any]]
@@ -1256,11 +1032,13 @@ class GenericTagPointClass(Generic[T]):
             self.testForDeadlock()
 
     def _push(self):
-        """Push to subscribers. Only call under the same lock you changed value
-        under. Otherwise the push might happen in the opposite order as the set, and
-        subscribers would see the old data as most recent.
+        """Push to subscribers and recalc alerts.
+        Only call under the same lock you changed value
+        under. Otherwise the push might happen in the opposite order
+        as the set, and subscribers would see the old data as most recent.
 
-        Also, keep setting the timestamp and annotation under that lock, to stay atomic
+        Also, keep setting the timestamp and annotation under that
+        lock, to stay atomic
         """
 
         # This compare must stay threadsafe.
@@ -1280,6 +1058,9 @@ class GenericTagPointClass(Generic[T]):
         self._apiPush()
 
         self.lastPushedValue = self.last_value
+
+        if self.alerts:
+            self.recalc_alerts()
 
         for i in self.subscribers:
             f = i()
@@ -1495,7 +1276,7 @@ class GenericTagPointClass(Generic[T]):
 
     def claim(
         self: GenericTagPointClass[T],
-        value: Any,
+        value: T | Callable[[], T | None],
         name: str | None = None,
         priority: float | None = None,
         timestamp: float | None = None,
@@ -1883,7 +1664,8 @@ class NumericTagPointClass(GenericTagPointClass[float]):
                     raise ValueError(
                         "Cannot change unit of tagpoint. To override this, set to None or '' first"
                     )
-        # TODO race condition in between check, but nobody will be setting this from different threads
+        # TODO race condition in between check,
+        # but nobody will be setting this from different threads
         # I don't think
         if not self._display_units:
             # Rarely does anyone want alternate views of dB values
@@ -1996,6 +1778,7 @@ class BinaryTagPointClass(GenericTagPointClass[bytes]):
         return v
 
 
+@functools.total_ordering
 class Claim(Generic[T]):
     "Represents a claim on a tag point's value"
 
@@ -2060,30 +1843,14 @@ class Claim(Generic[T]):
             return True
         return False
 
-    # todo: unused, use @total_ordering
-    def __le__(self, other):
-        if self.released:
-            if not other.released:
-                return True
-        if (self.priority, self.timestamp) <= (other.priority, other.timestamp):
-            return True
-        return False
-
-    def __gt__(self, other):
-        if other.released:
-            if not self.released:
-                return True
-        if (self.priority, self.timestamp) > (other.priority, other.timestamp):
-            return True
-        return False
-
-    def __ge__(self, other):
-        if other.released:
-            if not self.released:
-                return True
-        if (self.priority, self.timestamp) >= (other.priority, other.timestamp):
-            return True
-        return False
+    def __eq__(self, other) -> bool:
+        if not self.released == other.released:
+            return False
+        if not self.priority == other.priority:
+            return False
+        if not self.timestamp == other.timestamp:
+            return False
+        return True
 
     def expirePoll(self, force: bool = False):
         # Quick check and slower locked check.  If we are too old, set our effective
