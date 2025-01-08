@@ -751,7 +751,7 @@ async def module_update(module):
                     rt = obj["resource_type"]
                     assert isinstance(rt, str)
                     if rt in modules_state.additionalTypes:
-                        modules_state.additionalTypes[rt].on_delete(
+                        modules_state.additionalTypes[rt].on_unload(
                             module, r, obj
                         )
 

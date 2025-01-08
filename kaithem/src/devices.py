@@ -151,10 +151,15 @@ dbgd: weakref.WeakValueDictionary[str, Device] = weakref.WeakValueDictionary()
 
 def closeAll(*a):
     global load_order
+    already_closed = {}
+
     with modules_state.modulesLock:
         for i in reversed(load_order):
             x = i()
             if x:
+                if x.name in already_closed:
+                    continue
+                already_closed[x.name] = True
                 try:
                     x.close()
                 except Exception:
@@ -240,7 +245,7 @@ class DeviceResourceType(ResourceType):
         else:
             deferred_loaders.append(load_closure)
 
-    def on_delete(self, module, resource, data):
+    def on_unload(self, module, resource, data):
         with modules_state.modulesLock:
             n = resource.split(SUBDEVICE_SEPARATOR)[-1]
             if "name" in data["device"]:

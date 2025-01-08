@@ -2100,7 +2100,7 @@ class EventType(modules_state.ResourceType):
     def on_update(self, module, resource, obj):
         self.on_load(module, resource, obj)
 
-    def on_delete(self, module, name, value):
+    def on_unload(self, module, name, value):
         del event_resources[module, name]
         removeOneEvent(module, name)
 

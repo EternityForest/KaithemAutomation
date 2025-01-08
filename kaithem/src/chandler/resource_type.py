@@ -114,7 +114,7 @@ class ConfigType(modules_state.ResourceType):
     def on_update(self, module, resource, data):
         self.on_load(module, resource, data)
 
-    def on_delete(self, module, resource, data):
+    def on_unload(self, module, resource, data):
         with core.cl_context:
             entries[module, resource].cl_close()
             try:

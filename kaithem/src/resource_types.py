@@ -11,8 +11,11 @@ from typing import Any
 from urllib.parse import quote
 
 import beartype
+import structlog
 import yaml
 from jsonschema import validate
+
+logger = structlog.get_logger(__name__)
 
 # Approximately type JSON, could be better
 ResourceDictType = Mapping[str, Any]
@@ -38,7 +41,12 @@ class ResourceType:
     """
 
     def __init__(
-        self, type: str, mdi_icon="", schema=None, priority=50.0, title=""
+        self,
+        type: str,
+        mdi_icon: str = "",
+        schema: dict[str, Any] | None = None,
+        priority: int | float = 50.0,
+        title: str = "",
     ):
         """ "Schema may be a JSON schema, representing a dict,
         which must validate the resource, but should not include any
@@ -56,7 +64,7 @@ class ResourceType:
         self.priority = priority
         self.title = title or type.capitalize()
 
-    def set_edit_page_redirect(self, url="__repeat__"):
+    def set_edit_page_redirect(self, url: str = "__repeat__"):
         """Call this from an update handler to say that after submitting,
         the system should redirect back to the edit page for further edits.
 
@@ -105,19 +113,19 @@ class ResourceType:
         just the resource specific stuff.
         """
 
-    def get_create_target(self, module: str, folder) -> str:
+    def get_create_target(self, module: str, folder: str) -> str:
         return f"/modules/module/{module}/addresourcetarget/{self.type}?dir={quote(folder,safe='')}"
 
-    def get_update_target(self, module: str, resource) -> str:
+    def get_update_target(self, module: str, resource: str) -> str:
         return f"/modules/module/{quote(module)}/updateresource/{resource}"
 
-    def _blurb(self, module: str, resource: str, data) -> str:
+    def _blurb(self, module: str, resource: str, data: ResourceDictType) -> str:
         try:
             return self.blurb(module, resource, data)
         except Exception:
             return f'<div class="scroll max-h-12rem">{html.escape(traceback.format_exc())}</div>'
 
-    def blurb(self, module: str, resource: str, data) -> str:
+    def blurb(self, module: str, resource: str, data: ResourceDictType) -> str:
         """Empty or a single overview div"""
         return ""
 
@@ -137,7 +145,7 @@ class ResourceType:
         """
 
     def on_create_request(
-        self, module: str, resource: str, kwargs
+        self, module: str, resource: str, kwargs: dict[str, Any]
     ) -> ResourceDictType:  # pragma: no cover
         """Must return a resource object given all the kwargs from the createpage.
         Called on submitting create form.  This should not actually do anything
@@ -146,7 +154,7 @@ class ResourceType:
         return {"resource_type": "example"}
 
     def edit_page(
-        self, module: str, resource: str, data
+        self, module: str, resource: str, data: ResourceDictType
     ) -> str:  # pragma: no cover
         """Given current resource data, return a manager page.
         It may submit a form to the URL at get_update_target()
@@ -154,7 +162,11 @@ class ResourceType:
         return str(data)
 
     def on_update_request(
-        self, module: str, resource: str, data: ResourceDictType, kwargs
+        self,
+        module: str,
+        resource: str,
+        data: ResourceDictType,
+        kwargs: dict[str, Any],
     ) -> ResourceDictType:  # pragma: no cover
         "Called with the kwargs from editpage.  Gets old resource obj, must return new"
         return data
@@ -177,12 +189,23 @@ class ResourceType:
     def on_move(
         self, module: str, resource: str, to_module: str, to_resource: str, data
     ):  # pragma: no cover
-        """Called when object has been moved.  All additionaltypes must be movable."""
+        """Called when object has been moved.
+        All additionaltypes must be movable."""
 
-    def on_delete(self, module, resource: str, data):  # pragma: no cover
-        pass
+    def on_unload(
+        self, module, resource: str, data: ResourceDictType
+    ):  # pragma: no cover
+        """Called when a resource is unloaded.  It does not necessarliy mean it is being
+        permanently deleted."""
 
-    def on_update(self, module, resource: str, data):  # pragma: no cover
+    def on_delete(
+        self, module, resource: str, data: ResourceDictType
+    ):  # pragma: no cover
+        """Called when a resource is actually being deleted."""
+
+    def on_update(
+        self, module, resource: str, data: ResourceDictType
+    ):  # pragma: no cover
         """Called when something has updated the data on a resource that already exists.
         Usually the web UI but could be anything."""
 

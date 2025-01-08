@@ -667,7 +667,7 @@ class ChannelStrip(Pipeline, BaseChannel):
 
             else:
                 # Sidechain lets us split off a whole effect chain that does not
-                # feed the main chain, such as fir the speech recognition effect
+                # feed the main chain.
                 if i.get("sidechain", 0):
                     linkTo = self.add_element("tee")
                     self.add_element(
@@ -916,16 +916,6 @@ class ChannelStrip(Pipeline, BaseChannel):
             self.lastPushedLevel = time.time()
             self.lastLevel = level
             self.board.pushLevel(self.name, level)
-
-    def onSTTMessage(self, v):
-        messagebus.post_message(
-            f"/system/mixer/channels/{self.name}/stt/hypothesis", (v,)
-        )
-
-    def onSTTMessageFinal(self, v):
-        messagebus.post_message(
-            f"/system/mixer/channels/{self.name}/stt/final", (v,)
-        )
 
     def doSoundFuse(self, rms):
         # Highly dynamic stuff is less likely to be feedback.
@@ -1662,7 +1652,7 @@ class MixingBoardType(modules_state.ResourceType):
     def on_update(self, module, resource, data):
         self.on_load(module, resource, data)
 
-    def on_delete(self, module, name, value):
+    def on_unload(self, module, name, value):
         boards[f"{module}:{name}"].stop()
         del boards[f"{module}:{name}"]
 

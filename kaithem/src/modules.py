@@ -604,6 +604,7 @@ def rmResource(
             auth.importPermissionsFromModules()  # sync auth's list of permissions
 
         else:
+            additionalTypes[rt].on_unload(module, resource, r)
             additionalTypes[rt].on_delete(module, resource, r)
 
         modules_state.rawDeleteResource(module, resource)
@@ -708,7 +709,7 @@ def rmModule(module: str, message: str = "deleted") -> None:
             try:
                 rt = j[k]["resource_type"]
                 assert isinstance(rt, str)
-                additionalTypes[rt].on_delete(module, k, j[k])
+                additionalTypes[rt].on_unload(module, k, j[k])
             except Exception:
                 logging.exception("Error deleting resource type")
                 messagebus.post_message(

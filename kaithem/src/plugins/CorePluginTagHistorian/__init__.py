@@ -607,7 +607,7 @@ class LoggerType(modules_state.ResourceType):
     def on_update(self, module, resource, obj):
         self.on_load(module, resource, obj)
 
-    def on_delete(self, module, name, value):
+    def on_unload(self, module, name, value):
         try:
             loggers[module, name].close()
         except Exception:

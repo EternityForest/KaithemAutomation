@@ -73,7 +73,7 @@ class TagType(modules_state.ResourceType):
     def on_update(self, module, resource, data):
         self.on_load(module, resource, data)
 
-    def on_delete(self, module, resource, data):
+    def on_unload(self, module, resource, data):
         del config_tags[module, resource]
         for i in range(5):
             gc.collect()
