@@ -12,7 +12,6 @@ import threading
 import time
 import traceback
 import types
-import typing
 import weakref
 from collections.abc import Callable
 from typing import (
@@ -299,8 +298,6 @@ class GenericTagPointClass(Generic[T]):
         # String describing the "owner" of the tag point
         # This is not a precisely defined concept
         self.owner: str = ""
-
-        self.handler: typing.Callable[..., Any] | None = None
 
         self.lastPushedValue: T | None = None
 
@@ -615,10 +612,12 @@ class GenericTagPointClass(Generic[T]):
             alert = alerts.Alert(f"{self.name}:{name}")
 
             def poll():
-                trip = eval(trip_code, self.eval_context)
-                if trip:
-                    alert.trip()
-                    return
+                # Only trip on real data, not defaults.
+                if self.timestamp > 0:
+                    trip = eval(trip_code, self.eval_context)
+                    if trip:
+                        alert.trip()
+                        return
                 if release_code:
                     release = eval(release_code, self.eval_context)
                     if release:
@@ -825,7 +824,7 @@ class GenericTagPointClass(Generic[T]):
 
     def _manage_polling(self):
         interval = self._interval or 0
-        if (self.subscribers or self.handler) and interval > 0:
+        if (self.subscribers or self.alerts) and interval > 0:
             if not self._poller or not (interval == self._poller.interval):
                 if self._poller:
                     self._poller.unregister()
@@ -985,10 +984,6 @@ class GenericTagPointClass(Generic[T]):
                 "Cannot get lock to subscribe to this tag. Is there a long running subscriber?"
             )
 
-    @beartype.beartype
-    def set_handler(self, f: Callable[[T, float, Any], Any]):
-        self.handler = weakref.ref(f)
-
     def poll(self):
         if self.lock.acquire(timeout=5):
             try:
@@ -1012,15 +1007,6 @@ class GenericTagPointClass(Generic[T]):
         if self.last_value == self.lastPushedValue:
             if self.timestamp:
                 return
-
-        # Note the difference with the handler.
-        # It is called synchronously, right then and there
-        if self.handler:
-            f = self.handler()
-            if f:
-                f(self.last_value, self.timestamp, self.annotation)
-            else:
-                self.handler = None
 
         self._apiPush()
 
@@ -1424,7 +1410,7 @@ class GenericTagPointClass(Generic[T]):
                     self.last_got_value = time.time()
                     self.last_value = self.processValue(val)
                 # No need to push is listening
-                if self.subscribers or self.handler:
+                if self.subscribers or self.alerts:
                     if timestamp:
                         self._push()
                     else:

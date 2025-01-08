@@ -24,6 +24,7 @@ Performance should be even better, since some of the removed code was blocking.
 - :coffin: Removed the system event logging feature. Bring your own logs, like systemd offers Tag point logger resources are here to stay.
 - :coffin: remove numpy and other undocumented utils from tag context
 - :coffin: Remove never used tag point claim expiration mechanism
+- :coffin: Remove most likely never used tag set_handler() function
 
 #### Others
 - :technologist: Lots of dead code gone, guided by test conerage metrics.

@@ -220,13 +220,7 @@ from within this function.
 
 The signature of f must be: f(value, timestamp, annotation)
 
-#### TagPoint.set_handler(f)
 
-Similar to subscribe, except the handler is us called before the value is
-actually stored, before any subscribers, and any errors are simply unhandled
-and will we raised in the thread that tried to set the value.
-
-A tag may only have one handler, and the tag strongly references it.
 
 #### TagPoint.unit A string that determines the unit of a tag. Units are
 expressed in strings like "m" or "degF". Currently only a small number of

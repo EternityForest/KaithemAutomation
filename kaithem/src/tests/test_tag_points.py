@@ -185,6 +185,21 @@ def test_tags_error():
     assert t.vta == (50, ts, "TestAnnotation")
 
 
+def test_no_alarm_on_default():
+    import time
+
+    from kaithem.src import tagpoints
+
+    t = tagpoints.Tag("/system/unit_test_tag_545j7647b")
+    assert t.value == 0
+    t.set_alarm("test", "value < 10")
+    time.sleep(1)
+    assert t.alerts["test"].sm.state == "normal"
+    t.value = 9
+    time.sleep(1)
+    assert t.alerts["test"].sm.state != "normal"
+
+
 def test_tags():
     import gc
     import time

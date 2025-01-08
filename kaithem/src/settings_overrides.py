@@ -23,10 +23,11 @@ suggestions_by_key: dict[str, list[tuple[str, str]]] = {}
 def add_suggestion(key: str, value: str, description: str = ""):
     """Add a suggestion for the given key"""
     key = normalize_key(key)
-    if key not in suggestions_by_key:
-        suggestions_by_key[key] = []
+    with lock:
+        if key not in suggestions_by_key:
+            suggestions_by_key[key] = []
 
-    suggestions_by_key[key].append((value, description))
+        suggestions_by_key[key].append((value, description))
 
 
 def clear_suggestions(key: str):
@@ -71,7 +72,21 @@ def get_meta(key: str):
 def list_keys() -> list[str]:
     """List all known setting keys"""
     with lock:
-        return [normalize_key(i[0]) for i in settings.items() if i[1]]
+        added = set()
+        r = []
+        for i in settings:
+            if i not in added:
+                added.add(i)
+                r.append(i)
+        for i in settings_meta:
+            if i not in added:
+                r.append(i)
+                added.add(i)
+        for i in suggestions_by_key:
+            if i not in added:
+                r.append(i)
+                added.add(i)
+        return r
 
 
 @functools.lru_cache(32)
