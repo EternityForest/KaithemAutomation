@@ -22,8 +22,8 @@ from . import context_restrictions, directories, util
 from .resource_types import (
     ResourceDictType,
     ResourceType,
-    additionalTypes,
     mutable_copy_resource,
+    resource_types,
 )
 from .util import url
 
@@ -140,8 +140,8 @@ def serializeResource(name: str, obj: ResourceDictType) -> dict[str, str]:
     rt = r["resource_type"]
     assert isinstance(rt, str)
 
-    if rt in additionalTypes:
-        return additionalTypes[rt].to_files(name, r)
+    if rt in resource_types:
+        return resource_types[rt].to_files(name, r)
 
     else:
         return {f"{name.split('/')[-1]}.yaml": yaml.dump(r)}

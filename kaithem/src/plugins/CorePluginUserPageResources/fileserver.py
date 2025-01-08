@@ -140,4 +140,4 @@ class FileServerType(modules_state.ResourceType):
 
 
 p = FileServerType("fileserver", mdi_icon="web")
-modules_state.additionalTypes["fileserver"] = p
+modules_state.resource_types["fileserver"] = p

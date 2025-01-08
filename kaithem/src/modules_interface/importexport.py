@@ -75,9 +75,9 @@ def download_resource(module, obj):
     pages.require("view_admin_info")
     if (
         modules_state.ActiveModules[module][obj]["resource_type"]
-        in modules_state.additionalTypes
+        in modules_state.resource_types
     ):
-        modules_state.additionalTypes[
+        modules_state.resource_types[
             modules_state.ActiveModules[module][obj]["resource_type"]
         ].flush_unsaved(module, obj)
     r = quart.Response(

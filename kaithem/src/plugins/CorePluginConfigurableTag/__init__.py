@@ -167,4 +167,4 @@ class TagType(modules_state.ResourceType):
 
 
 drt = TagType("tagpoint", mdi_icon="tag-multiple", priority=10)
-modules_state.additionalTypes["tagpoint"] = drt
+modules_state.resource_types["tagpoint"] = drt

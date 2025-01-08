@@ -32,7 +32,7 @@ from . import (
     widgets,
     workers,
 )
-from .modules_state import ResourceType, additionalTypes
+from .modules_state import ResourceType, resource_types
 
 SUBDEVICE_SEPARATOR = "/"
 
@@ -266,7 +266,7 @@ class DeviceResourceType(ResourceType):
 
 
 drt = DeviceResourceType("device", mdi_icon="chip")
-additionalTypes["device"] = drt
+resource_types["device"] = drt
 
 
 def getZombies():

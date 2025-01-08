@@ -685,7 +685,7 @@ class LoggerType(modules_state.ResourceType):
 
 
 drt = LoggerType("logger", mdi_icon="sine-wave")
-modules_state.additionalTypes["logger"] = drt
+modules_state.resource_types["logger"] = drt
 
 
 t = os.path.join(os.path.dirname(__file__), "html", "logpage.html")

@@ -30,7 +30,7 @@ def test_make_module():
 
     with modules_state.modulesLock:
         type = "event"
-        rt = modules_state.additionalTypes[type]
+        rt = modules_state.resource_types[type]
         # If create returns None, assume it doesn't want to insert a module or handles it by itself
         r = rt.on_create_request(n, "testevt", {})
         rt._validate(r)
@@ -95,7 +95,7 @@ def test_make_module():
         default=99,
         tag_type="numeric",
     )
-    rt = modules_state.additionalTypes[type]
+    rt = modules_state.resource_types[type]
     r = rt.on_create_request(n, "testtag", d)
 
     modules_state.rawInsertResource(n, "testtag", r)

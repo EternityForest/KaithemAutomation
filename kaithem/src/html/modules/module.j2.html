@@ -109,13 +109,13 @@ webapi = imp0rt( 'kaithem.api.web' ) %} {% block body %}
         href="/modules/module/{{ url(name) }}/addfileresource?dir={{ url('/'.join(path) ) }}"
         ><i class="mdi mdi-file-document"></i>Add File</a
       >
-      {% for i in modules.additionalTypes %}
+      {% for i in modules.resource_types %}
       <a
         class="button"
         data-testid="add-{{ i }}"
         href="/modules/module/{{ url(name) }}/addresource/{{ i| urlencode }}?dir={{ url('/'.join(path) ) }}">
-        <i class="mdi mdi-{{modules.additionalTypes[i].mdi_icon}}"></i>{{
-        modules.additionalTypes[i].title or i.capitalize()| escape }}</a
+        <i class="mdi mdi-{{modules.resource_types[i].mdi_icon}}"></i>{{
+        modules.resource_types[i].title or i.capitalize()| escape }}</a
       >
       {% endfor %}
     </div>
@@ -269,15 +269,15 @@ webapi = imp0rt( 'kaithem.api.web' ) %} {% block body %}
         </div>
       </dt>
       {% endif %} {% if module[i]['resource_type'] in
-      modules_state.additionalTypes %}
+      modules_state.resource_types %}
       <dt>
         <div class="tool-bar w-full inline noselect">
           <p class="nogrow">
             <i
-              class="mdi mdi-{{modules.additionalTypes[module[i]['resource_type']].mdi_icon}}"></i>
+              class="mdi mdi-{{modules.resource_types[module[i]['resource_type']].mdi_icon}}"></i>
           </p>
           <p>
-            {% if module[i]['resource_lock'] in modules_state.additionalTypes %}
+            {% if module[i]['resource_lock'] in modules_state.resource_types %}
             <span class="mdi mdi-lock-outline"></span>LOCKED {% endif %}
 
             <a
@@ -324,7 +324,7 @@ webapi = imp0rt( 'kaithem.api.web' ) %} {% block body %}
         {% endif %}
 
         <div class="grow padding-inline">
-          {{modules.additionalTypes[module[i]['resource_type']]._blurb(name,i,module[i]
+          {{modules.resource_types[module[i]['resource_type']]._blurb(name,i,module[i]
           )}}
         </div>
       </dd>
@@ -337,7 +337,7 @@ webapi = imp0rt( 'kaithem.api.web' ) %} {% block body %}
             <i class="mdi mdi-file-question-outline"></i>
           </p>
           <p>
-            {% if module[i]['resource_lock'] in modules_state.additionalTypes %}
+            {% if module[i]['resource_lock'] in modules_state.resource_types %}
             <span class="mdi mdi-lock-outline"></span>LOCKED {% endif %}
             <b>{{ i.split("/")[-1] | escape }}</b>
           </p>

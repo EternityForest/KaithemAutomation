@@ -181,4 +181,4 @@ class ConfigType(modules_state.ResourceType):
 
 
 drt = ConfigType("config", mdi_icon="cog-outline")
-modules_state.additionalTypes["config"] = drt
+modules_state.resource_types["config"] = drt

@@ -24,12 +24,12 @@ from scullery import snake_compat
 from . import auth, directories, messagebus, modules_state, pages, util
 from .modules_state import (
     ResourceDictType,
-    additionalTypes,
     check_forbidden,
     external_module_locations,
     getModuleDir,
     getModuleFn,
     modulesLock,
+    resource_types,
     saveModule,
     scopes,
 )
@@ -42,7 +42,7 @@ def loadAllCustomResourceTypes() -> None:
     start_time = time.time()
 
     types: list[tuple[float, str]] = []
-    for key, typeobj in additionalTypes.items():
+    for key, typeobj in resource_types.items():
         types.append((typeobj.priority, key))
     types = sorted(types)
 
@@ -65,8 +65,8 @@ def loadAllCustomResourceTypes() -> None:
                         try:
                             rt = r["resource_type"]
                             assert isinstance(rt, str)
-                            additionalTypes[rt]._validate(r)
-                            additionalTypes[rt].on_load(i, j, r)
+                            resource_types[rt]._validate(r)
+                            resource_types[rt].on_load(i, j, r)
                         except Exception:
                             messagebus.post_message(
                                 "/system/notifications/errors",
@@ -83,8 +83,8 @@ def loadAllCustomResourceTypes() -> None:
                         f"Loader tried to modify resource object {i}:{j} during load"
                     )
 
-    for i in additionalTypes:
-        additionalTypes[i].on_finished_loading(None)
+    for i in resource_types:
+        resource_types[i].on_finished_loading(None)
 
     taken = round(time.time() - start_time, 2)
     logger.info(f"Loaded module resources in {taken}s")
@@ -312,8 +312,8 @@ def loadModule(
         # Make an empty dict to hold the module resources
         module: dict[str, ResourceDictType] = {}
 
-        for t in additionalTypes:
-            found = additionalTypes[t].scan_dir(folder)
+        for t in resource_types:
+            found = resource_types[t].scan_dir(folder)
             module.update(found)
 
         # Iterate over all resource files and load them
@@ -330,10 +330,10 @@ def loadModule(
             # Name mean we can have conflicts, detect and warn
             for i in dirs:
                 if "/__" not in i:
-                    for t in additionalTypes:
+                    for t in resource_types:
                         abs = os.path.join(root, i)
                         rel = os.path.relpath(abs, folder)
-                        found = additionalTypes[t].scan_dir(abs)
+                        found = resource_types[t].scan_dir(abs)
                         found = copy.deepcopy(found)
 
                         for rn in found:
@@ -506,8 +506,8 @@ def bookkeeponemodule(module: str, update: bool = False) -> None:
                 "/system/notifications/errors", f"Failed to load  resource: {i}"
             )
 
-    for i in modules_state.additionalTypes:
-        modules_state.additionalTypes[i].on_finished_loading(module)
+    for i in modules_state.resource_types:
+        modules_state.resource_types[i].on_finished_loading(module)
 
     if not update:
         messagebus.post_message("/system/modules/loaded", module)
@@ -559,8 +559,8 @@ def mvResource(module: str, resource: str, to_module: str, to_resource: str):
         modules_state.ActiveModules[module][resource]
     )
     del modules_state.ActiveModules[module][resource]
-    if rt in modules_state.additionalTypes:
-        modules_state.additionalTypes[rt].on_move(
+    if rt in modules_state.resource_types:
+        modules_state.resource_types[rt].on_move(
             module, resource, to_module, to_resource, obj
         )
 
@@ -604,8 +604,8 @@ def rmResource(
             auth.importPermissionsFromModules()  # sync auth's list of permissions
 
         else:
-            additionalTypes[rt].on_unload(module, resource, r)
-            additionalTypes[rt].on_delete(module, resource, r)
+            resource_types[rt].on_unload(module, resource, r)
+            resource_types[rt].on_delete(module, resource, r)
 
         modules_state.rawDeleteResource(module, resource)
 
@@ -700,16 +700,16 @@ def rmModule(module: str, message: str = "deleted") -> None:
         }
         scopes.pop(module)
 
-    for i in additionalTypes:
-        additionalTypes[i].on_delete_module(module)
+    for i in resource_types:
+        resource_types[i].on_delete_module(module)
 
     # Delete any custom resource types hanging around.
     for k in j:
-        if j[k].get("resource_type", None) in additionalTypes:
+        if j[k].get("resource_type", None) in resource_types:
             try:
                 rt = j[k]["resource_type"]
                 assert isinstance(rt, str)
-                additionalTypes[rt].on_unload(module, k, j[k])
+                resource_types[rt].on_unload(module, k, j[k])
             except Exception:
                 logging.exception("Error deleting resource type")
                 messagebus.post_message(
@@ -768,12 +768,12 @@ def handleResourceChange(
         if t == "module-description":
             pass
         else:
-            if t not in additionalTypes:
+            if t not in resource_types:
                 logger.warning(
                     f"Unknown resource type {t} for resource {resource} in module {module}"
                 )
             else:
                 if not newly_added:
-                    additionalTypes[t].on_update(module, resource, resourceobj)
+                    resource_types[t].on_update(module, resource, resourceobj)
                 else:
-                    additionalTypes[t].on_load(module, resource, resourceobj)
+                    resource_types[t].on_load(module, resource, resourceobj)

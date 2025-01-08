@@ -158,4 +158,4 @@ class ConfigType(modules_state.ResourceType):
 drt = ConfigType(
     "chandler_board", mdi_icon="castle", priority=60, title="Chandler Board"
 )
-modules_state.additionalTypes["chandler_board"] = drt
+modules_state.resource_types["chandler_board"] = drt

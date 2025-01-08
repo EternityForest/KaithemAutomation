@@ -1143,6 +1143,6 @@ class PageType(modules_state.ResourceType):
 
 
 p = PageType("page", mdi_icon="web", schema=schema)
-modules_state.additionalTypes["page"] = p
+modules_state.resource_types["page"] = p
 
 add_asgi_app("/pages", app, "__guest__")

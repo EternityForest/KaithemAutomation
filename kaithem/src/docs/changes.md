@@ -35,6 +35,7 @@ Performance should be even better, since some of the removed code was blocking.
 - :bug: Fix cues not going away when removing a cue provider.
 - :coffin: Remove long time interval formatting option
 - :sparkles: Relicense to GPL v3 or later instead of just GPLv3
+- :sparkles: Resource type creation is a public API, anyone can define new types.
 
 ### 0.87.0
 

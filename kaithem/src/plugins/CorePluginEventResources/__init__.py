@@ -2257,4 +2257,4 @@ class EventType(modules_state.ResourceType):
 
 
 rt = EventType("event", mdi_icon="flag")
-modules_state.additionalTypes["event"] = rt
+modules_state.resource_types["event"] = rt

@@ -1686,4 +1686,4 @@ drt = MixingBoardType(
     title="Mixing Board",
     priority=10,
 )
-modules_state.additionalTypes["mixing_board"] = drt
+modules_state.resource_types["mixing_board"] = drt

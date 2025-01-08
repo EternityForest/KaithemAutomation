@@ -15,6 +15,7 @@ from quart import request
 from quart.ctx import copy_current_request_context
 from scullery import messagebus
 
+from kaithem.api import resource_types
 from kaithem.src import (
     auth,
     dialogs,
@@ -24,7 +25,6 @@ from kaithem.src import (
     modules_state,
     pages,
     quart_app,
-    resource_types,
     util,
 )
 from kaithem.src.modules_interface.page_context import module_page_context
@@ -110,7 +110,7 @@ def resource_page(module, resource):
             )
 
         # This is for the custom resource types interface stuff.
-        return modules_state.additionalTypes[
+        return modules_state.resource_types[
             resourceinquestion["resource_type"]
         ].edit_page(module, resource, resourceinquestion)
 
@@ -140,7 +140,7 @@ def addresource(module, type):
             hidden_inputs={"dir": path},
         )
     else:
-        return modules_state.additionalTypes[type].create_page(module, path)
+        return modules_state.resource_types[type].create_page(module, path)
 
 
 @quart_app.app.route(
@@ -208,7 +208,7 @@ async def addresourcetarget(module, rtype, path=""):
                 auth.importPermissionsFromModules()  # sync auth's list of permissions
 
             else:
-                rt = modules_state.additionalTypes[type]
+                rt = modules_state.resource_types[type]
                 # If create returns None, assume it doesn't want to insert a module or handles it by itself
                 r = rt.on_create_request(module, name, kwargs)
                 rt._validate(r)
@@ -276,13 +276,13 @@ async def resource_update_handler(module, resource):
             t = resourceobj["resource_type"]
             resourceobj["resource_timestamp"] = int(time.time() * 1000000)
 
-            resource_types.edit_page_redirect.value = None
+            resource_types._edit_page_redirect.value = None
 
-            if t in modules_state.additionalTypes:
-                n = modules_state.additionalTypes[t].on_update_request(
+            if t in modules_state.resource_types:
+                n = modules_state.resource_types[t].on_update_request(
                     module, resource, old_resource, kwargs
                 )
-                modules_state.additionalTypes[t].validate(n)
+                modules_state.resource_types[t].validate(n)
 
                 if n:
                     resourceobj = n
@@ -322,13 +322,13 @@ async def resource_update_handler(module, resource):
         if "GoNow" in kwargs:
             return quart.redirect(f"/pages/{module}/{r}")
 
-        if resource_types.edit_page_redirect.value is not None:
-            if resource_types.edit_page_redirect.value == "__repeat__":
+        if resource_types._edit_page_redirect.value is not None:
+            if resource_types._edit_page_redirect.value == "__repeat__":
                 return quart.redirect(
                     f"/modules/module/{util.url(module)}/resource/{util.url(r)}"
                 )
             else:
-                return quart.redirect(resource_types.edit_page_redirect.value)
+                return quart.redirect(resource_types._edit_page_redirect.value)
 
         # Return user to the module page. If name has a folder, return the
         # user to it;s containing folder.
@@ -741,8 +741,8 @@ async def module_update(module):
                     modules_state.ActiveModules.pop(module)
                 )
 
-                for rt in modules_state.additionalTypes:
-                    modules_state.additionalTypes[rt].on_delete_module(module)
+                for rt in modules_state.resource_types:
+                    modules_state.resource_types[rt].on_delete_module(module)
 
                 # Calll the deleter
                 for r, obj in modules_state.ActiveModules[
@@ -750,8 +750,11 @@ async def module_update(module):
                 ].items():
                     rt = obj["resource_type"]
                     assert isinstance(rt, str)
-                    if rt in modules_state.additionalTypes:
-                        modules_state.additionalTypes[rt].on_unload(
+                    if rt in modules_state.resource_types:
+                        modules_state.resource_types[rt].on_move(
+                            module, r, kwargs["name"], r, obj
+                        )
+                        modules_state.resource_types[rt].on_unload(
                             module, r, obj
                         )
 
