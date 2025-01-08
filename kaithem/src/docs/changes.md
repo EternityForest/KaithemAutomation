@@ -5,6 +5,13 @@ Change Log
 
 This release moves some of the last few settings to module resources, so that all settings can be managed consistently in the same way.  It also improves autocomplete for them.
 
+It's full of breaking changes that likely don't matter, in years old
+features that have probably never been used.
+
+Performance should be even better, since some of the removed code was blocking.
+
+
+
 #### :boom: BREAKING
 
 - :coffin: The Apprise notification setting is gone.  Use a config entries resource(created in a module) on core/apprise_target instead

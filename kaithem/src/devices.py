@@ -52,8 +52,6 @@ device_location_cache: dict[str, tuple[str, str]] = {}
 
 saveLocation = os.path.join(directories.vardir, "devices")
 
-driversLocation = os.path.join(directories.vardir, "devicedrivers")
-
 
 recent_scanned_tags = {}
 
@@ -76,7 +74,7 @@ def delete_bookkeep(name, confdir=False):
 
             x.close()
             gc.collect()
-            x.onDelete()
+            x.on_delete()
             gc.collect()
 
             for i in k:
@@ -966,15 +964,7 @@ class Device(iot_devices.device.Device):
 
         return s
 
-    # Lifecycle
-
-    def onDelete(self):
-        self.on_delete()
-
     # FS
-
-    def framework_storage_root(self):
-        return directories.vardir
 
     # UI Integration
 
@@ -1246,12 +1236,6 @@ device_types = {"device": Device}
 
 class DeviceNamespace:
     Device = Device
-
-    def __getattr__(self, name):
-        if not name.startswith("__"):
-            if remote_devices[name].device_type_name == "unsupported":
-                raise RuntimeError("There is no driver for this device")
-            return weakref.proxy(remote_devices[name])
 
     def __getitem__(self, name):
         if remote_devices[name].device_type_name == "unsupported":

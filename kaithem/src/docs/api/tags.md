@@ -344,10 +344,6 @@ Returns the read, write, and max priority permissions currently in effect.
 
 #### tagPoint.expose() Cancels any API exposure
 
-##### TagPoint(v,t,a)
-
-Equivalent to calling set() on the default handler. If
-no args are provided, just returns the tag's value.
 
 ##### Claim.set(value,timestamp=None,annotation=None)
 
