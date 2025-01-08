@@ -41,7 +41,25 @@ else:
     ${tag.description or "No description set"}
 <div>
 
+<h3>Value(source at page load: ${tag.active_claim.name})</h3>
+<p>
+%if tag and isinstance(tag,tagpoints.NumericTagPointClass):
+<ds-span source="tag:${tag.name}"></ds-span>
 
+
+%elif tag and isinstance(tag,(tagpoints.StringTagPointClass, tagpoints.ObjectTagPointClass)):
+<ds-span source="tag:${tag.name}"></ds-span>
+
+%elif tag and isinstance(tag,(tagpoints.BinaryTagPointClass)):
+${len(tag.value)} bytes at page load
+%else:
+No live preview
+%endif
+
+%if tag==None:
+DELETED
+%endif
+</p>
 
 <h3>Info</h3>
 <table border="1" class="w-full">
@@ -107,7 +125,6 @@ else:
 </table>
 
 <h3>Current State</h3>
-<details class="help"><summary><i class="mdi mdi-help-circle-outline"></i></summary>If you do not configure a type, the tag will not exist until requested via code.</details>
 <table border="1" class="w-full">
 
 %if tag and isinstance(tag,tagpoints.NumericTagPointClass):
@@ -163,39 +180,7 @@ else:
 
 
 
-<h3>Value(source at page load: ${tag.active_claim.name})</h3>
-<details class="help"><summary><i class="mdi mdi-help-circle-outline"></i></summary>
-    The default value affects tags immediately when created, when they have never been set by anything else.
-    Changes will not take effect immediately if the tag has already been set.
-    Default values cannot be =expressions.
-</details>
-<table border="1" class="w-full">
-    <tr>
-        <th>Default</th>
-        <th>Current</th>
-    </tr>
-    <tr>
 
-
-%if tag and isinstance(tag,tagpoints.NumericTagPointClass):
-<td><ds-span source="tag:${tag.name}"></ds-span>
-</td>
-
-%elif tag and isinstance(tag,(tagpoints.StringTagPointClass, tagpoints.ObjectTagPointClass)):
-    <td><ds-span source="tag:${tag.name}"></ds-span>
-    </td>
-
-%elif tag and isinstance(tag,(tagpoints.BinaryTagPointClass)):
-<td>${len(tag.value)} bytes at page load</td>
-%else:
-    <td>No live preview</td>
-%endif
-
-%if tag==None:
-<td>DELETED</td>
-%endif
-</tr>
-</table>
 
 <h3>Alerting</h3>
 

@@ -586,7 +586,7 @@ class GenericTagPointClass(Generic[T]):
         release_condition: str | None = "",
         auto_ack: bool | str = "no",
         trip_delay: float | int | str = "0",
-    ) -> None:
+    ) -> alerts.Alert | None:
         self._can_post_alert_error = True
         with lock:
             if condition is None:
@@ -629,6 +629,8 @@ class GenericTagPointClass(Generic[T]):
 
             self.alerts[name] = alert
             self._alert_poll_functions[name] = poll
+            self.recalc_alerts()
+            return alert
 
         self.recalc_alerts()
 

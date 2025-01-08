@@ -91,15 +91,14 @@ if quart.request.args.get("kaithem_disable_header",0):
     <td  style="word-wrap: break-word;"><a href="/tagpoints/${i|u}${extraUrlStuff}">${i|h}</h></td>
     <td  class="desktop-only" style="word-wrap: break-word;">${str(tagpoints.allTagsAtomic[i]().last_value)[:32]|h} </td>
     <td  class="desktop-only">${len(tagpoints.allTagsAtomic[i]().alerts)}</td>
-
 </tr>
 %endif
 
 %if tagpoints.allTagsAtomic[i]() and isinstance(tagpoints.allTagsAtomic[i](),tagpoints.BinaryTagPointClass):
 <tr>
-    <td  style="word-wrap: break-word;"><a href="/tagpoints/${i|u}${extraUrlStuff}">${i|h}</h></td>
+    <td  style="word-wrap: break-word;"><a href="/tagpoints/${i|u}${extraUrlStuff}">${i|h}<a></td>
     <td  class="desktop-only"><span style="color: grey">Value is binary data</span></td>
-    <td  class="desktop-only">${tagpoints.allTagsAtomic[i]().active_claim.name if tagpoints.allTagsAtomic[i]().active_claim else 'CORRUPT STATE'}</td>
+    <td  class="desktop-only">${len(tagpoints.allTagsAtomic[i]().alerts)}</td>
 </tr>
 %endif
 
