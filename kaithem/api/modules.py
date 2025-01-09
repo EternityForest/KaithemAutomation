@@ -4,6 +4,14 @@ from kaithem.src import modules, modules_state, util
 from kaithem.src.modules_state import ResourceDictType
 
 
+def set_resource_error(module: str, resource: str, error: str | None):
+    """
+    Set an error notice for a resource.  Cleared when the resource is moved, updated or deleted,
+    or by setting the error to None.
+    """
+    modules_state.set_resource_error(module, resource, error)
+
+
 def filename_for_file_resource(module: str, resource: str) -> str:
     """Given the module and resource for a file, return the actual file for a file resource, or
     file data dir for directory resource"""

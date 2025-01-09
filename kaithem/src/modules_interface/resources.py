@@ -4,6 +4,7 @@
 # This file just has the basic core editing and viewing handlers
 
 import copy
+import gc
 import os
 import shutil
 import time
@@ -468,6 +469,8 @@ async def deleteresourcetarget(module):
                 f"Resource Deleted by {pages.getAcessingUser()}",
             )
 
+        gc.collect()
+
         messagebus.post_message(
             "/system/notifications",
             "User "
@@ -577,6 +580,7 @@ async def update_resource_metadata(module, resource):
                 modules.enable_resource(module, resource)
             else:
                 modules.unload_resource(module, resource)
+                gc.collect()
 
         modules_state.rawInsertResource(module, resource, d)
 

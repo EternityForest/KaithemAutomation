@@ -302,7 +302,8 @@ def loadModule(
     ignore_func: Callable[[str], bool] | None = None,
     resource_folder: str | None = None,
 ) -> None:
-    "Load a single module but don't bookkeep it . Used by loadModules"
+    """Load a single module but don't bookkeep it and actually init everything with resource types.
+    Used by loadModules"""
     logger.debug(f"Attempting to load module {modulename}")
 
     if not resource_folder:
@@ -558,6 +559,8 @@ def mvResource(module: str, resource: str, to_module: str, to_resource: str):
     modules_state.ActiveModules[to_module][to_resource] = (
         modules_state.ActiveModules[module][resource]
     )
+    modules_state.set_resource_error(module, resource, None)
+    modules_state.set_resource_error(to_module, to_resource, None)
     del modules_state.ActiveModules[module][resource]
     if rt in modules_state.resource_types:
         modules_state.resource_types[rt].on_move(
@@ -593,6 +596,7 @@ def rmResource(
         if rt in modules_state.resource_types:
             modules_state.resource_types[rt].on_delete(module, resource, r)
         unload_resource(module, resource)
+        modules_state.set_resource_error(module, resource, None)
         modules_state.rawDeleteResource(module, resource)
 
         if rt == "directory":
@@ -750,6 +754,7 @@ class KaithemEvent(dict):
 
 
 def createResource(module: str, resource: str, data: ResourceDictType):
+    modules_state.set_resource_error(module, resource, None)
     modules_state.rawInsertResource(module, resource, data)
     handleResourceChange(module, resource)
 
@@ -782,6 +787,7 @@ def handleResourceChange(
                     f"Unknown resource type {t} for resource {resource} in module {module}"
                 )
             else:
+                modules_state.set_resource_error(module, resource, None)
                 if not newly_added:
                     resource_types[t].on_update(module, resource, resourceobj)
                 else:

@@ -807,7 +807,11 @@ class ChannelStrip(Pipeline, BaseChannel):
     def setEffectParam(self, effectId, param, value):
         "Set val after casting, and return properly typed val"
         with self.lock:
-            paramData = self.effectDataById[effectId]["params"][param]
+            try:
+                paramData = self.effectDataById[effectId]["params"][param]
+            except KeyError:
+                raise ValueError("Unknown effect or param", effectId, param)
+
             paramData["value"] = value
             t = paramData["type"]
 

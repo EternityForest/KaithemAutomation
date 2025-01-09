@@ -199,7 +199,8 @@ class ResourceType:
         """Called with module name when every resource has finished loading with onload(),
         and before any events or pages are loaded.
 
-        Called during init with None when ALL modules are done loading.
+        Called during init with None when ALL modules are done loading.  During first
+        init the individual modules don't get their own on_finished_loading calls.
         """
 
     def on_delete_module(self, module: str):  # pragma: no cover

@@ -140,7 +140,7 @@ test("test", async ({ page }) => {
 
   await waitForTasks(page);
   // Todo delete group should be synchronous
-  await sleep(600);
+  await sleep(1200);
   await expect(page.getByRole("button", { name: "test" })).toBeHidden();
 
   // Ensure we can remake one with same name

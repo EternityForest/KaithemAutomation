@@ -6,6 +6,11 @@ import { login, logout, waitForTasks } from "./util";
 test("test", async ({ page }) => {
   await login(page);
 
+  // Device conflict between the twi preloaded modules should put an error notice on the main page.
+  await expect(page.getByText('Error in resource test_preloaded_ext_module,PreloadedDemoDevice: Device with')).toBeVisible();
+
+
+
   await page.getByRole("link", { name: "󰓻 Tags" }).click();
 
   await page
@@ -57,5 +62,23 @@ test("test", async ({ page }) => {
   // This is the nonsense resource type
   await expect(page.getByText("Unknown resource type:")).toBeVisible();
 
+  await page.getByRole('link', { name: '󱒕 Modules' }).click();
+
+  // We also have an external module which should be exactly the same
+  // But it loads after in the deterministing module name sort order so it should have errors and
+  // conflicts
+  await expect(page.getByRole('link', { name: 'test_preloaded_ext_module' })).toBeVisible();
+
+  await expect(page.getByText('kaithem/data/testing/TestingServerModule')).toBeVisible();
+  await page.getByRole('link', { name: 'test_preloaded_ext_module' }).click();
+  await expect(page.getByRole('link', { name: 'TestingServerPreloadedBoard' })).toBeVisible();
+  await expect(page.getByText('nonsense-resource', { exact: true })).toBeVisible();
+
+  await expect(page.getByText('Device with this name already')).toBeVisible();
+ 
+  // Make sure apps from ext module load
+  await page.getByRole('link', { name: '󰀻 Apps' }).click();
+  await expect(page.getByTestId('app-test_preloaded_ext_module_testingserverpreloadedboard').getByRole('link', { name: 'TestingServerPreloadedBoard' })).toBeVisible();
+ 
   await logout(page);
 });

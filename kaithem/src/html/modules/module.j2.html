@@ -327,6 +327,11 @@ webapi = imp0rt( 'kaithem.api.web' ) %} {% block body %}
         {% endif %}
 
         <div class="grow padding-inline">
+          {% if modules_state.get_resource_error(name,i) %}
+            <p class="error">
+              {{modules_state.get_resource_error(name,i) | escape}}
+            </p>
+          {% endif %}
           {{modules.resource_types[module[i]['resource_type']]._blurb(name,i,module[i]
           )}}
         </div>

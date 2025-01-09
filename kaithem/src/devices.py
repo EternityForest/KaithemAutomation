@@ -8,6 +8,7 @@ import json
 import os
 import shutil
 import textwrap
+import threading
 import time
 import traceback
 import weakref
@@ -167,7 +168,9 @@ def closeAll(*a):
 
 
 finished_reading_resources = False
-deferred_loaders = []
+deffered_loaders_list_lock = threading.Lock()
+# Add module and resource for deterministic sortability
+deferred_loaders: list[tuple[str, str, Callable[[], None]]] = []
 
 
 class DeviceResourceType(ResourceType):
@@ -225,9 +228,28 @@ class DeviceResourceType(ResourceType):
                             not dev_data["type"]
                             == remote_devices[devname].device_type_name
                         ):
-                            raise RuntimeError(
-                                "Name in user, can't overwrite this device name with a different type"
+                            modules_state.set_resource_error(
+                                module,
+                                resource,
+                                "Device type mismatch with existing device",
                             )
+                            raise RuntimeError(
+                                "Can't overwrite this device name with a different type"
+                            )
+
+                        m = remote_devices[devname].parent_module
+                        r = remote_devices[devname].parent_resource
+                        if m or r:
+                            if not (m, r) == (module, resource):
+                                modules_state.set_resource_error(
+                                    module,
+                                    resource,
+                                    f"Device with this name already exists and is in {m}/{r}",
+                                )
+                                raise RuntimeError(
+                                    "Can't overwrite device from a different resource"
+                                )
+
                         remote_devices[devname].close()
 
                 d = makeDevice(devname, dev_data, cls)
@@ -243,7 +265,8 @@ class DeviceResourceType(ResourceType):
         if finished_reading_resources:
             load_closure()
         else:
-            deferred_loaders.append(load_closure)
+            with deffered_loaders_list_lock:
+                deferred_loaders.append((module, resource, load_closure))
 
     def on_unload(self, module, resource, data):
         with modules_state.modulesLock:
@@ -1462,9 +1485,14 @@ def warnAboutUnsupportedDevices():
 
 def init_devices():
     # Load all the stuff from the modules
+
+    # Sort so we get a deterministic-ish order
+    with deffered_loaders_list_lock:
+        deferred_loaders.sort()
+
     while deferred_loaders:
         try:
-            deferred_loaders.pop()()
+            deferred_loaders.pop(0)[2]()
         except Exception:
             logger.exception("Err with device")
             messagebus.post_message(

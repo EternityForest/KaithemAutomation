@@ -7,6 +7,7 @@ import copy
 import datetime
 import hashlib
 import os
+import threading
 import time
 import urllib
 import urllib.parse
@@ -16,6 +17,7 @@ from typing import Any, Callable
 import beartype
 import structlog
 import yaml
+from scullery import messagebus
 from stream_zip import ZIP_64, stream_zip
 
 from kaithem.api import resource_types as resource_types_api
@@ -46,6 +48,31 @@ external_module_locations: dict[str, str] = {}
 
 
 prev_versions: dict[tuple, dict] = {}
+
+resource_errors: dict[tuple[str, str], str] = {}
+_resource_errors_lock = threading.RLock()
+
+
+def set_resource_error(module: str, resource: str, error: str | None):
+    """Set an error notice for a resource.  Cleared when the resource is updated or deleted"""
+    if error is not None:
+        logger.error(f"Error in resource {module},{resource}: {error}")
+        if not resource_errors.get((module, resource), None):
+            messagebus.post_message(
+                "/system/notifications/errors",
+                f"Error in resource {module},{resource}: {error}",
+            )
+    with _resource_errors_lock:
+        if error is None:
+            if (module, resource) in resource_errors:
+                del resource_errors[(module, resource)]
+        else:
+            resource_errors[(module, resource)] = error
+
+
+def get_resource_error(module: str, resource: str) -> str | None:
+    with _resource_errors_lock:
+        return resource_errors.get((module, resource), None)
 
 
 def get_resource_label_image_url(module: str, path: str):

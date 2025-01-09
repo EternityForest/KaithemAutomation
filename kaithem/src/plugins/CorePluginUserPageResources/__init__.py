@@ -973,8 +973,8 @@ class PageType(modules_state.ResourceType):
     ):
         updateOnePage(resourcename, module, value)
 
-    def on_move(self, module, resource, to_module, to_resource, resourceobj):
-        if module not in _pages_by_module_resource:
+    def on_move(self, module, resource, to_module, to_resource, data):
+        if to_module not in _pages_by_module_resource:
             _pages_by_module_resource[to_module] = {}
 
         x = _pages_by_module_resource[module].pop(resource, None)
