@@ -5,9 +5,12 @@ from __future__ import annotations
 import copy
 import time
 
+import structlog
 from scullery import messagebus
 
 from kaithem.src import dialogs, modules_state, settings_overrides
+
+logger = structlog.get_logger()
 
 
 class Entries:
@@ -81,6 +84,10 @@ class ConfigType(modules_state.ResourceType):
         self.on_load(module, resource, data)
 
     def on_unload(self, module, resource, data):
+        try:
+            entries[module, resource].close()
+        except Exception:
+            logger.exception("Failed to close resource properly")
         del entries[module, resource]
 
     def on_create_request(self, module, resource, kwargs):

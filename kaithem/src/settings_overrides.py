@@ -142,6 +142,9 @@ def add_val(
         if value:
             settings[key][priority, source] = value
 
+        if len(settings[key]) == 0:
+            del settings[key]
+
         get_val.cache_clear()
         get_by_prefix.cache_clear()
 
