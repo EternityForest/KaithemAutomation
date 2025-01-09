@@ -12,10 +12,6 @@ logger = get_logger(__name__)
 
 entries: dict[tuple[str, str], WebChandlerConsole.WebConsole] = {}
 
-# Ensure that no Chandler function tries to call a modules function
-# And risks a deadlock.
-modules_state.modulesLock.opens_before(core.cl_context)
-
 
 def set_save_cb(c: WebChandlerConsole.WebConsole, module: str, resource: str):
     def save(data: dict[str, Any]):
@@ -151,7 +147,7 @@ class ConfigType(modules_state.ResourceType):
         return d.render(self.get_update_target(module, resource))
 
     def flush_unsaved(self, module, resource):
-        entries[module, resource].cl_check_autosave()
+        entries[module, resource].cl_check_autosave(sync=True)
         return super().flush_unsaved(module, resource)
 
 

@@ -36,6 +36,8 @@ Performance should be even better, since some of the removed code was blocking.
 - :coffin: Remove long time interval formatting option
 - :sparkles: Relicense to GPL v3 or later instead of just GPLv3
 - :sparkles: Resource type creation is a public API, anyone can define new types.
+- :sparkles: Ability to disable a resource without deleting it(Except permissions)
+- :bug: Fix chandler board save not being instant, so zip downloads would not always have latest data
 
 ### 0.87.0
 

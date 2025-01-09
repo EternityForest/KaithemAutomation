@@ -277,8 +277,11 @@ webapi = imp0rt( 'kaithem.api.web' ) %} {% block body %}
               class="mdi mdi-{{modules.resource_types[module[i]['resource_type']].mdi_icon}}"></i>
           </p>
           <p>
-            {% if module[i]['resource_lock'] in modules_state.resource_types %}
+            {% if module[i].get("resource_lock", False) %}
             <span class="mdi mdi-lock-outline"></span>LOCKED {% endif %}
+
+            {% if not module[i].get("resource_enable", True) %}
+            <span class="error nogrow"><i class="mdi mdi-cancel"></i>(disabled)</span> {% endif %}
 
             <a
               href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}"

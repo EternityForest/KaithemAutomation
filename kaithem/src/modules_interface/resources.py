@@ -546,12 +546,37 @@ async def update_resource_metadata(module, resource):
         return pages.loginredirect(pages.geturl())
 
     kwargs = await quart.request.form
+    is_enabled = "resource_enable" in kwargs
+
     with modules_state.modulesLock:
+        was_enabled = modules_state.ActiveModules[module][resource].get(
+            "resource_enable", True
+        )
+
+        rt = modules_state.ActiveModules[module][resource]["resource_type"]
+
+        if was_enabled:
+            if rt in modules_state.resource_types:
+                modules_state.resource_types[rt].flush_unsaved(module, resource)
+
         d = modules_state.mutable_copy_resource(
             modules_state.ActiveModules[module][resource]
         )
         for i in kwargs:
-            d[i] = kwargs[i]
+            if i not in ("resource_enable",):
+                d[i] = kwargs[i]
+
+        d["resource_enable"] = is_enabled
+
+        if not is_enabled:
+            if d["resource_type"] == "permission":
+                raise ValueError("Permissions cannot be disabled")
+
+        if was_enabled != is_enabled:
+            if is_enabled:
+                modules.enable_resource(module, resource)
+            else:
+                modules.unload_resource(module, resource)
 
         modules_state.rawInsertResource(module, resource, d)
 
@@ -573,6 +598,15 @@ async def resource_metadata_page(module, resource):
     except PermissionError:
         return pages.loginredirect(pages.geturl())
     d = dialogs.SimpleDialog(f"Update resource metadata in {module}")
+
+    d.checkbox(
+        "resource_enable",
+        title="Enabled",
+        default=modules_state.ActiveModules[module][resource].get(
+            "resource_enable", True
+        ),
+    )
+
     d.begin_section("Display")
 
     builtin_img = os.listdir(

@@ -18,13 +18,15 @@ import structlog
 import yaml
 from stream_zip import ZIP_64, stream_zip
 
-from . import context_restrictions, directories, util
-from .resource_types import (
+from kaithem.api import resource_types as resource_types_api
+from kaithem.api.resource_types import (
     ResourceDictType,
     ResourceType,
     mutable_copy_resource,
     resource_types,
 )
+
+from . import context_restrictions, directories, util
 from .util import url
 
 # Dummy keeps linter happy
@@ -278,6 +280,9 @@ def rawInsertResource(
     ActiveModules[module][resource] = resourceData
     save_resource(module, resource, resourceData)
     recalcModuleHashes()
+
+
+resource_types_api._save_callback = save_resource
 
 
 @beartype.beartype

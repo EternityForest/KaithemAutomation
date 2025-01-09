@@ -20,7 +20,13 @@ from tinytag import TinyTag
 
 from kaithem.api import lifespan
 
-from .. import assetlib, config, context_restrictions, directories
+from .. import (
+    assetlib,
+    config,
+    context_restrictions,
+    directories,
+    modules_state,
+)
 from . import console_abc
 
 if TYPE_CHECKING:
@@ -94,6 +100,9 @@ cl_context = context_restrictions.Context(
     "ChandlerCoreLock", exclusive=True, timeout=5 * 60
 )
 
+# Ensure that no Chandler function tries to call a modules function
+# And risks a deadlock.
+modules_state.modulesLock.opens_before(cl_context)
 
 logger = structlog.get_logger(__name__)
 

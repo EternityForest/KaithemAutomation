@@ -98,6 +98,11 @@ def yamldownload(module):
         f"{module[:-4]}_{modules_state.getModuleWordHash(module[:-4]).replace(' ', '')}.zip"
     )
 
+    for i in modules_state.ActiveModules[module]:
+        rt = modules_state.ActiveModules[module][i]["resource_type"]
+        if rt in modules_state.resource_types:
+            modules_state.resource_types[rt].flush_unsaved(module, i)
+
     mime = "application/zip"
     try:
         d = modules_state.getModuleAsYamlZip(

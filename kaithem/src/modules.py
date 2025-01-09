@@ -586,11 +586,14 @@ def rmResource(
                 )
             return
 
-        r = modules_state.ActiveModules[module][resource]
-
     try:
+        r = modules_state.ActiveModules[module][resource]
         rt = r["resource_type"]
         assert isinstance(rt, str)
+        if rt in modules_state.resource_types:
+            modules_state.resource_types[rt].on_delete(module, resource, r)
+        unload_resource(module, resource)
+        modules_state.rawDeleteResource(module, resource)
 
         if rt == "directory":
             # Directories are special, they can have the extra data file
@@ -603,17 +606,20 @@ def rmResource(
         elif rt == "permission":
             auth.importPermissionsFromModules()  # sync auth's list of permissions
 
-        else:
-            resource_types[rt].on_unload(module, resource, r)
-            resource_types[rt].on_delete(module, resource, r)
-
-        modules_state.rawDeleteResource(module, resource)
-
     except Exception:
         messagebus.post_message(
             "/system/modules/errors/unloading",
             f"Error deleting resource: {str((module, resource))}",
         )
+
+
+def unload_resource(module: str, resource: str):
+    r = modules_state.ActiveModules[module][resource]
+    rt = r["resource_type"]
+    assert isinstance(rt, str)
+
+    if rt in resource_types:
+        resource_types[rt].on_unload(module, resource, r)
 
 
 def newModule(
@@ -763,6 +769,9 @@ def handleResourceChange(
         if resource == "__metadata__":
             return
 
+        if not resourceobj.get("resource_enable", True):
+            return
+
         if t == "permission":
             auth.importPermissionsFromModules()  # sync auth's list of permissions
         if t == "module-description":
@@ -777,3 +786,9 @@ def handleResourceChange(
                     resource_types[t].on_update(module, resource, resourceobj)
                 else:
                     resource_types[t].on_load(module, resource, resourceobj)
+
+
+def enable_resource(module: str, resource: str):
+    r = modules_state.ActiveModules[module][resource]
+    rt = r["resource_type"]
+    resource_types[rt].on_load(module, resource, r)

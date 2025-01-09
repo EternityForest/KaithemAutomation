@@ -607,9 +607,10 @@ class ChandlerConsole(console_abc.Console_ABC):
         return sd
 
     @core.cl_context.entry_point
-    def cl_check_autosave(self):
+    def cl_check_autosave(self, sync=False):
+        """Only call sync if you already have the modules lock"""
         if self.initialized:
-            self.cl_save_project_data()
+            self.cl_save_project_data(sync=sync)
 
     @core.cl_context.entry_point
     def cl_get_project_data(self):
@@ -621,7 +622,8 @@ class ChandlerConsole(console_abc.Console_ABC):
         }
         return project_file
 
-    def cl_save_project_data(self):
+    def cl_save_project_data(self, sync=False):
+        """Only use sync if you have the modules lock"""
         with core.cl_context:
             project_file = self.cl_get_project_data()
 
@@ -629,13 +631,16 @@ class ChandlerConsole(console_abc.Console_ABC):
                 return
 
             self.last_saved_version = project_file
-
-        # If this is called under the core lock,
-        # The modules lock won't let us get it so we have to do a bg thread
-        def f():
+        if sync:
             self.ml_save_callback(project_file)
+        else:
+            # If this is called under the core lock,
+            # The modules lock won't let us get it unless we already have it
+            # so we have to do a bg thread
+            def f():
+                self.ml_save_callback(project_file)
 
-        workers.do(f)
+            workers.do(f)
 
     def pushchannelInfoByUniverseAndNumber(self, u: str):
         "This has expanded to push more data than names"

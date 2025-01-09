@@ -5,7 +5,7 @@ import copy
 import html
 import threading
 import traceback
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from typing import Any, Final
 from urllib.parse import quote
 
@@ -25,6 +25,9 @@ _edit_page_redirect = threading.local()
 def mutable_copy_resource(resource: ResourceDictType) -> dict[str, Any]:
     """Given an immutable resource, return a mutable copy"""
     return copy.deepcopy(resource)  # type: ignore
+
+
+_save_callback: Callable[[str, str, ResourceDictType], None] | None = None
 
 
 class ResourceType:
@@ -75,9 +78,10 @@ class ResourceType:
         self.title = title or type.capitalize()
 
     def __del__(self):
-        logger.error(
-            f"Deleting resource type {self.type}. Deleting resource types not supported."
-        )
+        if logger:
+            logger.error(
+                f"Deleting resource type {self.type}. Deleting resource types not supported."
+            )
 
     def set_edit_page_redirect(self, url: str = "__repeat__"):
         """Call this from an update handler to say that after submitting,
@@ -216,7 +220,9 @@ class ResourceType:
     def on_delete(
         self, module, resource: str, data: ResourceDictType
     ):  # pragma: no cover
-        """Called when a resource is actually being deleted."""
+        """Called when a resource is actually being deleted.
+        Will be called before on_unload
+        """
 
     def on_update(
         self, module, resource: str, data: ResourceDictType
@@ -226,6 +232,15 @@ class ResourceType:
 
     def flush_unsaved(self, module, resource):  # pragma: no cover
         """Called when the resource should save any unsaved data it has back to the resource."""
+
+    def save_resource(self, module, resource, data):
+        """Call this if your implementation has it's own editor that can save
+        data back.
+        """
+        if not _save_callback:
+            # Should not be possible to trigger this.
+            raise RuntimeError("Save callback not set up")  # pragma: no cover
+        _save_callback(module, resource, data)
 
 
 resource_types: Final[dict[str, ResourceType]] = {}
