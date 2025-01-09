@@ -100,6 +100,7 @@ ${groups.groups[kwargs['group']].slideshow_layout}
 <script type="module">
     import { makePlayer, setLink, setTelemetryName, setTelemetryStatus, sendTelemetry} from  "./webmedia.mjs"
     import { kaithemapi, APIWidget} from "/static/js/widget.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0"
+    import picodash from '/static/js/thirdparty/picodash/picodash-base.esm.js'
 
     let link = new APIWidget("${groups.groups[kwargs['group']].media_link_socket.uuid}")
     var conv = new showdown.Converter({ metadata: true });
@@ -197,7 +198,7 @@ ${groups.groups[kwargs['group']].slideshow_layout}
                 setTelemetryStatus("OK")
             }
             )
-            KaithemWidgetApiSnackbar("Ding!", 5)
+            picodash.snackbar.createSnackbar("Ding!", 5)
         }
 
         else if (v[0] == 'setFriendlyName') {

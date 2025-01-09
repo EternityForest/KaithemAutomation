@@ -57,16 +57,16 @@ class MediaLinkManager:
                             board.linkSend(["slideshow_telemetry", n, None])
                         return
 
-                    self.slideshow_telemetry[n] = {
+                    self.slideshow_telemetry[id] = {
                         "status": str(v[1]["status"])[:128],
-                        "name": str(v[1].get("name", ""))[:128],
+                        "name": str(v[1].get("name", n))[:128],
                         "ip": ip,
                         "id": id,
                         "ts": time.time(),
                         "battery": widgets.peer_info_for_connection(id).battery,
                         "group": groupObj.name,
                     }
-                    self.slideshow_telemetry.move_to_end(n)
+                    self.slideshow_telemetry.move_to_end(id)
 
                     if len(self.slideshow_telemetry) > 256:
                         k, x = self.slideshow_telemetry.popitem(False)
@@ -78,8 +78,8 @@ class MediaLinkManager:
                             board.linkSend(
                                 [
                                     "slideshow_telemetry",
-                                    n,
-                                    self.slideshow_telemetry[n],
+                                    id,
+                                    self.slideshow_telemetry[id],
                                 ]
                             )
                     except Exception:

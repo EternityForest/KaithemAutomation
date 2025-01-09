@@ -18,7 +18,7 @@
                     Connection
                 </th>
                 <th>
-                    Name
+                    IP
                 </th>
                 <th>Status</th>
                 <th>Last Seen</th>
@@ -28,7 +28,7 @@
             <tr v-for="v, i of telemetry" 
             v-bind:key="v.id+i"
             :class="{ 'error': v.ts < (unixtime - 70) }">
-                <td>{{ i }}</td>
+                <td>{{ v?.ip|| '' }}</td>
                 <td>{{ v.name }}</td>
                 <td :class="{ 'error': v.status.includes('FAIL') }">
                     {{ v.ts < (unixtime - 70) ? 'LOST CONNECTION' : v.status }}
