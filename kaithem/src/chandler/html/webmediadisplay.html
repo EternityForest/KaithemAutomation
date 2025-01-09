@@ -198,7 +198,10 @@ ${groups.groups[kwargs['group']].slideshow_layout}
                 setTelemetryStatus("OK")
             }
             )
-            picodash.snackbar.createSnackbar("Ding!", 5)
+            picodash.snackbar.createSnackbar("Ding!", {
+                accent: 'success',
+                timeout: 5000
+            })
         }
 
         else if (v[0] == 'setFriendlyName') {
