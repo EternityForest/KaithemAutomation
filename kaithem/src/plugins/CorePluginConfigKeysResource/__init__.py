@@ -88,7 +88,6 @@ class ConfigType(modules_state.ResourceType):
             entries[module, resource].close()
         except Exception:
             logger.exception("Failed to close resource properly")
-        del entries[module, resource]
 
     def on_create_request(self, module, resource, kwargs):
         kwargs = dict(kwargs)
