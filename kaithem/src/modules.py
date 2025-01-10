@@ -207,11 +207,6 @@ def readResourceFromData(
     return (r, resourcename)
 
 
-def indent(s, prefix="    "):
-    s = [prefix + i for i in s.split("\n")]
-    return "\n".join(s)
-
-
 def initModules() -> None:
     global external_module_locations
     """"Find the most recent module dump folder and use that. Should there not be a module dump folder, it is corrupted, etc,

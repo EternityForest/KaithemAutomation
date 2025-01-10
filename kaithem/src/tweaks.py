@@ -13,6 +13,7 @@ import threading
 
 import structlog
 import uvloop
+import yaml
 from scullery import messagebus
 
 uvloop.install()
@@ -21,6 +22,19 @@ mimetypes.add_type("text/html", ".vue", strict=False)
 # ??????????
 mimetypes.add_type("application/javascript", ".js", strict=True)
 
+
+def str_presenter(dumper, data):
+    """configures yaml for dumping multiline strings
+    Ref: https://stackoverflow.com/questions/8640959/how-can-i-control-what-scalar-form-pyyaml-uses-for-my-data"""
+    if data.count("\n") > 0:  # check for multiline string
+        return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
+    return dumper.represent_scalar("tag:yaml.org,2002:str", data)
+
+
+yaml.add_representer(str, str_presenter)
+yaml.representer.SafeRepresenter.add_representer(
+    str, str_presenter
+)  # to use with safe_dum
 
 if not os.environ.get("VIRTUAL_ENV"):
     if "pipx" in sys.executable:

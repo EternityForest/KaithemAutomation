@@ -7,6 +7,7 @@ import copy
 import functools
 import gc
 import importlib
+import mimetypes
 import os
 import re
 import threading
@@ -38,6 +39,7 @@ from kaithem.src import (
     messagebus,
     modules_state,
     pages,
+    quart_app,
     settings_overrides,
     theming,
     util,
@@ -69,6 +71,33 @@ component_lookup = TemplateLookup(
         os.path.join(directories.htmldir, "makocomponents"),
     ]
 )
+
+
+class ServeFileInsteadOfRenderingPageException(Exception):
+    def __init__(self, *args: object) -> None:
+        self.f_filepath: str
+        self.f_MIME: str
+        self.f_name: str
+        super().__init__(*args)
+
+
+def serveFile(path, contenttype="", name=None):
+    "Skip the rendering of the current page and Serve a static file instead."
+    if name is None:
+        name = path
+    if not contenttype:
+        c = mimetypes.guess_type(path, strict=True)
+        if c[0]:
+            contenttype = c[0]
+
+    # Give it some text for when someone decides to call it from the wrong place
+    e = ServeFileInsteadOfRenderingPageException(
+        "If you see this exception, it means someone tried to serve a file from somewhere that was not a page."
+    )
+    e.f_filepath = path
+    e.f_MIME = contenttype
+    e.f_name = name
+    raise e
 
 
 def markdownToSelfRenderingHTML(content, title):
@@ -294,6 +323,7 @@ class CompiledPage:
                     "print": self.new_print,
                     "_k_alt_top_banner": self.alt_top_banner,
                     "imp0rt": importlib.import_module,
+                    "serve_file": serveFile,
                 }
                 if m in modules_state.scopes:
                     self.scope["module"] = modules_state.scopes[m]
@@ -777,6 +807,7 @@ async def catch_all(
                     "module": modules_state.scopes[module],
                     "path": args,
                     "kwargs": kwargs,
+                    "serve_file": serveFile,
                     "print": page.new_print,
                     "page": page.localAPI,
                     "_k_usr_page_theme": t,
@@ -799,22 +830,22 @@ async def catch_all(
         r = await serve()
         return quart.Response(r, headers=h)
 
-    except pages.ServeFileInsteadOfRenderingPageException as e:
+    except ServeFileInsteadOfRenderingPageException as e:
         if hasattr(e.f_filepath, "getvalue"):
             h["Content-Type"] = e.f_MIME
             h["Content-Disposition"] = f'attachment ; filename = "{e.f_name}"'
             return quart.Response(e.f_filepath.getvalue(), headers=h)
         else:
-            h["Content-Type"] = e.f_MIME
             h["Content-Disposition"] = f'attachment ; filename = "{e.f_name}"'
-            return await quart.send_file(e.f_filepath)
+            x = await quart_app.send_file_range(e.f_filepath)
+            if isinstance(x, quart.Response):
+                x.headers.update(h)
+                return x
+            else:
+                # 404
+                return quart.abort(404)
 
     except Exception as e:
-        # The HTTPRedirect is NOT an error, and should not be handled like one.
-        # So we just reraise it unchanged
-        if isinstance(e, pages.HTTPRedirect):
-            return quart.redirect(e.url)
-
         tb = traceback.format_exc(chain=True)
         data = (
             "Request from: "
@@ -840,7 +871,7 @@ async def catch_all(
             messagebus.post_message(
                 f"system/errors/pages/{module}/{'/'.join(args)}", str(tb)
             )
-        except Exception as e:
+        except Exception:
             logger.exception("Could not post message")
 
         # Keep only the most recent 25 errors
@@ -1050,6 +1081,10 @@ class PageType(modules_state.ResourceType):
         d = SimpleDialog(f"{module}: {resource}")
         d.submit_button("GoNow", title="Save and go to page")
 
+        d.text(
+            "Use serve_file(path, contenttype="
+            ", name=None) to raise an exception to serve a file."
+        )
         d.code_editor(
             "code",
             title="Handler Code",

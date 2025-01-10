@@ -25,6 +25,7 @@ Performance should be even better, since some of the removed code was blocking.
 - :coffin: remove numpy and other undocumented utils from tag context
 - :coffin: Remove never used tag point claim expiration mechanism
 - :coffin: Remove most likely never used tag set_handler() function
+- :coffin: kaithem.api.serve_file removed.  Instead, serve_file is always available in page resoure code.
 
 #### Others
 - :technologist: Lots of dead code gone, guided by test conerage metrics.

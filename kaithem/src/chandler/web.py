@@ -334,26 +334,16 @@ async def default(path: str):
     # Use the dot to distinguish templates vs static files
     if "." not in path.split("/")[-1]:
         path = path.split("/")[0] + ".html"
-        try:
 
-            def f():
-                r = render_html_file(os.path.join(html_dir, path))
-                if isinstance(r, str):
-                    r = r.encode()
-                return r
+        def f():
+            r = render_html_file(os.path.join(html_dir, path))
+            if isinstance(r, str):
+                r = r.encode()
+            return r
 
-            r = await quart.utils.run_sync(f)()
-            return quart.Response(r, mimetype="text/html")
-        except pages.ServeFileInsteadOfRenderingPageException as e:
-            if not isinstance(e.f_filepath, (str, os.PathLike)):
-                # bytesio not a real path....
-                return quart.Response(e.f_filepath)
-            return await quart.send_file(
-                e.f_filepath,
-                mimetype=e.f_MIME,
-                as_attachment=True,
-                attachment_filename=e.f_name,
-            )
+        r = await quart.utils.run_sync(f)()
+        return quart.Response(r, mimetype="text/html")
+
     else:
         if ".." in path or "/" in path or "\\" in path:
             raise RuntimeError("confuse a hacker script")

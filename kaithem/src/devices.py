@@ -1445,16 +1445,6 @@ def getDeviceType(t):
             return UnsupportedDevice
 
 
-class TemplateGetter:
-    def __init__(self, fn):
-        self.fn = fn
-
-    def __get__(self, instance, owner):
-        return lambda: pages.get_vardir_template(self.fn).render(
-            data=instance.config, obj=instance, name=instance.name
-        )
-
-
 unsupportedDevices: weakref.WeakValueDictionary[str, UnsupportedDevice] = (
     weakref.WeakValueDictionary()
 )
@@ -1494,9 +1484,9 @@ def init_devices():
         try:
             deferred_loaders.pop(0)[2]()
         except Exception:
-            logger.exception("Err with device")
+            logger.exception("Error loading device")
             messagebus.post_message(
-                "/system/notifications/errors", "Err with device"
+                "/system/notifications/errors", "Error loading device"
             )
 
 

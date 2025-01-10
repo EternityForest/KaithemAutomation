@@ -4,7 +4,6 @@
 import base64
 import importlib
 import logging
-import mimetypes
 import os
 import time
 import weakref
@@ -31,12 +30,6 @@ _varLookup = TemplateLookup(directories=[directories.vardir])
 
 class KaithemUserPermissionError(PermissionError):
     pass
-
-
-class HTTPRedirect(Exception):
-    def __init__(self, url):
-        Exception.__init__(self)
-        self.url = url
 
 
 class MyCache(jinja2.BytecodeCache):
@@ -84,10 +77,6 @@ def render_jinja_template(n, **kw):
     return _jl.load(env, n, env.globals).render(
         imp0rt=importlib.import_module, **kw
     )
-
-
-def get_vardir_template(fn):
-    return _varLookup.get_template(os.path.relpath(fn, directories.vardir))
 
 
 nav_bar_plugins = weakref.WeakValueDictionary()
@@ -391,30 +380,3 @@ def getAcessingUser(asgi=None, quart_req=None):
     except Exception:
         logging.exception("Error in user lookup")
         return "__guest__"
-
-
-class ServeFileInsteadOfRenderingPageException(Exception):
-    def __init__(self, *args: object) -> None:
-        self.f_filepath: str
-        self.f_MIME: str
-        self.f_name: str
-        super().__init__(*args)
-
-
-def serveFile(path, contenttype="", name=None):
-    "Skip the rendering of the current page and Serve a static file instead."
-    if name is None:
-        name = path
-    if not contenttype:
-        c = mimetypes.guess_type(path, strict=True)
-        if c[0]:
-            contenttype = c[0]
-
-    # Give it some text for when someone decides to call it from the wrong place
-    e = ServeFileInsteadOfRenderingPageException(
-        "If you see this exception, it means someone tried to serve a file from somewhere that was not a page."
-    )
-    e.f_filepath = path
-    e.f_MIME = contenttype
-    e.f_name = name
-    raise e

@@ -137,11 +137,6 @@ def add_file_resource_preview_plugin(
     _file_preview_plugins.append(filter)
 
 
-def serve_file(path, contenttype="", name=None):
-    "Call from within a Quart handler to server a file."
-    _pages.serveFile(path=path, contenttype=contenttype, name=name)
-
-
 def user(asgi=None) -> str:
     """
     asgi: The ASGI scope object that is currently active, required if
