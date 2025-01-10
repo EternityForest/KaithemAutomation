@@ -88,3 +88,10 @@ def resolve_file_resource(relative_path: str) -> str | None:
         path = modules_state.filename_for_file_resource(i, relative_path)
         if os.path.isfile(path):
             return path
+
+
+def save_resource(module: str, resource: str, resourceData: ResourceDictType):
+    """Save a resource without triggering any other events.
+    Use this in your flush_unsaved handler.
+    """
+    modules_state.rawInsertResource(module, resource, resourceData)

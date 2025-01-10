@@ -27,11 +27,7 @@ once: list[int] = [0]
 inputs_cache: tuple[float, list[str]] = (0.0, [])
 
 
-def _list_midi_inputs() -> list[str]:
-    """
-    These correspond to topics at /midi/portname you could
-    subscribe to.
-    """
+def __list_midi_inputs() -> list[str]:
     try:
         import rtmidi
     except ImportError:
@@ -68,8 +64,12 @@ def _list_midi_inputs() -> list[str]:
 
 
 def list_midi_inputs(force_update: bool = False) -> list[str]:
+    """
+    These correspond to topics at /midi/portname you could
+    subscribe to.
+    """
     global inputs_cache
     if force_update or (time.monotonic() - inputs_cache[0] > 1):
-        inputs_cache = (time.monotonic(), _list_midi_inputs())
+        inputs_cache = (time.monotonic(), __list_midi_inputs())
 
     return inputs_cache[1]

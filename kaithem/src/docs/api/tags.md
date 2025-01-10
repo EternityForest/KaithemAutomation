@@ -16,7 +16,7 @@
   - [Tag Points](#tag-points)
     - [The TagPoint object](#the-tagpoint-object)
     - [Locking](#locking)
-    - [Expression Tags Any tag having a name that begins with an equals sign](#expression-tags-any-tag-having-a-name-that-begins-with-an-equals-sign)
+    - [Expression Tags](#expression-tags)
     - [Error Handling Errors in getters are logged, and the most recent value](#error-handling-errors-in-getters-are-logged,-and-the-most-recent-value)
     - [tagPoint.pull()](#tagpointpull())
     - [StringTags](#stringtags)
@@ -28,7 +28,7 @@
 
 ## BinaryTag
 
-[Show source in tags.py:384](../../../api/tags.py#L384)
+[Show source in tags.py:377](../../../api/tags.py#L377)
 
 #### Signature
 
@@ -40,7 +40,7 @@ def BinaryTag(k: str) -> tagpoints.BinaryTagPointClass: ...
 
 ## NumericTag
 
-[Show source in tags.py:369](../../../api/tags.py#L369)
+[Show source in tags.py:362](../../../api/tags.py#L362)
 
 #### Signature
 
@@ -52,7 +52,7 @@ def NumericTag(k: str) -> tagpoints.NumericTagPointClass: ...
 
 ## ObjectTag
 
-[Show source in tags.py:379](../../../api/tags.py#L379)
+[Show source in tags.py:372](../../../api/tags.py#L372)
 
 #### Signature
 
@@ -64,7 +64,7 @@ def ObjectTag(k: str) -> tagpoints.ObjectTagPointClass: ...
 
 ## StringTag
 
-[Show source in tags.py:374](../../../api/tags.py#L374)
+[Show source in tags.py:367](../../../api/tags.py#L367)
 
 #### Signature
 
@@ -76,7 +76,7 @@ def StringTag(k: str) -> tagpoints.StringTagPointClass: ...
 
 ## all_tags_raw
 
-[Show source in tags.py:350](../../../api/tags.py#L350)
+[Show source in tags.py:343](../../../api/tags.py#L343)
 
 #### Signature
 
@@ -88,7 +88,7 @@ def all_tags_raw(): ...
 
 ## existing_tag
 
-[Show source in tags.py:354](../../../api/tags.py#L354)
+[Show source in tags.py:347](../../../api/tags.py#L347)
 
 Return tag by that name, of any type, if it exists
 
@@ -102,7 +102,7 @@ def existing_tag(s) -> tagpoints.GenericTagPointClass | None: ...
 
 ## normalize_tag_name
 
-[Show source in tags.py:363](../../../api/tags.py#L363)
+[Show source in tags.py:356](../../../api/tags.py#L356)
 
 Add the leading / if needed
 
@@ -165,12 +165,14 @@ Reading from tags may or may not involve the lock, due to caching.
 You can always break possible lock cycles by doing something in a background
 thread, if the application can handle it.
 
-### Expression Tags Any tag having a name that begins with an equals sign
+### Expression Tags
+
+Any tag having a name that begins with an equals sign
 will be created with a getter that evaluates the name as an expression. The
 priority of the expression source will be 98.
 
 You have access to time, math, random, re, plus the tag itself as 'tag', and
-anything else you put in tag.eval_context in code.
+anything else you put in tag.context in code.
 
 #### the tv(n) function
 
@@ -219,8 +221,6 @@ like endless loops, one should be careful when accessing the tagpoint itself
 from within this function.
 
 The signature of f must be: f(value, timestamp, annotation)
-
-
 
 #### TagPoint.unit A string that determines the unit of a tag. Units are
 expressed in strings like "m" or "degF". Currently only a small number of
@@ -338,6 +338,10 @@ Returns the read, write, and max priority permissions currently in effect.
 
 #### tagPoint.expose() Cancels any API exposure
 
+##### TagPoint(v,t,a)
+
+Equivalent to calling set() on the default handler. If
+no args are provided, just returns the tag's value.
 
 ##### Claim.set(value,timestamp=None,annotation=None)
 

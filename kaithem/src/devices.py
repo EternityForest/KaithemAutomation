@@ -596,6 +596,18 @@ class Device(iot_devices.device.Device):
                 logger.exception("Error unsubscribing from tagpoints")
 
             try:
+                if hasattr(self, "tagPoints"):
+                    for i in self._tagBookKeepers:
+                        if i in self.tagPoints:
+                            self.tagPoints[i].unsubscribe(
+                                self._tagBookKeepers[i]
+                            )
+            except Exception:
+                logger.exception(
+                    "Error unsubscribing from tagpoints while closing device"
+                )
+
+            try:
                 del self.tagPoints
             except Exception:
                 pass

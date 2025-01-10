@@ -18,7 +18,6 @@
   - [render_html_string](#render_html_string)
   - [render_jinja_template](#render_jinja_template)
   - [require](#require)
-  - [serve_file](#serve_file)
   - [user](#user)
   - [Modules](#modules)
 
@@ -145,7 +144,7 @@ def add_wsgi_app(prefix: str, app, permission="system_admin"): ...
 
 ## has_permission
 
-[Show source in __init__.py:160](../../../../api/web/__init__.py#L160)
+[Show source in __init__.py:155](../../../../api/web/__init__.py#L155)
 
 Return True if the user accessing the current web request
 has the permssion specified.
@@ -156,7 +155,7 @@ and specify a scope, or specify a user directly.
 #### Signature
 
 ```python
-def has_permission(permission: str, asgi=None, user=None) -> bool: ...
+def has_permission(permission: str, asgi=None, user: str | None = None) -> bool: ...
 ```
 
 
@@ -218,7 +217,7 @@ def render_jinja_template(template_filename: str, **kw): ...
 
 ## require
 
-[Show source in __init__.py:172](../../../../api/web/__init__.py#L172)
+[Show source in __init__.py:167](../../../../api/web/__init__.py#L167)
 
 Raise an exception if the user accessing the current web request in a Quart context
 does not have the permssion specified
@@ -231,23 +230,9 @@ def require(permission: str): ...
 
 
 
-## serve_file
-
-[Show source in __init__.py:140](../../../../api/web/__init__.py#L140)
-
-Call from within a Quart handler to server a file.
-
-#### Signature
-
-```python
-def serve_file(path, contenttype="", name=None): ...
-```
-
-
-
 ## user
 
-[Show source in __init__.py:145](../../../../api/web/__init__.py#L145)
+[Show source in __init__.py:140](../../../../api/web/__init__.py#L140)
 
 asgi: The ASGI scope object that is currently active, required if
       this is called from outside a Quart context.

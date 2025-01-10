@@ -5,11 +5,39 @@
 > Auto-generated documentation for [widgets](../../../api/widgets.py) module.
 
 - [Widgets](#widgets)
+  - [PeerInfo](#peerinfo)
+  - [peer_info_for_connection](#peer_info_for_connection)
   - [widget_docstring](#widget_docstring)
+
+## PeerInfo
+
+[Show source in widgets.py:44](../../../api/widgets.py#L44)
+
+#### Signature
+
+```python
+class PeerInfo: ...
+```
+
+
+
+## peer_info_for_connection
+
+[Show source in widgets.py:49](../../../api/widgets.py#L49)
+
+Get the peer address for a connection
+
+#### Signature
+
+```python
+def peer_info_for_connection(connection_id: str): ...
+```
+
+
 
 ## widget_docstring
 
-[Show source in widgets.py:4](../../../api/widgets.py#L4)
+[Show source in widgets.py:6](../../../api/widgets.py#L6)
 
 Example code:
 

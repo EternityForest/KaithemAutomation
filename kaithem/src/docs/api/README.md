@@ -9,6 +9,7 @@ A full list of `Kaithemautomation` project modules.
 - [Lifespan](./lifespan.md#lifespan)
 - [Midi](./midi.md#midi)
 - [Modules](./modules.md#modules)
+- [Resource Types](./resource_types.md#resource-types)
 - [Settings](./settings.md#settings)
 - [Tags](./tags.md#tags)
 - [Util](./util.md#util)

@@ -5,28 +5,15 @@
 > Auto-generated documentation for [midi](../../../api/midi.py) module.
 
 - [Midi](#midi)
-  - [_list_midi_inputs](#_list_midi_inputs)
   - [list_midi_inputs](#list_midi_inputs)
   - [normalize_midi_port_name](#normalize_midi_port_name)
 
-## _list_midi_inputs
+## list_midi_inputs
 
-[Show source in midi.py:30](../../../api/midi.py#L30)
+[Show source in midi.py:66](../../../api/midi.py#L66)
 
 These correspond to topics at /midi/portname you could
 subscribe to.
-
-#### Signature
-
-```python
-def _list_midi_inputs() -> list[str]: ...
-```
-
-
-
-## list_midi_inputs
-
-[Show source in midi.py:70](../../../api/midi.py#L70)
 
 #### Signature
 
