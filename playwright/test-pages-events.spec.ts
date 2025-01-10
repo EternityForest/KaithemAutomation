@@ -21,9 +21,9 @@ test("test", async ({ page }) => {
   await page.getByLabel("Name").fill("p1");
   await page.getByRole("button", { name: "Submit" }).click();
   await page.locator(".ace_content").first().fill('foo = "123"\n\n');
-  await page
-    .locator("label:nth-child(4) > div > .ace_scroller > .ace_content")
-    .fill('setup = "234"\n\n');
+
+  await page.getByLabel('Setup Code').fill('setup = "234"\n\n');
+
   await page
     .locator("div")
     .filter({ hasText: '{% extends "pagetemplate.j2.' })
