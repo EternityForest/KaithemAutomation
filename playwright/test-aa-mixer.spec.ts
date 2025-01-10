@@ -111,6 +111,10 @@ test("test", async ({ page }) => {
     .getByTestId("add-effect-plateReverb")
     .click();
 
+  // Make it not just see the already running previous one and
+  // think the new iteration with the reverb has loaded.
+  await sleep(500);
+
   // Give it extra loading time
   await expect(
     page.getByTestId("channel-box-testchannel").getByTestId("channel-status")
