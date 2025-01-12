@@ -5,7 +5,7 @@ from kaithem.src import shutdown as shutdownapi
 _shutdown_handler_refs = []
 
 # True if the system is shutting down
-shutdown: bool = False
+is_shutting_down: bool = False
 
 
 def shutdown_now():
@@ -25,8 +25,8 @@ def at_shutdown(f):
 
 
 def _state(*a):
-    global shutdown
-    shutdown = True
+    global is_shutting_down
+    is_shutting_down = True
 
 
 at_shutdown(_state)

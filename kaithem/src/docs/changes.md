@@ -27,6 +27,8 @@ Performance should be even better, since some of the removed code was blocking.
 - :coffin: Remove most likely never used tag set_handler() function
 - :coffin: kaithem.api.serve_file removed.  Instead, serve_file is always available in page resoure code.
 
+- :coffin: kaithem.api.lifespan.shutdown renamed to is_shutting_down
+
 #### Others
 - :technologist: Lots of dead code gone, guided by test conerage metrics.
 - :sparkles: Map tile server will clear files older than 3 months if cache gets bigger than 32GB(defaults)

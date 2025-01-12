@@ -22,6 +22,8 @@ import structlog
 
 # SPDX-FileCopyrightText: Copyright 2018 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-or-later
+from kaithem.api import lifespan
+
 from . import (
     alerts,
     directories,
@@ -593,7 +595,8 @@ class Device(iot_devices.device.Device):
                                 self._deviceSpecIntegrationHandlers[i]
                             )
             except Exception:
-                logger.exception("Error unsubscribing from tagpoints")
+                if not lifespan.is_shutting_down:
+                    logger.exception("Error unsubscribing from tagpoints")
 
             try:
                 if hasattr(self, "tagPoints"):
@@ -603,9 +606,10 @@ class Device(iot_devices.device.Device):
                                 self._tagBookKeepers[i]
                             )
             except Exception:
-                logger.exception(
-                    "Error unsubscribing from tagpoints while closing device"
-                )
+                if not lifespan.is_shutting_down:
+                    logger.exception(
+                        "Error unsubscribing from tagpoints while closing device"
+                    )
 
             try:
                 del self.tagPoints

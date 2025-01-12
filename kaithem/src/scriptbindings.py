@@ -355,7 +355,7 @@ class ScriptActionKeeper:
 
         def warn_chandler_gc(x):
             # Lifespan will be None during system exit
-            if lifespan and not lifespan.shutdown:
+            if lifespan and not lifespan.is_shutting_down:
                 print(f"Chandler action {x} is no longer valid")
 
         self.debug_refs[key] = weakref.ref(value, warn_chandler_gc)

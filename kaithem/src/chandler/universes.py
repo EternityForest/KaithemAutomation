@@ -474,7 +474,7 @@ class Universe:
     def __del__(self):
         if not self.closed:
             if self.refresh_on_create:
-                if lifespan and not lifespan.shutdown:
+                if lifespan and not lifespan.is_shutting_down:
                     # Do as little as possible in the undefined __del__ thread
                     refresh_groups()
             global last_state_update

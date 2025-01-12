@@ -2,7 +2,7 @@ import asyncio
 import threading
 
 import icemedia.sound_player
-from scullery import messagebus
+from scullery import messagebus, workers
 
 _shutdown_events: list[asyncio.Event] = []
 
@@ -22,3 +22,4 @@ def shutdown():
         "/system/notifications/shutdown", "Recieved SIGINT or SIGTERM."
     )
     messagebus.post_message("/system/shutdown", "Recieved SIGINT or SIGTERM.")
+    workers.stop()
