@@ -28,6 +28,8 @@ Performance should be even better, since some of the removed code was blocking.
 - :coffin: kaithem.api.serve_file removed.  Instead, serve_file is always available in page resoure code.
 
 - :coffin: kaithem.api.lifespan.shutdown renamed to is_shutting_down
+-
+- :boom: kaithem.api.modules.modules_lock is exposed and most APIs in the file require holding it.
 
 #### Others
 - :technologist: Lots of dead code gone, guided by test conerage metrics.
@@ -41,6 +43,7 @@ Performance should be even better, since some of the removed code was blocking.
 - :sparkles: Resource type creation is a public API, anyone can define new types.
 - :sparkles: Ability to disable a resource without deleting it(Except permissions)
 - :bug: Fix chandler board save not being instant, so zip downloads would not always have latest data
+- :bug: Fix bug where sometimes chandler board data wouldn't save if the only change was in the fixture setup.
 
 ### 0.87.0
 

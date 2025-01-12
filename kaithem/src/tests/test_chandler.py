@@ -11,11 +11,11 @@ import uuid
 
 import pytest
 import stamina
+import yaml
 
 if "--collect-only" not in sys.argv:  # pragma: no cover
-    from kaithem.src import tagpoints
+    from kaithem.src import directories, modules, modules_state, tagpoints
     from kaithem.src.chandler import (
-        WebChandlerConsole,
         core,
         global_actions,
         groups,
@@ -23,9 +23,31 @@ if "--collect-only" not in sys.argv:  # pragma: no cover
     )
     from kaithem.src.sound import play_logs
 
-    core.boards["test_board"] = WebChandlerConsole.WebConsole()
+    if "test_chandler_module" not in modules_state.ActiveModules:
+        modules.newModule("test_chandler_module")
+        modules.createResource(
+            "test_chandler_module",
+            "test_board",
+            {
+                "resource_type": "chandler_board",
+            },
+        )
+    board = core.boards["test_chandler_module:test_board"]
 
-    board = core.boards["test_board"]
+
+def getBoardResourceData():
+    "Used for reading what we saved so we can check that saving works"
+    fn = os.path.join(
+        directories.vardir,
+        "modules",
+        "data",
+        "test_chandler_module",
+        "test_board.yaml",
+    )
+    assert os.path.exists(fn)
+    with open(fn) as f:
+        decoded = yaml.safe_load(f)
+    return decoded
 
 
 class TempGroup:
@@ -337,6 +359,9 @@ def test_fixtures():
     """Create a universe, a fixture type, and a fixture,
     add the fixture to a group, che/ck the universe vals
     """
+
+    from kaithem.api.modules import modules_lock
+
     u = {
         "dmx": {
             "channels": 512,
@@ -359,7 +384,7 @@ def test_fixtures():
     }
 
     # fixps = {"tst": {"blue": 42, "dim": 0, "green": 0, "red": 0}}
-    fixas = {
+    fixture_assignments = {
         "testFixture": {
             "addr": 1,
             "name": "testFixture",
@@ -369,25 +394,58 @@ def test_fixtures():
     }
 
     board._onmsg("__admin__", ["setconfuniverses", u], "test")
-    board.cl_check_autosave()
-
-    assert board.cl_get_project_data()["setup"]["configured_universes"]["dmx"]
 
     board._onmsg(
         "__admin__",
         ["setfixtureclass", "TestFixtureType", fixtypes["TestFixtureType"]],
         "test",
     )
+    with modules_lock:
+        board.ml_cl_check_autosave()
+
+    assert board.cl_get_project_data()["setup"]["configured_universes"]["dmx"]
+    # TODO more tests than just this of saving and loading
+
+    saved = getBoardResourceData()
+    assert (
+        saved["project"]["setup"]["fixture_types"]["TestFixtureType"]
+        == fixtypes["TestFixtureType"]
+    )
+    assert (
+        saved["project"]["setup"]["configured_universes"]["dmx"]["type"]
+        == "enttecopen"
+    )
+
     assert (
         board.cl_get_project_data()["setup"]["fixture_types"][
             "TestFixtureType"
         ]["channels"][0]["name"]
         == "red"
     )
+
     board._onmsg(
         "__admin__",
-        ["setFixtureAssignment", "testFixture", fixas["testFixture"]],
+        [
+            "setFixtureAssignment",
+            "testFixture",
+            fixture_assignments["testFixture"],
+        ],
         "test",
+    )
+
+    assert board.cl_get_project_data()["setup"]["fixture_assignments"][
+        "testFixture"
+    ]
+
+    with modules_lock:
+        board.ml_cl_check_autosave()
+
+    # Really glad I did small changes with multiple saves,
+    # i caught a bug that only showed up that way!
+    saved = getBoardResourceData()
+    assert (
+        saved["project"]["setup"]["fixture_assignments"]["testFixture"]
+        == fixture_assignments["testFixture"]
     )
 
     with TempGroup() as grp:

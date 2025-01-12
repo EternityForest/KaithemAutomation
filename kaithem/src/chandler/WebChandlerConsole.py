@@ -180,7 +180,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 s, user: str, connection_id: str, **kw: Any
             ) -> None:
                 if canUserDoThis(user, "system_admin"):
-                    self.cl_check_autosave()
+                    self.ml_cl_check_autosave()
                 return super().on_subscriber_disconnected(
                     user, connection_id, **kw
                 )
@@ -469,7 +469,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             self.linkSend(["fixturePresets", self.fixture_presets])
 
         elif cmd_name == "saveState":
-            self.cl_check_autosave()
+            self.ml_cl_check_autosave()
 
         elif cmd_name == "addgroup":
             sc = Group(self, msg[1].strip())

@@ -12,6 +12,8 @@ import beartype
 import yaml
 from scullery import messagebus, scheduling, snake_compat, workers
 
+from kaithem.api.modules import modules_lock
+
 # The frontend's ephemeral state is using CamelCase conventions for now
 from .. import schemas, unitsofmeasure
 from . import (
@@ -100,7 +102,7 @@ class ChandlerConsole(console_abc.Console_ABC):
         self.fixture_errors = ""
 
         self.autosave_checker = scheduling.scheduler.every(
-            self.cl_check_autosave, 10 * 60
+            self.ml_cl_check_autosave, 10 * 60
         )
 
         def dummy(data: dict[str, Any]):
@@ -606,41 +608,30 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         return sd
 
-    @core.cl_context.entry_point
-    def cl_check_autosave(self, sync=False):
+    def ml_cl_check_autosave(self, sync=False):
         """Only call sync if you already have the modules lock"""
         if self.initialized:
-            self.cl_save_project_data(sync=sync)
+            self.ml_cl_save_project_data()
 
     @core.cl_context.entry_point
     def cl_get_project_data(self):
-        sd = copy.deepcopy(self.cl_get_groups())
-
         project_file: dict[str, Any] = {
-            "groups": sd,
+            "groups": self.cl_get_groups(),
             "setup": self.cl_get_setup_file(),
         }
-        return project_file
+        return copy.deepcopy(project_file)
 
-    def cl_save_project_data(self, sync=False):
+    def ml_cl_save_project_data(self):
         """Only use sync if you have the modules lock"""
-        with core.cl_context:
-            project_file = self.cl_get_project_data()
+        with modules_lock:
+            with core.cl_context:
+                project_file = self.cl_get_project_data()
 
-            if self.last_saved_version == project_file:
-                return
+                if self.last_saved_version == project_file:
+                    return
 
-            self.last_saved_version = project_file
-        if sync:
-            self.ml_save_callback(project_file)
-        else:
-            # If this is called under the core lock,
-            # The modules lock won't let us get it unless we already have it
-            # so we have to do a bg thread
-            def f():
+                self.last_saved_version = project_file
                 self.ml_save_callback(project_file)
-
-            workers.do(f)
 
     def pushchannelInfoByUniverseAndNumber(self, u: str):
         "This has expanded to push more data than names"

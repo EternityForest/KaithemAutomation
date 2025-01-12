@@ -1354,26 +1354,28 @@ class MixingBoard:
     def savePreset(self, presetName):
         if not presetName:
             raise ValueError("Empty preset name")
-        with self.lock:
-            util.disallowSpecialChars(presetName)
-            self.resourcedata["presets"][presetName] = copy.deepcopy(
-                self.channels
-            )
-            modules_state.rawInsertResource(
-                self.module, self.resource, self.resourcedata
-            )
+        with modules_state.modulesLock:
+            with self.lock:
+                util.disallowSpecialChars(presetName)
+                self.resourcedata["presets"][presetName] = copy.deepcopy(
+                    self.channels
+                )
+                modules_state.rawInsertResource(
+                    self.module, self.resource, self.resourcedata
+                )
 
-            self.loadedPreset = presetName
-            self.api.send(["loadedPreset", self.loadedPreset])
+                self.loadedPreset = presetName
+                self.api.send(["loadedPreset", self.loadedPreset])
 
     def deletePreset(self, presetName):
         if presetName not in self.resourcedata["presets"]:
             raise ValueError("No such preset")
-        with self.lock:
-            del self.resourcedata["presets"][presetName]
-            modules_state.rawInsertResource(
-                self.module, self.resource, self.resourcedata
-            )
+        with modules_state.modulesLock:
+            with self.lock:
+                del self.resourcedata["presets"][presetName]
+                modules_state.rawInsertResource(
+                    self.module, self.resource, self.resourcedata
+                )
 
     def loadPreset(self, presetName: str):
         with self.lock:

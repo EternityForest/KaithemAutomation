@@ -252,19 +252,20 @@ async def get_resource_label_image(module: str, path: str):
     "/modules/set_label_image/<module>/<path:path>", methods=["POST"]
 )
 async def set_resource_label(module: str, path: str):
-    pages.require("system_admin")
-    kw = dict(await quart.request.form)
-    kw.update(quart.request.args)
-    data = modules_state.ActiveModules[module][path]
+    with modules_state.modulesLock:
+        pages.require("system_admin")
+        kw = dict(await quart.request.form)
+        kw.update(quart.request.args)
+        data = modules_state.ActiveModules[module][path]
 
-    mf = modules_state.getModuleDir(module)
-    mf = os.path.join(mf, "__filedata__/media")
+        mf = modules_state.getModuleDir(module)
+        mf = os.path.join(mf, "__filedata__/media")
 
-    data = modules_state.ActiveModules[module][path]
-    data2 = dict(copy.deepcopy(data))
-    data2["resource_label_image"] = kw["resource"][len("media/") :]
-    modules_state.rawInsertResource(module, path, data2)
-    return "OK"
+        data = modules_state.ActiveModules[module][path]
+        data2 = dict(copy.deepcopy(data))
+        data2["resource_label_image"] = kw["resource"][len("media/") :]
+        modules_state.rawInsertResource(module, path, data2)
+        return "OK"
 
 
 # def manual_run(self,module, resource):

@@ -186,6 +186,7 @@ class Context:
                 return f(obj, *args, **kwargs)
             else:
                 with self:
+                    self._local.session = s
                     return f(obj, *args, **kwargs)
 
         return object_session_entry_point_wrapper  # type: ignore

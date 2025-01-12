@@ -1,7 +1,20 @@
 import os
+from typing import Any
+
+from scullery import workers
 
 from kaithem.src import modules, modules_state, util
 from kaithem.src.modules_state import ResourceDictType
+
+# This lock can be used to synchronize access to modules
+# Be extremely careful what you do with it!
+# It is meant to be the top-level lock, so you must acquire this
+# before getting any other locks that you plan to get.
+# Because of this, it also serves as a de facto GIL in some places
+
+# Almost every function in this file will raise an
+# exception if this lock is not held.
+modules_lock = modules_state.modulesLock
 
 
 def set_resource_error(module: str, resource: str, error: str | None):
@@ -28,27 +41,48 @@ def admin_url_for_file_resource(module: str, resource: str) -> str:
     return f"/modules/module/{util.url(module) }/getfileresource/{resource}"
 
 
-def get_resource_data(module: str, resource: str) -> ResourceDictType:
-    "Get the dict data for a resource"
-    return modules_state.ActiveModules[module][resource]
+def scan_file_resources(module: str):
+    """Scan the resources in the filedata folder for the specified module.
+    Call if you directly change something, to update the UI.  May not
+    take effect immediately
+    """
+
+    def f():
+        modules_state.importFiledataFolderStructure(module)
+        modules_state.recalcModuleHashes()
+
+    workers.do(f)
 
 
+@modules_state.modulesLock.required
+def get_resource_data(module: str, resource: str) -> dict[str, Any]:
+    "Get the dict data for a resource. May only be called under the modules_lock."
+    d = modules_state.ActiveModules[module][resource]
+    return modules_state.mutable_copy_resource(d)
+
+
+@modules_lock.required
 def insert_resource(module: str, resource: str, resourceData: ResourceDictType):
     """
     Create a new resource, if it doesn't already exist,
     and initializing it as appropriate for it's resource type
+    May only be called under the modules_lock.
     """
     if resource in modules_state.ActiveModules[module]:
         raise ValueError(
             f"Resource {resource} already exists in module {module}"
         )
 
-    modules_state.rawInsertResource(module, resource, resourceData)
-    modules.handleResourceChange(module, resource, newly_added=True)
+    with modules_state.modulesLock:
+        modules_state.rawInsertResource(module, resource, resourceData)
+        modules.handleResourceChange(module, resource, newly_added=True)
 
 
+@modules_lock.required
 def update_resource(module: str, resource: str, resourceData: ResourceDictType):
-    """Update an existing resource"""
+    """Update an existing resource, triggering any relevant effects for that resource type.
+    May only be called under the modules_lock."""
+
     if resource not in modules_state.ActiveModules[module]:
         raise ValueError(
             f"Resource {resource} does not exist in module {module}"
@@ -64,34 +98,34 @@ def update_resource(module: str, resource: str, resourceData: ResourceDictType):
     modules.handleResourceChange(module, resource)
 
 
+@modules_lock.required
 def delete_resource(module: str, resource: str):
+    """Delete a resource, triggering any relevant effects for that resource type.
+    May only be called under the modules_lock.
+    """
     modules.rmResource(module, resource)
 
 
+@modules_lock.required
 def list_resources(module: str) -> list[str]:
-    with modules_state.modulesLock:
-        return list(modules_state.ActiveModules[module].keys())
+    """List the resources in a module.
+    May only be called under the modules_lock."""
+    return list(modules_state.ActiveModules[module].keys())
 
 
-def scan_file_resources(module: str):
-    """Scan the resources in the filedata folder for the specified module.
-    Call if you directly change something, to update the UI.
-    """
-    modules_state.importFiledataFolderStructure(module)
-    modules_state.recalcModuleHashes()
-
-
+@modules_lock.required
 def resolve_file_resource(relative_path: str) -> str | None:
     """Given a name of a file resource, return the full path to it,
-    if it can be found in any module"""
+    if it can be found in any module. May only be called under the modules_lock."""
     for i in modules_state.ActiveModules:
         path = modules_state.filename_for_file_resource(i, relative_path)
         if os.path.isfile(path):
             return path
 
 
+@modules_lock.required
 def save_resource(module: str, resource: str, resourceData: ResourceDictType):
     """Save a resource without triggering any other events.
-    Use this in your flush_unsaved handler.
+    Use this in your flush_unsaved handler. May only be called under the modules_lock.
     """
     modules_state.rawInsertResource(module, resource, resourceData)

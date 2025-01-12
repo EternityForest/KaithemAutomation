@@ -57,8 +57,9 @@ def test_make_module():
 
     x = copy.deepcopy(modules_state.ActiveModules[n]["testevt"])
     x.update(d)
-    modules_state.rawInsertResource(n, "testevt", x)
-    modules.handleResourceChange(n, "testevt")
+    with modules_state.modulesLock:
+        modules_state.rawInsertResource(n, "testevt", x)
+        modules.handleResourceChange(n, "testevt")
 
     assert "x = 8" in str(modules_state.ActiveModules[n]["testevt"])
 
@@ -98,8 +99,9 @@ def test_make_module():
     rt = modules_state.resource_types[type]
     r = rt.on_create_request(n, "testtag", d)
 
-    modules_state.rawInsertResource(n, "testtag", r)
-    modules.handleResourceChange(n, "testtag")
+    with modules_state.modulesLock:
+        modules_state.rawInsertResource(n, "testtag", r)
+        modules.handleResourceChange(n, "testtag")
 
     assert tags.existing_tag("test_tag_foo").value == 99
 

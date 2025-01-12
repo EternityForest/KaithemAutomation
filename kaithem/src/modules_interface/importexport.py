@@ -77,9 +77,11 @@ def download_resource(module, obj):
         modules_state.ActiveModules[module][obj]["resource_type"]
         in modules_state.resource_types
     ):
-        modules_state.resource_types[
-            modules_state.ActiveModules[module][obj]["resource_type"]
-        ].flush_unsaved(module, obj)
+        # flush unsaved needs the modules lock
+        with modules_state.modulesLock:
+            modules_state.resource_types[
+                modules_state.ActiveModules[module][obj]["resource_type"]
+            ].flush_unsaved(module, obj)
     r = quart.Response(
         yaml.dump(modules_state.ActiveModules[module][obj]),
         headers={"Content-Disposition": f'attachment; filename="{obj}.yaml"'},
@@ -98,10 +100,11 @@ def yamldownload(module):
         f"{module}_{modules_state.getModuleWordHash(module).replace(' ', '')}.zip"
     )
 
-    for i in modules_state.ActiveModules[module]:
-        rt = modules_state.ActiveModules[module][i]["resource_type"]
-        if rt in modules_state.resource_types:
-            modules_state.resource_types[rt].flush_unsaved(module, i)
+    with modules_state.modulesLock:
+        for i in modules_state.ActiveModules[module]:
+            rt = modules_state.ActiveModules[module][i]["resource_type"]
+            if rt in modules_state.resource_types:
+                modules_state.resource_types[rt].flush_unsaved(module, i)
 
     mime = "application/zip"
     try:

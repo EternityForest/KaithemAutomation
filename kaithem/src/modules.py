@@ -752,6 +752,7 @@ class KaithemEvent(dict):
 
 
 def createResource(module: str, resource: str, data: ResourceDictType):
+    data = modules_state.mutable_copy_resource(data)
     modules_state.set_resource_error(module, resource, None)
     modules_state.rawInsertResource(module, resource, data)
     handleResourceChange(module, resource)

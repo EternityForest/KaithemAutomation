@@ -17,7 +17,7 @@ from typing import Any, Callable, Final
 import beartype
 import structlog
 import yaml
-from scullery import messagebus
+from scullery import messagebus, workers
 from stream_zip import ZIP_64, stream_zip
 
 from kaithem.api import resource_types as resource_types_api
@@ -291,26 +291,29 @@ def rawInsertResource(
     resource_data: ResourceDictType,
     rehash: bool = True,
 ):
-    resourceData = mutable_copy_resource(resource_data)
-    check_forbidden(resource)
-    assert resource[0] != "/"
+    with modulesLock:
+        resourceData = mutable_copy_resource(resource_data)
+        check_forbidden(resource)
+        assert resource[0] != "/"
 
-    if "resource_timestamp" not in resourceData:
-        resourceData["resource_timestamp"] = int(time.time() * 1000000)
+        if "resource_timestamp" not in resourceData:
+            resourceData["resource_timestamp"] = int(time.time() * 1000000)
 
-    # todo maybe we don't need os independence
-    d = os.path.dirname(resource.replace("/", os.path.pathsep))
-    while d:
-        if d not in ActiveModules[module]:
-            ActiveModules[module][d.replace(os.path.pathsep, "/")] = {
-                "resource_type": "directory"
-            }
-        d = os.path.dirname(d)
+        # todo maybe we don't need os independence
+        d = os.path.dirname(resource.replace("/", os.path.pathsep))
+        while d:
+            if d not in ActiveModules[module]:
+                ActiveModules[module][d.replace(os.path.pathsep, "/")] = {
+                    "resource_type": "directory"
+                }
+            d = os.path.dirname(d)
 
-    ActiveModules[module][resource] = resourceData
-    save_resource(module, resource, resourceData)
-    if rehash:
-        recalcModuleHashes()
+        ActiveModules[module][resource] = resourceData
+        save_resource(module, resource, resourceData)
+        if rehash:
+            # Don't need to block or risk deadlocks every time
+            # A chandler board or something auto saves.
+            recalcOneModuleHashDeferred(module)
 
 
 resource_types_api._save_callback = save_resource
@@ -323,19 +326,20 @@ def rawDeleteResource(m: str, r: str, type: str | None = None) -> None:
     any bookkeeping. Will not remove whatever runtime objects
     were created from the resource, also will not update hashes.
     """
-    resourceData = ActiveModules[m].pop(r)
-    rt = resourceData["resource_type"]
-    assert isinstance(rt, str)
+    with modulesLock:
+        resourceData = ActiveModules[m].pop(r)
+        rt = resourceData["resource_type"]
+        assert isinstance(rt, str)
 
-    if type and rt != type:
-        raise ValueError("Resource exists but is wrong type")
+        if type and rt != type:
+            raise ValueError("Resource exists but is wrong type")
 
-    dir = get_resource_save_location(m, r)
-    for i in os.listdir(dir):
-        if i.startswith(r + "."):
-            os.remove(os.path.join(dir, i))
+        dir = get_resource_save_location(m, r)
+        for i in os.listdir(dir):
+            if i.startswith(r + "."):
+                os.remove(os.path.join(dir, i))
 
-    recalcModuleHashes()
+        recalcModuleHashes()
 
 
 def getModuleFn(modulename: str) -> str:
@@ -370,49 +374,51 @@ def saveModule(
     ignore_func if present must take an abs path and return true if that path should be
     left alone. It's meant for external modules and version control systems.
     """
+    with modulesLock:
+        if "__do__not__save__to__disk__:" in modulename:
+            return
 
-    if "__do__not__save__to__disk__:" in modulename:
-        return
+        if is_module_readonly(modulename):
+            raise RuntimeError("Cannot save a module in a readonly location")
 
-    if is_module_readonly(modulename):
-        raise RuntimeError("Cannot save a module in a readonly location")
+        if modulename in external_module_locations:
+            fn = os.path.join(
+                directories.moduledir, "data", modulename + ".location"
+            )
+            needs_update = True
+            if os.path.isfile(fn):
+                with open(fn, "rb") as f:
+                    needs_update = (
+                        f.read() != external_module_locations[modulename]
+                    )
 
-    if modulename in external_module_locations:
-        fn = os.path.join(
-            directories.moduledir, "data", modulename + ".location"
-        )
-        needs_update = True
-        if os.path.isfile(fn):
-            with open(fn, "rb") as f:
-                needs_update = f.read() != external_module_locations[modulename]
+            if needs_update:
+                with open(fn, "w") as f:
+                    f.write(external_module_locations[modulename])
 
-        if needs_update:
-            with open(fn, "w") as f:
-                f.write(external_module_locations[modulename])
+        # Iterate over all of the resources in a module and save them as json files
+        # under the URL url module name for the filename.
+        logger.debug("Saving module " + str(modulename))
+        saved: list[str] = []
 
-    # Iterate over all of the resources in a module and save them as json files
-    # under the URL url module name for the filename.
-    logger.debug("Saving module " + str(modulename))
-    saved: list[str] = []
+        # do the saving
+        dir = getModuleFn(modulename)
 
-    # do the saving
-    dir = getModuleFn(modulename)
+        if not modulename:
+            raise RuntimeError("Something wrong")
 
-    if not modulename:
-        raise RuntimeError("Something wrong")
+        try:
+            # Make sure there is a directory at where/module/
+            os.makedirs(dir, exist_ok=True)
+            util.chmod_private_try(dir)
+            for resource in module:
+                r = module[resource]
+                save_resource(modulename, resource, resourceData=r)
 
-    try:
-        # Make sure there is a directory at where/module/
-        os.makedirs(dir, exist_ok=True)
-        util.chmod_private_try(dir)
-        for resource in module:
-            r = module[resource]
-            save_resource(modulename, resource, resourceData=r)
-
-        saved.append(modulename)
-        return saved
-    except Exception:
-        raise
+            saved.append(modulename)
+            return saved
+        except Exception:
+            raise
 
 
 # Lets just store the entire list of modules as a huge dict for now at least
@@ -477,6 +483,15 @@ def recalcModuleHashes() -> None:
     moduleshash = hashModules()
     modulehashes = {}
     modulewordhashes = {}
+
+
+def recalcOneModuleHashDeferred(m: str) -> None:
+    def f():
+        modulehashes.pop(m, None)
+        modulewordhashes.pop(m, None)
+        getModuleWordHash(m)
+
+    workers.do(f)
 
 
 def deterministic_walk(

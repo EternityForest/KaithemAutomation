@@ -232,7 +232,8 @@ class ResourceType:
         Usually the web UI but could be anything."""
 
     def flush_unsaved(self, module, resource):  # pragma: no cover
-        """Called when the resource should save any unsaved data it has back to the resource."""
+        """Called when the resource should save any unsaved data it has
+        back to the resource.  Will and must only ever be called under the modules_lock"""
 
     def save_resource(self, module, resource, data):
         """Call this if your implementation has it's own editor that can save

@@ -4,6 +4,7 @@ from typing import Any
 from scullery import messagebus
 from structlog import get_logger
 
+from kaithem.api.modules import save_resource
 from kaithem.src import apps_page, dialogs, modules_state
 
 from . import WebChandlerConsole, core
@@ -20,7 +21,7 @@ def set_save_cb(c: WebChandlerConsole.WebConsole, module: str, resource: str):
             x: dict = copy.deepcopy(r)  # type: ignore
             if not data == x.get("project", {}):
                 x["project"] = data
-                modules_state.rawInsertResource(module, resource, x)
+                save_resource(module, resource, x)
         except Exception:
             logger.exception("Failed to save chandler project state")
             messagebus.post_message(
@@ -147,7 +148,7 @@ class ConfigType(modules_state.ResourceType):
         return d.render(self.get_update_target(module, resource))
 
     def flush_unsaved(self, module, resource):
-        entries[module, resource].cl_check_autosave(sync=True)
+        entries[module, resource].ml_cl_check_autosave(sync=True)
         return super().flush_unsaved(module, resource)
 
 

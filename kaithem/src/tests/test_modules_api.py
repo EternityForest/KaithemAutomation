@@ -11,16 +11,18 @@ async def test_modules_api():
     modules.newModule(n)
     assert n in modules_state.ActiveModules
 
-    modulesapi.insert_resource(
-        n, "test_resource", {"resource_type": "dummy", "val": 7878}
-    )
+    with modulesapi.modules_lock:
+        modulesapi.insert_resource(
+            n, "test_resource", {"resource_type": "dummy", "val": 7878}
+        )
 
     assert modules_state.ActiveModules[n]["test_resource"]["val"] == 7878
     assert modulesapi.get_resource_data(n, "test_resource")["val"] == 7878
 
-    modulesapi.update_resource(
-        n, "test_resource", {"resource_type": "dummy", "val": 789}
-    )
+    with modulesapi.modules_lock:
+        modulesapi.update_resource(
+            n, "test_resource", {"resource_type": "dummy", "val": 789}
+        )
 
     assert modules_state.ActiveModules[n]["test_resource"]["val"] == 789
 
