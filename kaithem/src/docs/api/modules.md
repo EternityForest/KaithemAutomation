@@ -4,6 +4,12 @@
 
 > Auto-generated documentation for [modules](../../../api/modules.py) module.
 
+#### Attributes
+
+- `modules_lock` - Almost every function in this file will raise an
+  exception if this lock is not held.: modules_state.modulesLock
+
+
 - [Modules](#modules)
   - [admin_url_for_file_resource](#admin_url_for_file_resource)
   - [delete_resource](#delete_resource)
@@ -20,7 +26,7 @@
 
 ## admin_url_for_file_resource
 
-[Show source in modules.py:27](../../../api/modules.py#L27)
+[Show source in modules.py:40](../../../api/modules.py#L40)
 
 #### Signature
 
@@ -32,11 +38,15 @@ def admin_url_for_file_resource(module: str, resource: str) -> str: ...
 
 ## delete_resource
 
-[Show source in modules.py:67](../../../api/modules.py#L67)
+[Show source in modules.py:101](../../../api/modules.py#L101)
+
+Delete a resource, triggering any relevant effects for that resource type.
+May only be called under the modules_lock.
 
 #### Signature
 
 ```python
+@modules_lock.required
 def delete_resource(module: str, resource: str): ...
 ```
 
@@ -44,7 +54,7 @@ def delete_resource(module: str, resource: str): ...
 
 ## filename_for_file_resource
 
-[Show source in modules.py:15](../../../api/modules.py#L15)
+[Show source in modules.py:28](../../../api/modules.py#L28)
 
 Given the module and resource for a file, return the actual file for a file resource, or
 file data dir for directory resource
@@ -59,7 +69,7 @@ def filename_for_file_resource(module: str, resource: str) -> str: ...
 
 ## filename_for_resource
 
-[Show source in modules.py:22](../../../api/modules.py#L22)
+[Show source in modules.py:35](../../../api/modules.py#L35)
 
 DEPRECATED: use filename_for_file_resource instead
 
@@ -73,28 +83,31 @@ def filename_for_resource(module: str, resource: str) -> str: ...
 
 ## get_resource_data
 
-[Show source in modules.py:31](../../../api/modules.py#L31)
+[Show source in modules.py:57](../../../api/modules.py#L57)
 
-Get the dict data for a resource
+Get the dict data for a resource. May only be called under the modules_lock.
 
 #### Signature
 
 ```python
-def get_resource_data(module: str, resource: str) -> ResourceDictType: ...
+@modules_state.modulesLock.required
+def get_resource_data(module: str, resource: str) -> dict[str, Any]: ...
 ```
 
 
 
 ## insert_resource
 
-[Show source in modules.py:36](../../../api/modules.py#L36)
+[Show source in modules.py:64](../../../api/modules.py#L64)
 
 Create a new resource, if it doesn't already exist,
 and initializing it as appropriate for it's resource type
+May only be called under the modules_lock.
 
 #### Signature
 
 ```python
+@modules_lock.required
 def insert_resource(module: str, resource: str, resourceData: ResourceDictType): ...
 ```
 
@@ -102,11 +115,15 @@ def insert_resource(module: str, resource: str, resourceData: ResourceDictType):
 
 ## list_resources
 
-[Show source in modules.py:71](../../../api/modules.py#L71)
+[Show source in modules.py:109](../../../api/modules.py#L109)
+
+List the resources in a module.
+May only be called under the modules_lock.
 
 #### Signature
 
 ```python
+@modules_lock.required
 def list_resources(module: str) -> list[str]: ...
 ```
 
@@ -114,14 +131,15 @@ def list_resources(module: str) -> list[str]: ...
 
 ## resolve_file_resource
 
-[Show source in modules.py:84](../../../api/modules.py#L84)
+[Show source in modules.py:116](../../../api/modules.py#L116)
 
 Given a name of a file resource, return the full path to it,
-if it can be found in any module
+if it can be found in any module. May only be called under the modules_lock.
 
 #### Signature
 
 ```python
+@modules_lock.required
 def resolve_file_resource(relative_path: str) -> str | None: ...
 ```
 
@@ -129,14 +147,15 @@ def resolve_file_resource(relative_path: str) -> str | None: ...
 
 ## save_resource
 
-[Show source in modules.py:93](../../../api/modules.py#L93)
+[Show source in modules.py:126](../../../api/modules.py#L126)
 
 Save a resource without triggering any other events.
-Use this in your flush_unsaved handler.
+Use this in your flush_unsaved handler. May only be called under the modules_lock.
 
 #### Signature
 
 ```python
+@modules_lock.required
 def save_resource(module: str, resource: str, resourceData: ResourceDictType): ...
 ```
 
@@ -144,10 +163,11 @@ def save_resource(module: str, resource: str, resourceData: ResourceDictType): .
 
 ## scan_file_resources
 
-[Show source in modules.py:76](../../../api/modules.py#L76)
+[Show source in modules.py:44](../../../api/modules.py#L44)
 
 Scan the resources in the filedata folder for the specified module.
-Call if you directly change something, to update the UI.
+Call if you directly change something, to update the UI.  May not
+take effect immediately
 
 #### Signature
 
@@ -159,7 +179,7 @@ def scan_file_resources(module: str): ...
 
 ## set_resource_error
 
-[Show source in modules.py:7](../../../api/modules.py#L7)
+[Show source in modules.py:20](../../../api/modules.py#L20)
 
 Set an error notice for a resource.  Cleared when the resource is moved, updated or deleted,
 or by setting the error to None.
@@ -174,12 +194,14 @@ def set_resource_error(module: str, resource: str, error: str | None): ...
 
 ## update_resource
 
-[Show source in modules.py:50](../../../api/modules.py#L50)
+[Show source in modules.py:81](../../../api/modules.py#L81)
 
-Update an existing resource
+Update an existing resource, triggering any relevant effects for that resource type.
+May only be called under the modules_lock.
 
 #### Signature
 
 ```python
+@modules_lock.required
 def update_resource(module: str, resource: str, resourceData: ResourceDictType): ...
 ```

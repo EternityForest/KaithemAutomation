@@ -142,7 +142,8 @@ def edit_page(self, module: str, resource: str, data: ResourceDictType) -> str: 
 
 [Show source in resource_types.py:234](../../../api/resource_types.py#L234)
 
-Called when the resource should save any unsaved data it has back to the resource.
+Called when the resource should save any unsaved data it has
+back to the resource.  Will and must only ever be called under the modules_lock
 
 #### Signature
 
@@ -320,7 +321,7 @@ def on_update_request(
 
 ### ResourceType().save_resource
 
-[Show source in resource_types.py:237](../../../api/resource_types.py#L237)
+[Show source in resource_types.py:238](../../../api/resource_types.py#L238)
 
 Call this if your implementation has it's own editor that can save
 data back.
@@ -436,7 +437,7 @@ def mutable_copy_resource(resource: ResourceDictType) -> dict[str, Any]: ...
 
 ## register_resource_type
 
-[Show source in resource_types.py:250](../../../api/resource_types.py#L250)
+[Show source in resource_types.py:251](../../../api/resource_types.py#L251)
 
 #### Signature
 

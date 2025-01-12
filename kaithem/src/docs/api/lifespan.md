@@ -6,7 +6,7 @@
 
 #### Attributes
 
-- `shutdown`: `bool` - True if the system is shutting down: False
+- `is_shutting_down`: `bool` - True if the system is shutting down: False
 
 
 - [Lifespan](#lifespan)
