@@ -139,6 +139,7 @@ test("test", async ({ page }) => {
   await expect(
     page.getByRole("img", { name: "green-grass.avif" })
   ).toBeVisible();
+    
   await expect(page.getByRole("link", { name: "testpageroot" })).toBeVisible();
   await page.getByRole("link", { name: "folder1" }).click();
   await expect(page.getByText("pale-green-yellow-flower.avif")).toBeVisible();

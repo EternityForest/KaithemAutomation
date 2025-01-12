@@ -442,13 +442,15 @@ def load_modules_from_zip(f: BytesIO, replace: bool = False) -> None:
                         m_backup = os.path.join(bu, i)
                         rmModule(i)
                     try:
-                        loadModule(temp_module_folder, i)
-                        bookkeeponemodule(i)
+                        dest = os.path.join(
+                            directories.vardir, "modules", "data", i
+                        )
                         shutil.move(
                             temp_module_folder,
-                            os.path.join(directories.vardir, "modules", "data"),
+                            dest,
                         )
-
+                        loadModule(dest, i)
+                        bookkeeponemodule(i)
                         # Purely defensive try catch since we're adding close to release
                         # Todo: Remove?
                         try:
@@ -458,6 +460,7 @@ def load_modules_from_zip(f: BytesIO, replace: bool = False) -> None:
                                 "/system/notifications/errors",
                                 f"Error importing filedata for module {i}",
                             )
+
                     except Exception:
                         if old_module_dir and m_backup:
                             try:
@@ -757,8 +760,6 @@ def createResource(module: str, resource: str, data: ResourceDictType):
 def handleResourceChange(
     module: str, resource: str, obj: None = None, newly_added: bool = False
 ) -> None:
-    modules_state.recalcModuleHashes()
-
     with modules_state.modulesLock:
         t = modules_state.ActiveModules[module][resource]["resource_type"]
 

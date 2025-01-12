@@ -130,13 +130,13 @@ async def uploadtarget():
 
         @copy_current_request_context
         def f():
-            modules_state.recalcModuleHashes()
             modules.load_modules_from_zip(
                 file, replace="replace" in request.args
             )
 
         await f()
 
+    modules_state.recalcModuleHashes()
     messagebus.post_message(
         "/system/modules/uploaded", {"user": pages.getAcessingUser()}
     )

@@ -12,7 +12,7 @@ import time
 import urllib
 import urllib.parse
 from collections.abc import Iterator
-from typing import Any, Callable
+from typing import Any, Callable, Final
 
 import beartype
 import structlog
@@ -286,7 +286,10 @@ def save_resource(
 
 @beartype.beartype
 def rawInsertResource(
-    module: str, resource: str, resource_data: ResourceDictType
+    module: str,
+    resource: str,
+    resource_data: ResourceDictType,
+    rehash: bool = True,
 ):
     resourceData = mutable_copy_resource(resource_data)
     check_forbidden(resource)
@@ -306,7 +309,8 @@ def rawInsertResource(
 
     ActiveModules[module][resource] = resourceData
     save_resource(module, resource, resourceData)
-    recalcModuleHashes()
+    if rehash:
+        recalcModuleHashes()
 
 
 resource_types_api._save_callback = save_resource
@@ -412,7 +416,7 @@ def saveModule(
 
 
 # Lets just store the entire list of modules as a huge dict for now at least
-ActiveModules: dict[str, dict[str, ResourceDictType]] = {}
+ActiveModules: Final[dict[str, dict[str, ResourceDictType]]] = {}
 
 moduleshash = "000000000000000000000000"
 modulehashes: dict[str, str] = {}
@@ -425,7 +429,7 @@ def hashModules() -> str:
         with modulesLock:
             for i in sorted(ActiveModules.keys()):
                 m.update(i.encode())
-                m.update(hashModule(i).encode())
+                m.update(getModuleHash(i).encode())
         return (
             base64.b32encode(m.digest()[:16]).decode().upper().replace("=", "")
         )
@@ -438,7 +442,7 @@ def wordHashModule(module: str) -> str:
     try:
         with modulesLock:
             return util.memorableHash(
-                hashModule(module).encode("utf-8"),
+                getModuleHash(module).encode("utf-8"),
                 num=4,
                 separator=" ",
             )
@@ -453,7 +457,7 @@ def getModuleHash(m: str) -> str:
     try:
         if m not in modulehashes:
             modulehashes[m] = hashModule(m)
-        return modulehashes[m].upper()
+        return modulehashes[m]
     except Exception:
         return "ERRORHASHINGMODULETRYAGAIN"
 
