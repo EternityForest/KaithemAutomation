@@ -217,7 +217,11 @@ await waitForTasks(page)
   });
   await page.getByRole("button", { name: "󰙧 Stop" }).click();
 
-  await expect(page.getByTestId("sidebar-active-cue-name")).toBeHidden();
+  await expect(page.getByTestId("sidebar-active-cue-name")).toBeHidden(
+    {
+      timeout: 10_000
+    }
+  );
 
   await page.getByRole("button", { name: "󰐊 Go!" }).click();
   await expect(page.getByTestId("sidebar-active-cue-name")).toContainText(

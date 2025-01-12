@@ -163,6 +163,7 @@ def add_context_commands(context_group: groups.Group):
                 cl_event(ev, value, ts=t)
 
             core.serialized_async_with_core_lock(f)
+
         else:
 
             def f():

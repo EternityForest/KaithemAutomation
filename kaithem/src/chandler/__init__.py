@@ -48,17 +48,8 @@ def pollsounds():
 def poll_board_groups(board: ChandlerConsole.ChandlerConsole, t=None):
     "Poll groups in the board"
     t = t or time.time()
-
-    # Remember that groups get rendered in ascending priority order here
     for i in board.active_groups:
-        # We don't need to call render() if the frame is a static group and the opacity
-        # and all that is the same, we can just re-layer it on top of the values
-        if i.poll_again_flag or (
-            i.cue.length
-            and ((time.time() - i.entered_cue) > i.cuelen * (60 / i.bpm))
-        ):
-            i.poll_again_flag = False
-            i.poll()
+        i.poll()
 
 
 lastrendered = 0
@@ -75,14 +66,11 @@ def cl_loop():
     u_cache = universes.getUniverses()
     u_cache_time = time.time()
     frame_number = core.started_frame_number
-    last = 0
 
     while run[0]:
         frame_number += 1
         core.started_frame_number = frame_number
         t = time.time()
-        core.frame_rate = 1 / (t - last)
-        last = t
         try:
             with core.cl_context:
                 # Profiler says this needs a cache

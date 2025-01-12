@@ -14,6 +14,8 @@ if typing.TYPE_CHECKING:
 
 import structlog
 
+from .. import context_restrictions
+
 logger = structlog.get_logger(__name__)
 
 testCrashOnce = False
@@ -124,7 +126,11 @@ class MQTTConnection:
         # We want to track this so we do not double subscribe.
         self.successful_subscriptions = []
 
-        self.lock = threading.RLock()
+        # Must be a lowest level lock.
+        # NO doing a callback under this! EVER!
+        self.lock = context_restrictions.Context(
+            "MQTT" + str(id(self)), bottom_level=True
+        )
 
         self.is_connected = False
 

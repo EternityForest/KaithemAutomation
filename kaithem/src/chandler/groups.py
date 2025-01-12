@@ -66,22 +66,24 @@ int = int
 max = max
 min = min
 
+# param shadowing fix
+id_function = id
+
 cue_provider_types["file"] = FilesystemCueProvider
 
 # Indexed by ID
 groups: weakref.WeakValueDictionary[str, Group] = weakref.WeakValueDictionary()
 
 # This is only used on some functions.  We have an actual lock,
-# It doesn't serve as the lock, it just makes sure we don't try to start a new core lock context,
-# Or start a session with another group
+# It doesn't serve as the lock, it just makes sure we don't try to
+# get the core lock if we do not already have it.
+# Or get the lock of another group.
 
-# It can't be exclusive because we have lots of groups.
-# We don't use it for every single time we get a group
-
-# Get this lock after the core lock but before the render loop lock.
-# No other ordering is acceptable.
+# Other than performance critical sections, get this before getting a group's
+# lock, or touching it's lighting manager tha shares it's lock.
 slow_group_lock_context = context_restrictions.Context("Group Lock")
 
+# Raise if you try to get locks in wrong order
 core.cl_context.opens_before(slow_group_lock_context)
 
 
@@ -193,6 +195,7 @@ class DebugScriptContext(scriptbindings.ChandlerScriptContext):
                 core.rl_log_exc("Error handling var set notification")
                 print(traceback.format_exc())
 
+    @slow_group_lock_context.entry_point
     def event(
         self,
         evt: str,
@@ -584,11 +587,7 @@ class Group:
         else:
             self.cueTagClaim.set("__stopped__", annotation="GroupObject")
 
-        def f():
-            with self.lock:
-                self._nl_subscribe_command_tags()
-
-        workers.do(f)
+        workers.do(self._subscribe_command_tags)
 
         workers.do(self.scan_cue_providers)
 
@@ -722,37 +721,37 @@ class Group:
     def toDict(self) -> dict[str, Any]:
         # These are the properties that aren't just straight 1 to 1 copies
         # of props, but still get saved
+        with self.lock:
+            d = {
+                "alpha": self.default_alpha,
+                "cues": {
+                    j: self.cues[j].serialize()
+                    for j in self.cues
+                    if not self.cues[j].provider
+                },
+                "active": self.default_active,
+                "uuid": self.id,
+            }
 
-        d = {
-            "alpha": self.default_alpha,
-            "cues": {
-                j: self.cues[j].serialize()
-                for j in self.cues
-                if not self.cues[j].provider
-            },
-            "active": self.default_active,
-            "uuid": self.id,
-        }
+            # Call the cue provider to self.cues[i].providerave any cues that aren't normal cues and are
+            # Instead imported from somewhere.
+            for i in self.cues:
+                if self.cues[i].provider:
+                    p = (
+                        self.cues[i]
+                        .getGroup()
+                        .get_cue_provider(self.cues[i].provider)
+                    )
+                    if p:
+                        p.save_cue(self.cues[i])
 
-        # Call the cue provider to self.cues[i].providerave any cues that aren't normal cues and are
-        # Instead imported from somewhere.
-        for i in self.cues:
-            if self.cues[i].provider:
-                p = (
-                    self.cues[i]
-                    .getGroup()
-                    .get_cue_provider(self.cues[i].provider)
-                )
-                if p:
-                    p.save_cue(self.cues[i])
+            for i in group_schema["properties"]:
+                if i not in d:
+                    d[i] = getattr(self, i)
 
-        for i in group_schema["properties"]:
-            if i not in d:
-                d[i] = getattr(self, i)
+            schemas.validate("chandler/group", d)
 
-        schemas.validate("chandler/group", d)
-
-        return d
+            return d
 
     def check_sound_state(self):
         if not self.active:
@@ -875,6 +874,7 @@ class Group:
         except Exception:
             return None
 
+    @slow_group_lock_context.object_session_entry_point
     def getParent(self, cue: str) -> str | None:
         "Return the cue that this cue name should backtrack values from or None"
         with self.lock:
@@ -1178,6 +1178,8 @@ class Group:
 
         # Wait until a full frame has passed since the last cue change
         # So the previous cue's effects can propagate.
+        # Imagine if we turn something on and then off, we want to see at least a frame
+        # of it.
         # There is a big problem here in that this cue transition
         # itself could be what is blocking everything up
         if core.completed_frame_number < self.entered_cue_frame_number + 1:
@@ -1568,7 +1570,6 @@ class Group:
             self,
             parentContext=rootContext,
             variables=self.chandler_vars,
-            gil=self.lock,
         )
 
         scriptContext.addNamespace("pagevars")
@@ -1881,15 +1882,17 @@ class Group:
 
         return f
 
-    def _nl_subscribe_command_tags(self):
-        if not self.command_tag.strip():
-            return
+    @slow_group_lock_context.object_session_entry_point
+    def _subscribe_command_tags(self):
+        with self.lock:
+            if not self.command_tag.strip():
+                return
 
-        for i in [self.command_tag]:
-            t = tags.ObjectTag(i)
-            s = self.command_tag_subscriber()
-            self.command_tagSubscriptions.append((t, s))
-            t.subscribe(s)
+            for i in [self.command_tag]:
+                t = tags.ObjectTag(i)
+                s = self.command_tag_subscriber()
+                self.command_tagSubscriptions.append((t, s))
+                t.subscribe(s)
 
     @slow_group_lock_context.object_session_entry_point
     def rename_cue(self, old: str, new: str):
@@ -1938,7 +1941,7 @@ class Group:
                 if tag.subtype and not tag.subtype == "event":
                     raise ValueError("That tag does not have the event subtype")
 
-                self._nl_subscribe_command_tags()
+                self._subscribe_command_tags()
 
     @property
     def slideshow_transform(self):
@@ -2316,37 +2319,43 @@ class Group:
         self.media_link.sendVisualizations()
         self.push_to_frontend(keys={"music_visualizations"})
 
+    @slow_group_lock_context.object_session_entry_point
     def setAlpha(self, val: float, sd: bool = False):
-        val = min(1, max(0, val))
-        try:
-            self.cueVolume = min(
-                5, max(0, float(self.evalExpr(self.cue.sound_volume)))
-            )
-        except Exception:
-            self.event(
-                "script.error",
-                self.name + " in cueVolume eval:\n" + traceback.format_exc(),
-            )
-            self.cueVolume = 1
+        with self.lock:
+            val = min(1, max(0, val))
+            try:
+                self.cueVolume = min(
+                    5, max(0, float(self.evalExpr(self.cue.sound_volume)))
+                )
+            except Exception:
+                self.event(
+                    "script.error",
+                    self.name
+                    + " in cueVolume eval:\n"
+                    + traceback.format_exc(),
+                )
+                self.cueVolume = 1
 
-        sound_player.setvol(val * self.cueVolume, str(self.id))
+            sound_player.setvol(val * self.cueVolume, str(self.id))
 
-        if not self.is_active() and val > 0:
-            self.go()
-        self.alpha = val
-        self.alphaTagClaim.set(val, annotation="GroupObject")
-        if sd:
-            self.default_alpha = val
-            self.push_to_frontend(keys={"alpha", "default_alpha"})
-        else:
-            self.push_to_frontend(keys={"alpha", "default_alpha"})
-        self.poll_again_flag = True
-        self.lighting_manager.rerender()
+            if not self.is_active() and val > 0:
+                self.go()
+            self.alpha = val
+            self.alphaTagClaim.set(val, annotation="GroupObject")
+            if sd:
+                self.default_alpha = val
+                self.push_to_frontend(keys={"alpha", "default_alpha"})
+            else:
+                self.push_to_frontend(keys={"alpha", "default_alpha"})
+            self.poll_again_flag = True
+            self.lighting_manager.rerender()
 
-        self.media_link_socket.send(["volume", val])
+            self.media_link_socket.send(["volume", val])
 
+    @slow_group_lock_context.object_session_entry_point
     def add_cue(self, name: str, after: int | None = None, **kw: Any):
-        return Cue(self, name, insert_after_number=after, **kw)
+        with self.lock:
+            return Cue(self, name, insert_after_number=after, **kw)
 
     @property
     def blend(self):
@@ -2362,6 +2371,7 @@ class Group:
             self._blend = blend
             self.refresh_blend()
 
+    @slow_group_lock_context.object_session_entry_point
     def refresh_blend(self):
         self.lighting_manager.setBlend(self.blend)
         # Todo why are there two places we store this? refactor
@@ -2377,6 +2387,7 @@ class Group:
         return self._blend_args
 
     @blend_args.setter
+    @slow_group_lock_context.object_session_entry_point
     def blend_args(self, data: dict[str, Any]):
         for key, val in data.items():
             disallow_special(key, "_")
@@ -2403,6 +2414,19 @@ class Group:
         Calculate the current alpha value, handle stopping the cue and going to the next one
         """
 
+        if not (
+            self.poll_again_flag
+            or (
+                self.cue.length
+                and (
+                    (time.time() - self.entered_cue)
+                    > self.cuelen * (60 / self.bpm)
+                )
+            )
+        ):
+            return
+
+        self.poll_again_flag = False
         # We don't use the slow group lock context in this function
         # For performance, but lets still do a basic check.
         # If core.cl_context is active then the group lock comes after,

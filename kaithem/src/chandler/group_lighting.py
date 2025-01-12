@@ -28,7 +28,10 @@ def refresh_all_group_lighting():
 
 class GroupLightingManager:
     def __init__(self, group: Group):
-        """Functions of this class other than rerender() should only be called under the group's lock"""
+        """Functions of this class other than rerender()
+        should only be called under the group's lock!!!!!
+        """
+
         self.group = group
 
         # Canvas data can be read by the render loop at any time so must only

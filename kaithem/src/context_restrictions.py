@@ -171,6 +171,9 @@ class Context:
         the object, and forbid opening a new session on a different object until the context
         is closed.
 
+        You can call while already under the lock, if you're not
+        currently in a locked session.
+
         Used when you have a set of objects and you want to enforce that they do not
         call methods of each other.
         """

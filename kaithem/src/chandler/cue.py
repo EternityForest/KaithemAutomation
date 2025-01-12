@@ -478,8 +478,7 @@ class Cue:
         self.getGroup().poll_again_flag = True
 
         def f():
-            with self.getGroup().lock:
-                self.getGroup().lighting_manager.refresh()
+            self.getGroup().refresh_lighting()
 
         core.serialized_async_with_core_lock(f)
 

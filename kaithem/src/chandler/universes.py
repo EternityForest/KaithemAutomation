@@ -56,8 +56,7 @@ def refresh_groups():
     def f():
         for b in core.iter_boards():
             for i in b.active_groups:
-                with i.lock:
-                    i.refresh_lighting()
+                i.refresh_lighting()
 
     core.serialized_async_with_core_lock(f)
 
