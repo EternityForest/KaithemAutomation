@@ -193,7 +193,6 @@ class DebugScriptContext(scriptbindings.ChandlerScriptContext):
                 core.rl_log_exc("Error handling var set notification")
                 print(traceback.format_exc())
 
-    @slow_group_lock_context.object_session_entry_point
     def event(
         self,
         evt: str,
