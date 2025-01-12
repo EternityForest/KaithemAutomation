@@ -8,7 +8,7 @@
 <section class="window paper">
     <form action="/modules/uploadtarget" method="POST" name="new" enctype="multipart/form-data">
         File Containing Modules:
-        <input required="required" name="modulesfile" type="file"></input><br>
+        <input required="required" name="modulesfile" type="file" data-testid="modulesfile"></input><br>
         <label><input type="checkbox" name="replace"></input>Replace Existing Module if present</label><br>
         <br><input value="Create Module" type="submit">
     </form>

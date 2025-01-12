@@ -95,7 +95,7 @@ def yamldownload(module):
     except PermissionError:
         return pages.loginredirect(pages.geturl())
     fn = util.url(
-        f"{module[:-4]}_{modules_state.getModuleWordHash(module[:-4]).replace(' ', '')}.zip"
+        f"{module}_{modules_state.getModuleWordHash(module).replace(' ', '')}.zip"
     )
 
     for i in modules_state.ActiveModules[module]:
