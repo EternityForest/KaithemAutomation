@@ -14,6 +14,9 @@ Performance should be even better, since some of the removed code was blocking.
 
 #### :boom: BREAKING
 
+Other than the configuration being moved to a resource type, I don't think any of these
+will actually break anything.
+
 - :coffin: The Apprise notification setting is gone.  Use a config entries resource(created in a module) on core/apprise_target instead
 - :coffin: CSS theme setting is gone, use core/css_theme
 - :coffin:  Homepage redirect setting is now core/homepage_redirect
@@ -30,6 +33,7 @@ Performance should be even better, since some of the removed code was blocking.
 - :coffin: kaithem.api.lifespan.shutdown renamed to is_shutting_down
 -
 - :boom: kaithem.api.modules.modules_lock is exposed and most APIs in the file require holding it.
+- :boom: Tag points are normalized to lower case.
 
 #### Others
 - :technologist: Lots of dead code gone, guided by test conerage metrics.
@@ -44,6 +48,7 @@ Performance should be even better, since some of the removed code was blocking.
 - :sparkles: Ability to disable a resource without deleting it(Except permissions)
 - :bug: Fix chandler board save not being instant, so zip downloads would not always have latest data
 - :bug: Fix bug where sometimes chandler board data wouldn't save if the only change was in the fixture setup.
+- :bug: Fix tag point normalization sometimes not working.
 
 ### 0.87.0
 

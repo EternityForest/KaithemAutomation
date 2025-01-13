@@ -23,7 +23,7 @@ from typing import (
 
 import beartype
 import structlog
-from scullery import scheduling
+from scullery import scheduling, snake_compat
 
 from . import alerts, messagebus, pages, widgets, workers
 from .unitsofmeasure import convert, unit_types
@@ -31,18 +31,6 @@ from .unitsofmeasure import convert, unit_types
 logger = structlog.get_logger(__name__)
 # _ and . allowed
 ILLEGAL_NAME_CHARS = "{}|\\<>,?-=+)(*&^%$#@!~`\n\r\t\0"
-
-
-def to_sk(s: str):
-    s2 = ""
-    last = "a"
-    for i in s:
-        if last.isalpha() and not last.isupper():
-            if i.isupper():
-                s2 += "_" + i.lower()
-                continue
-        s2 += i
-    return s2
 
 
 def get_tag_meta(t):
@@ -126,8 +114,11 @@ def normalize_tag_name(name: str, replacementChar: str | None = None) -> str:
         raise ValueError("Begins with number")
 
     # Special case, these tags are expression tags.
-    if not name.startswith("="):
+    if not name.startswith(("=", "/=")):
         name = re.sub(r"\[(.*)\]", lambda x: f".{x.groups(1)[0]}", name)
+        name = snake_compat.any_to_snake(name)
+        name = name.lower()
+
         for i in ILLEGAL_NAME_CHARS:
             if i in name:
                 if replacementChar:
@@ -138,7 +129,6 @@ def normalize_tag_name(name: str, replacementChar: str | None = None) -> str:
                     )
         if not name.startswith("/"):
             name = f"/{name}"
-        name = to_sk(name).replace("-", "_")
     else:
         if name.startswith("/="):
             name = name[1:]
@@ -892,6 +882,9 @@ class GenericTagPointClass(Generic[T]):
             desc = str(f)
 
         def errcheck(r: weakref.ref[Any]):
+            # Handle shutdown cleanup
+            if not time:
+                return
             if time.time() < timestamp - 0.5:
                 logger.warning(
                     "Function: "
@@ -1153,44 +1146,23 @@ class GenericTagPointClass(Generic[T]):
                     # We treat errors as no new data.
                     logger.exception("Error getting tag value")
 
-                    # The system logger is the one kaithem actually logs to file.
-                    if self.lastError < (time.time() - (60 * 10)):
-                        self.lastError = time.time()
-                        logger.exception(
-                            "Error getting tag value. This message will only be logged every ten minutes."
-                        )
                     # If we can, try to send the exception back whence it came
                     try:
                         from .plugins import CorePluginEventResources
 
-                        if hasattr(active_claim_value, "__module__"):
-                            if (
-                                active_claim_value.__module__
-                                in CorePluginEventResources.eventsByModuleName
-                            ):
-                                CorePluginEventResources.eventsByModuleName[
-                                    active_claim_value.__module__
-                                ].handle_exception()
+                        CorePluginEventResources.handle_function_error(
+                            active_claim_value
+                        )
                     except Exception:
                         print(traceback.format_exc())
 
         return self.last_value
 
-    @property
-    def pushOnRepeats(self):
-        return False
-
-    @pushOnRepeats.setter
-    def pushOnRepeats(self, v):
-        raise AttributeError(
-            "Push on repeats was causing too much trouble and too much confusion and has been removed"
-        )
-
     def add_alias(self, alias: str):
         """Adds an alias of this tag, allowing access by another name."""
         global allTagsAtomic
         if "/" in alias[0:]:
-            raise RuntimeError("Alias cannot contain /")
+            raise ValueError("Alias cannot contain /")
 
         for i in ILLEGAL_NAME_CHARS:
             if i in alias:

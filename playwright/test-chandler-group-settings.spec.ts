@@ -94,15 +94,14 @@ test("test", async ({ page }) => {
   await page.getByLabel("MQTT Server").fill("ppp");
   await page.getByLabel("Sync Group Name").click();
   await page.getByLabel("Sync Group Name").fill("grp");
+
   await page.getByPlaceholder("Tagpoint").click();
   await page.getByPlaceholder("Tagpoint").fill("cmdtag");
 
   // Click away
   await page.getByLabel("Sync Group Name").click();
 
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
+  await waitForTasks(page);
 
   // Check that the stuff is there
   await page.goto(

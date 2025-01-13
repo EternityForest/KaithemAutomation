@@ -75,6 +75,15 @@ class EventInterface:
         self.__ev = ev
 
 
+def handle_function_error(f: Callable):
+    """If f came from a user defined function, handle the error by logging it to
+    the event it came from.
+    """
+    if hasattr(f, "__module__"):
+        if f.__module__ in eventsByModuleName:
+            eventsByModuleName[f.__module__].handle_exception()
+
+
 def get_time(ev):
     try:
         if not _events_by_module_resource[ev].nextruntime:

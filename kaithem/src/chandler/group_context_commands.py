@@ -96,7 +96,8 @@ def add_context_commands(context_group: groups.Group):
             "cue.exit",
         ):
             cause = scriptbindings.context_info.event[1][1]
-            # Nasty hack, but i don't thing we need more layers and parsing might be slower.
+            # Nasty hack, but i don't thing we need more layers and
+            # parsing might be slower.
             if cause == "script.0":
                 newcause = "script.1"
 
@@ -104,8 +105,11 @@ def add_context_commands(context_group: groups.Group):
                 newcause = "script.2"
 
             elif cause == "script.2":
+                newcause = "script.3"
+
+            elif cause == "script.3":
                 raise RuntimeError(
-                    "More than 3 layers of redirects in cue.enter or cue.exit"
+                    "Too many layers of triggers in cue.enter or cue.exit"
                 )
 
         def f():

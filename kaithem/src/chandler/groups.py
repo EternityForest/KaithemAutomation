@@ -2411,7 +2411,8 @@ class Group:
         """
         Periodically called if poll_again_flag is set
         Handles misc tasks.
-        Calculate the current alpha value, handle stopping the cue and going to the next one
+        Calculate the current alpha value, handle stopping the cue and going
+        to the next one
         """
 
         if not (

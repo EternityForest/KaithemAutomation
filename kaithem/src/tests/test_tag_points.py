@@ -1,6 +1,14 @@
 import pytest
 
 
+def test_normalize_tag_names():
+    from kaithem.src import tagpoints
+
+    assert tagpoints.Tag("=1") is tagpoints.Tag("/=1")
+    assert tagpoints.Tag("foo1234") is tagpoints.Tag("/foo1234")
+    assert tagpoints.Tag("/foo-1234") is tagpoints.Tag("/foo_1234")
+
+
 def test_tags_fail():
     from kaithem.src import tagpoints
 
@@ -9,6 +17,12 @@ def test_tags_fail():
 
     with pytest.raises(TypeError):
         t.claim(10, "TestClaim", "wrong")
+
+    with pytest.raises(ValueError):
+        t.claim(89, "PriorityTooHigh101", priority=101)
+
+    with pytest.raises(ValueError):
+        t.add_alias("/multiple/forward/slashes/in/alias")
 
     assert isinstance(t.value, float)
 
@@ -131,6 +145,30 @@ def test_tags_claim_release():
 
     claim2.release()
     assert t.value == 51
+    claim1.release()
+    assert t.value == 0
+
+
+def test_tags_claim_release_after_set_while_not_active():
+    import time
+
+    from kaithem.src import tagpoints
+
+    t = tagpoints.Tag("/system/unit_test_tag_545j7647")
+    claim1 = t.claim(51, "c1", 51, time.time(), "TestAnnotation")
+    claim2 = t.claim(52, "c2", 52, time.time(), "TestAnnotation2")
+
+    assert t.value == 52
+    t.set_claim_val("c2", 40, time.time(), "TestAnnotation")
+    assert t.value == 40
+    assert t.annotation == "TestAnnotation"
+
+    t.set_claim_val("c1", 123, time.time(), annotation="TestAnnotation3")
+    assert t.value == 40
+
+    claim2.release()
+    assert t.value == 123
+    assert t.annotation == "TestAnnotation3"
     claim1.release()
     assert t.value == 0
 
