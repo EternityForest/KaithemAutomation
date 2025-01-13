@@ -571,7 +571,7 @@ class GenericTagPointClass(Generic[T]):
         condition: str | None = "",
         priority: str = "info",
         release_condition: str | None = "",
-        auto_ack: bool | str = "no",
+        auto_ack: bool = False,
         trip_delay: float | int | str = "0",
     ) -> alerts.Alert | None:
         self._can_post_alert_error = True
@@ -586,11 +586,6 @@ class GenericTagPointClass(Generic[T]):
             if not name:
                 raise RuntimeError("Empty string name")
 
-            if auto_ack is True:
-                auto_ack = "yes"
-            if auto_ack is False:
-                auto_ack = "no"
-
             trip_delay = float(trip_delay)
 
             trip_code = compile(condition, "<string>", "eval")
@@ -599,14 +594,25 @@ class GenericTagPointClass(Generic[T]):
             else:
                 release_code = None
 
-            alert = alerts.Alert(f"{self.name}:{name}")
+            alert = alerts.Alert(
+                f"{self.name}:{name}",
+                priority=priority,
+                trip_delay=float(trip_delay),
+                auto_ack=auto_ack,
+            )
 
             def poll():
                 # Only trip on real data, not defaults.
                 if self.timestamp > 0:
                     trip = eval(trip_code, self.eval_context)
                     if trip:
-                        alert.trip()
+                        v = self.value
+                        if isinstance(v, (int, float)) or (
+                            isinstance(v, str) and len(v) < 64
+                        ):
+                            alert.trip(f"Value: {v}, Condition: {condition}")
+                        else:
+                            alert.trip()
                         return
                 if release_code:
                     release = eval(release_code, self.eval_context)
@@ -642,21 +648,6 @@ class GenericTagPointClass(Generic[T]):
                     "Error in tag alarm expression",
                 )
                 logger.exception("Error in tag alarm")
-
-    @staticmethod
-    def _makeTagAlarmHTMLFunc(selfwr: weakref.ref[GenericTagPointClass[T]]):
-        def notificationHTML():
-            s = selfwr()
-            assert s
-            try:
-                if s.type in ("number", "string"):
-                    return f'<ds-span source="tag:{s.name}"></ds-span>'
-                else:
-                    return "Binary or obj Tagpoint"
-            except Exception as e:
-                return str(e)
-
-        return notificationHTML
 
     def createGetterFromExpression(
         self: GenericTagPointClass[T], e: str, priority: int | float = 98

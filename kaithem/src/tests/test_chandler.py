@@ -1300,13 +1300,13 @@ def test_expression_as_lighting_value():
         assert tagpoints.Tag("/test_lv_e").value == 3
         # Make sure it's marked as always rerendering lighting
         # On var changes
-        assert not s.lighting_manager.needs_rerender_on_var_change
+        assert s.lighting_manager.needs_rerender_on_var_change
 
         s.cues["default"].set_value_immediate("/test_lv_e", "value", 5)
         core.wait_frame()
         core.wait_frame()
 
-        assert tagpoints.Tag("/test_lv_e").value == 3
+        assert tagpoints.Tag("/test_lv_e").value == 5
         assert not s.lighting_manager.needs_rerender_on_var_change
 
 

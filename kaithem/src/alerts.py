@@ -244,6 +244,7 @@ class Alert:
 
         # Last trip time
         self.trippedAt = 0
+        self.trip_message = ""
 
         self.sm = statemachines.StateMachine("normal")
 
@@ -282,11 +283,6 @@ class Alert:
 
         self.id: str = id or uuid.uuid4().hex
         all[self.id] = self
-
-        def notificationHTML():
-            return ""
-
-        self.notificationHTML = notificationHTML
 
     def format(self):
         return {
@@ -415,9 +411,14 @@ class Alert:
         pushAlertState()
 
     def trip(self, message=""):
-        self.trip_message = str(message)[:4096]
+        message = str(message)[:256]
+        message_changed = message != self.trip_message
+        self.trip_message = message
         self.sm.event("trip")
         self.trippedAt = time.time()
+
+        if message_changed:
+            pushAlertState()
 
     def release(self):
         self.clear()

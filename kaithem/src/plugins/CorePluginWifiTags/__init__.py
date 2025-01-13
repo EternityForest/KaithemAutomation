@@ -28,7 +28,7 @@ wifiClaim = wifi.claim(-1, "NetworkManager", 70)
 wifi.set_alarm(
     "LowSignal",
     "(value>-1) and (value < 20) and ((not tv('/system/network/ethernet')) or value)",
-    auto_ack="yes",
+    auto_ack=True,
 )
 
 ethernet = tagpoints.Tag("/system/network/ethernet")
@@ -45,7 +45,7 @@ ethernetClaim = ethernet.claim(-1, "NetworkManager", 70)
 wifi.set_alarm(
     "NoWiredNetwork",
     "(value>-1) and (value < 1) and not (tv('/system/network/wifi_strength') or (value > -1))",
-    auto_ack="yes",
+    auto_ack=True,
 )
 
 getAllDevicesAttempted = [0]
