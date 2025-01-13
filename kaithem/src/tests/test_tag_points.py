@@ -1,6 +1,24 @@
 import pytest
 
 
+def test_unit_conversion():
+    from kaithem.src import tagpoints
+
+    t = tagpoints.Tag("/system/unit_test_tag")
+    t.unit = "cm"
+
+    t.default_claim.set_as(50, "in")
+    assert abs(t.value - 50 * 2.54) < 0.00001
+
+    t.default_claim.set_as(50, "cm")
+    assert t.value == 50
+
+    assert abs(t.convert_to("in") - 50 / 2.54) < 0.00001
+
+    t.set_as(4, "in")
+    assert abs(t.value - 4 * 2.54) < 0.00001
+
+
 def test_normalize_tag_names():
     from kaithem.src import tagpoints
 

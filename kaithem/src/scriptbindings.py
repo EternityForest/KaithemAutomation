@@ -1048,7 +1048,7 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
                             name=f"{self.contextName}at{str(id(self))}",
                         )
                     else:
-                        tc = tagType(tagName).defaultClaim
+                        tc = tagType(tagName).default_claim
 
                     self.tagClaims[tagName] = tc
 

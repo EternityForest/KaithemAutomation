@@ -296,7 +296,7 @@ class GenericTagPointClass(Generic[T]):
             allTagsAtomic = allTags.copy()
 
         # This pushes a value. That is fine because we know there are no listeners
-        self.defaultClaim = self.claim(
+        self.default_claim = self.claim(
             copy.deepcopy(self.default_data),
             "default",
             timestamp=0,
@@ -1470,6 +1470,7 @@ class NumericTagPointClass(GenericTagPointClass[float]):
 
         # Real backing vars for props
 
+        self.default_claim: NumericClaim
         self._hi: float | None = None
         self._lo: float | None = None
         self._min: float | None = min
@@ -1594,6 +1595,16 @@ class NumericTagPointClass(GenericTagPointClass[float]):
                 self._display_units = value
 
         self._unit = value
+
+    def set_as(
+        self,
+        value: float,
+        unit: str,
+        timestamp: float | None = None,
+        annotation: Any = None,
+    ):
+        "Set the default claim, with unit conversion."
+        self.default_claim.set_as(value, unit, timestamp, annotation)
 
     @property
     def display_units(self):
