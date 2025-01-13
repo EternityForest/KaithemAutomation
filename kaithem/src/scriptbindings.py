@@ -667,7 +667,7 @@ class BaseChandlerScriptContext:
         "Don't handle any more bindings for this event, but continue the current binding"
         self.stopScriptFlag = True
 
-    def event(self, evt, val=None, timestamp=None):
+    def event(self, evt, val=None, timestamp=None, sync=False):
         "Queue an event to run in the background. Queued events run in FIFO"
 
         # Capture the depth we are at, so we can make sure that _event knows if
@@ -685,7 +685,10 @@ class BaseChandlerScriptContext:
         if len(self.event_queue) > 128:
             raise RuntimeError("Too Many queued events!!!")
 
-        self.do_async(f)
+        if sync:
+            f()
+        else:
+            self.do_async(f)
 
     def _event(self, evt, val, depth, timestamp=None):
         handled = False

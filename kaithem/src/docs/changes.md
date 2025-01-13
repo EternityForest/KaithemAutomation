@@ -49,6 +49,8 @@ will actually break anything.
 - :bug: Fix chandler board save not being instant, so zip downloads would not always have latest data
 - :bug: Fix bug where sometimes chandler board data wouldn't save if the only change was in the fixture setup.
 - :bug: Fix tag point normalization sometimes not working.
+- :sparkles: Synchronous cue.enter and exit events.
+- :bug: Fix setting lighting vals to =expressions not working right
 
 ### 0.87.0
 

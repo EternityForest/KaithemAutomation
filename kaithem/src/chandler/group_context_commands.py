@@ -129,7 +129,8 @@ def add_context_commands(context_group: groups.Group):
         return True
 
     def codeCommand(code: str = ""):
-        "Activates any cues with the matching shortcut code in any group. Triggers in the next frame."
+        """Activates any cues with the matching shortcut code in any group.
+        Triggers in the next frame."""
 
         def f():
             cl_trigger_shortcut_code(code)
@@ -143,12 +144,30 @@ def add_context_commands(context_group: groups.Group):
     }
 
     def setAlphaCommand(group: str = "=GROUP", alpha: float = 1):
-        "Set the alpha value of a group"
-        context_group.board.groups_by_name[group].setAlpha(float(alpha))
+        "Set the alpha value of a group.  Action may not be immediate"
+
+        def f():
+            context_group.board.groups_by_name[group].setAlpha(float(alpha))
+
+        core.serialized_async_with_core_lock(f)
         return True
 
     def ifCueCommand(group: str, cue: str):
         "True if the group is running that cue"
+        # not async so we can't use any locks for fear if a deadlocks
+
+        for i in range(5):
+            try:
+                return (
+                    True
+                    if context_group.board.groups_by_name[group].active
+                    and context_group.board.groups_by_name[group].cue.name
+                    == cue
+                    else None
+                )
+            except Exception:
+                pass
+
         return (
             True
             if context_group.board.groups_by_name[group].active

@@ -163,37 +163,7 @@ class DebugScriptContext(scriptbindings.ChandlerScriptContext):
     def onVarSet(self, k, v):
         group = self.groupObj()
         if group:
-            try:
-                if (k not in ("_", "event")) and group.rerenderOnVarChange:
-                    group.lighting_manager.recalc_cue_vals()
-                    group.poll_again_flag = True
-                    group.lighting_manager.rerender()
-
-            except Exception:
-                core.rl_log_exc("Error handling var set notification")
-                print(traceback.format_exc())
-
-            try:
-                if not k.startswith("_") and not k == "event":
-                    for board in core.iter_boards():
-                        if board:
-                            if isinstance(v, (str, int, float, bool)):
-                                board.linkSend(
-                                    ["varchange", self.groupId, k, v]
-                                )
-                            elif isinstance(v, collections.defaultdict):
-                                v = json.dumps(v)[:160]
-                                board.linkSend(
-                                    ["varchange", self.groupId, k, v]
-                                )
-                            else:
-                                v = str(v)[:160]
-                                board.linkSend(
-                                    ["varchange", self.groupId, k, v]
-                                )
-            except Exception:
-                core.rl_log_exc("Error handling var set notification")
-                print(traceback.format_exc())
+            group.on_scripting_var_set(k, v)
 
     @slow_group_lock_context.entry_point
     def event(
@@ -201,9 +171,10 @@ class DebugScriptContext(scriptbindings.ChandlerScriptContext):
         evt: str,
         val: str | float | int | bool | None = None,
         timestamp=None,
+        sync=False,
     ):
         scriptbindings.ChandlerScriptContext.event(
-            self, evt, val, timestamp=timestamp
+            self, evt, val, timestamp=timestamp, sync=sync
         )
         try:
             for board in core.iter_boards():
@@ -495,8 +466,6 @@ class Group:
 
         # Used to avoid an excessive number of repeats in random cues
         self.cueHistory: list[tuple[str, float]] = []
-
-        self.rerenderOnVarChange = False
 
         self.entered_cue: float = 0
         self.entered_cue_frame_number = 0
@@ -989,6 +958,39 @@ class Group:
         )
 
     @slow_group_lock_context.object_session_entry_point
+    def on_scripting_var_set(self, k, v):
+        with self.lock:
+            try:
+                if (
+                    k not in ("_", "event")
+                ) and self.lighting_manager.needs_rerender_on_var_change:
+                    self.lighting_manager.should_recalc_values_before_render = (
+                        True
+                    )
+                    self.poll_again_flag = True
+                    self.lighting_manager.rerender()
+
+            except Exception:
+                core.rl_log_exc("Error handling var set notification")
+                print(traceback.format_exc())
+
+        try:
+            if not k.startswith("_") and not k == "event":
+                for board in core.iter_boards():
+                    if board:
+                        if isinstance(v, (str, int, float, bool)):
+                            board.linkSend(["varchange", self.id, k, v])
+                        elif isinstance(v, collections.defaultdict):
+                            v = json.dumps(v)[:160]
+                            board.linkSend(["varchange", self.id, k, v])
+                        else:
+                            v = str(v)[:160]
+                            board.linkSend(["varchange", self.id, k, v])
+        except Exception:
+            core.rl_log_exc("Error handling var set notification")
+            print(traceback.format_exc())
+
+    @slow_group_lock_context.object_session_entry_point
     def event(
         self,
         s: str,
@@ -996,16 +998,17 @@ class Group:
         info: str = "",
         exclude_errors: bool = True,
         ts=None,
+        sync=False,
     ):
         # No error loops allowed!
         if (not s == "script.error") and exclude_errors:
-            self._event(s, value, info, ts=ts)
+            self._event(s, value, info, ts=ts, sync=sync)
 
-    def _event(self, s: str, value: Any, info: str = "", ts=None):
+    def _event(self, s: str, value: Any, info: str = "", ts=None, sync=False):
         "Manually trigger any script bindings on an event"
         try:
             if self.script_context:
-                self.script_context.event(s, value, timestamp=ts)
+                self.script_context.event(s, value, timestamp=ts, sync=sync)
         except Exception:
             core.rl_log_exc("Error handling event: " + str(s))
             print(traceback.format_exc(6))
@@ -1288,7 +1291,9 @@ class Group:
             if not (cue == self.cue.name):
                 if generateEvents:
                     if self.active and self.script_context:
-                        self.event("cue.exit", value=[self.cue.name, cause])
+                        self.event(
+                            "cue.exit", value=[self.cue.name, cause], sync=True
+                        )
 
             # We return if some the enter transition already
             # Changed to a new cue
@@ -1316,7 +1321,7 @@ class Group:
                     cobj.onEnter(cue_entered_time)
 
                 if generateEvents:
-                    self.event("cue.enter", [cobj.name, cause])
+                    self.event("cue.enter", [cobj.name, cause], sync=True)
 
             # We return if some the enter transition already
             # Changed to a new cue
@@ -2520,14 +2525,22 @@ class Group:
 
             mapped_channel = mapChannel(universe, channel)
 
+            old_val = cue.values.get(unmappeduniverse, {}).get(channel, None)
+
             if self.cue == cue and self.is_active():
                 self.poll_again_flag = True
                 self.lighting_manager.rerender()
 
-                # If we change something in a pattern effect we just do a full recalc since those are complicated.
+                # If we change something in a pattern effect we just do a full recalc
+                # since those are complicated.
+                # Also if we change a expression binding
                 if (
-                    unmappeduniverse in cue.values
-                    and "__length__" in cue.values[unmappeduniverse]
+                    (
+                        unmappeduniverse in cue.values
+                        and "__length__" in cue.values[unmappeduniverse]
+                    )
+                    or "=" in str(value)
+                    or "=" in str(old_val)
                 ):
                     self.lighting_manager.update_state_from_cue_vals(cue, False)
 

@@ -31,7 +31,7 @@ def test_tags_fail():
     from kaithem.src import tagpoints
 
     # Numeric tag make sure it doesn't take strings
-    t = tagpoints.Tag("/system/unit_test_tag")
+    t = tagpoints.Tag("/system/unit_test_tag_fail")
 
     with pytest.raises(TypeError):
         t.claim(10, "TestClaim", "wrong")
@@ -48,7 +48,7 @@ def test_tags_fail():
         # Normally we never get this far and the getter function
         # Would return the existing one, but lets test the low
         # level feature of ensuring no duplicate tgs with the same name
-        tagpoints.NumericTagPointClass("/system/unit_test_tag")
+        tagpoints.NumericTagPointClass("/system/unit_test_tag_fail")
 
     # Empty tag
     with pytest.raises(ValueError):
@@ -61,6 +61,46 @@ def test_tags_fail():
     # Has a non allowed special char
     with pytest.raises(ValueError):
         tagpoints.Tag("fail #")
+
+    # Have to set unit to blank before you can change it, to prevent
+    # mistakes
+    t.unit = "in"
+    with pytest.raises(ValueError):
+        t.unit = "cm"
+
+    t.unit = ""
+    t.unit = "cm"
+    assert t.unit == "cm"
+
+
+def test_tag_getter_error():
+    import time
+
+    from kaithem.src import logviewer, tagpoints
+
+    t = tagpoints.Tag("/system/unit_test_tag_getter")
+
+    err_once = [True]
+    t.interval = 0.4
+
+    def f():
+        if err_once[0]:
+            err_once[0] = False
+            raise Exception("Test Error")
+        return 6
+
+    t.value = f
+    # Error is logged but treated as no data
+    assert t.value == 0
+    # Cached 0
+    assert t.value == 0
+    time.sleep(0.5)
+    assert t.value == 6
+
+    # Ensure that it ws logged.
+    logviewer.expect_log(
+        "Error getting tag value for /system/unit_test_tag_getter"
+    )
 
 
 def test_aliases():

@@ -1070,7 +1070,7 @@ class GenericTagPointClass(Generic[T]):
         "Get the processed value of the tag, and update last_value, It is meant to be called under lock."
 
         # Overrides not guaranteed to be instant
-        if (self.last_got_value > time.time() - self.interval) and not force:
+        if (self.last_got_value > (time.time() - self.interval)) and not force:
             return self.last_value
 
         active_claim = self.active_claim
@@ -1144,7 +1144,7 @@ class GenericTagPointClass(Generic[T]):
 
                 except Exception:
                     # We treat errors as no new data.
-                    logger.exception("Error getting tag value")
+                    logger.exception(f"Error getting tag value for {self.name}")
 
                     # If we can, try to send the exception back whence it came
                     try:
@@ -1567,10 +1567,11 @@ class NumericTagPointClass(GenericTagPointClass[float]):
 
     @unit.setter
     def unit(self, value: str):
+        value = value.strip()
         if not isinstance(value, str):
             raise TypeError("Unit must be str")
 
-        if self._unit:
+        if self._unit and value:
             if not self._unit == value:
                 if value:
                     raise ValueError(
@@ -1767,23 +1768,6 @@ class Claim(Generic[T]):
         if not self.timestamp == other.timestamp:
             return False
         return True
-
-    def refreshCallable(self):
-        # Only call the getter under lock in case it happens to not be threadsafe
-        if callable(self.value):
-            if self.tag.lock.acquire(timeout=90):
-                self.lastGotValue = time.time()
-                try:
-                    x = self.value()
-                    if x is not None:
-                        self.cachedValue = (x, time.time())
-                finally:
-                    self.tag.lock.release()
-
-            else:
-                raise RuntimeError(
-                    "Cannot get lock to set priority, waited 90s"
-                )
 
     @property
     def value(self):

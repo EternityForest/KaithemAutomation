@@ -43,6 +43,12 @@ class GroupLightingManager:
         # Track this so we can repaint
         self.last_fade_position = 1
 
+        # Should the group rerender every time there is a var change
+        # in a script var?
+        self.needs_rerender_on_var_change = False
+
+        self.should_recalc_values_before_render = False
+
         # Lets us cache the lists of values as numpy arrays with 0 alpha for not present vals
         # which are faster that dicts for some operations
 
@@ -166,6 +172,7 @@ class GroupLightingManager:
                         self.state_alphas[i].shape
                     )
 
+            self.needs_rerender_on_var_change = False
             for i in source_cue.values:
                 universe = universes.mapUniverse(i)
                 if not universe:
@@ -216,8 +223,6 @@ class GroupLightingManager:
                     self.state_alphas[universe] = numpy.array(
                         [0.0] * size, dtype="f4"
                     )
-
-                self.rerenderOnVarChange = False
 
                 # TODO stronger type
                 dest: dict[str | int, Any] = {}
@@ -276,8 +281,8 @@ class GroupLightingManager:
 
                         if isinstance(
                             cue_values, str
-                        ) and cue_values.startswith("="):
-                            self.rerenderOnVarChange = True
+                        ) and cue_values.strip().startswith("="):
+                            self.needs_rerender_on_var_change = True
 
     def paint_canvas(self, fade_position: float = 0.0):
         assert self.cue
@@ -535,6 +540,13 @@ def mark_and_reset_changed_universes(
                     i.lighting_manager.should_rerender_onto_universes
                     or i.lighting_manager.blendClass.always_rerender
                 ):
+                    if i.lighting_manager.should_recalc_values_before_render:
+                        i.lighting_manager.should_recalc_values_before_render = False
+                        i.lighting_manager.recalc_cue_vals()
+                        i.lighting_manager.paint_canvas(
+                            i.lighting_manager.last_fade_position
+                        )
+
                     changedUniverses[u] = (0, 0)
 
                     # We are below the cached layer, we need to fully reset
