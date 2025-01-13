@@ -395,21 +395,7 @@ class Cue:
 
     @provider.setter
     def provider(self, value):
-        value = value or ""
-        value = value.strip()
-        if value not in self.getGroup().cue_providers:
-            raise RuntimeError("Cue provider does not exist in parent group")
-        if value and self.name == "default":
-            raise RuntimeError("Cannot set a cue provider on the default cue")
-        old = self._provider
-        self._provider = value
-        if old and old != value:
-            try:
-                self.getGroup().get_cue_provider(
-                    old
-                ).delete_saved_user_cue_data(self)
-            except Exception:
-                logging.exception("Failed to delete old cue data")
+        raise RuntimeError("Provider is read only")
 
     def __repr__(self):
         gr = None
