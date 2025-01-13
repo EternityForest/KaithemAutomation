@@ -2519,13 +2519,13 @@ class Group:
                 except ValueError:
                     pass
 
+            old_val = cue.values.get(universe, {}).get(channel, None)
+
             reset = cue.set_value(universe, channel, value)
 
             unmappeduniverse = universe
 
             mapped_channel = mapChannel(universe, channel)
-
-            old_val = cue.values.get(unmappeduniverse, {}).get(channel, None)
 
             if self.cue == cue and self.is_active():
                 self.poll_again_flag = True
