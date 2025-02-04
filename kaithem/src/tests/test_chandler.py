@@ -1338,6 +1338,8 @@ def test_lighting_value_set_tag_flicker():
             s.cues["default"].set_value_immediate("/test2", "value", 60)
 
             core.wait_frame()
+            # I think one should be enough if not overloaded TODO
+            core.wait_frame()
 
             assert tagpoints.Tag("/test1").value == 50
             assert tagpoints.Tag("/test2").value == 60

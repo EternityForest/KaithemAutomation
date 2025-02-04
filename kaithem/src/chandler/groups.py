@@ -2412,6 +2412,7 @@ class Group:
                     > self.cuelen * (60 / self.bpm)
                 )
             )
+            or force_repaint
         ):
             return
 

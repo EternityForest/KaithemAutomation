@@ -16,15 +16,15 @@ async def test_modules_api():
             n, "test_resource", {"resource_type": "dummy", "val": 7878}
         )
 
-    assert modules_state.ActiveModules[n]["test_resource"]["val"] == 7878
-    assert modulesapi.get_resource_data(n, "test_resource")["val"] == 7878
+        assert modules_state.ActiveModules[n]["test_resource"]["val"] == 7878
+        assert modulesapi.get_resource_data(n, "test_resource")["val"] == 7878
 
     with modulesapi.modules_lock:
         modulesapi.update_resource(
             n, "test_resource", {"resource_type": "dummy", "val": 789}
         )
 
-    assert modules_state.ActiveModules[n]["test_resource"]["val"] == 789
+        assert modules_state.ActiveModules[n]["test_resource"]["val"] == 789
 
     fn = modulesapi.filename_for_file_resource(n, "test_file_resource.txt")
     assert (

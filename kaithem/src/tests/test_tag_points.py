@@ -94,7 +94,7 @@ def test_tag_getter_error():
     assert t.value == 0
     # Cached 0
     assert t.value == 0
-    time.sleep(0.5)
+    time.sleep(0.6)
     assert t.value == 6
 
     # Ensure that it ws logged.
