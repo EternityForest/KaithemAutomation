@@ -50,6 +50,7 @@ test("test", async ({ page }) => {
   //TODO should not need to run twice??????
   await page.getByRole("button", { name: "Add Channel" }).click();
   await page.getByRole("button", { name: "Add Channel" }).click();
+  await sleep(100);
 
   await page.evaluate(async () => {
     await globalThis.doSerialized();

@@ -75,7 +75,7 @@ Barrel.css uses these numbers for sizing.
 
 ## US Wood Screw Sizes
 
-| Size | Driver(PH) | Head Max | Head Max(mm) | Head Min | Head Min(mm) | Head Height | Head Height(mm) | Diameter Min | Diameter Min(mm) | Diameter Max | Diameter Max(mm) |
+| Size | Driver(PH) | Head Max | Head Max(mm) | Head Min | Head Min(mm) | Head Height | Head Height(mm) | Diameter Max | Diameter Max(mm) | Diameter Min | Diameter Min(mm) |
 | ---- | ---------- | -------- | ------------ | -------- | ------------ | ----------- | --------------- | ------------ | ---------------- | ------------ | ---------------- |
 | 2    | 1          | 0.172    | 4.3688       | 0.147    | 3.7338       | 0.051       | 1.2954          | 0.09         | 2.286            | 0.079        | 2.0066           |
 | 3    | 1          | 0.199    | 5.0546       | 0.141    | 3.5814       | 0.059       | 1.4986          | 0.103        | 2.6162           | 0.092        | 2.3368           |

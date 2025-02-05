@@ -5,7 +5,7 @@
 # Use poetry self add poetry-plugin-freeze
 
 name = "kaithem"
-version = "0.87.0"
+version = "0.88.0"
 description = "Home/commercial automation server"
 license = "GPL-3.0-or-later"
 packages = [
@@ -37,7 +37,7 @@ line-length = 80
 python = "^3.10.0, <3.13"
 # First party
 scullery = ">=0.3.1"
-iot-devices = ">=0.23.0"
+iot-devices = ">=0.24.0"
 icemedia = ">=0.1.21"
 NVRChannel = ">=0.1.7"
 

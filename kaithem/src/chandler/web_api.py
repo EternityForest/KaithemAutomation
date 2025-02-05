@@ -7,11 +7,11 @@ from jsonschema import Draft202012Validator
 from quart import request
 from scullery import snake_compat
 
-from kaithem.api.web import require, user
+from kaithem.api.web import require
 
 from .core import boards, cl_context
 from .cue import cue_schema, cues
-from .groups import checkPermissionsForGroupData, group_schema, groups
+from .groups import group_schema, groups
 from .web import quart_app
 
 logger = structlog.get_logger(__name__)
@@ -61,7 +61,6 @@ async def group_stop(group_id: str):
 async def delete_chandler_group(board: str, group_id: str):
     require("system_admin")
     x = groups[group_id]
-    checkPermissionsForGroupData(x.toDict(), user())
     x.stop()
     board_obj = boards[board]
     board_obj.cl_del_group(group_id)

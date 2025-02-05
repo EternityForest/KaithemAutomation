@@ -24,7 +24,7 @@ from beartype import beartype
 from icemedia import sound_player
 from scullery import messagebus, ratelimits, workers
 
-from kaithem.api import tags, web
+from kaithem.api import tags
 from kaithem.api.midi import normalize_midi_port_name
 
 from .. import (
@@ -201,24 +201,6 @@ class DebugScriptContext(scriptbindings.ChandlerScriptContext):
             raise RuntimeError("Too many tagpoints in one group")
         return t
 
-    # def do_async(self, f):
-    #     core.serialized_async_with_core_lock(f)
-
-
-def checkPermissionsForGroupData(data: dict[str, Any], user: str):
-    """Check if used can upload or edit the group, else raise an
-      error if
-        it uses advanced features that would prevent that action.
-    We disallow delete because we don't want unprivileged users
-    to delete something important that they can't fix.
-
-    """
-    if "mqtt_server" in data and data["mqtt_server"].strip():
-        if not web.has_permission("system_admin", user=user):
-            raise ValueError(
-                "You cannot do this action on this group without system_admin, because it uses advanced features."
-            )
-
 
 group_schema = schemas.get_schema("chandler/group")
 
@@ -280,7 +262,7 @@ class Group:
             ValueError: _description_
         """
 
-        self.board: WebChandlerConsole.WebConsole = chandler_board
+        self.board: WebChandlerConsole.WebConsole = chandler_board  # type: ignore
 
         if name and name in self.board.groups_by_name:
             raise RuntimeError("Cannot have 2 groups sharing a name: " + name)
@@ -611,29 +593,30 @@ class Group:
 
     @slow_group_lock_context.object_session_entry_point
     def find_next_scheduled_cue(self):
-        now = time.time()
+        with self.lock:
+            now = time.time()
 
-        t = 10**20
-        sc = self.next_scheduled_cue
+            t = 10**20
+            sc = self.next_scheduled_cue
 
-        if sc:
-            so = sc.scheduler_object
-            if so:
-                t2 = so.time
-                if t2 > now and t2 < t:
-                    t = t2
+            if sc:
+                so = sc.scheduler_object
+                if so:
+                    t2 = so.time
+                    if t2 > now and t2 < t:
+                        t = t2
 
-        for i in self.cues:
-            c = self.cues[i]
+            for i in self.cues:
+                c = self.cues[i]
 
-            so = c.scheduler_object
-            if so:
-                t2 = so.time
-                if t2 > now and t2 < t:
-                    t = t2
-                    sc = c
+                so = c.scheduler_object
+                if so:
+                    t2 = so.time
+                    if t2 > now and t2 < t:
+                        t = t2
+                        sc = c
 
-        self.next_scheduled_cue = sc
+            self.next_scheduled_cue = sc
 
     def check_error_codes(self):
         if self.error_codes:
@@ -2429,6 +2412,7 @@ class Group:
                     > self.cuelen * (60 / self.bpm)
                 )
             )
+            or force_repaint
         ):
             return
 

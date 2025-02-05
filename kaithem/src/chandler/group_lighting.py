@@ -543,9 +543,7 @@ def mark_and_reset_changed_universes(
                     if i.lighting_manager.should_recalc_values_before_render:
                         i.lighting_manager.should_recalc_values_before_render = False
                         i.lighting_manager.recalc_cue_vals()
-                        i.lighting_manager.paint_canvas(
-                            i.lighting_manager.last_fade_position
-                        )
+                        i.poll(force_repaint=True)
 
                     changedUniverses[u] = (0, 0)
 
