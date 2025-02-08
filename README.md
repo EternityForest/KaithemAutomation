@@ -39,18 +39,19 @@ See the barrel.css [demo](https://eternityforest.github.io/barrel.css/) for more
 >  Material can bear.
 
 
-First you'll need to get [pipx](https://pipx.pypa.io/stable/installation/) if you haven't yet.
+First you'll need to get [pipx](https://pipx.pypa.io/stable/installation/) and uv, if you haven't yet.  In the future, pipx will likely not be needed at all, for now this seems to be the most convenient way to get uv.
 
 ```bash
 sudo apt install pipx
 python3 -m pipx ensurepath
+pipx install uv
 ```
 
 Next you can just install it right from PyPi!
 Be aware that pipx takes a while on a raspberry pi.
 
 ```bash
-pipx install --verbose kaithem
+uv tool install --force kaithem
 
 kaithem-scripts root-install-system-dependencies
 
@@ -58,7 +59,7 @@ kaithem-scripts root-install-system-dependencies
 
 To get the latest dev version, do this instead.  You probably don't want this.
 ```bash
-pipx install --force git+https://github.com/EternityForest/KaithemAutomation
+uv tool install --force --from git+https://github.com/EternityForest/KaithemAutomation kaithem
 ```
 
 ### System Configuration 🛠️
