@@ -1,6 +1,13 @@
 Change Log
 ----------
 
+
+### 0.89.0
+
+- :sparkles: New system tag points and default alarms for hdmi port connection(/system/display_ports/hdmi_1.connected)
+
+
+
 ### 0.88.0
 
 This release moves some of the last few settings to module resources, so that all settings can be managed consistently in the same way.  It also improves autocomplete for them.

@@ -1,6 +1,7 @@
 import logging
 import os
 import random
+import re
 import subprocess
 import threading
 
@@ -16,6 +17,85 @@ t.start()
 undervoltageDuringBootPosted = False
 overTempDuringBootPosted = False
 battery = None
+
+
+ports_ever_seen: dict[str, bool] = {}
+
+
+def getConnectedDisplays():
+    """Return the status of the display ports."""
+    # format
+    # Connector 0 (32) HDMI-A-1 (connected)
+    # Encoder 0 (31) TMDS
+    # Connector 1 (42) HDMI-A-2 (disconnected)
+    # Encoder 1 (41) TMDS
+    displays = {}
+
+    if util.which("kmsprint"):
+        data = subprocess.check_output("kmsprint", shell=True)
+        for line in data.splitlines():
+            match = re.search(
+                r"Connector \d+ \((\d+)\) (.+) \((connected|disconnected)\)",
+                line.decode("utf-8"),
+            )
+            if match:
+                _connector_id = match.group(1)
+                display_name = match.group(2)
+                status = match.group(3) == "connected"
+                displays[display_name] = status
+
+    elif util.which("xrandr"):
+        data = subprocess.check_output("xrandr", shell=True)
+        for line in data.splitlines():
+            match = re.search(r"(.+?) connected", line.decode("utf-8"))
+            if match:
+                display_name = match.group(1)
+                displays[display_name] = True
+
+    for i in displays:
+        ports_ever_seen[i] = False
+
+    for i in ports_ever_seen:
+        if i not in displays:
+            displays[i] = False
+
+    return displays
+
+
+display_tags: dict[str, tagpoints.NumericTagPointClass] = {}
+
+
+@scheduling.scheduler.every_minute
+def displaysToTags():
+    displays = getConnectedDisplays()
+
+    for i in displays:
+        if i not in display_tags:
+            name = (
+                i.replace(" ", "_")
+                .replace("-", "_")
+                .replace(".", "_")
+                .replace(":", "_")
+                .lower()
+            )
+
+            display_tags[i] = tagpoints.Tag(
+                "/system/display_ports/" + name + ".connected"
+            )
+            display_tags[i].expose("view_status")
+            display_tags[i].min = 0
+            display_tags[i].max = 1
+            display_tags[i].subtype = "bool"
+            # I think it doesn't need auto ack, to catch transients?
+            display_tags[i].set_alarm(
+                "disconnected", "value==0", priority="warning"
+            )
+
+        # Leave them marked as default till the first time we see them
+        # So they don't trigger alarms on headless systems, only alarm
+        # When there is a change
+        if displays[i] or display_tags[i].timestamp:
+            display_tags[i].value = 1 if displays[i] else 0
 
 
 def getSDHealth():
