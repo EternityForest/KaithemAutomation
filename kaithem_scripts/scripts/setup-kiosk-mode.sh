@@ -30,6 +30,22 @@ sudo -u $(id -un $KAITHEM_UID) dbus-launch gsettings set org.gnome.desktop.scree
 sudo -u $(id -un $KAITHEM_UID) dbus-launch gsettings set org.gnome.desktop.screensaver idle-activation-enabled false
 
 
+# Remove SSH warning on the pi.  Redundantly done in linux tweaks.
+if [ -f /etc/profile.d/sshpwd.sh ]; then
+    rm -rf /etc/profile.d/sshpwd.sh
+fi
+
+if [ -f /etc/xdg/lxsession/LXDE-pi/sshpwd.sh ]; then
+    rm -rf /etc/xdg/lxsession/LXDE-pi/sshpwd.sh
+fi
+
+if [ -f /etc/xdg/autostart/pprompt.desktop ]; then
+    rm -rf /etc/xdg/autostart/pprompt.desktop
+fi
+
+
+
+
 mkdir -p /home/$(id -un $KAITHEM_UID)/.config/autostart/
 
 cat << EOF > /home/$(id -un $KAITHEM_UID)/.config/autostart/kiosk.desktop
@@ -40,15 +56,7 @@ Exec=/usr/bin/ember-kiosk-launch.sh $KIOSK_HOME &
 Terminal=false
 EOF
 
-sudo apt -y install chromium-browser unclutter
-
-cat << EOF > /home/$(id -un $KAITHEM_UID)/.config/autostart/unclutter.desktop
-[Desktop Entry]
-Name=Unclutter
-Type=Application
-Exec=unclutter
-Terminal=false
-EOF
+sudo apt -y install chromium-browser
 
 
 cat << 'EOF' >  /usr/bin/ember-kiosk-launch.sh

@@ -76,6 +76,9 @@ Scripts starting with . need root.
 
 ```bash
 
+# Launch at startup
+kaithem-scripts user-start-kaithem-at-boot
+
 # Currently, most distros don't have pipewire JACK enabled by default, which
 # is needed for the audio mixing features.
 kaithem-scripts root-use-pipewire-jack
@@ -101,8 +104,9 @@ kaithem-scripts root-enable-anon-mqtt
 kaithem-scripts root-uninstall-bloatware
 
 # Set up the Pi to display the Kaithem homepage(Can configure redirect in settings)
-# On boot in a fullscreen kiosk.  On the pi, uses hdmi force hotplug to make
+# On boot in a fullscreen kiosk, under the default user.
 # sure the display connects reliably.
+# Note this reconfgures lots of stuff and can't be undone except manually.
 kaithem-scripts root-install-kiosk
 
 ```

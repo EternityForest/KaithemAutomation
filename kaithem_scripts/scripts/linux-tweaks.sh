@@ -91,8 +91,7 @@ sudo systemctl disable apt-daily-upgrade.timer
 sudo systemctl disable apt-daily.timer
 sudo systemctl disable apt-daily.service
 
-# Remove SSH warning
-
+# Remove SSH warning on the pi
 if [ -f /etc/profile.d/sshpwd.sh ]; then
     rm -rf /etc/profile.d/sshpwd.sh
 fi
