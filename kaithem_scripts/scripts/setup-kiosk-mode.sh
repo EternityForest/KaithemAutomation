@@ -32,8 +32,7 @@ sudo -u $(id -un $KAITHEM_UID) dbus-launch gsettings set org.gnome.desktop.scree
 
 # Needed to undo screen saver on pi
 if command -v raspi-config &> /dev/null; then
-  sudo raspi-config nonint do_blanking
-  sudo raspi-config nonint do_wayland W2
+  sudo raspi-config nonint do_blanking 1
 fi
 
 # TODO autologon on non-lightdm systems.
