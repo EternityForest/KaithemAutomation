@@ -127,6 +127,7 @@ pipewire-python = "^0.2.3"
 "kaithem" = "kaithem:__main__"
 "kaithem-cli" = "kaithem_cli.cli:main"
 "kaithem-scripts" = "kaithem_scripts.makefile_runner:main"
+"kaithem-pi-boot-cfg" = "kaithem_scripts.pi_boot_cfg:main"
 
 "kaithem._jackmanager_server" = "icemedia.jack_client_subprocess:main"
 "kaithem._iceflow_server" = "icemedia.iceflow_server:main"

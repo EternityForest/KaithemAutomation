@@ -124,6 +124,7 @@ root-install-sd-protection: # Reconfigure a Pi system or similar to not write to
 root-install-kiosk: # Sets up a pi(or similar) as a kiosk machine pointing to KIOSK_HOMEPAGE(default is kaithem at localhost:8002)
 	@cd ${CONFIG_HELPERS_DIR}
 	@bash ./scripts/setup-kiosk-mode.sh
+	@/usr/bin/python3 ${CONFIG_HELPERS_DIR}/pi_boot_cfg.py --set_hdmi_force_hotplug=1 || true
 
 .PHONY: root-install-linux-tweaks
 root-install-linux-tweaks: root-install-sd-protection root-use-pipewire-jack # Installs assorted tweaks to the Linux system.  Only use on dedicated devices. User specific things apply to KAITHEM_USER
