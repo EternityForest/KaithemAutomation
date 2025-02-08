@@ -56,6 +56,11 @@ kaithem-scripts root-install-system-dependencies
 
 ```
 
+To get the latest dev version, do this instead.  You probably don't want this.
+```bash
+pipx install --force git+https://github.com/EternityForest/KaithemAutomation
+```
+
 ### System Configuration 🛠️
 
 > So, when the buckled girder\

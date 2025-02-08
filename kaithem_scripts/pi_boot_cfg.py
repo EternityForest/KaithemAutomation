@@ -192,12 +192,11 @@ for i in config:
     for j in i[2]:
         s += f"{j}\n"
 
-print(s)
 
-# def main():
-#     with open(file, "w") as f:
-#         f.write(s)
+def main():
+    with open(file, "w") as f:
+        f.write(s)
 
 
-# if __name__ == "__main__":
-#     main()
+if __name__ == "__main__":
+    main()
