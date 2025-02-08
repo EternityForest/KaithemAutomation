@@ -203,7 +203,7 @@ cat << EOF > /etc/NetworkManager/system-connections/ethernet.nmconnection
 [connection]
 id=Ethernet
 uuid=8874a940-b7d6-3b50-9cfb-031801810ab4
-type=ethernetcd "$(dirname "${BASH_SOURCE[0]}")"
+type=ethernet
 
 autoconnect-priority=-100
 

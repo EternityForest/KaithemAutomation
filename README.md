@@ -101,7 +101,8 @@ kaithem-scripts root-enable-anon-mqtt
 kaithem-scripts root-uninstall-bloatware
 
 # Set up the Pi to display the Kaithem homepage(Can configure redirect in settings)
-# On boot in a fullscreen kiosk
+# On boot in a fullscreen kiosk.  On the pi, uses hdmi force hotplug to make
+# sure the display connects reliably.
 kaithem-scripts root-install-kiosk
 
 ```
