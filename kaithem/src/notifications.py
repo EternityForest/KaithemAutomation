@@ -122,6 +122,11 @@ def apprise(*dummy):
             apprise_lock.release()
 
 
+settings_overrides.set_meta(
+    "core/apprise_target", "description", "Apprise URL to send notifications to"
+)
+
+
 def subscriber(topic, message):
     global notificationslog
     notificationslog.append((time.time(), topic, message))

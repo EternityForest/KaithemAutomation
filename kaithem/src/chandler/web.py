@@ -325,14 +325,16 @@ async def webmediadisplay():
 async def default(path: str):
     if path in ("webmediadisplay",):
         return await webmediadisplay()
-    else:
+
+    # Use the dot to distinguish templates vs static files
+    if "." not in path.split("/")[-1]:
+        # Todo template rendering on the server should really be
+        # gone
         try:
             pages.require("chandler_operator")
         except PermissionError:
             return pages.loginredirect(pages.geturl())
 
-    # Use the dot to distinguish templates vs static files
-    if "." not in path.split("/")[-1]:
         path = path.split("/")[0] + ".html"
 
         def f():

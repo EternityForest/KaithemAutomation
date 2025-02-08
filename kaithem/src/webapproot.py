@@ -88,6 +88,13 @@ async def favicon():
     return await send_file(fn, cache_timeout=3600 * 24)
 
 
+settings_overrides.set_meta(
+    "core/homepage_redirect",
+    "description",
+    "Redirect the main page to this URL. Got to /index to get the real main page",
+)
+
+
 @quart_app.app.route("/")
 def index_default(*path, **data):
     r = settings_overrides.get_val("core/homepage_redirect")

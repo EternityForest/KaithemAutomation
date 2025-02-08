@@ -105,7 +105,8 @@ kaithem-scripts root-uninstall-bloatware
 
 # Set up the Pi to display the Kaithem homepage(Can configure redirect in settings)
 # On boot in a fullscreen kiosk, under the default user.
-# sure the display connects reliably.
+
+# Should work on non-pi systems that use lightdm too.
 # Note this reconfgures lots of stuff and can't be undone except manually.
 kaithem-scripts root-install-kiosk
 
