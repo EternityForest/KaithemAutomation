@@ -92,7 +92,7 @@ user-kaithem-force-restart: # Force kill the process and restart it.
 .PHONY: user-restart-pipewire
 user-restart-pipewire:
 	@echo "Tries to restart everything, including some that may fail because they're not installed"
-	@systemctl systemctl --user daemon-reload
+	@systemctl --user daemon-reload
 	@systemctl --user restart pipewire pipewire-pulse wireplumber
 
 

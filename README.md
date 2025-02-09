@@ -115,6 +115,7 @@ kaithem-scripts root-uninstall-bloatware
 kaithem-scripts root-install-kiosk
 
 # Sets sudo to passwordless by creating a /etc/sudoers.d/sudo-nopasswd file
+# 0.89.0+ only
 kaithem-scripts root-enable-passwordless-sudo
 
 ```

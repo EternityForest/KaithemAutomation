@@ -12,7 +12,7 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 
 
-apt -y install pipewire-audio-client-libraries
+apt -y install pipewire-audio-client-libraries wireplumber pipewire
 
 cp /usr/share/doc/pipewire/examples/ld.so.conf.d/pipewire-jack-*.conf /etc/ld.so.conf.d/
 ldconfig
