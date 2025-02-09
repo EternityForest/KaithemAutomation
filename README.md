@@ -43,8 +43,10 @@ First you'll need to get [pipx](https://pipx.pypa.io/stable/installation/) and u
 
 ```bash
 sudo apt install pipx
+# This may prompt you to log out and log back in
 python3 -m pipx ensurepath
 pipx install uv
+uv tool update-shell
 ```
 
 Next you can just install it right from PyPi!
@@ -72,7 +74,9 @@ uv tool install --force --from git+https://github.com/EternityForest/KaithemAuto
 
 kaithem-scripts provides some helpful utilities to set up the system.
 
-Scripts starting with . need root.
+Scripts starting with . will do sudo by themselves, you call them as your normal user,
+and sudo will prompt you if needed.  This is because running uv/pipx scripts directly with root
+would need extra setup.
 
 ```bash
 
@@ -109,6 +113,9 @@ kaithem-scripts root-uninstall-bloatware
 # Should work on non-pi systems that use lightdm too.
 # Note this reconfgures lots of stuff and can't be undone except manually.
 kaithem-scripts root-install-kiosk
+
+# Sets sudo to passwordless by creating a /etc/sudoers.d/sudo-nopasswd file
+kaithem-scripts root-enable-passwordless-sudo
 
 ```
 

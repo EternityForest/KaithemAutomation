@@ -150,3 +150,6 @@ root-enable-anon-mqtt: # Set up an MQTT broker for anonymous login acccess
 	@bash ./scripts/setup-anon-mosquitto.sh
 
 
+.PHONY: root-enable-passwordless-sudo
+root-enable-passwordless-sudo: # Set up passwordless sudo for the root user
+	@echo "%sudo ALL=(ALL) NOPASSWD:ALL" | sudo EDITOR="tee -a" visudo -f /etc/sudoers.d/sudo-nopasswd
