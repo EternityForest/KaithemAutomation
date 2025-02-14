@@ -111,7 +111,7 @@ argon2-cffi = "^23.1.0"
 msgpack-types = "^0.2.0"
 niquests = "^3.6.3"
 
-quart = "^0.19.6"
+quart = ">=0.19.6,<0.21.0"
 hypercorn = { extras = ["uvloop"], version = "^0.17.3" }
 structlog = "^24.1.0"
 rich = "^13.7.1"
