@@ -23,6 +23,11 @@ mimetypes.add_type("text/html", ".vue", strict=False)
 mimetypes.add_type("application/javascript", ".js", strict=True)
 
 
+# Fix any bad environment that doesn't have this set which might break the display list feature
+if not os.environ.get("DISPLAY"):
+    os.environ["DISPLAY"] = ":0"
+
+
 def str_presenter(dumper, data):
     """configures yaml for dumping multiline strings
     Ref: https://stackoverflow.com/questions/8640959/how-can-i-control-what-scalar-form-pyyaml-uses-for-my-data"""
