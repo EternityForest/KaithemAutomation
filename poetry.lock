@@ -1077,13 +1077,13 @@ files = [
 
 [[package]]
 name = "icemedia"
-version = "0.1.21"
+version = "0.1.22"
 description = "Media handling library with GStreamer wrapper, sound player, and Jack manager"
 optional = false
 python-versions = "<4.0,>=3.10"
 files = [
-    {file = "icemedia-0.1.21-py3-none-any.whl", hash = "sha256:b0e6de102760ffcca620b93b9ed0ba51de242886644d59d5b6c98815d75bcfa1"},
-    {file = "icemedia-0.1.21.tar.gz", hash = "sha256:671c0c3b003bdcdf0ad45a0ee26c63ce7859d39abfc4cd8fa6e0ddf78d7a27ea"},
+    {file = "icemedia-0.1.22-py3-none-any.whl", hash = "sha256:0d3b7f8cbb3bad4c5f47e08b07fb85ebc6abd680ea353950c5f82f0cf344f23b"},
+    {file = "icemedia-0.1.22.tar.gz", hash = "sha256:f122ea5f9be6530ca086ecae1546d5c5b2437bf03119fb63ceb6569845f570cd"},
 ]
 
 [package.dependencies]
@@ -4375,4 +4375,4 @@ ifaddr = ">=0.1.7"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10.0, <3.13"
-content-hash = "29a5aa7e53aa47df1dccbfe0ada98004cf164f94f6d97301fdef0867845c06d8"
+content-hash = "c9b3dccd76c3ecce2e75b6552affb2e039499266c470895bf02e31b3e0f8de11"
