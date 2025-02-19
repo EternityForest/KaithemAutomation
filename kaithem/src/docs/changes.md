@@ -6,7 +6,7 @@ Change Log
 
 - :sparkles: New system tag points and default alarms for hdmi port connection(/system/display_ports/hdmi_1.connected)
 - :bug: Fix web media not rendering without login
-
+- :bug: Fix mixer sort issue and use fixed width num param fields
 
 ### 0.88.0
 
