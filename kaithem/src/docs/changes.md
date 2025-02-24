@@ -5,6 +5,7 @@ Change Log
 ### 0.89.0
 
 - :sparkles: New system tag points and default alarms for hdmi port connection(/system/display_ports/hdmi_1.connected)
+- :sparkles: Stateful blocks like on_change in the visual logic editor.
 - :bug: Fix web media not rendering without login
 - :bug: Fix mixer sort issue and use fixed width num param fields
 

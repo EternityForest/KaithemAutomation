@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 # SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-or-later
-
 
 """This file implements ChandlerScript, a DSL for piplines of events triggered by
 commands, called bindings.
@@ -52,8 +53,8 @@ This allows GUIs to auto-generate a UI for visually creating pipelines.
 If there is an unrecognized type, it is treated as a string.
 """
 
-from __future__ import annotations
 
+import copy
 import datetime
 import inspect
 import logging
@@ -65,8 +66,8 @@ import time
 import traceback
 import weakref
 from collections.abc import Callable
-from types import MethodType
-from typing import Any
+from types import FunctionType, MethodType
+from typing import Any, Type
 
 import pytz
 import simpleeval
@@ -94,6 +95,16 @@ class NamespaceGetter:
 
 
 def paramDefault(p):
+    if p.name == "self":
+        return None
+    if (
+        p.kind == p.POSITIONAL_ONLY
+        or p.kind == p.VAR_POSITIONAL
+        or p.kind == p.VAR_KEYWORD
+    ):
+        return None
+
+    p = p.default
     if isinstance(p, (int, float)):
         return f"{str(p)}"
 
@@ -108,12 +119,16 @@ def paramDefault(p):
     return ""
 
 
-def get_function_info(f: Callable[..., Any]):
+def get_function_info(f: Callable[..., Any] | Type[FunctionBlock]):
+    if isinstance(f, type(FunctionBlock)):
+        f = f.__call__
     p = inspect.signature(f).parameters
 
     d = {
         "doc": inspect.getdoc(f),
-        "args": [[i, paramDefault(p[i].default)] for i in p],
+        "args": [
+            [i, paramDefault(p[i])] for i in p if paramDefault(p[i]) is not None
+        ],
     }
 
     if hasattr(f, "completionTags"):
@@ -126,7 +141,7 @@ def getContextFunctionInfo(f):
     p = inspect.signature(f).parameters
     d = {
         "doc": inspect.getdoc(f),
-        "args": [[i, paramDefault(p[i].default)] for i in p][1:],
+        "args": [[i, paramDefault(p[i])] for i in p][1:],
     }
 
     return d
@@ -199,6 +214,39 @@ def cfg(key: str):
     return settings_overrides.get_val(key)
 
 
+class FunctionBlock:
+    def __init__(self, ctx: ChandlerScriptContext, *args, **kwargs):
+        self.ctx = ctx
+
+    def call(self, *args, **kwargs):
+        return True
+
+
+def makeFunctionBlock(c: Callable[[Any], Any]):
+    class FB(FunctionBlock):
+        def __call(self, *args, **kwargs):
+            return c(self.ctx, *args)
+
+    return FB
+
+
+class OnChangeBlock(FunctionBlock):
+    def __init__(self, ctx: ChandlerScriptContext, *args, **kwargs):
+        self.lastValue = None
+
+    def __call__(self, input="=_", **kwds: Any) -> Any:
+        """
+        If the input is the same as the last input, or this is the first input, return None
+        """
+        if self.lastValue is None:
+            self.lastValue = input
+        elif self.lastValue == input:
+            return None
+        else:
+            self.lastValue = input
+            return self.lastValue
+
+
 globalUsrFunctions = {
     "unixtime": time.time,
     "millis": millis,
@@ -245,11 +293,12 @@ def continue_if(v):
 # Use context_info.event from inside any function, the value will be a (name,value) tuple for the event
 context_info = threading.local()
 
-predefinedcommands = {
+predefinedcommands: dict[str, Callable[..., Any] | Type[FunctionBlock]] = {
     "return": rval,
     "pass": passAction,
     "maybe": maybe,
     "continue_if": continue_if,
+    "on_change": OnChangeBlock,
 }
 
 
@@ -333,14 +382,31 @@ class ScriptActionKeeper:
     def __setitem__(self, key, value):
         if not isinstance(key, str):
             raise TypeError("Keys must be string function names")
-        if not callable(value):
-            raise TypeError("Script commands must be callable")
 
         if isinstance(value, MethodType):
             raise TypeError("Bound method type not supported")
 
-        p = inspect.signature(value).parameters
+        if not (
+            isinstance(value, FunctionType)
+            or isinstance(value, type(FunctionBlock))
+        ):
+            raise TypeError(
+                "Script commands must be functions or subclasses of FunctionBlock"
+            )
+
+        if isinstance(value, type(FunctionBlock)):
+            # Ignore the self param
+            p = inspect.signature(value.__call__).parameters
+        else:
+            p = inspect.signature(value).parameters
+
         for i in p:
+            if i == "self":
+                continue
+            # Ignore kw only
+            if p[i].kind in (p[i].KEYWORD_ONLY, p[i].VAR_POSITIONAL):
+                continue
+
             if (
                 (not p[i].default == p[i].empty)
                 and p[i].default
@@ -632,10 +698,18 @@ class BaseChandlerScriptContext:
     def onTimerChange(self, timer, nextRunTime):
         pass
 
+    def lookupCommand(self, c: FunctionBlock | str):
+        if isinstance(c, FunctionBlock):
+            return c
+        else:
+            a = self.commands.get(c, None)
+            a = self.context_commands.get(c, a)
+            return a
+
     def _runCommand(self, c):
         # ContextCommands take precedence
-        a = self.commands.get(c[0], None)
-        a = self.context_commands.get(c[0], a)
+
+        a = self.lookupCommand(c[0])
 
         seen = {}
 
@@ -811,13 +885,6 @@ class BaseChandlerScriptContext:
     def onVarSet(self, k: str, v: Any):
         pass
 
-    def addContextCommand(self, name, callable):
-        def wrap(self, f):
-            def wrapped(*a, **k):
-                f(self, *a, **k)
-
-        self.commands[name] = wrap(self, callable)
-
     @beartype
     def addBindings(self, b: list[list[str | list[list[str]]]]):
         """
@@ -829,6 +896,7 @@ class BaseChandlerScriptContext:
 
         Also immediately runs any now events
         """
+        b = copy.deepcopy(b)
         with self.gil:
             # Cache is invalidated, bindings have changed
             self.need_refresh_for_variable = {}
@@ -849,6 +917,16 @@ class BaseChandlerScriptContext:
 
                 if evt_name not in self.event_listeners:
                     self.event_listeners[evt_name] = []
+
+                for n, j in enumerate(cmds):
+                    try:
+                        x = self.lookupCommand(j[0])
+                        if isinstance(x, type(FunctionBlock)):
+                            cmds[n][0] = x(self, *j[1:])
+
+                    except Exception as e:
+                        print(e)
+                        cmds[n][0] = "Bad command: " + str(e)
 
                 self.event_listeners[evt_name].append(cmds)
                 self.onBindingAdded(i)

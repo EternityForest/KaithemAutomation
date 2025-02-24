@@ -5,17 +5,45 @@ import gc
 import importlib
 import logging
 import os
+import sys
 import threading
 import time
 from typing import Any, Dict, Optional
 
 import structlog
+import structlog.dev
 
 from . import config as config_module
 
 structlog.stdlib.recreate_defaults()
-cr = structlog.dev.ConsoleRenderer()
-structlog.configure(processors=structlog.get_config()["processors"][:-1] + [cr])
+
+shared_processors = [
+    # Processors that have nothing to do with output,
+    # e.g., add timestamps or log level names.
+]
+
+if True or sys.stderr.isatty():
+    # Pretty printing when we run in a terminal session.
+    # Automatically prints pretty tracebacks when "rich" is installed
+    processors = shared_processors + [
+        structlog.dev.ConsoleRenderer(
+            exception_formatter=structlog.dev.plain_traceback
+        ),
+    ]
+else:
+    # Print JSON when we run, e.g., in a Docker container.
+    # Also print structured tracebacks.
+    processors = shared_processors + [
+        structlog.processors.dict_tracebacks,
+        structlog.processors.JSONRenderer(),
+    ]
+
+
+structlog.configure(
+    processors=structlog.get_config()["processors"][:-1]
+    + shared_processors
+    + processors
+)
 
 
 def import_in_thread(m):
