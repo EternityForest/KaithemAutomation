@@ -2,6 +2,31 @@ from __future__ import annotations
 
 # SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-or-later
+import copy
+import datetime
+import inspect
+import logging
+import math
+import random
+import subprocess
+import threading
+import time
+import traceback
+import weakref
+from collections.abc import Callable
+from types import FunctionType, MethodType
+from typing import Any
+
+import pytz
+import simpleeval
+from beartype import beartype
+from scullery import workers
+from scullery.scheduling import scheduler
+
+from kaithem.api import lifespan
+
+from . import astrallibwrapper as sky
+from . import geolocation, settings_overrides, tagpoints, util
 
 """This file implements ChandlerScript, a DSL for piplines of events triggered by
 commands, called bindings.
@@ -54,32 +79,6 @@ If there is an unrecognized type, it is treated as a string.
 """
 
 
-import copy
-import datetime
-import inspect
-import logging
-import math
-import random
-import subprocess
-import threading
-import time
-import traceback
-import weakref
-from collections.abc import Callable
-from types import FunctionType, MethodType
-from typing import Any, Type
-
-import pytz
-import simpleeval
-from beartype import beartype
-from scullery import workers
-from scullery.scheduling import scheduler
-
-from kaithem.api import lifespan
-
-from . import astrallibwrapper as sky
-from . import geolocation, settings_overrides, tagpoints, util
-
 simpleeval.MAX_POWER = 1024
 
 
@@ -119,7 +118,7 @@ def paramDefault(p):
     return ""
 
 
-def get_function_info(f: Callable[..., Any] | Type[FunctionBlock]):
+def get_function_info(f: Callable[..., Any] | type[FunctionBlock]):
     if isinstance(f, type(FunctionBlock)):
         f = f.__call__
     p = inspect.signature(f).parameters
@@ -214,6 +213,7 @@ def cfg(key: str):
     return settings_overrides.get_val(key)
 
 
+# API subject to change, user defined blocks not supported yets
 class FunctionBlock:
     def __init__(self, ctx: ChandlerScriptContext, *args, **kwargs):
         self.ctx = ctx
@@ -247,6 +247,55 @@ class OnChangeBlock(FunctionBlock):
             return self.lastValue
 
 
+class LowPassFilterBlock(FunctionBlock):
+    def __init__(self, ctx: ChandlerScriptContext, *args, **kwargs):
+        self.state: float = 0.0
+        self.t = 0
+
+    def __call__(self, input="=_", tc="1.0", **kwds: Any) -> Any:
+        """
+        Low Pass Filter with the given time constant"""
+        if self.t == 0:
+            self.t = time.time()
+            self.state = input  # type: ignore
+            return input
+
+        sps = 1 / (time.time() - self.t)
+        self.t = time.time()
+
+        # Don't allow sudden jumps, even if the time constant says otherwise
+        if sps < 1:
+            sps = 1
+
+        # Approximate the blend amount
+        # This is an AI generated approximation
+        x = tc * sps  # type: ignore
+        # This line added by trial and error
+        x = x * 2
+        x = 1.0 - x / (1.0 + x + 0.5 * x * x)  # type: ignore
+
+        self.state = x * self.state + (1 - x) * input  # type: ignore
+
+        return self.state
+
+
+class HysterysisBlock(FunctionBlock):
+    def __init__(self, ctx: ChandlerScriptContext, *args, **kwargs):
+        self.lastMark = 10**15
+
+    def __call__(self, input="=_", window="1.0", **kwds: Any) -> Any:
+        """Add hysterysis to the input"""
+        v: float = input  # type: ignore
+        w: float = window  # type: ignore
+
+        if v > self.lastMark + (w / 2):
+            self.lastMark = v
+        elif v < self.lastMark - (w / 2):
+            self.lastMark = v
+
+        return self.lastMark
+
+
 globalUsrFunctions = {
     "unixtime": time.time,
     "millis": millis,
@@ -268,6 +317,15 @@ globalUsrFunctions = {
 
 
 globalConstants = {"e": math.e, "pi": math.pi}
+
+
+def set_tag(name, value):
+    if name in tagpoints.allTagsAtomic:
+        t = tagpoints.allTagsAtomic[name]()
+        if t:
+            t.value = value
+            return
+    raise RuntimeError(f"Tag {name} not found")
 
 
 def rval(x):
@@ -293,12 +351,15 @@ def continue_if(v):
 # Use context_info.event from inside any function, the value will be a (name,value) tuple for the event
 context_info = threading.local()
 
-predefinedcommands: dict[str, Callable[..., Any] | Type[FunctionBlock]] = {
+predefinedcommands: dict[str, Callable[..., Any] | type[FunctionBlock]] = {
     "return": rval,
     "pass": passAction,
     "maybe": maybe,
     "continue_if": continue_if,
     "on_change": OnChangeBlock,
+    "lowpass": LowPassFilterBlock,
+    "hysterysis": HysterysisBlock,
+    "set_tag": set_tag,
 }
 
 

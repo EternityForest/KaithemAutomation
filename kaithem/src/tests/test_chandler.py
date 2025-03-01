@@ -1128,6 +1128,42 @@ def test_cue_logic():
             assert s2.cue.name == "default"
 
 
+def test_cue_logic_function_blocks():
+    with TempGroup("sending_group") as sending_group:
+        assert sending_group.active
+        core.wait_frame()
+
+        assert sending_group in board.active_groups
+        assert sending_group.cue.name == "default"
+
+        logic_test_tag = tagpoints.Tag("/logic_test_tag")
+        logic_test_tag_o = tagpoints.Tag("/logic_test_tag_o")
+
+        # This should set a tag, and also, when a different tag gets set,
+        # trigger a transition in the receiving group
+        sending_group.add_cue(
+            "cue2",
+            rules=[
+                [
+                    "script.poll",
+                    [
+                        ["return", "=tv('/logic_test_tag')"],
+                        ["lowpass", "=_", "1"],
+                        ["set_tag", "/logic_test_tag_o", "=_"],
+                    ],
+                ],
+            ],
+        )
+
+        sending_group.goto_cue("cue2")
+        core.wait_frame()
+        core.wait_frame()
+
+        logic_test_tag.value = 1
+        time.sleep(1)
+        assert abs(logic_test_tag_o.value - 0.63) < 0.05
+
+
 def test_cue_logic_tags():
     with TempGroup("sending_group") as sending_group:
         with TempGroup("recv_group") as recv_group:

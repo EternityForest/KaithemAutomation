@@ -144,7 +144,7 @@ else:
 
                     %if devObj.tagPoints[i].subtype in ('bang','trigger'):
                         <label><div class="grow"><b style="font-size: 11pt;">${i}</b></div>
-                            <ds-button type="checkbox"
+                            <ds-button
                             source="tag:${devObj.tagPoints[i].name}" filter="confirm: Confirm?">
                             trigger(<ds-span source="tag:${devObj.tagPoints[i].name}"></ds-span>)
                         </ds-button>
