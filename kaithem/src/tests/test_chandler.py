@@ -1281,10 +1281,9 @@ def test_tag_backtrack_feature():
 
         core.wait_frame()
         core.wait_frame()
-        # TODO flaky
-        time.sleep(1)
         for attempt in stamina.retry_context(on=AssertionError):
             with attempt:
+                time.sleep(0.05)
                 assert tagpoints.Tag("/test_bt").value == 1
 
         s.cues["default"].set_value_immediate("/test_bt", "value", 2)

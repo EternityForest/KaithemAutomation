@@ -1021,7 +1021,7 @@ class Device(iot_devices.device.Device):
     #######################################################################################
 
 
-class UnsupportedDevice(Device):
+class UnsupportedDevice(iot_devices.device.Device):
     description = (
         "This device does not have support, or else the support is not loaded."
     )

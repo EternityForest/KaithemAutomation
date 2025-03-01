@@ -2,6 +2,36 @@ import os
 import time
 
 
+def test_resolve_file_resource():
+    from kaithem.api.modules import (
+        filename_for_file_resource,
+        modules_lock,
+        resolve_file_resource,
+    )
+    from kaithem.src import modules
+
+    n = "test" + str(time.time()).replace(".", "_")
+    modules.newModule(n)
+
+    fn = filename_for_file_resource(n, "readme.txt")
+    assert n in fn
+    assert "readme.txt" in fn
+    assert "__filedata__" in fn
+
+    os.makedirs(os.path.dirname(fn), exist_ok=True)
+
+    with open(fn, "w") as f:
+        f.write("hello")
+
+    with modules_lock:
+        assert resolve_file_resource("nonexistent_45564567463.txt") is None
+        x = resolve_file_resource("readme.txt")
+        assert x
+        assert x == fn
+
+        assert os.path.exists(x)
+
+
 async def test_modules_api():
     import kaithem.api.modules as modulesapi
     from kaithem.src import modules, modules_state

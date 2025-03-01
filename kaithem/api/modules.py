@@ -115,11 +115,13 @@ def list_resources(module: str) -> list[str]:
 
 @modules_lock.required
 def resolve_file_resource(relative_path: str) -> str | None:
-    """Given a name of a file resource, return the full path to it,
-    if it can be found in any module. May only be called under the modules_lock."""
-    for i in modules_state.ActiveModules:
+    """Given a name of a file resource or a folder in the file resources,
+    return the full path to it, if it can be found in any module.
+
+    May only be called under the modules_lock."""
+    for i in sorted(list(modules_state.ActiveModules.keys())):
         path = modules_state.filename_for_file_resource(i, relative_path)
-        if os.path.isfile(path):
+        if os.path.exists(path):
             return path
 
 
