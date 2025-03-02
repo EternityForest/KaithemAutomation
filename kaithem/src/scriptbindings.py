@@ -301,6 +301,7 @@ globalUsrFunctions = {
     "millis": millis,
     "random": random.random,
     "randint": random.randint,
+    "floor": math.floor,
     "max": max,
     "min": min,
     "log": math.log,
