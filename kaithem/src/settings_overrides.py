@@ -3,6 +3,7 @@ import threading
 from typing import Any
 
 import beartype
+from scullery import messagebus
 
 from . import config
 
@@ -131,6 +132,8 @@ def add_val(
     key = normalize_key(key)
     value = value.strip()
 
+    old = get_val(key)
+
     with lock:
         if key not in settings:
             settings[key] = {}
@@ -147,6 +150,9 @@ def add_val(
 
         get_val.cache_clear()
         get_by_prefix.cache_clear()
+
+    if old != get_val(key):
+        messagebus.post_message("/system/config/changed", key)
 
 
 with lock:

@@ -21,3 +21,8 @@ def lorem() -> str:
 def get_logdir() -> str:
     """Get the user and machine specific log directory"""
     return directories.logdir
+
+
+def get_vardir() -> str:
+    """Get the main kaithem storage dir"""
+    return directories.vardir

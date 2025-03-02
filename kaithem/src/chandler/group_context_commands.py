@@ -56,6 +56,10 @@ def uiNotificationCommand(text: str):
     "Send a notification to the operator, on the web editor and console pages"
 
 
+def speak(text: str = "Hello World!", speaker="0", speed="1"):
+    "BETA. Use the default text to speech model. Speaker is the number for multi-voice models."
+
+
 rootContext.commands["shortcut"] = codeCommand
 rootContext.commands["goto"] = gotoCommand
 rootContext.commands["set_alpha"] = setAlphaCommand
@@ -63,6 +67,7 @@ rootContext.commands["if_cue"] = ifCueCommand
 rootContext.commands["send_event"] = eventCommand
 rootContext.commands["set_slideshow_variable"] = setWebVarCommand
 rootContext.commands["console_notification"] = uiNotificationCommand
+rootContext.commands["speak"] = speak
 
 
 def sendMqttMessage(topic: str, message: str):
@@ -217,6 +222,19 @@ def add_context_commands(context_group: groups.Group):
                     lambda s: s.linkSend(["ui_alert", text])
                 )
 
+    def speak(text: str = "Hello World!", speaker="0", speed="1"):
+        "BETA. Use the default text to speech model. Speaker is the number for multi-voice models."
+        from kaithem.src.plugins.CorePluginTTS import get_model
+
+        m = get_model()
+        if m:
+            m.speak(
+                str(text)[:1024],
+                speed=float(speed),
+                sid=int(speaker),
+                device=context_group.sound_output,
+            )
+
     cc["shortcut"] = codeCommand
     cc["goto"] = gotoCommand
     cc["set_alpha"] = setAlphaCommand
@@ -224,6 +242,7 @@ def add_context_commands(context_group: groups.Group):
     cc["send_event"] = eventCommand
     cc["set_slideshow_variable"] = setWebVarCommand
     cc["console_notification"] = uiNotificationCommand
+    cc["speak"] = speak
 
     # cc["set_tag"].completionTags = {"tagName": "tagPointsCompleter"}
 

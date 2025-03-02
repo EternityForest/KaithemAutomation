@@ -154,6 +154,8 @@ core/apprise_target: ""
 core_plugin_map_tile_server/max_age_days: 100
 core_plugin_map_tile_server/cache_size_mb: 32000
 
+core_plugin_tts/default_model: ""
+core_plugin_tts/default_speaker: 0
 
 #####################MISC#######################################################
 

@@ -16,3 +16,16 @@ def add_val(
 ):
     """Add a config option.   If value is empty string, remove it instead."""
     return settings_overrides.add_val(key, value, source, priority)
+
+
+def add_suggestion(key: str, value: str, description: str = ""):
+    """Add a suggestion for the given key"""
+    return settings_overrides.add_suggestion(key, value, description)
+
+
+def clear_suggestions(key: str):
+    return settings_overrides.clear_suggestions(key)
+
+
+def set_description(key: str, description: str):
+    return settings_overrides.set_description(key, description)
