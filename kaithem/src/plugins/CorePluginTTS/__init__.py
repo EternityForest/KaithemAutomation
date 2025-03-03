@@ -10,8 +10,10 @@ import time
 import icemedia.sound_player
 from scullery import messagebus
 
-from kaithem.api import settings
+from kaithem.api import plugin_interfaces, settings
 from kaithem.src import alerts
+
+plugin_metadata = {"provides": {"kaithem.core.tts": 0}}
 
 piper_voices: list[dict[str, float | int | str]] = [
     {"name": "vits-piper-ar_JO-kareem-low", "size": 64},
@@ -161,7 +163,7 @@ models: dict[str, PiperTTS] = {}
 default_tts = None
 
 
-class PiperTTS:
+class PiperTTS(plugin_interfaces.TTSEngine):
     def __init__(
         self,
         model: str = "vits-piper-en_US-libritts_r-medium",
@@ -263,42 +265,47 @@ class PiperTTS:
 lock = threading.RLock()
 
 
-def get_model(model: str = "", timeout: float = 5):
-    global default_tts
-    speaker = 0
+class TTSInterface(plugin_interfaces.TTSAPI):
+    def get_model(self, model: str = "", timeout: float = 5):
+        global default_tts
+        speaker = 0
 
-    if lock.acquire(timeout=timeout):
-        try:
-            if model == "":
-                if default_tts is not None:
-                    return default_tts
-                model = settings.get_val("core_plugin_tts/default_model")
-                speaker = int(
-                    settings.get_val("core_plugin_tts/default_speaker") or 0
-                )
-
-            if not model:
-                return None
-
+        if lock.acquire(timeout=timeout):
             try:
-                return models[model]
-            except KeyError:
-                pass
-            if model not in models:
+                if model == "":
+                    if default_tts is not None:
+                        return default_tts
+                    model = settings.get_val("core_plugin_tts/default_model")
+                    speaker = int(
+                        settings.get_val("core_plugin_tts/default_speaker") or 0
+                    )
 
-                def f():
-                    with lock:
-                        m = PiperTTS(model=model)
-                        m.default_speaker = speaker
-                        models[model] = m
-                        return m
+                if not model:
+                    return None
 
-                threading.Thread(target=f).start()
-                return None
-        finally:
-            lock.release()
-    else:
-        return None
+                try:
+                    return models[model]
+                except KeyError:
+                    pass
+                if model not in models:
+
+                    def f():
+                        with lock:
+                            m = PiperTTS(model=model)
+                            m.default_speaker = speaker
+                            models[model] = m
+                            return m
+
+                    threading.Thread(target=f).start()
+                    return None
+            finally:
+                lock.release()
+        else:
+            return None
+
+
+api = TTSInterface()
+plugin_services = [api]
 
 
 def on_key_change(topic: str, key):
@@ -311,7 +318,7 @@ def on_key_change(topic: str, key):
                 return
 
             default_tts.close()
-        default_tts = get_model(current)
+        default_tts = api.get_model(current)
 
     if key == "core_plugin_tts/default_model":
         current = settings.get_val("core_plugin_tts/default_speaker") or 0
@@ -320,7 +327,7 @@ def on_key_change(topic: str, key):
 
 
 messagebus.subscribe("/system/config/changed", on_key_change)
-get_model()
+api.get_model()
 # 110, 116, 119, 121, 129
 
 # 536, 538,

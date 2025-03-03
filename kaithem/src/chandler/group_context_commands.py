@@ -7,6 +7,8 @@ if TYPE_CHECKING:
 
 import time as _time
 
+from kaithem.api import plugin_interfaces
+
 from .. import scriptbindings
 from . import core
 from .global_actions import cl_event, cl_trigger_shortcut_code
@@ -224,9 +226,9 @@ def add_context_commands(context_group: groups.Group):
 
     def speak(text: str = "Hello World!", speaker="0", speed="1"):
         "BETA. Use the default text to speech model. Speaker is the number for multi-voice models."
-        from kaithem.src.plugins.CorePluginTTS import get_model
+        p = plugin_interfaces.TTSAPI.get_providers()[0]
 
-        m = get_model()
+        m = p.get_model()
         if m:
             m.speak(
                 str(text)[:1024],

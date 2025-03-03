@@ -133,8 +133,10 @@ def list_resources(module: str) -> list[str]: ...
 
 [Show source in modules.py:116](../../../api/modules.py#L116)
 
-Given a name of a file resource, return the full path to it,
-if it can be found in any module. May only be called under the modules_lock.
+Given a name of a file resource or a folder in the file resources,
+return the full path to it, if it can be found in any module.
+
+May only be called under the modules_lock.
 
 #### Signature
 
@@ -147,7 +149,7 @@ def resolve_file_resource(relative_path: str) -> str | None: ...
 
 ## save_resource
 
-[Show source in modules.py:126](../../../api/modules.py#L126)
+[Show source in modules.py:128](../../../api/modules.py#L128)
 
 Save a resource without triggering any other events.
 Use this in your flush_unsaved handler. May only be called under the modules_lock.

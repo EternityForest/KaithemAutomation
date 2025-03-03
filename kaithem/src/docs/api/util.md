@@ -6,6 +6,7 @@
 
 - [Util](#util)
   - [get_logdir](#get_logdir)
+  - [get_vardir](#get_vardir)
   - [lorem](#lorem)
 
 ## get_logdir
@@ -18,6 +19,20 @@ Get the user and machine specific log directory
 
 ```python
 def get_logdir() -> str: ...
+```
+
+
+
+## get_vardir
+
+[Show source in util.py:26](../../../api/util.py#L26)
+
+Get the main kaithem storage dir
+
+#### Signature
+
+```python
+def get_vardir() -> str: ...
 ```
 
 

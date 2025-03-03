@@ -13,13 +13,35 @@ import traceback
 
 import structlog
 
-from . import directories, messagebus, pathsetup
+from . import directories, messagebus, pathsetup, schemas
 
 logger = structlog.get_logger(__name__)
 logger.setLevel(logging.INFO)
 
 plugins = {}
 evs: list[threading.Event] = []
+
+
+class BasePluginInterface:
+    priority: int = 0
+    service: str = ""
+
+
+providers: dict[str, list[tuple[float, BasePluginInterface]]] = {}
+
+plugin_metadata_schema = schemas.get_validator("plugin_metadata")
+
+
+interfaces: dict[str, type[BasePluginInterface]] = {}
+
+
+def get_providers(
+    service: str,
+) -> list[BasePluginInterface]:
+    """Returns a list of modules that provide the named service"""
+    if service in providers:
+        return list([i[1] for i in providers[service]])
+    return []
 
 
 def import_in_thread(m: str | importlib.machinery.ModuleSpec):
@@ -33,6 +55,7 @@ def import_in_thread(m: str | importlib.machinery.ModuleSpec):
 
             if isinstance(m, str):
                 plugins[m] = importlib.import_module(m)
+                foo = plugins[m]
 
             else:
                 # creates a new module based on spec
@@ -43,6 +66,24 @@ def import_in_thread(m: str | importlib.machinery.ModuleSpec):
                 assert m.loader
                 m.loader.exec_module(foo)
                 plugins[m.name] = foo
+
+            if hasattr(foo, "plugin_services"):
+                services: list[BasePluginInterface] = foo.plugin_services
+                if isinstance(services, list):
+                    for i in services:
+                        if not isinstance(i, BasePluginInterface):
+                            raise Exception(
+                                f"Plugin {m} has invalid service {i}"
+                            )
+                        if i in providers:
+                            providers[i.service].append((i.priority, i))
+                        else:
+                            providers[i.service] = [(i.priority, i)]
+                        providers[i.service].sort(reverse=True)
+                else:
+                    logger.error(f"Plugin {m} has invalid services list.")
+
+            evs.remove(e)
 
             logger.info(
                 f"Loaded plugin {m} in {round((time.monotonic()-t) * 1000,2)}ms"
