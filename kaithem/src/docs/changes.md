@@ -8,7 +8,9 @@ This release has one of the first AI features! We use sherpa-onnx and and automa
 
 For English, vits-piper-en_US-libritts_r-medium is probably a good choice.
 
-Then you can use the "speak" command block in Chandler.  In the future, there will probably be more choices.
+Then you can use the "speak" command block in Chandler and the Speech Synthesis module action.  In the future, there will probably be more features using TTS.  Piper and Kokoro are supported, but Kokoro is much slower than realtime on
+edge devices, so it may not be usable. Generated speech is cached compressed in RAM, so you
+might be able to use it if you have a few repeated phrases.
 
 
 - :sparkles: New system tag points and default alarms for hdmi port connection(/system/display_ports/hdmi_1.connected)

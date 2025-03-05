@@ -9,7 +9,14 @@ class TTSEngine:
     def synth(self, s: str, speed: float = 1, sid: int = -1, file: str = ""):
         raise NotImplementedError
 
-    def speak(self, s: str, speed: float = 1, sid: int = 220, device: str = ""):
+    def speak(
+        self,
+        s: str,
+        speed: float = 1,
+        sid: int = 220,
+        device: str = "",
+        volume: float = 1,
+    ):
         raise NotImplementedError
 
 

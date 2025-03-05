@@ -92,7 +92,7 @@ def action(module, action, dir):
     m = module_actions.get_action(action, {"module": module, "path": dir})
 
     d = dialogs.SimpleDialog(m.title)
-    d.submit_button("Begin Action")
+    d.submit_button("Begin Action", title="Begin Action")
 
     return d.render(f"/action_step/{m.id}")
 

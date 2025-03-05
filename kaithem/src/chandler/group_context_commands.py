@@ -235,6 +235,7 @@ def add_context_commands(context_group: groups.Group):
                 speed=float(speed),
                 sid=int(speaker),
                 device=context_group.sound_output,
+                volume=context_group.cueVolume,
             )
 
     cc["shortcut"] = codeCommand

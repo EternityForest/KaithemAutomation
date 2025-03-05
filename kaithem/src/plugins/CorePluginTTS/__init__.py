@@ -10,8 +10,9 @@ import time
 import icemedia.sound_player
 from scullery import messagebus
 
-from kaithem.api import plugin_interfaces, settings
-from kaithem.src import alerts
+from kaithem.api import modules, plugin_interfaces, settings
+from kaithem.api.web import dialogs
+from kaithem.src import alerts, module_actions, modules_state
 
 plugin_metadata = {"provides": {"kaithem.core.tts": 0}}
 
@@ -261,13 +262,22 @@ class PiperTTS(plugin_interfaces.TTSEngine):
             file,
             audio.samples,
             samplerate=audio.sample_rate,
-            subtype="VORBIS",
+            subtype="MPEG_LAYER_III",
         )
         return file
 
-    def speak(self, s: str, speed: float = 1, sid: int = 220, device: str = ""):
+    def speak(
+        self,
+        s: str,
+        speed: float = 1,
+        sid: int = 220,
+        device: str = "",
+        volume: float = 1,
+    ):
         f = self.synth(s, speed=speed, sid=sid)
-        icemedia.sound_player.play_sound(f, handle=s, volume=1, output=device)
+        icemedia.sound_player.play_sound(
+            f, handle=s, volume=volume, output=device
+        )
         for i in range(100):
             time.sleep(0.5)
             if not icemedia.sound_player.is_playing(s):
@@ -276,7 +286,7 @@ class PiperTTS(plugin_interfaces.TTSEngine):
     def clean_tts_cache(self):
         x = []
         for i in os.listdir("/dev/shm/tts-cache"):
-            if i.endswith((".ogg", ".wav")):
+            if i.endswith((".ogg", ".wav", ".mp3")):
                 t = os.stat(os.path.join("/dev/shm/tts-cache", i)).st_mtime
                 x.append((t, i))
         x.sort()
@@ -295,7 +305,7 @@ class PiperTTS(plugin_interfaces.TTSEngine):
         fn = s[:16]
         for i in ",./;'[]~`!@#$%^&*()_+-=<>?:\"{}\\":
             fn = fn.replace(i, "")
-        fn = fn + hash + ".ogg"
+        fn = fn + hash + ".mp3"
 
         c = "/dev/shm/tts-cache"
         os.makedirs(c, exist_ok=True)
@@ -352,6 +362,8 @@ class KokoroTTS(PiperTTS):
             if i.startswith("lexicon-")
         ]
         lexicon = list(lexicon)
+        lexicon.sort(key=lambda s: 0 if "-en" in s else 1)
+
         tts_config = sherpa_onnx.OfflineTtsConfig(
             model=sherpa_onnx.OfflineTtsModelConfig(
                 kokoro=sherpa_onnx.OfflineTtsKokoroModelConfig(
@@ -363,7 +375,7 @@ class KokoroTTS(PiperTTS):
                     tokens=os.path.join(selected_model_dir, "tokens.txt"),
                     data_dir=os.path.join(selected_model_dir, "espeak-ng-data"),
                     dict_dir=os.path.join(selected_model_dir, "dict"),
-                    lexicon="",
+                    lexicon=",".join(lexicon),
                 )
             )
         )
@@ -382,6 +394,7 @@ class TTSInterface(plugin_interfaces.TTSAPI):
         speaker = 0
 
         if lock.acquire(timeout=timeout):
+            rl = True
             try:
                 if model == "":
                     if default_tts is not None:
@@ -398,6 +411,7 @@ class TTSInterface(plugin_interfaces.TTSAPI):
                     return models[model]
                 except KeyError:
                     pass
+
                 if model not in models:
 
                     def f():
@@ -408,12 +422,20 @@ class TTSInterface(plugin_interfaces.TTSAPI):
                                 m = PiperTTS(model=model)
                             m.default_speaker = speaker
                             models[model] = m
-                            return m
+
+                    lock.release()
+                    rl = False
 
                     threading.Thread(target=f).start()
+
+                    for i in range(int(timeout * 10)):
+                        time.sleep(0.1)
+                        if model in models:
+                            return models[model]
                     return None
             finally:
-                lock.release()
+                if rl:
+                    lock.release()
         else:
             return None
 
@@ -434,7 +456,7 @@ def on_key_change(topic: str, key):
             default_tts.close()
         default_tts = api.get_model(current)
 
-    if key == "core_plugin_tts/default_model":
+    if key == "core_plugin_tts/default_speaker":
         current = settings.get_val("core_plugin_tts/default_speaker") or 0
         if default_tts is not None:
             default_tts.default_speaker = int(current)
@@ -442,8 +464,54 @@ def on_key_change(topic: str, key):
 
 messagebus.subscribe("/system/config/changed", on_key_change)
 api.get_model()
-# 110, 116, 119, 121, 129
 
-# 536, 538,
-#
-# 556
+
+class TTSAction(module_actions.ModuleAction):
+    title = "Speech Synthesis"
+
+    def step(self, **kwargs):
+        global default_tts
+        super().step(**kwargs)
+
+        if "string" not in kwargs:
+            s = dialogs.SimpleDialog("Speech Synthesis")
+            s.text_input("string", title="Text")
+
+            s.text_input(
+                "model",
+                title="TTS Model",
+                default=settings.get_val("core_plugin_tts/default_model")
+                or "kokoro-en-v0_19",
+                suggestions=list(
+                    [(str(i["name"]), str(i["size"])) for i in piper_voices]
+                ),
+            )
+            s.text_input("sid", title="Speaker ID", default="0")
+            s.text_input("speed", title="Speed", default="1")
+
+            s.submit_button("Create")
+            return s.render(self.get_step_target())
+
+        else:
+            with modules.modules_lock:
+                dir = modules.filename_for_file_resource(
+                    self.context["module"], "media/tts"
+                )
+
+            s = kwargs["string"]
+            m = kwargs["model"]
+            sid = int(kwargs["sid"])
+            t = time.strftime("%Y-%m-%d-%H-%M-%S")
+            fn = os.path.join(dir, f"{s[:48]}_{sid}_{m}_{t}.mp3")
+
+            os.makedirs(os.path.dirname(fn), exist_ok=True)
+
+            model = api.get_model(m, 240)
+            assert model
+            model.synth(s, float(kwargs["speed"]), int(kwargs["sid"]), fn)
+            modules_state.importFiledataFolderStructure(self.context["module"])
+
+        return self.close()
+
+
+module_actions.add_action(TTSAction)

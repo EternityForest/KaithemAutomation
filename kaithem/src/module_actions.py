@@ -30,7 +30,12 @@ class ModuleAction:
     def close(self):
         with lock:
             actions.pop(self.id, None)
-        return quart.redirect(f"/modules/module/{self.context['module']}/")
+        if self.context["path"]:
+            return quart.redirect(
+                f"/modules/module/{self.context['module']}/resource/{self.context['path']}"
+            )
+        else:
+            return quart.redirect(f"/modules/module/{self.context['module']}")
 
     def get_step_target(self):
         return f"/action_step/{self.id}"
@@ -65,6 +70,8 @@ class AddNavBarItemAction(ModuleAction):
     title = "Add a link to the nav bar"
 
     def step(self, **kwargs):
+        super().step(**kwargs)
+
         if "title" not in kwargs:
             s = SimpleDialog("Add link to nav bar")
             s.text_input("url", title="URL")
@@ -91,8 +98,7 @@ class AddNavBarItemAction(ModuleAction):
 
             addConfigResource(self.context["module"], r, k, v)
 
-        super().step(**kwargs)
-        self.close()
+        return self.close()
 
 
 def add_action(cls):
