@@ -17,6 +17,8 @@ from kaithem.src import alerts, module_actions, modules_state
 plugin_metadata = {"provides": {"kaithem.core.tts": 0}}
 
 piper_voices: list[dict[str, float | int | str]] = [
+    {"name": "kokoro-multi-lang-v1_0", "size": 333},
+    {"name": "vits-piper-en_US-libritts_r-medium", "size": 78.2},
     {"name": "vits-piper-ar_JO-kareem-low", "size": 64},
     {"name": "vits-piper-ar_JO-kareem-medium", "size": 64.1},
     {"name": "vits-piper-ca_ES-upc_ona-medium", "size": 64.1},
@@ -68,7 +70,6 @@ piper_voices: list[dict[str, float | int | str]] = [
     {"name": "vits-piper-en_US-lessac-low", "size": 64},
     {"name": "vits-piper-en_US-lessac-medium", "size": 64.1},
     {"name": "vits-piper-en_US-libritts-high", "size": 125},
-    {"name": "vits-piper-en_US-libritts_r-medium", "size": 78.2},
     {"name": "vits-piper-en_US-ljspeech-high", "size": 110},
     {"name": "vits-piper-en_US-ljspeech-medium", "size": 64.1},
     {"name": "vits-piper-en_US-norman-medium", "size": 64.1},
@@ -146,8 +147,8 @@ piper_voices: list[dict[str, float | int | str]] = [
     {"name": "vits-piper-vi_VN-vivos-x_low", "size": 31.8},
     {"name": "vits-piper-zh_CN-huayan-medium", "size": 64.1},
     {"name": "kokoro-en-v0_19", "size": 305},
-    {"name": "kokoro-int8-multi-lang-v1_1", "size": 140},
-    {"name": "kokoro-multi-lang-v1_0", "size": 333},
+    # This one doesn't seem to work??
+    # {"name": "kokoro-int8-multi-lang-v1_1", "size": 140},
     {"name": "kokoro-multi-lang-v1_1", "size": 348},
     {"name": "kokoro-en-v0_19", "size": 305},
 ]
@@ -242,6 +243,7 @@ class PiperTTS(plugin_interfaces.TTSEngine):
         models[model] = self
 
     def synth(self, s: str, speed: float = 1, sid: int = -1, file: str = ""):
+        import scipy.signal
         import soundfile as sf
 
         if sid == -1:
@@ -251,18 +253,27 @@ class PiperTTS(plugin_interfaces.TTSEngine):
             if os.path.isfile(file):
                 return file
 
-        audio = self.tts.generate("--..." + s, sid=sid, speed=speed)
+        if "kokoro" in self.name:
+            audio = self.tts.generate(s, sid=sid, speed=speed)
+        else:
+            audio = self.tts.generate("--..." + s, sid=sid, speed=speed)
 
         if len(audio.samples) == 0:
             raise RuntimeError(
                 "Error in generating audios. Please read previous error messages."
             )
 
+        resampled = scipy.signal.resample(
+            audio.samples, int((48000 / audio.sample_rate) * len(audio.samples))
+        )
+
         sf.write(
             file,
-            audio.samples,
-            samplerate=audio.sample_rate,
+            resampled,
+            samplerate=48000,
+            bitrate_mode="CONSTANT",
             subtype="MPEG_LAYER_III",
+            compression_level=0.4,
         )
         return file
 
@@ -362,8 +373,7 @@ class KokoroTTS(PiperTTS):
             if i.startswith("lexicon-")
         ]
         lexicon = list(lexicon)
-        lexicon.sort(key=lambda s: 0 if "-en" in s else 1)
-
+        lexicon.sort(key=lambda x: 0 if "-en" in x else 1)
         tts_config = sherpa_onnx.OfflineTtsConfig(
             model=sherpa_onnx.OfflineTtsModelConfig(
                 kokoro=sherpa_onnx.OfflineTtsKokoroModelConfig(
@@ -493,7 +503,7 @@ class TTSAction(module_actions.ModuleAction):
                 "model",
                 title="TTS Model",
                 default=settings.get_val("core_plugin_tts/default_model")
-                or "kokoro-en-v0_19",
+                or "kokoro-multi-lang-v1_0",
                 suggestions=list(
                     [(str(i["name"]), str(i["size"])) for i in piper_voices]
                 ),

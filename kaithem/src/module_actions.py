@@ -6,6 +6,7 @@ import uuid
 from typing import Any
 
 import quart
+import werkzeug.wrappers.response
 
 from kaithem.api.web.dialogs import SimpleDialog
 
@@ -24,10 +25,14 @@ class ModuleAction:
         self.context = context
         self.last_interaction = time.time()
 
-    def step(self, **kwargs) -> str | None:
+    def step(
+        self, **kwargs
+    ) -> str | quart.Response | werkzeug.wrappers.response.Response | None:
         self.last_interaction = time.time()
 
-    def close(self):
+    def close(
+        self,
+    ) -> str | quart.Response | werkzeug.wrappers.response.Response | None:
         with lock:
             actions.pop(self.id, None)
         if self.context["path"]:

@@ -1,14 +1,18 @@
 Change Log
 ----------
 
-
 ### 0.89.0
 
-This release has one of the first AI features! We use sherpa-onnx and and automatically download models.  To use it, create a config entries resource with the key core_plugin_tts/default_model.
+This release has one of the first AI features! We use sherpa-onnx and and automatically download models.
 
-For English, vits-piper-en_US-libritts_r-medium is probably a good choice.
+For English, vits-piper-en_US-libritts_r-medium is probably a good choice, or use kokoro-multi-lang-v1_0 if you don't need high performance.
 
-Then you can use the "speak" command block in Chandler and the Speech Synthesis module action.  In the future, there will probably be more features using TTS.  Piper and Kokoro are supported, but Kokoro is much slower than realtime on
+You can add a new generated .mp3 by using the module Quick Actions.
+
+To use it in Chandler, create a config entries resource with the key core_plugin_tts/default_model.
+Then you can use the "speak" command block.  In the future, there will probably be more features using TTS.
+
+Piper and Kokoro are supported, but Kokoro is much slower than realtime on
 edge devices, so it may not be usable. Generated speech is cached compressed in RAM, so you
 might be able to use it if you have a few repeated phrases.
 
