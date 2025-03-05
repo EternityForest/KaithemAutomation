@@ -144,6 +144,11 @@ piper_voices: list[dict[str, float | int | str]] = [
     {"name": "vits-piper-vi_VN-vais1000-medium", "size": 64},
     {"name": "vits-piper-vi_VN-vivos-x_low", "size": 31.8},
     {"name": "vits-piper-zh_CN-huayan-medium", "size": 64.1},
+    {"name": "kokoro-en-v0_19", "size": 305},
+    {"name": "kokoro-int8-multi-lang-v1_1", "size": 140},
+    {"name": "kokoro-multi-lang-v1_0", "size": 333},
+    {"name": "kokoro-multi-lang-v1_1", "size": 348},
+    {"name": "kokoro-en-v0_19", "size": 305},
 ]
 
 settings.set_description(
@@ -159,8 +164,22 @@ for i in piper_voices:
         f"{i['name']} {i['size']}MB",
     )
 
-models: dict[str, PiperTTS] = {}
+models: dict[str, PiperTTS | KokoroTTS] = {}
 default_tts = None
+
+
+def find_matching(prefix: str, ext: str, dir: str):
+    if not os.path.exists(dir):
+        return ""
+    x = [f for f in os.listdir(dir) if f.startswith(prefix) and f.endswith(ext)]
+    x = list(x)
+    x = sorted(x, key=lambda f: len(f))
+    x = sorted(x, key=lambda f: 0 if "int8" in f else 1)
+    x = sorted(x, key=lambda f: 0 if "streaming" in f else 1)
+
+    if len(x) == 0:
+        return ""
+    return x[0]
 
 
 class PiperTTS(plugin_interfaces.TTSEngine):
@@ -175,7 +194,7 @@ class PiperTTS(plugin_interfaces.TTSEngine):
         self.name = model
         self.default_speaker = 0
 
-        piper_en_dir = model
+        selected_model_dir = model
 
         model2 = model.replace("vits-piper-", "")
 
@@ -184,13 +203,15 @@ class PiperTTS(plugin_interfaces.TTSEngine):
         )
         os.makedirs(cache_dir, exist_ok=True)
 
-        piper_en_dir = os.path.join(cache_dir, piper_en_dir)
+        selected_model_dir = os.path.join(cache_dir, selected_model_dir)
         download_script = f"""
         wget https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/{model}.tar.bz2
         tar xvf {model}.tar.bz2
         rm {model}.tar.bz2
         """
-        if not os.path.exists(os.path.join(piper_en_dir, f"{model2}.onnx")):
+        if not os.path.exists(
+            os.path.join(selected_model_dir, f"{model2}.onnx")
+        ):
             a = alerts.Alert(
                 "A TTS Model is still downloading", priority="warning"
             )
@@ -199,15 +220,17 @@ class PiperTTS(plugin_interfaces.TTSEngine):
             a.clear()
             a.close()
 
-        if not os.path.exists(os.path.join(piper_en_dir, f"{model2}.onnx")):
+        if not os.path.exists(
+            os.path.join(selected_model_dir, f"{model2}.onnx")
+        ):
             raise RuntimeError("Downloading Piper model failed")
 
         tts_config = sherpa_onnx.OfflineTtsConfig(
             model=sherpa_onnx.OfflineTtsModelConfig(
                 vits=sherpa_onnx.OfflineTtsVitsModelConfig(
-                    model=os.path.join(piper_en_dir, f"{model2}.onnx"),
-                    tokens=os.path.join(piper_en_dir, "tokens.txt"),
-                    data_dir=os.path.join(piper_en_dir, "espeak-ng-data"),
+                    model=os.path.join(selected_model_dir, f"{model2}.onnx"),
+                    tokens=os.path.join(selected_model_dir, "tokens.txt"),
+                    data_dir=os.path.join(selected_model_dir, "espeak-ng-data"),
                     lexicon="",
                 )
             )
@@ -262,6 +285,71 @@ class PiperTTS(plugin_interfaces.TTSEngine):
         return fn
 
 
+class KokoroTTS(PiperTTS):
+    def __init__(
+        self,
+        model: str = "",
+        model_cache_dir: str = "",
+        **kwargs,
+    ):
+        import sherpa_onnx
+
+        self.name = model
+        self.default_speaker = 0
+
+        selected_model_dir = model
+
+        cache_dir = model_cache_dir or os.path.expanduser(
+            "~/.cache/sherpa-onnx-models/"
+        )
+        os.makedirs(cache_dir, exist_ok=True)
+
+        selected_model_dir = os.path.join(cache_dir, selected_model_dir)
+        download_script = f"""
+        wget https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/{model}.tar.bz2
+        tar xvf {model}.tar.bz2
+        rm {model}.tar.bz2
+        """
+
+        if not find_matching("model", "onnx", selected_model_dir):
+            a = alerts.Alert(
+                "A TTS Model is still downloading", priority="warning"
+            )
+            a.trip()
+            subprocess.check_call(download_script, shell=True, cwd=cache_dir)
+            a.clear()
+            a.close()
+
+        if not find_matching("model", "onnx", selected_model_dir):
+            raise RuntimeError("Downloading Piper model failed")
+
+        lexicon = [
+            os.path.join(selected_model_dir, i)
+            for i in os.listdir(selected_model_dir)
+            if i.startswith("lexicon-")
+        ]
+        lexicon = list(lexicon)
+        tts_config = sherpa_onnx.OfflineTtsConfig(
+            model=sherpa_onnx.OfflineTtsModelConfig(
+                kokoro=sherpa_onnx.OfflineTtsKokoroModelConfig(
+                    model=os.path.join(
+                        selected_model_dir,
+                        find_matching("model", "onnx", selected_model_dir),
+                    ),
+                    voices=os.path.join(selected_model_dir, "voices.bin"),
+                    tokens=os.path.join(selected_model_dir, "tokens.txt"),
+                    data_dir=os.path.join(selected_model_dir, "espeak-ng-data"),
+                    dict_dir=os.path.join(selected_model_dir, "dict"),
+                    lexicon="",
+                )
+            )
+        )
+
+        self.tts = sherpa_onnx.OfflineTts(tts_config)
+
+        models[model] = self
+
+
 lock = threading.RLock()
 
 
@@ -291,7 +379,10 @@ class TTSInterface(plugin_interfaces.TTSAPI):
 
                     def f():
                         with lock:
-                            m = PiperTTS(model=model)
+                            if model.startswith("kokoro"):
+                                m = KokoroTTS(model=model)
+                            else:
+                                m = PiperTTS(model=model)
                             m.default_speaker = speaker
                             models[model] = m
                             return m

@@ -4,13 +4,23 @@ Change Log
 
 ### 0.89.0
 
-This release has one of the first AI features! We use sherpa-onnx and and automatically download models.
+This release has one of the first AI features! We use sherpa-onnx and and automatically download models.  To use it, create a config entries resource with the key core_plugin_tts/default_model.
+
+For English, vits-piper-en_US-libritts_r-medium is probably a good choice.
+
+Then you can use the "speak" command block in Chandler.  In the future, there will probably be more choices.
+
 
 - :sparkles: New system tag points and default alarms for hdmi port connection(/system/display_ports/hdmi_1.connected)
 - :sparkles: Stateful blocks like on_change in the visual logic editor.
 - :sparkles: Speak command that useds the new globally configured TTS model.
 - :bug: Fix web media not rendering without login
 - :bug: Fix mixer sort issue and use fixed width num param fields
+- :sparkles: Ability to recover from corrupted chandler state database
+- :bug: Useless nuisnce vignette warning logs
+- :sparkles: Use plain exception formatting when not running in a TTY
+- :sparkles: Audio features work correctly when installed via UV
+
 
 ### 0.88.0
 

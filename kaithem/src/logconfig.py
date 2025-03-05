@@ -35,6 +35,9 @@ logger.setLevel(logging.WARNING)
 logger = logging.getLogger("peewee")
 logger.setLevel(logging.WARNING)
 
+logger = logging.getLogger("vignette")
+logger.setLevel(logging.ERROR)
+
 logger = logging.getLogger("aioesphomeapi.host_resolver")
 logger.setLevel(logging.WARNING)
 

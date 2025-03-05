@@ -1062,8 +1062,15 @@ class Group:
             cue_name = self.pick_random_cue_from_names(x)
 
         elif cue_name == "__checkpoint__":
-            c = persistance.get_checkpoint(self.id)
-
+            # This can fail due to a SQLIte operational error???
+            try:
+                c = persistance.get_checkpoint(self.id)
+            except Exception:
+                self.event(
+                    "board.error",
+                    "Error getting checkpoint: " + str(traceback.format_exc()),
+                )
+                c = None
             if c:
                 # Can't checkpoint a special cue
                 if c[0].startswith("__"):

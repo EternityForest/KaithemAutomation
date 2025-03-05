@@ -279,12 +279,12 @@ class LowPassFilterBlock(FunctionBlock):
         return self.state
 
 
-class HysterysisBlock(FunctionBlock):
+class HysteresisBlock(FunctionBlock):
     def __init__(self, ctx: ChandlerScriptContext, *args, **kwargs):
         self.lastMark = 10**15
 
     def __call__(self, input="=_", window="1.0", **kwds: Any) -> Any:
-        """Add hysterysis to the input"""
+        """Add hysteresis to the input"""
         v: float = input  # type: ignore
         w: float = window  # type: ignore
 
@@ -359,7 +359,7 @@ predefinedcommands: dict[str, Callable[..., Any] | type[FunctionBlock]] = {
     "continue_if": continue_if,
     "on_change": OnChangeBlock,
     "lowpass": LowPassFilterBlock,
-    "hysterysis": HysterysisBlock,
+    "hysteresis": HysteresisBlock,
     "set_tag": set_tag,
 }
 
