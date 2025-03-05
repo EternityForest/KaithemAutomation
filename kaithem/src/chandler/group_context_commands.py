@@ -7,6 +7,8 @@ if TYPE_CHECKING:
 
 import time as _time
 
+from scullery import workers
+
 from kaithem.api import plugin_interfaces
 
 from .. import scriptbindings
@@ -226,17 +228,21 @@ def add_context_commands(context_group: groups.Group):
 
     def speak(text: str = "Hello World!", speaker="0", speed="1"):
         "BETA. Use the default text to speech model. Speaker is the number for multi-voice models."
-        p = plugin_interfaces.TTSAPI.get_providers()[0]
 
-        m = p.get_model()
-        if m:
-            m.speak(
-                str(text)[:1024],
-                speed=float(speed),
-                sid=int(speaker),
-                device=context_group.sound_output,
-                volume=context_group.cueVolume,
-            )
+        def f():
+            p = plugin_interfaces.TTSAPI.get_providers()[0]
+
+            m = p.get_model()
+            if m:
+                m.speak(
+                    str(text)[:1024],
+                    speed=float(speed),
+                    sid=int(speaker),
+                    device=context_group.sound_output,
+                    volume=context_group.cueVolume,
+                )
+
+        workers.do(f)
 
     cc["shortcut"] = codeCommand
     cc["goto"] = gotoCommand

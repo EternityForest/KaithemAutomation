@@ -302,7 +302,7 @@ class PiperTTS(plugin_interfaces.TTSEngine):
             .lower()[:12]
         )
 
-        fn = s[:16]
+        fn = s[:16].replace("\n", "_").replace(" ", "_")
         for i in ",./;'[]~`!@#$%^&*()_+-=<>?:\"{}\\":
             fn = fn.replace(i, "")
         fn = fn + hash + ".mp3"
@@ -475,7 +475,19 @@ class TTSAction(module_actions.ModuleAction):
 
         if "string" not in kwargs:
             s = dialogs.SimpleDialog("Speech Synthesis")
-            s.text_input("string", title="Text")
+            s.text_input(
+                "string",
+                title="Text",
+                suggestions=[
+                    (
+                        """Amidst the mists and fiercest frosts,
+ with stoutest wrists and loudest boasts,
+ he thrusts his fists against the posts,
+ and still insists he sees the ghosts.""",
+                        "Demo",
+                    )
+                ],
+            )
 
             s.text_input(
                 "model",
@@ -488,6 +500,10 @@ class TTSAction(module_actions.ModuleAction):
             )
             s.text_input("sid", title="Speaker ID", default="0")
             s.text_input("speed", title="Speed", default="1")
+            s.text_input("name", title="Name", default="")
+            s.text(
+                "If empty, filename is generated from the text and settings."
+            )
 
             s.submit_button("Create")
             return s.render(self.get_step_target())
@@ -502,7 +518,19 @@ class TTSAction(module_actions.ModuleAction):
             m = kwargs["model"]
             sid = int(kwargs["sid"])
             t = time.strftime("%Y-%m-%d-%H-%M-%S")
-            fn = os.path.join(dir, f"{s[:48]}_{sid}_{m}_{t}.mp3")
+
+            name = (
+                kwargs["name"].strip()
+                or f"{s[:32].replace("\n", "_").replace(" ", "_")}_{sid}_{m}_{t}.mp3"
+            )
+
+            if not name.endswith(".mp3"):
+                name += ".mp3"
+
+            fn = os.path.join(
+                dir,
+                name,
+            )
 
             os.makedirs(os.path.dirname(fn), exist_ok=True)
 
