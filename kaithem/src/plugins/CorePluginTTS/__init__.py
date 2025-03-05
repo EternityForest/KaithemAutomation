@@ -532,6 +532,9 @@ class TTSAction(module_actions.ModuleAction):
                 name,
             )
 
+            if os.path.exists(fn):
+                raise RuntimeError(f"File already exists: {fn}")
+
             os.makedirs(os.path.dirname(fn), exist_ok=True)
 
             model = api.get_model(m, 240)
