@@ -245,9 +245,12 @@ class PiperTTS(plugin_interfaces.TTSEngine):
 
         if sid == -1:
             sid = self.default_speaker
+        if not file:
+            file = self.get_fn(s, sid, speed)
+            if os.path.isfile(file):
+                return file
 
         audio = self.tts.generate("--..." + s, sid=sid, speed=speed)
-        file = file or self.get_fn(s)
 
         if len(audio.samples) == 0:
             raise RuntimeError(
@@ -258,7 +261,7 @@ class PiperTTS(plugin_interfaces.TTSEngine):
             file,
             audio.samples,
             samplerate=audio.sample_rate,
-            subtype="PCM_16",
+            subtype="VORBIS",
         )
         return file
 
@@ -270,18 +273,38 @@ class PiperTTS(plugin_interfaces.TTSEngine):
             if not icemedia.sound_player.is_playing(s):
                 break
 
-    def get_fn(self, s: str) -> str:
-        hash = hashlib.sha256(s.encode()).hexdigest().lower()[:12]
+    def clean_tts_cache(self):
+        x = []
+        for i in os.listdir("/dev/shm/tts-cache"):
+            if i.endswith((".ogg", ".wav")):
+                t = os.stat(os.path.join("/dev/shm/tts-cache", i)).st_mtime
+                x.append((t, i))
+        x.sort()
+
+        while len(x) > 200:
+            i = x.pop(0)
+            os.remove(os.path.join("/dev/shm/tts-cache", i[1]))
+
+    def get_fn(self, s: str, sid, speed) -> str:
+        hash = (
+            hashlib.sha256(f"{self.name} {sid} {speed} {s}".encode())
+            .hexdigest()
+            .lower()[:12]
+        )
 
         fn = s[:16]
         for i in ",./;'[]~`!@#$%^&*()_+-=<>?:\"{}\\":
             fn = fn.replace(i, "")
-        fn = fn + hash + ".wav"
+        fn = fn + hash + ".ogg"
 
         c = "/dev/shm/tts-cache"
         os.makedirs(c, exist_ok=True)
 
         fn = os.path.join(c, fn)
+        if os.path.exists(fn):
+            os.utime(fn, (time.time(), time.time()))
+        else:
+            self.clean_tts_cache()
         return fn
 
 
