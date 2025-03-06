@@ -13,7 +13,7 @@
 
 ## TTSAPI
 
-[Show source in plugin_interfaces.py:16](../../../api/plugin_interfaces.py#L16)
+[Show source in plugin_interfaces.py:23](../../../api/plugin_interfaces.py#L23)
 
 #### Signature
 
@@ -23,7 +23,7 @@ class TTSAPI(PluginInterface): ...
 
 ### TTSAPI().get_model
 
-[Show source in plugin_interfaces.py:20](../../../api/plugin_interfaces.py#L20)
+[Show source in plugin_interfaces.py:27](../../../api/plugin_interfaces.py#L27)
 
 #### Signature
 
@@ -50,7 +50,9 @@ class TTSEngine: ...
 #### Signature
 
 ```python
-def speak(self, s: str, speed: float = 1, sid: int = 220, device: str = ""): ...
+def speak(
+    self, s: str, speed: float = 1, sid: int = 220, device: str = "", volume: float = 1
+): ...
 ```
 
 ### TTSEngine().synth

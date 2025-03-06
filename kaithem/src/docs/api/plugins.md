@@ -12,7 +12,7 @@
 
 ## PluginInterface
 
-[Show source in plugins.py:7](../../../api/plugins.py#L7)
+[Show source in plugins.py:8](../../../api/plugins.py#L8)
 
 #### Signature
 
@@ -22,7 +22,7 @@ class PluginInterface(plugin_system.BasePluginInterface): ...
 
 ### PluginInterface.get_providers
 
-[Show source in plugins.py:11](../../../api/plugins.py#L11)
+[Show source in plugins.py:12](../../../api/plugins.py#L12)
 
 Returns a list of objects that provide this class's service
 
@@ -41,7 +41,7 @@ def get_providers(cls: type[T]) -> list[T]: ...
 
 ## get_providers
 
-[Show source in plugins.py:24](../../../api/plugins.py#L24)
+[Show source in plugins.py:25](../../../api/plugins.py#L25)
 
 Returns a list of modules that provide the named service,
 as defined in the plugin_metadata.
@@ -59,7 +59,7 @@ def get_providers(service: str) -> list[plugin_system.BasePluginInterface]: ...
 
 ## register_plugin_interface
 
-[Show source in plugins.py:17](../../../api/plugins.py#L17)
+[Show source in plugins.py:18](../../../api/plugins.py#L18)
 
 Register a class as a plugin interface
 
