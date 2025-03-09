@@ -1,6 +1,9 @@
 import os
 import time
 
+import pytest
+import stamina
+
 
 def test_resolve_file_resource():
     from kaithem.api.modules import (
@@ -56,6 +59,30 @@ async def test_modules_api():
 
         assert modules_state.ActiveModules[n]["test_resource"]["val"] == 789
 
+    # Can't update a non-existent resource
+    with pytest.raises(KeyError):
+        with modulesapi.modules_lock:
+            modulesapi.update_resource(
+                n,
+                "nonexistent_resource",
+                {"resource_type": "dummy", "val": 789},
+            )
+
+    # Can't update with wrong type
+    with pytest.raises(ValueError):
+        with modulesapi.modules_lock:
+            modulesapi.update_resource(
+                n, "test_resource", {"resource_type": "dummy2", "val": "789"}
+            )
+
+    # Already exists
+    with pytest.raises(ValueError):
+        with modulesapi.modules_lock:
+            modulesapi.insert_resource(
+                n, "test_resource", {"resource_type": "dummy", "val": 7878}
+            )
+
+    # Test file resource stuff
     fn = modulesapi.filename_for_file_resource(n, "test_file_resource.txt")
     assert (
         fn
@@ -78,3 +105,26 @@ async def test_modules_api():
     )
     d = await r.data
     assert d == b"test"
+
+
+async def test_scan_file_resources():
+    import kaithem.api.modules as modulesapi
+    from kaithem.src import modules, modules_state
+
+    n = "test" + str(time.time()).replace(".", "_")
+    with modulesapi.modules_lock:
+        modules.newModule(n)
+
+    fn = modulesapi.filename_for_file_resource(n, "foo/bar/baz.txt")
+    os.makedirs(os.path.dirname(fn), exist_ok=True)
+
+    with modulesapi.modules_lock:
+        modulesapi.scan_file_resources(n)
+
+    time.sleep(0.1)
+    for attempt in stamina.retry_context(on=KeyError):
+        with attempt:
+            assert (
+                modules_state.ActiveModules[n]["foo/bar"]["resource_type"]
+                == "directory"
+            )

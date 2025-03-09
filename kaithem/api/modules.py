@@ -84,9 +84,7 @@ def update_resource(module: str, resource: str, resourceData: ResourceDictType):
     May only be called under the modules_lock."""
 
     if resource not in modules_state.ActiveModules[module]:
-        raise ValueError(
-            f"Resource {resource} does not exist in module {module}"
-        )
+        raise KeyError(f"Resource {resource} does not exist in module {module}")
     if (
         not get_resource_data(module, resource)["resource_type"]
         == resourceData["resource_type"]

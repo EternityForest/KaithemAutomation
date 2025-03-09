@@ -9,6 +9,7 @@ import time
 import weakref
 
 if "--collect-only" not in sys.argv:  # pragma: no cover
+    from kaithem.api import modules as modulesapi
     from kaithem.api import tags
     from kaithem.src import modules, modules_state
     from kaithem.src.plugins import CorePluginEventResources
@@ -65,6 +66,9 @@ def test_make_module():
 
     assert (n, "testevt") in CorePluginEventResources._events_by_module_resource
 
+    with modulesapi.modules_lock:
+        assert "testevt" in modulesapi.list_resources(n)
+
     x = CorePluginEventResources._events_by_module_resource[(n, "testevt")]
 
     x.pymodule.__dict__["test_obj"] = testobj()
@@ -74,7 +78,8 @@ def test_make_module():
     time.sleep(1)
     assert x.pymodule.__dict__["x"] == 5
 
-    modules.rmResource(n, "testevt")
+    with modulesapi.modules_lock:
+        modulesapi.delete_resource(n, "testevt")
 
     assert (
         n,

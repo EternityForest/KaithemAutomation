@@ -7,7 +7,7 @@ from kaithem.api.plugins import PluginInterface, register_plugin_interface
 
 class TTSEngine:
     def synth(self, s: str, speed: float = 1, sid: int = -1, file: str = ""):
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
     def speak(
         self,
@@ -17,7 +17,7 @@ class TTSEngine:
         device: str = "",
         volume: float = 1,
     ):
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
 
 class TTSAPI(PluginInterface):
@@ -25,7 +25,7 @@ class TTSAPI(PluginInterface):
     service: str = "kaithem.core.tts"
 
     def get_model(self, model: str = "") -> TTSEngine | None:
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
 
 register_plugin_interface(TTSAPI)

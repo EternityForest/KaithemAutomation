@@ -95,7 +95,6 @@ psutil = "*"
 netifaces = "*"
 JACK-Client = "*"
 sf2utils = "*"
-pynput = "*"
 
 # Older is not compatible with new numpy
 scipy = ">=1.11.0"
