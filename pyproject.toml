@@ -44,7 +44,6 @@ NVRChannel = ">=0.1.7"
 # New numpy needs new opencv
 numpy = ">=2.0.0"
 
-
 cheroot = "*"
 mako = "*"
 jinja2 = "*"
@@ -55,6 +54,11 @@ types-PyYaml = "*"
 pytest = "*"
 nmcli = "*"
 apprise = "*"
+
+# AI Assistant 
+ollama = "*"
+num2words = "*"
+model2vec = "*"
 
 ffmpeg-python = "*"
 yappi = "*"
