@@ -3,16 +3,19 @@
 
 import copy
 import html
+import json
 import threading
 import traceback
 from collections.abc import Callable, Mapping
-from typing import Any, Final
+from typing import Any, Final, Type
 from urllib.parse import quote
 
 import beartype
 import structlog
 import yaml
-from jsonschema import validate
+from jsonschema import Draft7Validator, validate
+
+from kaithem.api.web import dialogs
 
 logger = structlog.get_logger(__name__)
 
@@ -250,3 +253,137 @@ resource_types: Final[dict[str, ResourceType]] = {}
 
 def register_resource_type(resource_type: ResourceType):
     resource_types[resource_type.type] = resource_type
+
+
+class ResourceTypeRuntimeObject:
+    def __init__(self, data: dict[str, Any]):
+        pass
+
+    def close(self):
+        pass
+
+
+def resource_type_from_schema(
+    resource_type: str,
+    title: str,
+    icon: str,
+    schema: dict[str, Any] | Callable[[], dict[str, Any]],
+    runtime_object_cls: Type[ResourceTypeRuntimeObject],
+    default: dict[str, Any] = {},
+):
+    """Create a new resource type from a JSON schema, and an object
+     that represents the runtime state of the resource.
+
+    Whatever the schema defines
+    is passed to the runtime object constructor verbatim.
+
+    The class must have a close() method.
+    """
+
+    if not hasattr(runtime_object_cls, "close"):
+        raise ValueError("Runtime object class must have a close() method")
+
+    if callable(schema):
+        sch = schema()
+    else:
+        sch = schema
+    validator = Draft7Validator(sch)
+
+    validator.validate(default)
+
+    class BasicResourceType(ResourceType):
+        runtime_objects: dict[tuple[str, str], Any] = {}
+
+        def edit_page(
+            self, module: str, resource: str, data: Mapping[str, Any]
+        ) -> str:
+            if callable(schema):
+                sch = schema()
+            else:
+                sch = schema
+            d = dialogs.SimpleDialog("Editing " + title)
+            d.text_input("name", title="Resource Name", disabled=True)
+            d.json_editor("data", sch, default=default)
+            d.submit_button("submit", title="Save")
+            return d.render(self.get_update_target(module, resource))
+
+        def create_page(self, module: str, path: str) -> str:
+            if callable(schema):
+                sch = schema()
+            else:
+                sch = schema
+            d = dialogs.SimpleDialog("Creating " + title)
+            d.text_input("name", title="Resource Name")
+            d.json_editor("data", sch, default=default)
+            d.submit_button("submit", title="Save")
+            return d.render(self.get_create_target(module, path))
+
+        def on_create_request(
+            self, module: str, resource: str, kwargs: dict[str, Any]
+        ) -> Mapping[str, Any]:
+            d = json.loads(kwargs["data"])
+            validator.validate(d)
+            return {
+                "name": kwargs["name"],
+                "data": d,
+                "resource_type": resource_type,
+            }
+
+        def on_update_request(
+            self,
+            module,
+            resource: str,
+            data: Mapping[str, Any],
+            kwargs: dict[str, Any],
+        ) -> Mapping[str, Any]:
+            d = json.loads(kwargs["data"])
+            validator.validate(d)
+            d2 = {
+                "name": kwargs["name"],
+                "data": d,
+                "resource_type": resource_type,
+            }
+            d3: dict = copy.deepcopy(data)  # type: ignore
+            d3.update(d2)
+            return d3
+
+        def on_delete(self, module, resource: str, data: Mapping[str, Any]):
+            if (module, resource) in self.runtime_objects:
+                self.runtime_objects[(module, resource)].close()
+                del self.runtime_objects[(module, resource)]
+
+        def on_move(
+            self,
+            module: str,
+            resource: str,
+            to_module: str,
+            to_resource: str,
+            data,
+        ):
+            if (module, resource) in self.runtime_objects:
+                self.runtime_objects[(to_module, to_resource)] = (
+                    self.runtime_objects[(module, resource)]
+                )
+
+        def on_load(self, module: str, resource: str, data: Mapping[str, Any]):
+            self.runtime_objects[(module, resource)] = runtime_object_cls(
+                data["data"]
+            )
+            return self.runtime_objects[(module, resource)]
+
+        def on_update(
+            self, module: str, resource: str, data: Mapping[str, Any]
+        ):
+            self.on_delete(module, resource, data)
+            self.on_load(module, resource, data)
+
+        def on_unload(
+            self, module: str, resource: str, data: Mapping[str, Any]
+        ):
+            if (module, resource) in self.runtime_objects:
+                self.runtime_objects[(module, resource)].close()
+                del self.runtime_objects[(module, resource)]
+
+    rt = BasicResourceType(resource_type, title=title, mdi_icon=icon)
+    register_resource_type(rt)
+    return rt

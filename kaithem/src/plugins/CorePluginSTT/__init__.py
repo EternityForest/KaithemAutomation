@@ -5,6 +5,7 @@ import subprocess
 import threading
 import time
 
+from kaithem.api.tags import ObjectTag
 from kaithem.src import alerts
 
 model_sources: list[dict[str, float | int | str]] = [
@@ -96,13 +97,15 @@ def find_matching(prefix: str, ext: str, dir: str):
 class SherpaSTT:
     def __init__(
         self,
+        name: str = "",
         model: str = "",
         model_cache_dir: str = "",
         **kwargs,
     ):
         import sherpa_onnx
 
-        self.name = model
+        self.tag = ObjectTag(f"/stt/{name}")
+        self.model_name = model
         self.default_speaker = 0
 
         model_dir = model
@@ -261,6 +264,7 @@ class SherpaSTT:
             self.stt.reset(self.stream)
             self.last_word = time.monotonic()
             if result:
+                self.tag.value = {"stt": result}
                 return result
 
 

@@ -35,6 +35,52 @@ def test_resolve_file_resource():
         assert os.path.exists(x)
 
 
+def test_simple_resource_types():
+    import kaithem.api.modules as modulesapi
+    from kaithem.api.resource_types import (
+        ResourceTypeRuntimeObject,
+        resource_type_from_schema,
+    )
+    from kaithem.src import modules
+
+    n = "test" + str(time.time()).replace(".", "_")
+    modules.newModule(n)
+
+    tst = []
+
+    class DummyResourceTypeImplementation(ResourceTypeRuntimeObject):
+        def __init__(self, data):
+            tst.append(data["val"])
+
+        def close(self):
+            tst.append("closed")
+
+    schema = {
+        "type": "object",
+        "properties": {"val": {"type": "number"}},
+        "required": ["val"],
+    }
+
+    resource_type_from_schema(
+        "test-basic-autogen-type",
+        "Dummy",
+        "mdi-account",
+        schema,
+        DummyResourceTypeImplementation,
+    )
+
+    with modulesapi.modules_lock:
+        modulesapi.insert_resource(
+            n,
+            "test_resource",
+            {"resource_type": "test-basic-autogen-type", "val": 7878},
+        )
+
+        modulesapi.delete_resource(n, "test_resource")
+
+    assert tst == [7878, "closed"]
+
+
 async def test_modules_api():
     import kaithem.api.modules as modulesapi
     from kaithem.src import modules, modules_state

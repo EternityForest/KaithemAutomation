@@ -5,6 +5,7 @@ import os
 import subprocess
 import threading
 import time
+import weakref
 
 # TODO: This needs to be moved to a core plugin
 import icemedia.sound_player
@@ -166,8 +167,11 @@ for i in piper_voices:
         f"{i['name']} {i['size']}MB",
     )
 
-models: dict[str, PiperTTS | KokoroTTS] = {}
-default_tts = None
+models: weakref.WeakValueDictionary[str, PiperTTS | KokoroTTS] = (
+    weakref.WeakValueDictionary()
+)
+
+default_tts: PiperTTS | None = None
 
 
 def find_matching(prefix: str, ext: str, dir: str):
@@ -194,6 +198,8 @@ class PiperTTS(plugin_interfaces.TTSEngine):
         import sherpa_onnx
 
         self.name = model
+        self.last_used = time.time()
+        self.users = 0
         self.default_speaker = 0
 
         selected_model_dir = model
@@ -328,6 +334,9 @@ class PiperTTS(plugin_interfaces.TTSEngine):
             self.clean_tts_cache()
         return fn
 
+    def close(self):
+        pass
+
 
 class KokoroTTS(PiperTTS):
     def __init__(
@@ -399,10 +408,15 @@ lock = threading.RLock()
 
 
 class TTSInterface(plugin_interfaces.TTSAPI):
+    def list_available_models(self):
+        return piper_voices
+
     def get_model(self, model: str = "", timeout: float = 5):
         global default_tts
         speaker = 0
 
+        if model == "default":
+            model = ""
         if lock.acquire(timeout=timeout):
             rl = True
             try:
@@ -423,6 +437,7 @@ class TTSInterface(plugin_interfaces.TTSAPI):
                     pass
 
                 if model not in models:
+                    temp_store = []
 
                     def f():
                         with lock:
@@ -432,6 +447,7 @@ class TTSInterface(plugin_interfaces.TTSAPI):
                                 m = PiperTTS(model=model)
                             m.default_speaker = speaker
                             models[model] = m
+                            temp_store.append(m)
 
                     lock.release()
                     rl = False
@@ -441,7 +457,10 @@ class TTSInterface(plugin_interfaces.TTSAPI):
                     for i in range(int(timeout * 10)):
                         time.sleep(0.1)
                         if model in models:
-                            return models[model]
+                            try:
+                                return models[model]
+                            except KeyError:
+                                pass
                     return None
             finally:
                 if rl:

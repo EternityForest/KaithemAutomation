@@ -5,6 +5,8 @@
         flex-basis: 24rem;
     }
 </style>
+<script src="/static/js/thirdparty/jsoneditor.min.js"></script>
+
 <main>
     <section class="window paper w-sm-double margin">
         <header><h2>{{title}}</h2></header>
@@ -17,7 +19,7 @@
         </datalist>
 
         {% endfor %}
-        <form class="stacked-form" action="{{target}}" method="{{method}}" enctype="multipart/form-data">
+        <form id="dialog-form" class="stacked-form" action="{{target}}" method="{{method}}" enctype="multipart/form-data">
         {% for i in items %}
             {% if i[0] %}
                 <label>{{i[0]}} {{i[1]}}

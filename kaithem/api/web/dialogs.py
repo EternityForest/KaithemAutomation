@@ -1,4 +1,6 @@
 import html
+import json
+from typing import Any
 
 import beartype
 
@@ -314,6 +316,42 @@ class SimpleDialog:
                 f'<button  name="{name}" type="submit" {disabled}>{title}</button>',
             )
         )
+
+    def json_editor(
+        self, name: str, schema: dict[str, Any], default: dict[str, Any] = {}
+    ):
+        x = f"""
+
+                <input id="jsoninput" type="hidden" name="{name}">
+                <script src="/static/js/thirdparty/jsoneditor.min.js"></script>
+                <div id="editor-container-{name}"></div>
+
+               <script>
+                const config = {{
+                    schema: {json.dumps(schema)},
+                    disable_array_delete_all_rows: true,
+                    array_controls_top: true,
+                    disable_array_delete_last_row: true,
+                    disable_edit_json: true,
+                    ajax: true,
+                    theme: "barebones",
+               }}
+                var editor = new JSONEditor(document.querySelector('#editor-container-{name}'), config)
+                window.editor = editor
+
+                const v= async () => {{
+                    await editor.promise
+                    editor.setValue({json.dumps(default)})
+
+                    let mainform = document.querySelector("#dialog-form")
+                    mainform.addEventListener("submit", function (e) {{
+                        document.querySelector('#jsoninput').value = JSON.stringify(globalThis.editor.getValue())
+                    }})
+                }}
+                v()
+              </script>"""
+
+        self.items.append(("", x))
 
     @beartype.beartype
     def render(
