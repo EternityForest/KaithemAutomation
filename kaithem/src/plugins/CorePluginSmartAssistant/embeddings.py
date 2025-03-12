@@ -11,6 +11,28 @@ def similarity(a, b):
 prefixes = {"qllama/multilingual-e5-small": ("passage: ", "query: ", "query: ")}
 
 
+# def compute_mask(lst: list[str], prefix):
+#     import ollama
+#     import numpy
+
+#     embeddings = ollama.embed(
+#         # todo this only works with e5
+#         model=model,
+#         input=list([prefix + i[0] for i in lst]),
+#     ).embeddings
+
+#     arr = list(numpy.fromiter(i, numpy.float64) for i in embeddings)
+#     std_dev = numpy.std(arr, axis=0)
+#     median = numpy.median(std_dev)
+
+#     mask = std_dev > median
+
+#     for i in range(len(arr)):
+#         arr[i] = arr[i] * mask
+
+#     return mask, arr
+
+
 class EmbeddingsLookup:
     def __init__(
         self, lst: list[tuple[str, Any]], model: Any, retrieval=True
@@ -77,23 +99,3 @@ class EmbeddingsModel:
 
     def get_lookup(self, lst: list[tuple[str, Any]], retrieval=False):
         return EmbeddingsLookup(lst, self.model, retrieval=retrieval)
-
-
-em = EmbeddingsModel(slow=False)
-x = em.get_lookup(
-    [
-        ("What time is it in Florida?", 0),
-        ("What do you know about Dracula's Castle", 0),
-        ("What do you sell?", 0),
-        ("Where is the tavern?", 0),
-    ],
-    retrieval=True,
-)
-
-print(x.match("What's up with the castle?"))
-
-
-print(x.match("Where does the vampire live?"))
-print(x.match("What's for sale?"))
-print(x.match("Do you have wine?"))
-print(x.match("Whta's the time in Florida??"))

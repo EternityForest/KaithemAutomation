@@ -1,4 +1,4 @@
-import re
+import json
 import time
 from typing import Any
 
@@ -11,22 +11,29 @@ class LLMSession:
 
     def find_command(
         self, q: str, commands: list[tuple[str, Any]]
-    ) -> tuple[Any, list[str]] | None:
+    ) -> tuple[list[str], Any] | None:
         """
         Commands must be a list of commands with params, like "check-time <place>"
         Tuples will be the object part of the input plus all the arguments
         parsed out.
         """
         messages = []
-        q = (
-            f"Using these commands: {', '.join([i[0] for i in commands])}, with quoted arguments,\n\n what command should I use for "
-            + q
-        )
+        print(f"{q}\n\n")
+        q = f"""The available commands are:
+
+            {'\n'.join([i[0] for i in commands])}
+
+            Reply with JSON in the format: {{"command": "<command>", "args": [...]}}
+           Always convert numbers to decimal values
+
+            {q}
+            """
         messages.append({"role": "user", "content": q})
 
         x = ollama.chat(
             model=self.model,
             messages=messages,
+            format={"anyOf": list(i[1].schema for i in commands)},
             options={
                 "stop": ["```\n\n"],
                 "temperature": 0.0,
@@ -35,17 +42,17 @@ class LLMSession:
             },
         )
         m = x["message"]["content"]
-        m = re.search(r"```.*\n(.*)\n", m)
-        if m:
-            x = m.group(1)
-        else:
-            return None
+        print(m)
+        # Common LLM errors
+        m = m.replace(':  , "', ':  "')
+        j = json.loads(m)
 
         for i in sorted(
             commands, key=lambda x: len(x[0].split(" ")[0]), reverse=True
         ):
-            if x.strip().startswith(i[0].split(" ")[0]):
-                return i[1], x
+            if j["command"] == i[0].split(" ")[0]:
+                j.pop("command")
+                return i[1], j
 
     def document_rag(self, q: str, c: list[tuple[float, str, str]]) -> str:
         messages = [
@@ -77,3 +84,43 @@ class LLMSession:
         )
 
         return x["message"]["content"]
+
+
+# x = LLMSession()
+# c = [
+#     ("calculate <a> <operator> <b>", "2 + 2"),
+#     ("check-time 'Bakersfield'", "time"),
+#     ("check-weather <place>", "cw"),
+#     ("check-oil-prices <place>", "cop"),
+#     ("search-knowledge 'Where is mount everest' ", "sk"),
+#     ("web-search <query>", "lu"),
+#     ("translate <language> '<text>' ", "translate"),
+#     ("report-unknown-request <text>", "fh"),
+#     ("cant-do-that <text>", "cdt"),
+# ]
+
+# print(x.find_command("what is nine times eighty one", c))
+# print(x.find_command("what is nine time ninety one", c))
+
+# print(x.find_command("Turn on the lights", c))
+# print(x.find_command("Launch a rocket", c))
+
+# print(x.find_command("Translate lets buy a hat to french", c))
+
+# print(x.find_command("Print hello world", c))
+# print(x.find_command("Get the time in fiji", c))
+# print(x.find_command("what is nine times five", c))
+# print(x.find_command("Where is the capital of canada", c))
+# x = LLMSession()
+# c = [
+#     ("hello-world", "hello"),
+#     ("calculate <expression>", "2 + 2"),
+#     ("check-time 'Bakersfield'", "time"),
+#     ("check-weather <place>", "cw"),
+#     ("check-oil-prices <place>", "cop"),
+#     ("search-knowledge 'Where is mount everest' ", "sk"),
+#     ("web-search <query>", "lu"),
+#     ("translate <language> '<text>' ", "translate"),
+#     ("report-unknown-request <text>", "fh"),
+#     ("cant-do-that <text>", "cdt"),
+# ]

@@ -14,7 +14,7 @@ class Skill:
         self,
         command: str,
         examples: list[str],
-        params: list[str],
+        schema: dict[str, Any],
         handler: Callable[..., str] | None = None,
     ):
         """
@@ -23,16 +23,19 @@ class Skill:
         """
         self.examples: list[str] = examples
         self.name: str = command
-        self.command: str = command
+        self.command: str = command.split(" ")[0]
 
         # A string like "foo param1 param2" explaining the command
         self.command_str = command
         self.handler = handler
+        self.schema = schema
 
-        for i in params:
-            self.command_str += f' "{i}"'
-
-    def go(self, *args: str, context: dict[str, Any]) -> SkillResponse:
+    def go(
+        self,
+        *args: str,
+        context: dict[str, Any],
+        **kwargs: Any,
+    ) -> SkillResponse:
         if self.handler is None:
             return SimpleSkillResponse(
                 f"Sorry, I don't know how to do {self.name}"

@@ -137,7 +137,7 @@ class Assistant(resource_types.ResourceTypeRuntimeObject):
             self.respond("Sorry, I don't understand that request")
             return
         sk: Skill = x[0]
-        result = sk.go(*x[1], context={"language": self.language})
+        result = sk.go(**x[1], context={"language": self.language})
 
         t = result.execute()
 
@@ -187,6 +187,10 @@ def schema():
             "tts_model": {
                 "type": "string",
                 "enum": list([i["name"] for i in tts_models]) + [""],
+            },
+            "llm_model": {
+                "type": "string",
+                "enum": ["gemma3:4b", "qwen2.5-coder:0.5b"],
             },
             "menu_options": {
                 "type": "array",
