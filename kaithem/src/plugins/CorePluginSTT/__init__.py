@@ -108,6 +108,8 @@ class SherpaSTT:
         self.model_name = model
         self.default_speaker = 0
 
+        self.mute = 0
+
         model_dir = model
 
         cache_dir = model_cache_dir or os.path.expanduser(
@@ -162,7 +164,7 @@ class SherpaSTT:
                 feature_dim=80,
                 enable_endpoint_detection=True,
                 rule1_min_trailing_silence=2.4,
-                rule2_min_trailing_silence=1.2,
+                rule2_min_trailing_silence=0.8,
                 rule3_min_utterance_length=300,  # it essentially disables this rule
                 decoding_method="modified_beam_search",
                 provider="cpu",
@@ -180,7 +182,7 @@ class SherpaSTT:
                 feature_dim=80,
                 enable_endpoint_detection=True,
                 rule1_min_trailing_silence=2.4,
-                rule2_min_trailing_silence=1.2,
+                rule2_min_trailing_silence=0.8,
                 rule3_min_utterance_length=300,  # it essentially disables this rule
             )
         elif "wenet" in model:
@@ -195,8 +197,8 @@ class SherpaSTT:
                 feature_dim=80,
                 decoding_method="greedy_search",
                 rule1_min_trailing_silence=2.4,
-                rule2_min_trailing_silence=1.2,
-                rule3_min_utterance_length=300,  # it essentially disables this rule
+                rule2_min_trailing_silence=0.8,
+                rule3_min_utterance_length=30,  # it essentially disables this rule
             )
         else:
             raise RuntimeError(f"Unknown model type: {model}")
@@ -216,6 +218,10 @@ class SherpaSTT:
 
     def close(self):
         self.run = False
+        if self.client:
+            c = self.client
+            self.client = None
+            c.deactivate()
 
     def __del__(self):
         self.close()
@@ -223,7 +229,7 @@ class SherpaSTT:
     def streaming(self):
         import jack
 
-        stream: list[bytes] = []
+        stream: list[list[float]] = []
         self.client = client = jack.Client("my_client")
         port = client.inports.register("input_1")
 
@@ -238,15 +244,15 @@ class SherpaSTT:
         while self.run:
             while stream:
                 data = stream.pop(0)
-                x = self.accept_waveform(data, client.samplerate)
-                if x:
-                    print(x)
+                self.accept_waveform(data, client.samplerate)
+
             time.sleep(0.1)
 
-    def accept_waveform(self, waveform: bytes, sample_rate: int = 16000):
+    def accept_waveform(self, waveform: list[float], sample_rate: int = 16000):
         if self.stt is None:
             return
-
+        if self.mute:
+            waveform = [0.0] * len(waveform)
         self.stream.accept_waveform(waveform=waveform, sample_rate=sample_rate)
 
         while self.stt.is_ready(self.stream):
@@ -264,7 +270,7 @@ class SherpaSTT:
             self.stt.reset(self.stream)
             self.last_word = time.monotonic()
             if result:
-                self.tag.value = {"stt": result}
+                self.tag.value = {"stt": result, "time": time.time()}
                 return result
 
 
