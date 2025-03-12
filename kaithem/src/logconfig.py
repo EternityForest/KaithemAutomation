@@ -44,6 +44,8 @@ logger.setLevel(logging.WARNING)
 logger = logging.getLogger("apprise")
 logger.setLevel(logging.INFO)
 
+logger = logging.getLogger("httpx")
+logger.setLevel(logging.WARNING)
 
 # Suppress low level from these outrageously chatty things
 excludeDebug = {

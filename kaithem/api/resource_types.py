@@ -302,10 +302,11 @@ def resource_type_from_schema(
             else:
                 sch = schema
             d = dialogs.SimpleDialog("Editing " + title)
-            d.text_input("name", title="Resource Name", disabled=True)
-            d.json_editor("data", sch, default=default)
+            d.json_editor("data", sch, default=data["data"])
             d.submit_button("submit", title="Save")
-            return d.render(self.get_update_target(module, resource))
+            return d.render(
+                self.get_update_target(module, resource), {"name": data["name"]}
+            )
 
         def create_page(self, module: str, path: str) -> str:
             if callable(schema):
