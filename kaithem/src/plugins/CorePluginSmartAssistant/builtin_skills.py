@@ -37,10 +37,31 @@ s = MathSkill(
             "operator": {"type": "string", "enum": ["+", "-", "*", "/"]},
             "b": {"type": "number"},
         },
+        "required": ["a", "operator", "b", "command"],
     },
 )
 available_skills.append(s)
 
+
+s = Skill(
+    examples=[
+        "Where is Georgia?",
+        "Who discovered Fluorine?",
+        "Where is the Eiffel Tower?",
+        "How many states are there in the US?",
+        "How tall is Mount Everest?",
+    ],
+    command="knowledge-search",
+    schema={
+        "type": "object",
+        "properties": {
+            "command": {"type": "string", "const": "knowledge-search"},
+            "query": {"type": "string"},
+        },
+        "required": ["command", "summary"],
+    },
+)
+available_skills.append(s)
 
 # class UnitSkill(Skill):
 #     def go(self, *args, context: dict[str, Any]):

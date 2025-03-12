@@ -1,5 +1,7 @@
 from typing import Any, Callable
 
+from jsonschema import Draft7Validator
+
 
 class SkillResponse:
     def __init__(self):
@@ -30,6 +32,8 @@ class Skill:
         self.handler = handler
         self.schema = schema
 
+        self.validator = Draft7Validator(self.schema)
+
     def go(
         self,
         *args: str,
@@ -51,8 +55,11 @@ class OptionMatchSkill(Skill):
         examples: list[str],
         handler: Callable[..., str] | None = None,
     ):
-        super().__init__("not-real-command", examples, [], handler)
+        self.examples: list[str] = examples
+        self.handler = handler
+        self.name = "not-a-real-skill"
         self.command_str = ""
+        self.command = ""
 
 
 available_skills: list[Skill] = []

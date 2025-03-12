@@ -54,7 +54,7 @@ class EmbeddingsLookup:
                 input=list(
                     [
                         (self.prefixes[0] if retrieval else self.prefixes[2])
-                        + i[0]
+                        + i[0].lower()
                         for i in lst
                     ]
                 ),
@@ -63,6 +63,7 @@ class EmbeddingsLookup:
             self.embeddings = model.encode(list([i[0] for i in lst]))
 
     def match(self, s: str) -> list[tuple[float, str, Any]]:
+        s = s.lower()
         if isinstance(self.model, str):
             import ollama
 
@@ -88,7 +89,7 @@ class EmbeddingsLookup:
 class EmbeddingsModel:
     def __init__(self, slow: bool = False) -> None:
         if slow:
-            model = "Definity/granite-embedding-278m-multilingual-Q8_0"
+            model = "qllama/multilingual-e5-small"
         else:
             from model2vec import StaticModel
 

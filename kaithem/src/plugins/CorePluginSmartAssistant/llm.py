@@ -20,20 +20,19 @@ class LLMSession:
         messages = []
         print(f"{q}\n\n")
         q = f"""The available commands are:
+{'\n'.join([i[0] for i in commands])}
 
-            {'\n'.join([i[0] for i in commands])}
+Using JSON format, and converting all numbers to decimal,
 
-            Reply with JSON in the format: {{"command": "<command>", "args": [...]}}
-           Always convert numbers to decimal values
-
-            {q}
-            """
+{q}
+"""
         messages.append({"role": "user", "content": q})
+        schema = {"anyOf": list(i[1].schema for i in commands)}
 
         x = ollama.chat(
             model=self.model,
             messages=messages,
-            format={"anyOf": list(i[1].schema for i in commands)},
+            format=schema,
             options={
                 "stop": ["```\n\n"],
                 "temperature": 0.0,
@@ -44,7 +43,11 @@ class LLMSession:
         m = x["message"]["content"]
         print(m)
         # Common LLM errors
-        m = m.replace(':  , "', ':  "')
+        m = (
+            m.replace(':  , "', ':  "')
+            .replace("```json\n", "")
+            .replace("\n```", "")
+        )
         j = json.loads(m)
 
         for i in sorted(

@@ -50,7 +50,7 @@ class Assistant(resource_types.ResourceTypeRuntimeObject):
 
         self.embeddings = EmbeddingsModel(slow=True)
 
-        self.skill_lookup = self.embeddings.get_lookup(e)
+        self.skill_lookup = self.embeddings.get_lookup(e, retrieval=False)
 
         self.language: str = data["language"]
 
@@ -111,7 +111,15 @@ class Assistant(resource_types.ResourceTypeRuntimeObject):
         req = req.lower()
 
         print(f"Request: {req}")
-        top = self.skill_lookup.match(req)[:2]
+        top = self.skill_lookup.match(req)
+
+        # Eliminate duplicates
+        top_2 = {id(i[2]): (i[0], i[1], i[2]) for i in top}
+
+        top = list(top_2.values())
+        top.sort(key=lambda x: x[0], reverse=True)
+        top = top[:3]
+
         if not top:
             return
         print(top)
@@ -119,7 +127,7 @@ class Assistant(resource_types.ResourceTypeRuntimeObject):
             return
 
         # Handle the direct match based skills.
-        if top[0][0] > 0.98 and not top[0][2].command_str:
+        if top[0][0] > 0.98 and not top[0][2].command:
             result = top[0][2].go(context={"language": self.language})
             t = result.execute()
             self.respond(t)
@@ -130,7 +138,7 @@ class Assistant(resource_types.ResourceTypeRuntimeObject):
         # Some don't have command_str like the OptionMatchSkill
         x = session.find_command(
             req,
-            list([(i[2].command_str, i[2]) for i in top if i[2].command_str]),
+            list([(i[2].command, i[2]) for i in top if i[2].command]),
         )
 
         if x is None:
