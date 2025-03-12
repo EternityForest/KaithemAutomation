@@ -1,20 +1,4 @@
-import shlex
 from typing import Any, Callable
-
-
-def parse_command(command: str):
-    """Parses a command string with quoted parameters and escape sequences.
-
-    Args:
-      command: The command string to parse.
-
-    Returns:
-      A list of strings representing the parsed command and its arguments.
-    """
-    lexer = shlex.shlex(command)
-    lexer.whitespace_split = True
-    # lexer.escape = True
-    return list(lexer)
 
 
 class SkillResponse:
@@ -28,10 +12,9 @@ class SkillResponse:
 class Skill:
     def __init__(
         self,
+        command: str,
         examples: list[str],
         params: list[str],
-        command: str,
-        name: str,
         handler: Callable[..., str] | None = None,
     ):
         """
@@ -39,7 +22,7 @@ class Skill:
         word part.
         """
         self.examples: list[str] = examples
-        self.name: str = name
+        self.name: str = command
         self.command: str = command
 
         # A string like "foo param1 param2" explaining the command
@@ -49,15 +32,27 @@ class Skill:
         for i in params:
             self.command_str += f' "{i}"'
 
-    def go(self, query: str, context: dict[str, Any]) -> SkillResponse:
+    def go(self, *args: str, context: dict[str, Any]) -> SkillResponse:
         if self.handler is None:
             return SimpleSkillResponse(
                 f"Sorry, I don't know how to do {self.name}"
             )
-        return SimpleSkillResponse(self.handler(query))
+        return SimpleSkillResponse(self.handler(*args))
 
 
-skills: list[Skill] = []
+class OptionMatchSkill(Skill):
+    """Just a very simple menu option matcher"""
+
+    def __init__(
+        self,
+        examples: list[str],
+        handler: Callable[..., str] | None = None,
+    ):
+        super().__init__("not-real-command", examples, [], handler)
+        self.command_str = ""
+
+
+available_skills: list[Skill] = []
 
 
 class SimpleSkillResponse(SkillResponse):

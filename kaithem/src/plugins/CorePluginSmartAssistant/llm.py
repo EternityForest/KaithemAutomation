@@ -11,7 +11,12 @@ class LLMSession:
 
     def find_command(
         self, q: str, commands: list[tuple[str, Any]]
-    ) -> tuple[Any, str] | None:
+    ) -> tuple[Any, list[str]] | None:
+        """
+        Commands must be a list of commands with params, like "check-time <place>"
+        Tuples will be the object part of the input plus all the arguments
+        parsed out.
+        """
         messages = []
         q = (
             f"Using these commands: {', '.join([i[0] for i in commands])}, with quoted arguments,\n\n what command should I use for "
