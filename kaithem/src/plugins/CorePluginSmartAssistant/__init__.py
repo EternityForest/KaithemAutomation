@@ -50,7 +50,7 @@ class Assistant(resource_types.ResourceTypeRuntimeObject):
 
         self.embeddings = EmbeddingsModel(slow=True)
 
-        self.skill_lookup = self.embeddings.get_lookup(e, retrieval=False)
+        self.skill_lookup = self.embeddings.get_lookup(e, retrieval=True)
 
         self.language: str = data["language"]
 
@@ -118,11 +118,12 @@ class Assistant(resource_types.ResourceTypeRuntimeObject):
 
         top = list(top_2.values())
         top.sort(key=lambda x: x[0], reverse=True)
+        print(top)
+
         top = top[:3]
 
         if not top:
             return
-        print(top)
         if not top[0][0] > 0.4:
             return
 
