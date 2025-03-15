@@ -6,9 +6,11 @@ from .skills import SimpleSkillResponse, Skill, available_skills
 
 
 class MathSkill(Skill):
-    def go(self, a, operator, b, context: dict[str, Any]):
+    def go(self, context: dict[str, Any], **kwargs: Any):
         # Trial and error hackery
-
+        a = kwargs["a"]
+        b = kwargs["b"]
+        operator = kwargs["operator"]
         expr = str(a) + operator + str(b)
         expr = expr.replace("×", "*").replace("÷", "/").replace('"', "")
         expr = expr.replace("% *", "/100 *")
@@ -42,26 +44,6 @@ s = MathSkill(
 )
 available_skills.append(s)
 
-
-s = Skill(
-    examples=[
-        "Where is Georgia?",
-        "Who discovered Fluorine?",
-        "Where is the Eiffel Tower?",
-        "How many states are there in the US?",
-        "How tall is Mount Everest?",
-    ],
-    command="knowledge-search",
-    schema={
-        "type": "object",
-        "properties": {
-            "command": {"type": "string", "const": "knowledge-search"},
-            "query": {"type": "string"},
-        },
-        "required": ["command", "summary"],
-    },
-)
-available_skills.append(s)
 
 # class UnitSkill(Skill):
 #     def go(self, *args, context: dict[str, Any]):

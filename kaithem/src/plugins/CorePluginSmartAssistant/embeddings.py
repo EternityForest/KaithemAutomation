@@ -1,15 +1,54 @@
-from typing import Any, Sequence
+from typing import Any, Iterable, Sequence
 
-import numpy
-from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
+from scipy.spatial import distance
+
+
+def cartesian_to_polar(vector):
+    """
+    Converts a Cartesian vector to higher-dimensional polar coordinates.
+
+    Args:
+        vector (numpy.ndarray): A Cartesian vector.
+
+    Returns:
+        numpy.ndarray: An array containing the radius and angles
+                         representing the polar coordinates.
+    """
+    vector = np.array(vector)
+    num_dims = vector.shape[0]
+    polar_coords = np.zeros(num_dims)
+
+    # Calculate radius
+    polar_coords[0] = np.linalg.norm(vector)
+
+    # Calculate angles
+    for i in range(1, num_dims):
+        # Project vector onto the plane formed by the i-th axis and the origin
+        projection = vector[: i + 1]
+
+        # Calculate angle with respect to the previous axes
+        polar_coords[i] = np.arctan2(
+            projection[-1], np.linalg.norm(projection[:-1])
+        )
+
+    return polar_coords
 
 
 def similarity(a, b):
-    return cosine_similarity(a, b)
+    return [list([1 - distance.cosine(a[0], i) for i in b])]
+
+    # return [list([1 - numpy.mean(a[0] - i) for i in b])]
+
+    # return cosine_similarity(a, b)
 
 
 # Document, retrieve, similarity
-prefixes = {"qllama/multilingual-e5-small": ("passage: ", "query: ", "query: ")}
+prefixes = {
+    "qllama/multilingual-e5-small": ("passage: ", "query: ", "query: "),
+    "yxchia/multilingual-e5-base:Q8_0": ("passage: ", "query: ", "query: "),
+    "snowflake-arctic-embed:137m": ("", "query: ", ""),
+}
 
 scale_functions = {
     "qllama/multilingual-e5-small": lambda x: ((x - 0.8) * 6) ** 2,
@@ -47,10 +86,10 @@ def cleanup(s: str):
 
 class EmbeddingsLookup:
     def __init__(
-        self, lst: list[tuple[str, Any]], model: Any, retrieval=True
+        self, lst: Iterable[tuple[str, Any]], model: Any, retrieval=True
     ) -> None:
         self.model = model  # type: ignore
-        self.lst = lst
+        self.lst = list(lst)
         self.retrieval = retrieval
 
         self.prefixes = ("", "", "")
@@ -67,7 +106,6 @@ class EmbeddingsLookup:
                     for i in lst
                 ]
             )
-            print(to_embed)
             self.embeddings = ollama.embed(
                 # todo this only works with e5
                 model=model,
@@ -76,47 +114,60 @@ class EmbeddingsLookup:
         else:
             self.embeddings = model.encode(list([cleanup(i[0]) for i in lst]))
 
-        if self.embeddings:
-            first = list(self.embeddings[0])
-            self.min_bound = numpy.fromiter(first, numpy.float64)
-            self.max_bound = numpy.fromiter(first, numpy.float64)
-            self.avgs = numpy.fromiter(first, numpy.float64)
+        # if len(self.embeddings) > 0:
+        #     first = list(self.embeddings[0])
+        #     self.avgs = numpy.median(self.embeddings, axis=0)
+        #     self.variance = numpy.zeros_like(first)
+        #     #     self.avgs += i
 
-            for i in self.embeddings:
-                self.min_bound = numpy.minimum(self.min_bound, i)
-                self.max_bound = numpy.maximum(self.max_bound, i)
-                self.avgs += i
+        #     # self.avgs /= len(self.embeddings)
 
-            self.avgs /= len(self.embeddings)
-            self.ranges = self.max_bound - self.min_bound
+        #     for i in self.embeddings:
+        #         self.variance += abs(self.avgs - i)
+        #     # self.variance = numpy.sqrt(self.variance)
+        #     self.variance = self.variance / len(self.embeddings)
 
-    def set_membership(self, s):
-        """This function determined by manual trial and error, I don't know the name
-        of the algorithm"""
-        if not self.embeddings:
-            return 0.0
+    #         x = 0
+    #         for i in lst:
+    #             x += self.set_membership_raw(i[0])
+    #         x /= len(lst)
 
-        qe = self.embed_one(s)
+    #         self.avg_set_membership = x
 
-        # Constrain to our set bounding box
-        constrained = numpy.clip(qe, self.min_bound, self.max_bound)
+    # def set_membership(self, s):
+    #     closest = self.embed_one(self.match(s)[0][1])
+    #     return closest[0], self.set_membership_raw(s)
 
-        # find difference from that point
-        differences = abs(qe - self.avgs)
+    # def set_membership_raw(self, s):
+    #     """This function doesn't really work"""
 
-        # The less variable a point is, the more meaningful it is to be outside that
-        importances = 1 / numpy.maximum(self.ranges, 0.1)
+    #     if not len(self.embeddings):
+    #         return 0.0
 
-        # return similarity([differences], [numpy.zeros_like(differences)])[0][0]
+    #     closest = numpy.array(self.embed_one(self.match(s)[0][1]))
 
-        return 1 - (
-            ((numpy.mean((differences * importances) ** 5)) * (1 / 5)) * 1024
-        )
-        # return similarity([qe * importances], [self.avgs * importances])[0][0]
+    #     qe = numpy.array(self.embed_one(s))
 
-        # return numpy.linalg.norm(differences)
+    #     # The less variable a point is, the more meaningful it is to be outside that
+    #     importances = 1 / numpy.maximum(self.variance**5, 0.00000000000000001)
+    #     # constrained = numpy.clip(qe, self.min_bound, self.max_bound)
 
-        return similarity([constrained], [self.avgs])[0][0]
+    #     x = distance.cosine(qe, self.avgs, importances)
+
+    #     return 1 / x
+
+    # # Constrain to our set bounding box
+
+    # # find difference from that point
+
+    # # return similarity([differences], [numpy.zeros_like(differences)])[0][0]
+
+    # return 1 - ((numpy.mean((differences * importances) ** 3)) * (1 / 3))
+    # # return similarity([qe * importances], [self.avgs * importances])[0][0]
+
+    # # return numpy.linalg.norm(differences)
+
+    # return similarity([constrained], [self.avgs])[0][0]
 
     def embed_one(self, s: str):
         if isinstance(self.model, str):
@@ -150,7 +201,7 @@ class EmbeddingsLookup:
 class EmbeddingsModel:
     def __init__(self, slow: bool = False) -> None:
         if slow:
-            model = "snowflake-arctic-embed:137m"
+            model = "yxchia/multilingual-e5-base:Q8_0"
         else:
             from model2vec import StaticModel
 

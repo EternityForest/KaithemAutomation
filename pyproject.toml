@@ -128,6 +128,7 @@ pipewire-python = "^0.2.3"
 
 sherpa-onnx = "^1.10.46"
 soundfile = "^0.13.1"
+libzim = "^3.6.0"
 [tool.poetry.scripts]
 "kaithem" = "kaithem:__main__"
 "kaithem-cli" = "kaithem_cli.cli:main"

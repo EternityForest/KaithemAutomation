@@ -2,6 +2,8 @@ from typing import Any, Callable
 
 from jsonschema import Draft7Validator
 
+from . import embeddings
+
 
 class SkillResponse:
     def __init__(self):
@@ -26,17 +28,22 @@ class Skill:
         self.examples: list[str] = examples
         self.name: str = command
         self.command: str = command.split(" ")[0]
+        self.match_threshold: float = 0.95
 
         # A string like "foo param1 param2" explaining the command
         self.command_str = command
         self.handler = handler
         self.schema = schema
 
+        self.lookup: embeddings.EmbeddingsLookup | None = None
+
         self.validator = Draft7Validator(self.schema)
+
+    def do_embeddings(self, model: embeddings.EmbeddingsModel):
+        self.lookup = model.get_lookup(list([(i, i) for i in self.examples]))
 
     def go(
         self,
-        *args: str,
         context: dict[str, Any],
         **kwargs: Any,
     ) -> SkillResponse:
@@ -54,12 +61,15 @@ class OptionMatchSkill(Skill):
         self,
         examples: list[str],
         handler: Callable[..., str] | None = None,
+        match_threshold: float = 0.95,
     ):
-        self.examples: list[str] = examples
-        self.handler = handler
+        super().__init__(
+            command="", examples=examples, schema={}, handler=handler
+        )
         self.name = "not-a-real-skill"
         self.command_str = ""
         self.command = ""
+        self.match_threshold = match_threshold
 
 
 available_skills: list[Skill] = []

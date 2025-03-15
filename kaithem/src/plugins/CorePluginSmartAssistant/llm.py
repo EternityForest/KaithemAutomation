@@ -6,12 +6,12 @@ import ollama
 
 
 class LLMSession:
-    def __init__(self, model: str = "qwen2.5-coder:0.5b"):
+    def __init__(self, model: str = "Gemma3:1b"):
         self.model: str = model
 
     def find_command(
         self, q: str, commands: list[tuple[str, Any]]
-    ) -> tuple[list[str], Any] | None:
+    ) -> tuple[Any, list[str]] | None:
         """
         Commands must be a list of commands with params, like "check-time <place>"
         Tuples will be the object part of the input plus all the arguments
@@ -58,12 +58,13 @@ Using JSON format, and converting all numbers to decimal,
                 return i[1], j
 
     def document_rag(self, q: str, c: list[tuple[float, str, str]]) -> str:
-        messages = [
-            {
-                "role": "system",
-                "content": """You are Qwen, created by Alibaba Cloud. You are a helpful assistant.""",
-            }
-        ]
+        # messages = [
+        #     {
+        #         "role": "system",
+        #         "content": """You are Qwen, created by Alibaba Cloud. You are a helpful assistant.""",
+        #     }
+        # ]
+        messages = []
 
         messages.append(
             {
@@ -80,13 +81,22 @@ Using JSON format, and converting all numbers to decimal,
         messages.append({"role": "user", "content": "Query:" + q})
         # x= ollama.chat(model='qwen2.5-coder:0.5b', messages=messages, options={"temperature": 0.4, "num_predict": 480, "top_k": 5})
 
-        x = ollama.chat(
-            model=self.model,
-            messages=messages,
-            options={"temperature": 0.0, "num_predict": 128, "top_k": 5},
-        )
+        for i in range(4):
+            try:
+                x = ollama.chat(
+                    model=self.model,
+                    messages=messages,
+                    options={
+                        "temperature": 0.0,
+                        "num_predict": 96,
+                        "top_k": 5,
+                    },
+                )
 
-        return x["message"]["content"]
+                return x["message"]["content"]
+            except Exception as e:
+                if i == 3:
+                    raise e
 
 
 # x = LLMSession()
