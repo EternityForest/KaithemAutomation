@@ -256,7 +256,7 @@ def register_resource_type(resource_type: ResourceType):
 
 
 class ResourceTypeRuntimeObject:
-    def __init__(self, data: dict[str, Any]):
+    def __init__(self, module: str, resource: str, data: dict[str, Any]):
         pass
 
     def close(self):
@@ -362,13 +362,14 @@ def resource_type_from_schema(
             data,
         ):
             if (module, resource) in self.runtime_objects:
-                self.runtime_objects[(to_module, to_resource)] = (
-                    self.runtime_objects[(module, resource)]
-                )
+                self.runtime_objects[(to_module, to_resource)].close()
+                del self.runtime_objects[(module, resource)]
+
+            self.on_load(to_module, to_resource, data)
 
         def on_load(self, module: str, resource: str, data: Mapping[str, Any]):
             self.runtime_objects[(module, resource)] = runtime_object_cls(
-                data["data"]
+                module, resource, data["data"]
             )
             return self.runtime_objects[(module, resource)]
 
