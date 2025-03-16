@@ -21,7 +21,9 @@ from .skills import OptionMatchSkill, SimpleSkillResponse, Skill
 class KnowledgeSkill(Skill):
     def go(self, context: dict[str, Any], **kwargs) -> SimpleSkillResponse:
         assistant = context["assistant_object"]
-        r = assistant.ask_knowledge(kwargs["question"])
+        r = assistant.ask_knowledge(
+            context["full_query"], search=kwargs["query"]
+        )
         return SimpleSkillResponse(r)
 
 
@@ -33,14 +35,14 @@ s = KnowledgeSkill(
         "How many states are there in the US?",
         "How tall is Mount Everest?",
     ],
-    command="answer-question",
+    command="knowledge-search",
     schema={
         "type": "object",
         "properties": {
-            "command": {"type": "string", "const": "answer-question"},
-            "query": {"type": "question"},
+            "command": {"type": "string", "const": "knowledge-search"},
+            "query": {"type": "string"},
         },
-        "required": ["command", "question"],
+        "required": ["command", "query"],
     },
 )
 available_skills.append(s)
@@ -127,18 +129,6 @@ class Assistant(resource_types.ResourceTypeRuntimeObject):
     def respond(self, s: str):
         print(f"Responding: {s}")
 
-        wakeword = True
-
-        if self.wake_words:
-            wakeword = False
-            for i in self.wake_words:
-                if i in s:
-                    wakeword = True
-                    s = s.split(i)[-1].strip()
-
-        if not wakeword:
-            return
-
         model = self.tts_model
         if model is None:
             self.get_tts_model()
@@ -168,6 +158,19 @@ class Assistant(resource_types.ResourceTypeRuntimeObject):
 
         req = req.lower()
 
+        wakeword = True
+
+        if self.wake_words:
+            wakeword = False
+            for i in self.wake_words:
+                if i in req:
+                    wakeword = True
+                    req = req.split(i)[-1].strip()
+                    break
+
+        if not wakeword:
+            return
+
         print(f"Request: {req}")
         top = self.skill_lookup.match(req)
 
@@ -194,7 +197,9 @@ class Assistant(resource_types.ResourceTypeRuntimeObject):
 
         # Handle the direct match based skills.
         if top[0][0] > top[0][2].match_threshold and not top[0][2].command:
-            result = top[0][2].go(context={"language": self.language})
+            result = top[0][2].go(
+                context={"language": self.language, "assistant_object": self}
+            )
             t = result.execute()
             self.respond(t)
             return
@@ -216,7 +221,11 @@ class Assistant(resource_types.ResourceTypeRuntimeObject):
         sk: Skill = x[0]
         result = sk.go(
             **x[1],
-            context={"language": self.language, "assistant_object": self},
+            context={
+                "language": self.language,
+                "assistant_object": self,
+                "full_query": req,
+            },
         )
 
         t = result.execute()
@@ -229,18 +238,21 @@ class Assistant(resource_types.ResourceTypeRuntimeObject):
     def add_zim_knowledge(self, zimfile: str):
         self.knowledges.append(ZimKnowledgeBase(zimfile))
 
-    def ask_knowledge(self, q: str) -> str:
+    def ask_knowledge(self, q: str, search: str = "") -> str:
         q = q.lower()
+        search = search or q
 
         raw_docs: list[tuple[str, str]] = []
         for i in self.knowledges:
-            raw_docs.extend(i.search(q))
+            raw_docs.extend(i.search(q, self.embeddings))
 
-        docs: list[tuple[float, str, str]] = narrow_docs(raw_docs, q)[:4]
+        docs: list[tuple[float, str, str]] = narrow_docs(
+            raw_docs, q, self.embeddings
+        )[:4]
 
         docs += list(self.personality_docs)
 
-        x = search_documents(docs, q, self.fast_embed, self.embeddings)
+        x = search_documents(docs, q, self.fast_embed, self.embeddings)[:4]
 
         session = LLMSession()
         return session.document_rag(q, x)

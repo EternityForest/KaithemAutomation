@@ -36,7 +36,7 @@ Using JSON format, and converting all numbers to decimal,
             options={
                 "stop": ["```\n\n"],
                 "temperature": 0.0,
-                "num_predict": 80,
+                "num_predict": 32,
                 "top_k": 5,
             },
         )
@@ -76,7 +76,7 @@ Using JSON format, and converting all numbers to decimal,
 
         for i in c:
             print(f"{i[1]} ({i[0]}):\n{i[2]}\n\n")
-            messages.append({"role": "tool", "content": i[1] + ": " + i[2]})
+            messages.append({"role": "user", "content": i[1] + ": " + i[2]})
 
         messages.append({"role": "user", "content": "Query:" + q})
         # x= ollama.chat(model='qwen2.5-coder:0.5b', messages=messages, options={"temperature": 0.4, "num_predict": 480, "top_k": 5})

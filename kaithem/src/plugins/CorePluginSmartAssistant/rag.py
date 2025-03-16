@@ -125,7 +125,7 @@ def summarize2(
 
     paragraphs_with_similarity.sort(reverse=True)
 
-    return paragraphs_with_similarity[:10]
+    return paragraphs_with_similarity[:6]
 
 
 def rerank(
@@ -143,13 +143,12 @@ def stringify_query(terms, qr):
 
 
 def narrow_docs(
-    docs: list[tuple[str, str]], query: str
+    docs: list[tuple[str, str]], query: str, m: embeddings.EmbeddingsModel
 ) -> list[tuple[float, str, str]]:
     "Input is title, article"
 
     docs = list(set(docs))
 
-    m = embeddings.EmbeddingsModel(slow=True)
     lu = m.get_lookup(docs, retrieval=True)
 
     x = lu.match(query)
@@ -162,14 +161,14 @@ def narrow_docs(
     # Look at the start of the docs to get a better idea of the subject
     x2 = lu2.match(query)
 
-    x = list([max(x[i][0], x2[i][0]) for i in range(len(x))])
-    y: list[tuple[float, str, str]] = []
-    for n, i in enumerate(x):
-        y.append((i, docs[n][0], docs[n][1]))
-    y.sort()
-    y.reverse()
+    x = list(
+        [(max(x[i][0], x2[i][0]), x[i][1], x[i][2]) for i in range(len(x))]
+    )
 
-    return y
+    x.sort()
+    x.reverse()
+
+    return x
 
 
 def search_documents(
@@ -231,7 +230,9 @@ class ZimKnowledgeBase:
 
         return top
 
-    def search(self, q: str) -> list[tuple[str, str]]:
+    def search(
+        self, q: str, m: embeddings.EmbeddingsModel
+    ) -> list[tuple[str, str]]:
         # terms= get_related_terms(q, 10)
         # Full query comes first, those get priority
         articles = self.collect_wiki_titles(q, 10)
@@ -259,11 +260,10 @@ class ZimKnowledgeBase:
             #         if j not in articles:
             #             articles.append(j)
 
-        articles = articles[:100]
+        articles = articles[:30]
 
         # use just the titles and file paths to find the 10 best
-        narrowed = narrow_docs(articles, q)[:15]
-        print(narrowed)
+        narrowed = narrow_docs(articles, q, m)[:15]
 
         docs = self.batch_get_wiki(list([i[2] for i in narrowed]))
 
