@@ -1,3 +1,4 @@
+import copy
 import html
 import json
 from typing import Any
@@ -78,6 +79,31 @@ _ace_code = """
     });
 </script>
 """
+
+
+def _suggestionize(d: dict[str, Any], path="", datalists=None):
+    datalists = {} if datalists is None else datalists
+    if d["type"] == "string":
+        if "suggestions" in d:
+            datalists["dl_" + path] = list([(i, i) for i in d["suggestions"]])
+
+            if "options" not in d:
+                d["options"] = {}
+            if "inputAttributes" not in d["options"]:
+                d["options"]["inputAttributes"] = {}
+
+            d["options"]["inputAttributes"]["list"] = "dl_" + path
+
+    if d["type"] == "object":
+        if "properties" in d:
+            for k, v in d["properties"].items():
+                _suggestionize(v, path + "__" + k, datalists)
+
+    if d["type"] == "array":
+        if "items" in d:
+            _suggestionize(d["items"], path, datalists)
+
+    return datalists
 
 
 class SimpleDialog:
@@ -320,6 +346,9 @@ class SimpleDialog:
     def json_editor(
         self, name: str, schema: dict[str, Any], default: dict[str, Any] = {}
     ):
+        schema = copy.deepcopy(schema)
+        dl = _suggestionize(schema)
+        self.datalists.update(dl)
         x = f"""
 
                 <input id="jsoninput" type="hidden" name="{name}">
