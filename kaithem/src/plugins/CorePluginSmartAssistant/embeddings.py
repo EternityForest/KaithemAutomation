@@ -47,6 +47,7 @@ def similarity(a, b):
 prefixes = {
     "qllama/multilingual-e5-small": ("passage: ", "query: ", "query: "),
     "yxchia/multilingual-e5-base:Q8_0": ("passage: ", "query: ", "query: "),
+    "qllama/multilingual-e5-small:q4_k_m": ("passage: ", "query: ", "query: "),
     "snowflake-arctic-embed:137m": ("", "query: ", ""),
 }
 
@@ -83,6 +84,8 @@ def cleanup(s: str):
 
 #     return mask, arr
 
+# import time
+
 
 class EmbeddingsLookup:
     def __init__(
@@ -95,6 +98,8 @@ class EmbeddingsLookup:
         self.prefixes = ("", "", "")
         self.embeddings: Sequence[Sequence[float]] = []
 
+        # print(f"Matching against {len(self.lst)} records with {self.model}")
+        # t = time.time()
         if isinstance(model, str):
             import ollama
 
@@ -113,6 +118,7 @@ class EmbeddingsLookup:
             ).embeddings
         else:
             self.embeddings = model.encode(list([cleanup(i[0]) for i in lst]))
+        # print(f"Done in {time.time() - t}")
 
         # if len(self.embeddings) > 0:
         #     first = list(self.embeddings[0])
@@ -194,7 +200,6 @@ class EmbeddingsLookup:
             (min(max(scale(v.item()), 0), 1), self.lst[i][0], self.lst[i][1])
             for i, v in enumerate(sim[0])
         ]
-
         return sorted(list(x), key=lambda x: x[0], reverse=True)
 
 

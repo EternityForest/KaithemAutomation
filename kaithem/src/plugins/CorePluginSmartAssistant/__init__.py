@@ -6,9 +6,10 @@ from collections.abc import Callable
 # from llm_backend import LLMSession
 from typing import Any
 
+from icemedia import jack_tools
 from scullery import workers
 
-from kaithem.api import modules, plugin_interfaces, resource_types
+from kaithem.api import modules, plugin_interfaces, resource_types, tags
 from kaithem.src.plugins.CorePluginSTT import SherpaSTT, model_sources
 
 from .builtin_skills import available_skills
@@ -23,7 +24,7 @@ class KnowledgeSkill(Skill):
         assistant = context["assistant_object"]
         r = assistant.ask_knowledge(
             context["full_query"], search=kwargs["query"]
-        )
+        ).replace("*", "")
         return SimpleSkillResponse(r)
 
 
@@ -66,6 +67,11 @@ class Assistant(resource_types.ResourceTypeRuntimeObject):
         self.knowledges: list[ZimKnowledgeBase] = []
         self.fast_embed = EmbeddingsModel(slow=False)
 
+        if data.get("mute_input_tag", ""):
+            self.mute_input_while_tag = tags.NumericTag(data["mute_input_tag"])
+        else:
+            self.mute_input_while_tag = None
+
         wd = modules.filename_for_file_resource(module, resource)
         wd = os.path.dirname(wd)
 
@@ -105,6 +111,27 @@ class Assistant(resource_types.ResourceTypeRuntimeObject):
             self.stt = SherpaSTT(name=data["name"], model=data["stt_model"])
             self.stt.tag.subscribe(self.handle_stt)
 
+        self.in_aw = jack_tools.Airwire(
+            data.get("audio_input", ""), data["name"]
+        )
+
+        self.muted_from_tag = False
+        if self.mute_input_while_tag:
+
+            def mute_input(v: float, t: float, _):
+                m = v > -30
+                if m != self.muted_from_tag:
+                    self.muted_from_tag = m
+                    if m:
+                        self.stt.mute += 1
+                    else:
+                        self.stt.mute -= 1
+
+            self.mute_input_while_tag.subscribe(mute_input)
+            self.tag_mute_func = mute_input
+
+        self.audio_output_device = data.get("audio_output", "")
+
         self.tts_model_id = data["tts_model"]
         self.tts_model: None | plugin_interfaces.TTSEngine = None
 
@@ -114,6 +141,11 @@ class Assistant(resource_types.ResourceTypeRuntimeObject):
     def close(self):
         if self.stt:
             self.stt.close()
+        try:
+            if self.in_aw:
+                self.in_aw.disconnect()
+        except Exception:
+            pass
 
     def get_tts_model(self):
         if not self.tts_model_id:
@@ -138,7 +170,7 @@ class Assistant(resource_types.ResourceTypeRuntimeObject):
         if self.stt:
             self.stt.mute += 1
 
-        model.speak(s)
+        model.speak(s, device=self.audio_output_device)
         time.sleep(0.15)
         if self.stt:
             self.stt.mute -= 1
@@ -185,7 +217,6 @@ class Assistant(resource_types.ResourceTypeRuntimeObject):
 
         top = list(top_2.values())
         top.sort(key=lambda x: x[0], reverse=True)
-        print(top)
 
         top = top[:3]
 
@@ -289,6 +320,32 @@ def schema():
             "llm_model": {
                 "type": "string",
                 "enum": [" Gemma3:1b", "Gemma3:4b", "qwen2.5-coder:0.5b"],
+            },
+            "audio_input": {
+                "type": "string",
+                "description": """The name of the JACK input port to use.
+Leave empty if you want to connect using the mixer""",
+                "suggestions": [
+                    i.name
+                    for i in jack_tools.get_ports()
+                    if i.is_output and i.is_audio
+                ],
+            },
+            "audio_output": {
+                "type": "string",
+                "description": """The name of the JACK output port to use.
+Leave empty to use the system default.""",
+                "suggestions": [
+                    i.name
+                    for i in jack_tools.get_ports()
+                    if i.is_input and i.is_audio
+                ],
+            },
+            "mute_input_while": {
+                "type": "string",
+                "description": """When this tag point is above -30, mute the audio input.
+Use with a mixer volume monitor tag to prevent triggering on music playback or similar.
+                """,
             },
             "menu_options": {
                 "type": "array",

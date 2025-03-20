@@ -104,6 +104,8 @@ class SherpaSTT:
     ):
         import sherpa_onnx
 
+        self.name = name
+
         self.tag = ObjectTag(f"/stt/{name}")
         self.model_name = model
         self.default_speaker = 0
@@ -230,7 +232,7 @@ class SherpaSTT:
         import jack
 
         stream: list[list[float]] = []
-        self.client = client = jack.Client("my_client")
+        self.client = client = jack.Client(self.name)
         port = client.inports.register("input_1")
 
         def process(_frame: int):
