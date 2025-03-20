@@ -1344,12 +1344,16 @@ class MixingBoard:
         "Set the fader of a given channel to the given level"
         if not self.running:
             return
-        with self.lock:
-            c = self.channelObjects[channel]
-            c.setFader(level)
 
-            if c.faderTag.current_source == "default":
-                self.channels[channel]["fader"] = float(level)
+        try:
+            c = self.channelObjects[channel]
+        except KeyError:
+            return
+
+        c.setFader(level)
+
+        if c.faderTag.current_source == "default":
+            self.channels[channel]["fader"] = float(level)
 
     def savePreset(self, presetName):
         if not presetName:
