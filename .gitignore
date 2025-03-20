@@ -12,6 +12,10 @@ out/**
 result/**
 **/.directory
 .venv/**
+**/__pycache__
+**/.ruff_cache
+**/.pytest_cache
+**/__pycache__
 
 poetry.toml
 node_modules/
