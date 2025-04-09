@@ -1133,6 +1133,36 @@ effectTemplates_data = {
         },
         "gstSetup": {},
     },
+    "ladspa-tap-autopan-so-tap-autopan": {
+        "type": "ladspa-tap-autopan-so-tap-autopan",
+        "gstElement": "ladspa-tap-autopan-so-tap-autopan",
+        "help": "TAP Auto Pan",
+        "displayType": "TAP Auto Pan",
+        "params": {
+            "depth": {
+                "type": "float",
+                "min": 0,
+                "max": 100,
+                "displayName": "Depth",
+                "value": 50,
+            },
+            "frequency": {
+                "type": "float",
+                "min": 0,
+                "max": 20,
+                "displayName": "Frequency",
+                "value": 2,
+            },
+            "gain": {
+                "type": "float",
+                "min": -70,
+                "max": 20,
+                "value": 0,
+                "displayName": "Gain",
+            },
+        },
+        "gstSetup": {},
+    },
     "queue": {
         "type": "queue",
         "gstElement": "queue",

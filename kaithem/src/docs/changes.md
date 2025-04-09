@@ -1,6 +1,11 @@
 Change Log
 ----------
 
+### 0.90.0
+
+* New easier simpler high level API to create resource types
+* Rotary speaker and auto pan added to the mixing board
+
 ### 0.89.0
 
 This release has one of the first AI features! We use sherpa-onnx and and automatically download models.
