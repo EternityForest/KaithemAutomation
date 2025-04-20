@@ -443,6 +443,12 @@ div.highlight {
             v-on:click="addTimeToGroup(editingGroup.id)">
             <i class="mdi mdi-clock"></i><i class="mdi mdi-plus"></i>Add Time
           </button>
+          
+          <button @click="refreshCueProviders(editingGroup.id)"
+          v-if="editingGroup.cueProviders.length > 0"
+          >
+            <i class="mdi mdi-refresh"></i>Refresh
+          </button>
           <button @click="compactCues = !compactCues" class="nogrow">
             <i class="mdi mdi-view-grid-compact"></i>Compact
           </button>
@@ -657,7 +663,9 @@ import {
   jumpToCueWithConfirmationIfNeeded,
   sendGroupEventWithConfirm,
   stop,
-  addTimeToGroup} from "./boardapi.mjs";
+  addTimeToGroup,
+refreshCueProviders
+} from "./boardapi.mjs";
 import * as Vue from "/static/js/thirdparty/vue.esm-browser.js";
 
 const sc_code = Vue.ref("");

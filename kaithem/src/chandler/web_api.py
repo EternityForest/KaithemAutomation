@@ -47,6 +47,16 @@ async def group_go(group_id: str):
     return {"success": True}
 
 
+@quart_app.app.route(
+    "/chandler/api/refresh-group-cue-providers/<group_id>", methods=["PUT"]
+)
+async def refresh_group_cue_providers(group_id: str):
+    require("system_admin")
+    x = groups[group_id]
+    x.refresh_cue_providers()
+    return {"success": True}
+
+
 @quart_app.app.route("/chandler/api/group-stop/<group_id>", methods=["PUT"])
 async def group_stop(group_id: str):
     require("system_admin")

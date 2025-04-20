@@ -5,6 +5,8 @@ Change Log
 
 * New easier simpler high level API to create resource types
 * Rotary speaker and auto pan added to the mixing board
+* Auto fix and warn on group ID collisions
+* Refresh cue providers button
 
 ### 0.89.0
 

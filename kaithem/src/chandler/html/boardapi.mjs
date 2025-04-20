@@ -74,6 +74,16 @@ function rebindKeys() {
   keyboardJS.bind(null, keyUpHandle);
 }
 
+export function refreshCueProviders(group) {
+  const url = "/chandler/api/refresh-group-cue-providers/" + group;
+  fetch(url, {
+    method: "PUT",
+  }).catch(function (error) {
+    alert("Could not reach server:" + error);
+  });
+}
+
+
 function playAlert(m) {
   if (uiAlertSounds.value) {
     var mp3_url = "/static/sounds/72127__kizilsungur__sweetalertsound3.opus";

@@ -175,7 +175,8 @@
                 </div>
               </header>
               <p v-if="cuemeta[i[1].cue]">
-                <span v-if="i[1].active && cuemeta[i[1].cue]"
+                <span
+                  v-if="i[1].active && cuemeta[i[1].cue]"
                   data-testid="sidebar-active-cue-name"
                   >{{ cuemeta[i[1].cue].name }}
                   <small>{{ formatTime(i[1].enteredCue) }}</small></span
@@ -778,7 +779,12 @@
                   <button
                     type="button"
                     style="min-width: 90%"
-                    v-on:click="jumpToCueWithConfirmationIfNeeded(slotProps.i[1].id, editingGroup.id)">
+                    v-on:click="
+                      jumpToCueWithConfirmationIfNeeded(
+                        slotProps.i[1].id,
+                        editingGroup.id
+                      )
+                    ">
                     Go
                   </button>
                 </td>
@@ -2368,7 +2374,9 @@
                         min="0"
                         max="500"
                         :disabled="no_edit"
-                        v-model.number="editingGroup.slideshowTransform.perspective"
+                        v-model.number="
+                          editingGroup.slideshowTransform.perspective
+                        "
                         @change="
                           setGroupProperty(
                             editingGroup.id,
@@ -2451,7 +2459,9 @@
                         min="-100"
                         max="100"
                         :disabled="no_edit"
-                        v-model.number="editingGroup.slideshowTransform.translate_x"
+                        v-model.number="
+                          editingGroup.slideshowTransform.translate_x
+                        "
                         @change="
                           setGroupProperty(
                             editingGroup.id,
@@ -2479,7 +2489,9 @@
                         min="-100"
                         max="100"
                         :disabled="no_edit"
-                        v-model.number="editingGroup.slideshowTransform.translate_y"
+                        v-model.number="
+                          editingGroup.slideshowTransform.translate_y
+                        "
                         @change="
                           setGroupProperty(
                             editingGroup.id,
@@ -2507,7 +2519,9 @@
                         min="-180"
                         max="180"
                         :disabled="no_edit"
-                        v-model.number="editingGroup.slideshowTransform.rotate_x"
+                        v-model.number="
+                          editingGroup.slideshowTransform.rotate_x
+                        "
                         @change="
                           setGroupProperty(
                             editingGroup.id,
@@ -2535,7 +2549,9 @@
                         min="-180"
                         max="180"
                         :disabled="no_edit"
-                        v-model.number="editingGroup.slideshowTransform.rotate_y"
+                        v-model.number="
+                          editingGroup.slideshowTransform.rotate_y
+                        "
                         @change="
                           setGroupProperty(
                             editingGroup.id,
@@ -2562,7 +2578,9 @@
                         min="-180"
                         max="180"
                         :disabled="no_edit"
-                        v-model.number="editingGroup.slideshowTransform.rotate_z"
+                        v-model.number="
+                          editingGroup.slideshowTransform.rotate_z
+                        "
                         @change="
                           setGroupProperty(
                             editingGroup.id,
@@ -2591,6 +2609,11 @@
                   Cue providers let you automatically import cues from a folder
                   of media files.
                 </p>
+                <div class="tool-bar">
+                  <button @click="refreshCueProviders(editingGroup.id)">
+                    <i class="mdi mdi-refresh"></i>Refresh
+                  </button>
+                </div>
 
                 <div>
                   <ul>
@@ -2784,6 +2807,7 @@ import {
   updatePreset,
   channelInfoForUniverseChannel,
   notifyPopupComputedCueLength,
+  refreshCueProviders,
 } from "./boardapi.mjs";
 
 import {

@@ -303,6 +303,19 @@ class Group:
         self.info_display = info_display
         self.utility: bool = bool(utility)
 
+        if id:
+            if id in groups:
+                old_id = id
+                id = str(
+                    uuid.uuid5(
+                        uuid.UUID("8a0f872b-a8ca-4561-894e-bddc114174c0"),
+                        str(id) + str(chandler_board.name),
+                    )
+                )
+                logger.warning(
+                    f"Group id for {name} changed from {old_id} to {id} because it was already in use by {groups[old_id].name}"
+                )
+
         self.id: str = id or uuid.uuid4().hex
 
         self.media_link = MediaLinkManager(self)
@@ -642,6 +655,9 @@ class Group:
             if i.url == name:
                 return i
         raise RuntimeError("Cue provider does not exist in group")
+
+    def refresh_cue_providers(self):
+        workers.do(self.scan_cue_providers)
 
     @slow_group_lock_context.object_session_entry_point
     def scan_cue_providers(self):
