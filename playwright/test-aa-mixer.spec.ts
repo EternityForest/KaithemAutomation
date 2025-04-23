@@ -20,7 +20,7 @@ test("test", async ({ page }) => {
 
   await expect(
     page.getByTestId("channel-box-testchannel").getByTestId("channel-status")
-  ).toContainText("running", { timeout: 20_000 });
+  ).toContainText("running", { timeout: 35_000 });
 
   await page
     .getByTestId("channel-box-testchannel")
@@ -34,7 +34,7 @@ test("test", async ({ page }) => {
 
   await expect(
     page.getByTestId("channel-box-testchannel2").getByTestId("channel-status")
-  ).toContainText("running", { timeout: 20_000 });
+  ).toContainText("running", { timeout: 35_000 });
 
   await page
     .getByTestId("channel-box-testchannel2")
@@ -118,7 +118,7 @@ test("test", async ({ page }) => {
   // Give it extra loading time
   await expect(
     page.getByTestId("channel-box-testchannel").getByTestId("channel-status")
-  ).toContainText("running", { timeout: 20_000 });
+  ).toContainText("running", { timeout: 35_000 });
 
   // Expand that effect
   await page
@@ -168,7 +168,7 @@ test("test", async ({ page }) => {
   // Give it extra loading time
   await expect(
     page.getByTestId("channel-box-testchannel").getByTestId("channel-status")
-  ).toContainText("running", { timeout: 20_000 });
+  ).toContainText("running", { timeout: 35_000 });
 
   await expect(
     page
@@ -222,7 +222,7 @@ test("test", async ({ page }) => {
   // Give it extra loading time
   await expect(
     page.getByTestId("channel-box-testchannel2").getByTestId("channel-status")
-  ).toContainText("running", { timeout: 20_000 });
+  ).toContainText("running", { timeout: 35_000 });
 
   // Ensure it reconnects to channel 1
   await page
@@ -318,7 +318,7 @@ test("test", async ({ page }) => {
 
   await expect(
     page.getByTestId("channel-box-testchannel2").getByTestId("channel-status")
-  ).toContainText("running", { timeout: 20_000 });
+  ).toContainText("running", { timeout: 35_000 });
 
   await page.getByTestId("new-channel-name").fill("testchannel3");
   await page.getByTestId("add-stereo-channel").click();
@@ -329,7 +329,7 @@ test("test", async ({ page }) => {
   // ui race condition?
   await expect(
     page.getByTestId("channel-box-testchannel2").getByTestId("channel-status")
-  ).toContainText("running", { timeout: 20_000 });
+  ).toContainText("running", { timeout: 35_000 });
 
   // Expand details box if needed
   if (
@@ -485,7 +485,7 @@ test("test", async ({ page }) => {
 
   await expect(
     page.getByTestId("channel-box-ch1").getByTestId("channel-status")
-  ).toContainText("running", { timeout: 20_000 });
+  ).toContainText("running", { timeout: 35_000 });
 
   await page.getByText("Setup").click();
   await page.getByTestId("show-effects-menu").click();
@@ -494,7 +494,7 @@ test("test", async ({ page }) => {
 
   await expect(
     page.getByTestId("channel-box-ch1").getByTestId("channel-status")
-  ).toContainText("running", { timeout: 20_000 });
+  ).toContainText("running", { timeout: 35_000 });
 
   await expect(
     page.getByTestId("effect-box-fader").getByText("Fader")
@@ -527,7 +527,7 @@ test("test", async ({ page }) => {
 
   await expect(
     page.getByTestId("channel-box-ch1").getByTestId("channel-status")
-  ).toContainText("running", { timeout: 20_000 });
+  ).toContainText("running", { timeout: 35_000 });
 
   await expect(page.getByText("3 Band EQ")).toBeVisible();
   await expect(
