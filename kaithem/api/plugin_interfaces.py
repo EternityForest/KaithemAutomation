@@ -37,7 +37,7 @@ class TTSAPI(PluginInterface):
         raise NotImplementedError  # pragma: no cover
 
     def list_available_models(self) -> list[dict[str, Any]]:
-        return []
+        return []  # pragma: no cover
 
 
 register_plugin_interface(TTSAPI)

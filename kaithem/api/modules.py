@@ -34,7 +34,7 @@ def filename_for_file_resource(module: str, resource: str) -> str:
 
 def filename_for_resource(module: str, resource: str) -> str:
     """DEPRECATED: use filename_for_file_resource instead"""
-    return filename_for_file_resource(module, resource)
+    return filename_for_file_resource(module, resource)  # pragma: no cover
 
 
 def admin_url_for_file_resource(module: str, resource: str) -> str:

@@ -30,7 +30,7 @@ inputs_cache: tuple[float, list[str]] = (0.0, [])
 def __list_midi_inputs() -> list[str]:
     try:
         import rtmidi
-    except ImportError:
+    except ImportError:  # pragma: no cover
         if once[0] == 0:
             messagebus.post_message(
                 "/system/notifications/errors/",
@@ -42,7 +42,7 @@ def __list_midi_inputs() -> list[str]:
     try:
         try:
             m = rtmidi.MidiIn()
-        except Exception:
+        except Exception:  # pragma: no cover
             logger.exception("Error in MIDI system, trying again")
             m = rtmidi.MidiIn()
 
@@ -51,14 +51,14 @@ def __list_midi_inputs() -> list[str]:
             for i in range(m.get_port_count())
         ]
         return x
-    except Exception:
+    except Exception:  # pragma: no cover
         logger.exception("Error in MIDI system")
         return []
     finally:
         if m:
             try:
                 m.close_port()
-            except Exception:
+            except Exception:  # pragma: no cover
                 logger.exception("Error in MIDI system")
             del m
 

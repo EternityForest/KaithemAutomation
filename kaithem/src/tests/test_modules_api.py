@@ -62,11 +62,12 @@ def test_simple_resource_types():
     }
 
     resource_type_from_schema(
-        "test-basic-autogen-type",
-        "Dummy",
-        "mdi-account",
-        schema,
-        DummyResourceTypeImplementation,
+        resource_type="test-basic-autogen-type",
+        title="Dummy",
+        icon="mdi-account",
+        schema=schema,
+        runtime_object_cls=DummyResourceTypeImplementation,
+        default={"val": 0},
     )
 
     with modulesapi.modules_lock:
@@ -99,11 +100,19 @@ async def test_modules_api():
         assert modulesapi.get_resource_data(n, "test_resource")["val"] == 7878
 
     with modulesapi.modules_lock:
+        modulesapi.set_resource_error(n, "test_resource", "foo")
+
+    assert (n, "test_resource") in modules_state.resource_errors
+
+    with modulesapi.modules_lock:
         modulesapi.update_resource(
             n, "test_resource", {"resource_type": "dummy", "val": 789}
         )
 
         assert modules_state.ActiveModules[n]["test_resource"]["val"] == 789
+
+    # Updating should clear the error
+    assert (n, "test_resource") not in modules_state.resource_errors
 
     # Can't update a non-existent resource
     with pytest.raises(KeyError):
@@ -127,6 +136,14 @@ async def test_modules_api():
             modulesapi.insert_resource(
                 n, "test_resource", {"resource_type": "dummy", "val": 7878}
             )
+
+    # Failed attempts should not modify
+    assert "test_resource" in modules_state.ActiveModules[n]
+
+    with modulesapi.modules_lock:
+        modulesapi.delete_resource(n, "test_resource")
+
+    assert "test_resource" not in modules_state.ActiveModules[n]
 
     # Test file resource stuff
     fn = modulesapi.filename_for_file_resource(n, "test_file_resource.txt")

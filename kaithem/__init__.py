@@ -11,6 +11,7 @@ def initialize_app(cfg: Optional[Dict[str, Any]] = None):
     if not started:
         main.initialize(cfg)
     else:
+        # pragma: no cover
         raise RuntimeError("The app has already been set up")
 
     started = True
