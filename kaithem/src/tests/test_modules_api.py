@@ -49,7 +49,7 @@ def test_simple_resource_types():
     tst = []
 
     class DummyResourceTypeImplementation(ResourceTypeRuntimeObject):
-        def __init__(self, data):
+        def __init__(self, module, resource, data):
             tst.append(data["val"])
 
         def close(self):
@@ -74,7 +74,7 @@ def test_simple_resource_types():
         modulesapi.insert_resource(
             n,
             "test_resource",
-            {"resource_type": "test-basic-autogen-type", "val": 7878},
+            {"resource_type": "test-basic-autogen-type", "data": {"val": 7878}},
         )
 
         modulesapi.delete_resource(n, "test_resource")

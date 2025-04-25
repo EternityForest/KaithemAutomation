@@ -3,6 +3,7 @@
 
 import copy
 import html
+import inspect
 import json
 import threading
 import traceback
@@ -282,6 +283,12 @@ def resource_type_from_schema(
 
     if not hasattr(runtime_object_cls, "close"):
         raise ValueError("Runtime object class must have a close() method")
+
+    if not len(inspect.signature(runtime_object_cls.__init__).parameters) >= 4:
+        # pragma: no cover
+        raise ValueError(
+            "Runtime object class __init__ must have 4 parameters: self, module, resource, and data"
+        )
 
     if callable(schema):
         sch = schema()

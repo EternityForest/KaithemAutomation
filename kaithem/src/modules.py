@@ -765,6 +765,7 @@ def handleResourceChange(
         t = modules_state.ActiveModules[module][resource]["resource_type"]
 
         resourceobj = modules_state.ActiveModules[module][resource]
+        modules_state.set_resource_error(module, resource, None)
 
         assert isinstance(t, str)
 
@@ -784,7 +785,6 @@ def handleResourceChange(
                     f"Unknown resource type {t} for resource {resource} in module {module}"
                 )
             else:
-                modules_state.set_resource_error(module, resource, None)
                 if not newly_added:
                     resource_types[t].on_update(module, resource, resourceobj)
                 else:
