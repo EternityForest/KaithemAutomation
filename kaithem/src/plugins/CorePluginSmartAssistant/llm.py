@@ -6,7 +6,7 @@ import ollama
 
 
 class LLMSession:
-    def __init__(self, model: str = "Gemma3:1b"):
+    def __init__(self, model: str = "qwen3:0.6b"):
         self.model: str = model
 
     def find_command(
@@ -48,6 +48,11 @@ Using JSON format, and converting all numbers to decimal,
             .replace("```json\n", "")
             .replace("\n```", "")
         )
+
+        m = m.strip()
+        if not m.endswith("}"):
+            m = m + "}"
+
         j = json.loads(m)
 
         for i in sorted(
@@ -78,7 +83,11 @@ Using JSON format, and converting all numbers to decimal,
             print(f"{i[1]} ({i[0]}):\n{i[2]}\n\n")
             messages.append({"role": "user", "content": i[1] + ": " + i[2]})
 
-        messages.append({"role": "user", "content": "Query:" + q})
+        if "qwen3" in self.model:
+            nothink = "\\no_think "
+        else:
+            nothink = ""
+        messages.append({"role": "user", "content": nothink + "Query:" + q})
         # x= ollama.chat(model='qwen2.5-coder:0.5b', messages=messages, options={"temperature": 0.4, "num_predict": 480, "top_k": 5})
 
         for i in range(4):

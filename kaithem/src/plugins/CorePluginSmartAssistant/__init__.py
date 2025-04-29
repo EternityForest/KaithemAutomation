@@ -319,7 +319,13 @@ def schema():
             },
             "llm_model": {
                 "type": "string",
-                "enum": [" Gemma3:1b", "Gemma3:4b", "qwen2.5-coder:0.5b"],
+                "enum": [
+                    "qwen3:0.6b",
+                    "qwen3:4b",
+                    "Gemma3:1b",
+                    "Gemma3:4b",
+                    "qwen2.5-coder:0.5b",
+                ],
             },
             "audio_input": {
                 "type": "string",
