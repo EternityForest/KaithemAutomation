@@ -42,18 +42,16 @@ def on_service_state_change(zeroconf, service_type, name, state_change):
                 httpservices.pop(0)
         elif state_change is ServiceStateChange.Removed:
             try:
-                httpservices.remove(
-                    (
-                        tuple(
-                            sorted(
-                                [socket.inet_ntoa(i) for i in info.addresses]
-                            )
-                        ),
-                        service_type,
-                        name,
-                        info.port,
-                    )
+                torm = (
+                    tuple(
+                        sorted([socket.inet_ntoa(i) for i in info.addresses])
+                    ),
+                    service_type,
+                    name,
+                    info.port,
                 )
+                if torm in httpservices:
+                    httpservices.remove(torm)
             except Exception:
                 logging.exception("???")
 
