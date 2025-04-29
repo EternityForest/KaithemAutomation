@@ -57,7 +57,10 @@ test("test", async ({ page }) => {
   });
   await sleep(1000);
 
-  await page.getByLabel("Type:").first().selectOption("intensity");
+  await page
+    .getByLabel("Type:")
+    .first()
+    .selectOption("intensity", { timeout: 10_000 });
   await page.getByRole("button", { name: "Add Channel" }).click();
   await sleep(500);
   await page.getByLabel("Type:").nth(1).selectOption("red");
@@ -190,7 +193,7 @@ test("test", async ({ page }) => {
     .getByTestId("presets-list")
     .getByRole("button", { name: "testaqua" })
     .click();
-  
+
   await waitForTasks(page);
   await waitForTasks(page);
   await waitForTasks(page);
@@ -289,7 +292,11 @@ test("test", async ({ page }) => {
     "http://localhost:8002/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/config/test_presets:p"
   );
   await page.getByRole("button", { name: "Universes" }).click();
-  await page.getByTestId("universe-status-table").getByRole("row", { name: "test" }).getByRole('link', { name: 'Values' }).click();
+  await page
+    .getByTestId("universe-status-table")
+    .getByRole("row", { name: "test" })
+    .getByRole("link", { name: "Values" })
+    .click();
   await expect(page.locator("section")).toContainText("255.0");
   await expect(page.locator("section")).toContainText("233.0");
 
