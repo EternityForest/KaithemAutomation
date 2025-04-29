@@ -3,10 +3,11 @@ Change Log
 
 ### 0.90.0
 
-* New easier simpler high level API to create resource types
-* Rotary speaker and auto pan added to the mixing board
-* Auto fix and warn on group ID collisions
-* Refresh cue providers button
+* :sparkles: New easier simpler high level API to create resource types
+* :sparkles: Rotary speaker and auto pan added to the mixing board
+* :bug: Auto fix and warn on group ID collisions
+* :sparkles: Refresh cue providers button
+
 
 ### 0.89.0
 
