@@ -4,6 +4,7 @@
 import datetime
 import gc
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -102,18 +103,60 @@ def test_cue_unique():
 
 
 def test_cue_provider():
+    from kaithem.api.modules import modules_lock
+
     with TempGroup() as grp:
+        tempdir = os.path.join(
+            directories.vardir, "modules", "data", "test_chandler_providers"
+        )
+        if os.path.exists(tempdir):
+            shutil.rmtree(tempdir)
+
+        shutil.copytree(
+            os.path.join(staticdir, "sounds"),
+            os.path.join(
+                directories.vardir, "modules", "data", "test_chandler_providers"
+            ),
+        )
+
+        # Check to make sure it doesn't crash on a bad provider
         grp.cue_providers = [
-            "file://"
-            + os.path.join(staticdir, "sounds")
-            + "?import_media=sound"
+            "file://" + tempdir + "?import_media=sound",
+            "file://" + tempdir + "/NonexistingProvider?import_media=sound",
         ]
-        for i in range(30):
+
+        for _i in range(30):
             if not len(grp.cues) > 2:
                 time.sleep(0.1)
 
         assert len(grp.cues) > 2
         assert grp.cues_ordered[1].sound
+
+        grp.cues_ordered[1].notes = "Test adding note to provider cue"
+
+        with modules_lock:
+            grp.board.ml_cl_check_autosave()
+
+        # it is really hard to find the file given the cue so just
+        # make sure the text is in one and only one file
+        found = 0
+        for i in os.listdir(tempdir):
+            if i.endswith(".yaml"):
+                with open(os.path.join(tempdir, i)) as f:
+                    if "Test adding note to provider cue" in f.read():
+                        found += 1
+        assert found == 1
+
+        with pytest.raises(RuntimeError):
+            grp.cues_ordered[1].sound = "foo"
+
+        # This would only apply if imported in slide mode
+        # with pytest.raises(RuntimeError):
+        #     grp.cues_ordered[1].slide = "foo"
+
+        # No number in filename in the special format so we can renumber
+        grp.cues_ordered[-1].number = 60
+        assert grp.cues_ordered[-1].number == 60
 
         # Can't just delete provider cue because we don't know how
         # we would save that.
@@ -533,6 +576,8 @@ def test_cue_track_setting():
         # This is a tracking cue so it keeps the value
         grp.add_cue("test1")
         grp.goto_cue("test1")
+        assert grp.cue.track is True
+
         core.wait_frame()
         core.wait_frame()
         time.sleep(0.1)

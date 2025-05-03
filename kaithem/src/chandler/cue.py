@@ -182,11 +182,6 @@ class CueProvider:
         return value
 
 
-def get_cue_provider(url: str, group: Group) -> CueProvider:
-    scheme = url.split(":")[0]
-    return cue_provider_types[scheme](url, group)
-
-
 property_update_handlers: dict[str, list[Callable[[Cue, str, Any], None]]] = {}
 
 
@@ -219,6 +214,12 @@ class Cue:
         insert_after_number: int | None = None,
         **kw: Any,
     ):
+        self.group: weakref.ref[Group] = weakref.ref(parent)
+
+        # If a Cue Provider is specified, we do not save it to
+        # The show file like normal, the provider will tell us how to save it
+        self._provider: str = ""
+
         # declare vars.
         # Cannot enter cue because it loaded with errors
         self.error_lockout: bool = False
@@ -258,12 +259,6 @@ class Cue:
         self.checkpoint: bool
         self.label_image: str
         self.metadata: dict[str, str | int | float | bool | None]
-
-        # If a Cue Provider is specified, we do not save it to
-        # The show file like normal, the provider will tell us how to save it
-        self._provider: str = (provider or "").strip()
-
-        self.group: weakref.ref[Group] = weakref.ref(parent)
 
         self._markdown: str = kw.get("markdown", "").strip()
 
@@ -375,7 +370,37 @@ class Cue:
         cues[self.id] = self
         self.push()
 
+        # Do last so that the provider's validation stuff doesn't have to deal
+        # with half set up cues
+        self._provider = (provider or "").strip()
+
     def __setattr__(self, name, value):
+        if not hasattr(self, "group"):
+            if name == "group":
+                object.__setattr__(self, name, value)
+                return
+
+        g = self.group()
+        if not g:
+            if name != "group":
+                logging.error(
+                    "Cue "
+                    + self.name
+                    + " is an invalid cue because it has no group, can't set "
+                    + name
+                )
+            return
+
+        if name == "_provider":
+            object.__setattr__(self, name, value)
+            return
+
+        if self._provider:
+            if g:
+                p = g.get_cue_provider(self._provider)
+                if p:
+                    p.validate_property_update(self, name, value)
+
         object.__setattr__(self, name, value)
         if name in property_update_handlers:
             for i in property_update_handlers[name]:

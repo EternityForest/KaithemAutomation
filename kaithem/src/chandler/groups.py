@@ -43,7 +43,6 @@ from .cue import (
     allowedCueNameSpecials,
     cue_provider_types,
     cues,
-    get_cue_provider,
 )
 from .fs_cue_provider import FilesystemCueProvider
 from .global_actions import cl_trigger_shortcut_code
@@ -278,10 +277,16 @@ class Group:
 
         self._cue_providers: list[str] = cue_providers or []
 
-        self._cue_provider_objects: list[CueProvider] = [
-            get_cue_provider(cue_provider, self)
-            for cue_provider in self._cue_providers
-        ]
+        self._cue_provider_objects: list[CueProvider] = []
+
+        for cue_provider in self._cue_providers:
+            try:
+                self._cue_provider_objects.append(
+                    self.get_cue_provider(cue_provider)
+                )
+            except Exception:
+                core.rl_log_exc("Error creating cue provider")
+                print(traceback.format_exc())
 
         # Get whatever defaults it sets up for the UI
         self._blend_args = copy.deepcopy(self.lighting_manager.blend_args)
@@ -644,17 +649,30 @@ class Group:
     @cue_providers.setter
     def cue_providers(self, value: list[str]):
         self._cue_providers = value
-        self._cue_provider_objects = [
-            get_cue_provider(cue_provider, self)
-            for cue_provider in self._cue_providers
-        ]
+        self._cue_provider_objects = []
+        for i in self._cue_providers:
+            try:
+                self._cue_provider_objects.append(self.get_cue_provider(i))
+            except Exception:
+                self.event("board.error", str(i))
+                logger.exception("Failed to load cue provider")
+
         workers.do(self.scan_cue_providers)
 
     def get_cue_provider(self, name: str) -> CueProvider:
+        # TODO: slow search
         for i in self._cue_provider_objects:
             if i.url == name:
                 return i
-        raise RuntimeError("Cue provider does not exist in group")
+        scheme = name.split(":")[0]
+        c = cue_provider_types[scheme](name, self)
+        if c:
+            self._cue_provider_objects.append(c)
+            return c
+
+        raise RuntimeError(
+            "Cue provider does not exist in group and could not be created"
+        )
 
     def refresh_cue_providers(self):
         workers.do(self.scan_cue_providers)
@@ -701,17 +719,26 @@ class Group:
                 "uuid": self.id,
             }
 
-            # Call the cue provider to self.cues[i].providerave any cues that aren't normal cues and are
+            # Call the cue provider to save any cues that aren't normal cues and are
             # Instead imported from somewhere.
+            fpe = True
             for i in self.cues:
                 if self.cues[i].provider:
-                    p = (
-                        self.cues[i]
-                        .getGroup()
-                        .get_cue_provider(self.cues[i].provider)
-                    )
-                    if p:
-                        p.save_cue(self.cues[i])
+                    try:
+                        p = (
+                            self.cues[i]
+                            .getGroup()
+                            .get_cue_provider(self.cues[i].provider)
+                        )
+                        if p:
+                            p.save_cue(self.cues[i])
+                    except Exception:
+                        logger.exception(
+                            f"Failed to save cue {self.cues[i].name}"
+                        )
+                        if fpe:
+                            self.event("board.error", "Failed to save cue")
+                            fpe = False
 
             for i in group_schema["properties"]:
                 if i not in d:

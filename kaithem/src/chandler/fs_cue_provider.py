@@ -91,6 +91,9 @@ class FilesystemCueProvider(CueProvider):
         cues = {}
         discovered = []
         c = 0
+        cue_source_files = {}
+        data_as_imported = {}
+
         for root, dirs, files in os.walk(self.dir):
             # Sorted because we want the media file to come before the bare YAML
             # That will have fn.cue.yaml and be longer than the main
@@ -144,7 +147,7 @@ class FilesystemCueProvider(CueProvider):
                     "length": length,
                     "rel_length": rel_len,
                 }
-                self.data_as_imported[id] = copy.deepcopy(data)
+                data_as_imported[id] = copy.deepcopy(data)
 
                 if os.path.exists(fn + ".cue.yaml"):
                     with open(fn + ".cue.yaml") as f:
@@ -163,13 +166,15 @@ class FilesystemCueProvider(CueProvider):
                         data["number"] = number
 
                     cues[name] = Cue(self.group, **data, provider=self.url)
-                    self.cue_source_files[cues[name].id] = fn
+                    cue_source_files[cues[name].id] = fn
 
                 else:
                     if name in self.discovered_cues:
                         cues[name] = self.discovered_cues[name]
-                        self.cue_source_files[cues[name].id] = fn
+                        cue_source_files[cues[name].id] = fn
 
+        self.cue_source_files = cue_source_files
+        self.data_as_imported = data_as_imported
         self.discovered_cues = cues
 
         return cues
