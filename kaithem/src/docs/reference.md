@@ -853,7 +853,7 @@ Don't ignore unsafe conditions or allow yourself to be pushed into dangerous sit
 
 > Slow is Smooth and Smooth is Fast
 
-Even small changes may have unknown consequences, especially in the face of unknown external events.
+Even small changes may have unknown consequences, especially in the face of unknown external events, and ignoring the rules when you think they don't matter can make it more likely that you will forget something when they do.
 
 ### 🦗  Minimize Distraction
 
@@ -873,10 +873,15 @@ Especially with hands-off and automated processes, it is very easy to become com
 
 ### 🧑‍🏭️  Effectively use Resources
 
-Do not show off by doing things "the hard way".  Use the appropriate tools and protective equipment(Even if you have to stop and get them!), get a second pair of eyes on important tasks, and set timers for things that may be forgotten.
+Do not show off by doing things "the hard way".  Use the appropriate tools and protective equipment (Even if you have to stop and get them!), get a second pair of eyes on important tasks, and set timers for things that may be forgotten.
 
 ### 🛡 Multiple Layers of Safety
 
 > Two is one, one is none, and three is a good start
 
-Avoid relying on any one person, device, or method whenever possible, and always have a backup plan.  Redundant plans that are very different from the primary are less likely to be affected by the same causes of failure at the same time.
+Avoid relying on any one device or method whenever possible. Avoid situations where one mistake
+will cause major problems, even if you think "nobody would ever make that mistake".
+
+Even the experts can press the wrong button or misidentify a mushroom, and there are many shop teachers who have lost a finger.
+
+Backup plans that are very different from the primary are less likely to be affected by the same causes of failure at the same time.
