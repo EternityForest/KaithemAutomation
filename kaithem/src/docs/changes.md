@@ -3,11 +3,14 @@ Change Log
 
 ### 0.90.0
 
+This one is a pretty small release, which is a good thing.
+The core is largely feature complete, at least for the current set of use cases.
+
 * :sparkles: New easier simpler high level API to create resource types
 * :sparkles: Rotary speaker and auto pan added to the mixing board
-* :bug: Auto fix and warn on group ID collisions
 * :sparkles: Refresh cue providers button
-
+* :bug: Cue providers no longer crash if a nonexistant folder is provided
+* :bug: Auto fix and warn on group ID collisions
 
 ### 0.89.0
 
