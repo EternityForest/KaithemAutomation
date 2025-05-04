@@ -32,12 +32,15 @@
     - [ResourceType().set_edit_page_redirect](#resourcetype()set_edit_page_redirect)
     - [ResourceType().to_files](#resourcetype()to_files)
     - [ResourceType().validate](#resourcetype()validate)
+  - [ResourceTypeRuntimeObject](#resourcetyperuntimeobject)
+    - [ResourceTypeRuntimeObject().close](#resourcetyperuntimeobject()close)
   - [mutable_copy_resource](#mutable_copy_resource)
   - [register_resource_type](#register_resource_type)
+  - [resource_type_from_schema](#resource_type_from_schema)
 
 ## ResourceType
 
-[Show source in resource_types.py:33](../../../api/resource_types.py#L33)
+[Show source in resource_types.py:37](../../../api/resource_types.py#L37)
 
 Allows creating new resource types.
 Data keys starting with resource_ are reserved.
@@ -76,7 +79,7 @@ class ResourceType:
 
 ### ResourceType()._validate
 
-[Show source in resource_types.py:120](../../../api/resource_types.py#L120)
+[Show source in resource_types.py:124](../../../api/resource_types.py#L124)
 
 Strip the resource_ keys before giving it to the validator
 
@@ -92,7 +95,7 @@ def _validate(self, data: ResourceDictType): ...
 
 ### ResourceType().blurb
 
-[Show source in resource_types.py:147](../../../api/resource_types.py#L147)
+[Show source in resource_types.py:151](../../../api/resource_types.py#L151)
 
 Empty or a single overview div
 
@@ -108,7 +111,7 @@ def blurb(self, module: str, resource: str, data: ResourceDictType) -> str: ...
 
 ### ResourceType().create_page
 
-[Show source in resource_types.py:151](../../../api/resource_types.py#L151)
+[Show source in resource_types.py:155](../../../api/resource_types.py#L155)
 
 Called when the user clicks the create button.
 
@@ -123,7 +126,7 @@ def create_page(self, module: str, path) -> str: ...
 
 ### ResourceType().edit_page
 
-[Show source in resource_types.py:175](../../../api/resource_types.py#L175)
+[Show source in resource_types.py:179](../../../api/resource_types.py#L179)
 
 Given current resource data, return a manager page.
 It may submit a form to the URL at get_update_target()
@@ -140,7 +143,7 @@ def edit_page(self, module: str, resource: str, data: ResourceDictType) -> str: 
 
 ### ResourceType().flush_unsaved
 
-[Show source in resource_types.py:234](../../../api/resource_types.py#L234)
+[Show source in resource_types.py:238](../../../api/resource_types.py#L238)
 
 Called when the resource should save any unsaved data it has
 back to the resource.  Will and must only ever be called under the modules_lock
@@ -153,7 +156,7 @@ def flush_unsaved(self, module, resource): ...
 
 ### ResourceType().get_create_target
 
-[Show source in resource_types.py:135](../../../api/resource_types.py#L135)
+[Show source in resource_types.py:139](../../../api/resource_types.py#L139)
 
 #### Signature
 
@@ -163,7 +166,7 @@ def get_create_target(self, module: str, folder: str) -> str: ...
 
 ### ResourceType().get_update_target
 
-[Show source in resource_types.py:138](../../../api/resource_types.py#L138)
+[Show source in resource_types.py:142](../../../api/resource_types.py#L142)
 
 #### Signature
 
@@ -173,7 +176,7 @@ def get_update_target(self, module: str, resource: str) -> str: ...
 
 ### ResourceType().on_create_request
 
-[Show source in resource_types.py:166](../../../api/resource_types.py#L166)
+[Show source in resource_types.py:170](../../../api/resource_types.py#L170)
 
 Must return a resource object given all the kwargs from the createpage.
 Called on submitting create form.  This should not actually do anything
@@ -193,7 +196,7 @@ def on_create_request(
 
 ### ResourceType().on_delete
 
-[Show source in resource_types.py:221](../../../api/resource_types.py#L221)
+[Show source in resource_types.py:225](../../../api/resource_types.py#L225)
 
 Called when a resource is actually being deleted.
 Will be called before on_unload
@@ -210,7 +213,7 @@ def on_delete(self, module, resource: str, data: ResourceDictType): ...
 
 ### ResourceType().on_delete_module
 
-[Show source in resource_types.py:206](../../../api/resource_types.py#L206)
+[Show source in resource_types.py:210](../../../api/resource_types.py#L210)
 
 Called before the resource deleter callbacks
 
@@ -222,7 +225,7 @@ def on_delete_module(self, module: str): ...
 
 ### ResourceType().on_finished_loading
 
-[Show source in resource_types.py:198](../../../api/resource_types.py#L198)
+[Show source in resource_types.py:202](../../../api/resource_types.py#L202)
 
 Called with module name when every resource has finished loading with onload(),
 and before any events or pages are loaded.
@@ -238,7 +241,7 @@ def on_finished_loading(self, module: str | None): ...
 
 ### ResourceType().on_load
 
-[Show source in resource_types.py:193](../../../api/resource_types.py#L193)
+[Show source in resource_types.py:197](../../../api/resource_types.py#L197)
 
 Called when loaded from disk, or otherwise created for the first time.
 
@@ -254,7 +257,7 @@ def on_load(self, module: str, resource: str, data: ResourceDictType): ...
 
 ### ResourceType().on_move
 
-[Show source in resource_types.py:209](../../../api/resource_types.py#L209)
+[Show source in resource_types.py:213](../../../api/resource_types.py#L213)
 
 Called when object has been moved.
 All resource_types must be movable.
@@ -269,7 +272,7 @@ def on_move(
 
 ### ResourceType().on_unload
 
-[Show source in resource_types.py:215](../../../api/resource_types.py#L215)
+[Show source in resource_types.py:219](../../../api/resource_types.py#L219)
 
 Called when a resource is unloaded.  It does not necessarliy mean it is being
 permanently deleted.
@@ -286,7 +289,7 @@ def on_unload(self, module, resource: str, data: ResourceDictType): ...
 
 ### ResourceType().on_update
 
-[Show source in resource_types.py:228](../../../api/resource_types.py#L228)
+[Show source in resource_types.py:232](../../../api/resource_types.py#L232)
 
 Called when something has updated the data on a resource that already exists.
 Usually the web UI but could be anything.
@@ -303,7 +306,7 @@ def on_update(self, module, resource: str, data: ResourceDictType): ...
 
 ### ResourceType().on_update_request
 
-[Show source in resource_types.py:183](../../../api/resource_types.py#L183)
+[Show source in resource_types.py:187](../../../api/resource_types.py#L187)
 
 Called with the kwargs from editpage.  Gets old resource obj, must return new
 
@@ -321,7 +324,7 @@ def on_update_request(
 
 ### ResourceType().save_resource
 
-[Show source in resource_types.py:238](../../../api/resource_types.py#L238)
+[Show source in resource_types.py:242](../../../api/resource_types.py#L242)
 
 Call this if your implementation has it's own editor that can save
 data back.
@@ -334,7 +337,7 @@ def save_resource(self, module, resource, data): ...
 
 ### ResourceType().scan_dir
 
-[Show source in resource_types.py:96](../../../api/resource_types.py#L96)
+[Show source in resource_types.py:100](../../../api/resource_types.py#L100)
 
 Given a directory path, scan for any resources stored
 in some format other than the usual YAML.
@@ -355,7 +358,7 @@ def scan_dir(self, dir: str) -> dict[str, ResourceDictType]: ...
 
 ### ResourceType().set_edit_page_redirect
 
-[Show source in resource_types.py:86](../../../api/resource_types.py#L86)
+[Show source in resource_types.py:90](../../../api/resource_types.py#L90)
 
 Call this from an update handler to say that after submitting,
 the system should redirect back to the edit page for further edits.
@@ -372,7 +375,7 @@ def set_edit_page_redirect(self, url: str = "__repeat__"): ...
 
 ### ResourceType().to_files
 
-[Show source in resource_types.py:106](../../../api/resource_types.py#L106)
+[Show source in resource_types.py:110](../../../api/resource_types.py#L110)
 
 Given a resource, return files as name to content mapping.
 Returned filenames must not include the path, within the module,
@@ -397,7 +400,7 @@ def to_files(self, name: str, resource: ResourceDictType) -> dict[str, str]: ...
 
 ### ResourceType().validate
 
-[Show source in resource_types.py:127](../../../api/resource_types.py#L127)
+[Show source in resource_types.py:131](../../../api/resource_types.py#L131)
 
 Raise an error if the provided data is bad.
 
@@ -417,9 +420,32 @@ def validate(self, data: ResourceDictType): ...
 
 
 
+## ResourceTypeRuntimeObject
+
+[Show source in resource_types.py:259](../../../api/resource_types.py#L259)
+
+#### Signature
+
+```python
+class ResourceTypeRuntimeObject:
+    def __init__(self, module: str, resource: str, data: dict[str, Any]): ...
+```
+
+### ResourceTypeRuntimeObject().close
+
+[Show source in resource_types.py:263](../../../api/resource_types.py#L263)
+
+#### Signature
+
+```python
+def close(self): ...
+```
+
+
+
 ## mutable_copy_resource
 
-[Show source in resource_types.py:25](../../../api/resource_types.py#L25)
+[Show source in resource_types.py:29](../../../api/resource_types.py#L29)
 
 Given an immutable resource, return a mutable copy
 
@@ -437,7 +463,7 @@ def mutable_copy_resource(resource: ResourceDictType) -> dict[str, Any]: ...
 
 ## register_resource_type
 
-[Show source in resource_types.py:251](../../../api/resource_types.py#L251)
+[Show source in resource_types.py:255](../../../api/resource_types.py#L255)
 
 #### Signature
 
@@ -448,3 +474,34 @@ def register_resource_type(resource_type: ResourceType): ...
 #### See also
 
 - [ResourceType](#resourcetype)
+
+
+
+## resource_type_from_schema
+
+[Show source in resource_types.py:267](../../../api/resource_types.py#L267)
+
+Create a new resource type from a JSON schema, and an object
+that represents the runtime state of the resource.
+
+Whatever the schema defines
+is passed to the runtime object constructor verbatim.
+
+The class must have a close() method.
+
+#### Signature
+
+```python
+def resource_type_from_schema(
+    resource_type: str,
+    title: str,
+    icon: str,
+    schema: dict[str, Any] | Callable[[], dict[str, Any]],
+    runtime_object_cls: Type[ResourceTypeRuntimeObject],
+    default: dict[str, Any] = {},
+): ...
+```
+
+#### See also
+
+- [ResourceTypeRuntimeObject](#resourcetyperuntimeobject)

@@ -12,6 +12,7 @@
     - [SimpleDialog().end_section](#simpledialog()end_section)
     - [SimpleDialog().file_input](#simpledialog()file_input)
     - [SimpleDialog().is_disabled_by_default](#simpledialog()is_disabled_by_default)
+    - [SimpleDialog().json_editor](#simpledialog()json_editor)
     - [SimpleDialog().link](#simpledialog()link)
     - [SimpleDialog().name_to_title](#simpledialog()name_to_title)
     - [SimpleDialog().render](#simpledialog()render)
@@ -22,7 +23,7 @@
 
 ## SimpleDialog
 
-[Show source in dialogs.py:81](../../../../api/web/dialogs.py#L81)
+[Show source in dialogs.py:109](../../../../api/web/dialogs.py#L109)
 
 Class that generates a dialog.
 
@@ -39,7 +40,7 @@ class SimpleDialog:
 
 ### SimpleDialog().begin_section
 
-[Show source in dialogs.py:165](../../../../api/web/dialogs.py#L165)
+[Show source in dialogs.py:193](../../../../api/web/dialogs.py#L193)
 
 #### Signature
 
@@ -49,7 +50,7 @@ def begin_section(self, title: str): ...
 
 ### SimpleDialog().checkbox
 
-[Show source in dialogs.py:181](../../../../api/web/dialogs.py#L181)
+[Show source in dialogs.py:209](../../../../api/web/dialogs.py#L209)
 
 Add a checkbox
 
@@ -64,7 +65,7 @@ def checkbox(
 
 ### SimpleDialog().code_editor
 
-[Show source in dialogs.py:229](../../../../api/web/dialogs.py#L229)
+[Show source in dialogs.py:257](../../../../api/web/dialogs.py#L257)
 
 Add a file upload input. Name it 'file' and name an input 'filename'  to auto link them.
 
@@ -84,7 +85,7 @@ def code_editor(
 
 ### SimpleDialog().end_section
 
-[Show source in dialogs.py:171](../../../../api/web/dialogs.py#L171)
+[Show source in dialogs.py:199](../../../../api/web/dialogs.py#L199)
 
 #### Signature
 
@@ -94,7 +95,7 @@ def end_section(self): ...
 
 ### SimpleDialog().file_input
 
-[Show source in dialogs.py:209](../../../../api/web/dialogs.py#L209)
+[Show source in dialogs.py:237](../../../../api/web/dialogs.py#L237)
 
 Add a file upload input. Name it 'file' and name an input 'filename'  to auto link them.
 
@@ -107,7 +108,7 @@ def file_input(self, name: str = "file", title: str | None = None, disabled=None
 
 ### SimpleDialog().is_disabled_by_default
 
-[Show source in dialogs.py:114](../../../../api/web/dialogs.py#L114)
+[Show source in dialogs.py:142](../../../../api/web/dialogs.py#L142)
 
 If an element does not specify whether it is disabled, this is called.
 You can subclass it, by default it checks system_admin.
@@ -118,9 +119,21 @@ You can subclass it, by default it checks system_admin.
 def is_disabled_by_default(self): ...
 ```
 
+### SimpleDialog().json_editor
+
+[Show source in dialogs.py:346](../../../../api/web/dialogs.py#L346)
+
+#### Signature
+
+```python
+def json_editor(
+    self, name: str, schema: dict[str, Any], default: dict[str, Any] = {}
+): ...
+```
+
 ### SimpleDialog().link
 
-[Show source in dialogs.py:124](../../../../api/web/dialogs.py#L124)
+[Show source in dialogs.py:152](../../../../api/web/dialogs.py#L152)
 
 #### Signature
 
@@ -130,7 +143,7 @@ def link(self, s: str, url: str): ...
 
 ### SimpleDialog().name_to_title
 
-[Show source in dialogs.py:105](../../../../api/web/dialogs.py#L105)
+[Show source in dialogs.py:133](../../../../api/web/dialogs.py#L133)
 
 If title not provided, this will be
 called to create one fron the control's name
@@ -143,7 +156,7 @@ def name_to_title(self, s: str): ...
 
 ### SimpleDialog().render
 
-[Show source in dialogs.py:318](../../../../api/web/dialogs.py#L318)
+[Show source in dialogs.py:385](../../../../api/web/dialogs.py#L385)
 
 The form will target the given URL and have all the keys and values in hidden inputs
 
@@ -158,7 +171,7 @@ def render(
 
 ### SimpleDialog().selection
 
-[Show source in dialogs.py:257](../../../../api/web/dialogs.py#L257)
+[Show source in dialogs.py:285](../../../../api/web/dialogs.py#L285)
 
 Add a select element
 
@@ -178,7 +191,7 @@ def selection(
 
 ### SimpleDialog().submit_button
 
-[Show source in dialogs.py:294](../../../../api/web/dialogs.py#L294)
+[Show source in dialogs.py:322](../../../../api/web/dialogs.py#L322)
 
 Add a submit button
 
@@ -193,7 +206,7 @@ def submit_button(
 
 ### SimpleDialog().text
 
-[Show source in dialogs.py:120](../../../../api/web/dialogs.py#L120)
+[Show source in dialogs.py:148](../../../../api/web/dialogs.py#L148)
 
 Add some help text
 
@@ -205,7 +218,7 @@ def text(self, s: str): ...
 
 ### SimpleDialog().text_input
 
-[Show source in dialogs.py:127](../../../../api/web/dialogs.py#L127)
+[Show source in dialogs.py:155](../../../../api/web/dialogs.py#L155)
 
 #### Signature
 

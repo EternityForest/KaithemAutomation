@@ -38,7 +38,7 @@ def admin_url_for_file_resource(module: str, resource: str) -> str: ...
 
 ## delete_resource
 
-[Show source in modules.py:101](../../../api/modules.py#L101)
+[Show source in modules.py:99](../../../api/modules.py#L99)
 
 Delete a resource, triggering any relevant effects for that resource type.
 May only be called under the modules_lock.
@@ -115,7 +115,7 @@ def insert_resource(module: str, resource: str, resourceData: ResourceDictType):
 
 ## list_resources
 
-[Show source in modules.py:109](../../../api/modules.py#L109)
+[Show source in modules.py:107](../../../api/modules.py#L107)
 
 List the resources in a module.
 May only be called under the modules_lock.
@@ -131,7 +131,7 @@ def list_resources(module: str) -> list[str]: ...
 
 ## resolve_file_resource
 
-[Show source in modules.py:116](../../../api/modules.py#L116)
+[Show source in modules.py:114](../../../api/modules.py#L114)
 
 Given a name of a file resource or a folder in the file resources,
 return the full path to it, if it can be found in any module.
@@ -149,7 +149,7 @@ def resolve_file_resource(relative_path: str) -> str | None: ...
 
 ## save_resource
 
-[Show source in modules.py:128](../../../api/modules.py#L128)
+[Show source in modules.py:126](../../../api/modules.py#L126)
 
 Save a resource without triggering any other events.
 Use this in your flush_unsaved handler. May only be called under the modules_lock.
