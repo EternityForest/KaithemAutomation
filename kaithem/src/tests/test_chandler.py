@@ -112,12 +112,7 @@ def test_cue_provider():
         if os.path.exists(tempdir):
             shutil.rmtree(tempdir)
 
-        shutil.copytree(
-            os.path.join(staticdir, "sounds"),
-            os.path.join(
-                directories.vardir, "modules", "data", "test_chandler_providers"
-            ),
-        )
+        shutil.copytree(os.path.join(staticdir, "sounds"), tempdir)
 
         # Check to make sure it doesn't crash on a bad provider
         grp.cue_providers = [
@@ -169,6 +164,25 @@ def test_cue_provider():
             if not len(grp.cues) == 1:
                 time.sleep(0.1)
         assert len(grp.cues) == 1
+
+        # Now set it and make sure they come back
+        grp.cue_providers = [
+            "file://" + tempdir + "?import_media=sound",
+        ]
+        time.sleep(0.3)
+
+        for attempt in stamina.retry_context(on=AssertionError, attempts=50):
+            with attempt:
+                assert len(grp.cues) > 2
+
+        for i in os.listdir(tempdir):
+            os.remove(os.path.join(tempdir, i))
+
+        grp.refresh_cue_providers()
+
+        for attempt in stamina.retry_context(on=AssertionError, attempts=50):
+            with attempt:
+                assert len(grp.cues) == 1
 
     with TempGroup() as grp:
         grp.cue_providers = [
@@ -1328,7 +1342,6 @@ def test_tag_backtrack_feature():
         core.wait_frame()
         for attempt in stamina.retry_context(on=AssertionError):
             with attempt:
-                time.sleep(0.05)
                 assert tagpoints.Tag("/test_bt").value == 1
 
         s.cues["default"].set_value_immediate("/test_bt", "value", 2)
