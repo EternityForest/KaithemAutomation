@@ -1340,6 +1340,7 @@ def test_tag_backtrack_feature():
 
         core.wait_frame()
         core.wait_frame()
+        assert "/test_bt" in s.lighting_manager.on_demand_universes
         for attempt in stamina.retry_context(on=AssertionError):
             with attempt:
                 assert tagpoints.Tag("/test_bt").value == 1
