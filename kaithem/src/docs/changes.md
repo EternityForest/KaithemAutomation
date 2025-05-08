@@ -1,6 +1,10 @@
 Change Log
 ----------
 
+### 0.91.0
+
+* :sparkles: User selectable fonts
+* :sparkles: The default font is Atkinson Hyperlegible
 ### 0.90.0
 
 This one is a pretty small release, which is a good thing.

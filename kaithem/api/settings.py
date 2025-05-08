@@ -1,3 +1,5 @@
+from scullery import messagebus
+
 from kaithem.src import settings_overrides
 
 
@@ -29,3 +31,11 @@ def clear_suggestions(key: str):
 
 def set_description(key: str, description: str):
     return settings_overrides.set_description(key, description)
+
+
+def subscribe_to_changes(key, callback):
+    def cb(t, v):
+        if v == key:
+            callback(get_val(key))
+
+    return messagebus.subscribe("/system/config/changed", callback)

@@ -6,6 +6,23 @@
 /*****************Typography****************************/
 
 
+@font-face {
+    font-family: "AtkinsonHyperlegible";
+    src: url("/static/fonts/AtkinsonHyperlegible/AtkinsonHyperlegible-Regular.ttf")
+}
+
+@font-face {
+    font-family: "AtkinsonHyperlegible";
+    src: url("/static/fonts/AtkinsonHyperlegible/AtkinsonHyperlegible-Bold.ttf");
+    font-weight: bold
+}
+
+@font-face {
+    font-family: "AtkinsonHyperlegible";
+    src: url("/static/fonts/AtkinsonHyperlegible/AtkinsonHyperlegible-Italic.ttf");
+    font-style: italic;
+}
+
 @media screen and (max-width: 820px) {
     .desktop-only {
         display: none;

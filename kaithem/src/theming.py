@@ -3,11 +3,14 @@
 
 import logging
 import os
+import time
 import weakref
 
 from scullery import persist
 
-from . import directories, settings_overrides
+from kaithem.api import settings
+
+from . import directories, quart_app, settings_overrides
 from .config import config
 
 fn = os.path.join(directories.vardir, "core.settings", "theming.toml")
@@ -63,6 +66,16 @@ settings_overrides.set_description(
     "core/css_theme", "Barrel theme URL or any predefined theme name"
 )
 
+settings_overrides.set_description(
+    "core/ui_font",
+    "UI font name, defaults to AtkinsonHyperlegible.  Can be overridden by certain themes.",
+)
+
+settings_overrides.add_suggestion("core/ui_font", "AtkinsonHyperlegible")
+settings_overrides.add_suggestion("core/ui_font", "Lora")
+settings_overrides.add_suggestion("core/ui_font", "Lato")
+settings_overrides.add_suggestion("core/ui_font", "AlegrayaSans")
+
 
 def getCSSTheme():
     x = settings_overrides.get_val("core/css_theme") or config["theme_url"]
@@ -75,3 +88,34 @@ def getCSSTheme():
             return x
     except Exception:
         return None
+
+
+theme_ver: float = time.time()
+
+
+def handleThemeChange(*a, **k):
+    global theme_ver
+    theme_ver = time.time()
+
+
+settings.subscribe_to_changes("core/css_theme", handleThemeChange)
+
+
+@quart_app.app.route("/dynamic.css/<version>", methods=["GET"])
+async def dynamicCSS(version):
+    rules = []
+
+    rules.append(
+        f"--main-font: {settings_overrides.get_val('core/ui_font') or 'AtkinsonHyperlegible'};"
+    )
+
+    x = f"""
+:root{{
+    {"\n".join(rules)}
+}}
+    """
+
+    y = await quart_app.app.make_response(x)
+    y.mimetype = "text/css"
+
+    return y
