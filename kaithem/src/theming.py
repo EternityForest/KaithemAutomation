@@ -75,6 +75,8 @@ settings_overrides.add_suggestion("core/ui_font", "AtkinsonHyperlegible")
 settings_overrides.add_suggestion("core/ui_font", "Lora")
 settings_overrides.add_suggestion("core/ui_font", "Lato")
 settings_overrides.add_suggestion("core/ui_font", "AlegrayaSans")
+settings_overrides.add_suggestion("core/ui_font", """sans""")
+settings_overrides.add_suggestion("core/ui_font", """serif""")
 
 
 def getCSSTheme():
@@ -99,6 +101,7 @@ def handleThemeChange(*a, **k):
 
 
 settings.subscribe_to_changes("core/css_theme", handleThemeChange)
+settings.subscribe_to_changes("core/body_font", handleThemeChange)
 
 
 @quart_app.app.route("/dynamic.css/<version>", methods=["GET"])
