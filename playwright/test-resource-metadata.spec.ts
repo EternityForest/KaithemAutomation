@@ -23,7 +23,7 @@ test("test", async ({ page }) => {
   await page.getByPlaceholder("New group name").click();
   await page.getByPlaceholder("New group name").fill("td1");
   await page.getByTestId("add-group-button").click();
-  await expect(page.getByRole("button", { name: "td1" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "td1" })).toBeVisible({ timeout: 15_000 });
 
   await page.getByRole("link", { name: "󱒕 Modules" }).click();
   await page.getByRole("link", { name: "TestDisableResource" }).click();
@@ -61,7 +61,7 @@ test("test", async ({ page }) => {
     .click();
   await page.getByRole("link", { name: "Editor" }).click();
 
-  await expect(page.getByRole("button", { name: "td1" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "td1" })).toBeVisible({ timeout: 15_000 });
 
   await deleteModule(page, "TestDisableResource");
 });

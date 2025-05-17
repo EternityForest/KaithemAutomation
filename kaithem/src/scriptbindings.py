@@ -279,6 +279,27 @@ class LowPassFilterBlock(FunctionBlock):
         return self.state
 
 
+class CooldownBlock(FunctionBlock):
+    def __init__(self, ctx: ChandlerScriptContext, *args, **kwargs):
+        self.credits = 0
+        self.timestamp = 0
+
+    def __call__(self, limit="1", window="1.0", **kwds: Any) -> Any:
+        """Continue executing rule only N times per T seconds"""
+        self.credits = min(
+            float(limit),
+            self.credits
+            + ((time.monotonic() - self.timestamp) / float(window)),
+        )
+        self.timestamp = time.monotonic()
+
+        if self.credits >= 1:
+            self.credits -= 1
+            return self.credits + 1
+
+        return None
+
+
 class HysteresisBlock(FunctionBlock):
     def __init__(self, ctx: ChandlerScriptContext, *args, **kwargs):
         self.lastMark = 10**15
@@ -360,6 +381,7 @@ predefinedcommands: dict[str, Callable[..., Any] | type[FunctionBlock]] = {
     "on_change": OnChangeBlock,
     "lowpass": LowPassFilterBlock,
     "hysteresis": HysteresisBlock,
+    "cooldown": CooldownBlock,
     "set_tag": set_tag,
 }
 

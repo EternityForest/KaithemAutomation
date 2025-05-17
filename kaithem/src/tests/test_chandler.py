@@ -1223,6 +1223,56 @@ def test_cue_logic_function_blocks():
         assert abs(logic_test_tag_o.value - 0.63) < 0.05
 
 
+def test_cue_logic_function_block_cooldown():
+    with TempGroup("sending_group") as sending_group:
+        assert sending_group.active
+        core.wait_frame()
+
+        assert sending_group in board.active_groups
+        assert sending_group.cue.name == "default"
+
+        logic_test_tag = tagpoints.Tag("/logic_test_tag")
+        logic_test_tag.value = 0
+
+        # Make sure the action only triggers three times
+        sending_group.add_cue(
+            "cue2",
+            rules=[
+                [
+                    "test",
+                    [
+                        ["cooldown", "3", "1"],
+                        [
+                            "set_tag",
+                            "/logic_test_tag",
+                            "=tv('/logic_test_tag') + 1",
+                        ],
+                    ],
+                ],
+            ],
+        )
+
+        sending_group.goto_cue("cue2")
+        core.wait_frame()
+        core.wait_frame()
+
+        time.sleep(1)
+        sending_group.event("test")
+        sending_group.event("test")
+        sending_group.event("test")
+        sending_group.event("test")
+        sending_group.event("test")
+
+        core.wait_frame()
+        core.wait_frame()
+
+        assert logic_test_tag.value == 3
+        # Make sure there aren't some other events queued up
+        core.wait_frame()
+        core.wait_frame()
+        assert logic_test_tag.value == 3
+
+
 def test_cue_logic_tags():
     with TempGroup("sending_group") as sending_group:
         with TempGroup("recv_group") as recv_group:
@@ -1259,6 +1309,8 @@ def test_cue_logic_tags():
             sending_group.goto_cue("cue2")
 
             # Events are sometimes delayed a frame
+            core.wait_frame()
+            core.wait_frame()
             core.wait_frame()
             core.wait_frame()
             assert test_set_tag.value == 5

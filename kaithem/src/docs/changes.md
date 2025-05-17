@@ -5,6 +5,8 @@ Change Log
 
 * :sparkles: User selectable fonts
 * :sparkles: The default font is Atkinson Hyperlegible
+* :sparkles: Cooldown block limits how often a Chandler logic rule can fire
+
 ### 0.90.0
 
 This one is a pretty small release, which is a good thing.
