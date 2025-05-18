@@ -578,6 +578,7 @@ def test_cue_track_setting():
         # Non existant universes need test coverage to be sure
         # it doesn't crash anything
         grp.cue.set_value_immediate("nonexistent", 1, 255)
+        grp.cue.set_value_immediate("@nonexistentfixture", "nonexistent", 255)
 
         core.wait_frame()
         core.wait_frame()
@@ -1732,6 +1733,49 @@ def test_cue_logic_inherit_loop():
         core.wait_frame()
 
         assert s.alpha == 0.7
+
+
+def test_fade_in():
+    with TempGroup() as s:
+        s.add_cue("cue2", fade_in=5)
+        tagpoints.Tag("/foo").value = 0
+        s.cues["cue2"].set_value_immediate("/foo", "value", 5)
+
+        s.goto_cue("cue2")
+        core.wait_frame()
+
+        for attempt in stamina.retry_context(on=AssertionError, attempts=50):
+            with attempt:
+                assert tagpoints.Tag("/foo").value > 0
+                assert tagpoints.Tag("/foo").value < 5
+
+        s.stop()
+        core.wait_frame()
+
+    # Test the remote fading feature used for LED bulbs and the like
+    # This mode immediately jumps to the end of a fade, and tells the remote device to
+    # do the fading
+    with TempGroup() as s:
+        s.add_cue("cue2", fade_in=5)
+        t = time.time()
+        s.cues["default"].set_value_immediate("/foo", "value", 0)
+        s.cues["cue2"].set_value_immediate("/foo", "value", 5)
+
+        s.lighting_manager.on_demand_universes["/foo"].localFading = False
+
+        s.goto_cue("cue2")
+        core.wait_frame()
+        core.wait_frame()
+        core.wait_frame()
+
+        assert tagpoints.Tag("/foo").value == 5
+        assert (
+            abs(
+                (t + 5)
+                - s.lighting_manager.on_demand_universes["/foo"].fadeEndTime
+            )
+            < 0.1
+        )
 
 
 # def test_group_loaded_from_yaml():

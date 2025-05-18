@@ -60,7 +60,7 @@ def open2(path, mode: str = "r", *args, **kwargs):
     if not (str(path).startswith("/dev/shm/")) and not path == "/dev/null":
         if "w" in mode or "a" in mode:
             if "__pycache__" not in str(path) and "/.cache/" not in str(path):
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     "Unit testing is not allowed to write outside of /dev/shm: "
                     + str(path)
                 )
