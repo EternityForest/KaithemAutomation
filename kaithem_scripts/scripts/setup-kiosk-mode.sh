@@ -24,6 +24,24 @@ fi
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
 
+# if kaithem uid not set raise error
+if [ -z "$KAITHEM_UID" ]; then
+    echo "KAITHEM_UID not set"
+    exit 1
+fi
+
+# don't allow root either
+if [ "$KAITHEM_UID" -eq 0 ]; then
+    echo "KAITHEM_UID cannot be root"
+    exit 1
+fi
+
+#require kiosk home to be set
+if [ -z "$KIOSK_HOME" ]; then
+    echo "KIOSK_HOME not set"
+    exit 1
+fi
+
 # Bye bye to the screen savier.
 sudo -u $(id -un $KAITHEM_UID) dbus-launch gsettings set org.gnome.desktop.screensaver lock-delay 3600
 sudo -u $(id -un $KAITHEM_UID) dbus-launch gsettings set org.gnome.desktop.screensaver lock-enabled false
@@ -40,23 +58,18 @@ mkdir -p /etc/lightdm
 
 SESSION_CFG=""
 
-# Use Wayfire if possible. Unfortunately chrome doesn't like it.
-# This will have to wait.
-# if [ -f /usr/share/wayland-sessions/LXDE-pi-wayfire.desktop ]; then
-# read -r -d '' SESSION_CFG << EOM
-# autologin-session=LXDE-pi-wayfire
-# user-session=LXDE-pi-wayfire
-# greeter-session=pi-greeter-wayfire
-# EOM
-# fi
 
-cat << EOF >  /etc/lightdm/lightdm.conf
-[SeatDefaults]
-autologin-guest=false
-autologin-user=$(id -un $KAITHEM_UID)
-autologin-user-timeout=0
-$SESSION_CFG
-EOF
+# Make a backup
+if [ -f /etc/lightdm/lightdm.conf ]; then
+    sed /etc/lightdm/lightdm.conf -i -e "s/^\(#\|\)autologin-user=.*/autologin-user=$(id -un $KAITHEM_UID)/"
+fi
+
+
+# if rpi config exists
+if command -v raspi-config &> /dev/null; then
+  # Auto login
+  sudo raspi-config nonint do_boot_behaviour B4
+fi
 
 
 # Remove SSH warning on the pi.  Redundantly done in linux tweaks.

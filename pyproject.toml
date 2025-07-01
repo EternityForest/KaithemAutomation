@@ -29,6 +29,7 @@ handsdown = "^2.1.0"
 pytest-cov = "^5.0.0"
 pytest-asyncio = "^0.23.7"
 time-machine = "^2.0.0"
+coverage = "^7.2.7"
 
 [tool.ruff]
 line-length = 80
