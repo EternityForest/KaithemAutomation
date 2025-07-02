@@ -102,6 +102,17 @@ def test_cue_unique():
             grp.add_cue("cue2", id=grp.cues["default"].id)
 
 
+def test_cue_clone():
+    with TempGroup() as grp:
+        grp.cue.clone("clone")
+        assert "clone" in grp.cues
+        assert grp.cues["clone"].id != grp.cues["default"].id
+
+        # No duplicate names
+        with pytest.raises(ValueError):
+            grp.cue.clone("clone")
+
+
 def test_cue_provider():
     from kaithem.api.modules import modules_lock
 
@@ -144,6 +155,10 @@ def test_cue_provider():
 
         with pytest.raises(RuntimeError):
             grp.cues_ordered[1].sound = "foo"
+
+        # External setting provider wouldn't make sense
+        with pytest.raises(RuntimeError):
+            grp.cues_ordered[1].provider = "foo"
 
         # This would only apply if imported in slide mode
         # with pytest.raises(RuntimeError):

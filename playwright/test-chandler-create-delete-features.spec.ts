@@ -10,6 +10,7 @@ import {
 
 test("test", async ({ page }) => {
   test.setTimeout(600_000);
+  await page.setDefaultTimeout(15_000);
 
   await page.goto("http://localhost:8002/");
   await login(page);

@@ -9,6 +9,8 @@ test("test", async ({ page }) => {
 
   makeModule(page, "test_presets");
 
+  await page.setDefaultTimeout(15_000);
+
   await page.getByTestId("add-resource-button").click();
   await page.getByTestId("add-chandler_board").click();
   await page.getByLabel("Resource Name").click();
@@ -60,7 +62,7 @@ test("test", async ({ page }) => {
   await page
     .getByLabel("Type:")
     .first()
-    .selectOption("intensity", { timeout: 10_000 });
+    .selectOption("intensity");
   await page.getByRole("button", { name: "Add Channel" }).click();
   await sleep(500);
   await page.getByLabel("Type:").nth(1).selectOption("red");

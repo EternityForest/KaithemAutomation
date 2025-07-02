@@ -2,11 +2,15 @@ from __future__ import annotations
 
 import weakref
 
+import structlog
+
 from kaithem.api.web import nav_bar_plugins, require
 
 from . import pages
 from .modules_state import get_resource_label_image_url
 from .quart_app import app
+
+_logger = structlog.get_logger()
 
 
 def nbr():
@@ -87,4 +91,6 @@ def remove_app(app):
     try:
         del all_apps[app.id]
     except KeyError:
-        pass
+        _logger.warning(
+            "Attempt to remove app that already not active", app=app
+        )

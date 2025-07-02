@@ -456,7 +456,7 @@ class Cue:
 
     def clone(self, name: str):
         if name in self.getGroup().cues:
-            raise RuntimeError("Cannot duplicate cue names in one group")
+            raise ValueError("Cannot duplicate cue names in one group")
 
         n = self.getGroup().get_number_for_new_cue(after=self.number)
 

@@ -373,15 +373,9 @@ def test_tags():
     c.release()
     assert t.value == "5"
 
-    x = []
-
-    def f(v, t, a):
-        x.append(v)
-
     t1 = tagpoints.Tag("/system/unit_test_tag")
 
     t2 = tagpoints.Tag("=tv('/system/unit_test_tag') + 7")
-    t.subscribe(f)
 
     c3 = t1.claim(1, "testClaim3", 80)
     assert t2.value == 1 + 7
