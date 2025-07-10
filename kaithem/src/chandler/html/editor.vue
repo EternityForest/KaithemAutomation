@@ -72,19 +72,13 @@
       </div>
 
       <div class="menubar tool-bar noselect">
-        <p><b>Keys:</b></p>
-        <button
-          type="button"
-          v-on:click="editMode"
-          v-bind:class="{ highlight: keybindmode == 'edit' }">
-          <i class="mdi mdi-pencil"></i>Edit Mode
-        </button>
-        <button
-          type="button"
-          v-on:click="runMode"
-          v-bind:class="{ highlight: keybindmode == 'run' }">
-          <i class="mdi mdi-flag"></i>Send Events
-        </button>
+        <label><i class="mdi mdi-keyboard"></i>Send Keys:
+        <input
+          type="checkbox"
+          class="toggle"
+          v-model="sendKeystrokes"
+          >
+        </label>
       </div>
     </section>
 
@@ -123,8 +117,7 @@
               placeholder="Shortcut"
               v-model="sc_code"
               v-on:keydown.enter="shortcut()"
-              v-on:focus="keyboardJS.pause()"
-              v-on:blur="keyboardJS.resume()" />
+              />
             <button type="button" v-on:click="shortcut()">Go!</button>
           </div>
           <div class="tool-bar noselect">
@@ -2755,7 +2748,6 @@ import {
   groupChannelsViewMode,
   fixtureClasses,
   groupfilter,
-  keybindmode,
   cuevals,
   useBlankDescriptions,
   slideshow_telemetry,
@@ -2810,8 +2802,6 @@ import {
   addRangeEffect,
   addfixToCurrentCue,
   rmFixCue,
-  editMode,
-  runMode,
   setEventButtons,
   addTimeToGroup,
   lookupFixtureType,
@@ -2828,6 +2818,7 @@ import {
   channelInfoForUniverseChannel,
   notifyPopupComputedCueLength,
   refreshCueProviders,
+  sendKeystrokes
 } from "./boardapi.mjs";
 
 import {

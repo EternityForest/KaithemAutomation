@@ -71,7 +71,8 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    text-shadow: 1px 1px 2px var(--contrasting-bg-color),
+    text-shadow:
+      1px 1px 2px var(--contrasting-bg-color),
       -1px 1px 2px var(--contrasting-bg-color),
       -1px -1px 2px var(--contrasting-bg-color),
       1px -1px 2px var(--contrasting-bg-color);
@@ -171,9 +172,7 @@ div.highlight {
               aria-label="Shortcut code"
               placeholder="Shortcut"
               v-model="sc_code"
-              v-on:keydown.enter="shortcut()"
-              v-on:focus="keyboardJS.pause()"
-              v-on:blur="keyboardJS.resume()" />
+              v-on:keydown.enter="shortcut()" />
             <button v-on:click="shortcut()">Go!</button>
             <button v-on:click="showPages = !showPages">Toggle Compact</button>
 
@@ -184,6 +183,11 @@ div.highlight {
             <button onclick="document.documentElement.requestFullscreen()">
               <i class="mdi mdi-arrow-expand-all"></i>Fullscreen
             </button>
+
+            <label
+              ><i class="mdi mdi-keyboard"></i>Send Keys:
+              <input type="checkbox" class="toggle" v-model="sendKeystrokes" />
+            </label>
           </div>
         </header>
 
@@ -218,7 +222,7 @@ div.highlight {
                 'flex-col': 1,
                 'min-h-18rem': 1,
                 'max-h-24rem': 1,
-                'noselect': 1
+                'noselect': 1,
               }">
               <header class="flex-row gaps">
                 <h3>
@@ -285,7 +289,9 @@ div.highlight {
                       style="border-bottom-right-radius: 0.5em"
                       :class="{ success: i[1].active, grow: 1 }"
                       v-if="i[1].active && cuemeta[i[1].cue]">
-                      <span data-testid="active-cue-name">{{ cuemeta[i[1].cue].name }}</span>
+                      <span data-testid="active-cue-name">{{
+                        cuemeta[i[1].cue].name
+                      }}</span>
                       <small>{{ formatTime(i[1].enteredCue) }}</small>
                     </div>
 
@@ -443,10 +449,10 @@ div.highlight {
             v-on:click="addTimeToGroup(editingGroup.id)">
             <i class="mdi mdi-clock"></i><i class="mdi mdi-plus"></i>Add Time
           </button>
-          
-          <button @click="refreshCueProviders(editingGroup.id)"
-          v-if="editingGroup.cueProviders.length > 0"
-          >
+
+          <button
+            @click="refreshCueProviders(editingGroup.id)"
+            v-if="editingGroup.cueProviders.length > 0">
             <i class="mdi mdi-refresh"></i>Refresh
           </button>
           <button @click="compactCues = !compactCues" class="nogrow">
@@ -472,7 +478,12 @@ div.highlight {
             :groupname="groupname">
             <button
               v-if="compactCues"
-              v-on:click="jumpToCueWithConfirmationIfNeeded(cueSlot.i[1].id, editingGroup.id)"
+              v-on:click="
+                jumpToCueWithConfirmationIfNeeded(
+                  cueSlot.i[1].id,
+                  editingGroup.id
+                )
+              "
               class="compact-cuebutton"
               v-bind:class="{
                 success: cuemeta[editingGroup.cue].name == cueSlot.i[1].name,
@@ -534,7 +545,12 @@ div.highlight {
               <header>
                 <button
                   class="h-4rem w-full cuebutton"
-                  v-on:click="jumpToCueWithConfirmationIfNeeded(cueSlot.i[1].id, editingGroup.id)">
+                  v-on:click="
+                    jumpToCueWithConfirmationIfNeeded(
+                      cueSlot.i[1].id,
+                      editingGroup.id
+                    )
+                  ">
                   <span v-if="cueSlot.i[1].shortcut.length > 0">
                     ({{ cueSlot.i[1].shortcut }})</span
                   >
@@ -664,7 +680,8 @@ import {
   sendGroupEventWithConfirm,
   stop,
   addTimeToGroup,
-refreshCueProviders
+  sendKeystrokes,
+  refreshCueProviders,
 } from "./boardapi.mjs";
 import * as Vue from "/static/js/thirdparty/vue.esm-browser.js";
 

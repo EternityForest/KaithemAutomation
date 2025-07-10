@@ -8,6 +8,8 @@ Change Log
 * :sparkles: Cooldown block limits how often a Chandler logic rule can fire
 * :sparkles: Timing Enable feature lets you turn off the auto cue advance in Chandler for testing
 
+* :bug: Keyboard events from chandler pages now work correctly
+
 ### 0.90.0
 
 This one is a pretty small release, which is a good thing.

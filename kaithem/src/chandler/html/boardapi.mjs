@@ -18,7 +18,7 @@ import {
   kaithemapi,
   APIWidget,
 } from "/static/js/widget.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
-import picodash from '/static/js/thirdparty/picodash/picodash-base.esm.js'
+import picodash from "/static/js/thirdparty/picodash/picodash-base.esm.js";
 
 import { computed, ref, toRaw } from "/static/js/thirdparty/vue.esm-browser.js";
 
@@ -52,27 +52,39 @@ let channelInfoByUniverseAndNumber = ref({});
 
 let presets = ref({});
 
+let sendKeystrokes = ref(true);
+
 function keyHandle(event_) {
-  if (keysdown[event_.key] != undefined && keysdown[event_.key]) {
+  if (!sendKeystrokes.value) {
+    return;
+  }
+  if (event_.repeat) {
+    return;
+  }
+  const target = event_.target;
+  if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") {
     return;
   }
   keysdown[event_.key] = true;
-  event_.preventRepeat();
   api_link.send(["event", "keydown." + event_.key, 1, "int", "__global__"]);
 }
 function keyUpHandle(event_) {
-  if (keysdown[event_.key] != undefined && !keysdown[event_.key]) {
+  if (!sendKeystrokes.value) {
+    return;
+  }
+  if (event_.repeat) {
+    return;
+  }
+  const target = event_.target;
+  if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") {
     return;
   }
   keysdown[event_.key] = false;
   api_link.send(["event", "keyup." + event_.key, 1, "int", "__global__"]);
 }
 
-function rebindKeys() {
-  keyboardJS.reset();
-  keyboardJS.bind(keyHandle);
-  keyboardJS.bind(null, keyUpHandle);
-}
+globalThis.addEventListener("keydown", keyHandle);
+globalThis.addEventListener("keyup", keyUpHandle);
 
 export function refreshCueProviders(group) {
   const url = "/chandler/api/refresh-group-cue-providers/" + group;
@@ -82,7 +94,6 @@ export function refreshCueProviders(group) {
     alert("Could not reach server:" + error);
   });
 }
-
 
 function playAlert(m) {
   if (uiAlertSounds.value) {
@@ -103,12 +114,10 @@ function errorTone(m) {
     new Audio(mp3_url).play().catch(() => {});
   }
   if (m) {
-    picodash.snackbar.createSnackbar(m,
-      {
-        accent: "error",
-        timeout: 60 * 1000,
-      }
-    );
+    picodash.snackbar.createSnackbar(m, {
+      accent: "error",
+      timeout: 60 * 1000,
+    });
   }
 }
 // Legacy compatibility equivalents for the old vue2 apis. TODO get rid of this
@@ -143,10 +152,13 @@ async function initializeState(board) {
   });
 
   if (!v.ok) {
-    picodash.snackbar.createSnackbar("Error getting state.  Board might be nonexistent", {
-      timeout: 600_000,
-      accent: "error"
-    });
+    picodash.snackbar.createSnackbar(
+      "Error getting state.  Board might be nonexistent",
+      {
+        timeout: 600_000,
+        accent: "error",
+      }
+    );
     return;
   }
 
@@ -155,7 +167,6 @@ async function initializeState(board) {
   for (var index in v) {
     handleCueInfo(index, v[index]);
   }
-
 }
 
 let cueSetData = {};
@@ -357,7 +368,8 @@ async function delgroup(group) {
   if (r == true) {
     await doSerialized(async () => {
       let result = fetch(
-        "/chandler/api/delete-group/" + boardname.value + "/" + group, {
+        "/chandler/api/delete-group/" + boardname.value + "/" + group,
+        {
           method: "PUT",
         }
       ).catch(function (error) {
@@ -376,15 +388,11 @@ async function delgroup(group) {
 
 async function go(group) {
   await doSerialized(async () => {
-    const result = fetch("/chandler/api/group-go/" + group,
-      {
-        method: "PUT",
-      }
-    ).catch(
-      function (error) {
-        alert("Could not reach server:" + error);
-      }
-    );
+    const result = fetch("/chandler/api/group-go/" + group, {
+      method: "PUT",
+    }).catch(function (error) {
+      alert("Could not reach server:" + error);
+    });
     const result2 = await result;
     if (!result2.ok) {
       alert("Error activating group: " + result.statusText);
@@ -398,19 +406,16 @@ async function stop(group) {
   );
 
   if (x) {
-    const result = fetch("/chandler/api/group-stop/" + group,
-      {
-        method: "PUT",
-      }
-    ).catch(
-      function (error) {
-        alert("Could not reach server:" + error);
-      }
-    );
+    const result = fetch("/chandler/api/group-stop/" + group, {
+      method: "PUT",
+    }).catch(function (error) {
+      alert("Could not reach server:" + error);
+    });
     const result2 = await result;
     if (!result2.ok) {
       alert("Error activating group: " + result.statusText);
-    }  }
+    }
+  }
 }
 
 function setalpha(sc, v) {
@@ -489,10 +494,8 @@ function rmcue(cue) {
   api_link.send(["rmcue", cue]);
 }
 
-
 async function jumpToCueWithConfirmationIfNeeded(cueid, group) {
-
-  if(!groupmeta.value[group].active) {
+  if (!groupmeta.value[group].active) {
     // picodash.snackbar.createSnackbar("Group is not active", {
     //   timeout: 3000,
     //   accent: "error"
@@ -503,12 +506,9 @@ async function jumpToCueWithConfirmationIfNeeded(cueid, group) {
   }
   if (confirm_for_group(group)) {
     await doSerialized(async () => {
-      const result = fetch(
-        "/chandler/api/go-to-cue-by-cue-id/" + cueid,
-        {
-          method: "PUT",
-        }
-      ).catch(function (error) {
+      const result = fetch("/chandler/api/go-to-cue-by-cue-id/" + cueid, {
+        method: "PUT",
+      }).catch(function (error) {
         alert("Could not reach server:" + error);
       });
       const result2 = await result;
@@ -651,14 +651,6 @@ function rmFixCue(cue, fix) {
   api_link.send(["rmcuef", cue, fix]);
 }
 
-function editMode() {
-  keyboardJS.reset();
-  keybindmode.value = "edit";
-}
-function runMode() {
-  rebindKeys();
-  keybindmode.value = "run";
-}
 function refreshPorts() {
   api_link.send(["getserports"]);
 }
@@ -873,7 +865,6 @@ let fixtureClasses = ref({});
 //Filter which groups are shown in the list
 let groupfilter = ref("");
 let cuefilter = ref("");
-let keybindmode = ref("edit");
 //Keep track of what timers are running in a group
 let grouptimers = ref({});
 //Formatted for display
@@ -1460,7 +1451,6 @@ export {
   fixtureClasses,
   groupfilter,
   cuefilter,
-  keybindmode,
   grouptimers,
   cuevals,
   slideshow_telemetry,
@@ -1482,6 +1472,7 @@ export {
   formattedCues,
   channelInfoByUniverseAndNumber,
   presets,
+  sendKeystrokes,
 
   // methods
   setGroupProperty,
@@ -1520,8 +1511,6 @@ export {
   addRangeEffect,
   addfixToCurrentCue,
   rmFixCue,
-  editMode,
-  runMode,
   refreshPorts,
   pushSettings,
   newCueFromSlide,

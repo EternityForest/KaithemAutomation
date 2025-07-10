@@ -8,7 +8,7 @@ import json
 import threading
 import traceback
 from collections.abc import Callable, Mapping
-from typing import Any, Final, Type
+from typing import Any, Final, Type, TypeVar
 from urllib.parse import quote
 
 import beartype
@@ -264,13 +264,20 @@ class ResourceTypeRuntimeObject:
         pass
 
 
+ResourceTypeRuntimeObjectTypeVar = TypeVar(
+    "ResourceTypeRuntimeObjectTypeVar", bound=ResourceTypeRuntimeObject
+)
+
+
 def resource_type_from_schema(
     resource_type: str,
     title: str,
     icon: str,
     schema: dict[str, Any] | Callable[[], dict[str, Any]],
-    runtime_object_cls: Type[ResourceTypeRuntimeObject],
+    runtime_object_cls: Type[ResourceTypeRuntimeObjectTypeVar],
     default: dict[str, Any] = {},
+    blurb: Callable[[ResourceTypeRuntimeObjectTypeVar, str, str], str]
+    | str = "",
 ):
     """Create a new resource type from a JSON schema, and an object
      that represents the runtime state of the resource.
@@ -279,6 +286,9 @@ def resource_type_from_schema(
     is passed to the runtime object constructor verbatim.
 
     The class must have a close() method.
+
+    blurb(obj, module, resource) will be passed the runtime object
+    and must return some HTML for the module page.
     """
 
     if not hasattr(runtime_object_cls, "close"):
@@ -300,6 +310,16 @@ def resource_type_from_schema(
 
     class BasicResourceType(ResourceType):
         runtime_objects: dict[tuple[str, str], Any] = {}
+
+        def blurb(
+            self, module: str, resource: str, data: ResourceDictType
+        ) -> str:
+            if isinstance(blurb, str):
+                return blurb
+
+            return blurb(
+                self.runtime_objects[(module, resource)], module, resource
+            )
 
         def edit_page(
             self, module: str, resource: str, data: Mapping[str, Any]
