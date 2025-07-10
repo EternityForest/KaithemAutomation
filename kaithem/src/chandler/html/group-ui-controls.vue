@@ -26,7 +26,8 @@ input {
       style="margin: 0px; padding: 0px"
       v-if="
         groupData?.slideOverlayUrl ||
-        cue?.slide || cue?.markdown ||
+        cue?.slide ||
+        cue?.markdown ||
         groupData?.doSlideshowEmbed ||
         groupData?.soundOutput == 'groupwebplayer' ||
         cue?.soundOutput == 'groupwebplayer'
@@ -138,9 +139,13 @@ input {
       </div>
     </div>
 
+    <div class="warning" v-if="!groupData.enableTiming">
+      <i class="mdi mdi-warning"></i>
+      Timing Disabled
+    </div>
     <table border="0">
       <tbody>
-        <tr v-for="(v, i) in groupData.timers">
+        <tr v-for="(v, i) in groupData.timers" :key="i + v">
           <td>{{ i }}</td>
           <td
             style="width: 8em"

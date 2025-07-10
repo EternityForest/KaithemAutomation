@@ -172,6 +172,13 @@ class DebugScriptContext(scriptbindings.ChandlerScriptContext):
         timestamp=None,
         sync=False,
     ):
+        group = self.groupObj()
+        if not group:
+            return
+        if evt.strip().startswith("@"):
+            if not group.enable_timing:
+                return
+
         scriptbindings.ChandlerScriptContext.event(
             self, evt, val, timestamp=timestamp, sync=sync
         )
@@ -252,6 +259,7 @@ class Group:
         require_confirm: bool = False,
         mqtt_sync_features: dict[str, Any] | None = None,
         cue_providers: list[str] | None = [],
+        enable_timing: bool = True,
         **ignoredParams,
     ):
         """
@@ -274,6 +282,8 @@ class Group:
 
         self.media_player = group_media.GroupMediaPlayer(self)
         self.lighting_manager = GroupLightingManager(self)
+
+        self.enable_timing = enable_timing
 
         self._cue_providers: list[str] = cue_providers or []
 
@@ -764,7 +774,8 @@ class Group:
                     if self.media_ended_at and (
                         time.time() - self.media_ended_at > (cuelen * self.bpm)
                     ):
-                        self.next_cue(cause="sound")
+                        if self.enable_timing:
+                            self.next_cue(cause="sound")
 
     def __del__(self):
         pass
@@ -2503,10 +2514,13 @@ class Group:
                     self.lighting_manager.fade_complete()
 
             if self.active and self.cue_time_finished():
-                self.next_cue(
-                    round(self.entered_cue + self.cuelen * (60 / self.bpm), 3),
-                    cause="time",
-                )
+                if self.enable_timing:
+                    self.next_cue(
+                        round(
+                            self.entered_cue + self.cuelen * (60 / self.bpm), 3
+                        ),
+                        cause="time",
+                    )
 
     def cue_time_finished(self):
         if self.cuelen and (time.time() - self.entered_cue) > self.cuelen * (

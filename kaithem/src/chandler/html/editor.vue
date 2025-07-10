@@ -1801,6 +1801,26 @@
                     v-model="editingGroup.defaultNext"
                     placeholder="Next cue in list" />
                 </label>
+
+                <label
+                  ><span><i class="mdi mdi-clock"></i>Enable Timing</span>
+                  <input
+                    type="checkbox"
+                    class="toggle"
+                    :disabled="no_edit"
+                    v-on:change="
+                      setGroupProperty(
+                        groupname,
+                        'enableTiming',
+                        editingGroup.enableTiming
+                      )
+                    "
+                    v-model="editingGroup.enableTiming" />
+                </label>
+                <p class="help">
+                  The timing feature controls cue lengths, including relative
+                  lengths, and @time schedules
+                </p>
               </fieldset>
 
               <div class="card w-sm-full">

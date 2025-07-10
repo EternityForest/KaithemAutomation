@@ -167,6 +167,10 @@ properties:
       A list of providers to use. Each provider is a URI like file://some/directory/
       And allows cues to be auto-synced with the stuff in the dir.
 
+  enable_timing:
+    type: boolean
+    description: |
+      This disables cue lengths and @time events
 
 additionalProperties: true
 

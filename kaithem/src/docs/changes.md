@@ -6,6 +6,7 @@ Change Log
 * :sparkles: User selectable fonts
 * :sparkles: The default font is Atkinson Hyperlegible
 * :sparkles: Cooldown block limits how often a Chandler logic rule can fire
+* :sparkles: Timing Enable feature lets you turn off the auto cue advance in Chandler for testing
 
 ### 0.90.0
 
