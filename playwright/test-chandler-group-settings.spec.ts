@@ -147,6 +147,8 @@ test("test", async ({ page }) => {
   await page.getByLabel("Sidebar info URL").click();
   await page.getByLabel("Sidebar info URL").fill("foourl");
 
+  await page.getByLabel("Enable Timing").setChecked(false);
+
   await check_box(page, page.getByLabel("Utility Group(No controls)"));
   //await page.getByLabel('Utility Group(No controls)').check();
 
@@ -165,9 +167,17 @@ test("test", async ({ page }) => {
   );
   await page.getByRole("button", { name: "ts1" }).click();
   await page.getByTestId("group-properties-button").click();
+
+  // We disabled timing so it should give the user a warning
+  // otherwise they'll spend al day wondering why it doesn't work
+  await expect(page.getByText("Timing Disabled")).toHaveClass("warning");
+
+
   await expect(page.getByLabel("Utility Group(No controls)")).toBeChecked();
   await expect(page.getByLabel("Hide in Runtime Mode")).toBeChecked();
   await expect(page.getByLabel("Sidebar info URL")).toHaveValue("foourl");
+
+  await expect(page.getByLabel("Enable Timing")).not.toBeChecked();
 
   await expect(page.getByTestId("group_blend_mode")).toHaveValue("HTP");
 

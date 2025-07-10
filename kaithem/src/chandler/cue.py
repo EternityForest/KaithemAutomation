@@ -659,7 +659,9 @@ class Cue:
 
                         def f():
                             try:
-                                self.goto_if_scene_active(a2)
+                                grp = self.getGroup()
+                                if grp.enable_timing:
+                                    self.goto_if_scene_active(a2)
                             except Exception:
                                 print(traceback.format_exc())
 

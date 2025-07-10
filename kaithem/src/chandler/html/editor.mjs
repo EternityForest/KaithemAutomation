@@ -120,6 +120,10 @@ function addTagToCue() {
   if (!newcuetag.value) {
     return;
   }
+  if(!newcuetag.value.startswith("/")) {
+    alert("Tag must start with /");
+    return;
+  }
   globalThis.api_link.send([
     "add_cueval",
     groupcues.value[groupname.value][selectedCues.value[groupname.value]],

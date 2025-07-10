@@ -3,6 +3,7 @@ import { sleep, login, makeModule, deleteModule } from "./util";
 
 test("test", async ({ page }) => {
   test.setTimeout(600_000);
+  await page.setDefaultTimeout(15_000);
 
   await login(page);
 

@@ -84,6 +84,8 @@ def add_app(app):
     if app.id in all_apps:
         if all_apps[app.id] is not app:
             raise ValueError("App id is not unique")
+        else:
+            _logger.warning(f"App id {app.id} was already added, ignoring")
     all_apps[app.id] = app
 
 

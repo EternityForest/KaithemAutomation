@@ -67,6 +67,7 @@ class TempGroup:
         core.wait_frame()
         core.wait_frame()
         assert self.group.active
+        assert self.group.is_active()
         assert self.group.alpha == 1
         assert self.group.cue.name == "default"
         assert self.name in board.groups_by_name
@@ -839,6 +840,39 @@ def test_sched_end():
         grp.goto_cue("default")
         grp.next_cue()
         assert grp.cue.name == "sched_at_test"
+
+
+def test_basic_cue_len_end():
+    with TempGroup() as grp:
+        # Make a looping schedule.  Before_b ends before the current time, we want to be in
+        # after_a
+
+        grp.add_cue("c2")
+        grp.cue.length = 0.1
+        grp.goto_cue("default")
+        time.sleep(0.5)
+        assert grp.cue.name == "c2"
+
+
+def test_timing_disabled():
+    with TempGroup() as grp:
+        # Make a looping schedule.  Before_b ends before the current time, we want to be in
+        # after_a
+
+        grp.add_cue("c2")
+        grp.enable_timing = False
+
+        # With timing off it will not advance
+        # until we re-enable
+        grp.cue.length = 0.1
+        grp.goto_cue("default")
+
+        time.sleep(0.5)
+        assert grp.cue.name == "default"
+
+        grp.enable_timing = True
+        time.sleep(0.5)
+        assert grp.cue.name == "c2"
 
 
 def test_timer_group():
