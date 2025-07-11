@@ -4,11 +4,15 @@ Change Log
 ### 0.91.0
 
 * :sparkles: User selectable fonts
-* :sparkles: The default font is Atkinson Hyperlegible
+* :sparkles: The default font is Atkinson Hyperlegible by [The Braille Institute](https://www.brailleinstitute.org/freefont/?gad_source=1&gad_campaignid=22708421465&gbraid=0AAAAADcKBcuCpxuRlq0w2vZr1ZAFXvwE_&gclid=CjwKCAjw7MLDBhAuEiwAIeXGIQBujLS_gfvfMBB_51yqAjcXGsFMY0Wo0VHOyieRJXKP2WKdlsNhJxoC7MgQAvD_BwE)
 * :sparkles: Cooldown block limits how often a Chandler logic rule can fire
 * :sparkles: Timing Enable feature lets you turn off the auto cue advance in Chandler for testing
+* :lipstick: Use snackbars instead of alerts for a few more things
 
 * :bug: Keyboard events from chandler pages now work correctly
+* :bug: Fix nuisance client side error on restart server
+* :bug: Make widget error notification work
+
 
 ### 0.90.0
 

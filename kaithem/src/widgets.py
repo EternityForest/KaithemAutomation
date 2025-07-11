@@ -505,14 +505,14 @@ class WebSocketHandler:
 
         # Permissionerrors are too common to do the full logging thing
         except PermissionError as e:
-            self.send(json.dumps({"__WIDGETERROR__": repr(e)}))
+            self.send(json.dumps([["__WIDGETERROR__", repr(e)]]))
 
         except Exception as e:
             logger.exception("Error in widget, responding to " + str(d))
             messagebus.post_message(
                 "system/errors/widgets/websocket", traceback.format_exc(6)
             )
-            self.send(json.dumps({"__WIDGETERROR__": repr(e)}))
+            self.send(json.dumps([["__WIDGETERROR__", repr(e)]]))
 
 
 from starlette.websockets import WebSocket

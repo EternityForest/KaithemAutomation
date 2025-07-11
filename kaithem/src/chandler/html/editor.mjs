@@ -120,7 +120,7 @@ function addTagToCue() {
   if (!newcuetag.value) {
     return;
   }
-  if(!newcuetag.value.startswith("/")) {
+  if(!newcuetag.value.startsWith("/")) {
     alert("Tag must start with /");
     return;
   }
