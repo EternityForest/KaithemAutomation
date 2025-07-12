@@ -479,7 +479,7 @@ def register_resource_type(resource_type: ResourceType): ...
 
 ## resource_type_from_schema
 
-[Show source in resource_types.py:267](../../../api/resource_types.py#L267)
+[Show source in resource_types.py:272](../../../api/resource_types.py#L272)
 
 Create a new resource type from a JSON schema, and an object
 that represents the runtime state of the resource.
@@ -489,6 +489,9 @@ is passed to the runtime object constructor verbatim.
 
 The class must have a close() method.
 
+blurb(obj, module, resource) will be passed the runtime object
+and must return some HTML for the module page.
+
 #### Signature
 
 ```python
@@ -497,11 +500,12 @@ def resource_type_from_schema(
     title: str,
     icon: str,
     schema: dict[str, Any] | Callable[[], dict[str, Any]],
-    runtime_object_cls: Type[ResourceTypeRuntimeObject],
+    runtime_object_cls: Type[ResourceTypeRuntimeObjectTypeVar],
     default: dict[str, Any] = {},
+    blurb: Callable[[ResourceTypeRuntimeObjectTypeVar, str, str], str] | str = "",
 ): ...
 ```
 
 #### See also
 
-- [ResourceTypeRuntimeObject](#resourcetyperuntimeobject)
+- [ResourceTypeRuntimeObjectTypeVar](#resourcetyperuntimeobjecttypevar)

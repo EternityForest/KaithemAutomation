@@ -11,10 +11,11 @@
   - [get_val](#get_val)
   - [list_keys](#list_keys)
   - [set_description](#set_description)
+  - [subscribe_to_changes](#subscribe_to_changes)
 
 ## add_suggestion
 
-[Show source in settings.py:21](../../../api/settings.py#L21)
+[Show source in settings.py:23](../../../api/settings.py#L23)
 
 Add a suggestion for the given key
 
@@ -28,7 +29,7 @@ def add_suggestion(key: str, value: str, description: str = ""): ...
 
 ## add_val
 
-[Show source in settings.py:14](../../../api/settings.py#L14)
+[Show source in settings.py:16](../../../api/settings.py#L16)
 
 Add a config option.   If value is empty string, remove it instead.
 
@@ -42,7 +43,7 @@ def add_val(key: str, value: str, source: str = "<code>", priority: float | int 
 
 ## clear_suggestions
 
-[Show source in settings.py:26](../../../api/settings.py#L26)
+[Show source in settings.py:28](../../../api/settings.py#L28)
 
 #### Signature
 
@@ -54,7 +55,7 @@ def clear_suggestions(key: str): ...
 
 ## get_val
 
-[Show source in settings.py:9](../../../api/settings.py#L9)
+[Show source in settings.py:11](../../../api/settings.py#L11)
 
 Returns the highest priority setting for the key
 
@@ -68,7 +69,7 @@ def get_val(key: str) -> str: ...
 
 ## list_keys
 
-[Show source in settings.py:4](../../../api/settings.py#L4)
+[Show source in settings.py:6](../../../api/settings.py#L6)
 
 List all known setting keys
 
@@ -82,10 +83,22 @@ def list_keys() -> list[str]: ...
 
 ## set_description
 
-[Show source in settings.py:30](../../../api/settings.py#L30)
+[Show source in settings.py:32](../../../api/settings.py#L32)
 
 #### Signature
 
 ```python
 def set_description(key: str, description: str): ...
+```
+
+
+
+## subscribe_to_changes
+
+[Show source in settings.py:36](../../../api/settings.py#L36)
+
+#### Signature
+
+```python
+def subscribe_to_changes(key, callback): ...
 ```
