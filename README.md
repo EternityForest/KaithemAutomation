@@ -1,4 +1,6 @@
-![AI generated picture of a tavern](kaithem/data/static/img/nov23-ai-watercolor-tavern.webp)
+# Kaithem Automation
+
+![AI generated banner of a boardwalk tavern](kaithem/data/static/img/banner.avif)
 
 ![Linux](badges/linux.png)
 ![Python](badges/python.png)
@@ -24,9 +26,22 @@ You automate things by directly writing python and HTML via a web IDE, or by usi
 
 ## Screenshots 🏕️
 
-![Collage](screenshots/collage.avif)
+### No-code automation logic editor
+
+![Logic Editor](screenshots/cue-logic-mobile.avif)
+
+### JACK/Pipewire audio mixer with FX
+
+![Audio Mixer](screenshots/audio-mixer-mobile.avif)
+
+### Lighting presets
 
 ![Preset Selector](screenshots/preset-selection.avif)
+
+### Trigger Lighting and automation cues
+
+![Cues List](screenshots/cues-list.avif)
+
 
 See the barrel.css [demo](https://eternityforest.github.io/barrel.css/) for more themes
 
