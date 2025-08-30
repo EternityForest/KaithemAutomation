@@ -430,6 +430,10 @@ Match an email:
 | ff00::/8                 | ff00::           | ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff | 2120                        | Global Internet   | Multicast address  |
 
 
+## Letters in Frequency Order
+
+### English
+ETAOINSRHDLUCMFYWGPBVKXQJZ
 
 ## NATO Phonetic Alphabet
 
@@ -563,6 +567,11 @@ when they are touching in a humid environment.
 * Zinc plating (see galvanization)
 * Magnesium
 
+## Anode and Cathode
+
+A cathode is the electrode from which a conventional current leaves a device.
+
+The Anode, then, is the terminal where current enters.
 
 ## Commonly Chosen Numbers
 

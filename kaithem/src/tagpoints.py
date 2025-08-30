@@ -1474,6 +1474,32 @@ class NumericTagPointClass(GenericTagPointClass[float]):
 
         super().__init__(name)
 
+    def trigger(self):
+        """Used for tags with subtype: trigger, for
+        things that are triggered on changes to nonzero values.
+
+        this just increments the value, wrapping at
+        2**20, and wrapping to 1 instead of 0.
+        """
+
+        if self.lock.acquire(timeout=15):
+            try:
+                x = self._get_value()
+                x = x + 1
+                if x > self.max:
+                    x = 1
+                if x > 2**20:
+                    x = 1
+
+                self.value = x
+
+            finally:
+                self.lock.release()
+        else:  # pragma: no cover
+            raise RuntimeError(
+                "Could not get lock to trigger tagpoint: " + self.name
+            )
+
     def processValue(self, value: float | int):
         if self._min is not None:
             value = max(self._min, value)

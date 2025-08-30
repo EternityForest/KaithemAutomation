@@ -1,6 +1,10 @@
 Change Log
 ----------
 
+### 0.92.0
+
+* :sparkles: New Tag Override resources to manually create persistent overrides quickly.
+
 ### 0.91.0
 
 

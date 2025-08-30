@@ -27,6 +27,15 @@ def test_normalize_tag_names():
     assert tagpoints.Tag("/foo-1234") is tagpoints.Tag("/foo_1234")
 
 
+def test_trigger():
+    from kaithem.src import tagpoints
+
+    t = tagpoints.Tag("/system/unit_test_tag_trigger")
+    x = t.value
+    t.trigger()
+    assert t.value == x + 1
+
+
 def test_tags_fail():
     from kaithem.src import tagpoints
 

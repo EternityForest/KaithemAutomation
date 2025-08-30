@@ -158,11 +158,12 @@ class SimpleDialog:
         name: str,
         *,
         title: str | None = None,
-        default: str = "",
+        default: str | int | float = "",
         disabled=None,
         suggestions: list[tuple[str, str]] | None = None,
         multiline=False,
     ):
+        default = str(default)
         self.default_return_value[name] = default or ""
 
         "Add a text input. Datalist can be value, title pairs"

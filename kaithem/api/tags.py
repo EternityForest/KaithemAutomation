@@ -384,3 +384,4 @@ StringTagPointClass = tagpoints.StringTagPointClass
 ObjectTagPointClass = tagpoints.ObjectTagPointClass
 BinaryTagPointClass = tagpoints.BinaryTagPointClass
 NumericTagPointClass = tagpoints.NumericTagPointClass
+ClaimClass = tagpoints.Claim
