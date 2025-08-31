@@ -1,3 +1,7 @@
+[project]
+name = "kaithem"
+version = "0.90.1"
+
 [tool.poetry]
 
 # You need the freeze plugin to build this for release! 
@@ -33,12 +37,13 @@ coverage = "^7.2.7"
 
 [tool.ruff]
 line-length = 80
+target-version = "py311"
 
 [tool.poetry.dependencies]
 python = "^3.10.0, <3.13"
 # First party
 scullery = ">=0.3.1"
-iot-devices = ">=0.24.0"
+iot-devices = ">=0.25.0"
 icemedia = ">=0.1.23"
 NVRChannel = ">=0.1.7"
 

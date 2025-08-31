@@ -4,6 +4,8 @@ Change Log
 ### 0.92.0
 
 * :sparkles: New Tag Override resources to manually create persistent overrides quickly.
+* :bug: Fix Python3.11 compatibility
+
 
 ### 0.91.0
 

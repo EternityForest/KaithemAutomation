@@ -112,9 +112,11 @@ async def dynamicCSS(version):
         f"--main-font: {settings_overrides.get_val('core/ui_font') or 'AtkinsonHyperlegible'};"
     )
 
+    rules2 = "\n".join(rules)
+
     x = f"""
 :root{{
-    {"\n".join(rules)}
+    {rules2}
 }}
     """
 

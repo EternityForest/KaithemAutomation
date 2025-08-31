@@ -548,10 +548,8 @@ class TTSAction(module_actions.ModuleAction):
             sid = int(kwargs["sid"])
             t = time.strftime("%Y-%m-%d-%H-%M-%S")
 
-            name = (
-                kwargs["name"].strip()
-                or f"{s[:32].replace("\n", "_").replace(" ", "_")}_{sid}_{m}_{t}.mp3"
-            )
+            fn_s = s[:32].replace("\n", "_").replace(" ", "_")
+            name = kwargs["name"].strip() or f"{fn_s}_{sid}_{m}_{t}.mp3"
 
             if not name.endswith(".mp3"):
                 name += ".mp3"

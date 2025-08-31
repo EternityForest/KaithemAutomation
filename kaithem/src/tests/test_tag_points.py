@@ -27,6 +27,54 @@ def test_normalize_tag_names():
     assert tagpoints.Tag("/foo-1234") is tagpoints.Tag("/foo_1234")
 
 
+def test_tag_override_resource():
+    import time
+
+    import kaithem.api.modules as modulesapi
+    from kaithem.src import alerts, modules, tagpoints
+
+    n = "test" + str(time.time()).replace(".", "_")
+    modules.newModule(n)
+
+    tp = tagpoints.Tag("/system/unit_test_tag_override_resource")
+
+    with modulesapi.modules_lock:
+        modulesapi.insert_resource(
+            n,
+            "test_resource",
+            {
+                "resource_type": "tag_override",
+                "tag": "/system/unit_test_tag_override_resource",
+                "tag_type": "numeric",
+                "priority": 60,
+                "alert": True,
+                "value": 7878,
+            },
+        )
+
+        assert tp.value == 7878
+        assert tp.active_claim and tp.active_claim.priority == 60
+
+        time.sleep(0.2)
+
+        found = False
+        for alert in alerts.active.values():
+            if "unit_test_tag_override_resource" in alert().name:
+                found = True
+                break
+        assert found
+
+        modulesapi.delete_resource(n, "test_resource")
+        time.sleep(0.2)
+        found = False
+        for alert in alerts.active.values():
+            if "unit_test_tag_override_resource" in alert().name:
+                found = True
+                break
+        assert not found
+        assert tp.value == 0
+
+
 def test_trigger():
     from kaithem.src import tagpoints
 
