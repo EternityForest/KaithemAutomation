@@ -2,6 +2,19 @@
 name = "kaithem"
 version = "0.92.1"
 requires-python = ">=3.10,<4.0"
+
+
+license = "GPL-3.0-or-later"
+
+authors = [{ name = "Daniel Dunn" }]
+
+readme = "README.md"
+
+
+classifiers = [
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+]
+
 dependencies = [
     # First party"
     "scullery>=0.3.1",
@@ -95,27 +108,23 @@ dependencies = [
     "soundfile~=0.13.1",
 ]
 
+[build-system]
+requires = ["uv_build>=0.8.14,<0.9.0"]
+build-backend = "uv_build"
 
-[tool.poetry]
+[tool.uv.build-backend]
+wheel-exclude = ["*.dev.excalidraw.svg"]
+module-name=["kaithem", "kaithem_cli", "kaithem_scripts"]
 
-# You need the freeze plugin to build this for release! 
-# https://github.com/cloud-custodian/poetry-plugin-freeze
-# Use poetry self add poetry-plugin-freeze
 
-name = "kaithem"
-version = "0.90.1"
-description = "Home/commercial automation server"
-license = "GPL-3.0-or-later"
-packages = [
-    { include = "kaithem" },
-    { include = "kaithem_cli" },
-    { include = "kaithem_scripts" },
-]
-authors = ["Daniel Dunn"]
-readme = "README.md"
+[project.scripts]
+"kaithem" = "kaithem:__main__"
+"kaithem-cli" = "kaithem_cli.cli:main"
+"kaithem-scripts" = "kaithem_scripts.makefile_runner:main"
+"kaithem-pi-boot-cfg" = "kaithem_scripts.pi_boot_cfg:main"
 
-# These are dev documents that don't need to be in the final package
-exclude = ["*.dev.excalidraw.svg"]
+"kaithem._jackmanager_server" = "icemedia.jack_client_subprocess:main"
+"kaithem._iceflow_server" = "icemedia.iceflow_server:main"
 
 
 # Duplicate here so we can use uv to test in specific environments
@@ -129,30 +138,13 @@ dev = [
     "coverage >=7.2.7",
 ]
 
-test = [
-    "pytest-cov >=5.0.0",
-    "pytest-asyncio >=0.23.7",
-    "time-machine >=2.0.0",
-]
+test = ["pytest-cov >=5.0.0", "pytest-asyncio >=0.23.7", "time-machine >=2.0.0"]
 
 
 [tool.ruff]
 line-length = 80
 target-version = "py311"
 
-[tool.poetry.scripts]
-"kaithem" = "kaithem:__main__"
-"kaithem-cli" = "kaithem_cli.cli:main"
-"kaithem-scripts" = "kaithem_scripts.makefile_runner:main"
-"kaithem-pi-boot-cfg" = "kaithem_scripts.pi_boot_cfg:main"
-
-"kaithem._jackmanager_server" = "icemedia.jack_client_subprocess:main"
-"kaithem._iceflow_server" = "icemedia.iceflow_server:main"
-
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
 
 [tool.coverage.run]
 # omit the deprecated old file and system gstreamer
