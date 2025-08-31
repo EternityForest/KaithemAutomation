@@ -666,7 +666,7 @@ description = "Code coverage measurement for Python"
 optional = true
 python-versions = ">=3.9"
 groups = ["main"]
-markers = "extra == \"dev\""
+markers = "extra == \"dev\" or extra == \"test\""
 files = [
     {file = "coverage-7.10.6-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:70e7bfbd57126b5554aa482691145f798d7df77489a177a6bef80de78860a356"},
     {file = "coverage-7.10.6-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:e41be6f0f19da64af13403e52f2dec38bbc2937af54df8ecef10850ff8d35301"},
@@ -2848,7 +2848,7 @@ description = "Pytest support for asyncio"
 optional = true
 python-versions = ">=3.8"
 groups = ["main"]
-markers = "extra == \"dev\""
+markers = "extra == \"dev\" or extra == \"test\""
 files = [
     {file = "pytest_asyncio-0.23.8-py3-none-any.whl", hash = "sha256:50265d892689a5faefb84df80819d1ecef566eb3549cf915dfb33569359d1ce2"},
     {file = "pytest_asyncio-0.23.8.tar.gz", hash = "sha256:759b10b33a6dc61cce40a8bd5205e302978bbbcc00e279a8b61d9a6a3c82e4d3"},
@@ -2868,7 +2868,7 @@ description = "Pytest plugin for measuring coverage."
 optional = true
 python-versions = ">=3.8"
 groups = ["main"]
-markers = "extra == \"dev\""
+markers = "extra == \"dev\" or extra == \"test\""
 files = [
     {file = "pytest-cov-5.0.0.tar.gz", hash = "sha256:5837b58e9f6ebd335b0f8060eecce69b662415b16dc503883a02f45dfeb14857"},
     {file = "pytest_cov-5.0.0-py3-none-any.whl", hash = "sha256:4f0764a1219df53214206bf1feea4633c3b558a2925c8b59f144f682861ce652"},
@@ -3985,7 +3985,7 @@ description = "Travel through time in your tests."
 optional = true
 python-versions = ">=3.9"
 groups = ["main"]
-markers = "extra == \"dev\""
+markers = "extra == \"dev\" or extra == \"test\""
 files = [
     {file = "time_machine-2.19.0-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:b5169018ef47206997b46086ce01881cd3a4666fd2998c9d76a87858ca3e49e9"},
     {file = "time_machine-2.19.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:85bb7ed440fccf6f6d0c8f7d68d849e7c3d1f771d5e0b2cdf871fa6561da569f"},
@@ -5137,8 +5137,9 @@ ifaddr = ">=0.1.7"
 
 [extras]
 dev = ["coverage", "handsdown", "pygount", "pytest-asyncio", "pytest-cov", "time-machine"]
+test = ["pytest-asyncio", "pytest-cov", "time-machine"]
 
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<4.0"
-content-hash = "f28a38481c8603b60b4a01b74345faa745a26060f6a5f79318a349b58ce6c715"
+content-hash = "8d69be02e492ef1a43cf68425fe6c3df1fc9f59b8c8b09e3612a68b34862095f"

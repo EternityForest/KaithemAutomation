@@ -1,6 +1,6 @@
 [project]
 name = "kaithem"
-version = "0.92.0"
+version = "0.92.1"
 requires-python = ">=3.10,<4.0"
 dependencies = [
     # First party"

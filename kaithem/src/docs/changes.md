@@ -1,6 +1,10 @@
 Change Log
 ----------
 
+### 0.92.1
+
+* :bug: Nothing changed in the code, fix incorrect release command that caused unfrozen wheels.
+
 ### 0.92.0
 
 * :sparkles: New Tag Override resources to manually create persistent overrides quickly.
