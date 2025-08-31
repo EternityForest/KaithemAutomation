@@ -117,6 +117,8 @@ dev-scalene-profile:
 	@scalene --profile-all --use-virtual-time --cpu-sampling-rate=0.001 dev_run.py
 
 
+# Note that we use uv to test against different versions.  Eventually we will hopefully
+# be able to go to all uv all the time.
 .PHONY: dev-run-all-tests
 dev-run-all-tests:
 	@echo "Starting test server and running all playwright and pytest tests"
@@ -139,3 +141,4 @@ dev-run-all-tests:
 	@coverage html -i
 	@npx playwright show-report &
 	@open htmlcov/index.html
+	@UV_PROJECT_ENVIRONMENT=.venv311  uv run --extra dev --python 3.11 pytest

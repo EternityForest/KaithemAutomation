@@ -5,6 +5,8 @@ Change Log
 
 * :sparkles: New Tag Override resources to manually create persistent overrides quickly.
 * :bug: Fix Python3.11 compatibility
+* :technologist: Dependencies specified as PEP621 entries
+* :technologist: UV is now used to test against multiple versions
 
 
 ### 0.91.0
