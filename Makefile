@@ -119,6 +119,8 @@ dev-scalene-profile:
 
 # Note that we use uv to test against different versions.  Eventually we will hopefully
 # be able to go to all uv all the time.
+
+# Due to the gstreamer hack we
 .PHONY: dev-run-all-tests
 dev-run-all-tests:
 	@echo "Starting test server and running all playwright and pytest tests"
@@ -141,4 +143,6 @@ dev-run-all-tests:
 	@coverage html -i
 	@npx playwright show-report &
 	@open htmlcov/index.html
-	@UV_PROJECT_ENVIRONMENT=.venv311  uv run --extra dev --python 3.11 pytest
+	@UV_PROJECT_ENVIRONMENT=.venv311  uv run --extra test --python 3.11 pytest
+	@UV_PROJECT_ENVIRONMENT=.venv312  uv run --extra test --python 3.12 pytest
+	@UV_PROJECT_ENVIRONMENT=.venv313  uv run --extra test --python 3.13 pytest
