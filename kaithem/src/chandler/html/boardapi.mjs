@@ -594,11 +594,6 @@ function setmqttfeature(sc, feature, v) {
   api_link.send(["setmqttfeature", sc, feature, v]);
 }
 
-function setcommandtag(sc, v) {
-  groupmeta.value[sc].commandTag = v;
-  api_link.send(["setgroupcommandtag", sc, v]);
-}
-
 function setinfodisplay(sc, v) {
   groupmeta.value[sc].infoDisplay = v;
   api_link.send(["setinfodisplay", sc, v]);
@@ -1503,7 +1498,6 @@ export {
   setcrossfade,
   setmqtt,
   setmqttfeature,
-  setcommandtag,
   setinfodisplay,
   setbpm,
   tap,

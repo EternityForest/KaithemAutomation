@@ -1769,15 +1769,6 @@
                     v-model="editingGroup.midiSource" />
                 </label>
 
-                <label title="Receive shortcut codes from a command-type tag">
-                  Command Tag:<input
-                    :disabled="no_edit"
-                    placeholder="Tagpoint"
-                    v-on:change="setcommandtag(groupname, $event.target.value)"
-                    v-model="editingGroup.commandTag"
-                    list="commandtagslisting" />
-                </label>
-
                 <label
                   title="You can use this with __random__ to create a shuffle effect."
                   >Default cue advance:
@@ -2794,7 +2785,6 @@ import {
   setcrossfade,
   setmqtt,
   setmqttfeature,
-  setcommandtag,
   setinfodisplay,
   setbpm,
   tap,

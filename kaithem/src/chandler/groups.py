@@ -252,7 +252,6 @@ class Group:
         crossfade: float = 0,
         midi_source: str = "",
         default_next: str = "",
-        command_tag: str = "",
         slide_overlay_url: str = "",
         slideshow_layout: str = "",
         music_visualizations: str = "",
@@ -351,11 +350,6 @@ class Group:
 
         self.lock = threading.RLock()
         self.randomizeModifier = 0
-
-        self.command_tagSubscriptions: list[
-            tuple[tagpoints.ObjectTagPointClass, Callable]
-        ] = []
-        self.command_tag = command_tag
 
         self.notes = notes
         self._midi_source: str = ""
@@ -565,8 +559,6 @@ class Group:
 
         else:
             self.cueTagClaim.set("__stopped__", annotation="GroupObject")
-
-        workers.do(self._subscribe_command_tags)
 
         workers.do(self.scan_cue_providers)
 
@@ -1886,63 +1878,6 @@ class Group:
                 self._display_tags = dt
                 self.push_to_frontend(keys=["display_tags"])
 
-    def _nl_clear_configured_tags(self):
-        for i in self.command_tagSubscriptions:
-            i[0].unsubscribe(i[1])
-        self.command_tagSubscriptions = []
-
-    def command_tag_subscriber(self):
-        def f(v, t, a):
-            v = v[0]
-
-            if v.startswith("launch:"):
-
-                def f():
-                    cl_trigger_shortcut_code(str(v[len("launch:") :]), self)
-
-                core.serialized_async_with_core_lock(f)
-
-            elif v == "Rev":
-                self.prev_cue(cause="ECP")
-
-            elif v == "Fwd":
-                self.next_cue(cause="ECP")
-
-            elif v == "VolumeUp":
-                self.setAlpha(self.alpha + 0.07)
-
-            elif v == "VolumeDown":
-                self.setAlpha(self.alpha - 0.07)
-
-            elif v == "VolumeMute":
-                self.setAlpha(0)
-
-            elif v == "Play":
-                if self.active:
-                    self.stop()
-                else:
-                    self.go()
-
-            elif v == "VolumeMute":
-                self.setAlpha(0)
-
-            if v.startswith("Lit_"):
-                self.event("button." + v[4:], None)
-
-        return f
-
-    @slow_group_lock_context.object_session_entry_point
-    def _subscribe_command_tags(self):
-        with self.lock:
-            if not self.command_tag.strip():
-                return
-
-            for i in [self.command_tag]:
-                t = tags.ObjectTag(i)
-                s = self.command_tag_subscriber()
-                self.command_tagSubscriptions.append((t, s))
-                t.subscribe(s)
-
     @slow_group_lock_context.object_session_entry_point
     def rename_cue(self, old: str, new: str):
         disallow_special(new, allowedCueNameSpecials)
@@ -1975,22 +1910,6 @@ class Group:
                 )
 
         cue.push()
-
-    @slow_group_lock_context.object_session_entry_point
-    def set_command_tag(self, tag_name: str):
-        tag_name = tag_name.strip()
-
-        with self.lock:
-            self._nl_clear_configured_tags()
-
-            self.command_tag = tag_name
-
-            if tag_name:
-                tag = tags.ObjectTag(tag_name)
-                if tag.subtype and not tag.subtype == "event":
-                    raise ValueError("That tag does not have the event subtype")
-
-                self._subscribe_command_tags()
 
     @property
     def slideshow_transform(self):
