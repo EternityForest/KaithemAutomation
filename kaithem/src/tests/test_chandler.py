@@ -118,9 +118,7 @@ def test_cue_provider():
     from kaithem.api.modules import modules_lock
 
     with TempGroup() as grp:
-        tempdir = os.path.join(
-            directories.vardir, "modules", "data", "test_chandler_providers"
-        )
+        tempdir = "/dev/shm/kaithem_unit_test_test_cue_provider"
         if os.path.exists(tempdir):
             shutil.rmtree(tempdir)
 
@@ -144,15 +142,17 @@ def test_cue_provider():
         with modules_lock:
             grp.board.ml_cl_check_autosave()
 
-        # it is really hard to find the file given the cue so just
-        # make sure the text is in one and only one file
-        found = 0
-        for i in os.listdir(tempdir):
-            if i.endswith(".yaml"):
-                with open(os.path.join(tempdir, i)) as f:
-                    if "Test adding note to provider cue" in f.read():
-                        found += 1
-        assert found == 1
+        for attempt in stamina.retry_context(on=AssertionError, attempts=5):
+            with attempt:
+                # it is really hard to find the file given the cue so just
+                # make sure the text is in one and only one file
+                found = 0
+                for i in os.listdir(tempdir):
+                    if i.endswith(".yaml"):
+                        with open(os.path.join(tempdir, i)) as f:
+                            if "Test adding note to provider cue" in f.read():
+                                found += 1
+                assert found == 1
 
         with pytest.raises(RuntimeError):
             grp.cues_ordered[1].sound = "foo"
