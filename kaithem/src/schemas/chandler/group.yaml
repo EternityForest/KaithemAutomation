@@ -30,9 +30,6 @@ properties:
   bpm:
     type: number
 
-  command_tag:
-    type: string
-
   crossfade:
     type: number
 

@@ -832,11 +832,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             groups.groups[msg[1]].slide_overlay_url = msg[2]
             self.push_group_meta(msg[1], keys={"slide_overlay_url"})
 
-        elif cmd_name == "setgroupcommandtag":
-            groups.groups[msg[1]].set_command_tag(msg[2])
-
-            self.push_group_meta(msg[1], keys={"command_tag"})
-
         elif cmd_name == "setnext":
             if msg[2][:1024]:
                 c = msg[2][:1024].strip()

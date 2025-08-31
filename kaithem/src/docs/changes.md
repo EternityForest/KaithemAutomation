@@ -1,10 +1,14 @@
 Change Log
 ----------
 
+
+### 0.93.0
+
+* :coffin: The Chandler Command Tag feature is removed.  Nothing supported it anyway.
+
 ### 0.92.1
 
 * :bug: Nothing changed in the code, fix incorrect release command that caused unfrozen wheels.
-
 ### 0.92.0
 
 * :sparkles: New Tag Override resources to manually create persistent overrides quickly.
