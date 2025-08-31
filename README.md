@@ -12,7 +12,6 @@
 
 ![Pytest](badges/pytest.png)
 ![Ruff](badges/ruff.png)
-![Poetry](badges/poetry.png)
 
 
 > Amidst the mists and fiercest frosts,\

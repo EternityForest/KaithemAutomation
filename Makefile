@@ -68,11 +68,11 @@ dev-build-docs:
 
 .PHONY: dev-count-lines
 dev-count-lines: # Line count summary
-	@poetry run pygount --merge-embedded-languages --format=summary --names-to-skip="*.min.js,bip39.txt" --folders-to-skip="thirdparty,__pycache__,tests" kaithem/ scripts/
+	@uv tool run pygount --merge-embedded-languages --format=summary --names-to-skip="*.min.js,bip39.txt" --folders-to-skip="thirdparty,__pycache__,tests" kaithem/ scripts/
 
 .PHONY: dev-count-test-lines
 dev-count-test-lines: # Line count summary, counting the tests
-	@poetry run pygount --merge-embedded-languages --format=summary playwright/ kaithem/src/tests
+	@uv tool run pygount --merge-embedded-languages --format=summary playwright/ kaithem/src/tests
 
 
 .PHONY: dev-playwright-ui
@@ -92,7 +92,7 @@ dev-update-playwright: # Update playwright tests
 
 .PHONY: dev-file-lines
 dev-file-lines: # Show files sorted by line count
-	@poetry run pygount --merge-embedded-languages --names-to-skip="*.min.js,bip39.txt" --folders-to-skip="thirdparty,__pycache__,tests" kaithem/ scripts/ | sort -nr -
+	@uv tool run pygount --merge-embedded-languages --names-to-skip="*.min.js,bip39.txt" --folders-to-skip="thirdparty,__pycache__,tests" kaithem/ scripts/ | sort -nr -
 
 
 
@@ -100,13 +100,12 @@ dev-file-lines: # Show files sorted by line count
 dev-build: dev-build-docs # Build for release
     # Workaround for this file being left behind and breaking
 	@ ! rm .venv/lib/python3.12/site-packages/pandas/pyproject.toml
-	@poetry build
-	@poetry freeze-wheel
+	@bash scripts/uv_pinned_build.sh
 
 
 .PHONY: dev-publish-to-pypi
-dev-publish-to-pypi: dev-build # Publish to PyPi.  Can't use poetry because of freeze-wheel
-	@twine upload dist/*.whl
+dev-publish-to-pypi: dev-build # Publish to PyPi. Do NOT directly build and publish without the frozen wheel script
+	@uv publish
 
 .PHONY: dev-import-16_9_buttons
 dev-import-16_9_buttons: 
