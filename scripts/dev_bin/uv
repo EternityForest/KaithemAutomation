@@ -1,0 +1,27 @@
+#/bin/bash
+
+# This script exists to block uv publish from being called directly.
+
+target_command="foo"
+
+should_block=false
+
+# Iterate through the arguments passed to the script
+for arg in "$@"; do
+  if [[ "$arg" == "$target_command" ]]; then
+    should_block=true
+  fi
+done
+
+
+if [ -n "$MAKEFLAGS" ]; then
+echo "Running under make."
+else
+    if $should_block; then
+        echo "Not running under make."
+        exit 1
+    fi
+fi
+
+
+~/.local/bin/uv "$@"

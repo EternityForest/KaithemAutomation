@@ -6,6 +6,7 @@ Change Log
 
 * :coffin: The Chandler Command Tag feature is removed.  Nothing supported it anyway.
 * :technologist: Completely getting rid of Poetry and moving entirely to UV!
+* :technologist: We use direnv now to block certain accidental commands. Devs should set up their shell with direnv!
 
 ### 0.92.1
 

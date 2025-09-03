@@ -12,6 +12,7 @@
 
 ![Pytest](badges/pytest.png)
 ![Ruff](badges/ruff.png)
+![Ruff](badges/uv.png)
 
 
 > Amidst the mists and fiercest frosts,\
