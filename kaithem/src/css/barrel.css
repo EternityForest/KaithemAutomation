@@ -547,6 +547,7 @@ td details {
 button {
   border-style: solid;
   color: var(--control-fg);
+    transition: scale 0.05s ease-in; /* Transition duration and timing function */
 }
 
 button:active,
@@ -555,6 +556,8 @@ input:is([type="submit"], [type="button"]):active {
   background: var(--convex-item-active-bg) !important;
   box-shadow: var(--concave-item-box-shadow) !important;
   color: var(--control-fg);
+  scale: 0.95;
+  transition: scale 0.03s ease-in; /* Transition duration and timing function */
 }
 
 summary h2:first-child {

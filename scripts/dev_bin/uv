@@ -2,7 +2,7 @@
 
 # This script exists to block uv publish from being called directly.
 
-target_command="foo"
+target_command="publish"
 
 should_block=false
 
@@ -18,7 +18,7 @@ if [ -n "$MAKEFLAGS" ]; then
 echo "Running under make."
 else
     if $should_block; then
-        echo "Not running under make."
+        echo "Use the makefile, kaithem direnv forbids direct calls to uv publish in this dir."
         exit 1
     fi
 fi
