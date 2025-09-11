@@ -83,6 +83,28 @@ def list_rpm_packages():
 
 
 def get_pip_freeze_versions():
+    try:
+        if which("uv"):
+            r: str = subprocess.check_output(
+                ["uv", "pip", "freeze"], stderr=subprocess.DEVNULL
+            ).decode()
+            r2: list[str] = [i.strip() for i in r.split("\n")]
+
+            versions = {}
+            for i in r2:
+                if not i:
+                    continue
+                try:
+                    k, v = i.split("==")
+                    versions[k] = v
+                except ValueError:
+                    pass
+
+            return versions
+
+    except Exception:
+        pass
+
     if which("pip"):
         r: str = subprocess.check_output(
             ["pip", "freeze"], stderr=subprocess.DEVNULL

@@ -20,12 +20,9 @@ dependencies = [
     "scullery>=0.3.1",
     "iot-devices>=0.25.0",
     "icemedia>=0.1.23",
-    "NVRChannel>=0.1.7",
-
+    "NVRChannel>=0.1.8",
     # New numpy needs new opencv
     "numpy>=2.0.0",
-
-
     "cheroot",
     "mako",
     "jinja2",
@@ -36,8 +33,6 @@ dependencies = [
     "pytest",
     "nmcli",
     "apprise",
-
-
     "ffmpeg-python",
     "yappi",
     "zeroconf>=0.119.0",
@@ -67,7 +62,6 @@ dependencies = [
     "pytz",
     "ntplib",
     "holidays",
-
     "pyserial",
     "pygrep",
     "python-rtmidi==1.5.8",
@@ -77,10 +71,8 @@ dependencies = [
     "netifaces",
     "JACK-Client",
     "sf2utils",
-
     # Older is not compatible with new numpy,
     "scipy>=1.11.0",
-
     # TODO is this line really needed? We don't use it directly
     # Maybe just removing addr was enough?
     "attrs>=23.2.0",
@@ -91,20 +83,17 @@ dependencies = [
     "argon2-cffi~=23.1.0",
     "msgpack-types~=0.2.0",
     "niquests~=3.15.1",
-
     "quart>=0.20.0",
     "hypercorn[uvloop]~=0.17.3",
     "structlog~=24.4.0",
     "rich~=14.1.0",
     "colorama~=0.4.6",
     "starlette>=0.37.2",
-
     "ephem~=4.2.0",
-
     "opencv-python~=4.10.0.84",
     "pipewire-python~=0.2.3",
-
-    "sherpa-onnx~=1.12.10",
+    "sherpa-onnx==1.12.11",
+    "sherpa-onnx-core",
     "soundfile~=0.13.1",
 ]
 
