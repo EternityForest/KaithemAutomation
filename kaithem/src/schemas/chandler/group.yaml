@@ -178,7 +178,6 @@ required:
   - blend
   - blend_args
   - bpm
-  - command_tag
   - crossfade
   - cues
   - default_next
