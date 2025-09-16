@@ -1078,7 +1078,7 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
 
             if r in modules_state.ActiveModules[m]:
                 if (
-                    not modules_state.ActiveModules[m][r]["resource_type"]
+                    not modules_state.ActiveModules[m][r]["resource"]["type"]
                     == "device"
                 ):
                     raise ValueError(
@@ -1088,7 +1088,7 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
                 if "module_lock" in modules_state.get_module_metadata(m):
                     raise PermissionError("Module is locked")
 
-                if "resource_lock" in modules_state.ActiveModules[m][r]:
+                if "lock" in modules_state.ActiveModules[m][r]["resource"]:
                     raise PermissionError("Device is locked")
             # Make sure we don't corrupt state by putting a folder where a file already is
             ensure_module_path_ok(m, r)
@@ -1415,8 +1415,8 @@ def ensure_module_path_ok(module, resource):
         for i in range(256):
             if dir in modules_state.ActiveModules[module]:
                 if (
-                    not modules_state.ActiveModules[module][dir][
-                        "resource_type"
+                    not modules_state.ActiveModules[module][dir]["resource"][
+                        "type"
                     ]
                     == "directory"
                 ):
@@ -1435,8 +1435,10 @@ def storeDeviceInModule(d: dict, module: str, resource: str) -> None:
             for i in range(256):
                 if dir not in modules_state.ActiveModules[module]:
                     r: modules_state.ResourceDictType = {
-                        "resource_type": "directory",
-                        "resource_timestamp": int(time.time() * 1000000),
+                        "resource": {
+                            "type": "directory",
+                            "modified": int(time.time()),
+                        }
                     }
 
                     modules_state.rawInsertResource(module, dir, r)
@@ -1445,7 +1447,7 @@ def storeDeviceInModule(d: dict, module: str, resource: str) -> None:
                 dir = "/".join(dir.split("/")[:-1])
 
         modules_state.rawInsertResource(
-            module, resource, {"resource_type": "device", "device": d}
+            module, resource, {"resource": {"type": "device"}, "device": d}
         )
 
 

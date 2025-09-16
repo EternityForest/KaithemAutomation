@@ -172,8 +172,8 @@ def importPermissionsFromModules() -> None:
             # for every resource of type permission
             for resource in modules_state.ActiveModules[module].copy():
                 if (
-                    modules_state.ActiveModules[module][resource][
-                        "resource_type"
+                    modules_state.ActiveModules[module][resource]["resource"][
+                        "type"
                     ]
                     == "permission"
                 ):

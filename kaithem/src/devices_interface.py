@@ -278,7 +278,7 @@ def create_device_from_kwargs(**kwargs):
             kwargs["kaithem.read_perms"] = "view_devices"
             kwargs["kaithem.write_perms"] = "write_devices"
 
-            dt = {"resource_type": "device", "device": d}
+            dt = {"resource": {"type": "device"}, "device": d}
 
             modules_state.rawInsertResource(m, r, dt)
         else:

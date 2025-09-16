@@ -119,7 +119,7 @@ else:
         %endif
         %endif
 
-        %if devObj.parent_module and modules_state.ActiveModules[devObj.parent_module][devObj.parent_resource].get('resource_label_image'):
+        %if devObj.parent_module and modules_state.ActiveModules[devObj.parent_module][devObj.parent_resource]['resource'].get('label_image',''):
         <img alt="thumbnail" style="max-width: 32em; max-height: 8em"
         src="/modules/label_image/${ url(devObj.parent_module) }/${ url(devObj.parent_resource) }">
         %endif %}

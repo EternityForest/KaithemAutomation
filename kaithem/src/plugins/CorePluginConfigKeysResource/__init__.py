@@ -93,7 +93,9 @@ class ConfigType(modules_state.ResourceType):
         kwargs = dict(kwargs)
         pr = kwargs.pop("config_priority", "50")
         d = {
-            "resource_type": self.type,
+            "resource": {
+                "type": self.type,
+            },
             "data": {kwargs["key"]: ""},
         }
         d["config_priority"] = float(pr.strip())

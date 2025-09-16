@@ -74,7 +74,10 @@ def test_simple_resource_types():
         modulesapi.insert_resource(
             n,
             "test_resource",
-            {"resource_type": "test-basic-autogen-type", "data": {"val": 7878}},
+            {
+                "resource": {"type": "test-basic-autogen-type"},
+                "data": {"val": 7878},
+            },
         )
 
         modulesapi.delete_resource(n, "test_resource")
@@ -93,7 +96,7 @@ async def test_modules_api():
 
     with modulesapi.modules_lock:
         modulesapi.insert_resource(
-            n, "test_resource", {"resource_type": "dummy", "val": 7878}
+            n, "test_resource", {"resource": {"type": "dummy"}, "val": 7878}
         )
 
         assert modules_state.ActiveModules[n]["test_resource"]["val"] == 7878
@@ -106,7 +109,7 @@ async def test_modules_api():
 
     with modulesapi.modules_lock:
         modulesapi.update_resource(
-            n, "test_resource", {"resource_type": "dummy", "val": 789}
+            n, "test_resource", {"resource": {"type": "dummy"}, "val": 789}
         )
 
         assert modules_state.ActiveModules[n]["test_resource"]["val"] == 789
@@ -120,21 +123,23 @@ async def test_modules_api():
             modulesapi.update_resource(
                 n,
                 "nonexistent_resource",
-                {"resource_type": "dummy", "val": 789},
+                {"resource": {"type": "dummy"}, "val": 789},
             )
 
     # Can't update with wrong type
     with pytest.raises(ValueError):
         with modulesapi.modules_lock:
             modulesapi.update_resource(
-                n, "test_resource", {"resource_type": "dummy2", "val": "789"}
+                n,
+                "test_resource",
+                {"resource": {"type": "dummy2"}, "val": "789"},
             )
 
     # Already exists
     with pytest.raises(ValueError):
         with modulesapi.modules_lock:
             modulesapi.insert_resource(
-                n, "test_resource", {"resource_type": "dummy", "val": 7878}
+                n, "test_resource", {"resource": {"type": "dummy"}, "val": 7878}
             )
 
     # Failed attempts should not modify
@@ -188,6 +193,6 @@ async def test_scan_file_resources():
     for attempt in stamina.retry_context(on=KeyError):
         with attempt:
             assert (
-                modules_state.ActiveModules[n]["foo/bar"]["resource_type"]
+                modules_state.ActiveModules[n]["foo/bar"]["resource"]["type"]
                 == "directory"
             )

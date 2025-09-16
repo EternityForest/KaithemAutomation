@@ -12,7 +12,7 @@ import threading
 import time
 import traceback
 import weakref
-from typing import Callable
+from collections.abc import Callable
 from urllib.parse import quote
 
 import dateutil.parser
@@ -616,7 +616,7 @@ class LoggerType(modules_state.ResourceType):
         del loggers[module, name]
 
     def on_create_request(self, module, name, kwargs):
-        d = {"resource_type": self.type}
+        d = {"resource": {"type": self.type}}
         d.update(kwargs)
         d.pop("name")
         d.pop("Save", None)

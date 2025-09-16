@@ -72,10 +72,10 @@ def resource_page(module, resource):
 
         assert isinstance(resourceinquestion, dict)
 
-        if "resource_type" not in resourceinquestion:
+        if "type" not in resourceinquestion["resource"]:
             raise RuntimeError("No resource type found")
 
-        if resourceinquestion["resource_type"] == "permission":
+        if resourceinquestion["resource"]["type"] == "permission":
             try:
                 pages.require("view_admin_info")
             except PermissionError:
@@ -93,7 +93,7 @@ def resource_page(module, resource):
                 f"/modules/module/{url(module)}/updateresource/{url(resource)}"
             )
 
-        if resourceinquestion["resource_type"] == "directory":
+        if resourceinquestion["resource"]["type"] == "directory":
             try:
                 pages.require("view_admin_info")
             except PermissionError:
@@ -112,7 +112,7 @@ def resource_page(module, resource):
 
         # This is for the custom resource types interface stuff.
         return modules_state.resource_types[
-            resourceinquestion["resource_type"]
+            resourceinquestion["resource"]["type"]
         ].edit_page(module, resource, resourceinquestion)
 
 
@@ -186,7 +186,7 @@ async def addresourcetarget(module, rtype, path=""):
         root = x[0]
 
         def insertResource(r):
-            r["resource_timestamp"] = int(time.time() * 1000000)
+            r["resource"]["timestamp"] = int(time.time() * 1000000)
             modules_state.rawInsertResource(root, name_with_path, r)
 
         with modules_state.modulesLock:
@@ -195,13 +195,13 @@ async def addresourcetarget(module, rtype, path=""):
                 return quart.redirect("/errors/alreadyexists")
 
             if type == "directory":
-                insertResource({"resource_type": "directory"})
+                insertResource({"resource": {"type": "directory"}})
                 return quart.redirect(f"/modules/module/{util.url(module)}")
 
             elif type == "permission":
                 insertResource(
                     {
-                        "resource_type": "permission",
+                        "resource": {"type": "permission"},
                         "description": kwargs["description"],
                     }
                 )
@@ -267,15 +267,18 @@ async def resource_update_handler(module, resource):
             if "module_lock" in modules_state.get_module_metadata(module):
                 raise PermissionError("Module is locked")
 
-            if "resource_lock" in resourceobj and resourceobj["resource_lock"]:
+            if (
+                "lock" in resourceobj["resource"]
+                and resourceobj["resource"]["lock"]
+            ):
                 raise PermissionError(
                     "This resource can only be edited by manually removing the resource_lock from the file."
                 )
 
             old_resource = copy.deepcopy(resourceobj)
 
-            t = resourceobj["resource_type"]
-            resourceobj["resource_timestamp"] = int(time.time() * 1000000)
+            t = resourceobj["resource"]["type"]
+            resourceobj["resource"]["timestamp"] = int(time.time() * 1000000)
 
             resource_types._edit_page_redirect.value = None
 
@@ -458,7 +461,10 @@ async def deleteresourcetarget(module):
         else:
             resourceobj = modules_state.ActiveModules[module][kwargs["name"]]
 
-            if "resource_lock" in resourceobj and resourceobj["resource_lock"]:
+            if (
+                "lock" in resourceobj["resource"]
+                and resourceobj["resource"]["lock"]
+            ):
                 raise PermissionError(
                     "This resource can only be edited by manually removing the resource_lock from the file."
                 )
@@ -522,7 +528,10 @@ async def moveresourcetarget(module):
         if "module_lock" in modules_state.get_module_metadata(module):
             raise PermissionError("Module is locked")
 
-        if "resource_lock" in resourceobj and resourceobj["resource_lock"]:
+        if (
+            "lock" in resourceobj["resource"]
+            and resourceobj["resource"]["lock"]
+        ):
             raise PermissionError(
                 "This resource can only be edited by manually removing the resource_lock from the file."
             )
@@ -552,11 +561,11 @@ async def update_resource_metadata(module, resource):
     is_enabled = "resource_enable" in kwargs
 
     with modules_state.modulesLock:
-        was_enabled = modules_state.ActiveModules[module][resource].get(
-            "resource_enable", True
-        )
+        was_enabled = modules_state.ActiveModules[module][resource][
+            "resource"
+        ].get("enabled", True)
 
-        rt = modules_state.ActiveModules[module][resource]["resource_type"]
+        rt = modules_state.ActiveModules[module][resource]["resource"]["type"]
 
         if was_enabled:
             if rt in modules_state.resource_types:
@@ -569,10 +578,10 @@ async def update_resource_metadata(module, resource):
             if i not in ("resource_enable",):
                 d[i] = kwargs[i]
 
-        d["resource_enable"] = is_enabled
+        d["resource"]["enabled"] = is_enabled
 
         if not is_enabled:
-            if d["resource_type"] == "permission":
+            if d["resource"]["type"] == "permission":
                 raise ValueError("Permissions cannot be disabled")
 
         if was_enabled != is_enabled:
@@ -606,8 +615,8 @@ async def resource_metadata_page(module, resource):
     d.checkbox(
         "resource_enable",
         title="Enabled",
-        default=modules_state.ActiveModules[module][resource].get(
-            "resource_enable", True
+        default=modules_state.ActiveModules[module][resource]["resource"].get(
+            "enabled", True
         ),
     )
 
@@ -645,8 +654,8 @@ async def resource_metadata_page(module, resource):
         "resource_label_image",
         title="Label Image URL",
         suggestions=builtin_img,
-        default=modules_state.ActiveModules[module][resource].get(
-            "resource_label_image", ""
+        default=modules_state.ActiveModules[module][resource]["resource"].get(
+            "label_image", ""
         ),
     )
 
@@ -760,9 +769,11 @@ async def module_update(module):
 
             else:
                 dsc = {
-                    "resource_type": "module-description",
-                    "description": kwargs["description"],
-                    "resource_timestamp": int(time.time() * 1000000),
+                    "resource": {
+                        "modified": int(time.time()),
+                        "type": "module-description",
+                        "description": kwargs["description"],
+                    }
                 }
 
             modules_state.rawInsertResource(module, "__metadata__", dsc)
@@ -786,7 +797,7 @@ async def module_update(module):
                 for r, obj in modules_state.ActiveModules[
                     kwargs["name"]
                 ].items():
-                    rt = obj["resource_type"]
+                    rt = obj["resource"]["type"]
                     assert isinstance(rt, str)
                     if rt in modules_state.resource_types:
                         modules_state.resource_types[rt].on_move(

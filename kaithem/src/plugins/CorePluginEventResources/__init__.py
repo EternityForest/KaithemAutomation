@@ -1585,7 +1585,9 @@ def updateOneEvent(module: str, resource: str, o=None):
                 x.evt_persistant_data = old.evt_persistant_data
 
             # Here is the other lock(!)
-            with _event_list_lock:  # Make sure nobody is iterating the eventlist
+            with (
+                _event_list_lock
+            ):  # Make sure nobody is iterating the eventlist
                 # Add new event
                 x.register()
                 # Update index
@@ -1676,7 +1678,7 @@ def getEventsFromModules(only: str | None = None):
                 # now we loop over all the resources of the module to see which ones are events
                 if only is None or (module in only):
                     x = event_resources[module, resource]
-                    if x["resource_type"] == "event":
+                    if x["resource"]["type"] == "event":
                         # For every resource that is an event, we make an event object based on it
                         # And put it in the event referenced thing.
                         # However, we do this indirectly, for each event we create a function representing
@@ -2115,7 +2117,7 @@ class EventType(modules_state.ResourceType):
 
     def on_create_request(self, module, name, kwargs):
         d = {
-            "resource_type": "event",
+            "resource": {"type": "event"},
             "setup": "# This code runs once when the event loads.\n__doc__=''",
             "trigger": "False",
             "action": "pass",

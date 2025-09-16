@@ -86,11 +86,11 @@ def update_resource(module: str, resource: str, resourceData: ResourceDictType):
     if resource not in modules_state.ActiveModules[module]:
         raise KeyError(f"Resource {resource} does not exist in module {module}")
     if (
-        not get_resource_data(module, resource)["resource_type"]
-        == resourceData["resource_type"]
+        not get_resource_data(module, resource)["resource"]["type"]
+        == resourceData["resource"]["type"]
     ):
         raise ValueError(
-            f"Resource {resource} in {module} is of type {resourceData['resource_type']}"
+            f"Resource {resource} in {module} is of type {resourceData['resource']['type']}"
         )
     modules_state.rawInsertResource(module, resource, resourceData)
     modules.handleResourceChange(module, resource)

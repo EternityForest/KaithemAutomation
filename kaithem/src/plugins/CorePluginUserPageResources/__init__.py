@@ -263,7 +263,7 @@ class CompiledPage:
             else:
                 self.origins = []
 
-            if resource["resource_type"] == "page":
+            if resource["resource"]["type"] == "page":
                 template = resource["body"]
 
                 code_header = ""
@@ -537,7 +537,11 @@ def makeDummyPage(resource, module):
         _pages_by_module_resource[module] = {}
 
     # Get the page resource in question
-    j = {"resource_type": "page", "body": "Content here", "no_navheader": True}
+    j = {
+        "resource": {"type": "page"},
+        "body": "Content here",
+        "no_navheader": True,
+    }
     _pages_by_module_resource[module][resource] = CompiledPage(
         j, module, resource
     )
@@ -557,7 +561,7 @@ def getPagesFromModules():
                 # now we loop over all the resources o the module to see which ones are pages
                 for m in modules_state.ActiveModules[i].copy():
                     j = modules_state.ActiveModules[i][m]
-                    if j["resource_type"] == "page":
+                    if j["resource"]["type"] == "page":
                         try:
                             _pages_by_module_resource[i][m] = CompiledPage(
                                 j, i, m

@@ -71,7 +71,7 @@ class FileServerType(modules_state.ResourceType):
 
     def on_create_request(self, module, resource, kwargs):
         resourceobj = {
-            "resource_type": self.type,
+            "resource": {"type": self.type},
             "folder": kwargs["folder"],
         }
 
@@ -79,7 +79,7 @@ class FileServerType(modules_state.ResourceType):
 
     def on_update_request(self, module, resource, data, kwargs):
         data = {
-            "resource_type": self.type,
+            "resource": {"type": self.type},
             "folder": kwargs["folder"],
         }
 

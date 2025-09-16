@@ -16,9 +16,7 @@ if "--collect-only" not in sys.argv:  # pragma: no cover
         modules.createResource(
             "test_chandler_module",
             "test_board",
-            {
-                "resource_type": "chandler_board",
-            },
+            {"resource": {"type": "chandler_board"}},
         )
     board = core.boards["test_chandler_module:test_board"]
 

@@ -30,12 +30,12 @@ def searchModuleResources(modulename, search, max_results=100, start=0):
         if not max_results > 0:
             return (results, pointer)
         pointer += 1
-        if m[i]["resource_type"] in searchable:
+        if m[i]["resource"]["type"] in searchable:
             if search in i.lower():
                 results.append(i)
                 max_results -= 1
                 continue
-            for j in searchable[m[i]["resource_type"]]:
+            for j in searchable[m[i]["resource"]["type"]]:
                 x = str(m[i][j]).lower().find(search)
                 if x > 0:
                     results.append(i)

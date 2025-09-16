@@ -80,7 +80,7 @@ class TagType(modules_state.ResourceType):
             time.sleep(0.05)
 
     def on_create_request(self, module: str, resource: str, kwargs: dict):
-        d: modules_state.ResourceDictType = {"resource_type": self.type}
+        d: modules_state.ResourceDictType = {"resource": {"type": self.type}}
         d.update(kwargs)
         for i in ["hi", "lo", "min", "max", "interval"]:
             if d.get(i, ""):

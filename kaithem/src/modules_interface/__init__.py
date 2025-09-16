@@ -230,7 +230,7 @@ async def get_resource_label_image(module: str, path: str):
     @quart.ctx.copy_current_request_context
     def f():
         data = modules_state.ActiveModules[module][path]
-        label = data["resource_label_image"]
+        label = data["resource"]["label_image"]
 
         for module_i in modules_state.ActiveModules:
             mf = modules_state.getModuleDir(module_i)
@@ -263,7 +263,7 @@ async def set_resource_label(module: str, path: str):
 
         data = modules_state.ActiveModules[module][path]
         data2 = dict(copy.deepcopy(data))
-        data2["resource_label_image"] = kw["resource"][len("media/") :]
+        data2["resource"]["label_image"] = kw["resource"][len("media/") :]
         modules_state.rawInsertResource(module, path, data2)
         return "OK"
 

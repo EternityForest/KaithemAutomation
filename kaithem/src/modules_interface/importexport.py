@@ -74,13 +74,13 @@ async def uploadresourcetarget(module):
 def download_resource(module, obj):
     pages.require("view_admin_info")
     if (
-        modules_state.ActiveModules[module][obj]["resource_type"]
+        modules_state.ActiveModules[module][obj]["resource"]["type"]
         in modules_state.resource_types
     ):
         # flush unsaved needs the modules lock
         with modules_state.modulesLock:
             modules_state.resource_types[
-                modules_state.ActiveModules[module][obj]["resource_type"]
+                modules_state.ActiveModules[module][obj]["resource"]["type"]
             ].flush_unsaved(module, obj)
     r = quart.Response(
         yaml.dump(modules_state.ActiveModules[module][obj]),
@@ -102,7 +102,7 @@ def yamldownload(module):
 
     with modules_state.modulesLock:
         for i in modules_state.ActiveModules[module]:
-            rt = modules_state.ActiveModules[module][i]["resource_type"]
+            rt = modules_state.ActiveModules[module][i]["resource"]["type"]
             if rt in modules_state.resource_types:
                 modules_state.resource_types[rt].flush_unsaved(module, i)
 

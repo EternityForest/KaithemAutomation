@@ -8,16 +8,15 @@ import datetime
 import hashlib
 import os
 import threading
-import time
 import urllib
 import urllib.parse
-from collections.abc import Iterator
-from typing import Any, Callable, Final
+from collections.abc import Callable, Iterator
+from typing import Any, Final
 
 import beartype
 import structlog
 import yaml
-from scullery import messagebus, workers
+from scullery import messagebus, snake_compat, workers
 from stream_zip import ZIP_64, stream_zip
 
 from kaithem.api import resource_types as resource_types_api
@@ -78,12 +77,12 @@ def get_resource_error(module: str, resource: str) -> str | None:
 def get_resource_label_image_url(module: str, path: str):
     data = ActiveModules[module][path]
 
-    if "resource_label_image" not in data:
+    if "label_image" not in data["resource"]:
         return None
-    if not data["resource_label_image"]:
+    if not data["resource"]["label_image"]:
         return None
-    if data["resource_label_image"].startswith(("http", "/")):
-        return data["resource_label_image"]
+    if data["resource"]["label_image"].startswith(("http", "/")):
+        return data["resource"]["label_image"]
 
     return f"/modules/label_image/{url(module)}/{url(path)}"
 
@@ -166,7 +165,7 @@ def serializeResource(name: str, obj: ResourceDictType) -> dict[str, str]:
     to file contents, to be written in appropriate folder"""
 
     r = mutable_copy_resource(obj)
-    rt = r["resource_type"]
+    rt = r["resource"]["type"]
     assert isinstance(rt, str)
 
     if rt in resource_types:
@@ -191,7 +190,7 @@ def importFiledataFolderStructure(module: str) -> None:
 
                     # Create a directory resource for the directory
                     ActiveModules[module][util.unurl(relfn)] = {
-                        "resource_type": "directory"
+                        "resource": {"type": "directory"}
                     }
 
 
@@ -206,7 +205,7 @@ def writeResource(
         return
 
     # directories get saved just by writing a literal directory.
-    if obj["resource_type"] == "directory":
+    if obj["resource"]["type"] == "directory":
         fn = os.path.join(dir, resource_name)
         if os.path.exists(fn):
             if not os.path.isdir(fn):
@@ -272,16 +271,42 @@ def save_resource(
                     f"File appears to exist: {os.path.join(dir, i)}"
                 )
 
-    if resourceData["resource_type"] == "directory":
-        d = mutable_copy_resource(resourceData)
-        d.pop("resource_type", None)
-
-        # As the folder on disk is enough to create the resource internally, we don't need to clutter
-        # the FS with this if there is no extra data
-        if not d:
-            return
+    if resourceData["resource"]["type"] == "directory":
+        # Do not allow extra data in directory resources
+        return
 
     writeResource(resourceData, dir, resource)
+
+
+def upgradeLegacyResourceData(resourceData: dict[str, Any]):
+    # Try to be compatible ancient stuff.
+    resourceData = snake_compat.snakify_dict_keys(resourceData)
+
+    if "resource" not in resourceData:
+        resourceData["resource"] = {}
+
+    if "resource_enable" in resourceData:
+        resourceData["resource"]["enabled"] = resourceData.pop(
+            "resource_enable"
+        )
+
+    if "resource_lock" in resourceData:
+        resourceData["resource"]["locked"] = resourceData.pop("resource_lock")
+
+    if "resource_label_image" in resourceData:
+        resourceData["resource"]["label_image"] = resourceData.pop(
+            "resource_label_image"
+        )
+
+    if "resource_type" in resourceData:
+        resourceData["resource"]["type"] = resourceData.pop("resource_type")
+
+    if "resource_timestamp" in resourceData:
+        resourceData["resource"]["modified"] = (
+            resourceData.pop("resource_timestamp") / 10**6
+        )
+
+    return resourceData
 
 
 @beartype.beartype
@@ -293,18 +318,17 @@ def rawInsertResource(
 ):
     with modulesLock:
         resourceData = mutable_copy_resource(resource_data)
+        resource_data = upgradeLegacyResourceData(resourceData)
+
         check_forbidden(resource)
         assert resource[0] != "/"
-
-        if "resource_timestamp" not in resourceData:
-            resourceData["resource_timestamp"] = int(time.time() * 1000000)
 
         # todo maybe we don't need os independence
         d = os.path.dirname(resource.replace("/", os.path.pathsep))
         while d:
             if d not in ActiveModules[module]:
                 ActiveModules[module][d.replace(os.path.pathsep, "/")] = {
-                    "resource_type": "directory"
+                    "resource": {"type": "directory"}
                 }
             d = os.path.dirname(d)
 
@@ -328,7 +352,7 @@ def rawDeleteResource(m: str, r: str, type: str | None = None) -> None:
     """
     with modulesLock:
         resourceData = ActiveModules[m].pop(r)
-        rt = resourceData["resource_type"]
+        rt = resourceData["resource"]["type"]
         assert isinstance(rt, str)
 
         if type and rt != type:

@@ -36,7 +36,7 @@ def sorted_module_path_list(name: str, path: list):
     return sorted(
         sorted(modules_state.ls_folder(name, "/".join(path))),
         key=lambda x: (
-            modules_state.ActiveModules[name][x]["resource_type"],
+            modules_state.ActiveModules[name][x]["resource"]["type"],
             x,
         ),
     )

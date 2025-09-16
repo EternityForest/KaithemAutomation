@@ -124,7 +124,7 @@ class ConfigType(modules_state.ResourceType):
         del entries[module, resource]
 
     def on_create_request(self, module, resource, kwargs):
-        d = {"resource_type": self.type}
+        d = {"resource": {"type": self.type}}
         return d
 
     def on_update_request(self, module, resource, data, kwargs):

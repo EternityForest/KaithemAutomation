@@ -183,7 +183,7 @@ webapi = imp0rt( 'kaithem.api.web' ) %} {% block body %}
         <a href="urlForPath(module, path)#resources">..</a>
       </dt>
       {% endif %} {% for i in sorted_module_path_list(name, path) %} {% if
-      module[i]['resource_type'] == 'directory' %}
+      module[i]['resource']['type'] == 'directory' %}
       <dt>
         <div class="tool-bar w-full noselect">
           <p class="nogrow">
@@ -246,8 +246,8 @@ webapi = imp0rt( 'kaithem.api.web' ) %} {% block body %}
     <h3>Resources</h3>
     <dl class="margin-top">
       {% for i in sorted_module_path_list(name, path) %} {% if not
-      'resource_type' in module[i] %} OBJECT {{ i| escape }} MISSING
-      resource_type <% continue %> {% endif %} {% if module[i]['resource_type']
+      'type' in module[i].get('resource',{}) %} OBJECT {{ i| escape }} MISSING
+      resource_type <% continue %> {% endif %} {% if module[i]['resource']['type']
       == 'permission' %}
       <dt>
         <div class="tool-bar w-full inline noselect">
@@ -268,24 +268,24 @@ webapi = imp0rt( 'kaithem.api.web' ) %} {% block body %}
           ></a>
         </div>
       </dt>
-      {% endif %} {% if module[i]['resource_type'] in
+      {% endif %} {% if module[i]['resource']['type'] in
       modules_state.resource_types %}
       <dt>
         <div class="tool-bar w-full inline noselect">
           <p class="nogrow">
             <i
-              class="mdi mdi-{{modules.resource_types[module[i]['resource_type']].mdi_icon}}"></i>
+              class="mdi mdi-{{modules.resource_types[module[i]['resource']['type']].mdi_icon}}"></i>
           </p>
           <p>
-            {% if module[i].get("resource_lock", False) %}
+            {% if module[i].get("resource", {}).get("lock", False) %}
             <span class="mdi mdi-lock-outline"></span>LOCKED {% endif %}
 
-            {% if not module[i].get("resource_enable", True) %}
+            {% if notmodule[i].get("resource", {}).get("enabled", True) %}
             <span class="error nogrow"><i class="mdi mdi-cancel"></i>(disabled)</span> {% endif %}
 
             <a
               href="/modules/module/{{ url(name) }}/resource/{{ url(i) }}"
-              title="{{module[i]['resource_type']}}">
+              title="{{module[i]['resource']['type']}}">
               <b>{{ i.split("/")[-1] | escape }}</b></a
             >
           </p>
@@ -319,7 +319,7 @@ webapi = imp0rt( 'kaithem.api.web' ) %} {% block body %}
         </div>
       </dt>
       <dd class="flex-row">
-        {% if module[i].get('resource_label_image') %}
+        {% if module[i]['resource'].get('label_image') %}
         <img
           alt="thumbnail"
           class="control-rounded max-h-8rem v-center noselect"
@@ -332,12 +332,12 @@ webapi = imp0rt( 'kaithem.api.web' ) %} {% block body %}
               {{modules_state.get_resource_error(name,i) | escape}}
             </p>
           {% endif %}
-          {{modules.resource_types[module[i]['resource_type']]._blurb(name,i,module[i]
+          {{modules.resource_types[module[i]['resource']['type']]._blurb(name,i,module[i]
           )}}
         </div>
       </dd>
 
-      {% elif module[i]['resource_type'] not in("directory", "permission") and
+      {% elif module[i]['resource']['type'] not in("directory", "permission") and
       not i.startswith("__") %}
       <dt>
         <div class="tool-bar w-full inline noselect">
@@ -345,7 +345,7 @@ webapi = imp0rt( 'kaithem.api.web' ) %} {% block body %}
             <i class="mdi mdi-file-question-outline"></i>
           </p>
           <p>
-            {% if module[i]['resource_lock'] in modules_state.resource_types %}
+            {% if module[i]['resource'].get("lock", False) in modules_state.resource_types %}
             <span class="mdi mdi-lock-outline"></span>LOCKED {% endif %}
             <b>{{ i.split("/")[-1] | escape }}</b>
           </p>
@@ -365,7 +365,7 @@ webapi = imp0rt( 'kaithem.api.web' ) %} {% block body %}
         </div>
       </dt>
       <dd class="flex-row">
-        {% if module[i].get('resource_label_image') %}
+        {% if module[i]['resource'].get('label_image') %}
         <img
           alt="thumbnail"
           class="control-rounded max-h-8rem v-center noselect"
@@ -373,7 +373,7 @@ webapi = imp0rt( 'kaithem.api.web' ) %} {% block body %}
         {% endif %}
 
         <div class="grow padding-inline error">
-          Unknown resource type: {{module[i]['resource_type']}}. You may be
+          Unknown resource type: {{module[i]['resource']['type']}}. You may be
           missing a plugin.
         </div>
       </dd>

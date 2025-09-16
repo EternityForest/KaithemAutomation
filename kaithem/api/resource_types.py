@@ -8,7 +8,7 @@ import json
 import threading
 import traceback
 from collections.abc import Callable, Mapping
-from typing import Any, Final, Type, TypeVar
+from typing import Any, Final, TypeVar
 from urllib.parse import quote
 
 import beartype
@@ -123,7 +123,11 @@ class ResourceType:
 
     def _validate(self, data: ResourceDictType):
         "Strip the resource_ keys before giving it to the validator"
-        data = {i: data[i] for i in data if not i.startswith("resource_")}
+        data = {
+            i: data[i]
+            for i in data
+            if (not i.startswith("resource_") and not i == "resource")
+        }
         if self.schema:
             validate(data, self.schema)
         self.validate(data)
@@ -174,7 +178,7 @@ class ResourceType:
         Called on submitting create form.  This should not actually do anything
         besides create the resource object.
         """
-        return {"resource_type": "example"}
+        return {"resource": {"type": "example"}}
 
     def edit_page(
         self, module: str, resource: str, data: ResourceDictType
@@ -274,7 +278,7 @@ def resource_type_from_schema(
     title: str,
     icon: str,
     schema: dict[str, Any] | Callable[[], dict[str, Any]],
-    runtime_object_cls: Type[ResourceTypeRuntimeObjectTypeVar],
+    runtime_object_cls: type[ResourceTypeRuntimeObjectTypeVar],
     default: dict[str, Any] = {},
     blurb: Callable[[ResourceTypeRuntimeObjectTypeVar, str, str], str]
     | str = "",
@@ -354,7 +358,7 @@ def resource_type_from_schema(
             return {
                 "name": kwargs["name"],
                 "data": d,
-                "resource_type": resource_type,
+                "resource": {"type": resource_type},
             }
 
         def on_update_request(
@@ -369,7 +373,7 @@ def resource_type_from_schema(
             d2 = {
                 "name": kwargs["name"],
                 "data": d,
-                "resource_type": resource_type,
+                "resource": {"type": resource_type},
             }
             d3: dict = copy.deepcopy(data)  # type: ignore
             d3.update(d2)

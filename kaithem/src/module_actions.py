@@ -66,7 +66,7 @@ def addConfigResource(module: str, resource: str, k: str, v: str):
     if resource in modules_state.ActiveModules[module]:
         raise RuntimeError("Exists!")
 
-    d = {"resource_type": "config", "data": {k: v}}
+    d: dict[str, Any] = {"resource": {"type": "config"}, "data": {k: v}}
     d["config_priority"] = 50.0
     modules.createResource(module, resource, d)
 

@@ -60,10 +60,10 @@ def loadAllCustomResourceTypes() -> None:
                 # actually supported.
                 r = copy.deepcopy(orig)
                 if hasattr(r, "get"):
-                    if r.get("resource_type", "") == loading_rt:
+                    if r.get("resource", {}).get("type") == loading_rt:
                         start_time_inner = time.time()
                         try:
-                            rt = r["resource_type"]
+                            rt = r["resource"]["type"]
                             assert isinstance(rt, str)
                             resource_types[rt]._validate(r)
                             resource_types[rt].on_load(i, j, r)
@@ -137,7 +137,9 @@ def readResourceFromData(
     fn = relative_name
     r = None
     if filename and (
-        not filename.endswith(".yaml") or filename.endswith(".toml")
+        not filename.endswith(".yaml")
+        or filename.endswith(".toml")
+        or filename.endswith(".json")
     ):
         return None, None
     try:
@@ -151,16 +153,23 @@ def readResourceFromData(
         isSpecialEncoded = False
         wasProblem = False
 
-        if fn.endswith((".yaml", ".json")):
+        if fn.endswith((".yaml", ".json", ".toml")):
             shouldRemoveExtension = True
 
         if not isSpecialEncoded:
-            r = yaml.load(sections[0], Loader=yaml.SafeLoader)
+            if fn.endswith(".toml"):
+                import tomllib
+
+                r = tomllib.loads(d)
+            else:
+                r = yaml.load(sections[0], Loader=yaml.SafeLoader)
             r = snake_compat.snakify_dict_keys(r)
+
+            r = modules_state.upgradeLegacyResourceData(r)
 
             # Catch new style save files
             if len(sections) > 1:
-                if r["resource_type"] == "page":
+                if r["resource"]["type"] == "page":
                     r["body"] = sections[1]
 
         if wasProblem:
@@ -181,7 +190,7 @@ def readResourceFromData(
             return (None, None)
         else:
             raise
-    if not r or "resource_type" not in r:
+    if not r or not r["resource"] or "type" not in r["resource"]:
         if (
             "/.git" in fn
             or "/.gitignore" in fn
@@ -195,11 +204,11 @@ def readResourceFromData(
     assert r
 
     # If no resource timestamp use the one from the file time.
-    if "resource_timestamp" not in r:
+    if "modified" not in r["resource"]:
         if filename:
-            r["resource_timestamp"] = int(os.stat(filename).st_mtime * 1000000)
+            r["resource"]["modified"] = int(os.stat(filename).st_mtime)
         else:
-            r["resource_timestamp"] = int(time.time() * 1000000)
+            r["resource"]["modified"] = int(time.time())
 
     resourcename = util.unurl(fn)
     if shouldRemoveExtension:
@@ -347,7 +356,7 @@ def loadModule(
                 if "/." in fn:
                     continue
 
-                if fn.endswith(("yaml", ".json")):
+                if fn.endswith((".yaml", ".json", ".toml")):
                     try:
                         # TODO: Lib modules? filedata?
                         # Load the resource and add it to the dict. Resouce names are urlencodes in filenames.
@@ -364,7 +373,7 @@ def loadModule(
                             continue
 
                         module[resourcename] = r
-                        if "resource_type" not in r:
+                        if "resource" not in r or "type" not in r["resource"]:
                             logger.warning(
                                 f"No resource type found for {resourcename}"
                             )
@@ -386,13 +395,15 @@ def loadModule(
                     continue
 
                 # Create a directory resource for the dirrctory
-                module[util.unurl(relfn)] = {"resource_type": "directory"}
+                module[util.unurl(relfn)] = {"resource": {"type": "directory"}}
 
         if "__metadata__" not in module:
             module["__metadata__"] = {
-                "resource_type": "module_metadata",
+                "resource": {
+                    "type": "module_metadata",
+                    "modified": int(time.time()),
+                },
                 "description": "",
-                "resource_timestamp": int(time.time() * 1000000),
             }
 
         scopes[modulename] = ModuleObject(modulename)
@@ -495,7 +506,7 @@ def bookkeeponemodule(module: str, update: bool = False) -> None:
 
     for i in modules_state.ActiveModules[module]:
         # Handle events separately due to dependency resolution logic
-        rt = modules_state.ActiveModules[module][i]["resource_type"]
+        rt = modules_state.ActiveModules[module][i]["resource"]["type"]
         assert isinstance(rt, str)
 
         try:
@@ -530,8 +541,8 @@ def mvResource(module: str, resource: str, to_module: str, to_resource: str):
     if not (
         len(new) < 2
         or modules_state.ActiveModules[to_module]["/".join(new[:-1])][
-            "resource_type"
-        ]
+            "resource"
+        ]["type"]
         == "directory"
     ):
         raise ValueError("Invalid destination")
@@ -539,7 +550,7 @@ def mvResource(module: str, resource: str, to_module: str, to_resource: str):
     obj: modules_state.ResourceDictType = modules_state.ActiveModules[module][
         resource
     ]
-    rt = obj["resource_type"]
+    rt = obj["resource"]["type"]
 
     assert isinstance(rt, str)
 
@@ -589,7 +600,7 @@ def rmResource(
 
     try:
         r = modules_state.ActiveModules[module][resource]
-        rt = r["resource_type"]
+        rt = r["resource"]["type"]
         assert isinstance(rt, str)
         if rt in modules_state.resource_types:
             modules_state.resource_types[rt].on_delete(module, resource, r)
@@ -617,7 +628,7 @@ def rmResource(
 
 def unload_resource(module: str, resource: str):
     r = modules_state.ActiveModules[module][resource]
-    rt = r["resource_type"]
+    rt = r["resource"]["type"]
     assert isinstance(rt, str)
 
     if rt in resource_types:
@@ -659,9 +670,11 @@ def newModule(
             else:
                 r: modules_state.ResourceDictType = {
                     "__metadata__": {
-                        "resource_type": "module_metadata",
+                        "resource": {
+                            "type": "module_metadata",
+                            "modified": time.time(),
+                        },
                         "description": "",
-                        "resource_timestamp": int(time.time() * 1000000),
                     }
                 }
                 for i in metadata_defaults:
@@ -671,9 +684,11 @@ def newModule(
         else:
             r: modules_state.ResourceDictType = {
                 "__metadata__": {
-                    "resource_type": "module_metadata",
+                    "resource": {
+                        "type": "module_metadata",
+                        "modified": time.time(),
+                    },
                     "description": "",
-                    "resource_timestamp": int(time.time() * 1000000),
                 }
             }
             for i in metadata_defaults:
@@ -713,9 +728,9 @@ def rmModule(module: str, message: str = "deleted") -> None:
 
     # Delete any custom resource types hanging around.
     for k in j:
-        if j[k].get("resource_type", None) in resource_types:
+        if j[k].get("resource", {}).get("type") in resource_types:
             try:
-                rt = j[k]["resource_type"]
+                rt = j[k]["resource"]["type"]
                 assert isinstance(rt, str)
                 resource_types[rt].on_unload(module, k, j[k])
             except Exception:
@@ -753,6 +768,7 @@ class KaithemEvent(dict):
 
 def createResource(module: str, resource: str, data: ResourceDictType):
     data = modules_state.mutable_copy_resource(data)
+    data = modules_state.upgradeLegacyResourceData(data)
     modules_state.set_resource_error(module, resource, None)
     modules_state.rawInsertResource(module, resource, data)
     handleResourceChange(module, resource)
@@ -762,7 +778,7 @@ def handleResourceChange(
     module: str, resource: str, obj: None = None, newly_added: bool = False
 ) -> None:
     with modules_state.modulesLock:
-        t = modules_state.ActiveModules[module][resource]["resource_type"]
+        t = modules_state.ActiveModules[module][resource]["resource"]["type"]
 
         resourceobj = modules_state.ActiveModules[module][resource]
         modules_state.set_resource_error(module, resource, None)
@@ -772,7 +788,7 @@ def handleResourceChange(
         if resource == "__metadata__":
             return
 
-        if not resourceobj.get("resource_enable", True):
+        if not resourceobj["resource"].get("enable", True):
             return
 
         if t == "permission":
@@ -793,5 +809,5 @@ def handleResourceChange(
 
 def enable_resource(module: str, resource: str):
     r = modules_state.ActiveModules[module][resource]
-    rt = r["resource_type"]
+    rt = r["resource"]["type"]
     resource_types[rt].on_load(module, resource, r)

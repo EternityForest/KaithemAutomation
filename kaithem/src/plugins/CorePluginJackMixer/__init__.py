@@ -1667,7 +1667,7 @@ class MixingBoardType(modules_state.ResourceType):
         del boards[f"{module}:{name}"]
 
     def on_create_request(self, module, name, kwargs):
-        d = {"resource_type": self.type}
+        d = {"resource": {"type": self.type}}
         return d
 
     def on_update_request(self, module, resource, data, kwargs):
