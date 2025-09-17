@@ -1310,7 +1310,7 @@ dependencies = [
     { name = "zeroconf" },
 ]
 
-[package.optional-dependencies]
+[package.dev-dependencies]
 dev = [
     { name = "coverage" },
     { name = "handsdown" },
@@ -1334,11 +1334,9 @@ requires-dist = [
     { name = "cheroot" },
     { name = "colorama", specifier = "~=0.4.6" },
     { name = "colorzero" },
-    { name = "coverage", marker = "extra == 'dev'", specifier = ">=7.2.7" },
     { name = "ephem", specifier = "~=4.2.0" },
     { name = "evdev" },
     { name = "ffmpeg-python" },
-    { name = "handsdown", marker = "extra == 'dev'", specifier = ">=2.1.0" },
     { name = "holidays" },
     { name = "hypercorn", extras = ["uvloop"], specifier = "~=0.17.3" },
     { name = "icemedia", specifier = ">=0.1.23" },
@@ -1366,14 +1364,9 @@ requires-dist = [
     { name = "psutil" },
     { name = "pyflakes" },
     { name = "pygments" },
-    { name = "pygount", marker = "extra == 'dev'", specifier = ">=1.7.0" },
     { name = "pygrep" },
     { name = "pyserial" },
     { name = "pytest" },
-    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.23.7" },
-    { name = "pytest-asyncio", marker = "extra == 'test'", specifier = ">=0.23.7" },
-    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=5.0.0" },
-    { name = "pytest-cov", marker = "extra == 'test'", specifier = ">=5.0.0" },
     { name = "python-dateutil" },
     { name = "python-mpv-jsonipc" },
     { name = "python-rtmidi", specifier = "==1.5.8" },
@@ -1395,8 +1388,6 @@ requires-dist = [
     { name = "stream-zip", specifier = "~=0.0.71" },
     { name = "structlog", specifier = "~=24.4.0" },
     { name = "textdistance" },
-    { name = "time-machine", marker = "extra == 'dev'", specifier = ">=2.0.0" },
-    { name = "time-machine", marker = "extra == 'test'", specifier = ">=2.0.0" },
     { name = "tinytag" },
     { name = "toml" },
     { name = "types-jsonschema", specifier = "~=4.25.0.20240331" },
@@ -1408,7 +1399,21 @@ requires-dist = [
     { name = "zeep" },
     { name = "zeroconf", specifier = ">=0.119.0" },
 ]
-provides-extras = ["dev", "test"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "coverage", specifier = ">=7.2.7" },
+    { name = "handsdown", specifier = ">=2.1.0" },
+    { name = "pygount", specifier = ">=1.7.0" },
+    { name = "pytest-asyncio", specifier = ">=0.23.7" },
+    { name = "pytest-cov", specifier = ">=5.0.0" },
+    { name = "time-machine", specifier = ">=2.0.0" },
+]
+test = [
+    { name = "pytest-asyncio", specifier = ">=0.23.7" },
+    { name = "pytest-cov", specifier = ">=5.0.0" },
+    { name = "time-machine", specifier = ">=2.0.0" },
+]
 
 [[package]]
 name = "lxml"
