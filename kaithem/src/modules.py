@@ -19,7 +19,6 @@ from typing import Any
 import beartype
 import structlog
 import yaml
-from scullery import snake_compat
 
 from . import auth, directories, messagebus, modules_state, pages, util
 from .modules_state import (
@@ -136,11 +135,7 @@ def readResourceFromData(
     """
     fn = relative_name
     r = None
-    if filename and (
-        not filename.endswith(".yaml")
-        or filename.endswith(".toml")
-        or filename.endswith(".json")
-    ):
+    if filename and (not filename.endswith((".yaml", ".toml", ".json"))):
         return None, None
     try:
         # This regex is meant to handle any combination of cr, lf, and trailing whitespaces
@@ -163,9 +158,6 @@ def readResourceFromData(
                 r = tomllib.loads(d)
             else:
                 r = yaml.load(sections[0], Loader=yaml.SafeLoader)
-            r = snake_compat.snakify_dict_keys(r)
-
-            r = modules_state.upgradeLegacyResourceData(r)
 
             # Catch new style save files
             if len(sections) > 1:
@@ -190,6 +182,10 @@ def readResourceFromData(
             return (None, None)
         else:
             raise
+
+    if r:
+        r = modules_state.upgradeLegacyResourceData(r)
+
     if not r or not r["resource"] or "type" not in r["resource"]:
         if (
             "/.git" in fn
@@ -319,7 +315,9 @@ def loadModule(
 
         for t in resource_types:
             found = resource_types[t].scan_dir(folder)
-            module.update(found)
+            for rn in found:
+                rsc = modules_state.upgradeLegacyResourceData(found[rn])
+                module[rn] = rsc
 
         # Iterate over all resource files and load them
         for root, dirs, files in os.walk(folder):
@@ -342,10 +340,13 @@ def loadModule(
                         found = copy.deepcopy(found)
 
                         for rn in found:
+                            rsc = modules_state.upgradeLegacyResourceData(
+                                found[rn]
+                            )
                             if rel:
-                                module[rel + "/" + rn] = found[rn]
+                                module[rel + "/" + rn] = rsc
                             else:
-                                module[rn] = found[rn]
+                                module[rn] = rsc
 
             for i in files:
                 relfn = os.path.relpath(os.path.join(root, i), folder)

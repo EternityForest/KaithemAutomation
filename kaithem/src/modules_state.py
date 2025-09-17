@@ -278,8 +278,9 @@ def save_resource(
     writeResource(resourceData, dir, resource)
 
 
-def upgradeLegacyResourceData(resourceData: dict[str, Any]):
+def upgradeLegacyResourceData(x: ResourceDictType):
     # Try to be compatible ancient stuff.
+    resourceData: dict[str, Any] = copy.deepcopy(x)
     resourceData = snake_compat.snakify_dict_keys(resourceData)
 
     if "resource" not in resourceData:

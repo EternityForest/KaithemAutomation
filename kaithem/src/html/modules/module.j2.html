@@ -280,7 +280,7 @@ webapi = imp0rt( 'kaithem.api.web' ) %} {% block body %}
             {% if module[i].get("resource", {}).get("lock", False) %}
             <span class="mdi mdi-lock-outline"></span>LOCKED {% endif %}
 
-            {% if notmodule[i].get("resource", {}).get("enabled", True) %}
+            {% if not module[i].get("resource", {}).get("enabled", True) %}
             <span class="error nogrow"><i class="mdi mdi-cancel"></i>(disabled)</span> {% endif %}
 
             <a
