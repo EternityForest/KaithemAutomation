@@ -118,7 +118,7 @@ module-name=["kaithem", "kaithem_cli", "kaithem_scripts"]
 
 
 # Duplicate here so we can use uv to test in specific environments
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
     "pygount >=1.7.0",
     "handsdown >=2.1.0",
