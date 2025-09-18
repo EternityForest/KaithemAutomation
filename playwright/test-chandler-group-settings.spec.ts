@@ -95,8 +95,6 @@ test("test", async ({ page }) => {
   await page.getByLabel("Sync Group Name").click();
   await page.getByLabel("Sync Group Name").fill("grp");
 
-  await page.getByPlaceholder("Tagpoint").click();
-  await page.getByPlaceholder("Tagpoint").fill("cmdtag");
 
   // Click away
   await page.getByLabel("Sync Group Name").click();
@@ -117,7 +115,7 @@ test("test", async ({ page }) => {
   await expect(page.getByLabel("Default Alpha")).toHaveValue("0.22");
   await expect(page.getByLabel("Slideshow Overlay")).toHaveValue("overlay");
   await expect(page.getByLabel("MIDI Source")).toHaveValue("midisrc");
-  await expect(page.getByPlaceholder("Tagpoint")).toHaveValue("cmdtag");
+
   await expect(page.getByPlaceholder("Next cue in list")).toHaveValue("foo");
   await expect(page.getByLabel("Sound Output")).toHaveValue("defaultout");
   await expect(page.getByLabel("Crossfade Media")).toHaveValue("0.56");
@@ -304,10 +302,8 @@ test("test", async ({ page }) => {
     clickCount: 3,
   });
   await page.getByLabel("MIDI Source").fill("");
-  await page.getByPlaceholder("Tagpoint").click({
-    clickCount: 3,
-  });
-  await page.getByPlaceholder("Tagpoint").fill("");
+
+
   await page.getByPlaceholder("Next cue in list").dblclick();
   await page.getByPlaceholder("Next cue in list").fill("");
 
@@ -340,7 +336,7 @@ test("test", async ({ page }) => {
   await expect(page.getByLabel("Sync Group Name")).toBeEmpty();
   await expect(page.getByLabel("Slideshow Overlay")).toBeEmpty();
   await expect(page.getByLabel("MIDI Source")).toBeEmpty();
-  await expect(page.getByPlaceholder("Tagpoint")).toBeEmpty();
+
   await expect(page.getByPlaceholder("Next cue in list")).toBeEmpty();
   await expect(page.getByLabel("Crossfade Media")).toHaveValue("0");
   await expect(page.getByLabel("Sound Output")).toBeEmpty();
@@ -351,7 +347,7 @@ test("test", async ({ page }) => {
   ).not.toBeChecked();
   await expect(page.getByLabel("Active By Default")).not.toBeChecked();
   await expect(page.getByLabel("Backtrack")).not.toBeChecked();
-  await expect(page.getByPlaceholder("Tagpoint")).toBeEmpty();
+
   await expect(page.getByPlaceholder("Next cue in list")).toBeEmpty();
 
   await page.getByText("Custom layout for slideshow").click();
