@@ -574,9 +574,8 @@ async def update_resource_metadata(module, resource):
         d = modules_state.mutable_copy_resource(
             modules_state.ActiveModules[module][resource]
         )
-        for i in kwargs:
-            if i not in ("resource_enable",):
-                d[i] = kwargs[i]
+
+        d["resource"]["label_image"] = kwargs.get("resource_label_image", "")
 
         d["resource"]["enabled"] = is_enabled
 
