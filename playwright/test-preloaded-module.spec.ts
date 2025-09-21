@@ -68,8 +68,12 @@ test("test", async ({ page }) => {
   // But it loads after in the deterministing module name sort order so it should have errors and
   // conflicts
   await expect(page.getByRole('link', { name: 'test_preloaded_ext_module' })).toBeVisible();
+  
+  // Ensure we show the location for the ext module
+  await expect(page.getByText('/dev/shm')).toBeVisible();
 
-  await expect(page.getByText('kaithem/data/testing/TestingServerModule')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'TestingServerModule' })).toBeVisible();
+
   await page.getByRole('link', { name: 'test_preloaded_ext_module' }).click();
   await expect(page.getByRole('link', { name: 'TestingServerPreloadedBoard' })).toBeVisible();
   await expect(page.getByText('nonsense-resource', { exact: true })).toBeVisible();
