@@ -8,6 +8,7 @@ import datetime
 import hashlib
 import os
 import threading
+import time
 import urllib
 import urllib.parse
 from collections.abc import Callable, Iterator
@@ -278,7 +279,8 @@ def save_resource(
     writeResource(resourceData, dir, resource)
 
 
-def upgradeLegacyResourceData(x: ResourceDictType):
+def normalize_resource_data(x: ResourceDictType):
+    """Legacy compatibility, filling in missing things like timestamps"""
     # Try to be compatible ancient stuff.
     resourceData: dict[str, Any] = copy.deepcopy(x)  # type: ignore
     resourceData = snake_compat.snakify_dict_keys(resourceData)
@@ -286,6 +288,7 @@ def upgradeLegacyResourceData(x: ResourceDictType):
     if "resource" not in resourceData:
         resourceData["resource"] = {}
 
+    # begin legacy compatibility
     if "resource_enable" in resourceData:
         resourceData["resource"]["enabled"] = resourceData.pop(
             "resource_enable"
@@ -303,9 +306,13 @@ def upgradeLegacyResourceData(x: ResourceDictType):
         resourceData["resource"]["type"] = resourceData.pop("resource_type")
 
     if "resource_timestamp" in resourceData:
-        resourceData["resource"]["modified"] = (
+        resourceData["resource"]["modified"] = int(
             resourceData.pop("resource_timestamp") / 10**6
         )
+    # end legacy compatibility
+
+    if not resourceData["resource"].get("modified"):
+        resourceData["resource"]["modified"] = int(time.time())
 
     return resourceData
 
@@ -318,8 +325,8 @@ def rawInsertResource(
     rehash: bool = True,
 ):
     with modulesLock:
-        resourceData = mutable_copy_resource(resource_data)
-        resource_data = upgradeLegacyResourceData(resourceData)
+        resource_data_mutable = mutable_copy_resource(resource_data)
+        resource_data_mutable = normalize_resource_data(resource_data_mutable)
 
         check_forbidden(resource)
         assert resource[0] != "/"
@@ -333,8 +340,8 @@ def rawInsertResource(
                 }
             d = os.path.dirname(d)
 
-        ActiveModules[module][resource] = resourceData
-        save_resource(module, resource, resourceData)
+        ActiveModules[module][resource] = resource_data_mutable
+        save_resource(module, resource, resource_data_mutable)
         if rehash:
             # Don't need to block or risk deadlocks every time
             # A chandler board or something auto saves.

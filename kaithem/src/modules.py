@@ -184,7 +184,7 @@ def readResourceFromData(
             raise
 
     if r:
-        r = modules_state.upgradeLegacyResourceData(r)
+        r = modules_state.normalize_resource_data(r)
 
     if not r or not r["resource"] or "type" not in r["resource"]:
         if (
@@ -198,13 +198,6 @@ def readResourceFromData(
             print(fn)
 
     assert r
-
-    # If no resource timestamp use the one from the file time.
-    if "modified" not in r["resource"]:
-        if filename:
-            r["resource"]["modified"] = int(os.stat(filename).st_mtime)
-        else:
-            r["resource"]["modified"] = int(time.time())
 
     resourcename = util.unurl(fn)
     if shouldRemoveExtension:
@@ -316,7 +309,7 @@ def loadModule(
         for t in resource_types:
             found = resource_types[t].scan_dir(folder)
             for rn in found:
-                rsc = modules_state.upgradeLegacyResourceData(found[rn])
+                rsc = modules_state.normalize_resource_data(found[rn])
                 module[rn] = rsc
 
         # Iterate over all resource files and load them
@@ -340,7 +333,7 @@ def loadModule(
                         found = copy.deepcopy(found)
 
                         for rn in found:
-                            rsc = modules_state.upgradeLegacyResourceData(
+                            rsc = modules_state.normalize_resource_data(
                                 found[rn]
                             )
                             if rel:
@@ -673,7 +666,7 @@ def newModule(
                     "__metadata__": {
                         "resource": {
                             "type": "module_metadata",
-                            "modified": time.time(),
+                            "modified": int(time.time()),
                         },
                         "description": "",
                     }
@@ -687,7 +680,7 @@ def newModule(
                 "__metadata__": {
                     "resource": {
                         "type": "module_metadata",
-                        "modified": time.time(),
+                        "modified": int(time.time()),
                     },
                     "description": "",
                 }
@@ -769,7 +762,7 @@ class KaithemEvent(dict):
 
 def createResource(module: str, resource: str, data: ResourceDictType):
     data = modules_state.mutable_copy_resource(data)
-    data = modules_state.upgradeLegacyResourceData(data)
+    data = modules_state.normalize_resource_data(data)
     modules_state.set_resource_error(module, resource, None)
     modules_state.rawInsertResource(module, resource, data)
     handleResourceChange(module, resource)

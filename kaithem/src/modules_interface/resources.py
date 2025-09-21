@@ -186,7 +186,6 @@ async def addresourcetarget(module, rtype, path=""):
         root = x[0]
 
         def insertResource(r):
-            r["resource"]["timestamp"] = int(time.time() * 1000000)
             modules_state.rawInsertResource(root, name_with_path, r)
 
         with modules_state.modulesLock:
