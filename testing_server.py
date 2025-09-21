@@ -35,12 +35,7 @@ with open(
     "/dev/shm/kaithem_test_env/modules/data/test_preloaded_ext_module.location",
     "w",
 ) as f:
-    f.write(
-        os.path.join(
-            os.path.dirname(__file__),
-            "kaithem/data/testing/TestingServerModule",
-        ),
-    )
+    f.write("/dev/shm/kaithem_test_env/modules/data/TestingServerModule")
 
 # Ensure tests don't do anything outside the sandbox
 old_open = open

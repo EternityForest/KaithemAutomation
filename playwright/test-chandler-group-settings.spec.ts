@@ -97,7 +97,7 @@ test("test", async ({ page }) => {
 
 
   // Click away
-  await page.getByLabel("Sync Group Name").click();
+  await page.getByLabel("MQTT Server").click();
 
   await waitForTasks(page);
 
