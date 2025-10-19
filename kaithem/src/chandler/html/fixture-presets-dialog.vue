@@ -141,7 +141,10 @@ const presetFilter = Vue.ref("");
 
 const sorts = Vue.ref([
   "category",
+  "!values.uv",
+  "!values.lime",
   "!values.green",
+  "!values.amber",
   "!values.red",
   "!values.blue",
   "!values.white",
@@ -182,6 +185,26 @@ function setFixturePreset(sc, fix, preset) {
 
   selectedPreset = structuredClone(Vue.toRaw(selectedPreset));
 
+  let resetOthers = selectedPreset.reset_unspecified_colors;
+  if (resetOthers == undefined) {
+    resetOthers = true;
+  }
+
+  // Presets by default reset all the colors to zero if not specified
+  // to ensure a preset taken from an RGB fixture works on an RGBW fixture
+  const resettablechannels = {
+    uv: 0,
+    lime: 0,
+    green: 0,
+    amber: 0,
+    red: 0,
+    blue: 0,
+    white: 0,
+    dim: 0,
+    coolwhite: 0,
+    warmwhite: 0,
+  };
+
   for (var i in properties.currentvals) {
     // If just editing destinations
     // don't use the special vals.
@@ -195,6 +218,7 @@ function setFixturePreset(sc, fix, preset) {
     if (i == "__spacing__") {
       continue;
     }
+
     if (
       typeof selectedPreset.values[i] == "string" &&
       selectedPreset.values[i].length === 0
@@ -205,7 +229,11 @@ function setFixturePreset(sc, fix, preset) {
     if (selectedPreset.values[i] == "-1") {
       continue;
     }
-    if (selectedPreset.values[i] != undefined) {
+    if (selectedPreset.values[i] == undefined) {
+      if (resetOthers && !i.startsWith("__") && i in resettablechannels) {
+        restSetCueValue(sc, fix, i, resettablechannels[i]);
+      }
+    } else {
       if (properties.fordestination) {
         restSetCueValue(sc, fix, "__dest__." + i, selectedPreset.values[i]);
       } else {
@@ -213,6 +241,7 @@ function setFixturePreset(sc, fix, preset) {
       }
     }
   }
+
   if (!properties.fordestination) {
     restSetCueValue(sc, fix, "__preset__", preset);
   }

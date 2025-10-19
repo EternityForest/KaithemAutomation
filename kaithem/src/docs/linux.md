@@ -1,5 +1,31 @@
 ## Linux Cheat Sheet
 
+## Basic
+
+## Go into a directory
+
+`cd some-dir` To go into some dir, which should be in the dir you are in
+
+`cd ..` to go one level up
+
+## List files in this dir
+
+
+`ls -alt`
+
+The t sorts by date, leave it off to not do that.
+
+## Run a program
+
+`./program`
+
+You need the ./ if it's in the local dir, it's a security thing to be sure you actually want to run it.
+
+If it is an installed app on the PATH, the name alone will suffice.
+
+## Make a file runnable
+
+`chmod a+x file` adds the "executable by all users" flag to the file.
 
 ## Systemd
 

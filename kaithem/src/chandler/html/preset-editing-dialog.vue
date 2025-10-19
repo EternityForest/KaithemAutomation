@@ -51,12 +51,13 @@
         class="w-full h-2rem nogrow"
         type="text"
         @change="
-          updatepreset(
+          setPresetLabelImage(
+            presets[selectingImageLabelForPreset],
             selectingImageLabelForPreset,
-            presets[selectingImageLabelForPreset]
+            $event.target.value
           )
         "
-        v-model="presets[selectingImageLabelForPreset].label_image" />
+        v-bind:value="presets[selectingImageLabelForPreset].label_image" />
 
       <div style="background-color: var(--alt-control-bg)">
         <media-browser :no_edit="no_edit" :selectfolders="false">
@@ -71,12 +72,11 @@
                 slotProps.filename.endsWith('.avif')
               "
               @click="
-                presets[selectingImageLabelForPreset].label_image =
-                  slotProps.relfilename;
-                updatepreset(
+                setPresetLabelImage(
+                  presets[selectingImageLabelForPreset],
                   selectingImageLabelForPreset,
-                  presets[selectingImageLabelForPreset]
-                );
+                  slotProps.relfilename
+                )
               ">
               Use
             </button>
@@ -113,7 +113,7 @@
           <dt
             v-if="ps[0].toLowerCase().includes(filterPresets.toLowerCase())"
             :data-testid="'preset-inspector-' + ps[0] + '-heading'"
-            v-bind:key="ps[0]">
+            v-bind:key="i">
             <div class="tool-bar">
               <p>
                 <b>{{ ps[0] }}</b>
@@ -191,6 +191,17 @@
               </div>
               <summary>Values</summary>
               <div class="stacked-form">
+                <label>
+                  Reset colors not specified here
+                  <input
+                    :disabled="no_edit"
+                    type="checkbox"
+                    v-bind:checked="ps[1].reset_unspecified_colors ==undefined? true : ps[1].reset_unspecified_colors"
+                    v-on:change="
+                      ps[1].reset_unspecified_colors = $event.target.checked;
+                      updatepreset(ps[0], ps[1]);
+                    " />
+                </label>
                 <label v-for="(val, field) of ps[1].values" v-bind:key="field">
                   {{ field
                   }}<input
@@ -214,7 +225,6 @@
 import { dictView } from "./utils.mjs";
 import * as Vue from "/static/js/thirdparty/vue.esm-browser.js";
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const properties = defineProps({
   getpresetimage: Function,
   presets: Object,
@@ -228,6 +238,13 @@ const properties = defineProps({
 const filterPresets = Vue.ref("");
 const selectingImageLabelForPreset = Vue.ref("");
 
+function setPresetLabelImage(preset, name, label) {
+  //eslint-disable-next-line unicorn/prefer-structured-clone
+  let x = JSON.parse(JSON.stringify(preset));
+  x.label_image = label;
+
+  properties.updatepreset(name, x);
+}
 function setIframeDialog(url) {
   globalThis.setIframeDialog(url);
 }

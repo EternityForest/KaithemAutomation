@@ -66,6 +66,8 @@ sudo apt install pipx
 # This may prompt you to log out and log back in
 python3 -m pipx ensurepath
 pipx install uv
+
+# You may need to log out and log back to make uv available
 uv tool update-shell
 ```
 
