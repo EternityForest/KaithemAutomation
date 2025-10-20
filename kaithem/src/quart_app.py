@@ -1,3 +1,4 @@
+import importlib.metadata
 import mimetypes
 import os
 import traceback
@@ -10,6 +11,23 @@ from werkzeug.exceptions import InternalServerError, NotFound
 from kaithem.src import pages
 
 app = Quart(__name__)
+
+try:
+    safe_ver = importlib.metadata.version("kaithem")
+except importlib.metadata.PackageNotFoundError:
+    safe_ver = str(os.urandom(8).hex())
+
+
+@app.after_request
+def clear_cache_if_version_mismatch(response):
+    # get a cookie called "kaithem-app-cache-version"
+    # if it does't exist or doesn't match the kaithem package version,
+    # we must clear it.  This p
+
+    if quart.request.cookies.get("kaithem-app-cache-version", "") != safe_ver:
+        # send the clear site data header
+        response.headers["Clear-Site-Data"] = '"cache"'
+        response.set_cookie("kaithem-app-cache-version", safe_ver)
 
 
 @app.errorhandler(Exception)
