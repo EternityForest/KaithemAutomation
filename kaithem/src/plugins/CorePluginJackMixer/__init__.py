@@ -518,7 +518,9 @@ class ChannelStrip(Pipeline, BaseChannel):
             if hasattr(self, "faderTag"):
                 self.faderTag.unsubscribe(self._faderTagHandler)
         except Exception:
-            log.exception("Failed to unsubscribe from fader tag")
+            log.exception(
+                "Failed to unsubscribe from fader tag:" + str(self.faderTag)
+            )
 
         with self.lock:
             # At exit don't bother, I don't think it's really needed
