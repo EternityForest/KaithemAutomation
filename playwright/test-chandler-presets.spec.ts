@@ -297,7 +297,7 @@ test("test", async ({ page }) => {
   await sleep(1000);
 
   await page.goto(
-    "http://localhost:8002/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/config/test_presets:p"
+    "http://localhost:8002/chandler/config/test_presets:p"
   );
   await page.getByRole("button", { name: "Universes" }).click();
   await page

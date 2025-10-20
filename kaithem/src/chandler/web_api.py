@@ -101,9 +101,7 @@ async def import_setup(board: str):
                 fixture_presets="fixture_presets" in form,
             )
 
-        return quart.redirect(
-            f"/chandler/config/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/{board}"
-        )
+        return quart.redirect(f"/chandler/config/{board}")
 
     return await f()
 

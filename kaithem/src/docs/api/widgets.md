@@ -60,7 +60,7 @@ t.attach2(f)
 {% block body %}
 
 <script type="module">
-    import {APIWidget} from "/static/js/widget.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0"
+    import {APIWidget} from "/static/js/widget.mjs?"
     let api_link = new APIWidget("{{t.uuid}}");
 
     api.upd = (val) => alert(val)

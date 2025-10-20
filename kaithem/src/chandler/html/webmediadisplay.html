@@ -99,7 +99,7 @@ ${groups.groups[kwargs['group']].slideshow_layout}
 
 <script type="module">
     import { makePlayer, setLink, setTelemetryName, setTelemetryStatus, sendTelemetry} from  "./webmedia.mjs"
-    import { kaithemapi, APIWidget} from "/static/js/widget.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0"
+    import { kaithemapi, APIWidget} from "/static/js/widget.mjs?"
     import picodash from '/static/js/thirdparty/picodash/picodash-base.esm.js'
 
     let link = new APIWidget("${groups.groups[kwargs['group']].media_link_socket.uuid}")

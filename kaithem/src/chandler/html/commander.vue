@@ -157,7 +157,7 @@ div.highlight {
             <a
               class="button"
               :href="
-                '/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/editor/' +
+                '/chandler/editor/' +
                 boardname
               "
               ><i class="mdi mdi-pencil"></i

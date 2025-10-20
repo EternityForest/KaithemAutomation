@@ -106,7 +106,7 @@ test("test", async ({ page }) => {
 
   // Check that the stuff is there
   await page.goto(
-    "http://localhost:8002/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/editor/testchandlerproperties:b1"
+    "http://localhost:8002/chandler/editor/testchandlerproperties:b1"
   );
   await expect(page.getByRole("main")).toContainText("STATUS: MQTT");
   await page.getByRole("button", { name: "ts1" }).click();
@@ -133,7 +133,7 @@ test("test", async ({ page }) => {
   });
   // More settings
   await page.goto(
-    "http://localhost:8002/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/editor/testchandlerproperties:b1"
+    "http://localhost:8002/chandler/editor/testchandlerproperties:b1"
   );
   await page.getByRole("button", { name: "ts1" }).click();
   await page.getByTestId("group-properties-button").click();
@@ -163,7 +163,7 @@ test("test", async ({ page }) => {
 
   // More checking
   await page.goto(
-    "http://localhost:8002/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/editor/testchandlerproperties:b1"
+    "http://localhost:8002/chandler/editor/testchandlerproperties:b1"
   );
   await page.getByRole("button", { name: "ts1" }).click();
   await page.getByTestId("group-properties-button").click();
@@ -240,7 +240,7 @@ test("test", async ({ page }) => {
   });
 
   await page.goto(
-    "http://localhost:8002/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/editor/testchandlerproperties:b1"
+    "http://localhost:8002/chandler/editor/testchandlerproperties:b1"
   );
   await page.getByRole("button", { name: "ts1" }).click();
   await page.getByTestId("group-properties-button").click();
@@ -270,7 +270,7 @@ test("test", async ({ page }) => {
   });
 
   await page.goto(
-    "http://localhost:8002/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/editor/testchandlerproperties:b1"
+    "http://localhost:8002/chandler/editor/testchandlerproperties:b1"
   );
   await page.getByRole("button", { name: "ts1" }).click();
   await page.getByTestId("group-properties-button").click();
@@ -327,7 +327,7 @@ test("test", async ({ page }) => {
   });
   // Check that it worked
   await page.goto(
-    "http://localhost:8002/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/editor/testchandlerproperties:b1"
+    "http://localhost:8002/chandler/editor/testchandlerproperties:b1"
   );
   await page.getByRole("button", { name: "ts1" }).click();
   await page.getByTestId("group-properties-button").click();
@@ -362,7 +362,7 @@ test("test", async ({ page }) => {
   });
 
   await page.goto(
-    "http://localhost:8002/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/editor/testchandlerproperties:b1"
+    "http://localhost:8002/chandler/editor/testchandlerproperties:b1"
   );
   await page.getByRole("button", { name: "ts1" }).click();
   await page.getByTestId("group-properties-button").click();

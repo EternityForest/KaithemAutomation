@@ -7,6 +7,8 @@ Change Log
 * :coffin: The Chandler Command Tag feature is removed.  Nothing supported it anyway.
 * :technologist: Completely getting rid of Poetry and moving entirely to UV!
 * :technologist: We use direnv now to block certain accidental commands. Devs should set up their shell with direnv!
+* :technologist: Clear cache in browser on version change. No more version UUIDs in URLs
+
 
 ### 0.92.1
 
@@ -248,7 +250,7 @@ and import it's special API script:
 
 ```html
 <script type="module">
-   import { kaithemapi, APIWidget} from "/static/js/widget.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0"
+   import { kaithemapi, APIWidget} from "/static/js/widget.mjs?"
     let api = new APIWidget("widget_id")
     api.upd = (val) => alert(val)
     api.send("MyValue")
@@ -257,7 +259,7 @@ and import it's special API script:
 
 Use:
 ```js
-import { kaithemapi } from "/static/js/widget.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0"
+import { kaithemapi } from "/static/js/widget.mjs?"
 ```
 if you need to access the widget API directly.
 

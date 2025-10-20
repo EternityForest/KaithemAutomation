@@ -1,6 +1,6 @@
 {
     "imports": {
-        "picodash": "./picodash.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0",
+        "picodash": "./picodash.mjs?",
         "picodash-units": "./thirdparty/picodash/picodash-units.js",
         "convert": "./thirdparty/convert.min.js"
     }

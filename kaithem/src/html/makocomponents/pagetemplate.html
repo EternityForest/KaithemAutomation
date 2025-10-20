@@ -12,15 +12,15 @@ import quart,socket,base64
 
   <meta content="text/html; charset=ISO-8859-1" http-equiv="content-type">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" type="text/css" href="/static/css/barrel.css?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0">
-  <link rel="stylesheet" type="text/css" href="/static/css/kaithem.css?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0">
+  <link rel="stylesheet" type="text/css" href="/static/css/barrel.css?">
+  <link rel="stylesheet" type="text/css" href="/static/css/kaithem.css?">
   <link rel="stylesheet" type="text/css" href="/dynamic.css/${theming.theme_ver}">
   <link rel="stylesheet" type="text/css" href="${_k_usr_page_theme or theming.getCSSTheme() or config['theme-url']}">
-  <script type="module" src="/static/js/widget.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0"></script>
+  <script type="module" src="/static/js/widget.mjs?"></script>
 
 
       <script type="module">
-        import { APIWidget } from '/static/js/widget.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0'
+        import { APIWidget } from '/static/js/widget.mjs?'
         let wsapi = new APIWidget("{{notifications.toolbarapi.uuid}}")
 
         var totalNotifications = 0;

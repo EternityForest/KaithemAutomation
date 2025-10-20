@@ -29,6 +29,8 @@ def clear_cache_if_version_mismatch(response):
         response.headers["Clear-Site-Data"] = '"cache"'
         response.set_cookie("kaithem-app-cache-version", safe_ver)
 
+    return response
+
 
 @app.errorhandler(Exception)
 def handle_exception(e):

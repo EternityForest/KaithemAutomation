@@ -138,9 +138,7 @@ async def get_file_thumbnail():
     )
 
 
-@quart_app.app.route(
-    "/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/opz_import/<board>"
-)
+@quart_app.app.route("/chandler/opz_import/<board>")
 def opz_import(board: str):
     pages.require("system_admin")
     return get_template("opz_import.html").render()
@@ -318,9 +316,7 @@ async def webmediadisplay():
 # This whole thing is more complicated than it seems like it should be,
 # pretty much entirely to keep templates and static files in the same relative
 # namespace
-@quart_app.app.route(
-    "/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/<path:path>"
-)
+@quart_app.app.route("/chandler/<path:path>")
 @quart_app.app.route("/chandler/<path:path>")
 async def default(path: str):
     if path in ("webmediadisplay",):

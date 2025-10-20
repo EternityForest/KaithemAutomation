@@ -36,15 +36,15 @@ class ConfigType(modules_state.ResourceType):
     def blurb(self, module, resource, data):
         return f"""
         <div class="tool-bar">
-            <a href="/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/editor/{module}:{resource}">
+            <a href="/chandler/editor/{module}:{resource}">
             <span class="mdi mdi-pencil-box"></span>
             Edit</a>
 
-            <a href="/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/commander/{module}:{resource}">
+            <a href="/chandler/commander/{module}:{resource}">
             <span class="mdi mdi-dance-ballroom"></span>
             Commander</a>
 
-            <a href="/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/config/{module}:{resource}">
+            <a href="/chandler/config/{module}:{resource}">
             <span class="mdi mdi-cog-outline"></span>
             Config</a>
         </div>
@@ -59,7 +59,7 @@ class ConfigType(modules_state.ResourceType):
         a = apps_page.App(
             f"{module}:{resource}",
             f"{resource}",
-            f"/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/commander/{module}:{resource}",
+            f"/chandler/commander/{module}:{resource}",
             module=module,
             resource=resource,
         )
@@ -69,15 +69,15 @@ class ConfigType(modules_state.ResourceType):
         a.links = [
             (
                 "Commander",
-                f"/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/commander/{module}:{resource}",
+                f"/chandler/commander/{module}:{resource}",
             ),
             (
                 "Editor",
-                f"/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/editor/{module}:{resource}",
+                f"/chandler/editor/{module}:{resource}",
             ),
             (
                 "Config",
-                f"/chandler/c6d0887e-af6b-11ef-af85-5fc2044b2ae0/config/{module}:{resource}",
+                f"/chandler/config/{module}:{resource}",
             ),
         ]
         entries[module, resource].app = a

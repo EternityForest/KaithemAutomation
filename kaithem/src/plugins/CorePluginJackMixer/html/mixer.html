@@ -32,7 +32,7 @@
   }
 </style>
 
-<script type="module" src="/static/js/widget.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0"></script>
+<script type="module" src="/static/js/widget.mjs?"></script>
 
 
 <div id="app" v-cloak>
@@ -452,7 +452,7 @@
 
 
 <script type="module">
-  import { APIWidget } from '/static/js/widget.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0'
+  import { APIWidget } from '/static/js/widget.mjs?'
   let api = new APIWidget("${board.api.uuid}");
   let gapi = new APIWidget("${global_api.uuid}");
 
@@ -543,7 +543,7 @@
     },
 
     components: {
-      'smooth-range': httpVueLoader('/static/vue/smoothrange.vue?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0')
+      'smooth-range': httpVueLoader('/static/vue/smoothrange.vue?')
     },
     methods: {
 
