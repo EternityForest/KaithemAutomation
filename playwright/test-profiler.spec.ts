@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { login, logout } from './util';
 
 test('test', async ({ page }) => {
-    test.setTimeout(2400000);
+    test.setTimeout(2_400_000);
 
     await login(page);
 

@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
-import { login, logout, makeModule, deleteModule, makeTagPoint } from './util';
+import { login, logout, makeModule, deleteModule } from './util';
 
 test('test', async ({ page }) => {
-    test.setTimeout(2400000);
+    test.setTimeout(2_400_000);
 
     await login(page);
     await makeModule(page, 'test_search');

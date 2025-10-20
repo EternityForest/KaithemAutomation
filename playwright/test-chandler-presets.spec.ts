@@ -1,6 +1,9 @@
 import { test, expect } from "@playwright/test";
 import { deleteModule, login, makeModule, sleep, waitForTasks } from "./util";
-import { waitForDebugger } from "node:inspector/promises";
+declare global {
+  // eslint-disable-next-line no-var
+  var testMode: boolean;
+}
 
 test("test", async ({ page }) => {
   test.setTimeout(120_000);
@@ -21,8 +24,10 @@ test("test", async ({ page }) => {
   await page.getByRole("link", { name: "test_presets" }).click();
   await page.getByRole("link", { name: "󰏬 Edit" }).click();
 
-  await page.getByPlaceholder("New group name").click();
-  await page.getByPlaceholder("New group name").fill("foo");
+  page.once("dialog", (dialog) => {
+    console.log(`Dialog message: ${dialog.message()}`);
+    dialog.accept("foo").catch(() => {});
+  });
   await page.getByTestId("add-group-button").click();
 
   await page.getByLabel("Settings").click();
@@ -59,10 +64,7 @@ test("test", async ({ page }) => {
   });
   await sleep(1000);
 
-  await page
-    .getByLabel("Type:")
-    .first()
-    .selectOption("intensity");
+  await page.getByLabel("Type:").first().selectOption("intensity");
   await page.getByRole("button", { name: "Add Channel" }).click();
   await sleep(500);
   await page.getByLabel("Type:").nth(1).selectOption("red");
@@ -74,6 +76,10 @@ test("test", async ({ page }) => {
   await sleep(500);
 
   await page.getByLabel("Type:").nth(3).selectOption("blue");
+  await page.getByRole("button", { name: "Add Channel" }).click();
+  await sleep(500);
+
+  await page.getByLabel("Type:").nth(4).selectOption("uv");
   await page.getByRole("button", { name: "󰅖 Close" }).click();
   await sleep(500);
 
@@ -226,7 +232,7 @@ test("test", async ({ page }) => {
     .getByLabel("blue")
     .fill("233");
 
-  //It should not affect red at all.  But this line is flaky so we must ignore this part.
+  //It should not affect red at all.  But this line was flaky at one point
   await page
     .getByTestId("preset-inspector-testaqua-body")
     .getByLabel("red")

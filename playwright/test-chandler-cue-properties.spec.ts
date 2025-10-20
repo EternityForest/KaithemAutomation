@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import { login, logout, makeModule, deleteModule, sleep } from "./util";
 
 test("test", async ({ page }) => {
-  test.setTimeout(2400000);
+  test.setTimeout(2_400_000);
 
   await login(page);
 
@@ -18,18 +18,22 @@ test("test", async ({ page }) => {
   await page.getByRole("link", { name: "󱒕 Modules" }).click();
   await page.getByRole("link", { name: "testcue" }).click();
   await page.getByRole("link", { name: "󰏬 Edit" }).click();
-  await page.getByPlaceholder("New group name").click();
+
+
+  page.once("dialog", (dialog) => {
+    console.log(`Dialog message: ${dialog.message()}`);
+    dialog.accept("tst").catch(() => {});
+  });
   await page.getByTestId("add-group-button").click();
-  await page.getByRole("button", { name: "󰅖 Close" }).click();
-  await page.getByPlaceholder("New group name").click();
-  await page.getByPlaceholder("New group name").fill("tst");
+
+
   await sleep(200);
-  await page.getByTestId("add-group-button").click();
+
   await page.getByRole("button", { name: "tst" }).click();
   await page.getByTestId("cue-media-dialog-button").click();
 
   await page.evaluate(async () => {
-    await globalThis.doSerialized()
+    await globalThis.doSerialized();
   });
 
   await page.getByLabel("Sound start s into file.").click();
@@ -41,7 +45,6 @@ test("test", async ({ page }) => {
   await page.getByLabel("Sound start s into file.").fill("1");
   await sleep(500);
   await page.getByLabel("Sound start s into file.").fill("1");
-
 
   await page.getByLabel("Media Speed").click();
   await page.getByLabel("Media Speed").fill("1.2");
@@ -56,7 +59,7 @@ test("test", async ({ page }) => {
   });
   await expect(page.getByLabel("Relative length")).not.toBeChecked();
   await page.getByLabel("Relative length").check();
-  
+
   await page.getByLabel("Fade sound after end").click();
   await page.getByLabel("Fade sound after end").fill("0.6");
   await page.getByLabel("Sound fadein:").click();
@@ -95,7 +98,6 @@ test("test", async ({ page }) => {
     .getByText("/sounds")
     .click();
 
-
   await page
     .locator("tr")
     .filter({ hasText: "tang.opus" })
@@ -108,16 +110,16 @@ test("test", async ({ page }) => {
     .getByRole("button", { name: "Set(Slide)" })
     .click();
 
-    await page.evaluate(async () => {
-      await globalThis.doSerialized()
-    })
-  
+  await page.evaluate(async () => {
+    await globalThis.doSerialized();
+  });
+
   await page.getByTestId("close-cue-media").click();
   await page.getByTestId("close-group").click();
 
-    await page.evaluate(async () => {
-        await globalThis.doSerialized()
-    })
+  await page.evaluate(async () => {
+    await globalThis.doSerialized();
+  });
   // Verify
   await page.getByRole("link", { name: "󱒕 Modules" }).click();
   await page.getByRole("link", { name: "testcue" }).click();
@@ -125,8 +127,8 @@ test("test", async ({ page }) => {
   await page.getByRole("button", { name: "tst" }).click();
   await page.getByTestId("cue-media-dialog-button").click();
   await page.evaluate(async () => {
-    await globalThis.doSerialized()
-})
+    await globalThis.doSerialized();
+  });
   await expect(page.getByTestId("cue-label-image-control")).toHaveValue(
     "img/16x9/apples-display.avif"
   );

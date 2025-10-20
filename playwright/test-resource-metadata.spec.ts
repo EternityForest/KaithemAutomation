@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import { login, makeModule, deleteModule } from "./util";
 
 test("test", async ({ page }) => {
-  test.setTimeout(2400000);
+  test.setTimeout(2_400_000);
 
   await login(page);
 
@@ -20,9 +20,13 @@ test("test", async ({ page }) => {
     .click();
   await page.getByRole("link", { name: "Editor" }).click();
 
-  await page.getByPlaceholder("New group name").click();
-  await page.getByPlaceholder("New group name").fill("td1");
+  page.once("dialog", (dialog) => {
+    console.log(`Dialog message: ${dialog.message()}`);
+    dialog.accept("td1").catch(() => {});
+  });
   await page.getByTestId("add-group-button").click();
+
+
   await expect(page.getByRole("button", { name: "td1" })).toBeVisible({ timeout: 15_000 });
 
   await page.getByRole("link", { name: "󱒕 Modules" }).click();

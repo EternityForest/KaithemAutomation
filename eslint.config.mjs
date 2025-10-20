@@ -35,7 +35,6 @@ export default [
 
         alias: {
           map: [["/static/js", "./kaithem/src/js"]],
-          extensions: [".ts", ".js", ".jsx", ".json"],
         },
       },
     },

@@ -2,7 +2,7 @@ import { test, expect, chromium} from '@playwright/test';
 import { login, logout, deleteModule, makeModule } from './util';
 
 test('test', async ({ page }) => {
-    test.setTimeout(2400000);
+    test.setTimeout(2_400_000);
 
     await login(page);
     const brows = await chromium.launch();

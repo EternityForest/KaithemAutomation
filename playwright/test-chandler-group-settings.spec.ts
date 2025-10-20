@@ -46,9 +46,13 @@ test("test", async ({ page }) => {
   await page.getByRole("link", { name: "󰏬 Edit" }).click();
 
   // Now on the editor
-  await page.getByPlaceholder("New group name").dblclick();
-  await page.getByPlaceholder("New group name").fill("ts1");
+  page.once("dialog", (dialog) => {
+    console.log(`Dialog message: ${dialog.message()}`);
+    dialog.accept("ts1").catch(() => {});
+  });
   await page.getByTestId("add-group-button").click();
+
+
   await page.getByRole("button", { name: "ts1" }).click();
 
   await page.evaluate(async () => {
@@ -95,7 +99,6 @@ test("test", async ({ page }) => {
   await page.getByLabel("Sync Group Name").click();
   await page.getByLabel("Sync Group Name").fill("grp");
 
-
   // Click away
   await page.getByLabel("MQTT Server").click();
 
@@ -137,7 +140,6 @@ test("test", async ({ page }) => {
   await waitForTasks(page);
   await sleep(1000);
 
-
   await page.getByTestId("group_blend_mode").selectOption("HTP");
   await expect(page.getByLabel("Alpha", { exact: true })).toHaveValue("0.25");
   await page.getByLabel("Default Alpha").click();
@@ -169,7 +171,6 @@ test("test", async ({ page }) => {
   // We disabled timing so it should give the user a warning
   // otherwise they'll spend al day wondering why it doesn't work
   await expect(page.getByText("Timing Disabled")).toHaveClass("warning");
-
 
   await expect(page.getByLabel("Utility Group(No controls)")).toBeChecked();
   await expect(page.getByLabel("Hide in Runtime Mode")).toBeChecked();
@@ -218,10 +219,10 @@ test("test", async ({ page }) => {
     await globalThis.doSerialized();
   });
   // Waste some time to let it send
-    
-    //TODO why is this flaky??? it shou;dn't need retry!!
-    await page.getByTestId("display_tag_type").selectOption("Meter");
-    
+
+  //TODO why is this flaky??? it shou;dn't need retry!!
+  await page.getByTestId("display_tag_type").selectOption("Meter");
+
   await page.evaluate(async () => {
     await globalThis.doSerialized();
   });
@@ -302,7 +303,6 @@ test("test", async ({ page }) => {
     clickCount: 3,
   });
   await page.getByLabel("MIDI Source").fill("");
-
 
   await page.getByPlaceholder("Next cue in list").dblclick();
   await page.getByPlaceholder("Next cue in list").fill("");
@@ -391,8 +391,8 @@ test("test", async ({ page }) => {
   await waitForTasks(page);
 
   await page.getByTestId("close-group-settings").click();
-    await page.getByTestId("close-group").click();
-    
+  await page.getByTestId("close-group").click();
+
   await page.getByRole("link", { name: "󰀻 Apps" }).click();
   await page.getByTestId("extras-button-testchandlerproperties_b1").click();
   await page.getByRole("link", { name: "Editor" }).click();

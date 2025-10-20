@@ -294,7 +294,7 @@
                 <th>Status</th>
                 <th>Action</th>
               </tr>
-              <tr v-for="(v, i) in universes">
+              <tr v-for="(v, i) in universes" :key="i">
                 <td>{{ i }}</td>
                 <td v-bind:class="{ success: v.ok, danger: !v.ok }">
                   {{ v.status }}
@@ -314,7 +314,7 @@
               <h4>Serial Ports</h4>
             </header>
             <ul>
-              <li v-for="i in serports">{{ i }}</li>
+              <li v-for="i in serports" :key="i">{{ i }}</li>
             </ul>
           </div>
         </div>
@@ -350,7 +350,7 @@
             <th>Number</th>
             <th>Actions</th>
           </tr>
-          <tr v-for="(v, i) in configuredUniverses">
+          <tr v-for="(v, i) in configuredUniverses" :key="i">
             <td>{{ i }}</td>
             <td>
               <input
@@ -456,7 +456,7 @@
           data-testid="fixture-type-to-edit"
           v-model="selectedFixtureClass"
           v-on:change="getfixtureclass(selectedFixtureClass)">
-          <option v-for="i in Object.keys(fixtureClasses)" :value="i">
+          <option v-for="i in Object.keys(fixtureClasses)" :value="i" :key="i">
             {{ i }}
           </option>
         </select>
@@ -491,7 +491,7 @@
           <h3>Channels in Fixture Type</h3>
           <div
             v-for="(v, i) in fixtureClasses[selectedFixtureClass].channels ||
-            []">
+            []" :key="i">
             <h4>{{ i }}.</h4>
             <label
               >Name:
@@ -582,7 +582,7 @@
                 </tr>
                 <tr
                   v-for="(w, j) in fixtureClasses[selectedFixtureClass]
-                    .channels[i].ranges">
+                    .channels[i].ranges" :key="j">
                   <td>
                     <input
                       v-on:change="pushfixture(selectedFixtureClass)"
@@ -732,7 +732,8 @@
           <tr>
             <td>Type</td>
             <td>
-              <select v-model="newfixtype">
+              <select v-model="newfixtype"
+                data-testid="new-fixture-type-select">
                 <option v-for="(v, i) in fixtureClasses"
                  v-bind:key="i"
                  v-bind:value="i">
@@ -913,7 +914,6 @@ function setSoundFolders(folders) {
 
 <script>
 import { httpVueLoader } from "./httploaderoptions.mjs";
-import * as Vue from "/static/js/thirdparty/vue.esm-browser.js";
 
 // Legacy compatibility equivalents for the old vue2 apis. TODO get rid of this
 function old_vue_set(o, k, v) {

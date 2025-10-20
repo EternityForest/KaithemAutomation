@@ -132,15 +132,20 @@ function addTagToCue() {
   ]);
 }
 
-function addGroup() {
-  globalThis.api_link.send(["addgroup", newgroupname.value]);
+
+
+function addGroupDialog() {
+  const x = prompt("New Group Name?");
+  if (x != null) {
+    globalThis.api_link.send(["addgroup", x]);
+  }
 }
+
 
 let eventsFilterString = ref("");
 let newcueu = ref("");
 let newcuetag = ref("");
 let newcuevnumber = ref("");
-let newgroupname = ref("");
 
 export {
   sc_code,
@@ -156,8 +161,7 @@ export {
   newcueu,
   newcuetag,
   newcuevnumber,
-  newgroupname,
   addValueToCue,
   addTagToCue,
-  addGroup,
+  addGroupDialog
 };

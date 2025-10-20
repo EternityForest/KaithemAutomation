@@ -6,7 +6,8 @@ import time
 import traceback
 import uuid
 import weakref
-from typing import Any, Dict, Iterable, List, Optional, Set
+from collections.abc import Iterable
+from typing import Any
 
 import beartype
 import yaml
@@ -56,7 +57,7 @@ class ChandlerConsole(console_abc.Console_ABC):
         self.active_groups: list[Group] = []
 
         # This light board's group memory, or the set of groups 'owned' by this board.
-        self.groups: Dict[str, Group] = {}
+        self.groups: dict[str, Group] = {}
 
         self.media_folders: list[str] = []
 
@@ -64,19 +65,19 @@ class ChandlerConsole(console_abc.Console_ABC):
         # as would be passed to saveasfiles
         self.last_saved_version: dict[str, Any] = {}
 
-        self.configured_universes: Dict[str, dict[str, Any]] = {}
-        self.fixture_assignments: Dict[str, Any] = {}
-        self.fixture_presets: Dict[str, dict[str, Any]] = {}
+        self.configured_universes: dict[str, dict[str, Any]] = {}
+        self.fixture_assignments: dict[str, Any] = {}
+        self.fixture_presets: dict[str, dict[str, Any]] = {}
 
         with open(
             os.path.join(os.path.dirname(__file__), "fixture_presets.yaml")
         ) as fp:
             self.fixture_presets = yaml.safe_load(fp)
 
-        self.fixtures: Dict[str, universes.Fixture] = {}
+        self.fixtures: dict[str, universes.Fixture] = {}
 
-        self.universe_objects: Dict[str, universes.Universe] = {}
-        self.fixture_classes: Dict[str, Any] = {}
+        self.universe_objects: dict[str, universes.Universe] = {}
+        self.fixture_classes: dict[str, Any] = {}
         c = copy.deepcopy(fixtureslib.genericFixtureClasses)
 
         for i in c:
@@ -259,7 +260,7 @@ class ChandlerConsole(console_abc.Console_ABC):
     @core.cl_context.entry_point
     def cl_create_universes(self, data: dict[str, Any]):
         """Cl because of the universes object init"""
-        assert isinstance(data, Dict)
+        assert isinstance(data, dict)
         for i in self.universe_objects:
             self.universe_objects[i].close()
 
@@ -268,7 +269,7 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         gc.collect()
         universeObjects: dict[str, universes.Universe] = {}
-        u: Dict[str, Dict[Any, Any]] = data
+        u: dict[str, dict[Any, Any]] = data
         for i in u:
             if u[i]["type"] == "null":
                 continue
@@ -277,14 +278,14 @@ class ChandlerConsole(console_abc.Console_ABC):
                 universeObjects[i] = universes.EnttecOpenUniverse(
                     i,
                     channels=int(u[i].get("channels", 128)),
-                    portname=u[i].get("interface", None),
+                    portname=u[i].get("interface", ""),
                     framerate=float(u[i].get("framerate", 44)),
                 )
             elif u[i]["type"] == "enttec":
                 universeObjects[i] = universes.EnttecUniverse(
                     i,
                     channels=int(u[i].get("channels", 128)),
-                    portname=u[i].get("interface", None),
+                    portname=u[i].get("interface", ""),
                     framerate=float(u[i].get("framerate", 44)),
                 )
             elif u[i]["type"] == "artnet":
@@ -677,9 +678,11 @@ class ChandlerConsole(console_abc.Console_ABC):
         self,
         groupid: str,
         statusOnly: bool = False,
-        keys: Optional[
-            List[Any] | Set[Any] | Dict[Any, Any] | Iterable[str]
-        ] = None,
+        keys: list[Any]
+        | set[Any]
+        | dict[Any, Any]
+        | Iterable[str]
+        | None = None,
     ):
         "Statusonly=only the stuff relevant to a cue change. Keys is iterable of what to send, or None for all"
         group = self.groups.get(groupid, None)
@@ -694,7 +697,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                     if not j == "_":
                         if isinstance(
                             group.script_context.variables[j],
-                            (int, float, str, bool),
+                            int | float | str | bool,
                         ):
                             v[j] = group.script_context.variables[j]
 
@@ -704,7 +707,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                 print(traceback.format_exc())
 
         if not statusOnly:
-            data: Dict[str, Any] = {
+            data: dict[str, Any] = {
                 # These dynamic runtime vars aren't part of the schema for stuff that gets saved
                 "status": group.getStatusString(),
                 "blendDesc": blendmodes.getblenddesc(group.blend),
@@ -855,9 +858,12 @@ class ChandlerConsole(console_abc.Console_ABC):
                     [
                         "universe_status",
                         i,
-                        universes_snapshot[i].status,
-                        universes_snapshot[i].ok,
-                        universes_snapshot[i].telemetry,
+                        {
+                            "count": len(universes_snapshot[i].values),
+                            "status": universes_snapshot[i].status,
+                            "ok": universes_snapshot[i].ok,
+                            "telemetry": universes_snapshot[i].telemetry,
+                        },
                     ]
                 )
                 universes_snapshot[i].statusChanged[self.id] = True

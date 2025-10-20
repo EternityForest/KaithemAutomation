@@ -4,6 +4,7 @@ import random
 import re
 import subprocess
 import threading
+import time
 
 from scullery import scheduling, workers
 
@@ -476,3 +477,12 @@ def checkBitErrors():
 
             ramTestData = b"\0" * int(1024 * 2048 * random.random())
             lastRamTestValue = 0
+
+
+def quick_ram_test():
+    for i in range(16):
+        checkBitErrors()
+        time.sleep(1)
+
+
+workers.do(quick_ram_test)

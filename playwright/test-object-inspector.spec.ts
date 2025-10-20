@@ -7,7 +7,7 @@ test("test", async ({ page }) => {
       Tests basic fuctions, then renames them both and confirms they still work.
       Delete module then log out.
       */
-    test.setTimeout(2400000);
+    test.setTimeout(2_400_000);
     await login(page);
 
 

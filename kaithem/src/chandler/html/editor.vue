@@ -9,9 +9,9 @@
 
     <datalist id="midiinputs">
       <option
-        v-for="(v, _i) of midiInputs"
+        v-for="(v, i) of midiInputs"
         v-bind:value="v"
-        v-bind:key="v"></option>
+        v-bind:key="i"></option>
     </datalist>
 
     <section id="optionsblock" class="multibar undecorated w-full">
@@ -302,17 +302,12 @@
 
         <footer class="padding">
           <div class="tool-bar noselect">
-            <input
-              type="text"
-              :disabled="no_edit"
-              v-model="newgroupname"
-              placeholder="New group name"
-              size="4" />
             <button
               type="button"
+              :disabled="no_edit"
               data-testid="add-group-button"
-              v-on:click="addGroup()">
-              <i class="mdi mdi-plus"></i>Add
+              v-on:click="addGroupDialog()">
+              <i class="mdi mdi-plus"></i>Add Group
             </button>
           </div>
         </footer>
@@ -2823,10 +2818,9 @@ import {
   newcueu,
   newcuetag,
   newcuevnumber,
-  newgroupname,
   addValueToCue,
   addTagToCue,
-  addGroup,
+  addGroupDialog,
 } from "./editor.mjs";
 import { ref } from "/static/js/thirdparty/vue.esm-browser.js";
 

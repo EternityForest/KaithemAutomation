@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test';
-import { login, logout, deleteModule } from './util';
+import { test } from '@playwright/test';
+import { login, logout } from './util';
 
 test('test', async ({ page }) => {
     await login(page);

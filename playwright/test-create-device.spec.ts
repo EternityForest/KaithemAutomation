@@ -1,8 +1,8 @@
 import { test, expect } from "@playwright/test";
-import { login, logout, makeModule, deleteModule, sleep } from "./util";
+import { login, makeModule, deleteModule, sleep } from "./util";
 
 test("test", async ({ page }) => {
-  test.setTimeout(2400000);
+  test.setTimeout(2_400_000);
 
   await login(page);
   // Make a module to put the device in

@@ -1,6 +1,6 @@
 import { Page, expect } from '@playwright/test';
 
-function sleep(ms) {
+function sleep(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
@@ -87,7 +87,7 @@ async function makeTagPoint(page: Page, module: string, name: string) {
     await page.goto('http://localhost:8002/index');
 
     if (name[0] == '/') {
-        name = name.substring(1);
+        name = name.slice(1);
     }
 
     await page.getByRole('link', { name: 'Modules' }).click();
@@ -124,10 +124,13 @@ async function chandlerBoardTemplate(page: Page, module: string) {
     await waitForTasks(page);
     await sleep(500);
     // Create group
-    await page.getByPlaceholder('New group name').click();
-    await page.getByPlaceholder('New group name').fill('tst1');
-    await sleep(100);
-    await page.getByTestId('add-group-button').click();
+  page.once("dialog", (dialog) => {
+    console.log(`Dialog message: ${dialog.message()}`);
+    dialog.accept("tst1").catch(() => {});
+  });
+  await page.getByTestId("add-group-button").click();
+
+
     await page.getByRole('button', { name: 'tst1' }).click();
 
     // make cue c2
@@ -141,7 +144,7 @@ async function chandlerBoardTemplate(page: Page, module: string) {
     await page.locator('#cuesbox').getByText('default', { exact: true }).click();
 }
 
-async function waitForTasks(page) {
+async function waitForTasks(page: Page) {
     await sleep(10);
     await page.evaluate(async () => {
         let safety = 100;  

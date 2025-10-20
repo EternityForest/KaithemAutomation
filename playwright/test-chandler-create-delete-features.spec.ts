@@ -27,14 +27,17 @@ test("test", async ({ page }) => {
   await page.getByLabel("Extras").nth(1).click();
   await page.getByRole("link", { name: "Editor" }).click();
 
-  await page.getByPlaceholder("New group name").click();
-  await page.getByPlaceholder("New group name").fill("test");
-
+  page.once("dialog", (dialog) => {
+    console.log(`Dialog message: ${dialog.message()}`);
+    dialog.accept("test").catch(() => {});
+  });
   await page.getByTestId("add-group-button").click();
+
   await page.getByRole("button", { name: "test" }).click();
 
   await page.getByPlaceholder("New cue name").click();
   await page.getByPlaceholder("New cue name").fill("foo");
+
   await page.getByRole("button", { name: "󰐕 Add Cue" }).click();
   await expect(
     page.locator("#cuesbox").getByText("foo", { exact: true })
@@ -145,7 +148,12 @@ test("test", async ({ page }) => {
   await expect(page.getByRole("button", { name: "test" })).toBeHidden();
 
   // Ensure we can remake one with same name
+  page.once("dialog", (dialog) => {
+    console.log(`Dialog message: ${dialog.message()}`);
+    dialog.accept("test").catch(() => {});
+  });
   await page.getByTestId("add-group-button").click();
+
   await page.getByRole("button", { name: "test" }).click();
   await page.getByTestId("close-group").click();
 

@@ -17,7 +17,7 @@ import {
 import {
   kaithemapi,
   APIWidget,
-} from "/static/js/widget.mjs?cache_version=c6d0887e-af6b-11ef-af85-5fc2044b2ae0";
+} from "/static/js/widget.mjs";
 import picodash from "/static/js/thirdparty/picodash/picodash-base.esm.js";
 
 import { computed, ref, toRaw } from "/static/js/thirdparty/vue.esm-browser.js";
@@ -1176,9 +1176,7 @@ function handleServerMessage(v) {
   } else if (c == "confuniverses") {
     configuredUniverses.value = v[1];
   } else if (c == "universe_status") {
-    universes.value[v[1]].status = v[2];
-    universes.value[v[1]].ok = v[3];
-    universes.value[v[1]].telemetry = v[4];
+    universes.value[v[1]] = v[2];
   } else if (c == "varchange") {
     if (groupmeta.value[v[1]]) {
       groupmeta.value[v[1]]["vars"][v[2]] = v[3];
