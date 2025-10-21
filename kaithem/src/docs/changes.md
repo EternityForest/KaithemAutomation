@@ -8,6 +8,8 @@ Change Log
 * :technologist: Completely getting rid of Poetry and moving entirely to UV!
 * :technologist: We use direnv now to block certain accidental commands. Devs should set up their shell with direnv!
 * :technologist: Clear cache in browser on version change. No more version UUIDs in URLs
+* :technologist: Lots of linter warnings that apparently just showed up in an eslint update fixed.
+* :technologist: Cleaner layout for resource metadata. Backwards compatible, old stuff is auto-upgraded.
 
 
 ### 0.92.1
