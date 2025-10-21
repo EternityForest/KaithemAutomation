@@ -22,6 +22,7 @@ import structlog
 from scullery import scheduling
 
 from kaithem.api import tags as tagsapi
+from kaithem.api.modules import mutable_copy_resource
 from kaithem.src import (
     dialogs,
     directories,
@@ -59,7 +60,7 @@ historyFilemame = (
     socket.gethostname() + "-" + getpass.getuser() + "-taghistory.sqlite"
 )
 
-newHistoryDBFile = os.path.join(logdir, historyFilemame)
+on_disk_history_db_path = os.path.join(logdir, historyFilemame)
 
 
 def iso_now():
@@ -85,7 +86,7 @@ class TagLogger:
         # We can have purely ram file based logging
         if target == "disk":
             self.h = historian
-            self.filename = newHistoryDBFile
+            self.filename = on_disk_history_db_path
         elif target == "ram":
             self.h = ramHistorian
             self.filename = ramdbfile
@@ -174,7 +175,7 @@ class TagLogger:
                 # Best-effort attempt to include recent stuff.
                 # We don't want to use another lock and slow stuff down
                 try:
-                    for i in self.h.pending:
+                    for i in self.h.pending_data_items:
                         if i[0] == self.chID:
                             if i[1] >= minTime and i[1] <= maxTime:
                                 x.append((i[1], i[2]))
@@ -206,7 +207,7 @@ class TagLogger:
                 # Best-effort attempt to include recent stuff.
                 # We don't want to use another lock and slow stuff down
                 try:
-                    for i in self.h.pending:
+                    for i in self.h.pending_data_items:
                         if i[0] == self.chID:
                             if i[1] >= minTime and i[1] <= maxTime:
                                 x.append((i[1], i[2]))
@@ -236,13 +237,13 @@ class TagLogger:
         self.accumVal = value
         self.accumTime = time
         self.accumCount = 1
-        if isinstance(value, (int, float, bytes)):
+        if isinstance(value, int | float | bytes):
             pass
 
         elif isinstance(value, str):
             value = value[: 1024 * 128]
 
-        elif isinstance(value, (list, dict, tuple)):
+        elif isinstance(value, list | dict | tuple):
             value = json.dumps(value)
 
         self.flush()
@@ -463,7 +464,7 @@ class TagHistorian:
         except Exception:
             pass
 
-        self.pending = []
+        self.pending_data_items = []
 
         self.history.close()
 
@@ -484,7 +485,7 @@ class TagHistorian:
         self.flusher = scheduling.scheduler.every_minute(f)
 
     def insertData(self, d):
-        self.pending.append(d)
+        self.pending_data_items.append(d)
 
     def forceFlush(self):
         self.flush(True)
@@ -513,8 +514,8 @@ class TagHistorian:
                         if x.accumCount:
                             x.flush(force)
 
-            pending = self.pending
-            self.pending = []
+            pending_data = self.pending_data_items
+            self.pending_data_items = []
             # Hopefully let any other threads finish
             # inserting into the old list . Note that here we consider very rarely losing a record
             # to be better than bad performace
@@ -531,7 +532,7 @@ class TagHistorian:
                             with x.lock:
                                 x.clearOldData(force)
 
-                for i in pending:
+                for i in pending_data:
                     self.history.execute(
                         "INSERT INTO record VALUES (?,?,?)",
                         (i[0], ts_to_iso(i[1]), i[2]),
@@ -540,7 +541,7 @@ class TagHistorian:
 
 
 try:
-    historian = TagHistorian(newHistoryDBFile)
+    historian = TagHistorian(on_disk_history_db_path)
     ramHistorian = TagHistorian(ramdbfile)
     os.chmod(ramdbfile, 0o750)
 except Exception:
@@ -554,68 +555,66 @@ except Exception:
 
 loggers: dict[tuple[str, str], TagLogger] = {}
 
-pending: dict[tuple[str, str], Callable] = {}
+pending_tag_creation_handlers: dict[tuple[str, str], Callable] = {}
 
 
 class LoggerType(modules_state.ResourceType):
-    def blurb(self, m, r, value):
+    def blurb(self, module, resource, data):
         return f"""
         <div>
-            <form  action="/plugin-tag-history/{quote(value['tag'], safe='')}" method="post">
+            <form  action="/plugin-tag-history/{quote(data["tag"], safe="")}" method="post">
                 <button>View Logs</button>
             </form>
         </div>
         """
 
-    def on_load(self, module, resourcename, value):
-        cls = accumTypes[value["logger_type"]]
+    def on_load(self, module, resource, data):
+        cls = accumTypes[data["logger_type"]]
 
         def f(v=None):
-            t = tagpoints.allTagsAtomic.get(value["tag"], None)
+            t = tagpoints.allTagsAtomic.get(data["tag"], None)
             if not t:
                 return
             t = t()
             if not t:
                 return
-            loggers[module, resourcename] = cls(
+            loggers[module, resource] = cls(
                 t,
-                float(value["interval"]),
-                int(value["history_length"]),
-                value["log_target"],
+                float(data["interval"]),
+                int(data["history_length"]),
+                data["log_target"],
             )
 
-            t.configLoggers[module, resourcename] = loggers[
-                module, resourcename
-            ]
+            t.configLoggers[str((module, resource))] = loggers[module, resource]
 
-            pending.pop(module, resourcename)
+            pending_tag_creation_handlers.pop((module, resource), None)
             messagebus.unsubscribe("/system/tags/created", f)
 
-        pending[module, resourcename] = f
+        pending_tag_creation_handlers[module, resource] = f
 
-        if value["tag"] in tagpoints.allTagsAtomic:
+        if data["tag"] in tagpoints.allTagsAtomic:
             f()
         else:
             # Do it later when ye olde tag existe.
             messagebus.subscribe("/system/tags/created", f)
 
-    def on_move(self, module, resource, to_module, to_resource, resourceobj):
+    def on_move(self, module, resource, to_module, to_resource, data):
         x = loggers.pop((module, resource), None)
         if x:
             loggers[to_module, to_resource] = x
 
-    def on_update(self, module, resource, obj):
-        self.on_load(module, resource, obj)
+    def on_update(self, module, resource, data):
+        self.on_load(module, resource, data)
 
-    def on_unload(self, module, name, value):
+    def on_unload(self, module, resource, data):
         try:
-            loggers[module, name].close()
+            loggers[module, resource].close()
         except Exception:
             logger.exception("Error closing logger")
 
-        del loggers[module, name]
+        del loggers[module, resource]
 
-    def on_create_request(self, module, name, kwargs):
+    def on_create_request(self, module, resource, kwargs):
         d = {"resource": {"type": self.type}}
         d.update(kwargs)
         d.pop("name")
@@ -623,8 +622,8 @@ class LoggerType(modules_state.ResourceType):
 
         return d
 
-    def on_update_request(self, module, resource, resourceobj, kwargs):
-        d = resourceobj
+    def on_update_request(self, module, resource, data, kwargs):
+        d = mutable_copy_resource(data)
         d.update(kwargs)
         d.pop("name", None)
         d.pop("Save", None)
@@ -654,34 +653,34 @@ class LoggerType(modules_state.ResourceType):
         d.submit_button("Save")
         return d.render(self.get_create_target(module, path))
 
-    def edit_page(self, module, name, value):
+    def edit_page(self, module, resource, data):
         d = dialogs.SimpleDialog("Editing Logger")
         d.text_input(
             "tag",
             title="Tag Point to Log",
-            default=value["tag"],
+            default=data["tag"],
             suggestions=[(i, i) for i in tagsapi.all_tags_raw().keys()],
         )
         d.selection(
             "logger_type",
             options=list(accumTypes.keys()),
-            default=value["logger_type"],
+            default=data["logger_type"],
             title="Accumulate Mode",
         )
         d.selection(
-            "log_target", options=["disk", "ram"], default=value["log_target"]
+            "log_target", options=["disk", "ram"], default=data["log_target"]
         )
         d.text_input(
-            "interval", title="Interval(seconds)", default=value["interval"]
+            "interval", title="Interval(seconds)", default=data["interval"]
         )
         d.text_input(
             "history_length",
             title="History Length(seconds)",
-            default=value["history_length"],
+            default=data["history_length"],
         )
 
         d.submit_button("Save")
-        return d.render(self.get_update_target(module, name))
+        return d.render(self.get_update_target(module, resource))
 
 
 drt = LoggerType("logger", mdi_icon="sine-wave")
@@ -709,6 +708,7 @@ def logpage(path: str = "", **kwargs):
             raise RuntimeError("This tag seems to no longer exist")
 
         for key, i in tag.configLoggers.items():
+            assert isinstance(i, TagLogger)
             if i.accumType == kwargs["exportType"]:
                 tz = pytz.timezone("Etc/UTC")
                 logtime = tz.localize(

@@ -16,6 +16,8 @@ from kaithem.src.modules_state import ResourceDictType
 # exception if this lock is not held.
 modules_lock = modules_state.modulesLock
 
+mutable_copy_resource = modules_state.mutable_copy_resource
+
 
 def set_resource_error(module: str, resource: str, error: str | None):
     """
@@ -38,7 +40,7 @@ def filename_for_resource(module: str, resource: str) -> str:
 
 
 def admin_url_for_file_resource(module: str, resource: str) -> str:
-    return f"/modules/module/{util.url(module) }/getfileresource/{resource}"
+    return f"/modules/module/{util.url(module)}/getfileresource/{resource}"
 
 
 def scan_file_resources(module: str):

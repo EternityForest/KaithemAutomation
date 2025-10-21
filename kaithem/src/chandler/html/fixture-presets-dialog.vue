@@ -229,16 +229,23 @@ function setFixturePreset(sc, fix, preset) {
     if (selectedPreset.values[i] == "-1") {
       continue;
     }
+
+    let valFromPreset = selectedPreset.values[i];
+    // If we are editing destinations,
+    // take the normal value and put it in the __dest__ channel
+    if (properties.fordestination) {
+      if (!i.startsWith("__dest__.")) {
+        continue;
+      }
+      valFromPreset = selectedPreset.values[i.replace("__dest__.", "")];
+    }
+
     if (selectedPreset.values[i] == undefined) {
-      if (resetOthers && !i.startsWith("__") && i in resettablechannels) {
+      if (resetOthers && i in resettablechannels) {
         restSetCueValue(sc, fix, i, resettablechannels[i]);
       }
     } else {
-      if (properties.fordestination) {
-        restSetCueValue(sc, fix, "__dest__." + i, selectedPreset.values[i]);
-      } else {
-        restSetCueValue(sc, fix, i, selectedPreset.values[i]);
-      }
+      restSetCueValue(sc, fix, i, valFromPreset);
     }
   }
 

@@ -12,6 +12,7 @@ let selectingPresetForDestination = ref(false);
 let selectingPresetFor = ref("");
 
 function showPresetDialog(fixture, destination) {
+  // destination lets us set a preset for the end of a range effect
   selectingPresetForDestination.value = destination ? true : false;
   selectingPresetFor.value = fixture;
 }

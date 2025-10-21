@@ -106,7 +106,6 @@ wheel-exclude = ["*.dev.excalidraw.svg", "**/.ruff_cache"]
 module-root=""
 module-name=["kaithem", "kaithem_cli", "kaithem_scripts"]
 
-
 [project.scripts]
 "kaithem" = "kaithem:__main__"
 "kaithem-cli" = "kaithem_cli.cli:main"
@@ -121,11 +120,13 @@ module-name=["kaithem", "kaithem_cli", "kaithem_scripts"]
 [dependency-groups]
 dev = [
     "pygount >=1.7.0",
+    "kaithem-plugin-datasette",
     "handsdown >=2.1.0",
     "pytest-cov >=5.0.0",
     "pytest-asyncio >=0.23.7",
     "time-machine >=2.0.0",
     "coverage >=7.2.7",
+    "datasette>=1.0a19",
 ]
 
 
