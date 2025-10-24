@@ -326,7 +326,7 @@ def startServer():
         shutdown_event.set()
         signalhandlers.stop()
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.new_event_loop()
     loop.add_signal_handler(signal.SIGTERM, _signal_handler)
     loop.add_signal_handler(signal.SIGINT, _signal_handler)
 

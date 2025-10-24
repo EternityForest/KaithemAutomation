@@ -11,7 +11,7 @@ Change Log
 * :technologist: Lots of linter warnings that apparently just showed up in an eslint update fixed.
 * :technologist: Cleaner layout for resource metadata. Backwards compatible, old stuff is auto-upgraded.
 * :technologist: mutable_copy_resource in kaithem.api.modules
-
+* :bug: Fix crash on some systems due to asyncio's get_event_loop() deprecation.
 
 
 ### 0.92.1
