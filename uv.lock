@@ -1040,12 +1040,6 @@ wheels = [
 ]
 
 [[package]]
-name = "evdev"
-version = "1.9.2"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/63/fe/a17c106a1f4061ce83f04d14bcedcfb2c38c7793ea56bfb906a6fadae8cb/evdev-1.9.2.tar.gz", hash = "sha256:5d3278892ce1f92a74d6bf888cc8525d9f68af85dbe336c95d1c87fb8f423069", size = 33301, upload-time = "2025-05-01T19:53:47.69Z" }
-
-[[package]]
 name = "exceptiongroup"
 version = "1.3.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1600,7 +1594,6 @@ dependencies = [
     { name = "colorama" },
     { name = "colorzero" },
     { name = "ephem" },
-    { name = "evdev" },
     { name = "ffmpeg-python" },
     { name = "holidays" },
     { name = "hypercorn", extra = ["uvloop"] },
@@ -1692,7 +1685,6 @@ requires-dist = [
     { name = "colorama", specifier = "~=0.4.6" },
     { name = "colorzero" },
     { name = "ephem", specifier = "~=4.2.0" },
-    { name = "evdev" },
     { name = "ffmpeg-python" },
     { name = "holidays" },
     { name = "hypercorn", extras = ["uvloop"], specifier = "~=0.17.3" },
@@ -1762,7 +1754,7 @@ dev = [
     { name = "coverage", specifier = ">=7.2.7" },
     { name = "datasette", specifier = ">=1.0a19" },
     { name = "handsdown", specifier = ">=2.1.0" },
-    { name = "kaithem-plugin-datasette", directory = "../kaithem-plugin-datasette" },
+    { name = "kaithem-plugin-datasette" },
     { name = "pygount", specifier = ">=1.7.0" },
     { name = "pytest-asyncio", specifier = ">=0.23.7" },
     { name = "pytest-cov", specifier = ">=5.0.0" },
@@ -1777,7 +1769,7 @@ test = [
 [[package]]
 name = "kaithem-plugin-datasette"
 version = "0.1.2"
-source = { directory = "../kaithem-plugin-datasette" }
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "datasette" },
     { name = "datasette-checkbox" },
@@ -1798,28 +1790,8 @@ dependencies = [
     { name = "datasette-write-ui" },
     { name = "kaithem" },
 ]
-
-[package.metadata]
-requires-dist = [
-    { name = "datasette", specifier = ">=1.0a16" },
-    { name = "datasette-checkbox" },
-    { name = "datasette-cluster-map" },
-    { name = "datasette-comments" },
-    { name = "datasette-copyable" },
-    { name = "datasette-edit-schema" },
-    { name = "datasette-explain" },
-    { name = "datasette-geojson" },
-    { name = "datasette-import" },
-    { name = "datasette-mp3-audio" },
-    { name = "datasette-plot" },
-    { name = "datasette-pretty-json", specifier = ">=0.3" },
-    { name = "datasette-render-images" },
-    { name = "datasette-render-markdown" },
-    { name = "datasette-search-all" },
-    { name = "datasette-write" },
-    { name = "datasette-write-ui" },
-    { name = "kaithem" },
-    { name = "kaithem", specifier = ">=0.87.0" },
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8b/cc/00ca784406542c206b2e95c4ab469e98413d201c1126c2c7d15fff1aef55/kaithem_plugin_datasette-0.1.2-py3-none-any.whl", hash = "sha256:b9ca547f3170207f15f31ad9b84675ce5255e89fde5bd2836863acbcc37d5d79", size = 16415, upload-time = "2025-03-04T20:50:21.282Z" },
 ]
 
 [[package]]
@@ -3305,11 +3277,11 @@ wheels = [
 
 [[package]]
 name = "setuptools"
-version = "80.9.0"
+version = "80.8.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/18/5d/3bf57dcd21979b887f014ea83c24ae194cfcd12b9e0fda66b957c69d1fca/setuptools-80.9.0.tar.gz", hash = "sha256:f36b47402ecde768dbfafc46e8e4207b4360c654f1f3bb84475f0a28628fb19c", size = 1319958, upload-time = "2025-05-27T00:56:51.443Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/8d/d2/ec1acaaff45caed5c2dedb33b67055ba9d4e96b091094df90762e60135fe/setuptools-80.8.0.tar.gz", hash = "sha256:49f7af965996f26d43c8ae34539c8d99c5042fbff34302ea151eaa9c207cd257", size = 1319720, upload-time = "2025-05-20T14:02:53.503Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a3/dc/17031897dae0efacfea57dfd3a82fdd2a2aeb58e0ff71b77b87e44edc772/setuptools-80.9.0-py3-none-any.whl", hash = "sha256:062d34222ad13e0cc312a4c02d73f059e86a4acbfbdea8f8f76b28c99f306922", size = 1201486, upload-time = "2025-05-27T00:56:49.664Z" },
+    { url = "https://files.pythonhosted.org/packages/58/29/93c53c098d301132196c3238c312825324740851d77a8500a2462c0fd888/setuptools-80.8.0-py3-none-any.whl", hash = "sha256:95a60484590d24103af13b686121328cc2736bee85de8936383111e421b9edc0", size = 1201470, upload-time = "2025-05-20T14:02:51.348Z" },
 ]
 
 [[package]]
