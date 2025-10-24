@@ -14,7 +14,7 @@ Change Log
 * :sparkles: Improvements for DMX fixtures with colors beyond RGB.
 
 * :bug: Fix crash on some systems due to asyncio's get_event_loop() deprecation.
-
+* :bug: Fix ::ffff: IP address compatibility
 
 ### 0.92.1
 

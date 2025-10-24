@@ -1920,6 +1920,7 @@ def readToplevelBlock(p, heading):
     return ("\n".join(lines), "\n".join(outside_lines))
 
 
+# TODO deprecated .s call here
 def readStringFromSource(s: str, var: str) -> None | str:
     "Without executing it, get a string var from source code"
     a = ast.parse(s)

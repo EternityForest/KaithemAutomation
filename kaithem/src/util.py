@@ -15,7 +15,7 @@ import threading
 import time
 import types
 import weakref
-from typing import Iterable, List
+from collections.abc import Iterable
 from urllib.parse import quote
 from urllib.parse import unquote as unurl  # noqa
 from urllib.request import urlopen  # noqa
@@ -148,7 +148,8 @@ if "/usr/lib" in dn:
 else:
     datadir = os.path.join(dn, "../data")
 
-bip39: List[str] = [s.strip() for s in open(os.path.join(datadir, "bip39.txt"))]
+with open(os.path.join(datadir, "bip39.txt")) as f:
+    bip39: list[str] = [s.strip() for s in f]
 
 assert len(bip39) == 2048
 
@@ -242,7 +243,7 @@ def get_files(folder):
     ]
 
 
-def search_paths(fn: str, paths: List[str]) -> str | None:
+def search_paths(fn: str, paths: list[str]) -> str | None:
     for i in paths:
         if os.path.exists(os.path.join(i, fn)):
             return os.path.join(i, fn)
@@ -351,6 +352,8 @@ def unique_number():
 
 
 def is_private_ip(ip):
+    if ip.startswith("::ffff:"):
+        ip = ip[7:]
     if "." in ip:
         ip = [int(i) for i in ip.split(".")]
 

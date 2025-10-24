@@ -16,8 +16,15 @@ import uvloop
 import yaml
 from scullery import messagebus
 
-uvloop.install()
+# TODO: deprecated install function
+try:
+    uvloop.install()
+except Exception:
+    print("Failed to install uvloop")
 
+faulthandler.enable()
+
+mimetypes.add_type("text/html", ".html", strict=False)
 mimetypes.add_type("text/html", ".vue", strict=False)
 # ??????????
 mimetypes.add_type("application/javascript", ".js", strict=True)
