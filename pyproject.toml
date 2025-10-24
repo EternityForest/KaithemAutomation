@@ -16,6 +16,7 @@ classifiers = [
 ]
 
 dependencies = [
+    "setuptools<80.9.0",
     # First party"
     "scullery>=0.3.1",
     "iot-devices>=0.25.0",
