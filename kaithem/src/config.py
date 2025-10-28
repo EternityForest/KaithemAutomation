@@ -58,7 +58,8 @@ def load(cfg: dict[str, Any]):
     _argp.add_argument("--process-title")
 
     # Debig runners put weird stuff that breaks things
-    if "pytest" in sys.argv[0]:
+    if ("pytest" in sys.argv[0]) or "sphinx-build" in sys.argv:
+        print("Running in test mode, skipping cmd line args")
         argcmd = _argp.parse_args([])
     else:
         argcmd = _argp.parse_args(sys.argv[1:])
