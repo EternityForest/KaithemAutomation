@@ -287,12 +287,15 @@ div.highlight {
                     style="align-items: stretch">
                     <div
                       style="border-bottom-right-radius: 0.5em"
+                      class="flex-row"
                       :class="{ success: i[1].active, grow: 1 }"
                       v-if="i[1].active && cuemeta[i[1].cue]">
-                      <span data-testid="active-cue-name">{{
+                      <div data-testid="active-cue-name">{{
                         cuemeta[i[1].cue].name
-                      }}</span>
-                      <small>{{ formatTime(i[1].enteredCue) }}</small>
+                      }}</div>
+                      
+                      <div class="w-1rem"></div>
+                      <div><small>{{ formatTime(i[1].enteredCue) }}</small></div>
                     </div>
 
                     <img
@@ -421,7 +424,7 @@ div.highlight {
             <span
               class="highlight"
               v-if="editingGroup.active & !editingGroup.doingHandoff"
-              >(running)</span
+              >(running {{ cuemeta[editingGroup.cue].name}})</span
             >
           </h3>
 

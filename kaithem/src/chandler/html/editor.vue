@@ -23,10 +23,7 @@
         <a
           class="button"
           data-testid="commander-link"
-          :href="
-            '/chandler/commander/' +
-            boardname
-          "
+          :href="'/chandler/commander/' + boardname"
           ><i class="mdi mdi-dance-ballroom"></i
         ></a>
 
@@ -55,9 +52,7 @@
         <a
           aria-label="Settings"
           class="button"
-          :href="
-            '/chandler/config/' + boardname
-          "
+          :href="'/chandler/config/' + boardname"
           ><i class="mdi mdi-cog-outline"></i></a
         ><label>
           <i class="mdi mdi-volume-medium"></i
@@ -72,12 +67,9 @@
       </div>
 
       <div class="menubar tool-bar noselect">
-        <label><i class="mdi mdi-keyboard"></i>Send Keys:
-        <input
-          type="checkbox"
-          class="toggle"
-          v-model="sendKeystrokes"
-          >
+        <label
+          ><i class="mdi mdi-keyboard"></i>Send Keys:
+          <input type="checkbox" class="toggle" v-model="sendKeystrokes" />
         </label>
       </div>
     </section>
@@ -116,8 +108,7 @@
               aria-label="Shortcut code"
               placeholder="Shortcut"
               v-model="sc_code"
-              v-on:keydown.enter="shortcut()"
-              />
+              v-on:keydown.enter="shortcut()" />
             <button type="button" v-on:click="shortcut()">Go!</button>
           </div>
           <div class="tool-bar noselect">
@@ -481,16 +472,20 @@
             STATUS: {{ editingGroup.status }}
           </p>
           <div class="tool-bar noselect">
-            <h3>
+            <h3 class="nogrow">
               <span
                 v-on:dblclick="promptRename(groupname)"
                 title="Double click to set group name">
                 {{ editingGroup.name }}</span
               >
-              <small class="success" v-if="editingGroup.active">
-                (running)</small
-              >
             </h3>
+
+            <p v-if="editingGroup.active" class="nogrow">
+              <span class="success">
+                (running {{ cuemeta[editingGroup.cue].name }})</span
+              >
+            </p>
+
             <button
               type="button"
               class="nogrow"
@@ -2803,7 +2798,7 @@ import {
   channelInfoForUniverseChannel,
   notifyPopupComputedCueLength,
   refreshCueProviders,
-  sendKeystrokes
+  sendKeystrokes,
 } from "./boardapi.mjs";
 
 import {
