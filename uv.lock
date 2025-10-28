@@ -1583,7 +1583,7 @@ wheels = [
 
 [[package]]
 name = "kaithem"
-version = "0.92.1"
+version = "0.93.0"
 source = { editable = "." }
 dependencies = [
     { name = "apprise" },
@@ -1664,6 +1664,7 @@ dev = [
     { name = "datasette" },
     { name = "handsdown" },
     { name = "kaithem-plugin-datasette" },
+    { name = "liccheck" },
     { name = "pygount" },
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
@@ -1755,6 +1756,7 @@ dev = [
     { name = "datasette", specifier = ">=1.0a19" },
     { name = "handsdown", specifier = ">=2.1.0" },
     { name = "kaithem-plugin-datasette" },
+    { name = "liccheck", specifier = ">=0.9.2" },
     { name = "pygount", specifier = ">=1.7.0" },
     { name = "pytest-asyncio", specifier = ">=0.23.7" },
     { name = "pytest-cov", specifier = ">=5.0.0" },
@@ -1792,6 +1794,19 @@ dependencies = [
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8b/cc/00ca784406542c206b2e95c4ab469e98413d201c1126c2c7d15fff1aef55/kaithem_plugin_datasette-0.1.2-py3-none-any.whl", hash = "sha256:b9ca547f3170207f15f31ad9b84675ce5255e89fde5bd2836863acbcc37d5d79", size = 16415, upload-time = "2025-03-04T20:50:21.282Z" },
+]
+
+[[package]]
+name = "liccheck"
+version = "0.9.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "semantic-version" },
+    { name = "toml" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/84/f0/962ba77fae91ad0cca2ead4fb0ff5aa00f9793c1a78cd807672f9e5a9aa3/liccheck-0.9.2.tar.gz", hash = "sha256:bdc2190f8e95af3c8f9c19edb784ba7d41ecb2bf9189422eae6112bf84c08cd5", size = 16020, upload-time = "2023-09-22T14:23:59.009Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f1/bb/fbc7dd6ea215b97b90c35efc8c8f3dbfcbacb91af8c806dff1f49deddd8e/liccheck-0.9.2-py2.py3-none-any.whl", hash = "sha256:15cbedd042515945fe9d58b62e0a5af2f2a7795def216f163bb35b3016a16637", size = 13652, upload-time = "2023-09-22T14:23:57.849Z" },
 ]
 
 [[package]]
@@ -3201,6 +3216,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/26/a9/074aa2636f2b7d9dab71ae57d22afe42f8b0a2720eef8e1408b53ba669e5/scullery-0.3.1.tar.gz", hash = "sha256:dade847cc1572dea15a7620cd9a98ae1fd22f32e356e9b2a4c21af488209469e", size = 46524, upload-time = "2025-01-13T03:56:10.222Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/eb/8c/62f59f111832392bd807412f80a694ac13b6347f9afa25bcb2b448eff601/scullery-0.3.1-py3-none-any.whl", hash = "sha256:09d18bc7e41af81d60d44638e952215576d4708c91295142a8193af6f7ce2139", size = 48715, upload-time = "2025-01-13T03:56:06.101Z" },
+]
+
+[[package]]
+name = "semantic-version"
+version = "2.10.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/7d/31/f2289ce78b9b473d582568c234e104d2a342fd658cc288a7553d83bb8595/semantic_version-2.10.0.tar.gz", hash = "sha256:bdabb6d336998cbb378d4b9db3a4b56a1e3235701dc05ea2690d9a997ed5041c", size = 52289, upload-time = "2022-05-26T13:35:23.454Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/6a/23/8146aad7d88f4fcb3a6218f41a60f6c2d4e3a72de72da1825dc7c8f7877c/semantic_version-2.10.0-py2.py3-none-any.whl", hash = "sha256:de78a3b8e0feda74cabc54aab2da702113e33ac9d9eb9d2389bcf1f58b7d9177", size = 15552, upload-time = "2022-05-26T13:35:21.206Z" },
 ]
 
 [[package]]
