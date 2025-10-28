@@ -116,6 +116,14 @@ dev-scalene-profile:
 	@scalene --profile-all --use-virtual-time --cpu-sampling-rate=0.001 dev_run.py
 
 
+
+
+.PHONY: dev-install-dev-tools
+dev-install-dev-tools:
+	@uv tool install licccheck
+	@uv tool install pygount
+	@uv tool install scalene
+
 # Note that we use uv to test against different versions.  Eventually we will hopefully
 # be able to go to all uv all the time.
 
