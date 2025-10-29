@@ -30,7 +30,6 @@ dependencies = [
     "msgpack",
     "pyyaml",
     "types-PyYaml",
-    "pytest",
     "nmcli",
     "apprise",
     "ffmpeg-python",
