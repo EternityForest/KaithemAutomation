@@ -60,10 +60,9 @@ help: # Show help for each of the available commands
 update: # Fetch new code into this project folder
 	git pull
 
-# todo Escape undercores in md files, handsdown doesn't escape them ye
 .PHONY: dev-build-docs
 dev-build-docs:
-	@handsdown -i kaithem/api/ -o kaithem/src/docs/api
+	@echo "Docs build removed, make important edits manually until we finish the Sphinx transition"
 
 
 .PHONY: dev-count-lines

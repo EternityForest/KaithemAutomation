@@ -12,6 +12,8 @@ Change Log
 * :technologist: Cleaner layout for resource metadata. Backwards compatible, old stuff is auto-upgraded.
 * :technologist: mutable_copy_resource in kaithem.api.modules
 * :technologist: Fix license checker
+* :technologist: Handsdown removed, so API docs must be built manually until the Sphinx transition
+
 * :sparkles: Improvements for DMX fixtures with colors beyond RGB.
 
 * :bug: Fix crash on some systems due to asyncio's get_event_loop() deprecation.
