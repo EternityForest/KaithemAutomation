@@ -5,6 +5,7 @@ Change Log
 ### 0.93.1
 
 * :technologist: Do not include dev packages in built wheel dependencies
+* :technologist: Sanity checking for wheel builds against pre-release versions sneaking in
 
 ### 0.93.0
 

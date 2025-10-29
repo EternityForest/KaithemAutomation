@@ -129,7 +129,7 @@ dev-install-dev-tools:
 # Due to the gstreamer hack we
 .PHONY: dev-run-all-tests
 dev-run-all-tests:
-	@echo "Starting test server and running all playwright and pytest tests"
+	@echo "Starting test server and running all playwright and pytest tests in active .venv"
 	@echo "Stopping any other process named coverage"
 	@killall -9 kmakefiletest
 	@killall -9 coverage
@@ -149,6 +149,18 @@ dev-run-all-tests:
 	@coverage html -i
 	@npx playwright show-report &
 	@open htmlcov/index.html
+	
+	@echo "Rerunning pytest tests against 3.11, 3.12 and 3.13"
+
 	@UV_PROJECT_ENVIRONMENT=.venv311  uv run --group dev --python 3.11 pytest
 	@UV_PROJECT_ENVIRONMENT=.venv312  uv run --group dev --python 3.12 pytest
 	@UV_PROJECT_ENVIRONMENT=.venv313  uv run --group dev --python 3.13 pytest
+
+
+	@echo "Rerunning playwright tests in a clean venv without dev dependencies"
+
+	@UV_PROJECT_ENVIRONMENT=.venv_clean_no_dev  uv run --no-dev testing_server.py --process-title kmakefiletest &
+	@wget --retry-connrefused --waitretry=1 --read-timeout=20 --quiet --timeout=15 -t 0 http://localhost:8002
+	@npx playwright test --reporter=html  --workers 1 --max-failures 1
+
+	@echo "Finished running Kaithem test suite"

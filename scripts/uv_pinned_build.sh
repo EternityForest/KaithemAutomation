@@ -18,6 +18,17 @@ cp uv.lock uv.lock.bak
 uv export --locked --no-hashes --no-dev --no-emit-workspace \
     --output-file pinned_requirements.txt > /dev/null
 
+
+file="pinned_requirements.txt"
+
+if grep -Eq '==.*[0-9].*[A-Za-z]' "$file"; then
+  echo "❌ Error: prerelease versions detected in $file"
+  echo "Lines matching ==.*[0-9].*[A-Za-z]:"
+  grep -En '==.*[0-9].*[A-Za-z]' "$file"
+  exit 1
+fi
+
+
 uv add  -r pinned_requirements.txt
 
 # Build the package.
