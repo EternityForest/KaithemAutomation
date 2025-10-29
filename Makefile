@@ -104,7 +104,7 @@ dev-build: dev-build-docs # Build for release
 
 .PHONY: dev-publish-to-pypi
 dev-publish-to-pypi: dev-build # Publish to PyPi. Do NOT directly build and publish without the frozen wheel script
-	@uv publish
+	@~/.local/bin/uv publish
 
 .PHONY: dev-import-16_9_buttons
 dev-import-16_9_buttons: 
