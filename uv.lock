@@ -1674,6 +1674,7 @@ dev = [
     { name = "pytest-cov" },
     { name = "sphinx" },
     { name = "sphinx-autoapi" },
+    { name = "sphinx-markdown-builder" },
     { name = "sphinx-pyproject" },
     { name = "time-machine" },
 ]
@@ -1766,6 +1767,7 @@ dev = [
     { name = "pytest-cov", specifier = ">=5.0.0" },
     { name = "sphinx", specifier = ">=8.1.3" },
     { name = "sphinx-autoapi", specifier = ">=3.6.1" },
+    { name = "sphinx-markdown-builder", specifier = ">=0.6.8" },
     { name = "sphinx-pyproject", specifier = ">=0.3.0" },
     { name = "time-machine", specifier = ">=2.0.0" },
 ]
@@ -3433,6 +3435,20 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/a9/ad/c627976d5f4d812b203ef1136108bbd81ef9bbbfd3f700f1295c322c22e6/sphinx_autoapi-3.6.1.tar.gz", hash = "sha256:1ff2992b7d5e39ccf92413098a376e0f91e7b4ca532c4f3e71298dbc8a4a9900", size = 55456, upload-time = "2025-10-06T16:21:22.888Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ca/89/aea2f346fcdb44eb72464842e106b6291b2687feec2dd8b2de920ab89f28/sphinx_autoapi-3.6.1-py3-none-any.whl", hash = "sha256:6b7af0d5650f6eac1f4b85c1eb9f9a4911160ec7138bdc4451c77a5e94d5832c", size = 35334, upload-time = "2025-10-06T16:21:21.33Z" },
+]
+
+[[package]]
+name = "sphinx-markdown-builder"
+version = "0.6.8"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "docutils" },
+    { name = "sphinx" },
+    { name = "tabulate" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/74/36/f4a2efb804e2b89a6a29338bd1e9895af806e465c4a13ca59271f9d40dfd/sphinx_markdown_builder-0.6.8.tar.gz", hash = "sha256:6141b566bf18dd1cd515a0a90efd91c6c4d10fc638554fab2fd19cba66543dd7", size = 22007, upload-time = "2025-01-19T01:58:20.497Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/31/98/7e8e11d4edce0947d89c5d00ed43d925a5254dc9733579382b04f77e5ff2/sphinx_markdown_builder-0.6.8-py3-none-any.whl", hash = "sha256:f04ab42d52449363228b9104569c56b778534f9c41a168af8cfc721a1e0e3edc", size = 17270, upload-time = "2025-01-19T01:58:19.296Z" },
 ]
 
 [[package]]
