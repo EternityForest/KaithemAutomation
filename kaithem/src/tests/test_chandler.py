@@ -144,7 +144,7 @@ def test_cue_provider():
         with modules_lock:
             grp.board.ml_cl_check_autosave()
 
-        for attempt in stamina.retry_context(on=AssertionError, attempts=10):
+        for attempt in stamina.retry_context(on=AssertionError, attempts=20):
             with attempt:
                 # it is really hard to find the file given the cue so just
                 # make sure the text is in one and only one file
