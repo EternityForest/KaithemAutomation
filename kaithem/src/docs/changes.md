@@ -2,6 +2,10 @@ Change Log
 ----------
 
 
+### 0.93.1
+
+* :technologist: Do not include dev packages in built wheel dependencies
+
 ### 0.93.0
 
 * :coffin: The Chandler Command Tag feature is removed.  Nothing supported it anyway.
