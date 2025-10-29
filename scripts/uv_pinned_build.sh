@@ -21,10 +21,10 @@ uv export --locked --no-hashes --no-dev --no-emit-workspace \
 
 file="pinned_requirements.txt"
 
-if grep -Eq '==.*[0-9].*[A-Za-z]' "$file"; then
+if grep -Eq '==[\d \.]*[0-9][\d \.]*[A-Za-z]' "$file"; then
   echo "❌ Error: prerelease versions detected in $file"
-  echo "Lines matching ==.*[0-9].*[A-Za-z]:"
-  grep -En '==.*[0-9].*[A-Za-z]' "$file"
+  echo "Lines matching==[\d \.]*[0-9][\d \.]*[A-Za-z]:"
+  grep -En '==[\d \.]*[0-9][\d \.]*[A-Za-z]' "$file"
   exit 1
 fi
 
