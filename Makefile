@@ -159,8 +159,12 @@ dev-run-all-tests:
 
 	@echo "Rerunning playwright tests in a clean venv without dev dependencies"
 
-	@UV_PROJECT_ENVIRONMENT=.venv_clean_no_dev  uv run --no-dev testing_server.py --process-title kmakefiletest &
+	@UV_PROJECT_ENVIRONMENT=.venv_clean_no_dev  uv run --python=/usr/bin/python3 --no-dev testing_server.py --process-title kmakefiletest  &
 	@wget --retry-connrefused --waitretry=1 --read-timeout=20 --quiet --timeout=15 -t 0 http://localhost:8002
 	@npx playwright test --reporter=html  --workers 1 --max-failures 1
 
 	@echo "Finished running Kaithem test suite"
+	@echo "Stopping server"
+	@killall kmakefiletest
+	@sleep 10
+	@killall -9 kmakefiletest
