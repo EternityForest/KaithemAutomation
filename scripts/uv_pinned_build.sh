@@ -15,7 +15,7 @@ cp pyproject.toml pyproject.toml.bak
 cp uv.lock uv.lock.bak
 
 # Export all non-development dependency versions from uv.lock.
-uv export --locked --no-hashes --no-emit-workspace \
+uv export --locked --no-hashes --no-dev --no-emit-workspace \
     --output-file pinned_requirements.txt > /dev/null
 
 uv add  -r pinned_requirements.txt
