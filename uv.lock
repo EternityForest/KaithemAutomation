@@ -1590,7 +1590,7 @@ wheels = [
 
 [[package]]
 name = "kaithem"
-version = "0.93.0"
+version = "0.93.1"
 source = { editable = "." }
 dependencies = [
     { name = "apprise" },
@@ -1631,7 +1631,6 @@ dependencies = [
     { name = "pygments" },
     { name = "pygrep" },
     { name = "pyserial" },
-    { name = "pytest" },
     { name = "python-dateutil" },
     { name = "python-mpv-jsonipc" },
     { name = "python-rtmidi" },
@@ -1724,7 +1723,6 @@ requires-dist = [
     { name = "pygments" },
     { name = "pygrep" },
     { name = "pyserial" },
-    { name = "pytest" },
     { name = "python-dateutil" },
     { name = "python-mpv-jsonipc" },
     { name = "python-rtmidi", specifier = "==1.5.8" },

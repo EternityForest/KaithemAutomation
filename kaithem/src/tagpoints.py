@@ -24,9 +24,9 @@ from typing import (
 import beartype
 import structlog
 from scullery import scheduling, snake_compat
+from scullery.units import convert, unit_types
 
 from . import alerts, messagebus, pages, widgets, workers
-from .unitsofmeasure import convert, unit_types
 
 logger = structlog.get_logger(__name__)
 # _ and . allowed
@@ -607,7 +607,7 @@ class GenericTagPointClass(Generic[T]):
                     trip = eval(trip_code, self.eval_context)
                     if trip:
                         v = self.value
-                        if isinstance(v, (int, float)) or (
+                        if isinstance(v, (int | float)) or (
                             isinstance(v, str) and len(v) < 64
                         ):
                             alert.trip(f"Value: {v}, Condition: {condition}")
@@ -1743,7 +1743,7 @@ class Claim(Generic[T]):
 
         # If the value is a callable, this is the cached result plus the timestamp for the cache, separate
         # From the vta timestamp of when that callable actually got set.
-        self.cachedValue = (None, timestamp)
+        self.cachedValue: tuple[T | None, int | float] = (None, timestamp)
 
         # Track the last *attempt* at reading the value if it is a callable, regardless of whether
         # it had new data or not.

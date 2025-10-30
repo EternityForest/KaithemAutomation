@@ -6,6 +6,7 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
+
 from sphinx_pyproject import SphinxConfig
 
 config = SphinxConfig("../pyproject.toml", globalns=globals())
@@ -26,4 +27,5 @@ exclude_patterns = []
 html_theme = "alabaster"
 html_static_path = ["_static"]
 
-autoapi_dirs = ["../kaithem/api"]
+autoapi_dirs = ["../kaithem"]
+autoapi_ignore = ["**/data"]

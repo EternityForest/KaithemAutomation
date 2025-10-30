@@ -1,6 +1,6 @@
 [project]
 name = "kaithem"
-version = "0.93.0"
+version = "0.93.1"
 requires-python = ">=3.10,<4.0"
 
 description = "Home/Commercial SCADA-like automation system"
@@ -30,7 +30,6 @@ dependencies = [
     "msgpack",
     "pyyaml",
     "types-PyYaml",
-    "pytest",
     "nmcli",
     "apprise",
     "ffmpeg-python",

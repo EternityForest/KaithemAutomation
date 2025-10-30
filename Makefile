@@ -62,7 +62,7 @@ update: # Fetch new code into this project folder
 
 .PHONY: dev-build-docs
 dev-build-docs:
-	@sphinx-build -M html doc_source doc_build
+	@sphinx-build -M markdown doc_source doc_build_md
 
 
 .PHONY: dev-count-lines
@@ -104,7 +104,7 @@ dev-build: dev-build-docs # Build for release
 
 .PHONY: dev-publish-to-pypi
 dev-publish-to-pypi: dev-build # Publish to PyPi. Do NOT directly build and publish without the frozen wheel script
-	@uv publish
+	@~/.local/bin/uv publish
 
 .PHONY: dev-import-16_9_buttons
 dev-import-16_9_buttons: 
@@ -122,6 +122,7 @@ dev-install-dev-tools:
 	@uv tool install licccheck
 	@uv tool install pygount
 	@uv tool install scalene
+# 	@uv tool install sphinx --with sphinx-autoapi --with sphinx-markdown-builder --with sphinx-pyproject
 
 # Note that we use uv to test against different versions.  Eventually we will hopefully
 # be able to go to all uv all the time.
@@ -129,7 +130,7 @@ dev-install-dev-tools:
 # Due to the gstreamer hack we
 .PHONY: dev-run-all-tests
 dev-run-all-tests:
-	@echo "Starting test server and running all playwright and pytest tests"
+	@echo "Starting test server and running all playwright and pytest tests in active .venv"
 	@echo "Stopping any other process named coverage"
 	@killall -9 kmakefiletest
 	@killall -9 coverage
@@ -149,6 +150,22 @@ dev-run-all-tests:
 	@coverage html -i
 	@npx playwright show-report &
 	@open htmlcov/index.html
+	
+	@echo "Rerunning pytest tests against 3.11, 3.12 and 3.13"
+
 	@UV_PROJECT_ENVIRONMENT=.venv311  uv run --group dev --python 3.11 pytest
 	@UV_PROJECT_ENVIRONMENT=.venv312  uv run --group dev --python 3.12 pytest
 	@UV_PROJECT_ENVIRONMENT=.venv313  uv run --group dev --python 3.13 pytest
+
+
+	@echo "Rerunning playwright tests in a clean venv without dev dependencies"
+
+	@UV_PROJECT_ENVIRONMENT=.venv_clean_no_dev  uv run --python=/usr/bin/python3 --no-dev testing_server.py --process-title kmakefiletest  &
+	@wget --retry-connrefused --waitretry=1 --read-timeout=20 --quiet --timeout=15 -t 0 http://localhost:8002
+	@npx playwright test --reporter=html  --workers 1 --max-failures 1
+
+	@echo "Finished running Kaithem test suite"
+	@echo "Stopping server"
+	@killall kmakefiletest
+	@sleep 10
+	@killall -9 kmakefiletest

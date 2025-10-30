@@ -7,12 +7,11 @@ from jsonschema import Draft202012Validator
 from quart import request
 from scullery import snake_compat
 
-from kaithem.api.web import require
+from kaithem.api.web import quart_app, require
 
 from .core import boards, cl_context
 from .cue import cue_schema, cues
 from .groups import group_schema, groups
-from .web import quart_app
 
 logger = structlog.get_logger(__name__)
 

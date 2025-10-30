@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 
 # This script exists to block uv publish from being called directly.
 
