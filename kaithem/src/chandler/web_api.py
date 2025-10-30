@@ -16,9 +16,7 @@ from .groups import group_schema, groups
 logger = structlog.get_logger(__name__)
 
 
-@quart_app.app.route(
-    "/chandler/api/go-to-cue-by-cue-id/<cue_id>", methods=["PUT"]
-)
+@quart_app.route("/chandler/api/go-to-cue-by-cue-id/<cue_id>", methods=["PUT"])
 async def api_go_to_cue_by_cue_id(cue_id: str):
     require("system_admin")
     c = cues[cue_id]
@@ -28,7 +26,7 @@ async def api_go_to_cue_by_cue_id(cue_id: str):
     return {"success": True}
 
 
-@quart_app.app.route(
+@quart_app.route(
     "/chandler/api/go-to-cue-by-name/<group>/<cue_name>", methods=["PUT"]
 )
 async def api_go_to_cue_by_name(group: str, cue_name: str):
@@ -38,7 +36,7 @@ async def api_go_to_cue_by_name(group: str, cue_name: str):
     return {"success": True}
 
 
-@quart_app.app.route("/chandler/api/group-go/<group_id>", methods=["PUT"])
+@quart_app.route("/chandler/api/group-go/<group_id>", methods=["PUT"])
 async def group_go(group_id: str):
     require("system_admin")
     x = groups[group_id]
@@ -46,7 +44,7 @@ async def group_go(group_id: str):
     return {"success": True}
 
 
-@quart_app.app.route(
+@quart_app.route(
     "/chandler/api/refresh-group-cue-providers/<group_id>", methods=["PUT"]
 )
 async def refresh_group_cue_providers(group_id: str):
@@ -56,7 +54,7 @@ async def refresh_group_cue_providers(group_id: str):
     return {"success": True}
 
 
-@quart_app.app.route("/chandler/api/group-stop/<group_id>", methods=["PUT"])
+@quart_app.route("/chandler/api/group-stop/<group_id>", methods=["PUT"])
 async def group_stop(group_id: str):
     require("system_admin")
     x = groups[group_id]
@@ -64,7 +62,7 @@ async def group_stop(group_id: str):
     return {"success": True}
 
 
-@quart_app.app.route(
+@quart_app.route(
     "/chandler/api/delete-group/<board>/<group_id>", methods=["PUT"]
 )
 async def delete_chandler_group(board: str, group_id: str):
@@ -77,9 +75,7 @@ async def delete_chandler_group(board: str, group_id: str):
     return {"success": True}
 
 
-@quart_app.app.route(
-    "/chandler/api/import-file/<board>", methods=["PUT", "POST"]
-)
+@quart_app.route("/chandler/api/import-file/<board>", methods=["PUT", "POST"])
 async def import_setup(board: str):
     require("system_admin")
 
@@ -105,7 +101,7 @@ async def import_setup(board: str):
     return await f()
 
 
-@quart_app.app.route("/chandler/api/all-cues/<board>")
+@quart_app.route("/chandler/api/all-cues/<board>")
 async def all_cues(board: str):
     require("chandler_operator")
 
@@ -125,9 +121,7 @@ async def all_cues(board: str):
     return await f()
 
 
-@quart_app.app.route(
-    "/chandler/api/set-cue-properties/<cue_id>", methods=["PUT"]
-)
+@quart_app.route("/chandler/api/set-cue-properties/<cue_id>", methods=["PUT"])
 async def set_cue_properties(cue_id: str):
     """Set all properties given in the form data.
 
@@ -184,7 +178,7 @@ async def set_cue_properties(cue_id: str):
     return await f()
 
 
-@quart_app.app.route(
+@quart_app.route(
     "/chandler/api/set-cue-value/<cue_id>/<universe>/<channel>",
     methods=["PUT"],
 )
@@ -222,7 +216,7 @@ async def set_cue_value_rest(cue_id: str, universe: str, channel: str | int):
     return {"success": True}
 
 
-@quart_app.app.route(
+@quart_app.route(
     "/chandler/api/set-group-properties/<group_id>", methods=["PUT"]
 )
 async def set_group_properties(group_id: str):
