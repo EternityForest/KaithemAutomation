@@ -64,7 +64,7 @@ update: # Fetch new code into this project folder
 dev-build-docs:
 	@sphinx-build -M markdown doc_source doc_build_md
 	@rm -rf kaithem/src/docs/api
-	@cp -r doc_build_md/markdown/autoapi/kaithem/api/ kaithem/src/docs/api
+	@cp -r doc_build_md/markdown/autoapi/kaithem/api/ kaithem/src/docs/
 	@rm -rf doc_build_md
 
 

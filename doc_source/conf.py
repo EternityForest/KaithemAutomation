@@ -29,9 +29,15 @@ html_static_path = ["_static"]
 
 autoapi_dirs = ["../kaithem"]
 autoapi_ignore = ["**/data"]
-autoapi_options = [
-    "members",
-    "show-module-summary",
-    "special-members",
-    "imported-members",
-]
+
+
+def skip_util_classes(app, what, name, obj, skip, options):
+    if name.startswith("_") and not name.startswith("__"):
+        skip = True
+    if "._" in name and ".__" not in name:
+        skip = True
+    return skip
+
+
+def setup(sphinx):
+    sphinx.connect("autoapi-skip-member", skip_util_classes)
