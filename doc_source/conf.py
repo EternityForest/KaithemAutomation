@@ -29,3 +29,9 @@ html_static_path = ["_static"]
 
 autoapi_dirs = ["../kaithem"]
 autoapi_ignore = ["**/data"]
+autoapi_options = [
+    "members",
+    "show-module-summary",
+    "special-members",
+    "imported-members",
+]

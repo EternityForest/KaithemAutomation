@@ -63,6 +63,9 @@ update: # Fetch new code into this project folder
 .PHONY: dev-build-docs
 dev-build-docs:
 	@sphinx-build -M markdown doc_source doc_build_md
+	@rm -rf kaithem/src/docs/api
+	@cp -r doc_build_md/markdown/autoapi/kaithem/api/ kaithem/src/docs/api
+	@rm -rf doc_build_md
 
 
 .PHONY: dev-count-lines

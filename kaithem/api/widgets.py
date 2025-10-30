@@ -2,13 +2,10 @@ import dataclasses
 
 from kaithem.src import widgets
 
+"""
+Example code:
 
-def widget_docstring():
-    """
-
-        Example code:
-
-    ```python
+.. code-block:: python
     from kaithem.api.widgets import APIWidget
 
     t = APIWidget(echo=False, id="YourWidgetID")
@@ -18,7 +15,10 @@ def widget_docstring():
 
     t.attach2(f)
 
-    ```html
+
+Example Page Resource Template:
+
+.. code-block:: jinja2
     {% extends "pagetemplate.j2.html" %}
 
     {% block title %} {basename} {% endblock %}
@@ -35,9 +35,7 @@ def widget_docstring():
 
     {% endblock %}
 
-    ```
-
-    """
+"""
 
 
 @dataclasses.dataclass

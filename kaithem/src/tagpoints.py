@@ -274,6 +274,8 @@ class GenericTagPointClass(Generic[T]):
         # The "Owner" of a tag can use this to say if anyone else should write it
         self.writable = True
 
+        """Dict used as globals and locals for evaluating
+        alarm conditions and expression tags."""
         self.eval_context = {
             "tv": self._context_get_numeric_tag_value,
             "stv": self._context_get_string_tag_value,
@@ -348,7 +350,35 @@ class GenericTagPointClass(Generic[T]):
         write_perms: str | list[str] = "system_admin",
         expose_priority: str | int | float = 50,
     ):
-        """If not r, disable web API.  Otherwise, set read and write permissions."""
+        """
+        Expose the tag to web APIs, with the permissions specified. Permissions must be
+        strings, but can use commas for multiple.
+
+        Priority must be an integer, and determines the priority at which the web
+        API may set the tag's value.  The web API cannot control the priority, but
+        can release the claim entirely by sending a null, or reclaim by sending real
+        data again.
+
+
+        The way this works is that tag.data_source_widget is created, a
+        Widgets.DataSource instance having id "tag:TAGNAME", with the given
+        permissions.
+
+        Messages TO the server will set a claim at the permitted priority, or release any
+        claim if the data is None. Data FROM the server indicates the actual current
+        value of the tag.
+
+
+
+        You must always have at least one read permission, and write_perms defaults
+        to `__admin__`.   Note that if the user sets or configures any permissions
+        via the web API, they will override those set in code.
+
+        If read_perms or write_perms is empty, disable exposure.
+
+        You cannot have different priority levels for different users this way, that
+        would be highly confusing. Use multiple tags or code your own API for that.
+        """
 
         if isinstance(read_perms, list):
             read_perms = ",".join(read_perms)
@@ -677,6 +707,10 @@ class GenericTagPointClass(Generic[T]):
 
     @property
     def interval(self):
+        """
+        Set the sample rate of the tags data in seconds.
+        Affects polling and cacheing if getters are used.
+        """
         return self._interval
 
     @interval.setter
@@ -697,6 +731,13 @@ class GenericTagPointClass(Generic[T]):
 
     @property
     def subtype(self):
+        """
+        A string that determines a more specific type.  Use a com.site.x name, or
+        something like that, to avoid collisions.
+
+        "Official" ones include bool, which can be 1 or 0, or tristate, which can be
+        -1 for unset/no effect, 0, or 1.
+        """
         return self._subtype
 
     @subtype.setter
@@ -748,6 +789,9 @@ class GenericTagPointClass(Generic[T]):
 
     @property
     def current_source(self) -> str:
+        """Return the Claim object that is currently
+        controlling the tag"""
+
         # Avoid the lock by using retry in case claim disappears
         for i in range(10000):
             try:
@@ -798,6 +842,10 @@ class GenericTagPointClass(Generic[T]):
                 pass
 
     def __call__(self, *args, **kwargs):
+        """
+        Equivalent to calling set() on the default handler. If
+        no args are provided, just returns the tag's value.
+        """
         if not args:
             return self.value
         else:
@@ -859,6 +907,24 @@ class GenericTagPointClass(Generic[T]):
     def subscribe(
         self, f: Callable[[T, float, Any], Any], immediate: bool = False
     ):
+        """
+        f will be called whe the value changes, as long
+        as the function f still exists.
+
+        It will also be called the first time you set a tag's value, even if the
+        value has not changed.
+
+        It should very very rarely be called on repeated values otherwise, but this
+        behavior is not absolutelu guaranteed and should not be relied on.
+
+        All subscribers are called synchronously in the same thread that set the
+        value, however any errors are logged and ignored.
+
+        They will all be called under the tagpoint's lock. To avoid various problems
+        like endless loops, one should be careful when accessing the tagpoint itself
+        from within this function.
+
+        """
         if isinstance(f, GenericTagPointClass) and (
             f.unreliable or self.unreliable
         ):
@@ -1050,6 +1116,10 @@ class GenericTagPointClass(Generic[T]):
         self.set_claim_val("default", v, time.time(), "Set via value property")
 
     def pull(self) -> T:
+        """
+        Return the value from a tag, forcing a new update from the getter without
+        any caching. May also trigger the subscribers if the value changes.
+        """
         if not self.lock.acquire(timeout=15):
             raise RuntimeError("Could not get lock")
         try:
@@ -1193,12 +1263,20 @@ class GenericTagPointClass(Generic[T]):
         timestamp: float | None = None,
         annotation: Any = None,
     ) -> Claim[T]:
-        """Adds a 'claim', a request to set the tag's value either to a literal
-        number or to a getter function.
+        """
+        Adds a claim to the tag and returns the Claim object. The claim will
+        dissapear if the returned Claim object ever does. Value may be a function
+        that can be polled to return a float, or a number.
 
-        A tag's value is the highest priority claim that is currently
-        active, or the value returned from the getter if the active claim is
-        a function.
+        If a function is provided, it may return None to indicate no new data has
+        arrived. This will not update the tags age.
+
+        Should a claim already exist by that name, the exact same claim object as
+        the previous claim is returned.
+
+        Rather than using multiple claims, consider whether it's really needed, lots
+        of builtin functionality in the UI is mean to just work with the default
+        claim, for ease of use.
         """
 
         name = name or f"claim{str(time.time())}"
@@ -1524,6 +1602,8 @@ class NumericTagPointClass(GenericTagPointClass[float]):
 
     @property
     def min(self) -> float | int:
+        """Set the range of the tag point. Out of range
+        values are clipped. Default is None."""
         return self._min if self._min is not None else -(10**18)
 
     @min.setter
@@ -1534,6 +1614,8 @@ class NumericTagPointClass(GenericTagPointClass[float]):
 
     @property
     def max(self) -> float | int:
+        """Set the range of the tag point. Out of range
+        values are clipped. Default is None."""
         return self._max if self._max is not None else 10**18
 
     @max.setter
@@ -1571,7 +1653,7 @@ class NumericTagPointClass(GenericTagPointClass[float]):
         self._lo = v
 
     def convert_to(self, unit: str):
-        "Return the tag's current vakue converted to the given unit"
+        "Return the tag's current value converted to the given unit"
         return convert(self.value, self.unit, unit)
 
     def convert_value(self, value: float | int, unit: str) -> float | int:
@@ -1580,6 +1662,32 @@ class NumericTagPointClass(GenericTagPointClass[float]):
 
     @property
     def unit(self):
+        """
+        A string that determines the unit of a tag. Units are
+        expressed in strings like "m" or "degF". Currently only a small number of
+        unit conversions are supported natively and others use pint, which is not as
+        fast.
+
+        SI prefixes should not be used in units, as it interferes with
+        auto-prefixing for display that meter widgets can do, and generally
+        complicates coding.
+
+        This includes kilograms, Grams should be used for internal calculations instead despite Kg being the
+        base unit according to SI.
+
+
+        Note that operations involving units raise an error if the unit is not set.
+        To prevent this, both the "sending" and "recieving" code should set the unit
+        before using the tag.
+
+        To prevent the very obvious classes of errors where different code thinks a
+        unit is a different thing, this property will not allow changes once it has
+        been set. You can freely write the same string to it, and you can set it to
+        None and then to a new value if you must, but you cannot change between two
+        strings without raising an exception.
+
+        For some units, meters will become "unit aware" on the display page.
+        """
         return self._unit
 
     @unit.setter
@@ -1626,6 +1734,12 @@ class NumericTagPointClass(GenericTagPointClass[float]):
 
     @property
     def display_units(self):
+        """
+        This can be None, or a pipe-separated string listing one or more units that
+        the tag's value should be displayed in. Base SI units imply that the correct
+        prefix should be used for readability, but units that contain a prefix imply
+        fixed display only in that unit.
+        """
         return self._display_units
 
     @display_units.setter
