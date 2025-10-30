@@ -1337,8 +1337,10 @@ def test_cue_logic_tags():
             test_set_tag = tagpoints.Tag("/test_set_tag")
             logic_test_tag = tagpoints.Tag("/logic_test_tag")
 
-            test_set_tag_initial_subscribers = len(test_set_tag.subscribers)
-            logic_test_tag_initial_subscribers = len(logic_test_tag.subscribers)
+            test_set_tag_initial_subscribers = len(test_set_tag._subscribers)
+            logic_test_tag_initial_subscribers = len(
+                logic_test_tag._subscribers
+            )
 
             assert test_set_tag_initial_subscribers == 0
             assert logic_test_tag_initial_subscribers == 0
@@ -1380,8 +1382,10 @@ def test_cue_logic_tags():
     gc.collect()
 
     # Ensure that any subscribers cleaned up.
-    assert len(test_set_tag.subscribers) == test_set_tag_initial_subscribers
-    assert len(logic_test_tag.subscribers) == logic_test_tag_initial_subscribers
+    assert len(test_set_tag._subscribers) == test_set_tag_initial_subscribers
+    assert (
+        len(logic_test_tag._subscribers) == logic_test_tag_initial_subscribers
+    )
 
 
 def test_commands():

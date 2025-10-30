@@ -5,8 +5,6 @@
 | [`logger`](#kaithem.api.resource_types.logger)                                                     |    |
 |----------------------------------------------------------------------------------------------------|----|
 | [`ResourceDictType`](#kaithem.api.resource_types.ResourceDictType)                                 |    |
-| [`_edit_page_redirect`](#kaithem.api.resource_types._edit_page_redirect)                           |    |
-| [`_save_callback`](#kaithem.api.resource_types._save_callback)                                     |    |
 | [`resource_types`](#kaithem.api.resource_types.resource_types)                                     |    |
 | [`ResourceTypeRuntimeObjectTypeVar`](#kaithem.api.resource_types.ResourceTypeRuntimeObjectTypeVar) |    |
 
@@ -29,13 +27,9 @@
 
 ### kaithem.api.resource_types.ResourceDictType
 
-### kaithem.api.resource_types.\_edit_page_redirect
-
 ### kaithem.api.resource_types.mutable_copy_resource(resource: ResourceDictType) → dict[str, Any]
 
 Given an immutable resource, return a mutable copy
-
-### kaithem.api.resource_types.\_save_callback *: collections.abc.Callable[[str, str, ResourceDictType], None] | None* *= None*
 
 ### *class* kaithem.api.resource_types.ResourceType(type: str, mdi_icon: str = '', schema: dict[str, Any] | None = None, priority: int | float = 50.0, title: str = '')
 
@@ -105,10 +99,6 @@ also called to find what files need to be deleted.
 
 Must not have side effects.
 
-#### \_validate(data: ResourceDictType)
-
-Strip the 'resource' keys before giving it to the validator
-
 #### validate(data: ResourceDictType)
 
 Raise an error if the provided data is bad.
@@ -119,8 +109,6 @@ just the resource specific stuff.
 #### get_create_target(module: str, folder: str) → str
 
 #### get_update_target(module: str, resource: str) → str
-
-#### \_blurb(module: str, resource: str, data: ResourceDictType) → str
 
 #### blurb(module: str, resource: str, data: ResourceDictType) → str
 

@@ -348,10 +348,10 @@ def test_no_alarm_on_default():
     assert t.value == 0
     t.set_alarm("test", "value < 10")
     time.sleep(1)
-    assert t.alerts["test"].sm.state == "normal"
+    assert t._alerts["test"].sm.state == "normal"
     t.value = 9
     time.sleep(1)
-    assert t.alerts["test"].sm.state != "normal"
+    assert t._alerts["test"].sm.state != "normal"
 
 
 def test_tags():
@@ -455,15 +455,15 @@ def test_tags():
     t2.set_alarm("TestTagAlarm", "value>40", priority="debug")
 
     time.sleep(0.5)
-    assert t2.alerts["TestTagAlarm"].sm.state == "active"
+    assert t2._alerts["TestTagAlarm"].sm.state == "active"
 
     t.value = 0
     time.sleep(1)
-    assert t2.alerts["TestTagAlarm"].sm.state == "cleared"
+    assert t2._alerts["TestTagAlarm"].sm.state == "cleared"
 
-    t2.alerts["TestTagAlarm"].acknowledge()
+    t2._alerts["TestTagAlarm"].acknowledge()
 
-    assert t2.alerts["TestTagAlarm"].sm.state == "normal"
+    assert t2._alerts["TestTagAlarm"].sm.state == "normal"
 
     gc.collect()
     gc.collect()

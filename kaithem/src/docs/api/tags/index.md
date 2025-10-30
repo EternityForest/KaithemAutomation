@@ -48,8 +48,6 @@ which can get existing tags. This allows use of tags for cross=
 
 #### vta *: tuple[bytes, float, Any]*
 
-#### \_data_source_ws_lock
-
 #### validate *= None*
 
 #### processValue(value)
@@ -136,63 +134,21 @@ which can get existing tags. This allows use of tags for cross=
 
 #### name *: str*
 
-#### configLoggers *: weakref.WeakValueDictionary[str, object]*
+Internal use only, holds references to logger objects
 
-#### \_k_ui_fake *: [Claim](#kaithem.api.tags.Claim)[T]*
+#### configLoggers *: weakref.WeakValueDictionary[str, object]*
 
 #### aliases *: set[str]*
 
-#### \_gui_updateSubscriber *: collections.abc.Callable[[T, float, Any], Any]*
-
-#### source_tags *: dict[str, [GenericTagPointClass](#kaithem.api.tags.GenericTagPointClass)[Any]]*
-
-#### \_value *: collections.abc.Callable[[], T | None] | T*
-
-#### \_default *: T*
-
-#### data_source_widget *: [kaithem.src.widgets.Widget](../../src/widgets/index.md#kaithem.src.widgets.Widget) | None* *= None*
-
-#### \_data_source_ws_lock *: threading.Lock*
-
 #### description *: str* *= ''*
-
-#### \_testingForDeadlock *: bool* *= False*
-
-#### \_alreadyPostedDeadlock *: bool* *= False*
-
-#### \_subtype *: str* *= ''*
-
-#### unique_int *= 0*
 
 #### vta *: tuple[T | collections.abc.Callable[[], T | None], float, Any]*
 
-#### \_enum *: list[Any] | None* *= None*
-
 #### unreliable *: bool* *= False*
-
-#### \_can_post_alert_error *= True*
-
-#### alerts *: dict[str, [kaithem.src.alerts.Alert](../../src/alerts/index.md#kaithem.src.alerts.Alert)]*
-
-#### \_alert_poll_functions *: dict[str, collections.abc.Callable[[], Any]]*
-
-#### \_cachedRawClaimVal *: T*
 
 #### last_value *: T*
 
-#### \_interval *: float | int* *= 0*
-
 #### active_claim *: None | [Claim](#kaithem.api.tags.Claim)[T]* *= None*
-
-#### claims *: dict[str, [Claim](#kaithem.api.tags.Claim)[T]]*
-
-#### lock
-
-#### subscribers *: list[weakref.ref[collections.abc.Callable[Ellipsis, Any]]]* *= []*
-
-#### subscribers_atomic *: list[weakref.ref[collections.abc.Callable[Ellipsis, Any]]]* *= []*
-
-#### \_poller *: scullery.scheduling.RepeatingEvent | None* *= None*
 
 #### writable *= True*
 
@@ -201,21 +157,13 @@ alarm conditions and expression tags.
 
 #### eval_context
 
-#### last_got_value *: int | float* *= 0*
+When was the last time we got *real* new data
 
-#### lastError *: float | int* *= 0*
+#### last_got_value *: int | float* *= 0*
 
 #### owner *: str* *= ''*
 
-#### lastPushedValue *: T | None* *= None*
-
 #### default_claim *= None*
-
-#### permissions *= ('', '', 50)*
-
-#### apiClaim *: None | [Claim](#kaithem.api.tags.Claim)[T]* *= None*
-
-#### manualOverrideClaim *: None | [Claim](#kaithem.api.tags.Claim)[T]* *= None*
 
 #### *property* timestamp *: float*
 
@@ -261,10 +209,6 @@ Get the permissions that currently apply here. Configured ones override in-code 
 Returns:
 : list: [read_perms, write_perms, writePriority]. Priority determines the priority of web API claims.
 
-#### \_apiPush()
-
-If the expose function was used, push this to the data_source_widget
-
 #### testForDeadlock()
 
 Run a check in the background to make sure this lock isn't clogged up
@@ -272,14 +216,6 @@ Run a check in the background to make sure this lock isn't clogged up
 #### recalc(\*a: Any, \*\*k: Any)
 
 Just re-get the value as needed
-
-#### \_context_get_numeric_tag_value(n: str) → float
-
-Get the tag value, adding it to the list of source tags. Creates tag if it isn't there
-
-#### \_context_get_string_tag_value(n: str) → str
-
-Get the tag value, adding it to the list of source tags. Creates tag if it isn't there
 
 #### set_alarm(name: str, condition: str | None = '', priority: str = 'info', release_condition: str | None = '', auto_ack: bool = False, trip_delay: float | int | str = '0') → [kaithem.src.alerts.Alert](../../src/alerts/index.md#kaithem.src.alerts.Alert) | None
 
@@ -324,8 +260,6 @@ Pure function that returns a cleaned up or normalized version of the value
 Equivalent to calling set() on the default handler. If
 no args are provided, just returns the tag's value.
 
-#### \_manage_polling()
-
 #### fast_push(value: T, timestamp: float | None = None, annotation: Any = None) → None
 
 Push a value to all subscribers. Does not set the tag's value.  Ignores any and all
@@ -357,16 +291,6 @@ from within this function.
 
 #### poll()
 
-#### \_push()
-
-Push to subscribers and recalc alerts.
-Only call under the same lock you changed value
-under. Otherwise the push might happen in the opposite order
-as the set, and subscribers would see the old data as most recent.
-
-Also, keep setting the timestamp and annotation under that
-lock, to stay atomic
-
 #### processValue(value) → T
 
 Represents the transform from the claim input to the output.
@@ -380,10 +304,6 @@ Must be a pure-ish function
 
 Return the value from a tag, forcing a new update from the getter without
 any caching. May also trigger the subscribers if the value changes.
-
-#### \_get_value(force=False) → T
-
-Get the processed value of the tag, and update last_value, It is meant to be called under lock.
 
 #### add_alias(alias: str)
 
@@ -445,20 +365,6 @@ which can get existing tags. This allows use of tags for cross=
 #### vta *: tuple[float, float, Any]*
 
 #### default_claim *: [NumericClaim](../../src/tagpoints/index.md#kaithem.src.tagpoints.NumericClaim)*
-
-#### \_hi *: float | None* *= None*
-
-#### \_lo *: float | None* *= None*
-
-#### \_min *: float | None* *= None*
-
-#### \_max *: float | None* *= None*
-
-#### \_display_units *: str | None* *= None*
-
-#### \_unit *: str* *= ''*
-
-#### \_data_source_ws_lock
 
 #### enum
 
@@ -565,8 +471,6 @@ which can get existing tags. This allows use of tags for cross=
 
 #### vta *: tuple[dict[str, Any], float, Any]*
 
-#### \_data_source_ws_lock
-
 #### validate *= None*
 
 #### processValue(value)
@@ -606,8 +510,6 @@ which can get existing tags. This allows use of tags for cross=
 #### mqtt_encoding *= 'utf8'*
 
 #### vta *: tuple[str, float, Any]*
-
-#### \_data_source_ws_lock
 
 #### processValue(value)
 

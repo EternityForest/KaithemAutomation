@@ -3,12 +3,12 @@ import weakref
 from kaithem.src import tagpoints
 from kaithem.src.tagpoints import (
     BinaryTagPointClass,
-    Claim,
     GenericTagPointClass,
     NumericTagPointClass,
     ObjectTagPointClass,
     StringTagPointClass,
 )
+from kaithem.src.tagpoints import Claim as ClaimClass
 
 """
 TagPoints are threadsafe containers for variables that provide easy
@@ -201,5 +201,5 @@ __all__ = [
     "StringTagPointClass",
     "ObjectTagPointClass",
     "BinaryTagPointClass",
-    "Claim",
+    "ClaimClass",
 ]

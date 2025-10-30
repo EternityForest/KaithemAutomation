@@ -6,17 +6,10 @@
 
 ## Attributes
 
-| [`quart_app`](#kaithem.api.web.quart_app)                         |    |
-|-------------------------------------------------------------------|----|
-| [`theming`](#kaithem.api.web.theming)                             |    |
-| [`nav_bar_plugins`](#kaithem.api.web.nav_bar_plugins)             |    |
-| [`_asgi_apps`](#kaithem.api.web._asgi_apps)                       |    |
-| [`_wsgi_apps`](#kaithem.api.web._wsgi_apps)                       |    |
-| [`_module_plugin_links`](#kaithem.api.web._module_plugin_links)   |    |
-| [`_file_resource_links`](#kaithem.api.web._file_resource_links)   |    |
-| [`_file_preview_plugins`](#kaithem.api.web._file_preview_plugins) |    |
-| [`_jl`](#kaithem.api.web._jl)                                     |    |
-| [`_env`](#kaithem.api.web._env)                                   |    |
+| [`quart_app`](#kaithem.api.web.quart_app)             |    |
+|-------------------------------------------------------|----|
+| [`theming`](#kaithem.api.web.theming)                 |    |
+| [`nav_bar_plugins`](#kaithem.api.web.nav_bar_plugins) |    |
 
 ## Classes
 
@@ -45,18 +38,6 @@
 ### kaithem.api.web.theming
 
 ### kaithem.api.web.nav_bar_plugins
-
-### kaithem.api.web.\_asgi_apps *= []*
-
-### kaithem.api.web.\_wsgi_apps *= []*
-
-### kaithem.api.web.\_module_plugin_links *= []*
-
-### kaithem.api.web.\_file_resource_links *= []*
-
-### kaithem.api.web.\_file_preview_plugins *= []*
-
-### kaithem.api.web.\_jl
 
 ### *class* kaithem.api.web.MyCache
 
@@ -104,8 +85,6 @@ bucket, it must not do anything.
 Subclasses have to override this method to write the bytecode
 from a bucket back to the cache.  If it unable to do so it must not
 fail silently but raise an exception.
-
-### kaithem.api.web.\_env
 
 ### kaithem.api.web.render_jinja_template(template_filename: str, \*\*kw)
 
