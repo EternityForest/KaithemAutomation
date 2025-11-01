@@ -479,6 +479,11 @@ class GenericTagPointClass(Generic[T]):
 
         return f
 
+    def get_alerts(self) -> list[alerts.Alert]:
+        """Return a list of all alert objects for this tag, including ones that are not active"""
+        with lock:
+            return list(self._alerts.values())
+
     def apiHandler(self, u, v: T | None):
         if v is None:
             if self._apiClaim:
@@ -1102,9 +1107,9 @@ class GenericTagPointClass(Generic[T]):
                             )
             del f
 
-    def processValue(self, value) -> T:
+    def _process_value_for_tag_type(self, value) -> T:
         """Represents the transform from the claim input to the output.
-        Must be a pure-ish function
+        Must be a pure-ish function.
         """
         return value
 
@@ -1149,7 +1154,9 @@ class GenericTagPointClass(Generic[T]):
             # We no longer are aiming to support using the processor for impure functions
 
             self.last_got_value = time.time()
-            self.last_value = self.processValue(active_claim_value)
+            self.last_value = self._process_value_for_tag_type(
+                active_claim_value
+            )
 
         else:
             # Rate limited tag getter logic. We ignore the possibility for
@@ -1202,7 +1209,9 @@ class GenericTagPointClass(Generic[T]):
 
                             # This is just used to calculate the overall age of the tags data
                             self.last_got_value = time.time()
-                            self.last_value = self.processValue(x)
+                            self.last_value = self._process_value_for_tag_type(
+                                x
+                            )
                             self._push()
 
                     finally:
@@ -1454,7 +1463,7 @@ class GenericTagPointClass(Generic[T]):
                     # self._getValue()
                 else:
                     self.last_got_value = time.time()
-                    self.last_value = self.processValue(val)
+                    self.last_value = self._process_value_for_tag_type(val)
                 # No need to push is listening
                 if self._subscribers or self._alerts:
                     if timestamp:
@@ -1583,7 +1592,7 @@ class NumericTagPointClass(GenericTagPointClass[float]):
                 "Could not get lock to trigger tagpoint: " + self.name
             )
 
-    def processValue(self, value: float | int):
+    def _process_value_for_tag_type(self, value: float | int):
         if self._min is not None:
             value = max(self._min, value)
 
@@ -1768,7 +1777,7 @@ class StringTagPointClass(GenericTagPointClass[str]):
         self._data_source_ws_lock = threading.Lock()
         super().__init__(name)
 
-    def processValue(self, value):
+    def _process_value_for_tag_type(self, value):
         return str(value)
 
     def filterValue(self, v):
@@ -1788,7 +1797,7 @@ class ObjectTagPointClass(GenericTagPointClass[dict[str, Any]]):
         self.validate = None
         super().__init__(name)
 
-    def processValue(self, value):
+    def _process_value_for_tag_type(self, value):
         if isinstance(value, str):
             value = json.loads(value)
         else:
@@ -1822,7 +1831,7 @@ class BinaryTagPointClass(GenericTagPointClass[bytes]):
         self.validate = None
         super().__init__(name)
 
-    def processValue(self, value):
+    def _process_value_for_tag_type(self, value):
         if isinstance(value, bytes):
             value = value
         else:
