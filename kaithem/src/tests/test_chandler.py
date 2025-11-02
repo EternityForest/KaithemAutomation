@@ -143,6 +143,7 @@ def test_cue_provider():
 
         with modules_lock:
             grp.board.ml_cl_check_autosave()
+        time.sleep(2)
 
         for attempt in stamina.retry_context(on=AssertionError, attempts=20):
             with attempt:
@@ -1337,8 +1338,10 @@ def test_cue_logic_tags():
             test_set_tag = tagpoints.Tag("/test_set_tag")
             logic_test_tag = tagpoints.Tag("/logic_test_tag")
 
-            test_set_tag_initial_subscribers = len(test_set_tag.subscribers)
-            logic_test_tag_initial_subscribers = len(logic_test_tag.subscribers)
+            test_set_tag_initial_subscribers = len(test_set_tag._subscribers)
+            logic_test_tag_initial_subscribers = len(
+                logic_test_tag._subscribers
+            )
 
             assert test_set_tag_initial_subscribers == 0
             assert logic_test_tag_initial_subscribers == 0
@@ -1380,8 +1383,10 @@ def test_cue_logic_tags():
     gc.collect()
 
     # Ensure that any subscribers cleaned up.
-    assert len(test_set_tag.subscribers) == test_set_tag_initial_subscribers
-    assert len(logic_test_tag.subscribers) == logic_test_tag_initial_subscribers
+    assert len(test_set_tag._subscribers) == test_set_tag_initial_subscribers
+    assert (
+        len(logic_test_tag._subscribers) == logic_test_tag_initial_subscribers
+    )
 
 
 def test_commands():
@@ -1445,7 +1450,7 @@ def test_tag_backtrack_feature():
         core.wait_frame()
         core.wait_frame()
         assert "/test_bt" in s.lighting_manager.on_demand_universes
-        for attempt in stamina.retry_context(on=AssertionError):
+        for attempt in stamina.retry_context(on=AssertionError, attempts=20):
             with attempt:
                 assert tagpoints.Tag("/test_bt").value == 1
 

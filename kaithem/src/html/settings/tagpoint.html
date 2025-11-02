@@ -191,10 +191,10 @@ DELETED
     </tr>
 
 
-%for i in tag.alerts:
+%for i in tag.get_alerts():
     <tr>
-        <td>${i}</td>
-        <td>${tag.alerts[i].sm.state}</td>
+        <td>${i.name}</td>
+        <td>${i.sm.state}</td>
     </tr>
 %endfor
 

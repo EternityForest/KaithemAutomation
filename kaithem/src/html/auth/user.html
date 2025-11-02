@@ -112,7 +112,7 @@ Err in login history${traceback.format_exc()}
     <dl>
     %for i in widgets.ws_connections.values():
     %if i.user == username:
-        <dt>${i.peer_address|h}(<a href="https://tools.keycdn.com/geo?host=${i._peer_address[0]|u}">Geolocation</a>)</dt>
+        <dt>${i.peer_address|h}(<a href="https://tools.keycdn.com/geo?host=${i.peer_address[0]|u}">Geolocation</a>)</dt>
         <dd>
             <table border="1">
                 <tr>
@@ -123,10 +123,7 @@ Err in login history${traceback.format_exc()}
                     <td>User Agent:</td> 
                     <td>${i.user_agent|h}</td>
                 </tr>
-                <tr>
-                    <td>Connetion ID:</td> 
-                    <td>${i.uuid|h}</td>
-                </tr>
+
                 %if hasattr(i, 'userState'):
                 <tr>
                     <td>User State:</td> 

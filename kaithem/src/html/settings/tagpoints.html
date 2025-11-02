@@ -73,7 +73,7 @@ if quart.request.args.get("kaithem_disable_header",0):
     <td  style="word-wrap: break-word;"><a href="/tagpoints/${i|u}${extraUrlStuff}">${i|h}</a>
     </td>
     <td  class="desktop-only" style="word-wrap: break-word;">${tagpoints.allTagsAtomic[i]().last_value}</td>
-    <td  class="desktop-only">${len(tagpoints.allTagsAtomic[i]().alerts)}</td>
+    <td  class="desktop-only">${len(tagpoints.allTagsAtomic[i]().get_alerts())}</td>
 </tr>
 %endif
 
@@ -81,7 +81,7 @@ if quart.request.args.get("kaithem_disable_header",0):
 <tr>
     <td  style="word-wrap: break-word;"><a href="/tagpoints/${i|u}${extraUrlStuff}">${i|h}</h></td>
     <td  class="desktop-only" style="word-wrap: break-word;">${str(tagpoints.allTagsAtomic[i]().last_value)[:32]|h} </td>
-    <td  class="desktop-only">${len(tagpoints.allTagsAtomic[i]().alerts)}</td>
+    <td  class="desktop-only">${len(tagpoints.allTagsAtomic[i]().get_alerts())}</td>
 
 </tr>
 %endif
@@ -90,7 +90,7 @@ if quart.request.args.get("kaithem_disable_header",0):
 <tr>
     <td  style="word-wrap: break-word;"><a href="/tagpoints/${i|u}${extraUrlStuff}">${i|h}</h></td>
     <td  class="desktop-only" style="word-wrap: break-word;">${str(tagpoints.allTagsAtomic[i]().last_value)[:32]|h} </td>
-    <td  class="desktop-only">${len(tagpoints.allTagsAtomic[i]().alerts)}</td>
+    <td  class="desktop-only">${len(tagpoints.allTagsAtomic[i]().get_alerts())}</td>
 </tr>
 %endif
 
@@ -98,7 +98,7 @@ if quart.request.args.get("kaithem_disable_header",0):
 <tr>
     <td  style="word-wrap: break-word;"><a href="/tagpoints/${i|u}${extraUrlStuff}">${i|h}<a></td>
     <td  class="desktop-only"><span style="color: grey">Value is binary data</span></td>
-    <td  class="desktop-only">${len(tagpoints.allTagsAtomic[i]().alerts)}</td>
+    <td  class="desktop-only">${len(tagpoints.allTagsAtomic[i]().get_alerts())}</td>
 </tr>
 %endif
 

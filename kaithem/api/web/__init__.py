@@ -64,7 +64,7 @@ def render_jinja_template(template_filename: str, **kw):
 
     {% block body %}
     <main>
-        Content here
+    Content here
     </main>
     {% endblock %}
     """

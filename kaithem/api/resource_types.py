@@ -36,7 +36,7 @@ _save_callback: Callable[[str, str, ResourceDictType], None] | None = None
 
 class ResourceType:
     """Allows creating new resource types.
-    Data keys starting with resource_ are reserved.
+    Data keys starting with "resource" are reserved.
 
     ALL top level keys must be snake_case.
     In fact, when loading modules,
@@ -67,7 +67,7 @@ class ResourceType:
     ):
         """ "Schema may be a JSON schema, representing a dict,
         which must validate the resource, but should not include any
-        key beginning with resource_ as those are internal and reserved.
+        key beginning with "resource" as those are internal and reserved.
 
         mdi must be an icon name from:
         https://pictogrammers.com/library/mdi/
@@ -122,7 +122,7 @@ class ResourceType:
         return {f"{name.split('/')[-1]}.yaml": yaml.dump(resource)}
 
     def _validate(self, data: ResourceDictType):
-        "Strip the resource_ keys before giving it to the validator"
+        "Strip the 'resource' keys before giving it to the validator"
         data = {
             i: data[i]
             for i in data
@@ -141,7 +141,7 @@ class ResourceType:
         """
 
     def get_create_target(self, module: str, folder: str) -> str:
-        return f"/modules/module/{module}/addresourcetarget/{self.type}?dir={quote(folder,safe='')}"
+        return f"/modules/module/{module}/addresourcetarget/{self.type}?dir={quote(folder, safe='')}"
 
     def get_update_target(self, module: str, resource: str) -> str:
         return f"/modules/module/{quote(module)}/updateresource/{resource}"
@@ -165,7 +165,7 @@ class ResourceType:
         """
         return f"""
 
-        <form method=POST action="/modules/module/{module}/addresourcetarget/example?dir={quote(path, safe='')}">
+        <form method=POST action="/modules/module/{module}/addresourcetarget/example?dir={quote(path, safe="")}">
         <input name="name">
         <input type="submit">
         </form>

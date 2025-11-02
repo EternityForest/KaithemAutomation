@@ -62,7 +62,10 @@ update: # Fetch new code into this project folder
 
 .PHONY: dev-build-docs
 dev-build-docs:
-	@echo "Docs build removed, make important edits manually until we finish the Sphinx transition"
+	@sphinx-build -M markdown doc_source doc_build_md
+	@rm -rf kaithem/src/docs/api
+	@cp -r doc_build_md/markdown/autoapi/kaithem/api/ kaithem/src/docs/
+	@rm -rf doc_build_md
 
 
 .PHONY: dev-count-lines
@@ -122,6 +125,7 @@ dev-install-dev-tools:
 	@uv tool install licccheck
 	@uv tool install pygount
 	@uv tool install scalene
+# 	@uv tool install sphinx --with sphinx-autoapi --with sphinx-markdown-builder --with sphinx-pyproject
 
 # Note that we use uv to test against different versions.  Eventually we will hopefully
 # be able to go to all uv all the time.

@@ -1,6 +1,11 @@
 Change Log
 ----------
 
+### Dev version
+
+* :technologist: Switching to Sphinx for docs
+* :technologist: BREAKING Some tagpoint properties are now private.
+
 
 ### 0.93.1
 

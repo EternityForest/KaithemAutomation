@@ -3,10 +3,11 @@
 
 """Provides a web interface over the authorization system"""
 
+from urllib.parse import quote
+
 import quart
 
 from . import auth, dialogs, messagebus, pages, quart_app
-from .util import quote
 
 
 @quart_app.app.route("/auth/")

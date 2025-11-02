@@ -1,5 +1,6 @@
 # SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-or-later
+from __future__ import annotations
 
 import base64
 import importlib
@@ -7,6 +8,7 @@ import logging
 import os
 import time
 import weakref
+from typing import Any
 
 import jinja2
 import quart
@@ -99,8 +101,8 @@ def get_bar_plugins():
             nbp.append(
                 (
                     i,
-                    f"""<a href="{v.split(':',1)[-1].strip()}">
-                        <i class="mdi mdi-{icon}"></i>{v.split(':',1)[0].strip()}</a>""",
+                    f"""<a href="{v.split(":", 1)[-1].strip()}">
+                        <i class="mdi mdi-{icon}"></i>{v.split(":", 1)[0].strip()}</a>""",
                 )
             )
         except Exception:
@@ -167,7 +169,7 @@ def postOnly():
         return quart.redirect("/errors/wrongmethod")
 
 
-def require(permission):
+def require(permission: str | list[str]):
     """Get the user that is making the request bound to this thread,
     and then raise an interrupt if he does not have the permission specified.
 
@@ -227,7 +229,7 @@ def require(permission):
             raise KaithemUserPermissionError(permission)
 
 
-def loginredirect(url):
+def loginredirect(url: str):
     if quart.request and not quart.request.method == "GET":
         return quart.redirect("/login")
 
@@ -243,7 +245,11 @@ def geturl():
     return quart.request.url
 
 
-def canUserDoThis(permissions, user=None, asgi=None):
+def canUserDoThis(
+    permissions: str | list[str] | tuple[str],
+    user: str | None = None,
+    asgi: dict[str, Any] | None = None,
+):
     "None means get the user from the request context"
 
     # If we are in context aware mode also check for cross site permissions
@@ -257,7 +263,7 @@ def canUserDoThis(permissions, user=None, asgi=None):
     # If a disallowed CORS post is detected here, we get __guest__
     user = user or getAcessingUser(asgi=asgi)
 
-    if not isinstance(permissions, (list, tuple)):
+    if not isinstance(permissions, list | tuple):
         permissions = (permissions,)
 
     for permission in permissions:
@@ -266,7 +272,7 @@ def canUserDoThis(permissions, user=None, asgi=None):
     return True
 
 
-def noCrossSite(asgi=None):
+def noCrossSite(asgi: dict[str, Any] | None = None):
     if asgi:
         if asgi:
             try:
@@ -300,7 +306,7 @@ def strictNoCrossSite():
         )
 
 
-def getAcessingUser(asgi=None, quart_req=None):
+def getAcessingUser(asgi=None, quart_req=None) -> str:
     """Return the username of the user making the request bound to this thread or __guest__ if not logged in.
     The result of this function can be trusted because it uses the authentication token.
     """
