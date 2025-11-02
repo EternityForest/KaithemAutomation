@@ -74,8 +74,6 @@ repos:
           - "html"
           - "javascript"
 
-
-  # Set to select only obvious errors
   - repo: https://github.com/astral-sh/ruff-pre-commit
     # Ruff version.
     rev: v0.3.5
@@ -133,3 +131,11 @@ repos:
         files: \.(js|mjs|vue|css)$
         pass_filenames: false
         exclude: kaithem/src/js/thirdparty/.*
+
+  -   repo: local
+      hooks:
+      -   id: dontshiplocaldeps
+          name: dontshiplocaldeps check
+          entry: uv.tool.sources
+          language: pygrep
+          files: ./pyproject.toml
