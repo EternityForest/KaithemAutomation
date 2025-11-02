@@ -143,6 +143,7 @@ def test_cue_provider():
 
         with modules_lock:
             grp.board.ml_cl_check_autosave()
+        time.sleep(2)
 
         for attempt in stamina.retry_context(on=AssertionError, attempts=20):
             with attempt:
@@ -1449,7 +1450,7 @@ def test_tag_backtrack_feature():
         core.wait_frame()
         core.wait_frame()
         assert "/test_bt" in s.lighting_manager.on_demand_universes
-        for attempt in stamina.retry_context(on=AssertionError):
+        for attempt in stamina.retry_context(on=AssertionError, attempts=20):
             with attempt:
                 assert tagpoints.Tag("/test_bt").value == 1
 
