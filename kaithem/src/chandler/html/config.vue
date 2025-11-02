@@ -461,7 +461,7 @@
           </option>
         </select>
 
-        <div v-if="selectedFixtureClass" class="margin">
+        <div v-if="selectedFixtureClass && fixtureClasses[selectedFixtureClass]" class="margin">
           <h4>{{ selectedFixtureClass }}</h4>
 
           <div class="tool-bar">
