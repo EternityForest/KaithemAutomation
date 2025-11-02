@@ -81,7 +81,11 @@ class TagLogger:
     defaultAccum = 0
 
     def __init__(
-        self, tag, interval, history_length=3 * 30 * 24 * 3600, target="disk"
+        self,
+        tag: tagsapi.GenericTagPointClass,
+        interval: int | float,
+        history_length=3 * 30 * 24 * 3600,
+        target="disk",
     ):
         # We can have purely ram file based logging
         if target == "disk":
@@ -100,9 +104,6 @@ class TagLogger:
         self.accumTime = 0
         self.history_length = history_length
 
-        # To avoid extra lock calls, the historian actually briefly takes over the tag's lock.
-        self.lock = tag.lock
-
         self.lastLogged = 0
         self.interval = interval
 
@@ -113,12 +114,10 @@ class TagLogger:
 
         tag.subscribe(self.accumulate)
 
-        # Log immediately when we setup logger settings.  Helps avoid confusion for tags that never change.
-        if tag.lock.acquire():
-            try:
-                self.accumulate(tag.value, tag.timestamp, tag.annotation)
-            finally:
-                tag.lock.release()
+        # Log immediately when we setup logger settings, so we have data to work with before it changes
+
+        v, t, a = tag.get_vta()
+        self.accumulate(v, t, a)
 
     def insertData(self, d):
         self.h.insertData(d)

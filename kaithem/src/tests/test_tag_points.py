@@ -239,7 +239,7 @@ def test_tags_basic():
     assert t.timestamp == ts
     assert t.annotation == "TestAnnotation"
 
-    assert t.vta == (50, ts, "TestAnnotation")
+    assert t.get_vta() == (50, ts, "TestAnnotation")
 
     # Make sure setting None uses the time
     t.set_claim_val("default", 50, None, "TestAnnotation")
@@ -336,7 +336,7 @@ def test_tags_error():
     assert t.value == 50
     assert t.timestamp == ts
     assert t.annotation == "TestAnnotation"
-    assert t.vta == (50, ts, "TestAnnotation")
+    assert t.get_vta() == (50, ts, "TestAnnotation")
 
 
 def test_no_alarm_on_default():

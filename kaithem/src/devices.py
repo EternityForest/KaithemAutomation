@@ -12,7 +12,7 @@ import threading
 import time
 import traceback
 import weakref
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from typing import Any
 
 import iot_devices.device
@@ -498,7 +498,10 @@ class Device(iot_devices.device.Device):
         ] = {}
 
         # The new devices spec has a way more limited idea of what a data point is.
-        self.datapoints: dict[str, Any] = {}
+        self.datapoints: dict[
+            str, int | float | str | bytes | Mapping[str, Any] | None
+        ] = {}
+
         self.datapoint_timestamps: dict[str, float] = {}
 
         self.name = data.get("name", None) or name
@@ -769,7 +772,7 @@ class Device(iot_devices.device.Device):
 
             self.tagPoints[name] = t
 
-            vta = t.vta
+            vta = t.get_vta()
             self.datapoints[name] = vta[0]
             self.datapoint_timestamps[name] = vta[1]
 
@@ -817,7 +820,7 @@ class Device(iot_devices.device.Device):
 
             self.tagPoints[name] = t
 
-            vta = t.vta
+            vta = t.get_vta()
             self.datapoints[name] = vta[0]
             self.datapoint_timestamps[name] = vta[1]
 
@@ -861,7 +864,7 @@ class Device(iot_devices.device.Device):
                 t.subscribe(handler)
 
             self.tagPoints[name] = t
-            vta = t.vta
+            vta = t.get_vta()
 
             self.datapoints[name] = vta[0]
             self.datapoint_timestamps[name] = vta[1]
@@ -900,7 +903,7 @@ class Device(iot_devices.device.Device):
 
             self.tagPoints[name] = t
 
-            vta = t.vta
+            vta = t.get_vta()
             self.datapoints[name] = vta[0]
             self.datapoint_timestamps[name] = vta[1]
 

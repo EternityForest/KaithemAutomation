@@ -235,7 +235,7 @@ class GenericTagPointClass(Generic[T]):
         # Start timestamp at 0 meaning never been set
         # Value, timestamp, annotation.  This is the raw value,
         # and the value could actually be a callable returning a value
-        self.vta: tuple[T | Callable[[], T | None], float, Any] = (
+        self._vta: tuple[T | Callable[[], T | None], float, Any] = (
             copy.deepcopy(self.default_data),
             0,
             None,
@@ -339,14 +339,14 @@ class GenericTagPointClass(Generic[T]):
 
     @property
     def timestamp(self) -> float:
-        return self.vta[1]
+        return self._vta[1]
 
     @property
     def annotation(self) -> Any:
-        return self.vta[2]
+        return self._vta[2]
 
     def isDynamic(self) -> bool:
-        return callable(self.vta[0])
+        return callable(self._vta[0])
 
     @beartype.beartype
     def expose(
@@ -1115,11 +1115,11 @@ class GenericTagPointClass(Generic[T]):
 
     @property
     def age(self):
-        return time.time() - self.vta[1]
+        return time.time() - self._vta[1]
 
     @property
     def value(self) -> T:
-        return self._get_value()
+        return self._get_value()[0]
 
     @value.setter
     def value(self, v: T | Callable[..., T | None]):
@@ -1133,22 +1133,33 @@ class GenericTagPointClass(Generic[T]):
         if not self._lock.acquire(timeout=15):
             raise RuntimeError("Could not get lock")
         try:
-            return self._get_value(True)
+            return self._get_value(True)[0]
         finally:
             self._lock.release()
 
-    def _get_value(self, force=False) -> T:
+    def get_vta(self, force=False) -> tuple[T, float, Any]:
+        """Get the current value, timestamp and annotation.
+        If force is true and the value is a getter, then force a new update.
+        """
+        if not self._lock.acquire(timeout=240):
+            raise RuntimeError("Could not get lock")
+        try:
+            return self._get_value(force)
+        finally:
+            self._lock.release()
+
+    def _get_value(self, force=False) -> tuple[T, float, Any]:
         "Get the processed value of the tag, and update last_value, It is meant to be called under lock."
 
         # Overrides not guaranteed to be instant
         if (self.last_got_value > (time.time() - self.interval)) and not force:
-            return self.last_value
+            return (self.last_value, self.last_got_value, self.annotation)
 
         active_claim = self.active_claim
         if active_claim is None:
             active_claim = self.get_top_claim()
 
-        active_claim_value = active_claim.value
+        active_claim_value: T | Callable[..., T | None] = active_claim.value
 
         if not callable(active_claim_value):
             # We no longer are aiming to support using the processor for impure functions
@@ -1192,18 +1203,23 @@ class GenericTagPointClass(Generic[T]):
                                 + self.name
                                 + " took too long getting lock to get value, falling back to cache"
                             )
-                            return self.last_value
+                            return (
+                                self.last_value,
+                                self.last_got_value,
+                                self.annotation,
+                            )
                     try:
                         # None means no new data
-                        x = active_claim_value()
+                        # TODO: Type inferrence has a problem here
+                        x: None | T = active_claim_value()  # type: ignore
                         t = time.time()
 
                         if x is not None:
                             # Race here. Data might not always match timestamp an annotation, if we weren't under lock
-                            self.vta = (active_claim_value, t, None)
+                            self._vta = (active_claim_value, t, None)
 
                             # Refresh the timestamp on the claim
-                            active_claim.vta = self.vta
+                            active_claim._vta = self._vta
 
                             active_claim.cachedValue = (x, t)
 
@@ -1231,7 +1247,7 @@ class GenericTagPointClass(Generic[T]):
                     except Exception:
                         print(traceback.format_exc())
 
-        return self.last_value
+        return (self.last_value, self.last_got_value, self.annotation)
 
     def add_alias(self, alias: str):
         """Adds an alias of this tag, allowing access by another name."""
@@ -1348,7 +1364,7 @@ class GenericTagPointClass(Generic[T]):
                 oldAcTimestamp = active_claim.timestamp
 
             claim.effective_priority = priority
-            claim.vta = value, timestamp, annotation
+            claim._vta = value, timestamp, annotation
 
             # If we have priority on them, or if we have the same priority but are newer
             if (
@@ -1360,12 +1376,12 @@ class GenericTagPointClass(Generic[T]):
             ):
                 self.active_claim = self._claims[name]
 
-                if callable(self.vta[0]) or callable(value):
+                if callable(self._vta[0]) or callable(value):
                     needsManagePolling = True
                 else:
                     needsManagePolling = False
 
-                self.vta = (value, timestamp, annotation)
+                self._vta = (value, timestamp, annotation)
 
                 if needsManagePolling:
                     self._manage_polling()
@@ -1383,7 +1399,7 @@ class GenericTagPointClass(Generic[T]):
                 for i in c:
                     x = i
                     if x:
-                        self.vta = (x.value, x.timestamp, x.annotation)
+                        self._vta = (x.value, x.timestamp, x.annotation)
 
                         if not i == self.active_claim:
                             self.active_claim = i
@@ -1450,10 +1466,10 @@ class GenericTagPointClass(Generic[T]):
 
             vta = val, timestamp, annotation
 
-            x.vta = vta
+            x._vta = vta
 
             if upd:
-                self.vta = vta
+                self._vta = vta
                 if valCallable:
                     # Mark that we have not yet ever gotten this getter
                     # so the change becomes immediate.
@@ -1526,7 +1542,7 @@ class GenericTagPointClass(Generic[T]):
             if not self.active_claim:
                 raise RuntimeError("Corrupt state")
 
-            self.vta = (o.value, o.timestamp, o.annotation)
+            self._vta = (o.value, o.timestamp, o.annotation)
             self.active_claim = o
 
             self._get_value()
@@ -1549,7 +1565,7 @@ class NumericTagPointClass(GenericTagPointClass[float]):
     def __init__(
         self, name: str, min: float | None = None, max: float | None = None
     ):
-        self.vta: tuple[float, float, Any]  # type: ignore
+        self._vta: tuple[float, float, Any]  # type: ignore
 
         # Real backing vars for props
 
@@ -1576,14 +1592,14 @@ class NumericTagPointClass(GenericTagPointClass[float]):
 
         if self._lock.acquire(timeout=15):
             try:
-                x = self._get_value()
-                x = x + 1
-                if x > self.max:
-                    x = 1
-                if x > 2**20:
-                    x = 1
+                v, _t, _a = self._get_value()
+                v = v + 1
+                if v > self.max:
+                    v = 1
+                if v > 2**20:
+                    v = 1
 
-                self.value = x
+                self.value = v
 
             finally:
                 self._lock.release()
@@ -1773,7 +1789,7 @@ class StringTagPointClass(GenericTagPointClass[str]):
 
     @beartype.beartype
     def __init__(self, name: str):
-        self.vta: tuple[str, float, Any]  # type: ignore
+        self._vta: tuple[str, float, Any]  # type: ignore
         self._data_source_ws_lock = threading.Lock()
         super().__init__(name)
 
@@ -1791,7 +1807,7 @@ class ObjectTagPointClass(GenericTagPointClass[dict[str, Any]]):
 
     @beartype.beartype
     def __init__(self, name: str):
-        self.vta: tuple[dict[str, Any], float, Any]  # type: ignore
+        self._vta: tuple[dict[str, Any], float, Any]  # type: ignore
         self._data_source_ws_lock = threading.Lock()
 
         self.validate = None
@@ -1825,7 +1841,7 @@ class BinaryTagPointClass(GenericTagPointClass[bytes]):
 
     @beartype.beartype
     def __init__(self, name: str):
-        self.vta: tuple[bytes, float, Any]  # type: ignore
+        self._vta: tuple[bytes, float, Any]  # type: ignore
         self._data_source_ws_lock = threading.Lock()
 
         self.validate = None
@@ -1863,7 +1879,7 @@ class Claim(Generic[T]):
         self.name = name
         self.tag = tag
         timestamp = timestamp or time.time()
-        self.vta: tuple[T | Callable[[], T | None], float, Any] = (
+        self._vta: tuple[T | Callable[[], T | None], float, Any] = (
             value,
             timestamp,
             annotation,
@@ -1916,21 +1932,21 @@ class Claim(Generic[T]):
 
     @property
     def value(self):
-        return self.vta[0]
+        return self._vta[0]
 
     @property
     def timestamp(self):
-        return self.vta[1]
+        return self._vta[1]
 
     @property
     def annotation(self):
-        return self.vta[2]
+        return self._vta[2]
 
     def set(
         self, value, timestamp: float | None = None, annotation: Any = None
     ):
         # Not threadsafe here if multiple threads use the same claim, value, timestamp, and annotation can
-        self.vta = (value, self.timestamp, self.annotation)
+        self._vta = (value, self.timestamp, self.annotation)
 
         # In the released state we must do it all over again
         if self.released:
