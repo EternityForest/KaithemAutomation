@@ -1,7 +1,7 @@
 [project]
 name = "kaithem"
 version = "0.93.1"
-requires-python = ">=3.10,<4.0"
+requires-python = ">=3.11,<4.0"
 
 description = "Home/Commercial SCADA-like automation system"
 license = "GPL-3.0-or-later"
@@ -17,9 +17,9 @@ classifiers = [
 
 dependencies = [
     # First party"
-    "scullery>=0.3.1",
+    "scullery>=0.4.0",
     "iot-devices>=0.25.0",
-    "icemedia>=0.1.23",
+    "icemedia>=0.2.0",
     "NVRChannel>=0.1.8",
     # New numpy needs new opencv
     "numpy>=2.0.0",
@@ -210,8 +210,8 @@ aiohappyeyeballs = ">0.0.1"
 async-interrupt = ">0.0.1"
 
 # First party and should be permissive, not sure why they show as Other/Proprietary
-icemedia = ">0.0.1"
-scullery = ">0.0.1"
+icemedia = ">=0.2.0"
+scullery = ">=0.4.0"
 
 kaithem-plugin-datasette = ">0.0.1"
 
