@@ -74,7 +74,7 @@ dependencies = [
     # TODO is this line really needed? We don't use it directly
     # Maybe just removing addr was enough?
     "attrs>=23.2.0",
-    "beartype>=0.18.2",
+    "pydantic>=2.7.2",
     "types-jsonschema~=4.25.0.20240331",
     "stamina~=24.2.0",
     "stream-zip~=0.0.71",

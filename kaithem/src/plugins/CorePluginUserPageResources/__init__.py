@@ -15,7 +15,6 @@ import time
 import traceback
 import types
 
-import beartype
 import jinja2
 import mako
 import mako.template
@@ -45,6 +44,7 @@ from kaithem.src import (
     util,
 )
 from kaithem.src.util import url
+from kaithem.src.validation_util import validate_args
 
 from . import fileserver
 
@@ -999,7 +999,7 @@ class PageType(modules_state.ResourceType):
             len=len,
         )
 
-    @beartype.beartype
+    @validate_args
     def on_load(
         self,
         module: str,

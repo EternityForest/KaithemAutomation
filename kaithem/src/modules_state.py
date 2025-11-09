@@ -14,7 +14,6 @@ import urllib.parse
 from collections.abc import Callable, Iterator
 from typing import Any, Final
 
-import beartype
 import structlog
 import yaml
 from scullery import messagebus, snake_compat, workers
@@ -27,6 +26,7 @@ from kaithem.api.resource_types import (
     mutable_copy_resource,
     resource_types,
 )
+from kaithem.src.validation_util import validate_args
 
 from . import context_restrictions, directories, util
 from .util import url
@@ -103,7 +103,7 @@ def get_module_metadata(module: str) -> dict[str, Any]:
     return dict(copy.deepcopy(m["__metadata__"]))
 
 
-@beartype.beartype
+@validate_args
 def check_forbidden(s: str) -> None:
     if not s:
         raise ValueError("Resource or module name cannot be empty")
@@ -195,7 +195,7 @@ def importFiledataFolderStructure(module: str) -> None:
                     }
 
 
-@beartype.beartype
+@validate_args
 def writeResource(
     obj: ResourceDictType, dir: str, resource_name: str
 ) -> str | None:
@@ -249,7 +249,7 @@ def writeResource(
             return fn
 
 
-@beartype.beartype
+@validate_args
 def save_resource(
     module: str,
     resource: str,
@@ -317,7 +317,7 @@ def normalize_resource_data(x: ResourceDictType):
     return resourceData
 
 
-@beartype.beartype
+@validate_args
 def rawInsertResource(
     module: str,
     resource: str,
@@ -351,7 +351,7 @@ def rawInsertResource(
 resource_types_api._save_callback = save_resource
 
 
-@beartype.beartype
+@validate_args
 def rawDeleteResource(m: str, r: str, type: str | None = None) -> None:
     """
     Delete a resource from the module, but don't do
@@ -398,7 +398,7 @@ def is_module_readonly(m: str) -> bool:
     return False
 
 
-@beartype.beartype
+@validate_args
 def saveModule(
     module: dict[str, ResourceDictType], modulename: str
 ) -> list[str] | None:

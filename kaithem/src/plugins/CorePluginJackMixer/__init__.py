@@ -49,6 +49,7 @@ recorder = None
 # Some things will auto connect to sys inputs if we don't give
 # them a source
 dummy_silence_source = None
+dummy_silence_sink = None
 
 
 class BeatDetector:
@@ -120,10 +121,48 @@ def start_dummy_source_if_needed():
         raise Exception("Failed to start dummy source")
 
 
+def start_dummy_sink_if_needed():
+    with dummy_src_lock:
+        global dummy_silence_sink
+        if dummy_silence_sink is not None:
+            try:
+                if dummy_silence_sink.poll() is None:
+                    return
+            except Exception:
+                logging.info("Exception checking dummy source, retrying")
+
+        for i in range(25):
+            if [
+                i.name
+                for i in jacktools.get_ports()
+                if i.name.startswith("DUMMYSINK")
+            ]:
+                return
+            time.sleep(0.1)
+
+        dummy_silence_sink = subprocess.Popen(
+            "gst-launch-1.0 pipewiresrc client-name=DUMMYSINK | fakesink",
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            shell=True,
+        )
+
+        for i in range(25):
+            if [
+                i.name
+                for i in jacktools.get_ports()
+                if i.name.startswith("DUMMYSINK")
+            ]:
+                return
+            time.sleep(0.1)
+
+        raise Exception("Failed to start dummy sink")
+
+
 def onPortAdd(t, m):
     # Not everty tiny sound effects needs to mess up the UI
     if not m.clientName.startswith("kplayer"):
-        global_api.send(["newport", m.name, {}, m.isInput])
+        global_api.send(["newport", m.name, {}, m.is_input])
 
 
 def onPortRemove(t, m):
@@ -1568,7 +1607,7 @@ class MixingBoard:
 
 
 def STOP(*a):
-    global dummy_silence_source
+    global dummy_silence_source, dummy_silence_sink
     # Shut down in opposite order we started in
     for board in boards.values():
         with board.lock:
@@ -1580,6 +1619,9 @@ def STOP(*a):
         if dummy_silence_source is not None:
             dummy_silence_source.terminate()
             dummy_silence_source = None
+        if dummy_silence_sink is not None:
+            dummy_silence_sink.terminate()
+            dummy_silence_sink = None
     except Exception:
         logging.exception("Exception stopping dummy source")
 

@@ -3,9 +3,8 @@ import html
 import json
 from typing import Any
 
-import beartype
-
 from kaithem.src import pages
+from kaithem.src.validation_util import validate_args
 
 _auto_fn = """
 <script>
@@ -152,7 +151,7 @@ class SimpleDialog:
     def link(self, s: str, url: str):
         self.items.append(("", f'<p><a href="{url}">{s}</a></p>'))
 
-    @beartype.beartype
+    @validate_args
     def text_input(
         self,
         name: str,
@@ -207,7 +206,7 @@ class SimpleDialog:
         self.items_main.append(("", s))
         self.items = self.items_main
 
-    @beartype.beartype
+    @validate_args
     def checkbox(
         self,
         name: str,
@@ -235,7 +234,7 @@ class SimpleDialog:
             )
         )
 
-    @beartype.beartype
+    @validate_args
     def file_input(
         self, name: str = "file", *, title: str | None = None, disabled=None
     ):
@@ -255,7 +254,7 @@ class SimpleDialog:
             self.extracode += _auto_fn + "\n"
             self.using_uploads = True
 
-    @beartype.beartype
+    @validate_args
     def code_editor(
         self,
         name: str = "file",
@@ -283,7 +282,7 @@ class SimpleDialog:
             self.using_ace = True
             self.extracode += _ace_code + "\n"
 
-    @beartype.beartype
+    @validate_args
     def selection(
         self,
         name: str,
@@ -307,7 +306,7 @@ class SimpleDialog:
         o = ""
 
         for i in options:
-            o += f"<option{' selected' if i==default else ''}>{i}</option>\n"
+            o += f"<option{' selected' if i == default else ''}>{i}</option>\n"
 
         self.items.append(
             (
@@ -320,7 +319,7 @@ class SimpleDialog:
             )
         )
 
-    @beartype.beartype
+    @validate_args
     def submit_button(
         self,
         name: str,
@@ -383,7 +382,7 @@ class SimpleDialog:
 
         self.items.append(("", x))
 
-    @beartype.beartype
+    @validate_args
     def render(
         self,
         target: str,

@@ -11,12 +11,12 @@ from collections.abc import Callable, Mapping
 from typing import Any, Final, TypeVar
 from urllib.parse import quote
 
-import beartype
 import structlog
 import yaml
 from jsonschema import Draft7Validator, validate
 
 from kaithem.api.web import dialogs
+from kaithem.src.validation_util import validate_args
 
 logger = structlog.get_logger(__name__)
 
@@ -132,7 +132,7 @@ class ResourceType:
             validate(data, self.schema)
         self.validate(data)
 
-    @beartype.beartype
+    @validate_args
     def validate(self, data: ResourceDictType):
         """Raise an error if the provided data is bad.
 

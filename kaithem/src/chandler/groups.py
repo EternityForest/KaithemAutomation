@@ -20,12 +20,12 @@ from typing import TYPE_CHECKING, Any
 import icemedia.sound_player
 import numpy
 import structlog
-from beartype import beartype
 from icemedia import sound_player
 from scullery import messagebus, ratelimits, workers
 
 from kaithem.api import tags
 from kaithem.api.midi import normalize_midi_port_name
+from kaithem.src.validation_util import validate_args
 
 from .. import (
     alerts,
@@ -554,7 +554,7 @@ class Group:
                 )
 
             self.go()
-            if isinstance(active, (int, float)):
+            if isinstance(active, int | float):
                 self.started = time.time() - active
 
         else:
@@ -823,7 +823,7 @@ class Group:
 
     def evalExprFloat(self, s: str | int | float) -> float:
         f = self.evalExpr(s)
-        assert isinstance(f, (int, float))
+        assert isinstance(f, int | float)
         return f
 
     def evalExpr(self, s: str | int | float | bool | None):
@@ -1007,7 +1007,7 @@ class Group:
             if not k.startswith("_") and not k == "event":
                 for board in core.iter_boards():
                     if board:
-                        if isinstance(v, (str, int, float, bool)):
+                        if isinstance(v, str | int | float | bool):
                             board.linkSend(["varchange", self.id, k, v])
                         elif isinstance(v, collections.defaultdict):
                             v = json.dumps(v)[:160]
@@ -1724,10 +1724,10 @@ class Group:
             if self.mqtt_sync_features.get("syncGroup", False):
                 # In the future we will not use a leading slash
                 self.mqttConnection.subscribe(
-                    f"/kaithem/chandler/syncgroup/{self.mqtt_sync_features.get('syncGroup',False)}"
+                    f"/kaithem/chandler/syncgroup/{self.mqtt_sync_features.get('syncGroup', False)}"
                 )
                 self.mqttConnection.subscribe(
-                    f"kaithem/chandler/syncgroup/{self.mqtt_sync_features.get('syncGroup',False)}"
+                    f"kaithem/chandler/syncgroup/{self.mqtt_sync_features.get('syncGroup', False)}"
                 )
 
         if self.mqttConnection and self.script_context:
@@ -2019,7 +2019,7 @@ class Group:
         )
 
     @slow_group_lock_context.object_session_entry_point
-    @beartype
+    @validate_args
     def setMqttServer(self, mqtt_server: str):
         with self.lock:
             x = mqtt_server.strip().split(":")
@@ -2469,7 +2469,7 @@ class Group:
                 except ValueError:
                     pass
 
-            if isinstance(channel, (int, float)):
+            if isinstance(channel, int | float):
                 pass
 
             else:

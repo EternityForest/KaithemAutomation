@@ -21,7 +21,8 @@ from typing import Optional, Any
 from starlette.requests import Request
 from quart.ctx import copy_current_request_context
 import msgpack
-from beartype import beartype
+from kaithem.src.validation_util import validate_args
+
 
 from . import auth, messagebus, pages, workers
 from http.cookies import SimpleCookie
@@ -823,7 +824,7 @@ class Widget:
             if not (self.errored_getter == id(self._callback)):
                 messagebus.post_message(
                     "/system/notifications/errors",
-                    f"Error in widget getter function {self._callback.__name__} defined in module { self._callback.__module__}, see logs for traceback.",
+                    f"Error in widget getter function {self._callback.__name__} defined in module {self._callback.__module__}, see logs for traceback.",
                 )
                 self.errored_getter = id(self._callback)
 
@@ -862,7 +863,7 @@ class Widget:
             if not (self.errored_function == id(self._callback)):
                 messagebus.post_message(
                     "/system/notifications/errors",
-                    f"Error in widget callback function {self._callback.__name__} defined in module { self._callback.__module__}, see logs for traceback.",
+                    f"Error in widget callback function {self._callback.__name__} defined in module {self._callback.__module__}, see logs for traceback.",
                 )
                 self.errored_function = id(self._callback)
             raise e
@@ -875,7 +876,7 @@ class Widget:
             if not (self.errored_function == id(self._callback)):
                 messagebus.post_message(
                     "/system/notifications/errors",
-                    f"Error in widget callback function {self._callback.__name__} defined in module { self._callback.__module__}, see logs for traceback.",
+                    f"Error in widget callback function {self._callback.__name__} defined in module {self._callback.__module__}, see logs for traceback.",
                 )
                 self.errored_function = id(self._callback)
             raise e
@@ -888,13 +889,13 @@ class Widget:
         return ""
 
     # Set a callback if it ever changes
-    @beartype
+    @validate_args
     def attach(self, f: Callable[[str, Any], None]) -> None:
         self._callback = f
 
     # Set a callback if it ever changes.
     # This version also gives you the connection ID
-    @beartype
+    @validate_args
     def attach2(self, f: Callable[[str, Any, str], None]) -> None:
         self._callback2 = f
 

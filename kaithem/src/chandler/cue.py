@@ -18,12 +18,14 @@ import time
 import traceback
 import uuid
 import weakref
+from collections.abc import Callable
 from decimal import Decimal
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any
 
 import dateutil.tz
-from beartype import beartype
 from scullery import messagebus, scheduling, snake_compat
+
+from kaithem.src.validation_util import validate_args
 
 from .. import assetlib, schemas, util
 from . import core
@@ -137,7 +139,7 @@ def fnToCueName(fn: str):
 cue_provider_types: dict[str, type[CueProvider]] = {}
 
 
-@beartype
+@validate_args
 def recalc_all_cue_schedules(*a, **k):
     for i in cues.values():
         i.schedule()
@@ -827,7 +829,7 @@ class Cue:
         if gr:
             gr.set_cue_value(self.name, universe, channel, value)
 
-    @beartype
+    @validate_args
     def set_value(
         self, universe: str, channel: str | int, value: str | int | float | None
     ):

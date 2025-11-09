@@ -21,10 +21,11 @@ from typing import (
     final,
 )
 
-import beartype
 import structlog
 from scullery import scheduling, snake_compat
 from scullery.units import convert, unit_types
+
+from kaithem.src.validation_util import validate_args
 
 from . import alerts, messagebus, pages, widgets, workers
 
@@ -175,7 +176,7 @@ class GenericTagPointClass(Generic[T]):
             except Exception:  # pragma: no cover
                 return f"<Tag Point: No name, not initialzed yet at {hex(id(self))}>"
 
-    @beartype.beartype
+    @validate_args
     def __init__(self, name: str):
         global allTagsAtomic
         _name: str = normalize_tag_name(name)
@@ -363,7 +364,7 @@ class GenericTagPointClass(Generic[T]):
         """True if the tag has a getter instead of a set value"""
         return callable(self._raw_vta[0])
 
-    @beartype.beartype
+    @validate_args
     def expose(
         self,
         read_perms: str | list[str] = "",
@@ -627,7 +628,7 @@ class GenericTagPointClass(Generic[T]):
         return 0
 
     # Note the black default condition, that lets us override a normal alarm while using the default condition.
-    @beartype.beartype
+    @validate_args
     def set_alarm(
         self,
         name: str,
@@ -747,7 +748,7 @@ class GenericTagPointClass(Generic[T]):
         return self._interval
 
     @interval.setter
-    @beartype.beartype
+    @validate_args
     def interval(self, val: int | float | None):
         if val is not None:
             self._interval = val
@@ -821,6 +822,10 @@ class GenericTagPointClass(Generic[T]):
             return rval
 
     @property
+    def data_source_widget(self) -> None | widgets.Widget:
+        return self._data_source_widget
+
+    @property
     def current_source(self) -> str:
         """Return the Claim object that is currently
         controlling the tag"""
@@ -881,10 +886,10 @@ class GenericTagPointClass(Generic[T]):
         Equivalent to calling set() on the default handler. If
         no args are provided, just returns the tag's value.
         """
-        if not value and not kwargs and not timestamp and not annotation:
+        if (value is None) and not kwargs and not timestamp and not annotation:
             return self.value
         else:
-            if not value:
+            if value is None:
                 raise ValueError("Must provide a value to set")
             return self.set_claim_val(
                 "default", value, timestamp, annotation, **kwargs
@@ -942,7 +947,7 @@ class GenericTagPointClass(Generic[T]):
         else:
             print("Timed out in the push function")
 
-    @beartype.beartype
+    @validate_args
     def subscribe(
         self, f: Callable[[T, float, Any], Any], immediate: bool = False
     ):
@@ -1047,7 +1052,7 @@ class GenericTagPointClass(Generic[T]):
                 "Cannot get lock to subscribe to this tag. Is there a long running subscriber?"
             )
 
-    @beartype.beartype
+    @validate_args
     def unsubscribe(self, f: Callable[[T, float, Any], Any]):
         if self._lock.acquire(timeout=20):
             try:
@@ -1502,7 +1507,7 @@ class GenericTagPointClass(Generic[T]):
                     # self._getValue()
                 else:
                     self._vta = (
-                        self._process_value_for_tag_type(val),
+                        self._process_value_for_tag_type(val),  # type: ignore
                         timestamp,
                         self._raw_vta[2],
                     )
@@ -1579,8 +1584,19 @@ class GenericTagPointClass(Generic[T]):
             self._lock.release()
 
     @property
-    def subscribers(self) -> int:
-        return self._subscribers
+    def subscribers(self) -> list[Callable[[T, float, Any], Any]]:
+        if self._lock.acquire(timeout=15):
+            try:
+                x: list[Callable[[T, float, Any], Any]] = []
+                for i in self._subscribers:
+                    y = i()
+                    if y:
+                        x.append(y)
+                return x
+            finally:
+                self._lock.release()
+        else:
+            raise RuntimeError("failed to get lock to list subscribers")
 
 
 default_bool_enum = {-1: None, 0: False, 1: True}
@@ -1591,7 +1607,7 @@ class NumericTagPointClass(GenericTagPointClass[float]):
     default_data = 0
     type = "number"
 
-    @beartype.beartype
+    @validate_args
     def __init__(
         self, name: str, min: float | None = None, max: float | None = None
     ):
@@ -1666,7 +1682,7 @@ class NumericTagPointClass(GenericTagPointClass[float]):
         return self._min if self._min is not None else -(10**18)
 
     @min.setter
-    @beartype.beartype
+    @validate_args
     def min(self, v: float | int | None):
         self._min = v
         self.pull()
@@ -1678,7 +1694,7 @@ class NumericTagPointClass(GenericTagPointClass[float]):
         return self._max if self._max is not None else 10**18
 
     @max.setter
-    @beartype.beartype
+    @validate_args
     def max(self, v: float | int | None):
         self._max = v
         self.pull()
@@ -1692,7 +1708,7 @@ class NumericTagPointClass(GenericTagPointClass[float]):
             return x
 
     @hi.setter
-    @beartype.beartype
+    @validate_args
     def hi(self, v: float | int | None):
         if v is None:
             v = 10**16
@@ -1705,7 +1721,7 @@ class NumericTagPointClass(GenericTagPointClass[float]):
         return self._lo
 
     @lo.setter
-    @beartype.beartype
+    @validate_args
     def lo(self, v: float | int | None):
         if v is None:
             v = -(10**16)
@@ -1816,7 +1832,7 @@ class StringTagPointClass(GenericTagPointClass[str]):
     type = "string"
     mqtt_encoding = "utf8"
 
-    @beartype.beartype
+    @validate_args
     def __init__(self, name: str):
         self._vta: tuple[str, float, Any]  # type: ignore
         self._data_source_ws_lock = threading.Lock()
@@ -1831,7 +1847,7 @@ class ObjectTagPointClass(GenericTagPointClass[dict[str, Any]]):
     default_data: dict[str, Any] = {}
     type = "object"
 
-    @beartype.beartype
+    @validate_args
     def __init__(self, name: str):
         self._vta: tuple[dict[str, Any], float, Any]  # type: ignore
         self._data_source_ws_lock = threading.Lock()
@@ -1847,9 +1863,6 @@ class ObjectTagPointClass(GenericTagPointClass[dict[str, Any]]):
             json.dumps(value)
             value = copy.deepcopy(value)
 
-        if self.validate:
-            value = self.validate(value)
-
         return value
 
 
@@ -1858,12 +1871,11 @@ class BinaryTagPointClass(GenericTagPointClass[bytes]):
     default_data: bytes = b""
     type = "binary"
 
-    @beartype.beartype
+    @validate_args
     def __init__(self, name: str):
         self._vta: tuple[bytes, float, Any]  # type: ignore
         self._data_source_ws_lock = threading.Lock()
 
-        self.validate = None
         super().__init__(name)
 
     def _process_value_for_tag_type(self, value):
@@ -1872,9 +1884,6 @@ class BinaryTagPointClass(GenericTagPointClass[bytes]):
         else:
             value = bytes(value)
 
-        if self.validate:
-            value = self.validate(value)
-
         return value
 
 
@@ -1882,9 +1891,9 @@ class BinaryTagPointClass(GenericTagPointClass[bytes]):
 class Claim(Generic[T]):
     "Represents a claim on a tag point's value"
 
-    @beartype.beartype
+    @validate_args
     def __init__(
-        self: Claim,
+        self,
         tag: GenericTagPointClass[T],
         value: T,
         name: str = "default",
@@ -1957,6 +1966,8 @@ class Claim(Generic[T]):
     def set(
         self, value, timestamp: float | None = None, annotation: Any = None
     ):
+        if timestamp is None:
+            timestamp = time.time()
         # Not threadsafe here if multiple threads use the same claim, value, timestamp, and annotation can
         self._vta = (value, timestamp, annotation)
 
@@ -2022,9 +2033,9 @@ class Claim(Generic[T]):
 class NumericClaim(Claim[float]):
     "Represents a claim on a tag point's value"
 
-    @beartype.beartype
+    @validate_args
     def __init__(
-        self: NumericClaim,
+        self,
         tag: NumericTagPointClass,
         value: float | int | Callable[[], float | int | None],
         name: str = "default",

@@ -25,7 +25,6 @@ import weakref
 from collections import defaultdict
 from collections.abc import Callable
 
-import beartype
 import pytz
 import structlog
 import yaml
@@ -44,6 +43,7 @@ from kaithem.src import (
     workers,
 )
 from kaithem.src.config import config
+from kaithem.src.validation_util import validate_args
 
 ctime = time.time
 do = workers.do
@@ -2088,7 +2088,7 @@ class EventType(modules_state.ResourceType):
             elif init_done:
                 getEventsFromModules(module)
 
-    @beartype.beartype
+    @validate_args
     def on_load(
         self,
         module: str,

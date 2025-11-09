@@ -16,9 +16,10 @@ from collections.abc import Callable
 from io import BytesIO
 from typing import Any
 
-import beartype
 import structlog
 import yaml
+
+from kaithem.src.validation_util import validate_args
 
 from . import auth, directories, messagebus, modules_state, pages, util
 from .modules_state import (
@@ -101,7 +102,7 @@ class ModuleObject:
         self.__kaithem_modulename__ = modulename
 
 
-@beartype.beartype
+@validate_args
 def readResourceFromFile(
     fn: str, relative_name: str, ver: int = 1, modulename: str | None = None
 ) -> tuple[ResourceDictType | None, str | None]:

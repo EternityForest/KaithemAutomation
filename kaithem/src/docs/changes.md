@@ -5,7 +5,8 @@ Change Log
 
 * :technologist: Switching to Sphinx for docs
 * :technologist: BREAKING Some tagpoint properties are now private.
-
+* :technologist: Replace Beartype with Pydantic as it is now a strong de facto standard.
+* :bug: Fix obscure tagpoint \_\_call\_\_(v,t,a) feature that broke NVRChannel
 
 ### 0.93.1
 

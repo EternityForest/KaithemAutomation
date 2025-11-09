@@ -4,13 +4,14 @@ from __future__ import annotations
 
 from urllib.parse import quote
 
-# This file handles the display of user-created pages
-import beartype
 import structlog
 
 from kaithem.api.web.dialogs import SimpleDialog
 from kaithem.src import auth, modules_state
 from kaithem.src.util import url
+
+# This file handles the display of user-created pages
+from kaithem.src.validation_util import validate_args
 
 logger = structlog.get_logger(__name__)
 
@@ -38,7 +39,7 @@ class ServerObj:
 
 
 class FileServerType(modules_state.ResourceType):
-    @beartype.beartype
+    @validate_args
     def blurb(self, module, resource, data):
         return f'<a href="/pages/{url(module)}/{quote(resource)}">Browse</a>'
 

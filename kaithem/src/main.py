@@ -8,7 +8,7 @@ import os
 import sys
 import threading
 import time
-from typing import Any, Dict, Optional
+from typing import Any
 
 import structlog
 import structlog.dev
@@ -59,7 +59,7 @@ def import_in_thread(m):
     ).start()
 
 
-def initialize(config: Optional[Dict[str, Any]] = None):
+def initialize(config: dict[str, Any] | None = None):
     "Config priority is default, then cfg param, then cmd line cfg file as highest priority"
 
     start_time = time.time()
@@ -78,7 +78,6 @@ def initialize(config: Optional[Dict[str, Any]] = None):
         "jinja2",
         "multiprocessing",
         "glob",
-        "beartype",
         "pygments",
         "numpy",
         "zeroconf",

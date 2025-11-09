@@ -274,6 +274,7 @@
         Binary data tagpoint cannot be displayed.
         {% if obj.tagPoints[i].subtype == 'mpegts' %}
         If this is a video feed, you may need to set up Permissions on this device.
+        {{ str(obj.tagPoints[i].data_source_widget)}}
         {% endif %}
         {% endif %}
 

@@ -25,10 +25,11 @@ import threading
 import time
 from typing import Any
 
-import beartype
 import structlog
 import yaml
 from argon2 import PasswordHasher
+
+from kaithem.src.validation_util import validate_args
 
 from . import directories, messagebus, modules_state, util
 
@@ -295,17 +296,11 @@ def tryToLoadFrom(d: str) -> bool:
         return True
 
 
-@beartype.beartype
+@validate_args
 def loadFromData(
     d: dict[
         str,
-        dict[
-            str,
-            dict[str, list[str]]
-            | dict[str, dict[str, int] | list[str]]
-            | dict[str, list[str] | str | dict[str, bool]]
-            | dict[str, str],
-        ],
+        dict[str, Any],
     ],
 ) -> bool:
     global tokenHashes

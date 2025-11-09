@@ -9,11 +9,11 @@ import weakref
 from collections.abc import Iterable
 from typing import Any
 
-import beartype
 import yaml
 from scullery import messagebus, scheduling, snake_compat, workers
 
 from kaithem.api.modules import modules_lock
+from kaithem.src.validation_util import validate_args
 
 # The frontend's ephemeral state is using CamelCase conventions for now
 from .. import schemas, unitsofmeasure
@@ -519,11 +519,11 @@ class ChandlerConsole(console_abc.Console_ABC):
                 else:
                     raise
 
-    @beartype.beartype
+    @validate_args
     def addGroup(self, group: Group):
         self.groups[group.id] = group
 
-    @beartype.beartype
+    @validate_args
     def rmGroup(self, group: Group):
         try:
             del self.groups[group.id]

@@ -7,8 +7,9 @@ import weakref
 from typing import Any
 
 import structlog
-from beartype import beartype
 from scullery import statemachines, workers
+
+from kaithem.src.validation_util import validate_args
 
 from . import (
     messagebus,
@@ -174,7 +175,7 @@ def cleanup():
 
 
 class Alert:
-    @beartype
+    @validate_args
     def __init__(
         self,
         name: str,

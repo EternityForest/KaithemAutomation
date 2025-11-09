@@ -19,11 +19,11 @@ from typing import Any
 
 import pytz
 import simpleeval
-from beartype import beartype
 from scullery import workers
 from scullery.scheduling import scheduler
 
 from kaithem.api import lifespan
+from kaithem.src.validation_util import validate_args
 
 from . import astrallibwrapper as sky
 from . import geolocation, settings_overrides, tagpoints, util
@@ -104,7 +104,7 @@ def paramDefault(p):
         return None
 
     p = p.default
-    if isinstance(p, (int, float)):
+    if isinstance(p, int | float):
         return f"{str(p)}"
 
     if isinstance(p, str):
@@ -494,7 +494,7 @@ class ScriptActionKeeper:
             if (
                 (not p[i].default == p[i].empty)
                 and p[i].default
-                and not isinstance(p[i].default, (str, int, bool))
+                and not isinstance(p[i].default, str | int | bool)
             ):
                 raise ValueError(
                     "All default values must be int, string, or bool, not "
@@ -969,7 +969,7 @@ class BaseChandlerScriptContext:
     def onVarSet(self, k: str, v: Any):
         pass
 
-    @beartype
+    @validate_args
     def addBindings(self, b: list[list[str | list[list[str]]]]):
         """
         Take a list of bindings and add them to the context.

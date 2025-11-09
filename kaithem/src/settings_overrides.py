@@ -2,8 +2,9 @@ import functools
 import threading
 from typing import Any
 
-import beartype
 from scullery import messagebus
+
+from kaithem.src.validation_util import validate_args
 
 from . import config
 
@@ -116,7 +117,7 @@ def get_val(key: str) -> str:
     return ""
 
 
-@beartype.beartype
+@validate_args
 def add_val(
     key: str, value: str, source: str = "<code>", priority: float | int = 0
 ):
@@ -157,5 +158,5 @@ def add_val(
 
 with lock:
     for i in config.config:
-        if isinstance(config.config[i], (str, int, float)) and "/" in i:
+        if isinstance(config.config[i], str | int | float) and "/" in i:
             add_val(i, str(config.config[i]), "<Config file>", 10)
