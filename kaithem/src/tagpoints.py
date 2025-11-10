@@ -192,13 +192,13 @@ class GenericTagPointClass(Generic[T]):
                 "Tag with this name already exists, use the getter function to get it instead"
             )
 
-        """The normalized name of the tag"""
         self.name: str = _name
+        """The normalized name of the tag"""
 
-        """Internal use only, holds references to logger objects"""
         self.configLoggers: weakref.WeakValueDictionary[str, object] = (
             weakref.WeakValueDictionary()
         )
+        """Internal use only, holds references to logger objects"""
 
         # Used for the fake buttons in the device page
         self._k_ui_fake: Claim[T]
@@ -220,8 +220,8 @@ class GenericTagPointClass(Generic[T]):
         # Used for pushing data to frontend
         self._data_source_ws_lock: threading.Lock
 
-        """User settable description in free text"""
         self.description: str = ""
+        """User settable description in free text"""
 
         # True if there is already a copy of the deadlock diagnostics running
         self._testingForDeadlock: bool = False
@@ -295,19 +295,19 @@ class GenericTagPointClass(Generic[T]):
         # The "Owner" of a tag can use this to say if anyone else should write it
         self.writable = True
 
-        """Dict used as globals and locals for evaluating
-        alarm conditions and expression tags."""
         self.eval_context: dict[str, Any] = {
             "tv": self._context_get_numeric_tag_value,
             "stv": self._context_get_string_tag_value,
             "tag": self,
         }
+        """Dict used as globals and locals for evaluating
+        alarm conditions and expression tags."""
 
         self._lastError: float | int = 0
 
+        self.owner: str = ""
         """Free text user settable string describing the "owner" of the tag point
         This is not a precisely defined concept"""
-        self.owner: str = ""
 
         self._lastPushedValue: T | None = None
 
@@ -315,13 +315,13 @@ class GenericTagPointClass(Generic[T]):
             allTags[_name] = weakref.ref(self)
             allTagsAtomic = allTags.copy()
 
-        """The claim named default which is normally the only one that ever gets used"""
         self.default_claim = self.claim(
             copy.deepcopy(self.default_data),
             "default",
             timestamp=0,
             annotation=self.DEFAULT_ANNOTATION,
         )
+        """The claim named default which is normally the only one that ever gets used"""
 
         # Reset this so that any future value sets actually do push.  First write should always push
         # Independent of change detection.
@@ -637,6 +637,7 @@ class GenericTagPointClass(Generic[T]):
         release_condition: str | None = "",
         auto_ack: bool = False,
         trip_delay: float | int | str = "0",
+        enabled: bool = True,
     ) -> alerts.Alert | None:
         self._can_post_alert_error = True
         with lock:
@@ -663,6 +664,7 @@ class GenericTagPointClass(Generic[T]):
                 priority=priority,
                 trip_delay=float(trip_delay),
                 auto_ack=auto_ack,
+                enabled=enabled,
             )
 
             def poll():
