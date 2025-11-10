@@ -7,6 +7,7 @@ Change Log
 * :technologist: BREAKING Some tagpoint properties are now private.
 * :technologist: Replace Beartype with Pydantic as it is now a strong de facto standard.
 * :bug: Fix obscure tagpoint \_\_call\_\_(v,t,a) feature that broke NVRChannel
+* :bug: Fix YoLink not working on some kaithem versions.
 
 ### 0.93.1
 

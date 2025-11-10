@@ -13,7 +13,14 @@ from quart import Response, redirect
 from quart.ctx import copy_current_request_context
 from scullery import units
 
-from kaithem.src import devices, messagebus, modules_state, pages, udisks
+from kaithem.src import (
+    devices,
+    messagebus,
+    modules_state,
+    pages,
+    udisks,
+    validation_util,
+)
 from kaithem.src.devices import (
     Device,
     delete_bookkeep,
@@ -256,73 +263,41 @@ def createDevice(**kwargs):
         pages.require("system_admin")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
-    return create_device_from_kwargs(**kwargs)
+    return create_blank_device(**kwargs)
 
 
-def create_device_from_kwargs(**kwargs):
-    """This pretty much exists so we can call it from a tests without going through the web"""
-    name = kwargs.get("name", None)
-    m = r = None
-
+@validation_util.validate_args
+def create_blank_device(name: str, module: str, resource: str, type: str):
+    data = {}
     with modules_state.modulesLock:
-        if "module" in kwargs:
-            m = str(kwargs["module"])
-            r = str(kwargs["resource"])
-            name = name or r
-            del kwargs["module"]
-            del kwargs["resource"]
-            d = {i: kwargs[i] for i in kwargs if not i.startswith("temp.")}
-            d["name"] = name
+        name = name or resource
 
-            # Set these as the default
-            kwargs["kaithem.read_perms"] = "view_devices"
-            kwargs["kaithem.write_perms"] = "write_devices"
+        data["name"] = name
+        data["type"] = type
 
-            dt = {"resource": {"type": "device"}, "device": d}
+        data["extensions"] = {}
+        data["extensions"]["kaithem"] = {}
 
-            modules_state.rawInsertResource(m, r, dt)
-        else:
-            raise RuntimeError(
-                "Creating devices outside of modules is no longer supported."
-            )
+        # Set these as the default
+        data["extensions"]["kaithem"]["read_perms"] = "view_devices"
+        data["extensions"]["kaithem"]["write_perms"] = "write_devices"
+
+        dt = {"resource": {"type": "device"}, "device": data}
+
+        modules_state.rawInsertResource(module, resource, dt)
 
         if name in devices.remote_devices:
             devices.remote_devices[name].close()
-        devices.remote_devices[name] = makeDevice(name, kwargs)
+        devices.remote_devices[name] = makeDevice(name, data)
 
-        if m and r:
-            storeDeviceInModule(d, m, r)
-        else:
-            raise RuntimeError(
-                "Creating devices outside of modules is no longer supported."
-            )
+        storeDeviceInModule(dt, module, resource)
 
-        devices.remote_devices[name].parent_module = m
-        devices.remote_devices[name].parent_resource = r
+        devices.remote_devices[name].parent_module = module
+        devices.remote_devices[name].parent_resource = resource
         devices.remote_devices_atomic = devices.wrcopy(devices.remote_devices)
         messagebus.post_message("/devices/added/", name)
 
     return redirect("/devices")
-
-
-@app.route("/devices/createDevicePage", methods=["POST"])
-@wrap_sync_route_handler
-def createDevicePage(module, resource, type):
-    "Ether create a 'blank' device, or, if supported, show the custom page"
-    try:
-        pages.require("system_admin")
-    except PermissionError:
-        return pages.loginredirect(pages.geturl())
-
-    tp = getDeviceType(type)
-    assert tp
-
-    d = pages.get_template("devices/createpage.html").render(
-        name=resource, type=type, module=module, resource=resource
-    )
-    return Response(
-        d, mimetype="text/html", headers={"X-Frame-Options": "SAMEORIGIN"}
-    )
 
 
 @app.route("/devices/settarget/<name>/<tag>", methods=["POST"])

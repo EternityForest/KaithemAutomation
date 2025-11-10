@@ -18,7 +18,6 @@ test("test", async ({ page }) => {
   await page.getByPlaceholder("Click for dropdown").click();
   await page.getByPlaceholder("Click for dropdown").selectOption("DemoDevice");
   await page.getByRole("button", { name: "Create" }).click();
-  await page.getByRole("button", { name: "Submit" }).click();
 
   // Should be on devices page now, make sure it exists and works
   await expect(page.locator("section")).toContainText("Testdevice");

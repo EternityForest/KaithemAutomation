@@ -11,6 +11,7 @@ import threading
 import time
 import urllib
 import urllib.parse
+import warnings
 from collections.abc import Callable, Iterator
 from typing import Any, Final
 
@@ -313,6 +314,9 @@ def normalize_resource_data(x: ResourceDictType):
 
     if not resourceData["resource"].get("modified"):
         resourceData["resource"]["modified"] = int(time.time())
+
+    if not resourceData == x:
+        warnings.warn("Automatically normalized resource", DeprecationWarning)
 
     return resourceData
 

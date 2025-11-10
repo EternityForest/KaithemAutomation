@@ -35,6 +35,7 @@ import urllib.parse
 <title>Devices</title>
 
 <h1>Devices</h1>
+
 <section class="window paper">
 <div class="tool-bar">
     <a href="/devices/report">Printable Report</a>
@@ -84,7 +85,7 @@ else:
 
         %if hasattr(devObj, 'tagpoints'):
 
-        %if not hasattr(deviceData[i](),'_kaithem_is_subdevice'):
+        %if not deviceData[i]().is_subdevice:
         <a href="/modules/module/${url(devObj.parent_module)}/deleteresource/${url(devObj.parent_resource)}" class="button" style="flex-grow:0"><i class="mdi mdi-delete"></i></a>
         %endif
 
@@ -192,7 +193,7 @@ ${device(devObj.subdevices[j].name, devObj=devObj.subdevices[j])}
 
 <div style="display: flex; flex-wrap: wrap; flex-direction: row;">
 %for i in sorted(deviceData.keys()):
-%if not hasattr(deviceData[i](),'_kaithem_is_subdevice'):
+%if not deviceData[i]().is_subdevice:
 ${device(i)}
 %endif
 

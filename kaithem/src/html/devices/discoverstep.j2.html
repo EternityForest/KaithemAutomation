@@ -1,0 +1,63 @@
+{% extends "pagetemplate.j2.html" %} {% set parse = imp0rt('urrlib.parse') %} {%
+block body %}
+<script src="/static/js/thirdparty/jsoneditor.min.js"></script>
+
+<style>
+  /*https://stackoverflow.com/questions/8925716/class="disable"-form-fields-not-submitting-data*/
+  .disable {
+    pointer-events: none;
+    background: grey;
+  }
+</style>
+
+<h1>Available Configurations</h1>
+<div class="window paper">
+  <p>
+    This page shows various configurations suggested by the device driver. Note
+    that some devices may have multi step configuration. You may need to accept
+    a config and then visit this page again with the extra info.
+  </p>
+
+  <p>Before accepting these configs you may edit them.</p>
+</div>
+
+{{% for n,c in enumerate(data) %}}
+
+<h2>{{c.name}}</h2>
+<div class="window paper">
+  <form
+    method="POST"
+    action="/devices/updateDevice/{{parse.quote(name)}}"
+    id="form_{{n}}">
+    <input id="jsoninput_{{n}}" type="hidden" name="json" />
+    <div id="editor-container"></div>
+
+    <script>
+         const config = {
+             schema: {{obj.get_full_schema()|tojson}},
+             disable_array_delete_all_rows: true,
+             array_controls_top: true,
+             disable_array_delete_last_row: true,
+             disable_edit_json: true,
+             ajax: true,
+             theme: "barebones",
+        }
+         var editor = new JSONEditor(document.querySelector('#editor-container'), config)
+         window.editor = editor
+
+         const v= async () => {
+             await editor.promise
+             editor.setValue({{c|tojson}})
+         }
+         v()
+
+
+      let mainform = document.querySelector("#form_{{n}}")
+      mainform.addEventListener("submit", function (e) {
+          document.querySelector('#jsoninput_{{n}}').value = JSON.stringify(globalThis.editor.getValue())
+      })
+    </script>
+    <input type="submit" value="Use This Configuration" />
+  </form>
+</div>
+{% endfor %} {% endblock %}

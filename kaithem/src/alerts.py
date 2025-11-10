@@ -188,6 +188,7 @@ class Alert:
         id=None,
         description: str = "",
         silent: bool = False,
+        enabled: bool = True,
     ):
         """
         Create a new Alert object. An alert is a persistant notification
@@ -220,7 +221,10 @@ class Alert:
         it's physical location.
 
         There is no cleanup action required when deleting an alarm, nor
-        is there any need for unique names. However ID
+        is there any need for unique names. However ID.
+
+        If enabled is false, the trip() function does nothing  until
+        enable is called()
         """
 
         if name == "":
@@ -229,6 +233,10 @@ class Alert:
         for i in illegalCharsInName:
             if i in name:
                 name = name.replace(i, " ")
+
+        self._enabled = enabled
+
+        self._pre_disable_state = ""
 
         self.permissions = permissions + ["view_status"]
         self.ackPermissions = ackPermissions + ["users/alerts.acknowledge"]
@@ -412,6 +420,8 @@ class Alert:
         pushAlertState()
 
     def trip(self, message=""):
+        if not self._enabled:
+            return
         message = str(message)[:256]
         message_changed = message != self.trip_message
         self.trip_message = message
@@ -461,6 +471,27 @@ class Alert:
                 pushAlertState()
         except Exception:
             logger.exception("Error cleaning up tag")
+
+    def disable(self):
+        """Clear any current alerts and prevent trip()
+        from doing anything till enable() is called"""
+        self._pre_disable_state = self.sm.state
+        self._enabled = False
+        self.acknowledge("<DISABLED>")
+        self.clear()
+
+        def f():
+            with lock:
+                cleanup()
+
+        workers.do(f)
+        sendMessage()
+        pushAlertState()
+
+    def enable(self):
+        self._enabled = True
+        if self._pre_disable_state:
+            self.sm.goto(self._pre_disable_state)
 
     def __del__(self):
         self.close()

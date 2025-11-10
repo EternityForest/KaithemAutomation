@@ -11,6 +11,7 @@ import textwrap
 import threading
 import time
 import traceback
+import warnings
 import weakref
 from collections.abc import Callable, Mapping
 from typing import Any
@@ -71,20 +72,12 @@ def delete_bookkeep(name, confdir=False):
         # It sometimes is not there if the parent device got deleted first
         if name in remote_devices:
             x = remote_devices[name]
-            k = []
-            for i in x.subdevices:
-                k.append(x.subdevices[i].name)
 
             x.close()
             gc.collect()
             x.on_delete()
             gc.collect()
 
-            for i in k:
-                try:
-                    del remote_devices[i]
-                except KeyError:
-                    pass
             try:
                 del remote_devices[name]
             except KeyError:
@@ -371,41 +364,7 @@ def makeBackgroundErrorFunction(t, time, self):
     return f
 
 
-class Device(iot_devices.device.Device):
-    ######################################################################################
-    # Compatibility block for this spec https://github.com/EternityForest/iot_devices
-    # Musy ONLY have things we want to override from the imported driver class,
-    # as this will have the highest priority
-    # Keep this pretty self contained.  That makes it clear what's a Kaithem feature and
-    # what is in the generic spec
-    ######################################################################################
-
-    # Alarms are only done via the new tags way with these
-    _noset_alarmPriority = True
-
-    _isCrossFramework = True
-
-    description = ""
-    readme = ""
-    device_type_name = "device"
-
-    # We are renaming data to config for clarity.
-    # This is the legacy alias.
-    @property
-    def data(self):
-        return self.config
-
-    @data.setter
-    def data(self, v):
-        return self.config.update(v)
-
-    @staticmethod
-    def makeUIMsgHandler(wr):
-        def f(u, v):
-            wr().on_ui_message(u)
-
-        return f
-
+class DeviceRuntimeState:
     @staticmethod
     def makeGenericUIMsgHandler(wr):
         def f(u, v):
@@ -413,7 +372,13 @@ class Device(iot_devices.device.Device):
 
         return f
 
-    def __init__(self, name: str, data: dict[str, Any]):
+    def __init__(
+        self, device: iot_devices.device.Device, name: str, data: dict
+    ):
+        self.device = device
+        self.device_type_name = data["type"]
+        self.data = data
+
         if (
             not data["type"] == self.device_type_name
             and not self.device_type_name == "unsupported"
@@ -427,13 +392,38 @@ class Device(iot_devices.device.Device):
         global remote_devices_atomic
         global remote_devices
 
-        if not hasattr(self, "title"):
-            self.title = name
+        if "extensions" not in data:
+            data["extensions"] = {}
+
+        if "kaithem" not in data["extensions"]:
+            data["extensions"]["kaithem"] = {}
+
+        # Legacy porting block
+        # TODO
+        if "kaithem.use_default_alerts" in data:
+            warnings.warn("Auto upgrading legacy config key")
+            data["extensions"]["kaithem"]["use_default_alerts"] = data.pop(
+                "kaithem.use_default_alerts"
+            )
+        if "kaithem.read_perms" in data:
+            warnings.warn("Auto upgrading legacy config key")
+            data["extensions"]["kaithem"]["read_perms"] = data.pop(
+                "kaithem.read_perms"
+            )
+        if "kaithem.write_perms" in data:
+            warnings.warn("Auto upgrading legacy config key")
+            data["extensions"]["kaithem"]["write_perms"] = data.pop(
+                "kaithem.write_perms"
+            )
+
+        self.device.update_config(data)
 
         # Legacy stuff used strings
         self.k_use_default_alerts = str(
-            data.get("kaithem.use_default_alerts", "true")
-        ).lower() in ("yes", "on", "true", "1")
+            data.get("extensions", {})
+            .get("kaithem", {})
+            .get("use_default_alerts")
+        )
 
         # Which points to show in overview
         self.dashboard_datapoints = {}
@@ -442,25 +432,15 @@ class Device(iot_devices.device.Device):
 
         self._tagBookKeepers: dict[str, Callable[[Any, float, Any], None]] = {}
 
-        # The single shared broadcast data channel the spec suggests we have
-        self._admin_ws_channel = widgets.APIWidget()
-        self._admin_ws_channel.require("system_admin")
-
         # This is for extra non device specific stuff we add to all devices
         self._generic_ws_channel = widgets.APIWidget()
         self._generic_ws_channel.require("system_admin")
 
-        # Widgets could potentially stay around after this was deleted,
-        # because a connection was open. We wouldn't want that to keep this device around when it should not
-        # be.
-        onMessage = self.makeUIMsgHandler(weakref.ref(self))
-
         onMessage2 = self.makeGenericUIMsgHandler(weakref.ref(self))
 
         # I don't think this is actually needed
-        self._uiMsgRef = onMessage
+        self._uiMsgRef = onMessage2
 
-        self._admin_ws_channel.attach(onMessage)
         self._generic_ws_channel.attach(onMessage2)
 
         dbgd[name + str(time.time())] = self
@@ -490,7 +470,7 @@ class Device(iot_devices.device.Device):
         self.alerts: dict[str, alerts.Alert] = {}
 
         # A list of all the tag points owned by the device
-        self.tagPoints: dict[str, tagpoints.GenericTagPointClass[Any]] = {}
+        self.tagpoints: dict[str, tagpoints.GenericTagPointClass[Any]] = {}
 
         # Same dict keys as tagpoints, but a list of handlers
         self._deviceSpecIntegrationHandlers: dict[
@@ -522,21 +502,6 @@ class Device(iot_devices.device.Device):
         except Exception:
             print(traceback.format_exc())
 
-    # Takes an error as a string and handles it
-
-    @property
-    def tagpoints(self):
-        "This property is because it's not really obvious which spelling should be used"
-        try:
-            return self.tagPoints
-        except AttributeError:
-            # Defence against erroneous devices
-            return {}
-
-    @tagpoints.setter
-    def tagpoints(self, v):
-        self.tagPoints = v
-
     def handle_error(self, s):
         self.errors.append((time.time(), str(s)))
 
@@ -566,20 +531,20 @@ class Device(iot_devices.device.Device):
     def onGenericUIMessage(self, u, v):
         if v[0] == "set":
             if v[2] is not None:
-                self.tagPoints[v[1]].value = v[2]
+                self.tagpoints[v[1]].value = v[2]
 
         if v[0] == "fake":
             if v[2] is not None:
-                self.tagPoints[v[1]]._k_ui_fake = self.tagPoints[v[1]].claim(
+                self.tagpoints[v[1]]._k_ui_fake = self.tagpoints[v[1]].claim(
                     v[2], "faked", priority=50.5
                 )
 
             else:
-                if hasattr(self.tagPoints[v[1]], "_k_ui_fake"):
-                    self.tagPoints[v[1]]._k_ui_fake.release()
+                if hasattr(self.tagpoints[v[1]], "_k_ui_fake"):
+                    self.tagpoints[v[1]]._k_ui_fake.release()
 
         elif v[0] == "refresh":
-            self.tagPoints[v[1]].poll()
+            self.tagpoints[v[1]].poll()
 
     # delete a device, it should not be used after this
     def close(self):
@@ -590,11 +555,11 @@ class Device(iot_devices.device.Device):
             remote_devices_atomic = wrcopy(remote_devices)
 
             try:
-                # TODO don't forget about this if tagPoints becomes just tagpoints
-                if hasattr(self, "tagPoints"):
+                # TODO don't forget about this if tagpoints becomes just tagpoints
+                if hasattr(self, "tagpoints"):
                     for i in self._deviceSpecIntegrationHandlers:
-                        if i in self.tagPoints:
-                            self.tagPoints[i].unsubscribe(
+                        if i in self.tagpoints:
+                            self.tagpoints[i].unsubscribe(
                                 self._deviceSpecIntegrationHandlers[i]
                             )
             except Exception:
@@ -602,10 +567,10 @@ class Device(iot_devices.device.Device):
                     logger.exception("Error unsubscribing from tagpoints")
 
             try:
-                if hasattr(self, "tagPoints"):
+                if hasattr(self, "tagpoints"):
                     for i in self._tagBookKeepers:
-                        if i in self.tagPoints:
-                            self.tagPoints[i].unsubscribe(
+                        if i in self.tagpoints:
+                            self.tagpoints[i].unsubscribe(
                                 self._tagBookKeepers[i]
                             )
             except Exception:
@@ -615,7 +580,7 @@ class Device(iot_devices.device.Device):
                     )
 
             try:
-                del self.tagPoints
+                del self.tagpoints
             except Exception:
                 pass
         try:
@@ -659,7 +624,7 @@ class Device(iot_devices.device.Device):
 
         config = copy.deepcopy(config)
         config["name"] = name
-        config["is_subdevice"] = "true"
+        config["is_subdevice"] = True
 
         with modules_state.modulesLock:
             if name in remote_devices_atomic:
@@ -672,7 +637,7 @@ class Device(iot_devices.device.Device):
                             "unsupported",
                         ]:
                             raise RuntimeError(
-                                "Subdevice name is already in use"
+                                f"Subdevice name {name} is already in use"
                             )
                         remote_devices.pop(name)
 
@@ -698,8 +663,6 @@ class Device(iot_devices.device.Device):
         if name in device_location_cache:
             m.parent_module, m.parent_resource = device_location_cache[name]
 
-        m._kaithem_is_subdevice = True
-
         with modules_state.modulesLock:
             c2 = copy.deepcopy(config)
             c2.pop("type", cls.device_type)
@@ -711,13 +674,14 @@ class Device(iot_devices.device.Device):
 
     def __setupTagPerms(self, t, writable=True):
         # Devices can have a default exposure
+
+        our_ext = self.config.get("extensions", {}).get("kaithem", {})
+
         read_perms = (
-            self.config.get("kaithem.read_perms", "system_admin").strip()
-            or "system_admin"
+            our_ext.get("read_perms", "system_admin").strip() or "system_admin"
         )
         write_perms = (
-            self.config.get("kaithem.write_perms", "system_admin").strip()
-            or "system_admin"
+            our_ext.get("write_perms", "system_admin").strip() or "system_admin"
         )
         t.expose(read_perms, write_perms if writable else [])
 
@@ -770,7 +734,7 @@ class Device(iot_devices.device.Device):
                 self._deviceSpecIntegrationHandlers[name] = handler
                 t.subscribe(handler)
 
-            self.tagPoints[name] = t
+            self.tagpoints[name] = t
 
             vta = t.get_vta()
             self.datapoints[name] = vta[0]
@@ -818,7 +782,7 @@ class Device(iot_devices.device.Device):
                 self._deviceSpecIntegrationHandlers[name] = handler
                 t.subscribe(handler)
 
-            self.tagPoints[name] = t
+            self.tagpoints[name] = t
 
             vta = t.get_vta()
             self.datapoints[name] = vta[0]
@@ -863,7 +827,7 @@ class Device(iot_devices.device.Device):
                 self._deviceSpecIntegrationHandlers[name] = handler
                 t.subscribe(handler)
 
-            self.tagPoints[name] = t
+            self.tagpoints[name] = t
             vta = t.get_vta()
 
             self.datapoints[name] = vta[0]
@@ -901,7 +865,7 @@ class Device(iot_devices.device.Device):
                 self._deviceSpecIntegrationHandlers[name] = handler
                 t.subscribe(handler)
 
-            self.tagPoints[name] = t
+            self.tagpoints[name] = t
 
             vta = t.get_vta()
             self.datapoints[name] = vta[0]
@@ -914,15 +878,21 @@ class Device(iot_devices.device.Device):
         name,
         value,
     ):
-        self.tagPoints[name].fast_push(value, None, None)
+        self.tagpoints[name].fast_push(value, None, None)
 
-    def set_data_point(self, name, value, timestamp=None, annotation=None):
-        self.tagPoints[name](value, timestamp, annotation)
+    def set_data_point(
+        self,
+        name,
+        value: str | int | float | str | bytes | Mapping[str, Any],
+        timestamp=None,
+        annotation=None,
+    ):
+        self.tagpoints[name](value, timestamp, annotation)
         self.datapoints[name] = copy.deepcopy(value)
 
     def set_data_point_getter(self, name, value):
         # Tag points have this functionality already
-        self.tagPoints[name].value = value
+        self.tagpoints[name].value = value
 
     def set_alarm(
         self,
@@ -935,16 +905,14 @@ class Device(iot_devices.device.Device):
         release_condition: str | None = None,
         **kw,
     ):
-        if not self.k_use_default_alerts:
-            return
-
-        x = self.tagPoints[datapoint].set_alarm(
+        x = self.tagpoints[datapoint].set_alarm(
             name,
             condition=expression,
             priority=priority,
             trip_delay=trip_delay,
             auto_ack=auto_ack,
             release_condition=release_condition,
+            enabled=self.k_use_default_alerts,
         )
         if x:
             self.alerts[name] = x
@@ -952,7 +920,7 @@ class Device(iot_devices.device.Device):
             raise RuntimeError("Alarm setter returned nothing")
 
     def request_data_point(self, key):
-        return self.tagPoints[key].value
+        return self.tagpoints[key].value
 
     def set_config_option(self, key, value):
         super().set_config_option(key, value)
@@ -983,6 +951,22 @@ class Device(iot_devices.device.Device):
                             self.parent_resource
                         ],
                     )
+        use_default_alerts = (
+            self.config.get("extensions", {})
+            .get("kaithem", {})
+            .get("use_default_alerts", True)
+        )
+
+        if use_default_alerts != self.k_use_default_alerts:
+            self.k_use_default_alerts = use_default_alerts
+
+            if not use_default_alerts:
+                for alert in self.alerts.values():
+                    alert.disable()
+
+            else:
+                for alert in self.alerts.values():
+                    alert.enable()
 
     def on_data_change(self, name: str, value, timestamp: float, annotation):
         """used for subclassing, this is how you watch for data changes.
@@ -991,18 +975,23 @@ class Device(iot_devices.device.Device):
 
     def get_full_schema(self):
         s = super().get_full_schema()
-        s["properties"]["kaithem.read_perms"] = {
+        if "extensions" not in s["properties"]:
+            s["properties"]["extensions"] = {}
+        s["properties"]["extensions"]["kaithem"] = {}
+
+        s["properties"]["extensions"]["kaithem"]["read_perms"] = {
             "type": "string",
             "title": "Read Permissions",
             "description": "The permissions required to read this device, comma separated",
         }
 
-        s["properties"]["kaithem.write_perms"] = {
+        s["properties"]["extensions"]["kaithem"]["write_perms"] = {
             "type": "string",
             "title": "Write Permissions",
-            "description": "The permissions required to read this device, comma separated",
+            "description": "The permissions required to write this device, comma separated",
         }
-        s["properties"]["kaithem.use_default_alerts"] = {
+
+        s["properties"]["extensions"]["kaithem"]["use_default_alerts"] = {
             "type": "boolean",
             "title": "Enable the device's default alerts",
             "default": True,
@@ -1062,8 +1051,6 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
     if name not in kwargs:
         kwargs["name"] = name
 
-    old_read_perms = ""
-    old_write_perms = ""
     subdevice = False
 
     with modules_state.modulesLock:
@@ -1103,7 +1090,7 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
 
         current_device_object = remote_devices[devname]
 
-        subdevice = hasattr(current_device_object, "_kaithem_is_subdevice")
+        subdevice = current_device_object.is_subdevice
 
         parent_module = current_device_object.parent_module
         parent_resource = current_device_object.parent_resource
@@ -1158,14 +1145,6 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
                 "is_subdevice", False
             )
 
-        old_read_perms = current_device_object.config.get(
-            "kaithem.read_perms", ""
-        )
-
-        old_write_perms = current_device_object.config.get(
-            "kaithem.write_perms", ""
-        )
-
         if not subdevice:
             current_device_object.close()
             messagebus.post_message("/devices/removed/", devname)
@@ -1200,12 +1179,6 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
         # Propagate subdevice status even if it is just loaded as a placeholder
         if configuredAsSubdevice or subdevice:
             savable_data["is_subdevice"] = True
-
-        if "kaithem.read_perms" not in savable_data:
-            savable_data["kaithem.read_perms"] = old_read_perms or ""
-
-        if "kaithem.write_perms" not in savable_data:
-            savable_data["kaithem.write_perms"] = old_write_perms or ""
 
         # handle moved config folder
         if not new_dev_conf_folder == old_dev_conf_folder:
@@ -1348,7 +1321,9 @@ def wrapCrossFramework(dt2, desc):
     return ImportedDeviceClass
 
 
-def makeDevice(name, data, cls=None):
+def makeDevice(
+    name: str, data: dict[str, Any], cls: type[Device] | None = None
+) -> Device:
     err = None
     desc = ""
 

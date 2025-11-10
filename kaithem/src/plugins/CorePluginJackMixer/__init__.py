@@ -336,6 +336,7 @@ class ChannelStrip(Pipeline, BaseChannel):
             Pipeline.__init__(self, name)
 
             start_dummy_source_if_needed()
+            # start_dummy_sink_if_needed()
             self.board: MixingBoard = board
             self.levelTag = tagpoints.Tag(f"/jackmixer/channels/{name}.level")
             self.levelTag.min = -90
@@ -465,6 +466,7 @@ class ChannelStrip(Pipeline, BaseChannel):
         # Before the thing even exists...
         # so we start it then do the connection in the background
         self.silencein = jacktools.Airwire("SILENCE", f"{self.name}_in")
+        # self.dummyout = jacktools.Airwire(f"{self.name}_out", "DUMMYSINK")
 
         def f():
             for i in range(100):

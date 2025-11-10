@@ -239,22 +239,7 @@
                     {% endif %}
                         <td>{{ i| escape }}</td>
                         <td>
-                            {% if hasattr(obj,'_noset_alarmPriority') %}
                             {{ obj.alerts[i].priority }}
-                            {% else %}
-                            <select name="alerts.{{ i }}.priority">
-                                <option value="debug" {{ "selected" if obj.alerts[i].priority=="debug" else "" }}>
-                                    Debug</option>
-                                <option value="info" {{ "selected" if obj.alerts[i].priority=="info" else "" }}>
-                                    Info</option>
-                                <option value="warning" {{ "selected" if obj.alerts[i].priority=="warning" else "" }}>
-                                    Warning</option>
-                                <option value="error" {{ "selected" if obj.alerts[i].priority=="error" else "" }}>
-                                    Error</option>
-                                <option value="critical" {{ "selected" if obj.alerts[i].priority=="critical" else "" }}>
-                                    Critical</option>
-                            </select>
-                            {% endif %}
                         </td>
                         <td>
                             {% if obj.alerts[i].sm.state=='normal' %}
@@ -350,7 +335,6 @@
     import { APIWidget } from '/static/js/widget.mjs?'
 
     let _generic_ws_channel = new APIWidget("{{obj._generic_ws_channel.uuid}}")
-    let _admin_ws_channel = new APIWidget("{{obj._admin_ws_channel.uuid}}")
 
     globalThis._generic_ws_channel = _generic_ws_channel
 
@@ -366,18 +350,6 @@
     }
 
     globalThis.setFake = setFake
-
-    function send_ui_message(m) {
-        _admin_ws_channel.send(m)
-    }
-
-    function set_ui_message_handler(f) {
-        _admin_ws_channel.upd = f
-    }
-
-    globalThis.send_ui_message = send_ui_message
-    globalThis.set_ui_message_handler = set_ui_message_handler
-
 </script>
 
 

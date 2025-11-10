@@ -73,7 +73,7 @@ def test_make_demo_device():
 
     assert n in modules_state.ActiveModules
 
-    devices_interface.create_device_from_kwargs(
+    devices_interface.create_blank_device(
         module=n, resource="devtest", type="DemoDevice", name="pytest_demo"
     )
 
@@ -156,7 +156,7 @@ def test_make_demo_device():
     assert "pytest_demo/subdevice" in devices.device_location_cache
 
     # Remake it
-    devices_interface.create_device_from_kwargs(
+    devices_interface.create_blank_device(
         module=n, resource="devtest", type="DemoDevice", name="pytest_demo"
     )
 
