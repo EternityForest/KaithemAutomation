@@ -1173,6 +1173,9 @@ def makeDevice(
         i: new_data[i] for i in new_data if (not i.startswith("temp.kaithem."))
     }
 
+    if new_data["name"] in devices_host.devices:
+        raise RuntimeError(f"Device name already exists: {new_data['name']}")
+
     try:
         d = devices_host.add_device_from_class(cls, new_data)
     except Exception:

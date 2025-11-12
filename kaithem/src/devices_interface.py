@@ -286,11 +286,10 @@ def create_blank_device(name: str, module: str, resource: str, type: str):
 
     if name in devices.devices_host.devices:
         devices.devices_host.devices[name].close()
+
     devices.devices_host.devices[name] = makeDevice(
         name, data, None, module, resource
     )
-
-    devices.makeDevice(name, data, None, module, resource)
 
     storeDeviceInModule(dt, module, resource)
 
