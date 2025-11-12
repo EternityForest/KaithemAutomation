@@ -10,8 +10,6 @@ import signal
 import sys
 import time
 
-import iot_devices
-import iot_devices.host
 import quart
 import structlog
 from hypercorn.asyncio import serve
@@ -54,8 +52,7 @@ logger = structlog.get_logger(__name__)
 logger.setLevel(logging.INFO)
 
 
-messagebus.subscribe("/system/shutdown", devices.closeAll)
-messagebus.subscribe("/system/shutdown", iot_devices.host.app_exit_cleanup)
+messagebus.subscribe("/system/shutdown", devices.devices_host.close)
 
 
 # This class represents the "/" root of the web app

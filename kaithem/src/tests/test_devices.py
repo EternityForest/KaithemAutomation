@@ -43,9 +43,9 @@ if "--collect-only" not in sys.argv:  # pragma: no cover
 
 #     messagebus.subscribe("/system/notifications/errors", message_handler)
 
-#     assert "pytest_demo2" in devices.remote_devices_atomic
+#     assert "pytest_demo2" in devices.devices_host.get_devices()
 
-#     d = devices.remote_devices["pytest_demo2"]
+#     d = devices.devices_host.devices["pytest_demo2"]
 #     d.set_data_point("test_error", 1)
 #     time.sleep(0.5)
 #     assert got_errs[0] == 1
@@ -77,8 +77,8 @@ def test_make_demo_device():
         module=n, resource="devtest", type="DemoDevice", name="pytest_demo"
     )
 
-    assert "pytest_demo" in devices.remote_devices
-    assert "pytest_demo" in devices.remote_devices_atomic
+    assert "pytest_demo" in devices.devices_host.devices
+    assert "pytest_demo" in devices.devices_host.get_devices()
 
     assert tagpoints.allTagsAtomic["/devices/pytest_demo.random"]().value
     assert tagpoints.allTagsAtomic["/devices/pytest_demo.random"]().value < 1
@@ -129,10 +129,8 @@ def test_make_demo_device():
         },
     )
 
-    devices.remote_devices["pytest_demo/subdevice"].request_data_point("random")
-
     assert (
-        devices.remote_devices["pytest_demo/subdevice"].config[
+        devices.devices_host.devices["pytest_demo/subdevice"].config[
             "device.echo_number"
         ]
         == "6"
@@ -149,9 +147,9 @@ def test_make_demo_device():
         "/devices/pytest_demo/subdevice.random" not in tagpoints.allTagsAtomic
     )
 
-    assert "pytest_demo" not in devices.remote_devices
-    assert "pytest_demo" not in devices.remote_devices_atomic
-    assert "pytest_demo/subdevice" not in devices.remote_devices
+    assert "pytest_demo" not in devices.devices_host.devices
+    assert "pytest_demo" not in devices.devices_host.get_devices()
+    assert "pytest_demo/subdevice" not in devices.devices_host.devices
 
     assert "pytest_demo/subdevice" in devices.device_location_cache
 
@@ -162,7 +160,7 @@ def test_make_demo_device():
 
     # Ensure it picks up config from the module
     assert (
-        devices.remote_devices["pytest_demo/subdevice"].config[
+        devices.devices_host.devices["pytest_demo/subdevice"].config[
             "device.echo_number"
         ]
         == "6"
@@ -170,8 +168,8 @@ def test_make_demo_device():
 
     devices_interface.delete_device("pytest_demo")
 
-    assert "pytest_demo" not in devices.remote_devices
-    assert "pytest_demo" not in devices.remote_devices_atomic
+    assert "pytest_demo" not in devices.devices_host.devices
+    assert "pytest_demo" not in devices.devices_host.get_devices()
 
     modules.rmResource(n, "devtest_subdevice")
 

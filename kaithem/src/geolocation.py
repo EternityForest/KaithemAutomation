@@ -4,7 +4,6 @@
 import logging
 import os
 
-import iot_devices.host
 import niquests
 from scullery import persist
 
@@ -105,6 +104,3 @@ def setDefaultLocation(lat, lon, city="", timezone="", region="", country=""):
 
 def deviceLocationGetter():
     return (file["default"]["lat"], file["default"]["lon"])
-
-
-iot_devices.host.api["get_site_coordinates"] = deviceLocationGetter

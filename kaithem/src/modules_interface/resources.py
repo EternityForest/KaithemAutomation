@@ -186,7 +186,7 @@ async def addresourcetarget(module, rtype, path=""):
         root = x[0]
 
         def insertResource(r):
-            modules_state.rawInsertResource(root, name_with_path, r)
+            modules_state.raw_insert_resource(root, name_with_path, r)
 
         with modules_state.modulesLock:
             # Check if a resource by that name is already there
@@ -589,7 +589,7 @@ async def update_resource_metadata(module, resource):
                 modules.unload_resource(module, resource)
                 gc.collect()
 
-        modules_state.rawInsertResource(module, resource, d)
+        modules_state.raw_insert_resource(module, resource, d)
 
     path = "/".join(resource.split("/")[:-1])
     if len(path) > 0:
@@ -774,7 +774,7 @@ async def module_update(module):
                     }
                 }
 
-            modules_state.rawInsertResource(module, "__metadata__", dsc)
+            modules_state.raw_insert_resource(module, "__metadata__", dsc)
 
             # Renaming reloads the entire module.
             # TODO This needs to handle custom resource types if we ever implement them.

@@ -322,7 +322,7 @@ def normalize_resource_data(x: ResourceDictType):
 
 
 @validate_args
-def rawInsertResource(
+def raw_insert_resource(
     module: str,
     resource: str,
     resource_data: ResourceDictType,
@@ -636,8 +636,8 @@ def ls_folder(m: str, d: str) -> list[str]:
     return o
 
 
-"this lock protects the activemodules thing. Any changes at all should go through this."
 modulesLock = context_restrictions.Context("ModulesLock")
+"this lock protects the activemodules thing. Any changes at all should go through this."
 
 
 # For passing things to that owning thread

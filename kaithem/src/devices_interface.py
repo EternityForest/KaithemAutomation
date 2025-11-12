@@ -9,6 +9,7 @@ import urllib.parse
 
 import colorzero
 import quart
+from iot_devices import device
 from quart import Response, redirect
 from quart.ctx import copy_current_request_context
 from scullery import units
@@ -22,14 +23,12 @@ from kaithem.src import (
     validation_util,
 )
 from kaithem.src.devices import (
-    Device,
     delete_bookkeep,
     getDeviceType,
     makeDevice,
     specialKeys,
     storeDeviceInModule,
     updateDevice,
-    wrcopy,
 )
 from kaithem.src.quart_app import app, wrap_sync_route_handler
 
@@ -46,7 +45,7 @@ def url(u):
     return urllib.parse.quote(u, safe="")
 
 
-def getshownkeys(obj: Device):
+def getshownkeys(obj: device.Device):
     return sorted(
         [
             i
@@ -83,7 +82,7 @@ def devices_index():
     except PermissionError:
         return pages.loginredirect(pages.geturl())
     d = pages.get_template("devices/index.html").render(
-        deviceData=devices.remote_devices_atomic,
+        deviceData=devices.devices_host.get_devices(),
         url=url,
         disks=udisks.list_drives(),
         is_mounted=udisks.is_mounted,
@@ -102,7 +101,7 @@ def report():
     except PermissionError:
         return pages.loginredirect(pages.geturl())
 
-    def get_report_data(dev: Device):
+    def get_report_data(dev: device.Device):
         o = {}
         for i in dev.config:
             if i not in ("notes", "subclass") or len(str(dev.config[i])) < 256:
@@ -110,7 +109,7 @@ def report():
                 continue
         return json.dumps(o)
 
-    def has_secrets(dev: Device):
+    def has_secrets(dev: device.Device):
         for i in dev.config:
             if (
                 dev.json_schema.get("properties", {})
@@ -123,7 +122,7 @@ def report():
 
     return pages.render_jinja_template(
         "devices/device_report.j2.html",
-        devs=devices.remote_devices_atomic,
+        devs=devices.devices_host.get_devices(),
         has_secrets=has_secrets,
         get_report_data=get_report_data,
         **device_page_env,
@@ -145,18 +144,18 @@ def device_manage(name):
     # to an extension, so we have to merge them in
     merged = {}
 
-    obj = devices.remote_devices[name]
+    obj = devices.devices_host.devices[name]
 
-    if obj.parent_module:
-        assert obj.parent_resource
+    if obj.module_name:
+        assert obj.resource_name
         merged.update(
-            modules_state.ActiveModules[obj.parent_module][obj.parent_resource][
+            modules_state.ActiveModules[obj.module_name][obj.resource_name][
                 "device"
             ]
         )
 
     # I think stored data is enough, this is just defensive
-    merged.update(devices.remote_devices[name].config)
+    merged.update(devices.devices_host.devices[name].config)
 
     merged = {
         i: merged[i]
@@ -169,7 +168,7 @@ def device_manage(name):
         data=merged,
         obj=obj,
         name=name,
-        title="" if obj.title == obj.name else obj.title,
+        title="" if obj.device.title == obj.name else obj.device.title,
         **device_page_env,
     )
 
@@ -189,7 +188,7 @@ def devicedocs(name):
         pages.require("system_admin")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
-    x = devices.remote_devices[name].readme
+    x = devices.devices_host.devices[name].readme
 
     if x is None:
         x = "No readme found"
@@ -225,9 +224,9 @@ def discoveryStep(type, devname, **kwargs):
         return pages.loginredirect(pages.geturl())
     current = kwargs
 
-    if devname and devname in devices.remote_devices:
+    if devname and devname in devices.devices_host.devices:
         # If possible just use the actual object
-        d = devices.remote_devices[devname]
+        d = devices.devices_host.devices[devname]
         c = copy.deepcopy(d.config)
         c.update(current)
         obj = d
@@ -238,7 +237,7 @@ def discoveryStep(type, devname, **kwargs):
 
     d = d.discover_devices(
         c,
-        current_device=devices.remote_devices.get(devname, None),
+        current_device=devices.devices_host.devices.get(devname, None),
         intent="step",
     )
 
@@ -247,8 +246,8 @@ def discoveryStep(type, devname, **kwargs):
         current=c,
         name=devname,
         obj=obj,
-        parent_module=obj.parent_module if obj else None,
-        parent_resource=obj.parent_resource if obj else None,
+        parent_module=obj.module_name if obj else None,
+        parent_resource=obj.resource_name if obj else None,
     )
     return Response(
         dt, mimetype="text/html", headers={"X-Frame-Options": "SAMEORIGIN"}
@@ -269,33 +268,33 @@ def createDevice(**kwargs):
 @validation_util.validate_args
 def create_blank_device(name: str, module: str, resource: str, type: str):
     data = {}
-    with modules_state.modulesLock:
-        name = name or resource
+    name = name or resource
 
-        data["name"] = name
-        data["type"] = type
+    data["name"] = name
+    data["type"] = type
 
-        data["extensions"] = {}
-        data["extensions"]["kaithem"] = {}
+    data["extensions"] = {}
+    data["extensions"]["kaithem"] = {}
 
-        # Set these as the default
-        data["extensions"]["kaithem"]["read_perms"] = "view_devices"
-        data["extensions"]["kaithem"]["write_perms"] = "write_devices"
+    # Set these as the default
+    data["extensions"]["kaithem"]["read_perms"] = "view_devices"
+    data["extensions"]["kaithem"]["write_perms"] = "write_devices"
 
-        dt = {"resource": {"type": "device"}, "device": data}
+    dt = {"resource": {"type": "device"}, "device": data}
 
-        modules_state.rawInsertResource(module, resource, dt)
+    modules_state.raw_insert_resource(module, resource, dt)
 
-        if name in devices.remote_devices:
-            devices.remote_devices[name].close()
-        devices.remote_devices[name] = makeDevice(name, data)
+    if name in devices.devices_host.devices:
+        devices.devices_host.devices[name].close()
+    devices.devices_host.devices[name] = makeDevice(
+        name, data, None, module, resource
+    )
 
-        storeDeviceInModule(dt, module, resource)
+    devices.makeDevice(name, data, None, module, resource)
 
-        devices.remote_devices[name].parent_module = module
-        devices.remote_devices[name].parent_resource = resource
-        devices.remote_devices_atomic = devices.wrcopy(devices.remote_devices)
-        messagebus.post_message("/devices/added/", name)
+    storeDeviceInModule(dt, module, resource)
+
+    messagebus.post_message("/devices/added/", name)
 
     return redirect("/devices")
 
@@ -307,7 +306,7 @@ def settarget(name, tag, **kwargs):
         pages.require("enumerate_endpoints")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
-    x = devices.remote_devices[name]
+    x = devices.devices_host.devices[name]
 
     perms = x.config.get("kaithem.write_perms", "").strip() or "system_admin"
 
@@ -331,7 +330,7 @@ def dimtarget(name, tag, **kwargs):
         pages.require("enumerate_endpoints")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
-    x = devices.remote_devices[name]
+    x = devices.devices_host.devices[name]
 
     perms = x.config.get("kaithem.write_perms", "").strip() or "system_admin"
 
@@ -362,7 +361,7 @@ def triggertarget(name, tag, **kwargs):
         pages.require("enumerate_endpoints")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
-    x = devices.remote_devices[name]
+    x = devices.devices_host.devices[name]
 
     perms = x.config.get("kaithem.write_perms", "").strip() or "system_admin"
 
@@ -393,19 +392,19 @@ def deletetarget(**kwargs):
 
 def delete_device(name, delete_conf_dir=False):
     with modules_state.modulesLock:
-        x = devices.remote_devices[name]
+        x = devices.devices_host.devices[name]
         # Delete bookkeep removes it from device data if present
         delete_bookkeep(name, delete_conf_dir)
 
-        if x.parent_module:
+        if x.module_name:
             modules_state.rawDeleteResource(
-                x.parent_module, x.parent_resource or name
+                x.module_name, x.resource_name or name
             )
 
         # no zombie reference
         del x
 
-        devices.remote_devices_atomic = wrcopy(devices.remote_devices)
+        devices.devices_host.close_device(name)
         # Gotta be aggressive about ref cycle breaking!
         gc.collect()
         time.sleep(0.1)

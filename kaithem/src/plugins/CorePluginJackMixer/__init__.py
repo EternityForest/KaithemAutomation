@@ -1407,7 +1407,7 @@ class MixingBoard:
                 self.resourcedata["presets"][presetName] = copy.deepcopy(
                     self.channels
                 )
-                modules_state.rawInsertResource(
+                modules_state.raw_insert_resource(
                     self.module, self.resource, self.resourcedata
                 )
 
@@ -1420,7 +1420,7 @@ class MixingBoard:
         with modules_state.modulesLock:
             with self.lock:
                 del self.resourcedata["presets"][presetName]
-                modules_state.rawInsertResource(
+                modules_state.raw_insert_resource(
                     self.module, self.resource, self.resourcedata
                 )
 

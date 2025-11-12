@@ -18,12 +18,11 @@ from kaithem.src import devices
 <label>Type:<select name="type" placeholder="Click for dropdown">
 
     %for i in devices.device_types:
-    <option value="${i}" title="${devices.device_types[i].description}" ></option>
+    <option value="${i}" title="${i or devices.device_types[i].get('description','')}">
+        ${i}
+    </option>
     %endfor
 
-    %for i in devices.importedDeviceTypes:
-    <option value="${i}">${i}</option>
-    %endfor
 </select>
 </label>
 

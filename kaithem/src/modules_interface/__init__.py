@@ -264,7 +264,7 @@ async def set_resource_label(module: str, path: str):
         data = modules_state.ActiveModules[module][path]
         data2 = dict(copy.deepcopy(data))
         data2["resource"]["label_image"] = kw["resource"][len("media/") :]
-        modules_state.rawInsertResource(module, path, data2)
+        modules_state.raw_insert_resource(module, path, data2)
         return "OK"
 
 

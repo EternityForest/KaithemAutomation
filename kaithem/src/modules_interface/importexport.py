@@ -63,7 +63,7 @@ async def uploadresourcetarget(module):
         if path in modules_state.ActiveModules[module]:
             raise RuntimeError("Path exists")
 
-        modules_state.rawInsertResource(module, path, d2)
+        modules_state.raw_insert_resource(module, path, d2)
         modules.handleResourceChange(module, path)
         return quart.redirect(f"/modules/module/{util.url(module)}")
 

@@ -76,7 +76,7 @@ def insert_resource(module: str, resource: str, resourceData: ResourceDictType):
         )
 
     with modules_state.modulesLock:
-        modules_state.rawInsertResource(module, resource, resourceData)
+        modules_state.raw_insert_resource(module, resource, resourceData)
         modules.handleResourceChange(module, resource, newly_added=True)
 
 
@@ -94,7 +94,7 @@ def update_resource(module: str, resource: str, resourceData: ResourceDictType):
         raise ValueError(
             f"Resource {resource} in {module} is of type {resourceData['resource']['type']}"
         )
-    modules_state.rawInsertResource(module, resource, resourceData)
+    modules_state.raw_insert_resource(module, resource, resourceData)
     modules.handleResourceChange(module, resource)
 
 
@@ -130,4 +130,4 @@ def save_resource(module: str, resource: str, resourceData: ResourceDictType):
     """Save a resource without triggering any other events.
     Use this in your flush_unsaved handler. May only be called under the modules_lock.
     """
-    modules_state.rawInsertResource(module, resource, resourceData)
+    modules_state.raw_insert_resource(module, resource, resourceData)

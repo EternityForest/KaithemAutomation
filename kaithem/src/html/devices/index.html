@@ -49,9 +49,9 @@ import urllib.parse
 <%def name="device(i,title='', devObj = None)">
 <%
 
-devObj = devObj or deviceData[i]()
+devObj = devObj or deviceData[i]
 
-if devObj.device_type_name == 'UnusedSubdevice':
+if devObj.device.device_type == 'UnusedSubdevice':
     greyout  = "opacity: 70%;"
 else:
     greyout = ''
@@ -64,9 +64,9 @@ else:
 <article class="card margin w-sm-half" style="${greyout} min-width: min-content">
         <header>
         <div class="tool-bar">
-        <h3 title="${devObj.device_type_name}">
+        <h3 title="${devObj.device.device_type}">
 
-            <a href="device/${i|h}/manage">${devObj.title|h}
+            <a href="device/${i|h}/manage">${devObj.device.title|h}
 
                 %if (hasattr(devObj,'errors') and len(devObj.errors)) :
                 <span style="color: ${'red' if len(devObj.errors) else 'inherit' };">
@@ -76,7 +76,7 @@ else:
             </a>
         </h3>
 
-        %if devObj.device_type_name == 'UnusedSubdevice':
+        %if devObj.device.device_type== 'UnusedSubdevice':
         (Not found)
         %endif
 
@@ -85,8 +85,8 @@ else:
 
         %if hasattr(devObj, 'tagpoints'):
 
-        %if not deviceData[i]().is_subdevice:
-        <a href="/modules/module/${url(devObj.parent_module)}/deleteresource/${url(devObj.parent_resource)}" class="button" style="flex-grow:0"><i class="mdi mdi-delete"></i></a>
+        %if not deviceData[i].device.is_subdevice:
+        <a href="/modules/module/${url(devObj.module_name)}/deleteresource/${url(devObj.resource_name)}" class="button" style="flex-grow:0"><i class="mdi mdi-delete"></i></a>
         %endif
 
         </div>
@@ -120,9 +120,9 @@ else:
         %endif
         %endif
 
-        %if devObj.parent_module and modules_state.ActiveModules[devObj.parent_module][devObj.parent_resource]['resource'].get('label_image',''):
+        %if devObj.module_name and modules_state.ActiveModules[devObj.module_name][devObj.resource_name]['resource'].get('label_image',''):
         <img alt="thumbnail" style="max-width: 32em; max-height: 8em"
-        src="/modules/label_image/${ url(devObj.parent_module) }/${ url(devObj.parent_resource) }">
+        src="/modules/label_image/${ url(devObj.module_name) }/${ url(devObj.resource_name) }">
         %endif %}
 
 
@@ -193,7 +193,7 @@ ${device(devObj.subdevices[j].name, devObj=devObj.subdevices[j])}
 
 <div style="display: flex; flex-wrap: wrap; flex-direction: row;">
 %for i in sorted(deviceData.keys()):
-%if not deviceData[i]().is_subdevice:
+%if not deviceData[i].device.is_subdevice:
 ${device(i)}
 %endif
 
@@ -227,7 +227,7 @@ ${device(i)}
 
 
 <%
-d =  devices.getZombies()
+d =  0#devices.getZombies()
 %>
 
 
@@ -256,17 +256,6 @@ d =  devices.getZombies()
 <%
 del d
 %>
-
-
-<datalist id="deviceTypes">
-    %for i in devices.device_types:
-    <option value="${i}" title=${devices.device_types[i].description} >
-    %endfor
-
-    %for i in devices.importedDeviceTypes:
-    <option value="${i}" title=${i} >
-    %endfor
-</datalist>
 
 </div>
 
