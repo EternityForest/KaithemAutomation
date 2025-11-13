@@ -71,7 +71,7 @@
 
 
 <datalist id="k_tlocal">
-    {% for i in obj.tagPoints %}
+    {% for i in obj.tagpoints %}
     <option>{{ i| escape }}</option>
     {% endfor %}
 </datalist>
@@ -132,7 +132,7 @@
             </details>
 
 
-            {% if hasattr(obj,"device_type") and obj.device_type == "ESPHomeDevice" %}
+            {% if hasattr(obj,"device_type") and obj.device.device_type == "ESPHomeDevice" %}
             <details>
                 <summary><b>ESPHome Web UI</b></summary>
                 Only works if this page is loaded over plain HTTP, due to browser restrictions.
@@ -150,9 +150,9 @@
                 <summary>
                     <b><i class="mdi mdi-help-circle-outline"></i>Help</b>
                 </summary>
-                {% if hasattr(obj,'description') and obj.description %}
+                {% if hasattr(obj.device,'description') and obj.device.description %}
 
-                <p id="desc">{{ pages.str(obj.description)[:8192]| escape }}</p>
+                <p id="desc">{{ pages.str(obj.device.description)[:8192]| escape }}</p>
 
                 <script>
                     showdown.setFlavor('github');
@@ -163,11 +163,11 @@
 
                 {% endif %}
 
-                {% if hasattr(obj,'readme') and obj.readme %}
+                {% if hasattr(obj,'readme') and obj.device.readme %}
                 <h3>Readme</h3>
 
                 <div class="max-h-12rem scroll border" id='readme'>
-                    {{ obj.readme| escape }}
+                    {{ obj.device.readme| escape }}
                 </div>
 
                 <script>
@@ -196,7 +196,7 @@
 
                <script>
                 const config = {
-                    schema: {{obj.get_full_schema()|tojson}},
+                    schema: {{obj.device.get_full_schema()|tojson}},
                     disable_array_delete_all_rows: true,
                     array_controls_top: true,
                     disable_array_delete_last_row: true,
@@ -259,12 +259,12 @@
                 {% endif %}
             </details>
 
-            {% if obj.get_config_folder(create=False) %}
+            {% if obj.device.get_config_folder(create=False) %}
             <details>
                 <summary>
                     <b><i class="mdi mdi-file-alt"></i>Config Folder</b>
                 </summary>
-                <a class="button" href="/settings/files/{{ url(obj.get_config_folder()) }}"><i
+                <a class="button" href="/settings/files/{{ url(obj.device.get_config_folder()) }}"><i
                         class="mdi mdi-folder"></i>Browse</a>
             </details>
             {% endif %}
@@ -281,13 +281,13 @@
                         <th>Value</th>
                     </tr>
 
-                    {% for i in obj.metadata %}
+                    {% for i in obj.device.metadata %}
                     <tr>
                         <td>
                             {{ i| escape }}
                         </td>
                         <td>
-                            {{ obj.metadata[i]| escape }}
+                            {{ obj.device.metadata[i]| escape }}
                         </td>
                     </tr>
                     {% endfor %}
@@ -303,7 +303,7 @@
                 triggerCounters = {}
             </script>
             <div class="flex-row gaps">
-                {% for i in obj.tagPoints %}
+                {% for i in obj.tagpoints %}
                 {{devices_interface.render_device_tag(obj,i) | safe}}
                 {% endfor %}
             </div>

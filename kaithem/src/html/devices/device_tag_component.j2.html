@@ -12,23 +12,23 @@
 
 <article class="tagbox card w-sm-full flex-col">
     <header>
-        <h3><a href="/tagpoints/{{ util.url(obj.tagPoints[i].name) }}">{{ i| escape }}</a></h3>
+        <h3><a href="/tagpoints/{{ util.url(obj.tagpoints[i].name) }}">{{ i| escape }}</a></h3>
     </header>
 
     <div class="grow">
-        {% if obj.tagPoints[i].type in ('string','number', 'object') %}
+        {% if obj.tagpoints[i].type in ('string','number', 'object') %}
         <h4>Current</h4>
-        {% if obj.tagPoints[i].type in ('string', 'object') %}
-        <ds-span source="tag:{{obj.tagPoints[i].name}}" filter="json: "></ds-span>
+        {% if obj.tagpoints[i].type in ('string', 'object') %}
+        <ds-span source="tag:{{obj.tagpoints[i].name}}" filter="json: "></ds-span>
 
         {% else %}
         <ds-span
         data-testid="val-span-{{ i| escape }}"
-        source="tag:{{obj.tagPoints[i].name}}" filter="fixedpoint: 4"></ds-span>
+        source="tag:{{obj.tagpoints[i].name}}" filter="fixedpoint: 4"></ds-span>
 
         {% endif %}
 
-        {% elif hasattr(obj.tagPoints[i],"data_source_widget") and obj.tagPoints[i].subtype == 'mpegts' and obj.tagPoints[i].data_source_widget %}
+        {% elif hasattr(obj.tagpoints[i],"data_source_widget") and obj.tagpoints[i].subtype == 'mpegts' and obj.tagpoints[i].data_source_widget %}
         <video style="width: 100%" muted controls></video>
         <canvas id="canvas" style="display: none; width: 100%"></canvas>
         <img id="img" style="display: none; width: 100%; border: none;">
@@ -45,7 +45,7 @@
 
             </div>
             <input id="property_device_regions"
-            name="property_device_regions" type="text" value="{{obj.config.get('device.regions', '')}}">
+            name="property_device_regions" type="text" value="{{obj.device.config.get('device.regions', '')}}">
             <script>
                 rdata = "test=0.1,0.6, 0.5,0.5;"
 
@@ -244,7 +244,7 @@
             var player = mpegts.createPlayer({
                 type: 'mpegts',  // could also be mpegts, m2ts, flv
                 isLive: true,
-                url: kaithemapi.wsPrefix() + "/widgets/wsraw?widgetid={{ obj.tagPoints[i].data_source_widget.uuid| urlencode }}",
+                url: kaithemapi.wsPrefix() + "/widgets/wsraw?widgetid={{ obj.tagpoints[i].data_source_widget.uuid| urlencode }}",
                 liveBufferLatencyChasing: true,
                 liveBufferLatencyMaxLatency: 2,
                 liveBufferLatencyMinRemain: 1,
@@ -272,29 +272,29 @@
 
         {% else %}
         Binary data tagpoint cannot be displayed.
-        {% if obj.tagPoints[i].subtype == 'mpegts' %}
+        {% if obj.tagpoints[i].subtype == 'mpegts' %}
         If this is a video feed, you may need to set up Permissions on this device.
-        {{ str(obj.tagPoints[i].data_source_widget)}}
+        {{ str(obj.tagpoints[i].data_source_widget)}}
         {% endif %}
         {% endif %}
 
-        {% if not obj.tagPoints[i].subtype == 'mpegts' %}
-        {% if obj.tagPoints[i].active_claim.priority > 50.5 %}
-        Overridden: {{ obj.tagPoints[i].active_claim.name }}
+        {% if not obj.tagpoints[i].subtype == 'mpegts' %}
+        {% if obj.tagpoints[i].active_claim.priority > 50.5 %}
+        Overridden: {{ obj.tagpoints[i].active_claim.name }}
         {% else %}
         <div class="tool-bar">
-            {% if (not hasattr(obj.tagPoints[i],"writable")) or obj.tagPoints[i].writable %}
-            {% if obj.tagPoints[i].subtype == 'bool' or obj.tagPoints[i].subtype == 'boolean' %}
+            {% if (not hasattr(obj.tagpoints[i],"writable")) or obj.tagpoints[i].writable %}
+            {% if obj.tagpoints[i].subtype == 'bool' or obj.tagpoints[i].subtype == 'boolean' %}
             <button type="button" onclick="window._generic_ws_channel.send(['set', '{{ i| escape }}', 0])">Off</button>
             <button type="button" onclick="window._generic_ws_channel.send(['set', '{{ i| escape }}', 1])">On</button>
-            {% elif obj.tagPoints[i].subtype == 'tristate' %}
+            {% elif obj.tagpoints[i].subtype == 'tristate' %}
             <button type="button" onclick="window._generic_ws_channel.send(['set', '{{ i| escape }}', 0])">Off</button>
             <button type="button" onclick="window._generic_ws_channel.send(['set', '{{ i| escape }}', 1])">On</button>
             <button type="button" onclick="window._generic_ws_channel.send(['set', '{{ i| escape }}', -1])">Unset</button>
-            {% elif obj.tagPoints[i].subtype == 'trigger' %}
+            {% elif obj.tagpoints[i].subtype == 'trigger' %}
             <button type="button"
                 onclick="triggerCounters['{{ i| escape }}'] = (triggerCounters['{{ i| escape }}']||0)+1; window._generic_ws_channel.send(['set', '{{ i| escape }}', triggerCounters['{{ i| escape }}']])">Trigger</button>
-            {% elif obj.tagPoints[i].subtype == 'color' %}
+            {% elif obj.tagpoints[i].subtype == 'color' %}
             <button type="button"
                 onclick="window._generic_ws_channel.send(['set', '{{ i| escape }}', prompt('New value?')])">Set
                 Hex</button>
@@ -317,18 +317,18 @@
                 data-testid="set-val-button-{{ i| escape }}"
                 onclick="window._generic_ws_channel.send(['set', '{{ i| escape }}', prompt('New value?')])">Set
                 val</button>
-            {% if obj.tagPoints[i].max==1 and obj.tagPoints[i].min==0 %}
+            {% if obj.tagpoints[i].max==1 and obj.tagpoints[i].min==0 %}
             <button type="button" onclick="window._generic_ws_channel.send(['set', '{{ i| escape }}', 0])">Set 0</button>
             <button type="button" onclick="window._generic_ws_channel.send(['set', '{{ i| escape }}', 1])">Set 1</button>
             {% endif %}
             {% endif %}
             {% else %}
-            {% if  obj.tagPoints[i].type=='number' %}
+            {% if  obj.tagpoints[i].type=='number' %}
             <button type="button" onclick="window.setFake('{{ i| escape }}', null)"
                 title="Disable faking and use real value">Stop
                 fake</button>
 
-            {% if obj.tagPoints[i].subtype == 'bool' or obj.tagPoints[i].subtype == 'boolean' %}
+            {% if obj.tagpoints[i].subtype == 'bool' or obj.tagpoints[i].subtype == 'boolean' %}
             <button type="button" onclick="window.setFake('{{ i| escape }}', 0)" title="Fake input being zero">Fake
                 Off</button>
             <button type="button" onclick="window.setFake('{{ i| escape }}', 1)" title="Fake input being one">Fake On</button>
@@ -336,28 +336,28 @@
                 onmouseup="window.setFake('{{ i| escape }}', null)" title="Fake 1 while held">Fake Press</button>
             {% else %}
             <button type="button" onclick="window.setFake('{{ i| escape }}', prompt('New value?'))">Set fake val</button>
-            {% if obj.tagPoints[i].max==1 and obj.tagPoints[i].min==0 %}
+            {% if obj.tagpoints[i].max==1 and obj.tagpoints[i].min==0 %}
             <button type="button" onclick="window.setFake('{{ i| escape }}', 0)" title="Fake input being zero">Fake
                 Off</button>
             <button type="button" onclick="window.setFake('{{ i| escape }}', 1)" title="Fake input being one">Fake On</button>
             {% endif %}
             {% endif %}
 
-            {% if obj.tagPoints[i].subtype == 'tristate' %}
+            {% if obj.tagpoints[i].subtype == 'tristate' %}
             <button type="button" onclick="window.setFake('{{ i| escape }}', -1)" title="Fake input being tristate/-1">Fake
                 Unset</button>
             {% endif %}
             {% endif %}
             {% endif %}
 
-            {% if devices.callable(obj.tagPoints[i].active_claim.value) %}
+            {% if devices.callable(obj.tagpoints[i].active_claim.value) %}
             <button type="button" onclick="window._generic_ws_channel.send(['refresh', '{{ i| escape }}'])">Refresh</button>
             {% else %}
             {% endif %}
         </div>
         {% endif %}
 
-        {% if obj.tagPoints[i].subtype == 'color' %}
+        {% if obj.tagpoints[i].subtype == 'color' %}
         <div class="tool-bar">
             <button type="button" style="background-color: #fafafa;"
                 onclick="window._generic_ws_channel.send(['set', '{{ i| escape }}', '#fafafa'])">Argent</button>
