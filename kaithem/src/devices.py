@@ -274,14 +274,14 @@ def makeBackgroundErrorFunction(t, time, self):
 
 
 class DevicesHost(iot_devices.host.Host):
-    def print(self, msg, title="Message"):
+    def on_device_print(self, device, msg):
         "Print a message to the Device's management page"
         t = textwrap.fill(str(msg), 120)
         tm = unitsofmeasure.strftime(time.time())
 
         # Can't use a def here, wouldn't want it to possibly capture more than just a string,
         # And keep stuff from GCIng for too long
-        workers.do(makeBackgroundPrintFunction(t, tm, title, self))
+        workers.do(makeBackgroundPrintFunction(t, tm, device))
 
     def get_config_folder(self, device: DeviceRuntimeState, create=True):
         return get_config_folder_from_device(device, create=create)
@@ -611,6 +611,32 @@ class DevicesHost(iot_devices.host.Host):
                     for alert in device.alerts.values():
                         alert.enable()
 
+    def on_device_error(self, container: DeviceRuntimeState, s: str):
+        container.errors.append((time.time(), str(s)))
+
+        if container.errors:
+            if time.time() > container.errors[-1][0] + 15:
+                logger.error(f"in device: {container.name}\n{s}")
+            else:
+                logger.error(f"in device: {container.name}\n{s}")
+
+        if len(container.errors) > 50:
+            container.errors.pop(0)
+
+        workers.do(
+            makeBackgroundErrorFunction(
+                textwrap.fill(s, 120),
+                unitsofmeasure.strftime(time.time()),
+                container,
+            )
+        )
+        if len(container.errors) == 1:
+            messagebus.post_message(
+                "/system/notifications/errors",
+                f"First error in device: {container.name}",
+            )
+            logger.error(f"in device: {container.name}\n{s}")
+
 
 class DeviceRuntimeState(iot_devices.host.DeviceHostContainer):
     @staticmethod
@@ -726,38 +752,6 @@ class DeviceRuntimeState(iot_devices.host.DeviceHostContainer):
             .get("kaithem", {})
             .get("use_default_alerts")
         )
-
-    def handleException(self):
-        try:
-            self.handle_error(traceback.format_exc(chain=True))
-        except Exception:
-            print(traceback.format_exc())
-
-    def handle_error(self, s):
-        self.errors.append((time.time(), str(s)))
-
-        if self.errors:
-            if time.time() > self.errors[-1][0] + 15:
-                logger.error(f"in device: {self.name}\n{s}")
-            else:
-                logger.error(f"in device: {self.name}\n{s}")
-
-        if len(self.errors) > 50:
-            self.errors.pop(0)
-
-        workers.do(
-            makeBackgroundErrorFunction(
-                textwrap.fill(s, 120),
-                unitsofmeasure.strftime(time.time()),
-                self,
-            )
-        )
-        if len(self.errors) == 1:
-            messagebus.post_message(
-                "/system/notifications/errors",
-                f"First error in device: {self.name}",
-            )
-            logger.error(f"in device: {self.name}\n{s}")
 
     def onGenericUIMessage(self, u, v):
         if v[0] == "set":
