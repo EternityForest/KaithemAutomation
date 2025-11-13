@@ -44,39 +44,6 @@
 
 <link rel="stylesheet" href="/static/js/thirdparty/editTable/editTable.min.css">
 
-<datalist id="k_bindtype">
-    <option>auto</option>
-    <option>numeric</option>
-    <option>string</option>
-    <option value="object">JSON-like</option>
-</datalist>
-
-<datalist id="k_tags">
-    <option value="=1+2*5">Simple expression</option>
-    <option value="=tv('/exampleNumericTag')+5">Expression with tag val</option>
-    <option value="=stv('/exampleStringTag')">Expression with string tag val</option>
-
-    {% for i in tagpoints.allTagsAtomic %}
-    <option>{{ i| escape }}</option>
-    {% endfor %}
-</datalist>
-
-<datalist id="k_tags_writable">
-    {% for i in tagpoints.allTagsAtomic %}
-    {% if tagpoints.allTagsAtomic[i]().writable %}
-    <option>{{ i| escape }}</option>
-    {% endif %}
-    {% endfor %}
-</datalist>
-
-
-<datalist id="k_tlocal">
-    {% for i in obj.tagpoints %}
-    <option>{{ i| escape }}</option>
-    {% endfor %}
-</datalist>
-
-
 <datalist id="k_modules">
     {% for i in modules_state.ActiveModules %}
     <option>{{ i| escape }}</option>
