@@ -112,7 +112,7 @@ def report():
     def has_secrets(dev: device.Device):
         for i in dev.config:
             if (
-                dev.json_schema.get("properties", {})
+                dev.config_schema.get("properties", {})
                 .get(i, {})
                 .get("format", False)
                 == "password"
@@ -156,12 +156,6 @@ def device_manage(name):
 
     # I think stored data is enough, this is just defensive
     merged.update(devices.devices_host.devices[name].config)
-
-    merged = {
-        i: merged[i]
-        for i in merged
-        if not (merged[i] is None or merged[i] == "")
-    }
 
     return pages.render_jinja_template(
         "devices/device.j2.html",

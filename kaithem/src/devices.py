@@ -580,8 +580,7 @@ class DevicesHost(iot_devices.host.Host):
     ):
         def f():
             with modules_state.modulesLock:
-                if device.module_name:
-                    assert device.resource_name
+                if device.module_name and device.resource_name:
                     # Todo why are we mutating in place?
                     devdata = modules_state.ActiveModules[device.module_name][
                         device.resource_name
@@ -646,11 +645,31 @@ class DeviceRuntimeState(iot_devices.host.DeviceHostContainer):
 
         return f
 
-    def __init__(self, host, parent: DeviceRuntimeState, config):
+    def __init__(
+        self,
+        host,
+        parent: DeviceRuntimeState | None,
+        config,
+        module: str | None = None,
+        resource: str | None = None,
+    ):
         super().__init__(host, parent, config)
 
-        self.module: str | None = None
-        self.resource: str | None = None
+        self.module_name: str | None = module
+        self.resource_name: str | None = resource
+
+        if not module:
+            if self.parent:
+                self.module_name = self.parent.module_name
+
+        if not resource:
+            if self.parent:
+                if self.parent.resource_name:
+                    resource_dir = "/".join(
+                        self.parent.resource_name.split("/")[:-1]
+                    )
+                    rel_name = ".d/".join(config["name"].split("/"))
+                    self.resource_name = f"{resource_dir}/{rel_name}"
 
         if self.name in device_data_cache:
             self.module, self.resource, _config = device_data_cache[self.name]
@@ -700,20 +719,6 @@ class DeviceRuntimeState(iot_devices.host.DeviceHostContainer):
         self.datapoint_timestamps: dict[str, float] = {}
         # Time, msg
         self.errors: list[tuple[float, str]] = []
-
-        # If the device is from a module, tells us where
-        # None only when we haven't fully set it up.
-        # Or when we are a subdevice just kind of floating
-        # With no config
-        self.module_name: str | None = config.get(
-            "temp.kaithem.store_in_module", None
-        )
-
-        # This can exist even without parent module, not doing
-        # anything but telling us what the name would be.
-        self.resource_name: str | None = config.get(
-            "temp.kaithem.store_in_resource", None
-        )
 
     def on_device_ready(self, device: iot_devices.device.Device):
         super().on_device_ready(device)
@@ -910,17 +915,14 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
     subdevice = False
 
     with modules_state.modulesLock:
-        if kwargs.get("temp.kaithem.store_in_module", None):
-            if (
-                kwargs["temp.kaithem.store_in_module"]
-                not in modules_state.ActiveModules
-            ):
-                raise ValueError("Can't store in nonexistant module")
+        m = kwargs["temp.kaithem.store_in_module"]
+        r = kwargs["temp.kaithem.store_in_resource"]
+        kwargs.pop("temp.kaithem.store_in_module", None)
+        kwargs.pop("temp.kaithem.store_in_resource", None)
 
-            m = kwargs["temp.kaithem.store_in_module"]
-            r = kwargs["temp.kaithem.store_in_resource"] or ".d/".join(
-                name.split("/")
-            )
+        if m:
+            if r not in modules_state.ActiveModules:
+                raise ValueError("Can't store in nonexistant module")
 
             if r in modules_state.ActiveModules[m]:
                 if (
@@ -958,11 +960,9 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
             always_return=True,
         )
 
-        if "temp.kaithem.store_in_module" in kwargs:
-            newparent_module = kwargs["temp.kaithem.store_in_module"]
-            newparent_resource = kwargs[
-                "temp.kaithem.store_in_resource"
-            ] or ".d/".join(name.split("/"))
+        if m in kwargs:
+            newparent_module = m
+            newparent_resource = r or ".d/".join(name.split("/"))
 
         else:
             raise ValueError("Can only save in module")
@@ -1136,6 +1136,8 @@ def makeDevice(
     data = copy.deepcopy(data)
     data["name"] = name
 
+    # We need to make sure we have a name
+
     # Cls lets us force make a device of a different type for placeholders if we can't support them yet
     if cls:
         data["type"] = cls.device_type
@@ -1160,18 +1162,15 @@ def makeDevice(
 
     new_data = copy.deepcopy(data)
 
-    # Don't pass framewith specific stuff to them.
-    # Except a whitelist of known short string only keys that we need to easily access from
-    # within the device integration code
-    new_data = {
-        i: new_data[i] for i in new_data if (not i.startswith("temp.kaithem."))
-    }
-
     if new_data["name"] in devices_host.devices:
         raise RuntimeError(f"Device name already exists: {new_data['name']}")
 
     try:
-        d = devices_host.add_device_from_class(cls, new_data)
+        d = devices_host.add_device_from_class(
+            cls,
+            new_data,
+            host_container_kwargs={"module": module, "resource": resource},
+        )
     except Exception:
         d = devices_host.add_device_from_class(UnsupportedDevice, new_data)
         d.device.handle_exception()

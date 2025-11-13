@@ -87,12 +87,12 @@
                     <tr>
                         <td>Store settings in Module</td>
                         <td><input type="text" required list="k_modules" name="temp.kaithem.store_in_module"
-                                value="{{ obj.parent_module or '' | escape }}"></td>
+                                value="{{ obj.module_name or '' | escape }}"></td>
                     </tr>
                     <tr>
                         <td>Resource Name(blank=use device name)</td>
                         <td><input type="text" name="temp.kaithem.store_in_resource"
-                                value="{{ obj.parent_resource or ''| escape }}">
+                                value="{{ obj.module_name or ''| escape }}">
                         </td>
                     </tr>
                 </table>
