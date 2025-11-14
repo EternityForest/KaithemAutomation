@@ -841,7 +841,7 @@ class DevicesHost(iot_devices.host.Host[DeviceRuntimeState]):
     def get_config_for_device(
         self, parent_device: Any | None, full_device_name: str
     ) -> Mapping[str, Any]:
-        return device_data_cache.pop(full_device_name, {})[2]
+        return device_data_cache.pop(full_device_name, ("", "", {}))[2]
 
     def on_config_changed(
         self, device: DeviceRuntimeState, config: Mapping[str, Any]
