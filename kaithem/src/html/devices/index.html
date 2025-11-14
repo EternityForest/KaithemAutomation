@@ -56,6 +56,13 @@ if devObj.device.device_type == 'UnusedSubdevice':
 else:
     greyout = ''
 
+resource_obj = None
+
+if devObj.module_name and devObj.resource_name:
+    if devObj.module_name in modules_state.ActiveModules:
+        if devObj.resource_name in modules_state.ActiveModules[devObj.module_name]:
+            resource_obj = modules_state.ActiveModules[devObj.module_name][devObj.resource_name]
+
 %>
 
 %if devObj.device.subdevices:
@@ -85,7 +92,7 @@ else:
 
         %if hasattr(devObj, 'tagpoints'):
 
-        %if (not devObj.device.is_subdevice) and devObj.resource_name and devObj.module_name:
+        %if (not devObj.device.is_subdevice) and resource_obj:
         <a href="/modules/module/${url(devObj.module_name)}/deleteresource/${url(devObj.resource_name)}" class="button" style="flex-grow:0"><i class="mdi mdi-delete"></i></a>
         %endif
 
@@ -120,7 +127,7 @@ else:
         %endif
         %endif
 
-        %if devObj.module_name and modules_state.ActiveModules[devObj.module_name][devObj.resource_name]['resource'].get('label_image',''):
+        %if resource_obj and resource_obj['resource'].get('label_image',''):
         <img alt="thumbnail" style="max-width: 32em; max-height: 8em"
         src="/modules/label_image/${ url(devObj.module_name) }/${ url(devObj.resource_name) }">
         %endif %}

@@ -320,7 +320,11 @@ class DeviceRuntimeState(iot_devices.host.DeviceHostContainer):
                         self.parent.resource_name.split("/")[:-1]
                     )
                     rel_name = ".d/".join(config["name"].split("/"))
-                    self.resource_name = f"{resource_dir}/{rel_name}"
+
+                    if resource_dir:
+                        self.resource_name = f"{resource_dir}/{rel_name}"
+                    else:
+                        self.resource_name = rel_name
 
         if self.name in device_data_cache:
             self.module, self.resource, _config = device_data_cache[self.name]
