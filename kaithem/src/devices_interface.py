@@ -8,6 +8,7 @@ import traceback
 import urllib.parse
 
 import colorzero
+import mako.exceptions
 import quart
 from iot_devices import device
 from quart import Response, redirect
@@ -81,17 +82,20 @@ def devices_index():
         pages.require("system_admin")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
-    d = pages.get_template("devices/index.html").render(
-        deviceData=devices.devices_host.get_devices(),
-        url=url,
-        disks=udisks.list_drives(),
-        is_mounted=udisks.is_mounted,
-        si=units.si_format_number,
-    )
+    try:
+        d = pages.get_template("devices/index.html").render(
+            deviceData=devices.devices_host.get_devices(),
+            url=url,
+            disks=udisks.list_drives(),
+            is_mounted=udisks.is_mounted,
+            si=units.si_format_number,
+        )
 
-    return Response(
-        d, mimetype="text/html", headers={"X-Frame-Options": "SAMEORIGIN"}
-    )
+        return Response(
+            d, mimetype="text/html", headers={"X-Frame-Options": "SAMEORIGIN"}
+        )
+    except Exception:
+        return mako.exceptions.html_error_template().render()
 
 
 @app.route("/devices/report")
@@ -157,14 +161,17 @@ def device_manage(name):
     # I think stored data is enough, this is just defensive
     merged.update(devices.devices_host.devices[name].config)
 
-    return pages.render_jinja_template(
-        "devices/device.j2.html",
-        data=merged,
-        obj=obj,
-        name=name,
-        title="" if obj.device.title == obj.name else obj.device.title,
-        **device_page_env,
-    )
+    try:
+        return pages.render_jinja_template(
+            "devices/device.j2.html",
+            data=merged,
+            obj=obj,
+            name=name,
+            title="" if obj.device.title == obj.name else obj.device.title,
+            **device_page_env,
+        )
+    except Exception:
+        return mako.exceptions.html_error_template().render()
 
 
 @app.route("/device/<name>")

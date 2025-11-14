@@ -192,8 +192,8 @@ class DeviceResourceType(ResourceType):
             module=module, path=path
         )
 
-    def edit_page(self, module, resource, value):
-        return quart.redirect("/device/" + value["device"]["name"] + "/manage")
+    def edit_page(self, module: str, resource: str, data):
+        return quart.redirect("/device/" + data["device"]["name"] + "/manage")
 
 
 drt = DeviceResourceType("device", mdi_icon="chip")
@@ -274,14 +274,18 @@ def makeBackgroundErrorFunction(t, time, self):
 
 
 class DevicesHost(iot_devices.host.Host):
-    def on_device_print(self, device, msg):
+    def on_device_print(self, device, message, title=""):
         "Print a message to the Device's management page"
-        t = textwrap.fill(str(msg), 120)
+        t = textwrap.fill(str(message), 120)
         tm = unitsofmeasure.strftime(time.time())
+
+        if title:
+            t = f"<b>{title}</b><br>{t}"
+        t = t.replace("\n", "<br>")
 
         # Can't use a def here, wouldn't want it to possibly capture more than just a string,
         # And keep stuff from GCIng for too long
-        workers.do(makeBackgroundPrintFunction(t, tm, device))
+        workers.do(makeBackgroundPrintFunction(t, tm, title, device))
 
     def get_config_folder(self, device: DeviceRuntimeState, create=True):
         return get_config_folder_from_device(device, create=create)
@@ -299,8 +303,8 @@ class DevicesHost(iot_devices.host.Host):
         )
         t.expose(read_perms, write_perms if writable else [])
 
-    def resolve_datapoint_name(self, device, name):
-        return f"/devices/{device}.{name}"
+    def resolve_datapoint_name(self, device_name, datapoint_name):
+        return f"/devices/{device_name}.{datapoint_name}"
 
     def numeric_data_point(
         self,
@@ -550,25 +554,25 @@ class DevicesHost(iot_devices.host.Host):
     def get_datapoint(self, device: str, name: str):
         n = self.resolve_datapoint_name(device, name)
         runtimedata = devices_host.devices[device]
-        return runtimedata.tagpoints[n].value
+        return runtimedata.tagpoints[n].get_vta()
 
     def get_number(
         self, device: str, datapoint: str
     ) -> tuple[float | int, float, Any]:
-        return super().get_number(device, datapoint)
+        return self.get_datapoint(device, datapoint)
 
     def get_string(self, device: str, datapoint: str) -> tuple[str, float, Any]:
-        return super().get_string(device, datapoint)
+        return self.get_datapoint(device, datapoint)
 
     def get_bytes(
         self, device: str, datapoint: str
     ) -> tuple[bytes, float, Any]:
-        return super().get_bytes(device, datapoint)
+        return self.get_datapoint(device, datapoint)
 
     def get_object(
         self, device: str, datapoint: str
     ) -> tuple[dict[str, Any], float, Any]:
-        return super().get_object(device, datapoint)
+        return self.get_datapoint(device, datapoint)
 
     def get_config_for_device(
         self, parent_device: Any | None, full_device_name: str
@@ -749,7 +753,12 @@ class DeviceRuntimeState(iot_devices.host.DeviceHostContainer):
                 "kaithem.write_perms"
             )
 
-        self.device.update_config(data)
+        if device.device_type not in (
+            "unsupported",
+            "unknown",
+            "UnusedSubDevice",
+        ):
+            device.update_config(data)
 
         # Legacy stuff used strings
         self.k_use_default_alerts = str(
@@ -757,6 +766,16 @@ class DeviceRuntimeState(iot_devices.host.DeviceHostContainer):
             .get("kaithem", {})
             .get("use_default_alerts")
         )
+
+    def on_after_device_removed(self):
+        for i in self.tagpointhandlerfunctions:
+            f = self.tagpointhandlerfunctions[i]
+            try:
+                self.tagpoints[i].unsubscribe(f)
+            except Exception:
+                logger.error(
+                    f"Error unsubscribing from tagpoint {i} for device {self.name}"
+                )
 
     def onGenericUIMessage(self, u, v):
         if v[0] == "set":
@@ -843,6 +862,7 @@ class DeviceRuntimeState(iot_devices.host.DeviceHostContainer):
         """
 
     def get_full_schema(self):
+        assert self.device
         s = self.device.get_full_schema()
         if "extensions" not in s["properties"]:
             s["properties"]["extensions"] = {}
@@ -868,16 +888,6 @@ class DeviceRuntimeState(iot_devices.host.DeviceHostContainer):
         }
 
         return s
-
-    # FS
-
-    # UI Integration
-
-    def handle_exception(self):
-        try:
-            self.handle_error(traceback.format_exc(chain=True))
-        except Exception:
-            print(traceback.format_exc())
 
     #######################################################################################
 
@@ -921,7 +931,7 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
         kwargs.pop("temp.kaithem.store_in_resource", None)
 
         if m:
-            if r not in modules_state.ActiveModules:
+            if m not in modules_state.ActiveModules:
                 raise ValueError("Can't store in nonexistant module")
 
             if r in modules_state.ActiveModules[m]:
@@ -948,10 +958,11 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
 
         current_device_object = devices_host.devices[devname]
 
-        subdevice = current_device_object.is_subdevice
+        subdevice = current_device_object.device.is_subdevice
 
         parent_module = current_device_object.module_name
         parent_resource = current_device_object.resource_name
+
         old_dev_conf_folder = get_config_folder_from_info(
             parent_module,
             parent_resource,
@@ -960,12 +971,8 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
             always_return=True,
         )
 
-        if m in kwargs:
-            newparent_module = m
-            newparent_resource = r or ".d/".join(name.split("/"))
-
-        else:
-            raise ValueError("Can only save in module")
+        newparent_module = m
+        newparent_resource = r or ".d/".join(name.split("/"))
 
         new_dev_conf_folder = get_config_folder_from_info(
             newparent_module,
@@ -1026,12 +1033,6 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
             # Explicitly put name in data.
             savable_data["name"] = name
 
-        # Special case for our video region editor
-        if "property_device_regions" in kwargs:
-            savable_data["device.regions"] = kwargs["property_device_regions"]
-        else:
-            savable_data.pop("property_device_regions", None)
-
         # Propagate subdevice status even if it is just loaded as a placeholder
         if configuredAsSubdevice or subdevice:
             savable_data["is_subdevice"] = True
@@ -1057,6 +1058,10 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
                     shutil.rmtree(old_dev_conf_folder)
 
         if not subdevice:
+            devices_host.close_device(name)
+            gc.collect()
+            time.sleep(0.01)
+            gc.collect()
             makeDevice(
                 name, savable_data, None, newparent_module, newparent_resource
             )

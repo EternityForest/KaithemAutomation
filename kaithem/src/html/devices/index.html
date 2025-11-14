@@ -85,7 +85,7 @@ else:
 
         %if hasattr(devObj, 'tagpoints'):
 
-        %if (not deviceData[i].device.is_subdevice) and devObj.resource_name and devObj.module_name:
+        %if (not devObj.device.is_subdevice) and devObj.resource_name and devObj.module_name:
         <a href="/modules/module/${url(devObj.module_name)}/deleteresource/${url(devObj.resource_name)}" class="button" style="flex-grow:0"><i class="mdi mdi-delete"></i></a>
         %endif
 
