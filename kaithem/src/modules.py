@@ -762,15 +762,22 @@ class KaithemEvent(dict):
 
 
 def createResource(module: str, resource: str, data: ResourceDictType):
+    """Insert a  resource and instantiate whatever it makes"""
+    if resource in modules_state.ActiveModules[module]:
+        raise RuntimeError(f"Resource already exists: {module}/{resource}")
+
     data = modules_state.mutable_copy_resource(data)
     data = modules_state.normalize_resource_data(data)
     modules_state.set_resource_error(module, resource, None)
     modules_state.raw_insert_resource(module, resource, data)
-    handleResourceChange(module, resource)
+    handleResourceChange(module, resource, data, newly_added=True)
 
 
 def handleResourceChange(
-    module: str, resource: str, obj: None = None, newly_added: bool = False
+    module: str,
+    resource: str,
+    obj: ResourceDictType | None = None,
+    newly_added: bool = False,
 ) -> None:
     with modules_state.modulesLock:
         t = modules_state.ActiveModules[module][resource]["resource"]["type"]

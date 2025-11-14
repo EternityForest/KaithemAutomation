@@ -59,6 +59,8 @@ device_types = iot_devices.host.discover()
 
 def delete_bookkeep(name, confdir=False):
     # It sometimes is not there if the parent device got deleted first
+    device_data_cache.pop(name, None)
+
     if name in devices_host.get_devices():
         rtd = devices_host.devices[name]
         pm = rtd.module_name
@@ -89,6 +91,7 @@ def delete_bookkeep(name, confdir=False):
         gc.collect()
         gc.collect()
         gc.collect()
+
         messagebus.post_message("/devices/removed/", name)
 
 
@@ -136,12 +139,15 @@ class DeviceResourceType(ResourceType):
 
         device_data_cache[devname] = (module, resource, data["device"])
 
+        if dev_data.get("is_subdevice", False):
+            return
+
         def load_closure():
             try:
                 old_dev = devices_host.devices.get(devname)
             except Exception:
                 old_dev = None
-            if old_dev:
+            if old_dev and old_dev.device:
                 m, r = old_dev.module_name, old_dev.resource_name
 
                 if not (m, r) == (module, resource):
@@ -175,6 +181,15 @@ class DeviceResourceType(ResourceType):
         else:
             with deffered_loaders_list_lock:
                 deferred_loaders.append((module, resource, load_closure))
+
+    def on_update(self, module, resource: str, data: Mapping[str, Any]):
+        # TODO is this ugly? I think it will be called whenever we change something
+        # and only the change detection stops it from double loading
+        if data["name"] in device_data_cache:
+            if data["device"] == device_data_cache[data["name"]][2]:
+                return
+
+        self.on_load(module, resource, data)
 
     def on_unload(self, module, resource, data):
         with modules_state.modulesLock:
@@ -273,7 +288,256 @@ def makeBackgroundErrorFunction(t, time, self):
     return f
 
 
-class DevicesHost(iot_devices.host.Host):
+class DeviceRuntimeState(iot_devices.host.DeviceHostContainer):
+    @staticmethod
+    def makeGenericUIMsgHandler(wr):
+        def f(u, v):
+            wr().onGenericUIMessage(u, v)
+
+        return f
+
+    def __init__(
+        self,
+        host,
+        parent: DeviceRuntimeState | None,
+        config,
+        module: str | None = None,
+        resource: str | None = None,
+    ):
+        super().__init__(host, parent, config)
+
+        self.module_name: str | None = module
+        self.resource_name: str | None = resource
+
+        if not module:
+            if self.parent:
+                self.module_name = self.parent.module_name
+
+        if not resource:
+            if self.parent:
+                if self.parent.resource_name:
+                    resource_dir = "/".join(
+                        self.parent.resource_name.split("/")[:-1]
+                    )
+                    rel_name = ".d/".join(config["name"].split("/"))
+                    self.resource_name = f"{resource_dir}/{rel_name}"
+
+        if self.name in device_data_cache:
+            self.module, self.resource, _config = device_data_cache[self.name]
+        # Which points to show in overview
+        self.dashboard_datapoints = {}
+
+        self.logWindow = widgets.ScrollingWindow(2500)
+
+        self._tagBookKeepers: dict[str, Callable[[Any, float, Any], None]] = {}
+
+        # This is for extra non device specific stuff we add to all devices
+        self._generic_ws_channel = widgets.APIWidget()
+        self._generic_ws_channel.require("system_admin")
+
+        onMessage2 = self.makeGenericUIMsgHandler(weakref.ref(self))
+
+        # I don't think this is actually needed
+        self._uiMsgRef = onMessage2
+
+        self._generic_ws_channel.attach(onMessage2)
+
+        dbgd[config["name"] + str(time.time())] = self
+
+        # Time, title, text tuples for any "messages" a device might "print"
+        self.messages: list[tuple[float, str, str]] = []
+
+        # This dict cannot be changed, only replaced atomically.
+        # It is a list of alert objects. Dict keys
+        # may not include special chars besides underscores.
+
+        # It is a list of all alerts "owned" by the device.
+        self.alerts: dict[str, alerts.Alert] = {}
+
+        # A list of all the tag points owned by the device
+        self.tagpoints: dict[str, tagpoints.GenericTagPointClass[Any]] = {}
+
+        # Same dict keys as tagpoints, but a list of handlers
+        self.tagpointhandlerfunctions: dict[
+            str, Callable[[Any, float, Any], None]
+        ] = {}
+
+        # The new devices spec has a way more limited idea of what a data point is.
+        self.datapoints: dict[
+            str, int | float | str | bytes | Mapping[str, Any] | None
+        ] = {}
+
+        self.datapoint_timestamps: dict[str, float] = {}
+        # Time, msg
+        self.errors: list[tuple[float, str]] = []
+
+    def on_device_ready(self, device: iot_devices.device.Device):
+        super().on_device_ready(device)
+
+        data: dict[str, Any] = dict(copy.deepcopy(device.config))
+
+        if "extensions" not in data:
+            data["extensions"] = {}
+
+        if "kaithem" not in data["extensions"]:
+            data["extensions"]["kaithem"] = {}
+
+        # Legacy porting block
+        # TODO
+        if "kaithem.use_default_alerts" in data:
+            warnings.warn("Auto upgrading legacy config key")
+            data["extensions"]["kaithem"]["use_default_alerts"] = data.pop(
+                "kaithem.use_default_alerts"
+            )
+        if "kaithem.read_perms" in data:
+            warnings.warn("Auto upgrading legacy config key")
+            data["extensions"]["kaithem"]["read_perms"] = data.pop(
+                "kaithem.read_perms"
+            )
+        if "kaithem.write_perms" in data:
+            warnings.warn("Auto upgrading legacy config key")
+            data["extensions"]["kaithem"]["write_perms"] = data.pop(
+                "kaithem.write_perms"
+            )
+
+        if device.device_type not in (
+            "unsupported",
+            "unknown",
+            "UnusedSubDevice",
+        ):
+            device.update_config(data)
+
+        # Legacy stuff used strings
+        self.k_use_default_alerts = str(
+            data.get("extensions", {})
+            .get("kaithem", {})
+            .get("use_default_alerts")
+        )
+
+    def on_after_device_removed(self):
+        for i in self.tagpointhandlerfunctions:
+            f = self.tagpointhandlerfunctions[i]
+            try:
+                self.tagpoints[i].unsubscribe(f)
+            except Exception:
+                logger.error(
+                    f"Error unsubscribing from tagpoint {i} for device {self.name}"
+                )
+
+    def onGenericUIMessage(self, u, v):
+        if v[0] == "set":
+            if v[2] is not None:
+                self.tagpoints[v[1]].value = v[2]
+
+        if v[0] == "fake":
+            if v[2] is not None:
+                self.tagpoints[v[1]]._k_ui_fake = self.tagpoints[v[1]].claim(
+                    v[2], "faked", priority=50.5
+                )
+
+            else:
+                if hasattr(self.tagpoints[v[1]], "_k_ui_fake"):
+                    self.tagpoints[v[1]]._k_ui_fake.release()
+
+        elif v[0] == "refresh":
+            self.tagpoints[v[1]].poll()
+
+    # delete a device, it should not be used after this
+    def close(self):
+        with modules_state.modulesLock:
+            try:
+                for i in self.tagpointhandlerfunctions:
+                    if i in self.tagpoints:
+                        self.tagpoints[i].unsubscribe(
+                            self.tagpointhandlerfunctions[i]
+                        )
+            except Exception:
+                if not lifespan.is_shutting_down:
+                    logger.exception("Error unsubscribing from tagpoints")
+
+            try:
+                for i in self._tagBookKeepers:
+                    if i in self.tagpoints:
+                        self.tagpoints[i].unsubscribe(self._tagBookKeepers[i])
+            except Exception:
+                if not lifespan.is_shutting_down:
+                    logger.exception(
+                        "Error unsubscribing from tagpoints while closing device"
+                    )
+
+            try:
+                del self.tagpoints
+            except Exception:
+                pass
+        try:
+            for i in self.alerts:
+                try:
+                    self.alerts[i].release()
+                except Exception:
+                    logger.exception("Error releasing alerts")
+        except Exception:
+            logger.exception("Error releasing alerts")
+
+    def set_alarm(
+        self,
+        name: str,
+        datapoint: str,
+        expression: str,
+        priority: str = "info",
+        trip_delay: float = 0,
+        auto_ack: bool = False,
+        release_condition: str | None = None,
+        **kw,
+    ):
+        x = self.tagpoints[datapoint].set_alarm(
+            name,
+            condition=expression,
+            priority=priority,
+            trip_delay=trip_delay,
+            auto_ack=auto_ack,
+            release_condition=release_condition,
+            enabled=self.k_use_default_alerts,
+        )
+        if x:
+            self.alerts[name] = x
+        else:
+            raise RuntimeError("Alarm setter returned nothing")
+
+    def on_data_change(self, name: str, value, timestamp: float, annotation):
+        """used for subclassing, this is how you watch for data changes.
+        Kaithem does not need this, we have direct observable tag points.
+        """
+
+    def get_full_schema(self):
+        assert self.device
+        s = self.device.get_full_schema()
+        if "extensions" not in s["properties"]:
+            s["properties"]["extensions"] = {}
+        s["properties"]["extensions"]["kaithem"] = {}
+
+        s["properties"]["extensions"]["kaithem"]["read_perms"] = {
+            "type": "string",
+            "title": "Read Permissions",
+            "description": "The permissions required to read this device, comma separated",
+        }
+
+        s["properties"]["extensions"]["kaithem"]["write_perms"] = {
+            "type": "string",
+            "title": "Write Permissions",
+            "description": "The permissions required to write this device, comma separated",
+        }
+
+        s["properties"]["extensions"]["kaithem"]["use_default_alerts"] = {
+            "type": "boolean",
+            "title": "Enable the device's default alerts",
+            "default": True,
+            "description": "The permissions required to read this device, comma separated",
+        }
+
+        return s
+
+
+class DevicesHost(iot_devices.host.Host[DeviceRuntimeState]):
     def on_device_print(self, device, message, title=""):
         "Print a message to the Device's management page"
         t = textwrap.fill(str(message), 120)
@@ -576,8 +840,8 @@ class DevicesHost(iot_devices.host.Host):
 
     def get_config_for_device(
         self, parent_device: Any | None, full_device_name: str
-    ) -> dict[str, Any]:
-        return super().get_config_for_device(parent_device, full_device_name)
+    ) -> Mapping[str, Any]:
+        return device_data_cache.pop(full_device_name, {})[2]
 
     def on_config_changed(
         self, device: DeviceRuntimeState, config: Mapping[str, Any]
@@ -588,11 +852,11 @@ class DevicesHost(iot_devices.host.Host):
                     # Todo why are we mutating in place?
                     devdata = modules_state.ActiveModules[device.module_name][
                         device.resource_name
-                    ]["device"]
+                    ]
 
-                    devdata = copy.deepcopy(devdata)
+                    devdata = dict(copy.deepcopy(devdata))
+                    devdata["device"] = dict(copy.deepcopy(config))
 
-                    assert isinstance(devdata, dict)
                     m, r = device.module_name, device.resource_name
 
                     modules_state.raw_insert_resource(m, r, devdata)
@@ -639,257 +903,6 @@ class DevicesHost(iot_devices.host.Host):
                 f"First error in device: {container.name}",
             )
             logger.error(f"in device: {container.name}\n{s}")
-
-
-class DeviceRuntimeState(iot_devices.host.DeviceHostContainer):
-    @staticmethod
-    def makeGenericUIMsgHandler(wr):
-        def f(u, v):
-            wr().onGenericUIMessage(u, v)
-
-        return f
-
-    def __init__(
-        self,
-        host,
-        parent: DeviceRuntimeState | None,
-        config,
-        module: str | None = None,
-        resource: str | None = None,
-    ):
-        super().__init__(host, parent, config)
-
-        self.module_name: str | None = module
-        self.resource_name: str | None = resource
-
-        if not module:
-            if self.parent:
-                self.module_name = self.parent.module_name
-
-        if not resource:
-            if self.parent:
-                if self.parent.resource_name:
-                    resource_dir = "/".join(
-                        self.parent.resource_name.split("/")[:-1]
-                    )
-                    rel_name = ".d/".join(config["name"].split("/"))
-                    self.resource_name = f"{resource_dir}/{rel_name}"
-
-        if self.name in device_data_cache:
-            self.module, self.resource, _config = device_data_cache[self.name]
-        # Which points to show in overview
-        self.dashboard_datapoints = {}
-
-        self.logWindow = widgets.ScrollingWindow(2500)
-
-        self._tagBookKeepers: dict[str, Callable[[Any, float, Any], None]] = {}
-
-        # This is for extra non device specific stuff we add to all devices
-        self._generic_ws_channel = widgets.APIWidget()
-        self._generic_ws_channel.require("system_admin")
-
-        onMessage2 = self.makeGenericUIMsgHandler(weakref.ref(self))
-
-        # I don't think this is actually needed
-        self._uiMsgRef = onMessage2
-
-        self._generic_ws_channel.attach(onMessage2)
-
-        dbgd[config["name"] + str(time.time())] = self
-
-        # Time, title, text tuples for any "messages" a device might "print"
-        self.messages: list[tuple[float, str, str]] = []
-
-        # This dict cannot be changed, only replaced atomically.
-        # It is a list of alert objects. Dict keys
-        # may not include special chars besides underscores.
-
-        # It is a list of all alerts "owned" by the device.
-        self.alerts: dict[str, alerts.Alert] = {}
-
-        # A list of all the tag points owned by the device
-        self.tagpoints: dict[str, tagpoints.GenericTagPointClass[Any]] = {}
-
-        # Same dict keys as tagpoints, but a list of handlers
-        self.tagpointhandlerfunctions: dict[
-            str, Callable[[Any, float, Any], None]
-        ] = {}
-
-        # The new devices spec has a way more limited idea of what a data point is.
-        self.datapoints: dict[
-            str, int | float | str | bytes | Mapping[str, Any] | None
-        ] = {}
-
-        self.datapoint_timestamps: dict[str, float] = {}
-        # Time, msg
-        self.errors: list[tuple[float, str]] = []
-
-    def on_device_ready(self, device: iot_devices.device.Device):
-        super().on_device_ready(device)
-
-        data: dict[str, Any] = dict(copy.deepcopy(device.config))
-
-        if "extensions" not in data:
-            data["extensions"] = {}
-
-        if "kaithem" not in data["extensions"]:
-            data["extensions"]["kaithem"] = {}
-
-        # Legacy porting block
-        # TODO
-        if "kaithem.use_default_alerts" in data:
-            warnings.warn("Auto upgrading legacy config key")
-            data["extensions"]["kaithem"]["use_default_alerts"] = data.pop(
-                "kaithem.use_default_alerts"
-            )
-        if "kaithem.read_perms" in data:
-            warnings.warn("Auto upgrading legacy config key")
-            data["extensions"]["kaithem"]["read_perms"] = data.pop(
-                "kaithem.read_perms"
-            )
-        if "kaithem.write_perms" in data:
-            warnings.warn("Auto upgrading legacy config key")
-            data["extensions"]["kaithem"]["write_perms"] = data.pop(
-                "kaithem.write_perms"
-            )
-
-        if device.device_type not in (
-            "unsupported",
-            "unknown",
-            "UnusedSubDevice",
-        ):
-            device.update_config(data)
-
-        # Legacy stuff used strings
-        self.k_use_default_alerts = str(
-            data.get("extensions", {})
-            .get("kaithem", {})
-            .get("use_default_alerts")
-        )
-
-    def on_after_device_removed(self):
-        for i in self.tagpointhandlerfunctions:
-            f = self.tagpointhandlerfunctions[i]
-            try:
-                self.tagpoints[i].unsubscribe(f)
-            except Exception:
-                logger.error(
-                    f"Error unsubscribing from tagpoint {i} for device {self.name}"
-                )
-
-    def onGenericUIMessage(self, u, v):
-        if v[0] == "set":
-            if v[2] is not None:
-                self.tagpoints[v[1]].value = v[2]
-
-        if v[0] == "fake":
-            if v[2] is not None:
-                self.tagpoints[v[1]]._k_ui_fake = self.tagpoints[v[1]].claim(
-                    v[2], "faked", priority=50.5
-                )
-
-            else:
-                if hasattr(self.tagpoints[v[1]], "_k_ui_fake"):
-                    self.tagpoints[v[1]]._k_ui_fake.release()
-
-        elif v[0] == "refresh":
-            self.tagpoints[v[1]].poll()
-
-    # delete a device, it should not be used after this
-    def close(self):
-        with modules_state.modulesLock:
-            try:
-                for i in self.tagpointhandlerfunctions:
-                    if i in self.tagpoints:
-                        self.tagpoints[i].unsubscribe(
-                            self.tagpointhandlerfunctions[i]
-                        )
-            except Exception:
-                if not lifespan.is_shutting_down:
-                    logger.exception("Error unsubscribing from tagpoints")
-
-            try:
-                for i in self._tagBookKeepers:
-                    if i in self.tagpoints:
-                        self.tagpoints[i].unsubscribe(self._tagBookKeepers[i])
-            except Exception:
-                if not lifespan.is_shutting_down:
-                    logger.exception(
-                        "Error unsubscribing from tagpoints while closing device"
-                    )
-
-            try:
-                del self.tagpoints
-            except Exception:
-                pass
-        try:
-            for i in self.alerts:
-                try:
-                    self.alerts[i].release()
-                except Exception:
-                    logger.exception("Error releasing alerts")
-        except Exception:
-            logger.exception("Error releasing alerts")
-
-    def set_alarm(
-        self,
-        name: str,
-        datapoint: str,
-        expression: str,
-        priority: str = "info",
-        trip_delay: float = 0,
-        auto_ack: bool = False,
-        release_condition: str | None = None,
-        **kw,
-    ):
-        x = self.tagpoints[datapoint].set_alarm(
-            name,
-            condition=expression,
-            priority=priority,
-            trip_delay=trip_delay,
-            auto_ack=auto_ack,
-            release_condition=release_condition,
-            enabled=self.k_use_default_alerts,
-        )
-        if x:
-            self.alerts[name] = x
-        else:
-            raise RuntimeError("Alarm setter returned nothing")
-
-    def on_data_change(self, name: str, value, timestamp: float, annotation):
-        """used for subclassing, this is how you watch for data changes.
-        Kaithem does not need this, we have direct observable tag points.
-        """
-
-    def get_full_schema(self):
-        assert self.device
-        s = self.device.get_full_schema()
-        if "extensions" not in s["properties"]:
-            s["properties"]["extensions"] = {}
-        s["properties"]["extensions"]["kaithem"] = {}
-
-        s["properties"]["extensions"]["kaithem"]["read_perms"] = {
-            "type": "string",
-            "title": "Read Permissions",
-            "description": "The permissions required to read this device, comma separated",
-        }
-
-        s["properties"]["extensions"]["kaithem"]["write_perms"] = {
-            "type": "string",
-            "title": "Write Permissions",
-            "description": "The permissions required to write this device, comma separated",
-        }
-
-        s["properties"]["extensions"]["kaithem"]["use_default_alerts"] = {
-            "type": "boolean",
-            "title": "Enable the device's default alerts",
-            "default": True,
-            "description": "The permissions required to read this device, comma separated",
-        }
-
-        return s
-
-    #######################################################################################
 
 
 devices_host = DevicesHost(DeviceRuntimeState)
@@ -958,7 +971,7 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
 
         current_device_object = devices_host.devices[devname]
 
-        subdevice = current_device_object.device.is_subdevice
+        subdevice = current_device_object.parent is not None
 
         parent_module = current_device_object.module_name
         parent_resource = current_device_object.resource_name
@@ -991,15 +1004,8 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
 
             # Not the same as currently being a subdevice.
             # We have placeholders to edit subdevices that don't exist.
-            configuredAsSubdevice = dt.get("is_subdevice", False) in (
-                "true",
-                True,
-                "True",
-                "yes",
-                "Yes",
-                1,
-                "1",
-            )
+            configuredAsSubdevice = dt.get("is_subdevice", False)
+
             configuredAsSubdevice = (
                 configuredAsSubdevice or dt.get("parent_device", "").strip()
             )  # type: ignore
@@ -1066,7 +1072,7 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
                 name, savable_data, None, newparent_module, newparent_resource
             )
         else:
-            kwargs["is_subdevice"] = "true"
+            kwargs["is_subdevice"] = True
 
             device_data_cache[name] = (
                 newparent_module,
@@ -1076,7 +1082,8 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
 
             devices_host.devices[name].module_name = newparent_module
             devices_host.devices[name].resource_name = newparent_resource
-            devices_host.devices[name].update_config(savable_data)
+            if current_device_object.device:
+                current_device_object.device.update_config(savable_data)
 
         # Only actually update data structures
         # after updating the device runtime successfully
@@ -1117,16 +1124,27 @@ class DeviceNamespace:
     Device = iot_devices.device.Device
 
     def __getitem__(self, name):
-        if devices_host.devices[name].device.device_type == "unsupported":
+        d = devices_host.devices.get(name)
+        if not d:
+            raise KeyError(name)
+        if not d.device:
+            raise KeyError(name)
+        if d.device.device_type == "unsupported":
             raise RuntimeError("There is no driver for this device")
+        if d.device.device_type == "unknown":
+            raise RuntimeError("There is no driver for this device")
+        if d.device.device_type.lower() == "unusedsubdevice":
+            raise RuntimeError("Unused subdevice config")
+
         return weakref.proxy(devices_host.devices[name])
 
     def __iter__(self):
         x = devices_host.get_devices()
         for i in x:
-            y = x[i]()
-            if y and not y.device.device_type == "unsupported":
-                yield i
+            try:
+                yield self[i]
+            except (KeyError, RuntimeError):
+                pass
 
 
 def makeDevice(
@@ -1178,10 +1196,13 @@ def makeDevice(
         )
     except Exception:
         d = devices_host.add_device_from_class(UnsupportedDevice, new_data)
-        d.device.handle_exception()
+        d.wait_device_ready().handle_exception()
 
     if err:
-        d.device.handle_error(err)
+        if d.device:
+            d.device.handle_error(err)
+        else:
+            logger.exception("Error making device")
     return d
 
 

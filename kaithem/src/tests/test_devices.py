@@ -58,6 +58,53 @@ if "--collect-only" not in sys.argv:  # pragma: no cover
 #     modules.rmResource(n, "devtest")
 
 
+def test_subdevice_loading():
+    from kaithem.src import (
+        devices,
+        modules,
+        modules_state,
+    )
+
+    n = "test" + str(time.time()).replace(".", "_")
+    modules.newModule(n)
+    assert n in modules_state.ActiveModules
+
+    devcon_child = {
+        "resource": {
+            "type": "device",
+        },
+        "device": {
+            "type": "DemoDevice",
+            "name": "pytest_demo_parent/subdevice",
+            "is_subdevice": True,
+            "device.echo_number": 81,
+        },
+    }
+
+    modules.createResource(n, "devtest", devcon_child)
+
+    # Does't load till parent makes it
+    assert "pytest_demo_parent/subdevice" not in devices.devices_host.devices
+    assert "pytest_demo_parent/subdevice" in devices.device_data_cache
+
+    devcon = {
+        "resource": {
+            "type": "device",
+        },
+        "device": {
+            "type": "DemoDevice",
+            "name": "pytest_demo_parent",
+        },
+    }
+
+    modules.createResource(n, "devtest2", devcon)
+
+    # System should look up the config when the device is made
+    # TODO test init where they both get made at once
+    dev = devices.devices_host.devices["pytest_demo_parent/subdevice"]
+    assert dev.wait_device_ready().config["device.echo_number"] == 81
+
+
 def test_make_demo_device():
     from kaithem.src import (
         devices,
@@ -151,7 +198,7 @@ def test_make_demo_device():
     assert "pytest_demo" not in devices.devices_host.get_devices()
     assert "pytest_demo/subdevice" not in devices.devices_host.devices
 
-    assert "pytest_demo/subdevice" in devices.device_location_cache
+    assert "pytest_demo/subdevice" in devices.device_data_cache
 
     # Remake it
     devices_interface.create_blank_device(
