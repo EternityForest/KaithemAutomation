@@ -145,8 +145,8 @@
                     <button
                       type="button"
                       class="w-full noselect"
-                      popovertarget="selectedGroupWindow"
-                      v-on:click="selectgroup(i[1], i[0])">
+                      v-on:click="
+                        selectgroup(i[1], i[0],'#selectedGroupWindow');">
                       <span style="font-size: 150%">{{ i[1].name }}</span
                       ><span v-if="i[1].ext" class="grey"> (external)</span>
 

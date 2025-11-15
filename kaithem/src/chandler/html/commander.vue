@@ -229,8 +229,7 @@ div.highlight {
                   <button
                     :disabled="i[1].utility"
                     v-bind:class="{ highlight: i[0] == groupname }"
-                    popovertarget="groupDialog"
-                    v-on:click="selectgroup(i[1], i[0])"
+                    v-on:click="selectgroup(i[1], i[0],'#groupDialog')"
                     style="font-weight: bold; width: 100%">
                     {{ i[1].name
                     }}<span v-if="i[1].ext" class="grey"> (external)</span>

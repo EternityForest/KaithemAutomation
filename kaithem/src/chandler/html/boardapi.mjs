@@ -14,10 +14,7 @@ import {
   dictView,
   formatTime,
 } from "./utils.mjs";
-import {
-  kaithemapi,
-  APIWidget,
-} from "/static/js/widget.mjs";
+import { kaithemapi, APIWidget } from "/static/js/widget.mjs";
 import picodash from "/static/js/thirdparty/picodash/picodash-base.esm.js";
 
 import { computed, ref, toRaw } from "/static/js/thirdparty/vue.esm-browser.js";
@@ -354,13 +351,32 @@ function selectcue(sc, cue) {
   getcuedata(groupcues.value[sc][cue]);
 }
 
-function selectgroup(sc, sn) {
+function openPopoverWhenAvailable(popover, attempts) {
+  let x = document.querySelector(popover);
+  if (x) {
+    x.showPopover();
+  } else {
+    attempts--;
+
+    if (attempts > 0) {
+      setTimeout(function () {
+        openPopoverWhenAvailable(popover, attempts);
+      }, 50);
+    }
+  }
+}
+
+function selectgroup(sc, sn, popover) {
   getcuedata(groupcues.value[sn][selectedCues.value[sc] || "default"]);
   if (cuePage.value[sn] == undefined) {
     cuePage.value[sn] = 0;
   }
   editingGroup.value = sc;
   groupname.value = sn;
+
+  if (popover) {
+    openPopoverWhenAvailable(popover, 30);
+  }
 }
 
 async function delgroup(group) {
