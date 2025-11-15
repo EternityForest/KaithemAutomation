@@ -29,25 +29,24 @@ test("test", async ({ page }) => {
   await page.locator("b").filter({ hasText: "Settings" }).locator("i").click();
   await sleep(1000);
   await page
-    .getByRole("textbox", { name: "Fixed Number Multiplier" })
+    .getByRole("textbox", { name: "root[device][fixed_number_multiplier]" })
     .fill("2");
   await sleep(1000);
   await page.getByRole("button", { name: "Save settings" }).click();
 
   // Back on index page
 
-  await page
-    .locator("article")
-    .filter({ hasText: "testdevice do_nothing trigger" })
+  await page.locator("article")
+    .filter({ hasText: "Testdevice add_a_subdevice" })
     .getByLabel("useless_toggle")
-    .check();
-
+    .click();
+  
   await page.getByRole("button", { name: "Confirm" }).click();
 
-  await page.getByRole("link", { name: "testdevice", exact: true }).click();
+  await page.getByTestId("device_manage_link_testdevice").click();
   await page.getByText("Settings", { exact: true }).click();
   await expect(
-    page.getByRole("textbox", { name: "Fixed Number Multiplier" })
+    page.getByRole("textbox", { name: "root[device][fixed_number_multiplier]" })
   ).toHaveValue("2");
 
   await expect(
@@ -57,12 +56,12 @@ test("test", async ({ page }) => {
     console.log(`Dialog message: ${dialog.message()}`);
     dialog.accept("12.0").catch(() => {});
   });
-  await page.getByTestId("set-val-button-random").click();
+  await page.getByTestId("set-val-button-/devices/testdevice.random").click();
 
-  await expect(page.getByTestId("val-span-useless_toggle")).toContainText(
+  await expect(page.getByTestId("val-span-/devices/testdevice.useless_toggle")).toContainText(
     "1.0"
   );
-  await expect(page.getByTestId("val-span-random")).toContainText("12.0");
+  await expect(page.getByTestId("val-span-/devices/testdevice.random")).toContainText("12.0");
 
   await deleteModule(page, "devmodule");
 });

@@ -281,10 +281,6 @@ def create_blank_device(name: str, module: str, resource: str, type: str):
     data["extensions"]["kaithem"]["read_perms"] = "view_devices"
     data["extensions"]["kaithem"]["write_perms"] = "write_devices"
 
-    dt = {"resource": {"type": "device"}, "device": data}
-
-    modules_state.raw_insert_resource(module, resource, dt)
-
     if name in devices.devices_host.devices:
         devices.devices_host.devices[name].close()
 
@@ -292,7 +288,7 @@ def create_blank_device(name: str, module: str, resource: str, type: str):
         name, data, None, module, resource
     )
 
-    storeDeviceInModule(dt, module, resource)
+    storeDeviceInModule(data, module, resource)
 
     messagebus.post_message("/devices/added/", name)
 

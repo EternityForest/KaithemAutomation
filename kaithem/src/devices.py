@@ -1146,6 +1146,7 @@ class DeviceNamespace:
         x = devices_host.get_devices()
         for i in x:
             try:
+                x = self[i]
                 yield i
             except (KeyError, RuntimeError):
                 pass

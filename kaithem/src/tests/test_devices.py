@@ -162,6 +162,22 @@ def test_make_demo_device():
         == "10000909000"
     )
 
+    rsc_data = modules_state.ActiveModules[n]["devtest"]
+
+    # Various corruptions where sections get mixed
+    assert "device" not in rsc_data["device"]
+    assert "device.fixed_number_multiplier" not in rsc_data["device"]
+    assert "resource" not in rsc_data["device"]
+
+    assert (
+        devices.devices_host.devices["pytest_demo"].config[
+            "device.fixed_number_multiplier"
+        ]
+        == 10000909000
+    )
+
+    assert tagpoints.allTagsAtomic["/devices/pytest_demo.random"]().value
+
     assert tagpoints.allTagsAtomic["/devices/pytest_demo.random"]().value > 100
 
     devices.updateDevice(
