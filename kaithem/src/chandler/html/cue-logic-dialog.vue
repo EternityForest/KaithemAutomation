@@ -187,7 +187,7 @@ export default {
     d.gotoGroupNamesCompleter = this.gotoGroupNamesCompleter.bind(this);
     d.cueNamesByGroupName = this.cueNamesByGroupName.bind(this);
     d.defaultExpressionCompleter = this.defaultExpressionCompleter.bind(this);
-    d.tagPointsCompleter = this.tagPointsCompleter.bind(this);
+    d.tagpointsCompleter = this.tagpointsCompleter.bind(this);
     return { completers: d };
   },
   methods: {
@@ -239,7 +239,7 @@ export default {
       return c;
     },
 
-    tagPointsCompleter: function (_a) {
+    tagpointsCompleter: function (_a) {
       let c = [];
       for (let i in this.availabletags) {
         c.push([i, ""]);

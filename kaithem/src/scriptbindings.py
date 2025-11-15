@@ -1225,7 +1225,7 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
 
         self.setTag = setTag
         self.commands["set_tag"] = setTag
-        setTag.completionTags = {"tagName": "tagPointsCompleter"}  # type: ignore
+        setTag.completionTags = {"tagName": "tagpointsCompleter"}  # type: ignore
 
         def shell(cmd: str):
             """Run a system shell command line and return the output as the next command's _"""

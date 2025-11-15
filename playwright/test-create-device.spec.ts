@@ -20,11 +20,11 @@ test("test", async ({ page }) => {
   await page.getByRole("button", { name: "Create" }).click();
 
   // Should be on devices page now, make sure it exists and works
-  await expect(page.locator("section")).toContainText("Testdevice");
+  await expect(page.locator("section")).toContainText("testdevice");
   await expect(page.locator("section")).toContainText("random");
 
   // Go to the page for that specific device
-  await page.getByRole("link", { name: "Testdevice", exact: true }).click();
+  await page.getByRole("link", { name: "testdevice", exact: true }).click();
 
   await page.locator("b").filter({ hasText: "Settings" }).locator("i").click();
   await sleep(1000);
@@ -38,13 +38,13 @@ test("test", async ({ page }) => {
 
   await page
     .locator("article")
-    .filter({ hasText: "Testdevice do_nothing trigger" })
+    .filter({ hasText: "testdevice do_nothing trigger" })
     .getByLabel("useless_toggle")
     .check();
 
   await page.getByRole("button", { name: "Confirm" }).click();
 
-  await page.getByRole("link", { name: "Testdevice", exact: true }).click();
+  await page.getByRole("link", { name: "testdevice", exact: true }).click();
   await page.getByText("Settings", { exact: true }).click();
   await expect(
     page.getByRole("textbox", { name: "Fixed Number Multiplier" })

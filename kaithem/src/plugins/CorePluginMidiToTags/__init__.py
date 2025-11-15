@@ -10,23 +10,23 @@ from kaithem.src import tagpoints
 
 allInputs = {}
 
-tagPoints = {}
+midi_tags = {}
 
 
 def setTag(n, v, a=None):
-    if n not in tagPoints:
-        tagPoints[n] = tagpoints.Tag(n)
-        tagPoints[n].min = 0
-        tagPoints[n].max = 127
-    tagPoints[n].set_claim_val("default", v, timestamp=None, annotation=None)
+    if n not in midi_tags:
+        midi_tags[n] = tagpoints.Tag(n)
+        midi_tags[n].min = 0
+        midi_tags[n].max = 127
+    midi_tags[n].set_claim_val("default", v, timestamp=None, annotation=None)
 
 
 def setTag14(n, v, a=None):
-    if n not in tagPoints:
-        tagPoints[n] = tagpoints.Tag(n)
-        tagPoints[n].min = 0
-        tagPoints[n].max = 16383
-    tagPoints[n].set_claim_val("default", v, timestamp=None, annotation=None)
+    if n not in midi_tags:
+        midi_tags[n] = tagpoints.Tag(n)
+        midi_tags[n].min = 0
+        midi_tags[n].max = 16383
+    midi_tags[n].set_claim_val("default", v, timestamp=None, annotation=None)
 
 
 def onMidiMessage(m, d):

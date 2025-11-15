@@ -253,7 +253,7 @@ def add_context_commands(context_group: groups.Group):
     cc["console_notification"] = uiNotificationCommand
     cc["speak"] = speak
 
-    # cc["set_tag"].completionTags = {"tagName": "tagPointsCompleter"}
+    # cc["set_tag"].completionTags = {"tagName": "tagpointsCompleter"}
 
     def sendMqttMessage(topic: str, message: str):
         "JSON encodes message, and publishes it to the group's MQTT server"

@@ -1139,8 +1139,8 @@ def cl_discover_color_tag_devices():
         ft = None
 
         last_sd = None
-        for j in sorted(d.tagPoints.keys()):
-            jn = d.tagPoints[j].name
+        for j in sorted(d.tagpoints.keys()):
+            jn = d.tagpoints[j].name
             # everything between the last slash and the dot, because the dot marks "property of"
             subdevice = jn.split("/")[-1].split(".")[0]
 
@@ -1151,7 +1151,7 @@ def cl_discover_color_tag_devices():
 
             last_sd = subdevice
 
-            t = d.tagPoints[j]
+            t = d.tagpoints[j]
 
             if t.subtype == "color":
                 c = t
