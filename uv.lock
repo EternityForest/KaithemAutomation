@@ -1312,7 +1312,7 @@ wheels = [
 
 [[package]]
 name = "iot-devices"
-version = "0.30.0"
+version = "0.30.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aioesphomeapi" },
@@ -1335,9 +1335,9 @@ dependencies = [
     { name = "websockets" },
     { name = "yeelight" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/85/f6/662a4d9e3e16f48f7cd643bb49637b1e997704e8101f2d80aea86181688f/iot_devices-0.30.0.tar.gz", hash = "sha256:e2e99a015e9653855c78eee07c441fff735a2b096964d0cae9042e5e571daac7", size = 2307618, upload-time = "2025-11-16T20:58:42.891Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/bf/88/297b9f3c1476111ff7777671218f161a5d1d1c57094c1ab01a805388d5cc/iot_devices-0.30.1.tar.gz", hash = "sha256:502a97575aabd57672c751716a80e7d223050850c6dde1ee485ba0b5a58f96c0", size = 2307553, upload-time = "2025-11-16T23:00:00.597Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/03/a9/6e65993132bede091f96426f11762f730a81166e050096455f55555e4943/iot_devices-0.30.0-py3-none-any.whl", hash = "sha256:707edd5afa3048f39073c2b1826d1e634864e1070618d2e956115c26d0b5f78d", size = 3347973, upload-time = "2025-11-16T20:58:39.623Z" },
+    { url = "https://files.pythonhosted.org/packages/ab/e3/50d6c9f8ae89f7d571943554686d3d9486f7f56b35ce0770beb42e30b097/iot_devices-0.30.1-py3-none-any.whl", hash = "sha256:713cf861508b09183c5a8fe886fd17ab9d11a9c5c2f8a8dbd2e7699f6d261842", size = 3347976, upload-time = "2025-11-16T22:59:56.663Z" },
 ]
 
 [[package]]
@@ -1589,7 +1589,7 @@ requires-dist = [
     { name = "holidays" },
     { name = "hypercorn", extras = ["uvloop"], specifier = "~=0.17.3" },
     { name = "icemedia", specifier = ">=0.2.0" },
-    { name = "iot-devices", specifier = ">=0.30.0" },
+    { name = "iot-devices", specifier = ">=0.30.1" },
     { name = "jack-client" },
     { name = "jinja2" },
     { name = "jsonschema" },

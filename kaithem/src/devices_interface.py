@@ -10,7 +10,7 @@ import urllib.parse
 import colorzero
 import mako.exceptions
 import quart
-from iot_devices import device
+from iot_devices.device import Device
 from quart import Response, redirect
 from quart.ctx import copy_current_request_context
 from scullery import units
@@ -46,7 +46,7 @@ def url(u):
     return urllib.parse.quote(u, safe="")
 
 
-def getshownkeys(obj: device.Device):
+def getshownkeys(obj: Device):
     return sorted(
         [
             i
@@ -105,7 +105,7 @@ def report():
     except PermissionError:
         return pages.loginredirect(pages.geturl())
 
-    def get_report_data(dev: device.Device):
+    def get_report_data(dev: Device):
         o = {}
         for i in dev.config:
             if i not in ("notes", "subclass") or len(str(dev.config[i])) < 256:
@@ -113,7 +113,7 @@ def report():
                 continue
         return json.dumps(o)
 
-    def has_secrets(dev: device.Device):
+    def has_secrets(dev: Device):
         for i in dev.config:
             if (
                 dev.config_schema.get("properties", {})
@@ -148,26 +148,39 @@ def device_manage(name):
     # to an extension, so we have to merge them in
     merged = {}
 
-    obj = devices.devices_host.devices[name]
+    if name in devices.devices_host.devices:
+        obj = devices.devices_host.devices[name]
+    else:
+        obj = None
 
-    if obj.module_name:
-        assert obj.resource_name
-        merged.update(
-            modules_state.ActiveModules[obj.module_name][obj.resource_name][
-                "device"
-            ]
-        )
+    if not obj:
+        module, resource = name[3:].split(":")
+    else:
+        module = obj.module_name
+        resource = obj.resource_name
 
-    # I think stored data is enough, this is just defensive
-    merged.update(devices.devices_host.devices[name].config)
+    if (
+        module in modules_state.ActiveModules
+        and resource in modules_state.ActiveModules[module]
+    ):
+        merged.update(modules_state.ActiveModules[module][resource]["device"])
+
+    if obj and obj.device:
+        # I think stored data is enough, this is just defensive
+        merged.update(obj.device.config)
+
+    n = merged.get("name", "")
+    t = merged.get("title", "")
 
     try:
         return pages.render_jinja_template(
             "devices/device.j2.html",
             data=merged,
             obj=obj,
-            name=name,
-            title="" if obj.device.title == obj.name else obj.device.title,
+            name=n,
+            title=t or n,
+            module=module,
+            resource=resource,
             **device_page_env,
         )
     except Exception:
@@ -181,23 +194,6 @@ def device(name):
     except PermissionError:
         return pages.loginredirect(pages.geturl())
     return redirect(f"/device/{name}/manage")
-
-
-@app.route("/devices/devicedocs/<name>")
-def devicedocs(name):
-    try:
-        pages.require("system_admin")
-    except PermissionError:
-        return pages.loginredirect(pages.geturl())
-    x = devices.devices_host.devices[name].readme
-
-    if x is None:
-        x = "No readme found"
-    if x.startswith("/") or (len(x) < 1024 and os.path.exists(x)):
-        with open(x) as f:
-            x = f.read()
-
-    return pages.get_template("devices/devicedocs.html").render(docs=x)
 
 
 @app.route("/devices/updateDevice/<devname>", methods=["POST"])

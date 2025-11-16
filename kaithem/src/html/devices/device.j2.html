@@ -56,7 +56,12 @@
     {% endfor %}
 </datalist>
 
-<h1 style="text-align: center;">Device Inspector: {{ obj.device.title }}
+<h1 style="text-align: center;">Device Inspector:
+    {% if obj and obj.device and obj.device.title %}
+    {{ obj.device.title }}
+    {% else %}
+    {{ name }}
+    {% endif %}
 </h1>
 
 
@@ -67,6 +72,10 @@
     </div>
 
     <section class="window padding w-full">
+        {%if not obj %}
+        <div class="error">This device is incorrectly configured and does
+            not exist.</div>
+            {%endif %}
 
         {% if not hasattr(obj,'_kaithem_is_subdevice') %}
         <form method="post" action="/devices/discoveryStep/{{ url(data.get('type','')) }}/{{ url(name) }}">
@@ -84,29 +93,16 @@
                     <tr>
                         <td>Store settings in Module</td>
                         <td><input type="text" required list="k_modules" name="temp.kaithem.store_in_module"
-                                value="{{ obj.module_name or '' | escape }}"></td>
+                                value="{{ module | escape }}"></td>
                     </tr>
                     <tr>
                         <td>Resource Name(blank=use device name)</td>
                         <td><input type="text" name="temp.kaithem.store_in_resource"
-                                value="{{ obj.module_name or ''| escape }}">
+                                value="{{ resource | escape }}">
                         </td>
                     </tr>
                 </table>
             </details>
-
-
-            {% if hasattr(obj,"device_type") and obj.device.device_type == "ESPHomeDevice" %}
-            <details>
-                <summary><b>ESPHome Web UI</b></summary>
-                Only works if this page is loaded over plain HTTP, due to browser restrictions.
-                Use the <a href="http://{{ data.get('device.hostname','') }}">Direct link</a> if the
-                embedded viewer fails.
-                <iframe src="http://{{ data.get('device.hostname','') }}" class="embedpage"
-                    style="width: 98%; height: 30em;"></iframe>
-            </details>
-            {% endif %}
-
 
             <input type="hidden" name="type" value="{{ data.get('type','') }}">
 
@@ -114,7 +110,7 @@
                 <summary>
                     <b><i class="mdi mdi-help-circle-outline"></i>Help</b>
                 </summary>
-                {% if hasattr(obj.device,'description') and obj.device.description %}
+                {% if obj and hasattr(obj.device,'description') and obj.device.description %}
 
                 <p id="desc">{{ pages.str(obj.device.description)[:8192]| escape }}</p>
 
@@ -127,7 +123,7 @@
 
                 {% endif %}
 
-                {% if hasattr(obj,'readme') and obj.device.readme %}
+                {% if obj and hasattr(obj.device,'readme') and obj.device.readme %}
                 <h3>Readme</h3>
 
                 <div class="max-h-12rem scroll border" id='readme'>
@@ -160,7 +156,7 @@
 
                <script>
                 const config = {
-                    schema: {{obj.device.get_full_schema()|tojson}},
+                    schema: {{obj.device.get_full_schema() if (obj and obj.device) else {'type':'object'}|tojson}},
                     disable_array_delete_all_rows: true,
                     array_controls_top: true,
                     disable_array_delete_last_row: true,
@@ -223,7 +219,7 @@
                 {% endif %}
             </details>
 
-            {% if obj.device.get_config_folder(create=False) %}
+            {% if obj and obj.device and obj.device.get_config_folder(create=False) %}
             <details>
                 <summary>
                     <b><i class="mdi mdi-file-alt"></i>Config Folder</b>
@@ -234,7 +230,7 @@
             {% endif %}
 
 
-            {% if hasattr(obj,'metadata') and obj.metadata %}
+            {% if obj and hasattr(obj,'metadata') and obj.metadata %}
             <details>
                 <summary>
                     <b><i class="mdi mdi-text-chat"></i>Metadata</b>
@@ -244,7 +240,7 @@
                         <th>Name</th>
                         <th>Value</th>
                     </tr>
-
+                    {% if obj.device %}
                     {% for i in obj.device.metadata %}
                     <tr>
                         <td>
@@ -255,6 +251,7 @@
                         </td>
                     </tr>
                     {% endfor %}
+                    {% endif %}
                 </table>
 
                 {% endif %}
@@ -267,9 +264,11 @@
                 triggerCounters = {}
             </script>
             <div class="flex-row gaps">
+                {% if obj %}
                 {% for i in obj.tagpoints %}
                 {{devices_interface.render_device_tag(obj,i) | safe}}
                 {% endfor %}
+                {% endif %}
             </div>
 
 
@@ -295,6 +294,7 @@
     <div style="flex-basis: 20%; min-width: 12em;"></div>
 </main>
 
+{% if obj %}
 <script type="module">
     import { APIWidget } from '/static/js/widget.mjs?'
 
@@ -315,6 +315,7 @@
 
     globalThis.setFake = setFake
 </script>
+{% endif %}
 
 
 
