@@ -18,9 +18,9 @@ classifiers = [
 dependencies = [
     # First party"
     "scullery>=0.4.0",
-    "iot-devices>=0.25.0",
+    "iot-devices>=0.30.0",
     "icemedia>=0.2.0",
-    "NVRChannel>=0.1.8",
+    "NVRChannel>=0.20.0",
     # New numpy needs new opencv
     "numpy>=2.0.0",
     "mako",
