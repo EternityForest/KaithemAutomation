@@ -12,15 +12,8 @@ import sys
 import threading
 
 import structlog
-import uvloop
 import yaml
 from scullery import messagebus
-
-# TODO: deprecated install function
-try:
-    uvloop.install()
-except Exception:
-    print("Failed to install uvloop")
 
 faulthandler.enable()
 

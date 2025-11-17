@@ -156,6 +156,10 @@ test("test", async ({ page }) => {
   });
   await page.getByTestId("save-preset-options").selectOption("");
 
+  await page.evaluate(async () => {
+    await globalThis.doSerialized();
+  });
+  
   await page
     .locator("div")
     .filter({ hasText: /^blue253\.0$/ })
