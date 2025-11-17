@@ -1,6 +1,6 @@
 # Kaithem Automation
 
-![AI generated banner of a water snake](kaithem/data/static/img/16x9/kaithem-tavern.avif)
+![AI generated banner of a tavern](kaithem/data/static/img/16x9/kaithem-tavern.avif)
 
 ![Linux](badges/linux.png)
 ![Python](badges/python.png)
@@ -57,6 +57,8 @@ See the barrel.css [demo](https://eternityforest.github.io/barrel.css/) for more
 >  Material can bear.
 
 
+### Installing UV
+
 First you'll need to get [pipx](https://pipx.pypa.io/stable/installation/) and uv, if you haven't yet.  In the future, pipx will likely not be needed at all, for now this seems to be the most convenient way to get uv.
 
 ```bash
@@ -69,8 +71,10 @@ pipx install uv
 uv tool update-shell
 ```
 
+
+### Installing Kaithem itself
+
 Next you can just install it right from PyPi!
-Be aware that pipx takes a while on a raspberry pi.
 
 ```bash
 uv tool install --force kaithem
@@ -147,6 +151,8 @@ Info for devs here on the wiki (https://github.com/EternityForest/KaithemAutomat
 
 Recent Changes 🕗
 ============
+![AI generated banner of a water snake](kaithem/data/static/img/16x9/lightning-water-snake.avif)
+
 > Good men, the last wave by, crying how bright\
 > Their frail deeds might have danced in a green bay,\
 > Rage, rage against the dying of the light.
