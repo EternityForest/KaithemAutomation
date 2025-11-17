@@ -120,7 +120,9 @@ div.widgetcontainer {
 }
 
 .decorative-image.decorative-image-main {
-    background-image: url(/static/img/nov23-ai-watercolor-tavern.webp);
+    background-image: url(/static/img/16x9/kaithem-tavern.avif);
+    background-size: cover;
+    background-position: 70% 50%;
     display: block;
     box-shadow: none;
     mask-image: radial-gradient(circle, rgba(0, 0, 0, 1) 50%, rgba(0, 0, 0, 0.1) 67%, rgba(0, 0, 0, 0) 71%);
@@ -129,12 +131,13 @@ div.widgetcontainer {
 }
 
 .decorative-image.decorative-image-login {
-    background-image: url(/static/img/nov23-ai-castle.webp);
+    background-image: url(/static/img/16x9/kaithem-tavern.avif);
+    background-size: fill;
+    background-repeat: no-repeat;
+    background-position: center center;
     display: block;
     box-shadow: none;
-    mask-image: radial-gradient(circle, rgba(0, 0, 0, 1) 50%, rgba(0, 0, 0, 0.1) 67%, rgba(0, 0, 0, 0) 71%);
-    -webkit-mask-image: radial-gradient(circle, rgba(0, 0, 0, 1) 50%, rgba(0, 0, 0, 0.1) 67%, rgba(0, 0, 0, 0) 71%);
-    opacity: 70%;
+  
 }
 
 .ac-container img {
