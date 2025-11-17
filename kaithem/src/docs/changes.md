@@ -6,8 +6,12 @@ Change Log
 * :technologist: Switching to Sphinx for docs
 * :technologist: BREAKING Some tagpoint properties are now private.
 * :technologist: Replace Beartype with Pydantic as it is now a strong de facto standard.
+* :technologist: BREAKING The iot_devices integration has been rewritten.  Most devices should be unchanged for users, but NVRChannel no longer supports the old AI object detection.
 * :bug: Fix obscure tagpoint \_\_call\_\_(v,t,a) feature that broke NVRChannel
 * :bug: Fix YoLink not working on some kaithem versions.
+* :sparkles: Splash screen on console
+* :sparkles: Boot time signinficantly improved
+
 
 ### 0.93.1
 

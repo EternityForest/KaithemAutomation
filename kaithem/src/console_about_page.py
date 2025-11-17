@@ -34,13 +34,16 @@ def do_splash_screen():
     try:
         import importlib.metadata
 
-        from rich import print
         from rich.panel import Panel
         from textual_image.renderable import Image
 
         console = Console()
 
-        text = Panel("Kaithem Automation", style="bold medium_turquoise")
+        text = Panel(
+            "Kaithem Automation",
+            style="bold plum4 on cyan2",
+            border_style="dark_cyan",
+        )
         console.print(text)
 
         d = os.path.dirname(os.path.abspath(__file__))
@@ -59,6 +62,12 @@ def do_splash_screen():
                 value = pkg_metadata[key]
                 meta += f"{key}: {value}\n"
 
+        meta += f"Python: {sys.version}\n"
+        meta += f"OS: {sys.platform}\n"
+        meta += f"User: {os.getlogin()}\n"
+        meta += f"PID: {os.getpid()}\n"
+        meta += f"Args: {sys.argv}\n"
+
         text = Panel(meta)
         console.print(text)
 
@@ -75,7 +84,12 @@ def do_splash_screen():
         console.print(text)
         console.print("\n")
 
-        print("Server is loading...")
+        loading = Panel(
+            "Loading...",
+            style="bold white on plum4",
+        )
+
+        console.print(loading)
     # Because this is an easter egg or non critical detail,
     # Don't let it crash the server
     except Exception:

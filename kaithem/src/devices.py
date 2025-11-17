@@ -53,8 +53,17 @@ recent_scanned_tags = {}
 # Used by device tag j2 template
 callable = callable
 
+device_types: dict[str, dict[str, Any]] = {}
 
-device_types = iot_devices.host.discover()
+
+def scan_devices():
+    x = iot_devices.host.discover()
+    device_types.clear()
+    device_types.update(x)
+    return x
+
+
+workers.do(scan_devices)
 
 
 def delete_bookkeep(name, confdir=False):
@@ -1279,6 +1288,3 @@ def init_devices():
             messagebus.post_message(
                 "/system/notifications/errors", "Error loading device"
             )
-
-
-importedDeviceTypes = iot_devices.host.discover()

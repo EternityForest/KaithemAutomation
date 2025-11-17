@@ -49,10 +49,13 @@ structlog.configure(
 def import_in_thread(m):
     def f():
         start_time = time.time()
-        importlib.import_module(m)
+        try:
+            importlib.import_module(m)
+        except Exception:
+            logging.exception(f"Error importing {m}")
         taken = round(time.time() - start_time, 2)
-        if taken > 5:
-            print(f"Loading {m} took {taken}s")
+        if taken > 0.1:
+            logging.info(f"Loading {m} took {taken}s")
 
     threading.Thread(
         target=f, daemon=True, name=f"nostartstoplog.importer.{m}"
@@ -72,6 +75,7 @@ def initialize(config: dict[str, Any] | None = None):
     # Paralellize slow imports
     for i in [
         "sqlite3",
+        "quart",
         "pytz",
         "mako",
         "mako.lookup",
@@ -84,7 +88,10 @@ def initialize(config: dict[str, Any] | None = None):
         "msgpack",
         "dateutil.rrule",
         "psutil",
+        "anyio",
+        "argon2",
         "kaithem.src.jackmanager",
+        "stream_zip",
     ]:
         import_in_thread(i)
     time.sleep(0.1)
