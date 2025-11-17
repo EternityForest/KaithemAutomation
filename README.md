@@ -1,15 +1,13 @@
 # Kaithem Automation
 
-![AI generated banner of a boardwalk tavern](kaithem/data/static/img/banner.avif)
+![AI generated banner of a water snake](kaithem/data/static/img/16x9/kaithem-tavern.avif)
 
 ![Linux](badges/linux.png)
 ![Python](badges/python.png)
 ![Ten Year Project](badges/ten-years.png)
-
 ![Offline First](badges/offline-first.png)
 ![GPLv3 Badge](badges/gpl-v3.png)
 ![Single Board Computer badge](badges/sbc.png)
-
 ![Pytest](badges/pytest.png)
 ![Ruff](badges/ruff.png)
 ![Ruff](badges/uv.png)

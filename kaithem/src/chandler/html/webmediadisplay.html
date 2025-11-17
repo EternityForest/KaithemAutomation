@@ -1,6 +1,5 @@
 <script src="/static/js/thirdparty/showdown.min.js"></script>
 
-
 <!-- <script src="/static/js/thirdparty/butterchurn/butterchurn.min.js"></script>
 <script src="/static/js/thirdparty/butterchurn/butterchurnPresetsExtra.min.js"></script>
 <script src="/static/js/thirdparty/butterchurn/butterchurnPresetsExtra2.min.js"></script>
@@ -8,375 +7,345 @@
 <script src="/static/js/thirdparty/butterchurn/milkdrop-preset-converter.min.js"></script> -->
 
 <style>
-    * {
-        cursor: none !important;
-    }
+  * {
+    cursor: none !important;
+  }
 
-    /*Turn off theme filters*/
-    img,
-    video {
-        filter: none;
-    }
+  /*Turn off theme filters*/
+  img,
+  video {
+    filter: none;
+  }
 
-    body {
-        background-color: black;
-        overflow: hidden;
-        margin: 0px;
-        padding: 0px;
-        color: aliceblue;
-        text-align: center;
-        position: relative;
-    }
+  body {
+    background-color: black;
+    overflow: hidden;
+    margin: 0px;
+    padding: 0px;
+    color: aliceblue;
+    text-align: center;
+    position: relative;
+  }
 
+  slideshow-app,
+  media-player {
+    margin: 0px;
+    padding: 0px;
+  }
 
-    slideshow-app,
-    media-player {
-        margin: 0px;
-        padding: 0px;
-    }
+  media-player {
+    position: relative;
+    text-shadow:
+      3px 3px 0 #000,
+      -3px 3px 0 #000,
+      -3px -3px 0 #000,
+      3px -3px 0 #000;
+    background: black;
+  }
 
-    media-player {
-        position: relative;
-        text-shadow:
-            3px 3px 0 #000,
-            -3px 3px 0 #000,
-            -3px -3px 0 #000,
-            3px -3px 0 #000;
-        background: black;
-    }
+  slideshow-app {
+    height: 100%;
+    width: 100%;
+  }
 
-    slideshow-app {
-        height: 100%;
-        width: 100%;
-    }
+  .player {
+    margin: 0px;
+    padding: 0px;
+    border-width: 0px;
+    height: 100%;
+    width: 100%;
+    position: absolute;
+    top: 0px;
+    left: 0px;
+  }
 
-    .player {
-        margin: 0px;
-        padding: 0px;
-        border-width: 0px;
-        height: 100%;
-        width: 100%;
-        position: absolute;
-        top: 0px;
-        left: 0px;
-    }
+  audio {
+    display: none;
+  }
 
-    audio {
-        display: none;
-    }
+  #overlay {
+    margin: 0px;
+    padding: 0px;
+    border-width: 0px;
+    height: 100%;
+    width: 100%;
+    z-index: 100;
+    top: 0px;
+    left: 0px;
+    background-color: transparent;
+    position: absolute;
+    display: none;
+  }
 
-    #overlay {
-        margin: 0px;
-        padding: 0px;
-        border-width: 0px;
-        height: 100%;
-        width: 100%;
-        z-index: 100;
-        top: 0px;
-        left: 0px;
-        background-color: transparent;
-        position: absolute;
-        display: none;
-    }
-
-    img,
-        iframe {
-            max-width: 100%;
-        }
+  img,
+  iframe {
+    max-width: 100%;
+  }
 </style>
-
-
-
-
 
 <script src="/static/js/thirdparty/vue3.js"></script>
 <script src="/static/js/thirdparty/handlebars.js"></script>
 
-
 ${groups.groups[kwargs['group']].slideshow_layout}
 
 <script type="module">
-    import { makePlayer, setLink, setTelemetryName, setTelemetryStatus, sendTelemetry} from  "./webmedia.mjs"
-    import { kaithemapi, APIWidget} from "/static/js/widget.mjs?"
-    import picodash from '/static/js/thirdparty/picodash/picodash-base.esm.js'
+  import {
+    makePlayer,
+    setLink,
+    setTelemetryName,
+    setTelemetryStatus,
+    sendTelemetry,
+  } from "./webmedia.mjs";
+  import { kaithemapi, APIWidget } from "/static/js/widget.mjs?";
+  import picodash from "/static/js/thirdparty/picodash/picodash-base.esm.js";
 
-    let link = new APIWidget("${groups.groups[kwargs['group']].media_link_socket.uuid}")
-    var conv = new showdown.Converter({ metadata: true });
+  let link = new APIWidget(
+    "${groups.groups[kwargs['group']].media_link_socket.uuid}"
+  );
+  var conv = new showdown.Converter({ metadata: true });
 
-    setLink(link)
+  setLink(link);
 
-    const { createApp, ref } = Vue;
+  const { createApp, ref } = Vue;
 
-    var mediaPlayerComponent = {
-        data() {
-            return {
-            }
-        },
-        compilerOptions: {
-            isCustomElement: function (tag) {
-                return true
-            }
-        },
-        template: `
+  var mediaPlayerComponent = {
+    data() {
+      return {};
+    },
+    compilerOptions: {
+      isCustomElement: function (tag) {
+        return true;
+      },
+    },
+    template: `
         <media-player>
             <div class="player" id='player1'></div>
             <div class="player" id='player2'></div>
             <iframe id="overlay"></iframe>
-        </media-player>`
+        </media-player>`,
+  };
+
+  // The "data" for this is used as both the handlebars and Vue context.
+  // Using handlebars for cue templates because it's markdown not HTML.
+  const app = createApp({
+    data() {
+      return {
+        cueText: "",
+        privateCueTamplate: Handlebars.compile(""),
+
+        // Vars meant for users to use in the handlebars templates if desired
+        countdown: "00:00:00",
+
+        date: new Date().toLocaleDateString(),
+        clock: new Date().toLocaleTimeString(),
+      };
+    },
+    components: {
+      "media-player": mediaPlayerComponent,
+    },
+  }).mount("slideshow-app");
+
+  import { formatInterval } from "./utils.mjs";
+
+  let player = new makePlayer(
+    document.getElementById("player1"),
+    "${kwargs['group']}"
+  );
+  let player2 = new makePlayer(
+    document.getElementById("player2"),
+    "${kwargs['group']}"
+  );
+
+  function renderCueText() {
+    var t = app.$data.privateCueTamplate(app.$data);
+    app.$data.cueText = conv.makeHtml(t);
+
+    var el = document.getElementsByTagName("cue-text")[0];
+    if (el) {
+      if (!el.innerHTML == app.$data.cueText) {
+        el.innerHTML = app.$data.cueText;
+      }
+    }
+  }
+
+  function f(v) {
+    if (v[0] == "volume") {
+      player.targetVolume = v[1];
+      player2.targetVolume = v[1];
+    } else if (v[0] == "overlay") {
+      var el = document.getElementById("overlay");
+      if (el) {
+        if (el.src != v[1]) {
+          el.src = v[1];
+
+          if (el.src) {
+            el.style.display = "block";
+          } else {
+            el.style.display = "none";
+          }
+        }
+      }
+    } else if (v[0] == "testAudio") {
+      var mp3_url = "/static/sounds/72127__kizilsungur__sweetalertsound3.opus";
+      new Audio(mp3_url)
+        .play()
+        .catch(() => {
+          setTelemetryStatus("PLAY FAILED");
+        })
+        .then(() => {
+          setTelemetryStatus("OK");
+        });
+      picodash.snackbar.createSnackbar("Ding!", {
+        accent: "success",
+        timeout: 5000,
+      });
+    } else if (v[0] == "setFriendlyName") {
+      setTelemetryName(v[1]);
+      localStorage.setItem("friendly_slideshow_device_name", v[1]);
+    } else if (v[0] == "refresh") {
+      window.location.reload();
+    } else if (v[0] == "mediaURL") {
+      // We want to be able to jump in at the appropriate time relative to cue start in case we refresh the page.
+      // But we more importantly want to prioritize not missing the start of a short clip
+      var t = link.now() / 1000 - v[2];
+      if (t < 1) {
+        t = 0;
+      }
+
+      //Use when it started as the session tag
+      player.switchMedia(v[1], v[3], t, v[2]);
     }
 
+    //Pretty much just for sounds
+    else if (v[0] == "butterchurnfiles") {
+      player2.butterchurn_options = v[1];
+    } else if (v[0] == "slide") {
+      // We want to be able to jump in at the appropriate time relative to cue start in case we refresh the page.
+      // But we more importantly want to prioritize not missing the start of a short clip
+      var t = link.now() / 1000 - v[2];
+      if (t < 1) {
+        t = 0;
+      }
 
-    // The "data" for this is used as both the handlebars and Vue context.
-    // Using handlebars for cue templates because it's markdown not HTML.
-    const app = createApp({
-        data() {
-            return {
-                cueText: "",
-                "privateCueTamplate": Handlebars.compile(""),
+      //Use when it started as the session tag
+      player2.switchMedia(v[1], v[3], t, v[2]);
+    } else if (v[0] == "cue_ends") {
+      if (v[2]) {
+        app.$data._cue_ends = v[1];
+      } else {
+        app.$data._cue_ends = 0;
+      }
+    } else if (v[0] == "text") {
+      app.$data.privateCueTamplate = Handlebars.compile(v[1]);
+      renderCueText();
+    } else if (v[0] == "all_variables") {
+      Object.assign(app.$data, v[1]);
+      renderCueText();
+    } else if (v[0] == "web_var") {
+      app.$data[v[0]] = v[1];
+      renderCueText();
+    } else if (v[0] == "transform") {
+      let data = v[1];
+      this.transform = data;
+      let el = document.getElementsByTagName("body")[0];
 
-                // Vars meant for users to use in the handlebars templates if desired
-                countdown: '00:00:00',
+      if (data.scale_y) {
+        el.style.height = data.scale_y + "vh";
+      }
+      if (data.scale_x) {
+        el.style.width = data.scale_x + "vw";
+      }
 
-                date: new Date().toLocaleDateString(),
-                clock: new Date().toLocaleTimeString()
+      if (data.translate_x) {
+        el.style.left = data.translate_x + "vw";
+      }
 
-            }
-        },
-        components: {
-            'media-player': mediaPlayerComponent
-        }
-    }).mount('slideshow-app')
+      if (data.translate_y) {
+        el.style.top = data.translate_y + "vh";
+      }
 
-    import { formatInterval } from "./utils.mjs";
+      let t = "";
 
-    let player = new makePlayer(document.getElementById('player1'), "${kwargs['group']}")
-    let player2 = new makePlayer(document.getElementById('player2'), "${kwargs['group']}")
+      if (data.perspective) {
+        t += "perspective(" + data.perspective + "cm)";
+      }
 
+      if (data.rotate_x) {
+        t += "rotate3D(1,0,0, " + data.rotate_x + "deg)";
+      }
 
-    function renderCueText() {
-        var t = app.$data.privateCueTamplate(app.$data)
-        app.$data.cueText = conv.makeHtml(t)
+      if (data.rotate_y) {
+        t += "rotate3D(0, 1, 0, " + data.rotate_y + "deg)";
+      }
 
-        var el = document.getElementsByTagName("cue-text")[0]
-        if (el) {
-            if (!el.innerHTML == app.$data.cueText) {
-                el.innerHTML = app.$data.cueText
-            }
-        }
+      if (data.rotate_z) {
+        t += "rotateZ(" + data.rotate_z + "deg)";
+      }
+
+      el.style.transform = t;
+    }
+  }
+
+  link.upd = f;
+  link.timeSyncInterval = 10000;
+
+  link.send(["ask"]);
+  link.send(["initial"]);
+  sendTelemetry();
+
+  document.onvisibilitychange = () => {
+    if (document.visibilityState === "hidden") {
+      setTelemetryStatus("PAGE HIDDEN");
+    } else {
+      setTelemetryStatus("OK");
+    }
+  };
+
+  const beforeUnloadListener = (event) => {
+    setTelemetryStatus("DISCONNECTED"); //"disconnect"
+  };
+
+  window.addEventListener("beforeunload", beforeUnloadListener);
+
+  function f2() {
+    link.send(["ask"]);
+  }
+
+  setInterval(f2, 60000);
+
+  function timers() {
+    if (app.$data._cue_ends) {
+      app.$data.countdown = formatInterval(
+        app.$data._cue_ends - link.now() / 1000
+      );
+    } else {
+      app.$data.countdown = "";
     }
 
-    function f(v) {
-        if (v[0] == 'volume') {
-            player.targetVolume = v[1]
-            player2.targetVolume = v[1]
+    app.$data.date = new Date().toLocaleDateString();
+    app.$data.clock = new Date().toLocaleTimeString();
 
-        }
+    renderCueText();
+  }
 
-        else if (v[0] == 'overlay') {
-            var el = document.getElementById("overlay")
-            if (el) {
-                if (el.src != v[1]) {
-                    el.src = v[1]
+  setInterval(timers, 1000);
 
-                    if (el.src) {
-                        el.style.display = 'block'
-                    }
-                    else {
-                        el.style.display = 'none'
-                    }
-                }
-            }
-        }
+  // The wake lock sentinel.
+  let wakeLock = null;
 
-        else if (v[0] == 'testAudio') {
-            var mp3_url = '/static/sounds/72127__kizilsungur__sweetalertsound3.opus';
-            (new Audio(mp3_url)).play().catch(() => {
-                setTelemetryStatus("PLAY FAILED")
-            }).then(() => {
-                setTelemetryStatus("OK")
-            }
-            )
-            picodash.snackbar.createSnackbar("Ding!", {
-                accent: 'success',
-                timeout: 5000
-            })
-        }
-
-        else if (v[0] == 'setFriendlyName') {
-            setTelemetryName(v[1])
-            localStorage.setItem('friendly_slideshow_device_name', v[1])
-        }
-        else if (v[0] == 'refresh') {
-            window.location.reload();
-        }
-
-        else if (v[0] == 'mediaURL') {
-
-            // We want to be able to jump in at the appropriate time relative to cue start in case we refresh the page.
-            // But we more importantly want to prioritize not missing the start of a short clip
-            var t = (link.now() / 1000) - v[2]
-            if (t < 1) {
-                t = 0;
-            }
-
-            //Use when it started as the session tag
-            player.switchMedia(v[1], v[3], t, v[2])
-        }
-
-        //Pretty much just for sounds
-        else if (v[0] == 'butterchurnfiles') {
-            player2.butterchurn_options = v[1]
-        }
-
-
-        else if (v[0] == 'slide') {
-
-            // We want to be able to jump in at the appropriate time relative to cue start in case we refresh the page.
-            // But we more importantly want to prioritize not missing the start of a short clip
-            var t = (link.now() / 1000) - v[2]
-            if (t < 1) {
-                t = 0;
-            }
-
-            //Use when it started as the session tag
-            player2.switchMedia(v[1], v[3], t, v[2])
-        }
-
-        else if (v[0] == 'cue_ends') {
-            if (v[2]) {
-                app.$data._cue_ends = v[1]
-            }
-            else {
-                app.$data._cue_ends = 0;
-            }
-        }
-
-        else if (v[0] == 'text') {
-            app.$data.privateCueTamplate = Handlebars.compile(v[1])
-            renderCueText()
-        }
-
-        else if (v[0] == 'all_variables') {
-            Object.assign(app.$data, v[1])
-            renderCueText()
-        }
-
-        else if (v[0] == 'web_var') {
-            app.$data[v[0]] = v[1]
-            renderCueText()
-        }
-
-        else if (v[0] == 'transform') {
-            let data = v[1]
-            this.transform = data
-            let el = document.getElementsByTagName('body')[0]
-
-
-            if (data.scale_y){
-                el.style.height = data.scale_y + "vh"
-            }
-            if (data.scale_x){
-                el.style.width = data.scale_x + "vw"
-            }
-
-            if (data.translate_x) {
-                el.style.left = data.translate_x + "vw"
-            }
-
-            if (data.translate_y) {
-                el.style.top = data.translate_y + "vh"
-            }
-
-            let t = ""
-
-            if (data.perspective) {
-                t += "perspective(" + data.perspective + "cm)"
-            }
-
-            if (data.rotate_x) {
-                t += "rotate3D(1,0,0, "+ data.rotate_x + "deg)"
-            }
-
-            if (data.rotate_y) {
-                t += "rotate3D(0, 1, 0, "+ data.rotate_y + "deg)"
-            }
-
-            if (data.rotate_z) {
-                t += "rotateZ(" + data.rotate_z + "deg)"
-            }
-
-            el.style.transform = t
-
-
-        }
+  // Function that attempts to request a screen wake lock.
+  const requestWakeLock = async () => {
+    try {
+      wakeLock = await navigator.wakeLock.request();
+      wakeLock.addEventListener("release", () => {
+        console.log("Screen Wake Lock released:", wakeLock.released);
+      });
+      console.log("Screen Wake Lock released:", wakeLock.released);
+    } catch (err) {
+      console.error(err.message);
     }
+  };
 
-    link.upd = f
-    link.timeSyncInterval = 10000
-
-    link.send(['ask'])
-    link.send(['initial'])
-    sendTelemetry()
-
-
-    document.onvisibilitychange = () => {
-        if (document.visibilityState === "hidden") {
-            setTelemetryStatus("PAGE HIDDEN")
-        }
-        else {
-            setTelemetryStatus("OK")
-        }
-    };
-
-
-    const beforeUnloadListener = (event) => {
-        setTelemetryStatus("DISCONNECTED") //"disconnect"
-    };
-
-    window.addEventListener("beforeunload", beforeUnloadListener);
-
-
-    function f2() {
-        link.send(['ask'])
-    }
-
-    setInterval(f2, 60000)
-
-
-    function timers() {
-        if (app.$data._cue_ends) {
-            app.$data.countdown = formatInterval(app.$data._cue_ends - (link.now() / 1000))
-        }
-        else {
-            app.$data.countdown = ''
-        }
-
-        app.$data.date = new Date().toLocaleDateString()
-        app.$data.clock = new Date().toLocaleTimeString()
-
-        renderCueText()
-    }
-
-    setInterval(timers, 1000)
-
-
-    // The wake lock sentinel.
-    let wakeLock = null;
-
-    // Function that attempts to request a screen wake lock.
-    const requestWakeLock = async () => {
-        try {
-            wakeLock = await navigator.wakeLock.request();
-            wakeLock.addEventListener('release', () => {
-                console.log('Screen Wake Lock released:', wakeLock.released);
-            });
-            console.log('Screen Wake Lock released:', wakeLock.released);
-        } catch (err) {
-            console.error(err.message);
-        }
-    };
-
-    // Request a screen wake lock…
-    requestWakeLock();
-
+  // Request a screen wake lock…
+  requestWakeLock();
 </script>

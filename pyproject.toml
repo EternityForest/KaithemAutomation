@@ -90,6 +90,7 @@ dependencies = [
     "sherpa-onnx==1.12.17",
     "sherpa-onnx-core",
     "soundfile~=0.13.1",
+    "textual-image"
 ]
 
 [build-system]

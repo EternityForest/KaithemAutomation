@@ -1,7 +1,7 @@
 {
   "name": "kaithemautomation",
   "version": "1.0.0",
-  "description": "![AI generated picture of a tavern](kaithem/data/static/img/nov23-ai-watercolor-tavern.webp)",
+  "description": "![AI generated picture of a tavern](kaithem/data/static/img/16x9/kaithem-tavern.avif)",
   "main": "index.js",
   "scripts": {},
   "keywords": [],
