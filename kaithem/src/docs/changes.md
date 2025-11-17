@@ -11,6 +11,7 @@ Change Log
 * :bug: Fix YoLink not working on some kaithem versions.
 * :sparkles: Splash screen on console
 * :sparkles: Boot time signinficantly improved
+* :sparkles: -v option to just print version and exit
 
 
 ### 0.93.1

@@ -1,8 +1,21 @@
 import logging
 import os
+import platform
 import sys
 
+import psutil
 from rich.console import Console
+
+
+def get_process_name_by_pid(pid):
+    try:
+        process = psutil.Process(pid)
+        return process.name()
+    except psutil.NoSuchProcess:
+        return f"No process found with PID: {pid}"
+    except psutil.AccessDenied:
+        return f"Access denied to process with PID: {pid}"
+
 
 logger = logging.getLogger(__name__)
 pil_logger = logging.getLogger("PIL")
@@ -30,7 +43,7 @@ He thrusts his fists against the posts,
 And still insists he sees the ghosts."""
 
 
-def do_splash_screen():
+def do_splash_screen(version_only=False):
     try:
         import importlib.metadata
 
@@ -53,22 +66,45 @@ def do_splash_screen():
         )
 
         pkg_metadata = importlib.metadata.metadata("kaithem")
-        meta = ""
+        meta = []
 
         include_meta = ["name", "version", "summary", "license_expression"]
+
+        def add_kv(key, value):
+            meta.append(f"[bold]{key}:[/bold] {value}\n")
 
         for key in include_meta:
             if key in pkg_metadata:
                 value = pkg_metadata[key]
-                meta += f"{key}: {value}\n"
+                add_kv(key, value)
 
-        meta += f"Python: {sys.version}\n"
-        meta += f"OS: {sys.platform}\n"
-        meta += f"User: {os.getlogin()}\n"
-        meta += f"PID: {os.getpid()}\n"
-        meta += f"Args: {sys.argv}\n"
+        # No seriously private info here
+        add_kv("Python", sys.version)
+        add_kv("OS", sys.platform)
+        add_kv("OS Release", platform.freedesktop_os_release()["PRETTY_NAME"])
+        add_kv("Machine", platform.machine())
+        add_kv("Platform Version", platform.version())
+        add_kv("Platform Release", platform.release())
+        add_kv("CPU", platform.processor() or "Unknown")
+        add_kv("User ID", os.getuid())
 
-        text = Panel(meta)
+        add_kv("Parent PID", os.getppid())
+        add_kv("Parent Name", get_process_name_by_pid(os.getppid()))
+        add_kv("PID", os.getpid())
+        add_kv("Args", " ".join(sys.argv))
+        add_kv("Repo", "https://github.com/EternityForest/KaithemAutomation")
+
+        text = Panel("".join(meta))
+        console.print(text)
+
+        meta = []
+
+        # Identifiable user info
+        add_kv("Executable", sys.executable)
+        add_kv("Network Name", platform.node())
+        add_kv("User", os.getlogin())
+
+        text = Panel("".join(meta))
         console.print(text)
 
         # Via SSH might be too taxing over bad wifi at 1AM when you need to debug something
@@ -89,7 +125,8 @@ def do_splash_screen():
             style="bold white on plum4",
         )
 
-        console.print(loading)
+        if not version_only:
+            console.print(loading)
     # Because this is an easter egg or non critical detail,
     # Don't let it crash the server
     except Exception:
