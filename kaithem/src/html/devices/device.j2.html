@@ -156,7 +156,7 @@
 
                <script>
                 const config = {
-                    schema: {{obj.device.get_full_schema() if (obj and obj.device) else {'type':'object'}|tojson}},
+                    schema: {{json.dumps(obj.device.get_full_schema() if (obj and obj.device) else {'type':'object'})}},
                     disable_array_delete_all_rows: true,
                     array_controls_top: true,
                     disable_array_delete_last_row: true,
