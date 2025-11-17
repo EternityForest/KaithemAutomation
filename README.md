@@ -24,26 +24,11 @@ You automate things by directly writing python and HTML via a web IDE, or by usi
 
 ## Screenshots 🏕️
 
-### No-code automation logic editor
-
-![Logic Editor](screenshots/cue-logic-mobile.avif)
-
-### JACK/Pipewire audio mixer with FX
-
-![Audio Mixer](screenshots/audio-mixer-mobile.avif)
-
-### Lighting presets
-
-![Preset Selector](screenshots/preset-selection.avif)
-
-### Trigger Lighting and automation cues
-
 ![Cues List](screenshots/cues-list.avif)
-
-### Device Integrations
-
+![Preset Selector](screenshots/preset-selection.avif)
+![Audio Mixer](screenshots/audio-mixer-mobile.avif)
+![Logic Editor](screenshots/cue-logic-mobile.avif)
 ![Device Page](screenshots/device-page.avif)
-
 
 
 See the barrel.css [demo](https://eternityforest.github.io/barrel.css/) for more themes
