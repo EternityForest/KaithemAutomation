@@ -34,7 +34,7 @@ def is_running_via_ssh():
 
 def is_interactive_terminal():
     """Checks if the script is running in an interactive terminal."""
-    return sys.stdin.isatty() or "PS1" in os.environ
+    return sys.stdin.isatty() and "PS1" in os.environ
 
 
 quote = """Amidst the mists and fiercest frosts,
@@ -104,7 +104,7 @@ def do_splash_screen(version_only=False):
         add_kv("Parent Name", get_process_name_by_pid(os.getppid()))
         add_kv("PID", os.getpid())
 
-        add_kv("Args", " ".join(sys.argv))
+        add_kv("Args", " ".join(sys.argv[1:]))
 
         add_kv("OS", sys.platform)
         add_kv("OS Release", platform.freedesktop_os_release()["PRETTY_NAME"])

@@ -14,6 +14,7 @@ import structlog
 import structlog.dev
 
 from . import config as config_module
+from . import console_about_page
 
 structlog.stdlib.recreate_defaults()
 
@@ -66,6 +67,13 @@ def initialize(config: dict[str, Any] | None = None):
     "Config priority is default, then cfg param, then cmd line cfg file as highest priority"
 
     start_time = time.time()
+
+    version = "-v" in sys.argv or "--version" in sys.argv
+
+    console_about_page.do_splash_screen(version_only=version)
+
+    if version:
+        sys.exit(0)
 
     from . import (
         logconfig,  # noqa: F401

@@ -1,7 +1,6 @@
-import sys
-from typing import Any, Dict, Optional
+from typing import Any
 
-from .src import console_about_page, main
+from .src import main
 
 started = False
 
@@ -10,12 +9,7 @@ def initialize_app(cfg: dict[str, Any] | None = None):
     """Initialize the app"""
     global started
     if not started:
-        version = "-v" in sys.argv or "--version" in sys.argv
-        console_about_page.do_splash_screen(version_only=version)
-        if version:
-            sys.exit(0)
-        else:
-            main.initialize(cfg)
+        main.initialize(cfg)
 
     else:
         # pragma: no cover
