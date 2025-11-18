@@ -17,7 +17,6 @@ from collections.abc import Callable
 from types import FunctionType, MethodType
 from typing import Any
 
-import pytz
 import simpleeval
 from scullery import workers
 from scullery.scheduling import scheduler
@@ -405,7 +404,7 @@ class ScheduleTimer:
         self.selector = util.get_rrule_selector(selector[1:], ref)
 
         nextruntime = self.selector.after(datetime.datetime.now(), False)
-        self.nextruntime = dt_to_ts(nextruntime)
+        self.nextruntime = nextruntime.timestamp()
         self.next = scheduler.schedule(self.handler, self.nextruntime, False)
 
     def handler(self, *a, **k):
@@ -418,7 +417,7 @@ class ScheduleTimer:
         try:
             ctx.event(self.eventName)
 
-            self.nextruntime = dt_to_ts(nextruntime)
+            self.nextruntime = nextruntime.timestamp()
             self.next = scheduler.schedule(
                 self.handler, self.nextruntime, False
             )
@@ -432,27 +431,6 @@ class ScheduleTimer:
             self.next.unregister()
         except Exception:
             pass
-
-
-def dt_to_ts(dt, tz=None):
-    "Given a datetime in tz, return unix timestamp"
-    if tz:
-        utc = pytz.timezone("UTC")
-        return (
-            tz.localize(dt.replace(tzinfo=None))
-            - datetime.datetime(1970, 1, 1, tzinfo=utc)
-        ) / datetime.timedelta(seconds=1)
-
-    else:
-        # Local Time
-        ts = time.time()
-        offset = (
-            datetime.datetime.fromtimestamp(ts)
-            - datetime.datetime.utcfromtimestamp(ts)
-        ).total_seconds()
-        return (
-            (dt - datetime.datetime(1970, 1, 1)) / datetime.timedelta(seconds=1)
-        ) - offset
 
 
 class ScriptActionKeeper:

@@ -25,7 +25,6 @@ import weakref
 from collections import defaultdict
 from collections.abc import Callable
 
-import pytz
 import structlog
 import yaml
 from scullery import scheduling, snake_compat
@@ -88,7 +87,7 @@ def get_time(ev):
     try:
         if not _events_by_module_resource[ev].nextruntime:
             return 0
-        return dt_to_ts(_events_by_module_resource[ev].nextruntime or 0)
+        return _events_by_module_resource[ev].nextruntime.timestamp()
     except Exception:
         return -1
 
@@ -1299,27 +1298,6 @@ class PolledInternalSystemEvent(BaseEvent, DirectFunctionsMixin):
             self._prevstate = False
 
 
-def dt_to_ts(dt, tz=None):
-    "Given a datetime in tz, return unix timestamp"
-    if tz:
-        utc = pytz.timezone("UTC")
-        return (
-            tz.localize(dt.replace(tzinfo=None))
-            - datetime.datetime(1970, 1, 1, tzinfo=utc)
-        ) / datetime.timedelta(seconds=1)
-
-    else:
-        # Local Time
-        ts = time.time()
-        offset = (
-            datetime.datetime.fromtimestamp(ts)
-            - datetime.datetime.utcfromtimestamp(ts)
-        ).total_seconds()
-        return (
-            (dt - datetime.datetime(1970, 1, 1)) / datetime.timedelta(seconds=1)
-        ) - offset
-
-
 class RecurringEvent(CompileCodeStringsMixin):
     "This represents an event that happens on a schedule"
 
@@ -1389,7 +1367,7 @@ class RecurringEvent(CompileCodeStringsMixin):
                 self.nextruntime = self.selector.after(self.nextruntime, False)
 
                 self.next = scheduler.schedule(
-                    self.handler, dt_to_ts(self.nextruntime), False
+                    self.handler, self.nextruntime.timestamp(), False
                 )
                 return
         try:
@@ -1419,7 +1397,7 @@ class RecurringEvent(CompileCodeStringsMixin):
 
             if self.nextruntime:
                 self.next = scheduler.schedule(
-                    self.handler, dt_to_ts(self.nextruntime), False
+                    self.handler, self.nextruntime.timestamp(), False
                 )
                 return
             print(
@@ -1455,7 +1433,7 @@ class RecurringEvent(CompileCodeStringsMixin):
 
             if self.nextruntime:
                 self.next = scheduler.schedule(
-                    self.handler, dt_to_ts(self.nextruntime), False
+                    self.handler, self.nextruntime.timestamp(), False
                 )
                 return
             print(
@@ -1488,7 +1466,7 @@ class RecurringEvent(CompileCodeStringsMixin):
                 return
 
             self.next = scheduler.schedule(
-                self.handler, dt_to_ts(self.nextruntime), False
+                self.handler, self.nextruntime.timestamp(), False
             )
 
             self.disable = False
@@ -2236,9 +2214,9 @@ class EventType(modules_state.ResourceType):
         def formatnextrun():
             try:
                 return unitsofmeasure.strftime(
-                    dt_to_ts(
-                        _events_by_module_resource[module, resource].nextruntime
-                    )
+                    _events_by_module_resource[
+                        module, resource
+                    ].nextruntime.timestamp()
                 )
             except Exception as e:
                 return str(e)
@@ -2256,7 +2234,6 @@ class EventType(modules_state.ResourceType):
             EventReferences=_events_by_module_resource,
             resource_obj=_events_by_module_resource[module, resource],
             getEventLastRan=getEventLastRan,
-            dt_to_ts=dt_to_ts,
             getEventErrors=getEventErrors,
             time=time,
             timetaken=timetaken,

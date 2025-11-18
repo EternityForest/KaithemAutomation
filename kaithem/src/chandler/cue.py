@@ -31,7 +31,6 @@ from .. import assetlib, schemas, util
 from . import core
 from .core import disallow_special
 from .global_actions import normalize_shortcut, shortcut_codes
-from .mathutils import dt_to_ts
 
 if TYPE_CHECKING:
     from .groups import Group
@@ -657,7 +656,7 @@ class Cue:
                         if not a.tzinfo:
                             a = a.replace(tzinfo=dateutil.tz.tzlocal())
 
-                        a2 = dt_to_ts(a)
+                        a2 = a.timestamp()
 
                         def f():
                             try:

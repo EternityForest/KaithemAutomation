@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING
 import structlog
 
 from .. import util
-from .mathutils import dt_to_ts
 
 if TYPE_CHECKING:
     from . import groups
@@ -119,7 +118,7 @@ def get_schedule_jump_point(group: groups.Group) -> None | tuple[str, float]:
             if not a.tzinfo:
                 a = a.astimezone()
 
-            a2 = dt_to_ts(a)
+            a2 = a.timestamp()
 
             # We found the end time of the cue.
             # If that turns out to be the most recent,
@@ -157,7 +156,7 @@ def get_schedule_jump_point(group: groups.Group) -> None | tuple[str, float]:
                     if not a.tzinfo:
                         a = a.astimezone()
 
-                    a2 = dt_to_ts(a)
+                    a2 = a.timestamp()
                     scheduled_count += 1
                     times[cue.name] = a2
 

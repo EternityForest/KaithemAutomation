@@ -49,7 +49,7 @@ from .global_actions import cl_trigger_shortcut_code
 from .group_context_commands import add_context_commands, rootContext
 from .group_lighting import GroupLightingManager
 from .group_scheduling import get_schedule_jump_point
-from .mathutils import dt_to_ts, ease, number_to_note
+from .mathutils import ease, number_to_note
 from .signage import MediaLinkManager
 from .universes import get_on_demand_universe, getUniverse, mapChannel
 
@@ -1488,7 +1488,7 @@ class Group:
             if nextruntime <= ref:
                 nextruntime = selector.after(nextruntime, False)
 
-            t2 = dt_to_ts(nextruntime)
+            t2 = nextruntime.timestamp()
 
             nextruntime = t2
 

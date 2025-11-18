@@ -22,7 +22,6 @@ from .. import assetlib, directories, pages, util
 from . import (
     core,
     groups,
-    mathutils,
     universes,
     web_api,  # noqa: F401
 )
@@ -171,7 +170,7 @@ def erd():
         if nextruntime <= ref:
             nextruntime = selector.after(nextruntime, False)
 
-        t2 = mathutils.dt_to_ts(nextruntime)
+        t2 = nextruntime.timestamp()
 
         nextruntime = t2
 
