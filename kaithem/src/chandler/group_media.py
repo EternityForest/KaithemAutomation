@@ -221,7 +221,7 @@ class GroupMediaPlayer:
                             "album": soundMeta.album or "Unknown",
                             "year": soundMeta.year or "Unknown",
                         }
-                        album_art = soundMeta.get_image()
+                        album_art = soundMeta.images.any
                     except Exception:
                         # Not support, but it might just be an unsupported type.
                         # if mp3, its a real error, we should alert

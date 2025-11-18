@@ -218,7 +218,7 @@ async def media():
                     return t
 
             soundMeta = TinyTag.get(sound, image=True)
-            t = soundMeta.get_image()
+            t = soundMeta.images.any
             if not t:
                 return os.path.join(
                     directories.datadir,
