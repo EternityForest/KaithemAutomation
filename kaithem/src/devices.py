@@ -18,6 +18,7 @@ from typing import Any
 
 import iot_devices.device
 import iot_devices.host
+import pydantic
 import quart
 import structlog
 
@@ -943,7 +944,9 @@ class UnsupportedDevice(iot_devices.device.Device):
 # is name, and that's optional but can be used to rename a device
 
 
-def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
+def updateDevice(
+    devname: str, kwargs: dict[str, Any], saveChanges: bool = True
+):
     # The NEW name, which could just be the old name
     name = kwargs.get("name", None) or devname
 
@@ -1011,9 +1014,16 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
         )
 
         if parent_module and parent_resource:
-            dt = modules_state.ActiveModules[parent_module][parent_resource][
-                "device"
-            ]
+            if (
+                parent_module in modules_state.ActiveModules
+                and parent_resource
+                in modules_state.ActiveModules[parent_module]
+            ):
+                dt = modules_state.ActiveModules[parent_module][
+                    parent_resource
+                ]["device"]
+            else:
+                dt = {}
 
             assert isinstance(dt, dict)
 
@@ -1111,8 +1121,20 @@ def updateDevice(devname, kwargs: dict[str, Any], saveChanges=True):
             not parent_module and not parent_resource
         )
 
-        if parent_module and parent_resource:
-            modules_state.rawDeleteResource(parent_module, parent_resource)
+        with modules_state.modulesLock:
+            if parent_module and parent_resource:
+                if not (
+                    (parent_module, parent_resource)
+                    == (newparent_module, newparent_resource)
+                ):
+                    if (
+                        parent_module in modules_state.ActiveModules
+                        and parent_resource
+                        in modules_state.ActiveModules[parent_module]
+                    ):
+                        modules_state.rawDeleteResource(
+                            parent_module, parent_resource
+                        )
 
         if newparent_module:
             storeDeviceInModule(
@@ -1241,7 +1263,8 @@ def ensure_module_path_ok(module, resource):
             dir = "/".join(dir.split("/")[-1:])
 
 
-def storeDeviceInModule(d: dict, module: str, resource: str) -> None:
+@pydantic.validate_call
+def storeDeviceInModule(d: dict[str, Any], module: str, resource: str) -> None:
     with modules_state.modulesLock:
         if resource.count("/"):
             dir = "/".join(resource.split("/")[:-1])
@@ -1259,9 +1282,21 @@ def storeDeviceInModule(d: dict, module: str, resource: str) -> None:
                     break
                 dir = "/".join(dir.split("/")[:-1])
 
-        modules_state.raw_insert_resource(
-            module, resource, {"resource": {"type": "device"}, "device": d}
-        )
+        if resource in modules_state.ActiveModules[module]:
+            r = dict(
+                copy.deepcopy(modules_state.ActiveModules[module][resource])
+            )  # type: ignore #
+        else:
+            r = {
+                "resource": {
+                    "type": "device",
+                    "modified": int(time.time()),
+                }
+            }
+
+        r["device"] = d
+
+        modules_state.raw_insert_resource(module, resource, r)
 
 
 def getDeviceType(t):

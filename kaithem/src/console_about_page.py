@@ -34,7 +34,7 @@ def is_running_via_ssh():
 
 def is_interactive_terminal():
     """Checks if the script is running in an interactive terminal."""
-    return sys.stdin.isatty() and os.isatty(sys.stdout.fileno())
+    return sys.stdin.isatty() or "PS1" in os.environ
 
 
 quote = """Amidst the mists and fiercest frosts,

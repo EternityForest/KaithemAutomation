@@ -140,7 +140,7 @@ def test_make_demo_device():
             "temp.kaithem.store_in_module": n,
             "temp.kaithem.store_in_resource": "devtest",
             "json": """{
-                "device.fixed_number_multiplier": "10000909000",
+                "device.fixed_number_multiplier": 10000909000,
                 "type": "DemoDevice"
             }""",
         },
@@ -166,7 +166,7 @@ def test_make_demo_device():
 
     # Various corruptions where sections get mixed
     assert "device" not in rsc_data["device"]
-    assert "device.fixed_number_multiplier" not in rsc_data["device"]
+    assert "device.fixed_number_multiplier" not in rsc_data
     assert "resource" not in rsc_data["device"]
 
     assert (
@@ -236,8 +236,7 @@ def test_make_demo_device():
 
     modules.rmResource(n, "devtest_subdevice")
 
-    assert "pytest_demo/subdevice" not in devices.device_location_cache
-    assert "pytest_demo/subdevice" not in devices.subdevice_data_cache
+    assert "pytest_demo/subdevice" not in devices.device_data_cache
 
     assert not os.path.exists(
         os.path.join(dir, "modules/data/", n, "devtest.yaml")

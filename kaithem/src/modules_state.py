@@ -328,6 +328,11 @@ def raw_insert_resource(
     resource_data: ResourceDictType,
     rehash: bool = True,
 ):
+    if (
+        "resource" not in resource_data
+        or "type" not in resource_data["resource"]
+    ):
+        raise ValueError("resource_data must have a resource type")
     with modulesLock:
         resource_data_mutable = mutable_copy_resource(resource_data)
         resource_data_mutable = normalize_resource_data(resource_data_mutable)
