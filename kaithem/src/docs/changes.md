@@ -3,15 +3,31 @@ Change Log
 
 ### Dev version
 
+This version is all about cleaning up the old device integration system.
+
+Most notably, the NVR features have been significantly simplified, the system
+no longer aims tp provide a full security and monitoring system, as this can often
+be done better(for small setups) using only the dedicated hardwate features built into network cameras.
+
+Instead, it is now focused on web-embedabble live streaming to monitor the thing you're operating.
+
+
+
 * :technologist: Switching to Sphinx for docs
 * :technologist: BREAKING Some tagpoint properties are now private.
 * :technologist: Replace Beartype with Pydantic as it is now a strong de facto standard.
 * :technologist: BREAKING The iot_devices integration has been rewritten.  Most devices should be unchanged for users, but NVRChannel no longer supports the old AI object detection.
+
 * :bug: Fix obscure tagpoint \_\_call\_\_(v,t,a) feature that broke NVRChannel
 * :bug: Fix YoLink not working on some kaithem versions.
+
 * :sparkles: Splash screen on console
 * :sparkles: Boot time signinficantly improved
 * :sparkles: -v option to just print version and exit
+
+* :coffin: BREAKING: Old Beholder module removed and no longer works.
+
+* :sparkles: New Beholder plugin provides live streaming of cameras, other old beholder features TBD.
 
 
 ### 0.93.1

@@ -27,49 +27,8 @@
         <canvas id="canvas" style="display: none; width: 100%"></canvas>
         <img id="img" style="display: none; width: 100%; border: none;">
         <div class="tool-bar">
-            <button type="button"
-                onclick="startEVM(document.querySelector('video'), document.querySelector('canvas'))">Amplify
-                Motion</button>
+            <a href="/beholder-plugin/mpeg-ts-stream?uuid={{ obj.tagpoints[i].data_source_widget.uuid}}" target="_blank">Fullscreen Stream</a>
         </div>
-
-        <script type="module">
-            import { kaithemapi } from "/static/js/widget.mjs?";
-
-            if (!mpegts.isSupported()) {
-                alert("MPEG TS Not supported here")
-                kaithemapi.sendErrorMessage("MPEG TS Not supported here")
-            }
-
-            var video = document.querySelector('video');
-            var player = mpegts.createPlayer({
-                type: 'mpegts',  // could also be mpegts, m2ts, flv
-                isLive: true,
-                url: kaithemapi.wsPrefix() + "/widgets/wsraw?widgetid={{ obj.tagpoints[i].data_source_widget.uuid| urlencode }}",
-                liveBufferLatencyChasing: true,
-                liveBufferLatencyMaxLatency: 2,
-                liveBufferLatencyMinRemain: 1,
-                enableStashBuffer: false,
-                lazyLoad: false
-            });
-            player.attachMediaElement(video);
-            player.load();
-            player.play()
-
-            function keepUp() {
-                if (video.buffered.length > 0 && (video.buffered.end(video.buffered.length - 1) - video.currentTime) > 2) {
-                    video.playbackRate = 3
-                }
-                if (video.buffered.length > 0 && (video.buffered.end(video.buffered.length - 1) - video.currentTime) < 1.5) {
-
-                    video.playbackRate = 1
-                }
-
-            }
-
-            setInterval(keepUp, 250);
-
-        </script>
-
         {% else %}
         Binary data tagpoint cannot be displayed.
         {% if obj.tagpoints[i].subtype == 'mpegts' %}
@@ -156,6 +115,8 @@
             {% endif %}
         </div>
         {% endif %}
+
+
 
         {% if obj.tagpoints[i].subtype == 'color' %}
         <div class="tool-bar">

@@ -1,0 +1,95 @@
+<script src="/beholder-plugin/mpegts.js"></script>
+<script src="/static/js/thirdparty/jquery3.js"></script>
+
+<video id="videl"
+    style="width: 100%; margin: 0px;padding: 0px; align-self:center;" muted
+    controls></video>
+<canvas id="canvas"
+    style="display: none; width: 100%; margin: 0px;padding: 0px;"></canvas>
+<style>
+    body {
+        margin: 0px;
+        padding: 0px;
+        background-color: black;
+        overflow: hidden;
+        height: 100vh;
+        width: 100vw;
+        text-align: center;
+    }
+</style>
+
+
+
+<script type="module">
+    import { kaithemapi, APIWidget } from "/static/js/widget.mjs?";
+
+    const queryString = window.location.search;
+    const urlParams = new URLSearchParams(queryString);
+    const streamUUID = urlParams.get('uuid');
+
+    let stream = new APIWidget()
+
+    let videoElement = document.getElementById('videl')
+
+
+    let lastPostion = 0
+    function checkStalled() {
+        if (videoElement.currentTime == lastPostion) {
+            window.location.reload()
+        }
+        lastPostion = videoElement.currentTime
+    }
+
+    setInterval(checkStalled, 5000)
+
+
+    //From https://stackoverflow.com/questions/10750125/scaling-html5-canvas-width-preserving-w-h-aspect-ratio
+    onresize = function () {
+        videoElement.style.width = document.body.clientWidth + 'px'
+
+        videoElement.style.height = (document.body.clientWidth / (videl.videoWidth / videl.videoHeight)) + 'px';
+
+        if (videoElement.clientHeight >= document.body.clientHeight) {
+            videoElement.style.height = document.body.clientHeight + 'px'
+            videoElement.style.width = (document.body.clientHeight * (videl.videoWidth / videl.videoHeight)) + 'px'
+        }
+
+
+    }
+    $(window).resize(function () { setTimeout(onresize, 300) });
+    setTimeout(onresize, 1000)
+    setInterval(onresize, 5000)
+
+    if (!mpegts.isSupported()) {
+        alert("MPEG TS Not supported here")
+        kaithemapi.sendErrorMessage("MPEG TS Not supported here")
+    }
+
+    var video = document.querySelector('video');
+    var player = mpegts.createPlayer({
+        type: 'mpegts',  // could also be mpegts, m2ts, flv
+        isLive: true,
+        url: kaithemapi.wsPrefix() + "/widgets/wsraw?widgetid="+streamUUID,
+        liveBufferLatencyChasing: true,
+        liveBufferLatencyMaxLatency: 2,
+        liveBufferLatencyMinRemain: 1,
+        enableStashBuffer: false,
+        lazyLoad: false
+    });
+    player.attachMediaElement(video);
+    player.load();
+    player.play()
+
+    function keepUp() {
+        if (video.buffered.length > 0 && (video.buffered.end(video.buffered.length - 1) - video.currentTime) > 2) {
+            video.playbackRate = 3
+        }
+        if (video.buffered.length > 0 && (video.buffered.end(video.buffered.length - 1) - video.currentTime) < 1.5) {
+
+            video.playbackRate = 1
+        }
+    }
+
+    setInterval(keepUp, 250);
+
+</script>

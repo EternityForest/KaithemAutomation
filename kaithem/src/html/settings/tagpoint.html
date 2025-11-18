@@ -64,6 +64,10 @@ DELETED
 <h3>Info</h3>
 <table border="1" class="w-full">
     <tr>
+        <td>Subtype</td>
+        <td>${tag.subtype}</td>
+    </tr>
+    <tr>
         <td>Time Since Update</td>
         <td>${((unitsofmeasure.format_time_interval(time.time()-tag.timestamp,3)+" ago") if int(tag.timestamp) else 'never')}</td>
     </tr>
@@ -114,6 +118,7 @@ DELETED
         <td>Python3 Object ID</td>
         <td>${id(tag)|h}</td>
     </tr>
+
 
     %if hasattr(tag,'unit'):
     <tr>
