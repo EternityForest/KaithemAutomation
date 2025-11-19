@@ -47,29 +47,29 @@ Add some help text
 
 #### link(s: str, url: str)
 
-#### text_input(name: str, \*, title: str | None = None, default: str | int | float = '', disabled=None, suggestions: list[tuple[str, str]] | None = None, multiline=False)
+#### text_input(name: str, , title: str | None = None, default: str | int | float = '', disabled=None, suggestions: list[tuple[str, str]] | None = None, multiline=False)
 
 #### begin_section(title: str)
 
 #### end_section()
 
-#### checkbox(name: str, \*, title: str | None = None, default=False, disabled=None)
+#### checkbox(name: str, , title: str | None = None, default=False, disabled=None)
 
 Add a checkbox
 
-#### file_input(name: str = 'file', \*, title: str | None = None, disabled=None)
+#### file_input(name: str = 'file', , title: str | None = None, disabled=None)
 
 Add a file upload input. Name it 'file' and name an input 'filename'  to auto link them.
 
-#### code_editor(name: str = 'file', \*, language: str, title: str | None = None, disabled=None, default='')
+#### code_editor(name: str = 'file', , language: str, title: str | None = None, disabled=None, default='')
 
 Add a file upload input. Name it 'file' and name an input 'filename'  to auto link them.
 
-#### selection(name: str, \*, options: list[str], default='', title: str | None = None, disabled=None)
+#### selection(name: str, , options: list[str], default='', title: str | None = None, disabled=None)
 
 Add a select element
 
-#### submit_button(name: str, \*, title: str | None = None, value: str = '', disabled=None)
+#### submit_button(name: str, , title: str | None = None, value: str = '', disabled=None)
 
 Add a submit button
 

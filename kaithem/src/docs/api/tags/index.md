@@ -4,11 +4,11 @@
 
 | [`BinaryTagPointClass`](#kaithem.api.tags.BinaryTagPointClass)   | A Tag Point is a named object that can be chooses from a set of data sources based on priority,   |
 |------------------------------------------------------------------|---------------------------------------------------------------------------------------------------|
-| [`Claim`](#kaithem.api.tags.Claim)                               | Represents a claim on a tag point's value                                                         |
 | [`GenericTagPointClass`](#kaithem.api.tags.GenericTagPointClass) | A Tag Point is a named object that can be chooses from a set of data sources based on priority,   |
 | [`NumericTagPointClass`](#kaithem.api.tags.NumericTagPointClass) | A Tag Point is a named object that can be chooses from a set of data sources based on priority,   |
 | [`ObjectTagPointClass`](#kaithem.api.tags.ObjectTagPointClass)   | A Tag Point is a named object that can be chooses from a set of data sources based on priority,   |
 | [`StringTagPointClass`](#kaithem.api.tags.StringTagPointClass)   | A Tag Point is a named object that can be chooses from a set of data sources based on priority,   |
+| [`ClaimClass`](#kaithem.api.tags.ClaimClass)                     | Represents a claim on a tag point's value                                                         |
 
 ## Functions
 
@@ -34,7 +34,7 @@ A data source here is called a "Claim", and can either be a number or a function
 priority claim is called the active claim.
 
 If the claim is a function, it will be called at most once per interval, which is set by tag.interval=N
-in seconds. However the filter function is called every time the data is requested.
+in seconds.
 
 If there are any subscribed functions to the tag, they will automatically be called at the tag's interval,
 with the one parameter being the tag's value. Any getter functions will be called to get the value.
@@ -46,62 +46,7 @@ which can get existing tags. This allows use of tags for cross=
 
 #### type *= 'binary'*
 
-#### vta *: tuple[bytes, float, Any]*
-
-#### validate *= None*
-
-#### processValue(value)
-
-Represents the transform from the claim input to the output.
-Must be a pure-ish function
-
-#### filterValue(v)
-
-Pure function that returns a cleaned up or normalized version of the value
-
-### *class* kaithem.api.tags.Claim(tag: [GenericTagPointClass](#kaithem.api.tags.GenericTagPointClass)[T], value: T, name: str = 'default', priority: int | float = 50.0, timestamp: int | float | None = None, annotation=None)
-
-Bases: `Generic`[`T`]
-
-Represents a claim on a tag point's value
-
-#### name *= 'default'*
-
-#### tag
-
-#### vta *: tuple[T | collections.abc.Callable[[], T | None], float, Any]*
-
-#### cachedValue *: tuple[T | None, int | float]*
-
-#### lastGotValue *= 0.0*
-
-#### effective_priority *= 50.0*
-
-#### priority *= 50.0*
-
-#### poller *= None*
-
-#### released *= False*
-
-#### \_\_del_\_()
-
-#### \_\_lt_\_(other)
-
-#### \_\_eq_\_(other) → bool
-
-#### *property* value
-
-#### *property* timestamp
-
-#### *property* annotation
-
-#### set(value, timestamp: float | None = None, annotation: Any = None)
-
-#### release()
-
-#### set_priority(priority: float, realPriority: bool = True)
-
-#### \_\_call_\_(\*args, \*\*kwargs)
+#### as_base64() → str
 
 ### *class* kaithem.api.tags.GenericTagPointClass(name: str)
 
@@ -114,7 +59,7 @@ A data source here is called a "Claim", and can either be a number or a function
 priority claim is called the active claim.
 
 If the claim is a function, it will be called at most once per interval, which is set by tag.interval=N
-in seconds. However the filter function is called every time the data is requested.
+in seconds.
 
 If there are any subscribed functions to the tag, they will automatically be called at the tag's interval,
 with the one parameter being the tag's value. Any getter functions will be called to get the value.
@@ -134,42 +79,45 @@ which can get existing tags. This allows use of tags for cross=
 
 #### name *: str*
 
-Internal use only, holds references to logger objects
+The normalized name of the tag
 
 #### configLoggers *: weakref.WeakValueDictionary[str, object]*
+
+Internal use only, holds references to logger objects
 
 #### aliases *: set[str]*
 
 #### description *: str* *= ''*
 
-#### vta *: tuple[T | collections.abc.Callable[[], T | None], float, Any]*
+User settable description in free text
 
 #### unreliable *: bool* *= False*
 
-#### last_value *: T*
-
-#### active_claim *: None | [Claim](#kaithem.api.tags.Claim)[T]* *= None*
+#### active_claim *: None | [Claim](../../src/tagpoints/index.md#kaithem.src.tagpoints.Claim)[T]* *= None*
 
 #### writable *= True*
+
+#### eval_context *: dict[str, Any]*
 
 Dict used as globals and locals for evaluating
 alarm conditions and expression tags.
 
-#### eval_context
-
-When was the last time we got *real* new data
-
-#### last_got_value *: int | float* *= 0*
-
 #### owner *: str* *= ''*
 
+Free text user settable string describing the "owner" of the tag point
+This is not a precisely defined concept
+
 #### default_claim *= None*
+
+The claim named default which is normally the only one that ever gets used
 
 #### *property* timestamp *: float*
 
 #### *property* annotation *: Any*
 
-#### isDynamic() → bool
+#### is_dynamic() → bool
+
+True if the tag has a getter instead of a set value
 
 #### expose(read_perms: str | list[str] = '', write_perms: str | list[str] = 'system_admin', expose_priority: str | int | float = 50)
 
@@ -198,9 +146,9 @@ If read_perms or write_perms is empty, disable exposure.
 You cannot have different priority levels for different users this way, that
 would be highly confusing. Use multiple tags or code your own API for that.
 
-#### *static* makeWeakApiHandler(wr) → collections.abc.Callable[[str, T | None], None]
+#### get_alerts() → list[[kaithem.src.alerts.Alert](../../src/alerts/index.md#kaithem.src.alerts.Alert)]
 
-#### apiHandler(u, v: T | None)
+Return a list of all alert objects for this tag, including ones that are not active
 
 #### get_effective_permissions() → tuple[str, str, float]
 
@@ -209,21 +157,13 @@ Get the permissions that currently apply here. Configured ones override in-code 
 Returns:
 : list: [read_perms, write_perms, writePriority]. Priority determines the priority of web API claims.
 
-#### testForDeadlock()
-
-Run a check in the background to make sure this lock isn't clogged up
-
-#### recalc(\*a: Any, \*\*k: Any)
-
-Just re-get the value as needed
-
-#### set_alarm(name: str, condition: str | None = '', priority: str = 'info', release_condition: str | None = '', auto_ack: bool = False, trip_delay: float | int | str = '0') → [kaithem.src.alerts.Alert](../../src/alerts/index.md#kaithem.src.alerts.Alert) | None
+#### set_alarm(name: str, condition: str | None = '', priority: str = 'info', release_condition: str | None = '', auto_ack: bool = False, trip_delay: float | int | str = '0', enabled: bool = True) → [kaithem.src.alerts.Alert](../../src/alerts/index.md#kaithem.src.alerts.Alert) | None
 
 #### recalc_alarm_self_subscriber(value: T, timestamp: float, annotation: Any)
 
 #### recalc_alerts()
 
-#### createGetterFromExpression(e: str, priority: int | float = 98) → [Claim](#kaithem.api.tags.Claim)[T]
+#### createGetterFromExpression(e: str, priority: int | float = 98) → [Claim](../../src/tagpoints/index.md#kaithem.src.tagpoints.Claim)[T]
 
 Create a getter for tag self using expression e
 
@@ -244,18 +184,16 @@ something like that, to avoid collisions.
 
 #### *classmethod* Tag(name: str, defaults: dict[str, Any] = {})
 
+#### *property* data_source_widget *: None | [kaithem.src.widgets.Widget](../../src/widgets/index.md#kaithem.src.widgets.Widget)*
+
 #### *property* current_source *: str*
 
 Return the Claim object that is currently
 controlling the tag
 
-#### filterValue(v: T) → T
-
-Pure function that returns a cleaned up or normalized version of the value
-
 #### \_\_del_\_()
 
-#### \_\_call_\_(\*args, \*\*kwargs)
+#### \_\_call_\_(value: T | None = None, timestamp: float | None = None, annotation: Any = None, \*\*kwargs: Any)
 
 Equivalent to calling set() on the default handler. If
 no args are provided, just returns the tag's value.
@@ -291,19 +229,22 @@ from within this function.
 
 #### poll()
 
-#### processValue(value) → T
-
-Represents the transform from the claim input to the output.
-Must be a pure-ish function
+#### *property* last_value
 
 #### *property* age
 
 #### *property* value *: T*
 
-#### pull() → T
+#### pull(sync=False) → None
 
-Return the value from a tag, forcing a new update from the getter without
-any caching. May also trigger the subscribers if the value changes.
+Request that any getter in the active claim produce a new value if it has a getter.
+Note that we do not automatically poll or run the getters anymore,
+getters must be explicitly requested.
+
+#### get_vta(force=False) → tuple[T, float, Any]
+
+Get the current value, timestamp and annotation.
+If force is true and the value is a getter, then force a new update.
 
 #### add_alias(alias: str)
 
@@ -313,7 +254,7 @@ Adds an alias of this tag, allowing access by another name.
 
 Removes an alias of this tag
 
-#### claim(value: T | collections.abc.Callable[[], T | None], name: str | None = None, priority: float | None = None, timestamp: float | None = None, annotation: Any = None) → [Claim](#kaithem.api.tags.Claim)[T]
+#### claim(value: T, name: str | None = None, priority: float | None = None, timestamp: float | None = None, annotation: Any = None) → [Claim](../../src/tagpoints/index.md#kaithem.src.tagpoints.Claim)[T]
 
 Adds a claim to the tag and returns the Claim object. The claim will
 dissapear if the returned Claim object ever does. Value may be a function
@@ -329,15 +270,17 @@ Rather than using multiple claims, consider whether it's really needed, lots
 of builtin functionality in the UI is mean to just work with the default
 claim, for ease of use.
 
-#### set_claim_val(claim: str, val: T | collections.abc.Callable[[], T | None] | Any, timestamp: float | None, annotation: Any)
+#### set_claim_val(claim: str, val: T, timestamp: float | None, annotation: Any)
 
 Set the value of an existing claim
 
 #### claimFactory(value: Any, name: str, priority: float, timestamp: float, annotation: Any)
 
-#### get_top_claim() → [Claim](#kaithem.api.tags.Claim)[T]
+#### get_top_claim() → [Claim](../../src/tagpoints/index.md#kaithem.src.tagpoints.Claim)[T]
 
 #### release(name: str)
+
+#### *property* subscribers *: list[collections.abc.Callable[[T, float, Any], Any]]*
 
 ### *class* kaithem.api.tags.NumericTagPointClass(name: str, min: float | None = None, max: float | None = None)
 
@@ -350,7 +293,7 @@ A data source here is called a "Claim", and can either be a number or a function
 priority claim is called the active claim.
 
 If the claim is a function, it will be called at most once per interval, which is set by tag.interval=N
-in seconds. However the filter function is called every time the data is requested.
+in seconds.
 
 If there are any subscribed functions to the tag, they will automatically be called at the tag's interval,
 with the one parameter being the tag's value. Any getter functions will be called to get the value.
@@ -362,9 +305,9 @@ which can get existing tags. This allows use of tags for cross=
 
 #### type *= 'number'*
 
-#### vta *: tuple[float, float, Any]*
-
 #### default_claim *: [NumericClaim](../../src/tagpoints/index.md#kaithem.src.tagpoints.NumericClaim)*
+
+The claim named default which is normally the only one that ever gets used
 
 #### enum
 
@@ -376,16 +319,7 @@ things that are triggered on changes to nonzero values.
 this just increments the value, wrapping at
 2\*\*20, and wrapping to 1 instead of 0.
 
-#### processValue(value: float | int)
-
-Represents the transform from the claim input to the output.
-Must be a pure-ish function
-
-#### filterValue(v: float) → float
-
-Pure function that returns a cleaned up or normalized version of the value
-
-#### claimFactory(value: float | collections.abc.Callable[[], float | None], name: str, priority: float, timestamp: float, annotation: Any)
+#### claimFactory(value: float, name: str, priority: float, timestamp: float, annotation: Any)
 
 #### *property* min *: float | int*
 
@@ -457,7 +391,7 @@ A data source here is called a "Claim", and can either be a number or a function
 priority claim is called the active claim.
 
 If the claim is a function, it will be called at most once per interval, which is set by tag.interval=N
-in seconds. However the filter function is called every time the data is requested.
+in seconds.
 
 If there are any subscribed functions to the tag, they will automatically be called at the tag's interval,
 with the one parameter being the tag's value. Any getter functions will be called to get the value.
@@ -469,18 +403,7 @@ which can get existing tags. This allows use of tags for cross=
 
 #### type *= 'object'*
 
-#### vta *: tuple[dict[str, Any], float, Any]*
-
 #### validate *= None*
-
-#### processValue(value)
-
-Represents the transform from the claim input to the output.
-Must be a pure-ish function
-
-#### filterValue(v)
-
-Pure function that returns a cleaned up or normalized version of the value
 
 ### *class* kaithem.api.tags.StringTagPointClass(name: str)
 
@@ -493,7 +416,7 @@ A data source here is called a "Claim", and can either be a number or a function
 priority claim is called the active claim.
 
 If the claim is a function, it will be called at most once per interval, which is set by tag.interval=N
-in seconds. However the filter function is called every time the data is requested.
+in seconds.
 
 If there are any subscribed functions to the tag, they will automatically be called at the tag's interval,
 with the one parameter being the tag's value. Any getter functions will be called to get the value.
@@ -509,16 +432,51 @@ which can get existing tags. This allows use of tags for cross=
 
 #### mqtt_encoding *= 'utf8'*
 
-#### vta *: tuple[str, float, Any]*
+### *class* kaithem.api.tags.ClaimClass(tag: [GenericTagPointClass](#kaithem.api.tags.GenericTagPointClass)[T], value: T, name: str = 'default', priority: int | float = 50.0, timestamp: int | float | None = None, annotation=None)
 
-#### processValue(value)
+Bases: `Generic`[`T`]
 
-Represents the transform from the claim input to the output.
-Must be a pure-ish function
+Represents a claim on a tag point's value
 
-#### filterValue(v)
+#### name *= 'default'*
 
-Pure function that returns a cleaned up or normalized version of the value
+#### tag
+
+#### vta *: tuple[T | None, float, Any]*
+
+#### lastGotValue *= 0.0*
+
+#### effective_priority *= 50.0*
+
+#### priority *= 50.0*
+
+#### poller *= None*
+
+#### getter *: collections.abc.Callable[[[Claim](../../src/tagpoints/index.md#kaithem.src.tagpoints.Claim)[T]], None] | None* *= None*
+
+Getter function for this claim
+
+#### released *= False*
+
+#### \_\_del_\_()
+
+#### \_\_lt_\_(other)
+
+#### \_\_eq_\_(other) → bool
+
+#### *property* value *: T | None*
+
+#### *property* timestamp
+
+#### *property* annotation
+
+#### set(value, timestamp: float | None = None, annotation: Any = None)
+
+#### release()
+
+#### set_priority(priority: float, realPriority: bool = True)
+
+#### \_\_call_\_(\*args, \*\*kwargs)
 
 ### kaithem.api.tags.all_tags_raw() → dict[str, weakref.ref[[kaithem.src.tagpoints.GenericTagPointClass](../../src/tagpoints/index.md#kaithem.src.tagpoints.GenericTagPointClass)]]
 

@@ -12,6 +12,9 @@ be done better(for small setups) using only the dedicated hardwate features buil
 Instead, it is now focused on web-embedabble live streaming to monitor the thing you're operating.
 
 Also, the mostly unused tag point getters system has been greatly simplified.
+We no longer support auto-polling and synchronous getters, and callables are no
+longer accepted as tag values.  Tag points getters are now set via the claim
+object, and must be explicitly called.
 
 
 * :technologist: Switching to Sphinx for docs

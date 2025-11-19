@@ -353,7 +353,7 @@ class GenericTagPointClass(Generic[T]):
 
     def is_dynamic(self) -> bool:
         """True if the tag has a getter instead of a set value"""
-        return False
+        return self.get_top_claim().getter is not None
 
     @validate_args
     def expose(
@@ -477,20 +477,20 @@ class GenericTagPointClass(Generic[T]):
                     # We don't want the web connection to be able to keep the tag alive
                     # so don't give it a reference to us
                     self._weakApiHandler: Callable[[str, T | None], None] = (
-                        self.makeWeakApiHandler(weakref.ref(self))
+                        self._makeWeakApiHandler(weakref.ref(self))
                     )
                     w.attach(self._weakApiHandler)
 
                     self._data_source_widget = w
 
     @staticmethod
-    def makeWeakApiHandler(
+    def _makeWeakApiHandler(
         wr: weakref.ref[GenericTagPointClass[T]],
     ) -> Callable[[str, T | None], None]:
         def f(u: str, v: T | None):
             x = wr()
             if x:
-                x.apiHandler(u, v)
+                x._apiHandler(u, v)
 
         return f
 
@@ -499,7 +499,7 @@ class GenericTagPointClass(Generic[T]):
         with lock:
             return list(self._alerts.values())
 
-    def apiHandler(self, acting_user: str, v: T | None):
+    def _apiHandler(self, acting_user: str, v: T | None):
         if v is None:
             if self._apiClaim:
                 self._apiClaim.release()
@@ -561,7 +561,7 @@ class GenericTagPointClass(Generic[T]):
             finally:
                 self._data_source_ws_lock.release()
 
-    def testForDeadlock(self):
+    def _testForDeadlock(self):
         "Run a check in the background to make sure this lock isn't clogged up"
 
         def f():
@@ -1025,7 +1025,7 @@ class GenericTagPointClass(Generic[T]):
             finally:
                 self._lock.release()
         else:  # pragma: no cover
-            self.testForDeadlock()
+            self._testForDeadlock()
             raise RuntimeError(
                 "Cannot get lock to subscribe to this tag. Is there a long running subscriber?"
             )
@@ -1050,7 +1050,7 @@ class GenericTagPointClass(Generic[T]):
                 self._lock.release()
 
         else:  # pragma: no cover
-            self.testForDeadlock()
+            self._testForDeadlock()
             raise RuntimeError(
                 "Cannot get lock to subscribe to this tag. Is there a long running subscriber?"
             )
@@ -1062,7 +1062,7 @@ class GenericTagPointClass(Generic[T]):
             finally:
                 self._lock.release()
         else:  # pragma: no cover
-            self.testForDeadlock()
+            self._testForDeadlock()
 
     @property
     def last_value(self):

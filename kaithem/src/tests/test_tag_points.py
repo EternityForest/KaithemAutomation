@@ -218,7 +218,7 @@ def test_tags_basic():
     t = tagpoints.Tag("/system/unit_test_tag_5457647")
     # TODO should probably actualluly do some assertions here,
     # but at least we can check that it doesn't block up.
-    t.testForDeadlock()
+    t._testForDeadlock()
 
     ts = time.time()
 
