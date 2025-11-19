@@ -33,7 +33,6 @@ from scullery.scheduling import scheduler
 from kaithem.api.web import has_permission, render_jinja_template
 from kaithem.api.web.dialogs import SimpleDialog
 from kaithem.src import (
-    devices,
     messagebus,
     modules_state,
     settings_overrides,
@@ -1756,11 +1755,7 @@ def getEventsFromModules(only: str | None = None):
                     + "\n"
                     + "please edit and reload.",
                 )
-    try:
-        # todo i think this is ancient
-        devices.warnAboutUnsupportedDevices()
-    except Exception:
-        logger.info("Error checking validity of device instances")
+
     logger.info("Created events from modules")
 
 
