@@ -23,12 +23,14 @@
         {% endif %}
 
         {% elif hasattr(obj.tagpoints[i],"data_source_widget") and obj.tagpoints[i].subtype == 'mpegts' and obj.tagpoints[i].data_source_widget %}
-        <video style="width: 100%" muted controls></video>
-        <canvas id="canvas" style="display: none; width: 100%"></canvas>
-        <img id="img" style="display: none; width: 100%; border: none;">
         <div class="tool-bar">
             <a href="/beholder-plugin/mpeg-ts-stream?uuid={{ obj.tagpoints[i].data_source_widget.uuid}}" target="_blank">Fullscreen Stream</a>
         </div>
+
+        {% elif obj.tagpoints[i].subtype =="bmp" %}
+
+        <img src="data:image/bmp;base64,{{obj.tagpoints[i].as_base64()}}">
+
         {% else %}
         Binary data tagpoint cannot be displayed.
         {% if obj.tagpoints[i].subtype == 'mpegts' %}
@@ -42,6 +44,12 @@
         Overridden: {{ obj.tagpoints[i].active_claim.name }}
         {% else %}
         <div class="tool-bar">
+
+            <button type="button"
+             aria-label="refresh"
+             onclick="window._generic_ws_channel.send(['refresh', '{{ i| escape }}'])">
+             <span class="mdi mdi-refresh"></span>
+            </button>
             {% if (not hasattr(obj.tagpoints[i],"writable")) or obj.tagpoints[i].writable %}
             {% if obj.tagpoints[i].subtype == 'bool' or obj.tagpoints[i].subtype == 'boolean' %}
             <button type="button" onclick="window._generic_ws_channel.send(['set', '{{ i| escape }}', 0])">Off</button>

@@ -387,6 +387,10 @@ class DeviceRuntimeState(iot_devices.host.DeviceHostContainer):
         # Time, msg
         self.errors: list[tuple[float, str]] = []
 
+        self.getters: dict[
+            str, Callable[[iot_devices.device.DataRequest], Any] | None
+        ] = {}
+
     def on_device_ready(self, device: iot_devices.device.Device):
         super().on_device_ready(device)
 
@@ -456,7 +460,7 @@ class DeviceRuntimeState(iot_devices.host.DeviceHostContainer):
                     self.tagpoints[v[1]]._k_ui_fake.release()
 
         elif v[0] == "refresh":
-            self.tagpoints[v[1]].poll()
+            self.tagpoints[v[1]].get_vta()
 
     # delete a device, it should not be used after this
     def close(self):
@@ -602,6 +606,8 @@ class DevicesHost(iot_devices.host.Host[DeviceRuntimeState]):
         writable: bool = True,
         subtype: str = "",
         dashboard: bool = True,
+        on_request: Callable[[iot_devices.device.DataRequest], Any]
+        | None = None,
         **kwargs,
     ):
         tagname = self.resolve_datapoint_name(device, name)
@@ -634,6 +640,13 @@ class DevicesHost(iot_devices.host.Host[DeviceRuntimeState]):
 
         runtimedata.tagpoints[tagname] = t
 
+        def req(c: tagpoints.Claim):
+            d = iot_devices.device.DataRequest()
+            if on_request:
+                on_request(d)
+
+        t.default_claim.getter = req
+
         messagebus.post_message("/system/tags/configured", t.name)
 
     def string_data_point(
@@ -647,6 +660,8 @@ class DevicesHost(iot_devices.host.Host[DeviceRuntimeState]):
         writable: bool = True,
         subtype: str = "",
         dashboard: bool = True,
+        on_request: Callable[[iot_devices.device.DataRequest], Any]
+        | None = None,
         **kwargs,
     ):
         tagname = self.resolve_datapoint_name(device, name)
@@ -673,6 +688,13 @@ class DevicesHost(iot_devices.host.Host[DeviceRuntimeState]):
 
         runtimedata.tagpoints[tagname] = t
 
+        def req(c: tagpoints.Claim):
+            d = iot_devices.device.DataRequest()
+            if on_request:
+                on_request(d)
+
+        t.default_claim.getter = req
+
         messagebus.post_message("/system/tags/configured", t.name)
 
     def object_data_point(
@@ -686,6 +708,8 @@ class DevicesHost(iot_devices.host.Host[DeviceRuntimeState]):
         subtype: str = "",
         dashboard: bool = True,
         default: dict[str, Any] | None = None,
+        on_request: Callable[[iot_devices.device.DataRequest], Any]
+        | None = None,
         **kwargs,
     ):
         tagname = self.resolve_datapoint_name(device, name)
@@ -712,6 +736,13 @@ class DevicesHost(iot_devices.host.Host[DeviceRuntimeState]):
 
         runtimedata.tagpoints[tagname] = t
 
+        def req(c: tagpoints.Claim):
+            d = iot_devices.device.DataRequest()
+            if on_request:
+                on_request(d)
+
+        t.default_claim.getter = req
+
         messagebus.post_message("/system/tags/configured", t.name)
 
     def bytestream_data_point(
@@ -725,11 +756,12 @@ class DevicesHost(iot_devices.host.Host[DeviceRuntimeState]):
         subtype: str = "",
         dashboard: bool = True,
         default: bytes | None = None,
+        on_request: Callable[[iot_devices.device.DataRequest], Any]
+        | None = None,
         **kwargs,
     ):
         tagname = self.resolve_datapoint_name(device, name)
         runtimedata = devices_host.devices[device]
-
         t = tagpoints.BinaryTag(tagname)
 
         self.__setupTagPerms(runtimedata, t, writable)
@@ -750,6 +782,13 @@ class DevicesHost(iot_devices.host.Host[DeviceRuntimeState]):
             t.subscribe(handler)
 
         runtimedata.tagpoints[tagname] = t
+
+        def req(c: tagpoints.Claim):
+            d = iot_devices.device.DataRequest()
+            if on_request:
+                on_request(d)
+
+        t.default_claim.getter = req
 
         messagebus.post_message("/system/tags/configured", t.name)
 

@@ -11,12 +11,19 @@ be done better(for small setups) using only the dedicated hardwate features buil
 
 Instead, it is now focused on web-embedabble live streaming to monitor the thing you're operating.
 
+Also, the mostly unused tag point getters system has been greatly simplified.
 
 
 * :technologist: Switching to Sphinx for docs
 * :technologist: BREAKING Some tagpoint properties are now private.
 * :technologist: Replace Beartype with Pydantic as it is now a strong de facto standard.
 * :technologist: BREAKING The iot_devices integration has been rewritten.  Most devices should be unchanged for users, but NVRChannel no longer supports the old AI object detection.
+
+* :technologist: BREAKING Tag points may no longer have callable values.  Instead you can set the getter property on a claim object, which takes the claim itself and sets it.
+
+* :technologist: BREAKING Tag points no longer have built in support for automatic polling.
+
+* :technologist: BREAKING Tag point pull() is now async and returns None.
 
 * :bug: Fix obscure tagpoint \_\_call\_\_(v,t,a) feature that broke NVRChannel
 * :bug: Fix YoLink not working on some kaithem versions.

@@ -1,4 +1,5 @@
 import structlog
+from scullery import scheduling
 
 from kaithem.src import alerts, geolocation, messagebus, tagpoints
 from kaithem.src import astrallibwrapper as sky
@@ -46,7 +47,6 @@ def create():
     twilightTag.description = (
         "Unless overridden, 1 if dark, else 0, -1 if no location is set"
     )
-    twilightTag.value = civil_twilight
     twilightTag.expose("view_status")
     refs.append(twilightTag)
 
@@ -84,55 +84,17 @@ def create():
     nTag.description = (
         "Unless overridden, 1 if night, else 0, -1 if no location is set"
     )
-    nTag.value = night
     nTag.expose("view_status")
 
     refs.append(night)
     refs.append(nTag)
 
-    # ipTag = tagpoints.StringTag("/system/network/public_ip")
-    # refs.append(ipTag)
+    @scheduling.scheduler.every_minute
+    def f():
+        twilightTag.value = civil_twilight()
+        nTag.value = night()
 
-    # def publicIP():
-    #     try:
-    #         # This is here for development, where one might be rapidly starting and stopping
-    #         try:
-    #             if os.path.exists("/dev/shm/KaithemCachedPublicIP.json"):
-    #                 with open("/dev/shm/KaithemCachedPublicIP.json") as f:
-    #                     j = json.load(f)
-    #                     if j["time_monotonic"] > time.monotonic() - 1800:
-    #                         return j["ip"]
-    #         except Exception:
-    #             log.exception("Err loading cache file")
-
-    #         import niquests
-
-    #         r = niquests.get("http://api.ipify.org/", timeout=15)
-    #         r.raise_for_status()
-
-    #         try:
-    #             with open("/dev/shm/KaithemCachedPublicIP.json", "w") as f:
-    #                 json.dump({"ip": r.text, "time_monotonic": time.monotonic()}, f)
-    #         except Exception:
-    #             log.exception("Err saving cache file")
-
-    #         ipTag.interval = 3600
-    #         return r.text
-
-    #     except Exception:
-    #         ipTag.interval = 300
-    #         print(traceback.format_exc())
-    #         return ""
-
-    # refs.append(publicIP)
-
-    # ipTag.interval = 3600
-    # ipTag.description = """The current public IP address, as seen by http://api.ipify.org.
-    #     If the server is unreachable, will be the empty string.
-    #       Default interval is dynamic, 1 hour once succeeded."""
-
-    # ipTag.value = publicIP
-    # ipTag.expose("system_admin")
+    f()
 
 
 create()

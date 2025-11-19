@@ -90,11 +90,17 @@ def test_tags_fail():
     # Numeric tag make sure it doesn't take strings
     t = tagpoints.Tag("/system/unit_test_tag_fail")
 
+    assert isinstance(t.value, float)
+
     with pytest.raises(TypeError):
         t.claim(10, "TestClaim", "wrong")
 
+    assert isinstance(t.value, float)
+
     with pytest.raises(ValueError):
         t.claim(89, "PriorityTooHigh101", priority=101)
+
+    assert isinstance(t.value, float)
 
     with pytest.raises(ValueError):
         t.add_alias("/multiple/forward/slashes/in/alias")
@@ -140,19 +146,20 @@ def test_tag_getter_error():
     err_once = [True]
     t.interval = 0.4
 
-    def f():
+    def f(claim: tagpoints.Claim[float]):
         if err_once[0]:
             err_once[0] = False
             raise Exception("Test Error")
-        return 6
+        claim.set(6)
 
-    t.value = f
-    # Error is logged but treated as no data
+    t.default_claim.getter = f
+
+    t.pull()
+    time.sleep(0.2)
     assert t.value == 0
-    # TODO the interval test was flaky
-    # assert t.value == 0
+    t.pull()
 
-    time.sleep(0.6)
+    time.sleep(0.3)
     assert t.value == 6
 
     # Ensure that it ws logged.
@@ -435,6 +442,7 @@ def test_tags():
     t2 = tagpoints.Tag("=tv('/system/unit_test_tag') + 7")
 
     c3 = t1.claim(1, "testClaim3", 80)
+
     assert t2.value == 1 + 7
 
     c3.set(2)
