@@ -3,7 +3,6 @@
 import base64
 import collections
 import json
-import logging
 import threading
 import time
 
@@ -25,23 +24,6 @@ lockouts = {}
 lastCleared = time.time()
 recentAttempts = 0
 alreadySent = 0
-
-
-def onAttempt():
-    global lastCleared, recentAttempts, alreadySent
-    if time.time() - lastCleared > 60 * 30:
-        lastCleared = time.time()
-        if recentAttempts < 50:
-            alreadySent = 0
-        recentAttempts = 0
-    recentAttempts += 1
-    if recentAttempts > 150 and not alreadySent:
-        alreadySent = 1
-        logging.warning("Many failed login attempts have occurred")
-        messagebus.post_message(
-            "/system/notifications/warnings",
-            "Excessive number of failed attempts in the last 30 minutes.",
-        )
 
 
 def onFail(ip, user, lockout=True):

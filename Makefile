@@ -146,9 +146,8 @@ dev-run-all-tests:
 	@npx playwright test --reporter=html  --workers 1 --max-failures 1
 	@sleep 5
 	@echo "Stopping server"
-	@killall kmakefiletest
+	@killall -w kmakefiletest
 	@sleep 10
-	@killall -9 kmakefiletest
 	@coverage run --append -m pytest
 	@coverage html -i
 	@npx playwright show-report &

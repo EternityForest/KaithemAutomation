@@ -247,12 +247,8 @@ class Alert:
         self.name = name
         self._trip_delay = trip_delay
 
-        # Tracks any a associated tag point
-        self.tagpoint_name: str = ""
-        self.tagpoint_config_data: dict[str, Any] | None = None
-
         # Last trip time
-        self.trippedAt = 0
+        self.tripped_at = 0
         self.trip_message = ""
 
         self.sm = statemachines.StateMachine("normal")
@@ -426,7 +422,7 @@ class Alert:
         message_changed = message != self.trip_message
         self.trip_message = message
         self.sm.event("trip")
-        self.trippedAt = time.time()
+        self.tripped_at = time.time()
 
         if message_changed:
             pushAlertState()

@@ -135,7 +135,7 @@ scolor={
                     %endif
                     ${i.name}: ${i.sm.state}</header>
 
-            <div class="align-center">${i.priority}  ${unitsofmeasure.strftime(i.trippedAt)}(${format_time_interval(time.time()-i.trippedAt,1)}
+            <div class="align-center">${i.priority}  ${unitsofmeasure.strftime(i.tripped_at)}(${format_time_interval(time.time()-i.tripped_at,1)}
                 ago)</div>
 
             ${i.trip_message}

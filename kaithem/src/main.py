@@ -8,6 +8,7 @@ import os
 import sys
 import threading
 import time
+import traceback
 from typing import Any
 
 import structlog
@@ -23,21 +24,13 @@ shared_processors = [
     # e.g., add timestamps or log level names.
 ]
 
-if True or sys.stderr.isatty():
-    # Pretty printing when we run in a terminal session.
-    # Automatically prints pretty tracebacks when "rich" is installed
-    processors = shared_processors + [
-        structlog.dev.ConsoleRenderer(
-            exception_formatter=structlog.dev.plain_traceback
-        ),
-    ]
-else:
-    # Print JSON when we run, e.g., in a Docker container.
-    # Also print structured tracebacks.
-    processors = shared_processors + [
-        structlog.processors.dict_tracebacks,
-        structlog.processors.JSONRenderer(),
-    ]
+# Pretty printing when we run in a terminal session.
+# Automatically prints pretty tracebacks when "rich" is installed
+processors = shared_processors + [
+    structlog.dev.ConsoleRenderer(
+        exception_formatter=structlog.dev.plain_traceback
+    ),
+]
 
 
 structlog.configure(
@@ -160,8 +153,6 @@ def initialize(config: dict[str, Any] | None = None):
     def handle_error(f):
         # If we can, try to send the exception back whence it came
         try:
-            import traceback
-
             from .plugins import CorePluginEventResources
 
             if f.__module__ in CorePluginEventResources.eventsByModuleName:

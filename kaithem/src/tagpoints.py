@@ -605,7 +605,6 @@ class GenericTagPointClass(Generic[T]):
             # When any source tag updates, we want to recalculate.
             self._source_tags[n].subscribe(self._recalc)
             return self._source_tags[n].value
-        return 0
 
     def _context_get_string_tag_value(self, n: str) -> str:
         "Get the tag value, adding it to the list of source tags. Creates tag if it isn't there"
@@ -616,7 +615,6 @@ class GenericTagPointClass(Generic[T]):
             # When any source tag updates, we want to recalculate.
             self._source_tags[n].subscribe(self._recalc)
             return self._source_tags[n].value
-        return 0
 
     # Note the black default condition, that lets us override a normal alarm while using the default condition.
     @validate_args

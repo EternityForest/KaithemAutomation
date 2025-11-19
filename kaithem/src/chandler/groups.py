@@ -259,7 +259,7 @@ class Group:
         mqtt_sync_features: dict[str, Any] | None = None,
         cue_providers: list[str] | None = [],
         enable_timing: bool = True,
-        **ignoredParams,
+        **_ignoredParams,
     ):
         """
 

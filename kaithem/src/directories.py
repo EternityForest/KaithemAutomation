@@ -12,7 +12,6 @@ import os
 import pwd
 import shutil
 import socket
-from os import environ
 
 from .config import config
 
@@ -22,35 +21,14 @@ dn = os.path.dirname(os.path.realpath(__file__))
 srcdir = dn
 
 
-def getRootAndroidDir():
-    from jnius import autoclass, cast
+vardir = os.path.normpath(os.path.join(dn, ".."))
+# Set in config now, not a real config entry
+vardir = os.path.join(vardir, os.path.expanduser(config["site_data_dir"]))
 
-    PythonActivity = autoclass("org.kivy.android.PythonActivity")
-    Environment = autoclass("android.os.Environment")
-    context = cast("android.content.Context", PythonActivity.mActivity)
-
-    user_services_dir = context.getExternalFilesDir(
-        Environment.getDataDirectory().getAbsolutePath()
-    ).getAbsolutePath()
-
-    return os.path.join(user_services_dir, "var")
-
-
-if "ANDROID_ARGUMENT" in environ:
-    vardir = getRootAndroidDir()
-    datadir = os.path.normpath(os.path.join(dn, "../data"))
-    logdir = os.path.join(
-        vardir, "logs", socket.gethostname() + "-" + getpass.getuser()
-    )
-else:
-    vardir = os.path.normpath(os.path.join(dn, ".."))
-    # Set in config now, not a real config entry
-    vardir = os.path.join(vardir, os.path.expanduser(config["site_data_dir"]))
-
-    datadir = os.path.normpath(os.path.join(dn, "../data"))
-    logdir = os.path.join(
-        vardir, "logs", socket.gethostname() + "-" + getpass.getuser()
-    )
+datadir = os.path.normpath(os.path.join(dn, "../data"))
+logdir = os.path.join(
+    vardir, "logs", socket.gethostname() + "-" + getpass.getuser()
+)
 
 usersdir = os.path.join(vardir, "users")
 

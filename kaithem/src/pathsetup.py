@@ -14,7 +14,7 @@ logger = structlog.get_logger(__name__)
 setup = False
 
 
-def setupPath(linuxpackage=None, force_local=False):
+def setupPath():
     global setup
     if setup:
         return
@@ -42,16 +42,6 @@ def setupPath(linuxpackage=None, force_local=False):
     else:
         # Still a few old things we need in Thirdparty
         sys.path = sys.path + [os.path.join(x, "thirdparty")]
-    # Truly an awefullehaccken
-    # Break out of venv to get to gstreamer
-
-    # Consider using importlib.util.module_for_loader() to handle
-    # most of these details for you.
-
-    def load_module(self, fullname):
-        for i in sys.modules:
-            if fullname.endswith(i):
-                return sys.modules[i]
 
     # Truly an awefullehaccken
     # Break out of venv to get to gstreamer
