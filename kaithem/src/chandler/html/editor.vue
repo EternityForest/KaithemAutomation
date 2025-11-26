@@ -950,16 +950,6 @@
                         <i class="mdi mdi-playlist-play"></i>
                       </button>
 
-                      <button
-                        type="button"
-                        v-if="h.__length__"
-                        @click="showPresetDialog(fname, true)"
-                        title="Select a preset for the end of the range effect"
-                        popovertarget="presetForFixture">
-                        <i class="mdi mdi-playlist-play"></i>
-                        <i class="mdi mdi-arrow-right"></i>
-                      </button>
-
                       <select
                         :disabled="no_edit"
                         class="w-4rem nogrow"
@@ -1122,13 +1112,8 @@
                         <td>
                           <button
                             type="button"
-                            v-on:click="addfixToCurrentCue(i, 1, 1, 0)">
+                            v-on:click="addfixToCurrentCue(i)">
                             <i class="mdi mdi-plus"></i>Add
-                          </button>
-                        </td>
-                        <td>
-                          <button type="button" v-on:click="addRangeEffect(i)">
-                            <i class="mdi mdi-plus"></i>Range Effect
                           </button>
                         </td>
                       </tr>
@@ -2779,7 +2764,6 @@ import {
   setbpm,
   tap,
   testSoundCard,
-  addRangeEffect,
   addfixToCurrentCue,
   rmFixCue,
   setEventButtons,

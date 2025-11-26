@@ -624,23 +624,16 @@ function testSoundCard(sc, c) {
   api_link.send(["testSoundCard", sc, c]);
 }
 
-function addRangeEffect(fix) {
-  addfixToCurrentCue(
+function addfixToCurrentCue(fix) {
+  api_link.send([
+    "add_cuef",
+    groupcues.value[groupname.value][selectedCues.value[groupname.value]],
     fix,
-    prompt(
-      "Bulb # offset(2 represents the first identical fixture after one.value, etc)",
-      1
-    ),
-    prompt(
-      "Range effect length(# of identical fixtures to cover with pattern)"
-    ),
-    prompt(
-      "Channel spacing between first channel of successive fixtures(If fix #1 is on DMX1 and fix #2 is on 11, spacing is 10). 0 if spacing equals fixture channel count."
-    )
-  );
+  ]);
 }
 
-function addfixToCurrentCue(fix, index, length_, spacing) {
+
+function addGeneratorToCurrentCue(fix, index) {
   //Idx and len are for adding range patters to an array of identical fixtures.
   //Otherwise they should be one
   index = Number.parseInt(index);
@@ -654,10 +647,10 @@ function addfixToCurrentCue(fix, index, length_, spacing) {
     groupcues.value[groupname.value][selectedCues.value[groupname.value]],
     fix,
     index,
-    length_,
-    spacing,
   ]);
 }
+
+
 function rmFixCue(cue, fix) {
   api_link.send(["rmcuef", cue, fix]);
 }
@@ -1516,7 +1509,6 @@ export {
   setbpm,
   tap,
   testSoundCard,
-  addRangeEffect,
   addfixToCurrentCue,
   rmFixCue,
   refreshPorts,

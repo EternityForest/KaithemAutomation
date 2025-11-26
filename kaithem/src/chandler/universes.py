@@ -88,7 +88,7 @@ class Fixture:
         data is the definition of the type of fixture. It can be a list of channels, or
         a dict having a 'channels' property.
 
-        Each channel must be described by a [name, type, [arguments]] list, where type is one of:
+        Each channel must be described by a dict having name and type at minimum.
 
         red
         green
@@ -478,6 +478,24 @@ class Universe:
                     refresh_groups()
             global last_state_update
             last_state_update = time.time()
+
+    def get_channel_metadata(self, channel):
+        md: dict[str, str | int] = {"fixture": "", "name": "", "type": ""}
+
+        try:
+            fixture = self.channels[channel]()
+            if not fixture:
+                return md
+            if not fixture.startAddress:
+                return md
+            data = fixture.channels[channel - fixture.startAddress]
+
+            md["name"] = data["name"]
+            md["fixture"] = fixture.name
+            md["type"] = data["type"]
+
+        except KeyError:
+            return md
 
     @core.cl_context.required
     def cl_channels_changed(self):

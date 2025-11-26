@@ -1,16 +1,20 @@
 # SPDX-FileCopyrightText: Copyright 2024 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-or-later
+from __future__ import annotations
 
 import math
 import random
 import time
 import weakref
-from typing import Any, Dict, Tuple
+from typing import TYPE_CHECKING, Any
 
 import numpy
 import numpy.typing
 
 from . import universes
+
+if TYPE_CHECKING:
+    from .groups import Group
 
 rand_table = [random.randint(0, 255) for i in range(1024)]
 rand_counter = 0
@@ -57,11 +61,11 @@ def getblenddesc(mode: str):
 class BlendMode:
     default_channel_value = 0
     always_rerender = False
-    parameters: Dict[str, Tuple[str, str, str, str | bool | float]] = {}
+    parameters: dict[str, tuple[str, str, str, str | bool | float]] = {}
     autoStop = True
 
-    def __init__(self, group) -> None:
-        self.blend_args: Dict[str, int | float | str] = {}
+    def __init__(self, group: Group) -> None:
+        self.blend_args: dict[str, int | float | str] = {}
 
         if hasattr(self.__class__, "parameters"):
             for i in self.__class__.parameters:

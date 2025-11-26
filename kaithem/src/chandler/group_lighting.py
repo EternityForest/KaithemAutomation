@@ -178,32 +178,6 @@ class GroupLightingManager:
                 if not universe:
                     continue
 
-                fixture = None
-                try:
-                    if i[1:] in universes.fixtures:
-                        f = universes.fixtures[i[1:]]()
-                        if f:
-                            fixture = f
-                except KeyError:
-                    print(traceback.format_exc())
-
-                chCount = 0
-
-                if fixture:
-                    chCount = len(fixture.channels)
-
-                if "__length__" in source_cue.values[i]:
-                    s = source_cue.values[i]["__length__"]
-                    assert s
-                    repeats = int(self.group.evalExprFloat(s))
-                else:
-                    repeats = 1
-
-                if "__spacing__" in source_cue.values[i]:
-                    s = source_cue.values[i]["__spacing__"]
-                    if s:
-                        chCount = int(self.group.evalExprFloat(s))
-
                 universe_object = universes.getUniverse(universe)
 
                 if universe.startswith("/"):
@@ -224,65 +198,43 @@ class GroupLightingManager:
                         [0.0] * size, dtype="f4"
                     )
 
-                # TODO stronger type
-                dest: dict[str | int, Any] = {}
-
                 for j in source_cue.values[i]:
-                    if isinstance(j, str) and j.startswith("__dest__."):
-                        dest[j[9:]] = self.group.evalExpr(
-                            source_cue.values[i][j]
-                            if source_cue.values[i][j] is not None
-                            else 0
-                        )
+                    if isinstance(j, str) and j.startswith("__"):
+                        continue
 
-                for idx in range(repeats):
-                    for j in source_cue.values[i]:
-                        if isinstance(j, str) and j.startswith("__"):
-                            continue
+                    cue_values = source_cue.values[i][j]
 
-                        cue_values = source_cue.values[i][j]
+                    evaled = self.group.evalExpr(
+                        cue_values if cue_values is not None else 0
+                    )
+                    # This should always be a float
+                    evaled = float(evaled)
 
-                        evaled = self.group.evalExpr(
-                            cue_values if cue_values is not None else 0
-                        )
-                        # This should always be a float
-                        evaled = float(evaled)
-
-                        # Do the blend thing
-                        if j in dest:
-                            # Repeats is a count, idx is zero based, we want diveder to be 1 on the last index of the set
-                            divider = idx / (max(repeats - 1, 1))
-                            evaled = (evaled * (1 - divider)) + (
-                                dest[j] * divider
+                    x = universes.mapChannel(i.split("[")[0], j)
+                    if x:
+                        universe, channel = x[0], x[1]
+                        try:
+                            self.state_alphas[universe][channel] = (
+                                1.0 if cue_values is not None else 0
+                            )
+                            self.state_vals[universe][channel] = evaled
+                        except Exception:
+                            print("err", traceback.format_exc())
+                            self.group.event(
+                                "script.error",
+                                self.group.name
+                                + " cue "
+                                + source_cue.name
+                                + " Val "
+                                + str((universe, channel))
+                                + "\n"
+                                + traceback.format_exc(),
                             )
 
-                        x = universes.mapChannel(i.split("[")[0], j)
-                        if x:
-                            universe, channel = x[0], x[1]
-                            try:
-                                self.state_alphas[universe][
-                                    channel + (idx * chCount)
-                                ] = 1.0 if cue_values is not None else 0
-                                self.state_vals[universe][
-                                    channel + (idx * chCount)
-                                ] = evaled
-                            except Exception:
-                                print("err", traceback.format_exc())
-                                self.group.event(
-                                    "script.error",
-                                    self.group.name
-                                    + " cue "
-                                    + source_cue.name
-                                    + " Val "
-                                    + str((universe, channel))
-                                    + "\n"
-                                    + traceback.format_exc(),
-                                )
-
-                        if isinstance(
-                            cue_values, str
-                        ) and cue_values.strip().startswith("="):
-                            self.needs_rerender_on_var_change = True
+                    if isinstance(
+                        cue_values, str
+                    ) and cue_values.strip().startswith("="):
+                        self.needs_rerender_on_var_change = True
 
     def paint_canvas(self, fade_position: float = 0.0):
         assert self.cue

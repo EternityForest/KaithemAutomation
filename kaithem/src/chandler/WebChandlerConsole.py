@@ -625,11 +625,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         elif cmd_name == "add_cuef":
             cue = cues[msg[1]]
 
-            # Can add a length and start point to the cue.
-            # index = int(msg[3])
-            length = int(msg[4])
-            spacing = int(msg[5])
-
             # Get rid of any index part, treat it like it's part of the same fixture.
             x = universes.fixtures[msg[2].split("[")[0]]()
             # Add every non-unused channel.  Fixtures
@@ -648,28 +643,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                     else:
                         val = 0
                     cue.set_value_immediate("@" + msg[2], i["name"], val)
-
-            if length > 1:
-                # Set the length as if it were a ficture property
-                cue.set_value_immediate("@" + msg[2], "__length__", length)
-                cue.set_value_immediate("@" + msg[2], "__spacing__", spacing)
-
-                # The __dest__ channels represet the color at the end of the channel
-                for i in x.channels:
-                    if i["type"] not in ("unused", "fixed"):
-                        sc = cue.group()
-                        assert sc
-                        if hasattr(
-                            sc.lighting_manager.blendClass,
-                            "default_channel_value",
-                        ):
-                            val = sc.lighting_manager.blendClass.default_channel_value
-                        else:
-                            val = 0
-                        # i[0] is the name of the channel
-                        cue.set_value_immediate(
-                            "@" + msg[2], "__dest__." + str(i["name"]), val
-                        )
 
             self.linkSend(["cuedata", msg[1], cue.values])
             self.pushCueMeta(msg[1])

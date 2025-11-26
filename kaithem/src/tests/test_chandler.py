@@ -529,9 +529,7 @@ def test_fixtures():
         ## 0s are the pattern spacing
         core.wait_frame()
 
-        board._onmsg(
-            "__admin__", ["add_cuef", cid, "testFixture", 0, 0, 0], "test"
-        )
+        board._onmsg("__admin__", ["add_cuef", cid, "testFixture", 0], "test")
         core.wait_frame()
 
         board._onmsg(

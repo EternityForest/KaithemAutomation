@@ -231,14 +231,7 @@ function setFixturePreset(sc, fix, preset) {
     }
 
     let valFromPreset = selectedPreset.values[i];
-    // If we are editing destinations,
-    // take the normal value and put it in the __dest__ channel
-    if (properties.fordestination) {
-      if (!i.startsWith("__dest__.")) {
-        continue;
-      }
-      valFromPreset = selectedPreset.values[i.replace("__dest__.", "")];
-    }
+
 
     if (selectedPreset.values[i] == undefined) {
       if (resetOthers && i in resettablechannels) {

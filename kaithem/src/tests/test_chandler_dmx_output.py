@@ -90,7 +90,7 @@ def test_fixtures_to_dmx():
             core.wait_frame()
 
             test_chandler.board._onmsg(
-                "__admin__", ["add_cuef", cid, "testFixture", 0, 0, 0], "test"
+                "__admin__", ["add_cuef", cid, "testFixture", 0], "test"
             )
             core.wait_frame()
 
