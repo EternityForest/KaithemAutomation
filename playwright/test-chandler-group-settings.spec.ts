@@ -29,6 +29,7 @@ async function uncheck_box(_page, box) {
 
 test("test", async ({ page }) => {
   test.setTimeout(4_800_000);
+  page.setDefaultTimeout(15_000);
 
   await login(page);
 
