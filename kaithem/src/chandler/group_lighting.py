@@ -5,16 +5,17 @@ import traceback
 from typing import TYPE_CHECKING, Any
 
 import numpy
-import numpy.typing
 
 from . import blendmodes, universes
 
 if TYPE_CHECKING:
+    from kaithem.src.chandler.cue import EffectData
+
     from .ChandlerConsole import ChandlerConsole
     from .groups import Cue, Group
 
 from .core import iter_boards, render_loop_lock, serialized_async_with_core_lock
-from .fadecanvas import FadeCanvas
+from .fadecanvas import LightingLayer
 
 
 def refresh_all_group_lighting():
@@ -34,27 +35,16 @@ class GroupLightingManager:
 
         self.group = group
 
-        # Canvas data can be read by the render loop at any time so must only
-        # by changed with the render loop lock
-        self.canvas = FadeCanvas()
-
         self.should_rerender_onto_universes = False
 
         # Track this so we can repaint
-        self.last_fade_position = 1
+        self.fade_position = 1.0
 
         # Should the group rerender every time there is a var change
         # in a script var?
         self.needs_rerender_on_var_change = False
 
         self.should_recalc_values_before_render = False
-
-        # Lets us cache the lists of values as numpy arrays with 0 alpha for not present vals
-        # which are faster that dicts for some operations
-
-        # These must only be mutated under the group's lock
-        self.state_vals: dict[str, numpy.typing.NDArray[Any]] = {}
-        self.state_alphas: dict[str, numpy.typing.NDArray[Any]] = {}
         self.on_demand_universes: dict[str, universes.Universe] = {}
 
         self.cue: Cue | None = None
@@ -70,26 +60,64 @@ class GroupLightingManager:
             group.blend_args or {}
         )
 
+        self.fading_from: dict[str, LightingLayer] = {}
+        """These are inputs to generartor effects"""
+
+        self.cached_values_raw: dict[str, LightingLayer] = {}
+        """Current values from the group, after applying backtrack but before
+            generators run.
+            Every effect has its own inputs
+        """
+
+    def clean(self):
+        for i in list(self.cached_values_raw):
+            self.cached_values_raw[i].clean()
+
+    def set_value(
+        self, effect: str, universe: str, channel: int, value: float | None
+    ):
+        if effect not in self.cached_values_raw:
+            self.cached_values_raw[effect] = LightingLayer()
+
+        if value is None:
+            self.cached_values_raw[effect].values[universe][channel] = 0
+            self.cached_values_raw[effect].alphas[universe][channel] = 0
+        else:
+            self.cached_values_raw[effect].values[universe][channel] = value
+            self.cached_values_raw[effect].alphas[universe][channel] = 1
+
+        self.should_rerender_onto_universes = True
+
     def refresh(self):
         """
         Recalculate all the lighting stuff, mark any universes we affect
         as needing to be rerendered fully.
         """
         with self.group.lock:
-            with render_loop_lock:
-                try:
-                    for i in self.state_vals:
-                        universes.rerenderUniverse(i)
-                except Exception:
-                    print(traceback.format_exc())
             if self.cue:
                 self.next(self.cue)
-                self.paint_canvas(self.last_fade_position)
 
                 # Set under lock to ensure it's in a place where it will be noticed
                 # Not blown away at the end of the loop
                 with render_loop_lock:
                     self.should_rerender_onto_universes = True
+
+    def get_current_output(self) -> dict[str, LightingLayer]:
+        if self.fade_position:
+            return self.cached_values_raw
+
+        op = {}
+
+        for i in self.cached_values_raw:
+            if i in self.fading_from:
+                op[i] = self.fading_from[i].fade_in(
+                    self.fading_from[i], self.fade_position
+                )
+            else:
+                op[i] = LightingLayer().fade_in(
+                    self.cached_values_raw[i], self.fade_position
+                )
+        return op
 
     def rerender(self):
         """We have new data, but don't need to rerender from scratch
@@ -109,17 +137,8 @@ class GroupLightingManager:
     def next(self, cue: Cue):
         """Handle lighting related cue transition stuff"""
         with self.group.lock:
-            self.canvas.save_current_as_background()
-
-            # There might be universes we affect that we don't anymore,
-            # We need to mark to rerender those because otherwise the system might think absolutely nothing has changed.
-            # A full rerender on every cue change isn't the most efficient, but it shouldn't be too bad
-            # since most frames don't have a cue change in them
-            try:
-                for i in self.state_vals:
-                    universes.rerenderUniverse(i)
-            except Exception:
-                print(traceback.format_exc())
+            self.fading_from = self.cached_values_raw
+            self.cached_values_raw = {}
 
             reentering = self.cue is cue
 
@@ -131,13 +150,16 @@ class GroupLightingManager:
 
             # Recalc what universes are affected by this group.
             # We don't clear the old universes, we do that when we're done fading in.
-            for i in cue.values:
-                i = universes.mapUniverse(i)
+            for effectname in cue.values:
+                effect: EffectData = cue.values[effectname]
 
-                if i and i.startswith("/"):
-                    self.on_demand_universes[i] = (
-                        universes.get_on_demand_universe(i)
-                    )
+                for universe in effect["keypoints"]:
+                    i = universes.mapUniverse(universe)
+
+                    if i and i.startswith("/"):
+                        self.on_demand_universes[i] = (
+                            universes.get_on_demand_universe(i)
+                        )
 
             self.update_state_from_cue_vals(cue, not cue.track)
             self.fade_in_completed = False
@@ -146,17 +168,8 @@ class GroupLightingManager:
 
     def stop(self):
         with self.group.lock:
-            # Tell them to rerender
-            try:
-                for i in self.state_vals:
-                    universes.rerenderUniverse(i)
-            except Exception:
-                print(traceback.format_exc())
-
-            self.state_vals = {}
-            self.state_alphas = {}
-            self.canvas.clean([])
-            self.on_demand_universes = {}
+            self.fading_from = {}
+            self.cached_values_raw = {}
 
             # Just using this to get rid of prev value
             self._blend = blendmodes.HardcodedBlendMode(self)
@@ -166,89 +179,88 @@ class GroupLightingManager:
         with self.group.lock:
             # Loop over universes in the cue
             if clearBefore:
-                # self.cue_cached_vals_as_arrays = {}
-                for i in self.state_alphas:
-                    self.state_alphas[i] = numpy.zeros(
-                        self.state_alphas[i].shape
-                    )
+                self.cached_values_raw = {}
 
             self.needs_rerender_on_var_change = False
-            for i in source_cue.values:
-                universe = universes.mapUniverse(i)
-                if not universe:
-                    continue
 
-                universe_object = universes.getUniverse(universe)
+            for effectname in source_cue.values:
+                effect = source_cue.values[effectname]
+                kp: dict[str, Any] = effect["keypoints"]  # type: ignore
 
-                if universe.startswith("/"):
-                    self.on_demand_universes[i] = (
-                        universes.get_on_demand_universe(universe)
-                    )
-                    universe_object = self.on_demand_universes[i]
+                if effectname not in self.cached_values_raw:
+                    self.cached_values_raw[effectname] = LightingLayer()
 
-                if not universe_object:
-                    continue
+                effectlayer = self.cached_values_raw[effectname]
 
-                if universe not in self.state_vals:
-                    size = len(universe_object.values)
-                    self.state_vals[universe] = numpy.array(
-                        [0.0] * size, dtype="f4"
-                    )
-                    self.state_alphas[universe] = numpy.array(
-                        [0.0] * size, dtype="f4"
-                    )
-
-                for j in source_cue.values[i]:
-                    if isinstance(j, str) and j.startswith("__"):
+                for universe_raw_name in kp:
+                    universe = universes.mapUniverse(universe_raw_name)
+                    if not universe:
                         continue
 
-                    cue_values = source_cue.values[i][j]
+                    universe_object = universes.getUniverse(universe)
 
-                    evaled = self.group.evalExpr(
-                        cue_values if cue_values is not None else 0
-                    )
-                    # This should always be a float
-                    evaled = float(evaled)
+                    if universe.startswith("/"):
+                        self.on_demand_universes[universe] = (
+                            universes.get_on_demand_universe(universe)
+                        )
+                        universe_object = self.on_demand_universes[universe]
 
-                    x = universes.mapChannel(i.split("[")[0], j)
-                    if x:
-                        universe, channel = x[0], x[1]
-                        try:
-                            self.state_alphas[universe][channel] = (
-                                1.0 if cue_values is not None else 0
-                            )
-                            self.state_vals[universe][channel] = evaled
-                        except Exception:
-                            print("err", traceback.format_exc())
-                            self.group.event(
-                                "script.error",
-                                self.group.name
-                                + " cue "
-                                + source_cue.name
-                                + " Val "
-                                + str((universe, channel))
-                                + "\n"
-                                + traceback.format_exc(),
-                            )
+                    if not universe_object:
+                        continue
 
-                    if isinstance(
-                        cue_values, str
-                    ) and cue_values.strip().startswith("="):
-                        self.needs_rerender_on_var_change = True
+                    if universe not in self.cached_values_raw:
+                        size = len(universe_object.values)
+                        effectlayer.values[universe] = numpy.array(
+                            [0.0] * size, dtype="f4"
+                        )
 
-    def paint_canvas(self, fade_position: float = 0.0):
-        assert self.cue
-        # Group lock for state vals
-        # Render loop lock for canvas
-        with self.group.lock:
-            with render_loop_lock:
-                self.last_fade_position = fade_position
+                        effectlayer.values[universe] = numpy.array(
+                            [0.0] * size, dtype="f4"
+                        )
 
-                self.canvas.paint(
-                    fade_position,
-                    vals=self.state_vals,
-                    alphas=self.state_alphas,
-                )
+                    for j in kp[universe_raw_name]:
+                        if isinstance(j, str) and j.startswith("__"):
+                            continue
+
+                        cue_value = kp[universe_raw_name][j]
+
+                        evaled = self.group.evalExpr(
+                            cue_value if cue_value is not None else 0
+                        )
+                        # This should always be a float
+                        evaled = float(evaled)
+
+                        x = universes.mapChannel(
+                            universe_raw_name.split("[")[0], j
+                        )
+                        if x:
+                            universe, channel = x[0], x[1]
+                            try:
+                                effectlayer.values[universe][channel] = evaled
+                                effectlayer.alphas[universe][channel] = (
+                                    1.0 if cue_value is not None else 0
+                                )
+                            except Exception:
+                                print("err", traceback.format_exc())
+                                self.group.event(
+                                    "script.error",
+                                    self.group.name
+                                    + " cue "
+                                    + source_cue.name
+                                    + " Val "
+                                    + str((universe, channel))
+                                    + "\n"
+                                    + traceback.format_exc(),
+                                )
+
+                        if isinstance(
+                            cue_value, str
+                        ) and cue_value.strip().startswith("="):
+                            self.needs_rerender_on_var_change = True
+
+            for i in self.fading_from:
+                if i not in self.cached_values_raw:
+                    self.cached_values_raw[i] = LightingLayer()
 
     def fade_complete(self):
         """Called when the fade is complete, to clean up leftover stuff we don't need"""
@@ -258,39 +270,15 @@ class GroupLightingManager:
         # cue, we are going to no longer affect anything
         # That isn't directly in the cue
         with self.group.lock:
-            if self.cue and not self.cue.track:
-                current_affected = {}
-                for i in self.cue.values:
-                    m = universes.mapUniverse(i)
-                    current_affected[m] = True
-
-                to_delete = []
-                for i in self.state_alphas:
-                    if i not in current_affected:
-                        to_delete.append(i)
-
-                # These arrays should never be out of sync, this is just defensive
-                for i in to_delete:
-                    if i in self.state_alphas:
-                        del self.state_alphas[i]
-                    if i in self.state_vals:
-                        del self.state_vals[i]
-
-            # Clean up on demand universes
-
             odu = {}
 
-            for i in self.state_vals:
+            for i in self.cached_values_raw:
                 u = universes.mapUniverse(i)
 
                 if u and u.startswith("/"):
                     odu[u] = universes.get_on_demand_universe(u)
 
             self.on_demand_universes = odu
-
-            # Remove unused stuff from the canvas
-            # State vals has all the tracked stuff already
-            self.canvas.clean(self.state_vals)
 
             # One last rerender, this was some kind of bug workaround
             self.fade_in_completed = True
@@ -396,17 +384,20 @@ def _composite(background, values, alphas, alpha):
 
 
 def composite_rendered_layer_onto_universe(
-    universe: str, group: Group, universe_object: universes.Universe
+    universe: str,
+    group: Group,
+    nl: LightingLayer,
+    universe_object: universes.Universe,
 ):
     "May happen in place, or not, but always returns the new version"
 
     universe_values = universe_object.values
 
-    if universe not in group.lighting_manager.canvas.v2:
+    if universe not in nl.values:
         return universe_values
 
-    vals = group.lighting_manager.canvas.v2[universe]
-    alphas = group.lighting_manager.canvas.a2[universe]
+    vals = nl.values[universe]
+    alphas = nl.alphas[universe]
 
     # The universe may need to know when it's current fade should end,
     # if it handles fading in a different way.
@@ -469,65 +460,6 @@ def composite_rendered_layer_onto_universe(
     return universe_values
 
 
-def mark_and_reset_changed_universes(
-    board: ChandlerConsole, universes: dict[str, universes.Universe]
-) -> dict[str, tuple[int, int]]:
-    """
-    Reset all universes to either the all 0s background or the cached layer, depending on if the cache layer is still valid
-    This needs to happen before we start compositing on the layers.
-
-    Here is also where we figure out what universes need to be fully rerendered
-    """
-    # Here we find out what universes can be reset to a cached layer and which need to be fully rerendered.
-    changedUniverses = {}
-    to_reset = {}
-
-    # Important to reverse, that way groups that need a full reset come after and don't get overwritten
-    for i in reversed(board.active_groups):
-        for u in i.lighting_manager.canvas.v2:
-            if u in universes:
-                universe = universes[u]
-                universe.all_static = True
-                if (
-                    i.lighting_manager.should_rerender_onto_universes
-                    or i.lighting_manager.blendClass.always_rerender
-                ):
-                    if i.lighting_manager.should_recalc_values_before_render:
-                        i.lighting_manager.should_recalc_values_before_render = False
-                        i.lighting_manager.recalc_cue_vals()
-                        i.poll(force_repaint=True)
-
-                    changedUniverses[u] = (0, 0)
-
-                    # We are below the cached layer, we need to fully reset
-                    if (i.priority, i.started) <= universe.prerendered_layer:
-                        to_reset[u] = 1
-                    else:
-                        # We are stacking on another layer or changing the top layer. We don't need
-                        # To rerender the entire stack, we just start from the prerendered_layer
-                        # Set the universe to the state it was in just after the prerendered layer was rendered.
-                        # Since the values are mutable, we need to set this back every frame
-
-                        # Don't overwrite a request to reset the entire thing
-                        if not to_reset.get(u, 0) == 1:
-                            to_reset[u] = 2
-    for u in universes:
-        if universes[u].full_rerender:
-            to_reset[u] = 1
-
-        universes[u].fadeEndTime = 0
-        universes[u].interpolationTime = 0
-
-    for u in to_reset:
-        if (to_reset[u] == 1) or not universes[u].prerendered_layer[1]:
-            universes[u].reset()
-            changedUniverses[u] = (0, 0)
-        else:
-            universes[u].reset_to_cache()
-            changedUniverses[u] = (0, 0)
-    return changedUniverses
-
-
 def composite_layers_from_board(board: ChandlerConsole, t=None, u=None):
     """This is the primary rendering function.
     Returns dict of universes we know changes.
@@ -535,9 +467,32 @@ def composite_layers_from_board(board: ChandlerConsole, t=None, u=None):
     Happens under the render loop lock
     """
     universesSnapshot = u or universes.getUniverses()
-    changedUniverses = {}
     # Getting list of universes is apparently slow, so we pass it as a param
     t = t or time.time()
+
+    changed = {}
+
+    needs_rerender = False
+
+    group_outputs = {}
+
+    for i in board.active_groups:
+        if i.lighting_manager.should_rerender_onto_universes:
+            x = (
+                i.lighting_manager.get_current_output()
+                .get("direct", LightingLayer())
+                .values
+            )
+            for j in x:
+                changed[j] = True
+            group_outputs[i.name] = x
+            needs_rerender = True
+
+    if not needs_rerender:
+        return changed
+
+    for u in universesSnapshot:
+        universesSnapshot[u].reset()
 
     # Remember that groups get rendered in ascending priority order here
     for i in board.active_groups:
@@ -549,10 +504,9 @@ def composite_layers_from_board(board: ChandlerConsole, t=None, u=None):
             continue
 
         # TODO this can change size during iteration
-        data = i.lighting_manager.canvas.v2
 
         # Loop over universes the group affects
-        for u in data:
+        for u in group_outputs[i.name]:
             if u.startswith("__") and u.endswith("__"):
                 continue
 
@@ -561,45 +515,21 @@ def composite_layers_from_board(board: ChandlerConsole, t=None, u=None):
 
             universeObject = universesSnapshot[u]
 
-            # If this is above the prerendered stuff we try to avoid doing every frame
-            if (i.priority, i.started) > universeObject.top_layer:
-                # If this layer we are about to render was found to be the highest layer that likely won't need rerendering,
-                # Save the state just before we apply that layer.
-                if (
-                    universeObject.save_before_layer == (i.priority, i.started)
-                ) and not ((i.priority, i.started) == (0, 0)):
-                    universeObject.save_prerendered(
-                        universeObject.top_layer[0], universeObject.top_layer[1]
-                    )
+            universeObject.values = composite_rendered_layer_onto_universe(
+                u, i, group_outputs[i.name], universeObject
+            )
 
-                changedUniverses[u] = (i.priority, i.started)
-                universeObject.values = composite_rendered_layer_onto_universe(
-                    u, i, universeObject
-                )
-                universeObject.top_layer = (i.priority, i.started)
-
-                # If this is the first nonstatic layer, meaning it's render function requested a rerender next frame
-                # or if this is the last one, mark it as the one we should save just before
-                if i.lighting_manager.should_rerender_onto_universes or (
-                    i is board.active_groups[-1]
-                ):
-                    if universeObject.all_static:
-                        # Copy it and set to none as a flag that we already found it
-                        universeObject.all_static = False
-                        universeObject.save_before_layer = (
-                            universeObject.top_layer
-                        )
         i.lighting_manager.should_rerender_onto_universes = False
 
-    return changedUniverses
+    return changed
 
 
-def do_output(changedUniverses, universesSnapshot):
+def do_output(changed, universesSnapshot):
     """Trigger all universes to actually output the frames.
     Need a snapshot list of universes because getting
     it is expensive according to profiler
     """
-    for i in changedUniverses:
+    for i in changed:
         try:
             if i in universesSnapshot:
                 x = universesSnapshot[i]
@@ -607,6 +537,3 @@ def do_output(changedUniverses, universesSnapshot):
                 x.onFrame()
         except Exception:
             raise
-
-    for un in universesSnapshot:
-        universesSnapshot[un].full_rerender = False

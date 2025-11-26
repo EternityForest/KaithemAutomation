@@ -18,7 +18,6 @@ from collections.abc import Callable, Iterable
 from typing import TYPE_CHECKING, Any
 
 import icemedia.sound_player
-import numpy
 import structlog
 from icemedia import sound_player
 from scullery import messagebus, ratelimits, workers
@@ -2429,7 +2428,8 @@ class Group:
 
             # Remember, we can and do the next cue thing and still need to repaint, because sometimes the next cue thing does nothing
             if force_repaint or (not self.lighting_manager.fade_in_completed):
-                self.lighting_manager.paint_canvas(fadePosition)
+                self.lighting_manager.fade_position = fadePosition
+                self.lighting_manager.rerender()
                 if fadePosition >= 1.0:
                     self.lighting_manager.fade_complete()
 
@@ -2452,10 +2452,12 @@ class Group:
     def set_cue_value(
         self,
         cue_name: str,
+        effect: str,
         universe: str,
-        channel: str | int,
+        channel: str,
         value: str | int | float | None,
     ):
+        """Universe can also represent a fixture"""
         with self.lock:
             reset = False
 
@@ -2470,9 +2472,6 @@ class Group:
                 except ValueError:
                     pass
 
-            if isinstance(channel, int | float):
-                pass
-
             else:
                 x = channel.strip()
                 if not x == channel:
@@ -2480,18 +2479,14 @@ class Group:
                         "Channel name cannot begin or end with whitespace"
                     )
 
-                # If it looks like an int, cast it even if it's a string,
-                # We get a lot of raw user input that looks like that.
-                try:
-                    channel = int(channel)
-                except ValueError:
-                    pass
+            old_val = (
+                cue.values.get("effect", {})
+                .get("keypoints", {})
+                .get(universe, {})  # type: ignore
+                .get(str(channel), None)
+            )
 
-            old_val = cue.values.get(universe, {}).get(channel, None)
-
-            reset = cue.set_value(universe, channel, value)
-
-            unmappeduniverse = universe
+            reset = cue.set_value(effect, universe, channel, value)
 
             mapped_channel = mapChannel(universe, channel)
 
@@ -2499,17 +2494,10 @@ class Group:
                 self.poll_again_flag = True
                 self.lighting_manager.rerender()
 
-                # If we change something in a pattern effect we just do a full recalc
+                # If we change something in an expression binding
+                #  we just do a full recalc
                 # since those are complicated.
-                # Also if we change a expression binding
-                if (
-                    (
-                        unmappeduniverse in cue.values
-                        and "__length__" in cue.values[unmappeduniverse]
-                    )
-                    or "=" in str(value)
-                    or "=" in str(old_val)
-                ):
+                if "=" in str(value) or "=" in str(old_val):
                     self.lighting_manager.update_state_from_cue_vals(cue, False)
 
                     # The FadeCanvas needs to know about this change
@@ -2517,7 +2505,7 @@ class Group:
 
                 # Otherwise if we are changing a simple mapped channel we optimize
                 elif mapped_channel:
-                    universe, channel = mapped_channel[0], mapped_channel[1]
+                    universe, channelm = mapped_channel[0], mapped_channel[1]
 
                     uobj = None
 
@@ -2527,38 +2515,25 @@ class Group:
                             uobj
                         )
 
-                    if (
-                        universe not in self.lighting_manager.state_alphas
-                    ) and value is not None:
+                    if value is not None:
                         # GetUniverse might not actually be working yet because
                         # It takes up to a frame for things to be added
                         if not uobj:
                             uobj = getUniverse(universe)
                         reset = True
                         if uobj:
-                            self.lighting_manager.state_vals[universe] = (
-                                numpy.array(
-                                    [0.0] * len(uobj.values), dtype="f4"
-                                )
-                            )
-                            self.lighting_manager.state_alphas[universe] = (
-                                numpy.array(
-                                    [0.0] * len(uobj.values), dtype="f4"
-                                )
+                            v = self.evalExprFloat(
+                                value if value is not None else 0
                             )
 
-                    if universe in self.lighting_manager.state_alphas:
-                        if (
-                            channel
-                            not in self.lighting_manager.state_alphas[universe]
-                        ):
-                            reset = True
-                        self.lighting_manager.state_alphas[universe][
-                            channel
-                        ] = 1 if value is not None else 0
-                        self.lighting_manager.state_vals[universe][channel] = (
-                            self.evalExpr(value if value is not None else 0)
+                            self.lighting_manager.set_value(
+                                effect, universe, channelm, v
+                            )
+                    else:
+                        self.lighting_manager.set_value(
+                            effect, universe, channelm, None
                         )
+                        self.lighting_manager.clean()
 
                     # The FadeCanvas needs to know about this change
                     self.poll(force_repaint=True)

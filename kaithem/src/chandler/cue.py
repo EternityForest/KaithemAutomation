@@ -20,7 +20,7 @@ import uuid
 import weakref
 from collections.abc import Callable
 from decimal import Decimal
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypedDict
 
 import dateutil.tz
 from scullery import messagebus, scheduling, snake_compat
@@ -197,6 +197,18 @@ def add_cue_property_update_handler(
 first_property_error_while_loading: list[bool] = [False]
 
 
+class AutoEntry(TypedDict):
+    fixture: str
+    start_idx: int
+    end_idx: int
+
+
+class EffectData(TypedDict):
+    type: str
+    keypoints: dict[str, dict[str, int | float | str]]
+    auto: list[AutoEntry]
+
+
 class Cue:
     "A static set of values with a fade in and out duration"
 
@@ -256,7 +268,13 @@ class Cue:
         self.media_wind_up: str
         self.media_wind_down: str
         self.probability: float | str
-        self.values: dict[str, dict[str | int, str | int | float | None]]
+
+        self.values: dict[str, EffectData]
+        """
+        Outer dict is the effect, inner is the universe, innermost is the channel
+        Normally we have exactly one effect called "direct",
+        where we directly set channel values.
+        """
         self.checkpoint: bool
         self.label_image: str
         self.metadata: dict[str, str | int | float | bool | None]
@@ -822,15 +840,23 @@ class Cue:
     # TODO what is the difference with immediate?
     # document it
     def set_value_immediate(
-        self, universe: str, channel: str | int, value: str | int | float | None
+        self,
+        effect: str,
+        universe: str,
+        channel: str,
+        value: str | int | float | None,
     ):
         gr = self.getGroup()
         if gr:
-            gr.set_cue_value(self.name, universe, channel, value)
+            gr.set_cue_value(self.name, effect, universe, channel, value)
 
     @validate_args
     def set_value(
-        self, universe: str, channel: str | int, value: str | int | float | None
+        self,
+        effect: str,
+        universe: str,
+        channel: str,
+        value: str | int | float | None,
     ):
         # Allow [] for range effects
         disallow_special(universe, allow="_@./[]")
@@ -842,22 +868,29 @@ class Cue:
 
         reset = False
         if value is not None:
-            if universe not in self.values:
-                self.values[universe] = {}
+            if effect not in self.values:
+                raise RuntimeError("Effect doesn't exist")
+
+            if universe not in self.values[effect]["keypoints"]:
+                self.values[effect]["keypoints"][universe] = {}
                 reset = True
-            if channel not in self.values[universe]:
+            if channel not in self.values[effect]["keypoints"][universe]:
                 reset = True
-            self.values[universe][channel] = value
+            self.values[effect]["keypoints"][str(universe)][str(channel)] = (
+                value
+            )
         else:
             empty = False
-            if channel in self.values[universe]:
-                del self.values[universe][channel]
-            if not self.values[universe]:
+            if channel in self.values[effect]["keypoints"][universe]:
+                del self.values[effect]["keypoints"][universe][channel]
+
+            if not self.values[effect]["keypoints"][universe]:
                 empty = True
-                del self.values[universe]
+                del self.values[effect]["keypoints"][universe]
+
             if empty:
                 self.pushData()
-        self.pushoneval(universe, channel, value)
+        self.pushoneval(effect, universe, channel, value)
 
         return reset
 
@@ -910,7 +943,9 @@ class Cue:
     def pushData(self):
         core.add_data_pusher_to_all_boards(lambda s: s.pushCueData(self.id))
 
-    def pushoneval(self, u: str, ch: str | int, v: str | float | int | None):
+    def pushoneval(
+        self, e: str, u: str, ch: str | int, v: str | float | int | None
+    ):
         core.add_data_pusher_to_all_boards(
-            lambda s: s.linkSend(["scv", self.id, u, ch, v])
+            lambda s: s.linkSend(["scv", self.id, e, u, ch, v])
         )

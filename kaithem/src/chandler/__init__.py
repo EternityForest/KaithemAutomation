@@ -94,21 +94,13 @@ def cl_loop():
                     if do_gui_push:
                         b.cl_gui_push(u_cache)
 
-            changed = {}
-
             # The pre-render step has to
             # happen before we start compositing on the layers
 
             # TODO the boards count can change
+            changed = {}
             with core.cl_context:
                 with group_lighting.render_loop_lock:
-                    for b in core.boards.values():
-                        changed.update(
-                            group_lighting.mark_and_reset_changed_universes(
-                                b, u_cache
-                            )
-                        )
-
                     for b in core.boards.values():
                         c = group_lighting.composite_layers_from_board(
                             b, u=u_cache

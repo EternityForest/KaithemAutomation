@@ -351,34 +351,8 @@ class Universe:
         # We implemnet that here so they are fixed no matter what the groups and blend modes say
         self.fixed_channels: dict[int, float] = {}
 
-        # Used for the caching. It's the layer we want to save as the background state before we apply.
-        # Calculated as either the last group rendered in the stack or the first group that requests a rerender that affects the universe
-        self.save_before_layer = (0.0, 0.0)
-        # Reset in pre_render, indicates if we've not rendered a layer that we think is going to change soon
-        # so far in this frame
-        self.all_static = True
-
         self.error_alert = alerts.Alert(
             f"{self.name}.errorState", priority="error", auto_ack=True
-        )
-
-        # flag to apply all groups, even ones not marked as neding rerender
-        self.full_rerender = False
-
-        # The priority, started of the top layer layer that's been applied to this group.
-        self.top_layer = (0, 0)
-
-        # This is the priority, started of the "saved" layer that's been cached so we don't
-        # Have to rerender it or anything below it.
-        self.prerendered_layer = (0, 0)
-
-        # A copy of the state of the universe just after prerendered_layer was rendered, so we can go back
-        # and start from there without rerendering lower layers.
-
-        # The format is values,alphas
-        self.prerendered_data = (
-            numpy.array([0.0] * count, dtype="f4"),
-            numpy.array([0.0] * count, dtype="f4"),
         )
 
         # Maybe there might be an iteration error. But it's just a GUI convenience that
@@ -440,7 +414,6 @@ class Universe:
             self.onFrame = alreadyClosed
             self.setStatus = alreadyClosed
             self.refresh_groups = alreadyClosed
-            self.reset_to_cache = alreadyClosed
             self.reset = alreadyClosed
             self.preFrame = alreadyClosed
             self.save_prerendered = alreadyClosed
@@ -523,29 +496,10 @@ class Universe:
             if data["type"] == "fixed":
                 self.fixed_channels[i] = data["value"]
 
-    def reset_to_cache(self):
-        "Remove all changes since the prerendered layer."
-        values, alphas = self.prerendered_data
-        self.values = numpy.copy(values)
-        self.alphas = numpy.copy(alphas)
-
-        self.top_layer = self.prerendered_layer
-
-    def save_prerendered(self, p, s):
-        "Save this layer as the cached layer. Called in the render functions"
-        self.prerendered_layer = (p, s)
-        self.prerendered_data = (
-            numpy.copy(self.values),
-            numpy.copy(self.alphas),
-        )
-
     def reset(self):
-        "Reset all values to 0 including the prerendered data"
-        self.prerendered_layer = (0, 0)
+        "Reset all values to 0"
         self.values = numpy.array([0.0] * self.count, dtype="f4")
         self.alphas = numpy.array([0.0] * self.count, dtype="f4")
-
-        self.top_layer = (0, 0)
 
     def preFrame(self):
         "Frame preprocessor, uses fixture-specific info, generally only called under lock"
@@ -1324,16 +1278,8 @@ def getUniverses() -> dict[str, Universe]:
     return u
 
 
-def rerenderUniverse(i: str):
-    """Set full_rerender to true on a given universe, if it exists. must be
-    safe to call under render loop lock."""
-    universe = getUniverse(i)
-    if universe:
-        universe.full_rerender = True
-
-
 def mapUniverse(u: str):
-    if not u.startswith("@"):
+    if not u.startswith(("@", "~")):
         return u
 
     u = u.split("[")[0]

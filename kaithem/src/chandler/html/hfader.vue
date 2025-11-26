@@ -1,118 +1,156 @@
 <style scoped></style>
 
 <template id="h-fader">
-    <div class="hfader" style="-webkit-user-drag: none;">
-        <b class="w-full" v-if="chinfo == undefined">{{ i.ch }}</b>
+  <div class="hfader" style="-webkit-user-drag: none">
+    <b class="w-full" v-if="chinfo == undefined">{{ chname }}</b>
 
-        <div>
-            <b v-if="chinfo" class="noselect" v-bind:title="'Actual channel:' + i.u + ':' + i.ch">{{ i.ch }}</b>
-            <button v-if="showdelete" v-on:click="rmValFromCue(currentcueid, i.u, i.ch)"><i
-                    class="mdi mdi-delete"></i>Remove</button>
-        </div>
-
-        <span v-if="typeof (i.v) == 'string'">
-            <input v-bind:disabled="chinfo && chinfo.type == 'fine'"
-                v-on:input="setCueVal(currentcueid, i.u, i.ch, i.v)" v-model.lazy="i.v"
-                v-on:change="setCueVal(currentcueid, i.u, i.ch, $event.target.value)">
-
-        </span>
-
-        <span v-if="typeof (i.v) == 'number'">
-            <span v-if="i.v !== null">
-                <smooth-range v-bind:disabled="chinfo && chinfo.type == 'fine'"
-                    v-if="(!(i.ch == '__length__' || i.ch == '__spacing__'))"
-                    v-bind:step="(chinfo && chinfo.type == 'fine') ? 0.01 : 1" :min="getValueRange(chinfo, i.v).min"
-                    :max="getValueRange(chinfo, i.v).max"
-                    @update:modelValue="setCueVal(currentcueid, i.u, i.ch, parseFloat($event))" v-model.number="i.v">
-                </smooth-range>
-
-            </span>
-
-            <span v-if="i.v == null" class=grey>Released</span>
-
-            <span v-if="!(chinfo && chinfo.type == 'fine')" title="Double click to set exact value" class="noselect"
-                v-on:dblclick="promptExactVal(currentcueid, i.u, i.ch)"
-                style="font-size:80%">{{ Number(i.v).toPrecision(4) }}</span>
-            <span class=grey v-if="chinfo && chinfo.type == 'fine'">auto</span>
-
-            <span v-if="chinfo && chinfo == undefined"
-                v-bind:style="{ 'background-color': 'rgb(' + i.v + ',' + i.v + ',' + i.v + ')' }"
-                class="indicator"></span>
-
-
-            <span v-if="chinfo && chinfo.type == 'custom'"><br>
-                <select :value="getValueRange(chinfo, i.v).name"
-                    v-on:change="setCueVal(currentcueid, i.u, i.ch, mapvaluerange(i.v, chinfo, $event.target.value))">
-                    <option v-for="i of chinfo.ranges" :value="i.name">{{ i.name }}({{ i.min }} to {{ i.max }})</option>
-                </select>
-            </span>
-        </span>
+    <div>
+      <b
+        v-if="chinfo"
+        class="noselect"
+        v-bind:title="'Actual channel:' + universe + ':' + chname"
+        >{{ chname }}</b
+      >
+      <button
+        v-if="showdelete"
+        v-on:click="rmValFromCue(currentcueid, effect, universe, chname)">
+        <i class="mdi mdi-delete"></i>Remove
+      </button>
     </div>
+
+    <span v-if="typeof val == 'string'">
+      <input
+        v-bind:disabled="chinfo && chinfo.type == 'fine'"
+        v-on:input="setCueVal(currentcueid, effect, universe, chname, val)"
+        v-model.lazy="val"
+        v-on:change="
+          setCueVal(currentcueid, effect, universe, chname, $event.target.value)
+        " />
+    </span>
+
+    <span v-if="typeof val == 'number'">
+      <span v-if="val !== null">
+        <smooth-range
+          v-bind:disabled="chinfo && chinfo.type == 'fine'"
+          v-if="!(chname == '__length__' || chname == '__spacing__')"
+          v-bind:step="chinfo && chinfo.type == 'fine' ? 0.01 : 1"
+          :min="getValueRange(chinfo, val).min"
+          :max="getValueRange(chinfo, val).max"
+          @update:modelValue="
+            setCueVal(currentcueid, effect, universe, chname, parseFloat($event))
+          "
+          v-model.number="val">
+        </smooth-range>
+      </span>
+
+      <span v-if="val == null" class="grey">Released</span>
+
+      <span
+        v-if="!(chinfo && chinfo.type == 'fine')"
+        title="Double click to set exact value"
+        class="noselect"
+        v-on:dblclick="
+          promptExactVal(currentcueid, effectname, universe, chname)
+        "
+        style="font-size: 80%"
+        >{{ Number(val).toPrecision(4) }}</span
+      >
+      <span class="grey" v-if="chinfo && chinfo.type == 'fine'">auto</span>
+
+      <span
+        v-if="chinfo && chinfo == undefined"
+        v-bind:style="{
+          'background-color': 'rgb(' + val + ',' + val + ',' + val + ')',
+        }"
+        class="indicator"></span>
+
+      <span v-if="chinfo && chinfo.type == 'custom'"
+        ><br />
+        <select
+          :value="getValueRange(chinfo, val).name"
+          v-on:change="
+            setCueVal(
+              currentcueid,
+              effect,
+              universe,
+              chname,
+              mapvaluerange(val, chinfo, $event.target.value)
+            )
+          ">
+          <option v-for="i of chinfo.ranges" :value="i.name">
+            {{ i.name }}({{ i.min }} to {{ i.max }})
+          </option>
+        </select>
+      </span>
+    </span>
+  </div>
 </template>
 
-
 <script>
-var hfaderdata =
-{
-    'promptExactVal': function (cue, u, v) {
-        var x = prompt("Enter new value for group")
+var hfaderdata = {
+  promptExactVal: function (cue, effect, u, v) {
+    var x = prompt("Enter new value for group");
 
-        if (x != null) {
+    if (x != null) {
+      this.setCueVal(cue, effect, u, v, x);
+    }
+  },
+    setCueVal: function (sc, effect, u, ch, value) {
+    console.log(sc, effect, u, ch, value);
+    if (this.fixcmd["__preset__"] && this.fixcmd["__preset__"].v) {
+      globalThis.api_link.send(["scv",sc, effect,  u, "__preset__", null]);
+    }
 
-            this.setCueVal(cue, u, v, x);
+    value = Number.isNaN(Number.parseFloat(value)) ? value : Number.parseFloat(value);
+    globalThis.api_link.send(["scv", sc,effect, u, ch, value]);
+  },
+
+  //Returns new value mapped into the range when user clicks to change the range of a custom val
+  //Given current val, list of all ranges,  and old range info
+  mapvaluerange: function (oldv, d, newrange) {
+    const newd = d.ranges.find((x) => x.name == newrange);
+    return newd.min;
+  },
+  getValueRange: function (d, v) {
+    //Given a channel info structure thing and a value, return the [min,max,name] of the range
+    //that the value is in
+    if (d?.ranges) {
+      for (var i of d.ranges) {
+        if (v >= i.min && v <= i.max) {
+          return i;
         }
-    },
-    'setCueVal': function (sc, u, ch, val) {
-        if (this.fixcmd["__preset__"]) {
-            if (this.fixcmd['__preset__'].v) {
-                window.api_link.send(['scv', sc, u, "__preset__", null]);
-            }
-        }
+      }
+    }
 
-        val = isNaN(parseFloat(val)) ? val : parseFloat(val)
-        window.api_link.send(['scv', sc, u, ch, val]);
-    },
+    return { min: 0, max: 255, name: "" };
+  },
 
-    //Returns new value mapped into the range when user clicks to change the range of a custom val
-    //Given current val, list of all ranges,  and old range info
-    'mapvaluerange': function (oldv, d, newrange) {
-        const newd = d.ranges.find(x => x.name == newrange)
-        return newd.min
-    },
-    'getValueRange': function (d, v) {
-        //Given a channel info structure thing and a value, return the [min,max,name] of the range
-        //that the value is in
-        if (d?.ranges) {
-            for (var i of d.ranges) {
-                if ((v >= i.min) && (v <= i.max)) {
-                    return (i)
-                }
-            }
-        }
-
-        return ({ min: 0, max: 255, name: "" })
-    },
-
-    'rmValFromCue': function (cue, universe, ch) {
-        window.api_link.send(['scv', cue,
-            universe,
-            ch,
-            null
-        ])
-    },
-}
+  rmValFromCue: function (cue, effect, universe, ch) {
+    globalThis.api_link.send(["scv", cue, effect, universe, ch, null]);
+  },
+};
 
 export default {
-    template: '#h-fader',
-    //I is a data object having u,ch, and v, the universe channel and value.
-    //Chinfo is the channel info list from the fixtues that you get with channelInfoForUniverseChannel
-    props: ['i', 'chinfo', 'currentcueid', 'groupid', 'showdelete', 'fixcmd'],
-    data: function () {
-        return (hfaderdata)
-    },
-    components: {
-        'smooth-range': window.httpVueLoader('/static/vue/smoothrange.vue')
-    },
-}
+  template: "#h-fader",
+  //I is a data object having u,ch, and v, the universe channel and value.
+  //Chinfo is the channel info list from the fixtues that you get with channelInfoForUniverseChannel
+  props: [
+    "chinfo",
+    "currentcueid",
+    "groupid",
+    "showdelete",
+      "fixcmd",
+    "effect",
 
+    "universe",
+    "val",
+    "chname",
+  ],
+  data: function () {
+    return hfaderdata;
+  },
+  components: {
+    "smooth-range": globalThis.httpVueLoader("/static/vue/smoothrange.vue"),
+  },
+};
 </script>

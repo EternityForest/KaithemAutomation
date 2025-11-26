@@ -10,7 +10,7 @@ from scullery import snake_compat
 from kaithem.api.web import quart_app, require
 
 from .core import boards, cl_context
-from .cue import cue_schema, cues
+from .cue import EffectData, cue_schema, cues
 from .groups import group_schema, groups
 
 logger = structlog.get_logger(__name__)
@@ -179,10 +179,12 @@ async def set_cue_properties(cue_id: str):
 
 
 @quart_app.route(
-    "/chandler/api/set-cue-value/<cue_id>/<universe>/<channel>",
+    "/chandler/api/set-cue-value/<cue_id>/<effect>/<universe>/<channel>",
     methods=["PUT"],
 )
-async def set_cue_value_rest(cue_id: str, universe: str, channel: str | int):
+async def set_cue_value_rest(
+    cue_id: str, effect: str, universe: str, channel: str
+):
     require("system_admin")
     v = json.loads(quart.request.args["value"])
 
@@ -194,24 +196,100 @@ async def set_cue_value_rest(cue_id: str, universe: str, channel: str | int):
     else:
         raise RuntimeError("Cue has no group")
 
-    # If it looks like an int, it should be an int.
-    if isinstance(channel, str):
-        try:
-            channel = int(channel)
-        except ValueError:
-            pass
-
     if isinstance(v, str):
         try:
             v = float(v)
         except ValueError:
             pass
 
-    cue.set_value_immediate(universe, channel, v)
+    cue.set_value_immediate(effect, universe, channel, v)
 
     if v is None:
         # Count of values in the metadata changed
-        board.pushCueMeta(cue_id)
+        board.pushCueData(cue_id)
+
+    return {"success": True}
+
+
+@quart_app.route(
+    "/chandler/api/set-cue-effect-meta/<cue_id>/<effect>",
+    methods=["PUT"],
+)
+async def set_cue_effect_rest(cue_id: str, effect: str):
+    require("system_admin")
+    v = json.loads(quart.request.args["value"])
+
+    cue = cues[cue_id]
+    group = cue.group()
+    if group:
+        board = group.board
+        group.board.pushCueMeta(cue_id)
+    else:
+        raise RuntimeError("Cue has no group")
+
+    if not v["type"]:
+        cue.values.pop(effect, None)
+        group.lighting_manager.refresh()
+
+    else:
+        x: EffectData = cue.values.get(
+            effect,
+            {
+                "type": "direct",
+                "keypoints": {},
+                "auto": [],
+            },
+        )
+        x["type"] = v["type"]
+        x["keypoints"] = v.get("keypoints", {})
+        x["auto"] = v.get("auto", {})
+        cue.values[effect] = x
+
+    board.pushCueData(cue_id)
+
+    return {"success": True}
+
+
+@quart_app.route(
+    "/chandler/api/set-cue-auto-entry/<cue_id>/<effect>",
+    methods=["PUT"],
+)
+async def set_cue_auto_entry(
+    cue_id: str, effect: str, universe: str, channel: str | int
+):
+    require("system_admin")
+    v = json.loads(quart.request.args["value"])
+
+    cue = cues[cue_id]
+    group = cue.group()
+    if group:
+        board = group.board
+        group.board.pushCueMeta(cue_id)
+    else:
+        raise RuntimeError("Cue has no group")
+
+    vals = cue.values.get(effect, {})
+    if effect not in vals:
+        cue.values[effect] = {
+            "type": "direct",
+            "keypoints": {},
+            "auto": [],
+        }
+
+    effectvalues = cue.values[effect]
+    if "auto" not in effectvalues:
+        effectvalues["auto"] = []
+
+    if not v["length"]:
+        for i in list(effectvalues["auto"]):
+            if i.get("fixture") == v.get("fixture") and i.get(
+                "start_idx"
+            ) == v.get("start_idx"):
+                effectvalues["auto"].remove(i)
+    else:
+        effectvalues["auto"].append(v)
+
+    board.pushCueMeta(cue_id)
 
     return {"success": True}
 

@@ -201,7 +201,37 @@ async function setGroupProperty(group, property, value) {
   });
 }
 
-async function restSetCueValue(cue, universe, channel, value) {
+export async function restSetCueEffectMeta(cue, effect, value) {
+  await doSerialized(async () => {
+    var x = cueSetData[cue + "value"];
+    if (x) {
+      clearTimeout(x);
+      delete cueSetData[cue + "value"];
+    }
+
+    let response = fetch(
+      "/chandler/api/set-cue-effect-meta/" +
+        cue +
+        "/" +
+        effect +
+        "?" +
+        new URLSearchParams({ value: JSON.stringify(value) }).toString(),
+      {
+        method: "PUT",
+      }
+    ).catch(function (error) {
+      alert("Could not reach server:" + error);
+    });
+
+    let v = await response;
+
+    if (!v.ok) {
+      alert("Error setting value, possible invalid value: " + value);
+    }
+  });
+}
+
+async function restSetCueValue(cue, effect, universe, channel, value) {
   await doSerialized(async () => {
     var x = cueSetData[cue + "value"];
     if (x) {
@@ -213,9 +243,11 @@ async function restSetCueValue(cue, universe, channel, value) {
       "/chandler/api/set-cue-value/" +
         cue +
         "/" +
+        effect +
+        "/" +
         universe +
         "/" +
-        channel +
+        channel.toString() +
         "?" +
         new URLSearchParams({ value: JSON.stringify(value) }).toString(),
       {
@@ -328,20 +360,6 @@ function refreshhistory(sc) {
   api_link.send(["getcuehistory", sc]);
 }
 
-async function setCueValue(sc, u, ch, value) {
-  if (globalThis.testMode) {
-    await restSetCueValue(sc, u, ch, value);
-    return;
-  }
-  if (cuevals.value?.[sc]?.[u]?.["__preset__"]) {
-    api_link.send(["scv", sc, u, "__preset__", null]);
-  }
-
-  value = Number.isNaN(Number.parseFloat(value))
-    ? value
-    : Number.parseFloat(value);
-  api_link.send(["scv", sc, u, ch, value]);
-}
 
 function selectcue(sc, cue) {
   if (cueSelectTimeout.value) {
@@ -624,35 +642,17 @@ function testSoundCard(sc, c) {
   api_link.send(["testSoundCard", sc, c]);
 }
 
-function addfixToCurrentCue(fix) {
+function addfixToCurrentCue(effect, fix) {
   api_link.send([
     "add_cuef",
+    effect,
     groupcues.value[groupname.value][selectedCues.value[groupname.value]],
     fix,
   ]);
 }
 
-
-function addGeneratorToCurrentCue(fix, index) {
-  //Idx and len are for adding range patters to an array of identical fixtures.
-  //Otherwise they should be one
-  index = Number.parseInt(index);
-
-  if (index != 1) {
-    fix = fix + "[" + index + "]";
-  }
-
-  api_link.send([
-    "add_cuef",
-    groupcues.value[groupname.value][selectedCues.value[groupname.value]],
-    fix,
-    index,
-  ]);
-}
-
-
-function rmFixCue(cue, fix) {
-  api_link.send(["rmcuef", cue, fix]);
+function rmFixCue(cue, effect, fix) {
+  api_link.send(["rmcuef", effect, cue, fix]);
 }
 
 function refreshPorts() {
@@ -859,7 +859,6 @@ let blendModes = ref([]);
 
 let soundfolders = ref([]);
 
-let groupChannelsViewMode = ref("cue");
 let configuredUniverses = ref({
   blah: { type: "enttec", interface: "xyz" },
 });
@@ -1225,49 +1224,36 @@ function handleServerMessage(v) {
       if (!(index in channelInfoByUniverseAndNumber.value)) {
         api_link.send(["getcnames", index]);
       }
-      old_vue_set(cuevals.value[v[1]], index, {});
-
-      for (var index_ in v[2][index]) {
-        let y = {
-          u: index,
-          ch: index_,
-          v: v[2][index][index_],
-        };
-        old_vue_set(cuevals.value[v[1]][index], index_, y);
-        //The other 2 don't need to be reactive, v does
-        old_vue_set(y, "v", v[2][index][index_]);
-      }
+      old_vue_set(d, index, v[2][index]);
     }
   } else if (c == "commands") {
     availableCommands.value = v[1];
   } else if (c == "scv") {
     let cue = v[1];
-    let universe = v[2];
-    let channel = v[3];
-    let value = v[4];
+    let effect = v[2];
+    let universe = v[3];
+    let channel = v[4];
+    let value = v[5];
 
     //Empty universe dict, we are not set up to listen to yet.value
     if (!cuevals.value[cue]) {
       return;
     }
-    if (!cuevals.value[cue][universe]) {
-      cuevals.value[cue][universe] = {};
+    if (!cuevals.value[cue][effect]) {
+      cuevals.value[cue][effect] = { 'keypoints': {} };
+    }
+    if (!cuevals.value[cue][effect]['keypoints'][universe]) {
+      cuevals.value[cue][effect]['keypoints'][universe] = {};
     }
 
     if (v[4] === null) {
-      old_vue_delete(cuevals.value[cue][universe], channel);
+      old_vue_delete(cuevals.value[cue][effect]['keypoints'][universe], channel);
     } else {
-      let y = {
-        u: universe,
-        ch: channel,
-        v: value,
-      };
-      old_vue_set(y, "v", value);
-      old_vue_set(cuevals.value[cue][universe], channel, y);
+      old_vue_set(cuevals.value[cue][effect]['keypoints'][universe], channel, value);
     }
 
-    if (Object.entries(cuevals.value[cue][universe]).length === 0) {
-      old_vue_delete(cuevals.value[cue], universe);
+    if (Object.entries(cuevals.value[cue][effect]['keypoints'][universe]).length === 0) {
+      old_vue_delete(cuevals.value[cue][effect]['keypoints'], universe);
     }
   } else if (c == "refreshPage") {
     globalThis.reload();
@@ -1448,7 +1434,6 @@ export {
   midiInputs,
   blendModes,
   soundfolders,
-  groupChannelsViewMode,
   configuredUniverses,
   fixtureClasses,
   groupfilter,
@@ -1484,7 +1469,6 @@ export {
   saveToDisk,
   sendGroupEventWithConfirm,
   refreshhistory,
-  setCueValue as setCueVal,
   selectcue,
   selectgroup,
   delgroup,

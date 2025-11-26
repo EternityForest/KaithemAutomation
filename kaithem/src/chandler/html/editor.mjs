@@ -1,21 +1,10 @@
 import {
   boardname,
   triggerShortcut,
-  groupcues,
-  groupname,
-  selectedCues,
 } from "./boardapi.mjs";
 
 import { ref } from "/static/js/thirdparty/vue.esm-browser.js";
 
-let selectingPresetForDestination = ref(false);
-let selectingPresetFor = ref("");
-
-function showPresetDialog(fixture, destination) {
-  // destination lets us set a preset for the end of a range effect
-  selectingPresetForDestination.value = destination ? true : false;
-  selectingPresetFor.value = fixture;
-}
 
 let selectingImageLabelForPreset = ref(null);
 let iframeDialog = ref(null);
@@ -43,10 +32,6 @@ function getExcalidrawCueLink(group, cue) {
   );
 }
 
-// If true preset applies to final val of range effect
-selectingPresetForDestination = ref(false);
-
-selectingPresetFor = ref(null);
 // Add console specific stuff to the appdata
 
 document.title = boardname.value;
@@ -102,36 +87,6 @@ function closePreview() {
   document.querySelector("#soundpreview").pause();
 }
 
-function addValueToCue() {
-  if (!newcueu.value) {
-    return;
-  }
-  globalThis.api_link.send([
-    "add_cueval",
-    groupcues.value[groupname.value][selectedCues.value[groupname.value]],
-    newcueu.value,
-    newcuevnumber.value,
-  ]);
-  if (!Number.isNaN(Number.parseInt(newcuevnumber.value))) {
-    newcuevnumber.value = (Number.parseInt(newcuevnumber.value) + 1).toString();
-  }
-}
-
-function addTagToCue() {
-  if (!newcuetag.value) {
-    return;
-  }
-  if(!newcuetag.value.startsWith("/")) {
-    alert("Tag must start with /");
-    return;
-  }
-  globalThis.api_link.send([
-    "add_cueval",
-    groupcues.value[groupname.value][selectedCues.value[groupname.value]],
-    newcuetag.value,
-    "value",
-  ]);
-}
 
 
 
@@ -144,25 +99,15 @@ function addGroupDialog() {
 
 
 let eventsFilterString = ref("");
-let newcueu = ref("");
-let newcuetag = ref("");
-let newcuevnumber = ref("");
+
 
 export {
   sc_code,
   shortcut,
   closePreview,
-  showPresetDialog,
-  selectingPresetForDestination,
-  selectingPresetFor,
   getExcalidrawCueLink,
   iframeDialog,
   selectingImageLabelForPreset,
   eventsFilterString,
-  newcueu,
-  newcuetag,
-  newcuevnumber,
-  addValueToCue,
-  addTagToCue,
   addGroupDialog
 };

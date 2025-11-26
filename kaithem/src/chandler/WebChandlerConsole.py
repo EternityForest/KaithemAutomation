@@ -603,30 +603,13 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 groups.groups[msg[1]].setMqttServer(msg[2])
                 self.push_group_meta(msg[1], keys={"mqtt_server"})
 
-        elif cmd_name == "add_cueval":
-            sc = cues[msg[1]].group()
-            assert sc
-
-            if hasattr(sc.lighting_manager.blendClass, "default_channel_value"):
-                val = sc.lighting_manager.blendClass.default_channel_value
-            else:
-                val = 0
-
-            hadVals = len(cues[msg[1]].values)
-
-            # Allow number:name format, but we only want the name
-            cues[msg[1]].set_value_immediate(
-                msg[2], str(msg[3]).split(":")[-1], val
-            )
-            # Tell clients that now there is values in that cue
-            if not hadVals:
-                self.pushCueMeta(msg[1])
-
         elif cmd_name == "add_cuef":
             cue = cues[msg[1]]
+            effect = msg[2]
+            fixture = msg[3]
 
             # Get rid of any index part, treat it like it's part of the same fixture.
-            x = universes.fixtures[msg[2].split("[")[0]]()
+            x = universes.fixtures[fixture.split("[")[0]]()
             # Add every non-unused channel.  Fixtures
             # Are stored as if they are their own universe, starting with an @ sign.
             # Channels are stored by name and not by number.
@@ -642,35 +625,34 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                         )
                     else:
                         val = 0
-                    cue.set_value_immediate("@" + msg[2], i["name"], val)
+                    cue.set_value_immediate(
+                        effect, "@" + fixture, i["name"], val
+                    )
 
-            self.linkSend(["cuedata", msg[1], cue.values])
-            self.pushCueMeta(msg[1])
+            self.linkSend(["cuedata", cue.id, cue.values])
+            self.pushCueMeta(cue.id)
 
         elif cmd_name == "rmcuef":
-            s = cues[msg[1]]
+            cue = cues[msg[1]]
+            effect = msg[2]
+            fixture = msg[3]
 
-            x = list(s.values[msg[2]].keys())
+            x = list(cue.values[effect]["keypoints"].keys())
 
             for i in x:
-                s.set_value_immediate(msg[2], i, None)
-            self.linkSend(["cuedata", msg[1], s.values])
-            self.pushCueMeta(msg[1])
+                cue.set_value_immediate(effect, fixture, i, None)
+
+            self.linkSend(["cuedata", cue.id, cue.values])
+            self.pushCueMeta(cue.id)
 
         elif cmd_name == "listsoundfolder":
             lst = listsoundfolder(msg[1], extra_folders=self.media_folders)
             self.linkSend(["soundfolderlisting", msg[1], lst])
 
         elif cmd_name == "scv":
-            ch = msg[3]
-            # If it looks like an int, it should be an int.
-            if isinstance(ch, str):
-                try:
-                    ch = int(ch)
-                except ValueError:
-                    pass
+            ch = msg[4]
 
-            v = msg[4]
+            v = msg[5]
 
             if isinstance(v, str):
                 try:
@@ -678,11 +660,12 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 except ValueError:
                     pass
 
-            cues[msg[1]].set_value_immediate(msg[2], ch, v)
-            self.linkSend(["scv", msg[1], msg[2], ch, v])
+            cues[msg[1]].set_value_immediate(msg[2], msg[3], ch, v)
+            self.linkSend(["scv", msg[1], msg[2], msg[3], ch, v])
 
             if v is None:
                 # Count of values in the metadata changed
+                self.pushCueData(msg[1])
                 self.pushCueMeta(msg[1])
 
         elif cmd_name == "setMusicVisualizations":
