@@ -1258,6 +1258,9 @@ def getUniverse(u: str | None) -> Universe | None:
     global universes
     if not u:
         return None
+
+    if u.startswith("/"):
+        return get_on_demand_universe(u)
     try:
         oldUniverseObj = universes[u]()
     except KeyError:

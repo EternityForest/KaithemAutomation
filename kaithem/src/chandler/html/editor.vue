@@ -509,6 +509,7 @@
               v-on:click="delgroup(groupname)">
               <i class="mdi mdi-delete"></i>
             </button>
+            <p class="grow spacer"></p>
 
             <button
               data-testid="close-group"

@@ -245,9 +245,9 @@ async function restSetCueValue(cue, effect, universe, channel, value) {
         "/" +
         effect +
         "/" +
-        universe +
+        encodeURIComponent(universe) +
         "/" +
-        channel.toString() +
+        encodeURIComponent(channel.toString()) +
         "?" +
         new URLSearchParams({ value: JSON.stringify(value) }).toString(),
       {
@@ -359,7 +359,6 @@ function sendGroupEventWithConfirm(event_, where) {
 function refreshhistory(sc) {
   api_link.send(["getcuehistory", sc]);
 }
-
 
 function selectcue(sc, cue) {
   if (cueSelectTimeout.value) {
@@ -1046,6 +1045,8 @@ async function notifyPopupComputedCueLengthgth(cuelenstr, force) {
       (await x.text())
   );
 }
+
+
 function getPresetImage(preset) {
   // Can use generic preset image if specific not available
   if (presets.value[preset]?.label_image) {
@@ -1240,20 +1241,30 @@ function handleServerMessage(v) {
       return;
     }
     if (!cuevals.value[cue][effect]) {
-      cuevals.value[cue][effect] = { 'keypoints': {} };
+      cuevals.value[cue][effect] = { keypoints: {} };
     }
-    if (!cuevals.value[cue][effect]['keypoints'][universe]) {
-      cuevals.value[cue][effect]['keypoints'][universe] = {};
+    if (!cuevals.value[cue][effect]["keypoints"][universe]) {
+      cuevals.value[cue][effect]["keypoints"][universe] = {};
     }
 
     if (v[4] === null) {
-      old_vue_delete(cuevals.value[cue][effect]['keypoints'][universe], channel);
+      old_vue_delete(
+        cuevals.value[cue][effect]["keypoints"][universe],
+        channel
+      );
     } else {
-      old_vue_set(cuevals.value[cue][effect]['keypoints'][universe], channel, value);
+      old_vue_set(
+        cuevals.value[cue][effect]["keypoints"][universe],
+        channel,
+        value
+      );
     }
 
-    if (Object.entries(cuevals.value[cue][effect]['keypoints'][universe]).length === 0) {
-      old_vue_delete(cuevals.value[cue][effect]['keypoints'], universe);
+    if (
+      Object.entries(cuevals.value[cue][effect]["keypoints"][universe])
+        .length === 0
+    ) {
+      old_vue_delete(cuevals.value[cue][effect]["keypoints"], universe);
     }
   } else if (c == "refreshPage") {
     globalThis.reload();

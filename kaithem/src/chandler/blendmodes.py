@@ -14,7 +14,7 @@ import numpy.typing
 from . import universes
 
 if TYPE_CHECKING:
-    from .groups import Group
+    from .group_lighting import GroupLightingManager
 
 rand_table = [random.randint(0, 255) for i in range(1024)]
 rand_counter = 0
@@ -64,7 +64,7 @@ class BlendMode:
     parameters: dict[str, tuple[str, str, str, str | bool | float]] = {}
     autoStop = True
 
-    def __init__(self, group: Group) -> None:
+    def __init__(self, group: GroupLightingManager) -> None:
         self.blend_args: dict[str, int | float | str] = {}
 
         if hasattr(self.__class__, "parameters"):

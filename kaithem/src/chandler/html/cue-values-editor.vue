@@ -47,9 +47,9 @@
             </p>
             <label
               >Type:
-              <select v-model="cuevals[currentcueid][effectname]['type']"
-              onchange="restSetCueEffectMeta(currentcueid, effectname, cuevals[currentcueid][effectname])"
-              >
+              <select
+                v-model="cuevals[currentcueid][effectname]['type']"
+                onchange="restSetCueEffectMeta(currentcueid, effectname, cuevals[currentcueid][effectname])">
                 <option value="direct">direct</option>
               </select>
             </label>
@@ -78,7 +78,7 @@
                     :universe="uname"
                     :val="h[chname]"
                     v-bind:key="chname"
-                    v-for="(chname, idx) in Object.keys(h).sort()">
+                    v-for="chname in Object.keys(h).sort()">
                   </h-fader>
                 </div>
               </details>
@@ -302,7 +302,6 @@ import {
   getPresetImage,
   channelInfoForUniverseChannel,
   fixtureClasses,
-  restSetCueValue,
   restSetCueEffectMeta,
 } from "./boardapi.mjs";
 
@@ -320,29 +319,23 @@ function showPresetDialog(fixture, destination) {
   selectingPresetForDestination.value = destination ? true : false;
   selectingPresetFor.value = fixture;
 }
+function setCueValue(sc, effect, u, ch, value) {
+  value = Number.isNaN(Number.parseFloat(value))
+    ? value
+    : Number.parseFloat(value);
+  globalThis.api_link.send(["scv", sc, effect, u, ch, value]);
+}
 
 function addValueToCue(effect) {
   if (!newcueu.value) {
     return;
-  }
-
-  restSetCueValue(
-    currentcueid.value,
-    effect,
-    newcueu.value,
-    newcuevnumber.value,
-    0
-  );
-
-  if (!Number.isNaN(Number.parseInt(newcuevnumber.value))) {
-    newcuevnumber.value = (Number.parseInt(newcuevnumber.value) + 1).toString();
   }
 }
 function addEffectToCue() {
   restSetCueEffectMeta(currentcueid.value, "default", {
     type: "direct",
     keypoints: {},
-    auto: false,
+    auto: [],
   });
 }
 function addTagToCue(effect) {
@@ -354,7 +347,7 @@ function addTagToCue(effect) {
     return;
   }
 
-  restSetCueValue(currentcueid.value, effect, newcuetag.value, 0);
+  setCueValue(currentcueid.value, effect, newcuetag.value, "value", 0);
 }
 </script>
 

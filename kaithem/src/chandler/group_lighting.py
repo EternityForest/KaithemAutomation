@@ -78,13 +78,35 @@ class GroupLightingManager:
     ):
         if effect not in self.cached_values_raw:
             self.cached_values_raw[effect] = LightingLayer()
+        mapped = universes.mapChannel(universe, channel)
+        if not mapped:
+            return
+        u, c = mapped
+        if not u or not c:
+            return
+
+        universeObj = universes.getUniverse(u)
+        if not universeObj:
+            return
 
         if value is None:
-            self.cached_values_raw[effect].values[universe][channel] = 0
-            self.cached_values_raw[effect].alphas[universe][channel] = 0
+            self.cached_values_raw[effect].values[u][c] = 0
+            self.cached_values_raw[effect].alphas[u][c] = 0
         else:
-            self.cached_values_raw[effect].values[universe][channel] = value
-            self.cached_values_raw[effect].alphas[universe][channel] = 1
+            if u not in self.cached_values_raw[effect].values:
+                self.cached_values_raw[effect].values[u] = numpy.zeros(
+                    len(universeObj.values)
+                )
+                self.cached_values_raw[effect].alphas[u] = numpy.zeros(
+                    len(universeObj.values)
+                )
+
+                if u.startswith("/"):
+                    self.on_demand_universes[u] = (
+                        universes.get_on_demand_universe(u)
+                    )
+            self.cached_values_raw[effect].values[u][c] = value
+            self.cached_values_raw[effect].alphas[u][c] = 1
 
         self.should_rerender_onto_universes = True
 
@@ -474,16 +496,14 @@ def composite_layers_from_board(board: ChandlerConsole, t=None, u=None):
 
     needs_rerender = False
 
-    group_outputs = {}
+    group_outputs: dict[str, LightingLayer] = {}
 
     for i in board.active_groups:
         if i.lighting_manager.should_rerender_onto_universes:
-            x = (
-                i.lighting_manager.get_current_output()
-                .get("direct", LightingLayer())
-                .values
+            x = i.lighting_manager.get_current_output().get(
+                "default", LightingLayer()
             )
-            for j in x:
+            for j in x.values:
                 changed[j] = True
             group_outputs[i.name] = x
             needs_rerender = True
@@ -506,7 +526,7 @@ def composite_layers_from_board(board: ChandlerConsole, t=None, u=None):
         # TODO this can change size during iteration
 
         # Loop over universes the group affects
-        for u in group_outputs[i.name]:
+        for u in group_outputs[i.name].values:
             if u.startswith("__") and u.endswith("__"):
                 continue
 
