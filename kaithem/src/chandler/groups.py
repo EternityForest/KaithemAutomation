@@ -987,21 +987,6 @@ class Group:
 
     @slow_group_lock_context.object_session_entry_point
     def on_scripting_var_set(self, k, v):
-        with self.lock:
-            try:
-                if (
-                    k not in ("_", "event")
-                ) and self.lighting_manager.needs_rerender_on_var_change:
-                    self.lighting_manager.should_recalc_values_before_render = (
-                        True
-                    )
-                    self.poll_again_flag = True
-                    self.lighting_manager.rerender()
-
-            except Exception:
-                core.rl_log_exc("Error handling var set notification")
-                print(traceback.format_exc())
-
         try:
             if not k.startswith("_") and not k == "event":
                 for board in core.iter_boards():
@@ -1017,6 +1002,19 @@ class Group:
         except Exception:
             core.rl_log_exc("Error handling var set notification")
             print(traceback.format_exc())
+
+    def event_background(
+        self,
+        s: str,
+        value: Any = True,
+        info: str = "",
+        exclude_errors: bool = True,
+        ts=None,
+    ):
+        def f():
+            self.event(s, value, info, exclude_errors, ts)
+
+        workers.do(f)
 
     @slow_group_lock_context.object_session_entry_point
     def event(
@@ -2487,53 +2485,43 @@ class Group:
 
             mapped_channel = mapChannel(universe, channel)
 
+            if mapped_channel is None:
+                return
+
             if self.cue == cue and self.is_active():
                 self.poll_again_flag = True
                 self.lighting_manager.rerender()
 
-                # If we change something in an expression binding
-                #  we just do a full recalc
-                # since those are complicated.
-                if "=" in str(value) or "=" in str(old_val):
-                    self.lighting_manager.update_state_from_cue_vals(cue, False)
+                universe, channelm = mapped_channel[0], mapped_channel[1]
 
-                    # The FadeCanvas needs to know about this change
-                    self.poll(force_repaint=True)
+                uobj = None
 
-                # Otherwise if we are changing a simple mapped channel we optimize
-                elif mapped_channel:
-                    universe, channelm = mapped_channel[0], mapped_channel[1]
+                if universe.startswith("/"):
+                    uobj = get_on_demand_universe(universe)
+                    self.lighting_manager.on_demand_universes[universe] = uobj
 
-                    uobj = None
-
-                    if universe.startswith("/"):
-                        uobj = get_on_demand_universe(universe)
-                        self.lighting_manager.on_demand_universes[universe] = (
-                            uobj
+                if value is not None:
+                    # GetUniverse might not actually be working yet because
+                    # It takes up to a frame for things to be added
+                    if not uobj:
+                        uobj = getUniverse(universe)
+                    reset = True
+                    if uobj:
+                        v = self.evalExprFloat(
+                            value if value is not None else 0
                         )
 
-                    if value is not None:
-                        # GetUniverse might not actually be working yet because
-                        # It takes up to a frame for things to be added
-                        if not uobj:
-                            uobj = getUniverse(universe)
-                        reset = True
-                        if uobj:
-                            v = self.evalExprFloat(
-                                value if value is not None else 0
-                            )
-
-                            self.lighting_manager.set_value(
-                                effect, universe, channelm, v
-                            )
-                    else:
                         self.lighting_manager.set_value(
-                            effect, universe, channelm, None
+                            effect, universe, channelm, v
                         )
-                        self.lighting_manager.clean()
+                else:
+                    self.lighting_manager.set_value(
+                        effect, universe, channelm, None
+                    )
+                    self.lighting_manager.clean()
 
-                    # The FadeCanvas needs to know about this change
-                    self.poll(force_repaint=True)
+                # The FadeCanvas needs to know about this change
+                self.poll(force_repaint=True)
 
                 self.poll_again_flag = True
                 self.lighting_manager.rerender()

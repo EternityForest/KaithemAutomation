@@ -39,6 +39,8 @@ object, and must be explicitly called.
 
 * :sparkles: New Beholder plugin provides live streaming of cameras, other old beholder features TBD.
 
+* :coffin: BREAKING: Can no longer use an expression as a value for a lighting cue.
+
 
 ### 0.93.1
 

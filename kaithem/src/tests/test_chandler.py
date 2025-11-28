@@ -1543,54 +1543,6 @@ def test_tag_backtrack_feature():
         assert tagpoints.Tag("/test_bt").value == 5
 
 
-def test_expression_as_lighting_value():
-    from kaithem.src import tagpoints
-    from kaithem.src.chandler import core
-
-    with TempGroup() as s:
-        # Set values and check that tags change
-        s.cues["default"].rules = [
-            ["cue.enter", [["set", "foo", "2"]]],
-            ["fooevent", [["set", "foo", "3"]]],
-        ]
-
-        # Foo doesn't exist yet
-        with pytest.raises(NameError):
-            s.cues["default"].set_value_immediate(
-                "default", "/test_lv_e", "value", "=foo"
-            )
-
-        s.goto_cue("default")
-
-        s.cues["default"].set_value_immediate(
-            "default", "/test_lv_e", "value", "=foo"
-        )
-
-        core.wait_frame()
-
-        assert tagpoints.Tag("/test_lv_e").value == 2
-
-        s.event("fooevent")
-
-        core.wait_frame()
-        core.wait_frame()
-        core.wait_frame()
-
-        assert tagpoints.Tag("/test_lv_e").value == 3
-        # Make sure it's marked as always rerendering lighting
-        # On var changes
-        assert s.lighting_manager.needs_rerender_on_var_change
-
-        s.cues["default"].set_value_immediate(
-            "default", "/test_lv_e", "value", 5
-        )
-        core.wait_frame()
-        core.wait_frame()
-
-        assert tagpoints.Tag("/test_lv_e").value == 5
-        assert not s.lighting_manager.needs_rerender_on_var_change
-
-
 def test_priorities():
     from kaithem.src import tagpoints
     from kaithem.src.chandler import core
