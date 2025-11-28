@@ -144,8 +144,7 @@ repos:
       hooks:
       -   id: scripts/prepare-commit-msg.sh
           name: scripts/prepare-commit-msg.sh
-          entry: scripts/prepare-commit-msg.sh
-          language: unsupported
+          entry: ./scripts/prepare-commit-msg.sh
+          language: script
           stages:
             - prepare-commit-msg
-          
