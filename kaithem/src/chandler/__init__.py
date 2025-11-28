@@ -71,6 +71,9 @@ def cl_loop():
         frame_number += 1
         core.started_frame_number = frame_number
         t = time.time()
+        changed = {}
+        full_repaint = False
+
         try:
             with core.cl_context:
                 # Profiler says this needs a cache
@@ -79,6 +82,7 @@ def cl_loop():
                     t - u_cache_time > 1
                 ) or universes.last_state_update > u_cache_time:
                     u_cache = universes.getUniverses()
+                    full_repaint = True
                     u_cache_time = t
 
                 do_gui_push = False
@@ -98,12 +102,11 @@ def cl_loop():
             # happen before we start compositing on the layers
 
             # TODO the boards count can change
-            changed = {}
             with core.cl_context:
                 with group_lighting.render_loop_lock:
                     for b in core.boards.values():
                         c = group_lighting.composite_layers_from_board(
-                            b, u=u_cache
+                            b, u=u_cache, repaint=full_repaint
                         )
                         changed.update(c)
 

@@ -1988,7 +1988,7 @@ class Group:
 
             # Minor inefficiency rendering twice the first frame
             self.poll_again_flag = True
-            self.lighting_manager.rerender()
+            self.lighting_manager.mark_need_repaint_onto_universes()
 
             self.active = True
 
@@ -2105,7 +2105,7 @@ class Group:
             self.goto_cue(self.cue.name)
             self.entered_cue = x
             self.poll_again_flag = True
-            self.lighting_manager.rerender()
+            self.lighting_manager.mark_need_repaint_onto_universes()
 
         self.metadata_already_pushed_by = {}
 
@@ -2314,7 +2314,7 @@ class Group:
             else:
                 self.push_to_frontend(keys={"alpha", "default_alpha"})
             self.poll_again_flag = True
-            self.lighting_manager.rerender()
+            self.lighting_manager.mark_need_repaint_onto_universes()
 
             self.media_link_socket.send(["volume", val])
 
@@ -2419,7 +2419,7 @@ class Group:
 
                 if fadePosition < 1:
                     self.poll_again_flag = True
-                    self.lighting_manager.rerender()
+                    self.lighting_manager.mark_need_repaint_onto_universes()
 
             else:
                 fadePosition = 1
@@ -2427,9 +2427,12 @@ class Group:
             # Remember, we can and do the next cue thing and still need to repaint, because sometimes the next cue thing does nothing
             if force_repaint or (not self.lighting_manager.fade_in_completed):
                 self.lighting_manager.fade_position = fadePosition
-                self.lighting_manager.rerender()
+                self.lighting_manager.mark_need_repaint_onto_universes()
                 if fadePosition >= 1.0:
-                    self.lighting_manager.fade_complete()
+                    self.lighting_manager.fade_complete_cleanup()
+
+                    # TODO this was some old bug workaround?
+                    self.lighting_manager.mark_need_repaint_onto_universes()
 
             if self.active and self.cue_time_finished():
                 if self.enable_timing:
@@ -2490,7 +2493,6 @@ class Group:
 
             if self.cue == cue and self.is_active():
                 self.poll_again_flag = True
-                self.lighting_manager.rerender()
 
                 universe, channelm = mapped_channel[0], mapped_channel[1]
 
@@ -2520,11 +2522,13 @@ class Group:
                     )
                     self.lighting_manager.clean()
 
+                self.lighting_manager.mark_need_repaint_onto_universes(universe)
+
                 # The FadeCanvas needs to know about this change
                 self.poll(force_repaint=True)
 
                 self.poll_again_flag = True
-                self.lighting_manager.rerender()
+                self.lighting_manager.mark_need_repaint_onto_universes()
 
                 # For blend modes that don't like it when you
                 # change the list of values without resetting

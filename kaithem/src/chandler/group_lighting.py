@@ -34,7 +34,7 @@ class GroupLightingManager:
 
         self.group = group
 
-        self.should_rerender_onto_universes: dict[str, bool] = {}
+        self.should_repaint_onto_universes: dict[str, bool] = {}
 
         # Track this so we can repaint
         self.fade_position = 1.0
@@ -87,8 +87,12 @@ class GroupLightingManager:
                 return
 
             if value is None:
-                self.cached_values_raw[effect].values[u][c] = 0
-                self.cached_values_raw[effect].alphas[u][c] = 0
+                if (
+                    effect in self.cached_values_raw
+                    and u in self.cached_values_raw[effect].values
+                ):
+                    self.cached_values_raw[effect].values[u][c] = 0
+                    self.cached_values_raw[effect].alphas[u][c] = 0
             else:
                 if u not in self.cached_values_raw[effect].values:
                     self.cached_values_raw[effect].values[u] = numpy.zeros(
@@ -105,7 +109,7 @@ class GroupLightingManager:
                 self.cached_values_raw[effect].values[u][c] = value
                 self.cached_values_raw[effect].alphas[u][c] = 1
 
-            self.should_rerender_onto_universes[u] = True
+            self.should_repaint_onto_universes[u] = True
 
     def refresh(self):
         """
@@ -113,7 +117,7 @@ class GroupLightingManager:
         as needing to be rerendered fully.
         """
         self.next(self.cue)
-        self.rerender()
+        self.mark_need_repaint_onto_universes()
 
     # Only call this under the render lock
     def get_current_output(self) -> dict[str, LightingLayer]:
@@ -133,21 +137,21 @@ class GroupLightingManager:
                 )
         return op
 
-    def rerender(self):
-        """We have new data, but don't need to rerender from scratch
-        like we would if we stopped affecting a universe and now it needs to revert to background
-        """
-
+    def mark_need_repaint_onto_universes(self, universe: str | None = None):
         # Make sure it's in a place where this will be noticed for at
         # least one rerender
         with render_loop_lock:
+            if universe:
+                self.should_repaint_onto_universes[universe] = True
+                return
+
             for i in self.cached_values_raw:
                 for j in self.cached_values_raw[i].values:
-                    self.should_rerender_onto_universes[j] = True
+                    self.should_repaint_onto_universes[j] = True
 
             for i in self.fading_from:
                 for j in self.fading_from[i].values:
-                    self.should_rerender_onto_universes[j] = True
+                    self.should_repaint_onto_universes[j] = True
 
     def next(self, cue: Cue | None):
         """Handle lighting related cue transition stuff"""
@@ -189,7 +193,7 @@ class GroupLightingManager:
                 )
                 self.fade_in_completed = False
 
-                self.rerender()
+                self.mark_need_repaint_onto_universes()
 
     def stop(self):
         with render_loop_lock:
@@ -214,7 +218,7 @@ class GroupLightingManager:
                 # Rerender everything we no longer affect
                 for i in self.cached_values_raw:
                     for u in self.cached_values_raw[i].values:
-                        self.should_rerender_onto_universes[u] = True
+                        self.should_repaint_onto_universes[u] = True
                 self.cached_values_raw = {}
 
             for effect in effect_data:
@@ -285,8 +289,9 @@ class GroupLightingManager:
                 if i not in self.cached_values_raw:
                     self.cached_values_raw[i] = LightingLayer()
 
-    def fade_complete(self):
-        """Called when the fade is complete, to clean up leftover stuff we don't need"""
+    def fade_complete_cleanup(self):
+        """Called when the fade is complete,
+        to clean up leftover stuff we don't need"""
         # We no longer affect universes from the previous cue we are fading from
 
         # We did the fade, now if this is not a tracking
@@ -296,16 +301,13 @@ class GroupLightingManager:
             odu = {}
 
             for i in self.cached_values_raw:
-                u = universes.mapUniverse(i)
-
-                if u and u.startswith("/"):
-                    odu[u] = universes.get_on_demand_universe(u)
+                for j in self.cached_values_raw[i].values:
+                    u = universes.mapUniverse(j)
+                    if u and u.startswith("/"):
+                        odu[u] = universes.get_on_demand_universe(j)
 
             self.on_demand_universes = odu
-
-            # One last rerender, this was some kind of bug workaround
             self.fade_in_completed = True
-            self.rerender()
 
     def collect_backtracked_values(
         self, destination_cue: Cue
@@ -390,7 +392,7 @@ class GroupLightingManager:
                     self.blend_args = self.blend_args or {}
                     self._blend = blendmodes.HardcodedBlendMode(self)
                     self.blendClass = blendmodes.HardcodedBlendMode
-                self.rerender()
+                self.mark_need_repaint_onto_universes()
 
     def setBlendArg(self, key: str, val: float | bool | str):
         with self.group.lock:
@@ -410,7 +412,7 @@ class GroupLightingManager:
                         pass
                     self.blend_args[key] = val
                     self._blend.blend_args[key] = val
-                self.rerender()
+                self.mark_need_repaint_onto_universes()
 
 
 def _composite(background, values, alphas, alpha):
@@ -496,7 +498,9 @@ def composite_rendered_layer_onto_universe(
     return universe_values
 
 
-def composite_layers_from_board(board: ChandlerConsole, t=None, u=None):
+def composite_layers_from_board(
+    board: ChandlerConsole, t=None, u=None, repaint=False
+):
     """This is the primary rendering function.
     Returns dict of universes we know changes.
 
@@ -513,11 +517,14 @@ def composite_layers_from_board(board: ChandlerConsole, t=None, u=None):
     group_outputs: dict[str, LightingLayer] = {}
 
     for i in board.active_groups:
-        if i.lighting_manager.should_rerender_onto_universes:
+        if repaint:
+            i.lighting_manager.mark_need_repaint_onto_universes()
+
+        if i.lighting_manager.should_repaint_onto_universes:
             x = i.lighting_manager.get_current_output().get(
                 "default", LightingLayer()
             )
-            for j in i.lighting_manager.should_rerender_onto_universes:
+            for j in i.lighting_manager.should_repaint_onto_universes:
                 changed[j] = True
             group_outputs[i.name] = x
             needs_rerender = True
@@ -554,7 +561,7 @@ def composite_layers_from_board(board: ChandlerConsole, t=None, u=None):
                 u, i, group_outputs[i.name], universeObject
             )
 
-        i.lighting_manager.should_rerender_onto_universes = {}
+        i.lighting_manager.should_repaint_onto_universes = {}
 
     return changed
 

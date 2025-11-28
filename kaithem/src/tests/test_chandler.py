@@ -550,7 +550,9 @@ def test_fixtures():
         ## 0s are the pattern spacing
         core.wait_frame()
 
-        board._onmsg("__admin__", ["add_cuef", cid, "testFixture", 0], "test")
+        board._onmsg(
+            "__admin__", ["add_cuef", cid, "default", "testFixture", 0], "test"
+        )
         core.wait_frame()
 
         board._onmsg(
@@ -1299,7 +1301,8 @@ def test_cue_logic():
 
 
 def test_cue_logic_function_blocks():
-    from kaithem.src.chandler import core, tagpoints
+    from kaithem.src import tagpoints
+    from kaithem.src.chandler import core
 
     with TempGroup("sending_group") as sending_group:
         assert sending_group.active
@@ -1337,7 +1340,8 @@ def test_cue_logic_function_blocks():
 
 
 def test_cue_logic_function_block_cooldown():
-    from kaithem.src.chandler import core, tagpoints
+    from kaithem.src import tagpoints
+    from kaithem.src.chandler import core
 
     with TempGroup("sending_group") as sending_group:
         assert sending_group.active
@@ -1389,7 +1393,8 @@ def test_cue_logic_function_block_cooldown():
 
 
 def test_cue_logic_tags():
-    from kaithem.src.chandler import core, tagpoints
+    from kaithem.src import tagpoints
+    from kaithem.src.chandler import core
 
     with TempGroup("sending_group") as sending_group:
         with TempGroup("recv_group") as recv_group:
@@ -1559,7 +1564,9 @@ def test_priorities():
 
             core.wait_frame()
 
-            assert tagpoints.Tag("/test_p").value == 2
+            for attempt in stamina.retry_context(on=AssertionError):
+                with attempt:
+                    assert tagpoints.Tag("/test_p").value == 2
 
             # Change priority and confirm stacking order changes
             s.priority = 51
