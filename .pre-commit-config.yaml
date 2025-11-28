@@ -139,3 +139,13 @@ repos:
           entry: uv.tool.sources
           language: pygrep
           files: ./pyproject.toml
+
+  -   repo: local
+      hooks:
+      -   id: scripts/prepare-commit-msg.sh
+          name: scripts/prepare-commit-msg.sh
+          entry: scripts/prepare-commit-msg.sh
+          language: unsupported
+          stages:
+            - prepare-commit-msg
+          

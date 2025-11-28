@@ -43,7 +43,7 @@
           class="border grow min-w-8rem">
           <div class="tool-bar" noselect>
             <p>
-              <b>{{ effect['type'] }}</b>
+              <b>{{ effect["type"] }}</b>
             </p>
             <label
               >Type:
@@ -58,9 +58,11 @@
           <template
             v-for="(keypoint, u_idx) in effect['keypoints'] || []"
             v-bind:key="u_idx">
-            <article class="universe card flex-col gaps" v-if="keypoint['target'][0] != '@'">
+            <article
+              class="universe card flex-col gaps"
+              v-if="keypoint['target'][0] != '@'">
               <header>
-                <h3 class="noselect">{{ keypoint['target'] }}</h3>
+                <h3 class="noselect">{{ keypoint["target"] }}</h3>
               </header>
               <details class="undecorated nopadding nomargin">
                 <summary data-testid="details-fixture-channels-summary">
@@ -69,7 +71,9 @@
                 <div class="scroll nomargin flex-row fader-box-inner">
                   <h-fader
                     :groupid="groupname"
-                    :chinfo="channelInfoForUniverseChannel(keypoint['target'], chname)"
+                    :chinfo="
+                      channelInfoForUniverseChannel(keypoint['target'], chname)
+                    "
                     :currentcueid="currentcueid"
                     :showdelete="groupChannelsViewMode == 'channels'"
                     :fixcmd="keypoint['values']"
@@ -86,11 +90,8 @@
           </template>
 
           <template
-            v-for="(h, fname) in effect[
-              'keypoints'
-            ] || {}"
+            v-for="(h, fname) in effect['keypoints'] || {}"
             v-bind:key="fname">
-            >
             <article
               v-bind:key="fname"
               class="fixture card flex-col gaps noselect"
@@ -266,7 +267,9 @@
                     v-bind:key="v.universe + '_' + v.channel">
                     <td>{{ v.universe }}:{{ i }} at {{ v.channel }}</td>
                     <td>
-                      <button type="button" v-on:click="addfixToCurrentCue(effect['id'], i)">
+                      <button
+                        type="button"
+                        v-on:click="addfixToCurrentCue(effect['id'], i)">
                         <i class="mdi mdi-plus"></i>Add
                       </button>
                     </td>
@@ -332,7 +335,6 @@ function addValueToCue(effect) {
   }
 }
 function addEffectToCue() {
-
   if (cuevals.value[currentcueid.value].length > 0) {
     alert("Cue already has a default effect");
     return;

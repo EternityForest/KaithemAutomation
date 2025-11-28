@@ -229,7 +229,7 @@ class GroupLightingManager:
                             [0.0] * size, dtype="f4"
                         )
 
-                        effectlayer.values[universe] = numpy.array(
+                        effectlayer.alphas[universe] = numpy.array(
                             [0.0] * size, dtype="f4"
                         )
 

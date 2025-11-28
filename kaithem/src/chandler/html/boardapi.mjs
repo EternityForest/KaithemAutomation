@@ -644,6 +644,7 @@ function testSoundCard(sc, c) {
 function addfixToCurrentCue(effect, fix) {
   api_link.send([
     "add_cuef",
+    selectedCues.value[groupname.value],
     effect,
     groupcues.value[groupname.value][selectedCues.value[groupname.value]],
     fix,
