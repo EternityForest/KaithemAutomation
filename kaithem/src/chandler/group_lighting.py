@@ -170,7 +170,7 @@ class GroupLightingManager:
 
             # Recalc what universes are affected by this group.
             # We don't clear the old universes, we do that when we're done fading in.
-            for effect in cue.values:
+            for effect in cue.lighting_effects:
                 for universe in effect["keypoints"]:
                     i = universes.mapUniverse(universe["target"])
 
@@ -201,7 +201,7 @@ class GroupLightingManager:
 
             self.needs_rerender_on_var_change = False
 
-            for effect in source_cue.values:
+            for effect in source_cue.lighting_effects:
                 if effect["id"] not in self.cached_values_raw:
                     self.cached_values_raw[effect["id"]] = LightingLayer()
 
@@ -503,7 +503,8 @@ def composite_layers_from_board(board: ChandlerConsole, t=None, u=None):
         return changed
 
     for u in universesSnapshot:
-        universesSnapshot[u].reset()
+        if u in changed:
+            universesSnapshot[u].reset()
 
     # Remember that groups get rendered in ascending priority order here
     for i in board.active_groups:

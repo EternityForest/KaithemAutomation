@@ -15,14 +15,10 @@ import stamina
 import yaml
 
 if "--collect-only" not in sys.argv:  # pragma: no cover
-    from kaithem.src import directories, modules, modules_state, tagpoints
+    from kaithem.src import modules, modules_state
     from kaithem.src.chandler import (
         core,
-        global_actions,
-        groups,
-        universes,
     )
-    from kaithem.src.sound import play_logs
 
     if "test_chandler_module" not in modules_state.ActiveModules:
         modules.newModule("test_chandler_module")
@@ -39,6 +35,8 @@ if "--collect-only" not in sys.argv:  # pragma: no cover
 
 
 def getBoardResourceData():
+    from kaithem.src import directories
+
     "Used for reading what we saved so we can check that saving works"
     fn = os.path.join(
         directories.vardir,
@@ -62,6 +60,11 @@ class TempGroup:
         self.name = name or ("test_group_" + str(uuid.uuid4()).replace("-", ""))
 
     def __enter__(self):
+        from kaithem.src.chandler import (
+            core,
+            groups,
+        )
+
         self.group = groups.Group(board, self.name)
         assert self.group.name == self.name
         board.addGroup(self.group)
@@ -78,7 +81,12 @@ class TempGroup:
         assert self.group.id in groups.groups
         return self.group
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, *_a, **_k):
+        from kaithem.src.chandler import (
+            core,
+            groups,
+        )
+
         self.group.close()
         core.wait_frame()
         core.wait_frame()
@@ -215,6 +223,10 @@ def test_cue_provider():
 
 
 def test_delete_cue():
+    from kaithem.src.chandler import (
+        core,
+    )
+
     with TempGroup() as grp:
         grp.add_cue("cue2")
         grp.add_cue("cue3")
@@ -263,7 +275,11 @@ def test_delete_cue():
 
 # TODO i feel like these low level things need more testing
 def test_internal_action_queue():
-    logs = []
+    from kaithem.src.chandler import (
+        core,
+    )
+
+    logs: list[float] = []
 
     def f():
         logs.append(time.time())
@@ -360,6 +376,8 @@ listener 38527
 
 
 def test_tap_tempo():
+    from kaithem.src.chandler import core
+
     with TempGroup() as grp:
         grp.tap()
         time.sleep(0.5)
@@ -375,7 +393,7 @@ def test_midi():
     import rtmidi
 
     from kaithem.api import midi
-    from kaithem.src.chandler import WebChandlerConsole
+    from kaithem.src.chandler import WebChandlerConsole, core
     from kaithem.src.plugins import CorePluginMidiToTags
 
     # TODO thi belongs in it's on test
@@ -435,8 +453,11 @@ def test_fixtures():
     """Create a universe, a fixture type, and a fixture,
     add the fixture to a group, che/ck the universe vals
     """
-
     from kaithem.api.modules import modules_lock
+    from kaithem.src.chandler import (
+        core,
+        universes,
+    )
 
     u = {
         "dmx": {
@@ -533,10 +554,14 @@ def test_fixtures():
         core.wait_frame()
 
         board._onmsg(
-            "__admin__", ["scv", cid, "@testFixture", "red", 39], "test"
+            "__admin__",
+            ["scv", cid, "default", "@testFixture", "red", 39],
+            "test",
         )
         board._onmsg(
-            "__admin__", ["scv", cid, "@testFixture", "dim", 64.5], "test"
+            "__admin__",
+            ["scv", cid, "default", "@testFixture", "dim", 64.5],
+            "test",
         )
 
         core.wait_frame()
@@ -554,6 +579,8 @@ def test_fixtures():
 
 
 def test_duplicate_group_name():
+    from kaithem.src.chandler import core, groups
+
     grp1 = groups.Group(board, "TestGroup1", id="TEST")
     board.addGroup(grp1)
     grp1.go()
@@ -576,6 +603,8 @@ def test_duplicate_group_name():
 
 
 def test_cue_track_setting():
+    from kaithem.src.chandler import core, universes
+
     u = {
         "dmx2": {
             "channels": 512,
@@ -590,12 +619,14 @@ def test_cue_track_setting():
     board.cl_create_universes(u)
 
     with TempGroup() as grp:
-        grp.cue.set_value_immediate("dmx2", 1, 255)
+        grp.cue.set_value_immediate("default", "dmx2", "1", 255)
 
         # Non existant universes need test coverage to be sure
         # it doesn't crash anything
-        grp.cue.set_value_immediate("nonexistent", 1, 255)
-        grp.cue.set_value_immediate("@nonexistentfixture", "nonexistent", 255)
+        grp.cue.set_value_immediate("default", "nonexistent", "1", 255)
+        grp.cue.set_value_immediate(
+            "default", "@nonexistentfixture", "nonexistent", 255
+        )
 
         core.wait_frame()
         core.wait_frame()
@@ -641,6 +672,11 @@ def test_cue_track_setting():
 
 
 def test_make_group():
+    from kaithem.src.chandler import (
+        core,
+        groups,
+    )
+
     s = groups.Group(board, "TestingGroup1", id="TEST")
     # Must add groups to the board so we can save them and test the saving
     board.addGroup(s)
@@ -682,6 +718,7 @@ def test_make_group():
 def test_setup_cue():
     # Ensure that if a setup cue exists, we go there first
     # then go to default
+    from kaithem.src.chandler import core
 
     with TempGroup() as grp:
         # Make code coverage happy about __repr__
@@ -743,6 +780,8 @@ def test_shuffle():
 
 
 def test_shuffle_2():
+    from kaithem.src.chandler import core
+
     with TempGroup() as grp:
         grp.add_cue("cue2")
         grp.add_cue("cue3")
@@ -775,6 +814,8 @@ def test_shuffle_2():
 
 
 def test_pipe():
+    from kaithem.src.chandler import core
+
     with TempGroup() as grp:
         grp.add_cue("cue2")
         grp.add_cue("cue3")
@@ -787,6 +828,8 @@ def test_pipe():
 
 
 def test_next_specia():
+    from kaithem.src.chandler import core
+
     with TempGroup() as grp:
         grp.add_cue("cue2")
         grp.add_cue("cue3")
@@ -798,6 +841,8 @@ def test_next_specia():
 
 
 def test_random():
+    from kaithem.src.chandler import core
+
     with TempGroup() as grp:
         grp.add_cue("cue2")
         grp.add_cue("cue3")
@@ -886,6 +931,8 @@ def test_timer_group():
 
 
 def test_play_sound():
+    from kaithem.src.sound import play_logs
+
     with TempGroup() as grp:
         grp.add_cue("cue2", sound="alert.ogg")
         grp.goto_cue("cue2")
@@ -902,6 +949,9 @@ def test_play_sound():
 
 
 def test_sound_ratelimit():
+    from kaithem.src.chandler import core
+    from kaithem.src.sound import play_logs
+
     with TempGroup() as grp:
         grp.add_cue("cue2", sound="alert.ogg")
 
@@ -936,6 +986,8 @@ def test_sound_ratelimit():
 
 
 def test_transition_ratelimit():
+    from kaithem.src.chandler import core, groups
+
     with TempGroup() as grp:
         grp.add_cue("cue2")
         core.wait_frame()
@@ -993,6 +1045,8 @@ def test_transition_ratelimit():
 
 
 def test_renaming():
+    from kaithem.src.chandler import core
+
     with TempGroup() as grp:
         cue2 = grp.add_cue("cue2")
         old_name = grp.name
@@ -1071,6 +1125,8 @@ def test_add_cue_fail():
 
 
 def test_trigger_shortcuts():
+    from kaithem.src.chandler import core
+
     with TempGroup() as s:
         with TempGroup() as s2:
             s.add_cue("cue2", trigger_shortcut="foo")
@@ -1087,6 +1143,8 @@ def test_trigger_shortcuts():
 
 
 def test_shortcuts():
+    from kaithem.src.chandler import core, global_actions
+
     with TempGroup() as grp:
         assert grp.active
         core.wait_frame()
@@ -1157,6 +1215,8 @@ def test_shortcuts():
 
 
 def test_cue_logic():
+    from kaithem.src.chandler import core
+
     with TempGroup() as s:
         with TempGroup() as s2:
             s.add_cue(
@@ -1239,6 +1299,8 @@ def test_cue_logic():
 
 
 def test_cue_logic_function_blocks():
+    from kaithem.src.chandler import core, tagpoints
+
     with TempGroup("sending_group") as sending_group:
         assert sending_group.active
         core.wait_frame()
@@ -1275,6 +1337,8 @@ def test_cue_logic_function_blocks():
 
 
 def test_cue_logic_function_block_cooldown():
+    from kaithem.src.chandler import core, tagpoints
+
     with TempGroup("sending_group") as sending_group:
         assert sending_group.active
         core.wait_frame()
@@ -1325,6 +1389,8 @@ def test_cue_logic_function_block_cooldown():
 
 
 def test_cue_logic_tags():
+    from kaithem.src.chandler import core, tagpoints
+
     with TempGroup("sending_group") as sending_group:
         with TempGroup("recv_group") as recv_group:
             assert sending_group.active
@@ -1388,6 +1454,8 @@ def test_cue_logic_tags():
 
 
 def test_commands():
+    from kaithem.src.chandler import core
+
     with TempGroup() as s:
         with TempGroup() as s2:
             s.add_cue(
@@ -1439,8 +1507,11 @@ def test_commands():
 
 
 def test_tag_backtrack_feature():
+    from kaithem.src import tagpoints
+    from kaithem.src.chandler import core
+
     with TempGroup() as s:
-        s.cues["default"].set_value_immediate("/test_bt", "value", 1)
+        s.cues["default"].set_value_immediate("default", "/test_bt", "value", 1)
 
         # Set values and check that tags change
         # First time allow two frames because it creates a new universe for the tag
@@ -1452,7 +1523,7 @@ def test_tag_backtrack_feature():
             with attempt:
                 assert tagpoints.Tag("/test_bt").value == 1
 
-        s.cues["default"].set_value_immediate("/test_bt", "value", 2)
+        s.cues["default"].set_value_immediate("default", "/test_bt", "value", 2)
         core.wait_frame()
 
         for attempt in stamina.retry_context(on=AssertionError):
@@ -1460,7 +1531,7 @@ def test_tag_backtrack_feature():
                 assert tagpoints.Tag("/test_bt").value == 2
 
         c2 = s.add_cue("c2")
-        c2.set_value_immediate("/test_bt", "value", 5)
+        c2.set_value_immediate("default", "/test_bt", "value", 5)
 
         s.add_cue("c3")
 
@@ -1473,6 +1544,9 @@ def test_tag_backtrack_feature():
 
 
 def test_expression_as_lighting_value():
+    from kaithem.src import tagpoints
+    from kaithem.src.chandler import core
+
     with TempGroup() as s:
         # Set values and check that tags change
         s.cues["default"].rules = [
@@ -1482,11 +1556,15 @@ def test_expression_as_lighting_value():
 
         # Foo doesn't exist yet
         with pytest.raises(NameError):
-            s.cues["default"].set_value_immediate("/test_lv_e", "value", "=foo")
+            s.cues["default"].set_value_immediate(
+                "default", "/test_lv_e", "value", "=foo"
+            )
 
         s.goto_cue("default")
 
-        s.cues["default"].set_value_immediate("/test_lv_e", "value", "=foo")
+        s.cues["default"].set_value_immediate(
+            "default", "/test_lv_e", "value", "=foo"
+        )
 
         core.wait_frame()
 
@@ -1503,7 +1581,9 @@ def test_expression_as_lighting_value():
         # On var changes
         assert s.lighting_manager.needs_rerender_on_var_change
 
-        s.cues["default"].set_value_immediate("/test_lv_e", "value", 5)
+        s.cues["default"].set_value_immediate(
+            "default", "/test_lv_e", "value", 5
+        )
         core.wait_frame()
         core.wait_frame()
 
@@ -1512,11 +1592,18 @@ def test_expression_as_lighting_value():
 
 
 def test_priorities():
+    from kaithem.src import tagpoints
+    from kaithem.src.chandler import core
+
     with TempGroup() as s:
         with TempGroup() as s2:
             # Set values and check that tags change
-            s.cues["default"].set_value_immediate("/test_p", "value", 1)
-            s2.cues["default"].set_value_immediate("/test_p", "value", 2)
+            s.cues["default"].set_value_immediate(
+                "default", "/test_p", "value", 1
+            )
+            s2.cues["default"].set_value_immediate(
+                "default", "/test_p", "value", 2
+            )
 
             core.wait_frame()
 
@@ -1532,11 +1619,18 @@ def test_priorities():
 
 
 def test_lighting_value_set_tag_flicker():
+    from kaithem.src import tagpoints
+    from kaithem.src.chandler import core
+
     with TempGroup() as s:
         with TempGroup() as s2:
             # Set values and check that tags change
-            s.cues["default"].set_value_immediate("/test1", "value", 50)
-            s.cues["default"].set_value_immediate("/test2", "value", 60)
+            s.cues["default"].set_value_immediate(
+                "default", "/test1", "value", 50
+            )
+            s.cues["default"].set_value_immediate(
+                "default", "/test2", "value", 60
+            )
 
             core.wait_frame()
             # I think one should be enough if not overloaded TODO
@@ -1570,8 +1664,12 @@ def test_lighting_value_set_tag_flicker():
             s2.priority = 65
 
             # Set values and check that tags change
-            s2.cues["default"].set_value_immediate("/test1", "value", 255)
-            s2.cues["default"].set_value_immediate("/test2", "value", 255)
+            s2.cues["default"].set_value_immediate(
+                "default", "/test1", "value", 255
+            )
+            s2.cues["default"].set_value_immediate(
+                "default", "/test2", "value", 255
+            )
 
             # Ensure the values are changing
             t1 = tagpoints.Tag("/test1").value
@@ -1629,6 +1727,9 @@ def test_lighting_value_set_tag_flicker():
 
 def test_tag_io():
     "Tests the tag point UI inputs and meters that you can do in the groups overview"
+    from kaithem.src import tagpoints
+    from kaithem.src.chandler import core
+
     # Not as thorough of a test as it maybe should be...
     display_tags = [
         ["Label", "=177", {"type": "meter"}],
@@ -1664,6 +1765,7 @@ def test_tag_io():
 def test_cue_logic_plugin():
     # foo_command is from conftest.py written into dev shm plugins
     # folder
+    from kaithem.src.chandler import core
 
     with TempGroup() as s:
         with TempGroup() as s2:
@@ -1734,6 +1836,8 @@ def test_cue_logic_plugin():
 
 
 def test_cue_logic_inherit_rules_cue():
+    from kaithem.src.chandler import core
+
     with TempGroup() as grp:
         grp.add_cue(
             "__rules__",
@@ -1751,6 +1855,8 @@ def test_cue_logic_inherit_rules_cue():
 
 
 def test_cue_logic_inherit():
+    from kaithem.src.chandler import core
+
     with TempGroup() as s:
         s.add_cue(
             "cue2",
@@ -1770,6 +1876,8 @@ def test_cue_logic_inherit():
 
 
 def test_cue_logic_inherit_loop():
+    from kaithem.src.chandler import core
+
     with TempGroup() as s:
         s.add_cue(
             "cue2",
@@ -1790,10 +1898,13 @@ def test_cue_logic_inherit_loop():
 
 
 def test_fade_in():
+    from kaithem.src import tagpoints
+    from kaithem.src.chandler import core
+
     with TempGroup() as s:
         s.add_cue("cue2", fade_in=5)
         tagpoints.Tag("/foo").value = 0
-        s.cues["cue2"].set_value_immediate("/foo", "value", 5)
+        s.cues["cue2"].set_value_immediate("default", "/foo", "value", 5)
 
         s.goto_cue("cue2")
         core.wait_frame()
@@ -1812,8 +1923,8 @@ def test_fade_in():
     with TempGroup() as s:
         s.add_cue("cue2", fade_in=5)
         t = time.time()
-        s.cues["default"].set_value_immediate("/foo", "value", 0)
-        s.cues["cue2"].set_value_immediate("/foo", "value", 5)
+        s.cues["default"].set_value_immediate("default", "/foo", "value", 0)
+        s.cues["cue2"].set_value_immediate("default", "/foo", "value", 5)
 
         s.lighting_manager.on_demand_universes["/foo"].localFading = False
 

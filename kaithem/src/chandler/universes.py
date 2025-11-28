@@ -331,7 +331,7 @@ class Universe:
 
         # Maps names to numbers, mostly for tagpoint universes.
         if not hasattr(self, "channelInfoByUniverseAndNumber"):
-            self.channelInfoByUniverseAndNumber = {}
+            self.channel_name_to_number: dict[str | int, int] = {}
 
         self.groups = {}
         self.values = numpy.array([0.0] * count, dtype="f4")
@@ -1316,7 +1316,7 @@ def mapChannel(u: str, c: str | int) -> tuple[str, int] | None:
 
             universe = getUniverse(u)
             if universe:
-                c = universe.channelInfoByUniverseAndNumber.get(c, None)
+                c = universe.channel_name_to_number.get(c, c)
                 if not c:
                     return None
                 else:
