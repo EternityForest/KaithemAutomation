@@ -795,7 +795,7 @@ class ChandlerConsole(console_abc.Console_ABC):
             print("cue data push error", cueid, traceback.format_exc())
 
     def pushCueData(self, cueid: str):
-        self.linkSend(["cuedata", cues[cueid].id, cues[cueid].values])
+        self.linkSend(["cuedata", cues[cueid].id, cues[cueid].lighting_effects])
 
     def pushConfiguredUniverses(self):
         self.linkSend(["confuniverses", self.configured_universes])

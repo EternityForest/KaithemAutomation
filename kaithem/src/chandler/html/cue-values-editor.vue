@@ -38,29 +38,29 @@
       {{ cuevals[currentcueid] }}
       <div class="flex-row">
         <div
-          v-for="(effectdata, effectname) in cuevals[currentcueid]"
-          v-bind:key="effectname"
+          v-for="(effect, effectidx) in cuevals[currentcueid]"
+          v-bind:key="effectidx"
           class="border grow min-w-8rem">
           <div class="tool-bar" noselect>
             <p>
-              <b>{{ effectname }}</b>
+              <b>{{ effect['type'] }}</b>
             </p>
             <label
               >Type:
               <select
-                v-model="cuevals[currentcueid][effectname]['type']"
-                onchange="restSetCueEffectMeta(currentcueid, effectname, cuevals[currentcueid][effectname])">
+                v-model="effect['type']"
+                onchange="restSetCueEffectMeta(currentcueid, effect['id'], cuevals[currentcueid][effectname])">
                 <option value="direct">direct</option>
               </select>
             </label>
           </div>
 
           <template
-            v-for="(h, uname) in effectdata['keypoints'] || {}"
-            v-bind:key="uname">
-            <article class="universe card flex-col gaps" v-if="uname[0] != '@'">
+            v-for="(keypoint, u_idx) in effect['keypoints'] || []"
+            v-bind:key="u_idx">
+            <article class="universe card flex-col gaps" v-if="keypoint['target'][0] != '@'">
               <header>
-                <h3 class="noselect">{{ uname }}</h3>
+                <h3 class="noselect">{{ keypoint['target'] }}</h3>
               </header>
               <details class="undecorated nopadding nomargin">
                 <summary data-testid="details-fixture-channels-summary">
@@ -69,16 +69,16 @@
                 <div class="scroll nomargin flex-row fader-box-inner">
                   <h-fader
                     :groupid="groupname"
-                    :chinfo="channelInfoForUniverseChannel(uname, chname)"
+                    :chinfo="channelInfoForUniverseChannel(keypoint['target'], chname)"
                     :currentcueid="currentcueid"
                     :showdelete="groupChannelsViewMode == 'channels'"
-                    :fixcmd="h"
-                    :effect="effectname"
+                    :fixcmd="keypoint['values']"
+                    :effect="effect['id']"
                     :chname="chname"
-                    :universe="uname"
-                    :val="h[chname]"
+                    :universe="keypoint['target']"
+                    :val="keypoint['values'][chname]"
                     v-bind:key="chname"
-                    v-for="chname in Object.keys(h).sort()">
+                    v-for="chname in Object.keys(keypoint['values']).sort()">
                   </h-fader>
                 </div>
               </details>
@@ -86,7 +86,7 @@
           </template>
 
           <template
-            v-for="(h, fname) in cuevals[currentcueid][effectname][
+            v-for="(h, fname) in effect[
               'keypoints'
             ] || {}"
             v-bind:key="fname">
@@ -191,7 +191,7 @@
                     :currentcueid="currentcueid"
                     :showdelete="groupChannelsViewMode == 'channels'"
                     :fixcmd="h"
-                    :effect="effectname"
+                    :effect="effectidx"
                     :chname="chname[1]"
                     :universe="fname"
                     :val="chval[0]"
@@ -228,7 +228,7 @@
                   type="button"
                   :disabled="no_edit"
                   data-testid="add-channel-to-cue-button"
-                  v-on:click="addValueToCue(effectname)">
+                  v-on:click="addValueToCue(effectidx)">
                   <i class="mdi mdi-plus"></i>Add Channel to Cue
                 </button>
               </div>
@@ -248,7 +248,7 @@
                 <button
                   type="button"
                   :disabled="no_edit"
-                  v-on:click="addTagToCue(effectname)"
+                  v-on:click="addTagToCue(effect['id'])"
                   data-testid="add-tag-to-cue-button">
                   <i class="mdi mdi-plus"></i>Add Tag to Cue
                 </button>
@@ -266,7 +266,7 @@
                     v-bind:key="v.universe + '_' + v.channel">
                     <td>{{ v.universe }}:{{ i }} at {{ v.channel }}</td>
                     <td>
-                      <button type="button" v-on:click="addfixToCurrentCue(i)">
+                      <button type="button" v-on:click="addfixToCurrentCue(effect['id'], i)">
                         <i class="mdi mdi-plus"></i>Add
                       </button>
                     </td>
@@ -332,6 +332,12 @@ function addValueToCue(effect) {
   }
 }
 function addEffectToCue() {
+
+  if (cuevals.value[currentcueid.value].length > 0) {
+    alert("Cue already has a default effect");
+    return;
+  }
+
   restSetCueEffectMeta(currentcueid.value, "default", {
     type: "direct",
     keypoints: {},

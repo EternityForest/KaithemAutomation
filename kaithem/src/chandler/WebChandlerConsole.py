@@ -338,7 +338,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 self.linkSend(["cuedata", msg[1], None])
                 return
             s = cues[msg[1]]
-            self.linkSend(["cuedata", msg[1], s.values])
+            self.linkSend(["cuedata", msg[1], s.lighting_effects])
             self.pushCueMeta(msg[1])
             return
 
@@ -629,7 +629,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                         effect, "@" + fixture, i["name"], val
                     )
 
-            self.linkSend(["cuedata", cue.id, cue.values])
+            self.linkSend(["cuedata", cue.id, cue.lighting_effects])
             self.pushCueMeta(cue.id)
 
         elif cmd_name == "rmcuef":
@@ -637,12 +637,12 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             effect = msg[2]
             fixture = msg[3]
 
-            x = list(cue.values[effect]["keypoints"].keys())
+            x = list(cue.lighting_effects[effect]["keypoints"].keys())
 
             for i in x:
                 cue.set_value_immediate(effect, fixture, i, None)
 
-            self.linkSend(["cuedata", cue.id, cue.values])
+            self.linkSend(["cuedata", cue.id, cue.lighting_effects])
             self.pushCueMeta(cue.id)
 
         elif cmd_name == "listsoundfolder":

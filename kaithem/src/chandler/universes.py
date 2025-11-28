@@ -1254,13 +1254,13 @@ class OneTagpoint(Universe):
 def getUniverse(u: str | None) -> Universe | None:
     """Get strong ref to universe if it exists, else get none. must be
     safe to call under render loop lock.
+
+    Can't create universe because that does lots of stuff that could get locks
     """
     global universes
     if not u:
         return None
 
-    if u.startswith("/"):
-        return get_on_demand_universe(u)
     try:
         oldUniverseObj = universes[u]()
     except KeyError:

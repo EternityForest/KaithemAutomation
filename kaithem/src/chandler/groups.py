@@ -2479,12 +2479,9 @@ class Group:
                         "Channel name cannot begin or end with whitespace"
                     )
 
-            old_val = (
-                cue.values.get("effect", {})
-                .get("keypoints", {})
-                .get(universe, {})  # type: ignore
-                .get(str(channel), None)
-            )
+            old_val = cue.get_fixture_keypoint(effect, universe)
+            if old_val:
+                old_val = old_val.get("values", {}).get(str(channel), None)
 
             reset = cue.set_value(effect, universe, channel, value)
 

@@ -873,18 +873,7 @@ let grouptimers = ref({});
 let cuevals = ref({});
 let slideshow_telemetry = ref({});
 let showslideshowtelemetry = ref(false);
-function formatCueVals(c) {
-  //Return a simplified version of the data in cuevals
-  //Meant for direct display
-  let op = {};
-  for (var index in c) {
-    op[index] = {};
-    for (var index_ in c[index]) {
-      op[index][index_] = c[index][index_].v;
-    }
-  }
-  return op;
-}
+
 
 function doRateLimit() {
   nuisianceRateLimit.value[0] +=
@@ -1045,7 +1034,6 @@ async function notifyPopupComputedCueLengthgth(cuelenstr, force) {
       (await x.text())
   );
 }
-
 
 function getPresetImage(preset) {
   // Can use generic preset image if specific not available
@@ -1218,7 +1206,7 @@ function handleServerMessage(v) {
       return;
     }
 
-    let d = {};
+    let d = [];
     old_vue_set(cuevals.value, v[1], d);
 
     for (var index in v[2]) {
@@ -1240,31 +1228,52 @@ function handleServerMessage(v) {
     if (!cuevals.value[cue]) {
       return;
     }
-    if (!cuevals.value[cue][effect]) {
-      cuevals.value[cue][effect] = { keypoints: {} };
-    }
-    if (!cuevals.value[cue][effect]["keypoints"][universe]) {
-      cuevals.value[cue][effect]["keypoints"][universe] = {};
+
+    let fx = null;
+    for (let i of cuevals.value[cue]) {
+      if (i["id"] === effect) {
+        fx = i;
+        break;
+      }
     }
 
-    if (v[4] === null) {
-      old_vue_delete(
-        cuevals.value[cue][effect]["keypoints"][universe],
-        channel
-      );
+    if (!fx) {
+      if (value === null) {
+        return;
+      }
+      fx = {
+        id: effect,
+        keypoints: [],
+      };
+      cuevals.value[cue].push(fx);
+    }
+
+    let kp = null;
+    for (let i of fx["keypoints"]) {
+      if (i["target"] === universe) {
+        kp = i;
+        break;
+      }
+    }
+
+    if (!kp) {
+      if (value === null) {
+        return;
+      }
+      kp = {
+        target: universe,
+        values: {},
+      };
+      fx["keypoints"].push(kp);
+    }
+
+    if (value === null) {
+      delete kp["values"][channel];
+      if (kp["values"].length === 0) {
+        fx["keypoints"].splice(fx["keypoints"].indexOf(kp), 1);
+      }
     } else {
-      old_vue_set(
-        cuevals.value[cue][effect]["keypoints"][universe],
-        channel,
-        value
-      );
-    }
-
-    if (
-      Object.entries(cuevals.value[cue][effect]["keypoints"][universe])
-        .length === 0
-    ) {
-      old_vue_delete(cuevals.value[cue][effect]["keypoints"], universe);
+      kp["values"][channel] = value;
     }
   } else if (c == "refreshPage") {
     globalThis.reload();
@@ -1513,7 +1522,6 @@ export {
   setEventButtons,
   setTagInputValue,
   addTimeToGroup,
-  formatCueVals,
   lookupFixtureType,
   lookupFixtureColorProfile,
   getfixtureassg,

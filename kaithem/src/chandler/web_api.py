@@ -1,7 +1,7 @@
 import json
+import uuid
 
 import quart.ctx
-import quart.utils
 import structlog
 from jsonschema import Draft202012Validator
 from quart import request
@@ -228,22 +228,27 @@ async def set_cue_effect_rest(cue_id: str, effect: str):
         raise RuntimeError("Cue has no group")
 
     if not v["type"]:
-        cue.values.pop(effect, None)
-        group.lighting_manager.refresh()
-
+        fx = cue.get_effect_by_id(effect)
+        if fx:
+            cue.lighting_effects.remove(fx)
+            group.lighting_manager.refresh()
     else:
-        x: EffectData = cue.values.get(
-            effect,
-            {
-                "type": "direct",
-                "keypoints": {},
-                "auto": [],
-            },
-        )
-        x["type"] = v["type"]
-        x["keypoints"] = v.get("keypoints", {})
-        x["auto"] = v.get("auto", {})
-        cue.values[effect] = x
+        with cl_context:
+            x = cue.get_effect_by_id(effect)
+
+            if not x:
+                y: EffectData = {
+                    "type": "direct",
+                    "id": str(uuid.uuid4()),
+                    "keypoints": [],
+                    "auto": [],
+                }
+                cue.lighting_effects.append(y)
+                x = y
+
+            x["type"] = v["type"]
+            x["keypoints"] = v.get("keypoints", {})
+            x["auto"] = v.get("auto", {})
 
     board.pushCueData(cue_id)
 
@@ -268,26 +273,21 @@ async def set_cue_auto_entry(
     else:
         raise RuntimeError("Cue has no group")
 
-    vals = cue.values.get(effect, {})
-    if effect not in vals:
-        cue.values[effect] = {
-            "type": "direct",
-            "keypoints": {},
-            "auto": [],
-        }
+    vals = cue.get_effect_by_id(effect)
+    if not vals:
+        raise RuntimeError("Effect not found")
 
-    effectvalues = cue.values[effect]
-    if "auto" not in effectvalues:
-        effectvalues["auto"] = []
+    if "auto" not in vals:
+        vals["auto"] = []
 
     if not v["length"]:
-        for i in list(effectvalues["auto"]):
+        for i in list(vals["auto"]):
             if i.get("fixture") == v.get("fixture") and i.get(
                 "start_idx"
             ) == v.get("start_idx"):
-                effectvalues["auto"].remove(i)
+                vals["auto"].remove(i)
     else:
-        effectvalues["auto"].append(v)
+        vals["auto"].append(v)
 
     board.pushCueMeta(cue_id)
 

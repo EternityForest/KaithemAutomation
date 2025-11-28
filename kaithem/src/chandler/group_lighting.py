@@ -9,8 +9,6 @@ import numpy
 from . import blendmodes, universes
 
 if TYPE_CHECKING:
-    from kaithem.src.chandler.cue import EffectData
-
     from .ChandlerConsole import ChandlerConsole
     from .groups import Cue, Group
 
@@ -172,11 +170,9 @@ class GroupLightingManager:
 
             # Recalc what universes are affected by this group.
             # We don't clear the old universes, we do that when we're done fading in.
-            for effectname in cue.values:
-                effect: EffectData = cue.values[effectname]
-
+            for effect in cue.values:
                 for universe in effect["keypoints"]:
-                    i = universes.mapUniverse(universe)
+                    i = universes.mapUniverse(universe["target"])
 
                     if i and i.startswith("/"):
                         self.on_demand_universes[i] = (
@@ -205,17 +201,14 @@ class GroupLightingManager:
 
             self.needs_rerender_on_var_change = False
 
-            for effectname in source_cue.values:
-                effect = source_cue.values[effectname]
-                kp: dict[str, Any] = effect["keypoints"]  # type: ignore
+            for effect in source_cue.values:
+                if effect["id"] not in self.cached_values_raw:
+                    self.cached_values_raw[effect["id"]] = LightingLayer()
 
-                if effectname not in self.cached_values_raw:
-                    self.cached_values_raw[effectname] = LightingLayer()
+                effectlayer = self.cached_values_raw[effect["id"]]
 
-                effectlayer = self.cached_values_raw[effectname]
-
-                for universe_raw_name in kp:
-                    universe = universes.mapUniverse(universe_raw_name)
+                for kp in effect["keypoints"]:
+                    universe = universes.mapUniverse(kp["target"])
                     if not universe:
                         continue
 
@@ -240,11 +233,11 @@ class GroupLightingManager:
                             [0.0] * size, dtype="f4"
                         )
 
-                    for j in kp[universe_raw_name]:
+                    for j in kp["values"]:
                         if isinstance(j, str) and j.startswith("__"):
                             continue
 
-                        cue_value = kp[universe_raw_name][j]
+                        cue_value = kp["values"][j]
 
                         evaled = self.group.evalExpr(
                             cue_value if cue_value is not None else 0
@@ -252,9 +245,7 @@ class GroupLightingManager:
                         # This should always be a float
                         evaled = float(evaled)
 
-                        x = universes.mapChannel(
-                            universe_raw_name.split("[")[0], j
-                        )
+                        x = universes.mapChannel(kp["target"].split("[")[0], j)
                         if x:
                             universe, channel = x[0], x[1]
                             try:

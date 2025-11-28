@@ -84,6 +84,33 @@ slots = s2
 allowedCueNameSpecials = "_~."
 
 
+def upgrade_legacy_lighting_values(d: dict[str, Any]):
+    if "values" not in d:
+        return d
+
+    collected_imported: list[EffectData] = []
+
+    for i in d["values"]:
+        collected_imported.append(
+            {
+                "type": "direct",
+                "id": str(uuid.uuid4()),
+                "auto": [],
+                "keypoints": [{"target": i, "values": d[i]} for i in d],
+            }
+        )
+
+    logging.warning("Upgrading legacy lighting values")
+
+    messagebus.post_message(
+        "/system/notifications/warnings/",
+        "Upgrading legacy lighting value format, please re-save your Chandler board.",
+    )
+
+    d.pop("values")
+    d["lighting_effects"] = collected_imported
+
+
 def number_to_shortcut(number: int | float | str):
     s = str((Decimal(number) / 1000).quantize(Decimal("0.001")))
     # https://stackoverflow.com/questions/11227620/drop-trailing-zeros-from-decimal
@@ -203,10 +230,17 @@ class AutoEntry(TypedDict):
     end_idx: int
 
 
+class Keypoint(TypedDict):
+    # Universe or fixture
+    target: str
+    values: dict[str, int | float | str | None]
+
+
 class EffectData(TypedDict):
     type: str
-    keypoints: dict[str, dict[str, int | float | str]]
+    keypoints: list[Keypoint]
     auto: list[AutoEntry]
+    id: str
 
 
 class Cue:
@@ -269,7 +303,7 @@ class Cue:
         self.media_wind_down: str
         self.probability: float | str
 
-        self.values: dict[str, EffectData]
+        self.lighting_effects: list[EffectData]
         """
         Outer dict is the effect, inner is the universe, innermost is the channel
         Normally we have exactly one effect called "direct",
@@ -320,6 +354,7 @@ class Cue:
             except Exception:
                 self.number = 5000
 
+        upgrade_legacy_lighting_values(kw)
         # Set up all the underscore internal vals for the properties before settingthe actual
         # properties
         for i in cue_schema["properties"]:
@@ -441,6 +476,24 @@ class Cue:
     def provider(self, value):
         raise RuntimeError("Provider is read only")
 
+    def get_fixture_keypoint(
+        self, effect: str, fixture: str
+    ) -> Keypoint | None:
+        """Return the keypoint targetting the given fixture, or None if not found"""
+        fx = self.get_effect_by_id(effect)
+        if not fx:
+            return None
+        for k in fx["keypoints"]:
+            if k["target"] == fixture:
+                return k
+        return None
+
+    def get_effect_by_id(self, id: str) -> EffectData | None:
+        for k in self.lighting_effects:
+            if k["id"] == id:
+                return k
+        return None
+
     def __repr__(self):
         gr = None
         if hasattr(self, "group"):
@@ -485,7 +538,7 @@ class Cue:
             fade_in=self.fade_in,
             length=self.length,
             length_randomize=self._length_randomize,
-            values=copy.deepcopy(self.values),
+            values=copy.deepcopy(self.lighting_effects),
             next_cue=self.next_cue,
             rel_length=self.rel_length,
             track=self.track,
@@ -867,26 +920,47 @@ class Cue:
             raise RuntimeError("The group doesn't exist")
 
         reset = False
+
+        fx = self.get_effect_by_id(effect)
+
+        if not fx:
+            raise RuntimeError("Effect doesn't exist")
+
         if value is not None:
-            if effect not in self.values:
+            if not self.get_effect_by_id(effect):
                 raise RuntimeError("Effect doesn't exist")
 
-            if universe not in self.values[effect]["keypoints"]:
-                self.values[effect]["keypoints"][universe] = {}
-                reset = True
-            if channel not in self.values[effect]["keypoints"][universe]:
-                reset = True
-            self.values[effect]["keypoints"][str(universe)][str(channel)] = (
-                value
+            keypoint: Keypoint | None = self.get_fixture_keypoint(
+                effect, universe
             )
+            if not keypoint:
+                keypoint = {
+                    "target": universe,
+                    "values": {},
+                }
+                fx["keypoints"].append(keypoint)
+                reset = True
+
+            if str(channel) not in keypoint["values"]:
+                reset = True
+
+            keypoint["values"][str(channel)] = value
         else:
             empty = False
-            if channel in self.values[effect]["keypoints"][universe]:
-                del self.values[effect]["keypoints"][universe][channel]
 
-            if not self.values[effect]["keypoints"][universe]:
+            keypoint: Keypoint | None = self.get_fixture_keypoint(
+                effect, universe
+            )
+            if not keypoint:
+                return
+
+            if universe in keypoint["values"]:
+                if str(channel) in keypoint["values"]:
+                    del keypoint["values"][str(channel)]
+
+            if not keypoint["values"]:
                 empty = True
-                del self.values[effect]["keypoints"][universe]
+                fx["keypoints"].remove(keypoint)
 
             if empty:
                 self.pushData()
@@ -908,7 +982,7 @@ class Cue:
             "group": group.id,
             "number": self.number / 1000.0,
             "prev": group.getParent(self.name),
-            "hasLightingData": len(self.values),
+            "hasLightingData": len(self.lighting_effects),
             "labelImageTimestamp": self.getGroup().board.get_file_timestamp_if_exists(
                 self.label_image
             ),
@@ -928,7 +1002,7 @@ class Cue:
         d.update(d2)
 
         # not metadata, sent separately
-        d.pop("values")
+        d.pop("lighting_effects", None)
 
         # Web frontend still uses ye olde camel case
         d = snake_compat.camelify_dict_keys(d)
