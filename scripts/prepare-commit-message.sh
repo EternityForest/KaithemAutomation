@@ -14,5 +14,3 @@ fi
 
 # Prepend branch name and a colon
 sed -i.bak "1s/^/[$BRANCH] /" "$1"
-
-touch /dev/shm/jfdsadfghju
