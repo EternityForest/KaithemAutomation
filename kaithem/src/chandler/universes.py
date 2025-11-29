@@ -307,7 +307,7 @@ class Universe:
 
         # If False, lighting values don't fade in, they just jump straight to the target,
         # For things like smart bulbs where we want to use the remote fade instead.
-        self.localFading = True
+        self.local_fading = True
 
         # Used by blend modes to request that the
         # remote device do onboard interpolation
@@ -1173,10 +1173,10 @@ class ColorTagUniverse(Universe):
 
         if fadeTag:
             self.fadeTag = fadeTag
-            self.localFading = False
+            self.local_fading = False
         else:
             self.fadeTag = None
-            self.localFading = True
+            self.local_fading = True
 
     def onFrame(self):
         def f():

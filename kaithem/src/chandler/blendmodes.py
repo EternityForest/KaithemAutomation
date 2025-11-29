@@ -301,7 +301,7 @@ class vary_blendmode_np(BlendMode):
 
         lp = t60 * self.blend_args["speed"]
         if uobj:
-            if not uobj.localFading:
+            if not uobj.local_fading:
                 lp = 1
                 uobj.interpolationTime = (1 / 60) / self.blend_args["speed"]
 

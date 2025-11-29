@@ -1885,7 +1885,7 @@ def test_fade_in():
         s.cues["default"].set_value_immediate("default", "/foo", "value", 0)
         s.cues["cue2"].set_value_immediate("default", "/foo", "value", 5)
 
-        s.lighting_manager.on_demand_universes["/foo"].localFading = False
+        s.lighting_manager.on_demand_universes["/foo"].local_fading = False
 
         s.goto_cue("cue2")
         core.wait_frame()

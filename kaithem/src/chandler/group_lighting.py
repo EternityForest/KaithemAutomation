@@ -120,20 +120,24 @@ class GroupLightingManager:
         self.mark_need_repaint_onto_universes()
 
     # Only call this under the render lock
-    def get_current_output(self) -> dict[str, LightingLayer]:
+    def get_current_output(
+        self, universes_cache: dict[str, universes.Universe]
+    ) -> dict[str, LightingLayer]:
         if self.fade_position == 1.0:
             return self.cached_values_raw
+
+        fp = self.fade_position
 
         op = {}
 
         for i in self.cached_values_raw:
             if i in self.fading_from:
                 op[i] = self.fading_from[i].fade_in(
-                    self.cached_values_raw[i], self.fade_position
+                    self.cached_values_raw[i], fp, universes_cache
                 )
             else:
                 op[i] = LightingLayer().fade_in(
-                    self.cached_values_raw[i], self.fade_position
+                    self.cached_values_raw[i], fp, universes_cache
                 )
         return op
 
@@ -559,7 +563,7 @@ def composite_layers_from_board(
 
         # TODO this can change size during iteration
 
-        x = i.lighting_manager.get_current_output().get(
+        x = i.lighting_manager.get_current_output(universesSnapshot).get(
             "default", LightingLayer()
         )
 

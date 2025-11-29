@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 import copy
+import typing
 
 import numpy
 import numpy.typing
+
+if typing.TYPE_CHECKING:
+    from .universes import Universe
 
 
 class LightingLayer:
@@ -51,7 +55,12 @@ class LightingLayer:
             self.values[i] += other.values[i] * mask
             self.alphas[i] += other.alphas[i] * mask
 
-    def fade_in(self, new_other: LightingLayer, blend: float):
+    def fade_in(
+        self,
+        new_other: LightingLayer,
+        blend: float,
+        universes_cache: dict[str, Universe],
+    ):
         """Produce a new layer that is a blend between self and other.
         except that if a value is in the new but not the old,
         fade up the alpha but jump straight to val to avoid double fades.
@@ -68,14 +77,19 @@ class LightingLayer:
 
             mask = a > 0
 
+            b = blend
+            if universename in universes_cache:
+                if not universes_cache[universename].local_fading:
+                    b = 1
+
             op[universename] = numpy.where(
                 mask,
-                blend * new_other.values[universename] + (1 - blend) * v,
+                b * new_other.values[universename] + (1 - b) * v,
                 new_other.values[universename],
             )
 
             op_a[universename] = (
-                blend * new_other.alphas[universename] + (1 - blend) * a
+                b * new_other.alphas[universename] + (1 - b) * a
             )
 
         ll = LightingLayer()
