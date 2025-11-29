@@ -1316,7 +1316,7 @@ def mapChannel(u: str, c: str | int) -> tuple[str, int] | None:
         if isinstance(c, str):
             # Special case the tag points, we need to map before they
             # actually exist
-            if c == "value" and u[0] == "/":
+            if c == "value" and u.startswith("/"):
                 return u, 1
 
             universe = getUniverse(u)

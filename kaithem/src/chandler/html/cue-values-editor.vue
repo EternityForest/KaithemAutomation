@@ -229,7 +229,7 @@
                   type="button"
                   :disabled="no_edit"
                   data-testid="add-channel-to-cue-button"
-                  v-on:click="addValueToCue(effectidx)">
+                  v-on:click="addValueToCue(effect['id'])">
                   <i class="mdi mdi-plus"></i>Add Channel to Cue
                 </button>
               </div>
@@ -333,7 +333,10 @@ function addValueToCue(effect) {
   if (!newcueu.value) {
     return;
   }
+
+  setCueValue(currentcueid.value, effect, newcueu.value, newcuevnumber.value, 0);
 }
+
 function addEffectToCue() {
   if (cuevals.value[currentcueid.value].length > 0) {
     alert("Cue already has a default effect");
