@@ -58,23 +58,25 @@ class LightingLayer:
         """
         op = {}
         op_a = {}
-        for i in new_other.values:
-            if i not in self.values:
-                v = numpy.zeros(new_other.values[i].shape)
-                a = numpy.zeros(new_other.alphas[i].shape)
+        for universename in new_other.values:
+            if universename not in self.values:
+                v = numpy.zeros(new_other.values[universename].shape)
+                a = numpy.zeros(new_other.alphas[universename].shape)
             else:
-                v = self.values[i]
-                a = self.alphas[i]
+                v = self.values[universename]
+                a = self.alphas[universename]
 
-            mask = self.alphas[i] > 0
+            mask = a > 0
 
-            op[i] = numpy.where(
+            op[universename] = numpy.where(
                 mask,
-                blend * new_other.values[i] + (1 - blend) * v,
-                new_other.values[i],
+                blend * new_other.values[universename] + (1 - blend) * v,
+                new_other.values[universename],
             )
 
-            op_a[i] = blend * new_other.alphas[i] + (1 - blend) * a
+            op_a[universename] = (
+                blend * new_other.alphas[universename] + (1 - blend) * a
+            )
 
         ll = LightingLayer()
         ll.values = op

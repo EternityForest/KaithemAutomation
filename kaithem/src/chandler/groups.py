@@ -1395,7 +1395,9 @@ class Group:
             self.recalc_randomize_modifier()
             self.recalc_cue_len()
 
-            self.lighting_manager.next(self.cues[cue])
+            self.lighting_manager.next(
+                self.cues[cue], fade_in=bool(self.cues[cue].length)
+            )
 
             # We don't render here. Very short cues coupt create loops of rerendering and goto
             # self.render(force_repaint=True)

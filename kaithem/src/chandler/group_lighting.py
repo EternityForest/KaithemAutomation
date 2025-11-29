@@ -129,7 +129,7 @@ class GroupLightingManager:
         for i in self.cached_values_raw:
             if i in self.fading_from:
                 op[i] = self.fading_from[i].fade_in(
-                    self.fading_from[i], self.fade_position
+                    self.cached_values_raw[i], self.fade_position
                 )
             else:
                 op[i] = LightingLayer().fade_in(
@@ -153,11 +153,14 @@ class GroupLightingManager:
                 for j in self.fading_from[i].values:
                     self.should_repaint_onto_universes[j] = True
 
-    def next(self, cue: Cue | None):
+    def next(self, cue: Cue | None, fade_in: bool = False):
         """Handle lighting related cue transition stuff"""
         with self.group.lock:
             if not cue:
                 return
+
+            if fade_in:
+                self.fade_position = 0
 
             if cue.track and self.group.backtrack:
                 backtracked = self.collect_backtracked_values(cue)
@@ -165,7 +168,13 @@ class GroupLightingManager:
                 backtracked = []
 
             with render_loop_lock:
-                self.fading_from = self.cached_values_raw
+                self.fading_from = {}
+                # Because just assigning would make them the same obj and it would be all
+                # corrupt
+                for i in self.cached_values_raw:
+                    self.fading_from[i] = LightingLayer(
+                        self.cached_values_raw[i]
+                    )
                 if not cue.track:
                     self.cached_values_raw = {}
 
@@ -572,7 +581,8 @@ def composite_layers_from_board(
                 u, i, x, universeObject
             )
 
-        i.lighting_manager.should_repaint_onto_universes = {}
+        if i.lighting_manager.fade_in_completed:
+            i.lighting_manager.should_repaint_onto_universes = {}
 
     return changed
 
