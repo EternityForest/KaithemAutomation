@@ -197,6 +197,10 @@ class GroupLightingManager:
 
     def stop(self):
         with render_loop_lock:
+            for i in self.cached_values_raw:
+                for j in self.cached_values_raw[i].values:
+                    universes.request_rerender[j] = True
+
             self.fading_from = {}
             self.cached_values_raw = {}
 
@@ -216,9 +220,7 @@ class GroupLightingManager:
             # Loop over universes in the cue
             if clearBefore:
                 # Rerender everything we no longer affect
-                for i in self.cached_values_raw:
-                    for u in self.cached_values_raw[i].values:
-                        self.should_repaint_onto_universes[u] = True
+                self.mark_need_repaint_onto_universes()
                 self.cached_values_raw = {}
 
             for effect in effect_data:
@@ -514,27 +516,28 @@ def composite_layers_from_board(
 
     needs_rerender = False
 
-    group_outputs: dict[str, LightingLayer] = {}
-
     for i in board.active_groups:
         if repaint:
             i.lighting_manager.mark_need_repaint_onto_universes()
 
         if i.lighting_manager.should_repaint_onto_universes:
-            x = i.lighting_manager.get_current_output().get(
-                "default", LightingLayer()
-            )
             for j in i.lighting_manager.should_repaint_onto_universes:
                 changed[j] = True
-            group_outputs[i.name] = x
             needs_rerender = True
+
+    if universes.request_rerender:
+        for j in universes.request_rerender:
+            changed[j] = True
+        needs_rerender = True
 
     if not needs_rerender:
         return changed
 
     for u in universesSnapshot:
-        if u in changed:
+        if u in changed or u in universes.request_rerender:
             universesSnapshot[u].reset()
+
+    universes.request_rerender.clear()
 
     # Remember that groups get rendered in ascending priority order here
     for i in board.active_groups:
@@ -547,8 +550,16 @@ def composite_layers_from_board(
 
         # TODO this can change size during iteration
 
+        x = i.lighting_manager.get_current_output().get(
+            "default", LightingLayer()
+        )
+
         # Loop over universes the group affects
-        for u in group_outputs[i.name].values:
+        for u in x.values:
+            # Leave universes with no changes in them alone
+            if u not in changed:
+                continue
+
             if u.startswith("__") and u.endswith("__"):
                 continue
 
@@ -558,7 +569,7 @@ def composite_layers_from_board(
             universeObject = universesSnapshot[u]
 
             universeObject.values = composite_rendered_layer_onto_universe(
-                u, i, group_outputs[i.name], universeObject
+                u, i, x, universeObject
             )
 
         i.lighting_manager.should_repaint_onto_universes = {}

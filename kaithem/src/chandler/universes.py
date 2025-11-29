@@ -48,6 +48,9 @@ fixtures: dict[str, weakref.ref[Fixture]] = {}
 last_state_update = time.time()
 
 
+request_rerender: dict[str, bool] = {}
+
+
 def refresh_groups():
     """Tell groups the set of universes has changed"""
     global last_state_update
@@ -312,6 +315,8 @@ class Universe:
         # The final interpolation time is the greater of
         # This and the time determined by fadeEndTime
         self.interpolationTime = 0.0
+
+        self.need_repaint = True
 
         # Let subclasses set these
         if not hasattr(self, "status"):
