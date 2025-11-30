@@ -679,30 +679,52 @@ class Group:
         workers.do(self.scan_cue_providers)
 
     @slow_group_lock_context.object_session_entry_point
+    def set_cue_keypoint_key(
+        self, cue_id: str, effect: str, universe: str, key: str, value: Any
+    ):
+        """Find the keypoint targeting the given fixture, or None if not found"""
+        with self.lock:
+            with core.render_loop_lock:
+                cue = self.cues[cue_id]
+                kp = cue.get_fixture_keypoint(effect, universe)
+                if not kp:
+                    raise RuntimeError(
+                        f"Cue has no keypoint or effect matching {effect} {universe}"
+                    )
+                if value is None:
+                    del kp[key]
+                else:
+                    kp[key] = value
+
+    @slow_group_lock_context.object_session_entry_point
     def scan_cue_providers(self):
-        discovered = {}
-        try:
-            for i in self._cue_provider_objects:
-                c = i.scan_cues()
-                for cue in c.values():
-                    assert cue.provider == i.url
-                    if cue.name not in self.cues:
-                        self._add_cue(cue)
-                    discovered[cue.id] = i
+        # TODO: LOCK
+        with self.lock:
+            discovered = {}
+            try:
+                for i in self._cue_provider_objects:
+                    c = i.scan_cues()
+                    for cue in c.values():
+                        assert cue.provider == i.url
+                        if cue.name not in self.cues:
+                            self._add_cue(cue)
+                        discovered[cue.id] = i
 
-            for i in list(self.cues.keys()):
-                if i in self.cues and self.cues[i].provider:
-                    if self.cues[i].id not in discovered:
-                        self.rmCue(self.cues[i].name, allow_rm_external=True)
+                for i in list(self.cues.keys()):
+                    if i in self.cues and self.cues[i].provider:
+                        if self.cues[i].id not in discovered:
+                            self.rmCue(
+                                self.cues[i].name, allow_rm_external=True
+                            )
 
-            self.error_codes.pop("cue_provider_error", None)
-            self.check_error_codes()
+                self.error_codes.pop("cue_provider_error", None)
+                self.check_error_codes()
 
-        except Exception as e:
-            self.error_codes["cue_provider_error"] = str(e)
-            self.check_error_codes()
-            logger.exception("Cue provider error")
-            raise
+            except Exception as e:
+                self.error_codes["cue_provider_error"] = str(e)
+                self.check_error_codes()
+                logger.exception("Cue provider error")
+                raise
 
     @slow_group_lock_context.object_session_entry_point
     def toDict(self) -> dict[str, Any]:

@@ -1,7 +1,9 @@
 <style scoped></style>
 
 <template id="h-fader">
-  <div class="hfader" style="-webkit-user-drag: none">
+  <div class="hfader" style="-webkit-user-drag: none"
+  v-if="chname[0] != '_'"
+  >
     <b class="w-full" v-if="chinfo == undefined">{{ chname }}</b>
 
     <div>
@@ -95,9 +97,9 @@ var hfaderdata = {
       this.setCueVal(cue, effect, u, v, x);
     }
   },
-    setCueVal: function (sc, effect, u, ch, value) {
+  setCueVal: function (sc, effect, u, ch, value) {
     // console.log(sc, effect, u, ch, value);
-    if (this.fixcmd["__preset__"] && this.fixcmd["__preset__"].v) {
+    if (this.fixcmd["__preset__"] && this.fixcmd["__preset__"].length > 0) {
       globalThis.api_link.send(["scv",sc, effect,  u, "__preset__", null]);
     }
 

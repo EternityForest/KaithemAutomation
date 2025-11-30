@@ -225,9 +225,10 @@ first_property_error_while_loading: list[bool] = [False]
 
 
 class AutoEntry(TypedDict):
+    # Fixture[0] notation is used for start
     fixture: str
-    start_idx: int
     end_idx: int
+    skip_count: int
 
 
 class Keypoint(TypedDict):

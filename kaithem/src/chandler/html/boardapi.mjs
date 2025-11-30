@@ -265,6 +265,40 @@ async function restSetCueValue(cue, effect, universe, channel, value) {
   });
 }
 
+export async function restSetCueKeypointMeta(cue, effect, universe, channel, value) {
+  await doSerialized(async () => {
+    var x = cueSetData[cue + "value"];
+    if (x) {
+      clearTimeout(x);
+      delete cueSetData[cue + "value"];
+    }
+
+    let response = fetch(
+      "/chandler/api/set-cue-keypoint-meta/" +
+        cue +
+        "/" +
+        effect +
+        "/" +
+        encodeURIComponent(universe) +
+        "/" +
+        encodeURIComponent(channel.toString()) +
+        "?" +
+        new URLSearchParams({ value: JSON.stringify(value) }).toString(),
+      {
+        method: "PUT",
+      }
+    ).catch(function (error) {
+      alert("Could not reach server:" + error);
+    });
+
+    let v = await response;
+
+    if (!v.ok) {
+      alert("Error setting value, possible invalid value: " + value);
+    }
+  });
+}
+
 async function setCueProperty(cue, property, value) {
   await doSerialized(async () => {
     var x = cueSetData[cue + property];
@@ -653,17 +687,22 @@ function addfixToCue(cue,effect, fix) {
 export async function addAutoFix(cue, effect, fix) {
   let b = {
     target: fix,
-    start_idx: 1,
     end_idx: 1,
-    skip: 1,
+    skip_count: 1,
   };
 
   if (fixtureAssignments[fix] && fixtureAssignments[fix].count) {
-    b.start_idx = Number.parseInt(prompt("Start Index(1=first fixture)?", "1"));
+    let index = Number.parseInt(prompt("Start Index(1=first fixture)?", "1"));
+
+    if (index > 1) {
+      b.target = b.target + '[' + (index) + ']';
+    }
+
     b.end_idx = Number.parseInt(
       prompt("End Index?", fixtureAssignments[fix].count)
     );
-    b.skip = Number.parseInt(prompt("Skip(1=every fixture)?", "1"));
+
+    b.skip_count = Number.parseInt(prompt("Skip(1=every fixture)?", "1"));
   }
   let fx = cuevals.value[cue][effect];
 
@@ -1047,20 +1086,16 @@ function savePreset(v, suggestedname) {
   var v2 = presets.value[n] || {};
   v2.values = {};
 
-  // Just the vals
-  for (var index in v) {
-    if (index == "__length__") {
-      continue;
-    }
-    if (index == "__spacing__") {
-      continue;
-    }
-    if (index == "__preset__") {
-      continue;
-    }
 
-    v2.values[index] = v[index].v;
+  // Just the vals
+  for (var index in v.values) {
+    if (index[0] == '_')
+    {
+      continue;
+    }
+    v2.values[index] = v.values[index];
   }
+
 
   if (n && n.length > 0) {
     presets.value[n] = v2;

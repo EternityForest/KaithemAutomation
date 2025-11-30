@@ -212,6 +212,34 @@ async def set_cue_value_rest(
 
 
 @quart_app.route(
+    "/chandler/api/set-cue-keypoint-meta/<cue_id>/<effect>/<universe>/<channel>",
+    methods=["PUT"],
+)
+async def set_cue_keypoint_meta(
+    cue_id: str, effect: str, universe: str, key: str
+):
+    require("system_admin")
+    v = json.loads(quart.request.args["value"])
+
+    cue = cues[cue_id]
+    group = cue.group()
+    if group:
+        board = group.board
+        group.board.pushCueMeta(cue_id)
+    else:
+        raise RuntimeError("Cue has no group")
+
+    g = cue.getGroup()
+
+    if g:
+        g.set_cue_keypoint_key(cue_id, effect, universe, key, v)
+
+    board.pushCueData(cue_id)
+
+    return {"success": True}
+
+
+@quart_app.route(
     "/chandler/api/set-cue-effect-meta/<cue_id>/<effect>",
     methods=["PUT"],
 )

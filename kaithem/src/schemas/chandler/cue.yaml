@@ -168,9 +168,7 @@ properties:
               type: string
             fixture:
               type: string
-            start_idx:
-              type: integer
-              description: 0 for target fixture, 1 for next identical after
+              description: To start at a specific fixture in a list, use fix[1] for the 1st
             end_idx:
               type: integer
 

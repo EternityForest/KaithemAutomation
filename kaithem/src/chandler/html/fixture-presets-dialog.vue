@@ -32,7 +32,7 @@
         <button
           v-bind:key="ps"
           v-if="checkPresetUsablility(ps)"
-          @click="setFixturePreset(currentcueid, fixture, ps)"
+          @click="setFixturePreset(currentcueid, effectid, fixture, ps)"
           :disabled="no_edit"
           class="preset-button preset-icon"
           popovertarget="presetForFixture"
@@ -86,7 +86,7 @@
             return 1;
           }
         })"
-        @click="setFixturePreset(currentcueid, fixture, ps[0])"
+        @click="setFixturePreset(currentcueid, effectid, fixture, ps[0])"
         :disabled="no_edit"
         class="preset-button preset-icon"
         popovertarget="presetForFixture"
@@ -121,7 +121,7 @@
 </template>
 
 <script setup>
-import { presets, boardname, restSetCueValue } from "./boardapi.mjs";
+import { presets, boardname, restSetCueValue, restSetCueKeypointMeta } from "./boardapi.mjs";
 import { dictView } from "./utils.mjs";
 import * as Vue from "/static/js/thirdparty/vue.esm-browser.js";
 
@@ -131,6 +131,7 @@ const properties = defineProps({
   fixtureclasses: Object,
   fixturetype: String,
   currentcueid: String,
+  effectid: String,
   currentvals: Object,
   getpresetimage: Function,
   no_edit: Boolean,
@@ -151,8 +152,7 @@ const sorts = Vue.ref([
   "!values.dim",
 ]);
 
-function setFixturePreset(sc, fix, preset) {
-  console.log("setFixturePreset", sc, fix, preset);
+function setFixturePreset(sc, effect, fix, preset) {
   const deleteIndex = recentPresets.value.indexOf(preset);
 
   if (deleteIndex !== -1) {
@@ -212,13 +212,6 @@ function setFixturePreset(sc, fix, preset) {
       continue;
     }
 
-    if (i == "__length__") {
-      continue;
-    }
-    if (i == "__spacing__") {
-      continue;
-    }
-
     if (
       typeof selectedPreset.values[i] == "string" &&
       selectedPreset.values[i].length === 0
@@ -235,15 +228,15 @@ function setFixturePreset(sc, fix, preset) {
 
     if (selectedPreset.values[i] == undefined) {
       if (resetOthers && i in resettablechannels) {
-        restSetCueValue(sc, fix, i, resettablechannels[i]);
+        restSetCueValue(sc,effect, fix, i, resettablechannels[i]);
       }
     } else {
-      restSetCueValue(sc, fix, i, valFromPreset);
+      restSetCueValue(sc,effect,fix, i, valFromPreset);
     }
   }
 
   if (!properties.fordestination) {
-    restSetCueValue(sc, fix, "__preset__", preset);
+      restSetCueValue(sc,effect,fix, "__preset__", preset);
   }
 }
 
