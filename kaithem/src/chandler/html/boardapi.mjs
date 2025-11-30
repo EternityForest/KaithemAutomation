@@ -641,14 +641,65 @@ function testSoundCard(sc, c) {
   api_link.send(["testSoundCard", sc, c]);
 }
 
-function addfixToCurrentCue(effect, fix) {
+function addfixToCue(cue,effect, fix) {
   api_link.send([
     "add_cuef",
-    selectedCues.value[groupname.value],
+    cue,
     effect,
-    groupcues.value[groupname.value][selectedCues.value[groupname.value]],
     fix,
   ]);
+}
+
+export async function addAutoFix(cue, effect, fix) {
+  let b = {
+    target: fix,
+    start_idx: 1,
+    end_idx: 1,
+    skip: 1,
+  };
+
+  if (fixtureAssignments[fix] && fixtureAssignments[fix].count) {
+    b.start_idx = Number.parseInt(prompt("Start Index(1=first fixture)?", "1"));
+    b.end_idx = Number.parseInt(
+      prompt("End Index?", fixtureAssignments[fix].count)
+    );
+    b.skip = Number.parseInt(prompt("Skip(1=every fixture)?", "1"));
+  }
+  let fx = cuevals.value[cue][effect];
+
+  fx.auto.push(b);
+  await setAutoFixData(cue, fx.id, fx.auto);
+}
+
+export async function rmAutoFix(cue, effect, fix) {
+  let fx = cuevals.value[cue][effect];
+
+  fx.auto = fx.auto.filter((f) => f != fix);
+  await setAutoFixData(cue, fx.id, fx.auto);
+}
+
+// Slowly we want to migrate to these two generic setters
+export async function setAutoFixData(cueid, effect, data) {
+  await doSerialized(async () => {
+    let response = fetch(
+      "/chandler/api/set-cue-auto-entries/" + cueid + "/" + effect,
+      {
+        method: "PUT",
+        body: JSON.stringify(data),
+        headers: {
+          "Content-type": "application/json; charset=UTF-8",
+        },
+      }
+    ).catch(function (error) {
+      alert("Could not reach server:" + error);
+    });
+
+    let v = await response;
+
+    if (!v.ok) {
+      alert("Error adding autofix, possible invalid value: ");
+    }
+  });
 }
 
 function rmFixCue(cue, effect, fix) {
@@ -874,7 +925,6 @@ let grouptimers = ref({});
 let cuevals = ref({});
 let slideshow_telemetry = ref({});
 let showslideshowtelemetry = ref(false);
-
 
 function doRateLimit() {
   nuisianceRateLimit.value[0] +=
@@ -1514,7 +1564,7 @@ export {
   setbpm,
   tap,
   testSoundCard,
-  addfixToCurrentCue,
+  addfixToCue,
   rmFixCue,
   refreshPorts,
   pushSettings,

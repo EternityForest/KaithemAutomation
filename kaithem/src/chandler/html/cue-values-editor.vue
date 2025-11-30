@@ -90,21 +90,21 @@
           </template>
 
           <template
-            v-for="(h, fname) in effect['keypoints'] || {}"
-            v-bind:key="fname">
+            v-for="(h, f_idx) in effect['keypoints'] || {}"
+            v-bind:key="f_idx">
             <article
-              v-bind:key="fname"
+              v-bind:key="f_idx"
               class="fixture card flex-col gaps noselect"
-              v-if="fname[0] == '@'">
+              v-if="h.target[0] == '@'">
               <header>
-                <h4 :title="lookupFixtureType(fname)">
-                  {{ fname }}
+                <h4 :title="lookupFixtureType(h['target'])">
+                  {{ h.target }}
                 </h4>
 
                 <div class="tool-bar noselect">
                   <button
                     type="button"
-                    @click="showPresetDialog(fname, false)"
+                    @click="showPresetDialog(h['target'], false)"
                     popovertarget="presetForFixture"
                     title="Select a preset for this fixture"
                     data-testid="select-preset-for-fixture">
@@ -123,12 +123,12 @@
                     <option value="__dummy__">Save</option>
                     <option value="">For Any</option>
                     <option
-                      :value="'name' + fname"
+                      :value="'name' + h['target']"
                       title="Save for use with this fixture">
                       For This
                     </option>
                     <option
-                      :value="'name@h-fa' + lookupFixtureColorProfile(fname)"
+                      :value="'name@h-fa' + lookupFixtureColorProfile(h['target'])"
                       title="Save for use with fixtures of this type">
                       For Type
                     </option>
@@ -137,7 +137,7 @@
                 <button
                   type="button"
                   v-if="groupChannelsViewMode == 'channels'"
-                  v-on:click="rmFixCue(currentcueid, fname)">
+                  v-on:click="rmFixCue(currentcueid, h['target'])">
                   <i class="mdi mdi-delete"></i>
                 </button>
               </header>
@@ -147,15 +147,15 @@
                 data-testid="details-fixture-channels-summary">
                 <summary class="nomargin nopadding">
                   <img
-                    v-if="fixtureAssignments[fname.slice(1)]?.label_image"
+                    v-if="fixtureAssignments[h['target'].slice(1)]?.label_image"
                     style="max-height: 4em"
                     :src="
                       '/chandler/WebMediaServer?file=' +
                       encodeURIComponent(
-                        fixtureAssignments[fname.slice(1)]?.label_image
+                        fixtureAssignments[h['target'].slice(1)]?.label_image
                       ) +
                       '&ts=' +
-                      fixtureAssignments[fname.slice(1)]?.labelImageTimestamp
+                      fixtureAssignments[h['target'].slice(1)]?.labelImageTimestamp
                     " />
 
                   <div
@@ -188,13 +188,13 @@
                   class="scroll nomargin padding-bottom flex-row fader-box-inner">
                   <h-fader
                     :groupid="groupname"
-                    :chinfo="channelInfoForUniverseChannel(fname, chname)"
+                    :chinfo="channelInfoForUniverseChannel(h['target'], chname)"
                     :currentcueid="currentcueid"
                     :showdelete="groupChannelsViewMode == 'channels'"
                     :fixcmd="h"
                     :effect="effectidx"
                     :chname="chname[1]"
-                    :universe="fname"
+                    :universe="h['target']"
                     :val="chval[0]"
                     v-bind:key="chname"
                     v-for="(chval, chname) in dictView(h, [])">
@@ -203,6 +203,29 @@
               </details>
             </article>
           </template>
+
+          <div v-if="effect['keypoints']" class="flex-row gaps">
+            <div
+              class="card margin"
+              v-for="(autofix,idx) in effect['auto']"
+              v-bind:key="autofix['target']">
+              <header>
+                {{ autofix["target"] }}[{{ autofix["start_idx"] || 0 }}]
+              </header>
+              <button
+                v-if="groupChannelsViewMode == 'channels'"
+                type="button"
+                v-on:click="
+                  rmAutoFix(
+                    currentcueid,
+                    effectidx,
+                    autofix
+                  )
+                ">
+                <i class="mdi mdi-delete"></i>
+              </button>
+            </div>
+          </div>
           <div v-if="groupChannelsViewMode == 'channels'" class="flex-row gaps">
             <div class="card margin">
               <header>
@@ -269,8 +292,14 @@
                     <td>
                       <button
                         type="button"
-                        v-on:click="addfixToCurrentCue(effect['id'], i)">
+                        v-on:click="addfixToCue(currentcueid,effect['id'], i)">
                         <i class="mdi mdi-plus"></i>Add
+                      </button>
+
+                      <button
+                        type="button"
+                        v-on:click="addAutoFix(currentcueid, effectidx, i)">
+                        <i class="mdi mdi-plus"></i>Add Auto
                       </button>
                     </td>
                   </tr>
@@ -296,7 +325,9 @@ import {
   groupname,
   universes,
   presets,
-  addfixToCurrentCue,
+  addfixToCue,
+  addAutoFix,
+  rmAutoFix,
   rmFixCue,
   lookupFixtureType,
   lookupFixtureColorProfile,
@@ -334,7 +365,13 @@ function addValueToCue(effect) {
     return;
   }
 
-  setCueValue(currentcueid.value, effect, newcueu.value, newcuevnumber.value, 0);
+  setCueValue(
+    currentcueid.value,
+    effect,
+    newcueu.value,
+    newcuevnumber.value,
+    0
+  );
 }
 
 function addEffectToCue() {

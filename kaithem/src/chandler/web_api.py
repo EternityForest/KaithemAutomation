@@ -256,14 +256,12 @@ async def set_cue_effect_rest(cue_id: str, effect: str):
 
 
 @quart_app.route(
-    "/chandler/api/set-cue-auto-entry/<cue_id>/<effect>",
+    "/chandler/api/set-cue-auto-entries/<cue_id>/<effect>",
     methods=["PUT"],
 )
-async def set_cue_auto_entry(
-    cue_id: str, effect: str, universe: str, channel: str | int
-):
+async def set_cue_auto_entries(cue_id: str, effect: str):
     require("system_admin")
-    v = json.loads(quart.request.args["value"])
+    v = json.loads(await quart.request.body)
 
     cue = cues[cue_id]
     group = cue.group()
@@ -277,17 +275,7 @@ async def set_cue_auto_entry(
     if not vals:
         raise RuntimeError("Effect not found")
 
-    if "auto" not in vals:
-        vals["auto"] = []
-
-    if not v["length"]:
-        for i in list(vals["auto"]):
-            if i.get("fixture") == v.get("fixture") and i.get(
-                "start_idx"
-            ) == v.get("start_idx"):
-                vals["auto"].remove(i)
-    else:
-        vals["auto"].append(v)
+    vals["auto"] = v
 
     board.pushCueMeta(cue_id)
 
