@@ -954,7 +954,7 @@ class Cue:
             if not keypoint:
                 return
 
-            if universe in keypoint["values"]:
+            if keypoint["target"] == universe:
                 if str(channel) in keypoint["values"]:
                     del keypoint["values"][str(channel)]
 

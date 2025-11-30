@@ -245,7 +245,10 @@ test("test", async ({ page }) => {
         .getByTestId("channel-box-testchannel2")
         .getByTestId("channel-level-value")
     ).not.toContainText("-99db");
-  }).toPass();
+  }).toPass({
+    intervals: [1000, 2000, 10_000],
+    timeout: 60_000,
+  });
 
   page.once("dialog", (dialog) => {
     console.log(`Dialog message: ${dialog.message()}`);

@@ -15,6 +15,7 @@ make sure tag output features work.
 */
 test("test", async ({ page }) => {
   test.setTimeout(2_400_000);
+  page.setDefaultTimeout(15_000);
 
   await login(page);
   const module = "PlaywrightChandlerTestModule";
