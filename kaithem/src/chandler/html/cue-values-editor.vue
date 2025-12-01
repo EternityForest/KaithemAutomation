@@ -146,7 +146,7 @@
                 <button
                   type="button"
                   v-if="groupChannelsViewMode == 'channels'"
-                  v-on:click="rmFixCue(currentcueid, keypoint['target'])">
+                  v-on:click="rmFixCue(currentcueid, effect['id'], keypoint['target'])">
                   <i class="mdi mdi-delete"></i>
                 </button>
               </header>

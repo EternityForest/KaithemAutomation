@@ -95,13 +95,19 @@ def test_fixtures_to_dmx():
             core.wait_frame()
 
             test_chandler.board._onmsg(
-                "__admin__", ["scv", cid, "@testFixture", "red", 39], "test"
+                "__admin__",
+                ["scv", cid, "default", "@testFixture", "red", 39],
+                "test",
             )
             test_chandler.board._onmsg(
-                "__admin__", ["scv", cid, "@testFixture", "green", 51], "test"
+                "__admin__",
+                ["scv", cid, "default", "@testFixture", "green", 51],
+                "test",
             )
             test_chandler.board._onmsg(
-                "__admin__", ["scv", cid, "@testFixture", "blue", 96], "test"
+                "__admin__",
+                ["scv", cid, "default", "@testFixture", "blue", 96],
+                "test",
             )
 
             core.wait_frame()

@@ -9,7 +9,7 @@ import numpy
 
 from kaithem.src.chandler.cue import EffectData
 
-from . import blendmodes, universes
+from . import blendmodes, generator_plugins, universes
 
 if TYPE_CHECKING:
     from .ChandlerConsole import ChandlerConsole
@@ -64,10 +64,30 @@ class GroupLightingManager:
             Every effect has its own inputs
         """
 
+        # Generator per-effect
+        self.generators = {
+            "default": generator_plugins.LightingGeneratorPlugin()
+        }
+
     def clean(self):
         with render_loop_lock:
             for i in list(self.cached_values_raw):
                 self.cached_values_raw[i].clean()
+
+    def refresh_generator_layout(self, effect: str):
+        with render_loop_lock:
+            if effect in self.generators:
+                if self.cue:
+                    ed: EffectData | None = self.cue.get_effect_by_id(effect)
+                    if not ed:
+                        ed = {
+                            "auto": [],
+                            "keypoints": [],
+                            "type": "direct",
+                            "id": effect,
+                        }
+
+                    self.generators[effect].effect_data_to_layout(ed)
 
     def set_value(
         self, effect: str, universe: str, channel: int, value: float | None
@@ -93,6 +113,7 @@ class GroupLightingManager:
                 ):
                     self.cached_values_raw[effect].values[u][c] = 0
                     self.cached_values_raw[effect].alphas[u][c] = 0
+                    self.refresh_generator_layout(effect)
             else:
                 if u not in self.cached_values_raw[effect].values:
                     self.cached_values_raw[effect].values[u] = numpy.zeros(
@@ -107,7 +128,14 @@ class GroupLightingManager:
                             universes.get_on_demand_universe(u)
                         )
                 self.cached_values_raw[effect].values[u][c] = value
+                was_present = self.cached_values_raw[effect].alphas[u][c] > 0
                 self.cached_values_raw[effect].alphas[u][c] = 1
+                if not was_present:
+                    self.refresh_generator_layout(effect)
+                else:
+                    idx = self.generators[effect].input_map.get((u, c))
+                    if idx is not None:
+                        self.generators[effect].inputs[idx] = value
 
             self.should_repaint_onto_universes[u] = True
 

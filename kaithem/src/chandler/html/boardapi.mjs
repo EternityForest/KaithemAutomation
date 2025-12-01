@@ -742,7 +742,7 @@ export async function setAutoFixData(cueid, effect, data) {
 }
 
 function rmFixCue(cue, effect, fix) {
-  api_link.send(["rmcuef", effect, cue, fix]);
+  api_link.send(["rmcuef", cue, effect, fix]);
 }
 
 function refreshPorts() {

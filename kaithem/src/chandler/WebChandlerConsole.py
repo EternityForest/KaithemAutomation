@@ -636,10 +636,12 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             cue = cues[msg[1]]
             effect = msg[2]
             fixture = msg[3]
+            x = cue.get_fixture_keypoint(effect, fixture)
+            if not x:
+                return
+            x2 = list(x["values"])
 
-            x = list(cue.lighting_effects[effect]["keypoints"].keys())
-
-            for i in x:
+            for i in x2:
                 cue.set_value_immediate(effect, fixture, i, None)
 
             self.linkSend(["cuedata", cue.id, cue.lighting_effects])

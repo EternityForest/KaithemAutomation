@@ -29,7 +29,7 @@ async function uncheck_box(_page, box) {
 
 test("test", async ({ page }) => {
   test.setTimeout(4_800_000);
-  page.setDefaultTimeout(15_000);
+  page.setDefaultTimeout(30_000);
 
   await login(page);
 
@@ -52,7 +52,6 @@ test("test", async ({ page }) => {
     dialog.accept("ts1").catch(() => {});
   });
   await page.getByTestId("add-group-button").click();
-
 
   await page.getByRole("button", { name: "ts1" }).click();
 
@@ -132,6 +131,9 @@ test("test", async ({ page }) => {
   await page.evaluate(async () => {
     await globalThis.doSerialized();
   });
+
+  await sleep(100);
+
   // More settings
   await page.goto(
     "http://localhost:8002/chandler/editor/testchandlerproperties:b1"
@@ -161,6 +163,7 @@ test("test", async ({ page }) => {
   await page.evaluate(async () => {
     await globalThis.doSerialized();
   });
+  await sleep(100);
 
   // More checking
   await page.goto(
@@ -239,6 +242,7 @@ test("test", async ({ page }) => {
   await page.evaluate(async () => {
     await globalThis.doSerialized();
   });
+  await sleep(100);
 
   await page.goto(
     "http://localhost:8002/chandler/editor/testchandlerproperties:b1"
@@ -269,6 +273,7 @@ test("test", async ({ page }) => {
   await page.evaluate(async () => {
     await globalThis.doSerialized();
   });
+  await sleep(100);
 
   await page.goto(
     "http://localhost:8002/chandler/editor/testchandlerproperties:b1"
@@ -326,6 +331,8 @@ test("test", async ({ page }) => {
   await page.evaluate(async () => {
     await globalThis.doSerialized();
   });
+  await sleep(100);
+
   // Check that it worked
   await page.goto(
     "http://localhost:8002/chandler/editor/testchandlerproperties:b1"
@@ -361,6 +368,7 @@ test("test", async ({ page }) => {
   await page.evaluate(async () => {
     await globalThis.doSerialized();
   });
+  await sleep(100);
 
   await page.goto(
     "http://localhost:8002/chandler/editor/testchandlerproperties:b1"

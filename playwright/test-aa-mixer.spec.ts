@@ -1,6 +1,10 @@
 import { test, expect } from "@playwright/test";
 import { sleep, login, makeModule, deleteModule } from "./util";
 
+async function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 test("test", async ({ page }) => {
   test.setTimeout(600_000);
   await page.setDefaultTimeout(30_000);
@@ -435,6 +439,10 @@ test("test", async ({ page }) => {
   ).toBeHidden({ timeout: 20_000 });
 
   await page.getByRole("link", { name: "󱒕 Modules" }).click();
+
+  // flakiness prevention?
+  await delay(200);
+
   await page.getByRole("link", { name: "mxer" }).click();
   await page.getByTestId("delete-resource-button").click();
   await page.getByRole("button", { name: "Submit" }).click();

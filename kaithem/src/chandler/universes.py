@@ -51,6 +51,17 @@ last_state_update = time.time()
 request_rerender: dict[str, bool] = {}
 
 
+def get_channel_meta(u: str, ch: str) -> dict[str, Any]:
+    mapped = mapChannel(u, ch)
+    if not mapped:
+        return {}
+    universe = getUniverse(mapped[0])
+    if universe:
+        return universe.get_channel_metadata(mapped[1]) or {}
+    else:
+        return {}
+
+
 def refresh_groups():
     """Tell groups the set of universes has changed"""
     global last_state_update
@@ -470,6 +481,7 @@ class Universe:
 
             md["name"] = data["name"]
             md["fixture"] = fixture.name
+            md["fixid"] = id(fixture)
             md["type"] = data["type"]
 
         except KeyError:

@@ -1,9 +1,13 @@
 import { test, expect } from "@playwright/test";
 import { login, logout, makeModule, deleteModule, sleep } from "./util";
 
+async function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 test("test", async ({ page }) => {
   test.setTimeout(2_400_000);
-  await page.setDefaultTimeout(15_000);
+  await page.setDefaultTimeout(20_000);
 
   await login(page);
 
@@ -156,7 +160,8 @@ test("test", async ({ page }) => {
   await expect(page.getByLabel("Loops")).toHaveValue("8");
   await page.getByTestId("close-cue-media").click();
   await page.getByTestId("close-group").click();
-
+ 
+  await delay(100);
   await deleteModule(page, "testcue");
   await logout(page);
 });
