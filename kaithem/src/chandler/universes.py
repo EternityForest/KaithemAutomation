@@ -51,6 +51,17 @@ last_state_update = time.time()
 request_rerender: dict[str, bool] = {}
 
 
+class IDCounter:
+    def __init__(self):
+        self.id = 0
+        self.lock = threading.Lock()
+
+    def next(self):
+        with self.lock:
+            self.id += 1
+            return self.id
+
+
 def get_channel_meta(u: str, ch: str) -> dict[str, Any]:
     mapped = mapChannel(u, ch)
     if not mapped:
@@ -150,7 +161,7 @@ class Fixture:
         self.universe: str | None = None
         self.startAddress: int | None = 0
         self.assignment: tuple[str, int] | None = None
-        disallow_special(name, ".")
+        disallow_special(name, "[].")
 
         self.nameToOffset: dict[str, int] = {}
 

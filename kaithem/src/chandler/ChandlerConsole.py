@@ -234,13 +234,34 @@ class ChandlerConsole(console_abc.Console_ABC):
             try:
                 if not i["name"] == key:
                     raise RuntimeError("Name does not match key?")
-                x = universes.Fixture(
-                    i["name"], self.fixture_classes[i["type"]]
-                )
-                self.fixtures[i["name"]] = x
-                self.fixtures[i["name"]].cl_assign(
-                    i["universe"], int(i["addr"])
-                )
+
+                name = i["name"]
+                idx = 1
+
+                count = i.get("count", 1)
+
+                if "[" in name:
+                    name, idx_part = name.split("[")
+                    idx_part.replace("]", "").strip()
+                    idx = int(idx_part)
+
+                if count > 1:
+                    for j in range(count):
+                        x = universes.Fixture(
+                            name + "[" + str(j + idx) + "]",
+                            self.fixture_classes[i["type"]],
+                        )
+                        self.fixtures[name + "[" + str(j + idx) + "]"] = x
+                        self.fixtures[
+                            name + "[" + str(j + idx) + "]"
+                        ].cl_assign(
+                            i["universe"], int(i["addr"]) + j * i["spacing"]
+                        )
+                else:
+                    x = universes.Fixture(name, self.fixture_classes[i["type"]])
+                    self.fixtures[name] = x
+                    self.fixtures[name].cl_assign(i["universe"], int(i["addr"]))
+
             except Exception:
                 logger.exception("Error setting up fixture")
                 print(traceback.format_exc())

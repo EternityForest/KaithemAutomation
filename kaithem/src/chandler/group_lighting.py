@@ -9,7 +9,7 @@ import numpy
 
 from kaithem.src.chandler.cue import EffectData
 
-from . import blendmodes, generator_plugins, universes
+from . import blendmodes, universes
 
 if TYPE_CHECKING:
     from .ChandlerConsole import ChandlerConsole
@@ -17,6 +17,8 @@ if TYPE_CHECKING:
 
 from .core import iter_boards, render_loop_lock, serialized_async_with_core_lock
 from .fadecanvas import LightingLayer
+
+SPECIAL_VALUE_AUTO = -501
 
 
 def refresh_all_group_lighting():
@@ -64,10 +66,10 @@ class GroupLightingManager:
             Every effect has its own inputs
         """
 
-        # Generator per-effect
-        self.generators = {
-            "default": generator_plugins.LightingGeneratorPlugin()
-        }
+        # # Generator per-effect
+        # self.generators = {
+        #     "default": generator_plugins.LightingGeneratorPlugin()
+        # }
 
     def clean(self):
         with render_loop_lock:
@@ -75,19 +77,20 @@ class GroupLightingManager:
                 self.cached_values_raw[i].clean()
 
     def refresh_generator_layout(self, effect: str):
-        with render_loop_lock:
-            if effect in self.generators:
-                if self.cue:
-                    ed: EffectData | None = self.cue.get_effect_by_id(effect)
-                    if not ed:
-                        ed = {
-                            "auto": [],
-                            "keypoints": [],
-                            "type": "direct",
-                            "id": effect,
-                        }
+        pass
+        # with render_loop_lock:
+        #     if effect in self.generators:
+        #         if self.cue:
+        #             ed: EffectData | None = self.cue.get_effect_by_id(effect)
+        #             if not ed:
+        #                 ed = {
+        #                     "auto": [],
+        #                     "keypoints": [],
+        #                     "type": "direct",
+        #                     "id": effect,
+        #                 }
 
-                    self.generators[effect].effect_data_to_layout(ed)
+        #             self.generators[effect].effect_data_to_layout(ed)
 
     def set_value(
         self, effect: str, universe: str, channel: int, value: float | None
@@ -133,9 +136,10 @@ class GroupLightingManager:
                 if not was_present:
                     self.refresh_generator_layout(effect)
                 else:
-                    idx = self.generators[effect].input_map.get((u, c))
-                    if idx is not None:
-                        self.generators[effect].inputs[idx] = value
+                    pass
+                    # idx = self.generators[effect].input_map.get((u, c))
+                    # if idx is not None:
+                    #     self.generators[effect].inputs[idx] = value
 
             self.should_repaint_onto_universes[u] = True
 

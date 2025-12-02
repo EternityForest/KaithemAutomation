@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 import numpy
+import numpy.typing
 
 if TYPE_CHECKING:
     from .cue import EffectData
@@ -49,6 +50,12 @@ class LightingGeneratorPlugin:
         self.input_map: dict[tuple[str, int | str], int] = {}
         self.output_map: list[tuple[str, str]] = []
         self.inputs = numpy.zeros(1, dtype=numpy.float32)
+        self.output_scratchpad = numpy.zeros(1, dtype=numpy.float32)
+
+        # Metadata format:
+        # For each channel, two numbers, fixture ID and channel type
+        self.inputs_metadata = numpy.zeros(1, dtype=numpy.int64)
+        self.outputs_metadata = numpy.zeros(1, dtype=numpy.int64)
 
     def effect_data_to_layout(self, effect: EffectData):
         inputs: list[int] = []
@@ -59,6 +66,8 @@ class LightingGeneratorPlugin:
         input_map = {}
         output_map = []
 
+        unplaced_inputs = {}
+
         n = 0
         for k in effect.get("keypoints", []):
             # if k["target"].startswith("@"):
@@ -66,7 +75,9 @@ class LightingGeneratorPlugin:
             for i in k["values"]:
                 if k["values"][i] is None:
                     continue
-                input_map[(mapChannel(k["target"], i))] = n
+                m = mapChannel(k["target"], i)
+                unplaced_inputs[m] = n
+                input_map[m] = n
                 n += 1
                 input_vals.append(k["values"][i])
 
@@ -75,8 +86,6 @@ class LightingGeneratorPlugin:
                 fixid = md.get("fixid", 0)
                 if md.get("type", "") in type_codes:
                     tc = type_codes[md["type"]]
-                inputs.append(fixid * 100 + tc)
-
                 inputs.append(fixid)
                 inputs.append(tc)
 
@@ -88,17 +97,30 @@ class LightingGeneratorPlugin:
                     for i in fix.channels:
                         if not i.get("name"):
                             continue
-                        output_map.append(mapChannel(k["fixture"], i["name"]))
+                        m = mapChannel(k["fixture"], i["name"])
+                        output_map.append(m)
+                        unplaced_inputs.pop(m, None)
 
                         md = get_channel_meta(k["fixture"], i["name"])
                         tc = 0
                         fixid = md.get("fixid", 0)
                         if md.get("type", "") in type_codes:
                             tc = type_codes[md["type"]]
-                        inputs.append(fixid * 100 + tc)
 
                         outputs.append(fixid)
                         outputs.append(tc)
+
+        for m in unplaced_inputs:
+            output_map.append(m)
+
+            md = get_channel_meta(*m)
+            tc = 0
+            fixid = md.get("fixid", 0)
+            if md.get("type", "") in type_codes:
+                tc = type_codes[md["type"]]
+
+            outputs.append(fixid)
+            outputs.append(tc)
 
         self.input_map = input_map
         self.output_map = output_map
@@ -107,13 +129,23 @@ class LightingGeneratorPlugin:
         x = numpy.array(inputs, dtype=numpy.int32)
         y = numpy.array(outputs, dtype=numpy.int32)
 
-        self.on_layout_change([x, y])
+        self.output_scratchpad = numpy.zeros(
+            len(output_map), dtype=numpy.float32
+        )
+        self.inputs_metadata = x
+        self.outputs_metadata = y
 
-    def process_values(self, x: list[float]) -> list[float]:
-        return x
+        self.on_layout_change(x.tolist(), y.tolist())
+
+    def process_values(self) -> numpy.typing.NDArray[numpy.float32]:
+        return self.output_scratchpad
 
     def on_config_change(self, obj: dict[str, Any]):
         pass
 
-    def on_layout_change(self, layout: list[list[dict[str, Any]]]):
+    def on_layout_change(
+        self,
+        inputs: numpy.typing.NDArray[numpy.float32],
+        outputs: numpy.typing.NDArray[numpy.float32],
+    ):
         pass

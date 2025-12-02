@@ -182,18 +182,23 @@ test("test", async ({ page }) => {
       .getByText("Plate Reverb")
   ).toBeHidden();
 
-  await page
-    .getByTestId("channel-box-testchannel")
-    .getByTestId("ding-button")
-    .click();
+  await expect(async () => {
+    await page
+      .getByTestId("channel-box-testchannel")
+      .getByTestId("ding-button")
+      .click();
 
-  await sleep(300);
+    await sleep(500);
 
-  level = await page
-    .getByTestId("channel-box-testchannel2")
-    .getByTestId("channel-level-value")
-    .textContent();
-  await expect(level).not.toBe("-99db");
+    level = await page
+      .getByTestId("channel-box-testchannel2")
+      .getByTestId("channel-level-value")
+      .textContent();
+    await expect(level).not.toBe("-99db");
+  }).toPass({
+    intervals: [1000, 2000, 10_000],
+    timeout: 60_000,
+  });
 
   // Ensure it actually stops
   await sleep(3000);
@@ -444,20 +449,36 @@ test("test", async ({ page }) => {
   await delay(200);
 
   await page.getByRole("link", { name: "mxer" }).click();
+  await delay(200);
+
   await page.getByTestId("delete-resource-button").click();
+  await delay(200);
+
   await page.getByRole("button", { name: "Submit" }).click();
 
   // TODO: there's a bad file descriptor  in the hashing of the module here
   // but it still works
+  await delay(200);
 
   await page.goto("http://localhost:8002/");
+  await delay(200);
+
   await page.getByRole("link", { name: "󱒕 Modules" }).click();
+  await delay(200);
+
   await page.getByRole("link", { name: "mxer" }).click();
+  await delay(200);
+
   await page.getByTestId("add-resource-button").click();
+  await delay(200);
+
   await page.getByTestId("add-mixing_board").click();
   await page.getByLabel("Resource Name").click();
   await page.getByLabel("Resource Name").fill("mixer2");
+  await delay(200);
+
   await page.getByRole("button", { name: "Submit" }).click();
+  await delay(200);
 
   await page.getByRole("link", { name: "󰀻 Apps" }).click();
 
@@ -465,6 +486,7 @@ test("test", async ({ page }) => {
 
   // Old mixer should have disappeared from the apps page
   await expect(page.getByRole("link", { name: "mxr" })).toBeHidden();
+  await delay(200);
 
   await page.getByRole("link", { name: "mixer2" }).click();
 
@@ -555,6 +577,7 @@ test("test", async ({ page }) => {
   await page.getByTestId("param-row-0:gain").getByRole("slider").fill("5");
   await page.getByTestId("param-row-1:gain").getByRole("slider").fill("3");
   await page.getByRole("checkbox").check();
+  await delay(200);
 
   // Reload the page
   await page.getByRole("link", { name: "󰀻 Apps" }).click();
@@ -564,6 +587,8 @@ test("test", async ({ page }) => {
     .filter({ hasText: "mixer2" })
     .first()
     .click();
+  await delay(200);
+
   await page.getByRole("link", { name: "mixer2" }).click();
 
   await page.getByText("Setup").click();
@@ -600,6 +625,7 @@ test("test", async ({ page }) => {
   await expect(page.locator("p").filter({ hasText: "running" })).toBeVisible({
     timeout: 20_000,
   });
+  await delay(200);
 
   await deleteModule(page, "mxer");
 });

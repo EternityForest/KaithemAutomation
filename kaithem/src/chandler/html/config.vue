@@ -684,6 +684,8 @@
             <th>Type</th>
             <th>Universe</th>
             <th>Address</th>
+            <th>Count</th>
+            <th>Spacing</th>            
             <th>Action</th>
           </tr>
 
@@ -705,6 +707,18 @@
                 v-model="i[1].addr" />
             </td>
             <td>
+              <input
+                class="w-4rem"
+                v-on:change="setFixtureAssignment(i[1].name, i[1])"
+                v-model="i[1].count" />
+            </td>
+            <td>
+              <input
+                class="w-4rem"
+                v-on:change="setFixtureAssignment(i[1].name, i[1])"
+                v-model="i[1].spacing" />
+            </td>
+            <td>
               <button v-on:click="rmFixtureAssignment(i[1].name)">
                 <i class="mdi mdi-delete"></i>
                 Delete
@@ -719,6 +733,7 @@
                 Draw
               </button>
             </td>
+
           </tr>
         </table>
 
@@ -755,6 +770,20 @@
               <input type="number" min="1" v-model="newfixaddr" />
             </td>
           </tr>
+
+          <tr>
+            <td>Channel Spacing</td>
+            <td>
+              <input type="number" min="1" v-model="newfixchannelspacing" />
+            </td>
+          </tr>
+
+            <tr>
+            <td>Count</td>
+            <td>
+              <input type="number" min="1" v-model="newfixcount" />
+            </td>
+          </tr>
         </table>
         <button
           v-on:click="
@@ -762,7 +791,9 @@
               newfixname,
               newfixtype,
               newfixuniverse,
-              newfixaddr
+              newfixaddr,
+              newfixchannelspacing,
+              newfixcount
             )
           ">
           Add and Update
@@ -821,6 +852,10 @@ let newfixtype = Vue.ref("");
 let newfixaddr = Vue.ref("");
 let newfixuniverse = Vue.ref("");
 
+let newfixchannelspacing = Vue.ref(10);
+let newfixcount = Vue.ref(1);
+
+
 function chTypeChanged(i) {
   const chType =
     fixtureClasses.value[selectedFixtureClass.value].channels[i].type;
@@ -844,16 +879,29 @@ function chTypeChanged(i) {
   }
   this.pushfixture(selectedFixtureClass.value);
 }
-function addFixtureAssignment(name, t, univ, addr) {
+function addFixtureAssignment(name, t, univ, addr,
+  spacing, count
+) {
   if (!name) {
     return;
   }
+
   var d = {
     name: name,
     type: t,
     universe: univ,
     addr: addr,
   };
+
+  if(count) {
+    d.count = count;
+    d.spacing = spacing;
+
+    if (spacing < fixtureClasses.value[t].channels.length) {
+      alert("Spacing must be at least the number of channels in the fixture type");
+      return;
+    }
+  }
 
   globalThis.api_link.send(["setFixtureAssignment", name, d]);
 }
