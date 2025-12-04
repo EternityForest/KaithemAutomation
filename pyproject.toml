@@ -23,6 +23,7 @@ dependencies = [
     "NVRChannel>=0.20.0",
     # New numpy needs new opencv
     "numpy>=2.0.0",
+    "extism>=1.0.4",
     "mako",
     "jinja2",
     "pam",

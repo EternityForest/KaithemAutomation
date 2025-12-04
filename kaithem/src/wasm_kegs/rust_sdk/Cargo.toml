@@ -1,0 +1,11 @@
+[package]
+name = "wasm-kegs-sdk"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+extism-pdk = "1.4.1"
+
+[lib]
+crate-type = ["lib"]
+
