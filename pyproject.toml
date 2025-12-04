@@ -100,6 +100,13 @@ wheel-exclude = ["*.dev.excalidraw.svg", "**/.ruff_cache"]
 module-root=""
 module-name=["kaithem", "kaithem_cli", "kaithem_scripts"]
 
+[tool.uv]
+required-environments=[
+    "sys_platform == 'linux' and platform_machine == 'x86_64'",
+    "sys_platform == 'linux' and platform_machine == 'aarch64'",
+    ]
+
+
 [project.scripts]
 "kaithem" = "kaithem:__main__"
 "kaithem-cli" = "kaithem_cli.cli:main"
