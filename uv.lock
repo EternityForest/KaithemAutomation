@@ -1078,13 +1078,19 @@ wheels = [
 
 [[package]]
 name = "extism-sys"
-version = "1.13.0"
+version = "1.12.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cffi" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/60/f0/1e26844ddc925b4cc03a14d48d717acd53740a6f3e3f7dde45fbb2bea626/extism_sys-1.13.0-py3-none-macosx_11_0_arm64.whl", hash = "sha256:076c9a4fa684f287301263e0d55f4e81a2811566ab4c603b1a49d26900d817f2", size = 7396207, upload-time = "2025-11-25T17:20:11.57Z" },
+    { url = "https://files.pythonhosted.org/packages/01/30/06f1cbe28c3eb486dffc87b9d4e3d5522a8656fac86c9c05cc102f74732b/extism_sys-1.12.0-py3-none-macosx_10_12_x86_64.whl", hash = "sha256:f0225b2b2969bda66b0acab5ad13489e80b1b03b2fa7ad7be06dab57a381968d", size = 7597910, upload-time = "2025-07-14T18:53:50.102Z" },
+    { url = "https://files.pythonhosted.org/packages/04/1e/37a0c9422105909dd3932eac955c15122b9797ae305d6da3046b7036a9e3/extism_sys-1.12.0-py3-none-macosx_11_0_arm64.whl", hash = "sha256:242f021d12feee10bf67cc9a08c078d9b5e1da5c7a74f1f2eef61c10da36fccd", size = 7120898, upload-time = "2025-07-14T18:53:51.489Z" },
+    { url = "https://files.pythonhosted.org/packages/42/1f/50d6a4d22e8be5e50d379aee27cde1564c726ca42f3194d1b970a079f239/extism_sys-1.12.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:db850dc58081b48d0d50a8c7395806cbe764b82c50a971c0be00519bf336200b", size = 8355066, upload-time = "2025-07-14T18:53:52.825Z" },
+    { url = "https://files.pythonhosted.org/packages/d9/7a/88fad64e8ae9bce4d2d26495e14600100145ecc3e3218fe9766b5e70d31f/extism_sys-1.12.0-py3-none-manylinux_2_28_aarch64.whl", hash = "sha256:687a1b1f1c009383aa466fe12b35ddda54d84c1775fc583e256a946e2bd17561", size = 7912809, upload-time = "2025-07-14T18:53:54.733Z" },
+    { url = "https://files.pythonhosted.org/packages/79/f6/50ff821a6ff825f89cc4ccccfcff46ac3755b474edfb1651fcd767196586/extism_sys-1.12.0-py3-none-musllinux_1_2_aarch64.whl", hash = "sha256:24f15d958db96bd17cd8a98dee9c172d0bd71094ff71cf9de193645a80d30269", size = 8087657, upload-time = "2025-07-14T18:53:56.065Z" },
+    { url = "https://files.pythonhosted.org/packages/bd/81/d32e279cd464292f5a51ee68d47f643012d937664259f03d5639630867ca/extism_sys-1.12.0-py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:9be0c414e08414d4ce5356a185b4f05cff780352feb6755b75a75455e84c3d0f", size = 8523720, upload-time = "2025-07-14T18:53:57.356Z" },
+    { url = "https://files.pythonhosted.org/packages/54/4c/aeaeb544f667693690bf48101f6a11d1c87784c7622af6f7aa5427602fe5/extism_sys-1.12.0-py3-none-win_amd64.whl", hash = "sha256:be2ddf0120117ac495e8686f5bc80ab64a5ffe0b55b8fa2b77ee23b5ea0b3836", size = 6588019, upload-time = "2025-07-14T18:53:59.149Z" },
 ]
 
 [[package]]
@@ -1518,6 +1524,7 @@ dependencies = [
     { name = "colorzero" },
     { name = "ephem" },
     { name = "extism" },
+    { name = "extism-sys" },
     { name = "ffmpeg-python" },
     { name = "holidays" },
     { name = "hypercorn" },
@@ -1607,6 +1614,7 @@ requires-dist = [
     { name = "colorzero" },
     { name = "ephem", specifier = ">=4.2.0" },
     { name = "extism", specifier = ">=1.0.4" },
+    { name = "extism-sys", specifier = "<1.13.0" },
     { name = "ffmpeg-python" },
     { name = "holidays" },
     { name = "hypercorn", specifier = ">=0.18.0" },

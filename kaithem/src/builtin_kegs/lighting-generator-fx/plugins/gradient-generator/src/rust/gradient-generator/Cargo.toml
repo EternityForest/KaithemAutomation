@@ -1,0 +1,15 @@
+[package]
+name = "simple-rust-extism-plugin"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+extism-pdk = "1.4.1"
+wasm-kegs-sdk = { path = "../../../../../../../../../../wasm_kegs/rust_sdk" }
+
+[lib]
+crate-type = ["cdylib"]
+
+
+[profile.release]
+lto = true

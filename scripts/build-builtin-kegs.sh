@@ -1,0 +1,1 @@
+for d in kaithem/src/builtin_kegs/*; do (cd "$d" && uv run kaithem-keg-sdk build); done

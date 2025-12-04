@@ -24,6 +24,7 @@ dependencies = [
     # New numpy needs new opencv
     "numpy>=2.0.0",
     "extism>=1.0.4",
+    "extism-sys<1.13.0",
     "mako",
     "jinja2",
     "pam",
@@ -113,6 +114,7 @@ required-environments=[
 "kaithem-cli" = "kaithem_cli.cli:main"
 "kaithem-scripts" = "kaithem_scripts.makefile_runner:main"
 "kaithem-pi-boot-cfg" = "kaithem_scripts.pi_boot_cfg:main"
+"kaithem-keg-sdk" = "kaithem.src.wasm_kegs.sdk:main"
 
 "kaithem._jackmanager_server" = "icemedia.jack_client_subprocess:main"
 "kaithem._iceflow_server" = "icemedia.iceflow_server:main"

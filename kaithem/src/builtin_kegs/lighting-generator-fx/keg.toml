@@ -1,0 +1,10 @@
+[keg]
+name = "kaithem.builtin.lighting-generator-fx"
+version = "1.0.0"
+description = "Builtin Lighting Generators"
+author = "Daniel Dunn"
+
+
+[[plugins]]
+name = "gradient-generator"
+type = "kaithem.chandler.lighting-generator"

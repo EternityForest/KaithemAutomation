@@ -118,6 +118,9 @@ dev-scalene-profile:
 	@scalene --profile-all --use-virtual-time --cpu-sampling-rate=0.001 dev_run.py
 
 
+.PHONY: dev-build-builtin-kegs
+dev-build-builtin-kegs:
+	@bash scripts/build-builtin-kegs.sh
 
 
 .PHONY: dev-install-dev-tools
