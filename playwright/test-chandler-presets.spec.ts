@@ -99,9 +99,9 @@ test("test", async ({ page }) => {
     .getByRole("row", { name: "Universe", exact: true })
     .getByRole("combobox")
     .fill("test");
-  await page.getByRole("spinbutton").click();
-  await page.getByRole("spinbutton").fill("1");
-  await page.getByRole("spinbutton").click();
+  await page.getByTestId("newfixaddr").click();
+  await page.getByTestId("newfixaddr").fill("1");
+  await page.getByTestId("newfixaddr").click();
 
   await page.evaluate(async () => {
     await globalThis.doSerialized();

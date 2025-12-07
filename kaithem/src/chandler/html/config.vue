@@ -767,7 +767,9 @@
           <tr>
             <td>Address</td>
             <td>
-              <input type="number" min="1" v-model="newfixaddr" />
+              <input type="number" min="1" v-model="newfixaddr"
+              data-testid="newfixaddr"
+              />
             </td>
           </tr>
 

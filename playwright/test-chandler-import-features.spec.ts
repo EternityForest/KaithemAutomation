@@ -56,7 +56,7 @@ test("test", async ({ page }) => {
     .getByRole("row", { name: "Universe", exact: true })
     .getByRole("combobox")
     .fill("dummy");
-  await page.getByRole("spinbutton").fill("300");
+  await page.getByTestId("newfixaddr").fill("300");
   await page.getByRole("button", { name: "Add and Update" }).click();
   await page.getByRole("button", { name: "Universes" }).click();
   await page.getByPlaceholder("New Universe Name").click();

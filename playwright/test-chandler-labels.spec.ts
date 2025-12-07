@@ -97,8 +97,8 @@ test("test", async ({ page }) => {
     .getByRole("row", { name: "Universe", exact: true })
     .getByRole("combobox")
     .fill("dmx");
-  await page.getByRole("spinbutton").click();
-  await page.getByRole("spinbutton").fill("34");
+  await page.getByTestId("newfixaddr").click();
+  await page.getByTestId("newfixaddr").fill("34");
   await page.getByRole("button", { name: "Add and Update" }).click();
 
   //Give it an label image

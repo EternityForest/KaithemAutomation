@@ -52,7 +52,7 @@ test("test", async ({ page }) => {
     .getByRole("row", { name: "Universe", exact: true })
     .getByRole("combobox")
     .fill("dmx");
-  await page.getByRole("spinbutton").fill("67");
+  await page.getByTestId("newfixaddr").fill("67");
   await page.getByRole("button", { name: "Add and Update" }).click();
 
   await waitForTasks(page);
