@@ -317,6 +317,10 @@ class ChandlerConsole(console_abc.Console_ABC):
                     framerate=float(u[i].get("framerate", 44)),
                     number=int(u[i].get("number", 0)),
                 )
+            elif u[i]["type"] == "dummy":
+                universeObjects[i] = universes.Universe(
+                    i, count=int(u[i].get("channels", 128))
+                )
             else:
                 async_event("system.error", "No universe type: " + u[i]["type"])
         self.universe_objects = universeObjects

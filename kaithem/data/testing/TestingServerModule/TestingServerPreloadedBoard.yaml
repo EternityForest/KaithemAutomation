@@ -70,7 +70,13 @@ project:
       utility: false
       uuid: a3e0539ab44e468e9251652f7a46e976 # pragma: allowlist secret
   setup:
-    configured_universes: {}
+    configured_universes:
+      dummy:
+        channel_config: {}
+        channels: 512
+        framerate: 44
+        number: 1
+        type: "dummy"
     fixture_assignments: {}
     fixture_presets:
       Amber:

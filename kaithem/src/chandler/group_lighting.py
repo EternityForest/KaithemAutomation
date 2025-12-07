@@ -155,9 +155,6 @@ class GroupLightingManager:
     def get_current_output(
         self, universes_cache: dict[str, universes.Universe]
     ) -> dict[str, LightingLayer]:
-        if self.fade_position == 1.0:
-            return self.cached_values_raw
-
         fp = self.fade_position
 
         op = {}

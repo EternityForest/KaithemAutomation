@@ -58,7 +58,7 @@ class LightingGeneratorPlugin:
         self.dynamic = False
 
     def process(self, input_data: numpy.ndarray):
-        return numpy.where(input_data == -1000_001, input_data, 0)
+        return numpy.where(input_data == -1000_001, 0, input_data)
 
     def effect_data_to_layout(self, effect_data: EffectData):
         mapping = []
