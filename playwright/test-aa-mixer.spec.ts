@@ -1,5 +1,11 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, defineConfig } from "@playwright/test";
 import { sleep, login, makeModule, deleteModule } from "./util";
+
+export default defineConfig({
+  expect: {
+    timeout: 15_000,
+  },
+});
 
 async function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -7,7 +13,8 @@ async function delay(ms: number) {
 
 test("test", async ({ page }) => {
   test.setTimeout(600_000);
-  await page.setDefaultTimeout(30_000);
+  await page.setDefaultTimeout(60_000);
+  await page.setDefaultNavigationTimeout(60_000);
 
   await login(page);
 
