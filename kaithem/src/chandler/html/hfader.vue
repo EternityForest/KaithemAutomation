@@ -20,7 +20,7 @@
       </button>
     </div>
 
-    <span v-if="typeof val == 'string'">
+    <div v-if="typeof val == 'string'">
       <input
         v-bind:disabled="chinfo && chinfo.type == 'fine'"
         v-on:input="setCueVal(currentcueid, effect, universe, chname, val)"
@@ -28,10 +28,10 @@
         v-on:change="
           setCueVal(currentcueid, effect, universe, chname, $event.target.value)
         " />
-    </span>
+    </div>
 
-    <span v-if="typeof val == 'number'">
-      <span v-if="val !== null">
+    <div v-if="typeof val == 'number'">
+      <div v-if="val !== null">
         <smooth-range
           v-bind:disabled="chinfo && chinfo.type == 'fine'"
           v-if="!(chname == '__length__' || chname == '__spacing__')"
@@ -43,7 +43,7 @@
           "
           v-model.number="val">
         </smooth-range>
-      </span>
+      </div>
 
       <span v-if="val == null" class="grey">Released</span>
 
@@ -66,7 +66,7 @@
         }"
         class="indicator"></span>
 
-      <span v-if="chinfo && chinfo.type == 'custom'"
+      <div v-if="chinfo && chinfo.type == 'custom'"
         ><br />
         <select
           :value="getValueRange(chinfo, val).name"
@@ -83,8 +83,8 @@
             {{ i.name }}({{ i.min }} to {{ i.max }})
           </option>
         </select>
-      </span>
-    </span>
+      </div>
+    </div>
   </div>
 </template>
 
