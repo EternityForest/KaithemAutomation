@@ -9,7 +9,7 @@ import numpy
 
 from kaithem.src.chandler.cue import EffectData
 
-from . import blendmodes, universes
+from . import blendmodes, generator_plugins, universes
 
 if TYPE_CHECKING:
     from .ChandlerConsole import ChandlerConsole
@@ -66,10 +66,10 @@ class GroupLightingManager:
             Every effect has its own inputs
         """
 
-        # # Generator per-effect
-        # self.generators = {
-        #     "default": generator_plugins.LightingGeneratorPlugin()
-        # }
+        # Generator per-effect
+        self.generators = {
+            "default": generator_plugins.LightingGeneratorPlugin()
+        }
 
     def clean(self):
         with render_loop_lock:
@@ -77,20 +77,21 @@ class GroupLightingManager:
                 self.cached_values_raw[i].clean()
 
     def refresh_generator_layout(self, effect: str):
-        pass
-        # with render_loop_lock:
-        #     if effect in self.generators:
-        #         if self.cue:
-        #             ed: EffectData | None = self.cue.get_effect_by_id(effect)
-        #             if not ed:
-        #                 ed = {
-        #                     "auto": [],
-        #                     "keypoints": [],
-        #                     "type": "direct",
-        #                     "id": effect,
-        #                 }
+        with render_loop_lock:
+            if effect not in self.generators:
+                self.generators[effect] = (
+                    generator_plugins.LightingGeneratorPlugin()
+                )
+            if self.cue:
+                ed: EffectData | None = self.cue.get_effect_by_id(effect)
+                if not ed:
+                    ed = {
+                        "keypoints": [],
+                        "type": "direct",
+                        "id": effect,
+                    }
 
-        #             self.generators[effect].effect_data_to_layout(ed)
+                self.generators[effect].effect_data_to_layout(ed)
 
     def set_value(
         self, effect: str, universe: str, channel: int, value: float | None
@@ -136,10 +137,9 @@ class GroupLightingManager:
                 if not was_present:
                     self.refresh_generator_layout(effect)
                 else:
-                    pass
-                    # idx = self.generators[effect].input_map.get((u, c))
-                    # if idx is not None:
-                    #     self.generators[effect].inputs[idx] = value
+                    idx = self.generators[effect].reverse_mapping.get((u, c))
+                    if idx is not None:
+                        self.generators[effect].input_data[idx] = value
 
             self.should_repaint_onto_universes[u] = True
 
@@ -163,14 +163,22 @@ class GroupLightingManager:
         op = {}
 
         for i in self.cached_values_raw:
+            v = self.cached_values_raw[i]
+
+            if i in self.generators:
+                for processed, mapping in zip(
+                    self.generators[i].process(self.generators[i].input_data),
+                    self.generators[i].channel_mapping,
+                ):
+                    if mapping:
+                        if mapping[0] in v.values:
+                            if mapping[1] < len(v.values[mapping[0]]):
+                                v.values[mapping[0]][mapping[1]] = processed
+
             if i in self.fading_from:
-                op[i] = self.fading_from[i].fade_in(
-                    self.cached_values_raw[i], fp, universes_cache
-                )
+                op[i] = self.fading_from[i].fade_in(v, fp, universes_cache)
             else:
-                op[i] = LightingLayer().fade_in(
-                    self.cached_values_raw[i], fp, universes_cache
-                )
+                op[i] = LightingLayer().fade_in(v, fp, universes_cache)
         return op
 
     def mark_need_repaint_onto_universes(self, universe: str | None = None):
@@ -236,6 +244,7 @@ class GroupLightingManager:
                     copy.deepcopy(cue.lighting_effects),
                     clearBefore=not cue.track,
                 )
+
                 self.fade_in_completed = False
 
                 self.mark_need_repaint_onto_universes()
@@ -267,6 +276,7 @@ class GroupLightingManager:
                 # Rerender everything we no longer affect
                 self.mark_need_repaint_onto_universes()
                 self.cached_values_raw = {}
+                self.generators = {}
 
             for effect in effect_data:
                 if not (use_dynamic or effect["type"] == "direct"):
@@ -331,6 +341,7 @@ class GroupLightingManager:
                                     + "\n"
                                     + traceback.format_exc(),
                                 )
+                self.refresh_generator_layout(effect["id"])
 
             for i in self.fading_from:
                 if i not in self.cached_values_raw:
@@ -595,6 +606,9 @@ def composite_layers_from_board(
 
         # TODO this can change size during iteration
 
+        if i.lighting_manager.fade_in_completed:
+            i.lighting_manager.should_repaint_onto_universes = {}
+
         x = i.lighting_manager.get_current_output(universesSnapshot).get(
             "default", LightingLayer()
         )
@@ -616,9 +630,6 @@ def composite_layers_from_board(
             universeObject.values = composite_rendered_layer_onto_universe(
                 u, i, x, universeObject
             )
-
-        if i.lighting_manager.fade_in_completed:
-            i.lighting_manager.should_repaint_onto_universes = {}
 
     return changed
 

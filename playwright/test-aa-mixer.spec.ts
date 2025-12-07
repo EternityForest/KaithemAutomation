@@ -13,8 +13,8 @@ async function delay(ms: number) {
 
 test("test", async ({ page }) => {
   test.setTimeout(600_000);
-  await page.setDefaultTimeout(60_000);
-  await page.setDefaultNavigationTimeout(60_000);
+  await page.setDefaultTimeout(100_000);
+  await page.setDefaultNavigationTimeout(100_000);
 
   await login(page);
 
@@ -453,13 +453,13 @@ test("test", async ({ page }) => {
   await page.getByRole("link", { name: "󱒕 Modules" }).click();
 
   // flakiness prevention?
-  await delay(200);
+  await delay(400);
 
   await page.getByRole("link", { name: "mxer" }).click();
-  await delay(200);
+  await delay(400);
 
   await page.getByTestId("delete-resource-button").click();
-  await delay(200);
+  await delay(400);
 
   await page.getByRole("button", { name: "Submit" }).click();
 

@@ -603,7 +603,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 groups.groups[msg[1]].setMqttServer(msg[2])
                 self.push_group_meta(msg[1], keys={"mqtt_server"})
 
-        elif cmd_name == "add_cuef":
+        elif cmd_name in ("add_cuef", "add_cuef_auto"):
             cue = cues[msg[1]]
             effect = msg[2]
             fixture = msg[3]
@@ -625,6 +625,9 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                         )
                     else:
                         val = 0
+
+                    if cmd_name == "add_cuef_auto":
+                        val = -1000001
                     cue.set_value_immediate(
                         effect, "@" + fixture, i["name"], val
                     )

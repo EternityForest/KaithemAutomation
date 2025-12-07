@@ -324,6 +324,7 @@ test("test", async ({ page }) => {
   // await page.getByLabel('Backtrack').uncheck();
   // await page.getByLabel('Active By Default').uncheck();
   // await page.getByLabel('Require Confirmation for Cue').uncheck();
+  await sleep(100);
 
   await page.getByTestId("close-group-settings").click();
   await page.getByTestId("close-group").click();

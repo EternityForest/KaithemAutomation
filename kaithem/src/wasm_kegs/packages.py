@@ -24,10 +24,15 @@ def parse_plugin_name(plugin: str) -> tuple[str, str]:
 
 
 class PackageStore:
-    def __init__(self, path: str = "~/.local/share/wasm-kegs/packages"):
+    def __init__(
+        self, paths: list[str] = ["~/.local/share/wasm-kegs/packages"]
+    ):
         """Path must be the package store directory"""
-        self.path = os.path.expanduser(path)
-        os.makedirs(self.path, exist_ok=True)
+        for path in paths:
+            p = os.path.expanduser(path)
+            os.makedirs(p, exist_ok=True)
+
+        self.paths = paths
 
     def __enter__(self):
         if hasattr(_local, "store") and _local.store:
@@ -41,6 +46,11 @@ class PackageStore:
     def ensure_package(self, package: str) -> str:
         if os.path.isdir(package):
             return package
+
+        for p in self.paths:
+            path = os.path.join(p, package)
+            if os.path.exists(path):
+                return path
 
         if package.endswith(".keg"):
             path = os.path.join(

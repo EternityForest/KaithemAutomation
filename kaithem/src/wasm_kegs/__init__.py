@@ -9,7 +9,7 @@ from typing import Any, TypeVar
 
 import extism
 
-from .wasm_kegs import packages
+from . import packages
 
 _plugins_by_instance_id: weakref.WeakValueDictionary[str, PluginLoader] = (
     weakref.WeakValueDictionary()

@@ -269,43 +269,14 @@ async def set_cue_effect_rest(cue_id: str, effect: str):
                     "type": "direct",
                     "id": str(uuid.uuid4()),
                     "keypoints": [],
-                    "auto": [],
                 }
                 cue.lighting_effects.append(y)
                 x = y
 
             x["type"] = v["type"]
             x["keypoints"] = v.get("keypoints", {})
-            x["auto"] = v.get("auto", {})
 
     board.pushCueData(cue_id)
-
-    return {"success": True}
-
-
-@quart_app.route(
-    "/chandler/api/set-cue-auto-entries/<cue_id>/<effect>",
-    methods=["PUT"],
-)
-async def set_cue_auto_entries(cue_id: str, effect: str):
-    require("system_admin")
-    v = json.loads(await quart.request.body)
-
-    cue = cues[cue_id]
-    group = cue.group()
-    if group:
-        board = group.board
-        group.board.pushCueMeta(cue_id)
-    else:
-        raise RuntimeError("Cue has no group")
-
-    vals = cue.get_effect_by_id(effect)
-    if not vals:
-        raise RuntimeError("Effect not found")
-
-    vals["auto"] = v
-
-    board.pushCueMeta(cue_id)
 
     return {"success": True}
 

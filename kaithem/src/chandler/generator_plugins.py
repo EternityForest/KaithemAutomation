@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import numpy
 import numpy.typing
@@ -8,7 +8,7 @@ import numpy.typing
 if TYPE_CHECKING:
     from .cue import EffectData
 
-from .universes import fixtures, get_channel_meta, mapChannel
+from .universes import mapChannel
 
 
 def get_plugin(name: str) -> LightingGeneratorPlugin:
@@ -47,105 +47,50 @@ type_codes = {
 
 class LightingGeneratorPlugin:
     def __init__(self):
-        self.input_map: dict[tuple[str, int | str], int] = {}
-        self.output_map: list[tuple[str, str]] = []
-        self.inputs = numpy.zeros(1, dtype=numpy.float32)
-        self.output_scratchpad = numpy.zeros(1, dtype=numpy.float32)
+        # Maps entries in the arrays plugins take
+        # to channel, value pairs
+        self.channel_mapping: list[tuple[str, int]] = []
 
-        # Metadata format:
-        # For each channel, two numbers, fixture ID and channel type
-        self.inputs_metadata = numpy.zeros(1, dtype=numpy.int64)
-        self.outputs_metadata = numpy.zeros(1, dtype=numpy.int64)
+        self.reverse_mapping: dict[tuple[str, int], int] = {}
 
-    def effect_data_to_layout(self, effect: EffectData):
-        inputs: list[int] = []
-        outputs: list[int] = []
+        self.input_data = numpy.ndarray((0,), dtype=numpy.float32)
 
-        input_vals = []
+        self.dynamic = False
 
-        input_map = {}
-        output_map = []
+    def process(self, input_data: numpy.ndarray):
+        return numpy.where(input_data == -1000_001, input_data, 0)
 
-        unplaced_inputs = {}
+    def effect_data_to_layout(self, effect_data: EffectData):
+        mapping = []
+        input_data = []
+        reverse_mapping = {}
 
-        n = 0
-        for k in effect.get("keypoints", []):
-            # if k["target"].startswith("@"):
-            #     fix = fixtures.get(k["target"][1:])
-            for i in k["values"]:
-                if k["values"][i] is None:
-                    continue
-                m = mapChannel(k["target"], i)
-                unplaced_inputs[m] = n
-                input_map[m] = n
-                n += 1
-                input_vals.append(k["values"][i])
+        for i in effect_data["keypoints"]:
+            array_start = 0
+            array_step = 1
+            array_end = 0
 
-                md = get_channel_meta(k["target"], i)
-                tc = 0
-                fixid = md.get("fixid", 0)
-                if md.get("type", "") in type_codes:
-                    tc = type_codes[md["type"]]
-                inputs.append(fixid)
-                inputs.append(tc)
+            if "[" in i["target"]:
+                x = i["target"].split("[")[-1].replace("]", "")
+                array_slice = x.split(",")
+                array_start = int(array_slice[0])
+                array_end = int(array_slice[-1]) - int(array_slice[0]) - 1
 
-        for k in effect.get("auto", []):
-            f = fixtures.get(k["fixture"])
-            if f:
-                fix = f()
-                if fix:
-                    for i in fix.channels:
-                        if not i.get("name"):
-                            continue
-                        m = mapChannel(k["fixture"], i["name"])
-                        output_map.append(m)
-                        unplaced_inputs.pop(m, None)
+                if len(array_slice) > 2:
+                    array_step = int(array_slice[1])
 
-                        md = get_channel_meta(k["fixture"], i["name"])
-                        tc = 0
-                        fixid = md.get("fixid", 0)
-                        if md.get("type", "") in type_codes:
-                            tc = type_codes[md["type"]]
+            for j in range(array_start, array_end + 1, array_step):
+                for ch in i["values"]:
+                    mapped_channel = mapChannel(i["target"], ch)
+                    if mapped_channel:
+                        mapping.append(mapped_channel)
+                        reverse_mapping[mapped_channel] = len(mapping) - 1
+                    else:
+                        mapping.append(None)
+                        reverse_mapping[ch] = None
 
-                        outputs.append(fixid)
-                        outputs.append(tc)
+                    input_data.append(i["values"][ch])
 
-        for m in unplaced_inputs:
-            output_map.append(m)
-
-            md = get_channel_meta(*m)
-            tc = 0
-            fixid = md.get("fixid", 0)
-            if md.get("type", "") in type_codes:
-                tc = type_codes[md["type"]]
-
-            outputs.append(fixid)
-            outputs.append(tc)
-
-        self.input_map = input_map
-        self.output_map = output_map
-        self.inputs = numpy.array(input_vals, dtype=numpy.float32)
-
-        x = numpy.array(inputs, dtype=numpy.int32)
-        y = numpy.array(outputs, dtype=numpy.int32)
-
-        self.output_scratchpad = numpy.zeros(
-            len(output_map), dtype=numpy.float32
-        )
-        self.inputs_metadata = x
-        self.outputs_metadata = y
-
-        self.on_layout_change(x.tolist(), y.tolist())
-
-    def process_values(self) -> numpy.typing.NDArray[numpy.float32]:
-        return self.output_scratchpad
-
-    def on_config_change(self, obj: dict[str, Any]):
-        pass
-
-    def on_layout_change(
-        self,
-        inputs: numpy.typing.NDArray[numpy.float32],
-        outputs: numpy.typing.NDArray[numpy.float32],
-    ):
-        pass
+        self.channel_mapping = mapping
+        self.reverse_mapping = reverse_mapping
+        self.input_data = numpy.array(input_data, dtype=numpy.float32)

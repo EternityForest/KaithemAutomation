@@ -217,22 +217,6 @@
             </article>
           </template>
 
-          <div v-if="effect['keypoints']" class="flex-row gaps">
-            <div
-              class="card margin"
-              v-for="(autofix, idx) in effect['auto']"
-              v-bind:key="autofix['target']">
-              <header>
-                {{ autofix["target"] }}
-              </header>
-              <button
-                v-if="groupChannelsViewMode == 'channels'"
-                type="button"
-                v-on:click="rmAutoFix(currentcueid, effectidx, autofix)">
-                <i class="mdi mdi-delete"></i>
-              </button>
-            </div>
-          </div>
           <div v-if="groupChannelsViewMode == 'channels'" class="flex-row gaps">
             <div class="card margin">
               <header>
@@ -333,7 +317,6 @@ import {
   presets,
   addfixToCue,
   addAutoFix,
-  rmAutoFix,
   rmFixCue,
   lookupFixtureType,
   lookupFixtureColorProfile,

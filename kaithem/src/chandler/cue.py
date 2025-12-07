@@ -95,7 +95,6 @@ def upgrade_legacy_lighting_values(d: dict[str, Any]):
             {
                 "type": "direct",
                 "id": str(uuid.uuid4()),
-                "auto": [],
                 "keypoints": [{"target": i, "values": d[i]} for i in d],
             }
         )
@@ -224,13 +223,6 @@ def add_cue_property_update_handler(
 first_property_error_while_loading: list[bool] = [False]
 
 
-class AutoEntry(TypedDict):
-    # Fixture[0] notation is used for start
-    fixture: str
-    end_idx: int
-    skip_count: int
-
-
 class Keypoint(TypedDict):
     # Universe or fixture
     target: str
@@ -240,7 +232,6 @@ class Keypoint(TypedDict):
 class EffectData(TypedDict):
     type: str
     keypoints: list[Keypoint]
-    auto: list[AutoEntry]
     id: str
 
 
@@ -913,7 +904,7 @@ class Cue:
         value: str | int | float | None,
     ):
         # Allow [] for range effects
-        disallow_special(universe, allow="_@./[]")
+        disallow_special(universe, allow="_@./[],")
 
         group = self.getGroup()
 

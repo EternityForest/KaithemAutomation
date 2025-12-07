@@ -265,7 +265,13 @@ async function restSetCueValue(cue, effect, universe, channel, value) {
   });
 }
 
-export async function restSetCueKeypointMeta(cue, effect, universe, channel, value) {
+export async function restSetCueKeypointMeta(
+  cue,
+  effect,
+  universe,
+  channel,
+  value
+) {
   await doSerialized(async () => {
     var x = cueSetData[cue + "value"];
     if (x) {
@@ -675,70 +681,27 @@ function testSoundCard(sc, c) {
   api_link.send(["testSoundCard", sc, c]);
 }
 
-function addfixToCue(cue,effect, fix) {
-  api_link.send([
-    "add_cuef",
-    cue,
-    effect,
-    fix,
-  ]);
+function addfixToCue(cue, effect, fix) {
+  api_link.send(["add_cuef", cue, effect, fix]);
 }
 
-export async function addAutoFix(cue, effect, fix) {
-  let b = {
-    target: fix,
-    end_idx: 1,
-    skip_count: 1,
-  };
+export function addAutoFix(cue, effect, fix) {
+  let startIndex = Number.parseInt(prompt("Enter start index:", "0"));
+  let endIndex = Number.parseInt(prompt("Enter end index:", "0"));
+  let step = Number.parseInt(prompt("Enter step:", "1"));
 
-  if (fixtureAssignments[fix] && fixtureAssignments[fix].count) {
-    let index = Number.parseInt(prompt("Start Index(1=first fixture)?", "1"));
+  let postFix = '';
 
-    if (index > 1) {
-      b.target = b.target + '[' + (index) + ']';
+  if (!(startIndex == 0 && startIndex == 0 && startIndex == 1)) {
+
+    if(step == 1){
+      postFix = "[" + startIndex + "," + endIndex + "]";
     }
+    postFix = "[" + startIndex + ":" + step + ":" + endIndex + "]";
 
-    b.end_idx = Number.parseInt(
-      prompt("End Index?", fixtureAssignments[fix].count)
-    );
-
-    b.skip_count = Number.parseInt(prompt("Skip(1=every fixture)?", "1"));
   }
-  let fx = cuevals.value[cue][effect];
 
-  fx.auto.push(b);
-  await setAutoFixData(cue, fx.id, fx.auto);
-}
-
-export async function rmAutoFix(cue, effect, fix) {
-  let fx = cuevals.value[cue][effect];
-
-  fx.auto = fx.auto.filter((f) => f != fix);
-  await setAutoFixData(cue, fx.id, fx.auto);
-}
-
-// Slowly we want to migrate to these two generic setters
-export async function setAutoFixData(cueid, effect, data) {
-  await doSerialized(async () => {
-    let response = fetch(
-      "/chandler/api/set-cue-auto-entries/" + cueid + "/" + effect,
-      {
-        method: "PUT",
-        body: JSON.stringify(data),
-        headers: {
-          "Content-type": "application/json; charset=UTF-8",
-        },
-      }
-    ).catch(function (error) {
-      alert("Could not reach server:" + error);
-    });
-
-    let v = await response;
-
-    if (!v.ok) {
-      alert("Error adding autofix, possible invalid value: ");
-    }
-  });
+  api_link.send(["add_cuef_auto", cue, effect, fix+postFix]);
 }
 
 function rmFixCue(cue, effect, fix) {
@@ -1086,16 +1049,13 @@ function savePreset(v, suggestedname) {
   var v2 = presets.value[n] || {};
   v2.values = {};
 
-
   // Just the vals
   for (var index in v.values) {
-    if (index[0] == '_')
-    {
+    if (index[0] == "_") {
       continue;
     }
     v2.values[index] = v.values[index];
   }
-
 
   if (n && n.length > 0) {
     presets.value[n] = v2;
