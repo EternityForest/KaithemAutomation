@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import json
 import os
 import shutil
 import subprocess
@@ -119,10 +120,12 @@ def build_rust_crates(root: Path, plugin_dir: Path):
     if result.returncode != 0:
         raise KegBuildError(f"Cargo build failed for {crate}")
 
+    md = subprocess.check_output(["cargo", "metadata"], cwd=crate)
+    md = json.loads(md)
+
     # Find the WASM artifact
     artifact = (
-        crate
-        / "target"
+        Path(md["target_directory"])
         / "wasm32-unknown-unknown"
         / "release"
         / (cargo["package"]["name"].replace("-", "_") + ".wasm")
