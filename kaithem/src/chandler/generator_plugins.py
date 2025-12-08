@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import numpy
 import numpy.typing
@@ -8,7 +8,7 @@ import numpy.typing
 if TYPE_CHECKING:
     from .cue import EffectData
 
-from .universes import mapChannel
+from .universes import get_channel_meta, mapChannel
 
 
 def get_plugin(name: str) -> LightingGeneratorPlugin:
@@ -30,8 +30,10 @@ For each keypoint there must be:
 
 """
 
-
-type_codes = {
+# First 16 are reserved for colors that can be interpolated
+type_codes: dict[str, int] = {
+    "END": -1,
+    "unknown": 0,
     "red": 1,
     "green": 2,
     "blue": 3,
@@ -60,6 +62,15 @@ class LightingGeneratorPlugin:
     def process(self, input_data: numpy.ndarray):
         return numpy.where(input_data == -1000_001, 0, input_data)
 
+    def set_channel_metadata(
+        self,
+        ch_idx: int,
+        fix_id: int,
+        type_code: int,
+        extra_data: dict[str, Any] = {},
+    ):
+        pass
+
     def effect_data_to_layout(self, effect_data: EffectData):
         mapping = []
         input_data = []
@@ -79,17 +90,38 @@ class LightingGeneratorPlugin:
                 if len(array_slice) > 2:
                     array_step = int(array_slice[1])
 
+            fixture_id = 0
+
             for j in range(array_start, array_end + 1, array_step):
+                fixture_id += 1
                 for ch in i["values"]:
                     mapped_channel = mapChannel(i["target"], ch)
-                    if mapped_channel:
-                        mapping.append(mapped_channel)
-                        reverse_mapping[mapped_channel] = len(mapping) - 1
-                    else:
-                        mapping.append(None)
-                        reverse_mapping[ch] = None
+
+                    if mapped_channel is None:
+                        continue
+
+                    m = get_channel_meta(*mapped_channel).get("type", "unknown")
+                    typecode = type_codes.get(m, 0)
+
+                    self.set_channel_metadata(
+                        len(mapping),
+                        fixture_id,
+                        typecode,
+                        {},
+                    )
+
+                    mapping.append(mapped_channel)
+                    reverse_mapping[mapped_channel] = len(mapping) - 1
 
                     input_data.append(i["values"][ch])
+
+                    # We don't know so give every channel its
+                    # own universe
+                    if not i["target"].startswith("@"):
+                        fixture_id += 1
+
+        # Kinda like null terminator
+        self.set_channel_metadata(len(mapping), -1, -1, {})
 
         self.channel_mapping = mapping
         self.reverse_mapping = reverse_mapping

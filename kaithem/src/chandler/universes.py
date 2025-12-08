@@ -62,7 +62,7 @@ class IDCounter:
             return self.id
 
 
-def get_channel_meta(u: str, ch: str) -> dict[str, Any]:
+def get_channel_meta(u: str, ch: str | int) -> dict[str, Any]:
     mapped = mapChannel(u, ch)
     if not mapped:
         return {}

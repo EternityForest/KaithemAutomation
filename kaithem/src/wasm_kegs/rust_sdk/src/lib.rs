@@ -10,6 +10,8 @@ pub struct KegsPayload {
 impl KegsPayload {
     pub fn new() -> Self { Self { buf: Vec::new(), pos: 0 } }
 
+    pub fn preallocated(size: usize) -> Self { Self { buf: Vec::with_capacity(size), pos: 0 } }
+
     pub fn from_bytes(b: Vec<u8>) -> Self { Self { buf: b, pos: 0 } }
 
     pub fn into_bytes(self) -> Vec<u8> { self.buf }

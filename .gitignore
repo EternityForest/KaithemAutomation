@@ -35,3 +35,5 @@ sounds_pack
 /coverage.xml
 /index.html
 /index.html.*
+
+target/
