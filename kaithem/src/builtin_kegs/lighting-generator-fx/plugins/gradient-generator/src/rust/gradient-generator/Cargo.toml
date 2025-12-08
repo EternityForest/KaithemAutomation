@@ -1,5 +1,5 @@
 [package]
-name = "simple-rust-extism-plugin"
+name = "kaithem-gradient-generator"
 version = "0.1.0"
 edition = "2021"
 

@@ -43,9 +43,10 @@ pub unsafe fn set_channel_input(input: Vec<u8>) -> FnResult<()> {
     return Ok(());
 }
 
+#[derive(Copy, Clone, PartialEq)]
 struct FixtureData {
     fixture_id: i64,
-    values: [f32; 16] = [0.0; 16]
+    values: [f32; 16]
 
 }
 
