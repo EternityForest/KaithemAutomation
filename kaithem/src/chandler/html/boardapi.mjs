@@ -707,7 +707,7 @@ export function addAutoFix(cue, effect, fix) {
 
   let postFix = '';
 
-  if (!(startIndex == 0 && startIndex == 0 && startIndex == 1)) {
+  if (!(startIndex == 0 && endIndex == 0 && step == 1)) {
 
     if(step == 1){
       postFix = "[" + startIndex + "," + endIndex + "]";

@@ -295,7 +295,7 @@
 
                       <button
                         type="button"
-                        v-on:click="addAutoFix(currentcueid, effectidx, i)">
+                        v-on:click="addAutoFix(currentcueid, effect['id'], i)">
                         <i class="mdi mdi-plus"></i>Add Auto
                       </button>
                     </td>

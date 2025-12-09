@@ -52,7 +52,7 @@
         title="Double click to set exact value"
         class="noselect"
         v-on:dblclick="
-          promptExactVal(currentcueid, effectname, universe, chname)
+          promptExactVal(currentcueid, effect, universe, chname)
         "
         style="font-size: 80%"
         >{{ Number(val).toPrecision(4) }}</span
