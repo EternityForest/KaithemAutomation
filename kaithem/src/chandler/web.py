@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime
 import hashlib
+import json
 import os
 import time
 from typing import TYPE_CHECKING
@@ -17,6 +18,7 @@ if TYPE_CHECKING:
 
 from kaithem.api.web import has_permission, render_html_file
 from kaithem.src import quart_app
+from kaithem.src.kegs import package_store
 
 from .. import assetlib, directories, pages, util
 from . import (
@@ -35,6 +37,10 @@ _Lookup = TemplateLookup(
 
 get_template = _Lookup.get_template
 
+lighting_generators = package_store.list_by_type(
+    "kaithem.chandler.lighting-generator"
+)
+
 
 # @quart_app.app.route("/chandler/downloadOneGroup")
 # def download_one_group():
@@ -48,6 +54,17 @@ get_template = _Lookup.get_template
 #     kwargs = quart.request.args
 #     r=m3u_io.get_m3u(module.board.groupmemory[kwargs['id']] ,kwargs['rel'])
 #     return quart.Response(r, mimetype="text/yaml",  headers={"Content-Disposition": "attachment; filename="+kwargs['name']+".m3u"})
+
+
+@quart_app.app.route("/chandler/plugin-info")
+def chandler_list_plugins():
+    pages.require("chandler_operator")
+
+    x = {
+        "kaithem.chandler.lighting-generator": lighting_generators,
+    }
+
+    return quart.Response(json.dumps(x), mimetype="application/json")
 
 
 @quart_app.app.route("/chandler/universe_info/<universe>")

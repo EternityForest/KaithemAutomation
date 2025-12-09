@@ -48,8 +48,14 @@
               >Type:
               <select
                 v-model="effect['type']"
-                onchange="restSetCueEffectMeta(currentcueid, effect['id'], cuevals[currentcueid][effectname])">
+                @change="restSetCueEffectMeta(currentcueid, effect['id'], cuevals[currentcueid][effectidx])">
+                <option :value="effect['type']">{{ effect["type"] }}</option>
                 <option value="direct">direct</option>
+
+                <option :value="i['name']" v-for="i in plugin_info['kaithem.chandler.lighting-generator']" v-bind:key="i">
+                  {{ i['name'] }}
+                </option>
+
               </select>
             </label>
           </div>
@@ -326,6 +332,8 @@ import {
   channelInfoForUniverseChannel,
   fixtureClasses,
   restSetCueEffectMeta,
+  plugin_info
+
 } from "./boardapi.mjs";
 
 import { ref } from "/static/js/thirdparty/vue.esm-browser.js";

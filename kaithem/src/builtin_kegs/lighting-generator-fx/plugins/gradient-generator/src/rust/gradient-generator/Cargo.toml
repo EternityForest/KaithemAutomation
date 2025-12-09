@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 extism-pdk = "1.4.1"
-wasm-kegs-sdk = { path = "../../../../../../../../../../wasm_kegs/rust_sdk" }
+wasm-kegs-sdk = { path = "../../../../../../../../../wasm_kegs/rust_sdk" }
 
 [lib]
 crate-type = ["cdylib"]

@@ -1,4 +1,5 @@
 [workspace]
 members = [
     "kaithem/src/builtin_kegs/*/plugins/*/src/rust/*",
+    "wasm_kegs/rust_sdk"
 ]

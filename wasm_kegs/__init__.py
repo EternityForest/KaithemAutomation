@@ -34,6 +34,14 @@ def keg_get_static_resource(
     return open(os.path.join(package_dir, "static", path), "rb").read()
 
 
+@extism.host_fn("keg_print")
+def keg_print(current_plugin: extism.CurrentPlugin, text: str) -> bytes:
+    plugin = get_running_instance(current_plugin)
+
+    plugin.on_print(text)
+    return b""
+
+
 class Payload:
     def __init__(self, data: bytes):
         self.data = data
@@ -44,7 +52,7 @@ class Payload:
         return x
 
     def write_i64(self, x: int):
-        self.data += x.to_bytes(8, "little")
+        self.data += x.to_bytes(8, "little", signed=True)
 
     def read_f32(self) -> float:
         x = struct.unpack("<f", self.data[:4])[0]
@@ -101,8 +109,11 @@ class PluginLoader:
         """Helper to make sure we always call with the right context"""
         return self.extism_plugin.call(name, data, host_context=self)
 
+    def on_print(self, text: str):
+        print(text)
+
     def __init__(self, plugin: str, config: dict[str, Any]):
-        p = packages.PackageStore().find_plugin(plugin)
+        p = packages.get_package_store().find_plugin(plugin)
         packagedir = os.path.dirname(p)
 
         print(f"Loading plugin {plugin} from {p}")
@@ -129,14 +140,21 @@ class PluginLoader:
         if not pm["type"] == self.plugin_type:
             raise RuntimeError("Plugin type mismatch")
 
-        p = os.path.join(p, "plugin.wasm")
+        p1 = os.path.join(p, "plugin.wasm")
+        p2 = os.path.join(p, "plugin.debug.wasm")
 
-        if not os.path.exists(p):
-            raise RuntimeError(f"Plugin {p} not found")
+        if os.path.exists(p2):
+            if not os.path.exists(p1) or os.path.getmtime(
+                p2
+            ) > os.path.getmtime(p1):
+                p1 = p2
+
+        if not os.path.exists(p1):
+            raise RuntimeError(f"Plugin {p1} not found")
 
         self.instance_id: str = str(uuid.uuid4())
 
-        self.extism_plugin = extism.Plugin(p, wasi=self.wasi)
+        self.extism_plugin = extism.Plugin(p1, wasi=self.wasi)
 
         if self.extism_plugin.function_exists("plugin_init"):
             self.call_plugin("plugin_init", b"")

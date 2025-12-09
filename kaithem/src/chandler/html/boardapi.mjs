@@ -21,6 +21,9 @@ import { computed, ref, toRaw } from "/static/js/thirdparty/vue.esm-browser.js";
 
 let keysdown = {};
 
+
+export let plugin_info = ref({});
+
 //Current per group alpha channel
 let alphas = ref({});
 let groupmeta = ref({});
@@ -144,6 +147,18 @@ function set(o, k, v) {
 }
 
 async function initializeState(board) {
+
+
+  var plugin_info_resp = await fetch("/chandler/plugin-info", {
+    method: "GET",
+  });
+
+  let plugin_info_json = await plugin_info_resp.json();
+
+  plugin_info.value = plugin_info_json;
+
+
+
   var v = await fetch("/chandler/api/all-cues/" + board, {
     method: "GET",
   });

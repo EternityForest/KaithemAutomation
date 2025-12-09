@@ -1,3 +1,5 @@
+use std::fmt::format;
+
 use extism_pdk::*;
 
 use wasm_kegs_sdk::KegsPayload;
@@ -19,8 +21,8 @@ static mut INPUT_DATA: [f32; 65536] = [0.0; 65536];
 pub unsafe fn set_channel_metadata(input: Vec<u8>) -> FnResult<()> {
     let mut keg_payload: KegsPayload = KegsPayload::from_bytes(input);
     let channel = keg_payload.read_i64();
-    let typecode = keg_payload.read_i64();
     let fixture_id = keg_payload.read_i64();
+    let typecode = keg_payload.read_i64();
 
     let _ext_json = keg_payload.read_bytes();
 
@@ -33,7 +35,7 @@ pub unsafe fn set_channel_metadata(input: Vec<u8>) -> FnResult<()> {
 }
 
 #[plugin_fn]
-pub unsafe fn set_channel_input(input: Vec<u8>) -> FnResult<()> {
+pub unsafe fn set_input_value(input: Vec<u8>) -> FnResult<()> {
     let mut keg_payload: KegsPayload = KegsPayload::from_bytes(input);
     let channel = keg_payload.read_i64();
     let value = keg_payload.read_f32();
@@ -109,6 +111,10 @@ unsafe fn find_next_fixture_after(ptr: u64) -> u64 {
             if METADATA[pointer as usize].fixture_id != fixture_id {
                 return pointer;
             }
+
+            if METADATA[pointer as usize].fixture_id == -1 {
+                return pointer;
+            }
         }
         pointer += 1;
     }
@@ -121,22 +127,23 @@ pub unsafe fn process(input: Vec<u8>) -> FnResult<Vec<u8>> {
     let start: u64 = keg_payload.read_i64().try_into().unwrap();
     let len: usize = keg_payload.read_i64().try_into().unwrap();
 
-    let _time_us = keg_payload.read_i64();
 
-    let mut fade_from_data = FixtureData::new(0);
+    let _time_us = keg_payload.read_i64();
+    let mut ptr = start;
+
+    let mut fade_from_data = compile_fixture_data(ptr);
 
     let mut fade_from_ptr = start;
-    let mut next_fix_ptr = start;
+    let mut next_fix_ptr = find_next_fixture_after(start);
 
     let mut current_fix = FixtureData::new(0);
 
-    let mut ptr = start;
 
     let mut currently_on_fixture = -1;
 
     let mut keg_payload_out = KegsPayload::preallocated(len * 4);
 
-    let mut next_fix_data = compile_fixture_data(find_next_fixture_after(ptr));
+    let mut next_fix_data = compile_fixture_data(next_fix_ptr);
 
     let end_ptr: u64 = start + len as u64;
 
@@ -149,6 +156,7 @@ pub unsafe fn process(input: Vec<u8>) -> FnResult<Vec<u8>> {
             fade_from_ptr = ptr;
             next_fix_ptr = find_next_fixture_after(ptr);
             next_fix_data = compile_fixture_data(next_fix_ptr);
+            // let _ = wasm_kegs_sdk::keg_print(format!("fade from {} to {}", fade_from_ptr, next_fix_ptr));
         }
 
         if currently_on_fixture != ptr_fix_id {
@@ -159,11 +167,16 @@ pub unsafe fn process(input: Vec<u8>) -> FnResult<Vec<u8>> {
             if gradient_len > 0 {
                 amount = (ptr as f32 - fade_from_ptr as f32) / gradient_len as f32;
             }
+
+            // let _ = wasm_kegs_sdk::keg_print(format!("compute fix {} {} {}", ptr, amount, gradient_len));
+
             current_fix = fade_from_data.interpolate(next_fix_data, amount);
             currently_on_fixture = ptr_fix_id;
         }
 
         if ptr_typecode > 0 && ptr_typecode < 16 {
+            // let _ = wasm_kegs_sdk::keg_print(format!(" outputting {} {}", ptr_typecode, current_fix.values[ptr_typecode as usize]));
+
             keg_payload_out.write_f32(current_fix.values[ptr_typecode as usize]);
         } else {
             keg_payload_out.write_f32(INPUT_DATA[ptr as usize]);

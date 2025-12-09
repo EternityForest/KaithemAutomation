@@ -2,6 +2,7 @@ import os
 import threading
 import tomllib
 import zipfile
+from typing import Any
 
 _local = threading.local()
 
@@ -23,16 +24,41 @@ def parse_plugin_name(plugin: str) -> tuple[str, str]:
     return package, plugin
 
 
+default_package_store_dir = os.environ.get(
+    "WASM_KEGS_PACKAGE_STORE_DIR", "~/.local/share/wasm-kegs/packages"
+)
+
+
 class PackageStore:
-    def __init__(
-        self, paths: list[str] = ["~/.local/share/wasm-kegs/packages"]
-    ):
+    def __init__(self, paths: list[str] = [default_package_store_dir]):
         """Path must be the package store directory"""
         for path in paths:
             p = os.path.expanduser(path)
             os.makedirs(p, exist_ok=True)
 
         self.paths = paths
+
+    def list_by_type(self, typ: str) -> list[dict[str, Any]]:
+        discovered: list[dict[str, Any]] = []
+
+        for i in self.paths:
+            for package_path in os.listdir(i):
+                if package_path.startswith("."):
+                    continue
+
+                package_path = os.path.join(i, package_path)
+
+                if not os.path.isdir(package_path):
+                    continue
+
+                with open(os.path.join(package_path, "keg.toml"), "rb") as f:
+                    keg = tomllib.load(f)
+
+                for plugin in keg["plugins"]:
+                    if plugin["type"] == typ:
+                        discovered.append(plugin)
+
+        return discovered
 
     def __enter__(self):
         if hasattr(_local, "store") and _local.store:
@@ -44,6 +70,9 @@ class PackageStore:
         _local.store = None
 
     def ensure_package(self, package: str) -> str:
+        if not package:
+            raise ValueError("No package specified")
+
         if os.path.isdir(package):
             return package
 

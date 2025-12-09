@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from typing import TYPE_CHECKING, Any
 
 import numpy
@@ -8,11 +9,17 @@ import numpy.typing
 if TYPE_CHECKING:
     from .cue import EffectData
 
+import wasm_kegs
+from kaithem.src import kegs
+
 from .universes import get_channel_meta, mapChannel
 
 
-def get_plugin(name: str) -> LightingGeneratorPlugin:
-    return LightingGeneratorPlugin()
+def get_plugin(name: str, config: dict[str, Any]) -> LightingGeneratorPlugin:
+    if not name or name == "direct":
+        return LightingGeneratorPlugin()
+
+    return WASMPlugin(name, config)
 
 
 """
@@ -59,8 +66,8 @@ class LightingGeneratorPlugin:
 
         self.dynamic = False
 
-    def process(self, input_data: numpy.ndarray):
-        return numpy.where(input_data == -1000_001, 0, input_data)
+    def process(self, t: float):
+        return numpy.where(self.input_data == -1000_001, 0, self.input_data)
 
     def set_channel_metadata(
         self,
@@ -70,6 +77,9 @@ class LightingGeneratorPlugin:
         extra_data: dict[str, Any] = {},
     ):
         pass
+
+    def set_input_value(self, ch_idx: int, value: float):
+        self.input_data[ch_idx] = value
 
     def effect_data_to_layout(self, effect_data: EffectData):
         mapping = []
@@ -126,3 +136,63 @@ class LightingGeneratorPlugin:
         self.channel_mapping = mapping
         self.reverse_mapping = reverse_mapping
         self.input_data = numpy.array(input_data, dtype=numpy.float32)
+
+
+class Loader(wasm_kegs.PluginLoader):
+    def process(self, start: int, size: int, t: float):
+        pl = wasm_kegs.Payload(b"")
+        pl.write_i64(start)
+        pl.write_i64(size)
+        pl.write_f32(t)
+        # Array of floats
+        x = self.call_plugin("process", pl.data)
+
+        return numpy.frombuffer(x, dtype=numpy.float32)
+
+    def set_channel_metadata(
+        self,
+        ch_idx: int,
+        fix_id: int,
+        type_code: int,
+        extra_data: dict[str, Any] = {},
+    ):
+        pl = wasm_kegs.Payload(b"")
+        pl.write_i64(ch_idx)
+        pl.write_i64(fix_id)
+        pl.write_i64(type_code)
+        pl.write_bytes(json.dumps(extra_data).encode())
+        self.call_plugin("set_channel_metadata", pl.data)
+
+    def set_input_value(self, ch_idx: int, value: float):
+        pl = wasm_kegs.Payload(b"")
+        pl.write_i64(ch_idx)
+        pl.write_f32(value)
+        self.call_plugin("set_input_value", pl.data)
+
+
+class WASMPlugin(LightingGeneratorPlugin):
+    def __init__(self, plugin: str, config: dict[str, Any]):
+        super().__init__()
+        self.dynamic = False
+
+        with kegs.package_store:
+            self.plugin = Loader(plugin, config)
+
+    def process(self, t: float):
+        return self.plugin.process(0, len(self.input_data), t)
+
+    def set_channel_metadata(
+        self,
+        ch_idx: int,
+        fix_id: int,
+        type_code: int,
+        extra_data: dict[str, Any] = {},
+    ):
+        self.plugin.set_channel_metadata(ch_idx, fix_id, type_code, extra_data)
+        return super().set_channel_metadata(
+            ch_idx, fix_id, type_code, extra_data
+        )
+
+    def set_input_value(self, ch_idx: int, value: float):
+        self.plugin.set_input_value(ch_idx, value)
+        return super().set_input_value(ch_idx, value)

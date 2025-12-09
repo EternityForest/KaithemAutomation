@@ -47,6 +47,7 @@ impl KegsPayload {
 
     pub fn read_bytes(&mut self) -> Vec<u8> {
         let len = self.read_i64() as usize;
+        if len == 0 { return Vec::new(); }
         let out = self.buf[self.pos..self.pos+len].to_vec();
         self.pos += len;
         return out;
@@ -65,4 +66,11 @@ impl KegsPayload {
 #[host_fn("extism:host/user")]
 extern "ExtismHost" {
     pub fn keg_get_static_resource(path: String) -> Vec<u8>;
+}
+
+
+
+#[host_fn("extism:host/user")]
+extern "ExtismHost" {
+    pub fn keg_print(text: String) -> ();
 }

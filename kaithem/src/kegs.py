@@ -1,11 +1,14 @@
 import os
 
 from kaithem.src.directories import vardir
-from kaithem.src.wasm_kegs import packages
+from wasm_kegs import packages
 
-package_store = packages.PackageStore().ensure_package(
-    os.path.join(
-        vardir,
-        "wasm-kegs",
-    )
+package_store = packages.PackageStore(
+    [
+        os.path.join(
+            vardir,
+            "wasm-kegs",
+        ),
+        os.path.join(os.path.dirname(__file__), "builtin_kegs"),
+    ]
 )

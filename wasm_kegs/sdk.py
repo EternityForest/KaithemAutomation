@@ -139,6 +139,41 @@ def build_rust_crates(root: Path, plugin_dir: Path):
     shutil.copyfile(artifact, dest)
     print(f"[build] Wrote {dest}")
 
+    # Debug build
+
+    # Perform cargo build
+    result = subprocess.run(
+        [
+            "cargo",
+            "build",
+            "--target",
+            "wasm32-unknown-unknown",
+        ],
+        cwd=crate,
+        stdout=sys.stdout,
+        stderr=sys.stderr,
+    )
+
+    if result.returncode != 0:
+        raise KegBuildError(f"Cargo build failed for {crate}")
+
+    # Find the WASM artifact
+    # Find the WASM artifact
+    artifact = (
+        Path(md["target_directory"])
+        / "wasm32-unknown-unknown"
+        / "debug"
+        / (cargo["package"]["name"].replace("-", "_") + ".wasm")
+    )
+
+    if not artifact.exists():
+        raise KegBuildError(f"Expected wasm file not found: {artifact}")
+
+    # Copy to output
+    dest = out_dir / "plugin.debug.wasm"
+    shutil.copyfile(artifact, dest)
+    print(f"[build] Wrote {dest}")
+
 
 def collect_paths_for_archive(root: Path, include_source: bool):
     """Yield (archive_name, real_path) tuples."""
@@ -153,6 +188,9 @@ def collect_paths_for_archive(root: Path, include_source: bool):
         if p.parts[0].startswith("."):
             continue
 
+        if p.parts[-1] == "plugin.debug.wasm":
+            continue
+
         # Exclude .git or other noise
         if ".git" in path.parts:
             continue
@@ -161,6 +199,9 @@ def collect_paths_for_archive(root: Path, include_source: bool):
             continue
 
         if p.parts[0] == "plugins":
+            if p.parts[2] == "test":
+                if not include_source:
+                    continue
             if p.parts[2] == "src":
                 if not include_source:
                     continue

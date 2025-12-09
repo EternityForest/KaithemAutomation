@@ -67,9 +67,7 @@ class GroupLightingManager:
         """
 
         # Generator per-effect
-        self.generators = {
-            "default": generator_plugins.LightingGeneratorPlugin()
-        }
+        self.generators = {}
 
     def clean(self):
         with render_loop_lock:
@@ -78,12 +76,14 @@ class GroupLightingManager:
 
     def refresh_generator_layout(self, effect: str):
         with render_loop_lock:
-            if effect not in self.generators:
-                self.generators[effect] = (
-                    generator_plugins.LightingGeneratorPlugin()
-                )
             if self.cue:
                 ed: EffectData | None = self.cue.get_effect_by_id(effect)
+
+                if effect not in self.generators:
+                    self.generators[effect] = generator_plugins.get_plugin(
+                        ed.get("type", ""), {}
+                    )
+
                 if not ed:
                     ed = {
                         "keypoints": [],
