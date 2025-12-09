@@ -48,8 +48,7 @@ pub unsafe fn set_input_value(input: Vec<u8>) -> FnResult<()> {
 #[derive(Copy, Clone, PartialEq)]
 struct FixtureData {
     fixture_id: i64,
-    values: [f32; 16]
-
+    values: [f32; 16],
 }
 
 impl FixtureData {
@@ -63,7 +62,8 @@ impl FixtureData {
     fn interpolate(&mut self, other: FixtureData, amount: f32) -> FixtureData {
         let mut new_values: [f32; 16] = [0.0; 16];
         for i in 0..16 {
-            new_values[i] = self.values[i] + (other.values[i] - self.values[i]) * amount;
+            new_values[i] =
+                self.values[i] + (other.values[i] - self.values[i]) * amount;
         }
         return FixtureData {
             fixture_id: self.fixture_id,
@@ -127,7 +127,6 @@ pub unsafe fn process(input: Vec<u8>) -> FnResult<Vec<u8>> {
     let start: u64 = keg_payload.read_i64().try_into().unwrap();
     let len: usize = keg_payload.read_i64().try_into().unwrap();
 
-
     let _time_us = keg_payload.read_i64();
     let mut ptr = start;
 
@@ -137,7 +136,6 @@ pub unsafe fn process(input: Vec<u8>) -> FnResult<Vec<u8>> {
     let mut next_fix_ptr = find_next_fixture_after(start);
 
     let mut current_fix = FixtureData::new(0);
-
 
     let mut currently_on_fixture = -1;
 
@@ -160,24 +158,27 @@ pub unsafe fn process(input: Vec<u8>) -> FnResult<Vec<u8>> {
         }
 
         if currently_on_fixture != ptr_fix_id {
-            let gradient_len: i64 =
-                next_fix_ptr as i64 - fade_from_ptr as i64;
-            
+            currently_on_fixture = ptr_fix_id;
+
+            let gradient_len: i64 = next_fix_data.fixture_id as i64
+                - fade_from_data.fixture_id as i64;
+
             let mut amount = 0.0;
             if gradient_len > 0 {
-                amount = (ptr as f32 - fade_from_ptr as f32) / gradient_len as f32;
+                amount = (ptr_fix_id as f32 - fade_from_data.fixture_id as f32)
+                    / gradient_len as f32;
             }
 
             // let _ = wasm_kegs_sdk::keg_print(format!("compute fix {} {} {}", ptr, amount, gradient_len));
 
             current_fix = fade_from_data.interpolate(next_fix_data, amount);
-            currently_on_fixture = ptr_fix_id;
         }
 
         if ptr_typecode > 0 && ptr_typecode < 16 {
             // let _ = wasm_kegs_sdk::keg_print(format!(" outputting {} {}", ptr_typecode, current_fix.values[ptr_typecode as usize]));
 
-            keg_payload_out.write_f32(current_fix.values[ptr_typecode as usize]);
+            keg_payload_out
+                .write_f32(current_fix.values[ptr_typecode as usize]);
         } else {
             keg_payload_out.write_f32(INPUT_DATA[ptr as usize]);
         }

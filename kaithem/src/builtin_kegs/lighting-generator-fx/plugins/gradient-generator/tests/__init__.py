@@ -60,12 +60,13 @@ def test_plugin():
 
         start = 100
         end = 200
-        while pl.data:
-            expected = start + ((end - start) / 10) * ctr
-            x = pl.read_f32()
-            print(f"Expected: {expected} Got: {x}")
 
-            # assert x == expected
+        while pl.data:
+            expected = start + (((end - start) / (10 - 1)) * ctr)
+            x = pl.read_f32()
+            # print(f"Expected: {expected} Got: {x} {ctr}")
+
+            assert abs(x - expected) < 0.0001
             ctr += 1
 
 
