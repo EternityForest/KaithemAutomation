@@ -2487,7 +2487,7 @@ class Group:
             reset = False
 
             # Allow [] for range effects
-            disallow_special(universe, allow="_@./[],")
+            disallow_special(universe, allow="_@./[:],")
 
             cue = self.cues[cue_name]
 

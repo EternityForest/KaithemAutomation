@@ -95,10 +95,13 @@ class LightingGeneratorPlugin:
                 x = i["target"].split("[")[-1].replace("]", "")
                 array_slice = x.split(",")
                 array_start = int(array_slice[0])
-                array_end = int(array_slice[-1]) - int(array_slice[0]) - 1
+                if len(array_slice) == 1:
+                    array_end = array_start
+                else:
+                    array_end = int(array_slice[-1])
 
                 if len(array_slice) > 2:
-                    array_step = int(array_slice[1])
+                    array_step = int(array_slice[2])
 
             fixture_id = 0
 

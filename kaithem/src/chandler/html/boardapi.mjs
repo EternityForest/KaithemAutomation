@@ -21,7 +21,6 @@ import { computed, ref, toRaw } from "/static/js/thirdparty/vue.esm-browser.js";
 
 let keysdown = {};
 
-
 export let plugin_info = ref({});
 
 //Current per group alpha channel
@@ -147,8 +146,6 @@ function set(o, k, v) {
 }
 
 async function initializeState(board) {
-
-
   var plugin_info_resp = await fetch("/chandler/plugin-info", {
     method: "GET",
   });
@@ -156,8 +153,6 @@ async function initializeState(board) {
   let plugin_info_json = await plugin_info_resp.json();
 
   plugin_info.value = plugin_info_json;
-
-
 
   var v = await fetch("/chandler/api/all-cues/" + board, {
     method: "GET",
@@ -280,12 +275,14 @@ async function restSetCueValue(cue, effect, universe, channel, value) {
   });
 }
 
+
+
 export async function restSetCueKeypointMeta(
   cue,
   effect,
   universe,
   channel,
-  value
+  value,
 ) {
   await doSerialized(async () => {
     var x = cueSetData[cue + "value"];
@@ -304,7 +301,10 @@ export async function restSetCueKeypointMeta(
         "/" +
         encodeURIComponent(channel.toString()) +
         "?" +
-        new URLSearchParams({ value: JSON.stringify(value) }).toString(),
+      new URLSearchParams({
+        value: JSON.stringify(value),
+        position: JSON.stringify(new_pos),
+        }).toString(),
       {
         method: "PUT",
       }
@@ -700,23 +700,60 @@ function addfixToCue(cue, effect, fix) {
   api_link.send(["add_cuef", cue, effect, fix]);
 }
 
-export function addAutoFix(cue, effect, fix) {
-  let startIndex = Number.parseInt(prompt("Enter start index:", "0"));
-  let endIndex = Number.parseInt(prompt("Enter end index:", "0"));
+export function addRangeFix(cue, effect, fix) {
+  let startIndex = Number.parseInt(
+    prompt("Enter start index(0 = start):", "0")
+  );
+  if (Number.isNaN(startIndex)) {
+    return;
+  }
+  let endIndex = Number.parseInt(prompt("Enter end index(inlcusive):", "0"));
+  if (Number.isNaN(endIndex)) {
+    return;
+  }
   let step = Number.parseInt(prompt("Enter step:", "1"));
+  if (Number.isNaN(step)) {
+    return;
+  }
 
-  let postFix = '';
+  let postFix = "";
 
   if (!(startIndex == 0 && endIndex == 0 && step == 1)) {
-
-    if(step == 1){
+    if (step == 1) {
       postFix = "[" + startIndex + "," + endIndex + "]";
     }
     postFix = "[" + startIndex + ":" + step + ":" + endIndex + "]";
-
   }
 
-  api_link.send(["add_cuef_auto", cue, effect, fix+postFix]);
+  api_link.send(["add_cuef", cue, effect, fix + postFix]);
+}
+
+export function addAutoFix(cue, effect, fix) {
+  let startIndex = Number.parseInt(
+    prompt("Enter start index(0 = start):", "0")
+  );
+  if (Number.isNaN(startIndex)) {
+    return;
+  }
+  let endIndex = Number.parseInt(prompt("Enter end index(inlcusive):", "0"));
+  if (Number.isNaN(endIndex)) {
+    return;
+  }
+  let step = Number.parseInt(prompt("Enter step:", "1"));
+  if (Number.isNaN(step)) {
+    return;
+  }
+
+  let postFix = "";
+
+  if (!(startIndex == 0 && endIndex == 0 && step == 1)) {
+    if (step == 1) {
+      postFix = "[" + startIndex + "," + endIndex + "]";
+    }
+    postFix = "[" + startIndex + ":" + step + ":" + endIndex + "]";
+  }
+
+  api_link.send(["add_cuef_auto", cue, effect, fix + postFix]);
 }
 
 function rmFixCue(cue, effect, fix) {

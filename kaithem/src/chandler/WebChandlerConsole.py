@@ -609,7 +609,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             fixture = msg[3]
 
             # Get rid of any index part, treat it like it's part of the same fixture.
-            x = universes.fixtures[fixture.split("[")[0]]()
+            x = universes.get_assigned_fixture(fixture)
             # Add every non-unused channel.  Fixtures
             # Are stored as if they are their own universe, starting with an @ sign.
             # Channels are stored by name and not by number.

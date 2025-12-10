@@ -212,6 +212,34 @@ async def set_cue_value_rest(
 
 
 @quart_app.route(
+    "/chandler/api/set-cue-keypoint-position/<cue_id>/<effect>/<universe>",
+    methods=["PUT"],
+)
+async def set_cue_keypoint_position(cue_id: str, effect: str, universe: str):
+    require("system_admin")
+    cue = cues[cue_id]
+    group = cue.group()
+    if group:
+        board = group.board
+    else:
+        raise RuntimeError("Cue has no group")
+
+    if "position" in quart.request.args:
+        v = json.loads(quart.request.args["position"])
+        if v is not None:
+            fx = cue.get_effect_by_id(effect)
+            if fx:
+                kp = cue.get_fixture_keypoint(effect, universe)
+                if kp:
+                    fx["keypoints"].remove(kp)
+                    fx["keypoints"].insert(v, kp)
+
+    board.pushCueData(cue_id)
+
+    return {"success": True}
+
+
+@quart_app.route(
     "/chandler/api/set-cue-keypoint-meta/<cue_id>/<effect>/<universe>/<channel>",
     methods=["PUT"],
 )
@@ -219,20 +247,20 @@ async def set_cue_keypoint_meta(
     cue_id: str, effect: str, universe: str, key: str
 ):
     require("system_admin")
-    v = json.loads(quart.request.args["value"])
-
     cue = cues[cue_id]
     group = cue.group()
     if group:
         board = group.board
-        group.board.pushCueMeta(cue_id)
     else:
         raise RuntimeError("Cue has no group")
 
-    g = cue.getGroup()
+    if "value" in quart.request.args:
+        v = json.loads(quart.request.args["value"])
 
-    if g:
-        g.set_cue_keypoint_key(cue_id, effect, universe, key, v)
+        g = cue.getGroup()
+
+        if g:
+            g.set_cue_keypoint_key(cue_id, effect, universe, key, v)
 
     board.pushCueData(cue_id)
 
@@ -255,7 +283,7 @@ async def set_cue_effect_rest(cue_id: str, effect: str):
     else:
         raise RuntimeError("Cue has no group")
 
-    if not v["type"]:
+    if not v:
         fx = cue.get_effect_by_id(effect)
         if fx:
             cue.lighting_effects.remove(fx)
@@ -273,8 +301,7 @@ async def set_cue_effect_rest(cue_id: str, effect: str):
                 cue.lighting_effects.append(y)
                 x = y
 
-            x["type"] = v["type"]
-            x["keypoints"] = v.get("keypoints", {})
+            x.update(v)
 
     board.pushCueData(cue_id)
 

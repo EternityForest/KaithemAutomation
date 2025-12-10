@@ -77,7 +77,28 @@ project:
         framerate: 44
         number: 1
         type: "dummy"
-    fixture_assignments: {}
+    fixture_assignments:
+      dummyFix1:
+        name: dummyFix1
+        universe: dummy
+        addr: 10
+        type: "3ch RGB"
+
+      dummyFix2:
+        name: dummyFix2
+        universe: dummy
+        addr: 20
+        type: "3ch RGB"
+        count: 5
+        spacing: 5
+
+      dummyFix3:
+        name: dummyFix3
+        universe: dummy
+        addr: 50
+        type: "3ch RGB"
+        count: 1
+
     fixture_presets:
       Amber:
         category: amber

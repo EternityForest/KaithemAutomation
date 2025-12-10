@@ -48,181 +48,237 @@
               >Type:
               <select
                 v-model="effect['type']"
-                @change="restSetCueEffectMeta(currentcueid, effect['id'], cuevals[currentcueid][effectidx])">
+                @change="
+                  restSetCueEffectMeta(
+                    currentcueid,
+                    effect['id'],
+                    cuevals[currentcueid][effectidx]
+                  )
+                ">
                 <option :value="effect['type']">{{ effect["type"] }}</option>
                 <option value="direct">direct</option>
 
-                <option :value="i['name']" v-for="i in plugin_info['kaithem.chandler.lighting-generator']" v-bind:key="i">
-                  {{ i['name'] }}
+                <option
+                  :value="i['name']"
+                  v-for="i in plugin_info[
+                    'kaithem.chandler.lighting-generator'
+                  ]"
+                  v-bind:key="i">
+                  {{ i["name"] }}
                 </option>
-
               </select>
             </label>
+
+            <button
+              type="button"
+              v-on:click="rmEffectFromCue(effect['id'])"
+              aria-label="Delete"
+              class="nogrow">
+              <i class="mdi mdi-delete"></i>
+            </button>
           </div>
+          <div class="flex-row">
+            <template
+              v-for="(keypoint, u_idx) in effect['keypoints'] || []"
+              v-bind:key="u_idx">
+              <article
+                class="universe card flex-col gaps"
+                v-if="keypoint['target'][0] != '@'">
+                <header>
+                  <h3 class="noselect">{{ keypoint["target"] }}</h3>
+                </header>
+                <details class="undecorated nopadding nomargin">
+                  <summary data-testid="details-fixture-channels-summary">
+                    Channels
+                  </summary>
+                  <div class="scroll nomargin flex-row fader-box-inner">
+                    <h-fader
+                      :groupid="groupname"
+                      :chinfo="
+                        channelInfoForUniverseChannel(
+                          keypoint['target'],
+                          chname
+                        )
+                      "
+                      :currentcueid="currentcueid"
+                      :showdelete="groupChannelsViewMode == 'channels'"
+                      :fixcmd="keypoint['values']"
+                      :effect="effect['id']"
+                      :chname="chname"
+                      :universe="keypoint['target']"
+                      :val="keypoint['values'][chname]"
+                      v-bind:key="chname"
+                      v-for="chname in Object.keys(keypoint['values']).sort()">
+                    </h-fader>
+                  </div>
+                </details>
+              </article>
+            </template>
 
-          <template
-            v-for="(keypoint, u_idx) in effect['keypoints'] || []"
-            v-bind:key="u_idx">
-            <article
-              class="universe card flex-col gaps"
-              v-if="keypoint['target'][0] != '@'">
-              <header>
-                <h3 class="noselect">{{ keypoint["target"] }}</h3>
-              </header>
-              <details class="undecorated nopadding nomargin">
-                <summary data-testid="details-fixture-channels-summary">
-                  Channels
-                </summary>
-                <div class="scroll nomargin flex-row fader-box-inner">
-                  <h-fader
-                    :groupid="groupname"
-                    :chinfo="
-                      channelInfoForUniverseChannel(keypoint['target'], chname)
-                    "
-                    :currentcueid="currentcueid"
-                    :showdelete="groupChannelsViewMode == 'channels'"
-                    :fixcmd="keypoint['values']"
-                    :effect="effect['id']"
-                    :chname="chname"
-                    :universe="keypoint['target']"
-                    :val="keypoint['values'][chname]"
-                    v-bind:key="chname"
-                    v-for="chname in Object.keys(keypoint['values']).sort()">
-                  </h-fader>
-                </div>
-              </details>
-            </article>
-          </template>
+            <template
+              v-for="(keypoint, f_idx) in effect['keypoints'] || {}"
+              v-bind:key="f_idx">
+              <article
+                v-bind:key="f_idx"
+                class="fixture card flex-col gaps noselect"
+                v-if="keypoint.target[0] == '@'">
+                <header>
+                  <h4 :title="lookupFixtureType(keypoint['target'])">
+                    {{ keypoint.target }}
+                  </h4>
 
-          <template
-            v-for="(keypoint, f_idx) in effect['keypoints'] || {}"
-            v-bind:key="f_idx">
-            <article
-              v-bind:key="f_idx"
-              class="fixture card flex-col gaps noselect"
-              v-if="keypoint.target[0] == '@'">
-              <header>
-                <h4 :title="lookupFixtureType(keypoint['target'])">
-                  {{ keypoint.target }}
-                </h4>
+                  <div class="tool-bar noselect">
+                    <button
+                      type="button"
+                      v-on:click="
+                        moveKeypoint(
+                          currentcueid,
+                          effect.id,
+                          keypoint['target'],
+                          f_idx - 1
+                        )
+                      ">
+                      <i class="mdi mdi-arrow-left"></i>
+                    </button>
 
-                <div class="tool-bar noselect">
+                    <button
+                      type="button"
+                      v-on:click="
+                        moveKeypoint(
+                          currentcueid,
+                          effect.id,
+                          keypoint['target'],
+                          f_idx + 1
+                        )
+                      ">
+                      <i class="mdi mdi-arrow-right"></i>
+                    </button>
+
+                    <button
+                      type="button"
+                      @click="
+                        showPresetDialog(
+                          keypoint['target'],
+                          effect['id'],
+                          keypoint['values'],
+                          false
+                        )
+                      "
+                      popovertarget="presetForFixture"
+                      title="Select a preset for this fixture"
+                      data-testid="select-preset-for-fixture">
+                      <i class="mdi mdi-playlist-play"></i>
+                    </button>
+
+                    <select
+                      :disabled="no_edit"
+                      class="w-4rem nogrow"
+                      style="flex-basis: 2rem"
+                      data-testid="save-preset-options"
+                      v-on:change="
+                        savePreset(keypoint, $event.target.value);
+                        $event.target.value = '__dummy__';
+                      ">
+                      <option value="__dummy__">Save</option>
+                      <option value="">For Any</option>
+                      <option
+                        :value="'name' + keypoint['target']"
+                        title="Save for use with this fixture">
+                        For This
+                      </option>
+                      <option
+                        :value="
+                          'name@h-fa' +
+                          lookupFixtureColorProfile(keypoint['target'])
+                        "
+                        title="Save for use with fixtures of this type">
+                        For Type
+                      </option>
+                    </select>
+                  </div>
                   <button
                     type="button"
-                    @click="
-                      showPresetDialog(
-                        keypoint['target'],
-                        effect['id'],
-                        keypoint['values'],
-                        false
-                      )
-                    "
-                    popovertarget="presetForFixture"
-                    title="Select a preset for this fixture"
-                    data-testid="select-preset-for-fixture">
-                    <i class="mdi mdi-playlist-play"></i>
-                  </button>
-
-                  <select
-                    :disabled="no_edit"
-                    class="w-4rem nogrow"
-                    style="flex-basis: 2rem"
-                    data-testid="save-preset-options"
-                    v-on:change="
-                      savePreset(keypoint, $event.target.value);
-                      $event.target.value = '__dummy__';
+                    v-if="groupChannelsViewMode == 'channels'"
+                    v-on:click="
+                      rmFixCue(currentcueid, effect['id'], keypoint['target'])
                     ">
-                    <option value="__dummy__">Save</option>
-                    <option value="">For Any</option>
-                    <option
-                      :value="'name' + keypoint['target']"
-                      title="Save for use with this fixture">
-                      For This
-                    </option>
-                    <option
-                      :value="
-                        'name@h-fa' +
-                        lookupFixtureColorProfile(keypoint['target'])
-                      "
-                      title="Save for use with fixtures of this type">
-                      For Type
-                    </option>
-                  </select>
-                </div>
-                <button
-                  type="button"
-                  v-if="groupChannelsViewMode == 'channels'"
-                  v-on:click="rmFixCue(currentcueid, effect['id'], keypoint['target'])">
-                  <i class="mdi mdi-delete"></i>
-                </button>
-              </header>
+                    <i class="mdi mdi-delete"></i>
+                  </button>
+                </header>
 
-              <details
-                class="undecorated nopadding nomargin"
-                data-testid="details-fixture-channels-summary">
-                <summary class="nomargin nopadding">
-                  <img
-                    v-if="
-                      fixtureAssignments[keypoint['target'].slice(1)]
-                        ?.label_image
-                    "
-                    style="max-height: 4em; border-radius: 0.5em;"
-                    :src="
-                      '/chandler/WebMediaServer?file=' +
-                      encodeURIComponent(
+                <details
+                  class="undecorated nopadding nomargin"
+                  data-testid="details-fixture-channels-summary">
+                  <summary class="nomargin nopadding">
+                    <img
+                      v-if="
                         fixtureAssignments[keypoint['target'].slice(1)]
                           ?.label_image
-                      ) +
-                      '&ts=' +
-                      fixtureAssignments[keypoint['target'].slice(1)]
-                        ?.labelImageTimestamp
-                    " />
-
-                  <div
-                    class="preset-icon"
-                    v-if="keypoint.values && keypoint.values.__preset__">
-                    <img
-                      style="max-height: 4em; object-fit: cover; border-radius: 0.5em;"
+                      "
+                      style="max-height: 4em; border-radius: 0.5em"
                       :src="
                         '/chandler/WebMediaServer?file=' +
                         encodeURIComponent(
-                          getPresetImage(keypoint.values.__preset__)
-                        )
+                          fixtureAssignments[keypoint['target'].slice(1)]
+                            ?.label_image
+                        ) +
+                        '&ts=' +
+                        fixtureAssignments[keypoint['target'].slice(1)]
+                          ?.labelImageTimestamp
                       " />
 
                     <div
-                      class="label"
-                      :style="{
-                        'background-color':
-                          presets[keypoint.values.__preset__]?.html_color ||
-                          'transparent',
-                      }">
-                      {{ keypoint.values.__preset__.split("@")[0] }}
-                    </div>
-                  </div>
-                </summary>
-                <div
-                  class="scroll nomargin padding-bottom flex-row fader-box-inner">
-                  <h-fader
-                    :groupid="groupname"
-                    :chinfo="
-                      channelInfoForUniverseChannel(keypoint['target'], chname)
-                    "
-                    :currentcueid="currentcueid"
-                    :showdelete="groupChannelsViewMode == 'channels'"
-                    :fixcmd="keypoint['values']"
-                    :effect="effect['id']"
-                    :chname="chname"
-                    :universe="keypoint['target']"
-                    :val="keypoint['values'][chname]"
-                    v-bind:key="chname"
-                    v-for="chname in Object.keys(keypoint['values']).sort()">
-                  </h-fader>
-                </div>
-              </details>
-            </article>
-          </template>
+                      class="preset-icon"
+                      v-if="keypoint.values && keypoint.values.__preset__">
+                      <img
+                        style="
+                          max-height: 4em;
+                          object-fit: cover;
+                          border-radius: 0.5em;
+                        "
+                        :src="
+                          '/chandler/WebMediaServer?file=' +
+                          encodeURIComponent(
+                            getPresetImage(keypoint.values.__preset__)
+                          )
+                        " />
 
+                      <div
+                        class="label"
+                        :style="{
+                          'background-color':
+                            presets[keypoint.values.__preset__]?.html_color ||
+                            'transparent',
+                        }">
+                        {{ keypoint.values.__preset__.split("@")[0] }}
+                      </div>
+                    </div>
+                  </summary>
+                  <div
+                    class="scroll nomargin padding-bottom flex-row fader-box-inner">
+                    <h-fader
+                      :groupid="groupname"
+                      :chinfo="
+                        channelInfoForUniverseChannel(
+                          keypoint['target'],
+                          chname
+                        )
+                      "
+                      :currentcueid="currentcueid"
+                      :showdelete="groupChannelsViewMode == 'channels'"
+                      :fixcmd="keypoint['values']"
+                      :effect="effect['id']"
+                      :chname="chname"
+                      :universe="keypoint['target']"
+                      :val="keypoint['values'][chname]"
+                      v-bind:key="chname"
+                      v-for="chname in Object.keys(keypoint['values']).sort()">
+                    </h-fader>
+                  </div>
+                </details>
+              </article>
+            </template>
+          </div>
           <div v-if="groupChannelsViewMode == 'channels'" class="flex-row gaps">
             <div class="card margin">
               <header>
@@ -332,8 +388,8 @@ import {
   channelInfoForUniverseChannel,
   fixtureClasses,
   restSetCueEffectMeta,
-  plugin_info
-
+  doSerialized,
+  plugin_info,
 } from "./boardapi.mjs";
 
 import { ref } from "/static/js/thirdparty/vue.esm-browser.js";
@@ -348,7 +404,35 @@ let selectingPresetForOldValue = ref({});
 let selectingPresetFor = ref("");
 let groupChannelsViewMode = ref("cue");
 
-function showPresetDialog(fixture, effect, values,destination) {
+async function moveKeypoint(cue, effect, universe, pos) {
+  await doSerialized(async () => {
+    let response = fetch(
+      "/chandler/api/set-cue-keypoint-position/" +
+        cue +
+        "/" +
+        effect +
+        "/" +
+        encodeURIComponent(universe) +
+        "?" +
+        new URLSearchParams({
+          position: JSON.stringify(pos),
+        }).toString(),
+      {
+        method: "PUT",
+      }
+    ).catch(function (error) {
+      alert("Could not reach server:" + error);
+    });
+
+    let v = await response;
+
+    if (!v.ok) {
+      alert("Error setting value, possible invalid value: " + pos);
+    }
+  });
+}
+
+function showPresetDialog(fixture, effect, values, destination) {
   // destination lets us set a preset for the end of a range effect
   selectingPresetForDestination.value = destination ? true : false;
   selectingPresetForEffect.value = effect;
@@ -377,16 +461,25 @@ function addValueToCue(effect) {
 }
 
 function addEffectToCue() {
-  if (cuevals.value[currentcueid.value].length > 0) {
-    alert("Cue already has a default effect");
+  restSetCueEffectMeta(
+    currentcueid.value,
+    "effect" + cuevals.value[currentcueid.value].length,
+    {
+      type: "direct",
+      keypoints: {},
+      auto: [],
+    }
+  );
+}
+
+function rmEffectFromCue(effect) {
+  let confirmed = confirm(
+    "Are you sure you want to remove this effect? This cannot be undone"
+  );
+  if (!confirmed) {
     return;
   }
-
-  restSetCueEffectMeta(currentcueid.value, "default", {
-    type: "direct",
-    keypoints: {},
-    auto: [],
-  });
+  restSetCueEffectMeta(currentcueid.value, effect, null);
 }
 function addTagToCue(effect) {
   if (!newcuetag.value) {

@@ -161,6 +161,11 @@ class Fixture:
         self.universe: str | None = None
         self.startAddress: int | None = 0
         self.assignment: tuple[str, int] | None = None
+
+        # Used if this is really a string of N identical fixtures
+        self.count = 1
+        self.spacing = 0
+
         disallow_special(name, "[].")
 
         self.nameToOffset: dict[str, int] = {}
@@ -217,7 +222,11 @@ class Fixture:
         last_state_update = time.time()
 
     @core.cl_context.required
-    def cl_assign(self, universe: str | None, channel: int | None):
+    def cl_assign(
+        self,
+        universe: str | None,
+        channel: int | None,
+    ):
         if universe is None:
             if channel is not None:
                 raise ValueError("Cannot specify channel without universe")
@@ -1279,6 +1288,24 @@ class OneTagpoint(Universe):
             print(traceback.format_exc())
 
 
+def get_assigned_fixture(fix: str) -> Fixture:
+    """
+    Allow referring to a fixture[0] as fixture or vice versa
+    """
+    x = None
+    if fix in fixtures:
+        x = fixtures[fix]()
+    elif fix.endswith("[0]"):
+        x = fixtures[fix[:-3]]()
+    elif "[" not in fix and fix + "[0]" in fixtures:
+        x = fixtures[fix + "[0]"]()
+
+    if x:
+        return x
+
+    raise KeyError(f"Fixture {fix} not found")
+
+
 def getUniverse(u: str | None) -> Universe | None:
     """Get strong ref to universe if it exists, else get none. must be
     safe to call under render loop lock.
@@ -1310,6 +1337,7 @@ def getUniverses() -> dict[str, Universe]:
 
 
 def mapUniverse(u: str):
+    """Fixture to the universe it's in"""
     if not u.startswith(("@", "~")):
         return u
 
@@ -1325,15 +1353,13 @@ def mapUniverse(u: str):
 
 
 def mapChannel(u: str, c: str | int) -> tuple[str, int] | None:
-    index = 1
+    """Fixtures act like universes but theya are just aliases for the universe
+    they are actually in.
 
+    """
     if isinstance(c, str):
         if c.startswith("__"):
             return None
-        # Handle the notation for repeating fixtures
-        if "[" in c:
-            c, index = c.split("[")
-            index = int(index.split("]")[0].strip())
 
     if not u.startswith("@"):
         if isinstance(c, str):
@@ -1366,5 +1392,4 @@ def mapChannel(u: str, c: str | int) -> tuple[str, int] | None:
     if c not in f.nameToOffset:
         return
 
-    # Index advance @fixture[5] means assume @fixture is the first of 5 identical fixtures and you want #5
-    return x[0], int(x[1] + f.nameToOffset[c] + ((index - 1) * len(f.channels)))
+    return x[0], int(x[1] + f.nameToOffset[c])

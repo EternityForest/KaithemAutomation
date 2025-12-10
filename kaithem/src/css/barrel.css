@@ -660,10 +660,6 @@ select {
   padding-inline: var(--padding);
 }
 
-select {
-  padding: 3px;
-  padding-bottom: 0px;
-}
 
 input:not([type="checkbox"], [type="radio"]),
 textarea {

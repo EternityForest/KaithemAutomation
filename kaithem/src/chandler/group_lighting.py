@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import re
 import time
 import traceback
 from typing import TYPE_CHECKING
@@ -19,6 +20,22 @@ from .core import iter_boards, render_loop_lock, serialized_async_with_core_lock
 from .fadecanvas import LightingLayer
 
 SPECIAL_VALUE_AUTO = -501
+
+
+def parse_interval(s: str) -> list[int]:
+    """Given a string that contains [0], [1:10], [1:10:2], etc, return a list of
+    integers that satisfy the interval, inclusive of the endpoints.
+    """
+    in_brackets = re.findall(r"\[(.*?)\]", s)
+    if not in_brackets:
+        return [0]
+    args = in_brackets[0].split(":")
+    if len(args) == 1:
+        return [int(in_brackets[0])]
+    elif len(args) == 2:
+        return list(range(int(args[0]), int(args[1]) + 1))
+    else:
+        return list(range(int(args[0]), int(args[1]) + 1, int(args[2])))
 
 
 def refresh_all_group_lighting():
@@ -80,9 +97,10 @@ class GroupLightingManager:
                 ed: EffectData | None = self.cue.get_effect_by_id(effect)
 
                 if effect not in self.generators:
-                    self.generators[effect] = generator_plugins.get_plugin(
-                        ed.get("type", ""), {}
-                    )
+                    if ed:
+                        self.generators[effect] = generator_plugins.get_plugin(
+                            ed.get("type", ""), {}
+                        )
 
                 if not ed:
                     ed = {
@@ -284,60 +302,69 @@ class GroupLightingManager:
                 effectlayer = self.cached_values_raw[effect["id"]]
 
                 for kp in effect["keypoints"]:
-                    universe = universes.mapUniverse(kp["target"])
-                    if not universe:
-                        continue
-
-                    universe_object = universes.getUniverse(universe)
-
-                    if universe.startswith("/"):
-                        self.on_demand_universes[universe] = (
-                            universes.get_on_demand_universe(universe)
+                    use_suffix = "[" in kp["target"]
+                    # If user does something like @fixture[0:10],
+                    # then that means we're referring to an array of fixtures.
+                    for spread_num in parse_interval(kp["target"]):
+                        universe = universes.mapUniverse(
+                            kp["target"]
+                            + (f"[{spread_num}]" if use_suffix else "")
                         )
-                        universe_object = self.on_demand_universes[universe]
-
-                    if not universe_object:
-                        continue
-
-                    if universe not in self.cached_values_raw:
-                        size = len(universe_object.values)
-                        effectlayer.values[universe] = numpy.array(
-                            [0.0] * size, dtype="f4"
-                        )
-
-                        effectlayer.alphas[universe] = numpy.array(
-                            [0.0] * size, dtype="f4"
-                        )
-
-                    for j in kp["values"]:
-                        if isinstance(j, str) and j.startswith("__"):
+                        if not universe:
                             continue
 
-                        cue_value = kp["values"][j]
+                        universe_object = universes.getUniverse(universe)
 
-                        x = universes.mapChannel(kp["target"].split("[")[0], j)
-                        if x:
-                            universe, channel = x[0], x[1]
-                            try:
-                                effectlayer.values[universe][channel] = (
-                                    cue_value
-                                )
-                                effectlayer.alphas[universe][channel] = (
-                                    1.0 if cue_value is not None else 0
-                                )
-                            except Exception:
-                                print("err", traceback.format_exc())
+                        if universe.startswith("/"):
+                            self.on_demand_universes[universe] = (
+                                universes.get_on_demand_universe(universe)
+                            )
+                            universe_object = self.on_demand_universes[universe]
 
-                                self.group.event_background(
-                                    "script.error",
-                                    self.group.name
-                                    + " cue "
-                                    + cuename
-                                    + " Val "
-                                    + str((universe, channel))
-                                    + "\n"
-                                    + traceback.format_exc(),
-                                )
+                        if not universe_object:
+                            continue
+
+                        if universe not in self.cached_values_raw:
+                            size = len(universe_object.values)
+                            effectlayer.values[universe] = numpy.array(
+                                [0.0] * size, dtype="f4"
+                            )
+
+                            effectlayer.alphas[universe] = numpy.array(
+                                [0.0] * size, dtype="f4"
+                            )
+
+                        for j in kp["values"]:
+                            if isinstance(j, str) and j.startswith("__"):
+                                continue
+
+                            cue_value = kp["values"][j]
+
+                            x = universes.mapChannel(
+                                kp["target"].split("[")[0], j
+                            )
+                            if x:
+                                universe, channel = x[0], x[1]
+                                try:
+                                    effectlayer.values[universe][channel] = (
+                                        cue_value
+                                    )
+                                    effectlayer.alphas[universe][channel] = (
+                                        1.0 if cue_value is not None else 0
+                                    )
+                                except Exception:
+                                    print("err", traceback.format_exc())
+
+                                    self.group.event_background(
+                                        "script.error",
+                                        self.group.name
+                                        + " cue "
+                                        + cuename
+                                        + " Val "
+                                        + str((universe, channel))
+                                        + "\n"
+                                        + traceback.format_exc(),
+                                    )
                 self.refresh_generator_layout(effect["id"])
 
             for i in self.fading_from:
