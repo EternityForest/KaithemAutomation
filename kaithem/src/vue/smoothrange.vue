@@ -16,7 +16,7 @@
 export default {
   template: '#smooth-range',
   data: function () {
-    const v = parseFloat(this.modelValue)
+    const v = Number.parseFloat(this.modelValue)
     return ({
       _val: v,
       lastUserChange: 0,
@@ -47,25 +47,26 @@ export default {
     }
   },
   watch: {
-    modelValue(newVal) {
-      newVal=parseFloat(newVal)
-        this.trySetValue(newVal)
+    modelValue(newValue) {
+      newValue=Number.parseFloat(newValue)
+        this.trySetValue(newValue)
     },
-    min(newVal) {
-      this._min=newVal
+    min(newValue) {
+      this._min=newValue
     },
-    max(newVal) {
-      this._max=newVal
+    max(newValue) {
+      this._max=newValue
     }
   },
   methods: {
-    trySetValue(newVal) {
-      newVal=parseFloat(newVal)
+    trySetValue(newValue) {
+      console.log(newValue)
+      newValue=Number.parseFloat(newValue)
       if (this.bgWorker) {
           clearTimeout(this.bgWorker);
           this.bgWorker = null;
         }
-      if (newVal == this._val) {
+      if (newValue == this._val) {
         return
       }
       // If user has not recently interacted, set now.
@@ -73,15 +74,15 @@ export default {
       if (Date.now() - this.lastUserChange > 600) {
         // Expand range if commanded by server
         // In case something updates val before min/max
-        if (newVal < this._min) {
-          this._min = newVal
+        if (newValue < this._min) {
+          this._min = newValue
         }
-        if (newVal > this._max) {
-          this._max = newVal
+        if (newValue > this._max) {
+          this._max = newValue
         }
         // Work around val being updated before min and max
         setTimeout(() => {
-                  this._val = newVal
+                  this._val = newValue
         },5)
       }
       else {
@@ -89,7 +90,7 @@ export default {
 
         this.bgWorker = setTimeout(() => {
           this.bgWorker = null
-          this.trySetValue(newVal)
+          this.trySetValue(newValue)
         }, 200)
 
       }
@@ -106,7 +107,7 @@ export default {
       // Otherwise, set 600ms after the last user interaction
       if (Date.now() - this.lastSend > 44) {
         this.lastSend = Date.now()
-        this.$emit('update:modelValue', parseFloat(this._val));
+        this.$emit('update:modelValue', Number.parseFloat(this._val));
       }
       else {
 
@@ -121,7 +122,7 @@ export default {
     onInput(event) {
   
       this.lastUserChange = Date.now()
-      const newValue = parseFloat(event.target.value);
+      const newValue = Number.parseFloat(event.target.value);
       this._val = newValue
       this.trySendVal()
     }

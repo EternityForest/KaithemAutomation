@@ -31,7 +31,7 @@
     </div>
 
     <div v-if="typeof val == 'number'">
-      <div v-if="val !== null">
+      <div v-if="val !== null && val != -1000001">
         <smooth-range
           v-bind:disabled="chinfo && chinfo.type == 'fine'"
           v-if="!(chname == '__length__' || chname == '__spacing__')"
@@ -41,14 +41,15 @@
           @update:modelValue="
             setCueVal(currentcueid, effect, universe, chname, parseFloat($event))
           "
-          v-model.number="val">
-        </smooth-range>
+          :modelValue="val">
+      </smooth-range>
       </div>
+      <span v-if="val == -1000001" class="grey">AUTO</span>
 
       <span v-if="val == null" class="grey">Released</span>
 
       <span
-        v-if="!(chinfo && chinfo.type == 'fine')"
+        v-if="(!(chinfo && chinfo.type == 'fine')) && val != -1000001"
         title="Double click to set exact value"
         class="noselect"
         v-on:dblclick="
