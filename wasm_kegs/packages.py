@@ -56,6 +56,10 @@ class PackageStore:
 
                 for plugin in keg["plugins"]:
                     if plugin["type"] == typ:
+                        plugin["package"] = keg["keg"]["name"]
+                        plugin["full_name"] = (
+                            f"{plugin['package']}:{plugin['name']}"
+                        )
                         discovered.append(plugin)
 
         return discovered

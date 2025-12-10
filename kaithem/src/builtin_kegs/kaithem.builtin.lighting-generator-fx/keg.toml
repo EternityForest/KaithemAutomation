@@ -8,3 +8,4 @@ author = "Daniel Dunn"
 [[plugins]]
 name = "gradient-generator"
 type = "kaithem.chandler.lighting-generator"
+title = "Gradient Generator"

@@ -4,22 +4,28 @@ import json
 from typing import TYPE_CHECKING, Any
 
 import numpy
-import numpy.typing
 
 if TYPE_CHECKING:
     from .cue import EffectData
 
 import wasm_kegs
 from kaithem.src import kegs
+from kaithem.src.kegs import package_store
 
 from .universes import get_channel_meta, mapChannel
+
+lighting_generators = package_store.list_by_type(
+    "kaithem.chandler.lighting-generator"
+)
 
 
 def get_plugin(name: str, config: dict[str, Any]) -> LightingGeneratorPlugin:
     if not name or name == "direct":
         return LightingGeneratorPlugin()
 
-    return WASMPlugin(name, config)
+    p = WASMPlugin(name, config)
+    p.generator_type = "name"
+    return p
 
 
 """
@@ -66,6 +72,8 @@ class LightingGeneratorPlugin:
 
         self.dynamic = False
 
+        self.generator_type = "direct"
+
     def process(self, t: float):
         return numpy.where(self.input_data == -1000_001, 0, self.input_data)
 
@@ -85,6 +93,7 @@ class LightingGeneratorPlugin:
         mapping = []
         input_data = []
         reverse_mapping = {}
+        fixture_id = 0
 
         for i in effect_data["keypoints"]:
             array_start = 0
@@ -103,11 +112,16 @@ class LightingGeneratorPlugin:
                 if len(array_slice) > 2:
                     array_step = int(array_slice[2])
 
-            fixture_id = 0
-
             for j in range(array_start, array_end + 1, array_step):
                 fixture_id += 1
                 for ch in i["values"]:
+                    val = i["values"][ch]
+
+                    try:
+                        val = float(val)  # type: ignore
+                    except Exception:
+                        continue
+
                     mapped_channel = mapChannel(i["target"], ch)
 
                     if mapped_channel is None:
@@ -140,13 +154,18 @@ class LightingGeneratorPlugin:
         self.reverse_mapping = reverse_mapping
         self.input_data = numpy.array(input_data, dtype=numpy.float32)
 
+        for i in range(len(input_data)):
+            self.set_input_value(i, input_data[i])
+
 
 class Loader(wasm_kegs.PluginLoader):
+    plugin_type = "kaithem.chandler.lighting-generator"
+
     def process(self, start: int, size: int, t: float):
         pl = wasm_kegs.Payload(b"")
         pl.write_i64(start)
         pl.write_i64(size)
-        pl.write_f32(t)
+        pl.write_i64(int(t / 10**6))
         # Array of floats
         x = self.call_plugin("process", pl.data)
 

@@ -11,9 +11,21 @@ from kaithem.api.web import quart_app, require
 
 from .core import boards, cl_context
 from .cue import EffectData, cue_schema, cues
+from .generator_plugins import lighting_generators
 from .groups import group_schema, groups
 
 logger = structlog.get_logger(__name__)
+
+
+@quart_app.route("/chandler/plugin-info")
+def chandler_list_plugins():
+    require("chandler_operator")
+
+    x = {
+        "kaithem.chandler.lighting-generator": lighting_generators,
+    }
+
+    return quart.Response(json.dumps(x), mimetype="application/json")
 
 
 @quart_app.route("/chandler/api/go-to-cue-by-cue-id/<cue_id>", methods=["PUT"])
@@ -302,6 +314,7 @@ async def set_cue_effect_rest(cue_id: str, effect: str):
                 x = y
 
             x.update(v)
+            group.lighting_manager.refresh()
 
     board.pushCueData(cue_id)
 

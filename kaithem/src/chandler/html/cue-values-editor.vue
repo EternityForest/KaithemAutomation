@@ -55,17 +55,20 @@
                     cuevals[currentcueid][effectidx]
                   )
                 ">
-                <option :value="effect['type']">{{ effect["type"] }}</option>
                 <option value="direct">direct</option>
 
                 <option
-                  :value="i['name']"
+                  :value="i['full_name']"
                   v-for="i in plugin_info[
                     'kaithem.chandler.lighting-generator'
                   ]"
-                  v-bind:key="i">
+                  v-bind:key="i"
+                  v-bind:title="i['full_name']">
                   {{ i["name"] }}
-                </option>
+                </option>                
+                
+                <option :value="effect['type']">{{ effect["type"] }}</option>
+
               </select>
             </label>
 

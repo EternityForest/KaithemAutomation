@@ -53,6 +53,8 @@ class GroupLightingManager:
 
         self.group = group
 
+        self.cue_start_time: float = time.time()
+
         self.should_repaint_onto_universes: dict[str, bool] = {}
 
         # Track this so we can repaint
@@ -95,14 +97,12 @@ class GroupLightingManager:
         with render_loop_lock:
             if self.cue:
                 ed: EffectData | None = self.cue.get_effect_by_id(effect)
+                if ed:
+                    self.generators[effect] = generator_plugins.get_plugin(
+                        ed.get("type", ""), {}
+                    )
 
-                if effect not in self.generators:
-                    if ed:
-                        self.generators[effect] = generator_plugins.get_plugin(
-                            ed.get("type", ""), {}
-                        )
-
-                if not ed:
+                else:
                     ed = {
                         "keypoints": [],
                         "type": "direct",
@@ -158,6 +158,7 @@ class GroupLightingManager:
                     idx = self.generators[effect].reverse_mapping.get((u, c))
                     if idx is not None:
                         self.generators[effect].input_data[idx] = value
+                        self.generators[effect].set_input_value(idx, value)
 
             self.should_repaint_onto_universes[u] = True
 
@@ -182,13 +183,16 @@ class GroupLightingManager:
 
             if i in self.generators:
                 for processed, mapping in zip(
-                    self.generators[i].process(self.generators[i].input_data),
+                    self.generators[i].process(
+                        time.time() - self.cue_start_time
+                    ),
                     self.generators[i].channel_mapping,
                 ):
                     if mapping:
                         if mapping[0] in v.values:
                             if mapping[1] < len(v.values[mapping[0]]):
                                 v.values[mapping[0]][mapping[1]] = processed
+                                v.alphas[mapping[0]][mapping[1]] = 1
 
             if i in self.fading_from:
                 op[i] = self.fading_from[i].fade_in(v, fp, universes_cache)
@@ -217,6 +221,8 @@ class GroupLightingManager:
         with self.group.lock:
             if not cue:
                 return
+
+            self.cue_start_time = time.time()
 
             if fade_in:
                 self.fade_position = 0

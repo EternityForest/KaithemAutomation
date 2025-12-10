@@ -504,6 +504,7 @@ class Universe:
             md["fixid"] = id(fixture)
             md["type"] = data["type"]
 
+            return md
         except KeyError:
             return md
 
@@ -1379,8 +1380,9 @@ def mapChannel(u: str, c: str | int) -> tuple[str, int] | None:
             return u, int(c)
 
     try:
-        f = fixtures[u[1:]]()
-        if not f:
+        try:
+            f = get_assigned_fixture(u[1:])
+        except KeyError:
             return None
 
     except KeyError:

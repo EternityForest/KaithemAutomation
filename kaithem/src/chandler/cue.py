@@ -904,7 +904,7 @@ class Cue:
         value: str | int | float | None,
     ):
         # Allow [] for range effects
-        disallow_special(universe, allow="_@./[],")
+        disallow_special(universe, allow="_@./[:],")
 
         group = self.getGroup()
 
