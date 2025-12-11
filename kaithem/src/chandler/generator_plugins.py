@@ -4,6 +4,7 @@ import json
 from typing import TYPE_CHECKING, Any
 
 import numpy
+import numpy.typing
 
 if TYPE_CHECKING:
     from .cue import EffectData
@@ -12,7 +13,7 @@ import wasm_kegs
 from kaithem.src import kegs
 from kaithem.src.kegs import package_store
 
-from .universes import get_channel_meta, mapChannel
+from .universes import get_channel_meta, mapChannel, mapUniverse
 
 lighting_generators = package_store.list_by_type(
     "kaithem.chandler.lighting-generator"
@@ -74,6 +75,14 @@ class LightingGeneratorPlugin:
 
         self.generator_type = "direct"
 
+        self.precomputed_mappings: dict[
+            str,
+            tuple[
+                numpy.typing.NDArray[numpy.int64],
+                numpy.typing.NDArray[numpy.int64],
+            ],
+        ] = {}
+
     def process(self, t: float):
         return numpy.where(self.input_data == -1000_001, 0, self.input_data)
 
@@ -90,24 +99,38 @@ class LightingGeneratorPlugin:
         self.input_data[ch_idx] = value
 
     def effect_data_to_layout(self, effect_data: EffectData):
-        mapping = []
+        mapping: list[tuple[str, int]] = []
         input_data = []
         reverse_mapping = {}
         fixture_id = 0
+
+        # For each universe we want to affect, a set of indexes
+        # into the universe, then a set of indexes into the fixture
+        output_mappings_by_universe: dict[str, tuple[list[int], list[int]]] = {}
 
         for i in effect_data["keypoints"]:
             array_start = 0
             array_step = 1
             array_end = 0
+            i_target = i["target"]
+            i_target_mapped = mapUniverse(i_target.split("[")[0])
+            if i_target_mapped is None:
+                continue
 
-            if "[" in i["target"]:
-                x = i["target"].split("[")[-1].replace("]", "")
-                array_slice = x.split(",")
+            if i_target_mapped not in output_mappings_by_universe:
+                output_mappings_by_universe[i_target_mapped] = (
+                    [],
+                    [],
+                )
+
+            if "[" in i_target:
+                x = i_target.split("[")[-1].replace("]", "")
+                array_slice = x.split(":")
                 array_start = int(array_slice[0])
                 if len(array_slice) == 1:
                     array_end = array_start
                 else:
-                    array_end = int(array_slice[-1])
+                    array_end = int(array_slice[1])
 
                 if len(array_slice) > 2:
                     array_step = int(array_slice[2])
@@ -122,7 +145,9 @@ class LightingGeneratorPlugin:
                     except Exception:
                         continue
 
-                    mapped_channel = mapChannel(i["target"], ch)
+                    mapped_channel = mapChannel(
+                        i_target.split("[")[0] + f"[{j}]", ch
+                    )
 
                     if mapped_channel is None:
                         continue
@@ -137,14 +162,22 @@ class LightingGeneratorPlugin:
                         {},
                     )
 
+                    output_mappings_by_universe[mapped_channel[0]][0].append(
+                        mapped_channel[1]
+                    )
+                    output_mappings_by_universe[mapped_channel[0]][1].append(
+                        len(mapping)
+                    )
+
                     mapping.append(mapped_channel)
+
                     reverse_mapping[mapped_channel] = len(mapping) - 1
 
                     input_data.append(i["values"][ch])
 
                     # We don't know so give every channel its
                     # own universe
-                    if not i["target"].startswith("@"):
+                    if not i_target.startswith("@"):
                         fixture_id += 1
 
         # Kinda like null terminator
@@ -156,6 +189,17 @@ class LightingGeneratorPlugin:
 
         for i in range(len(input_data)):
             self.set_input_value(i, input_data[i])
+        self.precomputed_mappings = {
+            k: (
+                numpy.array(
+                    output_mappings_by_universe[k][0], dtype=numpy.int64
+                ),
+                numpy.array(
+                    output_mappings_by_universe[k][1], dtype=numpy.int64
+                ),
+            )
+            for k in output_mappings_by_universe
+        }
 
 
 class Loader(wasm_kegs.PluginLoader):

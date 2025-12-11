@@ -722,7 +722,7 @@ export function addRangeFix(cue, effect, fix) {
     if (step == 1) {
       postFix = "[" + startIndex + "," + endIndex + "]";
     }
-    postFix = "[" + startIndex + ":" + step + ":" + endIndex + "]";
+    postFix = "[" + startIndex + ":" + endIndex + ":" + step +  "]";
   }
 
   api_link.send(["add_cuef", cue, effect, fix + postFix]);
@@ -750,7 +750,7 @@ export function addAutoFix(cue, effect, fix) {
     if (step == 1) {
       postFix = "[" + startIndex + "," + endIndex + "]";
     }
-    postFix = "[" + startIndex + ":" + step + ":" + endIndex + "]";
+    postFix = "[" + startIndex + ":" + endIndex + ":" + step +  "]";
   }
 
   api_link.send(["add_cuef_auto", cue, effect, fix + postFix]);

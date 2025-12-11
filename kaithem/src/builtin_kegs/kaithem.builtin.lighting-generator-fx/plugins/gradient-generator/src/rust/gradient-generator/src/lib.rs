@@ -1,5 +1,3 @@
-use std::fmt::format;
-
 use extism_pdk::*;
 
 use wasm_kegs_sdk::KegsPayload;
@@ -93,7 +91,7 @@ unsafe fn compile_fixture_data(ptr: u64) -> FixtureData {
         if typecode > 0 && typecode < 16 {
             fixture.values[typecode as usize] = value;
         }
-        fixture.values[pointer as usize] = value;
+        fixture.values[typecode as usize] = value;
         pointer += 1;
     }
 
@@ -104,6 +102,9 @@ unsafe fn find_next_fixture_after(ptr: u64) -> u64 {
     let mut pointer = ptr;
     let fixture_id = METADATA[pointer as usize].fixture_id;
 
+    if fixture_id == -1 {
+        return ptr;
+    }
     while pointer < 65536 {
         // Look for the first fixture that has something other than
         // auto values
@@ -118,7 +119,7 @@ unsafe fn find_next_fixture_after(ptr: u64) -> u64 {
         }
         pointer += 1;
     }
-    return pointer;
+    return 65365;
 }
 
 #[plugin_fn]
@@ -132,7 +133,6 @@ pub unsafe fn process(input: Vec<u8>) -> FnResult<Vec<u8>> {
 
     let mut fade_from_data = compile_fixture_data(ptr);
 
-    let mut fade_from_ptr = start;
     let mut next_fix_ptr = find_next_fixture_after(start);
 
     let mut current_fix = FixtureData::new(0);
@@ -151,10 +151,8 @@ pub unsafe fn process(input: Vec<u8>) -> FnResult<Vec<u8>> {
 
         if ptr_fix_id == next_fix_data.fixture_id {
             fade_from_data = next_fix_data;
-            fade_from_ptr = ptr;
             next_fix_ptr = find_next_fixture_after(ptr);
             next_fix_data = compile_fixture_data(next_fix_ptr);
-            // let _ = wasm_kegs_sdk::keg_print(format!("fade from {} to {}", fade_from_ptr, next_fix_ptr));
         }
 
         if currently_on_fixture != ptr_fix_id {

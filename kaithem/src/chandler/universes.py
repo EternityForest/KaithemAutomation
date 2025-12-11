@@ -136,7 +136,7 @@ class Fixture:
         # Not threadsafe or something to rely on,
         # just an extra defensive check
         if name in fixtures:
-            raise ValueError("Name in Use")
+            raise ValueError("Name in Use: " + name)
 
         if data:
             channel_data = data.get("channels", None)
@@ -1342,15 +1342,14 @@ def mapUniverse(u: str):
     if not u.startswith(("@", "~")):
         return u
 
-    u = u.split("[")[0]
-
     try:
-        x = fixtures[u[1:]]()
-        if not x:
+        x = get_assigned_fixture(u[1:])
+        if x is None:
             return None
+        return x.universe
+
     except KeyError:
         return None
-    return x.universe
 
 
 def mapChannel(u: str, c: str | int) -> tuple[str, int] | None:

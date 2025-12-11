@@ -21,7 +21,8 @@
             "program": "${file}",
             "cwd": "${workspaceFolder}",
             "env": {
-                "GST_DEBUG": "*:3"
+                "GST_DEBUG": "*:3",
+                "WASMTIME_BACKTRACE_DETAILS": "1"
             },
             "envFile": "${workspaceFolder}/.env",
             "debugOptions": [
