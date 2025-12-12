@@ -57,6 +57,10 @@ impl KegsPayload {
         return String::from_utf8(self.read_bytes()).unwrap();
     }
 
+    pub fn available(&self) -> usize {
+        return self.buf.len() - self.pos
+    }
+
 
 }
 

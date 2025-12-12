@@ -18,27 +18,36 @@ static mut INPUT_DATA: [f32; 65536] = [0.0; 65536];
 #[plugin_fn]
 pub unsafe fn set_channel_metadata(input: Vec<u8>) -> FnResult<()> {
     let mut keg_payload: KegsPayload = KegsPayload::from_bytes(input);
-    let channel = keg_payload.read_i64();
-    let fixture_id = keg_payload.read_i64();
-    let typecode = keg_payload.read_i64();
+    
+    let mut channel = keg_payload.read_i64();
 
-    let _ext_json = keg_payload.read_bytes();
+    while keg_payload.available()>= 24 {
+        let fixture_id = keg_payload.read_i64();
+        let typecode = keg_payload.read_i64();
 
-    METADATA[channel as usize] = ChannelMetadata {
-        typecode: typecode,
-        fixture_id: fixture_id,
-    };
+        let _ext_json = keg_payload.read_bytes();
+
+        METADATA[channel as usize] = ChannelMetadata {
+            typecode: typecode,
+            fixture_id: fixture_id,
+        };
+
+        channel += 1;
+    }
 
     return Ok(());
 }
 
 #[plugin_fn]
-pub unsafe fn set_input_value(input: Vec<u8>) -> FnResult<()> {
+pub unsafe fn set_input_values(input: Vec<u8>) -> FnResult<()> {
     let mut keg_payload: KegsPayload = KegsPayload::from_bytes(input);
-    let channel = keg_payload.read_i64();
-    let value = keg_payload.read_f32();
+    let mut channel = keg_payload.read_i64();
 
-    INPUT_DATA[channel as usize] = value;
+    while keg_payload.available() >= 4 { 
+        let value = keg_payload.read_f32();
+        INPUT_DATA[channel as usize] = value;
+        channel += 1;
+    }
 
     return Ok(());
 }

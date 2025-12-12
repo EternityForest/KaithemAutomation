@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import copy
 import json
-from typing import TYPE_CHECKING, Any
+import threading
+from collections import OrderedDict
+from typing import TYPE_CHECKING, Any, TypedDict
 
 import numpy
 import numpy.typing
@@ -20,9 +23,44 @@ lighting_generators = package_store.list_by_type(
 )
 
 
-def get_plugin(name: str, config: dict[str, Any]) -> LightingGeneratorPlugin:
+wasm_plugin_pool_lock = threading.RLock()
+wasm_plugin_pool = []
+
+
+def compile_set_channel_metadata(
+    start_ch: int, metadata: list[tuple[int, int, dict[str, Any]]]
+):
+    pl = wasm_kegs.Payload(b"")
+
+    pl.write_i64(start_ch)
+
+    for fix_id, type_code, extra_data in metadata:
+        pl.write_i64(fix_id)
+        pl.write_i64(type_code)
+        pl.write_bytes(json.dumps(extra_data).encode())
+
+    return pl.data
+
+
+def compile_set_input_values(start_ch: int, vals: list[float] = []):
+    pl = wasm_kegs.Payload(b"")
+    pl.write_i64(start_ch)
+
+    for value in vals:
+        pl.write_f32(value)
+
+    return pl.data
+
+
+def get_plugin(name: str, config: dict[str, Any]) -> WASMPlugin:
     if not name or name == "direct":
-        return LightingGeneratorPlugin()
+        raise RuntimeError("No plugin specified")
+
+    with wasm_plugin_pool_lock:
+        for p in list(wasm_plugin_pool):
+            if p.plugin.name == name:
+                wasm_plugin_pool.remove(p)
+                return p
 
     p = WASMPlugin(name, config)
     p.generator_type = "name"
@@ -58,18 +96,38 @@ type_codes: dict[str, int] = {
     "amber": 8,
     "lime": 9,
     "uv": 10,
+    "x": 11,
+    "y": 12,
 }
 
 
-class LightingGeneratorPlugin:
-    def __init__(self):
+class CachedEffectLayout(TypedDict):
+    channel_mapping: list[tuple[str, int]]
+    reverse_mapping: dict[tuple[str, int], int]
+    input_data_block: bytes
+    precomputed_mappings: dict[
+        str,
+        tuple[
+            numpy.typing.NDArray[numpy.int64],
+            numpy.typing.NDArray[numpy.int64],
+        ],
+    ]
+    compiled_metadata_block: bytes
+    source: EffectData
+
+
+lighting_generator_data_cache: OrderedDict[
+    tuple[str, str], CachedEffectLayout
+] = OrderedDict()
+
+
+class WASMPlugin:
+    def __init__(self, plugin: str = "", config: dict[str, Any] = {}):
         # Maps entries in the arrays plugins take
         # to channel, value pairs
         self.channel_mapping: list[tuple[str, int]] = []
 
         self.reverse_mapping: dict[tuple[str, int], int] = {}
-
-        self.input_data = numpy.ndarray((0,), dtype=numpy.float32)
 
         self.dynamic = False
 
@@ -83,26 +141,27 @@ class LightingGeneratorPlugin:
             ],
         ] = {}
 
-    def process(self, t: float):
-        return numpy.where(self.input_data == -1000_001, 0, self.input_data)
+        with kegs.package_store:
+            self.plugin: Loader = Loader(plugin, config)
 
-    def set_channel_metadata(
-        self,
-        ch_idx: int,
-        fix_id: int,
-        type_code: int,
-        extra_data: dict[str, Any] = {},
+    def _effect_data_to_layout(
+        self, cue: str, effectid: str, effect_data: EffectData
     ):
-        pass
+        try:
+            if (cue, effectid) not in lighting_generator_data_cache:
+                x = lighting_generator_data_cache[(cue, effectid)]
+                if x["source"] == effect_data:
+                    return x
+        except KeyError:
+            pass
 
-    def set_input_value(self, ch_idx: int, value: float):
-        self.input_data[ch_idx] = value
-
-    def effect_data_to_layout(self, effect_data: EffectData):
         mapping: list[tuple[str, int]] = []
         input_data = []
         reverse_mapping = {}
         fixture_id = 0
+
+        # What we pass to the plugin
+        metadata_tuples: list[tuple[int, int, dict[str, Any]]] = []
 
         # For each universe we want to affect, a set of indexes
         # into the universe, then a set of indexes into the fixture
@@ -155,11 +214,12 @@ class LightingGeneratorPlugin:
                     m = get_channel_meta(*mapped_channel).get("type", "unknown")
                     typecode = type_codes.get(m, 0)
 
-                    self.set_channel_metadata(
-                        len(mapping),
-                        fixture_id,
-                        typecode,
-                        {},
+                    metadata_tuples.append(
+                        (
+                            fixture_id,
+                            typecode,
+                            {},
+                        )
                     )
 
                     output_mappings_by_universe[mapped_channel[0]][0].append(
@@ -181,15 +241,9 @@ class LightingGeneratorPlugin:
                         fixture_id += 1
 
         # Kinda like null terminator
-        self.set_channel_metadata(len(mapping), -1, -1, {})
+        metadata_tuples.append((-1, -1, {}))
 
-        self.channel_mapping = mapping
-        self.reverse_mapping = reverse_mapping
-        self.input_data = numpy.array(input_data, dtype=numpy.float32)
-
-        for i in range(len(input_data)):
-            self.set_input_value(i, input_data[i])
-        self.precomputed_mappings = {
+        precomputed = {
             k: (
                 numpy.array(
                     output_mappings_by_universe[k][0], dtype=numpy.int64
@@ -200,6 +254,52 @@ class LightingGeneratorPlugin:
             )
             for k in output_mappings_by_universe
         }
+        rv: CachedEffectLayout = {
+            "channel_mapping": mapping,
+            "input_data_block": compile_set_input_values(0, input_data),
+            "reverse_mapping": reverse_mapping,
+            "compiled_metadata_block": compile_set_channel_metadata(
+                0, metadata_tuples
+            ),
+            "precomputed_mappings": precomputed,
+            "source": copy.deepcopy(effect_data),
+        }
+
+        lighting_generator_data_cache[(cue, effectid)] = rv
+
+        if len(lighting_generator_data_cache) > 100:
+            lighting_generator_data_cache.popitem()
+
+        return rv
+
+    def effect_data_to_layout(
+        self, cue: str, effectid: str, effect_data: EffectData
+    ):
+        d = self._effect_data_to_layout(cue, effectid, effect_data)
+
+        self.channel_mapping = d["channel_mapping"]
+        self.reverse_mapping = d["reverse_mapping"]
+        self.precomputed_mappings = d["precomputed_mappings"]
+
+        self.plugin.call_plugin(
+            "set_channel_metadata", d["compiled_metadata_block"]
+        )
+        self.plugin.call_plugin("set_input_values", d["input_data_block"])
+
+    def process(self, t: float):
+        return self.plugin.process(0, len(self.channel_mapping), t)
+
+    def set_channel_metadata(
+        self, ch_idx: int, metadata: list[tuple[int, int, dict[str, Any]]]
+    ):
+        self.plugin.set_channel_metadata(ch_idx, metadata)
+
+    def set_input_values(self, ch_idx: int, vals: list[float] = []):
+        self.plugin.set_input_values(ch_idx, vals)
+
+    def return_to_pool(self):
+        self.plugin.return_to_pool()
+        self.plugin = None  # type: ignore
 
 
 class Loader(wasm_kegs.PluginLoader):
@@ -216,49 +316,17 @@ class Loader(wasm_kegs.PluginLoader):
         return numpy.frombuffer(x, dtype=numpy.float32)
 
     def set_channel_metadata(
-        self,
-        ch_idx: int,
-        fix_id: int,
-        type_code: int,
-        extra_data: dict[str, Any] = {},
+        self, start_ch: int, metadata: list[tuple[int, int, dict[str, Any]]]
     ):
-        pl = wasm_kegs.Payload(b"")
-        pl.write_i64(ch_idx)
-        pl.write_i64(fix_id)
-        pl.write_i64(type_code)
-        pl.write_bytes(json.dumps(extra_data).encode())
-        self.call_plugin("set_channel_metadata", pl.data)
+        pl = compile_set_channel_metadata(start_ch, metadata)
+        self.call_plugin("set_channel_metadata", pl)
 
-    def set_input_value(self, ch_idx: int, value: float):
-        pl = wasm_kegs.Payload(b"")
-        pl.write_i64(ch_idx)
-        pl.write_f32(value)
-        self.call_plugin("set_input_value", pl.data)
+    def set_input_values(self, start_ch: int, vals: list[float] = []):
+        pl = compile_set_input_values(start_ch, vals)
+        self.call_plugin("set_input_values", pl)
 
-
-class WASMPlugin(LightingGeneratorPlugin):
-    def __init__(self, plugin: str, config: dict[str, Any]):
-        super().__init__()
-        self.dynamic = False
-
-        with kegs.package_store:
-            self.plugin = Loader(plugin, config)
-
-    def process(self, t: float):
-        return self.plugin.process(0, len(self.input_data), t)
-
-    def set_channel_metadata(
-        self,
-        ch_idx: int,
-        fix_id: int,
-        type_code: int,
-        extra_data: dict[str, Any] = {},
-    ):
-        self.plugin.set_channel_metadata(ch_idx, fix_id, type_code, extra_data)
-        return super().set_channel_metadata(
-            ch_idx, fix_id, type_code, extra_data
-        )
-
-    def set_input_value(self, ch_idx: int, value: float):
-        self.plugin.set_input_value(ch_idx, value)
-        return super().set_input_value(ch_idx, value)
+    def return_to_pool(self):
+        with wasm_plugin_pool_lock:
+            if len(wasm_plugin_pool) > 12:
+                wasm_plugin_pool.pop(0)
+            wasm_plugin_pool.append(self)

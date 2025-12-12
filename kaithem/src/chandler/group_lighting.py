@@ -86,9 +86,7 @@ class GroupLightingManager:
         """
 
         # Generator per-effect
-        self.generators_by_effect: dict[
-            str, generator_plugins.LightingGeneratorPlugin
-        ] = {}
+        self.generators_by_effect: dict[str, generator_plugins.WASMPlugin] = {}
 
         self.preprocessed_mapping = None
 
@@ -102,9 +100,10 @@ class GroupLightingManager:
             if self.cue:
                 ed: EffectData | None = self.cue.get_effect_by_id(effect)
                 if ed:
-                    self.generators_by_effect[effect] = (
-                        generator_plugins.get_plugin(ed.get("type", ""), {})
-                    )
+                    if not ed["type"] == "direct":
+                        self.generators_by_effect[effect] = (
+                            generator_plugins.get_plugin(ed.get("type", ""), {})
+                        )
 
                 else:
                     ed = {
@@ -113,7 +112,10 @@ class GroupLightingManager:
                         "id": effect,
                     }
 
-                self.generators_by_effect[effect].effect_data_to_layout(ed)
+                if effect in self.generators_by_effect:
+                    self.generators_by_effect[effect].effect_data_to_layout(
+                        self.cue.name, ed["id"], ed
+                    )
 
     def set_value(
         self, effect: str, universe: str, channel: int, value: float | None
@@ -159,16 +161,14 @@ class GroupLightingManager:
                 if not was_present:
                     self.refresh_generator_layout(effect)
                 else:
-                    idx = self.generators_by_effect[effect].reverse_mapping.get(
-                        (u, c)
-                    )
-                    if idx is not None:
-                        self.generators_by_effect[effect].input_data[idx] = (
-                            value
-                        )
-                        self.generators_by_effect[effect].set_input_value(
-                            idx, value
-                        )
+                    if effect in self.generators_by_effect:
+                        idx = self.generators_by_effect[
+                            effect
+                        ].reverse_mapping.get((u, c))
+                        if idx is not None:
+                            self.generators_by_effect[effect].set_input_values(
+                                idx, [value]
+                            )
 
             self.should_repaint_onto_universes[u] = True
 
@@ -308,7 +308,10 @@ class GroupLightingManager:
                 # Rerender everything we no longer affect
                 self.mark_need_repaint_onto_universes()
                 self.cached_values_raw = {}
+                x = self.generators_by_effect
                 self.generators_by_effect = {}
+                for i in x:
+                    x[i].return_to_pool()
 
             for effect in effect_data:
                 if not (use_dynamic or effect["type"] == "direct"):
