@@ -58,7 +58,7 @@ def get_plugin(name: str, config: dict[str, Any]) -> WASMPlugin:
 
     with wasm_plugin_pool_lock:
         for p in list(wasm_plugin_pool):
-            if p.plugin.name == name:
+            if p.plugin_name == name:
                 wasm_plugin_pool.remove(p)
                 return p
 
