@@ -120,6 +120,9 @@ class PluginLoader:
 
         self.plugin_folder: str = p
 
+        self.plugin_name: str = plugin
+        "Fully qualified name of the plugin"
+
         _package, plugin = packages.parse_plugin_name(plugin)
 
         with open(

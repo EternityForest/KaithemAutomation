@@ -344,7 +344,7 @@ class GroupLightingManager:
                         if not universe_object:
                             continue
 
-                        if universe not in self.cached_values_raw:
+                        if universe not in effectlayer.values:
                             size = len(universe_object.values)
                             effectlayer.values[universe] = numpy.array(
                                 [0.0] * size, dtype="f4"

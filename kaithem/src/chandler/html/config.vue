@@ -703,20 +703,23 @@
             <td>
               <input
                 class="w-4rem"
+                type="number"
                 v-on:change="setFixtureAssignment(i[1].name, i[1])"
-                v-model="i[1].addr" />
+                v-model.number="i[1].addr" />
             </td>
             <td>
               <input
                 class="w-4rem"
+                type="number"
                 v-on:change="setFixtureAssignment(i[1].name, i[1])"
-                v-model="i[1].count" />
+                v-model.number="i[1].count" />
             </td>
             <td>
               <input
                 class="w-4rem"
+                type="number"
                 v-on:change="setFixtureAssignment(i[1].name, i[1])"
-                v-model="i[1].spacing" />
+                v-model.number="i[1].spacing" />
             </td>
             <td>
               <button v-on:click="rmFixtureAssignment(i[1].name)">
@@ -767,7 +770,7 @@
           <tr>
             <td>Address</td>
             <td>
-              <input type="number" min="1" v-model="newfixaddr"
+              <input type="number" min="1" v-model.number="newfixaddr"
               data-testid="newfixaddr"
               />
             </td>
@@ -776,14 +779,14 @@
           <tr>
             <td>Channel Spacing</td>
             <td>
-              <input type="number" min="1" v-model="newfixchannelspacing" />
+              <input type="number" min="1" v-model.number="newfixchannelspacing" />
             </td>
           </tr>
 
             <tr>
             <td>Count</td>
             <td>
-              <input type="number" min="1" v-model="newfixcount" />
+              <input type="number" min="1" v-model.number="newfixcount" />
             </td>
           </tr>
         </table>

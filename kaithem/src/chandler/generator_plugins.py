@@ -24,7 +24,7 @@ lighting_generators = package_store.list_by_type(
 
 
 wasm_plugin_pool_lock = threading.RLock()
-wasm_plugin_pool = []
+wasm_plugin_pool: list[WASMPlugin] = []
 
 
 def compile_set_channel_metadata(
@@ -58,7 +58,7 @@ def get_plugin(name: str, config: dict[str, Any]) -> WASMPlugin:
 
     with wasm_plugin_pool_lock:
         for p in list(wasm_plugin_pool):
-            if p.plugin_name == name:
+            if p.plugin.plugin_name == name:
                 wasm_plugin_pool.remove(p)
                 return p
 
@@ -298,8 +298,10 @@ class WASMPlugin:
         self.plugin.set_input_values(ch_idx, vals)
 
     def return_to_pool(self):
-        self.plugin.return_to_pool()
-        self.plugin = None  # type: ignore
+        with wasm_plugin_pool_lock:
+            if len(wasm_plugin_pool) > 12:
+                wasm_plugin_pool.pop(0)
+            wasm_plugin_pool.append(self)
 
 
 class Loader(wasm_kegs.PluginLoader):
@@ -324,9 +326,3 @@ class Loader(wasm_kegs.PluginLoader):
     def set_input_values(self, start_ch: int, vals: list[float] = []):
         pl = compile_set_input_values(start_ch, vals)
         self.call_plugin("set_input_values", pl)
-
-    def return_to_pool(self):
-        with wasm_plugin_pool_lock:
-            if len(wasm_plugin_pool) > 12:
-                wasm_plugin_pool.pop(0)
-            wasm_plugin_pool.append(self)
