@@ -196,7 +196,7 @@ p.small {
               selectedCommandIndex -= 1;
               $emit('update:modelValue', rules);
             ">
-            Delete
+            Delete Command
           </button>
           <button
             v-if="selectedCommandIndex > 0"

@@ -111,7 +111,7 @@ test("test", async ({ page }) => {
   await page.getByRole("button", { name: "Add Rule" }).click();
   await page.getByRole("button", { name: "Add Action" }).click();
   await page.getByRole("button", { name: "pass" }).click();
-  await page.getByRole("button", { name: "Delete", exact: true }).click();
+  await page.getByRole("button", { name: "Delete Command", exact: true }).click();
   await page
     .locator("#blockInspectorCommand")
     .getByRole("button", { name: "󰅖 Close" })
