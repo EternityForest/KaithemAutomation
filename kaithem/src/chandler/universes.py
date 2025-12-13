@@ -135,6 +135,8 @@ class Fixture:
         """
         # Not threadsafe or something to rely on,
         # just an extra defensive check
+        self.name = name
+
         if name in fixtures:
             raise ValueError("Name in Use: " + name)
 
@@ -175,7 +177,6 @@ class Fixture:
             self.nameToOffset[channels[i]["name"]] = i
 
         fixtures[name] = weakref.ref(self)
-        self.name = name
 
         global last_state_update
         last_state_update = time.time()

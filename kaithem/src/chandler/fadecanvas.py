@@ -44,16 +44,16 @@ class LightingLayer:
         self.values[universe][channel] = value
 
     def update_from(self, other: LightingLayer):
-        """Make self equal to highest alpha wins between self and other"""
+        """Update self wherever incoming alpha is nonzero"""
         for i in other.values:
             if i not in self.values:
                 self.values[i] = numpy.zeros(other.values[i].shape)
                 self.alphas[i] = numpy.zeros(other.alphas[i].shape)
 
-            mask = other.alphas[i] > self.alphas[i]
+            mask = other.alphas[i] > 0
 
-            self.values[i] += other.values[i] * mask
-            self.alphas[i] += other.alphas[i] * mask
+            self.values[i] = numpy.where(mask, other.values[i], self.values[i])
+            self.alphas[i] = numpy.where(mask, other.alphas[i], self.alphas[i])
 
     def fade_in(
         self,
@@ -100,3 +100,6 @@ class LightingLayer:
     def clear(self):
         self.values = {}
         self.alphas = {}
+
+    def copy(self):
+        return LightingLayer(self)

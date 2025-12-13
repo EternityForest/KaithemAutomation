@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import copy
 import re
 import time
 import traceback
@@ -76,14 +75,16 @@ class GroupLightingManager:
             group.blend_args or {}
         )
 
-        self.fading_from: dict[str, LightingLayer] = {}
-        """These are inputs to generartor effects"""
+        self.fading_from_flattened: LightingLayer = LightingLayer()
+        """The output of all generators flattened"""
 
-        self.cached_values_raw: dict[str, LightingLayer] = {}
-        """Current values from the group, after applying backtrack but before
-            generators run.
-            Every effect has its own inputs
+        self.cached_values_raw_by_effect: dict[str, LightingLayer] = {}
+        """Current values from the group, per-effect, not subject
+        to tracking or backtracking, before generators.
         """
+
+        self.cached_values_flattened: LightingLayer = LightingLayer()
+        """Where we track and backtrack"""
 
         # Generator per-effect
         self.generators_by_effect: dict[str, generator_plugins.WASMPlugin] = {}
@@ -92,13 +93,13 @@ class GroupLightingManager:
 
     def clean(self):
         with render_loop_lock:
-            for i in list(self.cached_values_raw):
-                self.cached_values_raw[i].clean()
+            for i in list(self.cached_values_raw_by_effect):
+                self.cached_values_raw_by_effect[i].clean()
 
-    def refresh_generator_layout(self, effect: str):
+    def refresh_generator_layout(self, cue: Cue, effect: str):
         with render_loop_lock:
             if self.cue:
-                ed: EffectData | None = self.cue.get_effect_by_id(effect)
+                ed: EffectData | None = cue.get_effect_by_id(effect)
                 if ed:
                     if not ed["type"] == "direct":
                         self.generators_by_effect[effect] = (
@@ -114,15 +115,15 @@ class GroupLightingManager:
 
                 if effect in self.generators_by_effect:
                     self.generators_by_effect[effect].effect_data_to_layout(
-                        self.cue.name, ed["id"], ed
+                        cue.name, ed["id"], ed
                     )
 
     def set_value(
         self, effect: str, universe: str, channel: int, value: float | None
     ):
         with render_loop_lock:
-            if effect not in self.cached_values_raw:
-                self.cached_values_raw[effect] = LightingLayer()
+            if effect not in self.cached_values_raw_by_effect:
+                self.cached_values_raw_by_effect[effect] = LightingLayer()
             mapped = universes.mapChannel(universe, channel)
             if not mapped:
                 return
@@ -134,32 +135,37 @@ class GroupLightingManager:
             if not universeObj:
                 return
 
+            if not self.cue:
+                raise RuntimeError("No cue")
+
             if value is None:
                 if (
-                    effect in self.cached_values_raw
-                    and u in self.cached_values_raw[effect].values
+                    effect in self.cached_values_raw_by_effect
+                    and u in self.cached_values_raw_by_effect[effect].values
                 ):
-                    self.cached_values_raw[effect].values[u][c] = 0
-                    self.cached_values_raw[effect].alphas[u][c] = 0
-                    self.refresh_generator_layout(effect)
+                    self.cached_values_raw_by_effect[effect].values[u][c] = 0
+                    self.cached_values_raw_by_effect[effect].alphas[u][c] = 0
+                    self.refresh_generator_layout(self.cue, effect)
             else:
-                if u not in self.cached_values_raw[effect].values:
-                    self.cached_values_raw[effect].values[u] = numpy.zeros(
-                        len(universeObj.values)
+                if u not in self.cached_values_raw_by_effect[effect].values:
+                    self.cached_values_raw_by_effect[effect].values[u] = (
+                        numpy.zeros(len(universeObj.values))
                     )
-                    self.cached_values_raw[effect].alphas[u] = numpy.zeros(
-                        len(universeObj.values)
+                    self.cached_values_raw_by_effect[effect].alphas[u] = (
+                        numpy.zeros(len(universeObj.values))
                     )
 
                     if u.startswith("/"):
                         self.on_demand_universes[u] = (
                             universes.get_on_demand_universe(u)
                         )
-                self.cached_values_raw[effect].values[u][c] = value
-                was_present = self.cached_values_raw[effect].alphas[u][c] > 0
-                self.cached_values_raw[effect].alphas[u][c] = 1
+                self.cached_values_raw_by_effect[effect].values[u][c] = value
+                was_present = (
+                    self.cached_values_raw_by_effect[effect].alphas[u][c] > 0
+                )
+                self.cached_values_raw_by_effect[effect].alphas[u][c] = 1
                 if not was_present:
-                    self.refresh_generator_layout(effect)
+                    self.refresh_generator_layout(self.cue, effect)
                 else:
                     if effect in self.generators_by_effect:
                         idx = self.generators_by_effect[
@@ -181,15 +187,20 @@ class GroupLightingManager:
         self.mark_need_repaint_onto_universes()
 
     # Only call this under the render lock
-    def get_current_output(
+    def get_current_flattened_outputs(
         self, universes_cache: dict[str, universes.Universe]
-    ) -> dict[str, LightingLayer]:
+    ) -> LightingLayer:
+        """Only call this under the render lock. a reference
+        reference to the internal layer.  This has the side effect of
+        updating the internal cache with new generator data.
+
+        """
         fp = self.fade_position
 
-        op = {}
+        op = self.cached_values_flattened
 
-        for i in self.cached_values_raw:
-            v = self.cached_values_raw[i]
+        for i in self.cached_values_raw_by_effect:
+            v = self.cached_values_raw_by_effect[i]
 
             if i in self.generators_by_effect:
                 p = self.generators_by_effect[i].process(
@@ -205,11 +216,9 @@ class GroupLightingManager:
 
                     v.values[j][m[0]] = p[m[1]]
                     v.alphas[j][m[0]] = 1.0
-            if i in self.fading_from:
-                op[i] = self.fading_from[i].fade_in(v, fp, universes_cache)
-            else:
-                op[i] = LightingLayer().fade_in(v, fp, universes_cache)
-        return op
+            op.update_from(v)
+
+        return self.fading_from_flattened.fade_in(op, fp, universes_cache)
 
     def mark_need_repaint_onto_universes(self, universe: str | None = None):
         # Make sure it's in a place where this will be noticed for at
@@ -219,13 +228,12 @@ class GroupLightingManager:
                 self.should_repaint_onto_universes[universe] = True
                 return
 
-            for i in self.cached_values_raw:
-                for j in self.cached_values_raw[i].values:
+            for i in self.cached_values_raw_by_effect:
+                for j in self.cached_values_raw_by_effect[i].values:
                     self.should_repaint_onto_universes[j] = True
 
-            for i in self.fading_from:
-                for j in self.fading_from[i].values:
-                    self.should_repaint_onto_universes[j] = True
+            for j in self.fading_from_flattened.values:
+                self.should_repaint_onto_universes[j] = True
 
     def next(self, cue: Cue | None, fade_in: bool = False):
         """Handle lighting related cue transition stuff"""
@@ -244,15 +252,20 @@ class GroupLightingManager:
                 backtracked = []
 
             with render_loop_lock:
-                self.fading_from = {}
+                self.fading_from_flattened = self.get_current_flattened_outputs(
+                    universes.getUniverses()
+                )
                 # Because just assigning would make them the same obj and it would be all
-                # corrupt
-                for i in self.cached_values_raw:
-                    self.fading_from[i] = LightingLayer(
-                        self.cached_values_raw[i]
-                    )
+                # corrupt so we make a new layer copy
+                op = self.get_current_flattened_outputs(
+                    universes.getUniverses()
+                )
+
+                self.fading_from_flattened = op.copy()
+                self.cached_values_raw_by_effect = {}
+
                 if not cue.track:
-                    self.cached_values_raw = {}
+                    self.cached_values_flattened = LightingLayer()
 
                 reentering = self.cue is cue
                 self.cue = cue
@@ -272,8 +285,7 @@ class GroupLightingManager:
                             )
 
                 self.update_state_from_cue_vals(
-                    cue.name,
-                    copy.deepcopy(cue.lighting_effects),
+                    cue,
                     clearBefore=not cue.track,
                 )
 
@@ -283,113 +295,99 @@ class GroupLightingManager:
 
     def stop(self):
         with render_loop_lock:
-            for i in self.cached_values_raw:
-                for j in self.cached_values_raw[i].values:
+            for i in self.cached_values_raw_by_effect:
+                for j in self.cached_values_raw_by_effect[i].values:
                     universes.request_rerender[j] = True
 
-            self.fading_from = {}
-            self.cached_values_raw = {}
+            self.fading_from_flattened = LightingLayer()
+            self.cached_values_flattened = LightingLayer()
+            self.cached_values_raw_by_effect = {}
 
             # Just using this to get rid of prev value
             self._blend = blendmodes.HardcodedBlendMode(self)
 
     def update_state_from_cue_vals(
         self,
-        cuename: str,
-        effect_data: list[EffectData],
+        cue: Cue,
         use_dynamic=True,
         clearBefore=False,
     ):
         """Apply everything from the cue to the fade canvas"""
 
         with render_loop_lock:
-            # Loop over universes in the cue
-            if clearBefore:
-                # Rerender everything we no longer affect
-                self.mark_need_repaint_onto_universes()
-                self.cached_values_raw = {}
-                x = self.generators_by_effect
-                self.generators_by_effect = {}
-                for i in x:
-                    x[i].return_to_pool()
+            # Rerender everything we no longer affect
+            self.mark_need_repaint_onto_universes()
+            self.cached_values_raw_by_effect = {}
+            x = self.generators_by_effect
+            self.generators_by_effect = {}
+            for i in x:
+                x[i].return_to_pool()
 
-            for effect in effect_data:
+            if clearBefore:
+                self.cached_values_flattened = LightingLayer()
+
+            for effect in cue.lighting_effects:
                 if not (use_dynamic or effect["type"] == "direct"):
                     continue
-                if effect["id"] not in self.cached_values_raw:
-                    self.cached_values_raw[effect["id"]] = LightingLayer()
+                if effect["id"] not in self.cached_values_raw_by_effect:
+                    self.cached_values_raw_by_effect[effect["id"]] = (
+                        LightingLayer()
+                    )
 
-                effectlayer = self.cached_values_raw[effect["id"]]
+                effectlayer = self.cached_values_raw_by_effect[effect["id"]]
 
-                for kp in effect["keypoints"]:
-                    use_suffix = "[" in kp["target"]
-                    # If user does something like @fixture[0:10],
-                    # then that means we're referring to an array of fixtures.
-                    for spread_num in parse_interval(kp["target"]):
-                        universe = universes.mapUniverse(
-                            kp["target"]
-                            + (f"[{spread_num}]" if use_suffix else "")
+                self.apply_effect_data_to_layer(effect, effectlayer)
+                self.refresh_generator_layout(cue, effect["id"])
+                self.get_current_flattened_outputs(universes.getUniverses())
+
+    def apply_effect_data_to_layer(
+        self, effect: EffectData, layer: LightingLayer
+    ):
+        for kp in effect["keypoints"]:
+            use_suffix = "[" in kp["target"]
+            # If user does something like @fixture[0:10],
+            # then that means we're referring to an array of fixtures.
+            for spread_num in parse_interval(kp["target"]):
+                universe = universes.mapUniverse(
+                    kp["target"] + (f"[{spread_num}]" if use_suffix else "")
+                )
+                if not universe:
+                    continue
+
+                universe_object = universes.getUniverse(universe)
+
+                if universe.startswith("/"):
+                    self.on_demand_universes[universe] = (
+                        universes.get_on_demand_universe(universe)
+                    )
+                    universe_object = self.on_demand_universes[universe]
+
+                if not universe_object:
+                    continue
+
+                if universe not in layer.values:
+                    size = len(universe_object.values)
+                    layer.values[universe] = numpy.array(
+                        [0.0] * size, dtype="f4"
+                    )
+
+                    layer.alphas[universe] = numpy.array(
+                        [0.0] * size, dtype="f4"
+                    )
+
+                for j in kp["values"]:
+                    if isinstance(j, str) and j.startswith("__"):
+                        continue
+
+                    cue_value = kp["values"][j]
+
+                    x = universes.mapChannel(kp["target"].split("[")[0], j)
+                    if x:
+                        universe, channel = x[0], x[1]
+                        layer.values[universe][channel] = cue_value
+                        layer.alphas[universe][channel] = (
+                            1.0 if cue_value is not None else 0
                         )
-                        if not universe:
-                            continue
-
-                        universe_object = universes.getUniverse(universe)
-
-                        if universe.startswith("/"):
-                            self.on_demand_universes[universe] = (
-                                universes.get_on_demand_universe(universe)
-                            )
-                            universe_object = self.on_demand_universes[universe]
-
-                        if not universe_object:
-                            continue
-
-                        if universe not in effectlayer.values:
-                            size = len(universe_object.values)
-                            effectlayer.values[universe] = numpy.array(
-                                [0.0] * size, dtype="f4"
-                            )
-
-                            effectlayer.alphas[universe] = numpy.array(
-                                [0.0] * size, dtype="f4"
-                            )
-
-                        for j in kp["values"]:
-                            if isinstance(j, str) and j.startswith("__"):
-                                continue
-
-                            cue_value = kp["values"][j]
-
-                            x = universes.mapChannel(
-                                kp["target"].split("[")[0], j
-                            )
-                            if x:
-                                universe, channel = x[0], x[1]
-                                try:
-                                    effectlayer.values[universe][channel] = (
-                                        cue_value
-                                    )
-                                    effectlayer.alphas[universe][channel] = (
-                                        1.0 if cue_value is not None else 0
-                                    )
-                                except Exception:
-                                    print("err", traceback.format_exc())
-
-                                    self.group.event_background(
-                                        "script.error",
-                                        self.group.name
-                                        + " cue "
-                                        + cuename
-                                        + " Val "
-                                        + str((universe, channel))
-                                        + "\n"
-                                        + traceback.format_exc(),
-                                    )
-                self.refresh_generator_layout(effect["id"])
-
-            for i in self.fading_from:
-                if i not in self.cached_values_raw:
-                    self.cached_values_raw[i] = LightingLayer()
 
     def fade_complete_cleanup(self):
         """Called when the fade is complete,
@@ -402,8 +400,8 @@ class GroupLightingManager:
         with render_loop_lock:
             odu = {}
 
-            for i in self.cached_values_raw:
-                for j in self.cached_values_raw[i].values:
+            for i in self.cached_values_raw_by_effect:
+                for j in self.cached_values_raw_by_effect[i].values:
                     u = universes.mapUniverse(j)
                     if u and u.startswith("/"):
                         odu[u] = universes.get_on_demand_universe(j)
@@ -411,9 +409,7 @@ class GroupLightingManager:
             self.on_demand_universes = odu
             self.fade_in_completed = True
 
-    def collect_backtracked_values(
-        self, destination_cue: Cue
-    ) -> list[tuple[str, list[EffectData]]]:
+    def collect_backtracked_values(self, destination_cue: Cue) -> list[Cue]:
         # When jumping to a cue that isn't directly the next one, apply and "parent" cues.
         # We go backwards until we find a cue that has no parent. A cue has a parent if and only if it has either
         # an explicit parent or the previous cue in the numbered list either has the default next cue or explicitly
@@ -424,7 +420,7 @@ class GroupLightingManager:
         # this cue, but that is nit supported yet
 
         # Todo this holds group lock way too long
-        to_apply = []
+        to_apply: list[Cue] = []
         with self.group.lock:
             if not self.cue:
                 return to_apply
@@ -449,12 +445,7 @@ class GroupLightingManager:
                     if x == self.cue.name:
                         break
 
-                    to_apply.append(
-                        (
-                            (self.group.cues[x].name),
-                            copy.deepcopy(self.group.cues[x].lighting_effects),
-                        )
-                    )
+                    to_apply.append(self.group.cues[x])
                     seen[x] = True
                     x = self.group.getParent(x)
                     safety -= 1
@@ -462,13 +453,11 @@ class GroupLightingManager:
                         break
         return to_apply
 
-    def apply_backtracked_values(
-        self, to_apply: list[tuple[str, list[EffectData]]]
-    ):
+    def apply_backtracked_values(self, to_apply: list[Cue]):
         with render_loop_lock:
             # Apply all the lighting changes we would have seen if we had gone through the list one at a time.
             for c in reversed(to_apply):
-                self.update_state_from_cue_vals(c[0], c[1], use_dynamic=False)
+                self.update_state_from_cue_vals(c, use_dynamic=False)
 
     def setup_blend_args(self):
         # Fill in defaults
@@ -653,9 +642,7 @@ def composite_layers_from_board(
         if i.lighting_manager.fade_in_completed:
             i.lighting_manager.should_repaint_onto_universes = {}
 
-        x = i.lighting_manager.get_current_output(universesSnapshot).get(
-            "default", LightingLayer()
-        )
+        x = i.lighting_manager.get_current_flattened_outputs(universesSnapshot)
 
         # Loop over universes the group affects
         for u in x.values:
