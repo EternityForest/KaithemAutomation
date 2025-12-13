@@ -275,14 +275,12 @@ async function restSetCueValue(cue, effect, universe, channel, value) {
   });
 }
 
-
-
 export async function restSetCueKeypointMeta(
   cue,
   effect,
   universe,
   channel,
-  value,
+  value
 ) {
   await doSerialized(async () => {
     var x = cueSetData[cue + "value"];
@@ -301,9 +299,8 @@ export async function restSetCueKeypointMeta(
         "/" +
         encodeURIComponent(channel.toString()) +
         "?" +
-      new URLSearchParams({
-        value: JSON.stringify(value),
-        position: JSON.stringify(new_pos),
+        new URLSearchParams({
+          value: JSON.stringify(value),
         }).toString(),
       {
         method: "PUT",
@@ -722,7 +719,7 @@ export function addRangeFix(cue, effect, fix) {
     if (step == 1) {
       postFix = "[" + startIndex + "," + endIndex + "]";
     }
-    postFix = "[" + startIndex + ":" + endIndex + ":" + step +  "]";
+    postFix = "[" + startIndex + ":" + endIndex + ":" + step + "]";
   }
 
   api_link.send(["add_cuef", cue, effect, fix + postFix]);
@@ -750,7 +747,7 @@ export function addAutoFix(cue, effect, fix) {
     if (step == 1) {
       postFix = "[" + startIndex + "," + endIndex + "]";
     }
-    postFix = "[" + startIndex + ":" + endIndex + ":" + step +  "]";
+    postFix = "[" + startIndex + ":" + endIndex + ":" + step + "]";
   }
 
   api_link.send(["add_cuef_auto", cue, effect, fix + postFix]);

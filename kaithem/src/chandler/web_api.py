@@ -309,6 +309,7 @@ async def set_cue_effect_rest(cue_id: str, effect: str):
                     "type": "direct",
                     "id": str(uuid.uuid4()),
                     "keypoints": [],
+                    "config": {},
                 }
                 cue.lighting_effects.append(y)
                 x = y

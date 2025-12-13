@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import struct
 import tomllib
@@ -145,6 +146,12 @@ class PluginLoader:
 
         p1 = os.path.join(p, "plugin.wasm")
         p2 = os.path.join(p, "plugin.debug.wasm")
+
+        self.schema: dict[str, Any] | None = None
+
+        if os.path.exists(os.path.join(p, "schema.json")):
+            with open(os.path.join(p, "schema.json"), "rb") as f:
+                self.schema = json.load(f)
 
         if os.path.exists(p2):
             if not os.path.exists(p1) or os.path.getmtime(

@@ -19,7 +19,7 @@ from kaithem.src.kegs import package_store
 from .universes import get_channel_meta, mapChannel, mapUniverse
 
 lighting_generators = package_store.list_by_type(
-    "kaithem.chandler.lighting-generator"
+    "kaithem.chandler.lighting-generator", include_schemas=True
 )
 
 

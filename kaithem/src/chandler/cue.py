@@ -231,6 +231,7 @@ class Keypoint(TypedDict):
 
 class EffectData(TypedDict):
     type: str
+    config: dict[str, Any]
     keypoints: list[Keypoint]
     id: str
 

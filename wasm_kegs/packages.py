@@ -1,3 +1,4 @@
+import json
 import os
 import threading
 import tomllib
@@ -38,7 +39,9 @@ class PackageStore:
 
         self.paths = paths
 
-    def list_by_type(self, typ: str) -> list[dict[str, Any]]:
+    def list_by_type(
+        self, typ: str, include_schemas: bool = False
+    ) -> list[dict[str, Any]]:
         discovered: list[dict[str, Any]] = []
 
         for i in self.paths:
@@ -60,6 +63,10 @@ class PackageStore:
                         plugin["full_name"] = (
                             f"{plugin['package']}:{plugin['name']}"
                         )
+                        if include_schemas:
+                            plugin["schema"] = self.get_plugin_schema(
+                                plugin["full_name"]
+                            )
                         discovered.append(plugin)
 
         return discovered
@@ -104,6 +111,15 @@ class PackageStore:
             return path
 
         raise RuntimeError(f"Could not find package {package}")
+
+    def get_plugin_schema(self, plugin) -> dict[str, Any]:
+        plugin_dir = self.find_plugin(plugin)
+
+        if not os.path.exists(os.path.join(plugin_dir, "schema.json")):
+            return {}
+
+        with open(os.path.join(plugin_dir, "schema.json"), "rb") as f:
+            return json.load(f)
 
     def find_plugin(self, plugin) -> str:
         package, plugin = parse_plugin_name(plugin)

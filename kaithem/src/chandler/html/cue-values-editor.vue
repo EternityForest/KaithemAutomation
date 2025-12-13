@@ -65,10 +65,9 @@
                   v-bind:key="i"
                   v-bind:title="i['full_name']">
                   {{ i["name"] }}
-                </option>                
-                
-                <option :value="effect['type']">{{ effect["type"] }}</option>
+                </option>
 
+                <option :value="effect['type']">{{ effect["type"] }}</option>
               </select>
             </label>
 
@@ -81,6 +80,20 @@
             </button>
           </div>
           <div class="flex-row">
+
+            <json-editor
+              v-model="effect['settings']"
+              :options="{}"
+              :schema="{}"
+              v-on:change="
+                restSetCueEffectMeta(
+                  currentcueid,
+                  effect['id'],
+                  cuevals[currentcueid][effectidx]
+                )
+              "
+              :no_edit="no_edit"></json-editor>
+
             <template
               v-for="(keypoint, u_idx) in effect['keypoints'] || []"
               v-bind:key="u_idx">
@@ -505,6 +518,8 @@ export default {
     "fixture-presets-dialog": globalThis.httpVueLoader(
       "./fixture-presets-dialog.vue"
     ),
+    "json-editor": globalThis.httpVueLoader("./json-editor.vue"),
+
     "combo-box": globalThis.httpVueLoader("/static/vue/ComboBox.vue"),
     "h-fader": globalThis.httpVueLoader("./hfader.vue"),
     // "fixture-presets-dialog": globalThis.httpVueLoader(
