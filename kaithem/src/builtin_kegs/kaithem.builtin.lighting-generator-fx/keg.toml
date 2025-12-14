@@ -9,3 +9,9 @@ author = "Daniel Dunn"
 name = "gradient-generator"
 type = "kaithem.chandler.lighting-generator"
 title = "Gradient Generator"
+
+
+[[plugins]]
+name = "function-eval"
+type = "kaithem.chandler.lighting-generator"
+title = "Function Eval"

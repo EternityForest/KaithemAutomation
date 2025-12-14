@@ -1,10 +1,13 @@
 [package]
-name = "kaithem-gradient-generator"
+name = "kaithem-function_eval"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+exp-rs = "0.1.0"
 extism-pdk = "1.4.1"
+fchashmap = "0.1.3"
+picojson = "0.2.1"
 wasm-kegs-sdk = { path = "../../../../../../../../../wasm_kegs/rust_sdk" }
 
 [lib]

@@ -84,7 +84,8 @@
             <json-editor
               v-model="effect['settings']"
               :options="{}"
-              :schema="{}"
+              v-if="plugin_info['kaithem.chandler.lighting-generator'][effect['type']]?.schema"
+              :schema="plugin_info['kaithem.chandler.lighting-generator'][effect['type']]['schema']"
               v-on:change="
                 restSetCueEffectMeta(
                   currentcueid,

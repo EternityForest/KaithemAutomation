@@ -132,6 +132,16 @@ unsafe fn find_next_fixture_after(ptr: u64) -> u64 {
 }
 
 #[plugin_fn]
+pub unsafe fn set_config(_input: String) -> FnResult<()> {
+    return Ok(());
+}
+
+#[plugin_fn]
+pub unsafe fn reset_state() -> FnResult<()> {
+    return Ok(());
+}
+
+#[plugin_fn]
 pub unsafe fn process(input: Vec<u8>) -> FnResult<Vec<u8>> {
     let mut keg_payload: KegsPayload = KegsPayload::from_bytes(input);
     let start: u64 = keg_payload.read_i64().try_into().unwrap();

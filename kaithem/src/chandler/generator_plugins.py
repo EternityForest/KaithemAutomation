@@ -272,6 +272,13 @@ class WASMPlugin:
 
         return rv
 
+    def set_config(self, config: dict[str, Any]):
+        "This also serves a"
+        self.plugin.call_plugin("set_config", json.dumps(config))
+
+    def reset_state(self):
+        self.plugin.call_plugin("reset_state", "")
+
     def effect_data_to_layout(
         self, cue: str, effectid: str, effect_data: EffectData
     ):

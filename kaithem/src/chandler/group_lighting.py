@@ -111,6 +111,7 @@ class GroupLightingManager:
                         "keypoints": [],
                         "type": "direct",
                         "id": effect,
+                        "config": {},
                     }
 
                 if effect in self.generators_by_effect:
