@@ -48,7 +48,7 @@
               >Type:
               <select
                 v-model="effect['type']"
-                @change="
+                @change="effect['config'] = {};
                   restSetCueEffectMeta(
                     currentcueid,
                     effect['id'],
@@ -82,15 +82,16 @@
           <div class="flex-row">
 
             <json-editor
-              v-model="effect['settings']"
+              :modelValue="effect['config']"
               :options="{}"
-              v-if="plugin_info['kaithem.chandler.lighting-generator'][effect['type']]?.schema"
-              :schema="plugin_info['kaithem.chandler.lighting-generator'][effect['type']]['schema']"
-              v-on:change="
+              v-if="getPluginSchema('kaithem.chandler.lighting-generator', effect['type'])"
+              :schema="getPluginSchema('kaithem.chandler.lighting-generator',effect['type'])"
+              @change="
+                effect['config'] = $event;
                 restSetCueEffectMeta(
                   currentcueid,
                   effect['id'],
-                  cuevals[currentcueid][effectidx]
+                  effect
                 )
               "
               :no_edit="no_edit"></json-editor>
@@ -407,6 +408,7 @@ import {
   restSetCueEffectMeta,
   doSerialized,
   plugin_info,
+  getPluginSchema,
 } from "./boardapi.mjs";
 
 import { ref } from "/static/js/thirdparty/vue.esm-browser.js";
@@ -483,8 +485,8 @@ function addEffectToCue() {
     "effect" + cuevals.value[currentcueid.value].length,
     {
       type: "direct",
-      keypoints: {},
-      auto: [],
+      keypoints: [],
+      config: {},
     }
   );
 }

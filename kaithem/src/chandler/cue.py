@@ -95,7 +95,14 @@ def upgrade_legacy_lighting_values(d: dict[str, Any]):
             {
                 "type": "direct",
                 "id": str(uuid.uuid4()),
-                "keypoints": [{"target": i, "values": d[i]} for i in d],
+                "config": {},
+                "keypoints": [
+                    {
+                        "target": i,
+                        "values": d[i],
+                    }
+                    for i in d
+                ],
             }
         )
 

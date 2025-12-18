@@ -1,5 +1,4 @@
 use exp_rs::types::AstExpr;
-use extism_pdk::json::value;
 use extism_pdk::*;
 use fchashmap::FcHashMap;
 use picojson::{Event, PullParser, SliceParser};
@@ -10,6 +9,8 @@ use exp_rs::eval::eval_ast;
 use std::rc::Rc;
 
 use wasm_kegs_sdk::KegsPayload;
+use wasm_kegs_sdk::LogLevel;
+use wasm_kegs_sdk::log;
 
 static mut EXPR_BY_CHANNEL: Option<FcHashMap<i64, AstExpr, 64>> = None;
 static mut CONTEXT: Option<Rc<EvalContext>> = None;
@@ -97,14 +98,25 @@ pub unsafe fn set_config(json: Vec<u8>) -> FnResult<()> {
         match event.unwrap() {
             Event::Key(key) => {
                 channel = color_to_code(&key);
+
+                if(channel == -1) {
+                    log(LogLevel::Error,
+                    format!(
+                        "Failed to parse channel key for channel {}",
+                        key
+                    ))
+                }
             }
             Event::String(value) => {
+                if(channel == -1) { continue; }
+                if(value.len() == 0) { continue; }
                 let expr = parse_expression(&value);
                 if expr.is_err() {
-                    println!(
-                        "Failed to parse expression for channel {}",
-                        channel
-                    );
+                    log(LogLevel::Error,
+                    format!(
+                        "Failed to parse expression: {}",
+                        value
+                    ));
                 } else {
                     EXPR_BY_CHANNEL
                         .as_mut()

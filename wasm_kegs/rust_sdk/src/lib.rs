@@ -1,5 +1,16 @@
 use extism_pdk::*;
 
+// Define the enum
+pub enum LogLevel {
+    Trace = 0,
+    Debug = 10,
+    Info = 20,
+    Warn = 30,
+    Error = 40,
+    Critical = 50
+}
+
+
 /// The KegsPayload is used to encode the arguments for
 /// Kegs plugins that do not just use simple primitive types.
 pub struct KegsPayload {
@@ -76,5 +87,29 @@ extern "ExtismHost" {
 
 #[host_fn("extism:host/user")]
 extern "ExtismHost" {
-    pub fn keg_print(text: String) -> ();
+    fn keg_print(text: String) -> ();
+}
+
+/// Print text to be handled by the host
+pub fn print(text: String) {
+    unsafe {
+        let _ = keg_print(text);
+    }
+}
+
+
+#[host_fn("extism:host/user")]
+extern "ExtismHost" {
+    fn keg_log(pl: Vec<u8>) -> ();
+}
+
+
+/// Log data to be handled by the host
+pub fn log(level: LogLevel, text: String) {
+    let mut buf = KegsPayload::new();
+    buf.write_i64(level as i64);
+    buf.write_bytes(text.as_bytes());
+    unsafe {
+        let _ = keg_log(buf.into_bytes());
+    }
 }

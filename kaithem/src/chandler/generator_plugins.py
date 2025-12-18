@@ -16,6 +16,7 @@ import wasm_kegs
 from kaithem.src import kegs
 from kaithem.src.kegs import package_store
 
+from .global_actions import async_event
 from .universes import get_channel_meta, mapChannel, mapUniverse
 
 lighting_generators = package_store.list_by_type(
@@ -56,15 +57,19 @@ def get_plugin(name: str, config: dict[str, Any]) -> WASMPlugin:
     if not name or name == "direct":
         raise RuntimeError("No plugin specified")
 
+    found = None
     with wasm_plugin_pool_lock:
         for p in list(wasm_plugin_pool):
             if p.plugin.plugin_name == name:
+                found = p
                 wasm_plugin_pool.remove(p)
-                return p
 
-    p = WASMPlugin(name, config)
-    p.generator_type = "name"
-    return p
+    if not found:
+        found = WASMPlugin(name, config)
+    found.reset_state()
+    found.set_config(config)
+    found.generator_type = name
+    return found
 
 
 """
@@ -132,6 +137,8 @@ class WASMPlugin:
         self.dynamic = False
 
         self.generator_type = "direct"
+
+        self.corrupted = False
 
         self.precomputed_mappings: dict[
             str,
@@ -273,11 +280,18 @@ class WASMPlugin:
         return rv
 
     def set_config(self, config: dict[str, Any]):
-        "This also serves a"
-        self.plugin.call_plugin("set_config", json.dumps(config))
+        try:
+            self.plugin.call_plugin("set_config", json.dumps(config))
+        except Exception:
+            self.corrupted = True
+            raise
 
     def reset_state(self):
-        self.plugin.call_plugin("reset_state", "")
+        try:
+            self.plugin.call_plugin("reset_state", "")
+        except Exception:
+            self.corrupted = True
+            raise
 
     def effect_data_to_layout(
         self, cue: str, effectid: str, effect_data: EffectData
@@ -288,23 +302,42 @@ class WASMPlugin:
         self.reverse_mapping = d["reverse_mapping"]
         self.precomputed_mappings = d["precomputed_mappings"]
 
-        self.plugin.call_plugin(
-            "set_channel_metadata", d["compiled_metadata_block"]
-        )
-        self.plugin.call_plugin("set_input_values", d["input_data_block"])
+        try:
+            self.plugin.call_plugin(
+                "set_channel_metadata", d["compiled_metadata_block"]
+            )
+            self.plugin.call_plugin("set_input_values", d["input_data_block"])
+        except Exception:
+            self.corrupted = True
+            raise
 
     def process(self, t: float):
-        return self.plugin.process(0, len(self.channel_mapping), t)
+        try:
+            return self.plugin.process(0, len(self.channel_mapping), t)
+        except Exception:
+            self.corrupted = True
+            raise
 
     def set_channel_metadata(
         self, ch_idx: int, metadata: list[tuple[int, int, dict[str, Any]]]
     ):
-        self.plugin.set_channel_metadata(ch_idx, metadata)
+        try:
+            self.plugin.set_channel_metadata(ch_idx, metadata)
+        except Exception:
+            self.corrupted = True
+            raise
 
     def set_input_values(self, ch_idx: int, vals: list[float] = []):
-        self.plugin.set_input_values(ch_idx, vals)
+        try:
+            self.plugin.set_input_values(ch_idx, vals)
+        except Exception:
+            self.corrupted = True
+            raise
 
     def return_to_pool(self):
+        # If there has ever been an error, don't reuse
+        if self.corrupted:
+            return
         with wasm_plugin_pool_lock:
             if len(wasm_plugin_pool) > 12:
                 wasm_plugin_pool.pop(0)
@@ -323,6 +356,11 @@ class Loader(wasm_kegs.PluginLoader):
         x = self.call_plugin("process", pl.data)
 
         return numpy.frombuffer(x, dtype=numpy.float32)
+
+    def on_log(self, level: int, text: str):
+        if level > 30:
+            async_event("board.error", text)
+        super().on_log(level, text)
 
     def set_channel_metadata(
         self, start_ch: int, metadata: list[tuple[int, int, dict[str, Any]]]

@@ -103,7 +103,9 @@ class GroupLightingManager:
                 if ed:
                     if not ed["type"] == "direct":
                         self.generators_by_effect[effect] = (
-                            generator_plugins.get_plugin(ed.get("type", ""), {})
+                            generator_plugins.get_plugin(
+                                ed.get("type", ""), ed.get("config", {})
+                            )
                         )
 
                 else:

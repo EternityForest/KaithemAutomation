@@ -1,0 +1,42 @@
+{
+  "type": "object",
+  "properties": {
+    "red": {
+      "type": "string"
+    },
+    "green": {
+      "type": "string"
+    },
+    "blue": {
+      "type": "string"
+    },
+    "white": {
+      "type": "string"
+    },
+    "warm_white": {
+      "type": "string"
+    },
+    "cool_white": {
+      "type": "string"
+    },
+
+    "uv": {
+      "type": "string"
+    },
+    "amber": {
+      "type": "string"
+    },
+    "lime": {
+      "type": "string"
+    },
+    "x": {
+      "type": "string"
+    },
+    "y": {
+      "type": "string"
+    },
+    "z": {
+      "type": "string"
+    }
+  }
+}

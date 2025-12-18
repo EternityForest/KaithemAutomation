@@ -40,7 +40,10 @@
         <button type="button" popovertarget="presetsDialog">
           <i class="mdi mdi-playlist-edit"></i>Presets
         </button>
-        <button type="button" v-on:click="showevents = !showevents">
+        <button type="button"
+        popovertarget="eventsWindow"
+        popovertargetaction="show"
+        >
           <i class="mdi mdi-flag"></i>Events
         </button>
 
@@ -306,8 +309,9 @@
       </section>
 
       <section
+        popover
+        id="eventsWindow"
         class="window margin flex-item"
-        v-if="showevents"
         style="position: fixed; z-index: 99; bottom: 0px; width: 97%">
         <header>
           <div class="tool-bar noselect">
@@ -316,7 +320,10 @@
               type="text"
               v-model="eventsFilterString"
               placeholder="Filter events" /><br />
-            <button type="button" v-on:click="showevents = 0">
+            <button type="button"
+            popovertarget="eventsWindow"
+            popoverclose
+            >
               <i class="mdi mdi-close"></i>Close
             </button>
           </div>
@@ -2541,6 +2548,7 @@ globalThis.addEventListener(
   "servererrorevent",
   (e) => {
     showevents.value = true;
+    document.querySelector("#eventsWindow").showPopover();
   },
   false
 );

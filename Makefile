@@ -99,7 +99,7 @@ dev-file-lines: # Show files sorted by line count
 
 
 .PHONY: dev-build
-dev-build: dev-build-docs # Build for release
+dev-build: dev-build-docs  dev-build-builtin-kegs # Build for release
     # Workaround for this file being left behind and breaking
 	@ ! rm .venv/lib/python3.12/site-packages/pandas/pyproject.toml
 	@bash scripts/uv_pinned_build.sh

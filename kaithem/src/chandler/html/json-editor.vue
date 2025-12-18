@@ -8,7 +8,8 @@ import { ref, watch, onMounted, onBeforeUnmount } from "/static/js/thirdparty/vu
 const properties = defineProps({
   schema: Object,
   modelValue: Object,
-  options: Object
+    options: Object,
+  no_edit: Boolean
 })
 
 const emit = defineEmits(['update:modelValue', 'change', 'ready'])
@@ -18,16 +19,21 @@ let editor = null
 let blockOne = true
 
 onMounted(() => {
+    blockOne = true
   editor = new JSONEditor(container.value, {
     schema: properties.schema,
-    startval: properties.modelValue,
+      startval: properties.modelValue,
+    readOnly: properties.no_edit,
     ...properties.options
   })
 
     editor.on('change', () => {
-        emit('update:modelValue', editor.getValue())
+        console.log('change')
         if (blockOne) { blockOne = false }
         else {
+
+            emit('update:modelValue', editor.getValue())
+
             emit('change', editor.getValue())
         }
   })

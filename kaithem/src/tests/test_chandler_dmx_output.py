@@ -124,7 +124,9 @@ def test_fixtures_to_dmx():
 
             # Changing a val should update the output
             test_chandler.board._onmsg(
-                "__admin__", ["scv", cid, "@testFixture", "green", 89], "test"
+                "__admin__",
+                ["scv", cid, "default", "@testFixture", "green", 89],
+                "test",
             )
 
             x = b""

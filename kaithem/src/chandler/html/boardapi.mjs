@@ -182,6 +182,15 @@ function triggerShortcut(sc) {
   api_link.send(["shortcut", sc]);
 }
 
+
+export function getPluginSchema(type,plugin) {
+  for(var p in plugin_info.value[type]){
+    if(plugin_info.value[type][p].full_name == plugin){
+    return plugin_info.value[type][p].schema;
+    }
+  }
+  return null;
+}
 // Slowly we want to migrate to these two generic setters
 async function setGroupProperty(group, property, value) {
   await doSerialized(async () => {

@@ -9,8 +9,11 @@ import weakref
 from typing import Any, TypeVar
 
 import extism
+from structlog import get_logger
 
 from . import packages
+
+logger = get_logger(__name__)
 
 _plugins_by_instance_id: weakref.WeakValueDictionary[str, PluginLoader] = (
     weakref.WeakValueDictionary()
@@ -40,6 +43,18 @@ def keg_print(current_plugin: extism.CurrentPlugin, text: str) -> bytes:
     plugin = get_running_instance(current_plugin)
 
     plugin.on_print(text)
+    return b""
+
+
+@extism.host_fn("keg_log")
+def keg_log(current_plugin: extism.CurrentPlugin, data: bytes) -> bytes:
+    pl = Payload(data)
+    level = pl.read_i64()
+    text = pl.read_string()
+
+    plugin = get_running_instance(current_plugin)
+
+    plugin.on_log(level, text)
     return b""
 
 
@@ -97,7 +112,7 @@ class PluginLoader:
         """A host_fn can define the first param as current_plugin: extism.CurrentPlugin,
         to be passed this.
 
-        Thia is  host_context() wrapper that checks the type.
+        This is  host_context() wrapper that checks the type.
         """
         x = current_plugin.host_context()  # type: ignore
         if not isinstance(x, cls):
@@ -112,6 +127,9 @@ class PluginLoader:
 
     def on_print(self, text: str):
         print(text)
+
+    def on_log(self, level: int, text: str):
+        logger.log(level, text)
 
     def __init__(self, plugin: str, config: dict[str, Any]):
         p = packages.get_package_store().find_plugin(plugin)
