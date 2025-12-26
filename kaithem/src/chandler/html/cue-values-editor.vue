@@ -363,6 +363,7 @@
                     <td>
                       <button
                         type="button"
+                        data-testid="add-fixture-to-cue-button"
                         v-on:click="addfixToCue(currentcueid, effect['id'], i)">
                         <i class="mdi mdi-plus"></i>Add
                       </button>

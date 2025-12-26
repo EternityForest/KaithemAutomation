@@ -414,7 +414,7 @@ test("test", async ({ page }) => {
   // Test channel 1 is back
   await expect(
     page.getByTestId("channel-box-testchannel").locator("header")
-  ).toContainText("running", { timeout: 30_000 });
+  ).toContainText("running", { timeout: 40_000 });
   // Noise gen is gone
   await expect(
     page

@@ -298,6 +298,10 @@ def startServer():
     dispatcher_app = AsgiDispatcher(hypercornapps)
 
     config2 = Config()
+
+    config2.max_app_queue_size = 50
+    config2.keep_alive_timeout = 15
+
     config2.bind = [
         f"{bindto}:{config['http_port']}"
     ]  # As an example configuration setting

@@ -448,10 +448,9 @@
 
 
 <script src="/static/js/thirdparty/vue3.js"></script>
-<script src="/static/js/thirdparty/vue3-sfc-loader.js"></script>
-
 
 <script type="module">
+  import { loadModule } from '/static/js/thirdparty/vue3-sfc-loader.esm.js'
   import { APIWidget } from '/static/js/widget.mjs?'
   let api = new APIWidget("${board.api.uuid}");
   let gapi = new APIWidget("${global_api.uuid}");
@@ -476,9 +475,6 @@
     return (l);
   };
 
-
-
-  const { loadModule } = window['vue3-sfc-loader'];
 
 
   const options = {

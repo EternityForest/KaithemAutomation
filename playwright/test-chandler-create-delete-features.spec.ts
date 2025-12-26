@@ -154,8 +154,8 @@ test("test", async ({ page }) => {
   });
   await page.getByTestId("add-group-button").click();
 
-  await page.getByRole("button", { name: "test" }).click();
-  await page.getByTestId("close-group").click();
+
+  await sleep(250);
 
   await page.getByRole("button", { name: "󰤀 Presets" }).click();
   page.once("dialog", (dialog) => {

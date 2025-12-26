@@ -71,7 +71,7 @@ test("test", async ({ page }) => {
 
   await page.getByRole("button", { name: "testgroup1" }).click();
   await page.getByTestId("add-rm-fixtures-button").click();
-  await page.getByRole("cell", { name: "󰐕 Add" }).getByRole("button").click();
+  await page.getByTestId("add-fixture-to-cue-button").click();
   await page
     .getByTestId("details-fixture-channels-summary")
     .locator("summary")

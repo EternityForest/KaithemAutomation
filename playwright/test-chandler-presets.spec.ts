@@ -35,7 +35,6 @@ test("test", async ({ page }) => {
   await page.getByRole("button", { name: "Universes" }).click();
   await page.getByPlaceholder("New Universe Name").click();
   await page.getByPlaceholder("New Universe Name").fill("test");
-  await page.getByRole("cell", { name: "Number" }).dblclick();
   await page.getByRole("button", { name: "Add", exact: true }).click();
   await page.getByRole("button", { name: "Update Settings" }).click();
   await page.getByRole("button", { name: "󰅖 Close" }).click();
@@ -122,8 +121,8 @@ test("test", async ({ page }) => {
     await globalThis.doSerialized();
   });
 
-  await page.getByRole("button", { name: "Add/Remove" }).click();
-  await page.getByRole("cell", { name: "󰐕 Add" }).getByRole("button").click();
+  await page.getByTestId("add-rm-fixtures-button").click();
+  await page.getByTestId("add-fixture-to-cue-button").click();
   await waitForTasks(page);
   await page.evaluate(async () => {
     await globalThis.doSerialized();

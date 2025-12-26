@@ -74,6 +74,7 @@ async function makeModule(page: Page, name: string) {
 }
 
 async function deleteModule(page: Page, name: string) {
+    await sleep(100); // Why???
     await page.goto('http://localhost:8002/');
 
     await page.getByRole('link', { name: 'Modules' }).click();

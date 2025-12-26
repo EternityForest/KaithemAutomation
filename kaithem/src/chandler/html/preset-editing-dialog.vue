@@ -102,7 +102,9 @@
       </p>
     </details>
     <div class="tool-bar">
-      <input type="text" v-model="filterPresets" placeholder="Filter" />
+      <input type="text" v-model="filterPresets" placeholder="Filter" 
+      data-testid="preset-inspector-filter"
+      />
       <button type="button" class="nogrow" @click="filterPresets = ''">
         <span class="mdi mdi-backspace"></span>
       </button>

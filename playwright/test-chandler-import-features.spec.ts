@@ -102,7 +102,7 @@ test("test", async ({ page }) => {
     page.getByRole("cell", { name: "UploadedFixture", exact: true })
   ).toBeVisible();
   await expect(
-    page.getByRole("cell", { name: "123" }).getByRole("textbox")
+    page.getByTestId("fixture-assignment-table-cell-addr").first()
   ).toHaveValue("123");
   await page.getByRole("button", { name: "Universes" }).click();
 
@@ -144,7 +144,7 @@ test("test", async ({ page }) => {
   await page.getByTestId("extras-button-playwrightchandlertestmodule3_board1").click();
   await page.getByRole("link", { name: "Editor" }).click();
   await page.getByRole("button", { name: "󰤀 Presets" }).click();
-  await page.getByPlaceholder("Filter").fill("upl");
+  await page.getByTestId("preset-inspector-filter").fill("upl");
   await page.getByText("UploadablePreset").click();
 
   await page.getByRole("button", { name: "󰅖 Close" }).click();

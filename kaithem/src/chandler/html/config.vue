@@ -704,6 +704,7 @@
               <input
                 class="w-4rem"
                 type="number"
+                data-testid="fixture-assignment-table-cell-addr"
                 v-on:change="setFixtureAssignment(i[1].name, i[1])"
                 v-model.number="i[1].addr" />
             </td>

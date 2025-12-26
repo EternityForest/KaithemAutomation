@@ -34,19 +34,19 @@
 
 * To decrease fragmentation and avoid depending to on small obscure vendors, generally prefer multifunctional, one size fits all toold
 
-* Do things in common, boring ways, unless there is a reason to do otherwise, common things have already been tested by others
+* Do things in common, boring ways, unless there is a reason to do otherwise, try to make sure as much of the system as possible is tested and proven.
 
 * Think about the user and experience in the context of other relevant tools and processes used alongside the project
 
-* Don't spend time supporting unusual configurations you don't actually need, like ancient EOL OSes
+* Don't spend time supporting unusual configurations you don't actually need, like ancient EOL OS versions or big endian CPUs.
 
 * Don't make unnecessary wrapper layers around things that are already de facto standards, directly expose them.
 
 * Don't modify and fork things, unless you're contributing to upstream, and don't build things that users would have to modify to use
 
-* Future proof things.  Don't use stuff that won't be around in ten years, migrate early if a technology is on it's way out
+* Future proof things.  Don't use stuff that won't be around in ten years, if possible, migrate early if a technology is very clearly on it's way out
 
-* People like free stuff, if something costs money, it's less likely to become "the standard", which is a major reason to prefer FOSS
+* People like free stuff, if something costs money, it's less likely to become "the standard", unless there are no free competitors.
 
 ## Safety
 
