@@ -41,6 +41,9 @@ object, and must be explicitly called.
 
 * :coffin: BREAKING: Can no longer use an expression as a value for a lighting cue.
 
+* :bug: Fix civil twilight and night tags not updating.
+
+
 
 ### 0.93.1
 

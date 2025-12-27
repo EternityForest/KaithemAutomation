@@ -96,6 +96,8 @@ def create():
 
     f()
 
+    refs.append(f)
+
 
 create()
 # Probably best not to automatically do anything that could cause IP traffic?
