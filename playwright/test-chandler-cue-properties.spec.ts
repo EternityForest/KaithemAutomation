@@ -1,5 +1,12 @@
 import { test, expect } from "@playwright/test";
-import { login, logout, makeModule, deleteModule, sleep } from "./util";
+import {
+  login,
+  logout,
+  makeModule,
+  deleteModule,
+  sleep,
+  waitForTasks,
+} from "./util";
 
 async function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -24,22 +31,18 @@ test("test", async ({ page }) => {
   await page.getByRole("link", { name: "testcue" }).click();
   await page.getByRole("link", { name: "󰏬 Edit" }).click();
 
-
   page.once("dialog", (dialog) => {
     console.log(`Dialog message: ${dialog.message()}`);
     dialog.accept("tst").catch(() => {});
   });
   await page.getByTestId("add-group-button").click();
 
-
   await sleep(200);
 
   await page.getByRole("button", { name: "tst" }).click();
   await page.getByTestId("cue-media-dialog-button").click();
 
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
+  await waitForTasks(page);
 
   await page.getByLabel("Sound start s into file.").click();
   await sleep(500);
@@ -115,25 +118,19 @@ test("test", async ({ page }) => {
     .getByRole("button", { name: "Set(Slide)" })
     .click();
 
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
+  await waitForTasks(page);
 
   await page.getByTestId("close-cue-media").click();
   await page.getByTestId("close-group").click();
 
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
+  await waitForTasks(page);
   // Verify
   await page.getByRole("link", { name: "󱒕 Modules" }).click();
   await page.getByRole("link", { name: "testcue" }).click();
   await page.getByRole("link", { name: "󰏬 Edit" }).click();
   await page.getByRole("button", { name: "tst" }).click();
   await page.getByTestId("cue-media-dialog-button").click();
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
+  await waitForTasks(page);
   await expect(page.getByTestId("cue-label-image-control")).toHaveValue(
     "img/16x9/apples-display.avif"
   );
@@ -160,7 +157,7 @@ test("test", async ({ page }) => {
   await expect(page.getByLabel("Loops")).toHaveValue("8");
   await page.getByTestId("close-cue-media").click();
   await page.getByTestId("close-group").click();
- 
+
   await delay(100);
   await deleteModule(page, "testcue");
   await logout(page);

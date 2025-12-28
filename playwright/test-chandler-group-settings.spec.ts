@@ -55,9 +55,7 @@ test("test", async ({ page }) => {
 
   await page.getByRole("button", { name: "ts1" }).click();
 
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
+  await waitForTasks(page);
 
   await page.getByTestId("group-properties-button").click();
   await page.getByLabel("Slideshow Overlay").click();
@@ -128,9 +126,7 @@ test("test", async ({ page }) => {
   await page.getByTestId("close-group-settings").click();
   await page.getByTestId("close-group").click();
 
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
+  await waitForTasks(page);
 
   await sleep(100);
 
@@ -160,9 +156,7 @@ test("test", async ({ page }) => {
 
   await page.getByTestId("close-group-settings").click();
   await page.getByTestId("close-group").click();
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
+  await waitForTasks(page);
   await sleep(100);
 
   // More checking
@@ -193,9 +187,7 @@ test("test", async ({ page }) => {
   await page.getByTestId("event_button_event").fill("evt1");
 
   await page.getByRole("button", { name: "Add Tag" }).click();
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
+  await waitForTasks(page);
 
   await page.getByTestId("display_tag_label").fill("tg1");
 
@@ -213,23 +205,17 @@ test("test", async ({ page }) => {
   await page.getByTestId("display_tag_tag").fill("=4");
 
   await sleep(300);
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
+  await waitForTasks(page);
 
   await page.getByTestId("display_tag_type").selectOption("Meter");
 
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
+  await waitForTasks(page);
   // Waste some time to let it send
 
   //TODO why is this flaky??? it shou;dn't need retry!!
   await page.getByTestId("display_tag_type").selectOption("Meter");
 
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
+  await waitForTasks(page);
 
   await sleep(600);
 
@@ -239,9 +225,7 @@ test("test", async ({ page }) => {
   await page.getByTestId("close-group").click();
 
   await sleep(300);
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
+  await waitForTasks(page);
   await sleep(100);
 
   await page.goto(
@@ -270,9 +254,7 @@ test("test", async ({ page }) => {
   await page.getByTestId("close-group-settings").click();
   await page.getByTestId("close-group").click();
 
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
+  await waitForTasks(page);
   await sleep(100);
 
   await page.goto(
@@ -329,9 +311,7 @@ test("test", async ({ page }) => {
   await page.getByTestId("close-group-settings").click();
   await page.getByTestId("close-group").click();
 
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
+  await waitForTasks(page);
   await sleep(100);
 
   // Check that it worked
@@ -366,9 +346,7 @@ test("test", async ({ page }) => {
   await page.getByTestId("close-group-settings").click();
   await page.getByTestId("close-group").click();
 
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
+  await waitForTasks(page);
   await sleep(100);
 
   await page.goto(

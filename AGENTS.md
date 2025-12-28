@@ -144,6 +144,10 @@
 
 * Don't store more than two or three items in a tuple, prefer structured objects with named keys.
 
+* Do not have functions that are longer than one page
+
+* Generally try to avoid mutable global variables.
+
 ## Details
 
 * 80 character line limits, always, regardless of modern display size.  It's hard to read wide text, and doesn't fit on screen once you add all the extra IDE panes.
@@ -151,3 +155,10 @@
 * Spaces not tabs.  We don't need two different whitespace chars.
 
 * No hand formatted code.  Just let the formattter do it and move on.
+
+* No single letter or extremlely terse names except in absolutely trivial functions.
+
+* Use assertions generously.
+
+* While() loops must have safety counters or upper bounds unless intended to run forever.
+

@@ -17,7 +17,12 @@ import {
 import { kaithemapi, APIWidget } from "/static/js/widget.mjs";
 import picodash from "/static/js/thirdparty/picodash/picodash-base.esm.js";
 
-import { computed, ref, toRaw } from "/static/js/thirdparty/vue.esm-browser.js";
+import {
+  computed,
+  ref,
+  toRaw,
+  nextTick,
+} from "/static/js/thirdparty/vue.esm-browser.js";
 
 let keysdown = {};
 
@@ -182,11 +187,10 @@ function triggerShortcut(sc) {
   api_link.send(["shortcut", sc]);
 }
 
-
-export function getPluginSchema(type,plugin) {
-  for(var p in plugin_info.value[type]){
-    if(plugin_info.value[type][p].full_name == plugin){
-    return plugin_info.value[type][p].schema;
+export function getPluginSchema(type, plugin) {
+  for (var p in plugin_info.value[type]) {
+    if (plugin_info.value[type][p].full_name == plugin) {
+      return plugin_info.value[type][p].schema;
     }
   }
   return null;
@@ -889,7 +893,8 @@ if (globalThis.previousSerializedPromise) {
 
 /*
 This function waits until the previous action has completed before
-doing the callback.
+doing the callback.  It also waits for any pending Vue dom updates
+or queued promises.
 
 Timeout does not apply to callback, only waiting for previous actions.
 Can call without a callback to just wait for previous actions.
@@ -902,6 +907,9 @@ It mostly exists to allow tests to wait for previous actions.
 */
 async function doSerialized(callback, timeout) {
   let previous = previousSerializedPromise.value;
+
+  await nextTick();
+  await new Promise((resolve) => resolve());
 
   const f = async () => {
     try {
@@ -1049,7 +1057,11 @@ function promptRenameCue(sc, s) {
   );
 
   if (x != null) {
-    api_link.send(["rename_cue", sc, s, x]);
+    doSerialized(async () => {
+      api_link.send(["rename_cue", sc, s, x]);
+    }).catch((error) => {
+      console.error(error);
+    });
   }
 }
 function deleteUniverse(u) {
@@ -1077,11 +1089,15 @@ function renamePreset(p) {
   if (n && n.length > 0) {
     var b = presets.value[p];
     if (b) {
-      delete presets.value[p];
-      api_link.send(["preset", p, null]);
+      doSerialized(async () => {
+        delete presets.value[p];
+        api_link.send(["preset", p, null]);
 
-      presets.value[n] = b;
-      api_link.send(["preset", n, b]);
+        presets.value[n] = b;
+        api_link.send(["preset", n, b]);
+      }).catch((error) => {
+        console.error(error);
+      });
     }
   }
 }
@@ -1092,8 +1108,12 @@ function copyPreset(p) {
   if (n && n.length > 0) {
     var b = presets.value[p];
     if (b) {
-      presets.value[n] = structuredClone(toRaw(b));
-      api_link.send(["preset", n, b]);
+      doSerialized(async () => {
+        presets.value[n] = structuredClone(toRaw(b));
+        api_link.send(["preset", n, b]);
+      }).catch((error) => {
+        console.error(error);
+      });
     }
   }
 }
@@ -1115,10 +1135,14 @@ function savePreset(v, suggestedname) {
     v2.values[index] = v.values[index];
   }
 
-  if (n && n.length > 0) {
-    presets.value[n] = v2;
-    api_link.send(["preset", n, v2]);
-  }
+  doSerialized(async () => {
+    if (n && n.length > 0) {
+      presets.value[n] = v2;
+      api_link.send(["preset", n, v2]);
+    }
+  }).catch((error) => {
+    console.error(error);
+  });
 }
 
 async function notifyPopupComputedCueLengthgth(cuelenstr, force) {
@@ -1152,9 +1176,11 @@ function getPresetImage(preset) {
 }
 
 function updatePreset(index, v) {
-  /*Update given a name and the modified data as would be found in the presets file*/
-  presets.value[index] = v;
-  api_link.send(["preset", index, v]);
+  doSerialized(async () => {
+    /*Update given a name and the modified data as would be found in the presets file*/
+    presets.value[index] = v;
+    api_link.send(["preset", index, v]);
+  }).catch(console.error);
 }
 
 function channelInfoForUniverseChannel(u, c) {

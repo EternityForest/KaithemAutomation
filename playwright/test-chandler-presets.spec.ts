@@ -49,9 +49,7 @@ test("test", async ({ page }) => {
 
   await page.getByTestId("fixture-type-to-edit").selectOption("textfixtype");
 
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
+  await waitForTasks(page);
 
   await sleep(1000);
   //TODO should not need to run twice??????
@@ -59,9 +57,7 @@ test("test", async ({ page }) => {
   await page.getByRole("button", { name: "Add Channel" }).click();
   await sleep(100);
 
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
+  await waitForTasks(page);
   await sleep(1000);
 
   await page.getByLabel("Type:").first().selectOption("intensity");
@@ -102,9 +98,7 @@ test("test", async ({ page }) => {
   await page.getByTestId("newfixaddr").fill("1");
   await page.getByTestId("newfixaddr").click();
 
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
+  await waitForTasks(page);
 
   await page.getByRole("button", { name: "Add and Update" }).click();
 
@@ -117,16 +111,12 @@ test("test", async ({ page }) => {
   });
 
   await page.getByRole("button", { name: "foo" }).click();
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
+  await waitForTasks(page);
 
   await page.getByTestId("add-rm-fixtures-button").click();
   await page.getByTestId("add-fixture-to-cue-button").click();
   await waitForTasks(page);
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
+  await waitForTasks(page);
 
   await page.getByRole("button", { name: "󰢻 Normal View" }).click();
 
@@ -145,9 +135,7 @@ test("test", async ({ page }) => {
     .getByRole("slider")
     .fill("255");
 
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
+  await waitForTasks(page);
 
   page.once("dialog", (dialog) => {
     console.log(`Dialog message: ${dialog.message()}`);
@@ -155,10 +143,8 @@ test("test", async ({ page }) => {
   });
   await page.getByTestId("save-preset-options").selectOption("");
 
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
-  
+  await waitForTasks(page);
+
   await page
     .locator("div")
     .filter({ hasText: /^blue253\.0$/ })
@@ -170,9 +156,7 @@ test("test", async ({ page }) => {
     .getByRole("slider")
     .fill("0");
 
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
+  await waitForTasks(page);
 
   await page.getByTestId("select-preset-for-fixture").click();
   await page
@@ -180,9 +164,7 @@ test("test", async ({ page }) => {
     .getByRole("button", { name: "testaqua" })
     .click();
 
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
+  await waitForTasks(page);
 
   await expect(
     page
@@ -190,6 +172,13 @@ test("test", async ({ page }) => {
       .filter({ hasText: /^blue253\.0$/ })
       .getByRole("slider")
   ).toHaveValue("253");
+
+  await expect(
+    page
+      .locator("div")
+      .filter({ hasText: /^green255\.0$/ })
+      .getByRole("slider")
+  ).toHaveValue("255");
 
   // Change the cue and make sure it doesn't mess up the preset
   await page
@@ -246,17 +235,13 @@ test("test", async ({ page }) => {
   // Click away so it saves
   await page.getByRole("textbox", { name: "blue" }).click();
 
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
+  await waitForTasks(page);
   // Rename the preset
   page.once("dialog", (dialog) => {
     dialog.accept("testaqua2").catch(() => {});
   });
 
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
+  await waitForTasks(page);
 
   await page
     .getByTestId("preset-inspector-testaqua-heading")
@@ -275,18 +260,14 @@ test("test", async ({ page }) => {
     .fill("15");
 
   // Avoid race condition with the presets, make sure nothing is still queued when it happens
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
+  await waitForTasks(page);
   await page.getByTestId("select-preset-for-fixture").click();
   await page
     .getByTestId("presets-list")
     .getByRole("button", { name: "testaqua2" })
     .click();
 
-  await page.evaluate(async () => {
-    await globalThis.doSerialized();
-  });
+  await waitForTasks(page);
   // Blue should have the value we set in the preset editor
   await expect(
     page
@@ -301,17 +282,20 @@ test("test", async ({ page }) => {
   // Rendering may have latency under load
   await sleep(1000);
 
-  await page.goto(
-    "http://localhost:8002/chandler/config/test_presets:p"
-  );
-  await page.getByRole("button", { name: "Universes" }).click();
-  await page
-    .getByTestId("universe-status-table")
-    .getByRole("row", { name: "test" })
-    .getByRole("link", { name: "Values" })
-    .click();
-  await expect(page.locator("section")).toContainText("255.0");
-  await expect(page.locator("section")).toContainText("233.0");
+  await expect(async () => {
+    await page.goto("http://localhost:8002/chandler/config/test_presets:p");
+    await page.getByRole("button", { name: "Universes" }).click();
+    await page
+      .getByTestId("universe-status-table")
+      .getByRole("row", { name: "test" })
+      .getByRole("link", { name: "Values" })
+      .click();
+    await expect(page.locator("section")).toContainText("255.0");
+    await expect(page.locator("section")).toContainText("233.0");
+  }).toPass({
+    intervals: [1000, 2000, 10_000],
+    timeout: 60_000,
+  });
 
   await deleteModule(page, "test_presets");
 });
