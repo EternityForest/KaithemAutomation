@@ -148,6 +148,8 @@
 
 * Generally try to avoid mutable global variables.
 
+* Use modern versions of APIs, prefer things like ESM modules over things like regular JS files.
+
 ## Details
 
 * 80 character line limits, always, regardless of modern display size.  It's hard to read wide text, and doesn't fit on screen once you add all the extra IDE panes.

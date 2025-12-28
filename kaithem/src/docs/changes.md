@@ -44,6 +44,8 @@ object, and must be explicitly called.
 * :bug: Fix civil twilight and night tags not updating.
 
 
+* :sparkles: The web console feature is back as a proper ASGI compatible addon!
+
 
 ### 0.93.1
 
