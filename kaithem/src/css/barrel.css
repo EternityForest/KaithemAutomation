@@ -1886,6 +1886,11 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
   background: var(--box-bg);
 }
 
+.no-background {
+  background: transparent !important;
+}
+
+
 .readability-outline {
   text-shadow:
     2px 2px 2px var(--contrasting-bg-color),
@@ -1940,7 +1945,8 @@ iframe.h-center {
   border: var(--border);
 }
 
-.noselect {
+
+.noselect, .no-select {
   user-select: none;
 }
 
@@ -1948,7 +1954,7 @@ iframe.h-center {
   user-select: auto !important;
 }
 
-.nogaps {
+.nogaps, .no-gaps {
   gap: 0px;
 
   & > :not(.specificity_hack) {
@@ -1986,15 +1992,15 @@ footer.padding {
   font-style: normal;
 }
 
-.nopadding {
+.nopadding, .no-padding {
   padding: 0px;
 }
 
-.nogrow {
+.nogrow, .no-grow {
   flex-grow: 0 !important;
 }
 
-.noshrink {
+.noshrink, .no-shrink {
   flex-grow: 0;
 }
 
@@ -2014,7 +2020,7 @@ footer.padding {
   margin-bottom: var(--gap);
 }
 
-.nomargin {
+.nomargin, .no-margin {
   margin: 0px;
 }
 

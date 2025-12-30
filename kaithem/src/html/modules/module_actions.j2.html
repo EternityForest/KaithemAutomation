@@ -1,8 +1,24 @@
-<div class="scroll h-12rem">
-    <form action="/modules/module/{{name}}/action" method="POST"  target="_PARENT">
-    {% for i in module_actions.action_types %}
-    <input type="hidden"  value="{{dir|escape}}" name="dir">
-    <button type="submit" value="{{i}}" name="action">{{module_actions.action_types[i].title}}</button><br>
-    {% endfor %}
-    </form>
-</div>
+{% set theming = imp0rt( 'kaithem.src.theming' ) %}
+{% set config = imp0rt( 'kaithem.src.config' ) %}
+<html class="no-background">
+<head>
+    <meta content="text/html; charset=ISO-8859-1" http-equiv="content-type">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="/static/css/barrel.css?">
+    <link rel="stylesheet" type="text/css" href="/static/css/kaithem.css?">
+    <link rel="stylesheet" type="text/css" href="/dynamic.css/{{theming.theme_ver}}">
+    <link rel="stylesheet" type="text/css" href="{{theming.getCSSTheme()}}">
+
+  </head>
+
+  <body id="page" class="no-background">
+        <div class="scroll h-12rem padding">
+            <form action="/modules/module/{{name}}/action" method="POST"  target="_PARENT">
+            {% for i in module_actions.action_types %}
+            <input type="hidden"  value="{{dir|escape}}" name="dir">
+            <button type="submit" class="margin" value="{{i}}" name="action">{{module_actions.action_types[i].title}}</button><br>
+            {% endfor %}
+            </form>
+        </div>
+  </body>
+</html>
