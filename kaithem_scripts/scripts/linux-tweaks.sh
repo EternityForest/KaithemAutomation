@@ -26,6 +26,10 @@ fi
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
 
+# Install Atuin
+! su $(id -un $KAITHEM_UID) curl --proto '=https' --tlsv1.2 -LsSf https://setup.atuin.sh | sh
+
+
 
 mkdir -p /home/$(id -un $KAITHEM_UID)/kioskify-setup
 

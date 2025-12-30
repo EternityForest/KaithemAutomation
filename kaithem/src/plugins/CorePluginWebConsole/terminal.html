@@ -8,6 +8,7 @@
     <!-- xterm.js CSS -->
     <link rel="stylesheet" href="/static/css/xterm/xterm.css" />
     <link rel="stylesheet" href="/static/css/barrel.css" />
+    <link rel="stylesheet" href="/static/css/kaithem.css" />
     <style>
       * {
         margin: 0;
@@ -16,7 +17,7 @@
       }
 
       body {
-        font-family: "Courier New", monospace;
+        font-family: "Fira Code", monospace !important;
         background-color: #1e1e1e;
         overflow: hidden;
       }
@@ -27,7 +28,7 @@
         left: 0;
         right: 0;
         bottom: 0;
-        padding: 10px;
+        padding: 0px;
       }
 
       #terminal {
@@ -75,8 +76,8 @@
       const wsUrl = "{{ ws_url }}";
 
       // Convert to WebSocket URL (handle both ws:// and wss://)
-      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const wsFullUrl = `${protocol}//${window.location.host}${wsUrl}`;
+      const protocol = globalThis.location.protocol === "https:" ? "wss:" : "ws:";
+      const wsFullUrl = `${protocol}//${globalThis.location.host}${wsUrl}`;
 
       // Initialize xterm.js (Terminal is available globally from UMD)
       const term = new Terminal({
@@ -119,21 +120,21 @@
       // customize as needed (showing addon defaults)
       const customSettings = {
         enableSizeReports: true, // whether to enable CSI t reports (see below)
-        pixelLimit: 16777216, // max. pixel size of a single image
+        pixelLimit: 16_777_216, // max. pixel size of a single image
         sixelSupport: true, // enable sixel support
         sixelScrolling: true, // whether to scroll on image output
         sixelPaletteLimit: 256, // initial sixel palette size
-        sixelSizeLimit: 25000000, // size limit of a single sixel sequence
+        sixelSizeLimit: 25_000_000, // size limit of a single sixel sequence
         storageLimit: 128, // FIFO storage limit in MB
         showPlaceholder: true, // whether to show a placeholder for evicted images
         iipSupport: true, // enable iTerm IIP support
-        iipSizeLimit: 20000000, // size limit of a single IIP sequence
+        iipSizeLimit: 20_000_000, // size limit of a single IIP sequence
       };
 
       const imageAddon = new ImageAddon(customSettings);
       term.loadAddon(imageAddon);
       // Open terminal in the DOM
-      term.open(document.getElementById("terminal"));
+      term.open(document.querySelector("#terminal"));
 
       // Fit terminal to window
       fitAddon.fit();
@@ -144,7 +145,7 @@
       const maxReconnectAttempts = 5;
 
       function showError(message) {
-        const banner = document.getElementById("error-banner");
+        const banner = document.querySelector("#error-banner");
         banner.textContent = message;
         banner.classList.add("show");
         setTimeout(() => {
@@ -155,13 +156,13 @@
       function connect() {
         ws = new WebSocket(wsFullUrl);
 
-        ws.onopen = () => {
-          console.log("WebSocket connected");
-          reconnectAttempts = 0;
+        ws.addEventListener('open', () => {
+    console.log("WebSocket connected");
+    reconnectAttempts = 0;
 
-          // Send initial terminal size
-          ws.send(`resize:${term.cols}:${term.rows}`);
-        };
+    // Send initial terminal size
+    ws.send(`resize:${term.cols}:${term.rows}`);
+  });
 
         ws.onmessage = (event) => {
           if (event.data instanceof Blob) {
@@ -180,20 +181,20 @@
           showError("WebSocket connection error");
         };
 
-        ws.onclose = () => {
-          console.log("WebSocket closed");
+        ws.addEventListener('close', () => {
+    console.log("WebSocket closed");
 
-          if (reconnectAttempts < maxReconnectAttempts) {
-            reconnectAttempts++;
-            showError(
-              `Connection lost. Reconnecting... (Attempt ${reconnectAttempts}/${maxReconnectAttempts})`
-            );
-            setTimeout(connect, 2000);
-          } else {
-            showError("Connection lost. Please refresh the page.");
-            term.write("\r\n\x1b[1;31mConnection to server lost.\x1b[0m\r\n");
-          }
-        };
+    if (reconnectAttempts < maxReconnectAttempts) {
+      reconnectAttempts++;
+      showError(
+        `Connection lost. Reconnecting... (Attempt ${reconnectAttempts}/${maxReconnectAttempts})`
+      );
+      setTimeout(connect, 2000);
+    } else {
+      showError("Connection lost. Please refresh the page.");
+      term.write("\r\n\u001B[1;31mConnection to server lost.\u001B[0m\r\n");
+    }
+  });
       }
 
       // Handle terminal input
