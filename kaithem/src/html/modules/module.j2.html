@@ -71,6 +71,7 @@ webapi = imp0rt( 'kaithem.api.web' ) %} {% block body %}
       <details>
         <summary><b>Quick Actions</b></summary>
         <iframe
+          style="border: none"
           src="/modules/actions/{{ url(name) }}?dir={{ url('/'.join(path) ) }}"></iframe>
       </details>
     </section>
