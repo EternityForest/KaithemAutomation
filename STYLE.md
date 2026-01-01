@@ -172,3 +172,4 @@
 
 * While() loops must have safety counters or upper bounds unless intended to run forever.
 
+* Do not just ignore true errors without logging them

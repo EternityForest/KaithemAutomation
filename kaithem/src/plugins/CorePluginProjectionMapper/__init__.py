@@ -1,20 +1,17 @@
 # SPDX-FileCopyrightText: Copyright Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import copy
+import asyncio
 import json
 import os
-import uuid
-from typing import Any
+import traceback
 from urllib.parse import quote
 
 import quart
 import structlog
-from quart.ctx import copy_current_request_context
 
-from kaithem.api.web import dialogs, render_jinja_template
+from kaithem.api.web import dialogs
 from kaithem.src import (
-    auth,
     messagebus,
     modules_state,
     pages,
@@ -137,10 +134,10 @@ class ProjectionMapperType(modules_state.ResourceType):
         sources_count = len(data.get("sources", []))
 
         editor_url = (
-            f"/projection-mapper/editor/{quote(module)}" f"/{quote(resource)}"
+            f"/projection-mapper/editor/{quote(module)}/{quote(resource)}"
         )
         viewer_url = (
-            f"/projection-mapper/view/{quote(module)}" f"/{quote(resource)}"
+            f"/projection-mapper/view/{quote(module)}/{quote(resource)}"
         )
 
         return f"""
@@ -157,12 +154,10 @@ class ProjectionMapperType(modules_state.ResourceType):
         d.text_input(
             "name",
             title="Resource Name",
-            help_text="Identifier for this projection",
         )
         d.text_input(
             "title",
             title="Projection Title",
-            help_text="Display name",
         )
         d.submit_button("Create")
         return d.render(self.get_create_target(module, path.strip("/")))
@@ -181,7 +176,7 @@ class ProjectionMapperType(modules_state.ResourceType):
     ) -> str:
         # Redirect to full-page editor
         self.set_edit_page_redirect(
-            f"/projection-mapper/editor/{quote(module)}" f"/{quote(resource)}"
+            f"/projection-mapper/editor/{quote(module)}/{quote(resource)}"
         )
         return "<p>Redirecting to editor...</p>"
 
@@ -192,7 +187,7 @@ class ProjectionMapperType(modules_state.ResourceType):
         data: modules_state.ResourceDictType,
         kwargs: dict,
     ) -> modules_state.ResourceDictType:
-        d = copy.deepcopy(data)
+        d = modules_state.mutable_copy_resource(data)
         d.update(kwargs)
         return d
 
@@ -206,7 +201,7 @@ modules_state.resource_types["projection_mapper"] = _projection_mapper_type
 @quart_app.app.route("/projection-mapper/editor/<module>/<resource>")
 async def editor_page(module: str, resource: str):
     """Authenticated projection mapper editor"""
-    auth.require("system_admin")
+    pages.require("system_admin")
 
     # Load the resource
     try:
@@ -264,7 +259,7 @@ async def api_get_data(module: str, resource: str):
 )
 async def api_save_data(module: str, resource: str):
     """Save projection data (authenticated)"""
-    auth.require("system_admin")
+    pages.require("system_admin")
 
     try:
         data = await quart.request.json
@@ -281,7 +276,7 @@ async def api_save_data(module: str, resource: str):
 @quart_app.app.websocket("/projection-mapper/ws/<module>/<resource>")
 async def ws_transform_sync(module: str, resource: str):
     """WebSocket for real-time transform synchronization"""
-    auth.require("system_admin")
+    pages.require("system_admin")
 
     key = (module, resource)
 
@@ -292,16 +287,20 @@ async def ws_transform_sync(module: str, resource: str):
     ws = quart.websocket
     _websocket_connections[key].append(ws)
 
+    loop = asyncio.get_event_loop()
+
+    topic = f"/projection/{module}/{resource}/transform"
+
     try:
         # Subscribe to messagebus updates for this resource
         def on_transform_update(data):
             try:
                 # Queue message to this client
-                quart.create_task(ws.send(json.dumps(data)))
+                x = ws.send(json.dumps(data))
+                asyncio.run_coroutine_threadsafe(x, loop)
             except Exception:
-                pass
+                print(traceback.format_exc())
 
-        topic = f"/projection/{module}/{resource}/transform"
         messagebus.subscribe(topic, on_transform_update)
 
         # Listen for messages from this client and broadcast
@@ -318,7 +317,7 @@ async def ws_transform_sync(module: str, resource: str):
                         **msg_data,
                     },
                 )
-            except quart.exceptions.WebsocketClosed:
+            except asyncio.CancelledError:
                 break
             except Exception:
                 logger.exception("WebSocket error")
@@ -327,7 +326,7 @@ async def ws_transform_sync(module: str, resource: str):
     finally:
         # Cleanup
         try:
-            messagebus.unsubscribe(topic, on_transform_update)
+            messagebus.unsubscribe(topic, on_transform_update)  # type: ignore
         except Exception:
             pass
 
