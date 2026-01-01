@@ -79,7 +79,7 @@ echo "Enabling I2C and SPI"
 ! raspi-config nonint do_i2c 0
 echo "Enabling camera"
 ! raspi-config nonint do_camera 0
-echo "Enabling overscan"
+echo "Disable overscan"
 ! raspi-config nonint do_overscan 1
 fi
 
