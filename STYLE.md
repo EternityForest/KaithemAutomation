@@ -20,6 +20,8 @@
 
 * Secret scanning must be used on repos
 
+* Do not use star imports in Python or similar features.
+
 ## Standardization
 
 * Use common file formats, protocols, languages, and libraries when appropriate.

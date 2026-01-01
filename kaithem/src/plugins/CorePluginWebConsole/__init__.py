@@ -14,6 +14,7 @@ import threading
 import quart
 from quart import websocket
 
+import kaithem.api.apps_page
 from kaithem.api.lifespan import at_shutdown
 from kaithem.api.web import quart_app, require
 
@@ -178,3 +179,12 @@ async def webconsole_index():
         template_content = f.read()
 
     return await quart.render_template_string(template_content, ws_url=ws_url)
+
+
+app = kaithem.api.apps_page.App(
+    "builtin-terminal",
+    title="System Console",
+    url="/webconsole",
+)
+
+kaithem.api.apps_page.add_app(app)
