@@ -41,19 +41,6 @@ properties:
   default_next:
     type: string
 
-  display_tags:
-    type: array
-    items: {}
-    additionalItems: true
-
-  event_buttons:
-    type: array
-    items: {}
-    additionalItems: true
-
-  info_display:
-    type: string
-
   midi_source:
     type: string
 
@@ -181,9 +168,6 @@ required:
   - crossfade
   - cues
   - default_next
-  - display_tags
-  - event_buttons
-  - info_display
   - midi_source
   - mqtt_server
   - mqtt_sync_features

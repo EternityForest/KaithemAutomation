@@ -1684,43 +1684,6 @@ def test_lighting_value_set_tag_flicker():
             # assert f2["priority"] == 65
 
 
-def test_tag_io():
-    "Tests the tag point UI inputs and meters that you can do in the groups overview"
-    from kaithem.src import tagpoints
-    from kaithem.src.chandler import core
-
-    # Not as thorough of a test as it maybe should be...
-    display_tags = [
-        ["Label", "=177", {"type": "meter"}],
-        ["Label", "/blah", {"type": "string_input"}],
-        ["Label", "/goo", {"type": "switch_input"}],
-        ["Label", "/ghjgy", {"type": "numeric_input"}],
-    ]
-
-    with TempGroup() as s:
-        s.display_tags = display_tags
-
-        # Simulate user input
-        board._onmsg(
-            "__admin__",
-            ["inputtagvalue", s.id, "/ghjgy", 97],
-            "nonexistantsession",
-        )
-        core.wait_frame()
-        # Make sure the input tag thing actually sets the value
-        assert tagpoints.Tag("ghjgy").value == 97
-
-        # Validate that the output display tag actually exists
-        assert "=177" in tagpoints.allTagsAtomic
-
-        # # Make sure cue vals saved
-        # p = os.path.join(directories.vardir, "chandler", "groups", "TestingGroup5.yaml")
-        # with open(p) as f:
-        #     f2 = yaml.load(f, Loader=yaml.SafeLoader)
-
-        # assert f2["display_tags"] == display_tags
-
-
 def test_cue_logic_plugin():
     # foo_command is from conftest.py written into dev shm plugins
     # folder
