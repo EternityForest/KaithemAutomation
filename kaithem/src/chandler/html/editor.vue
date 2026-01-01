@@ -451,7 +451,6 @@
         :groupmeta="groupmeta"
         :groupcues="groupcues"
         :editinggroup="editingGroup"
-        :availablecommands="availableCommands"
         :availabletags="availableTags"
         :no_edit="no_edit"
         :setcueproperty="setCueProperty"
@@ -2478,7 +2477,6 @@ import {
   editingGroup,
   newcuename,
   cuemeta,
-  availableCommands,
   selectedCues,
   showPages,
   uiAlertSounds,

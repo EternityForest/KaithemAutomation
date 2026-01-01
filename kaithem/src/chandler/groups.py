@@ -1664,7 +1664,7 @@ class Group:
                 # Actually add the bindings
                 rules = (rulesFrom or self.cue).rules
                 if rules:
-                    self.script_context.addBindings(rules)
+                    self.script_context.addBindingsFromDict(rules)
 
                 loopPrevent = {(rulesFrom or self.cue.name): True}
 
@@ -1686,11 +1686,11 @@ class Group:
 
                     loopPrevent[x.strip()] = True
 
-                    self.script_context.addBindings(self.cues[x].rules)
+                    self.script_context.addBindingsFromDict(self.cues[x].rules)
                     x = self.cues[x].inherit_rules
 
                 if "__rules__" in self.cues:
-                    self.script_context.addBindings(
+                    self.script_context.addBindingsFromDict(
                         self.cues["__rules__"].rules
                     )
 

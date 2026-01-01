@@ -324,6 +324,20 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 ]
             )
 
+    def _send_environment_description(self):
+        """Send environment description with builtin events and command metadata."""
+        c = groups.rootContext.commands.scriptcommands
+        ch_info = {}
+        for i in c:
+            f = c[i]
+            ch_info[i] = scriptbindings.get_function_info(f)
+
+        env_desc = {
+            "builtinEvents": core.BUILTIN_EVENTS,
+            "commands": ch_info,
+        }
+        self.linkSend(["environmentDescription", env_desc])
+
     def _onmsg(self, user: str, msg: list[Any], sessionid: str):
         # Getters
 
@@ -371,12 +385,12 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             return
 
         elif cmd_name == "getCommands":
-            c = groups.rootContext.commands.scriptcommands
-            ch_info = {}
-            for i in c:
-                f = c[i]
-                ch_info[i] = scriptbindings.get_function_info(f)
-            self.linkSend(["commands", ch_info])
+            # Also handle new "getEnvironmentDescription" for consistency
+            self._send_environment_description()
+            return
+
+        elif cmd_name == "getEnvironmentDescription":
+            self._send_environment_description()
             return
 
         elif cmd_name == "getconfuniverses":

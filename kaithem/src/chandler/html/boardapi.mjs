@@ -37,7 +37,10 @@ let universes = ref({});
 let cues = ref({});
 let newcuename = ref("");
 let cuemeta = ref({});
-let availableCommands = ref({});
+let chandlerScriptEnvironment = ref({
+
+
+});
 // per scene user selected for editing
 let selectedCues = ref({});
 let showPages = ref(false);
@@ -1345,8 +1348,9 @@ function handleServerMessage(v) {
       }
       old_vue_set(d, index, v[2][index]);
     }
-  } else if (c == "commands") {
-    availableCommands.value = v[1];
+  } else if (c == "environmentDescription") {
+    chandlerScriptEnvironment.value = v;
+  
   } else if (c == "scv") {
     let cue = v[1];
     let effect = v[2];
@@ -1600,7 +1604,7 @@ export {
   cues,
   newcuename,
   cuemeta,
-  availableCommands,
+  chandlerScriptEnvironment,
   selectedCues,
   showPages,
   uiAlertSounds,

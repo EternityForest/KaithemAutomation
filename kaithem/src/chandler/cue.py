@@ -316,7 +316,7 @@ class Cue:
         self._markdown: str = kw.get("markdown", "").strip()
 
         self._sound = ""
-        self._rules: list[list[str | list[list[str]]]] = []
+        self._rules: list[dict[str, Any]] = []
 
         # Natural language recurring start tim
         self._schedule_at: str = ""
@@ -637,19 +637,36 @@ class Cue:
         self._sound_loops = val
         self.push()
 
-    def validate_rules(self, r: list[list[str | list[list[str]]]]):
+    def validate_rules(
+        self, r: list[list[str | list[list[str]]]] | list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
+        """Validate and migrate rules to new dict format.
+
+        Handles both old nested list format and new dict format.
+        Automatically migrates old format to new on load.
+        """
+        from . import rules_migration
+
         r = r or []
+
+        # Detect and migrate old format to new
+        if rules_migration.is_old_format(r):
+            r = rules_migration.migrate_rules_to_new_format(r)
+
+        # Convert to JSON and back for validation, with legacy name fixes
         s = json.dumps(r, ensure_ascii=False)
         # Legacy name fix
         s = s.replace('"=SCENE"', '"=GROUP"')
         return json.loads(s)
 
     @property
-    def rules(self) -> list[list[str | list[list[str]]]]:
+    def rules(self) -> list[dict[str, Any]]:
         return self._rules
 
     @rules.setter
-    def rules(self, r: list[list[str | list[list[str]]]]):
+    def rules(
+        self, r: list[list[str | list[list[str]]]] | list[dict[str, Any]]
+    ):
         r = self.validate_rules(r)
         self._rules = r or []
         if self.is_active:

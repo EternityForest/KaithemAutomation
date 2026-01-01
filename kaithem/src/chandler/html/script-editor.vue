@@ -87,7 +87,7 @@ p.small {
               >Run on(type to search)
               <input
                 :disabled="disabled"
-                v-model="selectedBinding[0]"
+                v-model="selectedBinding.event"
                 list="example_events"
                 v-on:change="$emit('update:modelValue', rules)"
                 />
@@ -125,7 +125,7 @@ p.small {
           Type
           <combo-box
             :disabled="disabled"
-            v-model="selectedCommand[0]"
+            v-model="selectedCommand.command"
             v-bind:options="getPossibleActions()"
             v-bind:pinned="getSpecialActions()"
             @update:modelValue="setCommandDefaults(selectedCommand)"
@@ -134,52 +134,52 @@ p.small {
               $emit('update:modelValue', rules);
             "></combo-box>
           <h4>Config</h4>
-          <div v-if="selectedCommand[0] == 'set'">
+          <div v-if="selectedCommand.command == 'set'">
             Set a variable named
             <combo-box
               :disabled="disabled"
-              v-model="selectedCommand[1]"
+              v-model="selectedCommand.variable"
               v-bind:pinned="pinnedvars"
               v-on:change="$emit('update:modelValue', rules)"></combo-box>
             <br />to<br />
             <combo-box
-              v-model="selectedCommand[2]"
+              v-model="selectedCommand.value"
               v-on:change="$emit('update:modelValue', rules)"></combo-box
             ><br />
             and always return True.
           </div>
 
-          <div v-if="selectedCommand[0] == 'pass'">
+          <div v-if="selectedCommand.command == 'pass'">
             Do nothing and return True.
           </div>
 
-          <div v-if="selectedCommand[0] == 'maybe'">
+          <div v-if="selectedCommand.command == 'maybe'">
             Continue action with :<input
               :disabled="disabled"
-              v-model="selectedCommand[1]"
+              v-model="selectedCommand.chance"
               v-on:change="$emit('update:modelValue', rules)" />% chance <br />
             otherwise return None and stop the action.
           </div>
 
           <div
             v-if="
-              !(selectedCommand[0] in specialCommands) &&
-              commands[selectedCommand[0]]
+              !(selectedCommand.command in specialCommands) &&
+              commands[selectedCommand.command]
             ">
             <div class="stacked-form">
               <label
-                v-for="i in commands[selectedCommand[0]].args.keys()"
+                v-for="(argMeta, i) in commands[selectedCommand.command].args"
                 v-bind:key="i">
-                {{ commands[selectedCommand[0]].args[i][0] }}
+                {{ argMeta.name }}
                 <combo-box
                   :disabled="disabled"
-                  :testid="'command-arg-'+commands[selectedCommand[0]].args[i][0] "
-                  v-model="selectedCommand[i + 1]"
+                  :testid="'command-arg-' + argMeta.name"
+                  v-model="selectedCommand[argMeta.name]"
                   v-on:change="$emit('update:modelValue', rules)"
                   :options="
                     getCompletions(
                       selectedCommand,
-                      commands[selectedCommand[0]].args[i][0]
+                      argMeta.name
                     )
                   "></combo-box>
               </label>
@@ -187,12 +187,12 @@ p.small {
             <h5>Docs</h5>
 
             <pre style="white-space: pre-wrap">{{
-              commands[selectedCommand[0]].doc
+              commands[selectedCommand.command].doc
             }}</pre>
           </div>
           <button
             v-on:click="
-              rules[selectedBindingIndex][1].splice(selectedCommandIndex, 1);
+              rules[selectedBindingIndex].actions.splice(selectedCommandIndex, 1);
               selectedCommandIndex -= 1;
               $emit('update:modelValue', rules);
             ">
@@ -203,7 +203,7 @@ p.small {
             :disabled="disabled"
             v-on:click="
               swapArrayElements(
-                rules[selectedBindingIndex][1],
+                rules[selectedBindingIndex].actions,
                 selectedCommandIndex,
                 selectedCommandIndex - 1
               );
@@ -215,11 +215,11 @@ p.small {
           <button
             :disabled="disabled"
             v-if="
-              selectedCommandIndex < rules[selectedBindingIndex][1].length - 1
+              selectedCommandIndex < rules[selectedBindingIndex].actions.length - 1
             "
             v-on:click="
               swapArrayElements(
-                rules[selectedBindingIndex][1],
+                rules[selectedBindingIndex].actions,
                 selectedCommandIndex,
                 selectedCommandIndex + 1
               );
@@ -248,7 +248,7 @@ p.small {
                     selectedBindingIndex = rules.indexOf(rule);
                     selectedCommandIndex = -1;
                   ">
-                  <b>On {{ rule[0] }}</b>
+                  <b>On {{ rule.event }}</b>
                 </button>
 
                 <button :disabled="disabled" v-on:click="moveCueRuleDown(rule_idx)">
@@ -258,9 +258,9 @@ p.small {
             </header>
 
             <div class="flex-row gaps w-full padding nogaps">
-              <div v-for="(command,command_idx) in rule[1]" 
+              <div v-for="(action,action_idx) in rule.actions"
               data-testid="rule-command"
-              :key="command_idx"
+              :key="action_idx"
               style="display: flex" class="nogrow">
                 <button
                   style="align-content: flex-start"
@@ -268,35 +268,33 @@ p.small {
                   v-bind:class="{
                     'action': 1,
                     'flex-row': 1,
-                    'selected': (selectedBinding == rule) & (selectedCommand == command),
+                    'selected': (selectedBinding == rule) & (selectedCommand == action),
                   }"
                   v-on:click="
-                    selectedCommandIndex = command_idx;
+                    selectedCommandIndex = action_idx;
                     selectedBindingIndex = rules.indexOf(rule);
                   ">
                   <template
-                    v-if="commands[command[0]]">
+                    v-if="commands[action.command]">
                     <div class="w-full h-min-content">
-                      <b>{{ command[0] }}</b>
+                      <b>{{ action.command }}</b>
                     </div>
                     <div
                       class="nogrow h-min-content"
                       style="margin: 2px"
-                      v-for="i in commands[command[0]].args.keys()"
+                      v-for="(argMeta, i) in commands[action.command]"
                       :key="i"
                       >
-                      {{ command[i + 1] }}
+                      {{ action[argMeta.name] }}
                     </div>
                   </template>
 
-                  <template v-if="!(command[0] in commands)">
+                  <template v-if="!(action.command in commands)">
                     <div
                       class="nogrow h-min-content warning"
                       style="margin: 2px"
-                      v-for="k in command"
-                      :key="k"
                       >
-                      {{ k }}
+                      {{ action.command }}
                     </div>
                   </template>
                 </button>
@@ -310,7 +308,7 @@ p.small {
                   style="align-self: stretch; flex-grow: 1"
                   :disabled="disabled"
                   v-on:click="
-                    rule[1].push(['pass']);
+                    rule.actions.push({command: 'pass'});
                     $emit('update:modelValue', rules);
                   ">
                   <b>Add Action</b>
@@ -323,7 +321,10 @@ p.small {
             :disabled="disabled"
             title="Add a rule that the group should do something when an event fires"
             v-on:click="
-              rules.push(['cue.enter', [['goto', '=GROUP', '']]]);
+              rules.push({
+                event: 'cue.enter',
+                actions: [{command: 'goto', group: '=GROUP', cue: ''}]
+              });
               $emit('update:modelValue', rules);
             ">
             <b>Add Rule</b>
@@ -371,9 +372,11 @@ export default {
         return 0;
       }
       if (this.rules[this.selectedBindingIndex]) {
-        return this.rules[this.selectedBindingIndex][1][
-          this.selectedCommandIndex
-        ];
+        const rule = this.rules[this.selectedBindingIndex];
+        const actions = rule.actions || [];
+        if (actions[this.selectedCommandIndex]) {
+          return actions[this.selectedCommandIndex];
+        }
       }
       return 0;
     },
@@ -381,28 +384,25 @@ export default {
   data: function () {
     return {
       pinnedvars: [["_", "Output of the previous action"]],
-      getCompletions: function (fullCommand, argument) {
-        var t = this.commands[fullCommand[0]].completionTags;
-        if (t == undefined) {
+      getCompletions: function (actionObj, argumentName) {
+        const cmdName = actionObj.command;
+        const cmdMeta = this.commands[cmdName];
+        if (!cmdMeta || !cmdMeta.completionTags) {
           try {
-            return this.argcompleters["defaultExpressionCompleter"](
-              fullCommand
-            );
+            return this.argcompleters["defaultExpressionCompleter"](actionObj);
           } catch {
             return [];
           }
         }
-        t = t[argument];
-        var c = this.argcompleters[t];
+
+        const completionTag = cmdMeta.completionTags[argumentName];
+        const completer = this.argcompleters[completionTag];
 
         try {
-          if (c == undefined) {
-            return this.argcompleters["defaultExpressionCompleter"](
-              fullCommand
-            );
+          if (!completer) {
+            return this.argcompleters["defaultExpressionCompleter"](actionObj);
           }
-
-          return c(fullCommand);
+          return completer(actionObj);
         } catch {
           return [];
         }
@@ -458,18 +458,18 @@ export default {
       specialCommands: {
         set: {
           args: [
-            ["var", ""],
-            ["val", ""],
+            { name: "variable", type: "str", default: "" },
+            { name: "value", type: "str", default: "" },
           ],
           description: "Sets a variable",
         },
         pass: {
           args: [],
-          description: "",
+          description: "Do nothing and return True",
         },
         maybe: {
-          args: [["chance", "50"]],
-          description: "",
+          args: [{ name: "chance", type: "float", default: "50" }],
+          description: "Continue action with chance % probability",
         },
       },
       deleteBinding: function (b) {
@@ -485,34 +485,31 @@ export default {
           array.splice(index, 1);
         }
       },
-      setCommandDefaults: function (l) {
-        //Builtins that don't have to come from the server.
-        //lists of type,default pairs basically.
+      setCommandDefaults: function (action) {
+        // For dict format actions, set defaults from command metadata
+        const cmdName = action.command;
+        let metadata = null;
 
-        var d = 0;
-
-        //Get description data for that type
-        if (l[0] in this.specialCommands) {
-          d = this.specialCommands[l[0]]["args"];
+        // Get description data
+        if (cmdName in this.specialCommands) {
+          metadata = this.specialCommands[cmdName];
+        } else if (cmdName in this.commands) {
+          metadata = this.commands[cmdName];
         }
 
-        //Get description data for that type
-        if (l[0] in this.commands) {
-          d = this.commands[l[0]]["args"];
-        }
-        //Get rid of everything except the command name
-        l.splice(1);
-        //Not a command we know anything about to set defaults
-        if (d == 0) {
+        // If we don't know this command, nothing to do
+        if (!metadata) {
           return;
         }
 
-        //Push the default values for the command
-        for (var i of d) {
-          l.push(i[1] || "");
+        // Set default values for all args
+        const args = metadata.args || [];
+        for (const argMeta of args) {
+          if (!(argMeta.name in action)) {
+            action[argMeta.name] = argMeta.default || "";
+          }
         }
-        return l;
-      },
+      }
     };
   },
 };

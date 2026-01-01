@@ -75,7 +75,7 @@
       v-bind:example_events="example_events"
       :modelValue="currentcue.rules"
       @update:model-value="setcueproperty(currentcue.id, 'rules', $event)"
-      v-bind:commands="availablecommands"
+      v-bind:commands="chandlerScriptEnvironment.commands"
       v-bind:groups="cueNamesByGroupName()"
       v-bind:vars="editinggroup.vars"
       v-bind:parentgroup="editinggroup.name"
@@ -127,7 +127,7 @@
 
 <script>
 import { dictView, useBlankDescriptions, formatInterval } from "./utils.mjs";
-
+import { chandlerScriptEnvironment } from "./boardapi.mjs";
 const example_events_base = [
   ["now", "Run when script loads"],
   ["cue.exit", "When exiting the cue"],
@@ -178,7 +178,6 @@ export default {
     "groupmeta",
     "groupcues",
     "availabletags",
-    "availablecommands",
     "unixtime",
   ],
   data: function () {
@@ -188,7 +187,12 @@ export default {
     d.cueNamesByGroupName = this.cueNamesByGroupName.bind(this);
     d.defaultExpressionCompleter = this.defaultExpressionCompleter.bind(this);
     d.tagpointsCompleter = this.tagpointsCompleter.bind(this);
-    return { completers: d };
+    return {
+      completers: d,
+      chandlerScriptEnvironment: chandlerScriptEnvironment,
+
+
+     };
   },
   methods: {
     dictView: dictView,

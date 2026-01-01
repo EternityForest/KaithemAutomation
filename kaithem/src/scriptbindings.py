@@ -117,16 +117,66 @@ def paramDefault(p):
     return ""
 
 
-def get_function_info(f: Callable[..., Any] | type[FunctionBlock]):
+def _extract_type_hint(annotation) -> str:
+    """Extract simple type string from annotation.
+
+    Args:
+        annotation: Parameter annotation from inspect.Parameter
+
+    Returns:
+        Simple type string (e.g., 'str', 'float', 'int')
+    """
+    if annotation is inspect.Parameter.empty:
+        return "str"  # Default to string
+
+    type_str = str(annotation)
+    # Handle common patterns: <class 'str'> -> 'str'
+    if type_str.startswith("<class '"):
+        return type_str.split("'")[1]
+    # Handle typing module types like str | int
+    if " | " in type_str:
+        # Return first type in union
+        return type_str.split(" | ")[0].strip().replace("'", "")
+    return "str"
+
+
+def get_function_info(
+    f: Callable[..., Any] | type[FunctionBlock],
+) -> dict[str, Any]:
+    """Extract complete metadata from function signature.
+
+    Returns metadata with enhanced arg information:
+    {
+        "doc": "...",
+        "args": [
+            {"name": "argname", "type": "str", "default": "value"},
+            ...
+        ],
+        "completionTags": {...}  # if present
+    }
+    """
     if isinstance(f, type(FunctionBlock)):
         f = f.__call__
-    p = inspect.signature(f).parameters
+    sig = inspect.signature(f)
+    p = sig.parameters
+
+    # Build enhanced args list with name, type, and default
+    args = []
+    for param_name, param in p.items():
+        default = paramDefault(param)
+        if default is None:
+            continue
+
+        arg_info = {
+            "name": param_name,
+            "type": _extract_type_hint(param.annotation),
+            "default": default,
+        }
+        args.append(arg_info)
 
     d = {
         "doc": inspect.getdoc(f),
-        "args": [
-            [i, paramDefault(p[i])] for i in p if paramDefault(p[i]) is not None
-        ],
+        "args": args,
     }
 
     if hasattr(f, "completionTags"):
@@ -996,6 +1046,96 @@ class BaseChandlerScriptContext:
             if "now" in self.event_listeners:
                 self.event("now")
                 del self.event_listeners["now"]
+
+    def addBindingsFromDict(self, rules: list[dict[str, Any]]):
+        """Add bindings from new dict format.
+
+        Converts dict format to internal list format for execution.
+
+        Args:
+            rules: Rules in dict format [{"event": "evt", "actions": [...]}]
+        """
+        old_format = self._convert_dict_bindings_to_execution_format(rules)
+        self.addBindings(old_format)
+
+    def _convert_dict_bindings_to_execution_format(
+        self, rules: list[dict[str, Any]]
+    ) -> list[list[str | list[list[str]]]]:
+        """Convert dict format rules to internal list format for execution.
+
+        Args:
+            rules: Rules in dict format
+
+        Returns:
+            Rules in list format for execution engine
+        """
+        result = []
+
+        for rule in rules:
+            event_name = rule.get("event", "")
+            actions = rule.get("actions", [])
+
+            commands = []
+            for action in actions:
+                cmd_name = action.get("command", "")
+
+                # Get expected arg order for this command
+                arg_names = self._get_command_arg_names(cmd_name)
+
+                # Build positional arg list by looking up values in action dict
+                cmd = [cmd_name]
+                for arg_name in arg_names:
+                    # Get the value from the action dict, or empty string if not present
+                    cmd.append(action.get(arg_name, ""))
+
+                commands.append(cmd)
+
+            result.append([event_name, commands])
+
+        return result
+
+    def _get_command_arg_names(self, cmd_name: str) -> list[str]:
+        """Get parameter names in order for a command.
+
+        Args:
+            cmd_name: Name of the command
+
+        Returns:
+            List of parameter names in order
+        """
+        # Handle special built-in commands
+        special_args = {
+            "set": ["variable", "value"],
+            "pass": [],
+            "maybe": ["chance"],
+            "continue_if": ["condition"],
+        }
+
+        if cmd_name in special_args:
+            return special_args[cmd_name]
+
+        # Look up registered command
+        cmd = self.lookupCommand(cmd_name)
+        if not cmd:
+            return []
+
+        # Handle FunctionBlock classes
+        if isinstance(cmd, type(FunctionBlock)):
+            sig = inspect.signature(cmd.__call__)
+        else:
+            sig = inspect.signature(cmd)
+
+        result = []
+        for p_name, param in sig.parameters.items():
+            # Skip self parameter
+            if p_name == "self":
+                continue
+            # Skip *args and **kwargs
+            if param.kind in (param.VAR_POSITIONAL, param.VAR_KEYWORD):
+                continue
+            result.append(p_name)
+
+        return result
 
     def onBindingAdded(self, evt):
         "Called when a binding is added that listens to evt"
