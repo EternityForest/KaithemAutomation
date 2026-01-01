@@ -47,6 +47,8 @@ object, and must be explicitly called.
 * :sparkles: The web console feature is back as a proper ASGI compatible addon!
 
 
+* :coffin: BREAKING: Unused and poorly supported Chandler "display tags", "event buttons", and "info display" removed.
+
 ### 0.93.1
 
 * :technologist: Do not include dev packages in built wheel dependencies
