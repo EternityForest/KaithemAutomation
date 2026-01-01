@@ -91,17 +91,12 @@
                 element.style.width = '100%';
                 element.style.height = '100%';
             } else {
-                const vw = window.innerWidth;
-                const vh = window.innerHeight;
-
                 element.style.position = 'absolute';
                 element.style.width = '100%';
                 element.style.height = '100%';
 
                 const matrix = calculatePerspectiveMatrix(
-                    corners,
-                    vw,
-                    vh
+                    corners
                 );
                 element.style.transformOrigin = '0 0';
                 element.style.transform =
@@ -126,27 +121,118 @@
             }
         }
 
-        function calculatePerspectiveMatrix(
-            corners,
-            width,
-            height
-        ) {
-            // Simplified 3D perspective transform
-            // In production, use a proper homography calculation
-            const tl = corners.tl || { x: 0, y: 0 };
-            const tr = corners.tr || { x: width, y: 0 };
-            const bl = corners.bl || { x: 0, y: height };
-            const br = corners.br || { x: width, y: height };
+        function calculatePerspectiveMatrix(corners) {
+            const w = DATA.size?.width || 1920;
+            const h = DATA.size?.height || 1080;
 
-            // This is a simplified approximation
-            // For proper perspective correction, use OpenCV.js or
-            // a dedicated library
-            const scaleX = width / width;
-            const scaleY = height / height;
+            const srcCorners = [
+                [0, 0],
+                [w, 0],
+                [0, h],
+                [w, h],
+            ];
 
-            // Return identity matrix (flat transform)
-            // TODO: Implement proper perspective transform
-            return [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+            const dstCorners = [
+                [corners.tl.x, corners.tl.y],
+                [corners.tr.x, corners.tr.y],
+                [corners.bl.x, corners.bl.y],
+                [corners.br.x, corners.br.y],
+            ];
+
+            return computeHomography(
+                srcCorners,
+                dstCorners
+            );
+        }
+
+        function computeHomography(src, dst) {
+            const A = [];
+
+            for (let i = 0; i < 4; i++) {
+                const x = src[i][0];
+                const y = src[i][1];
+                const xp = dst[i][0];
+                const yp = dst[i][1];
+
+                A.push([
+                    x, y, 1, 0, 0, 0,
+                    -xp * x, -xp * y, -xp,
+                ]);
+                A.push([
+                    0, 0, 0, x, y, 1,
+                    -yp * x, -yp * y, -yp,
+                ]);
+            }
+
+            const h = solveHomography(A);
+            return homographyToMatrix3d(h);
+        }
+
+        function solveHomography(A) {
+            const n = 9;
+            let x = [];
+            for (let i = 0; i < n; i++) {
+                x[i] = Math.random();
+            }
+
+            for (let iter = 0; iter < 10; iter++) {
+                let Ax = [];
+                for (let i = 0; i < A.length; i++) {
+                    let sum = 0;
+                    for (let j = 0; j < n; j++) {
+                        sum += A[i][j] * x[j];
+                    }
+                    Ax.push(sum);
+                }
+
+                let ATAx = [];
+                for (let i = 0; i < n; i++) {
+                    let sum = 0;
+                    for (let k = 0; k < A.length; k++) {
+                        sum += A[k][i] * Ax[k];
+                    }
+                    ATAx[i] = sum;
+                }
+
+                let norm = 0;
+                for (let i = 0; i < n; i++) {
+                    norm += ATAx[i] * ATAx[i];
+                }
+                norm = Math.sqrt(norm);
+
+                if (norm > 1e-10) {
+                    for (let i = 0; i < n; i++) {
+                        x[i] = ATAx[i] / norm;
+                    }
+                }
+            }
+
+            return x;
+        }
+
+        function homographyToMatrix3d(h) {
+            const H = [
+                [h[0], h[1], h[2]],
+                [h[3], h[4], h[5]],
+                [h[6], h[7], h[8]],
+            ];
+
+            if (Math.abs(H[2][2]) > 1e-10) {
+                for (let i = 0; i < 3; i++) {
+                    for (let j = 0; j < 3; j++) {
+                        H[i][j] /= H[2][2];
+                    }
+                }
+            }
+
+            const matrix = [
+                H[0][0], H[1][0], 0, H[2][0],
+                H[0][1], H[1][1], 0, H[2][1],
+                0, 0, 1, 0,
+                H[0][2], H[1][2], 0, H[2][2],
+            ];
+
+            return matrix;
         }
 
         async function updateOnMessage(message) {

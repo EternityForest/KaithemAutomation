@@ -167,6 +167,7 @@ class ProjectionMapperType(modules_state.ResourceType):
         return {
             "resource": {"type": self.type},
             "title": kwargs.get("title", "Untitled Projection"),
+            "size": {"width": 1920, "height": 1080},
             "sources": [],
         }
 
