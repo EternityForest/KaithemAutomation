@@ -4,7 +4,6 @@
 import asyncio
 import json
 import os
-import traceback
 from urllib.parse import quote
 
 import quart
@@ -287,29 +286,39 @@ async def ws_transform_sync(module: str, resource: str):
     ws = quart.websocket
     _websocket_connections[key].append(ws)
 
-    loop = asyncio.get_event_loop()
-
     topic = f"/projection/{module}/{resource}/transform"
+
+    # Queue for messages from messagebus thread
+    message_queue = asyncio.Queue()
 
     try:
         # Subscribe to messagebus updates for this resource
         def on_transform_update(data):
             try:
-                # Queue message to this client
-                x = ws.send(json.dumps(data))
-                asyncio.run_coroutine_threadsafe(x, loop)
-            except Exception:
-                print(traceback.format_exc())
+                # Queue message safely (thread-safe)
+                message_queue.put_nowait(json.dumps(data))
+            except asyncio.QueueFull:
+                logger.warning("Transform queue full, dropping message")
 
         messagebus.subscribe(topic, on_transform_update)
 
-        # Listen for messages from this client and broadcast
+        # Listen for messages - either from client or queued
         while True:
             try:
-                message = await ws.receive()
+                # Check for queued messages (don't block)
+                try:
+                    queued_msg = message_queue.get_nowait()
+                    await ws.send(queued_msg)
+                except asyncio.QueueEmpty:
+                    pass
+
+                # Wait for client message (with timeout for
+                # checking queue)
+                message = await asyncio.wait_for(ws.receive(), timeout=0.1)
                 msg_data = json.loads(message)
 
-                # Broadcast to all connected clients via messagebus
+                # Broadcast to all connected clients via
+                # messagebus
                 messagebus.post_message(
                     topic,
                     {
@@ -317,6 +326,10 @@ async def ws_transform_sync(module: str, resource: str):
                         **msg_data,
                     },
                 )
+            except TimeoutError:
+                # Timeout is normal, just loop back to
+                # check queue
+                continue
             except asyncio.CancelledError:
                 break
             except Exception:
@@ -326,7 +339,10 @@ async def ws_transform_sync(module: str, resource: str):
     finally:
         # Cleanup
         try:
-            messagebus.unsubscribe(topic, on_transform_update)  # type: ignore
+            messagebus.unsubscribe(
+                topic,
+                on_transform_update,  # type: ignore
+            )
         except Exception:
             pass
 
