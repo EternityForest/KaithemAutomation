@@ -6,7 +6,7 @@ class ProjectionEditor {
         this.container = container;
         this.module = module;
         this.resource = resource;
-        this.data = JSON.parse(JSON.stringify(initialData));
+        this.data = structuredClone(initialData);
         this.selectedSourceId = null;
         this.draggingCorner = null;
         this.isDragging = false;
@@ -174,7 +174,7 @@ class ProjectionEditor {
 
     setupCanvas() {
         this.canvasElement =
-            document.getElementById('preview-canvas');
+            document.querySelector('#preview-canvas');
         const rect = this.canvasElement
             .parentElement
             .getBoundingClientRect();
@@ -184,7 +184,7 @@ class ProjectionEditor {
 
         // Setup preview container
         const container =
-            document.getElementById('preview-container');
+            document.querySelector('#preview-container');
         container.style.position = 'relative';
         container.style.width = '100%';
         container.style.height = '100%';
@@ -194,15 +194,26 @@ class ProjectionEditor {
 
     renderPreview() {
         const container =
-            document.getElementById('preview-container');
-        container.innerHTML = '';
+            document.querySelector('#preview-container');
 
-        this.previewIframes = {};
+        // Only clear and rebuild if sources changed
+        if (Object.keys(this.previewIframes).length === 0) {
+            container.innerHTML = '';
+        }
 
-        this.data.sources.forEach((source) => {
-            if (!source.visible) return;
+        for (const source of this.data.sources) {
+            if (!source.visible) continue;
 
             if (source.type === 'iframe') {
+                // Reuse existing wrapper if present
+                if (this.previewIframes[source.id]) {
+                    this.applyPreviewTransform(
+                        this.previewIframes[source.id],
+                        source
+                    );
+                    continue;
+                }
+
                 const wrapper = document.createElement('div');
                 wrapper.className = 'preview-source';
                 wrapper.id = `source-${source.id}`;
@@ -215,13 +226,13 @@ class ProjectionEditor {
                 iframe.style.width = '100%';
                 iframe.style.height = '100%';
 
-                wrapper.appendChild(iframe);
+                wrapper.append(iframe);
 
                 this.applyPreviewTransform(wrapper, source);
-                container.appendChild(wrapper);
+                container.append(wrapper);
                 this.previewIframes[source.id] = wrapper;
             }
-        });
+        }
 
         this.drawCornerHandles();
     }
@@ -232,21 +243,22 @@ class ProjectionEditor {
 
         element.style.position = 'absolute';
 
-        if (!corners) {
-            element.style.top = '0';
-            element.style.left = '0';
-            element.style.width = '100%';
-            element.style.height = '100%';
-        } else {
+        if (corners) {
             element.style.width = '100%';
             element.style.height = '100%';
             element.style.top = '0';
             element.style.left = '0';
 
-            const matrix = this.calculateMatrix(corners);
+            const matrix =
+                this.calculatePerspectiveMatrix(corners);
             element.style.transformOrigin = '0 0';
             element.style.transform =
                 `matrix3d(${matrix.join(',')})`;
+        } else {
+            element.style.top = '0';
+            element.style.left = '0';
+            element.style.width = '100%';
+            element.style.height = '100%';
         }
 
         if (transform.opacity !== undefined) {
@@ -260,23 +272,158 @@ class ProjectionEditor {
         }
 
         if (transform.rotation) {
-            element.style.transform +=
+            const matrix =
+                this.calculatePerspectiveMatrix(corners);
+            element.style.transform =
+                `matrix3d(${matrix.join(',')})` +
                 ` rotate(${transform.rotation}deg)`;
         }
     }
 
-    calculateMatrix(corners) {
-        // Simplified: identity matrix
-        // TODO: Implement proper perspective transform
-        return [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+    updatePreviewTransform(source) {
+        // Smoothly update just the transform without
+        // recreating DOM
+        if (!this.previewIframes[source.id]) return;
+
+        const element = this.previewIframes[source.id];
+        this.applyPreviewTransform(element, source);
+    }
+
+    calculatePerspectiveMatrix(corners) {
+        // Get projection size
+        const w = this.data.size?.width || 1920;
+        const h = this.data.size?.height || 1080;
+
+        const sourceCorners = [
+            [0, 0],
+            [w, 0],
+            [0, h],
+            [w, h],
+        ];
+
+        const destinationCorners = [
+            [corners.tl.x, corners.tl.y],
+            [corners.tr.x, corners.tr.y],
+            [corners.bl.x, corners.bl.y],
+            [corners.br.x, corners.br.y],
+        ];
+
+        return this.computeHomography(
+            sourceCorners,
+            destinationCorners
+        );
+    }
+
+    computeHomography(source, destination) {
+        // Compute homography using DLT
+        // (Direct Linear Transformation)
+        const A = [];
+
+        for (let i = 0; i < 4; i++) {
+            const x = source[i][0];
+            const y = source[i][1];
+            const xp = destination[i][0];
+            const yp = destination[i][1];
+
+            A.push(
+                [x, y, 1, 0, 0, 0, -xp * x, -xp * y, -xp],
+                [0, 0, 0, x, y, 1, -yp * x, -yp * y, -yp]
+            );
+        }
+
+        // Solve using SVD approximation (power iteration)
+        const h = this.solveHomography(A);
+
+        // Convert 3x3 homography to matrix3d format
+        return this.homographyToMatrix3d(h);
+    }
+
+    solveHomography(A) {
+        // Use power iteration to find eigenvector
+        // corresponding to smallest eigenvalue
+        const n = 9;
+        let x = [];
+        for (let i = 0; i < n; i++) {
+            x[i] = Math.random();
+        }
+
+        // Power iteration (simplified SVD)
+        for (let iter = 0; iter < 10; iter++) {
+            let Ax = [];
+            for (const element of A) {
+                let sum = 0;
+                for (let j = 0; j < n; j++) {
+                    sum += element[j] * x[j];
+                }
+                Ax.push(sum);
+            }
+
+            // Compute A^T * A * x approximation
+            let ATAx = [];
+            for (let i = 0; i < n; i++) {
+                let sum = 0;
+                for (const [k, element] of A.entries()) {
+                    sum += element[i] * Ax[k];
+                }
+                ATAx[i] = sum;
+            }
+
+            // Normalize
+            let norm = 0;
+            for (let i = 0; i < n; i++) {
+                norm += ATAx[i] * ATAx[i];
+            }
+            norm = Math.sqrt(norm);
+
+            if (norm > 1e-10) {
+                for (let i = 0; i < n; i++) {
+                    x[i] = ATAx[i] / norm;
+                }
+            }
+        }
+
+        return x;
+    }
+
+    homographyToMatrix3d(h) {
+        // Convert 3x3 homography to 4x4 matrix3d
+        // h = [h00, h01, h02, h10, h11, h12, h20, h21, h22]
+        const H = [
+            [h[0], h[1], h[2]],
+            [h[3], h[4], h[5]],
+            [h[6], h[7], h[8]],
+        ];
+
+        // Normalize by h22
+        if (Math.abs(H[2][2]) > 1e-10) {
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    H[i][j] /= H[2][2];
+                }
+            }
+        }
+
+        // matrix3d format (column-major):
+        // [scaleX, skewY, 0, perspectiveY,
+        //  skewX, scaleY, 0, perspectiveX,
+        //  0, 0, 1, 0,
+        //  translateX, translateY, 0, 1]
+        const matrix = [
+            H[0][0], H[1][0], 0, H[2][0],
+            H[0][1], H[1][1], 0, H[2][1],
+            0, 0, 1, 0,
+            H[0][2], H[1][2], 0, H[2][2],
+        ];
+
+        return matrix;
     }
 
     drawCornerHandles() {
         const canvas = this.canvasElement;
         if (!canvas) return;
 
-        const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const context = canvas.getContext('2d');
+        context.clearRect(0, 0, canvas.width, canvas.height);
 
         if (!this.selectedSourceId) return;
 
@@ -292,42 +439,42 @@ class ProjectionEditor {
 
         // Draw corner handles
         const cornerKeys = ['tl', 'tr', 'bl', 'br'];
-        cornerKeys.forEach((key) => {
+        for (const key of cornerKeys) {
             const corner = corners[key];
-            if (!corner) return;
+            if (!corner) continue;
 
             const x = corner.x * scaleX;
             const y = corner.y * scaleY;
 
-            ctx.fillStyle = '#00ff00';
-            ctx.beginPath();
-            ctx.arc(x, y, 10, 0, Math.PI * 2);
-            ctx.fill();
+            context.fillStyle = '#00ff00';
+            context.beginPath();
+            context.arc(x, y, 10, 0, Math.PI * 2);
+            context.fill();
 
-            ctx.fillStyle = '#000';
-            ctx.font = '12px Arial';
-            ctx.fillText(key, x + 15, y + 15);
-        });
+            context.fillStyle = '#000';
+            context.font = '12px Arial';
+            context.fillText(key, x + 15, y + 15);
+        }
     }
 
     setupEventListeners() {
         // Save button
-        document.getElementById('save-btn')
+        document.querySelector('#save-btn')
             .addEventListener('click', () =>
                 this.save()
             );
 
         // Add source button
-        document.getElementById('add-source-btn')
+        document.querySelector('#add-source-btn')
             .addEventListener('click', () =>
                 this.addSource()
             );
 
         // Add effect button
-        const addEffectBtn =
-            document.getElementById('add-effect-btn');
-        if (addEffectBtn) {
-            addEffectBtn.addEventListener('click', () =>
+        const addEffectButton =
+            document.querySelector('#add-effect-btn');
+        if (addEffectButton) {
+            addEffectButton.addEventListener('click', () =>
                 this.addEffect()
             );
         }
@@ -361,22 +508,22 @@ class ProjectionEditor {
         );
 
         // Transform controls
-        document.getElementById('opacity')
+        document.querySelector('#opacity')
             ?.addEventListener('input', (e) => {
                 const source = this.getSelectedSource();
                 if (source) {
                     source.transform.opacity =
-                        parseFloat(e.target.value);
+                        Number.parseFloat(e.target.value);
                     document
-                        .getElementById('opacity-val')
+                        .querySelector('#opacity-val')
                         .textContent =
-                        parseFloat(e.target.value)
+                        Number.parseFloat(e.target.value)
                             .toFixed(2);
                     this.renderPreview();
                 }
             });
 
-        document.getElementById('blend-mode')
+        document.querySelector('#blend-mode')
             ?.addEventListener('change', (e) => {
                 const source = this.getSelectedSource();
                 if (source) {
@@ -386,20 +533,20 @@ class ProjectionEditor {
                 }
             });
 
-        document.getElementById('rotation')
+        document.querySelector('#rotation')
             ?.addEventListener('input', (e) => {
                 const source = this.getSelectedSource();
                 if (source) {
                     source.transform.rotation =
-                        parseInt(e.target.value);
+                        Number.parseInt(e.target.value);
                     this.renderPreview();
                 }
             });
 
         // Corner inputs
-        document.querySelectorAll(
+        for (const input of document.querySelectorAll(
             'input.corner-x, input.corner-y'
-        ).forEach((input) => {
+        )) {
             input.addEventListener('input', (e) => {
                 const source = this.getSelectedSource();
                 if (source) {
@@ -409,38 +556,26 @@ class ProjectionEditor {
                         .includes('corner-x');
 
                     if (!source.transform.corners) {
-                        source.transform.corners = {
-                            tl: { x: 0, y: 0 },
-                            tr: {
-                                x: window.innerWidth,
-                                y: 0,
-                            },
-                            bl: {
-                                x: 0,
-                                y: window.innerHeight,
-                            },
-                            br: {
-                                x: window.innerWidth,
-                                y: window.innerHeight,
-                            },
-                        };
+                        source.transform.corners = this
+                            .getDefaultCorners();
                     }
 
                     if (isX) {
                         source.transform.corners[
                             corner
-                        ].x = parseFloat(e.target.value);
+                        ].x = Number.parseFloat(e.target.value);
                     } else {
                         source.transform.corners[
                             corner
-                        ].y = parseFloat(e.target.value);
+                        ].y = Number.parseFloat(e.target.value);
                     }
 
                     this.broadcastTransform(source);
-                    this.renderPreview();
+                    this.updatePreviewTransform(source);
+                    this.drawCornerHandles();
                 }
             });
-        });
+        }
     }
 
     onCanvasMouseDown(e) {
@@ -466,7 +601,9 @@ class ProjectionEditor {
         ] = { x, y };
 
         this.broadcastTransform(source);
-        this.renderPreview();
+        this.updatePreviewTransform(source);
+        this.updateTransformInputs();
+        this.drawCornerHandles();
     }
 
     onCanvasMouseUp() {
@@ -520,11 +657,11 @@ class ProjectionEditor {
         for (const [key, corner] of Object.entries(
             corners
         )) {
-            const dist = Math.hypot(
+            const distribution = Math.hypot(
                 x - corner.x,
                 y - corner.y
             );
-            if (dist < hitRadius) {
+            if (distribution < hitRadius) {
                 this.draggingCorner = key;
                 return;
             }
@@ -545,14 +682,14 @@ class ProjectionEditor {
     }
 
     setupWebSocket() {
-        const protocol = window.location.protocol ===
+        const protocol = globalThis.location.protocol ===
             'https:' ? 'wss' : 'ws';
         this.ws = new WebSocket(
-            `${protocol}://${window.location.host}` +
+            `${protocol}://${globalThis.location.host}` +
             `/projection-mapper/ws/${this.module}/${this.resource}`
         );
 
-        this.ws.onmessage = (event) => {
+        this.ws.addEventListener('message', (event) => {
             const message = JSON.parse(event.data);
             if (message.type === 'transform_update') {
                 const source = this.data.sources.find(
@@ -565,17 +702,17 @@ class ProjectionEditor {
                     this.updateTransformInputs();
                 }
             }
-        };
+        });
     }
 
     updateSourcesList() {
         const list =
-            document.getElementById('sources-list');
+            document.querySelector('#sources-list');
         if (!list) return;
 
         list.innerHTML = '';
 
-        this.data.sources.forEach((source) => {
+        for (const source of this.data.sources) {
             const item = document.createElement('div');
             item.className = 'source-item';
             if (source.id === this.selectedSourceId) {
@@ -603,8 +740,8 @@ class ProjectionEditor {
                     }
                 );
 
-            list.appendChild(item);
-        });
+            list.append(item);
+        }
     }
 
     selectSource(sourceId) {
@@ -613,9 +750,9 @@ class ProjectionEditor {
         this.updateTransformInputs();
 
         const transformSection =
-            document.getElementById('transform-section');
+            document.querySelector('#transform-section');
         const vfxSection =
-            document.getElementById('vfx-section');
+            document.querySelector('#vfx-section');
 
         if (transformSection)
             transformSection.style.display = 'block';
@@ -638,25 +775,25 @@ class ProjectionEditor {
         const transform = source.transform || {};
 
         const opacitySlider =
-            document.getElementById('opacity');
+            document.querySelector('#opacity');
         if (opacitySlider) {
             opacitySlider.value =
                 transform.opacity ?? 1;
             document
-                .getElementById('opacity-val')
+                .querySelector('#opacity-val')
                 .textContent =
                 (transform.opacity ?? 1).toFixed(2);
         }
 
         const blendSelect =
-            document.getElementById('blend-mode');
+            document.querySelector('#blend-mode');
         if (blendSelect) {
             blendSelect.value =
                 transform.blend_mode ?? 'normal';
         }
 
         const rotationInput =
-            document.getElementById('rotation');
+            document.querySelector('#rotation');
         if (rotationInput) {
             rotationInput.value =
                 transform.rotation ?? 0;
@@ -665,7 +802,7 @@ class ProjectionEditor {
         if (transform.corners) {
             const cornerKeys =
                 ['tl', 'tr', 'bl', 'br'];
-            cornerKeys.forEach((key) => {
+            for (const key of cornerKeys) {
                 const corner = transform.corners[key];
                 const xInputs = document.querySelectorAll(
                     `input.corner-x[data-corner="${key}"]`
@@ -680,8 +817,20 @@ class ProjectionEditor {
                 if (yInputs[0]) {
                     yInputs[0].value = corner.y;
                 }
-            });
+            }
         }
+    }
+
+    getDefaultCorners() {
+        const w = this.data.size?.width || 1920;
+        const h = this.data.size?.height || 1080;
+
+        return {
+            tl: { x: 0, y: 0 },
+            tr: { x: w, y: 0 },
+            bl: { x: 0, y: h },
+            br: { x: w, y: h },
+        };
     }
 
     addSource() {
@@ -697,7 +846,7 @@ class ProjectionEditor {
             type: 'iframe',
             config: { url },
             transform: {
-                corners: null,
+                corners: this.getDefaultCorners(),
                 opacity: 1,
                 blend_mode: 'normal',
                 rotation: 0,
@@ -719,11 +868,11 @@ class ProjectionEditor {
 
         if (this.selectedSourceId === sourceId) {
             this.selectedSourceId = null;
-            document.getElementById(
-                'transform-section'
+            document.querySelector(
+                '#transform-section'
             ).style.display = 'none';
-            document.getElementById(
-                'vfx-section'
+            document.querySelector(
+                '#vfx-section'
             ).style.display = 'none';
         }
 
@@ -748,6 +897,14 @@ class ProjectionEditor {
 
     async save() {
         try {
+            // Ensure size is set
+            if (this.data.size === 0) {
+                this.data.size = {
+                    width: 1920,
+                    height: 1080,
+                };
+            }
+
             const response = await fetch(
                 `/projection-mapper/api/save/${this.module}/${this.resource}`,
                 {
@@ -760,6 +917,7 @@ class ProjectionEditor {
             );
 
             if (response.ok) {
+                await response.json();
                 alert('Saved successfully');
 
                 // Broadcast reload to viewers
@@ -773,7 +931,11 @@ class ProjectionEditor {
                     );
                 }
             } else {
-                alert('Save failed');
+                const errorData = await response.json();
+                alert(
+                    'Save failed: ' +
+                    (errorData.message || 'Unknown error')
+                );
             }
         } catch (error) {
             console.error('Save error:', error);
@@ -785,7 +947,7 @@ class ProjectionEditor {
         return 'src_' +
             Math.random()
                 .toString(36)
-                .substr(2, 9);
+                .slice(2, 11);
     }
 }
 
