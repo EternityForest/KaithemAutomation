@@ -60,6 +60,21 @@ class ProjectionEditor {
                         </div>
 
                         <div class="sidebar-section"
+                             id="size-section">
+                            <h3>Projection Size</h3>
+                            <div class="form-group">
+                                <label>Width (px)</label>
+                                <input type="number" id="size-width"
+                                       min="320" value="1920">
+                            </div>
+                            <div class="form-group">
+                                <label>Height (px)</label>
+                                <input type="number" id="size-height"
+                                       min="240" value="1080">
+                            </div>
+                        </div>
+
+                        <div class="sidebar-section"
                              id="transform-section"
                              style="display: none;">
                             <h3>Transform</h3>
@@ -182,17 +197,84 @@ class ProjectionEditor {
             .parentElement
             .getBoundingClientRect();
 
-        this.canvasElement.width = rect.width;
-        this.canvasElement.height = rect.height;
+        // Canvas should match virtual size initially
+        const w = this.data.size?.width || 1920;
+        const h = this.data.size?.height || 1080;
+        this.canvasElement.width = w;
+        this.canvasElement.height = h;
 
-        // Setup preview container
+        // Setup preview container with virtual screen
         const container =
             document.querySelector('#preview-container');
         container.style.position = 'relative';
-        container.style.width = '100%';
-        container.style.height = '100%';
+        this.updateContainerSize();
+
+        // Scale canvas to match container
+        this.updateCanvasScale();
 
         this.renderPreview();
+
+        // Update size inputs
+        const sizeWidth =
+            document.querySelector('#size-width');
+        const sizeHeight =
+            document.querySelector('#size-height');
+        if (sizeWidth) sizeWidth.value = w;
+        if (sizeHeight) sizeHeight.value = h;
+    }
+
+    updateCanvasScale() {
+        const container =
+            document.querySelector('#preview-container');
+        const canvas = this.canvasElement;
+
+        const computedStyle =
+            window.getComputedStyle(container);
+        const transform = computedStyle.transform;
+
+        // Extract scale from container transform
+        // If transform is "scale(X)", extract X
+        let scale = 1;
+        if (transform && transform !== 'none') {
+            const match = transform.match(/scale\(([\d.]+)\)/);
+            if (match) {
+                scale = Number.parseFloat(match[1]);
+            }
+        }
+
+        // Apply same scale to canvas
+        canvas.style.transform =
+            `scale(${scale})`;
+        canvas.style.transformOrigin = '0 0';
+        canvas.style.width = '100%';
+        canvas.style.height = '100%';
+    }
+
+    updateContainerSize() {
+        const container =
+            document.querySelector('#preview-container');
+        const canvas = this.canvasElement;
+
+        const w = this.data.size?.width || 1920;
+        const h = this.data.size?.height || 1080;
+
+        // Calculate scale to fit container while
+        // maintaining aspect ratio
+        const containerWidth = canvas.parentElement
+            .clientWidth;
+        const containerHeight = canvas.parentElement
+            .clientHeight;
+
+        const scaleX = containerWidth / w;
+        const scaleY = containerHeight / h;
+        const scale = Math.min(scaleX, scaleY);
+
+        // Set container to virtual size, scaled
+        container.style.width = `${w * scale}px`;
+        container.style.height = `${h * scale}px`;
+        container.style.transform =
+            `scale(${scale})`;
+        container.style.transformOrigin = '0 0';
     }
 
     renderPreview() {
@@ -496,6 +578,27 @@ class ProjectionEditor {
                 this.addEffect()
             );
         }
+
+        // Size inputs
+        document.querySelector('#size-width')
+            ?.addEventListener('input', (e) => {
+                this.data.size = this.data.size || {};
+                this.data.size.width =
+                    Number.parseInt(e.target.value);
+                this.updateContainerSize();
+                this.updateCanvasScale();
+                this.renderPreview();
+            });
+
+        document.querySelector('#size-height')
+            ?.addEventListener('input', (e) => {
+                this.data.size = this.data.size || {};
+                this.data.size.height =
+                    Number.parseInt(e.target.value);
+                this.updateContainerSize();
+                this.updateCanvasScale();
+                this.renderPreview();
+            });
 
         // Canvas dragging
         this.canvasElement.addEventListener(
