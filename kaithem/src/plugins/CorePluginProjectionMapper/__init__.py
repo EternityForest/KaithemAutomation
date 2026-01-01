@@ -264,6 +264,9 @@ async def api_save_data(module: str, resource: str):
     try:
         data = await quart.request.json
         modules_state.save_resource(module, resource, data)
+        # Update in-memory cache
+        if module in modules_state.ActiveModules:
+            modules_state.ActiveModules[module][resource] = data
         return quart.jsonify({"status": "ok"})
     except Exception as e:
         logger.exception("Failed to save projection")

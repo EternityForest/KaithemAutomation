@@ -21,9 +21,12 @@ class ProjectionEditor {
 
     init() {
         this.render();
-        this.setupCanvas();
-        this.setupWebSocket();
-        this.setupEventListeners();
+        // Defer setup until layout is calculated
+        requestAnimationFrame(() => {
+            this.setupCanvas();
+            this.setupEventListeners();
+            this.setupWebSocket();
+        });
     }
 
     render() {
@@ -225,6 +228,12 @@ class ProjectionEditor {
                 iframe.style.pointerEvents = 'none';
                 iframe.style.width = '100%';
                 iframe.style.height = '100%';
+                iframe.style.display = 'block';
+                iframe.sandbox.add(
+                    'allow-same-origin',
+                    'allow-scripts',
+                    'allow-forms'
+                );
 
                 wrapper.append(iframe);
 
@@ -232,6 +241,12 @@ class ProjectionEditor {
                 container.append(wrapper);
                 this.previewIframes[source.id] = wrapper;
             }
+        }
+
+        // Auto-select first source if none selected
+        if (!this.selectedSourceId &&
+            this.data.sources.length > 0) {
+            this.selectSource(this.data.sources[0].id);
         }
 
         this.drawCornerHandles();
@@ -271,12 +286,15 @@ class ProjectionEditor {
                 transform.blend_mode;
         }
 
-        if (transform.rotation) {
+        if (transform.rotation && corners) {
             const matrix =
                 this.calculatePerspectiveMatrix(corners);
             element.style.transform =
                 `matrix3d(${matrix.join(',')})` +
                 ` rotate(${transform.rotation}deg)`;
+        } else if (transform.rotation && !corners) {
+            element.style.transform =
+                `rotate(${transform.rotation}deg)`;
         }
     }
 
