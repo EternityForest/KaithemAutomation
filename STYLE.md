@@ -110,6 +110,12 @@
 
 * Even tiny amounts of unreliability are unacceptable to many users, especially if they are not protected from liability.  Do not expect them to do something like hosting their own email and risking getting fired for that choice if the server fails and they miss an important message.
 
+* Make heavy use of the "sidebar inspector" pattern for intuitiveness and consistency.
+
+* Use modal dialogs rather than littering stuff all over the pages.
+
+* Create guided experiences where everything you need to know is visible, rather than expecting the user to be one step ahead of the machine.
+
 ## Aesthetics of the Architecture
 
 * Design your APIs as if we're working on am extremely popular library, used by millions of developers
