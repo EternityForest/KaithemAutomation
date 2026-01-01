@@ -31,7 +31,6 @@ from .. import (
     context_restrictions,
     schemas,
     scriptbindings,
-    tagpoints,
     util,
 )
 from . import core, group_media, mqtt, persistance
@@ -241,9 +240,6 @@ class Group:
         backtrack: bool = True,
         bpm: float = 60,
         sound_output: str = "",
-        event_buttons: list[Iterable[str]] = [],
-        display_tags=[],
-        info_display: str = "",
         utility: bool = False,
         hide: bool = False,
         notes: str = "",
@@ -312,8 +308,6 @@ class Group:
         self.mqtt_sync_features: dict[str, Any] = mqtt_sync_features or {}
         self.mqttNodeSessionID: str = base64.b64encode(os.urandom(8)).decode()
 
-        self.event_buttons: list = event_buttons[:]
-        self.info_display = info_display
         self.utility: bool = bool(utility)
 
         if id:
@@ -511,22 +505,6 @@ class Group:
         self.script_context = self.make_script_context()
 
         add_context_commands(self)
-
-        # Holds (tagpoint, subscribe function) tuples whenever we subscribe
-        # to a tag to display it
-        self.display_tag_subscription_refs: list[
-            tuple[tagpoints.GenericTagPointClass, Callable]
-        ] = []
-
-        # Name, TagpointName, properties
-        # This is the actual configured data.
-        self._display_tags: list[tuple[str, str, dict[str, Any]]] = []
-
-        # The most recent values of our display tags
-        self.display_tag_values: dict[str, Any] = {}
-
-        self.display_tag_meta: dict[str, dict[str, Any]] = {}
-        self.display_tags = display_tags
 
         self.refresh_rules()
 
@@ -1786,119 +1764,6 @@ class Group:
         "JSON encodes message, and publishes it to the group's MQTT server"
         if self.mqttConnection:
             self.mqttConnection.publish(topic, json.dumps(message))
-
-    def _nl_clear_display_tags(self):
-        """Must be called under lock.  Clear all the display tags"""
-        for i in self.display_tag_subscription_refs:
-            i[0].unsubscribe(i[1])
-        self.display_tag_subscription_refs = []
-        self.display_tag_values = {}
-        self.display_tag_meta = {}
-
-    def make_display_tag_subscriber(
-        self, tag: tagpoints.GenericTagPointClass
-    ) -> tuple[tagpoints.GenericTagPointClass, Callable]:
-        "Create and return a subscriber to a display tag"
-        tag_name = tag.name
-
-        # Todo remove this as we now assume full authority
-        if not self.script_context.canGetTagpoint(tag_name):
-            raise ValueError("Not allowed tag " + tag_name)
-
-        sn = tag_name
-        self.display_tag_meta[sn] = {}
-        if isinstance(tag, tags.NumericTagPointClass):
-            self.display_tag_meta[sn]["min"] = tag.min
-            self.display_tag_meta[sn]["max"] = tag.max
-            self.display_tag_meta[sn]["hi"] = tag.hi
-            self.display_tag_meta[sn]["lodisplayTagValues"] = tag.lo
-            self.display_tag_meta[sn]["unit"] = tag.unit
-        self.display_tag_meta[sn]["subtype"] = tag.subtype
-
-        self.push_to_frontend(keys=["displayTagMeta"])
-
-        def f(v, t, a):
-            self.display_tag_values[sn] = v
-            self.push_to_frontend(keys=["displayTagValues"])
-
-        tag.subscribe(f)
-        self.display_tag_values[sn] = tag.value
-        self.push_to_frontend(keys=["displayTagValues"])
-
-        return tag, f
-
-    @property
-    def display_tags(self):
-        return self._display_tags
-
-    @display_tags.setter
-    @slow_group_lock_context.object_session_entry_point
-    def display_tags(self, dt):
-        dt = dt[:]
-        with self.lock:
-            self._nl_clear_display_tags()
-            gc.collect()
-            gc.collect()
-            gc.collect()
-
-            try:
-                for i in dt:
-                    i[1] = tagpoints.normalize_tag_name(i[1])
-                    # Upgrade legacy format
-                    # TODO remove legacy stuff
-                    if len(i) == 2:
-                        i.append({"type": "null"})
-
-                    if "type" not in i[2]:
-                        i[2]["type"] = "auto"
-
-                    if "width" not in i[2]:
-                        i[2]["width"] = "4"
-
-                    if i[2]["type"] == "auto":
-                        logger.error(
-                            "Auto type tag display no longer supported"
-                        )
-                        i[2]["type"] = "null"
-
-                    t = None
-
-                    if not i[2]["type"] == "led":
-                        i[2].pop("color", None)
-                        i[2].pop("pattern", None)
-
-                    if i[2]["type"] == "numeric_input":
-                        t = tags.NumericTag(i[1])
-
-                    elif i[2]["type"] == "switch_input":
-                        t = tags.NumericTag(i[1])
-
-                    elif i[2]["type"] == "string_input":
-                        t = tags.StringTag(i[1])
-
-                    elif i[2]["type"] == "text":
-                        t = tags.StringTag(i[1])
-
-                    elif i[2]["type"] == "meter":
-                        t = tags.NumericTag(i[1])
-
-                    elif i[2]["type"] == "led":
-                        t = tags.NumericTag(i[1])
-
-                    if t:
-                        self.display_tag_subscription_refs.append(
-                            self.make_display_tag_subscriber(t)
-                        )
-                    else:
-                        if not i[2]["type"] == "null":
-                            raise ValueError("Bad tag type?")
-            except Exception:
-                logger.exception("Failed setting up display tags")
-                self.event("board.error", traceback.format_exc())
-
-            if not dt == self._display_tags:
-                self._display_tags = dt
-                self.push_to_frontend(keys=["display_tags"])
 
     @slow_group_lock_context.object_session_entry_point
     def rename_cue(self, old: str, new: str):

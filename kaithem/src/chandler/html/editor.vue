@@ -213,21 +213,6 @@
                   <i class="mdi mdi-stop-circle-outline"></i>Stop
                 </button>
               </div>
-              <iframe
-                v-if="showPages && i[1].infoDisplay.length > 0"
-                :src="i[1].infoDisplay"></iframe>
-
-              <div
-                class="tool-bar noselect"
-                v-if="i[1].eventButtons.length > 0">
-                <button
-                  type="button"
-                  v-for="v of i[1].eventButtons"
-                  v-bind:key="v[1] + '_' + v[0]"
-                  v-on:click="sendGroupEventWithConfirm(v[1], v[1])">
-                  {{ v[0] }}
-                </button>
-              </div>
 
               <smooth-range
                 style="margin-left: 0.4rem"
@@ -1681,242 +1666,7 @@
                     </label>
                   </p>
 
-                  <label
-                    title="This URL is shown in a mini window in the sidebar"
-                    >Sidebar info URL
-                    <input
-                      :disabled="no_edit"
-                      v-on:change="
-                        setinfodisplay(groupname, $event.target.value)
-                      "
-                      v-model="editingGroup.infoDisplay" />
-                  </label>
                 </div>
-                <h5>Event Buttons</h5>
-                <table border="1" class="w-full">
-                  <tr>
-                    <th>Label</th>
-                    <th>Event</th>
-                    <th>Action</th>
-                  </tr>
-                  <tr
-                    v-for="(v, i) in editingGroup.eventButtons"
-                    v-bind:key="v[1] + '_' + v[0]">
-                    <td>
-                      <input
-                        :disabled="no_edit"
-                        v-model="v[0]"
-                        class="w-6rem"
-                        data-testid="event_button_label"
-                        v-on:change="
-                          setEventButtons(groupname, editingGroup.eventButtons)
-                        " />
-                    </td>
-                    <td>
-                      <input
-                        :disabled="no_edit"
-                        v-model="v[1]"
-                        class="w-6rem"
-                        data-testid="event_button_event"
-                        v-on:change="
-                          setEventButtons(groupname, editingGroup.eventButtons)
-                        " />
-                    </td>
-                    <td>
-                      <button
-                        data-testid="event_button_delete"
-                        v-on:click="
-                          editingGroup.eventButtons.splice(i, 1);
-                          setEventButtons(groupname, editingGroup.eventButtons);
-                        ">
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-
-                  <tr>
-                    <td></td>
-                    <td></td>
-                    <td>
-                      <button
-                        v-on:click="
-                          editingGroup.eventButtons.push(['', '']);
-                          setEventButtons(groupname, editingGroup.eventButtons);
-                        ">
-                        Add Button
-                      </button>
-                    </td>
-                  </tr>
-                </table>
-
-                <h5>Display and Input Tags</h5>
-
-                <details class="help">
-                  <summary><i class="mdi mdi-help-circle-outline"></i></summary>
-                  <p>Lets you display some tag points in the group overview.</p>
-
-                  <p>
-                    Tags will be created if they do not exist. Use the tag
-                    settings page to configure defaults an limits
-                  </p>
-
-                  <p>
-                    Expression tags are allowed, =tv('tag1') + 6 will display 6
-                    plus the tag 'tv'
-                  </p>
-
-                  <p>
-                    You can also add inputs to the group overview. You can then
-                    respond to these inputs in the cue logic.
-                  </p>
-                </details>
-
-                <table border="1" class="w-full">
-                  <tr class="">
-                    <th>Label</th>
-                    <th>Width</th>
-                    <th>Tag</th>
-                    <th>Type</th>
-                    <th>Action</th>
-                  </tr>
-                  <tr
-                    v-for="(v, i) in editingGroup.displayTags"
-                    v-bind:key="v[0] + '_' + v[1] + v[2]">
-                    <td>
-                      <input
-                        :disabled="no_edit"
-                        v-model="v[0]"
-                        class="w-6rem"
-                        data-testid="display_tag_label"
-                        v-on:change="
-                          setGroupProperty(
-                            groupname,
-                            'displayTags',
-                            editingGroup.displayTags
-                          )
-                        " />
-                    </td>
-
-                    <td>
-                      <input
-                        type="number"
-                        step="0.1"
-                        :disabled="no_edit"
-                        v-model="v[2].width"
-                        class="w-4rem"
-                        data-testid="display_tag_width"
-                        v-on:change="
-                          setGroupProperty(
-                            groupname,
-                            'displayTags',
-                            editingGroup.displayTags
-                          )
-                        " />
-                    </td>
-
-                    <td>
-                      <input
-                        :disabled="no_edit"
-                        type="text"
-                        list="tagslisting"
-                        v-model="v[1]"
-                        data-testid="display_tag_tag"
-                        v-on:change="
-                          setGroupProperty(
-                            groupname,
-                            'displayTags',
-                            editingGroup.displayTags
-                          )
-                        " />
-                    </td>
-
-                    <td>
-                      <select
-                        v-model="v[2].type"
-                        class="w-6rem"
-                        data-testid="display_tag_type"
-                        v-on:change="
-                          setGroupProperty(
-                            groupname,
-                            'displayTags',
-                            editingGroup.displayTags
-                          )
-                        ">
-                        <option value="meter">Meter</option>
-                        <option value="text">Text</option>
-                        <option value="led">LED</option>
-                        <option value="string_input">Text Input</option>
-                        <option value="numeric_input">Numeric Input</option>
-                        <option value="switch_input">Switch Input</option>
-                        <option value="null">Don't Show</option>
-                      </select>
-
-                      <template v-if="v[2].type == 'led'">
-                        <select
-                          :disabled="no_edit"
-                          v-model="v[2].color"
-                          data-testid="display_tag_led_color"
-                          v-on:change="
-                            setGroupProperty(
-                              groupname,
-                              'displayTags',
-                              editingGroup.displayTags
-                            )
-                          ">
-                          <option value="red">Red</option>
-                          <option value="yellow">Yel</option>
-                          <option value="green">Grn</option>
-                          <option value="blue">Blu</option>
-                          <option value="purple">Purple</option>
-                        </select>
-                      </template>
-                    </td>
-
-                    <td>
-                      <button
-                        data-testid="display_tag_delete"
-                        v-on:click="
-                          editingGroup.displayTags.splice(i, 1);
-                          setGroupProperty(
-                            groupname,
-                            'displayTags',
-                            editingGroup.displayTags
-                          );
-                        ">
-                        Delete
-                      </button>
-
-                      <a v-bind:href="'/tagpoints/' + encodeURIComponent(v[1])"
-                        ><i class="mdi mdi-gear"></i
-                      ></a>
-                    </td>
-                  </tr>
-
-                  <tr>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-
-                    <td>
-                      <button
-                        v-on:click="
-                          editingGroup.displayTags.push([
-                            'Label',
-                            '=1',
-                            { type: 'null' },
-                          ]);
-                          setGroupProperty(
-                            groupname,
-                            'displayTags',
-                            editingGroup.displayTags
-                          );
-                        ">
-                        Add Tag
-                      </button>
-                    </td>
-                  </tr>
-                </table>
               </div>
 
               <div class="card w-sm-full">
@@ -2490,7 +2240,6 @@ import {
   setCuePropertyDeferred,
   setGroupPropertyDeferred,
   saveToDisk,
-  sendGroupEventWithConfirm,
   refreshhistory,
   selectcue,
   selectgroup,
@@ -2512,11 +2261,9 @@ import {
   setcrossfade,
   setmqtt,
   setmqttfeature,
-  setinfodisplay,
   setbpm,
   tap,
   testSoundCard,
-  setEventButtons,
   addTimeToGroup,
   promptRename,
   promptRenameCue,

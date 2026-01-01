@@ -346,11 +346,6 @@ div.highlight {
                     }}
                   </small>
 
-                  <iframe
-                    style="flex-grow: 1"
-                    v-if="showPages && i[1].infoDisplay.length > 0"
-                    :src="i[1].infoDisplay"></iframe>
-
                   <group-ui
                     :unixtime="unixtime"
                     v-bind:group-data="i[1]"
