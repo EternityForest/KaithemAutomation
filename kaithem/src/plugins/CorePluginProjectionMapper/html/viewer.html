@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+    <title>Projection Viewer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+            background: #000;
+        }
+
+        #canvas-container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+        }
+
+        .source-iframe {
+            position: absolute;
+            border: none;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+
+    <script type="module">
+        import { VFX } from
+            '/projection-mapper/static/vfx-js/vfx.esm.js';
+
+        const MODULE = '{{ module }}';
+        const RESOURCE = '{{ resource }}';
+        const DATA = {{ data | safe }};
+
+        let animationFrameId = null;
+        const sourceElements = {};
+        let vfxInstances = {};
+
+        function initSources() {
+            const container = document.getElementById(
+                'canvas-container'
+            );
+            container.innerHTML = '';
+            sourceElements = {};
+            vfxInstances = {};
+
+            DATA.sources.forEach((source) => {
+                if (!source.visible) return;
+
+                if (source.type === 'iframe') {
+                    const iframe = document.createElement(
+                        'iframe'
+                    );
+                    iframe.id = `source-${source.id}`;
+                    iframe.src = source.config.url;
+                    iframe.className = 'source-iframe';
+                    iframe.sandbox.add(
+                        'allow-scripts',
+                        'allow-same-origin'
+                    );
+
+                    applyTransform(iframe, source);
+                    container.appendChild(iframe);
+                    sourceElements[source.id] = iframe;
+                }
+            });
+        }
+
+        function applyTransform(element, source) {
+            const transform = source.transform || {};
+            const corners = transform.corners;
+
+            if (!corners) {
+                // Default: full screen
+                element.style.position = 'absolute';
+                element.style.top = '0';
+                element.style.left = '0';
+                element.style.width = '100%';
+                element.style.height = '100%';
+            } else {
+                const vw = window.innerWidth;
+                const vh = window.innerHeight;
+
+                element.style.position = 'absolute';
+                element.style.width = '100%';
+                element.style.height = '100%';
+
+                const matrix = calculatePerspectiveMatrix(
+                    corners,
+                    vw,
+                    vh
+                );
+                element.style.transformOrigin = '0 0';
+                element.style.transform =
+                    `matrix3d(${matrix.join(',')})`;
+            }
+
+            if (transform.opacity !== undefined) {
+                element.style.opacity =
+                    transform.opacity.toString();
+            }
+
+            if (transform.blend_mode) {
+                element.style.mixBlendMode =
+                    transform.blend_mode;
+            }
+
+            if (transform.rotation) {
+                const current = element.style.transform || '';
+                element.style.transform =
+                    current +
+                    ` rotate(${transform.rotation}deg)`;
+            }
+        }
+
+        function calculatePerspectiveMatrix(
+            corners,
+            width,
+            height
+        ) {
+            // Simplified 3D perspective transform
+            // In production, use a proper homography calculation
+            const tl = corners.tl || { x: 0, y: 0 };
+            const tr = corners.tr || { x: width, y: 0 };
+            const bl = corners.bl || { x: 0, y: height };
+            const br = corners.br || { x: width, y: height };
+
+            // This is a simplified approximation
+            // For proper perspective correction, use OpenCV.js or
+            // a dedicated library
+            const scaleX = width / width;
+            const scaleY = height / height;
+
+            // Return identity matrix (flat transform)
+            // TODO: Implement proper perspective transform
+            return [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+        }
+
+        async function updateOnMessage(message) {
+            if (message.type === 'transform_update') {
+                const sourceId = message.source_id;
+                const source = DATA.sources.find(
+                    (s) => s.id === sourceId
+                );
+                if (source && sourceElements[sourceId]) {
+                    source.transform.corners =
+                        message.corners;
+                    applyTransform(
+                        sourceElements[sourceId],
+                        source
+                    );
+                }
+            } else if (message.type === 'reload') {
+                // Reload from server
+                const response = await fetch(
+                    `/projection-mapper/api/data/${MODULE}/${RESOURCE}`
+                );
+                const newData = await response.json();
+                Object.assign(DATA, newData);
+                initSources();
+            }
+        }
+
+        function connectWebSocket() {
+            // Use secure WebSocket if HTTPS
+            const protocol = window.location.protocol ===
+                'https:' ? 'wss' : 'ws';
+            const ws = new WebSocket(
+                `${protocol}://${window.location.host}` +
+                `/projection-mapper/ws/${MODULE}/${RESOURCE}`
+            );
+
+            ws.onopen = () => {
+                console.log(
+                    'WebSocket connected for viewer'
+                );
+            };
+
+            ws.onmessage = (event) => {
+                const message = JSON.parse(event.data);
+                updateOnMessage(message);
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+
+            ws.onclose = () => {
+                console.log('WebSocket disconnected');
+                // Reconnect after delay
+                setTimeout(connectWebSocket, 3000);
+            };
+        }
+
+        // Initialize on load
+        window.addEventListener('load', () => {
+            initSources();
+            connectWebSocket();
+        });
+
+        window.addEventListener('resize', () => {
+            // Reapply transforms on window resize
+            DATA.sources.forEach((source) => {
+                if (sourceElements[source.id]) {
+                    applyTransform(
+                        sourceElements[source.id],
+                        source
+                    );
+                }
+            });
+        });
+    </script>
+</body>
+</html>
