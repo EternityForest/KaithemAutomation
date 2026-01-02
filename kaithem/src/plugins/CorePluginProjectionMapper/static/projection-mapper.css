@@ -50,6 +50,7 @@
     background: #000;
     cursor: crosshair;
     z-index: 100;
+    pointer-events: auto;
 }
 
 #preview-sources {
@@ -58,6 +59,8 @@
     left: 0;
     width: 100%;
     height: 100%;
+    z-index: 50;
+    pointer-events: none;
 }
 
 .preview-source {

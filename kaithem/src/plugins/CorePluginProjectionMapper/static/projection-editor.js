@@ -394,125 +394,48 @@ class ProjectionEditor {
         const w = this.data.size?.width || 1920;
         const h = this.data.size?.height || 1080;
 
-        const sourceCorners = [
-            [0, 0],
-            [w, 0],
-            [0, h],
-            [w, h],
+        // Use perspective-transform library
+        // Convert corners object to flat array [x1, y1, x2, y2, ...]
+        const srcCorners = [
+            corners.tl.x, corners.tl.y,
+            corners.tr.x, corners.tr.y,
+            corners.bl.x, corners.bl.y,
+            corners.br.x, corners.br.y,
         ];
 
-        const destinationCorners = [
-            [corners.tl.x, corners.tl.y],
-            [corners.tr.x, corners.tr.y],
-            [corners.bl.x, corners.bl.y],
-            [corners.br.x, corners.br.y],
+        // Destination is the full virtual screen
+        const dstCorners = [
+            0, 0,
+            w, 0,
+            0, h,
+            w, h,
         ];
 
-        return this.computeHomography(
-            sourceCorners,
-            destinationCorners
-        );
+        // Get perspective-transform from global scope
+        // It was loaded as a non-module script
+        const PerspT = globalThis.PerspT;
+        const perspT = PerspT(srcCorners, dstCorners);
+
+        // Get the coefficients matrix
+        const coeffs = perspT.coeffs;
+
+        // Convert 3x3 matrix to matrix3d format
+        return this.coeffsToMatrix3d(coeffs);
     }
 
-    computeHomography(source, destination) {
-        // Compute homography using DLT
-        // (Direct Linear Transformation)
-        const A = [];
-
-        for (let i = 0; i < 4; i++) {
-            const x = source[i][0];
-            const y = source[i][1];
-            const xp = destination[i][0];
-            const yp = destination[i][1];
-
-            A.push(
-                [x, y, 1, 0, 0, 0, -xp * x, -xp * y, -xp],
-                [0, 0, 0, x, y, 1, -yp * x, -yp * y, -yp]
-            );
-        }
-
-        // Solve using SVD approximation (power iteration)
-        const h = this.solveHomography(A);
-
-        // Convert 3x3 homography to matrix3d format
-        return this.homographyToMatrix3d(h);
-    }
-
-    solveHomography(A) {
-        // Use power iteration to find eigenvector
-        // corresponding to smallest eigenvalue
-        const n = 9;
-        let x = [];
-        for (let i = 0; i < n; i++) {
-            x[i] = Math.random();
-        }
-
-        // Power iteration (simplified SVD)
-        for (let iter = 0; iter < 10; iter++) {
-            let Ax = [];
-            for (const element of A) {
-                let sum = 0;
-                for (let j = 0; j < n; j++) {
-                    sum += element[j] * x[j];
-                }
-                Ax.push(sum);
-            }
-
-            // Compute A^T * A * x approximation
-            let ATAx = [];
-            for (let i = 0; i < n; i++) {
-                let sum = 0;
-                for (const [k, element] of A.entries()) {
-                    sum += element[i] * Ax[k];
-                }
-                ATAx[i] = sum;
-            }
-
-            // Normalize
-            let norm = 0;
-            for (let i = 0; i < n; i++) {
-                norm += ATAx[i] * ATAx[i];
-            }
-            norm = Math.sqrt(norm);
-
-            if (norm > 1e-10) {
-                for (let i = 0; i < n; i++) {
-                    x[i] = ATAx[i] / norm;
-                }
-            }
-        }
-
-        return x;
-    }
-
-    homographyToMatrix3d(h) {
-        // Convert 3x3 homography to 4x4 matrix3d
-        // h = [h00, h01, h02, h10, h11, h12, h20, h21, h22]
-        const H = [
-            [h[0], h[1], h[2]],
-            [h[3], h[4], h[5]],
-            [h[6], h[7], h[8]],
-        ];
-
-        // Normalize by h22
-        if (Math.abs(H[2][2]) > 1e-10) {
-            for (let i = 0; i < 3; i++) {
-                for (let j = 0; j < 3; j++) {
-                    H[i][j] /= H[2][2];
-                }
-            }
-        }
-
+    coeffsToMatrix3d(coeffs) {
+        // coeffs is a 9-element array:
+        // [m00, m01, m02, m10, m11, m12, m20, m21, m22]
         // matrix3d format (column-major):
-        // [scaleX, skewY, 0, perspectiveY,
-        //  skewX, scaleY, 0, perspectiveX,
+        // [a, d, 0, g,
+        //  b, e, 0, h,
         //  0, 0, 1, 0,
-        //  translateX, translateY, 0, 1]
+        //  c, f, 0, i]
         const matrix = [
-            H[0][0], H[1][0], 0, H[2][0],
-            H[0][1], H[1][1], 0, H[2][1],
+            coeffs[0], coeffs[3], 0, coeffs[6],
+            coeffs[1], coeffs[4], 0, coeffs[7],
             0, 0, 1, 0,
-            H[0][2], H[1][2], 0, H[2][2],
+            coeffs[2], coeffs[5], 0, coeffs[8],
         ];
 
         return matrix;
