@@ -43,9 +43,7 @@ class ProjectionEditor {
                 <div class="editor-main">
                     <div class="editor-canvas-area">
                         <canvas id="preview-canvas"></canvas>
-                        <div id="preview-container"
-                             class="preview-container">
-                        </div>
+                        <div id="preview-sources"></div>
                     </div>
 
                     <div class="editor-sidebar">
@@ -194,26 +192,24 @@ class ProjectionEditor {
     setupCanvas() {
         this.canvasElement =
             document.querySelector('#preview-canvas');
-        const rect = this.canvasElement
-            .parentElement
-            .getBoundingClientRect();
 
-        // Canvas should match virtual size initially
         const w = this.data.size?.width || 1920;
         const h = this.data.size?.height || 1080;
+
+        // Canvas is exactly the virtual screen size
         this.canvasElement.width = w;
         this.canvasElement.height = h;
+        this.canvasElement.style.width = `${w}px`;
+        this.canvasElement.style.height = `${h}px`;
 
-        // Setup preview container with virtual screen
-        const container =
-            document.querySelector('#preview-container');
-        container.style.position = 'absolute';
-        container.style.top = "auto";
-        container.style.left = "auto";
-        this.updateContainerSize();
+        // Set preview-sources to same size
+        const sources =
+            document.querySelector('#preview-sources');
+        sources.style.width = `${w}px`;
+        sources.style.height = `${h}px`;
 
-        // Scale canvas to match container
-        this.updateCanvasScale();
+        // Setup scaling to fit viewport
+        this.updateVirtualScreenScale();
 
         this.renderPreview();
 
@@ -226,71 +222,44 @@ class ProjectionEditor {
         if (sizeHeight) sizeHeight.value = h;
     }
 
-    updateCanvasScale() {
-        const container =
-            document.querySelector('#preview-container');
+    updateVirtualScreenScale() {
         const canvas = this.canvasElement;
-
-        const computedStyle =
-            window.getComputedStyle(container);
-        const transform = computedStyle.transform;
-
-        // Extract scale from container transform
-        // If transform is "scale(X)", extract X
-        let scale = 1;
-        if (transform && transform !== 'none') {
-            const match = transform.match(/scale\(([\d.]+)\)/);
-            if (match) {
-                scale = Number.parseFloat(match[1]);
-            }
-        }
-
-        // Apply same scale to canvas
-        canvas.style.transform =
-            `scale(${scale})`;
-        canvas.style.transformOrigin = '0 0';
-        canvas.style.width = '100%';
-        canvas.style.height = '100%';
-    }
-
-    updateContainerSize() {
-        const container =
-            document.querySelector('#preview-container');
-        const canvas = this.canvasElement;
+        const sources =
+            document.querySelector('#preview-sources');
+        const canvasArea =
+            document.querySelector('.editor-canvas-area');
 
         const w = this.data.size?.width || 1920;
         const h = this.data.size?.height || 1080;
 
-        // Calculate scale to fit container while
+        // Calculate scale to fit viewport while
         // maintaining aspect ratio
-        const containerWidth = canvas.parentElement
-            .clientWidth;
-        const containerHeight = canvas.parentElement
-            .clientHeight;
+        const viewportWidth = canvasArea.clientWidth;
+        const viewportHeight = canvasArea.clientHeight;
 
-        const scaleX = containerWidth / w;
-        const scaleY = containerHeight / h;
+        const scaleX = viewportWidth / w;
+        const scaleY = viewportHeight / h;
         const scale = Math.min(scaleX, scaleY);
 
         // Store scale for coordinate conversion
         this.currentScale = scale;
 
-        // Set container to virtual size
-        // (transform will scale it)
-        container.style.width = `${w}px`;
-        container.style.height = `${h}px`;
-        container.style.transform =
+        // Apply scale to both canvas and sources
+        const scaleStyle =
             `scale(${scale})`;
-        container.style.transformOrigin = '0 0';
+        canvas.style.transform = scaleStyle;
+        canvas.style.transformOrigin = '0 0';
+        sources.style.transform = scaleStyle;
+        sources.style.transformOrigin = '0 0';
     }
 
     renderPreview() {
-        const container =
-            document.querySelector('#preview-container');
+        const sourcesContainer =
+            document.querySelector('#preview-sources');
 
         // Only clear and rebuild if sources changed
         if (Object.keys(this.previewIframes).length === 0) {
-            container.innerHTML = '';
+            sourcesContainer.innerHTML = '';
         }
 
         for (const source of this.data.sources) {
@@ -327,7 +296,7 @@ class ProjectionEditor {
                 wrapper.append(iframe);
 
                 this.applyPreviewTransform(wrapper, source);
-                container.append(wrapper);
+                sourcesContainer.append(wrapper);
                 this.previewIframes[source.id] = wrapper;
             }
         }
@@ -588,22 +557,40 @@ class ProjectionEditor {
 
         // Size inputs
         document.querySelector('#size-width')
-            ?.addEventListener('input', (e) => {
-                this.data.size = this.data.size || {};
+            ?.addEventListener('input', (event_) => {
+                if (!this.data.size) {
+                    this.data.size = {};
+                }
                 this.data.size.width =
-                    Number.parseInt(e.target.value);
-                this.updateContainerSize();
-                this.updateCanvasScale();
+                    Number.parseInt(event_.target.value);
+                this.canvasElement.width =
+                    this.data.size.width;
+                this.canvasElement.style.width =
+                    `${this.data.size.width}px`;
+                const sources =
+                    document.querySelector('#preview-sources');
+                sources.style.width =
+                    `${this.data.size.width}px`;
+                this.updateVirtualScreenScale();
                 this.renderPreview();
             });
 
         document.querySelector('#size-height')
-            ?.addEventListener('input', (e) => {
-                this.data.size = this.data.size || {};
+            ?.addEventListener('input', (event_) => {
+                if (!this.data.size) {
+                    this.data.size = {};
+                }
                 this.data.size.height =
-                    Number.parseInt(e.target.value);
-                this.updateContainerSize();
-                this.updateCanvasScale();
+                    Number.parseInt(event_.target.value);
+                this.canvasElement.height =
+                    this.data.size.height;
+                this.canvasElement.style.height =
+                    `${this.data.size.height}px`;
+                const sources =
+                    document.querySelector('#preview-sources');
+                sources.style.height =
+                    `${this.data.size.height}px`;
+                this.updateVirtualScreenScale();
                 this.renderPreview();
             });
 
