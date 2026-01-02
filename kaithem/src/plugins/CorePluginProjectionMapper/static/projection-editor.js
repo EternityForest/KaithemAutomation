@@ -1,6 +1,8 @@
 // Projection Mapper Editor
 // Real-time collaborative editing with WebSocket sync
 
+import { VFX } from '/static/js/thirdparty/vfx-js/vfx.esm.js';
+
 const EFFECT_SCHEMAS = {
     glitch: {
         type: 'object',
@@ -121,6 +123,8 @@ class ProjectionEditor {
         this.previewIframes = {};
         this.currentScale = 1;
         this.effectEditors = {};
+        this.renderCanvases = {};
+        this.vfxInstances = {};
 
         this.init();
     }
@@ -426,6 +430,7 @@ class ProjectionEditor {
                         this.previewIframes[source.id],
                         source
                     );
+                    this.applySourceEffects(source);
                     continue;
                 }
 
@@ -447,9 +452,18 @@ class ProjectionEditor {
                     'allow-forms'
                 );
 
+                // Re-render effects when iframe loads
+                iframe.addEventListener(
+                    'load',
+                    () => {
+                        this.applySourceEffects(source);
+                    }
+                );
+
                 wrapper.append(iframe);
 
                 this.applyPreviewTransform(wrapper, source);
+                this.applySourceEffects(source);
                 sourcesContainer.append(wrapper);
                 this.previewIframes[source.id] = wrapper;
             }
@@ -517,6 +531,65 @@ class ProjectionEditor {
 
         const element = this.previewIframes[source.id];
         this.applyPreviewTransform(element, source);
+        this.applySourceEffects(source);
+    }
+
+    applySourceEffects(source) {
+        // Apply VFX effects to iframe content
+        if (!source.vfx || source.vfx.length === 0) {
+            return;
+        }
+
+        const wrapper = this.previewIframes[source.id];
+        if (!wrapper) return;
+
+        const iframe = wrapper.querySelector('iframe');
+        if (!iframe || !iframe.contentDocument) return;
+
+        // Create or reuse render canvas
+        let renderCanvas = this.renderCanvases[source.id];
+        const w = this.data.size?.width || 1920;
+        const h = this.data.size?.height || 1080;
+
+        if (!renderCanvas) {
+            renderCanvas =
+                document.createElement('canvas');
+            renderCanvas.width = w;
+            renderCanvas.height = h;
+            renderCanvas.style.position = 'absolute';
+            renderCanvas.style.top = '0';
+            renderCanvas.style.left = '0';
+            renderCanvas.style.pointerEvents = 'none';
+            renderCanvas.style.width = '100%';
+            renderCanvas.style.height = '100%';
+            wrapper.append(renderCanvas);
+            this.renderCanvases[source.id] = renderCanvas;
+        }
+
+        // Get canvas context and render iframe
+        const context = renderCanvas.getContext('2d');
+        try {
+            context.drawImage(iframe, 0, 0);
+        } catch {
+            // CORS or other errors silently continue
+            return;
+        }
+
+        // Create or reuse VFX instance
+        let vfx = this.vfxInstances[source.id];
+        if (!vfx) {
+            vfx = new VFX(renderCanvas);
+            this.vfxInstances[source.id] = vfx;
+        }
+
+        // Clear previous effects and add new ones
+        vfx.effects = [];
+        for (const effect of source.vfx) {
+            vfx.addEffect(effect.shader, effect.params);
+        }
+
+        // Apply all effects
+        vfx.apply();
     }
 
     calculatePerspectiveMatrix(corners) {
@@ -534,7 +607,7 @@ class ProjectionEditor {
         ];
 
         // Destination is where user has positioned the corners
-        const dstCorners = [
+        const destinationCorners = [
             corners.tl.x, corners.tl.y,
             corners.tr.x, corners.tr.y,
             corners.bl.x, corners.bl.y,
@@ -544,7 +617,7 @@ class ProjectionEditor {
         // Get perspective-transform from global scope
         // It was loaded as a non-module script
         const PerspT = globalThis.PerspT;
-        const perspT = PerspT(sourceCorners, dstCorners);
+        const perspT = PerspT(sourceCorners, destinationCorners);
 
         // Get the coefficients matrix
         const coeffs = perspT.coeffs;
@@ -632,7 +705,7 @@ class ProjectionEditor {
         // Size inputs
         document.querySelector('#size-width')
             ?.addEventListener('input', (event_) => {
-                if (!this.data.size) {
+                if (this.data.size === 0) {
                     this.data.size = {};
                 }
                 this.data.size.width =
@@ -651,7 +724,7 @@ class ProjectionEditor {
 
         document.querySelector('#size-height')
             ?.addEventListener('input', (event_) => {
-                if (!this.data.size) {
+                if (this.data.size === 0) {
                     this.data.size = {};
                 }
                 this.data.size.height =
@@ -995,6 +1068,8 @@ class ProjectionEditor {
                         this.effectEditors[
                             editorKey
                         ].getValue();
+                    // Re-render preview with new params
+                    this.applySourceEffects(source);
                 }
             );
 
