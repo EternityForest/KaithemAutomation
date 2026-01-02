@@ -509,7 +509,7 @@ class ProjectionEditor {
   }
 
   applySourceEffects(source) {
-    // Apply VFX effects to iframe content
+    // Apply VFX effects to source element
     if (!source.vfx || source.vfx.length === 0) {
       return;
     }
@@ -517,16 +517,9 @@ class ProjectionEditor {
     const wrapper = this.previewIframes[source.id];
     if (!wrapper) return;
 
-    // First child is the actual source (iframe, img, video, etc)
-    // Subsequent children might be effect canvases
+    // First child is the actual source (iframe, img, video, canvas, etc)
     const sourceElement = wrapper.children[0];
     if (!sourceElement) return;
-
-    // Only proceed if it's an iframe with accessible content
-    if (sourceElement.tagName !== "IFRAME" || !sourceElement.contentDocument) {
-      return;
-    }
-    const iframe = sourceElement;
 
     // Create or reuse render canvas
     let renderCanvas = this.renderCanvases[source.id];
@@ -547,21 +540,15 @@ class ProjectionEditor {
       this.renderCanvases[source.id] = renderCanvas;
     }
 
-    // Draw iframe content to canvas
-    const context = renderCanvas.getContext("2d");
-    try {
-      context.drawImage(iframe, 0, 0);
-    } catch {
-      // CORS or other errors silently continue
-      return;
-    }
-
-    // Create or reuse VFX instance and apply effects
+    // Create or reuse VFX instance
     let vfx = this.vfxInstances[source.id];
     if (!vfx) {
       vfx = new VFX(renderCanvas);
       this.vfxInstances[source.id] = vfx;
     }
+
+    // Add source element (renders to canvas internally)
+    vfx.add(sourceElement);
 
     // Clear previous effects and add new ones
     vfx.effects = [];
