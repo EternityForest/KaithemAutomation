@@ -1,6 +1,110 @@
 // Projection Mapper Editor
 // Real-time collaborative editing with WebSocket sync
 
+const EFFECT_SCHEMAS = {
+    glitch: {
+        type: 'object',
+        title: 'Glitch Effect',
+        properties: {
+            amount: {
+                type: 'number',
+                title: 'Amount',
+                default: 0.05,
+                minimum: 0,
+                maximum: 1,
+                description: 'Intensity of glitch lines',
+            },
+        },
+    },
+    crt: {
+        type: 'object',
+        title: 'CRT Scanlines',
+        properties: {
+            intensity: {
+                type: 'number',
+                title: 'Intensity',
+                default: 0.15,
+                minimum: 0,
+                maximum: 1,
+                description: 'Darkness of scanlines',
+            },
+            lineWidth: {
+                type: 'number',
+                title: 'Line Width',
+                default: 2,
+                minimum: 1,
+                maximum: 10,
+                description: 'Pixels between scanlines',
+            },
+        },
+    },
+    film_grain: {
+        type: 'object',
+        title: 'Film Grain',
+        properties: {
+            intensity: {
+                type: 'number',
+                title: 'Intensity',
+                default: 0.1,
+                minimum: 0,
+                maximum: 1,
+                description: 'Amount of noise',
+            },
+        },
+    },
+    rgb_shift: {
+        type: 'object',
+        title: 'RGB Shift',
+        properties: {
+            offset: {
+                type: 'number',
+                title: 'Offset',
+                default: 3,
+                minimum: 0,
+                maximum: 20,
+                description: 'Pixel offset for color channels',
+            },
+        },
+    },
+    kaleidoscope: {
+        type: 'object',
+        title: 'Kaleidoscope',
+        properties: {
+            segments: {
+                type: 'number',
+                title: 'Segments',
+                default: 6,
+                minimum: 3,
+                maximum: 12,
+                description: 'Number of symmetry segments',
+            },
+        },
+    },
+    pixelate: {
+        type: 'object',
+        title: 'Pixelate',
+        properties: {
+            pixelSize: {
+                type: 'number',
+                title: 'Pixel Size',
+                default: 5,
+                minimum: 1,
+                maximum: 50,
+                description: 'Size of pixelation blocks',
+            },
+        },
+    },
+};
+
+const EFFECT_NAMES = {
+    glitch: 'Glitch',
+    crt: 'CRT Scanlines',
+    film_grain: 'Film Grain',
+    rgb_shift: 'RGB Shift',
+    kaleidoscope: 'Kaleidoscope',
+    pixelate: 'Pixelate',
+};
+
 class ProjectionEditor {
     constructor(container, module, resource, initialData) {
         this.container = container;
@@ -16,6 +120,7 @@ class ProjectionEditor {
         this.canvasElement = null;
         this.previewIframes = {};
         this.currentScale = 1;
+        this.effectEditors = {};
 
         this.init();
     }
@@ -175,6 +280,29 @@ class ProjectionEditor {
                              id="vfx-section"
                              style="display: none;">
                             <h3>VFX Effects</h3>
+                            <div class="form-group">
+                                <label>Effect Type</label>
+                                <select id="effect-type-select">
+                                    <option value="glitch">
+                                        Glitch
+                                    </option>
+                                    <option value="crt">
+                                        CRT Scanlines
+                                    </option>
+                                    <option value="film_grain">
+                                        Film Grain
+                                    </option>
+                                    <option value="rgb_shift">
+                                        RGB Shift
+                                    </option>
+                                    <option value="kaleidoscope">
+                                        Kaleidoscope
+                                    </option>
+                                    <option value="pixelate">
+                                        Pixelate
+                                    </option>
+                                </select>
+                            </div>
                             <button id="add-effect-btn"
                                     class="btn btn-sm">
                                 + Add Effect
@@ -398,7 +526,7 @@ class ProjectionEditor {
 
         // Use perspective-transform library
         // Source is the full virtual screen (where iframe content comes from)
-        const srcCorners = [
+        const sourceCorners = [
             0, 0,
             w, 0,
             0, h,
@@ -416,7 +544,7 @@ class ProjectionEditor {
         // Get perspective-transform from global scope
         // It was loaded as a non-module script
         const PerspT = globalThis.PerspT;
-        const perspT = PerspT(srcCorners, dstCorners);
+        const perspT = PerspT(sourceCorners, dstCorners);
 
         // Get the coefficients matrix
         const coeffs = perspT.coeffs;
@@ -797,10 +925,97 @@ class ProjectionEditor {
         }
     }
 
+    updateEffectsList() {
+        const list =
+            document.querySelector('#effects-list');
+        if (!list) return;
+
+        const source = this.getSelectedSource();
+        if (!source) return;
+
+        list.innerHTML = '';
+
+        const effects = source.vfx || [];
+        for (const [index, effect] of effects.entries()) {
+            const item = document.createElement('div');
+            item.className = 'effect-item';
+
+            const header = document.createElement(
+                'div'
+            );
+            header.className = 'effect-item-header';
+            header.innerHTML = `
+                <strong>
+                    ${EFFECT_NAMES[effect.shader]}
+                </strong>
+                <button class="btn-small del-effect"
+                        data-effect-index="${index}">
+                    Delete
+                </button>
+            `;
+
+            item.append(header);
+
+            const parametersContainer =
+                document.createElement('div');
+            parametersContainer.className =
+                'effect-params-container';
+            parametersContainer.id =
+                `effect-params-${source.id}-${index}`;
+            item.append(parametersContainer);
+
+            list.append(item);
+
+            // Create JSONEditor for this effect
+            const editorKey = `${source.id}_${index}`;
+            if (this.effectEditors[editorKey]) {
+                this.effectEditors[editorKey].destroy();
+            }
+
+            const schema = EFFECT_SCHEMAS[
+                effect.shader
+            ];
+            this.effectEditors[editorKey] =
+                new globalThis.JSONEditor(
+                    parametersContainer,
+                    {
+                        schema: schema,
+                        startval: effect.params,
+                        disable_collapse: true,
+                        disable_edit_json: true,
+                        theme: 'barebones',
+                    }
+                );
+
+            // Update effect params when editor changes
+            this.effectEditors[editorKey].on(
+                'change',
+                () => {
+                    effect.params =
+                        this.effectEditors[
+                            editorKey
+                        ].getValue();
+                }
+            );
+
+            // Add delete button listener
+            header.querySelector(
+                '.del-effect'
+            )?.addEventListener(
+                'click',
+                (event_) => {
+                    event_.stopPropagation();
+                    this.deleteEffect(index);
+                }
+            );
+        }
+    }
+
     selectSource(sourceId) {
         this.selectedSourceId = sourceId;
         this.updateSourcesList();
         this.updateTransformInputs();
+        this.updateEffectsList();
 
         const transformSection =
             document.querySelector('#transform-section');
@@ -937,15 +1152,44 @@ class ProjectionEditor {
         const source = this.getSelectedSource();
         if (!source) return;
 
-        const shader = prompt('Shader name:');
-        if (!shader) return;
+        const effectType =
+            document.querySelector(
+                '#effect-type-select'
+            )?.value;
+        if (!effectType) return;
+
+        if (!source.vfx) source.vfx = [];
+
+        // Get default params from schema
+        const schema = EFFECT_SCHEMAS[effectType];
+        const parameters = {};
+        for (const [key, property] of Object.entries(
+            schema.properties
+        )) {
+            parameters[key] = property.default;
+        }
 
         source.vfx.push({
-            shader,
-            params: {},
+            shader: effectType,
+            params: parameters,
         });
 
-        this.renderPreview();
+        this.updateEffectsList();
+    }
+
+    deleteEffect(effectIndex) {
+        const source = this.getSelectedSource();
+        if (!source || !source.vfx) return;
+
+        // Destroy editor instance
+        const editorKey = `${source.id}_${effectIndex}`;
+        if (this.effectEditors[editorKey]) {
+            this.effectEditors[editorKey].destroy();
+            delete this.effectEditors[editorKey];
+        }
+
+        source.vfx.splice(effectIndex, 1);
+        this.updateEffectsList();
     }
 
     async save() {
