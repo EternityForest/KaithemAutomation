@@ -11,15 +11,40 @@ export class VFX {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
         this.effects = [];
+        this.sourceElement = null;
+    }
+
+    /**
+     * Add a source element (iframe, img, video, canvas, etc)
+     * The element's content will be rendered to canvas before effects apply
+     */
+    add(sourceElement) {
+        this.sourceElement = sourceElement;
+        this.renderSourceToCanvas();
+        return this;
+    }
+
+    /**
+     * Render the source element to the canvas
+     */
+    renderSourceToCanvas() {
+        if (!this.sourceElement) return;
+
+        try {
+            this.ctx.drawImage(this.sourceElement, 0, 0);
+        } catch (error_) {
+            // CORS or other rendering errors - silently continue
+            // This is expected for cross-origin iframes
+        }
     }
 
     /**
      * Add an effect to the pipeline
      */
-    addEffect(shader, params = {}) {
+    addEffect(shader, parameters = {}) {
         this.effects.push({
             shader,
-            params,
+            params: parameters,
             enabled: true,
         });
         return this;
@@ -39,39 +64,45 @@ export class VFX {
      * Apply all effects to canvas
      */
     apply() {
-        this.effects.forEach((effect) => {
-            if (!effect.enabled) return;
+        for (const effect of this.effects) {
+            if (!effect.enabled) continue;
 
             switch (effect.shader) {
-            case 'glitch':
+            case 'glitch': {
                 this.glitch(effect.params);
                 break;
-            case 'crt':
+            }
+            case 'crt': {
                 this.crt(effect.params);
                 break;
-            case 'film_grain':
+            }
+            case 'film_grain': {
                 this.filmGrain(effect.params);
                 break;
-            case 'rgb_shift':
+            }
+            case 'rgb_shift': {
                 this.rgbShift(effect.params);
                 break;
-            case 'kaleidoscope':
+            }
+            case 'kaleidoscope': {
                 this.kaleidoscope(
                     effect.params
                 );
                 break;
-            case 'pixelate':
+            }
+            case 'pixelate': {
                 this.pixelate(effect.params);
                 break;
             }
-        });
+            }
+        }
     }
 
     /**
      * Glitch effect
      */
-    glitch(params = {}) {
-        const amount = params.amount || 0.05;
+    glitch(parameters = {}) {
+        const amount = parameters.amount || 0.05;
         const lines = Math.floor(
             this.canvas.height * amount
         );
@@ -93,17 +124,17 @@ export class VFX {
             );
 
             for (let x = 0; x < this.canvas.width; x++) {
-                const idx = (y * this.canvas.width + x) *
+                const index = (y * this.canvas.width + x) *
                     4;
-                const sourceIdx = (y * this.canvas.width +
+                const sourceIndex = (y * this.canvas.width +
                     ((x + offset +
                         this.canvas.width) %
                         this.canvas.width)) *
                     4;
 
-                data[idx] = data[sourceIdx];
-                data[idx + 1] = data[sourceIdx + 1];
-                data[idx + 2] = data[sourceIdx + 2];
+                data[index] = data[sourceIndex];
+                data[index + 1] = data[sourceIndex + 1];
+                data[index + 2] = data[sourceIndex + 2];
             }
         }
 
@@ -117,9 +148,9 @@ export class VFX {
     /**
      * CRT effect - scanlines
      */
-    crt(params = {}) {
-        const intensity = params.intensity || 0.15;
-        const lineWidth = params.lineWidth || 2;
+    crt(parameters = {}) {
+        const intensity = parameters.intensity || 0.15;
+        const lineWidth = parameters.lineWidth || 2;
 
         const imageData = this.ctx.getImageData(
             0,
@@ -133,12 +164,12 @@ export class VFX {
             if (y % lineWidth === 0) {
                 for (let x = 0; x <
                     this.canvas.width; x++) {
-                    const idx = (y *
+                    const index = (y *
                         this.canvas.width + x) * 4;
 
-                    data[idx] *= (1 - intensity);
-                    data[idx + 1] *= (1 - intensity);
-                    data[idx + 2] *= (1 - intensity);
+                    data[index] *= (1 - intensity);
+                    data[index + 1] *= (1 - intensity);
+                    data[index + 2] *= (1 - intensity);
                 }
             }
         }
@@ -153,8 +184,8 @@ export class VFX {
     /**
      * Film grain effect
      */
-    filmGrain(params = {}) {
-        const intensity = params.intensity || 0.1;
+    filmGrain(parameters = {}) {
+        const intensity = parameters.intensity || 0.1;
         const imageData = this.ctx.getImageData(
             0,
             0,
@@ -191,8 +222,8 @@ export class VFX {
     /**
      * RGB shift effect
      */
-    rgbShift(params = {}) {
-        const offset = params.offset || 3;
+    rgbShift(parameters = {}) {
+        const offset = parameters.offset || 3;
         const imageData = this.ctx.getImageData(
             0,
             0,
@@ -230,8 +261,8 @@ export class VFX {
     /**
      * Kaleidoscope effect
      */
-    kaleidoscope(params = {}) {
-        const segments = params.segments || 6;
+    kaleidoscope(parameters = {}) {
+        const segments = parameters.segments || 6;
         const centerX = this.canvas.width / 2;
         const centerY = this.canvas.height / 2;
 
@@ -269,8 +300,8 @@ export class VFX {
     /**
      * Pixelate effect
      */
-    pixelate(params = {}) {
-        const pixelSize = params.pixelSize || 5;
+    pixelate(parameters = {}) {
+        const pixelSize = parameters.pixelSize || 5;
         const imageData = this.ctx.getImageData(
             0,
             0,
@@ -284,12 +315,12 @@ export class VFX {
             for (let x = 0; x <
                 this.canvas.width;
                 x += pixelSize) {
-                const idx = (y *
+                const index = (y *
                     this.canvas.width + x) * 4;
-                const r = data[idx];
-                const g = data[idx + 1];
-                const b = data[idx + 2];
-                const a = data[idx + 3];
+                const r = data[index];
+                const g = data[index + 1];
+                const b = data[index + 2];
+                const a = data[index + 3];
 
                 for (let py = 0;
                     py < pixelSize &&
@@ -300,14 +331,14 @@ export class VFX {
                             x + px <
                             this.canvas.width;
                         px++) {
-                        const pIdx = ((y + py) *
+                        const pIndex = ((y + py) *
                             this.canvas.width +
                             (x + px)) * 4;
 
-                        data[pIdx] = r;
-                        data[pIdx + 1] = g;
-                        data[pIdx + 2] = b;
-                        data[pIdx + 3] = a;
+                        data[pIndex] = r;
+                        data[pIndex + 1] = g;
+                        data[pIndex + 2] = b;
+                        data[pIndex + 3] = a;
                     }
                 }
             }
