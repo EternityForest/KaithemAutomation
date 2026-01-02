@@ -128,6 +128,9 @@ class ProjectionEditor {
 
     this.broadcastRateLimitTime = 0;
 
+    // Parse URL params for mode
+    const parameters = new URLSearchParams(globalThis.location.search);
+    this.isViewerMode = parameters.has("fullscreen") || parameters.has("viewer");
 
     this.init();
   }
@@ -145,7 +148,19 @@ class ProjectionEditor {
   }
 
   render() {
-    this.container.innerHTML = `
+    if (this.isViewerMode) {
+      // Fullscreen viewer mode - minimal UI
+      this.container.innerHTML = `
+            <div class="projection-editor viewer-mode">
+                <div class="editor-canvas-area" style="width: 100%; height: 100vh; overflow: hidden;">
+                    <canvas id="preview-canvas"></canvas>
+                    <div id="preview-sources"></div>
+                </div>
+            </div>
+        `;
+    } else {
+      // Editor mode - full UI
+      this.container.innerHTML = `
             <div class="projection-editor">
                 <div class="editor-toolbar">
                     <h2>${this.data.title}</h2>
@@ -322,6 +337,7 @@ class ProjectionEditor {
                 </div>
             </div>
         `;
+    }
 
     this.updateSourcesList();
   }
@@ -661,59 +677,121 @@ class ProjectionEditor {
   }
 
   setupEventListeners() {
-    // Save button
-    document
-      .querySelector("#save-btn")
-      .addEventListener("click", () => this.save());
+    // Skip editor-specific listeners in viewer mode
+    if (!this.isViewerMode) {
+      // Save button
+      document
+        .querySelector("#save-btn")
+        .addEventListener("click", () => this.save());
 
-    // Add source button
-    document
-      .querySelector("#add-source-btn")
-      .addEventListener("click", () => this.addSource());
+      // Add source button
+      document
+        .querySelector("#add-source-btn")
+        .addEventListener("click", () => this.addSource());
 
-    // Add effect button
-    const addEffectButton = document.querySelector("#add-effect-btn");
-    if (addEffectButton) {
-      addEffectButton.addEventListener("click", () => this.addEffect());
+      // Add effect button
+      const addEffectButton = document.querySelector("#add-effect-btn");
+      if (addEffectButton) {
+        addEffectButton.addEventListener("click", () => this.addEffect());
+      }
+
+      // Size inputs
+      document
+        .querySelector("#size-width")
+        ?.addEventListener("input", (event_) => {
+          if (this.data.size === 0) {
+            this.data.size = {};
+          }
+          this.data.size.width = Number.parseInt(event_.target.value);
+          this.canvasElement.width = this.data.size.width;
+          this.canvasElement.style.width = `${this.data.size.width}px`;
+          const sources = document.querySelector("#preview-sources");
+          sources.style.width = `${this.data.size.width}px`;
+          this.updateVirtualScreenScale();
+          this.renderPreview();
+        });
+
+      document
+        .querySelector("#size-height")
+        ?.addEventListener("input", (event_) => {
+          if (this.data.size === 0) {
+            this.data.size = {};
+          }
+          this.data.size.height = Number.parseInt(event_.target.value);
+          this.canvasElement.height = this.data.size.height;
+          this.canvasElement.style.height = `${this.data.size.height}px`;
+          const sources = document.querySelector("#preview-sources");
+          sources.style.height = `${this.data.size.height}px`;
+          this.updateVirtualScreenScale();
+          this.renderPreview();
+        });
+
+      // Transform controls
+      document.querySelector("#opacity")?.addEventListener("input", (event_) => {
+        const source = this.getSelectedSource();
+        if (source) {
+          source.transform.opacity = Number.parseFloat(event_.target.value);
+          document.querySelector("#opacity-val").textContent = Number.parseFloat(
+            event_.target.value
+          ).toFixed(2);
+          this.renderPreview();
+        }
+      });
+
+      document.querySelector("#blend-mode")?.addEventListener("change", (event_) => {
+        const source = this.getSelectedSource();
+        if (source) {
+          source.transform.blend_mode = event_.target.value;
+          this.renderPreview();
+        }
+      });
+
+      document.querySelector("#rotation")?.addEventListener("input", (event_) => {
+        const source = this.getSelectedSource();
+        if (source) {
+          source.transform.rotation = Number.parseInt(event_.target.value);
+          this.renderPreview();
+        }
+      });
+
+      // Corner inputs
+      for (const input of document.querySelectorAll(
+        "input.corner-x, input.corner-y"
+      )) {
+        input.addEventListener("input", (event_) => {
+          const source = this.getSelectedSource();
+          if (source) {
+            const corner = event_.target.dataset.corner;
+            const isX = event_.target.className.includes("corner-x");
+
+            if (!source.transform.corners) {
+              source.transform.corners = this.getDefaultCorners();
+            }
+
+            if (isX) {
+              source.transform.corners[corner].x = Number.parseFloat(
+                event_.target.value
+              );
+            } else {
+              source.transform.corners[corner].y = Number.parseFloat(
+                event_.target.value
+              );
+            }
+
+            this.broadcastTransform(source);
+            this.updatePreviewTransform(source);
+            this.drawCornerHandles();
+          }
+        });
+      }
     }
 
-    // Size inputs
-    document
-      .querySelector("#size-width")
-      ?.addEventListener("input", (event_) => {
-        if (this.data.size === 0) {
-          this.data.size = {};
-        }
-        this.data.size.width = Number.parseInt(event_.target.value);
-        this.canvasElement.width = this.data.size.width;
-        this.canvasElement.style.width = `${this.data.size.width}px`;
-        const sources = document.querySelector("#preview-sources");
-        sources.style.width = `${this.data.size.width}px`;
-        this.updateVirtualScreenScale();
-        this.renderPreview();
-      });
-
-    document
-      .querySelector("#size-height")
-      ?.addEventListener("input", (event_) => {
-        if (this.data.size === 0) {
-          this.data.size = {};
-        }
-        this.data.size.height = Number.parseInt(event_.target.value);
-        this.canvasElement.height = this.data.size.height;
-        this.canvasElement.style.height = `${this.data.size.height}px`;
-        const sources = document.querySelector("#preview-sources");
-        sources.style.height = `${this.data.size.height}px`;
-        this.updateVirtualScreenScale();
-        this.renderPreview();
-      });
-
-    // Canvas dragging
-    this.canvasElement.addEventListener("mousedown", (e) =>
-      this.onCanvasMouseDown(e)
+    // Canvas interactions (always available)
+    this.canvasElement.addEventListener("mousedown", (event_) =>
+      this.onCanvasMouseDown(event_)
     );
-    this.canvasElement.addEventListener("mousemove", (e) =>
-      this.onCanvasMouseMove(e)
+    this.canvasElement.addEventListener("mousemove", (event_) =>
+      this.onCanvasMouseMove(event_)
     );
     this.canvasElement.addEventListener("mouseup", () =>
       this.onCanvasMouseUp()
@@ -724,74 +802,15 @@ class ProjectionEditor {
     );
 
     // Touch events
-    this.canvasElement.addEventListener("touchstart", (e) =>
-      this.onCanvasTouchStart(e)
+    this.canvasElement.addEventListener("touchstart", (event_) =>
+      this.onCanvasTouchStart(event_)
     );
-    this.canvasElement.addEventListener("touchmove", (e) =>
-      this.onCanvasTouchMove(e)
+    this.canvasElement.addEventListener("touchmove", (event_) =>
+      this.onCanvasTouchMove(event_)
     );
     this.canvasElement.addEventListener("touchend", () =>
       this.onCanvasTouchEnd()
     );
-
-    // Transform controls
-    document.querySelector("#opacity")?.addEventListener("input", (e) => {
-      const source = this.getSelectedSource();
-      if (source) {
-        source.transform.opacity = Number.parseFloat(e.target.value);
-        document.querySelector("#opacity-val").textContent = Number.parseFloat(
-          e.target.value
-        ).toFixed(2);
-        this.renderPreview();
-      }
-    });
-
-    document.querySelector("#blend-mode")?.addEventListener("change", (e) => {
-      const source = this.getSelectedSource();
-      if (source) {
-        source.transform.blend_mode = e.target.value;
-        this.renderPreview();
-      }
-    });
-
-    document.querySelector("#rotation")?.addEventListener("input", (e) => {
-      const source = this.getSelectedSource();
-      if (source) {
-        source.transform.rotation = Number.parseInt(e.target.value);
-        this.renderPreview();
-      }
-    });
-
-    // Corner inputs
-    for (const input of document.querySelectorAll(
-      "input.corner-x, input.corner-y"
-    )) {
-      input.addEventListener("input", (e) => {
-        const source = this.getSelectedSource();
-        if (source) {
-          const corner = e.target.dataset.corner;
-          const isX = e.target.className.includes("corner-x");
-
-          if (!source.transform.corners) {
-            source.transform.corners = this.getDefaultCorners();
-          }
-
-          if (isX) {
-            source.transform.corners[corner].x = Number.parseFloat(
-              e.target.value
-            );
-          } else {
-            source.transform.corners[corner].y = Number.parseFloat(
-              e.target.value
-            );
-          }
-
-          this.broadcastTransform(source);
-          this.updatePreviewTransform(source);
-          this.drawCornerHandles();
-        }
-      });
-    }
   }
 
   onCanvasMouseDown(e) {
