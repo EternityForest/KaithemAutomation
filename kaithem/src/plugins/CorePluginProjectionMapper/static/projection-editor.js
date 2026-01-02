@@ -126,6 +126,9 @@ class ProjectionEditor {
     this.renderCanvases = {};
     this.vfxInstances = {};
 
+    this.broadcastRateLimitTime = 0;
+
+
     this.init();
   }
 
@@ -716,6 +719,10 @@ class ProjectionEditor {
       this.onCanvasMouseUp()
     );
 
+    this.canvasElement.addEventListener("mouseleave", () =>
+      this.onCanvasMouseUp()
+    );
+
     // Touch events
     this.canvasElement.addEventListener("touchstart", (e) =>
       this.onCanvasTouchStart(e)
@@ -811,6 +818,8 @@ class ProjectionEditor {
   onCanvasMouseUp() {
     this.isDragging = false;
     this.draggingCorner = null;
+    const source = this.getSelectedSource();
+    this.broadcastTransform(source, true);
   }
 
   onCanvasTouchStart(e) {
@@ -855,11 +864,15 @@ class ProjectionEditor {
     }
   }
 
-  broadcastTransform(source) {
+  broadcastTransform(source, force = false) {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       return;
     }
 
+    if (Date.now() - this.broadcastRateLimitTime < 60 && !force) {
+      return;
+    }
+    this.broadcastRateLimitTime = Date.now();
     this.ws.send(
       JSON.stringify({
         source_id: source.id,
@@ -881,7 +894,7 @@ class ProjectionEditor {
         const source = this.data.sources.find(
           (s) => s.id === message.source_id
         );
-        if (source) {
+        if (source && !(this.isDragging || this.selectedSourceId === source.id)) {
           source.transform.corners = message.corners;
           this.renderPreview();
           this.updateTransformInputs();
