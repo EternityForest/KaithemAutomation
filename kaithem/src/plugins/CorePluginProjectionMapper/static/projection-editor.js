@@ -148,6 +148,7 @@ class ProjectionEditor {
   }
 
   render() {
+    // eslint-disable-next-line unicorn/prefer-ternary
     if (this.isViewerMode) {
       // Fullscreen viewer mode - minimal UI
       this.container.innerHTML = `
@@ -646,6 +647,11 @@ class ProjectionEditor {
     const canvas = this.canvasElement;
     if (!canvas) return;
 
+    if (this.isViewerMode) {
+      canvas.style.display = "none";
+      return;
+    }
+
     const context = canvas.getContext("2d");
     context.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -835,9 +841,11 @@ class ProjectionEditor {
   }
 
   onCanvasMouseUp() {
+    if(!this.isDragging) return;
     this.isDragging = false;
     this.draggingCorner = null;
     const source = this.getSelectedSource();
+
     this.broadcastTransform(source, true);
   }
 
@@ -913,7 +921,7 @@ class ProjectionEditor {
         const source = this.data.sources.find(
           (s) => s.id === message.source_id
         );
-        if (source && !(this.isDragging || this.selectedSourceId === source.id)) {
+        if (source && !(this.isDragging && this.selectedSourceId === source.id)) {
           source.transform.corners = message.corners;
           this.renderPreview();
           this.updateTransformInputs();
