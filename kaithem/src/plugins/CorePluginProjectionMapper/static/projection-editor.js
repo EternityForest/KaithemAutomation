@@ -241,9 +241,6 @@ class ProjectionEditor {
         const scaleY = viewportHeight / h;
         const scale = Math.min(scaleX, scaleY);
 
-        // Store scale for coordinate conversion
-        this.currentScale = scale;
-
         // Apply scale to both canvas and sources
         const scaleStyle =
             `scale(${scale})`;
@@ -251,6 +248,33 @@ class ProjectionEditor {
         canvas.style.transformOrigin = '0 0';
         sources.style.transform = scaleStyle;
         sources.style.transformOrigin = '0 0';
+    }
+
+    getCanvasPixel(event_) {
+        const canvas = this.canvasElement;
+        const rect = canvas.getBoundingClientRect();
+
+        // Actual canvas resolution
+        const canvasWidth = canvas.width;
+        const canvasHeight = canvas.height;
+
+        // Display size (affected by CSS transform)
+        const displayWidth = rect.width;
+        const displayHeight = rect.height;
+
+        // Scale factors for coordinate conversion
+        const scaleX = canvasWidth / displayWidth;
+        const scaleY = canvasHeight / displayHeight;
+
+        // Coordinates relative to canvas display area
+        const clientX = event_.clientX - rect.left;
+        const clientY = event_.clientY - rect.top;
+
+        // Convert to canvas virtual coordinates
+        const x = Math.floor(clientX * scaleX);
+        const y = Math.floor(clientY * scaleY);
+
+        return { x, y };
     }
 
     renderPreview() {
@@ -509,27 +533,24 @@ class ProjectionEditor {
         if (!source || !source.transform?.corners) return;
 
         const corners = source.transform.corners;
-        const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
 
         // Draw corner handles
+        // Corners are already in canvas virtual coordinates
         const cornerKeys = ['tl', 'tr', 'bl', 'br'];
         for (const key of cornerKeys) {
             const corner = corners[key];
             if (!corner) continue;
 
-            const x = corner.x * scaleX;
-            const y = corner.y * scaleY;
-
             context.fillStyle = '#00ff00';
             context.beginPath();
-            context.arc(x, y, 10, 0, Math.PI * 2);
+            context.arc(corner.x, corner.y, 10,
+                0, Math.PI * 2);
             context.fill();
 
             context.fillStyle = '#000';
             context.font = '12px Arial';
-            context.fillText(key, x + 15, y + 15);
+            context.fillText(key, corner.x + 15,
+                corner.y + 15);
         }
     }
 
@@ -705,14 +726,7 @@ class ProjectionEditor {
         const source = this.getSelectedSource();
         if (!source || !source.transform?.corners) return;
 
-        const canvas = this.canvasElement;
-        const rect = canvas.getBoundingClientRect();
-
-        const viewportX = e.clientX - rect.left;
-        const viewportY = e.clientY - rect.top;
-
-        const x = viewportX / this.currentScale;
-        const y = viewportY / this.currentScale;
+        const { x, y } = this.getCanvasPixel(e);
 
         source.transform.corners[
             this.draggingCorner
@@ -763,14 +777,7 @@ class ProjectionEditor {
         const source = this.getSelectedSource();
         if (!source || !source.transform?.corners) return;
 
-        const canvas = this.canvasElement;
-        const rect = canvas.getBoundingClientRect();
-
-        const viewportX = e.clientX - rect.left;
-        const viewportY = e.clientY - rect.top;
-
-        const x = viewportX / this.currentScale;
-        const y = viewportY / this.currentScale;
+        const { x, y } = this.getCanvasPixel(e);
 
         const corners = source.transform.corners;
         const hitRadius = 15;
