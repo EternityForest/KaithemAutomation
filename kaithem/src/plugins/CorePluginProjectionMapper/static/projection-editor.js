@@ -15,6 +15,7 @@ class ProjectionEditor {
         this.ws = null;
         this.canvasElement = null;
         this.previewIframes = {};
+        this.currentScale = 1;
 
         this.init();
     }
@@ -206,7 +207,9 @@ class ProjectionEditor {
         // Setup preview container with virtual screen
         const container =
             document.querySelector('#preview-container');
-        container.style.position = 'relative';
+        container.style.position = 'absolute';
+        container.style.top = "auto";
+        container.style.left = "auto";
         this.updateContainerSize();
 
         // Scale canvas to match container
@@ -269,9 +272,13 @@ class ProjectionEditor {
         const scaleY = containerHeight / h;
         const scale = Math.min(scaleX, scaleY);
 
-        // Set container to virtual size, scaled
-        container.style.width = `${w * scale}px`;
-        container.style.height = `${h * scale}px`;
+        // Store scale for coordinate conversion
+        this.currentScale = scale;
+
+        // Set container to virtual size
+        // (transform will scale it)
+        container.style.width = `${w}px`;
+        container.style.height = `${h}px`;
         container.style.transform =
             `scale(${scale})`;
         container.style.transformOrigin = '0 0';
@@ -714,8 +721,11 @@ class ProjectionEditor {
         const canvas = this.canvasElement;
         const rect = canvas.getBoundingClientRect();
 
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        const viewportX = e.clientX - rect.left;
+        const viewportY = e.clientY - rect.top;
+
+        const x = viewportX / this.currentScale;
+        const y = viewportY / this.currentScale;
 
         source.transform.corners[
             this.draggingCorner
@@ -769,8 +779,11 @@ class ProjectionEditor {
         const canvas = this.canvasElement;
         const rect = canvas.getBoundingClientRect();
 
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        const viewportX = e.clientX - rect.left;
+        const viewportY = e.clientY - rect.top;
+
+        const x = viewportX / this.currentScale;
+        const y = viewportY / this.currentScale;
 
         const corners = source.transform.corners;
         const hitRadius = 15;
