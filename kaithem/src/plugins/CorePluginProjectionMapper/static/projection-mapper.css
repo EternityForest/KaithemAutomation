@@ -36,9 +36,10 @@
 .editor-canvas-area {
     flex: 1;
     position: relative;
-    background: #0a0a0a;
+    background: #333;
     display: flex;
-    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     overflow: hidden;
 }
 
@@ -46,25 +47,25 @@
     position: absolute;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 100;
+    background: #000;
     cursor: crosshair;
-    background: transparent;
+    z-index: 100;
 }
 
-.preview-container {
-    flex: 1;
+#preview-sources {
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
-    background: #000;
-    position: relative;
 }
 
 .preview-source {
+    position: absolute;
     width: 100%;
     height: 100%;
-    border: 1px solid #666;
+    top: 0;
+    left: 0;
 }
 
 .editor-sidebar {
