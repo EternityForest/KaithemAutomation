@@ -130,8 +130,8 @@ class ProjectionEditor {
 
     // Parse URL params for mode
     const parameters = new URLSearchParams(globalThis.location.search);
-    this.isViewerMode = parameters.has("fullscreen") || parameters.has("viewer");
-
+    this.isViewerMode =
+      parameters.has("fullscreen") || parameters.has("viewer");
     this.init();
   }
 
@@ -162,7 +162,7 @@ class ProjectionEditor {
     } else {
       // Editor mode - full UI
       this.container.innerHTML = `
-            <div class="projection-editor">
+            <div class="projection-editor" id="projection-editor">
                 <div class="editor-toolbar">
                     <h2>${this.data.title}</h2>
                     <button id="save-btn" class="btn btn-primary">
@@ -339,7 +339,6 @@ class ProjectionEditor {
             </div>
         `;
     }
-
     this.updateSourcesList();
   }
 
@@ -733,32 +732,37 @@ class ProjectionEditor {
         });
 
       // Transform controls
-      document.querySelector("#opacity")?.addEventListener("input", (event_) => {
-        const source = this.getSelectedSource();
-        if (source) {
-          source.transform.opacity = Number.parseFloat(event_.target.value);
-          document.querySelector("#opacity-val").textContent = Number.parseFloat(
-            event_.target.value
-          ).toFixed(2);
-          this.renderPreview();
-        }
-      });
+      document
+        .querySelector("#opacity")
+        ?.addEventListener("input", (event_) => {
+          const source = this.getSelectedSource();
+          if (source) {
+            source.transform.opacity = Number.parseFloat(event_.target.value);
+            document.querySelector("#opacity-val").textContent =
+              Number.parseFloat(event_.target.value).toFixed(2);
+            this.renderPreview();
+          }
+        });
 
-      document.querySelector("#blend-mode")?.addEventListener("change", (event_) => {
-        const source = this.getSelectedSource();
-        if (source) {
-          source.transform.blend_mode = event_.target.value;
-          this.renderPreview();
-        }
-      });
+      document
+        .querySelector("#blend-mode")
+        ?.addEventListener("change", (event_) => {
+          const source = this.getSelectedSource();
+          if (source) {
+            source.transform.blend_mode = event_.target.value;
+            this.renderPreview();
+          }
+        });
 
-      document.querySelector("#rotation")?.addEventListener("input", (event_) => {
-        const source = this.getSelectedSource();
-        if (source) {
-          source.transform.rotation = Number.parseInt(event_.target.value);
-          this.renderPreview();
-        }
-      });
+      document
+        .querySelector("#rotation")
+        ?.addEventListener("input", (event_) => {
+          const source = this.getSelectedSource();
+          if (source) {
+            source.transform.rotation = Number.parseInt(event_.target.value);
+            this.renderPreview();
+          }
+        });
 
       // Corner inputs
       for (const input of document.querySelectorAll(
@@ -841,7 +845,7 @@ class ProjectionEditor {
   }
 
   onCanvasMouseUp() {
-    if(!this.isDragging) return;
+    if (!this.isDragging) return;
     this.isDragging = false;
     this.draggingCorner = null;
     const source = this.getSelectedSource();
@@ -917,11 +921,18 @@ class ProjectionEditor {
 
     this.ws.addEventListener("message", (event) => {
       const message = JSON.parse(event.data);
+      if(message.type === "refresh_page") {
+        // eslint-disable-next-line unicorn/prefer-global-this
+        window.location.reload();
+      }
       if (message.type === "transform_update") {
         const source = this.data.sources.find(
           (s) => s.id === message.source_id
         );
-        if (source && !(this.isDragging && this.selectedSourceId === source.id)) {
+        if (
+          source &&
+          !(this.isDragging && this.selectedSourceId === source.id)
+        ) {
           source.transform.corners = message.corners;
           this.renderPreview();
           this.updateTransformInputs();
