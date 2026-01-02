@@ -395,20 +395,20 @@ class ProjectionEditor {
         const h = this.data.size?.height || 1080;
 
         // Use perspective-transform library
-        // Convert corners object to flat array [x1, y1, x2, y2, ...]
+        // Source is the full virtual screen (where iframe content comes from)
         const srcCorners = [
-            corners.tl.x, corners.tl.y,
-            corners.tr.x, corners.tr.y,
-            corners.bl.x, corners.bl.y,
-            corners.br.x, corners.br.y,
-        ];
-
-        // Destination is the full virtual screen
-        const dstCorners = [
             0, 0,
             w, 0,
             0, h,
             w, h,
+        ];
+
+        // Destination is where user has positioned the corners
+        const dstCorners = [
+            corners.tl.x, corners.tl.y,
+            corners.tr.x, corners.tr.y,
+            corners.bl.x, corners.bl.y,
+            corners.br.x, corners.br.y,
         ];
 
         // Get perspective-transform from global scope
