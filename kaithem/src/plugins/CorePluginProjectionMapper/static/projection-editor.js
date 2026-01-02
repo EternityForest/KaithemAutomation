@@ -28,6 +28,8 @@ class ProjectionEditor {
             this.setupEventListeners();
             this.setupWebSocket();
         });
+        this.updateSourcesList();
+        this.renderPreview();
     }
 
     render() {
@@ -466,7 +468,7 @@ class ProjectionEditor {
 
             context.fillStyle = '#00ff00';
             context.beginPath();
-            context.arc(corner.x, corner.y, 10,
+            context.arc(corner.x, corner.y, 30,
                 0, Math.PI * 2);
             context.fill();
 
@@ -703,7 +705,7 @@ class ProjectionEditor {
         const { x, y } = this.getCanvasPixel(e);
 
         const corners = source.transform.corners;
-        const hitRadius = 15;
+        const hitRadius = 30;
 
         for (const [key, corner] of Object.entries(
             corners
