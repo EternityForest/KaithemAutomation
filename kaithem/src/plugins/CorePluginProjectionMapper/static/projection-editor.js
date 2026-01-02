@@ -517,8 +517,16 @@ class ProjectionEditor {
     const wrapper = this.previewIframes[source.id];
     if (!wrapper) return;
 
-    const iframe = wrapper.querySelector("iframe");
-    if (!iframe || !iframe.contentDocument) return;
+    // First child is the actual source (iframe, img, video, etc)
+    // Subsequent children might be effect canvases
+    const sourceElement = wrapper.children[0];
+    if (!sourceElement) return;
+
+    // Only proceed if it's an iframe with accessible content
+    if (sourceElement.tagName !== "IFRAME" || !sourceElement.contentDocument) {
+      return;
+    }
+    const iframe = sourceElement;
 
     // Create or reuse render canvas
     let renderCanvas = this.renderCanvases[source.id];
