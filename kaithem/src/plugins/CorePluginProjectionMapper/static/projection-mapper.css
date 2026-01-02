@@ -47,10 +47,11 @@
     position: absolute;
     top: 0;
     left: 0;
-    background: #000;
+    background: transparent;
+    border: 4px dashed #333;
     cursor: crosshair;
-    z-index: 100;
-    pointer-events: auto;
+    pointer-events: auto;    
+    z-index: 50;
 }
 
 #preview-sources {
@@ -59,7 +60,6 @@
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 50;
     pointer-events: none;
 }
 
