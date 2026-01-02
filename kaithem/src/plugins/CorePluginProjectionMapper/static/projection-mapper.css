@@ -1,5 +1,14 @@
 /* Projection Mapper Styles */
 
+
+body{
+    margin: 0;
+    padding: 0;
+}
+
+.viewer-mode{
+    cursor: none;
+}
 .projection-editor {
     display: flex;
     flex-direction: column;
@@ -9,6 +18,8 @@
     color: #fff;
     font-family: -apple-system, BlinkMacSystemFont,
         "Segoe UI", Roboto, sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 .editor-toolbar {

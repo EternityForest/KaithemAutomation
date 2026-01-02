@@ -264,6 +264,14 @@ async def api_save_data(module: str, resource: str):
     try:
         data = await quart.request.json
         modules_state.raw_insert_resource(module, resource, data)
+        topic = f"/projection/{module}/{resource}/rt_sync_cmd"
+
+        messagebus.post_message(
+            topic,
+            {
+                "type": "refresh_page",
+            },
+        )
         return quart.jsonify({"status": "ok"})
     except Exception as e:
         logger.exception("Failed to save projection")
@@ -287,21 +295,21 @@ async def ws_transform_sync(module: str, resource: str):
     ws = quart.websocket
     _websocket_connections[key].append(ws)
 
-    topic = f"/projection/{module}/{resource}/transform"
+    topic = f"/projection/{module}/{resource}/rt_sync_cmd"
 
     # Queue for messages from messagebus thread
     message_queue = asyncio.Queue()
 
     try:
         # Subscribe to messagebus updates for this resource
-        def on_transform_update(data):
+        def on_sync_msg(data):
             try:
                 # Queue message safely (thread-safe)
                 message_queue.put_nowait(json.dumps(data))
             except asyncio.QueueFull:
                 logger.warning("Transform queue full, dropping message")
 
-        messagebus.subscribe(topic, on_transform_update)
+        messagebus.subscribe(topic, on_sync_msg)
 
         # Listen for messages - either from client or queued
         while True:
@@ -342,7 +350,7 @@ async def ws_transform_sync(module: str, resource: str):
         try:
             messagebus.unsubscribe(
                 topic,
-                on_transform_update,  # type: ignore
+                on_sync_msg,  # type: ignore
             )
         except Exception:
             pass
