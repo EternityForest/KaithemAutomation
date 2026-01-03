@@ -9,6 +9,8 @@ body{
 .viewer-mode{
     cursor: none;
 }
+
+
 .projection-editor {
     display: flex;
     flex-direction: column;
@@ -26,14 +28,14 @@ body{
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem;
+    padding: 0.3rem;
     background: #000;
     border-bottom: 1px solid #333;
 }
 
 .editor-toolbar h2 {
     margin: 0;
-    font-size: 1.5rem;
+    font-size: 1rem;
 }
 
 .editor-main {
@@ -63,6 +65,7 @@ body{
     cursor: crosshair;
     pointer-events: auto;    
     z-index: 50;
+    opacity: 0.8;
 }
 
 #preview-sources {
@@ -310,12 +313,6 @@ body{
     .editor-canvas-area {
         flex: 1;
         min-height: 60vh;
-    }
-
-    .editor-toolbar {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 1rem;
     }
 
     .btn-sm {

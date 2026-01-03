@@ -47,7 +47,7 @@ object, and must be explicitly called.
 
 * :coffin: BREAKING: Unused and poorly supported Chandler "display tags", "event buttons", and "info display" removed.
 
-* :coffin: BREAKING: Chandler "Slideshow Transform" replaced with
+* :coffin: BREAKING: Chandler "Slideshow " replaced with
    a true projection mapper plugin.
 
 * :sparkles: Projection Mapper plugin for projection mapping web based sources

@@ -535,10 +535,16 @@ class ProjectionEditor {
       const corner = corners[key];
       if (!corner) continue;
 
-      context.fillStyle = "#00ff00";
+      context.fillStyle = "#167f16ff";
       context.beginPath();
       context.arc(corner.x, corner.y, 30, 0, Math.PI * 2);
       context.fill();
+
+      context.strokeStyle = "#dff6ebff";
+      context.lineWidth = 8;
+      context.beginPath();
+      context.arc(corner.x, corner.y, 30, 0, Math.PI * 2);
+      context.stroke();
 
       context.fillStyle = "#000";
       context.font = "12px Arial";
