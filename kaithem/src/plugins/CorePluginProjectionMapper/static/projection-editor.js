@@ -2,6 +2,89 @@
 // Real-time collaborative editing with WebSocket sync
 // Uses CSS perspective transforms instead of VFX for cross-browser compatibility
 
+class PositionFilter {
+  constructor(timeConstant = 5.0) {
+    this.timeConstant = timeConstant;
+    this.currentPos = null;
+    this.targetPos = null;
+    this.lastUpdateTime = null;
+    this.instantThresholdMm = 5;
+  }
+
+  // Convert mm to pixels (assume 96 DPI standard)
+  mmToPixels(mm) {
+    return (mm / 25.4) * 96;
+  }
+
+  update(targetX, targetY, timestamp = Date.now()) {
+    // Initialize on first call
+    if (this.currentPos === null) {
+      this.currentPos = { x: targetX, y: targetY };
+      this.targetPos = { x: targetX, y: targetY };
+      this.lastUpdateTime = timestamp;
+      return this.currentPos;
+    }
+
+    // Calculate distance from current to target
+    const dx = targetX - this.currentPos.x;
+    const dy = targetY - this.currentPos.y;
+    const distancePixels = Math.sqrt(dx * dx + dy * dy);
+    const thresholdPixels = this.mmToPixels(this.instantThresholdMm);
+
+    const inputDx = targetX - this.targetPos.x;
+    const inputDy = targetY - this.targetPos.y;
+
+    // If movement >= 5mm: instant response,
+    // simulate dragging with a string,
+    // get a movement vector, subtract threshhold from magnitude
+    if (distancePixels >= thresholdPixels) {
+      let moveVector = Math.sqrt(inputDx * inputDx + inputDy * inputDy);
+      moveVector = moveVector - thresholdPixels;
+      const moveX = moveVector * inputDx / moveVector;
+      const moveY = moveVector * inputDy / moveVector;
+
+
+      this.currentPos = {
+        x: this.currentPos.x + moveX,
+        y: this.currentPos.y + moveY,
+      };
+      this.targetPos = { x: targetX, y: targetY };
+      this.lastUpdateTime = timestamp;
+      return this.currentPos;
+    }
+
+    // If movement < 5mm: apply first-order lowpass
+    this.targetPos = { x: targetX, y: targetY };
+
+    const dt = (timestamp - this.lastUpdateTime) / 1000; // seconds
+    this.lastUpdateTime = timestamp;
+
+    // First-order lowpass: y[n] = y[n-1] + (dt / tau) * (x[n] - y[n-1])
+    const alpha = dt / this.timeConstant;
+
+    this.currentPos.x += alpha * (this.targetPos.x - this.currentPos.x);
+    this.currentPos.y += alpha * (this.targetPos.y - this.currentPos.y);
+
+    // Converge to target if within 1 pixel
+    const remainingDist = Math.sqrt(
+      Math.pow(this.targetPos.x - this.currentPos.x, 2) +
+        Math.pow(this.targetPos.y - this.currentPos.y, 2)
+    );
+    if (remainingDist < 1.0) {
+      this.currentPos.x = this.targetPos.x;
+      this.currentPos.y = this.targetPos.y;
+    }
+
+    return this.currentPos;
+  }
+
+  reset() {
+    this.currentPos = null;
+    this.targetPos = null;
+    this.lastUpdateTime = null;
+  }
+}
+
 class ProjectionEditor {
   constructor(container, module, resource, initialData) {
     this.container = container;
@@ -19,6 +102,17 @@ class ProjectionEditor {
     this.currentScale = 1;
 
     this.broadcastRateLimitTime = 0;
+
+    // Position filters for each corner
+    this.cornerFilters = {
+      tl: new PositionFilter(3.0),
+      tr: new PositionFilter(3.0),
+      bl: new PositionFilter(3.0),
+      br: new PositionFilter(3.0),
+    };
+
+    this.animationFrameId = null;
+    this.lastRawMousePos = null;
 
     // Parse URL params for mode
     const parameters = new URLSearchParams(globalThis.location.search);
@@ -45,7 +139,7 @@ class ProjectionEditor {
       // Fullscreen viewer mode - minimal UI
       this.container.innerHTML = `
             <div class="projection-editor viewer-mode">
-                <div class="editor-canvas-area" style="width: 100%; height: 100vh; overflow: hidden;">
+                <div class="editor-canvas-area viewer-mode" style="width: 100%; height: 100vh; overflow: hidden;">
                     <canvas id="preview-canvas"></canvas>
                     <div id="preview-sources"></div>
                 </div>
@@ -361,8 +455,7 @@ class ProjectionEditor {
         iframe.style.top = "0";
         iframe.style.left = "0";
 
-        iframe.sandbox.add("allow-same-origin", "allow-scripts",
-          "allow-forms");
+        iframe.sandbox.add("allow-same-origin", "allow-scripts", "allow-forms");
 
         container.append(iframe);
         window_.append(container);
@@ -400,8 +493,11 @@ class ProjectionEditor {
       element.style.left = `${corners.tl.x}px`;
       element.style.top = `${corners.tl.y}px`;
 
-      const matrix = this.calculatePerspectiveMatrix(corners,
-        windowWidth, windowHeight);
+      const matrix = this.calculatePerspectiveMatrix(
+        corners,
+        windowWidth,
+        windowHeight
+      );
       element.style.transformOrigin = "0 0";
       element.style.transform = `matrix3d(${matrix.join(",")})`;
     } else {
@@ -448,8 +544,16 @@ class ProjectionEditor {
 
   calculatePerspectiveMatrix(corners, windowWidth, windowHeight) {
     // Source is the window itself (0,0 to width, height)
-    const sourceCorners = [0, 0, windowWidth, 0, 0, windowHeight,
-      windowWidth, windowHeight];
+    const sourceCorners = [
+      0,
+      0,
+      windowWidth,
+      0,
+      0,
+      windowHeight,
+      windowWidth,
+      windowHeight,
+    ];
 
     // Destination is relative to top-left corner (since the window
     // is positioned at corners.tl)
@@ -571,9 +675,7 @@ class ProjectionEditor {
         ?.addEventListener("input", (event_) => {
           const source = this.getSelectedSource();
           if (source) {
-            source.config.window_width = Number.parseInt(
-              event_.target.value
-            );
+            source.config.window_width = Number.parseInt(event_.target.value);
             this.updatePreviewTransform(source);
           }
         });
@@ -583,9 +685,7 @@ class ProjectionEditor {
         ?.addEventListener("input", (event_) => {
           const source = this.getSelectedSource();
           if (source) {
-            source.config.window_height = Number.parseInt(
-              event_.target.value
-            );
+            source.config.window_height = Number.parseInt(event_.target.value);
             this.updatePreviewTransform(source);
           }
         });
@@ -595,9 +695,7 @@ class ProjectionEditor {
         ?.addEventListener("input", (event_) => {
           const source = this.getSelectedSource();
           if (source) {
-            source.config.render_width = Number.parseInt(
-              event_.target.value
-            );
+            source.config.render_width = Number.parseInt(event_.target.value);
             this.updatePreviewTransform(source);
           }
         });
@@ -607,32 +705,26 @@ class ProjectionEditor {
         ?.addEventListener("input", (event_) => {
           const source = this.getSelectedSource();
           if (source) {
-            source.config.render_height = Number.parseInt(
-              event_.target.value
-            );
+            source.config.render_height = Number.parseInt(event_.target.value);
             this.updatePreviewTransform(source);
           }
         });
 
-      document
-        .querySelector("#crop-x")
-        ?.addEventListener("input", (event_) => {
-          const source = this.getSelectedSource();
-          if (source) {
-            source.config.crop_x = Number.parseInt(event_.target.value);
-            this.updatePreviewTransform(source);
-          }
-        });
+      document.querySelector("#crop-x")?.addEventListener("input", (event_) => {
+        const source = this.getSelectedSource();
+        if (source) {
+          source.config.crop_x = Number.parseInt(event_.target.value);
+          this.updatePreviewTransform(source);
+        }
+      });
 
-      document
-        .querySelector("#crop-y")
-        ?.addEventListener("input", (event_) => {
-          const source = this.getSelectedSource();
-          if (source) {
-            source.config.crop_y = Number.parseInt(event_.target.value);
-            this.updatePreviewTransform(source);
-          }
-        });
+      document.querySelector("#crop-y")?.addEventListener("input", (event_) => {
+        const source = this.getSelectedSource();
+        if (source) {
+          source.config.crop_y = Number.parseInt(event_.target.value);
+          this.updatePreviewTransform(source);
+        }
+      });
 
       // Size inputs
       document
@@ -745,6 +837,7 @@ class ProjectionEditor {
       this.onCanvasMouseUp()
     );
 
+
     // Touch events
     this.canvasElement.addEventListener("touchstart", (event_) =>
       this.onCanvasTouchStart(event_)
@@ -755,6 +848,14 @@ class ProjectionEditor {
     this.canvasElement.addEventListener("touchend", () =>
       this.onCanvasTouchEnd()
     );
+
+    this.canvasElement.addEventListener("touchcancel", () =>
+      this.onCanvasTouchEnd()
+    );
+
+    this.canvasElement.addEventListener("touchleave", () =>{
+      this.onCanvasTouchEnd()
+    });
   }
 
   onCanvasMouseDown(event_) {
@@ -765,23 +866,66 @@ class ProjectionEditor {
   onCanvasMouseMove(event_) {
     if (!this.isDragging || !this.draggingCorner) return;
 
-    const source = this.getSelectedSource();
-    if (!source || !source.transform?.corners) return;
-
     const { x, y } = this.getCanvasPixel(event_);
 
-    source.transform.corners[this.draggingCorner] = { x, y };
+    // Store raw mouse position
+    this.lastRawMousePos = { x, y };
+
+    // Start animation loop if not running
+    if (!this.animationFrameId) {
+      this.animationFrameId = requestAnimationFrame(() =>
+        this.updateDragAnimation()
+      );
+    }
+  }
+
+  updateDragAnimation() {
+    if (!this.isDragging || !this.draggingCorner || !this.lastRawMousePos) {
+      this.animationFrameId = null;
+      return;
+    }
+
+    const source = this.getSelectedSource();
+    if (!source || !source.transform?.corners) {
+      this.animationFrameId = null;
+      return;
+    }
+
+    // Apply position filtering
+    const filter = this.cornerFilters[this.draggingCorner];
+    const filtered = filter.update(
+      this.lastRawMousePos.x,
+      this.lastRawMousePos.y
+    );
+
+    source.transform.corners[this.draggingCorner] = {
+      x: filtered.x,
+      y: filtered.y,
+    };
 
     this.broadcastTransform(source);
     this.updatePreviewTransform(source);
     this.updateTransformInputs();
     this.drawCornerHandles();
+
+    // Continue animation loop
+    this.animationFrameId = requestAnimationFrame(() =>
+      this.updateDragAnimation()
+    );
   }
 
   onCanvasMouseUp() {
     if (!this.isDragging) return;
+
     this.isDragging = false;
     this.draggingCorner = null;
+    this.lastRawMousePos = null;
+
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+
     const source = this.getSelectedSource();
 
     this.broadcastTransform(source, true);
@@ -824,6 +968,11 @@ class ProjectionEditor {
       const distribution = Math.hypot(x - corner.x, y - corner.y);
       if (distribution < hitRadius) {
         this.draggingCorner = key;
+
+        // Reset filter to current corner position
+        this.cornerFilters[key].reset();
+        this.cornerFilters[key].update(corner.x, corner.y);
+
         return;
       }
     }
@@ -834,7 +983,7 @@ class ProjectionEditor {
       return;
     }
 
-    if (Date.now() - this.broadcastRateLimitTime < 60 && !force) {
+    if (Date.now() - this.broadcastRateLimitTime < 120 && !force) {
       return;
     }
     this.broadcastRateLimitTime = Date.now();
@@ -855,7 +1004,7 @@ class ProjectionEditor {
 
     this.ws.addEventListener("message", (event) => {
       const message = JSON.parse(event.data);
-      if(message.type === "refresh_page") {
+      if (message.type === "refresh_page") {
         // eslint-disable-next-line unicorn/prefer-global-this
         window.location.reload();
       }
@@ -923,9 +1072,11 @@ class ProjectionEditor {
     const cropYInput = document.querySelector("#crop-y");
 
     if (windowWidthInput) windowWidthInput.value = config.window_width || 800;
-    if (windowHeightInput) windowHeightInput.value = config.window_height || 600;
+    if (windowHeightInput)
+      windowHeightInput.value = config.window_height || 600;
     if (renderWidthInput) renderWidthInput.value = config.render_width || 800;
-    if (renderHeightInput) renderHeightInput.value = config.render_height || 600;
+    if (renderHeightInput)
+      renderHeightInput.value = config.render_height || 600;
     if (cropXInput) cropXInput.value = config.crop_x || 0;
     if (cropYInput) cropYInput.value = config.crop_y || 0;
   }
