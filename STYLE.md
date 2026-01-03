@@ -162,13 +162,11 @@
 
 * Make heavy use of schemas, schema validation, and schema based editors.
 
-* Avoid external documentation that might get out of sync, document inline where possible 
+* Avoid external documentation that might get out of sync, document inline where possible
 
 ## Details
 
 * 80 character line limits, always, regardless of modern display size.  It's hard to read wide text, and doesn't fit on screen once you add all the extra IDE panes.
-  
-* Leave the version control to the VCS, don't comment out code, generally don't put version numbers and dates for individual files in comments.
 
 * Spaces not tabs.  We don't need two different whitespace chars.
 
@@ -180,9 +178,11 @@
 
 * While() loops must have safety counters or upper bounds unless intended to run forever.
 
+* Do not just ignore true errors without logging them
+
 * Avoid returning mutable references to persistent state, unless you intend for the caller to modify the persistent state
 
-## Testing 
+## Testing
 
 * Code must have high quality test coverage, even if testability adds significant complexity
 
@@ -192,5 +192,5 @@
 
 * Tests should check that mutable state is not corrupt, especially watching out for multiple references to objects that should be copied
 
-* Tests should cover any obvious mistakes you can easily imagine future devs *could* make 
+* Tests should cover any obvious mistakes you can easily imagine future devs *could* make
 
