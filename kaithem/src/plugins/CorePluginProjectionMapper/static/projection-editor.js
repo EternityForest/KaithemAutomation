@@ -1,111 +1,6 @@
 // Projection Mapper Editor
 // Real-time collaborative editing with WebSocket sync
-
-import { VFX } from "/static/js/thirdparty/vfx-js/vfx.esm.js";
-
-const EFFECT_SCHEMAS = {
-  glitch: {
-    type: "object",
-    title: "Glitch Effect",
-    properties: {
-      amount: {
-        type: "number",
-        title: "Amount",
-        default: 0.05,
-        minimum: 0,
-        maximum: 1,
-        description: "Intensity of glitch lines",
-      },
-    },
-  },
-  crt: {
-    type: "object",
-    title: "CRT Scanlines",
-    properties: {
-      intensity: {
-        type: "number",
-        title: "Intensity",
-        default: 0.15,
-        minimum: 0,
-        maximum: 1,
-        description: "Darkness of scanlines",
-      },
-      lineWidth: {
-        type: "number",
-        title: "Line Width",
-        default: 2,
-        minimum: 1,
-        maximum: 10,
-        description: "Pixels between scanlines",
-      },
-    },
-  },
-  film_grain: {
-    type: "object",
-    title: "Film Grain",
-    properties: {
-      intensity: {
-        type: "number",
-        title: "Intensity",
-        default: 0.1,
-        minimum: 0,
-        maximum: 1,
-        description: "Amount of noise",
-      },
-    },
-  },
-  rgb_shift: {
-    type: "object",
-    title: "RGB Shift",
-    properties: {
-      offset: {
-        type: "number",
-        title: "Offset",
-        default: 3,
-        minimum: 0,
-        maximum: 20,
-        description: "Pixel offset for color channels",
-      },
-    },
-  },
-  kaleidoscope: {
-    type: "object",
-    title: "Kaleidoscope",
-    properties: {
-      segments: {
-        type: "number",
-        title: "Segments",
-        default: 6,
-        minimum: 3,
-        maximum: 12,
-        description: "Number of symmetry segments",
-      },
-    },
-  },
-  pixelate: {
-    type: "object",
-    title: "Pixelate",
-    properties: {
-      pixelSize: {
-        type: "number",
-        title: "Pixel Size",
-        default: 5,
-        minimum: 1,
-        maximum: 50,
-        description: "Size of pixelation blocks",
-      },
-    },
-  },
-};
-
-const EFFECT_NAMES = {
-  glitch: "Glitch",
-  crt: "CRT Scanlines",
-  film_grain: "Film Grain",
-  rgb_shift: "RGB Shift",
-  kaleidoscope: "Kaleidoscope",
-  pixelate: "Pixelate",
-};
+// Uses CSS perspective transforms instead of VFX for cross-browser compatibility
 
 class ProjectionEditor {
   constructor(container, module, resource, initialData) {
@@ -120,11 +15,8 @@ class ProjectionEditor {
 
     this.ws = null;
     this.canvasElement = null;
-    this.previewIframes = {};
+    this.previewWindows = {};
     this.currentScale = 1;
-    this.effectEditors = {};
-    this.renderCanvases = {};
-    this.vfxInstances = {};
 
     this.broadcastRateLimitTime = 0;
 
@@ -300,38 +192,47 @@ class ProjectionEditor {
                         </div>
 
                         <div class="sidebar-section"
-                             id="vfx-section"
+                             id="source-config-section"
                              style="display: none;">
-                            <h3>VFX Effects</h3>
+                            <h3>Source Config</h3>
                             <div class="form-group">
-                                <label>Effect Type</label>
-                                <select id="effect-type-select">
-                                    <option value="glitch">
-                                        Glitch
-                                    </option>
-                                    <option value="crt">
-                                        CRT Scanlines
-                                    </option>
-                                    <option value="film_grain">
-                                        Film Grain
-                                    </option>
-                                    <option value="rgb_shift">
-                                        RGB Shift
-                                    </option>
-                                    <option value="kaleidoscope">
-                                        Kaleidoscope
-                                    </option>
-                                    <option value="pixelate">
-                                        Pixelate
-                                    </option>
-                                </select>
+                                <label>Window Size (px)</label>
+                                <div class="size-input-row">
+                                    <input type="number"
+                                           id="window-width"
+                                           placeholder="Width"
+                                           min="1">
+                                    <input type="number"
+                                           id="window-height"
+                                           placeholder="Height"
+                                           min="1">
+                                </div>
                             </div>
-                            <button id="add-effect-btn"
-                                    class="btn btn-sm">
-                                + Add Effect
-                            </button>
-                            <div id="effects-list"
-                                 class="effects-list">
+                            <div class="form-group">
+                                <label>Render Size (px)</label>
+                                <div class="size-input-row">
+                                    <input type="number"
+                                           id="render-width"
+                                           placeholder="Width"
+                                           min="1">
+                                    <input type="number"
+                                           id="render-height"
+                                           placeholder="Height"
+                                           min="1">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Crop Position (px)</label>
+                                <div class="size-input-row">
+                                    <input type="number"
+                                           id="crop-x"
+                                           placeholder="X"
+                                           min="0">
+                                    <input type="number"
+                                           id="crop-y"
+                                           placeholder="Y"
+                                           min="0">
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -427,7 +328,7 @@ class ProjectionEditor {
     const sourcesContainer = document.querySelector("#preview-sources");
 
     // Only clear and rebuild if sources changed
-    if (Object.keys(this.previewIframes).length === 0) {
+    if (Object.keys(this.previewWindows).length === 0) {
       sourcesContainer.innerHTML = "";
     }
 
@@ -435,38 +336,40 @@ class ProjectionEditor {
       if (!source.visible) continue;
 
       if (source.type === "iframe") {
-        // Reuse existing wrapper if present
-        if (this.previewIframes[source.id]) {
-          this.applyPreviewTransform(this.previewIframes[source.id], source);
-          this.applySourceEffects(source);
+        // Reuse existing window if present
+        if (this.previewWindows[source.id]) {
+          this.applyWindowTransform(this.previewWindows[source.id], source);
           continue;
         }
 
-        const wrapper = document.createElement("div");
-        wrapper.className = "preview-source";
-        wrapper.id = `source-${source.id}`;
-        wrapper.dataset.sourceId = source.id;
+        const window_ = document.createElement("div");
+        window_.className = "preview-window";
+        window_.id = `window-${source.id}`;
+        window_.dataset.sourceId = source.id;
+
+        const container = document.createElement("div");
+        container.className = "window-container";
+        container.style.position = "relative";
+        container.style.overflow = "hidden";
 
         const iframe = document.createElement("iframe");
         iframe.src = source.config.url;
         iframe.style.border = "none";
         iframe.style.pointerEvents = "none";
-        iframe.style.width = "100%";
-        iframe.style.height = "100%";
         iframe.style.display = "block";
-        iframe.sandbox.add("allow-same-origin", "allow-scripts", "allow-forms");
+        iframe.style.position = "absolute";
+        iframe.style.top = "0";
+        iframe.style.left = "0";
 
-        // Re-render effects when iframe loads
-        iframe.addEventListener("load", () => {
-          this.applySourceEffects(source);
-        });
+        iframe.sandbox.add("allow-same-origin", "allow-scripts",
+          "allow-forms");
 
-        wrapper.append(iframe);
+        container.append(iframe);
+        window_.append(container);
 
-        this.applyPreviewTransform(wrapper, source);
-        this.applySourceEffects(source);
-        sourcesContainer.append(wrapper);
-        this.previewIframes[source.id] = wrapper;
+        this.applyWindowTransform(window_, source);
+        sourcesContainer.append(window_);
+        this.previewWindows[source.id] = window_;
       }
     }
 
@@ -478,26 +381,32 @@ class ProjectionEditor {
     this.drawCornerHandles();
   }
 
-  applyPreviewTransform(element, source) {
+  applyWindowTransform(element, source) {
+    const config = source.config || {};
     const transform = source.transform || {};
     const corners = transform.corners;
 
     element.style.position = "absolute";
 
-    if (corners) {
-      element.style.width = "100%";
-      element.style.height = "100%";
-      element.style.top = "0";
-      element.style.left = "0";
+    // Apply window size
+    const windowWidth = config.window_width || 800;
+    const windowHeight = config.window_height || 600;
+    element.style.width = `${windowWidth}px`;
+    element.style.height = `${windowHeight}px`;
 
-      const matrix = this.calculatePerspectiveMatrix(corners);
+    // Apply window position (from corners if available)
+    if (corners) {
+      // Use top-left corner as position
+      element.style.left = `${corners.tl.x}px`;
+      element.style.top = `${corners.tl.y}px`;
+
+      const matrix = this.calculatePerspectiveMatrix(corners,
+        windowWidth, windowHeight);
       element.style.transformOrigin = "0 0";
       element.style.transform = `matrix3d(${matrix.join(",")})`;
     } else {
-      element.style.top = "0";
       element.style.left = "0";
-      element.style.width = "100%";
-      element.style.height = "100%";
+      element.style.top = "0";
     }
 
     if (transform.opacity !== undefined) {
@@ -508,100 +417,56 @@ class ProjectionEditor {
       element.style.mixBlendMode = transform.blend_mode;
     }
 
-    if (transform.rotation && corners) {
-      const matrix = this.calculatePerspectiveMatrix(corners);
-      element.style.transform =
-        `matrix3d(${matrix.join(",")})` + ` rotate(${transform.rotation}deg)`;
-    } else if (transform.rotation && !corners) {
-      element.style.transform = `rotate(${transform.rotation}deg)`;
+    // Apply container sizing and cropping
+    const container = element.querySelector(".window-container");
+    if (container) {
+      const renderWidth = config.render_width || windowWidth;
+      const renderHeight = config.render_height || windowHeight;
+      const cropX = config.crop_x || 0;
+      const cropY = config.crop_y || 0;
+
+      container.style.width = `${windowWidth}px`;
+      container.style.height = `${windowHeight}px`;
+
+      const iframe = container.querySelector("iframe");
+      if (iframe) {
+        iframe.style.width = `${renderWidth}px`;
+        iframe.style.height = `${renderHeight}px`;
+        iframe.style.left = `${-cropX}px`;
+        iframe.style.top = `${-cropY}px`;
+      }
     }
   }
 
   updatePreviewTransform(source) {
-    // Smoothly update just the transform without
-    // recreating DOM
-    if (!this.previewIframes[source.id]) return;
+    // Smoothly update just the transform without recreating DOM
+    if (!this.previewWindows[source.id]) return;
 
-    const element = this.previewIframes[source.id];
-    this.applyPreviewTransform(element, source);
-    this.applySourceEffects(source);
+    const element = this.previewWindows[source.id];
+    this.applyWindowTransform(element, source);
   }
 
-  applySourceEffects(source) {
-    // Apply VFX effects to source element
-    if (!source.vfx || source.vfx.length === 0) {
-      return;
-    }
+  calculatePerspectiveMatrix(corners, windowWidth, windowHeight) {
+    // Source is the window itself (0,0 to width, height)
+    const sourceCorners = [0, 0, windowWidth, 0, 0, windowHeight,
+      windowWidth, windowHeight];
 
-    const wrapper = this.previewIframes[source.id];
-    if (!wrapper) return;
-
-    // First child is the actual source (iframe, img, video, canvas, etc)
-    const sourceElement = wrapper.children[0];
-    if (!sourceElement) return;
-
-    // Create or reuse render canvas
-    let renderCanvas = this.renderCanvases[source.id];
-    const w = this.data.size?.width || 1920;
-    const h = this.data.size?.height || 1080;
-
-    if (!renderCanvas) {
-      renderCanvas = document.createElement("canvas");
-      renderCanvas.width = w;
-      renderCanvas.height = h;
-      renderCanvas.style.position = "absolute";
-      renderCanvas.style.top = "0";
-      renderCanvas.style.left = "0";
-      renderCanvas.style.pointerEvents = "none";
-      renderCanvas.style.width = "100%";
-      renderCanvas.style.height = "100%";
-      wrapper.append(renderCanvas);
-      this.renderCanvases[source.id] = renderCanvas;
-    }
-
-    // Create or reuse VFX instance
-    let vfx = this.vfxInstances[source.id];
-    if (!vfx) {
-      vfx = new VFX(renderCanvas);
-      this.vfxInstances[source.id] = vfx;
-    }
-
-    // Add source element (renders to canvas internally)
-    vfx.add(sourceElement);
-
-    // Clear previous effects and add new ones
-    vfx.effects = [];
-    for (const effect of source.vfx) {
-      vfx.addEffect(effect.shader, effect.params);
-    }
-
-    // Apply all effects to canvas
-    vfx.apply();
-  }
-
-  calculatePerspectiveMatrix(corners) {
-    // Get projection size
-    const w = this.data.size?.width || 1920;
-    const h = this.data.size?.height || 1080;
-
-    // Use perspective-transform library
-    // Source is the full virtual screen (where iframe content comes from)
-    const sourceCorners = [0, 0, w, 0, 0, h, w, h];
-
-    // Destination is where user has positioned the corners
+    // Destination is relative to top-left corner (since the window
+    // is positioned at corners.tl)
+    const tlX = corners.tl.x;
+    const tlY = corners.tl.y;
     const destinationCorners = [
-      corners.tl.x,
-      corners.tl.y,
-      corners.tr.x,
-      corners.tr.y,
-      corners.bl.x,
-      corners.bl.y,
-      corners.br.x,
-      corners.br.y,
+      corners.tl.x - tlX,
+      corners.tl.y - tlY,
+      corners.tr.x - tlX,
+      corners.tr.y - tlY,
+      corners.bl.x - tlX,
+      corners.bl.y - tlY,
+      corners.br.x - tlX,
+      corners.br.y - tlY,
     ];
 
     // Get perspective-transform from global scope
-    // It was loaded as a non-module script
     const PerspT = globalThis.PerspT;
     const perspT = PerspT(sourceCorners, destinationCorners);
 
@@ -694,11 +559,74 @@ class ProjectionEditor {
         .querySelector("#add-source-btn")
         .addEventListener("click", () => this.addSource());
 
-      // Add effect button
-      const addEffectButton = document.querySelector("#add-effect-btn");
-      if (addEffectButton) {
-        addEffectButton.addEventListener("click", () => this.addEffect());
-      }
+      // Source config inputs
+      document
+        .querySelector("#window-width")
+        ?.addEventListener("input", (event_) => {
+          const source = this.getSelectedSource();
+          if (source) {
+            source.config.window_width = Number.parseInt(
+              event_.target.value
+            );
+            this.updatePreviewTransform(source);
+          }
+        });
+
+      document
+        .querySelector("#window-height")
+        ?.addEventListener("input", (event_) => {
+          const source = this.getSelectedSource();
+          if (source) {
+            source.config.window_height = Number.parseInt(
+              event_.target.value
+            );
+            this.updatePreviewTransform(source);
+          }
+        });
+
+      document
+        .querySelector("#render-width")
+        ?.addEventListener("input", (event_) => {
+          const source = this.getSelectedSource();
+          if (source) {
+            source.config.render_width = Number.parseInt(
+              event_.target.value
+            );
+            this.updatePreviewTransform(source);
+          }
+        });
+
+      document
+        .querySelector("#render-height")
+        ?.addEventListener("input", (event_) => {
+          const source = this.getSelectedSource();
+          if (source) {
+            source.config.render_height = Number.parseInt(
+              event_.target.value
+            );
+            this.updatePreviewTransform(source);
+          }
+        });
+
+      document
+        .querySelector("#crop-x")
+        ?.addEventListener("input", (event_) => {
+          const source = this.getSelectedSource();
+          if (source) {
+            source.config.crop_x = Number.parseInt(event_.target.value);
+            this.updatePreviewTransform(source);
+          }
+        });
+
+      document
+        .querySelector("#crop-y")
+        ?.addEventListener("input", (event_) => {
+          const source = this.getSelectedSource();
+          if (source) {
+            source.config.crop_y = Number.parseInt(event_.target.value);
+            this.updatePreviewTransform(source);
+          }
+        });
 
       // Size inputs
       document
@@ -823,18 +751,18 @@ class ProjectionEditor {
     );
   }
 
-  onCanvasMouseDown(e) {
+  onCanvasMouseDown(event_) {
     this.isDragging = true;
-    this.checkCornerClick(e);
+    this.checkCornerClick(event_);
   }
 
-  onCanvasMouseMove(e) {
+  onCanvasMouseMove(event_) {
     if (!this.isDragging || !this.draggingCorner) return;
 
     const source = this.getSelectedSource();
     if (!source || !source.transform?.corners) return;
 
-    const { x, y } = this.getCanvasPixel(e);
+    const { x, y } = this.getCanvasPixel(event_);
 
     source.transform.corners[this.draggingCorner] = { x, y };
 
@@ -853,8 +781,8 @@ class ProjectionEditor {
     this.broadcastTransform(source, true);
   }
 
-  onCanvasTouchStart(e) {
-    const touch = e.touches[0];
+  onCanvasTouchStart(event_) {
+    const touch = event_.touches[0];
     const mouseEvent = new MouseEvent("mousedown", {
       clientX: touch.clientX,
       clientY: touch.clientY,
@@ -862,9 +790,9 @@ class ProjectionEditor {
     this.canvasElement.dispatchEvent(mouseEvent);
   }
 
-  onCanvasTouchMove(e) {
-    e.preventDefault();
-    const touch = e.touches[0];
+  onCanvasTouchMove(event_) {
+    event_.preventDefault();
+    const touch = event_.touches[0];
     const mouseEvent = new MouseEvent("mousemove", {
       clientX: touch.clientX,
       clientY: touch.clientY,
@@ -877,11 +805,11 @@ class ProjectionEditor {
     this.canvasElement.dispatchEvent(mouseEvent);
   }
 
-  checkCornerClick(e) {
+  checkCornerClick(event_) {
     const source = this.getSelectedSource();
     if (!source || !source.transform?.corners) return;
 
-    const { x, y } = this.getCanvasPixel(e);
+    const { x, y } = this.getCanvasPixel(event_);
 
     const corners = source.transform.corners;
     const hitRadius = 30;
@@ -976,87 +904,37 @@ class ProjectionEditor {
     }
   }
 
-  updateEffectsList() {
-    const list = document.querySelector("#effects-list");
-    if (!list) return;
-
+  updateSourceConfigInputs() {
     const source = this.getSelectedSource();
     if (!source) return;
 
-    list.innerHTML = "";
+    const config = source.config || {};
+    const windowWidthInput = document.querySelector("#window-width");
+    const windowHeightInput = document.querySelector("#window-height");
+    const renderWidthInput = document.querySelector("#render-width");
+    const renderHeightInput = document.querySelector("#render-height");
+    const cropXInput = document.querySelector("#crop-x");
+    const cropYInput = document.querySelector("#crop-y");
 
-    const effects = source.vfx || [];
-    for (const [index, effect] of effects.entries()) {
-      const item = document.createElement("div");
-      item.className = "effect-item";
-
-      const header = document.createElement("div");
-      header.className = "effect-item-header";
-      header.innerHTML = `
-                <strong>
-                    ${EFFECT_NAMES[effect.shader]}
-                </strong>
-                <button class="btn-small del-effect"
-                        data-effect-index="${index}">
-                    Delete
-                </button>
-            `;
-
-      item.append(header);
-
-      const parametersContainer = document.createElement("div");
-      parametersContainer.className = "effect-params-container";
-      parametersContainer.id = `effect-params-${source.id}-${index}`;
-      item.append(parametersContainer);
-
-      list.append(item);
-
-      // Create JSONEditor for this effect
-      const editorKey = `${source.id}_${index}`;
-      if (this.effectEditors[editorKey]) {
-        this.effectEditors[editorKey].destroy();
-      }
-
-      const schema = EFFECT_SCHEMAS[effect.shader];
-      this.effectEditors[editorKey] = new globalThis.JSONEditor(
-        parametersContainer,
-        {
-          schema: schema,
-          startval: effect.params,
-          disable_collapse: true,
-          disable_edit_json: true,
-          theme: "barebones",
-        }
-      );
-
-      // Update effect params when editor changes
-      this.effectEditors[editorKey].on("change", () => {
-        effect.params = this.effectEditors[editorKey].getValue();
-        // Re-render preview with new params
-        this.applySourceEffects(source);
-      });
-
-      // Add delete button listener
-      header
-        .querySelector(".del-effect")
-        ?.addEventListener("click", (event_) => {
-          event_.stopPropagation();
-          this.deleteEffect(index);
-        });
-    }
+    if (windowWidthInput) windowWidthInput.value = config.window_width || 800;
+    if (windowHeightInput) windowHeightInput.value = config.window_height || 600;
+    if (renderWidthInput) renderWidthInput.value = config.render_width || 800;
+    if (renderHeightInput) renderHeightInput.value = config.render_height || 600;
+    if (cropXInput) cropXInput.value = config.crop_x || 0;
+    if (cropYInput) cropYInput.value = config.crop_y || 0;
   }
 
   selectSource(sourceId) {
     this.selectedSourceId = sourceId;
     this.updateSourcesList();
     this.updateTransformInputs();
-    this.updateEffectsList();
+    this.updateSourceConfigInputs();
 
     const transformSection = document.querySelector("#transform-section");
-    const vfxSection = document.querySelector("#vfx-section");
+    const configSection = document.querySelector("#source-config-section");
 
     if (transformSection) transformSection.style.display = "block";
-    if (vfxSection) vfxSection.style.display = "block";
+    if (configSection) configSection.style.display = "block";
 
     this.renderPreview();
   }
@@ -1133,14 +1011,21 @@ class ProjectionEditor {
       id: this.generateId(),
       name,
       type: "iframe",
-      config: { url },
+      config: {
+        url,
+        window_width: 800,
+        window_height: 600,
+        render_width: 800,
+        render_height: 600,
+        crop_x: 0,
+        crop_y: 0,
+      },
       transform: {
         corners: this.getDefaultCorners(),
         opacity: 1,
         blend_mode: "normal",
         rotation: 0,
       },
-      vfx: [],
       visible: true,
     };
 
@@ -1156,50 +1041,11 @@ class ProjectionEditor {
     if (this.selectedSourceId === sourceId) {
       this.selectedSourceId = null;
       document.querySelector("#transform-section").style.display = "none";
-      document.querySelector("#vfx-section").style.display = "none";
+      document.querySelector("#source-config-section").style.display = "none";
     }
 
     this.updateSourcesList();
     this.renderPreview();
-  }
-
-  addEffect() {
-    const source = this.getSelectedSource();
-    if (!source) return;
-
-    const effectType = document.querySelector("#effect-type-select")?.value;
-    if (!effectType) return;
-
-    if (!source.vfx) source.vfx = [];
-
-    // Get default params from schema
-    const schema = EFFECT_SCHEMAS[effectType];
-    const parameters = {};
-    for (const [key, property] of Object.entries(schema.properties)) {
-      parameters[key] = property.default;
-    }
-
-    source.vfx.push({
-      shader: effectType,
-      params: parameters,
-    });
-
-    this.updateEffectsList();
-  }
-
-  deleteEffect(effectIndex) {
-    const source = this.getSelectedSource();
-    if (!source || !source.vfx) return;
-
-    // Destroy editor instance
-    const editorKey = `${source.id}_${effectIndex}`;
-    if (this.effectEditors[editorKey]) {
-      this.effectEditors[editorKey].destroy();
-      delete this.effectEditors[editorKey];
-    }
-
-    source.vfx.splice(effectIndex, 1);
-    this.updateEffectsList();
   }
 
   async save() {
