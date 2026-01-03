@@ -515,8 +515,6 @@ class Group:
 
         self.midi_source = midi_source
 
-        self._slideshow_transform: dict[str, float | int] = {}
-
         if active:
             try:
                 # Normally the reentrant check would prevent this from doing
@@ -1797,26 +1795,6 @@ class Group:
                 )
 
         cue.push()
-
-    @property
-    def slideshow_transform(self):
-        return self._slideshow_transform
-
-    @slideshow_transform.setter
-    def slideshow_transform(self, value: dict[str, float]):
-        if self._slideshow_transform != value:
-            value = value.copy()
-            for i in value:
-                value[i] = float(value[i])
-
-            # Just to validate
-            json.dumps(value)
-
-            self._slideshow_transform = value
-            self.push_to_frontend(keys=["slideshow_transform"])
-            self.media_link_socket.send(
-                ["transform", self._slideshow_transform]
-            )
 
     @slow_group_lock_context.object_session_entry_point
     def next_cue(self, t=None, cause="generic", force_in_order=False):

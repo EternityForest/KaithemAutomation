@@ -43,11 +43,14 @@ object, and must be explicitly called.
 
 * :bug: Fix civil twilight and night tags not updating.
 
-
 * :sparkles: The web console feature is back as a proper ASGI compatible addon!
 
-
 * :coffin: BREAKING: Unused and poorly supported Chandler "display tags", "event buttons", and "info display" removed.
+
+* :coffin: BREAKING: Chandler "Slideshow Transform" replaced with
+   a true projection mapper plugin.
+
+* :sparkles: Projection Mapper plugin for projection mapping web based sources
 
 ### 0.93.1
 

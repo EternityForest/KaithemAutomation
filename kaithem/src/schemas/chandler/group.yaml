@@ -103,34 +103,6 @@ properties:
             </div>
         </slideshow-app>
 
-
-  slideshow_transform:
-    type: object
-    additionalProperties: true
-    default:
-      perspective: 100
-      scale_x: 100
-      scale_y: 100
-      rotate_z: 0
-      rotate_x: 0
-      rotate_y: 0
-      translate_x: 0
-      translate_y: 0
-
-    properties:
-      scale:
-        type: number
-      rotate_z:
-        type: number
-      rotate_x:
-        type: number
-      rotate_y:
-        type: number
-      translate_x:
-        type: number
-      translate_y:
-        type: number
-
   sound_output:
     type: string
 
