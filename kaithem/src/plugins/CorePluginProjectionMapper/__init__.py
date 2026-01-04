@@ -326,14 +326,11 @@ async def ws_transform_sync(module: str, resource: str):
                 message = await asyncio.wait_for(ws.receive(), timeout=0.1)
                 msg_data = json.loads(message)
 
-                # Broadcast to all connected clients via
+                # Broadcast raw message to all connected clients via
                 # messagebus
                 messagebus.post_message(
                     topic,
-                    {
-                        "type": "transform_update",
-                        **msg_data,
-                    },
+                    msg_data,
                 )
             except TimeoutError:
                 # Timeout is normal, just loop back to

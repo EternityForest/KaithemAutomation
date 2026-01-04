@@ -766,6 +766,7 @@ class ProjectionEditor {
             source.transform.opacity = Number.parseFloat(event_.target.value);
             document.querySelector("#opacity-val").textContent =
               Number.parseFloat(event_.target.value).toFixed(2);
+            this.broadcastOpacity(source);
             this.renderPreview();
           }
         });
@@ -995,6 +996,19 @@ class ProjectionEditor {
     );
   }
 
+  broadcastOpacity(source) {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      return;
+    }
+
+    this.ws.send(
+      JSON.stringify({
+        source_id: source.id,
+        opacity: source.transform.opacity,
+      })
+    );
+  }
+
   setupWebSocket() {
     const protocol = globalThis.location.protocol === "https:" ? "wss" : "ws";
     this.ws = new WebSocket(
@@ -1008,19 +1022,27 @@ class ProjectionEditor {
         // eslint-disable-next-line unicorn/prefer-global-this
         window.location.reload();
       }
-      if (message.type === "transform_update") {
-        const source = this.data.sources.find(
-          (s) => s.id === message.source_id
-        );
-        if (
-          source &&
-          !(this.isDragging && this.selectedSourceId === source.id)
-        ) {
-          source.transform.corners = message.corners;
-          this.renderPreview();
-          this.updateTransformInputs();
-        }
+
+      const source = this.data.sources.find(
+        (s) => s.id === message.source_id
+      );
+      if (!source) return;
+
+      // Don't apply updates from other clients while dragging the same source
+      if (this.isDragging && this.selectedSourceId === source.id) {
+        return;
       }
+
+      // Apply any transform properties sent in the message
+      if (message.corners) {
+        source.transform.corners = message.corners;
+      }
+      if (message.opacity !== undefined) {
+        source.transform.opacity = message.opacity;
+      }
+
+      this.renderPreview();
+      this.updateTransformInputs();
     });
   }
 
