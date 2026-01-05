@@ -669,63 +669,6 @@ class ProjectionEditor {
         .querySelector("#add-source-btn")
         .addEventListener("click", () => this.addSource());
 
-      // Source config inputs
-      document
-        .querySelector("#window-width")
-        ?.addEventListener("input", (event_) => {
-          const source = this.getSelectedSource();
-          if (source) {
-            source.config.window_width = Number.parseInt(event_.target.value);
-            this.updatePreviewTransform(source);
-          }
-        });
-
-      document
-        .querySelector("#window-height")
-        ?.addEventListener("input", (event_) => {
-          const source = this.getSelectedSource();
-          if (source) {
-            source.config.window_height = Number.parseInt(event_.target.value);
-            this.updatePreviewTransform(source);
-          }
-        });
-
-      document
-        .querySelector("#render-width")
-        ?.addEventListener("input", (event_) => {
-          const source = this.getSelectedSource();
-          if (source) {
-            source.config.render_width = Number.parseInt(event_.target.value);
-            this.updatePreviewTransform(source);
-          }
-        });
-
-      document
-        .querySelector("#render-height")
-        ?.addEventListener("input", (event_) => {
-          const source = this.getSelectedSource();
-          if (source) {
-            source.config.render_height = Number.parseInt(event_.target.value);
-            this.updatePreviewTransform(source);
-          }
-        });
-
-      document.querySelector("#crop-x")?.addEventListener("input", (event_) => {
-        const source = this.getSelectedSource();
-        if (source) {
-          source.config.crop_x = Number.parseInt(event_.target.value);
-          this.updatePreviewTransform(source);
-        }
-      });
-
-      document.querySelector("#crop-y")?.addEventListener("input", (event_) => {
-        const source = this.getSelectedSource();
-        if (source) {
-          source.config.crop_y = Number.parseInt(event_.target.value);
-          this.updatePreviewTransform(source);
-        }
-      });
-
       // Size inputs
       document
         .querySelector("#size-width")
@@ -1081,39 +1024,14 @@ class ProjectionEditor {
     }
   }
 
-  updateSourceConfigInputs() {
-    const source = this.getSelectedSource();
-    if (!source) return;
-
-    const config = source.config || {};
-    const windowWidthInput = document.querySelector("#window-width");
-    const windowHeightInput = document.querySelector("#window-height");
-    const renderWidthInput = document.querySelector("#render-width");
-    const renderHeightInput = document.querySelector("#render-height");
-    const cropXInput = document.querySelector("#crop-x");
-    const cropYInput = document.querySelector("#crop-y");
-
-    if (windowWidthInput) windowWidthInput.value = config.window_width || 800;
-    if (windowHeightInput)
-      windowHeightInput.value = config.window_height || 600;
-    if (renderWidthInput) renderWidthInput.value = config.render_width || 800;
-    if (renderHeightInput)
-      renderHeightInput.value = config.render_height || 600;
-    if (cropXInput) cropXInput.value = config.crop_x || 0;
-    if (cropYInput) cropYInput.value = config.crop_y || 0;
-  }
-
   selectSource(sourceId) {
     this.selectedSourceId = sourceId;
     this.updateSourcesList();
     this.updateTransformInputs();
-    this.updateSourceConfigInputs();
+    this.renderSourceTypeSpecificOptions();
 
     const transformSection = document.querySelector("#transform-section");
-    const configSection = document.querySelector("#source-config-section");
-
     if (transformSection) transformSection.style.display = "block";
-    if (configSection) configSection.style.display = "block";
 
     this.renderPreview();
   }
@@ -1179,26 +1097,65 @@ class ProjectionEditor {
     };
   }
 
-  addSource() {
+  showSourceTypeDialog() {
+    const container = document.createElement("div");
+    container.style.cssText =
+      "position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); " +
+      "background: white; padding: 20px; border-radius: 8px; " +
+      "box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 10000; " +
+      "font-family: system-ui; max-width: 400px;";
+
+    const title = document.createElement("h3");
+    title.textContent = "Choose Source Type";
+    title.style.margin = "0 0 16px 0";
+
+    const typeSelect = document.createElement("select");
+    typeSelect.style.cssText =
+      "width: 100%; padding: 8px; margin-bottom: 16px; " +
+      "border: 1px solid #ccc; border-radius: 4px; font-size: 14px;";
+    typeSelect.innerHTML = `
+      <option value="">-- Select a source type --</option>
+      <option value="iframe">iFrame (Web Content)</option>
+      <option value="copy">Copy (CSS element())</option>
+    `;
+
+    const buttonContainer = document.createElement("div");
+    buttonContainer.style.cssText =
+      "display: flex; gap: 8px; justify-content: flex-end;";
+
+    const cancelButton = document.createElement("button");
+    cancelButton.textContent = "Cancel";
+    cancelButton.className = "btn btn-sm";
+    cancelButton.style.marginRight = "8px";
+    cancelButton.addEventListener("click", () => {
+      container.remove();
+    });
+
+    const nextButton = document.createElement("button");
+    nextButton.textContent = "Next";
+    nextButton.className = "btn btn-primary btn-sm";
+    nextButton.addEventListener("click", () => {
+      const type = typeSelect.value;
+      if (!type) return;
+      container.remove();
+      this.promptSourceName(type);
+    });
+
+    buttonContainer.append(cancelButton, nextButton);
+    container.append(title, typeSelect, buttonContainer);
+    document.body.append(container);
+    typeSelect.focus();
+  }
+
+  promptSourceName(sourceType) {
     const name = prompt("Source name:");
     if (!name) return;
-
-    const url = prompt("URL:");
-    if (!url) return;
 
     const source = {
       id: this.generateId(),
       name,
-      type: "iframe",
-      config: {
-        url,
-        window_width: 800,
-        window_height: 600,
-        render_width: 800,
-        render_height: 600,
-        crop_x: 0,
-        crop_y: 0,
-      },
+      type: sourceType,
+      config: this.getDefaultConfig(sourceType),
       transform: {
         corners: this.getDefaultCorners(),
         opacity: 1,
@@ -1212,6 +1169,179 @@ class ProjectionEditor {
     this.selectSource(source.id);
     this.updateSourcesList();
     this.renderPreview();
+  }
+
+  getDefaultConfig(sourceType) {
+    const configs = {
+      iframe: {
+        url: "",
+        window_width: 800,
+        window_height: 600,
+        render_width: 800,
+        render_height: 600,
+        crop_x: 0,
+        crop_y: 0,
+      },
+      copy: {
+        source_id: "",
+      },
+    };
+    return configs[sourceType] || {};
+  }
+
+  addSource() {
+    this.showSourceTypeDialog();
+  }
+
+  renderSourceTypeSpecificOptions() {
+    const source = this.getSelectedSource();
+    if (!source) return;
+
+    const configSection = document.querySelector("#source-config-section");
+    if (!configSection) return;
+
+    // Router function - delegates to type-specific renderer
+    const renderer =
+      this[`renderSourceOptions_${source.type}`] ||
+      this.renderSourceOptions_default;
+
+    configSection.innerHTML = "";
+    renderer.call(this, source, configSection);
+    configSection.style.display = "block";
+  }
+
+  renderSourceOptions_default(source, container) {
+    container.innerHTML =
+      `<h3>Source Config</h3>
+       <p>No configuration available for
+       source type: ${source.type}</p>`;
+  }
+
+  renderSourceOptions_iframe(source, container) {
+    container.innerHTML = `
+      <h3>Source Config</h3>
+      <div class="form-group">
+        <label>URL</label>
+        <input type="text" id="source-url"
+               placeholder="https://example.com"
+               value="${source.config.url || ""}">
+      </div>
+      <div class="form-group">
+        <label>Window Size (px)</label>
+        <div class="size-input-row">
+          <input type="number" id="window-width"
+                 placeholder="Width" min="1"
+                 value="${source.config.window_width || 800}">
+          <input type="number" id="window-height"
+                 placeholder="Height" min="1"
+                 value="${source.config.window_height || 600}">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Render Size (px)</label>
+        <div class="size-input-row">
+          <input type="number" id="render-width"
+                 placeholder="Width" min="1"
+                 value="${source.config.render_width || 800}">
+          <input type="number" id="render-height"
+                 placeholder="Height" min="1"
+                 value="${source.config.render_height || 600}">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Crop Position (px)</label>
+        <div class="size-input-row">
+          <input type="number" id="crop-x"
+                 placeholder="X" min="0"
+                 value="${source.config.crop_x || 0}">
+          <input type="number" id="crop-y"
+                 placeholder="Y" min="0"
+                 value="${source.config.crop_y || 0}">
+        </div>
+      </div>
+    `;
+
+    // Setup event listeners for iframe-specific options
+    document.querySelector("#source-url")?.addEventListener("input",
+      (event) => {
+        source.config.url = event.target.value;
+        if (this.previewWindows[source.id]) {
+          const iframe = this.previewWindows[source.id]
+            ?.querySelector("iframe");
+          if (iframe) iframe.src = source.config.url;
+        }
+      }
+    );
+
+    document.querySelector("#window-width")?.addEventListener("input",
+      (event) => {
+        source.config.window_width = Number.parseInt(event.target.value);
+        this.updatePreviewTransform(source);
+      }
+    );
+
+    document.querySelector("#window-height")?.addEventListener("input",
+      (event) => {
+        source.config.window_height = Number.parseInt(event.target.value);
+        this.updatePreviewTransform(source);
+      }
+    );
+
+    document.querySelector("#render-width")?.addEventListener("input",
+      (event) => {
+        source.config.render_width = Number.parseInt(event.target.value);
+        this.updatePreviewTransform(source);
+      }
+    );
+
+    document.querySelector("#render-height")?.addEventListener("input",
+      (event) => {
+        source.config.render_height = Number.parseInt(event.target.value);
+        this.updatePreviewTransform(source);
+      }
+    );
+
+    document.querySelector("#crop-x")?.addEventListener("input",
+      (event) => {
+        source.config.crop_x = Number.parseInt(event.target.value);
+        this.updatePreviewTransform(source);
+      }
+    );
+
+    document.querySelector("#crop-y")?.addEventListener("input",
+      (event) => {
+        source.config.crop_y = Number.parseInt(event.target.value);
+        this.updatePreviewTransform(source);
+      }
+    );
+  }
+
+  renderSourceOptions_copy(source, container) {
+    // Build dropdown of available sources to copy from
+    const sourceOptions = this.data.sources
+      .filter((s) => s.id !== source.id && s.type === "iframe")
+      .map((s) => `<option value="${s.id}" ${
+        source.config.source_id === s.id ? "selected" : ""
+      }>${s.name}</option>`)
+      .join("");
+
+    container.innerHTML = `
+      <h3>Source Config</h3>
+      <div class="form-group">
+        <label>Copy From Source</label>
+        <select id="copy-source-id">
+          <option value="">-- Select a source --</option>
+          ${sourceOptions}
+        </select>
+      </div>
+    `;
+
+    document.querySelector("#copy-source-id")?.addEventListener("change",
+      (event) => {
+        source.config.source_id = event.target.value;
+        this.updatePreviewTransform(source);
+      }
+    );
   }
 
   deleteSource(sourceId) {

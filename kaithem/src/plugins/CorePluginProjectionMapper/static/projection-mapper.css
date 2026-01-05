@@ -207,10 +207,9 @@ body{
     font-weight: 500;
 }
 
-.form-group input[type="range"],
-.form-group input[type="number"],
+.form-group input,
 .form-group select {
-    width: 100%;
+    width: 96%;
     padding: 0.5rem;
     background: #222;
     border: 1px solid #333;
