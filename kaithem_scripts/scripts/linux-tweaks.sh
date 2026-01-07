@@ -63,7 +63,8 @@ sudo apt-get install -y git git-lfs python3 python3-pip
 ##############################################
 
 
-sudo apt -y install zram-tools
+
+
 
 cat << EOF > /etc/security/limits.conf
 @audio   -  rtprio     95

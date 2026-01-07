@@ -52,6 +52,8 @@ object, and must be explicitly called.
 
 * :sparkles: Projection Mapper plugin for projection mapping web based sources
 
+* :bug: Fix sd protection script ability to disable swap on newer pi os
+
 ### 0.93.1
 
 * :technologist: Do not include dev packages in built wheel dependencies

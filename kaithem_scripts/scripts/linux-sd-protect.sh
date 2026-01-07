@@ -33,6 +33,28 @@ cd "$(dirname "${BASH_SOURCE[0]}")"
 # No more swap to wear the disk!!!
 ! sudo apt-get purge -y dphys-swapfile
 
+
+
+# if rpi-swap exists, ensure it doesn't use the SD card
+if [ -f /etc/rpi/swap.conf  ]; then
+
+echo "This system has rpi-swap, configuring zram only"
+
+mkdir -p /etc/rpi/swap.conf.d
+
+cat << EOF > /etc/rpi/swap.conf.d/ember-rpi-swap.conf
+
+[Main]
+Mechanism=zram
+
+EOF
+
+else
+echo "This system does not have rpi-swap"
+fi
+
+
+
 systemctl mask systemd-update-utmp.service
 systemctl mask systemd-random-seed.service
 systemctl disable systemd-update-utmp.service
