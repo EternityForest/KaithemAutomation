@@ -63,7 +63,15 @@ sudo apt-get install -y git git-lfs python3 python3-pip
 ##############################################
 
 
-
+# cat << EOF > /etc/polkit-1/rules.d/10-kaithem.rules
+# # Do Not Edit Manually!!!  This file is managed by Kaithem
+# polkit.addRule(function(action, subject) {
+#     if (action.id == "org.freedesktop.timedate1.set-time" &&
+#         subject.user == "$(id -un $KAITHEM_UID)") { // Replace with the actual username
+#         return polkit.Result.YES;
+#     }
+# });
+# EOF
 
 
 cat << EOF > /etc/security/limits.conf

@@ -42,6 +42,8 @@
 
 * Don't spend time supporting unusual configurations you don't actually need, like ancient EOL OS versions or big endian CPUs.
 
+* Avoid depending on system libraries or any resources that aren't managed as part of an isolated environment.
+
 * Don't make unnecessary wrapper layers around things that are already de facto standards, directly expose them.
 
 * Don't modify and fork things, unless you're contributing to upstream, and don't build things that users would have to modify to use
@@ -149,6 +151,8 @@
 * Don't break abstraction boundaries. If you find yourself carefully studying the bit patterns of IEEE floats, try to find a different approach that is agnostic to those details
 
 * Don't hardcode empirically measured constants.  Assume the time a server takes to respond, or the size or the display, or the sensitivity threshold a light sensor needs, will change unpredictably.
+
+* In particular, always assume screen size is dynamic.
 
 * Don't store more than two or three items in a tuple, prefer structured objects with named keys.
 
