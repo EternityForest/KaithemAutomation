@@ -13,7 +13,6 @@ from icemedia import sound_player
 from scullery import messagebus
 from tinytag import TinyTag
 
-from kaithem.api import tags
 from kaithem.api.midi import list_midi_inputs
 from kaithem.api.web import has_permission
 from kaithem.api.widgets import APIWidget
@@ -596,21 +595,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         elif cmd_name == "setsoundout":
             cues[msg[1]].sound_output = msg[2]
             self.pushCueMeta(msg[1])
-
-        elif cmd_name == "seteventbuttons":
-            groups.groups[msg[1]].event_buttons = msg[2]
-            self.push_group_meta(msg[1], keys={"event_buttons"})
-
-        elif cmd_name == "setinfodisplay":
-            groups.groups[msg[1]].info_display = msg[2]
-            self.push_group_meta(msg[1], keys={"info_display"})
-
-        elif cmd_name == "inputtagvalue":
-            for i in groups.groups[msg[1]].display_tags:
-                # Defensive programming, don't set a tag that wasn't ever actually configured
-                if msg[2] == i[1]:
-                    tags.existing_tag(msg[2]).value = msg[3]
-                    return
 
         elif cmd_name == "setMqttServer":
             if has_permission("system_admin", user=user):

@@ -178,43 +178,6 @@ test("test", async ({ page }) => {
 
   await expect(page.getByTestId("group_blend_mode")).toHaveValue("HTP");
 
-  // Now lets do the display tags and action buttons
-  await page.getByRole("button", { name: "Add Button" }).click();
-
-  await page.getByTestId("event_button_label").click();
-  await page.getByTestId("event_button_label").fill("btn1");
-  await page.getByTestId("event_button_event").click();
-  await page.getByTestId("event_button_event").fill("evt1");
-
-  await page.getByRole("button", { name: "Add Tag" }).click();
-  await waitForTasks(page);
-
-  await page.getByTestId("display_tag_label").fill("tg1");
-
-  // This one display tag width line is always flaky.
-  await waitForTasks(page);
-  await sleep(1000);
-
-  // This line is flaky, if you get a fail just manually pause a bit.
-  await page.getByTestId("display_tag_width").fill("5");
-  await page.getByTestId("display_tag_width").click();
-  await sleep(300);
-  await page.getByTestId("display_tag_width").fill("5");
-  await waitForTasks(page);
-  await sleep(1000);
-  await page.getByTestId("display_tag_tag").fill("=4");
-
-  await sleep(300);
-  await waitForTasks(page);
-
-  await page.getByTestId("display_tag_type").selectOption("Meter");
-
-  await waitForTasks(page);
-  // Waste some time to let it send
-
-  //TODO why is this flaky??? it shou;dn't need retry!!
-  await page.getByTestId("display_tag_type").selectOption("Meter");
-
   await waitForTasks(page);
 
   await sleep(600);
@@ -235,17 +198,7 @@ test("test", async ({ page }) => {
   await page.getByTestId("group-properties-button").click();
 
   await sleep(300);
-  await expect(page.getByTestId("event_button_label")).toHaveValue("btn1");
-  await expect(page.getByTestId("event_button_event")).toHaveValue("evt1");
-
-  await expect(page.getByTestId("display_tag_label")).toHaveValue("tg1");
-  await expect(page.getByTestId("display_tag_width")).toHaveValue("5");
-  await expect(page.getByTestId("display_tag_tag")).toHaveValue("=4");
-  await expect(page.getByTestId("display_tag_type")).toHaveValue("meter");
-
-  await page.getByTestId("event_button_delete").click();
-  await page.getByTestId("display_tag_delete").click();
-
+ 
   await check_box(page, page.getByLabel("Require Confirmation for Cue"));
   //await page.getByLabel('Require Confirmation for Cue').check();
 

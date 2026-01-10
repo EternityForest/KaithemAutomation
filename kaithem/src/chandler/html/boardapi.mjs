@@ -695,10 +695,7 @@ function setmqttfeature(sc, feature, v) {
   api_link.send(["setmqttfeature", sc, feature, v]);
 }
 
-function setinfodisplay(sc, v) {
-  groupmeta.value[sc].infoDisplay = v;
-  api_link.send(["setinfodisplay", sc, v]);
-}
+
 function setbpm(sc, v) {
   api_link.send(["setbpm", sc, v]);
 }
@@ -788,9 +785,6 @@ function newCueFromSound(sc, index) {
   api_link.send(["newFromSound", sc, index]);
 }
 
-function setEventButtons(sc, index) {
-  api_link.send(["seteventbuttons", sc, index]);
-}
 function setTagInputValue(sc, tag, v) {
   api_link.send(["inputtagvalue", sc, tag, v]);
 }
@@ -1350,7 +1344,7 @@ function handleServerMessage(v) {
     }
   } else if (c == "environmentDescription") {
     chandlerScriptEnvironment.value = v;
-  
+
   } else if (c == "scv") {
     let cue = v[1];
     let effect = v[2];
@@ -1643,7 +1637,6 @@ export {
   setcrossfade,
   setmqtt,
   setmqttfeature,
-  setinfodisplay,
   setbpm,
   tap,
   testSoundCard,
@@ -1653,7 +1646,6 @@ export {
   pushSettings,
   newCueFromSlide,
   newCueFromSound,
-  setEventButtons,
   setTagInputValue,
   addTimeToGroup,
   lookupFixtureType,

@@ -42,6 +42,8 @@
 
 * Don't spend time supporting unusual configurations you don't actually need, like ancient EOL OS versions or big endian CPUs.
 
+* Avoid depending on system libraries or any resources that aren't managed as part of an isolated environment.
+
 * Don't make unnecessary wrapper layers around things that are already de facto standards, directly expose them.
 
 * Don't modify and fork things, unless you're contributing to upstream, and don't build things that users would have to modify to use
@@ -110,6 +112,12 @@
 
 * Even tiny amounts of unreliability are unacceptable to many users, especially if they are not protected from liability.  Do not expect them to do something like hosting their own email and risking getting fired for that choice if the server fails and they miss an important message.
 
+* Make heavy use of the "sidebar inspector" pattern for intuitiveness and consistency.
+
+* Use modal dialogs rather than littering stuff all over the pages.
+
+* Create guided experiences where everything you need to know is visible, rather than expecting the user to be one step ahead of the machine.
+
 ## Aesthetics of the Architecture
 
 * Design your APIs as if we're working on am extremely popular library, used by millions of developers
@@ -144,6 +152,8 @@
 
 * Don't hardcode empirically measured constants.  Assume the time a server takes to respond, or the size or the display, or the sensitivity threshold a light sensor needs, will change unpredictably.
 
+* In particular, always assume screen size is dynamic.
+
 * Don't store more than two or three items in a tuple, prefer structured objects with named keys.
 
 * Do not have functions that are longer than one page
@@ -151,6 +161,12 @@
 * Generally try to avoid mutable global variables.
 
 * Use modern versions of APIs, prefer things like ESM modules over things like regular JS files.
+
+* Try to create single sources of truth
+
+* Make heavy use of schemas, schema validation, and schema based editors.
+
+* Avoid external documentation that might get out of sync, document inline where possible
 
 ## Details
 
@@ -162,7 +178,23 @@
 
 * No single letter or extremlely terse names except in absolutely trivial functions.
 
-* Use assertions generously.
+* Use assertions generously, actively look for places they might be inserted.
 
 * While() loops must have safety counters or upper bounds unless intended to run forever.
+
+* Do not just ignore true errors without logging them
+
+* Avoid returning mutable references to persistent state, unless you intend for the caller to modify the persistent state
+
+## Testing
+
+* Code must have high quality test coverage, even if testability adds significant complexity
+
+* AI generated tests are better than no tests, they at leatkeep behavior consistent even if they can't demonstrate correctness by themselves.
+
+* Visible features should have end to end tests
+
+* Tests should check that mutable state is not corrupt, especially watching out for multiple references to objects that should be copied
+
+* Tests should cover any obvious mistakes you can easily imagine future devs *could* make
 

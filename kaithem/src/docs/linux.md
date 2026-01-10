@@ -58,6 +58,13 @@ Replace with your host, folder, etc:
 
 `scp -r SourceFolder pi@192.168.21.1:/Destination/Location`
 
+## Troubleshooting
+
+### Try to fix a corrupt disk
+
+Back up an image or consult a pro first if the disc contains anything critical.
+
+`sudo fsck -y /dev/sdc1`
 
 ## Arduino
 

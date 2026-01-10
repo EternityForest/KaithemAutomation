@@ -735,8 +735,6 @@ class ChandlerConsole(console_abc.Console_ABC):
                 "vars": v,
                 "timers": group.runningTimers,
                 "entered_cue": group.entered_cue,
-                "displayTagValues": group.display_tag_values,
-                "displayTagMeta": group.display_tag_meta,
                 "cuelen": group.cuelen,
                 "name": group.name,
                 # Placeholder because cues are separate in the web thing.
@@ -775,7 +773,6 @@ class ChandlerConsole(console_abc.Console_ABC):
                 "id": groupid,
                 "active": group.is_active(),
                 "default_active": group.default_active,
-                "displayTagValues": group.display_tag_values,
                 "entered_cue": group.entered_cue,
                 "cue": group.cue.id if group.cue else group.cues["default"].id,
                 "cuelen": group.cuelen,

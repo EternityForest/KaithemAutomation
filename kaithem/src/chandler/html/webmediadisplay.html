@@ -244,45 +244,6 @@ ${groups.groups[kwargs['group']].slideshow_layout}
     } else if (v[0] == "web_var") {
       app.$data[v[0]] = v[1];
       renderCueText();
-    } else if (v[0] == "transform") {
-      let data = v[1];
-      this.transform = data;
-      let el = document.getElementsByTagName("body")[0];
-
-      if (data.scale_y) {
-        el.style.height = data.scale_y + "vh";
-      }
-      if (data.scale_x) {
-        el.style.width = data.scale_x + "vw";
-      }
-
-      if (data.translate_x) {
-        el.style.left = data.translate_x + "vw";
-      }
-
-      if (data.translate_y) {
-        el.style.top = data.translate_y + "vh";
-      }
-
-      let t = "";
-
-      if (data.perspective) {
-        t += "perspective(" + data.perspective + "cm)";
-      }
-
-      if (data.rotate_x) {
-        t += "rotate3D(1,0,0, " + data.rotate_x + "deg)";
-      }
-
-      if (data.rotate_y) {
-        t += "rotate3D(0, 1, 0, " + data.rotate_y + "deg)";
-      }
-
-      if (data.rotate_z) {
-        t += "rotateZ(" + data.rotate_z + "deg)";
-      }
-
-      el.style.transform = t;
     }
   }
 

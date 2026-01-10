@@ -346,11 +346,6 @@ div.highlight {
                     }}
                   </small>
 
-                  <iframe
-                    style="flex-grow: 1"
-                    v-if="showPages && i[1].infoDisplay.length > 0"
-                    :src="i[1].infoDisplay"></iframe>
-
                   <group-ui
                     :unixtime="unixtime"
                     v-bind:group-data="i[1]"
@@ -394,16 +389,6 @@ div.highlight {
                     :value="alphas[i[0]]" />
                 </div>
 
-                <div
-                  class="tool-bar nogrow"
-                  v-if="i[1].eventButtons.length > 0">
-                  <button
-                    v-for="v of i[1].eventButtons"
-                    v-bind:key="v[0] + '-' + v[0]"
-                    v-on:click="sendGroupEventWithConfirm(v[1], v[1])">
-                    {{ v[0] }}
-                  </button>
-                </div>
               </footer>
             </article>
           </template>

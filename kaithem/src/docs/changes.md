@@ -43,9 +43,16 @@ object, and must be explicitly called.
 
 * :bug: Fix civil twilight and night tags not updating.
 
-
 * :sparkles: The web console feature is back as a proper ASGI compatible addon!
 
+* :coffin: BREAKING: Unused and poorly supported Chandler "display tags", "event buttons", and "info display" removed.
+
+* :coffin: BREAKING: Chandler "Slideshow " replaced with
+   a true projection mapper plugin.
+
+* :sparkles: Projection Mapper plugin for projection mapping web based sources
+
+* :bug: Fix sd protection script ability to disable swap on newer pi os
 
 ### 0.93.1
 

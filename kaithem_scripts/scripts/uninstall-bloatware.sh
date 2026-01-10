@@ -21,14 +21,9 @@
 ! apt purge -y scratch2
 ! apt purge -y scratch3
 ! apt purge -y scratch
-! apt purge -y minecraft-pi
-! apt purge -y python-minecraftpi
 ! apt purge -y realvnc-vnc-viewer
 ! apt purge -y gpicview
-! apt purge -y oracle-java8-jdk
-! apt purge -y oracle-java7-jdk
 ! apt purge -y tcsh
-! apt purge -y smartsim
 ! apt purge -y kicad
 
 ## Remove everythng starting with exim
@@ -40,19 +35,11 @@ apt -y purge exim4*
 # ! apt-get -y purge firefox
 
 
-# Old versions
-! apt purge -y gcc-7
-! apt purge -y gcc-8
-! apt purge -y gcc-9
-
-! apt purge -y ^dillo$  ^idle3$  ^smartsim$ ^sonic-pi$  ^epiphany-browser$  ^python-minecraftpi$ ^bluej$ 
-! apt purge -y ^greenfoot$  ^greenfoot-unbundled$  ^claws-mail$ ^claws-mail-i18n$
+! apt purge -y ^dillo$  ^idle3$  ^sonic-pi$  ^epiphany-browser$
+! apt purge -y ^claws-mail$ ^claws-mail-i18n$
 
 ! apt purge -y code-the-classics
-! apt purge -y openjdk-11-jdk
 ! apt purge -y openjdk-11-jdk-headless
-! apt purge -y bluej
-
 # Might need to use this if you get chrome file chooser crashes.
 # ! apt purge -y xdg-desktop-portal
 
