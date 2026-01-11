@@ -22,7 +22,6 @@ from scullery import workers
 from scullery.scheduling import scheduler
 
 from kaithem.api import lifespan
-from kaithem.src.validation_util import validate_args
 
 from . import astrallibwrapper as sky
 from . import geolocation, settings_overrides, tagpoints, util
@@ -997,102 +996,120 @@ class BaseChandlerScriptContext:
     def onVarSet(self, k: str, v: Any):
         pass
 
-    @validate_args
-    def addBindings(self, b: list[list[str | list[list[str]]]]):
-        """
-        Take a list of bindings and add them to the context.
-        A binding looks like:
-        ['eventname',[['command','arg1'],['command2']]
+    def addBindings(
+        self, b: list[dict[str, Any]] | list[list[str | list[list[str]]]]
+    ):
+        """Add bindings, auto-converting old list format to dict format if needed."""
+        if not b:
+            return
 
-        When events happen commands run till one returns None.
+        # Auto-detect format and convert old lists to dicts
+        if isinstance(b[0], list):
+            b = self._migrate_old_bindings(b)
 
-        Also immediately runs any now events
+        self.addBindingsFromDict(b)
+
+    def _migrate_old_bindings(
+        self, old_bindings: list[list[str | list[list[str]]]]
+    ) -> list[dict[str, Any]]:
+        """Convert old list format to dict format.
+
+        Old format: [["event", [["cmd", "arg1"], ["cmd2"]]]]
+        New format: [{"event": "evt", "actions": [{"command": "cmd", ...}]}]
         """
-        b = copy.deepcopy(b)
+        result = []
+
+        for binding in old_bindings:
+            if not isinstance(binding, list) or len(binding) < 2:
+                continue
+
+            event_name = binding[0]
+            commands = binding[1] if isinstance(binding[1], list) else []
+
+            actions = []
+            for cmd in commands:
+                if not isinstance(cmd, list) or not cmd:
+                    continue
+
+                cmd_name = cmd[0]
+                args = cmd[1:] if len(cmd) > 1 else []
+
+                # Get expected arg names for this command
+                arg_names = self._get_command_arg_names(cmd_name)
+
+                # Build action dict with command and arguments
+                action = {"command": cmd_name}
+                for arg_name, arg_value in zip(arg_names, args):
+                    action[arg_name] = arg_value
+
+                actions.append(action)
+
+            if event_name and actions:
+                result.append({"event": event_name, "actions": actions})
+
+        return result
+
+    def _execute_dict_bindings(self, rules: list[dict[str, Any]]):
+        """Execute dict-format bindings directly.
+
+        Args:
+            rules: Rules in dict format [{"event": "evt", "actions": [...]}]
+        """
+        rules = copy.deepcopy(rules)
         with self.gil:
             # Cache is invalidated, bindings have changed
             self.need_refresh_for_variable = {}
             self.need_refresh_for_tag = {}
-            for i in b:
-                if not isinstance(i[0], str):
-                    raise ValueError(
-                        f"First item in binding must be str, got {i[0]}"
-                    )
 
-                if not isinstance(i[1], list):
-                    raise ValueError(
-                        f"Second item in binding must be command list, got {i[1]}"
-                    )
+            for rule in rules:
+                event_name = rule.get("event", "")
+                actions = rule.get("actions", [])
 
-                evt_name: str = i[0]
-                cmds: list[list[str]] = i[1]
+                if not event_name:
+                    continue
 
-                if evt_name not in self.event_listeners:
-                    self.event_listeners[evt_name] = []
+                if event_name not in self.event_listeners:
+                    self.event_listeners[event_name] = []
 
-                for n, j in enumerate(cmds):
+                commands = []
+                for action in actions:
+                    cmd_name = action.get("command", "")
+                    if not cmd_name:
+                        continue
+
+                    # Build command list with args in order
+                    arg_names = self._get_command_arg_names(cmd_name)
+                    cmd = [cmd_name]
+                    for arg_name in arg_names:
+                        cmd.append(action.get(arg_name, ""))
+
+                    # Handle FunctionBlock instantiation
                     try:
-                        x = self.lookupCommand(j[0])
+                        x = self.lookupCommand(cmd[0])
                         if isinstance(x, type(FunctionBlock)):
-                            cmds[n][0] = x(self, *j[1:])
-
+                            cmd[0] = x(self, *cmd[1:])
                     except Exception as e:
                         print(e)
-                        cmds[n][0] = "Bad command: " + str(e)
+                        cmd[0] = "Bad command: " + str(e)
 
-                self.event_listeners[evt_name].append(cmds)
-                self.onBindingAdded(i)
+                    commands.append(cmd)
+
+                self.event_listeners[event_name].append(commands)
+                self.onBindingAdded([event_name, commands])
 
             if "now" in self.event_listeners:
                 self.event("now")
                 del self.event_listeners["now"]
 
     def addBindingsFromDict(self, rules: list[dict[str, Any]]):
-        """Add bindings from new dict format.
+        """Add bindings from dict format.
 
-        Converts dict format to internal list format for execution.
-
-        Args:
-            rules: Rules in dict format [{"event": "evt", "actions": [...]}]
-        """
-        old_format = self._convert_dict_bindings_to_execution_format(rules)
-        self.addBindings(old_format)
-
-    def _convert_dict_bindings_to_execution_format(
-        self, rules: list[dict[str, Any]]
-    ) -> list[list[str | list[list[str]]]]:
-        """Convert dict format rules to internal list format for execution.
+        Native execution format: [{"event": "evt", "actions": [...]}]
 
         Args:
             rules: Rules in dict format
-
-        Returns:
-            Rules in list format for execution engine
         """
-        result = []
-
-        for rule in rules:
-            event_name = rule.get("event", "")
-            actions = rule.get("actions", [])
-
-            commands = []
-            for action in actions:
-                cmd_name = action.get("command", "")
-
-                # Get expected arg order for this command
-                arg_names = self._get_command_arg_names(cmd_name)
-
-                # Build positional arg list by looking up values in action dict
-                cmd = [cmd_name]
-                for arg_name in arg_names:
-                    # Get the value from the action dict, or empty string if not present
-                    cmd.append(action.get(arg_name, ""))
-
-                commands.append(cmd)
-
-            result.append([event_name, commands])
-
-        return result
+        self._execute_dict_bindings(rules)
 
     def _get_command_arg_names(self, cmd_name: str) -> list[str]:
         """Get parameter names in order for a command.
