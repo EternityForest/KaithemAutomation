@@ -81,7 +81,9 @@ p.small {
               <option
                 v-for="(v, _i) in example_events"
                 v-bind:value="v[0]"
-                v-bind:key="v[0]">{{ v[1] }}</option>
+                v-bind:key="v[0]">
+                {{ v[1] }}
+              </option>
             </datalist>
             <label
               >Run on(type to search)
@@ -89,16 +91,13 @@ p.small {
                 :disabled="disabled"
                 v-model="selectedBinding.event"
                 list="example_events"
-                v-on:change="$emit('update:modelValue', rules)"
-                />
+                v-on:change="$emit('update:modelValue', rules)" />
             </label>
           </div>
           <h4>Delete</h4>
           <button
             :disabled="disabled"
-            v-on:click="
-              deleteBinding(selectedBinding);
-            ">
+            v-on:click="deleteBinding(selectedBinding)">
             Remove binding and all actions
           </button>
         </div>
@@ -177,10 +176,7 @@ p.small {
                   v-model="selectedCommand[argMeta.name]"
                   v-on:change="$emit('update:modelValue', rules)"
                   :options="
-                    getCompletions(
-                      selectedCommand,
-                      argMeta.name
-                    )
+                    getCompletions(selectedCommand, argMeta.name)
                   "></combo-box>
               </label>
             </div>
@@ -192,7 +188,10 @@ p.small {
           </div>
           <button
             v-on:click="
-              rules[selectedBindingIndex].actions.splice(selectedCommandIndex, 1);
+              rules[selectedBindingIndex].actions.splice(
+                selectedCommandIndex,
+                1
+              );
               selectedCommandIndex -= 1;
               $emit('update:modelValue', rules);
             ">
@@ -215,7 +214,8 @@ p.small {
           <button
             :disabled="disabled"
             v-if="
-              selectedCommandIndex < rules[selectedBindingIndex].actions.length - 1
+              selectedCommandIndex <
+              rules[selectedBindingIndex].actions.length - 1
             "
             v-on:click="
               swapArrayElements(
@@ -230,13 +230,12 @@ p.small {
           </button>
         </div>
 
-        <div class="flex-row gaps col-9"
-        data-testid="rules-box"
-        >
-          <div v-for="(rule, rule_idx) in rules" class="w-sm-double card"
-          data-testid="rule-box-row"
-          :key="rule_idx"
-          >
+        <div class="flex-row gaps col-9" data-testid="rules-box">
+          <div
+            v-for="(rule, rule_idx) in rules"
+            class="w-sm-double card"
+            data-testid="rule-box-row"
+            :key="rule_idx">
             <header>
               <div class="tool-bar">
                 <button
@@ -251,49 +250,53 @@ p.small {
                   <b>On {{ rule.event }}</b>
                 </button>
 
-                <button :disabled="disabled" v-on:click="moveCueRuleDown(rule_idx)">
+                <button
+                  :disabled="disabled"
+                  v-on:click="moveCueRuleDown(rule_idx)">
                   Move down
                 </button>
               </div>
             </header>
 
             <div class="flex-row gaps w-full padding nogaps">
-              <div v-for="(action,action_idx) in rule.actions"
-              data-testid="rule-command"
-              :key="action_idx"
-              style="display: flex" class="nogrow">
+              <div
+                v-for="(action, action_idx) in rule.actions"
+                data-testid="rule-command"
+                :key="action_idx"
+                style="display: flex"
+                class="nogrow">
                 <button
                   style="align-content: flex-start"
                   popovertarget="blockInspectorCommand"
                   v-bind:class="{
                     'action': 1,
                     'flex-row': 1,
-                    'selected': (selectedBinding == rule) & (selectedCommand == action),
+                    'selected':
+                      (selectedBinding == rule) & (selectedCommand == action),
                   }"
                   v-on:click="
                     selectedCommandIndex = action_idx;
                     selectedBindingIndex = rules.indexOf(rule);
                   ">
+
+                  <div class="w-full h-min-content">
+                    <b>{{ action.command }}</b>
+                  </div>
+
                   <template
-                    v-if="commands[action.command]">
-                    <div class="w-full h-min-content">
-                      <b>{{ action.command }}</b>
-                    </div>
-                    <div
-                      class="nogrow h-min-content"
-                      style="margin: 2px"
-                      v-for="(argMeta, i) in commands[action.command]"
-                      :key="i"
-                      >
-                      {{ action[argMeta.name] }}
-                    </div>
+                    v-for="(i, argName) of action"
+                    :key="i">
+                    <template v-if="argName != 'command' && i != '=_' && i != '=GROUP'">
+                      <div class="nogrow h-min-content" style="margin: 2px">
+                        {{ action[argName] }}
+                      </div>
+                    </template>
                   </template>
 
                   <template v-if="!(action.command in commands)">
                     <div
                       class="nogrow h-min-content warning"
-                      style="margin: 2px"
-                      >
+                      style="margin: 2px">
                       {{ action.command }}
                     </div>
                   </template>
@@ -308,7 +311,7 @@ p.small {
                   style="align-self: stretch; flex-grow: 1"
                   :disabled="disabled"
                   v-on:click="
-                    rule.actions.push({command: 'pass'});
+                    rule.actions.push({ command: 'pass' });
                     $emit('update:modelValue', rules);
                   ">
                   <b>Add Action</b>
@@ -323,7 +326,7 @@ p.small {
             v-on:click="
               rules.push({
                 event: 'cue.enter',
-                actions: [{command: 'goto', group: '=GROUP', cue: ''}]
+                actions: [{ command: 'goto', group: '=GROUP', cue: '' }],
               });
               $emit('update:modelValue', rules);
             ">
@@ -337,14 +340,7 @@ p.small {
 
 <script>
 export default {
-  props: [
-    "modelValue",
-    "commands",
-    "disabled",
-    "inspector",
-    "completers",
-    "example_events",
-  ],
+  props: ["modelValue", "commands", "disabled", "completers", "example_events"],
   components: {
     "combo-box": globalThis.httpVueLoader("/static/vue/ComboBox.vue"),
   },
@@ -384,12 +380,12 @@ export default {
   data: function () {
     return {
       pinnedvars: [["_", "Output of the previous action"]],
-      getCompletions: function (actionObj, argumentName) {
-        const cmdName = actionObj.command;
+      getCompletions: function (actionObject, argumentName) {
+        const cmdName = actionObject.command;
         const cmdMeta = this.commands[cmdName];
         if (!cmdMeta || !cmdMeta.completionTags) {
           try {
-            return this.argcompleters["defaultExpressionCompleter"](actionObj);
+            return this.argcompleters["defaultExpressionCompleter"](actionObject);
           } catch {
             return [];
           }
@@ -400,9 +396,9 @@ export default {
 
         try {
           if (!completer) {
-            return this.argcompleters["defaultExpressionCompleter"](actionObj);
+            return this.argcompleters["defaultExpressionCompleter"](actionObject);
           }
-          return completer(actionObj);
+          return completer(actionObject);
         } catch {
           return [];
         }
@@ -474,9 +470,9 @@ export default {
       },
       deleteBinding: function (b) {
         if (confirm("really delete binding?")) {
-          console.log("jhgf")
+          console.log("jhgf");
           this.removeElement(this.rules, b);
-          this.$emit('update:modelValue', this.rules);
+          this.$emit("update:modelValue", this.rules);
         }
       },
       removeElement: function (array, element) {
@@ -487,6 +483,7 @@ export default {
       },
       setCommandDefaults: function (action) {
         // For dict format actions, set defaults from command metadata
+        console.log(action);
         const cmdName = action.command;
         let metadata = null;
 
@@ -503,13 +500,13 @@ export default {
         }
 
         // Set default values for all args
-        const args = metadata.args || [];
-        for (const argMeta of args) {
-          if (!(argMeta.name in action)) {
-            action[argMeta.name] = argMeta.default || "";
+        const arguments_ = metadata.args || [];
+        for (const argumentMeta of arguments_) {
+          if (!(argumentMeta.name in action)) {
+            action[argumentMeta.name] = argumentMeta.default || "";
           }
         }
-      }
+      },
     };
   },
 };

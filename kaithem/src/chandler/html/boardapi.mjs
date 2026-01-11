@@ -37,10 +37,7 @@ let universes = ref({});
 let cues = ref({});
 let newcuename = ref("");
 let cuemeta = ref({});
-let chandlerScriptEnvironment = ref({
-
-
-});
+let chandlerScriptEnvironment = ref({});
 // per scene user selected for editing
 let selectedCues = ref({});
 let showPages = ref(false);
@@ -1343,7 +1340,7 @@ function handleServerMessage(v) {
       old_vue_set(d, index, v[2][index]);
     }
   } else if (c == "environmentDescription") {
-    chandlerScriptEnvironment.value = v;
+    chandlerScriptEnvironment.value = v[1];
 
   } else if (c == "scv") {
     let cue = v[1];
