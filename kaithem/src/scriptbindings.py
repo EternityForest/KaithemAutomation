@@ -17,6 +17,7 @@ from collections.abc import Callable
 from types import FunctionType, MethodType
 from typing import Any
 
+import pydantic
 import simpleeval
 from scullery import workers
 from scullery.scheduling import scheduler
@@ -295,6 +296,30 @@ class OnChangeBlock(FunctionBlock):
             return self.lastValue
 
 
+class OnCounterIncreaseBlock(FunctionBlock):
+    def __init__(self, ctx: ChandlerScriptContext, *args, **kwargs):
+        self.lastValue = None
+
+    def __call__(self, input="=_", **kwds: Any) -> Any:
+        """
+        Trigger when the counter increases, or when it wraps back around.
+        """
+        if self.lastValue is None:
+            self.lastValue = input
+        elif self.lastValue == input:
+            return None
+
+        # When the counter wraps around
+        # If the difference is less that 255, it's probably not wrapping,
+        # It's probably just a race.
+        elif (input < self.lastValue) and (self.lastValue - input) < 255:
+            self.lastValue = input
+            return None
+        else:
+            self.lastValue = input
+            return self.lastValue
+
+
 class LowPassFilterBlock(FunctionBlock):
     def __init__(self, ctx: ChandlerScriptContext, *args, **kwargs):
         self.state: float = 0.0
@@ -490,7 +515,7 @@ class ScriptActionKeeper:
         self.scriptcommands = weakref.WeakValueDictionary()
         self.debug_refs = {}
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value: type[FunctionBlock] | FunctionType):
         if not isinstance(key, str):
             raise TypeError("Keys must be string function names")
 
@@ -809,7 +834,7 @@ class BaseChandlerScriptContext:
     def onTimerChange(self, timer, nextRunTime):
         pass
 
-    def lookupCommand(self, c: FunctionBlock | str):
+    def lookupCommand(self, c: FunctionBlock | str) -> FunctionBlock | None:
         if isinstance(c, FunctionBlock):
             return c
         else:
@@ -1405,6 +1430,20 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
         c["stv"] = stringtagpoint
 
         self.functions.update(c)
+
+
+@pydantic.validate_call(
+    config=pydantic.ConfigDict(arbitrary_types_allowed=True)
+)
+def migrate_rules(
+    context: BaseChandlerScriptContext,
+    rules: list[list[str | list[list[str]]]] | list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    if len(rules) == 0:
+        return []
+    if isinstance(rules[0], list):
+        return context._migrate_old_bindings(rules)  # type: ignore
+    return rules  # type: ignore
 
 
 ##### SELFTEST ##########

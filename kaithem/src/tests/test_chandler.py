@@ -1392,6 +1392,31 @@ def test_cue_logic_function_block_cooldown():
         assert logic_test_tag.value == 3
 
 
+def test_cue_logic_migration():
+    """Migrate cue logic from legacy format.  Remove someday"""
+    with TempGroup("migrate") as grp:
+        grp.add_cue(
+            "cue2",
+            rules=[
+                ["cue.enter", [["goto", "sending_group", "cue2"]]],
+            ],
+        )
+
+        cue = grp.cues["cue2"]
+        assert cue.rules == [
+            {
+                "event": "cue.enter",
+                "actions": [
+                    {
+                        "command": "goto",
+                        "group": "sending_group",
+                        "cue": "cue2",
+                    },
+                ],
+            }
+        ]
+
+
 def test_cue_logic_tags():
     from kaithem.src import tagpoints
     from kaithem.src.chandler import core
