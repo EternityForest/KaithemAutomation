@@ -1269,10 +1269,6 @@ class BaseChandlerScriptContext:
         has_now = False
 
         with self.gil:
-            # Cache is invalidated, bindings have changed
-            self.need_refresh_for_variable = {}
-            self.need_refresh_for_tag = {}
-
             for rule in rules:
                 event_name = rule.get("event", "")
 
@@ -1387,6 +1383,10 @@ class BaseChandlerScriptContext:
                 for j in i["commands"]:
                     if not isinstance(j["command"], StatelessFunction):
                         j["command"].close()
+
+            # Cache is invalidated, bindings have changed
+            self.need_refresh_for_variable = {}
+            self.need_refresh_for_tag = {}
 
             self.event_listeners = []
             for i in self.time_events:
