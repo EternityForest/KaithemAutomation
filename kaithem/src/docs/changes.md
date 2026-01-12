@@ -54,6 +54,9 @@ object, and must be explicitly called.
 
 * :bug: Fix sd protection script ability to disable swap on newer pi os
 
+
+* :coffin: BREAKING: The plugin API for creating new chandler functions has changed but should still work for now. Migrate ASAP though.
+
 ### 0.93.1
 
 * :technologist: Do not include dev packages in built wheel dependencies

@@ -102,7 +102,7 @@ class FooCommand(chandlerapi.StatelessFunction):
     doc="test"
     args=[{"name": "x", "type": "str", "default": ""}]
 
-    def call(x: str):
+    def call(self, x: str):
         "This docstring shows up in the logic editor"
         # Trigger an event in every group
         chandlerapi.trigger_event(x)

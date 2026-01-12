@@ -66,9 +66,8 @@ It must look like:
 {
     "description":"Foo",
     "args":[
-        ["arg1Name","integer",default,min,max],
-        ["arg2Name",'str','Default'],
-        ["arg3,"SomeOtherType", "SomeOtherData"]
+        {"name":"foo","type":"str","default":"bar"},
+        {"name":"bar","type":"int","default":"1"}
     ]
 }
 
@@ -315,6 +314,9 @@ class FunctionBlock:
     def get_script_context(self) -> BaseChandlerScriptContext:
         return context_info.engine
 
+    def get_underscore_val(self) -> Any:
+        return context_info.engine.variables.get("_")
+
     def __init__(self, ctx: BaseChandlerScriptContext, *args, **kwargs):
         self.ctx = ctx
 
@@ -453,7 +455,7 @@ class CooldownBlock(FunctionBlock):
 
         if self.credits >= 1:
             self.credits -= 1
-            return self.credits + 1
+            return self.get_underscore_val()
 
         return None
 
@@ -729,7 +731,6 @@ class ScriptActionKeeper:
         self.scriptcommands: weakref.WeakValueDictionary[
             str, type[FunctionBlock]
         ] = weakref.WeakValueDictionary()
-        self.command_metadata: dict[str, CommandManifest] = {}
         self.debug_refs = {}
 
     def __setitem__(self, key, value: type[FunctionBlock] | FunctionType):
@@ -764,15 +765,11 @@ class ScriptActionKeeper:
         if hasattr(value, "manifest"):
             manifest: CommandManifest = value.manifest()  # type: ignore
             self._validate_manifest(key, value, manifest)
-            self.command_metadata[key] = manifest
-        else:
-            # Fallback to introspection
-            self.command_metadata[key] = get_function_info(value)
 
         def warn_chandler_gc(x):
             # Lifespan will be None during system exit
             if lifespan and not lifespan.is_shutting_down:
-                print(f"Chandler action {x} is no longer valid")
+                print(f"Chandler action {key} is no longer valid")
 
         self.debug_refs[key] = weakref.ref(value, warn_chandler_gc)
 
@@ -807,10 +804,6 @@ class ScriptActionKeeper:
                 f"Command '{name}' manifest args {manifest_args} "
                 f"don't match signature params {params}"
             )
-
-    def get_metadata(self, key: str) -> CommandManifest | None:
-        """Get cached metadata for a command."""
-        return self.command_metadata.get(key)
 
 
 class Event:
@@ -1048,14 +1041,9 @@ class BaseChandlerScriptContext:
         args = {}
         for i in c:
             if i != "command":
-                args[i] = self.preprocessArgument(i)
+                args[i] = self.preprocessArgument(c[i])
 
-        try:
-            return f(**args)
-        except Exception:
-            raise RuntimeError(
-                f"Error running chandler command: {str(c)[:1024]}"
-            )
+        return f(**args)
 
     def stopAfterThisHandler(self):
         "Don't handle any more bindings for this event, but continue the current binding"
@@ -1343,20 +1331,11 @@ class BaseChandlerScriptContext:
         Returns:
             List of parameter names in order, from cached metadata
         """
-        # Try to get metadata from own commands first
-        metadata = self.commands.get_metadata(cmd_name)
-        if metadata:
-            return [arg["name"] for arg in metadata["args"]]
 
         # Check parent context
         cmd = self.lookup_command(cmd_name)
-        if cmd:
-            # Parent context command - extract metadata on demand
-            # This handles commands inherited from parent contexts
-            metadata = get_function_info(cmd)
-            return [arg["name"] for arg in metadata["args"]]
 
-        return []
+        return [arg["name"] for arg in cmd.manifest()["args"]]
 
     def onBindingAdded(self, evt):
         "Called when a binding is added that listens to evt"

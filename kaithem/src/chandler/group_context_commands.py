@@ -20,7 +20,7 @@ rootContext = scriptbindings.ChandlerScriptContext()
 
 class CueLogicStatelessFunction(scriptbindings.StatelessFunction):
     def get_parent_group(self) -> groups.Group:
-        x: groups.DebugScriptContext = super().get_running_context()  # type: ignore
+        x: groups.DebugScriptContext = super().get_script_context()  # type: ignore
         y = x.parent_group()
         assert y
         return y

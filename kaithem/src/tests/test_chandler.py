@@ -1806,7 +1806,7 @@ def test_cue_logic_plugin():
             assert s2.cue.name == "cue2"
 
 
-def test_cue_logic_inherit_rules_cue():
+def test_cue_logic_inherit_rules_cue_old_style():
     from kaithem.src.chandler import core
 
     with TempGroup() as grp:
@@ -1814,6 +1814,34 @@ def test_cue_logic_inherit_rules_cue():
             "__rules__",
             rules=[
                 ["cue.enter", [["set_alpha", "=GROUP", "0.7"]]],
+            ],
+        )
+
+        grp.goto_cue("default")
+
+        core.wait_frame()
+        core.wait_frame()
+
+        assert grp.alpha == 0.7
+
+
+def test_cue_logic_inherit_rules_cue_new_style():
+    from kaithem.src.chandler import core
+
+    with TempGroup() as grp:
+        grp.add_cue(
+            "__rules__",
+            rules=[
+                {
+                    "event": "cue.enter",
+                    "commands": [
+                        {
+                            "command": "set_alpha",
+                            "group": "=GROUP",
+                            "alpha": "0.7",
+                        }
+                    ],
+                }
             ],
         )
 
