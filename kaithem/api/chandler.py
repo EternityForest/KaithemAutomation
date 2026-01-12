@@ -1,12 +1,12 @@
-from collections.abc import Callable
 from typing import Any
 
 from kaithem.src.chandler import global_actions as _global_actions
 from kaithem.src.chandler import groups as _groups
 from kaithem.src.chandler.core import serialized_async_with_core_lock
+from kaithem.src.scriptbindings import StatelessFunction
 
 
-def add_command(name: str, f: Callable):
+def add_command(name: str, f: StatelessFunction):
     """Add a command which will be available in the
     Logic Editor.  Params should be strings.  Defaults and
     docstrings will be used.

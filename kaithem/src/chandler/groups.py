@@ -1640,7 +1640,7 @@ class Group:
                 # Actually add the bindings
                 rules = (rulesFrom or self.cue).rules
                 if rules:
-                    self.script_context.addBindingsFromDict(rules)
+                    self.script_context.addBindings(rules)
 
                 loopPrevent = {(rulesFrom or self.cue.name): True}
 

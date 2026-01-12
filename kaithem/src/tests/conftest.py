@@ -98,16 +98,20 @@ import os
 import kaithem.api.chandler as chandlerapi
 
 
-def foo_command(x: str):
-    "This docstring shows up in the logic editor"
-    # Trigger an event in every group
-    chandlerapi.trigger_event(x)
+class FooCommand(chandlerapi.StatelessFunction):
+    doc="test"
+    args=[{"name": "x", "type": "str", "default": ""}]
 
-    # Jump to any cue that has the shortcut
-    chandlerapi.shortcut(x)
-    return True
+    def call(x: str):
+        "This docstring shows up in the logic editor"
+        # Trigger an event in every group
+        chandlerapi.trigger_event(x)
 
-chandlerapi.add_command("foo_command", foo_command)
+        # Jump to any cue that has the shortcut
+        chandlerapi.shortcut(x)
+        return True
+
+chandlerapi.add_command("foo_command", FooCommand)
     """
 
     pt = """

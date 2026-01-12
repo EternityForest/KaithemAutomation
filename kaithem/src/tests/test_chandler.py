@@ -1416,6 +1416,30 @@ def test_cue_logic_migration():
             }
         ]
 
+        grp.add_cue(
+            "cue3",
+            rules=[
+                ["=+test_var", [["goto", "sending_group", "cue2"]]],
+            ],
+        )
+
+        cue = grp.cues["cue3"]
+        assert cue.rules == [
+            {
+                "event": "=test_var",
+                "actions": [
+                    {
+                        "command": "on_count",
+                    },
+                    {
+                        "command": "goto",
+                        "group": "sending_group",
+                        "cue": "cue2",
+                    },
+                ],
+            }
+        ]
+
 
 def test_cue_logic_tags():
     from kaithem.src import tagpoints
