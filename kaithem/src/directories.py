@@ -20,10 +20,15 @@ dn = os.path.dirname(os.path.realpath(__file__))
 
 srcdir = dn
 
-
+# Todo? Why this line here?
 vardir = os.path.normpath(os.path.join(dn, ".."))
 # Set in config now, not a real config entry
-vardir = os.path.join(vardir, os.path.expanduser(config["site_data_dir"]))
+
+if "site_data_dir" in config:
+    vardir = os.path.join(vardir, os.path.expanduser(config["site_data_dir"]))
+else:
+    vardir = "/dev/shm/kaithem-default-temp-vardir"
+    os.makedirs(vardir, exist_ok=True)
 
 datadir = os.path.normpath(os.path.join(dn, "../data"))
 logdir = os.path.join(
@@ -38,6 +43,10 @@ mixerdir = os.path.join(vardir, "system.mixer")
 
 moduledir = os.path.join(vardir, "modules")
 htmldir = os.path.join(dn, "html")
+
+# Mostly to not break unit tests
+if "ssl_dir" not in config:
+    config["ssl_dir"] = "ssl"
 
 ssldir = os.path.expanduser(config["ssl_dir"])
 if not ssldir.startswith("/"):

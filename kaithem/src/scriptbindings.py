@@ -24,8 +24,7 @@ from scullery.scheduling import scheduler
 
 from kaithem.api import lifespan
 
-from . import astrallibwrapper as sky
-from . import geolocation, settings_overrides, tagpoints, util
+from . import settings_overrides, tagpoints, util
 
 """This file implements ChandlerScript, a DSL for piplines of events triggered by
 commands, called bindings.
@@ -243,59 +242,6 @@ def millis():
     return time.monotonic() * 1000
 
 
-# TODO separate the standard library stuff from this file?
-
-
-def is_day(lat=None, lon=None):
-    if lat is None:
-        if lon is None:
-            lat, lon = geolocation.getCoords()
-
-        if lat is None or lon is None:
-            raise RuntimeError(
-                "No server location set, fix this in system settings"
-            )
-    return sky.is_day(lat, lon)
-
-
-def is_night(lat=None, lon=None):
-    if lat is None:
-        if lon is None:
-            lat, lon = geolocation.getCoords()
-
-        if lat is None or lon is None:
-            raise RuntimeError(
-                "No server location set, fix this in system settings"
-            )
-    return sky.is_night(lat, lon)
-
-
-def is_light(lat=None, lon=None):
-    if lat is None:
-        if lon is None:
-            lat, lon = geolocation.getCoords()
-
-        if lat is None or lon is None:
-            raise RuntimeError(
-                "No server location set, fix this in system settings"
-            )
-    return sky.is_light(lat, lon)
-
-
-def is_dark(lat=None, lon=None):
-    if lon is None:
-        lat, lon = geolocation.getCoords()
-
-    else:
-        raise ValueError("You set lon, but not lst?")
-    if lat is None or lon is None:
-        raise RuntimeError(
-            "No server location set, fix this in system settings"
-        )
-
-    return sky.is_dark(lat, lon)
-
-
 def cfg(key: str):
     return settings_overrides.get_val(key)
 
@@ -342,7 +288,7 @@ class OnChangeBlock(FunctionBlock):
     def __init__(self, ctx: ChandlerScriptContext, *args, **kwargs):
         self.lastValue = None
 
-    def call(self, input="=_", **kwds: Any) -> Any:
+    def call(self, input: Any = "=_", **kwds: Any) -> Any:
         """
         If the input is the same as the last input, or this is the first input, return None
         """
@@ -362,7 +308,7 @@ class OnRisingEdgeBlock(FunctionBlock):
     def __init__(self, ctx: ChandlerScriptContext, *args, **kwargs):
         self.lastValue = True
 
-    def call(self, input="=_", **kwds: Any) -> Any:
+    def call(self, input: Any = "=_", **kwds: Any) -> Any:
         if self.lastValue:
             self.lastValue = input
             return None
@@ -379,7 +325,7 @@ class OnCounterIncreaseBlock(FunctionBlock):
     args = [{"name": "input", "type": "str", "default": "=_"}]
 
     def __init__(self, ctx: ChandlerScriptContext, *args, **kwargs):
-        self.lastValue = 0
+        self.lastValue = None
 
     def call(self, input=0, **kwds: Any) -> Any:
         if self.lastValue is None:
@@ -461,25 +407,31 @@ class CooldownBlock(FunctionBlock):
 
 
 class HysteresisBlock(FunctionBlock):
-    doc = "Add hysteresis to the input"
+    doc = "Add hysteresis to the input.  Only continues when changes are bigger than the window. "
     args = [
         {"name": "input", "type": "number", "default": "=_"},
         {"name": "window", "type": "number", "default": "1.0"},
     ]
 
     def __init__(self, ctx: ChandlerScriptContext, *args, **kwargs):
-        self.lastMark = 10**15
+        self.lastMark = None
 
-    def call(self, input="=_", window="1.0", **kwds: Any) -> Any:
+    def call(self, input=0.0, window=1.0, **kwds: Any) -> Any:
         v: float = input  # type: ignore
-        w: float = window  # type: ignore
+        w: float = window / 2  # type: ignore
 
-        if v > self.lastMark + (w / 2):
+        if self.lastMark is None:
             self.lastMark = v
-        elif v < self.lastMark - (w / 2):
-            self.lastMark = v
+            return None
 
-        return self.lastMark
+        elif v > self.lastMark + w:
+            self.lastMark = v - w
+            return v
+        elif v < self.lastMark - w:
+            self.lastMark = v + w
+            return v
+
+        return None
 
 
 globalUsrFunctions = {
@@ -495,10 +447,6 @@ globalUsrFunctions = {
     "sin": math.sin,
     "cos": math.cos,
     "sqrt": safesqrt,
-    "is_dark": is_dark,
-    "is_night": is_night,
-    "is_light": is_light,
-    "is_day": is_day,
     "cfg": cfg,
 }
 
@@ -976,10 +924,9 @@ class BaseChandlerScriptContext:
                     if i["event"].startswith("="):
                         self.eval_times = 0
                         r = self.preprocessArgument(i["event"])
-                        if r:
-                            self.event(
-                                i["event"], r, self.eval_times or time.time()
-                            )
+                        self.event(
+                            i["event"], r, self.eval_times or time.time()
+                        )
 
                 except Exception:
                     self.event(
@@ -1227,13 +1174,16 @@ class BaseChandlerScriptContext:
                 event_name = "=" + event_name[2:]
                 commands = [["on_count", "=_"]] + commands
 
-            if event_name.startswith("=~"):
+            elif event_name.startswith("=~"):
                 event_name = "=" + event_name[2:]
                 commands = [["on_change", "=_"]] + commands
 
-            if event_name.startswith("=/"):
+            elif event_name.startswith("=/"):
                 event_name = "=" + event_name[2:]
                 commands = [["on_rising_edge", "=_"]] + commands
+
+            elif event_name.startswith("="):
+                commands = [["continue_if", "=_ > 0"]] + commands
 
             actions = []
             for cmd in commands:
@@ -1475,8 +1425,6 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
         # Clear all the tagpoints that we may have been watching for changes
         self.tagHandlers = {}
         self.tagpoints: dict[str, tagpoints.GenericTagPointClass[Any]] = {}
-        self.need_refresh_for_variable = {}
-        self.need_refresh_for_tag = {}
 
     def __init__(self, *a, **k):
         BaseChandlerScriptContext.__init__(self, *a, **k)

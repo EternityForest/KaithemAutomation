@@ -57,6 +57,9 @@ object, and must be explicitly called.
 
 * :coffin: BREAKING: The plugin API for creating new chandler functions has changed but should still work for now. Migrate ASAP though.
 
+
+* :coffin: BREAKING: Remove is_day, is_night, is_light, etc functions from Chandler scripts. Use the tag points.
+
 ### 0.93.1
 
 * :technologist: Do not include dev packages in built wheel dependencies

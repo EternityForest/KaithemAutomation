@@ -1432,6 +1432,7 @@ def test_cue_logic_migration():
                 "commands": [
                     {
                         "command": "on_count",
+                        "input": "=_",
                     },
                     {
                         "command": "goto",
