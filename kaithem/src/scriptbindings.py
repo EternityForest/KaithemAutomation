@@ -1210,7 +1210,7 @@ class BaseChandlerScriptContext:
         """Convert old list format to dict format.
 
         Old format: [["event", [["cmd", "arg1"], ["cmd2"]]]]
-        New format: [{"event": "evt", "actions": [{"command": "cmd", ...}]}]
+        New format: [{"event": "evt", "commands": [{"command": "cmd", ...}]}]
         """
         result = []
 
@@ -1254,7 +1254,7 @@ class BaseChandlerScriptContext:
                 actions.append(action)
 
             if event_name and actions:
-                result.append({"event": event_name, "actions": actions})
+                result.append({"event": event_name, "commands": actions})
 
         return result
 
@@ -1262,7 +1262,7 @@ class BaseChandlerScriptContext:
         """Import dict-format bindings directly.
 
         Args:
-            rules: Rules in dict format [{"event": "evt", "actions": [...]}]
+            rules: Rules in dict format [{"event": "evt", "commands": [...]}]
         """
         rules = copy.deepcopy(rules)
         loaded_rules: list[LoadedEventBindingPipeline] = []
@@ -1275,9 +1275,7 @@ class BaseChandlerScriptContext:
                 if event_name == "now":
                     has_now = True
 
-                actions: list[EventBindingCommandConfig] = rule.get(
-                    "actions", []
-                )
+                actions: list[EventBindingCommandConfig] = rule["commands"]
 
                 loaded_actions: list[LoadedEventBindingCommand] = []
 
@@ -1315,7 +1313,7 @@ class BaseChandlerScriptContext:
     def addBindingsFromDict(self, rules: list[EventBindingPipelineConfig]):
         """Add bindings from dict format.
 
-        Native execution format: [{"event": "evt", "actions": [...]}]
+        Native execution format: [{"event": "evt", "commands": [...]}]
 
         Args:
             rules: Rules in dict format

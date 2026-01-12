@@ -1408,7 +1408,7 @@ def test_cue_logic_migration():
         assert cue.rules == [
             {
                 "event": "cue.enter",
-                "actions": [
+                "commands": [
                     {
                         "command": "goto",
                         "group": "sending_group",
@@ -1429,7 +1429,7 @@ def test_cue_logic_migration():
         assert cue.rules == [
             {
                 "event": "=test_var",
-                "actions": [
+                "commands": [
                     {
                         "command": "on_count",
                     },

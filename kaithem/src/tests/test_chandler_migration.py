@@ -19,7 +19,7 @@ class TestFormatDetection:
         new = [
             {
                 "event": "cue.enter",
-                "actions": [
+                "commands": [
                     {"command": "goto", "group": "=GROUP", "cue": "cue2"}
                 ],
             }
@@ -53,8 +53,8 @@ class TestMigration:
 
         assert len(new) == 1
         assert new[0]["event"] == "cue.enter"
-        assert len(new[0]["actions"]) == 1
-        assert new[0]["actions"][0]["command"] == "goto"
+        assert len(new[0]["commands"]) == 1
+        assert new[0]["commands"][0]["command"] == "goto"
 
     def test_migrate_multiple_actions(self):
         """Test migration of rule with multiple actions (pipeline)."""
@@ -67,9 +67,9 @@ class TestMigration:
         new = rules_migration.migrate_rules_to_new_format(old)
 
         assert len(new) == 1
-        assert len(new[0]["actions"]) == 2
-        assert new[0]["actions"][0]["command"] == "goto"
-        assert new[0]["actions"][1]["command"] == "set_alpha"
+        assert len(new[0]["commands"]) == 2
+        assert new[0]["commands"][0]["command"] == "goto"
+        assert new[0]["commands"][1]["command"] == "set_alpha"
 
     def test_migrate_multiple_rules(self):
         """Test migration of multiple rules on same event."""
@@ -82,8 +82,8 @@ class TestMigration:
         assert len(new) == 2
         assert new[0]["event"] == "cue.enter"
         assert new[1]["event"] == "cue.enter"
-        assert new[0]["actions"][0]["command"] == "goto"
-        assert new[1]["actions"][0]["command"] == "set_alpha"
+        assert new[0]["commands"][0]["command"] == "goto"
+        assert new[1]["commands"][0]["command"] == "set_alpha"
 
     def test_migrate_midi_event(self):
         """Test migration of MIDI event (from actual test case)."""
@@ -91,7 +91,7 @@ class TestMigration:
         new = rules_migration.migrate_rules_to_new_format(old)
 
         assert new[0]["event"] == "midi.note:1.C5"
-        assert new[0]["actions"][0]["command"] == "goto"
+        assert new[0]["commands"][0]["command"] == "goto"
 
     def test_migrate_expression_event(self):
         """Test migration of expression-based event."""
@@ -105,7 +105,7 @@ class TestMigration:
         old = [["cue.enter", [["pass"]]]]
         new = rules_migration.migrate_rules_to_new_format(old)
 
-        assert new[0]["actions"][0]["command"] == "pass"
+        assert new[0]["commands"][0]["command"] == "pass"
         # pass should have no other keys except command
 
     def test_migrate_set_command(self):
@@ -113,7 +113,7 @@ class TestMigration:
         old = [["cue.enter", [["set", "var_name", "value"]]]]
         new = rules_migration.migrate_rules_to_new_format(old)
 
-        action = new[0]["actions"][0]
+        action = new[0]["commands"][0]
         assert action["command"] == "set"
         # Args should be mapped to parameter names
         assert action.get("variable") == "var_name"
@@ -130,7 +130,7 @@ class TestMigration:
         old = [["cue.enter", [["goto", "=GROUP", "=var_name"]]]]
         new = rules_migration.migrate_rules_to_new_format(old)
 
-        action = new[0]["actions"][0]
+        action = new[0]["commands"][0]
         assert action.get("group") == "=GROUP"
         assert action.get("cue") == "=var_name"
 
@@ -166,7 +166,7 @@ class TestRoundTrip:
         # Check it's a dict format
         assert isinstance(new[0], dict)
         assert "event" in new[0]
-        assert "actions" in new[0]
-        assert isinstance(new[0]["actions"], list)
-        assert isinstance(new[0]["actions"][0], dict)
-        assert "command" in new[0]["actions"][0]
+        assert "commands" in new[0]
+        assert isinstance(new[0]["commands"], list)
+        assert isinstance(new[0]["commands"][0], dict)
+        assert "command" in new[0]["commands"][0]
