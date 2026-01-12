@@ -18,6 +18,12 @@ from .global_actions import cl_event, cl_trigger_shortcut_code
 rootContext = scriptbindings.ChandlerScriptContext()
 
 
+class CueLogicStatelessFunction(scriptbindings.StatelessFunction):
+    def get_running_context(self) -> groups.DebugScriptContext:
+        x: groups.DebugScriptContext = super().get_running_context()  # type: ignore
+        return x
+
+
 # Context command manifests
 GOTO_MANIFEST: scriptbindings.CommandManifest = {
     "doc": "Triggers a group to go to a cue in the next frame. Repeat commands with same timestamp are ignored.",

@@ -151,14 +151,14 @@ cue_transition_rate_limiter = ratelimits.RateLimiter(hz=20, burst=20)
 
 
 class DebugScriptContext(scriptbindings.ChandlerScriptContext):
-    def __init__(self, groupObj: Group, *a, **k):
-        self.groupObj = weakref.ref(groupObj)
-        self.groupName: str = groupObj.name
-        self.groupId = groupObj.id
+    def __init__(self, parent_group: Group, *a, **k):
+        self.parent_group: weakref.ref[Group] = weakref.ref(parent_group)
+        self.groupName: str = parent_group.name
+        self.groupId = parent_group.id
         super().__init__(*a, **k)
 
     def onVarSet(self, k, v):
-        group = self.groupObj()
+        group = self.parent_group()
         if group:
             group.on_scripting_var_set(k, v)
 
@@ -170,7 +170,7 @@ class DebugScriptContext(scriptbindings.ChandlerScriptContext):
         timestamp=None,
         sync=False,
     ):
-        group = self.groupObj()
+        group = self.parent_group()
         if not group:
             return
         if evt.strip().startswith("@"):
@@ -188,7 +188,7 @@ class DebugScriptContext(scriptbindings.ChandlerScriptContext):
             print(traceback.format_exc())
 
     def onTimerChange(self, timer, nextRunTime):
-        group = self.groupObj()
+        group = self.parent_group()
         if group:
             group.runningTimers[timer] = nextRunTime
             try:

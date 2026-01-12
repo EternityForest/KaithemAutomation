@@ -316,6 +316,10 @@ class StatelessFunction:
         m: CommandManifest = {"doc": self.doc, "args": self.args}
         return m
 
+    def get_running_context(self) -> ChandlerScriptContext:
+        """Allow your functions to know what context they are running in."""
+        return context_info.engine
+
     def __call__(self, *args, **kwargs) -> Any:
         """Override in subclass."""
         raise NotImplementedError
@@ -1217,6 +1221,8 @@ class BaseChandlerScriptContext:
             # Cache is invalidated, bindings have changed
             self.need_refresh_for_variable = {}
             self.need_refresh_for_tag = {}
+
+            context_info.engine = self
 
             for rule in rules:
                 event_name = rule.get("event", "")
