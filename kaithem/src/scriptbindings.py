@@ -15,7 +15,7 @@ import traceback
 import weakref
 from collections.abc import Callable
 from types import FunctionType, MethodType
-from typing import Any
+from typing import Any, NotRequired, TypedDict
 
 import pydantic
 import simpleeval
@@ -81,6 +81,23 @@ If there is an unrecognized type, it is treated as a string.
 simpleeval.MAX_POWER = 1024
 
 
+# Command metadata type definitions
+class CommandArgManifest(TypedDict):
+    """Metadata for a single command argument."""
+
+    name: str  # Parameter name
+    type: str  # Type hint string (str, float, int, bool, etc)
+    default: str  # UI display default (must be explicit string)
+
+
+class CommandManifest(TypedDict):
+    """Metadata for a complete command function."""
+
+    doc: str  # Docstring/description
+    args: list[CommandArgManifest]  # List of arguments
+    completionTags: NotRequired[dict[str, str]]  # Optional completion hints
+
+
 class NamespaceGetter:
     "Takes a dict and a prefix. Responds to attr requests with dict[prefix+.+key]"
 
@@ -142,40 +159,50 @@ def _extract_type_hint(annotation) -> str:
 
 def get_function_info(
     f: Callable[..., Any] | type[FunctionBlock],
-) -> dict[str, Any]:
+) -> CommandManifest:
     """Extract complete metadata from function signature.
 
     Returns metadata with enhanced arg information:
     {
         "doc": "...",
         "args": [
-            {"name": "argname", "type": "str", "default": "value"},
+            {"name": "argname", "type": "str", "default": ""},
             ...
         ],
         "completionTags": {...}  # if present
     }
+
+    Note: defaults are returned as empty strings. Explicit manifests should
+    provide proper UI defaults. This fallback is used only for functions
+    without explicit manifest attributes.
     """
     if isinstance(f, type(FunctionBlock)):
         f = f.__call__
     sig = inspect.signature(f)
     p = sig.parameters
 
-    # Build enhanced args list with name, type, and default
-    args = []
+    # Build enhanced args list with name, type, and empty default
+    args: list[CommandArgManifest] = []
     for param_name, param in p.items():
-        default = paramDefault(param)
-        if default is None:
+        # Skip 'self' parameter
+        if param_name == "self":
+            continue
+        # Skip *args and **kwargs
+        if param.kind in (param.VAR_POSITIONAL, param.VAR_KEYWORD):
+            continue
+        # Skip parameters with no defaults (required parameters)
+        if param.default is param.empty:
             continue
 
-        arg_info = {
+        arg_info: CommandArgManifest = {
             "name": param_name,
             "type": _extract_type_hint(param.annotation),
-            "default": default,
+            "default": "",  # Explicit manifests must provide UI defaults
         }
         args.append(arg_info)
 
-    d = {
-        "doc": inspect.getdoc(f),
+    d: CommandManifest = {
+        "doc": inspect.getdoc(f) or "",
         "args": args,
     }
 
@@ -280,6 +307,11 @@ def makeFunctionBlock(c: Callable[[Any], Any]):
 
 
 class OnChangeBlock(FunctionBlock):
+    manifest: CommandManifest = {
+        "doc": "Trigger only when input value changes from previous input",
+        "args": [{"name": "input", "type": "str", "default": "=_"}],
+    }
+
     def __init__(self, ctx: ChandlerScriptContext, *args, **kwargs):
         self.lastValue = None
 
@@ -297,6 +329,11 @@ class OnChangeBlock(FunctionBlock):
 
 
 class OnCounterIncreaseBlock(FunctionBlock):
+    manifest: CommandManifest = {
+        "doc": "Trigger when the counter increases, or when it wraps back around",
+        "args": [{"name": "input", "type": "str", "default": "=_"}],
+    }
+
     def __init__(self, ctx: ChandlerScriptContext, *args, **kwargs):
         self.lastValue = None
 
@@ -321,6 +358,14 @@ class OnCounterIncreaseBlock(FunctionBlock):
 
 
 class LowPassFilterBlock(FunctionBlock):
+    manifest: CommandManifest = {
+        "doc": "Low pass filter with the given time constant",
+        "args": [
+            {"name": "input", "type": "str", "default": "=_"},
+            {"name": "tc", "type": "float", "default": "1.0"},
+        ],
+    }
+
     def __init__(self, ctx: ChandlerScriptContext, *args, **kwargs):
         self.state: float = 0.0
         self.t = 0
@@ -353,6 +398,14 @@ class LowPassFilterBlock(FunctionBlock):
 
 
 class CooldownBlock(FunctionBlock):
+    manifest: CommandManifest = {
+        "doc": "Continue executing rule only N times per T seconds",
+        "args": [
+            {"name": "limit", "type": "int", "default": "1"},
+            {"name": "window", "type": "float", "default": "1.0"},
+        ],
+    }
+
     def __init__(self, ctx: ChandlerScriptContext, *args, **kwargs):
         self.credits = 0
         self.timestamp = 0
@@ -374,6 +427,14 @@ class CooldownBlock(FunctionBlock):
 
 
 class HysteresisBlock(FunctionBlock):
+    manifest: CommandManifest = {
+        "doc": "Add hysteresis to the input",
+        "args": [
+            {"name": "input", "type": "str", "default": "=_"},
+            {"name": "window", "type": "float", "default": "1.0"},
+        ],
+    }
+
     def __init__(self, ctx: ChandlerScriptContext, *args, **kwargs):
         self.lastMark = 10**15
 
@@ -428,9 +489,21 @@ def rval(x):
     return x
 
 
+rval.manifest = {
+    "doc": "Returns the parameter x, and continues the action (Unless the value is None)",
+    "args": [{"name": "x", "type": "str", "default": ""}],
+}
+
+
 def passAction():
     "Does nothing and returns True, continuing the action"
     return True
+
+
+passAction.manifest = {
+    "doc": "Does nothing and returns True, continuing the action",
+    "args": [],
+}
 
 
 def maybe(chance=50):
@@ -438,9 +511,21 @@ def maybe(chance=50):
     return True if random.random() * 100 > chance else None
 
 
+maybe.manifest = {
+    "doc": "Return True with some percent chance, else stop the action",
+    "args": [{"name": "chance", "type": "float", "default": "50"}],
+}
+
+
 def continue_if(v):
     "Continue if the first parameter is True. Remember that the param can be an expression like '= event.value=50'"
     return True if v else None
+
+
+continue_if.manifest = {
+    "doc": "Continue if the first parameter is True. The param can be an expression like '= event.value=50'",
+    "args": [{"name": "v", "type": "str", "default": ""}],
+}
 
 
 # Use context_info.event from inside any function, the value will be a (name,value) tuple for the event
@@ -513,6 +598,7 @@ class ScriptActionKeeper:
 
     def __init__(self):
         self.scriptcommands = weakref.WeakValueDictionary()
+        self.command_metadata: dict[str, CommandManifest] = {}
         self.debug_refs = {}
 
     def __setitem__(self, key, value: type[FunctionBlock] | FunctionType):
@@ -555,6 +641,15 @@ class ScriptActionKeeper:
 
         self.scriptcommands[key] = value
 
+        # Cache metadata at registration time
+        if hasattr(value, "manifest"):
+            manifest = value.manifest
+            self._validate_manifest(key, value, manifest)
+            self.command_metadata[key] = manifest
+        else:
+            # Fallback to introspection
+            self.command_metadata[key] = get_function_info(value)
+
         def warn_chandler_gc(x):
             # Lifespan will be None during system exit
             if lifespan and not lifespan.is_shutting_down:
@@ -570,6 +665,31 @@ class ScriptActionKeeper:
 
     def get(self, k, d):
         return self.scriptcommands.get(k, d)
+
+    def _validate_manifest(
+        self,
+        name: str,
+        func: Callable[..., Any] | type[FunctionBlock],
+        manifest: CommandManifest,
+    ) -> None:
+        """Validate that manifest matches function signature."""
+        if isinstance(func, type(FunctionBlock)):
+            sig = inspect.signature(func.__call__)
+        else:
+            sig = inspect.signature(func)
+
+        params = [p for p in sig.parameters if p != "self"]
+        manifest_args = [arg["name"] for arg in manifest["args"]]
+
+        if params != manifest_args:
+            raise ValueError(
+                f"Command '{name}' manifest args {manifest_args} "
+                f"don't match signature params {params}"
+            )
+
+    def get_metadata(self, key: str) -> CommandManifest | None:
+        """Get cached metadata for a command."""
+        return self.command_metadata.get(key)
 
 
 class Event:
@@ -1137,47 +1257,33 @@ class BaseChandlerScriptContext:
         self._execute_dict_bindings(rules)
 
     def _get_command_arg_names(self, cmd_name: str) -> list[str]:
-        """Get parameter names in order for a command.
+        """Get parameter names in order for a command using cached metadata.
 
         Args:
             cmd_name: Name of the command
 
         Returns:
-            List of parameter names in order
+            List of parameter names in order, from cached metadata
         """
-        # Handle special built-in commands
-        special_args = {
-            "set": ["variable", "value"],
-            "pass": [],
-            "maybe": ["chance"],
-            "continue_if": ["condition"],
-        }
+        # Try to get metadata from own commands first
+        metadata = self.commands.get_metadata(cmd_name)
+        if metadata:
+            return [arg["name"] for arg in metadata["args"]]
 
-        if cmd_name in special_args:
-            return special_args[cmd_name]
+        # Try context commands
+        metadata = self.context_commands.get_metadata(cmd_name)
+        if metadata:
+            return [arg["name"] for arg in metadata["args"]]
 
-        # Look up registered command
+        # Check parent context
         cmd = self.lookupCommand(cmd_name)
-        if not cmd:
-            return []
+        if cmd:
+            # Parent context command - extract metadata on demand
+            # This handles commands inherited from parent contexts
+            metadata = get_function_info(cmd)
+            return [arg["name"] for arg in metadata["args"]]
 
-        # Handle FunctionBlock classes
-        if isinstance(cmd, type(FunctionBlock)):
-            sig = inspect.signature(cmd.__call__)
-        else:
-            sig = inspect.signature(cmd)
-
-        result = []
-        for p_name, param in sig.parameters.items():
-            # Skip self parameter
-            if p_name == "self":
-                continue
-            # Skip *args and **kwargs
-            if param.kind in (param.VAR_POSITIONAL, param.VAR_KEYWORD):
-                continue
-            result.append(p_name)
-
-        return result
+        return []
 
     def onBindingAdded(self, evt):
         "Called when a binding is added that listens to evt"
@@ -1383,9 +1489,22 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
                 raise RuntimeError("This script context cannot access that tag")
             return True
 
+        setTag.manifest = {  # type: ignore
+            "doc": "Set a Tagpoint. If a priority is given, set the given claim priority. If priority is empty or zero, just set the default base value layer.",
+            "args": [
+                {
+                    "name": "tagName",
+                    "type": "str",
+                    "default": f"{self.tagDefaultPrefix}foo",
+                },
+                {"name": "value", "type": "str", "default": "=0"},
+                {"name": "priority", "type": "str", "default": "0"},
+            ],
+            "completionTags": {"tagName": "tagpointsCompleter"},
+        }
+
         self.setTag = setTag
         self.commands["set_tag"] = setTag
-        setTag.completionTags = {"tagName": "tagpointsCompleter"}  # type: ignore
 
         def shell(cmd: str):
             """Run a system shell command line and return the output as the next command's _"""
@@ -1394,6 +1513,11 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
                 .decode("utf-8")
                 .strip()
             )
+
+        shell.manifest = {  # type: ignore
+            "doc": "Run a system shell command line and return the output as the next command's _",
+            "args": [{"name": "cmd", "type": "str", "default": ""}],
+        }
 
         self.shell = shell
         self.commands["shell"] = shell

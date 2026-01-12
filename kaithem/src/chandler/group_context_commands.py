@@ -18,6 +18,82 @@ from .global_actions import cl_event, cl_trigger_shortcut_code
 rootContext = scriptbindings.ChandlerScriptContext()
 
 
+# Context command manifests
+GOTO_MANIFEST: scriptbindings.CommandManifest = {
+    "doc": "Triggers a group to go to a cue in the next frame. Repeat commands with same timestamp are ignored.",
+    "args": [
+        {"name": "group", "type": "str", "default": "=GROUP"},
+        {"name": "cue", "type": "str", "default": ""},
+        {"name": "time", "type": "str", "default": "=event.time"},
+    ],
+    "completionTags": {
+        "group": "gotoGroupNamesCompleter",
+        "cue": "gotoGroupCuesCompleter",
+    },
+}
+
+SHORTCUT_MANIFEST: scriptbindings.CommandManifest = {
+    "doc": "Activates any cues with the matching shortcut code in any group. Triggers in the next frame.",
+    "args": [{"name": "code", "type": "str", "default": ""}],
+}
+
+SET_ALPHA_MANIFEST: scriptbindings.CommandManifest = {
+    "doc": "Set the alpha value of a group. Action may not be immediate.",
+    "args": [
+        {"name": "group", "type": "str", "default": "=GROUP"},
+        {"name": "alpha", "type": "float", "default": "1"},
+    ],
+}
+
+IF_CUE_MANIFEST: scriptbindings.CommandManifest = {
+    "doc": "True if the group is running that cue",
+    "args": [
+        {"name": "group", "type": "str", "default": ""},
+        {"name": "cue", "type": "str", "default": ""},
+    ],
+}
+
+SEND_EVENT_MANIFEST: scriptbindings.CommandManifest = {
+    "doc": "Send an event to a group, or to all groups if group is __global__. Triggers in the next frame.",
+    "args": [
+        {"name": "group", "type": "str", "default": "=GROUP"},
+        {"name": "ev", "type": "str", "default": "DummyEvent"},
+        {"name": "value", "type": "str", "default": ""},
+    ],
+}
+
+SET_SLIDESHOW_VARIABLE_MANIFEST: scriptbindings.CommandManifest = {
+    "doc": "Set a slideshow variable. These can be used in the slideshow text as {{var_name}}",
+    "args": [
+        {"name": "group", "type": "str", "default": "=GROUP"},
+        {"name": "key", "type": "str", "default": "varFoo"},
+        {"name": "value", "type": "str", "default": ""},
+    ],
+}
+
+CONSOLE_NOTIFICATION_MANIFEST: scriptbindings.CommandManifest = {
+    "doc": "Send a notification to the operator, on the web editor and console pages",
+    "args": [{"name": "text", "type": "str", "default": ""}],
+}
+
+SPEAK_MANIFEST: scriptbindings.CommandManifest = {
+    "doc": "BETA. Use the default text to speech model. Speaker is the number for multi-voice models.",
+    "args": [
+        {"name": "text", "type": "str", "default": "Hello World!"},
+        {"name": "speaker", "type": "str", "default": "0"},
+        {"name": "speed", "type": "str", "default": "1"},
+    ],
+}
+
+SEND_MQTT_MANIFEST: scriptbindings.CommandManifest = {
+    "doc": "JSON encodes message, and publishes it to the group's MQTT server",
+    "args": [
+        {"name": "topic", "type": "str", "default": ""},
+        {"name": "message", "type": "str", "default": ""},
+    ],
+}
+
+
 # Dummies just for the introspection
 # TODO use the context commands thingy so we don't repeat this
 def gotoCommand(group: str = "=GROUP", cue: str = "", time="=event.time"):
@@ -147,10 +223,7 @@ def add_context_commands(context_group: groups.Group):
         core.serialized_async_next_frame(f)
         return True
 
-    gotoCommand.completionTags = {  # type: ignore
-        "group": "gotoGroupNamesCompleter",
-        "cue": "gotoGroupCuesCompleter",
-    }
+    gotoCommand.manifest = GOTO_MANIFEST  # type: ignore
 
     def setAlphaCommand(group: str = "=GROUP", alpha: float = 1):
         "Set the alpha value of a group.  Action may not be immediate"
@@ -244,6 +317,15 @@ def add_context_commands(context_group: groups.Group):
 
         workers.do(f)
 
+    # Attach manifests to all commands
+    codeCommand.manifest = SHORTCUT_MANIFEST  # type: ignore
+    setAlphaCommand.manifest = SET_ALPHA_MANIFEST  # type: ignore
+    ifCueCommand.manifest = IF_CUE_MANIFEST  # type: ignore
+    eventCommand.manifest = SEND_EVENT_MANIFEST  # type: ignore
+    setWebVarCommand.manifest = SET_SLIDESHOW_VARIABLE_MANIFEST  # type: ignore
+    uiNotificationCommand.manifest = CONSOLE_NOTIFICATION_MANIFEST  # type: ignore
+    speak.manifest = SPEAK_MANIFEST  # type: ignore
+
     cc["shortcut"] = codeCommand
     cc["goto"] = gotoCommand
     cc["set_alpha"] = setAlphaCommand
@@ -253,14 +335,13 @@ def add_context_commands(context_group: groups.Group):
     cc["console_notification"] = uiNotificationCommand
     cc["speak"] = speak
 
-    # cc["set_tag"].completionTags = {"tagName": "tagpointsCompleter"}
-
     def sendMqttMessage(topic: str, message: str):
         "JSON encodes message, and publishes it to the group's MQTT server"
         raise RuntimeError(
             "This was supposed to be overridden by a group specific version"
         )
 
+    sendMqttMessage.manifest = SEND_MQTT_MANIFEST  # type: ignore
     cc["send_mqtt"] = sendMqttMessage
     for i in cc:
         context_group.script_context.commands[i] = cc[i]
