@@ -149,29 +149,6 @@ def paramDefault(p):
     return ""
 
 
-def _extract_type_hint(annotation) -> str:
-    """Extract simple type string from annotation.
-
-    Args:
-        annotation: Parameter annotation from inspect.Parameter
-
-    Returns:
-        Simple type string (e.g., 'str', 'float', 'int')
-    """
-    if annotation is inspect.Parameter.empty:
-        return "str"  # Default to string
-
-    type_str = str(annotation)
-    # Handle common patterns: <class 'str'> -> 'str'
-    if type_str.startswith("<class '"):
-        return type_str.split("'")[1]
-    # Handle typing module types like str | int
-    if " | " in type_str:
-        # Return first type in union
-        return type_str.split(" | ")[0].strip().replace("'", "")
-    return "str"
-
-
 def get_function_info(
     f: Callable[..., Any] | type[FunctionBlock],
 ) -> CommandManifest:
