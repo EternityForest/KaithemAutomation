@@ -1225,15 +1225,15 @@ class BaseChandlerScriptContext:
 
             if event_name.startswith("=+"):
                 event_name = "=" + event_name[2:]
-                commands = [["on_count"]] + commands
+                commands = [["on_count", "=_"]] + commands
 
             if event_name.startswith("=~"):
                 event_name = "=" + event_name[2:]
-                commands = [["on_change"]] + commands
+                commands = [["on_change", "=_"]] + commands
 
             if event_name.startswith("=/"):
                 event_name = "=" + event_name[2:]
-                commands = [["on_rising_edge"]] + commands
+                commands = [["on_rising_edge", "=_"]] + commands
 
             actions = []
             for cmd in commands:
