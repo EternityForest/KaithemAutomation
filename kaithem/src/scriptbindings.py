@@ -596,8 +596,6 @@ class SetTag(FunctionBlock):
         if not tag[0] == "/":
             tag = f"/{tag}"
 
-        self.need_refresh_for_tag = {}
-
         tagType = None
         if str(priority).strip():
             priority = float(priority)
@@ -1164,9 +1162,12 @@ class BaseChandlerScriptContext:
             return self.eventValueStack[-1]
 
         if n in self.variables:
+            self.need_refresh_for_variable[n] = True
             return self.variables[n]
+
         if n in globalConstants:
             return globalConstants[n]
+
         if n in self.constants:
             return self.constants[n]
 
