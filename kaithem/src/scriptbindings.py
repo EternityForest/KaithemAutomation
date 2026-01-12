@@ -506,15 +506,6 @@ globalUsrFunctions = {
 globalConstants = {"e": math.e, "pi": math.pi}
 
 
-def set_tag(name, value):
-    if name in tagpoints.allTagsAtomic:
-        t = tagpoints.allTagsAtomic[name]()
-        if t:
-            t.value = value
-            return
-    raise RuntimeError(f"Tag {name} not found")
-
-
 class ReturnValue(StatelessFunction):
     doc = "Returns the parameter x, and continues the action (Unless the value is None)"
     args = [{"name": "x", "type": "any", "default": ""}]
@@ -621,6 +612,9 @@ class SetTag(FunctionBlock):
                 tc.release()
                 del self.tagClaims[tag]
                 return True
+            else:
+                tc.set(value)
+                self.get_script_context().setVar(f"$tag:{tag}", value, True)
         else:
             self.tagpoints[tag] = tagType(tag)
 
@@ -1272,6 +1266,8 @@ class BaseChandlerScriptContext:
         """
         rules = copy.deepcopy(rules)
         loaded_rules: list[LoadedEventBindingPipeline] = []
+        has_now = False
+
         with self.gil:
             # Cache is invalidated, bindings have changed
             self.need_refresh_for_variable = {}
@@ -1279,6 +1275,10 @@ class BaseChandlerScriptContext:
 
             for rule in rules:
                 event_name = rule.get("event", "")
+
+                if event_name == "now":
+                    has_now = True
+
                 actions: list[EventBindingCommandConfig] = rule.get(
                     "actions", []
                 )
@@ -1304,13 +1304,17 @@ class BaseChandlerScriptContext:
                     {"event": event_name, "commands": loaded_actions}
                 )
 
-            self.event_listeners = loaded_rules
+            self.event_listeners.extend(loaded_rules)
 
-            if "now" in self.event_listeners:
-                self.event("now")
-                self.event_listeners = [
-                    i for i in self.event_listeners if i["event"] != "now"
-                ]
+        if has_now:
+            self.event("now")
+            self.event_listeners = [
+                i for i in self.event_listeners if i["event"] != "now"
+            ]
+
+        # Need to do this at least once to make the bindings know what to
+        # Listen to
+        self.checkPollEvents()
 
     def addBindingsFromDict(self, rules: list[EventBindingPipelineConfig]):
         """Add bindings from dict format.
@@ -1320,7 +1324,6 @@ class BaseChandlerScriptContext:
         Args:
             rules: Rules in dict format
         """
-        self.clearBindings()
         self._import_dict_bindings(rules)
 
     def _get_command_arg_names(self, cmd_name: str) -> list[str]:
@@ -1347,14 +1350,14 @@ class BaseChandlerScriptContext:
             for i in self.event_listeners:
                 event_name = i["event"]
                 if event_name.strip()[0] == "@":
-                    if i not in self.time_events:
+                    if event_name not in self.time_events:
                         self.time_events[event_name] = ScheduleTimer(
                             event_name, self
                         )
                         self.onTimerChange(
                             event_name, self.time_events[event_name].nextruntime
                         )
-                if i == "script.poll":
+                if event_name == "script.poll":
                     if not self.poller:
                         self.poller = scheduler.schedule_repeating(
                             self.poll, 1 / 24.0

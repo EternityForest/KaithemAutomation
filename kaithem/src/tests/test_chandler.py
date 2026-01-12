@@ -345,7 +345,9 @@ listener 38527
         f.write(cfg)
 
     pr = subprocess.Popen(
-        ["mosquitto", "-c", "/dev/shm/kaithem_tests/mosquitto.conf"]
+        ["mosquitto", "-c", "/dev/shm/kaithem_tests/mosquitto.conf"],
+        stdout=sys.stdout,
+        stderr=sys.stderr,
     )
     time.sleep(0.5)
     assert pr.poll() is None
@@ -1806,7 +1808,7 @@ def test_cue_logic_plugin():
             assert s2.cue.name == "cue2"
 
 
-def test_cue_logic_inherit_rules_cue_old_style():
+def test_cue_logic_rules_cue_set_alpha_old():
     from kaithem.src.chandler import core
 
     with TempGroup() as grp:
@@ -1825,7 +1827,7 @@ def test_cue_logic_inherit_rules_cue_old_style():
         assert grp.alpha == 0.7
 
 
-def test_cue_logic_inherit_rules_cue_new_style():
+def test_cue_logic_rules_cue_set_alpha_new():
     from kaithem.src.chandler import core
 
     with TempGroup() as grp:
