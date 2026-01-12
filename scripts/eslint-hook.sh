@@ -8,7 +8,9 @@ if [ ${#fileList} -lt 1 ]; then
     echo -e "You have no staged files that this hook can check.\n"
     exit
 fi
-npx eslint ${fileList[*]} "$@"
+
+
+npx eslint --fix ${fileList[*]} -c eslint.config.mjs "$@"
 if [ $? -ne 0 ]; then
     echo -e "\nPlease fix the above linting issues before committing.\n"
     exit 1

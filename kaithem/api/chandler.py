@@ -1,4 +1,5 @@
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from kaithem.src.chandler import global_actions as _global_actions
 from kaithem.src.chandler import groups as _groups

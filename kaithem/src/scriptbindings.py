@@ -15,7 +15,7 @@ import traceback
 import weakref
 from collections.abc import Callable
 from types import FunctionType, MethodType
-from typing import Any, NotRequired, TypedDict
+from typing import Any, TypedDict
 
 import pydantic
 import simpleeval
@@ -66,7 +66,7 @@ It must look like:
 {
     "description":"Foo",
     "args":[
-        ["arg1Name","int",default,min,max],
+        ["arg1Name","integer",default,min,max],
         ["arg2Name",'str','Default'],
         ["arg3,"SomeOtherType", "SomeOtherData"]
     ]
@@ -95,7 +95,6 @@ class CommandManifest(TypedDict):
 
     doc: str  # Docstring/description
     args: list[CommandArgManifest]  # List of arguments
-    completionTags: NotRequired[dict[str, str]]  # Optional completion hints
 
 
 class NamespaceGetter:
@@ -169,7 +168,6 @@ def get_function_info(
             {"name": "argname", "type": "str", "default": ""},
             ...
         ],
-        "completionTags": {...}  # if present
     }
 
     Note: defaults are returned as empty strings. Explicit manifests should
@@ -196,7 +194,7 @@ def get_function_info(
 
         arg_info: CommandArgManifest = {
             "name": param_name,
-            "type": _extract_type_hint(param.annotation),
+            "type": "any",
             "default": "",  # Explicit manifests must provide UI defaults
         }
         args.append(arg_info)
@@ -205,10 +203,6 @@ def get_function_info(
         "doc": inspect.getdoc(f) or "",
         "args": args,
     }
-
-    if hasattr(f, "completionTags"):
-        d["completionTags"] = f.completionTags
-
     return d
 
 
@@ -306,6 +300,27 @@ def makeFunctionBlock(c: Callable[[Any], Any]):
     return FB
 
 
+class StatelessFunction:
+    """Base class for stateless command functions.
+
+    Define command metadata as class attributes (doc, args).
+    The manifest property auto-builds CommandManifest from these attributes.
+    """
+
+    doc: str = ""
+    args: list[CommandArgManifest] = []
+
+    @property
+    def manifest(self) -> CommandManifest:
+        """Build manifest from class attributes."""
+        m: CommandManifest = {"doc": self.doc, "args": self.args}
+        return m
+
+    def __call__(self, *args, **kwargs) -> Any:
+        """Override in subclass."""
+        raise NotImplementedError
+
+
 class OnChangeBlock(FunctionBlock):
     manifest: CommandManifest = {
         "doc": "Trigger only when input value changes from previous input",
@@ -335,9 +350,9 @@ class OnCounterIncreaseBlock(FunctionBlock):
     }
 
     def __init__(self, ctx: ChandlerScriptContext, *args, **kwargs):
-        self.lastValue = None
+        self.lastValue = 0
 
-    def __call__(self, input="=_", **kwds: Any) -> Any:
+    def __call__(self, input=0, **kwds: Any) -> Any:
         """
         Trigger when the counter increases, or when it wraps back around.
         """
@@ -361,8 +376,8 @@ class LowPassFilterBlock(FunctionBlock):
     manifest: CommandManifest = {
         "doc": "Low pass filter with the given time constant",
         "args": [
-            {"name": "input", "type": "str", "default": "=_"},
-            {"name": "tc", "type": "float", "default": "1.0"},
+            {"name": "input", "type": "number", "default": "=_"},
+            {"name": "tc", "type": "number", "default": "1.0"},
         ],
     }
 
@@ -401,8 +416,8 @@ class CooldownBlock(FunctionBlock):
     manifest: CommandManifest = {
         "doc": "Continue executing rule only N times per T seconds",
         "args": [
-            {"name": "limit", "type": "int", "default": "1"},
-            {"name": "window", "type": "float", "default": "1.0"},
+            {"name": "limit", "type": "integer", "default": "1"},
+            {"name": "window", "type": "number", "default": "1.0"},
         ],
     }
 
@@ -430,8 +445,8 @@ class HysteresisBlock(FunctionBlock):
     manifest: CommandManifest = {
         "doc": "Add hysteresis to the input",
         "args": [
-            {"name": "input", "type": "str", "default": "=_"},
-            {"name": "window", "type": "float", "default": "1.0"},
+            {"name": "input", "type": "number", "default": "=_"},
+            {"name": "window", "type": "number", "default": "1.0"},
         ],
     }
 
@@ -484,58 +499,48 @@ def set_tag(name, value):
     raise RuntimeError(f"Tag {name} not found")
 
 
-def rval(x):
-    "Returns the parameter x, and continues the action(Unless the value is None)"
-    return x
+class ReturnValue(StatelessFunction):
+    doc = "Returns the parameter x, and continues the action (Unless the value is None)"
+    args = [{"name": "x", "type": "any", "default": ""}]
+
+    def __call__(self, x):
+        return x
 
 
-rval.manifest = {
-    "doc": "Returns the parameter x, and continues the action (Unless the value is None)",
-    "args": [{"name": "x", "type": "str", "default": ""}],
-}
+class PassAction(StatelessFunction):
+    doc = "Does nothing and returns True, continuing the action"
+    args = []
+
+    def __call__(self):
+        return True
 
 
-def passAction():
-    "Does nothing and returns True, continuing the action"
-    return True
+class Maybe(StatelessFunction):
+    doc = "Return True with some percent chance, else stop the action"
+    args = [{"name": "chance", "type": "number", "default": "50"}]
+
+    def __call__(self, chance=50):
+        return True if random.random() * 100 > chance else None
 
 
-passAction.manifest = {
-    "doc": "Does nothing and returns True, continuing the action",
-    "args": [],
-}
+class ContinueIf(StatelessFunction):
+    doc = "Continue if the first parameter is True. The param can be an expression like '= event.value=50'"
+    args = [{"name": "v", "type": "str", "default": ""}]
 
-
-def maybe(chance=50):
-    "Return a True with some percent chance, else stop the action"
-    return True if random.random() * 100 > chance else None
-
-
-maybe.manifest = {
-    "doc": "Return True with some percent chance, else stop the action",
-    "args": [{"name": "chance", "type": "float", "default": "50"}],
-}
-
-
-def continue_if(v):
-    "Continue if the first parameter is True. Remember that the param can be an expression like '= event.value=50'"
-    return True if v else None
-
-
-continue_if.manifest = {
-    "doc": "Continue if the first parameter is True. The param can be an expression like '= event.value=50'",
-    "args": [{"name": "v", "type": "str", "default": ""}],
-}
+    def __call__(self, v):
+        return True if v else None
 
 
 # Use context_info.event from inside any function, the value will be a (name,value) tuple for the event
 context_info = threading.local()
 
-predefinedcommands: dict[str, Callable[..., Any] | type[FunctionBlock]] = {
-    "return": rval,
-    "pass": passAction,
-    "maybe": maybe,
-    "continue_if": continue_if,
+predefinedcommands: dict[
+    str, Callable[..., Any] | type[FunctionBlock] | StatelessFunction
+] = {
+    "return": ReturnValue(),
+    "pass": PassAction(),
+    "maybe": Maybe(),
+    "continue_if": ContinueIf(),
     "on_change": OnChangeBlock,
     "lowpass": LowPassFilterBlock,
     "hysteresis": HysteresisBlock,
@@ -601,7 +606,9 @@ class ScriptActionKeeper:
         self.command_metadata: dict[str, CommandManifest] = {}
         self.debug_refs = {}
 
-    def __setitem__(self, key, value: type[FunctionBlock] | FunctionType):
+    def __setitem__(
+        self, key, value: type[FunctionBlock] | FunctionType | StatelessFunction
+    ):
         if not isinstance(key, str):
             raise TypeError("Keys must be string function names")
 
@@ -611,13 +618,16 @@ class ScriptActionKeeper:
         if not (
             isinstance(value, FunctionType)
             or isinstance(value, type(FunctionBlock))
+            or isinstance(value, StatelessFunction)
         ):
             raise TypeError(
-                "Script commands must be functions or subclasses of FunctionBlock"
+                "Script commands must be functions, StatelessFunction instances, or subclasses of FunctionBlock"
             )
 
         if isinstance(value, type(FunctionBlock)):
             # Ignore the self param
+            p = inspect.signature(value.__call__).parameters
+        elif isinstance(value, StatelessFunction):
             p = inspect.signature(value.__call__).parameters
         else:
             p = inspect.signature(value).parameters
@@ -669,11 +679,13 @@ class ScriptActionKeeper:
     def _validate_manifest(
         self,
         name: str,
-        func: Callable[..., Any] | type[FunctionBlock],
+        func: Callable[..., Any] | type[FunctionBlock] | StatelessFunction,
         manifest: CommandManifest,
     ) -> None:
         """Validate that manifest matches function signature."""
         if isinstance(func, type(FunctionBlock)):
+            sig = inspect.signature(func.__call__)
+        elif isinstance(func, StatelessFunction):
             sig = inspect.signature(func.__call__)
         else:
             sig = inspect.signature(func)
@@ -1490,17 +1502,16 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
             return True
 
         setTag.manifest = {  # type: ignore
-            "doc": "Set a Tagpoint. If a priority is given, set the given claim priority. If priority is empty or zero, just set the default base value layer.",
+            "doc": "Set a Tagpoint. If a priority is given, set the given claim priority.",
             "args": [
                 {
                     "name": "tagName",
-                    "type": "str",
+                    "type": "TagpointName",
                     "default": f"{self.tagDefaultPrefix}foo",
                 },
-                {"name": "value", "type": "str", "default": "=0"},
-                {"name": "priority", "type": "str", "default": "0"},
+                {"name": "value", "type": "any", "default": "=0"},
+                {"name": "priority", "type": "number", "default": "0"},
             ],
-            "completionTags": {"tagName": "tagpointsCompleter"},
         }
 
         self.setTag = setTag

@@ -278,15 +278,13 @@ p.small {
                     selectedCommandIndex = action_idx;
                     selectedBindingIndex = rules.indexOf(rule);
                   ">
-
                   <div class="w-full h-min-content">
                     <b>{{ action.command }}</b>
                   </div>
 
-                  <template
-                    v-for="(i, argName) of action"
-                    :key="i">
-                    <template v-if="argName != 'command' && i != '=_' && i != '=GROUP'">
+                  <template v-for="(i, argName) of action" :key="i">
+                    <template
+                      v-if="argName != 'command' && i != '=_' && i != '=GROUP'">
                       <div class="nogrow h-min-content" style="margin: 2px">
                         {{ action[argName] }}
                       </div>
@@ -380,28 +378,33 @@ export default {
   data: function () {
     return {
       pinnedvars: [["_", "Output of the previous action"]],
+
+      getArgMetadata(commandName, argumentName) {
+        if (commandName in this.commands) {
+          return this.commands[commandName].arguments[argumentName];
+        }
+        return {};
+      },
+
       getCompletions: function (actionObject, argumentName) {
         const cmdName = actionObject.command;
         const cmdMeta = this.commands[cmdName];
-        if (!cmdMeta || !cmdMeta.completionTags) {
+
+        const argumentMetadata = this.getArgMetadata(cmdName, argumentName);
+
+        if (!argumentMetadata) {
+          return this.argcompleters["defaultExpressionCompleter"](actionObject);
+        }
+
+        if (this.argcompleters[cmdMeta.type]) {
           try {
-            return this.argcompleters["defaultExpressionCompleter"](actionObject);
-          } catch {
+            return this.argcompleters[cmdMeta.type](actionObject, argumentName);
+          } catch (error) {
+            console.log(error);
             return [];
           }
         }
-
-        const completionTag = cmdMeta.completionTags[argumentName];
-        const completer = this.argcompleters[completionTag];
-
-        try {
-          if (!completer) {
-            return this.argcompleters["defaultExpressionCompleter"](actionObject);
-          }
-          return completer(actionObject);
-        } catch {
-          return [];
-        }
+        return this.argcompleters["defaultExpressionCompleter"](actionObject);
       },
 
       moveCueRuleDown: function (index) {

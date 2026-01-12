@@ -22,14 +22,10 @@ rootContext = scriptbindings.ChandlerScriptContext()
 GOTO_MANIFEST: scriptbindings.CommandManifest = {
     "doc": "Triggers a group to go to a cue in the next frame. Repeat commands with same timestamp are ignored.",
     "args": [
-        {"name": "group", "type": "str", "default": "=GROUP"},
-        {"name": "cue", "type": "str", "default": ""},
+        {"name": "group", "type": "GroupName", "default": "=GROUP"},
+        {"name": "cue", "type": "CueName", "default": ""},
         {"name": "time", "type": "str", "default": "=event.time"},
     ],
-    "completionTags": {
-        "group": "gotoGroupNamesCompleter",
-        "cue": "gotoGroupCuesCompleter",
-    },
 }
 
 SHORTCUT_MANIFEST: scriptbindings.CommandManifest = {
@@ -104,12 +100,6 @@ def gotoCommand(group: str = "=GROUP", cue: str = "", time="=event.time"):
 
 def codeCommand(code: str = ""):
     "Activates any cues with the matching shortcut code in any group"
-
-
-gotoCommand.completionTags = {  # type: ignore
-    "group": "gotoGroupNamesCompleter",
-    "cue": "gotoGroupCuesCompleter",
-}
 
 
 def setAlphaCommand(group: str = "=GROUP", alpha: float = 1):
