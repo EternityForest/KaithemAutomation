@@ -76,6 +76,17 @@ test("test", async ({ page }) => {
   await page.getByRole("list").getByText("Refresh").click();
 
 
+   await page
+    .getByTestId("media-browser-container")
+    .getByText("Builtin", { exact: true })
+     .click();
+     await page
+    .getByTestId("media-browser-container")
+    .getByText("sounds/", { exact: true })
+   .click();
+ await page.getByRole("button", { name: "New(sound)" }).first().click();
+  await expect(page.locator("#cuesbox")).toContainText("alert");
+  
   await page.getByTestId("close-cue-media").click();
 
   // Set the cue length to 0 so it doesn't end too soon
