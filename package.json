@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "![AI generated picture of a tavern](kaithem/data/static/img/16x9/kaithem-tavern.avif)",
   "main": "index.js",
+  "type": "module",
   "scripts": {},
   "keywords": [],
   "author": "",
@@ -25,9 +26,13 @@
     "globals": "^15.13.0",
     "prettier": "^3.4.2",
     "prettier-plugin-jinja-template": "^2.0.0",
-    "typescript-eslint": "^8.18.1"
+    "typescript-eslint": "^8.18.1",
+    "vite": "^7.3.1"
   },
   "dependencies": {
-    "perspective-transform": "^1.1.3"
+    "@excalidraw/excalidraw": "^0.18.0",
+    "perspective-transform": "^1.1.3",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   }
 }

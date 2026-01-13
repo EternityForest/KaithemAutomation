@@ -24,6 +24,8 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 
+kaithem/data/static/vite/**
+
 button_images_pack
 sounds_pack
 /test-results/

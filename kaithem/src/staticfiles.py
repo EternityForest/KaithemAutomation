@@ -15,6 +15,11 @@ ddn = os.path.join(
 )
 
 
+@quart_app.app.route("/static/vite/<path:path>")
+async def static_vite(path):
+    return await quart.send_file(os.path.join(ddn, "static", "vite", path))
+
+
 @quart_app.app.route("/static/js/<path:path>")
 async def static_js(path):
     return await quart.send_file(os.path.join(sdn, "js", path))

@@ -134,6 +134,15 @@ kaithem-scripts root-enable-passwordless-sudo
 Info for devs here on the wiki (https://github.com/EternityForest/KaithemAutomation/wiki/Development)
 
 
+```bash
+uv sync
+
+# Need to build the frontend with npm
+npm install
+
+make build
+```
+
 Recent Changes 🕗
 ============
 ![AI generated banner of a water snake](kaithem/data/static/img/16x9/lightning-water-snake.avif)

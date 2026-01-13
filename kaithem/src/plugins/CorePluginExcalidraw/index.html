@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Excalidraw in browser</title>
+    <script>
+        globalThis.EXCALIDRAW_ASSET_PATH = "/excalidraw-plugin/dist/";
+
+    </script>
+
+    <style>
+        body {
+            margin: 0px;
+            height: 100vh;
+        }
+
+        #guide {
+            position: fixed;
+            min-height: 24vh;
+            /* max-width: 55em; */
+            top: 35vh;
+            right: 5vw;
+            z-index: 100;
+            border: 2px dotted;
+            box-sizing: content-box;
+            aspect-ratio: 16/9;
+            pointer-events: none;
+            display: none;
+            color: #97979770;
+            border-radius: 5px;
+        }
+    </style>
+
+</head>
+
+<body>
+    <div class="container">
+        <div id="guide">
+        </div>
+        <div id="app"></div>
+    </div>
+    <script type="module" src="./index.js"></script>
+
+</body>
+
+</html>
