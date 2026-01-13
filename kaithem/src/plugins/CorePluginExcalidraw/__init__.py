@@ -66,7 +66,7 @@ async def excalidraw_edit():
         if not os.path.isfile(fn):
             url = ""
         return quart.redirect(
-            "/excalidraw-plugin/dist/main.html?resource="
+            "/static/vite/kaithem/src/plugins/CorePluginExcalidraw/index.html?resource="
             + quote_plus(quart.request.args["resource"], safe="")
             + "&module="
             + quote_plus(quart.request.args["module"], safe="")
@@ -113,7 +113,7 @@ def filter_excalidraw_resources(
 ) -> tuple[str, str] | None:
     if resource.endswith(".excalidraw.png"):
         s = (
-            f"/excalidraw-plugin/dist/main.html?module={quote_plus(module, safe='')}"
+            f"/static/vite/kaithem/src/plugins/CorePluginExcalidraw/index.html?module={quote_plus(module, safe='')}"
             + f"&resource={quote_plus(resource, safe='')}"
             + f"&load_file={quote_plus(admin_url_for_file_resource(module, resource), safe='')}"
         )
