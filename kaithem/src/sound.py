@@ -63,7 +63,6 @@ def init():
     sound.media_resolvers["kaithem_special"] = special_resolver
 
     sound.media_paths.append(os.path.join(directories.vardir, "static"))
-    sound.media_paths.append(os.path.join(directories.vardir, "assets"))
     sound.select_backend("mpv")
 
     p = config.config["audio_paths"]

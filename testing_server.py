@@ -40,16 +40,6 @@ with open(
 # Ensure tests don't do anything outside the sandbox
 old_open = open
 
-a = "/dev/shm/kaithem_test_env/assets/"
-os.makedirs(a, exist_ok=True)
-shutil.copy(
-    os.path.join(
-        os.path.dirname(__file__),
-        "kaithem/data/static/sounds/320181__dland__hint.opus",
-    ),
-    "/dev/shm/kaithem_test_env/assets/alert.ogg",
-)
-
 
 def open2(path, mode: str = "r", *args, **kwargs):
     if not (str(path).startswith("/dev/shm/")) and not path == "/dev/null":

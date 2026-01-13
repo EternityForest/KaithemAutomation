@@ -17,7 +17,7 @@ from kaithem.api.midi import list_midi_inputs
 from kaithem.api.web import has_permission
 from kaithem.api.widgets import APIWidget
 
-from .. import assetlib, directories, scriptbindings, tagpoints
+from .. import directories, scriptbindings, tagpoints
 from ..alerts import getAlertState
 from ..auth import canUserDoThis
 from . import (
@@ -91,28 +91,18 @@ def listsoundfolder(path: str, extra_folders: list[str] = []):
             [],
         ]
 
-    # if not os.path.exists(path):
-    #    return [[],[]]
-
-    # x = os.listdir(path)
-    x = assetlib.assetpacks.ls(path)
-
-    return (
-        sorted(
-            [
-                [os.path.join(path, i), os.path.join(path, i)]
-                for i in x
-                if i.endswith("/")
-            ]
-        ),
-        sorted(
-            [
-                [i, os.path.join(path, i)[len(match) :]]
-                for i in x
-                if not i.endswith("/")
-            ]
-        ),
-    )
+    return [
+        [
+            [os.path.join(path, i), i + "/"]
+            for i in os.listdir(path)
+            if os.path.isdir(os.path.join(path, i))
+        ],
+        [
+            [os.path.join(path, i), i]
+            for i in os.listdir(path)
+            if os.path.isfile(os.path.join(path, i))
+        ],
+    ]
 
 
 def searchPaths(s: str, paths: list[str]):

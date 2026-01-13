@@ -54,6 +54,9 @@ object, and must be explicitly called.
 
 * :bug: Fix sd protection script ability to disable swap on newer pi os
 
+
+- :coffin: Remove online assets lib due to poor performance, unofficial APIs, and complexity.
+
 ### 0.93.1
 
 * :technologist: Do not include dev packages in built wheel dependencies

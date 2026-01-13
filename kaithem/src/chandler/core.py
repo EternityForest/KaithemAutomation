@@ -21,7 +21,6 @@ from tinytag import TinyTag
 from kaithem.api import lifespan
 
 from .. import (
-    assetlib,
     config,
     context_restrictions,
     directories,
@@ -171,8 +170,6 @@ if not os.path.exists(musicLocation):
 def getSoundFolders(extra_folders: list[str] | None = None) -> dict[str, str]:
     "path:displayname dict"
     soundfolders: dict[str, str] = {}
-
-    soundfolders[assetlib.assetpacks.assetlib] = "Online Assets Library"
 
     soundfolders[os.path.join(directories.datadir, "static")] = "Builtin"
     soundfolders[musicLocation] = "Chandler music folder"
