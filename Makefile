@@ -100,6 +100,10 @@ dev-file-lines: # Show files sorted by line count
 dev-build-vite:
 	@npx vite build
 
+.PHONY: dev-watch-vite
+dev-watch-vite:
+	@npx vite build --watch
+
 
 .PHONY: dev-build
 dev-build: dev-build-docs  dev-build-builtin-kegs dev-build-vite # Build for release

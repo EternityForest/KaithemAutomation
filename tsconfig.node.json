@@ -1,0 +1,13 @@
+// Source - https://stackoverflow.com/a
+// Posted by NetYogi
+// Retrieved 2026-01-13, License - CC BY-SA 4.0
+
+{
+  "compilerOptions": {
+    "composite": true,
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "allowSyntheticDefaultImports": true
+  },
+  "include": ["vite.config.ts"]
+}

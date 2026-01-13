@@ -1,4 +1,7 @@
-import { Excalidraw as ExcalidrawLib } from "@excalidraw/excalidraw";
+import { Excalidraw, MainMenu,loadFromBlob } from "@excalidraw/excalidraw";
+import { exportToBlob } from "@excalidraw/utils";
+
+
 import React from "react";
 import ReactDOM from "react-dom";
 
@@ -92,10 +95,11 @@ function EXPORT() {
   const OptExport = OptEXPORT();
   if (!OptExport) return;
 
-  const OptJPG = { exportPadding: 0, mimeType: "image/jpeg", quality: 0.85 };
-  const OptPNG = { exportPadding: 0, mimeType: "image/png" };
-
-  ExcalidrawLib.exportToBlob({ ...OptExport, ...OptPNG }).then((e) => {
+  exportToBlob({
+    ...OptExport,
+    exportPadding: 0,
+    mimeType: "image/png",
+  }).then((e) => {
     const url =
       "/excalidraw-plugin/quick_save?" +
       "module=" +
@@ -119,9 +123,7 @@ function EXPORT() {
   });
 }
 
-function MainMenu() {
-  const pathOpen =
-    "m9.257 6.351.183.183H15.819c.34 0 .727.182 1.051.506.323.323.505.708.505 1.05v5.819c0 .316-.183.7-.52 1.035-.337.338-.723.522-1.037.522H4.182c-.352 0-.74-.181-1.058-.5-.318-.318-.499-.705-.499-1.057V5.182c0-.351.181-.736.5-1.054.32-.321.71-.503 1.057-.503H6.53l2.726 2.726Z";
+function mainMenu() {
   const pathExport =
     "M3.333 14.167v1.666c0 .92.747 1.667 1.667 1.667h10c.92 0 1.667-.746 1.667-1.667v-1.666M5.833 9.167 10 13.333l4.167-4.166M10 3.333v10";
   const pathSave =
@@ -137,11 +139,6 @@ function MainMenu() {
   const iconVB20 = { viewBox: "0 0 20 20", ...iconFill };
   const iconVB24 = { viewBox: "0 0 24 24", ...iconFill };
 
-  const iconOpen = React.createElement(
-    "svg",
-    iconVB20,
-    React.createElement("path", { d: pathOpen })
-  );
   const iconExport = React.createElement(
     "svg",
     iconVB20,
@@ -154,18 +151,18 @@ function MainMenu() {
   );
 
   const Menu = [
-    React.createElement(ExcalidrawLib.MainMenu.DefaultItems.LoadScene),
+    React.createElement(MainMenu.DefaultItems.LoadScene),
     React.createElement(
-      ExcalidrawLib.MainMenu.Item,
+      MainMenu.Item,
       { icon: iconExport, onClick: () => EXPORT() },
       "Save to Server"
     ),
-    React.createElement(ExcalidrawLib.MainMenu.DefaultItems.SaveAsImage),
-    React.createElement(ExcalidrawLib.MainMenu.DefaultItems.ClearCanvas),
-    React.createElement(ExcalidrawLib.MainMenu.Separator),
-    React.createElement(ExcalidrawLib.MainMenu.DefaultItems.ToggleTheme),
+    React.createElement(MainMenu.DefaultItems.SaveAsImage),
+    React.createElement(MainMenu.DefaultItems.ClearCanvas),
+    React.createElement(MainMenu.Separator),
+    React.createElement(MainMenu.DefaultItems.ToggleTheme),
     React.createElement(
-      ExcalidrawLib.MainMenu.DefaultItems.ChangeCanvasBackground
+      MainMenu.DefaultItems.ChangeCanvasBackground
     ),
   ];
 
@@ -176,7 +173,6 @@ function MainMenu() {
 function INIT(library, scene) {
   const options = {
     langCode: "en-US",
-    name: name,
     excalidrawAPI: (api) => {
       setExcalidrawAPI(api);
     },
@@ -198,9 +194,9 @@ function INIT(library, scene) {
         "div",
         { style: { height: "100vh" } },
         React.createElement(
-          ExcalidrawLib.Excalidraw,
+          Excalidraw,
           options,
-          React.createElement(ExcalidrawLib.MainMenu, {}, MainMenu())
+          React.createElement(MainMenu, {}, MainMenu())
         )
       )
     );
@@ -211,7 +207,7 @@ function INIT(library, scene) {
   root.render(React.createElement(App));
 }
 function LOADCB(e) {
-  ExcalidrawLib.loadFromBlob(new Blob([e], { type: "image/png" })) //extract scene from png metadata
+  loadFromBlob(new Blob([e], { type: "image/png" })) //extract scene from png metadata
     .then((scene) => INIT("", scene));
 }
 
@@ -232,9 +228,9 @@ const App = () => {
       "div",
       { style: { height: "100vh" } },
       React.createElement(
-        ExcalidrawLib.Excalidraw,
+        Excalidraw,
         options,
-        React.createElement(ExcalidrawLib.MainMenu, {}, MainMenu())
+        React.createElement(MainMenu, {}, mainMenu())
       )
     )
   );
