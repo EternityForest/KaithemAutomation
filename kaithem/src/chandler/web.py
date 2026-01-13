@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 from kaithem.api.web import has_permission, render_html_file
 from kaithem.src import quart_app
 
-from .. import assetlib, directories, pages, util
+from .. import directories, pages, util
 from . import (
     core,
     groups,
@@ -262,19 +262,6 @@ async def media():
                     board = core.boards[kwargs["board"]]
 
                     f = core.resolve_sound(kwargs["file"], board.media_folders)
-
-                    if has_permission("view_admin_info"):
-                        for i in core.getSoundFolders(board.media_folders):
-                            if not i.endswith("/"):
-                                i = i + "/"
-                            if os.path.normpath(f).startswith(i):
-                                # If this is a cloud asset pack asset, get it.
-                                # Only do this under the chandler admin permission
-                                if not os.path.isfile(f):
-                                    pages.require("system_admin")
-
-                                assetlib.assetpacks.ensure_file(f)
-                                return f
 
                 # Resist discovering what scenes exist
                 time.sleep(

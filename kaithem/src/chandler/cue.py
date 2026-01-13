@@ -27,7 +27,7 @@ from scullery import messagebus, scheduling, snake_compat
 
 from kaithem.src.validation_util import validate_args
 
-from .. import assetlib, schemas, scriptbindings, util
+from .. import schemas, scriptbindings, util
 from . import core
 from .core import disallow_special
 from .global_actions import normalize_shortcut, shortcut_codes
@@ -792,7 +792,6 @@ class Cue:
 
     @slide.setter
     def slide(self, val: str):
-        assetlib.assetpacks.ensure_file(val)
         g = self.getGroup()
         b = g.board
 
@@ -817,9 +816,6 @@ class Cue:
 
     @sound.setter
     def sound(self, val: str):
-        # If it's a cloud asset, get it first
-        assetlib.assetpacks.ensure_file(val)
-
         g = self.getGroup()
         b = g.board
 
