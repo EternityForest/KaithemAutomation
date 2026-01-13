@@ -1,3 +1,5 @@
+import time
+
 from kaithem.src import scriptbindings
 
 
@@ -70,3 +72,26 @@ def test_hysteresis_block():
     assert b.call(30, window=100) is None
 
     assert b.call(-100, window=100) == -100
+
+
+def test_cooldown_block():
+    ctx = scriptbindings.ChandlerScriptContext()
+    b = scriptbindings.CooldownBlock(ctx)
+
+    ctx.setVar("_", 1)
+
+    assert b.call(1, window=0.1)
+    assert b.call(1, window=0.1) is None
+    time.sleep(0.11)
+    assert b.call(1, window=0.1)
+    time.sleep(0.001)
+    assert b.call(1, window=0.1) is None
+    assert b.call(1, window=0.0001)
+
+    ctr = 0
+    for i in range(100):
+        if b.call(1, window=0.1) is not None:
+            ctr += 1
+        time.sleep(0.01)
+
+    assert abs(ctr - 10) < 2

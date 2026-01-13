@@ -35,12 +35,14 @@ class GotoCommand(CueLogicStatelessFunction):
     args = [
         {"name": "group", "type": "GroupName", "default": "=GROUP"},
         {"name": "cue", "type": "CueName", "default": ""},
-        {"name": "time", "type": "str", "default": "=event.time"},
+        {"name": "time", "type": "str", "default": ""},
     ]
 
-    def call(self, group: str = "=GROUP", cue: str = "", time: float = 0):
+    def call(
+        self, group: str = "=GROUP", cue: str = "", time: float | None = 0
+    ):
         context_group = self.get_parent_group()
-        entered_time = context_group.evalExpr(time) or _time.time()
+        entered_time = time or _time.time()
 
         if not abs(float(entered_time) - _time.time()) < 60 * 5:
             raise ValueError("Timestamp sanity check failed")
@@ -289,22 +291,3 @@ rootContext.commands["set_slideshow_variable"] = _set_slideshow_var_cmd
 rootContext.commands["console_notification"] = _console_notification_cmd
 rootContext.commands["speak"] = _speak_cmd
 rootContext.commands["send_mqtt"] = _send_mqtt_cmd
-
-
-def add_context_commands(context_group: groups.Group):
-    cc = {
-        "goto": _goto_cmd,
-        "shortcut": _shortcut_cmd,
-        "set_alpha": _set_alpha_cmd,
-        "if_cue": _if_cue_cmd,
-        "send_event": _event_cmd,
-        "set_slideshow_variable": _set_slideshow_var_cmd,
-        "console_notification": _console_notification_cmd,
-        "speak": _speak_cmd,
-        "send_mqtt": _send_mqtt_cmd,
-    }
-
-    for i in cc:
-        context_group.script_context.commands[i] = cc[i]
-
-    context_group.command_refs = cc

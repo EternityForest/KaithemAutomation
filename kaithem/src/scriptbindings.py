@@ -149,8 +149,8 @@ def paramDefault(p):
     return ""
 
 
-def get_function_info(
-    f: Callable[..., Any] | type[FunctionBlock],
+def _legacy_get_function_info(
+    f: Callable[..., Any],
 ) -> CommandManifest:
     """Extract complete metadata from function signature.
 
@@ -167,8 +167,6 @@ def get_function_info(
     provide proper UI defaults. This fallback is used only for functions
     without explicit manifest attributes.
     """
-    if isinstance(f, type(FunctionBlock)):
-        f = f.__call__
     sig = inspect.signature(f)
     p = sig.parameters
 
@@ -196,16 +194,6 @@ def get_function_info(
         "doc": inspect.getdoc(f) or "",
         "args": args,
     }
-    return d
-
-
-def getContextFunctionInfo(f):
-    p = inspect.signature(f).parameters
-    d = {
-        "doc": inspect.getdoc(f),
-        "args": [[i, paramDefault(p[i])] for i in p][1:],
-    }
-
     return d
 
 
@@ -368,7 +356,7 @@ class CooldownBlock(FunctionBlock):
         self.credits = 0
         self.timestamp = 0
 
-    def call(self, limit="1", window="1.0", **kwds: Any) -> Any:
+    def call(self, limit=1.0, window=1.0, **kwds: Any) -> Any:
         self.credits = min(
             float(limit),
             self.credits
@@ -668,8 +656,8 @@ class ScriptActionKeeper:
         if isinstance(value, FunctionType):
 
             class LegacyFunctionWrapper(StatelessFunction):
-                doc = get_function_info(value)["doc"]
-                args = get_function_info(value)["args"]
+                doc = _legacy_get_function_info(value)["doc"]
+                args = _legacy_get_function_info(value)["args"]
 
                 def call(self, *args, **kwargs):
                     return value(*args, **kwargs)
@@ -1053,6 +1041,8 @@ class BaseChandlerScriptContext:
 
     def preprocessArgument(self, a: Any):
         if isinstance(a, str):
+            if not a:
+                return None
             if a.startswith("="):
                 return self.eval(a[1:])
             # Looks like a number, it is a number

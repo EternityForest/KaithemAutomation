@@ -17,7 +17,7 @@ from kaithem.api.midi import list_midi_inputs
 from kaithem.api.web import has_permission
 from kaithem.api.widgets import APIWidget
 
-from .. import assetlib, directories, scriptbindings, tagpoints
+from .. import assetlib, directories, tagpoints
 from ..alerts import getAlertState
 from ..auth import canUserDoThis
 from . import (
@@ -329,7 +329,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         ch_info = {}
         for i in c:
             f = c[i]
-            ch_info[i] = scriptbindings.get_function_info(f)
+            ch_info[i] = f.manifest()
 
         env_desc = {
             "builtinEvents": core.BUILTIN_EVENTS,

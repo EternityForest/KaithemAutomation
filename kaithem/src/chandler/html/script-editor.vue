@@ -188,7 +188,7 @@ p.small {
           </div>
           <button
             v-on:click="
-              rules[selectedBindingIndex].actions.splice(
+              rules[selectedBindingIndex].commands.splice(
                 selectedCommandIndex,
                 1
               );
@@ -202,7 +202,7 @@ p.small {
             :disabled="disabled"
             v-on:click="
               swapArrayElements(
-                rules[selectedBindingIndex].actions,
+                rules[selectedBindingIndex].commands,
                 selectedCommandIndex,
                 selectedCommandIndex - 1
               );
@@ -215,11 +215,11 @@ p.small {
             :disabled="disabled"
             v-if="
               selectedCommandIndex <
-              rules[selectedBindingIndex].actions.length - 1
+              rules[selectedBindingIndex].commands.length - 1
             "
             v-on:click="
               swapArrayElements(
-                rules[selectedBindingIndex].actions,
+                rules[selectedBindingIndex].commands,
                 selectedCommandIndex,
                 selectedCommandIndex + 1
               );
@@ -260,7 +260,7 @@ p.small {
 
             <div class="flex-row gaps w-full padding nogaps">
               <div
-                v-for="(action, action_idx) in rule.actions"
+                v-for="(action, action_idx) in rule.commands"
                 data-testid="rule-command"
                 :key="action_idx"
                 style="display: flex"
@@ -309,7 +309,7 @@ p.small {
                   style="align-self: stretch; flex-grow: 1"
                   :disabled="disabled"
                   v-on:click="
-                    rule.actions.push({ command: 'pass' });
+                    rule.commands.push({ command: 'pass' });
                     $emit('update:modelValue', rules);
                   ">
                   <b>Add Action</b>
@@ -324,7 +324,7 @@ p.small {
             v-on:click="
               rules.push({
                 event: 'cue.enter',
-                actions: [{ command: 'goto', group: '=GROUP', cue: '' }],
+                commands: [{ command: 'goto', group: '=GROUP', cue: '' }],
               });
               $emit('update:modelValue', rules);
             ">
@@ -367,7 +367,7 @@ export default {
       }
       if (this.rules[this.selectedBindingIndex]) {
         const rule = this.rules[this.selectedBindingIndex];
-        const actions = rule.actions || [];
+        const actions = rule.commands || [];
         if (actions[this.selectedCommandIndex]) {
           return actions[this.selectedCommandIndex];
         }
@@ -381,7 +381,7 @@ export default {
 
       getArgMetadata(commandName, argumentName) {
         if (commandName in this.commands) {
-          return this.commands[commandName].arguments[argumentName];
+          return this.commands[commandName].args[argumentName];
         }
         return {};
       },

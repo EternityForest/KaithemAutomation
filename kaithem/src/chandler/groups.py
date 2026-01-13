@@ -44,7 +44,7 @@ from .cue import (
 )
 from .fs_cue_provider import FilesystemCueProvider
 from .global_actions import cl_trigger_shortcut_code
-from .group_context_commands import add_context_commands, rootContext
+from .group_context_commands import rootContext
 from .group_lighting import GroupLightingManager
 from .group_scheduling import get_schedule_jump_point
 from .mathutils import ease, number_to_note
@@ -503,8 +503,6 @@ class Group:
         # The bindings for script commands that might be in the cue metadata
         # Used to be made on demand, now we just always have it
         self.script_context = self.make_script_context()
-
-        add_context_commands(self)
 
         self.refresh_rules()
 
