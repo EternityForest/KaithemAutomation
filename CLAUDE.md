@@ -11,7 +11,9 @@
 * Plugins in kaithem/src/plugins get discovered and imported
 * We use a Quart based web UI
 * pages.require("permission_name") is used to secure those endpoints
-
+* New dynamic UI pages compile with Vite as a multi page app
+* Very simple UI pages can use server side Jinja2, but Mako is deprecated legacy work
+* /static/vite URLs map to /kaithem/data/static/vite
 ## Links / Authority
 
 - STYLE.md
