@@ -85,7 +85,11 @@ def listsoundfolder(path: str, extra_folders: list[str] = []):
     if not match:
         return [
             [
-                [i + ("/" if not i.endswith("/") else ""), soundfolders[i]]
+                [
+                    i + ("/" if not i.endswith("/") else ""),
+                    soundfolders[i],
+                    soundfolders[i],
+                ]
                 for i in soundfolders
             ],
             [],
@@ -98,7 +102,7 @@ def listsoundfolder(path: str, extra_folders: list[str] = []):
             if os.path.isdir(os.path.join(path, i))
         ],
         [
-            [os.path.join(path, i), i]
+            [os.path.relpath(os.path.join(path, i), match), i]
             for i in os.listdir(path)
             if os.path.isfile(os.path.join(path, i))
         ],

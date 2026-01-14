@@ -186,5 +186,6 @@ app = kaithem.api.apps_page.App(
     title="System Console",
     url="/webconsole",
 )
+app.icon = "/static/img/16x9/scifi-control-room.avif"
 
 kaithem.api.apps_page.add_app(app)

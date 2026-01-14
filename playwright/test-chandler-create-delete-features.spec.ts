@@ -61,11 +61,11 @@ test("test", async ({ page }) => {
     .click();
   await page
     .getByTestId("media-browser-container")
-    .getByText("kaithem/data/static/")
+    .getByText("Builtin")
     .click();
   await page
     .getByTestId("media-browser-container")
-    .getByText("kaithem/data/static/sounds/")
+    .getByText("sounds/")
     .click();
   await page
     .getByRole("row", { name: "220176__gameaudio__confirm-" })

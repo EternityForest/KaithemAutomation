@@ -104,8 +104,9 @@ test("test", async ({ page }) => {
     .getByRole("button", { name: "Go", exact: true })
     .click();
 
+  
   //Select the group box in the sidebar that tells us what the cue is
-  await expect(page.getByText("tst1alert")).toContainText("alert");
+  await expect(page.getByTestId("sidebar-active-cue-name")).toHaveText(/.*x72125 *kizilsungur *sweetalertsound1.*/);
   // Channel adding tab
   await page.getByTestId("add-rm-fixtures-button").click();
   // Add raw dmx channek;

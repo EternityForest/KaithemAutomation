@@ -82,7 +82,7 @@ test("test", async ({ page }) => {
     .click();
   await page
     .getByTestId("media-browser-container")
-    .getByText("/static")
+    .getByText("Builtin")
     .click();
   await page.getByTestId("media-browser-container").getByText("img/").click();
   await page.getByTestId("media-browser-container").getByText("16x9/").click();
@@ -99,11 +99,11 @@ test("test", async ({ page }) => {
     .click();
   await page
     .getByTestId("media-browser-container")
-    .getByText("/static")
+    .getByText("Builtin")
     .click();
   await page
     .getByTestId("media-browser-container")
-    .getByText("/sounds")
+    .getByText("sounds/")
     .click();
 
   await page
