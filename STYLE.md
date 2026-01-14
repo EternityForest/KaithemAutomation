@@ -182,6 +182,8 @@
 
 * While() loops must have safety counters or upper bounds unless intended to run forever.
 
+* Functions should not just ignore incorrect inputs, raise exceptions if something is not working as intended.
+
 * Do not just ignore true errors without logging them
 
 * Avoid returning mutable references to persistent state, unless you intend for the caller to modify the persistent state

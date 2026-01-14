@@ -128,6 +128,27 @@ properties:
   rules:
     type: array
     default: []
+    section: rules
+    icon: script-text-outline
+
+    items:
+      type: object
+      properties:
+        event:
+          type: string
+
+        actions:
+          type: array
+          items:
+            type: object
+            properties:
+              command:
+                type: string
+                pattern: "^[A-Za-z0-9_]+$"
+
+            additionalProperties:
+              type: string
+
 
   probability:
     type: string

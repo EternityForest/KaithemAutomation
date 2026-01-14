@@ -55,7 +55,9 @@ object, and must be explicitly called.
 * :bug: Fix sd protection script ability to disable swap on newer pi os
 
 
-- :coffin: Remove online assets lib due to poor performance, unofficial APIs, and complexity.
+* :coffin: BREAKING: The plugin API for creating new chandler functions has changed but should still work for now. Migrate ASAP though.
+* :coffin: BREAKING: Remove is_day, is_night, is_light, etc functions from Chandler scripts. Use the tag points.
+* :coffin: Remove online assets lib due to poor performance, unofficial APIs, and complexity.
 
 ### 0.93.1
 

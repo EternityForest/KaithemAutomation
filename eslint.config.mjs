@@ -73,6 +73,13 @@ export default [
           },
         },
       ],
+
+      "vue/no-unused-vars": [
+        "error",
+        {
+          ignorePattern: "^_",
+        },
+      ],
       "@typescript-eslint/no-unused-vars": [
         "error",
         {

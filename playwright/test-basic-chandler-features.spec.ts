@@ -27,7 +27,7 @@ test("test", async ({ page }) => {
 
   // Add rule and edit the default example action
   await page.getByRole("button", { name: "Add Rule" }).click();
-  await page.getByRole("button", { name: "goto =GROUP" }).click();
+  await page.getByRole("button", { name: "goto" }).click();
 
   // Action params editor has a cue field
   // When we go into default cue it should redirect to c2
@@ -104,8 +104,9 @@ test("test", async ({ page }) => {
     .getByRole("button", { name: "Go", exact: true })
     .click();
 
+  
   //Select the group box in the sidebar that tells us what the cue is
-  await expect(page.getByText("tst1alert")).toContainText("alert");
+  await expect(page.getByTestId("sidebar-active-cue-name")).toHaveText(/.*x72125 *kizilsungur *sweetalertsound1.*/);
   // Channel adding tab
   await page.getByTestId("add-rm-fixtures-button").click();
   // Add raw dmx channek;

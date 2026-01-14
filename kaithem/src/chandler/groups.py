@@ -44,7 +44,7 @@ from .cue import (
 )
 from .fs_cue_provider import FilesystemCueProvider
 from .global_actions import cl_trigger_shortcut_code
-from .group_context_commands import add_context_commands, rootContext
+from .group_context_commands import rootContext
 from .group_lighting import GroupLightingManager
 from .group_scheduling import get_schedule_jump_point
 from .mathutils import ease, number_to_note
@@ -151,14 +151,14 @@ cue_transition_rate_limiter = ratelimits.RateLimiter(hz=20, burst=20)
 
 
 class DebugScriptContext(scriptbindings.ChandlerScriptContext):
-    def __init__(self, groupObj: Group, *a, **k):
-        self.groupObj = weakref.ref(groupObj)
-        self.groupName: str = groupObj.name
-        self.groupId = groupObj.id
+    def __init__(self, parent_group: Group, *a, **k):
+        self.parent_group: weakref.ref[Group] = weakref.ref(parent_group)
+        self.groupName: str = parent_group.name
+        self.groupId = parent_group.id
         super().__init__(*a, **k)
 
     def onVarSet(self, k, v):
-        group = self.groupObj()
+        group = self.parent_group()
         if group:
             group.on_scripting_var_set(k, v)
 
@@ -170,7 +170,7 @@ class DebugScriptContext(scriptbindings.ChandlerScriptContext):
         timestamp=None,
         sync=False,
     ):
-        group = self.groupObj()
+        group = self.parent_group()
         if not group:
             return
         if evt.strip().startswith("@"):
@@ -188,7 +188,7 @@ class DebugScriptContext(scriptbindings.ChandlerScriptContext):
             print(traceback.format_exc())
 
     def onTimerChange(self, timer, nextRunTime):
-        group = self.groupObj()
+        group = self.parent_group()
         if group:
             group.runningTimers[timer] = nextRunTime
             try:
@@ -503,8 +503,6 @@ class Group:
         # The bindings for script commands that might be in the cue metadata
         # Used to be made on demand, now we just always have it
         self.script_context = self.make_script_context()
-
-        add_context_commands(self)
 
         self.refresh_rules()
 
@@ -1662,11 +1660,11 @@ class Group:
 
                     loopPrevent[x.strip()] = True
 
-                    self.script_context.addBindings(self.cues[x].rules)
+                    self.script_context.addBindingsFromDict(self.cues[x].rules)
                     x = self.cues[x].inherit_rules
 
                 if "__rules__" in self.cues:
-                    self.script_context.addBindings(
+                    self.script_context.addBindingsFromDict(
                         self.cues["__rules__"].rules
                     )
 

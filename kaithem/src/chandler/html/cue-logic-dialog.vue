@@ -75,8 +75,7 @@
       v-bind:example_events="example_events"
       :modelValue="currentcue.rules"
       @update:model-value="setcueproperty(currentcue.id, 'rules', $event)"
-      v-bind:commands="availablecommands"
-      v-bind:groups="cueNamesByGroupName()"
+      v-bind:commands="chandlerScriptEnvironment.commands"
       v-bind:vars="editinggroup.vars"
       v-bind:parentgroup="editinggroup.name"
       :disabled="no_edit">
@@ -127,7 +126,7 @@
 
 <script>
 import { dictView, useBlankDescriptions, formatInterval } from "./utils.mjs";
-
+import { chandlerScriptEnvironment } from "./boardapi.mjs";
 const example_events_base = [
   ["now", "Run when script loads"],
   ["cue.exit", "When exiting the cue"],
@@ -178,24 +177,27 @@ export default {
     "groupmeta",
     "groupcues",
     "availabletags",
-    "availablecommands",
     "unixtime",
   ],
   data: function () {
     let d = {};
-    d.gotoGroupCuesCompleter = this.gotoGroupCuesCompleter.bind(this);
-    d.gotoGroupNamesCompleter = this.gotoGroupNamesCompleter.bind(this);
-    d.cueNamesByGroupName = this.cueNamesByGroupName.bind(this);
+    d.CueName = this.cueRefCompleter.bind(this);
+    d.GroupName = this.groupRefCompleter.bind(this);
     d.defaultExpressionCompleter = this.defaultExpressionCompleter.bind(this);
-    d.tagpointsCompleter = this.tagpointsCompleter.bind(this);
-    return { completers: d };
+    d.TagpointName = this.tagpointsCompleter.bind(this);
+    return {
+      completers: d,
+      chandlerScriptEnvironment: chandlerScriptEnvironment,
+
+
+     };
   },
   methods: {
     dictView: dictView,
     useBlankDescriptions: useBlankDescriptions,
     formatInterval: formatInterval,
 
-    gotoGroupNamesCompleter: function (_dummy) {
+    groupRefCompleter: function (_dummy) {
       let c = [["=GROUP", "This group"]];
 
       let x = this.groupmeta;
@@ -210,9 +212,9 @@ export default {
       return c;
     },
 
-    gotoGroupCuesCompleter: function (a) {
+    cueRefCompleter: function (a) {
       let c = [];
-      let n = a[1];
+      let n = a.group;
       if (n.includes("=GROUP")) {
         n = this.editinggroup.name;
       }

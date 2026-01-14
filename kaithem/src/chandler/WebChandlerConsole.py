@@ -17,7 +17,7 @@ from kaithem.api.midi import list_midi_inputs
 from kaithem.api.web import has_permission
 from kaithem.api.widgets import APIWidget
 
-from .. import directories, scriptbindings, tagpoints
+from .. import directories, tagpoints
 from ..alerts import getAlertState
 from ..auth import canUserDoThis
 from . import (
@@ -85,7 +85,11 @@ def listsoundfolder(path: str, extra_folders: list[str] = []):
     if not match:
         return [
             [
-                [i + ("/" if not i.endswith("/") else ""), soundfolders[i]]
+                [
+                    i + ("/" if not i.endswith("/") else ""),
+                    soundfolders[i],
+                    soundfolders[i],
+                ]
                 for i in soundfolders
             ],
             [],
@@ -98,7 +102,7 @@ def listsoundfolder(path: str, extra_folders: list[str] = []):
             if os.path.isdir(os.path.join(path, i))
         ],
         [
-            [os.path.join(path, i), i]
+            [os.path.relpath(os.path.join(path, i), match), i]
             for i in os.listdir(path)
             if os.path.isfile(os.path.join(path, i))
         ],
@@ -313,6 +317,20 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 ]
             )
 
+    def _send_environment_description(self):
+        """Send environment description with builtin events and command metadata."""
+        c = groups.rootContext.commands.scriptcommands
+        ch_info = {}
+        for i in c:
+            f = c[i]
+            ch_info[i] = f.manifest()
+
+        env_desc = {
+            "builtinEvents": core.BUILTIN_EVENTS,
+            "commands": ch_info,
+        }
+        self.linkSend(["environmentDescription", env_desc])
+
     def _onmsg(self, user: str, msg: list[Any], sessionid: str):
         # Getters
 
@@ -360,12 +378,12 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             return
 
         elif cmd_name == "getCommands":
-            c = groups.rootContext.commands.scriptcommands
-            ch_info = {}
-            for i in c:
-                f = c[i]
-                ch_info[i] = scriptbindings.get_function_info(f)
-            self.linkSend(["commands", ch_info])
+            # Also handle new "getEnvironmentDescription" for consistency
+            self._send_environment_description()
+            return
+
+        elif cmd_name == "getEnvironmentDescription":
+            self._send_environment_description()
             return
 
         elif cmd_name == "getconfuniverses":

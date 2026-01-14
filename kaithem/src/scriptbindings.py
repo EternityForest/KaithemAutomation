@@ -15,17 +15,16 @@ import traceback
 import weakref
 from collections.abc import Callable
 from types import FunctionType, MethodType
-from typing import Any
+from typing import Any, TypedDict
 
+import pydantic
 import simpleeval
 from scullery import workers
 from scullery.scheduling import scheduler
 
 from kaithem.api import lifespan
-from kaithem.src.validation_util import validate_args
 
-from . import astrallibwrapper as sky
-from . import geolocation, settings_overrides, tagpoints, util
+from . import settings_overrides, tagpoints, util
 
 """This file implements ChandlerScript, a DSL for piplines of events triggered by
 commands, called bindings.
@@ -66,9 +65,8 @@ It must look like:
 {
     "description":"Foo",
     "args":[
-        ["arg1Name","int",default,min,max],
-        ["arg2Name",'str','Default'],
-        ["arg3,"SomeOtherType", "SomeOtherData"]
+        {"name":"foo","type":"str","default":"bar"},
+        {"name":"bar","type":"int","default":"1"}
     ]
 }
 
@@ -79,6 +77,40 @@ If there is an unrecognized type, it is treated as a string.
 
 
 simpleeval.MAX_POWER = 1024
+
+
+# Command metadata type definitions
+class CommandArgManifest(TypedDict):
+    """Metadata for a single command argument."""
+
+    name: str  # Parameter name
+    type: str  # Type hint string (str, float, int, bool, etc)
+    default: str  # UI display default (must be explicit string)
+
+
+class CommandManifest(TypedDict):
+    """Metadata for a complete command function."""
+
+    doc: str  # Docstring/description
+    args: list[CommandArgManifest]  # List of arguments
+
+
+class EventBindingCommandConfig(TypedDict):
+    command: str
+
+
+class LoadedEventBindingCommand(TypedDict):
+    command: FunctionBlock
+
+
+class EventBindingPipelineConfig(TypedDict):
+    event: str
+    commands: list[EventBindingCommandConfig]
+
+
+class LoadedEventBindingPipeline(TypedDict):
+    event: str
+    commands: list[LoadedEventBindingCommand]
 
 
 class NamespaceGetter:
@@ -117,31 +149,51 @@ def paramDefault(p):
     return ""
 
 
-def get_function_info(f: Callable[..., Any] | type[FunctionBlock]):
-    if isinstance(f, type(FunctionBlock)):
-        f = f.__call__
-    p = inspect.signature(f).parameters
+def _legacy_get_function_info(
+    f: Callable[..., Any],
+) -> CommandManifest:
+    """Extract complete metadata from function signature.
 
-    d = {
-        "doc": inspect.getdoc(f),
+    Returns metadata with enhanced arg information:
+    {
+        "doc": "...",
         "args": [
-            [i, paramDefault(p[i])] for i in p if paramDefault(p[i]) is not None
+            {"name": "argname", "type": "str", "default": ""},
+            ...
         ],
     }
 
-    if hasattr(f, "completionTags"):
-        d["completionTags"] = f.completionTags
+    Note: defaults are returned as empty strings. Explicit manifests should
+    provide proper UI defaults. This fallback is used only for functions
+    without explicit manifest attributes.
+    """
+    sig = inspect.signature(f)
+    p = sig.parameters
 
-    return d
+    # Build enhanced args list with name, type, and empty default
+    args: list[CommandArgManifest] = []
+    for param_name, param in p.items():
+        # Skip 'self' parameter
+        if param_name == "self":
+            continue
+        # Skip *args and **kwargs
+        if param.kind in (param.VAR_POSITIONAL, param.VAR_KEYWORD):
+            continue
+        # Skip parameters with no defaults (required parameters)
+        if param.default is param.empty:
+            continue
 
+        arg_info: CommandArgManifest = {
+            "name": param_name,
+            "type": "any",
+            "default": "",  # Explicit manifests must provide UI defaults
+        }
+        args.append(arg_info)
 
-def getContextFunctionInfo(f):
-    p = inspect.signature(f).parameters
-    d = {
-        "doc": inspect.getdoc(f),
-        "args": [[i, paramDefault(p[i])] for i in p][1:],
+    d: CommandManifest = {
+        "doc": inspect.getdoc(f) or "",
+        "args": args,
     }
-
     return d
 
 
@@ -155,85 +207,53 @@ def millis():
     return time.monotonic() * 1000
 
 
-# TODO separate the standard library stuff from this file?
-
-
-def is_day(lat=None, lon=None):
-    if lat is None:
-        if lon is None:
-            lat, lon = geolocation.getCoords()
-
-        if lat is None or lon is None:
-            raise RuntimeError(
-                "No server location set, fix this in system settings"
-            )
-    return sky.is_day(lat, lon)
-
-
-def is_night(lat=None, lon=None):
-    if lat is None:
-        if lon is None:
-            lat, lon = geolocation.getCoords()
-
-        if lat is None or lon is None:
-            raise RuntimeError(
-                "No server location set, fix this in system settings"
-            )
-    return sky.is_night(lat, lon)
-
-
-def is_light(lat=None, lon=None):
-    if lat is None:
-        if lon is None:
-            lat, lon = geolocation.getCoords()
-
-        if lat is None or lon is None:
-            raise RuntimeError(
-                "No server location set, fix this in system settings"
-            )
-    return sky.is_light(lat, lon)
-
-
-def is_dark(lat=None, lon=None):
-    if lon is None:
-        lat, lon = geolocation.getCoords()
-
-    else:
-        raise ValueError("You set lon, but not lst?")
-    if lat is None or lon is None:
-        raise RuntimeError(
-            "No server location set, fix this in system settings"
-        )
-
-    return sky.is_dark(lat, lon)
-
-
 def cfg(key: str):
     return settings_overrides.get_val(key)
 
 
 # API subject to change, user defined blocks not supported yets
 class FunctionBlock:
-    def __init__(self, ctx: ChandlerScriptContext, *args, **kwargs):
+    doc: str = ""
+    args: list[CommandArgManifest] = []
+
+    @classmethod
+    def manifest(cls) -> CommandManifest:
+        """Build manifest from class attributes."""
+        m: CommandManifest = {"doc": cls.doc, "args": cls.args}
+        return m
+
+    def get_script_context(self) -> BaseChandlerScriptContext:
+        return context_info.engine
+
+    def get_underscore_val(self) -> Any:
+        return context_info.engine.variables.get("_")
+
+    def __init__(self, ctx: BaseChandlerScriptContext, *args, **kwargs):
         self.ctx = ctx
 
     def call(self, *args, **kwargs):
-        return True
+        raise NotImplementedError
+
+    def close(self):
+        pass
 
 
-def makeFunctionBlock(c: Callable[[Any], Any]):
-    class FB(FunctionBlock):
-        def __call(self, *args, **kwargs):
-            return c(self.ctx, *args)
+class StatelessFunction(FunctionBlock):
+    """Base class for stateless command functions.
 
-    return FB
+    Define command metadata as class attributes (doc, args).
+    The manifest property auto-builds CommandManifest from these attributes.
+    """
 
 
 class OnChangeBlock(FunctionBlock):
+    doc = "Trigger only when input value changes from previous input"
+    args = [{"name": "input", "type": "str", "default": "=_"}]
+
     def __init__(self, ctx: ChandlerScriptContext, *args, **kwargs):
         self.lastValue = None
 
-    def __call__(self, input="=_", **kwds: Any) -> Any:
+    def call(self, input: Any = "=_", **kwds: Any) -> Any:
         """
         If the input is the same as the last input, or this is the first input, return None
         """
@@ -246,14 +266,61 @@ class OnChangeBlock(FunctionBlock):
             return self.lastValue
 
 
+class OnRisingEdgeBlock(FunctionBlock):
+    doc = "Trigger only when input value changes from falsy to truthy"
+    args = [{"name": "input", "type": "str", "default": "=_"}]
+
+    def __init__(self, ctx: ChandlerScriptContext, *args, **kwargs):
+        self.lastValue = True
+
+    def call(self, input: Any = "=_", **kwds: Any) -> Any:
+        if self.lastValue:
+            self.lastValue = input
+            return None
+        if not input:
+            self.lastValue = input
+            return None
+        else:
+            self.lastValue = input
+            return self.lastValue
+
+
+class OnCounterIncreaseBlock(FunctionBlock):
+    doc = "Trigger when the counter increases, or when it wraps back around"
+    args = [{"name": "input", "type": "str", "default": "=_"}]
+
+    def __init__(self, ctx: ChandlerScriptContext, *args, **kwargs):
+        self.lastValue = None
+
+    def call(self, input=0, **kwds: Any) -> Any:
+        if self.lastValue is None:
+            self.lastValue = input
+        elif self.lastValue == input:
+            return None
+
+        # When the counter wraps around
+        # If the difference is less that 255, it's probably not wrapping,
+        # It's probably just a race.
+        elif (input < self.lastValue) and (self.lastValue - input) < 255:
+            self.lastValue = input
+            return None
+        else:
+            self.lastValue = input
+            return self.lastValue
+
+
 class LowPassFilterBlock(FunctionBlock):
+    doc = "Low pass filter with the given time constant"
+    args = [
+        {"name": "input", "type": "number", "default": "=_"},
+        {"name": "tc", "type": "number", "default": "1.0"},
+    ]
+
     def __init__(self, ctx: ChandlerScriptContext, *args, **kwargs):
         self.state: float = 0.0
         self.t = 0
 
-    def __call__(self, input="=_", tc="1.0", **kwds: Any) -> Any:
-        """
-        Low Pass Filter with the given time constant"""
+    def call(self, input="=_", tc="1.0", **kwds: Any) -> Any:
         if self.t == 0:
             self.t = time.time()
             self.state = input  # type: ignore
@@ -279,12 +346,17 @@ class LowPassFilterBlock(FunctionBlock):
 
 
 class CooldownBlock(FunctionBlock):
+    doc = "Continue executing rule only N times per T seconds"
+    args = [
+        {"name": "limit", "type": "number", "default": "1"},
+        {"name": "window", "type": "number", "default": "1.0"},
+    ]
+
     def __init__(self, ctx: ChandlerScriptContext, *args, **kwargs):
         self.credits = 0
         self.timestamp = 0
 
-    def __call__(self, limit="1", window="1.0", **kwds: Any) -> Any:
-        """Continue executing rule only N times per T seconds"""
+    def call(self, limit=1.0, window=1.0, **kwds: Any) -> Any:
         self.credits = min(
             float(limit),
             self.credits
@@ -294,26 +366,37 @@ class CooldownBlock(FunctionBlock):
 
         if self.credits >= 1:
             self.credits -= 1
-            return self.credits + 1
+            return self.get_underscore_val()
 
         return None
 
 
 class HysteresisBlock(FunctionBlock):
+    doc = "Add hysteresis to the input.  Only continues when changes are bigger than the window. "
+    args = [
+        {"name": "input", "type": "number", "default": "=_"},
+        {"name": "window", "type": "number", "default": "1.0"},
+    ]
+
     def __init__(self, ctx: ChandlerScriptContext, *args, **kwargs):
-        self.lastMark = 10**15
+        self.lastMark = None
 
-    def __call__(self, input="=_", window="1.0", **kwds: Any) -> Any:
-        """Add hysteresis to the input"""
+    def call(self, input=0.0, window=1.0, **kwds: Any) -> Any:
         v: float = input  # type: ignore
-        w: float = window  # type: ignore
+        w: float = window / 2  # type: ignore
 
-        if v > self.lastMark + (w / 2):
+        if self.lastMark is None:
             self.lastMark = v
-        elif v < self.lastMark - (w / 2):
-            self.lastMark = v
+            return None
 
-        return self.lastMark
+        elif v > self.lastMark + w:
+            self.lastMark = v - w
+            return v
+        elif v < self.lastMark - w:
+            self.lastMark = v + w
+            return v
+
+        return None
 
 
 globalUsrFunctions = {
@@ -329,10 +412,6 @@ globalUsrFunctions = {
     "sin": math.sin,
     "cos": math.cos,
     "sqrt": safesqrt,
-    "is_dark": is_dark,
-    "is_night": is_night,
-    "is_light": is_light,
-    "is_day": is_day,
     "cfg": cfg,
 }
 
@@ -340,48 +419,164 @@ globalUsrFunctions = {
 globalConstants = {"e": math.e, "pi": math.pi}
 
 
-def set_tag(name, value):
-    if name in tagpoints.allTagsAtomic:
-        t = tagpoints.allTagsAtomic[name]()
-        if t:
-            t.value = value
-            return
-    raise RuntimeError(f"Tag {name} not found")
+class ReturnValue(StatelessFunction):
+    doc = "Returns the parameter x, and continues the action (Unless the value is None)"
+    args = [{"name": "x", "type": "any", "default": ""}]
+
+    def call(self, x):
+        return x
 
 
-def rval(x):
-    "Returns the parameter x, and continues the action(Unless the value is None)"
-    return x
+class PassAction(StatelessFunction):
+    doc = "Does nothing and returns True, continuing the action"
+    args = []
+
+    def call(self):
+        return True
 
 
-def passAction():
-    "Does nothing and returns True, continuing the action"
-    return True
+class Maybe(StatelessFunction):
+    doc = "Return True with some percent chance, else stop the action"
+    args = [{"name": "chance", "type": "number", "default": "50"}]
+
+    def call(self, chance=50):
+        return True if random.random() * 100 > chance else None
 
 
-def maybe(chance=50):
-    "Return a True with some percent chance, else stop the action"
-    return True if random.random() * 100 > chance else None
+class ContinueIf(StatelessFunction):
+    doc = "Continue if the first parameter is True. The param can be an expression like '= event.value=50'"
+    args = [{"name": "v", "type": "str", "default": ""}]
+
+    def call(self, v):
+        return True if v else None
 
 
-def continue_if(v):
-    "Continue if the first parameter is True. Remember that the param can be an expression like '= event.value=50'"
-    return True if v else None
+class SetTag(FunctionBlock):
+    doc = (
+        "Set a Tagpoint. If a priority is given, set the given claim priority."
+    )
+    args = [
+        {
+            "name": "tag",
+            "type": "TagpointName",
+            "default": "foo",
+        },
+        {"name": "value", "type": "any", "default": "=0"},
+        {"name": "priority", "type": "number", "default": "0"},
+    ]
+
+    def __init__(self, ctx: ChandlerScriptContext, *args, **kwargs):
+        super().__init__(ctx, *args, **kwargs)
+        self.tagpoints = {}
+        self.tagHandlers = {}
+        self.tagClaims = {}
+
+    def close(self):
+        for i in self.tagClaims:
+            if not self.tagClaims[i].name == "default":
+                self.tagClaims[i].release()
+        self.tagClaims = {}
+
+    def call(
+        self,
+        tag="chandlerscript_tag_foo",
+        value: float | int | str = 0,
+        priority=0,
+    ):
+        """Set a Tagpoint.
+
+        If a priority is given, set the given claim priority, and the claim
+        will persist until it is released or the group is stopped.
+
+        If priority empty or zero, just set the default base value layer,
+        and the value will stay until overwritten or the tag is deleted.
+
+        Use a value of None to unset existing tags. If the tag does not
+
+        exist, the type is auto-guessed based on the type of the value.
+        None will silently return and do nothing if the tag does not exist.
+        """
+
+        if not tag[0] == "/":
+            tag = f"/{tag}"
+
+        tagType = None
+        if str(priority).strip():
+            priority = float(priority)
+        else:
+            priority = None
+
+        if not tagType:
+            if isinstance(value, str):
+                tagType = tagpoints.StringTag
+            elif value is not None:
+                tagType = tagpoints.Tag
+            elif value is None:
+                # Semi idempotence, no need to set if it is not already there.
+                if tag not in self.tagClaims:
+                    return True
+
+        if tagType is None:
+            raise ValueError("Could not guess proper tag type")
+
+        if tag in self.tagClaims:
+            tc = self.tagClaims[tag]
+            if value is None:
+                tc.release()
+                del self.tagClaims[tag]
+                return True
+            else:
+                tc.set(value)
+                self.get_script_context().setVar(f"$tag:{tag}", value, True)
+        else:
+            self.tagpoints[tag] = tagType(tag)
+
+            if priority:
+                tc = tagType(tag).claim(
+                    value=value,  # type: ignore
+                    priority=priority,
+                    name="ChandlerFunctionBlock",
+                )
+            else:
+                tc = tagType(tag).default_claim
+
+            self.tagClaims[tag] = tc
+
+            tc.set(value)
+            self.get_script_context().setVar(f"$tag:{tag}", value, True)
+
+        return True
+
+
+class Shell(StatelessFunction):
+    doc = "Run a system shell command line and return the output as the next command's _"
+    args = [{"name": "cmd", "type": "str", "default": ""}]
+
+    def call(self, cmd: str):
+        """Run a system shell command line and return the output as the next command's _"""
+        return (
+            subprocess.check_output(cmd, shell=True, timeout=10)
+            .decode("utf-8")
+            .strip()
+        )
 
 
 # Use context_info.event from inside any function, the value will be a (name,value) tuple for the event
 context_info = threading.local()
 
-predefinedcommands: dict[str, Callable[..., Any] | type[FunctionBlock]] = {
-    "return": rval,
-    "pass": passAction,
-    "maybe": maybe,
-    "continue_if": continue_if,
+predefinedcommands: dict[str, type[FunctionBlock]] = {
+    "return": ReturnValue,
+    "pass": PassAction,
+    "maybe": Maybe,
+    "continue_if": ContinueIf,
     "on_change": OnChangeBlock,
     "lowpass": LowPassFilterBlock,
     "hysteresis": HysteresisBlock,
+    "on_rising_edge": OnRisingEdgeBlock,
+    "on_count": OnCounterIncreaseBlock,
     "cooldown": CooldownBlock,
-    "set_tag": set_tag,
+    "set_tag": SetTag,
+    "shell": Shell,
 }
 
 
@@ -438,10 +633,12 @@ class ScriptActionKeeper:
     of two hours spent debugging at 2am, and my desire to avoid repeating that"""
 
     def __init__(self):
-        self.scriptcommands = weakref.WeakValueDictionary()
+        self.scriptcommands: weakref.WeakValueDictionary[
+            str, type[FunctionBlock]
+        ] = weakref.WeakValueDictionary()
         self.debug_refs = {}
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value: type[FunctionBlock] | FunctionType):
         if not isinstance(key, str):
             raise TypeError("Keys must be string function names")
 
@@ -453,38 +650,31 @@ class ScriptActionKeeper:
             or isinstance(value, type(FunctionBlock))
         ):
             raise TypeError(
-                "Script commands must be functions or subclasses of FunctionBlock"
+                "Script commands must be functions, StatelessFunction instances, or subclasses of FunctionBlock"
             )
 
-        if isinstance(value, type(FunctionBlock)):
-            # Ignore the self param
-            p = inspect.signature(value.__call__).parameters
+        if isinstance(value, FunctionType):
+
+            class LegacyFunctionWrapper(StatelessFunction):
+                doc = _legacy_get_function_info(value)["doc"]
+                args = _legacy_get_function_info(value)["args"]
+
+                def call(self, *args, **kwargs):
+                    return value(*args, **kwargs)
+
+            self.scriptcommands[key] = LegacyFunctionWrapper
         else:
-            p = inspect.signature(value).parameters
+            self.scriptcommands[key] = value
 
-        for i in p:
-            if i == "self":
-                continue
-            # Ignore kw only
-            if p[i].kind in (p[i].KEYWORD_ONLY, p[i].VAR_POSITIONAL):
-                continue
-
-            if (
-                (not p[i].default == p[i].empty)
-                and p[i].default
-                and not isinstance(p[i].default, str | int | bool)
-            ):
-                raise ValueError(
-                    "All default values must be int, string, or bool, not "
-                    + str(p[i].default)
-                )
-
-        self.scriptcommands[key] = value
+        # Cache metadata at registration time
+        if hasattr(value, "manifest"):
+            manifest: CommandManifest = value.manifest()  # type: ignore
+            self._validate_manifest(key, value, manifest)
 
         def warn_chandler_gc(x):
             # Lifespan will be None during system exit
             if lifespan and not lifespan.is_shutting_down:
-                print(f"Chandler action {x} is no longer valid")
+                print(f"Chandler action {key} is no longer valid")
 
         self.debug_refs[key] = weakref.ref(value, warn_chandler_gc)
 
@@ -496,6 +686,29 @@ class ScriptActionKeeper:
 
     def get(self, k, d):
         return self.scriptcommands.get(k, d)
+
+    def _validate_manifest(
+        self,
+        name: str,
+        func: Callable[..., Any] | type[FunctionBlock] | StatelessFunction,
+        manifest: CommandManifest,
+    ) -> None:
+        """Validate that manifest matches function signature."""
+        if isinstance(func, type(FunctionBlock)):
+            sig = inspect.signature(func.call)
+        elif isinstance(func, StatelessFunction):
+            sig = inspect.signature(func.call)
+        else:
+            sig = inspect.signature(func)
+
+        params = [p for p in sig.parameters if p != "self"]
+        manifest_args = [arg["name"] for arg in manifest["args"]]
+
+        if params != manifest_args:
+            raise ValueError(
+                f"Command '{name}' manifest args {manifest_args} "
+                f"don't match signature params {params}"
+            )
 
 
 class Event:
@@ -529,12 +742,12 @@ class BaseChandlerScriptContext:
 
         # Map event names to a list of pipelines, where each pipeline
         # is a list of commands, a command being a list of strings.
-        self.event_listeners: dict[str, list[list[list[str]]]] = {}
+        self.event_listeners: list[LoadedEventBindingPipeline] = []
+
         self.variables: dict[str, Any] = (
             variables if variables is not None else {}
         )
         self.commands = ScriptActionKeeper()
-        self.context_commands = ScriptActionKeeper()
 
         self.children: dict[int, weakref.ref[BaseChandlerScriptContext]] = {}
         self.children_iterable: dict[
@@ -625,9 +838,6 @@ class BaseChandlerScriptContext:
         self.setter = setter
         self.commands["set"] = setter
 
-        for i in predefinedcommands:
-            self.commands[i] = predefinedcommands[i]
-
         def defaultVar(name, default):
             try:
                 return self._nameLookup(name)
@@ -676,57 +886,13 @@ class BaseChandlerScriptContext:
         with self.gil:
             for i in self.event_listeners:
                 try:
-                    # Edge trigger
-                    if i.startswith("=/"):
-                        # Change =/ to just =
+                    if i["event"].startswith("="):
                         self.eval_times = 0
-                        r = self.preprocessArgument(f"={i[2:]}")
-                        if r:
-                            if (i in self.risingEdgeDetects) and (
-                                not self.risingEdgeDetects[i]
-                            ):
-                                self.risingEdgeDetects[i] = True
-                                self.event(
-                                    i,
-                                    r,
-                                    timestamp=self.eval_times or time.time(),
-                                )
-                        else:
-                            self.risingEdgeDetects[i] = False
+                        r = self.preprocessArgument(i["event"])
+                        self.event(
+                            i["event"], r, self.eval_times or time.time()
+                        )
 
-                    elif i.startswith("=~"):
-                        self.eval_times = 0
-                        r = self.preprocessArgument(f"={i[2:]}")
-                        if (i in self.changeDetects) and (
-                            self.changeDetects[i] != r
-                        ):
-                            self.event(
-                                i, r, timestamp=self.eval_times or time.time()
-                            )
-
-                        self.changeDetects[i] = r
-
-                    # Counter trigger
-                    elif i.startswith("=+"):
-                        self.eval_times = 0
-                        r = self.preprocessArgument(f"={i[2:]}")
-                        if r:
-                            if (i in self.changeDetects) and (
-                                self.changeDetects[i] != r
-                            ):
-                                self.event(
-                                    i,
-                                    r,
-                                    timestamp=self.eval_times or time.time(),
-                                )
-
-                        self.changeDetects[i] = r
-
-                    elif i.startswith("="):
-                        self.eval_times = 0
-                        r = self.preprocessArgument(i)
-                        if r:
-                            self.event(i, r, self.eval_times or time.time())
                 except Exception:
                     self.event(
                         "script.error",
@@ -760,44 +926,28 @@ class BaseChandlerScriptContext:
     def onTimerChange(self, timer, nextRunTime):
         pass
 
-    def lookupCommand(self, c: FunctionBlock | str):
-        if isinstance(c, FunctionBlock):
-            return c
-        else:
-            a = self.commands.get(c, None)
-            a = self.context_commands.get(c, a)
-            return a
-
-    def _runCommand(self, c):
-        # ContextCommands take precedence
-
-        a = self.lookupCommand(c[0])
-
-        seen = {}
-
-        p = self
-
-        while not a:
-            if id(p) in seen:
-                break
-            seen[id(p)] = True
-
-            p = p.parentContext
-            if p:
-                a = p.commands.get(c[0], None)
-                a = p.context_commands.get(c[0], a)
-            else:
-                break
-
+    def lookup_command(self, c: str) -> type[FunctionBlock]:
+        a = self.commands.get(c, None)
         if a:
-            try:
-                return a(*[self.preprocessArgument(i) for i in c[1:]])
-            except Exception:
-                raise RuntimeError(
-                    f"Error running chandler command: {str(c)[:1024]}"
-                )
+            return a
+        if self.parentContext:
+            return self.parentContext.lookup_command(c)
         else:
-            raise ValueError(f"No such command: {c}")
+            if c in predefinedcommands:
+                return predefinedcommands[c]
+
+        raise ValueError(f"No such command: {c}")
+
+    def _runCommand(self, c: LoadedEventBindingCommand):
+        # ContextCommands take precedence
+        f: Callable = c["command"].call
+
+        args = {}
+        for i in c:
+            if i != "command":
+                args[i] = self.preprocessArgument(c[i])
+
+        return f(**args)
 
     def stopAfterThisHandler(self):
         "Don't handle any more bindings for this event, but continue the current binding"
@@ -831,6 +981,7 @@ class BaseChandlerScriptContext:
 
         # Tell any functions we call that they are running at elevated depth.
         self.eventRecursionDepth.d = depth + 1
+        context_info.engine = self
 
         try:
             if self.eventRecursionDepth.d > 8:
@@ -849,16 +1000,17 @@ class BaseChandlerScriptContext:
 
             self.stopScriptFlag = False
             try:
-                if evt in self.event_listeners:
-                    handled = True
-                    for pipeline in self.event_listeners[evt]:
+                for pipeline in self.event_listeners:
+                    if evt == pipeline["event"]:
+                        handled = True
                         if self.stopScriptFlag:
                             break
-                        for command in pipeline:
+                        for command in pipeline["commands"]:
                             x = self._runCommand(command)
                             if x is None:
                                 break
                             self.variables["_"] = x
+
             except Exception:
                 logging.exception("Error running script command")
                 self.event(
@@ -889,6 +1041,8 @@ class BaseChandlerScriptContext:
 
     def preprocessArgument(self, a: Any):
         if isinstance(a, str):
+            if not a:
+                return None
             if a.startswith("="):
                 return self.eval(a[1:])
             # Looks like a number, it is a number
@@ -916,9 +1070,12 @@ class BaseChandlerScriptContext:
             return self.eventValueStack[-1]
 
         if n in self.variables:
+            self.need_refresh_for_variable[n] = True
             return self.variables[n]
+
         if n in globalConstants:
             return globalConstants[n]
+
         if n in self.constants:
             return self.constants[n]
 
@@ -947,55 +1104,153 @@ class BaseChandlerScriptContext:
     def onVarSet(self, k: str, v: Any):
         pass
 
-    @validate_args
-    def addBindings(self, b: list[list[str | list[list[str]]]]):
-        """
-        Take a list of bindings and add them to the context.
-        A binding looks like:
-        ['eventname',[['command','arg1'],['command2']]
+    def addBindings(
+        self,
+        b: list[EventBindingPipelineConfig] | list[list[str | list[list[str]]]],
+    ):
+        """Add bindings, auto-converting old list format to dict format if needed."""
+        if not b:
+            return
 
-        When events happen commands run till one returns None.
+        # Auto-detect format and convert old lists to dicts
+        if isinstance(b[0], list):
+            self.addBindingsFromDict(self.migrate_old_bindings(b))  # type: ignore
+        else:
+            self.addBindingsFromDict(b)  # type: ignore
 
-        Also immediately runs any now events
+    def migrate_old_bindings(
+        self, old_bindings: list[list[str | list[list[str]]]]
+    ) -> list[EventBindingPipelineConfig]:
+        """Convert old list format to dict format.
+
+        Old format: [["event", [["cmd", "arg1"], ["cmd2"]]]]
+        New format: [{"event": "evt", "commands": [{"command": "cmd", ...}]}]
         """
-        b = copy.deepcopy(b)
+        result = []
+
+        for binding in old_bindings:
+            if not isinstance(binding, list) or len(binding) < 2:
+                continue
+
+            event_name = binding[0]
+            assert isinstance(event_name, str)
+
+            commands = binding[1] if isinstance(binding[1], list) else []
+
+            if event_name.startswith("=+"):
+                event_name = "=" + event_name[2:]
+                commands = [["on_count", "=_"]] + commands
+
+            elif event_name.startswith("=~"):
+                event_name = "=" + event_name[2:]
+                commands = [["on_change", "=_"]] + commands
+
+            elif event_name.startswith("=/"):
+                event_name = "=" + event_name[2:]
+                commands = [["on_rising_edge", "=_"]] + commands
+
+            elif event_name.startswith("="):
+                commands = [["continue_if", "=_ > 0"]] + commands
+
+            actions = []
+            for cmd in commands:
+                if not isinstance(cmd, list) or not cmd:
+                    raise ValueError(f"Invalid binding: {binding}")
+
+                cmd_name = cmd[0]
+                args = cmd[1:] if len(cmd) > 1 else []
+
+                # Get expected arg names for this command
+                arg_names = self._get_command_arg_names(cmd_name)
+
+                # Build action dict with command and arguments
+                action = {"command": cmd_name}
+                for arg_name, arg_value in zip(arg_names, args):
+                    action[arg_name] = arg_value
+
+                actions.append(action)
+
+            if event_name and actions:
+                result.append({"event": event_name, "commands": actions})
+
+        return result
+
+    def _import_dict_bindings(self, rules: list[EventBindingPipelineConfig]):
+        """Import dict-format bindings directly.
+
+        Args:
+            rules: Rules in dict format [{"event": "evt", "commands": [...]}]
+        """
+        rules = copy.deepcopy(rules)
+        loaded_rules: list[LoadedEventBindingPipeline] = []
+        has_now = False
+
         with self.gil:
-            # Cache is invalidated, bindings have changed
-            self.need_refresh_for_variable = {}
-            self.need_refresh_for_tag = {}
-            for i in b:
-                if not isinstance(i[0], str):
-                    raise ValueError(
-                        f"First item in binding must be str, got {i[0]}"
-                    )
+            for rule in rules:
+                event_name = rule.get("event", "")
 
-                if not isinstance(i[1], list):
-                    raise ValueError(
-                        f"Second item in binding must be command list, got {i[1]}"
-                    )
+                if event_name == "now":
+                    has_now = True
 
-                evt_name: str = i[0]
-                cmds: list[list[str]] = i[1]
+                actions: list[EventBindingCommandConfig] = rule["commands"]
 
-                if evt_name not in self.event_listeners:
-                    self.event_listeners[evt_name] = []
+                loaded_actions: list[LoadedEventBindingCommand] = []
 
-                for n, j in enumerate(cmds):
-                    try:
-                        x = self.lookupCommand(j[0])
-                        if isinstance(x, type(FunctionBlock)):
-                            cmds[n][0] = x(self, *j[1:])
+                for action in actions:
+                    cmd_name = action.get("command", "")
+                    if not cmd_name:
+                        raise ValueError(
+                            "Missing command in action: " + str(action)
+                        )
 
-                    except Exception as e:
-                        print(e)
-                        cmds[n][0] = "Bad command: " + str(e)
+                    # Handle FunctionBlock instantiation
+                    x = self.lookup_command(cmd_name)
+                    cmd = x(self)
 
-                self.event_listeners[evt_name].append(cmds)
-                self.onBindingAdded(i)
+                    a: LoadedEventBindingCommand = action  # type: ignore
+                    a["command"] = cmd
 
-            if "now" in self.event_listeners:
-                self.event("now")
-                del self.event_listeners["now"]
+                    loaded_actions.append(a)
+                loaded_rules.append(
+                    {"event": event_name, "commands": loaded_actions}
+                )
+
+            self.event_listeners.extend(loaded_rules)
+
+        if has_now:
+            self.event("now")
+            self.event_listeners = [
+                i for i in self.event_listeners if i["event"] != "now"
+            ]
+
+        # Need to do this at least once to make the bindings know what to
+        # Listen to
+        self.checkPollEvents()
+
+    def addBindingsFromDict(self, rules: list[EventBindingPipelineConfig]):
+        """Add bindings from dict format.
+
+        Native execution format: [{"event": "evt", "commands": [...]}]
+
+        Args:
+            rules: Rules in dict format
+        """
+        self._import_dict_bindings(rules)
+
+    def _get_command_arg_names(self, cmd_name: str) -> list[str]:
+        """Get parameter names in order for a command using cached metadata.
+
+        Args:
+            cmd_name: Name of the command
+
+        Returns:
+            List of parameter names in order, from cached metadata
+        """
+
+        # Check parent context
+        cmd = self.lookup_command(cmd_name)
+
+        return [arg["name"] for arg in cmd.manifest()["args"]]
 
     def onBindingAdded(self, evt):
         "Called when a binding is added that listens to evt"
@@ -1004,17 +1259,22 @@ class BaseChandlerScriptContext:
         needCheck = 0
         with self.gil:
             for i in self.event_listeners:
-                if i and i.strip()[0] == "@":
-                    if i not in self.time_events:
-                        self.time_events[i] = ScheduleTimer(i, self)
-                        self.onTimerChange(i, self.time_events[i].nextruntime)
-                if i == "script.poll":
+                event_name = i["event"]
+                if event_name.strip()[0] == "@":
+                    if event_name not in self.time_events:
+                        self.time_events[event_name] = ScheduleTimer(
+                            event_name, self
+                        )
+                        self.onTimerChange(
+                            event_name, self.time_events[event_name].nextruntime
+                        )
+                if event_name == "script.poll":
                     if not self.poller:
                         self.poller = scheduler.schedule_repeating(
                             self.poll, 1 / 24.0
                         )
                 # Really just a fallback for various insta-check triggers like tag changes
-                if i.strip().startswith("="):
+                if event_name.strip().startswith("="):
                     if not self.slowpoller:
                         needCheck = True
                         self.slowpoller = scheduler.schedule_repeating(
@@ -1032,11 +1292,18 @@ class BaseChandlerScriptContext:
         pass
 
     def clearBindings(self):
-        """Clear event bindings and associated data like timers.
-        Don't clear any binding for an event listed in preserve.
-        """
+        """Clear event bindings and associated data like timers."""
         with self.gil:
-            self.event_listeners = {}
+            for i in self.event_listeners:
+                for j in i["commands"]:
+                    if not isinstance(j["command"], StatelessFunction):
+                        j["command"].close()
+
+            # Cache is invalidated, bindings have changed
+            self.need_refresh_for_variable = {}
+            self.need_refresh_for_tag = {}
+
+            self.event_listeners = []
             for i in self.time_events:
                 self.time_events[i].stop()
             self.time_events = {}
@@ -1057,12 +1324,10 @@ class BaseChandlerScriptContext:
     def clearState(self):
         """Only called manually at times like stopping a chandler group"""
         with self.gil:
+            self.clearBindings()
+
             self.variables = {}
             self.changedVariables = {}
-            for i in self.tagClaims:
-                if not self.tagClaims[i].name == "default":
-                    self.tagClaims[i].release()
-            self.tagClaims = {}
 
 
 class ChandlerScriptContext(BaseChandlerScriptContext):
@@ -1127,97 +1392,12 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
         # Clear all the tagpoints that we may have been watching for changes
         self.tagHandlers = {}
         self.tagpoints: dict[str, tagpoints.GenericTagPointClass[Any]] = {}
-        self.need_refresh_for_variable = {}
-        self.need_refresh_for_tag = {}
 
     def __init__(self, *a, **k):
         BaseChandlerScriptContext.__init__(self, *a, **k)
 
-        def setTag(
-            tagName=f"{self.tagDefaultPrefix}foo", value="=0", priority="0"
-        ):
-            """Set a Tagpoint.
-
-            If a priority is given, set the given claim priority, and the claim
-            will persist until it is released or the group is stopped.
-
-            If priority empty or zero, just set the default base value layer,
-            and the value will stay until overwritten or the tag is deleted.
-
-            Use a value of None to unset existing tags. If the tag does not
-
-            exist, the type is auto-guessed based on the type of the value.
-            None will silently return and do nothing if the tag does not exist.
-            """
-
-            if not tagName[0] == "/":
-                tagName = f"/{tagName}"
-
-            self.need_refresh_for_tag = {}
-
-            tagType = None
-            if str(priority).strip():
-                priority = float(priority)
-            else:
-                priority = None
-
-            if not tagType:
-                if isinstance(value, str):
-                    tagType = tagpoints.StringTag
-                elif value is not None:
-                    tagType = tagpoints.Tag
-                elif value is None:
-                    # Semi idempotence, no need to set if it is not already there.
-                    if tagName not in self.tagClaims:
-                        return True
-
-            if tagType is None:
-                raise ValueError("Could not guess proper tag type")
-
-            if self.canGetTagpoint(tagName):
-                if tagName in self.tagClaims:
-                    tc = self.tagClaims[tagName]
-                    if value is None:
-                        tc.release()
-                        del self.tagClaims[tagName]
-                        return True
-                else:
-                    self.setupTag(tagType(tagName))
-
-                    if priority:
-                        tc = tagType(tagName).claim(
-                            value=value,
-                            priority=priority,
-                            name=f"{self.contextName}at{str(id(self))}",
-                        )
-                    else:
-                        tc = tagType(tagName).default_claim
-
-                    self.tagClaims[tagName] = tc
-
-                tc.set(value)
-                self.setVar(f"$tag:{tagName}", value, True)
-            else:
-                raise RuntimeError("This script context cannot access that tag")
-            return True
-
-        self.setTag = setTag
-        self.commands["set_tag"] = setTag
-        setTag.completionTags = {"tagName": "tagpointsCompleter"}  # type: ignore
-
-        def shell(cmd: str):
-            """Run a system shell command line and return the output as the next command's _"""
-            return (
-                subprocess.check_output(cmd, shell=True, timeout=10)
-                .decode("utf-8")
-                .strip()
-            )
-
-        self.shell = shell
-        self.commands["shell"] = shell
-        self.tagpoints = {}
         self.tagHandlers = {}
-        self.tagClaims = {}
+        self.tagpoints: dict[str, tagpoints.GenericTagPointClass[Any]] = {}
 
         def tagpoint(t):
             tagName = self.canGetTagpoint(t)
@@ -1248,6 +1428,20 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
         c["stv"] = stringtagpoint
 
         self.functions.update(c)
+
+
+@pydantic.validate_call(
+    config=pydantic.ConfigDict(arbitrary_types_allowed=True)
+)
+def migrate_rules(
+    context: BaseChandlerScriptContext,
+    rules: list[list[str | list[list[str]]]] | list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    if len(rules) == 0:
+        return []
+    if isinstance(rules[0], list):
+        return context.migrate_old_bindings(rules)  # type: ignore
+    return rules  # type: ignore
 
 
 ##### SELFTEST ##########

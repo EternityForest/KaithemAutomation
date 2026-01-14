@@ -345,7 +345,9 @@ listener 38527
         f.write(cfg)
 
     pr = subprocess.Popen(
-        ["mosquitto", "-c", "/dev/shm/kaithem_tests/mosquitto.conf"]
+        ["mosquitto", "-c", "/dev/shm/kaithem_tests/mosquitto.conf"],
+        stdout=sys.stdout,
+        stderr=sys.stderr,
     )
     time.sleep(0.5)
     assert pr.poll() is None
@@ -1392,6 +1394,56 @@ def test_cue_logic_function_block_cooldown():
         assert logic_test_tag.value == 3
 
 
+def test_cue_logic_migration():
+    """Migrate cue logic from legacy format.  Remove someday"""
+    with TempGroup("migrate") as grp:
+        grp.add_cue(
+            "cue2",
+            rules=[
+                ["cue.enter", [["goto", "sending_group", "cue2"]]],
+            ],
+        )
+
+        cue = grp.cues["cue2"]
+        assert cue.rules == [
+            {
+                "event": "cue.enter",
+                "commands": [
+                    {
+                        "command": "goto",
+                        "group": "sending_group",
+                        "cue": "cue2",
+                    },
+                ],
+            }
+        ]
+
+        grp.add_cue(
+            "cue3",
+            rules=[
+                ["=+test_var", [["goto", "sending_group", "cue2"]]],
+            ],
+        )
+
+        cue = grp.cues["cue3"]
+        assert cue.rules == [
+            {
+                "event": "=test_var",
+                "commands": [
+                    {
+                        "command": "on_count",
+                        "input": "=_",
+                    },
+                    {
+                        "command": "goto",
+                        "group": "sending_group",
+                        "cue": "cue2",
+                    },
+                ],
+            }
+        ]
+
+
 def test_cue_logic_tags():
     from kaithem.src import tagpoints
     from kaithem.src.chandler import core
@@ -1757,7 +1809,7 @@ def test_cue_logic_plugin():
             assert s2.cue.name == "cue2"
 
 
-def test_cue_logic_inherit_rules_cue():
+def test_cue_logic_rules_cue_set_alpha_old():
     from kaithem.src.chandler import core
 
     with TempGroup() as grp:
@@ -1765,6 +1817,34 @@ def test_cue_logic_inherit_rules_cue():
             "__rules__",
             rules=[
                 ["cue.enter", [["set_alpha", "=GROUP", "0.7"]]],
+            ],
+        )
+
+        grp.goto_cue("default")
+
+        core.wait_frame()
+        core.wait_frame()
+
+        assert grp.alpha == 0.7
+
+
+def test_cue_logic_rules_cue_set_alpha_new():
+    from kaithem.src.chandler import core
+
+    with TempGroup() as grp:
+        grp.add_cue(
+            "__rules__",
+            rules=[
+                {
+                    "event": "cue.enter",
+                    "commands": [
+                        {
+                            "command": "set_alpha",
+                            "group": "=GROUP",
+                            "alpha": "0.7",
+                        }
+                    ],
+                }
             ],
         )
 

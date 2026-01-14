@@ -18,80 +18,33 @@ from .global_actions import cl_event, cl_trigger_shortcut_code
 rootContext = scriptbindings.ChandlerScriptContext()
 
 
-# Dummies just for the introspection
-# TODO use the context commands thingy so we don't repeat this
-def gotoCommand(group: str = "=GROUP", cue: str = "", time="=event.time"):
-    """Triggers a group to go to a cue in the next frame.
-    Repeat commands with same timestamp are ignored. Leave time blank
-    to use current time."""
+class CueLogicStatelessFunction(scriptbindings.StatelessFunction):
+    def get_parent_group(self) -> groups.Group:
+        x: groups.DebugScriptContext = super().get_script_context()  # type: ignore
+        y = x.parent_group()
+        assert y
+        return y
 
 
-def codeCommand(code: str = ""):
-    "Activates any cues with the matching shortcut code in any group"
+class GotoCommand(CueLogicStatelessFunction):
+    doc = (
+        "Triggers a group to go to a cue in the next frame. Repeat "
+        "commands with same timestamp are ignored. Leave time blank "
+        "to use current time."
+    )
+    args = [
+        {"name": "group", "type": "GroupName", "default": "=GROUP"},
+        {"name": "cue", "type": "CueName", "default": ""},
+        {"name": "time", "type": "str", "default": ""},
+    ]
 
+    def call(
+        self, group: str = "=GROUP", cue: str = "", time: float | None = 0
+    ):
+        context_group = self.get_parent_group()
+        entered_time = time or _time.time()
 
-gotoCommand.completionTags = {  # type: ignore
-    "group": "gotoGroupNamesCompleter",
-    "cue": "gotoGroupCuesCompleter",
-}
-
-
-def setAlphaCommand(group: str = "=GROUP", alpha: float = 1):
-    "Set the alpha value of a group"
-
-
-def ifCueCommand(group: str, cue: str):
-    "True if the group is running that cue"
-
-
-def eventCommand(
-    group: str = "=GROUP", ev: str = "DummyEvent", value: str = ""
-):
-    "Send an event to a group, or to all groups if group is __global__"
-
-
-def setWebVarCommand(
-    group: str = "=GROUP", key: str = "varFoo", value: str = ""
-):
-    "Set a slideshow variable. These can be used in the slideshow text as {{var_name}}"
-
-
-def uiNotificationCommand(text: str):
-    "Send a notification to the operator, on the web editor and console pages"
-
-
-def speak(text: str = "Hello World!", speaker="0", speed="1"):
-    "BETA. Use the default text to speech model. Speaker is the number for multi-voice models."
-
-
-rootContext.commands["shortcut"] = codeCommand
-rootContext.commands["goto"] = gotoCommand
-rootContext.commands["set_alpha"] = setAlphaCommand
-rootContext.commands["if_cue"] = ifCueCommand
-rootContext.commands["send_event"] = eventCommand
-rootContext.commands["set_slideshow_variable"] = setWebVarCommand
-rootContext.commands["console_notification"] = uiNotificationCommand
-rootContext.commands["speak"] = speak
-
-
-def sendMqttMessage(topic: str, message: str):
-    "JSON encodes message, and publishes it to the group's MQTT server"
-
-
-rootContext.commands["send_mqtt"] = sendMqttMessage
-
-
-def add_context_commands(context_group: groups.Group):
-    cc = {}
-
-    def gotoCommand(group: str = "=GROUP", cue: str = "", time="=event.time"):
-        """Triggers a group to go to a cue in the next frame.
-        Repeat commands with same timestamp are ignored. Leave time blank
-        to use current time."""
-
-        time = context_group.evalExpr(time) or _time.time()
-
-        if not abs(float(time) - _time.time()) < 60 * 5:
+        if not abs(float(entered_time) - _time.time()) < 60 * 5:
             raise ValueError("Timestamp sanity check failed")
 
         # Ignore empty
@@ -123,7 +76,7 @@ def add_context_commands(context_group: groups.Group):
 
         def f():
             context_group.board.groups_by_name[group].goto_cue(
-                cue, cause=newcause, cue_entered_time=float(time)
+                cue, cause=newcause, cue_entered_time=float(entered_time)
             )
 
         fn = context_group.board.groups_by_name[group].entered_cue_frame_number
@@ -137,23 +90,31 @@ def add_context_commands(context_group: groups.Group):
 
         return True
 
-    def codeCommand(code: str = ""):
-        """Activates any cues with the matching shortcut code in any group.
-        Triggers in the next frame."""
 
+class ShortcutCommand(CueLogicStatelessFunction):
+    doc = (
+        "Activates any cues with the matching shortcut code in any "
+        "group. Triggers in the next frame."
+    )
+    args = [{"name": "code", "type": "str", "default": ""}]
+
+    def call(self, code: str = ""):
         def f():
             cl_trigger_shortcut_code(code)
 
         core.serialized_async_next_frame(f)
         return True
 
-    gotoCommand.completionTags = {  # type: ignore
-        "group": "gotoGroupNamesCompleter",
-        "cue": "gotoGroupCuesCompleter",
-    }
 
-    def setAlphaCommand(group: str = "=GROUP", alpha: float = 1):
-        "Set the alpha value of a group.  Action may not be immediate"
+class SetAlphaCommand(CueLogicStatelessFunction):
+    doc = "Set the alpha value of a group. Action may not be immediate."
+    args = [
+        {"name": "group", "type": "str", "default": "=GROUP"},
+        {"name": "alpha", "type": "float", "default": "1"},
+    ]
+
+    def call(self, group: str = "=GROUP", alpha: float = 1):
+        context_group = self.get_parent_group()
 
         def f():
             context_group.board.groups_by_name[group].setAlpha(float(alpha))
@@ -161,9 +122,17 @@ def add_context_commands(context_group: groups.Group):
         core.serialized_async_with_core_lock(f)
         return True
 
-    def ifCueCommand(group: str, cue: str):
-        "True if the group is running that cue"
-        # not async so we can't use any locks for fear if a deadlocks
+
+class IfCueCommand(CueLogicStatelessFunction):
+    doc = "True if the group is running that cue"
+    args = [
+        {"name": "group", "type": "str", "default": ""},
+        {"name": "cue", "type": "str", "default": ""},
+    ]
+
+    def call(self, group: str = "", cue: str = ""):
+        context_group = self.get_parent_group()
+        # not async so we can't use any locks for fear of deadlocks
 
         for i in range(5):
             try:
@@ -184,10 +153,22 @@ def add_context_commands(context_group: groups.Group):
             else None
         )
 
-    def eventCommand(
-        group: str = "=GROUP", ev: str = "DummyEvent", value: str = ""
+
+class EventCommand(CueLogicStatelessFunction):
+    doc = (
+        "Send an event to a group, or to all groups if group is "
+        "__global__. Triggers in the next frame."
+    )
+    args = [
+        {"name": "group", "type": "str", "default": "=GROUP"},
+        {"name": "ev", "type": "str", "default": "DummyEvent"},
+        {"name": "value", "type": "str", "default": ""},
+    ]
+
+    def call(
+        self, group: str = "=GROUP", ev: str = "DummyEvent", value: str = ""
     ):
-        "Send an event to a group, or to all groups if group is __global__. Triggers in the next frame."
+        context_group = self.get_parent_group()
         t = _time.time()
         if group == "__global__":
 
@@ -205,29 +186,61 @@ def add_context_commands(context_group: groups.Group):
 
         return True
 
-    def setWebVarCommand(
-        group: str = "=GROUP", key: str = "varFoo", value: str = ""
-    ):
-        "Set a slideshow variable. These can be used in the slideshow text as {{var_name}}"
+
+class SetSlideshowVariableCommand(CueLogicStatelessFunction):
+    doc = (
+        "Set a slideshow variable. These can be used in the slideshow "
+        "text as {{var_name}}"
+    )
+    args = [
+        {"name": "group", "type": "str", "default": "=GROUP"},
+        {"name": "key", "type": "str", "default": "varFoo"},
+        {"name": "value", "type": "str", "default": ""},
+    ]
+
+    def call(self, group: str = "=GROUP", key: str = "varFoo", value: str = ""):
+        context_group = self.get_parent_group()
         if not key.startswith("var"):
             raise ValueError(
-                "Custom slideshow variable names for slideshow must start with 'var' "
+                "Custom slideshow variable names for slideshow must "
+                "start with 'var'"
             )
         context_group.board.groups_by_name[
             group
         ].media_link.set_slideshow_variable(key, value)
         return True
 
-    def uiNotificationCommand(text: str):
-        "Send a notification to the operator, on the web editor and console pages"
+
+class ConsoleNotificationCommand(CueLogicStatelessFunction):
+    doc = (
+        "Send a notification to the operator, on the web editor and "
+        "console pages"
+    )
+    args = [{"name": "text", "type": "str", "default": ""}]
+
+    def call(self, text: str = ""):
         for board in core.iter_boards():
             if len(board.newDataFunctions) < 100:
                 board.newDataFunctions.append(
                     lambda s: s.linkSend(["ui_alert", text])
                 )
 
-    def speak(text: str = "Hello World!", speaker="0", speed="1"):
-        "BETA. Use the default text to speech model. Speaker is the number for multi-voice models."
+
+class SpeakCommand(CueLogicStatelessFunction):
+    doc = (
+        "BETA. Use the default text to speech model. Speaker is the "
+        "number for multi-voice models."
+    )
+    args = [
+        {"name": "text", "type": "str", "default": "Hello World!"},
+        {"name": "speaker", "type": "str", "default": "0"},
+        {"name": "speed", "type": "str", "default": "1"},
+    ]
+
+    def call(
+        self, text: str = "Hello World!", speaker: str = "0", speed: str = "1"
+    ):
+        context_group = self.get_parent_group()
 
         def f():
             p = plugin_interfaces.TTSAPI.get_providers()[0]
@@ -244,25 +257,37 @@ def add_context_commands(context_group: groups.Group):
 
         workers.do(f)
 
-    cc["shortcut"] = codeCommand
-    cc["goto"] = gotoCommand
-    cc["set_alpha"] = setAlphaCommand
-    cc["if_cue"] = ifCueCommand
-    cc["send_event"] = eventCommand
-    cc["set_slideshow_variable"] = setWebVarCommand
-    cc["console_notification"] = uiNotificationCommand
-    cc["speak"] = speak
 
-    # cc["set_tag"].completionTags = {"tagName": "tagpointsCompleter"}
+class SendMqttCommand(CueLogicStatelessFunction):
+    doc = "JSON encodes message, and publishes it to the group's MQTT server"
+    args = [
+        {"name": "topic", "type": "str", "default": ""},
+        {"name": "message", "type": "str", "default": ""},
+    ]
 
-    def sendMqttMessage(topic: str, message: str):
-        "JSON encodes message, and publishes it to the group's MQTT server"
+    def call(self, topic: str = "", message: str = ""):
         raise RuntimeError(
             "This was supposed to be overridden by a group specific version"
         )
 
-    cc["send_mqtt"] = sendMqttMessage
-    for i in cc:
-        context_group.script_context.commands[i] = cc[i]
 
-    context_group.command_refs = cc
+# Register global command instances
+_goto_cmd = GotoCommand
+_shortcut_cmd = ShortcutCommand
+_set_alpha_cmd = SetAlphaCommand
+_if_cue_cmd = IfCueCommand
+_event_cmd = EventCommand
+_set_slideshow_var_cmd = SetSlideshowVariableCommand
+_console_notification_cmd = ConsoleNotificationCommand
+_speak_cmd = SpeakCommand
+_send_mqtt_cmd = SendMqttCommand
+
+rootContext.commands["goto"] = _goto_cmd
+rootContext.commands["shortcut"] = _shortcut_cmd
+rootContext.commands["set_alpha"] = _set_alpha_cmd
+rootContext.commands["if_cue"] = _if_cue_cmd
+rootContext.commands["send_event"] = _event_cmd
+rootContext.commands["set_slideshow_variable"] = _set_slideshow_var_cmd
+rootContext.commands["console_notification"] = _console_notification_cmd
+rootContext.commands["speak"] = _speak_cmd
+rootContext.commands["send_mqtt"] = _send_mqtt_cmd

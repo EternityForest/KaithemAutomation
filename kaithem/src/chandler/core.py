@@ -278,6 +278,81 @@ next_frame_action_queue = []
 
 should_run = [True]
 
+# Metadata for builtin events available in the ChandlerScript environment
+BUILTIN_EVENTS = [
+    {
+        "name": "now",
+        "description": "Run immediately when script loads",
+        "hasValue": False,
+    },
+    {
+        "name": "cue.enter",
+        "description": "When entering a cue",
+        "hasValue": False,
+    },
+    {
+        "name": "cue.exit",
+        "description": "When exiting the cue",
+        "hasValue": False,
+    },
+    {
+        "name": "script.poll",
+        "description": "Runs at ~24Hz when bound",
+        "hasValue": False,
+    },
+    {
+        "name": "script.error",
+        "description": "On script error",
+        "hasValue": True,
+        "valueType": "str",
+    },
+    {
+        "name": "=expression",
+        "description": "While expression is truthy (polled)",
+        "hasValue": True,
+    },
+    {
+        "name": "=/expression",
+        "description": "Rising edge of expression",
+        "hasValue": True,
+    },
+    {
+        "name": "=~expression",
+        "description": "On change of expression",
+        "hasValue": True,
+    },
+    {
+        "name": "=+expression",
+        "description": "Increment count on change",
+        "hasValue": True,
+    },
+    {
+        "name": "@schedule",
+        "description": "Scheduled (e.g., '@daily at 9am')",
+        "hasValue": False,
+    },
+    {
+        "name": "midi.note:ch.note",
+        "description": "MIDI note on (e.g., 'midi.note:1.C5')",
+        "hasValue": True,
+    },
+    {
+        "name": "midi.noteoff:ch.note",
+        "description": "MIDI note off",
+        "hasValue": True,
+    },
+    {
+        "name": "midi.cc:ch.cc",
+        "description": "MIDI control change",
+        "hasValue": True,
+    },
+    {
+        "name": "$mqtt:topic",
+        "description": "MQTT message on topic",
+        "hasValue": True,
+    },
+]
+
 
 def action_queue_thread():
     while should_run[0]:

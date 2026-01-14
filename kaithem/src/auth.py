@@ -31,7 +31,7 @@ from argon2 import PasswordHasher
 
 from kaithem.src.validation_util import validate_args
 
-from . import directories, messagebus, modules_state, util
+from . import directories, messagebus, util
 
 # Store tokens in a sqlite database
 tokens_db_fn = os.path.join(directories.usersdir, "tokens.db")
@@ -162,6 +162,9 @@ def importPermissionsFromModules() -> None:
     """Import all user defined permissions that are module resources into the global
     list of modules that can be assigned, and delete any that are no loger defined
     in modules."""
+
+    # Avoid a circular import
+    from kaithem.src import modules_state
 
     p2: dict[str, modules_state.ResourceDictType] = {
         i: {"description": BasePermissions[i]} for i in BasePermissions

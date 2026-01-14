@@ -75,7 +75,7 @@ It takes a set of action button slots that get passed "filename"
                                 style="max-height: 3rem; max-width: 5rem;">
                         </td>
                         <td>
-                            <slot :filename="i[0]" :relfilename="i[1]">
+                            <slot :filename="i[0]" :relfilename="i[0]">
                             </slot>
                         </td>
                     </tr>
