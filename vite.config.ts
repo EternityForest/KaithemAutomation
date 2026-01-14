@@ -1,13 +1,15 @@
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
+import vue from "@vitejs/plugin-vue";
 import smartAsset from "rollup-plugin-smart-asset";
 // rollup.config.js
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
-  base: "./", // Use a relative base path
+  base: "/static/vite/", // Use a relative base path
   assetsInclude: ["**/*.woff", "**/*.woff2"],
+  plugins: [vue()],
 
   build: {
     outDir: "kaithem/data/static/vite",
@@ -18,9 +20,13 @@ export default defineConfig({
       preserveEntrySignatures: "exports-only",
 
       input: {
-        excalidraw: resolve(
+        // excalidraw: resolve(
+        //   __dirname,
+        //   "kaithem/src/plugins/CorePluginExcalidraw/next/index.html"
+        // ),
+        mixer: resolve(
           __dirname,
-          "kaithem/src/plugins/CorePluginExcalidraw/next/index.html"
+          "kaithem/src/plugins/CorePluginJackMixer/next/index.html"
         ),
       },
       output: {
@@ -28,6 +34,7 @@ export default defineConfig({
 
         preserveModules: true,
       },
+      external: ["/static/js/widget.mjs"],
       plugins: [
         smartAsset({
           // "copy" mode extracts the base64 to an external file

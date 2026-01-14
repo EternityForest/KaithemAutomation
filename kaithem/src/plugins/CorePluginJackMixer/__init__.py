@@ -19,6 +19,8 @@ import structlog
 from icemedia.iceflow import GstreamerPipeline as Pipeline
 from scullery import jacktools, scheduling, workers
 
+from kaithem.api.util import get_builtin_datadir
+from kaithem.api.web import render_html_file
 from kaithem.src import (
     alerts,
     apps_page,
@@ -50,6 +52,8 @@ recorder = None
 # them a source
 dummy_silence_source = None
 dummy_silence_sink = None
+
+staticdir = get_builtin_datadir()
 
 
 class BeatDetector:
@@ -1669,17 +1673,38 @@ async def set_mixer_channel_label(boardname: str, channel: int):
     return "OK"
 
 
-@quart_app.app.route("/settings/mixer/<boardname>")
-def handle_mixer_plugin(boardname: str):
-    from kaithem.src import directories
+htmlfile = os.path.join(
+    staticdir,
+    "static/vite/kaithem/src/plugins/CorePluginJackMixer/next/index.html",
+)
 
+
+@quart_app.app.route("/settings/mixer/<boardname>")
+async def handle_mixer_plugin(boardname: str):
     pages.require("system_admin")
-    return pages.get_template(td).render(
-        os=os,
-        board=boards[boardname],
-        global_api=global_api,
-        directories=directories,
+    return render_html_file(
+        htmlfile,
+        title=f"Mixing Board: {boardname}",
     )
+
+
+@quart_app.app.route("/settings/mixer/<boardname>/config")
+async def mixer_config(boardname: str):
+    """Provide mixer configuration as JSON for client-side initialization"""
+    pages.require("system_admin")
+
+    try:
+        board = boards[boardname]
+        return quart.jsonify(
+            {
+                "boardApiUuid": board.api.uuid,
+                "globalApiUuid": global_api.uuid,
+                "boardResource": board.resource,
+                "boardModule": board.module,
+            }
+        )
+    except KeyError:
+        return quart.jsonify({"error": "Board not found"}), 404
 
 
 boards: dict[str, MixingBoard] = {}

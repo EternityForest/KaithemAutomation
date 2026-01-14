@@ -26,3 +26,9 @@ def get_logdir() -> str:
 def get_vardir() -> str:
     """Get the main kaithem storage dir"""
     return directories.vardir
+
+
+def get_builtin_datadir() -> str:
+    """Get the builtin data dir.
+    Do not rely on things in this dir not changing"""
+    return directories.datadir
