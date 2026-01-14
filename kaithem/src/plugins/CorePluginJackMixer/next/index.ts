@@ -1,5 +1,5 @@
 import { createApp } from 'vue';
-import Mixer from './Mixer.vue';
+import Mixer from './mixer-app.vue';
 
 // Get boardname from the last part of the URL
 const boardname = globalThis.location.pathname.split('/').at(-1);

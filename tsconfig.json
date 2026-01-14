@@ -19,7 +19,11 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+
+    "paths": {
+      "/static/js/*": ["./kaithem/src/js/*"] // Adjust to your actual folder structure
+    }
   },
   "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]

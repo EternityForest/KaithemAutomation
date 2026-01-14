@@ -34,7 +34,7 @@ export default [
         },
 
         alias: {
-          map: [["/static/js", "./kaithem/src/js"]],
+          map: [["/static/js/widget.mjs", "./kaithem/src/js/widget.mjs"]],
         },
       },
     },
