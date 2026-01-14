@@ -12,8 +12,6 @@
   <commander-app></commander-app>
 </div>
 
-<script src="/static/js/thirdparty/strftime-min.js"></script>
-
 <script type="module">
   import { initChandlerVueModel } from "./boardapi.mjs";
   import CommanderApp from "./commander-app.vue";
@@ -22,15 +20,8 @@
   const boardname = globalThis.location.pathname.split("/").at(-1);
   document.title = boardname;
 
-  Vue.createApp({
-    data: function () {
-      return {};
-    },
-
-    components: {
-      "commander-app": CommanderApp
-    },
-  }).mount("#outer_app");
+  let app =Vue.createApp(CommanderApp, {});
+  app.mount("#outer_app");
 
   initChandlerVueModel(boardname);
 </script>

@@ -1,130 +1,4 @@
-<style>
-.grey {
-  color: grey;
-  font-size: 70%;
-}
-
-.gradient-bg {
-  background: linear-gradient(
-    175deg,
-    rgb(61 61 61 / 27%) 0%,
-    rgb(0 0 0 / 30%) 100%
-  );
-}
-
-.indicator {
-  border-radius: 0.2em;
-  display: inline-block;
-  width: 0.9em;
-  height: 0.9em;
-  border-style: dashed;
-  border-width: 1.5px;
-}
-
-.break {
-  flex-basis: 100%;
-  height: 0;
-}
-
-.cuebutton {
-  min-width: 24em;
-  max-width: 32em;
-}
-
-.compact-cuebutton.success {
-  font-weight: bold;
-}
-
-.compact-cuebutton {
-  aspect-ratio: 16/9;
-  overflow: hidden;
-  flex-basis: 10rem;
-  height: auto;
-  flex-grow: 0;
-  max-width: 10rem;
-  padding: 0px;
-  position: relative;
-  z-index: 1001;
-  box-shadow: 4px 5px 3px #00000069;
-  margin: 3px;
-  touch-action: manipulation;
-
-  & > img {
-    position: absolute;
-    object-fit: contain;
-    width: 100%;
-    height: 100%;
-    margin: auto;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 1002;
-  }
-
-  & > div {
-    & > p {
-      opacity: 0.3;
-    }
-
-    width: 100%;
-    height: 100%;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    text-shadow:
-      1px 1px 2px var(--contrasting-bg-color),
-      -1px 1px 2px var(--contrasting-bg-color),
-      -1px -1px 2px var(--contrasting-bg-color),
-      1px -1px 2px var(--contrasting-bg-color);
-    position: absolute;
-    z-index: 1002;
-    background: radial-gradient(
-      circle,
-      rgba(255, 255, 255, 0.082) 58%,
-      rgb(0 0 0 / 0%) 85%,
-      rgba(0, 0, 0, 0.363) 100%
-    ) !important;
-  }
-}
-
-.cue-button-album-art {
-  border: none;
-  height: 100%;
-  object-fit: contain;
-  max-width: 4em;
-  object-position: top;
-  z-index: 3;
-}
-
-.cue-button-body {
-  aspect-ratio: 16/9;
-  flex-grow: 1;
-}
-
-.blinking {
-  animation: blinkingText 1s infinite;
-}
-
-@keyframes blinkingText {
-  0% {
-    opacity: 0.5;
-  }
-
-  50% {
-    opacity: 1;
-  }
-
-  100% {
-    opacity: 0.5;
-  }
-}
-
-div.highlight {
-  border: 2px solid;
-}
-</style>
-
-<template id="template">
+<template>
   <div
     id="app"
     v-cloak
@@ -642,6 +516,9 @@ div.highlight {
 </template>
 
 <script setup>
+
+import  strftime from "strftime";
+
 import {
   unixtime,
   boardname,
@@ -664,12 +541,16 @@ import {
   gotoNextCue,
   setalpha,
   jumpToCueWithConfirmationIfNeeded,
-  sendGroupEventWithConfirm,
   stop,
   addTimeToGroup,
   sendKeystrokes,
   refreshCueProviders,
 } from "./boardapi.mjs";
+
+
+import CueCountdown from "./cue-countdown.vue";
+import CueIter from "./cue-iter.vue";
+
 import * as Vue from "vue";
 
 const sc_code = Vue.ref("");
@@ -681,38 +562,138 @@ function shortcut() {
 
 function formatTime(t) {
   var date = new Date(t * 1000);
-  return date.strftime("%I:%M:%S%p");
+  return strftime("%I:%M:%S%p", date);
 }
 
 const showUtils = Vue.ref(false);
 const compactCues = Vue.ref(true);
 const scratchpad = Vue.ref("Text here is NOT yet saved when page reloads.");
+
+
 </script>
 
-<script type="module">
+<style>
+.grey {
+  color: grey;
+  font-size: 70%;
+}
 
-import CueCountdown from "./cue-countdown.vue";
-import GroupUI from "./group-ui-controls.vue";
-import CueIter from "./cue-iter.vue";
+.gradient-bg {
+  background: linear-gradient(
+    175deg,
+    rgb(61 61 61 / 27%) 0%,
+    rgb(0 0 0 / 30%) 100%
+  );
+}
 
-export default {
-  name: "commander-app",
-  template: "#template",
-  methods: {
-    selectgroup,
-    go,
-    gotoPreviousCue,
-    gotoNextCue,
-    setalpha,
-    jumpToCueWithConfirmationIfNeeded,
-    sendGroupEventWithConfirm,
-    addTimeToGroup,
-  },
-  components: {
-    "cue-countdown": CueCountdown,
-    // Currently contains the timers and the display tags for the groups overview
-    "group-ui": GroupUI,
-    "cue-iter": CueIter,
-  },
-};
-</script>
+.indicator {
+  border-radius: 0.2em;
+  display: inline-block;
+  width: 0.9em;
+  height: 0.9em;
+  border-style: dashed;
+  border-width: 1.5px;
+}
+
+.break {
+  flex-basis: 100%;
+  height: 0;
+}
+
+.cuebutton {
+  min-width: 24em;
+  max-width: 32em;
+}
+
+.compact-cuebutton.success {
+  font-weight: bold;
+}
+
+.compact-cuebutton {
+  aspect-ratio: 16/9;
+  overflow: hidden;
+  flex-basis: 10rem;
+  height: auto;
+  flex-grow: 0;
+  max-width: 10rem;
+  padding: 0px;
+  position: relative;
+  z-index: 1001;
+  box-shadow: 4px 5px 3px #00000069;
+  margin: 3px;
+  touch-action: manipulation;
+
+  & > img {
+    position: absolute;
+    object-fit: contain;
+    width: 100%;
+    height: 100%;
+    margin: auto;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1002;
+  }
+
+  & > div {
+    & > p {
+      opacity: 0.3;
+    }
+
+    width: 100%;
+    height: 100%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-shadow:
+      1px 1px 2px var(--contrasting-bg-color),
+      -1px 1px 2px var(--contrasting-bg-color),
+      -1px -1px 2px var(--contrasting-bg-color),
+      1px -1px 2px var(--contrasting-bg-color);
+    position: absolute;
+    z-index: 1002;
+    background: radial-gradient(
+      circle,
+      rgba(255, 255, 255, 0.082) 58%,
+      rgb(0 0 0 / 0%) 85%,
+      rgba(0, 0, 0, 0.363) 100%
+    ) !important;
+  }
+}
+
+.cue-button-album-art {
+  border: none;
+  height: 100%;
+  object-fit: contain;
+  max-width: 4em;
+  object-position: top;
+  z-index: 3;
+}
+
+.cue-button-body {
+  aspect-ratio: 16/9;
+  flex-grow: 1;
+}
+
+.blinking {
+  animation: blinkingText 1s infinite;
+}
+
+@keyframes blinkingText {
+  0% {
+    opacity: 0.5;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0.5;
+  }
+}
+
+div.highlight {
+  border: 2px solid;
+}
+</style>

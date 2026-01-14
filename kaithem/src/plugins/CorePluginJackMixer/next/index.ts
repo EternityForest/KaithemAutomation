@@ -18,7 +18,7 @@ async function initApp() {
         }
         const config = await response.json();
 
-        const app = createApp(Mixer, {
+    const app = createApp(Mixer, {
             boardname,
             boardApiUuid: config.boardApiUuid,
             globalApiUuid: config.globalApiUuid,

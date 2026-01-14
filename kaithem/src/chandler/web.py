@@ -294,15 +294,12 @@ async def webmediadisplay():
     return quart.Response(r, mimetype="text/html")
 
 
-# The UUID is a cache busting value that gets updated with find and
-# replace for now, it's hacky but we it's a quick fix to let us use
-# relative URLs properly in a way that doesn't break the dev tools
+staticdir = os.path.join(directories.datadir, "static")
 
 
 # This whole thing is more complicated than it seems like it should be,
 # pretty much entirely to keep templates and static files in the same relative
 # namespace
-@quart_app.app.route("/chandler/<path:path>")
 @quart_app.app.route("/chandler/<path:path>")
 async def default(path: str):
     if path in ("webmediadisplay",):
@@ -320,7 +317,9 @@ async def default(path: str):
         path = path.split("/")[0] + ".html"
 
         def f():
-            r = render_html_file(os.path.join(html_dir, path))
+            r = render_html_file(
+                os.path.join(staticdir, "vite/kaithem/src/chandler/html", path)
+            )
             if isinstance(r, str):
                 r = r.encode()
             return r

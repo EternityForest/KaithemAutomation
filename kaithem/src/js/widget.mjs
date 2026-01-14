@@ -1,5 +1,5 @@
 import { encode, decode } from "./thirdparty/msgpackr.esm.js";
-import picodash from "./thirdparty/picodash/picodash-base.esm.js";
+import picodash from "/static/js/thirdparty/picodash/picodash-base.esm.js";
 
 try {
   globalThis.kaithemapi;

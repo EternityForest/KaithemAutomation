@@ -1,4 +1,4 @@
-import { strftime } from "strftime";
+import  strftime from "strftime";
 
 function useBlankDescriptions(l, additional) {
   var l2 = [];

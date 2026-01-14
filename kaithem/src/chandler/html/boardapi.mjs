@@ -15,7 +15,7 @@ import {
   formatTime,
 } from "./utils.mjs";
 import { kaithemapi, APIWidget } from "/static/js/widget.mjs";
-import picodash from "../../js/thirdparty/picodash/picodash-base.esm.js";
+import picodash from "/static/js/thirdparty/picodash/picodash-base.esm.js";
 
 import {
   computed,
@@ -879,7 +879,7 @@ let nuisianceRateLimit = ref([10, Date.now()]);
 // This is a global the whole app can use to await serialized promises.
 let previousSerializedPromise = ref(null);
 
-if (globalThis.previousSerializedPromise.value) {
+if (globalThis.previousSerializedPromise) {
   previousSerializedPromise.value = globalThis.previousSerializedPromise;
 } else {
   globalThis.previousSerializedPromise = previousSerializedPromise.value;
