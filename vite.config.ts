@@ -20,7 +20,7 @@ export default defineConfig({
       input: {
         excalidraw: resolve(
           __dirname,
-          "kaithem/src/plugins/CorePluginExcalidraw/index.html"
+          "kaithem/src/plugins/CorePluginExcalidraw/next/index.html"
         ),
       },
       output: {

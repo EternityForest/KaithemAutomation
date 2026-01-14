@@ -4,7 +4,9 @@
   "description": "![AI generated picture of a tavern](kaithem/data/static/img/16x9/kaithem-tavern.avif)",
   "main": "index.js",
   "type": "module",
-  "scripts": {},
+  "scripts": {
+    "build": "npx vite build"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
