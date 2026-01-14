@@ -6,6 +6,12 @@
 - Do not rewrite whole files; make surgical edits.
 - Read STYLE.md when planning large changes, it contains guidance on project UX and dev practices.
 
+## Architecture
+
+* Plugins in kaithem/src/plugins get discovered and imported
+* We use a Quart based web UI
+* pages.require("permission_name") is used to secure those endpoints
+
 ## Links / Authority
 
 - STYLE.md
