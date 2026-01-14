@@ -49,7 +49,7 @@ test("test", async ({ page }) => {
   await page
     .locator("#cueMediaDialog")
     .getByText(
-      "/dev/shm/kaithem_test_env/modules/data/test_digital_signage/__filedata__/media/"
+      "media/"
     )
     .click();
   await page.getByRole("button", { name: "Set(slide)" }).click();
