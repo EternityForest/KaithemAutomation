@@ -670,7 +670,7 @@ import {
   sendKeystrokes,
   refreshCueProviders,
 } from "./boardapi.mjs";
-import * as Vue from "/static/js/thirdparty/vue.esm-browser.js";
+import * as Vue from "vue";
 
 const sc_code = Vue.ref("");
 
@@ -690,9 +690,10 @@ const scratchpad = Vue.ref("Text here is NOT yet saved when page reloads.");
 </script>
 
 <script type="module">
-import { httpVueLoader } from "./httploaderoptions.mjs";
 
-globalThis.httpVueLoader = httpVueLoader;
+import CueCountdown from "./cue-countdown.vue";
+import GroupUI from "./group-ui-controls.vue";
+import CueIter from "./cue-iter.vue";
 
 export default {
   name: "commander-app",
@@ -708,10 +709,10 @@ export default {
     addTimeToGroup,
   },
   components: {
-    "cue-countdown": globalThis.httpVueLoader("./cue-countdown.vue"),
+    "cue-countdown": CueCountdown,
     // Currently contains the timers and the display tags for the groups overview
-    "group-ui": globalThis.httpVueLoader("./group-ui-controls.vue"),
-    "cue-iter": globalThis.httpVueLoader("./cue-iter.vue"),
+    "group-ui": GroupUI,
+    "cue-iter": CueIter,
   },
 };
 </script>

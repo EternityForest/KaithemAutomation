@@ -15,14 +15,14 @@ import {
   formatTime,
 } from "./utils.mjs";
 import { kaithemapi, APIWidget } from "/static/js/widget.mjs";
-import picodash from "/static/js/thirdparty/picodash/picodash-base.esm.js";
+import picodash from "../../js/thirdparty/picodash/picodash-base.esm.js";
 
 import {
   computed,
   ref,
   toRaw,
   nextTick,
-} from "/static/js/thirdparty/vue.esm-browser.js";
+} from "vue";
 
 let keysdown = {};
 
@@ -879,10 +879,10 @@ let nuisianceRateLimit = ref([10, Date.now()]);
 // This is a global the whole app can use to await serialized promises.
 let previousSerializedPromise = ref(null);
 
-if (globalThis.previousSerializedPromise) {
-  previousSerializedPromise = globalThis.previousSerializedPromise;
+if (globalThis.previousSerializedPromise.value) {
+  previousSerializedPromise.value = globalThis.previousSerializedPromise;
 } else {
-  globalThis.previousSerializedPromise = previousSerializedPromise;
+  globalThis.previousSerializedPromise = previousSerializedPromise.value;
 }
 
 /*

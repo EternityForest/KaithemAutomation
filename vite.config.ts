@@ -16,14 +16,23 @@ export default defineConfig({
     minify: false,
     assetsInlineLimit: 4 * 1024,
 
+
     rollupOptions: {
       preserveEntrySignatures: "exports-only",
+      external: ["/static/js/widget.mjs",
+        "/static/js/thirdparty/picodash/picodash-base.esm.js"],
 
       input: {
         // excalidraw: resolve(
         //   __dirname,
         //   "kaithem/src/plugins/CorePluginExcalidraw/next/index.html"
         // ),
+
+
+        chandler_commander: resolve(
+          __dirname,
+          "kaithem/src/chandler/html/commander.html"
+        ),
         mixer: resolve(
           __dirname,
           "kaithem/src/plugins/CorePluginJackMixer/next/index.html"

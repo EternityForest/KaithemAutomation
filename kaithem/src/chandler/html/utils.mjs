@@ -1,3 +1,5 @@
+import { strftime } from "strftime";
+
 function useBlankDescriptions(l, additional) {
   var l2 = [];
   for (let i in l) {
@@ -108,6 +110,6 @@ function dictView(dict, sorts, filterf, page) {
 
 function formatTime(t) {
   var date = new Date(t * 1000);
-  return date.strftime("%I:%M:%S%p");
+  return strftime("%I:%M:%S%p", date);
 }
 export { useBlankDescriptions, dictView, formatInterval, formatTime };
