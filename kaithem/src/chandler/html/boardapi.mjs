@@ -2,7 +2,7 @@
  It's slowly being refactored after getting very out of hand.
  Things are done oddly because:
 
- 1. It was not originally planned to be feature.value rich
+ 1. It was not originally planned to be so feature rich
  2. It started with Vue2
 
 

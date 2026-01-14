@@ -137,7 +137,12 @@ Info for devs here on the wiki (https://github.com/EternityForest/KaithemAutomat
 ```bash
 uv sync
 
-# Need to build the frontend with npm
+# Need to set up Rust if you don't already have everything
+# All Rust code currently compiles to .wasm
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+rustup target add wasm32-unknown-unknown
+
+# Need install deps to build the frontend with npm
 npm install
 
 make build
