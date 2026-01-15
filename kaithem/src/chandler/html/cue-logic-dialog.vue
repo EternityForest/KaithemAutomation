@@ -50,13 +50,7 @@
           <combo-box
             :modelValue="currentcue.inheritRules"
             :disabled="editinggroup.name == '__rules__' || no_edit"
-            @change="
-              setcueproperty(
-                currentcue.id,
-                'inheritRules',
-                $event
-              )
-            "
+            @change="setcueproperty(currentcue.id, 'inheritRules', $event)"
             :options="
               useBlankDescriptions(groupcues[editinggroup.id])
             "></combo-box>
@@ -124,9 +118,14 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import { dictView, useBlankDescriptions, formatInterval } from "./utils.mjs";
 import { chandlerScriptEnvironment } from "./boardapi.mjs";
+import { computed } from "vue";
+
+import ComboBox from "../../vue/combo-box.vue";
+import ScriptEditor from "./script-editor.vue";
+
 const example_events_base = [
   ["now", "Run when script loads"],
   ["cue.exit", "When exiting the cue"],
@@ -166,126 +165,9 @@ const example_events_base = [
   ],
 ];
 
-export default {
-  template: "#template",
-
-  props: [
-    "currentcue",
-    "editinggroup",
-    "no_edit",
-    "setcueproperty",
-    "groupmeta",
-    "groupcues",
-    "availabletags",
-    "unixtime",
-  ],
-  data: function () {
-    let d = {};
-    d.CueName = this.cueRefCompleter.bind(this);
-    d.GroupName = this.groupRefCompleter.bind(this);
-    d.defaultExpressionCompleter = this.defaultExpressionCompleter.bind(this);
-    d.TagpointName = this.tagpointsCompleter.bind(this);
-    return {
-      completers: d,
-      chandlerScriptEnvironment: chandlerScriptEnvironment,
+const example_events = computed( () => {
 
 
-     };
-  },
-  methods: {
-    dictView: dictView,
-    useBlankDescriptions: useBlankDescriptions,
-    formatInterval: formatInterval,
-
-    groupRefCompleter: function (_dummy) {
-      let c = [["=GROUP", "This group"]];
-
-      let x = this.groupmeta;
-
-      if (!x) {
-        return [];
-      }
-
-      for (let i in x) {
-        c.push([x[i].name, ""]);
-      }
-      return c;
-    },
-
-    cueRefCompleter: function (a) {
-      let c = [];
-      let n = a.group;
-      if (n.includes("=GROUP")) {
-        n = this.editinggroup.name;
-      }
-
-      for (let i in this.groupmeta) {
-        let s = this.groupmeta[i];
-        if (s.name == n) {
-          n = i;
-          break;
-        }
-      }
-
-      let x = this.groupcues[n];
-
-      if (!x) {
-        return [];
-      }
-
-      for (let i in x) {
-        c.push([i, ""]);
-      }
-      c.push(["__next__", "Next cue"], ["__random__", ""], ["__shuffle__", ""]);
-
-      return c;
-    },
-
-    tagpointsCompleter: function (_a) {
-      let c = [];
-      for (let i in this.availabletags) {
-        c.push([i, ""]);
-      }
-      return c;
-    },
-
-    defaultExpressionCompleter: function (_a) {
-      let c = [
-        ["1", "Literal 1"],
-        ["0", ""],
-        ["=1+2+3", "Spreadsheet-style expression"],
-        ['=tv("TagName")', "Get the value of TagName(0 if nonexistant)"],
-        [
-          '=stv("TagName")',
-          "Get the value of a string tagpoint(empty if nonexistant)",
-        ],
-        ["=random()", "Random from 0 to 1"],
-        ["=GROUP", "Name of the group"],
-      ];
-      for (let i in this.availabletags) {
-        c.push(['=tv("' + i + '")', ""]);
-      }
-      return c;
-    },
-
-    cueNamesByGroupName: function () {
-      let d = {};
-      for (let i in this.groupmeta) {
-        d[this.groupmeta[i].name] = [];
-
-        for (let j in this.groupcues[i]) {
-          d[this.groupmeta[i].name].push(j);
-        }
-      }
-      return d;
-    },
-  },
-  components: {
-    "combo-box": globalThis.httpVueLoader("/static/vue/ComboBox.vue"),
-    "script-editor": globalThis.httpVueLoader("./script-editor.vue"),
-  },
-  computed: {
-    example_events: function () {
       let event_ = [];
 
       for (let i in example_events_base) {
@@ -307,7 +189,107 @@ export default {
       }
 
       return event_;
-    },
-  },
-};
+}
+)
+
+const props = defineProps({
+  currentcue: Object,
+  editinggroup: Object,
+  no_edit: Boolean,
+  setcueproperty: Function,
+  groupmeta: Object,
+  groupcues: Object,
+  availabletags: Object,
+  unixtime: Number,
+})
+
+
+function groupRefCompleter(_dummy) {
+  let c = [["=GROUP", "This group"]];
+
+  let x = this.groupmeta;
+
+  if (!x) {
+    return [];
+  }
+
+  for (let i in x) {
+    c.push([x[i].name, ""]);
+  }
+  return c;
+}
+  function cueRefCompleter(a) {
+  let c = [];
+  let n = a.group;
+  if (n.includes("=GROUP")) {
+    n = this.editinggroup.name;
+  }
+
+  for (let i in this.groupmeta) {
+    let s = this.groupmeta[i];
+    if (s.name == n) {
+      n = i;
+      break;
+    }
+  }
+
+  let x = this.groupcues[n];
+
+  if (!x) {
+    return [];
+  }
+
+  for (let i in x) {
+    c.push([i, ""]);
+  }
+  c.push(["__next__", "Next cue"], ["__random__", ""], ["__shuffle__", ""]);
+
+  return c;
+}
+
+function tagpointsCompleter (_a) {
+  let c = [];
+  for (let i in this.availabletags) {
+    c.push([i, ""]);
+  }
+  return c;
+}
+
+function defaultExpressionCompleter(_a) {
+  let c = [
+    ["1", "Literal 1"],
+    ["0", ""],
+    ["=1+2+3", "Spreadsheet-style expression"],
+    ['=tv("TagName")', "Get the value of TagName(0 if nonexistant)"],
+    [
+      '=stv("TagName")',
+      "Get the value of a string tagpoint(empty if nonexistant)",
+    ],
+    ["=random()", "Random from 0 to 1"],
+    ["=GROUP", "Name of the group"],
+  ];
+  for (let i in this.availabletags) {
+    c.push(['=tv("' + i + '")', ""]);
+  }
+  return c;
+}
+
+function cueNamesByGroupName() {
+  let d = {};
+  for (let i in this.groupmeta) {
+    d[this.groupmeta[i].name] = [];
+
+    for (let j in this.groupcues[i]) {
+      d[this.groupmeta[i].name].push(j);
+    }
+  }
+  return d;
+}
+
+let completers = {
+        CueName: cueRefCompleter,
+        GroupName: groupRefCompleterm,
+        defaultExpressionCompleter: defaultExpressionCompleter,
+        TagpointName: tagpointsCompleter
+      }
 </script>

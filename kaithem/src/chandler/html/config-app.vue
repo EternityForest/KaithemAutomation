@@ -850,7 +850,10 @@ import {
   pushSettings,
   deleteUniverse,
 } from "./boardapi.mjs";
-import * as Vue from "/static/js/thirdparty/vue.esm-browser.js";
+
+import MediaBrowser from "./media-browser.vue";
+
+import * as Vue from "vue";
 
 let showimportexport = Vue.ref(false);
 let newfixname = Vue.ref("");
@@ -964,10 +967,6 @@ function rmFixtureAssignment(i) {
 function setSoundFolders(folders) {
   globalThis.api_link.send(["setsoundfolders", folders]);
 }
-</script>
-
-<script>
-import { httpVueLoader } from "./httploaderoptions.mjs";
 
 // Legacy compatibility equivalents for the old vue2 apis. TODO get rid of this
 function old_vue_set(o, k, v) {
@@ -1016,10 +1015,4 @@ function getExcalidrawFixtureLink(fixture) {
   );
 }
 
-export default {
-  name: "config-app",
-  components: {
-    "media-browser": httpVueLoader("./media-browser.vue"),
-  },
-};
 </script>

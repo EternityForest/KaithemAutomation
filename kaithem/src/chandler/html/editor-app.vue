@@ -1,4 +1,4 @@
-<template id="template">
+<template>
   <div id="app" v-cloak class="flex-row gaps">
     <datalist id="tagslisting">
       <option
@@ -223,10 +223,10 @@
                 v-on:input="setalpha(i[0], parseFloat($event.target.value))"
                 v-model="alphas[i[0]]"></smooth-range>
 
-              <group-ui
+              <group-ui-controls
                 :unixtime="unixtime"
                 v-bind:group-data="i[1]"
-                :cue="cuemeta[i[1].cue]"></group-ui>
+                :cue="cuemeta[i[1].cue]"></group-ui-controls>
 
               <div class="w-full flex">
                 <cue-countdown
@@ -2045,7 +2045,7 @@ import {
   eventsFilterString,
   addGroupDialog,
 } from "./editor.mjs";
-import { ref } from "/static/js/thirdparty/vue.esm-browser.js";
+import { ref } from "vue";
 
 import { formatTime } from "./utils.mjs";
 
@@ -2073,27 +2073,16 @@ function sendEvent(where) {
     where,
   ]);
 }
-</script>
+import ComboBox from "../../vue/combo-box.vue";
+import CueCountdown from "./cue-countdown.vue";
+import CueTable from "./cue-table.vue";
+import CueValuesEditor from "./cue-values-editor.vue";
+import GroupUiControls from "./group-ui-controls.vue";
+import SmoothRange from "../../vue/smooth-range.vue";
+import MediaBrowser from "./media-browser.vue";
+import SlideshowTelemetry from "./slideshow-telemetry.vue";
+import CueLogicDialog from "./cue-logic-dialog.vue";
+import PresetEditingDialog from "./preset-editing-dialog.vue";
+import CueMediaDialog from "./cue-media-dialog.vue";
 
-<script type="module">
-export default {
-  name: "console-app",
-  template: "#template",
-  components: {
-    "combo-box": globalThis.httpVueLoader("/static/vue/ComboBox.vue"),
-    "cue-countdown": globalThis.httpVueLoader("./cue-countdown.vue"),
-    "cue-table": globalThis.httpVueLoader("./cue-table.vue"),
-    "cue-values-editor": globalThis.httpVueLoader("./cue-values-editor.vue"),
-    // // Currently contains the timers and the display tags for the groups overview
-    "group-ui": globalThis.httpVueLoader("./group-ui-controls.vue"),
-    "smooth-range": globalThis.httpVueLoader("/static/vue/smoothrange.vue"),
-    "media-browser": globalThis.httpVueLoader("./media-browser.vue"),
-    "slideshow-telemetry": globalThis.httpVueLoader("./signagetelemetry.vue"),
-    "cue-logic-dialog": globalThis.httpVueLoader("./cue-logic-dialog.vue"),
-    "preset-editing-dialog": globalThis.httpVueLoader(
-      "./preset-editing-dialog.vue"
-    ),
-    "cue-media-dialog": globalThis.httpVueLoader("./cue-media-dialog.vue"),
-  },
-};
 </script>

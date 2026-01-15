@@ -1,83 +1,71 @@
-<base href="/chandler/">
+<base href="/chandler/" />
 
 <style>
-    .grey {
-        color: grey;
-        font-size: 70%;
+  .grey {
+    color: grey;
+    font-size: 70%;
+  }
+
+  .indicator {
+    border-radius: 0.2em;
+    display: inline-block;
+    width: 0.9em;
+    height: 0.9em;
+    border-style: dashed;
+    border-width: 1.5px;
+  }
+
+  .labelbox {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .break {
+    flex-basis: 100%;
+    height: 0;
+  }
+
+  .blinking {
+    animation: blinkingText 1s infinite;
+  }
+
+  @keyframes blinkingText {
+    0% {
+      opacity: 0.5;
     }
 
-    .indicator {
-        border-radius: 0.2em;
-        display: inline-block;
-        width: 0.9em;
-        height: 0.9em;
-        border-style: dashed;
-        border-width: 1.5px;
+    50% {
+      opacity: 1;
     }
 
-    .labelbox {
-        display: flex;
-        flex-wrap: wrap;
+    100% {
+      opacity: 0.5;
     }
+  }
 
-    .break {
-        flex-basis: 100%;
-        height: 0;
-    }
-
-    .blinking {
-        animation: blinkingText 1s infinite;
-    }
-
-    @keyframes blinkingText {
-        0% {
-            opacity: 0.5;
-        }
-
-        50% {
-            opacity: 1;
-        }
-
-        100% {
-            opacity: 0.5;
-        }
-    }
-
-    .multibar>* {
-        display: inline-flex;
-    }
+  .multibar > * {
+    display: inline-flex;
+  }
 </style>
 
-<script type="module" src="/static/js/widget.mjs?"></script>
-<script src="/static/js/thirdparty/js-yaml.min.js"></script>
-<script src="/static/js/thirdparty/strftime-min.js"></script>
+<script type="module" src="/static/js/widget.mjs"></script>
 
 <div id="app" v-cloak>
-    <config-app></config-app>
+  <config-app></config-app>
 </div>
 
-
-<script src="/static/js/thirdparty/strftime-min.js"></script>
-
-
 <script type="module">
-    import { initChandlerVueModel } from "./boardapi.mjs";
-    import {httpVueLoader} from "./httploaderoptions.mjs";
-    import * as Vue from "/static/js/thirdparty/vue.esm-browser.js";
+  import { initChandlerVueModel } from "./boardapi.mjs";
+  import {createApp} from "vue";
+  import ConfigApp from "./config-app.vue";
 
-    // Blur the active element to cause Onchange events
-    globalThis.visibilitychange = function () {
-        document.activeElement.blur();
-    };
+  // Blur the active element to cause Onchange events
+  globalThis.visibilitychange = function () {
+    document.activeElement.blur();
+  };
 
+  createApp(ConfigApp, {}).mount("#app");
 
-    Vue.createApp(
-        {
-            setup: function () {},
-            components: {
-                'config-app': httpVueLoader('./config.vue')
-            },
-        }).mount("#app")
-    const boardname = globalThis.location.pathname.split("/").at(-1);
-    initChandlerVueModel(boardname)
+  const boardname = globalThis.location.pathname.split("/").at(-1);
+  initChandlerVueModel(boardname);
 </script>

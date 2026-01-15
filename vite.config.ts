@@ -37,6 +37,16 @@ export default defineConfig({
           __dirname,
           "kaithem/src/chandler/html/commander.html"
         ),
+
+        chandler_editor: resolve(
+          __dirname,
+          "kaithem/src/chandler/html/editor.html"
+        ),
+
+        chandler_config: resolve(
+          __dirname,
+          "kaithem/src/chandler/html/config.html"
+        ),
         mixer: resolve(
           __dirname,
           "kaithem/src/plugins/CorePluginJackMixer/next/index.html"

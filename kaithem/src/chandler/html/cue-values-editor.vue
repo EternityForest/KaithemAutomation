@@ -412,7 +412,7 @@ import {
   getPluginSchema,
 } from "./boardapi.mjs";
 
-import { ref } from "/static/js/thirdparty/vue.esm-browser.js";
+import { ref } from "vue";
 
 let newcueu = ref("");
 let newcuetag = ref("");
@@ -512,23 +512,11 @@ function addTagToCue(effect) {
 
   setCueValue(currentcueid.value, effect, newcuetag.value, "value", 0);
 }
-</script>
 
-<script type="module">
-export default {
-  name: "console-app",
-  template: "#template",
-  components: {
-    "fixture-presets-dialog": globalThis.httpVueLoader(
-      "./fixture-presets-dialog.vue"
-    ),
-    "json-editor": globalThis.httpVueLoader("./json-editor.vue"),
+import ComboBox from "../../vue/combo-box.vue";
+import JsonEditor from "./json-editor.vue";
+import HFader from "./h-fader.vue";
+import FixturePresetsDialog from "./fixture-presets-dialog.vue";
 
-    "combo-box": globalThis.httpVueLoader("/static/vue/ComboBox.vue"),
-    "h-fader": globalThis.httpVueLoader("./hfader.vue"),
-    // "fixture-presets-dialog": globalThis.httpVueLoader(
-    //   "./fixture-presets-dialog.vue"
-    // )
-  },
-};
+
 </script>

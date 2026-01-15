@@ -401,6 +401,8 @@ import {
   setCueProperty,
 } from "./boardapi.mjs";
 
+import MediaBrowser from "./media-browser.vue";
+
 defineProps([
   "no_edit",
   "soundcards",
@@ -432,19 +434,4 @@ function previewSound(s) {
   document.querySelector("#textpreview").style.display = "block";
   document.querySelector("#soundpreview").style.display = "none";
 }
-</script>
-
-<script>
-var data = {};
-
-export default {
-  template: "#template",
-
-  data: function () {
-    return data;
-  },
-  components: {
-    "media-browser": globalThis.httpVueLoader("./media-browser.vue"),
-  },
-};
 </script>

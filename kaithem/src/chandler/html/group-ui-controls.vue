@@ -43,7 +43,6 @@ input {
       </div>
     </details>
 
-
     <div class="warning" v-if="!groupData.enableTiming">
       <i class="mdi mdi-warning"></i>
       Timing Disabled
@@ -66,20 +65,11 @@ input {
   </div>
 </template>
 
-<script>
+<script setup>
 import { formatInterval } from "./utils.mjs";
-
-export default {
-  template: "#group-ui",
-  props: ["unixtime", "groupData", "cue"],
-  data: function () {
-    return { formatInterval: formatInterval };
-  },
-  methods: {
-    setTagInputValue: function (sc, tag, v) {
-      /*window.api_link is global*/
-      globalThis.api_link.send(["inputtagvalue", sc, tag, v]);
-    },
-  },
-};
+const props = defineProps({
+  unixtime: Number,
+  groupData: Object,
+  cue: Object,
+});
 </script>

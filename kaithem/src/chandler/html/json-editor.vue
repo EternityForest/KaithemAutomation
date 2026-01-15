@@ -3,7 +3,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, onBeforeUnmount } from "/static/js/thirdparty/vue.esm-browser.js";
+import { ref, watch, onMounted, onBeforeUnmount } from "vue";
 
 const properties = defineProps({
   schema: Object,

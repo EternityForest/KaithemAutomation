@@ -336,181 +336,183 @@ p.small {
   </div>
 </template>
 
-<script>
-export default {
-  props: ["modelValue", "commands", "disabled", "completers", "example_events"],
-  components: {
-    "combo-box": globalThis.httpVueLoader("/static/vue/ComboBox.vue"),
+<script setup>
+import { computed, watch } from "vue";
+
+import ComboBox from "../../vue/combo-box.vue";
+const props = defineProps({
+  modelValue: Object,
+  commands: Object,
+  disabled: Boolean,
+  completers: Object,
+  example_events: Array,
+});
+
+watch(props.modelValue, (newValue) => {
+  this.rules = newValue;
+});
+
+watch(props.completers, (newValue) => {
+  this.disabled = newValue;
+});
+
+const selectedBinding = computed(() => {
+  if (this.selectedBindingIndex == -1) {
+    return 0;
+  }
+  return this.rules[this.selectedBindingIndex];
+});
+
+const selectedCommand = computed(() => {
+  if (this.selectedBindingIndex == -1) {
+    return 0;
+  }
+  if (this.selectedCommandIndex == -1) {
+    return 0;
+  }
+  if (this.rules[this.selectedBindingIndex]) {
+    const rule = this.rules[this.selectedBindingIndex];
+    const actions = rule.commands || [];
+    if (actions[this.selectedCommandIndex]) {
+      return actions[this.selectedCommandIndex];
+    }
+  }
+  return 0;
+});
+
+const pinnedvars = [["_", "Output of the previous action"]];
+
+function getArgMetadata(commandName, argumentName) {
+  if (commandName in this.commands) {
+    return this.commands[commandName].args[argumentName];
+  }
+  return {};
+}
+
+function getCompletions(actionObject, argumentName) {
+  const cmdName = actionObject.command;
+  const cmdMeta = this.commands[cmdName];
+
+  const argumentMetadata = this.getArgMetadata(cmdName, argumentName);
+
+  if (!argumentMetadata) {
+    return this.argcompleters["defaultExpressionCompleter"](actionObject);
+  }
+
+  if (this.argcompleters[cmdMeta.type]) {
+    try {
+      return this.argcompleters[cmdMeta.type](actionObject, argumentName);
+    } catch (error) {
+      console.log(error);
+      return [];
+    }
+  }
+  return this.argcompleters["defaultExpressionCompleter"](actionObject);
+}
+
+function moveCueRuleDown(index) {
+  var rules = [...this.modelValue];
+
+  if (index < rules.length - 1) {
+    var t = rules[index + 1];
+    rules[index + 1] = rules[index];
+    rules[index] = t;
+  }
+  $emit("update:modelValue", rules);
+}
+
+function swapArrayElements(array, indexA, indexB) {
+  var temporary = array[indexA];
+  array[indexA] = array[indexB];
+  array[indexB] = temporary;
+}
+
+let rules = this.modelValue;
+let argcompleters = this.completers || {};
+
+function getPossibleActions() {
+  var l = [];
+  for (var i in this.commands) {
+    if (this.commands[i] == null) {
+      console.log("Warning: Null entry for command info for" + i);
+    } else {
+      //Just use the special version if possible
+      if (!(i in this.specialCommands)) {
+        l.push([i, this.commands[i].doc || ""]);
+      }
+    }
+  }
+  return l;
+}
+
+function getSpecialActions() {
+  var l = [];
+  for (var i in this.specialCommands) {
+    //Prefer the special version
+    l.push([i, this.specialCommands[i].description]);
+  }
+
+  return l;
+}
+
+let selectedCommandIndex = -1;
+let selectedBindingIndex = -1;
+
+//Stuff we have built in HTML templating for
+let specialCommands = {
+  set: {
+    args: [
+      { name: "variable", type: "str", default: "" },
+      { name: "value", type: "str", default: "" },
+    ],
+    description: "Sets a variable",
   },
-  watch: {
-    modelValue: function (newValue) {
-      this.rules = newValue;
-    },
-    completers: function (newValue) {
-      this.argcompleters = newValue || {};
-    },
+  pass: {
+    args: [],
+    description: "Do nothing and return True",
   },
-
-  computed: {
-    selectedBinding: function () {
-      if (this.selectedBindingIndex == -1) {
-        return 0;
-      }
-      return this.rules[this.selectedBindingIndex];
-    },
-    selectedCommand: function () {
-      if (this.selectedBindingIndex == -1) {
-        return 0;
-      }
-      if (this.selectedCommandIndex == -1) {
-        return 0;
-      }
-      if (this.rules[this.selectedBindingIndex]) {
-        const rule = this.rules[this.selectedBindingIndex];
-        const actions = rule.commands || [];
-        if (actions[this.selectedCommandIndex]) {
-          return actions[this.selectedCommandIndex];
-        }
-      }
-      return 0;
-    },
-  },
-  data: function () {
-    return {
-      pinnedvars: [["_", "Output of the previous action"]],
-
-      getArgMetadata(commandName, argumentName) {
-        if (commandName in this.commands) {
-          return this.commands[commandName].args[argumentName];
-        }
-        return {};
-      },
-
-      getCompletions: function (actionObject, argumentName) {
-        const cmdName = actionObject.command;
-        const cmdMeta = this.commands[cmdName];
-
-        const argumentMetadata = this.getArgMetadata(cmdName, argumentName);
-
-        if (!argumentMetadata) {
-          return this.argcompleters["defaultExpressionCompleter"](actionObject);
-        }
-
-        if (this.argcompleters[cmdMeta.type]) {
-          try {
-            return this.argcompleters[cmdMeta.type](actionObject, argumentName);
-          } catch (error) {
-            console.log(error);
-            return [];
-          }
-        }
-        return this.argcompleters["defaultExpressionCompleter"](actionObject);
-      },
-
-      moveCueRuleDown: function (index) {
-        var rules = [...this.modelValue];
-
-        if (index < rules.length - 1) {
-          var t = rules[index + 1];
-          rules[index + 1] = rules[index];
-          rules[index] = t;
-        }
-        this.$emit("update:modelValue", rules);
-      },
-
-      swapArrayElements: function (array, indexA, indexB) {
-        var temporary = array[indexA];
-        array[indexA] = array[indexB];
-        array[indexB] = temporary;
-      },
-      rules: this.modelValue,
-      argcompleters: this.completers || {},
-      getPossibleActions: function () {
-        var l = [];
-        for (var i in this.commands) {
-          if (this.commands[i] == null) {
-            console.log("Warning: Null entry for command info for" + i);
-          } else {
-            //Just use the special version if possible
-            if (!(i in this.specialCommands)) {
-              l.push([i, this.commands[i].doc || ""]);
-            }
-          }
-        }
-        return l;
-      },
-
-      getSpecialActions: function () {
-        var l = [];
-        for (var i in this.specialCommands) {
-          //Prefer the special version
-          l.push([i, this.specialCommands[i].description]);
-        }
-
-        return l;
-      },
-
-      selectedCommandIndex: -1,
-      selectedBindingIndex: -1,
-
-      //Stuff we have built in HTML templating for
-      specialCommands: {
-        set: {
-          args: [
-            { name: "variable", type: "str", default: "" },
-            { name: "value", type: "str", default: "" },
-          ],
-          description: "Sets a variable",
-        },
-        pass: {
-          args: [],
-          description: "Do nothing and return True",
-        },
-        maybe: {
-          args: [{ name: "chance", type: "float", default: "50" }],
-          description: "Continue action with chance % probability",
-        },
-      },
-      deleteBinding: function (b) {
-        if (confirm("really delete binding?")) {
-          console.log("jhgf");
-          this.removeElement(this.rules, b);
-          this.$emit("update:modelValue", this.rules);
-        }
-      },
-      removeElement: function (array, element) {
-        var index = array.indexOf(element);
-        if (index > -1) {
-          array.splice(index, 1);
-        }
-      },
-      setCommandDefaults: function (action) {
-        // For dict format actions, set defaults from command metadata
-        console.log(action);
-        const cmdName = action.command;
-        let metadata = null;
-
-        // Get description data
-        if (cmdName in this.specialCommands) {
-          metadata = this.specialCommands[cmdName];
-        } else if (cmdName in this.commands) {
-          metadata = this.commands[cmdName];
-        }
-
-        // If we don't know this command, nothing to do
-        if (!metadata) {
-          return;
-        }
-
-        // Set default values for all args
-        const arguments_ = metadata.args || [];
-        for (const argumentMeta of arguments_) {
-          if (!(argumentMeta.name in action)) {
-            action[argumentMeta.name] = argumentMeta.default || "";
-          }
-        }
-      },
-    };
+  maybe: {
+    args: [{ name: "chance", type: "float", default: "50" }],
+    description: "Continue action with chance % probability",
   },
 };
+function deleteBinding(b) {
+  if (confirm("really delete binding?")) {
+    console.log("jhgf");
+    this.removeElement(this.rules, b);
+    this.$emit("update:modelValue", this.rules);
+  }
+}
+function removeElement(array, element) {
+  var index = array.indexOf(element);
+  if (index > -1) {
+    array.splice(index, 1);
+  }
+}
+function setCommandDefaults(action) {
+  // For dict format actions, set defaults from command metadata
+  console.log(action);
+  const cmdName = action.command;
+  let metadata = null;
+
+  // Get description data
+  if (cmdName in this.specialCommands) {
+    metadata = this.specialCommands[cmdName];
+  } else if (cmdName in this.commands) {
+    metadata = this.commands[cmdName];
+  }
+
+  // If we don't know this command, nothing to do
+  if (!metadata) {
+    return;
+  }
+
+  // Set default values for all args
+  const arguments_ = metadata.args || [];
+  for (const argumentMeta of arguments_) {
+    if (!(argumentMeta.name in action)) {
+      action[argumentMeta.name] = argumentMeta.default || "";
+    }
+  }
+}
 </script>

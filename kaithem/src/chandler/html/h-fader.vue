@@ -1,9 +1,7 @@
 <style scoped></style>
 
 <template id="h-fader">
-  <div class="hfader" style="-webkit-user-drag: none"
-  v-if="chname[0] != '_'"
-  >
+  <div class="hfader" style="-webkit-user-drag: none" v-if="chname[0] != '_'">
     <b class="w-full" v-if="chinfo == undefined">{{ chname }}</b>
 
     <div>
@@ -24,7 +22,7 @@
       <input
         v-bind:disabled="chinfo && chinfo.type == 'fine'"
         v-on:input="setCueVal(currentcueid, effect, universe, chname, val)"
-        v-model.lazy="val"
+        v-bind:value="val"
         v-on:change="
           setCueVal(currentcueid, effect, universe, chname, $event.target.value)
         " />
@@ -39,22 +37,26 @@
           :min="getValueRange(chinfo, val).min"
           :max="getValueRange(chinfo, val).max"
           @update:modelValue="
-            setCueVal(currentcueid, effect, universe, chname, parseFloat($event))
+            setCueVal(
+              currentcueid,
+              effect,
+              universe,
+              chname,
+              parseFloat($event)
+            )
           "
           :modelValue="val">
-      </smooth-range>
+        </smooth-range>
       </div>
       <span v-if="val == -1000001" class="grey">AUTO</span>
 
       <span v-if="val == null" class="grey">Released</span>
 
       <span
-        v-if="(!(chinfo && chinfo.type == 'fine')) && val != -1000001"
+        v-if="!(chinfo && chinfo.type == 'fine') && val != -1000001"
         title="Double click to set exact value"
         class="noselect"
-        v-on:dblclick="
-          promptExactVal(currentcueid, effect, universe, chname)
-        "
+        v-on:dblclick="promptExactVal(currentcueid, effect, universe, chname)"
         style="font-size: 80%"
         >{{ Number(val).toPrecision(4) }}</span
       >
@@ -67,8 +69,8 @@
         }"
         class="indicator"></span>
 
-      <div v-if="chinfo && chinfo.type == 'custom'"
-        ><br />
+      <div v-if="chinfo && chinfo.type == 'custom'">
+        <br />
         <select
           :value="getValueRange(chinfo, val).name"
           v-on:change="
@@ -89,16 +91,31 @@
   </div>
 </template>
 
-<script>
-var hfaderdata = {
-  promptExactVal: function (cue, effect, u, v) {
+<script setup>
+
+import SmoothRange  from "../../vue/smooth-range.vue";
+  const props = defineProps({
+    chinfo: Object,
+    currentcueid: Number,
+    groupid: Number,
+    showdelete: Boolean,
+    fixcmd: Object,
+    effect: String,
+    universe: Number,
+    val: Number,
+    chname: String,
+  })
+
+
+
+function promptExactVal (cue, effect, u, v) {
     var x = prompt("Enter new value for group");
 
     if (x != null) {
       this.setCueVal(cue, effect, u, v, x);
     }
-  },
-  setCueVal: function (sc, effect, u, ch, value) {
+  }
+function setCueVal (sc, effect, u, ch, value) {
     // console.log(sc, effect, u, ch, value);
     if (this.fixcmd["__preset__"] && this.fixcmd["__preset__"].length > 0) {
       globalThis.api_link.send(["scv",sc, effect,  u, "__preset__", null]);
@@ -106,15 +123,15 @@ var hfaderdata = {
 
     value = Number.isNaN(Number.parseFloat(value)) ? value : Number.parseFloat(value);
     globalThis.api_link.send(["scv", sc,effect, u, ch, value]);
-  },
+  }
 
   //Returns new value mapped into the range when user clicks to change the range of a custom val
   //Given current val, list of all ranges,  and old range info
-  mapvaluerange: function (oldv, d, newrange) {
+function mapvaluerange (oldv, d, newrange) {
     const newd = d.ranges.find((x) => x.name == newrange);
     return newd.min;
-  },
-  getValueRange: function (d, v) {
+  }
+function getValueRange (d, v) {
     //Given a channel info structure thing and a value, return the [min,max,name] of the range
     //that the value is in
     if (d?.ranges) {
@@ -126,34 +143,10 @@ var hfaderdata = {
     }
 
     return { min: 0, max: 255, name: "" };
-  },
+  }
 
-  rmValFromCue: function (cue, effect, universe, ch) {
+function rmValFromCue (cue, effect, universe, ch) {
     globalThis.api_link.send(["scv", cue, effect, universe, ch, null]);
-  },
-};
+  }
 
-export default {
-  template: "#h-fader",
-  //I is a data object having u,ch, and v, the universe channel and value.
-  //Chinfo is the channel info list from the fixtues that you get with channelInfoForUniverseChannel
-  props: [
-    "chinfo",
-    "currentcueid",
-    "groupid",
-    "showdelete",
-      "fixcmd",
-    "effect",
-
-    "universe",
-    "val",
-    "chname",
-  ],
-  data: function () {
-    return hfaderdata;
-  },
-  components: {
-    "smooth-range": globalThis.httpVueLoader("/static/vue/smoothrange.vue"),
-  },
-};
 </script>

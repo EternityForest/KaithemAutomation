@@ -225,7 +225,8 @@
 
 <script setup>
 import { dictView } from "./utils.mjs";
-import * as Vue from "/static/js/thirdparty/vue.esm-browser.js";
+import * as Vue from "vue";
+import MediaBrowser from "./media-browser.vue";
 
 const properties = defineProps({
   getpresetimage: Function,
@@ -274,14 +275,5 @@ function getExcalidrawPresetLink(preset) {
     "&ratio_guide=16_9"
   );
 }
-</script>
 
-<script>
-export default {
-  template: "#template",
-  components: {
-    "media-browser": globalThis.httpVueLoader("./media-browser.vue"),
-  },
-  computed: {},
-};
 </script>

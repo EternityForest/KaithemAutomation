@@ -24,7 +24,7 @@
 </datalist>
 
 <div id="outer_container">
-  <console-app></console-app>
+  <editor-app></editor-app>
 </div>
 
 <base href="/chandler/" />
@@ -35,15 +35,11 @@
 <script src="/static/js/thirdparty/jsoneditor.min.js"></script>
 
 <script type="module">
-  import { httpVueLoader } from "./httploaderoptions.mjs";
 
   import { initChandlerVueModel } from "./boardapi.mjs";
-  import { createApp } from "/static/js/thirdparty/vue.esm-browser.js";
+  import { createApp } from "vue";
+  import EditorApp from "./editor-app.vue";
 
-  globalThis.vueapp = createApp({
-    components: {
-      "console-app": httpVueLoader("./editor.vue"),
-    },
-  }).mount("#outer_container");
-  initChandlerVueModel(globalThis.boardname);
+  createApp(EditorApp, {}).mount("#outer_container");
+  initChandlerVueModel(globalThis.boardname.value);
 </script>

@@ -3,7 +3,7 @@ import {
   triggerShortcut,
 } from "./boardapi.mjs";
 
-import { ref } from "/static/js/thirdparty/vue.esm-browser.js";
+import { ref } from "vue";
 
 
 let selectingImageLabelForPreset = ref(null);
