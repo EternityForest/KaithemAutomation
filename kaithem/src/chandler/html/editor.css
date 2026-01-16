@@ -12,6 +12,7 @@ div.hfader {
     margin: 3px;
     min-width: 8em;
     min-height: 5em;
+    user-select: none;
 }
 
 div.fader-box-inner:has(> :nth-child(4)) {

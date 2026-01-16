@@ -1,88 +1,88 @@
 <style scoped></style>
 
 <template id="h-fader">
-  <div class="hfader" style="-webkit-user-drag: none" v-if="chname[0] != '_'">
-    <b class="w-full" v-if="chinfo == undefined">{{ chname }}</b>
+  <div class="hfader" style="-webkit-user-drag: none" v-if="props.chname[0] != '_'">
+    <b class="w-full" v-if="props.chinfo == undefined">{{ props.chname }}</b>
 
     <div>
       <b
-        v-if="chinfo"
+        v-if="props.chinfo"
         class="noselect"
-        v-bind:title="'Actual channel:' + universe + ':' + chname"
-        >{{ chname }}</b
+        v-bind:title="'Actual channel:' + props.universe + ':' + props.chname"
+        >{{ props.chname }}</b
       >
       <button
-        v-if="showdelete"
-        v-on:click="rmValFromCue(currentcueid, effect, universe, chname)">
+        v-if="props.showdelete"
+        v-on:click="rmValFromCue(props.currentcueid, props.effect, props.universe, props.chname)">
         <i class="mdi mdi-delete"></i>Remove
       </button>
     </div>
 
-    <div v-if="typeof val == 'string'">
+    <div v-if="typeof props.val == 'string'">
       <input
-        v-bind:disabled="chinfo && chinfo.type == 'fine'"
-        v-on:input="setCueVal(currentcueid, effect, universe, chname, val)"
-        v-bind:value="val"
+        v-bind:disabled="props.chinfo && props.chinfo.type == 'fine'"
+        v-on:input="setCueVal(props.currentcueid, props.effect, props.universe, props.chname, props.val)"
+        v-bind:value="props.val"
         v-on:change="
-          setCueVal(currentcueid, effect, universe, chname, $event.target.value)
+          setCueVal(props.currentcueid, props.effect, props.universe, props.chname, $event.target.value)
         " />
     </div>
 
-    <div v-if="typeof val == 'number'">
-      <div v-if="val !== null && val != -1000001">
+    <div v-if="typeof props.val == 'number'">
+      <div v-if="props.val !== null && props.val != -1000001">
         <smooth-range
-          v-bind:disabled="chinfo && chinfo.type == 'fine'"
-          v-if="!(chname == '__length__' || chname == '__spacing__')"
-          v-bind:step="chinfo && chinfo.type == 'fine' ? 0.01 : 1"
-          :min="getValueRange(chinfo, val).min"
-          :max="getValueRange(chinfo, val).max"
+          v-bind:disabled="props.chinfo && props.chinfo.type == 'fine'"
+          v-if="!(props.chname == '__length__' || props.chname == '__spacing__')"
+          v-bind:step="props.chinfo && props.chinfo.type == 'fine' ? 0.01 : 1"
+          :min="getValueRange(props.chinfo, props.val).min"
+          :max="getValueRange(props.chinfo, props.val).max"
           @update:modelValue="
             setCueVal(
-              currentcueid,
-              effect,
-              universe,
-              chname,
+              props.currentcueid,
+              props.effect,
+              props.universe,
+              props.chname,
               parseFloat($event)
             )
           "
-          :modelValue="val">
+          :modelValue="props.val">
         </smooth-range>
       </div>
-      <span v-if="val == -1000001" class="grey">AUTO</span>
+      <span v-if="props.val == -1000001" class="grey">AUTO</span>
 
-      <span v-if="val == null" class="grey">Released</span>
+      <span v-if="props.val == null" class="grey">Released</span>
 
       <span
-        v-if="!(chinfo && chinfo.type == 'fine') && val != -1000001"
+        v-if="!(props.chinfo && props.chinfo.type == 'fine') && props.val != -1000001"
         title="Double click to set exact value"
         class="noselect"
-        v-on:dblclick="promptExactVal(currentcueid, effect, universe, chname)"
+        v-on:dblclick="promptExactVal(props.currentcueid, props.effect, props.universe, props.chname)"
         style="font-size: 80%"
-        >{{ Number(val).toPrecision(4) }}</span
+        >{{ Number(props.val).toPrecision(4) }}</span
       >
-      <span class="grey" v-if="chinfo && chinfo.type == 'fine'">auto</span>
+      <span class="grey" v-if="props.chinfo && props.chinfo.type == 'fine'">auto</span>
 
       <span
-        v-if="chinfo && chinfo == undefined"
+        v-if="props.chinfo && props.chinfo == undefined"
         v-bind:style="{
-          'background-color': 'rgb(' + val + ',' + val + ',' + val + ')',
+          'background-color': 'rgb(' + props.val + ',' + props.val + ',' + props.val + ')',
         }"
         class="indicator"></span>
 
-      <div v-if="chinfo && chinfo.type == 'custom'">
+      <div v-if="props.chinfo && props.chinfo.type == 'custom'">
         <br />
         <select
-          :value="getValueRange(chinfo, val).name"
+          :value="getValueRange(props.chinfo, props.val).name"
           v-on:change="
             setCueVal(
-              currentcueid,
-              effect,
-              universe,
-              chname,
-              mapvaluerange(val, chinfo, $event.target.value)
+              props.currentcueid,
+              props.effect,
+              props.universe,
+              props.chname,
+              mapvaluerange(props.val, props.chinfo, $event.target.value)
             )
           ">
-          <option v-for="i of chinfo.ranges" :value="i.name">
+          <option v-for="i of props.chinfo.ranges" :value="i.name">
             {{ i.name }}({{ i.min }} to {{ i.max }})
           </option>
         </select>
@@ -112,12 +112,12 @@ function promptExactVal (cue, effect, u, v) {
     var x = prompt("Enter new value for group");
 
     if (x != null) {
-      this.setCueVal(cue, effect, u, v, x);
+      setCueVal(cue, effect, u, v, x);
     }
   }
 function setCueVal (sc, effect, u, ch, value) {
     // console.log(sc, effect, u, ch, value);
-    if (this.fixcmd["__preset__"] && this.fixcmd["__preset__"].length > 0) {
+    if (props.fixcmd["__preset__"] && props.fixcmd["__preset__"].length > 0) {
       globalThis.api_link.send(["scv",sc, effect,  u, "__preset__", null]);
     }
 
