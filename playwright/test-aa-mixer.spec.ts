@@ -91,8 +91,7 @@ test("test", async ({ page }) => {
   let level = await page
     .getByTestId("channel-box-testchannel2")
     .getByTestId("channel-level-value")
-    .textContent();
-  await expect(level).toBe("-99db");
+  await expect(level).toContainText("-99db");
 
   // Now try it in reverse, set the output of channel 1 to channel 2
   await page.getByTestId("channel-box-testchannel").getByText("Setup").click();
@@ -162,8 +161,7 @@ test("test", async ({ page }) => {
   level = await page
     .getByTestId("channel-box-testchannel2")
     .getByTestId("channel-level-value")
-    .textContent();
-  await expect(level).not.toBe("-99db");
+  await expect(level).not.toContainText("-99db");
 
   await expect(
     page
@@ -200,8 +198,7 @@ test("test", async ({ page }) => {
     level = await page
       .getByTestId("channel-box-testchannel2")
       .getByTestId("channel-level-value")
-      .textContent();
-    await expect(level).not.toBe("-99db");
+    await expect(level).not.toContainText("-99db");
   }).toPass({
     intervals: [1000, 2000, 10_000],
     timeout: 60_000,
@@ -213,8 +210,7 @@ test("test", async ({ page }) => {
   level = await page
     .getByTestId("channel-box-testchannel2")
     .getByTestId("channel-level-value")
-    .textContent();
-  await expect(level).toBe("-99db");
+  await expect(level).toContainText("-99db");
 
   // Delete channel 2
   page.once("dialog", (dialog) => {
