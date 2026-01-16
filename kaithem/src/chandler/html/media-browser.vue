@@ -10,7 +10,7 @@ It takes a set of action button slots that get passed "filename"
     </header>
     <div class="tool-bar">
       <input
-        :disabled="no_edit"
+        :disabled="props.no_edit"
         v-model="soundsearch"
         v-on:change="soundsearchresults = []"
         v-on:keyup.enter="doSoundSearch(soundsearch)"
@@ -70,7 +70,7 @@ It takes a set of action button slots that get passed "filename"
             v-bind:key="i[0]">
             <a>{{ i[1] }}</a>
             <slot
-              v-if="selectfolders"
+              v-if="props.selectfolders"
               :filename="i[0]"
               :relfilename="i[0].split('/').pop()">
             </slot>
@@ -105,27 +105,28 @@ It takes a set of action button slots that get passed "filename"
 </template>
 
 <script setup>
+import { ref } from "vue";
 const props = defineProps({
     no_edit: Boolean,
     selectfolders: Boolean
 })
 
-let soundsearch = ''
-let soundfilesdir = ''
-let soundfileslisting = [[], []]
-let soundsearchresults = []
+let soundsearch = ref('')
+let soundfilesdir = ref('')
+let soundfileslisting = ref([[], []])
+let soundsearchresults = ref([])
 
 function  doSoundSearch(s) {
         globalThis.api_link.send(["searchsounds", s])
     }
 function setSoundfileDir(i) {
     if ((i == '') | (i[0] == '/')) {
-        this.soundfilesdir = i;
+        soundfilesdir.value = i;
     }
     else {
-        this.soundfilesdir += i;
+        soundfilesdir.value += i;
     }
-    this.soundfileslisting = [
+    soundfileslisting.value = [
         [],
         []
     ]
@@ -135,16 +136,16 @@ function setSoundfileDir(i) {
 
 function onsoundfolderlisting(e) {
     const v = e.data
-    if (v[0] == soundfilesdir) {
-        soundfileslisting = v[1]
+    if (v[0] == soundfilesdir.value) {
+        soundfileslisting.value = v[1]
     }
 }
 globalThis.addEventListener('onsoundfolderlisting', onsoundfolderlisting)
 function onsoundsearchresults(e) {
     const v = e.data
     console.log(v)
-    if (this.$data.soundsearch == v[0]) {
-        this.$data.soundsearchresults = v[1]
+    if (soundsearch.value == v[0]) {
+        soundsearchresults.value = v[1]
     }
 
 }

@@ -45,7 +45,6 @@ scolor={
 
 <script src="/static/js/thirdparty/vue2.js"></script>
 <script type="module" src="/static/js/widget.mjs?"></script>
-<script src="/static/js/thirdparty/strftime-min.js"></script>
 
 
 <style>
@@ -210,7 +209,7 @@ scolor={
 
                         formatTime: function(t) {
                             var date = new Date(t * 1000);
-                            return date.strftime("%b %m %Y  %I:%M:%S%p %Z")
+                            return date.toLocaleString();
                         }
                     }
                 });

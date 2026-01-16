@@ -2,14 +2,14 @@
 
 <template>
   <div
-    v-if="currentcue && editinggroup"
+    v-if="props.currentcue && props.editinggroup"
     class="window w-full modal"
     popover
     id="cueMediaDialog"
     ontoggle="globalThis.handleDialogState(event)">
     <header>
       <div class="tool-bar">
-        <h4>{{ currentcue.name }} Sound</h4>
+        <h4>{{ props.currentcue.name }} Sound</h4>
         <button
           class="nogrow"
           type="button"
@@ -22,7 +22,7 @@
     </header>
 
     <p>
-      <a :href="'./webmediadisplay?group=' + editinggroup.id"
+      <a :href="'./webmediadisplay?group=' + props.editinggroup.id"
         >Web Media Display</a
       >
     </p>
@@ -39,9 +39,9 @@
               data-testid="cue-sound-control"
               :disabled="no_edit"
               placeholder="No sound file"
-              v-bind:value="currentcue.sound"
+              v-bind:value="props.currentcue.sound"
               v-on:change="
-                setCueProperty(currentcue.id, 'sound', $event.target.value)
+                setCueProperty(props.currentcue.id, 'sound', $event.target.value)
               " />
           </label>
           <label
@@ -50,42 +50,42 @@
               data-testid="cue-slide-control"
               :disabled="no_edit"
               placeholder="No media file"
-              v-bind:value="currentcue.slide"
+              v-bind:value="props.currentcue.slide"
               v-on:change="
-                setCueProperty(currentcue.id, 'slide', $event.target.value)
+                setCueProperty(props.currentcue.id, 'slide', $event.target.value)
               " />
           </label>
 
           <label
             >Label Image
             <input
-              :disabled="no_edit"
+              :disabled="props.no_edit"
               placeholder="No picture file"
               data-testid="cue-label-image-control"
-              v-bind:value="currentcue.labelImage"
+              v-bind:value="props.currentcue.labelImage"
               v-on:change="
-                setCueProperty(currentcue.id, 'labelImage', $event.target.value)
+                setCueProperty(props.currentcue.id, 'labelImage', $event.target.value)
               " />
             <button
               class="button"
               popovertarget="iframeDialog"
               @click="
                 iframeDialog = getExcalidrawCueLink(
-                  editinggroup.name,
-                  currentcue
+                  props.editinggroup.name,
+                  props.currentcue
                 )
               ">
               Draw
             </button>
           </label>
-          <label v-if="currentcue.labelImage.length > 0"
+          <label v-if="props.currentcue.labelImage.length > 0"
             >Label Image Preview
             <img
               :src="
                 '/chandler/WebMediaServer?labelImg=' +
-                encodeURIComponent(currentcue.id) +
+                encodeURIComponent(props.currentcue.id) +
                 '&timestamp=' +
-                encodeURIComponent(currentcue.labelImageTimestamp)
+                encodeURIComponent(props.currentcue.labelImageTimestamp)
               "
               class="h-center"
               style="max-height: 4em" />
@@ -95,11 +95,11 @@
             <label
               >Sound start
               <input
-                :disabled="no_edit"
-                v-bind:value="currentcue.soundStartPosition"
+                :disabled="props.no_edit"
+                v-bind:value="props.currentcue.soundStartPosition"
                 v-on:change="
                   setCueProperty(
-                    currentcue.id,
+                    props.currentcue.id,
                     'soundStartPosition',
                     $event.target.value
                   )
@@ -109,13 +109,13 @@
             <label
               >Media Speed
               <input
-                :disabled="no_edit"
+                :disabled="props.no_edit"
                 type="number"
-                v-bind:value="currentcue.mediaSpeed"
+                v-bind:value="props.currentcue.mediaSpeed"
                 step="0.1"
                 v-on:change="
                   setCueProperty(
-                    currentcue.id,
+                    props.currentcue.id,
                     'mediaSpeed',
                     $event.target.value
                   )
@@ -127,13 +127,13 @@
             <label
               >Windup
               <input
-                :disabled="no_edit"
+                :disabled="props.no_edit"
                 type="number"
-                v-bind:value="currentcue.mediaWindUp"
+                v-bind:value="props.currentcue.mediaWindUp"
                 step="0.1"
                 v-on:change="
                   setCueProperty(
-                    currentcue.id,
+                    props.currentcue.id,
                     'mediaWindUp',
                     $event.target.value
                   )
@@ -143,13 +143,13 @@
             <label
               >Winddown
               <input
-                :disabled="no_edit"
+                :disabled="props.no_edit"
                 type="number"
-                v-bind:value="currentcue.mediaWindDown"
+                v-bind:value="props.currentcue.mediaWindDown"
                 step="0.1"
                 v-on:change="
                   setCueProperty(
-                    currentcue.id,
+                    props.currentcue.id,
                     'mediaWindDown',
                     $event.target.value
                   )
@@ -160,12 +160,12 @@
           <label
             >Device
 
-            <datalist id="soundcards">
+            <datalist id="props.soundcards">
               <option value="groupwebplayer">
                 Play media file in web player
               </option>
               <option
-                v-for="i of soundcards"
+                v-for="i of props.soundcards"
                 v-bind:key="i"
                 v-bind:value="i"></option>
               <option value="@auto"></option>
@@ -177,48 +177,48 @@
               title="Using mplayer -ao syntax, or one of kaithem's device aliases, set the output device"
               v-on:change="
                 setCueProperty(
-                  currentcue.id,
+                  props.currentcue.id,
                   'soundOutput',
                   $event.target.value
                 )
               "
-              v-bind:value="currentcue.soundOutput"
+              v-bind:value="props.currentcue.soundOutput"
               placeholder="default"
-              list="soundcards" />
+              list="props.soundcards" />
           </label>
 
           <p>
             <label
               >Relative length
               <input
-                :disabled="no_edit"
+                :disabled="props.no_edit"
                 type="checkbox"
                 v-on:change="
                   setCueProperty(
-                    currentcue.id,
+                    props.currentcue.id,
                     'relLength',
                     $event.target.checked
                   )
                 "
-                v-bind:checked="currentcue.relLength"
+                v-bind:checked="props.currentcue.relLength"
                 title="If checked, the length parameter is interpreted as a delay after the sound cue ends." />
             </label>
 
             <label
               >Fade sound after end
               <input
-                :disabled="no_edit"
+                :disabled="props.no_edit"
                 type="number"
                 step="0.1"
                 v-on:change="
                   setCueProperty(
-                    currentcue.id,
+                    props.currentcue.id,
                     'soundFadeOut',
                     $event.target.value
                   )
                 "
                 min="0"
-                v-bind:value="currentcue.soundFadeOut"
+                v-bind:value="props.currentcue.soundFadeOut"
                 title="Sound should fade out starting when the cue ends, taking this long." />
             </label>
           </p>
@@ -227,50 +227,50 @@
             <label
               >Sound fadein:
               <input
-                :disabled="no_edit"
+                :disabled="props.no_edit"
                 type="number"
                 step="0.1"
                 v-on:change="
                   setCueProperty(
-                    currentcue.id,
+                    props.currentcue.id,
                     'soundFadeIn',
                     $event.target.value
                   )
                 "
                 min="-1"
-                v-bind:value="currentcue.soundFadeIn"
+                v-bind:value="props.currentcue.soundFadeIn"
                 title="Sound should fade in if starting from, taking this long. Use -1 to override and disable a global group crossfade." />
             </label>
 
             <label
               >Cue Volume
               <input
-                :disabled="no_edit"
+                :disabled="props.no_edit"
                 v-on:change="
                   setCueProperty(
-                    currentcue.id,
+                    props.currentcue.id,
                     'soundVolume',
                     $event.target.value
                   )
                 "
                 min="0"
-                v-bind:value="currentcue.soundVolume" />
+                v-bind:value="props.currentcue.soundVolume" />
             </label>
 
             <label
               >Loops
               <input
-                :disabled="no_edit"
+                :disabled="props.no_edit"
                 title="-1 means forever"
                 v-on:change="
                   setCueProperty(
-                    currentcue.id,
+                    props.currentcue.id,
                     'soundLoops',
                     $event.target.value
                   )
                 "
                 min="-1"
-                v-bind:value="currentcue.soundLoops" />
+                v-bind:value="props.currentcue.soundLoops" />
             </label>
           </p>
         </div>
@@ -278,15 +278,15 @@
       <div
         class="w-sm-double flex-col gaps"
         data-testid="media-browser-container">
-        <media-browser :no_edit="no_edit" :selectfolders="false">
+        <media-browser :no_edit="props.no_edit" :selectfolders="false">
           <template v-slot="slotProps">
             <button
               v-on:click="
-                setCueProperty(currentcue.id, 'sound', slotProps.filename)
+                setCueProperty(props.currentcue.id, 'sound', slotProps.filename)
               ">
               Set(sound)
             </button>
-            <button v-on:click="newCueFromSound(groupname, slotProps.filename)">
+            <button v-on:click="newCueFromSound(props.groupname, slotProps.filename)">
               New(sound)
             </button>
             <button v-on:click="previewSound(slotProps.filename)">
@@ -294,18 +294,18 @@
             </button>
             <button
               v-on:click="
-                setCueProperty(currentcue.id, 'slide', slotProps.filename)
+                setCueProperty(props.currentcue.id, 'slide', slotProps.filename)
               ">
               Set(slide)
             </button>
-            <button v-on:click="newCueFromSlide(groupname, slotProps.filename)">
+            <button v-on:click="newCueFromSlide(props.groupname, slotProps.filename)">
               New(slide)
             </button>
 
             <button
               v-on:click="
                 setCueProperty(
-                  currentcue.id,
+                  props.currentcue.id,
                   'labelImage',
                   slotProps.relfilename
                 )
@@ -339,7 +339,7 @@
                   <button
                     v-on:click="
                       setCueProperty(
-                        currentcue.id,
+                        props.currentcue.id,
                         'soundOutput',
                         'groupwebplayer'
                       )
@@ -348,8 +348,8 @@
                   </button>
                   <button
                     v-on:click="
-                      setgroupproperty(
-                        groupname,
+                      props.setgroupproperty(
+                        props.groupname,
                         'soundOutput',
                         'groupwebplayer'
                       )
@@ -359,27 +359,27 @@
                 </div>
               </dd>
 
-              <template v-for="i of soundcards" v-bind:key="i">
+              <template v-for="i of props.soundcards" v-bind:key="i">
                 <dt>{{ i || "UNSET" }}</dt>
                 <dd>
                   <div class="tool-bar">
                     <button
                       type="button"
                       v-on:click="
-                        setCueProperty(currentcue.id, 'soundOutput', i)
+                        setCueProperty(props.currentcue.id, 'soundOutput', i)
                       ">
                       Set for Cue
                     </button>
                     <button
                       type="button"
                       v-on:click="
-                        setgroupproperty(groupname, 'soundOutput', i)
+                        props.setgroupproperty(props.groupname, 'soundOutput', i)
                       ">
                       Set as Group Default
                     </button>
                     <button
                       type="button"
-                      v-on:click="testsoundcard(i, 0, 48000)">
+                      v-on:click="props.testsoundcard(i, 0, 48000)">
                       Test
                     </button>
                   </div>
@@ -403,7 +403,7 @@ import {
 
 import MediaBrowser from "./media-browser.vue";
 
-defineProps([
+const props = defineProps([
   "no_edit",
   "soundcards",
   "currentcue",
