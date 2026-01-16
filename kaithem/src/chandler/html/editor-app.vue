@@ -1796,58 +1796,6 @@
                 </div>
               </div>
 
-              <div class="card w-sm-double">
-                <header>
-                  <h4>Slideshow Layout</h4>
-                </header>
-                <p class="help">
-                  You have to refresh the player for this to take effect.
-                </p>
-
-                <details>
-                  <summary>Special Vars</summary>
-                  <dl>
-                    <dt v-pre>{{ clock }}</dt>
-                    <dd>Browser's local formatted time</dd>
-
-                    <dt v-pre>{{ date }}</dt>
-                    <dd>Browser's local formatted date</dd>
-
-                    <dt v-pre>{{ countdown }}</dt>
-                    <dd>
-                      Empty if cue has no length, otherwise, 00:00:00 formatted
-                      countdown to end of current cue.
-                    </dd>
-
-                    <dt v-pre>{{ var_XXX }}</dt>
-                    <dd>User defined variables set in cue logic.</dd>
-                  </dl>
-                </details>
-                <details>
-                  <summary>Custom layout for slideshow</summary>
-                  <div class="stacked-form">
-                    <textarea
-                      v-model="editingGroup.slideshowLayout"
-                      class="w-full h-16rem"
-                      data-testid="slideshow_layout"
-                      @change="
-                        setGroupProperty(
-                          editingGroup.id,
-                          'slideshowLayout',
-                          $event.target.value
-                        )
-                      "
-                      @input="
-                        setGroupPropertyDeferred(
-                          editingGroup.id,
-                          'slideshowLayout',
-                          $event.target.value
-                        )
-                      "></textarea>
-                  </div>
-                </details>
-              </div>
-
               <div class="card w-sm-full">
                 <header>
                   <h4>Cue Providers</h4>

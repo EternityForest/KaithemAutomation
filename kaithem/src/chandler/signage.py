@@ -29,7 +29,7 @@ class MediaLinkManager:
             def on_new_subscriber(s, user, cid, **kw):  # type: ignore
                 self.send_all_media_link_info()
 
-        self.media_link_socket = APIWidget(id=groupObj.id + "_media_link")
+        self.media_link_socket = APIWidget(id=groupObj.id + "-media-link")
         self.media_link_socket.echo = False
 
         self.slideshow_telemetry: collections.OrderedDict[
@@ -99,24 +99,8 @@ class MediaLinkManager:
 
         self.media_link_socket.attach2(handleMediaLink)
 
-    def set_slideshow_variable(self, k: str, v: Any):
-        self.media_link_socket.send(["web_var", k, v])
-        self.web_variables[k] = v
-
     def send_all_media_link_info(self):
         self.media_link_socket.send(["volume", self.group.alpha])
-
-        self.media_link_socket.send(["text", self.group.cue.markdown])
-
-        self.media_link_socket.send(
-            [
-                "cue_ends",
-                self.group.cuelen + self.group.entered_cue,
-                self.group.cuelen,
-            ]
-        )
-
-        self.media_link_socket.send(["all_variables", self.web_variables])
 
         self.media_link_socket.send(
             [

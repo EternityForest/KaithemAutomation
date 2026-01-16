@@ -273,21 +273,6 @@ async def media():
         raise RuntimeError("???")
 
 
-# Still has to be a template because of the dynamic layouts
-async def webmediadisplay():
-    kwargs = quart.request.args
-
-    def f():
-        r = get_template("webmediadisplay.html").render(
-            kwargs=kwargs,
-            groups=groups,
-        )
-        return r
-
-    r = await quart.utils.run_sync(f)()
-    return quart.Response(r, mimetype="text/html")
-
-
 staticdir = os.path.join(directories.datadir, "static")
 
 
@@ -296,9 +281,6 @@ staticdir = os.path.join(directories.datadir, "static")
 # namespace
 @quart_app.app.route("/chandler/<path:path>")
 async def default(path: str):
-    if path in ("webmediadisplay",):
-        return await webmediadisplay()
-
     # Use the dot to distinguish templates vs static files
     if "." not in path.split("/")[-1]:
         # Todo template rendering on the server should really be
@@ -311,9 +293,19 @@ async def default(path: str):
         path = path.split("/")[0] + ".html"
 
         def f():
-            r = render_html_file(
-                os.path.join(staticdir, "vite/kaithem/src/chandler/html", path)
-            )
+            if "webmedia" not in path:
+                r = render_html_file(
+                    os.path.join(
+                        staticdir, "vite/kaithem/src/chandler/html", path
+                    )
+                )
+            else:
+                with open(
+                    os.path.join(
+                        staticdir, "vite/kaithem/src/chandler/html", path
+                    )
+                ) as f:
+                    r = f.read()
             if isinstance(r, str):
                 r = r.encode()
             return r

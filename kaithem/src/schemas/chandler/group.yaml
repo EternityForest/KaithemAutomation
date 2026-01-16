@@ -63,46 +63,6 @@ properties:
   slide_overlay_url:
     type: string
 
-  slideshow_layout:
-    type: string
-    description: Customize the group web player view
-    default: |
-        <style>
-            slideshow-app {
-                display: flex;
-                flex-wrap: wrap;
-                flex-direction: row;
-            }
-
-            main{
-              display: flex;
-              flex-direction: column;
-              flex-grow:10;
-            }
-
-            media-player {
-                flex-grow: 5;
-            }
-
-            .sidebar {
-                background: linear-gradient(175deg, rgba(36,36,36,1) 0%, rgba(77,77,77,1) 100%);
-                max-width: calc(max(30%, min(24em, 100%) ));
-                text-wrap: wrap;
-            }
-
-        </style>
-
-
-        <slideshow-app>
-            <main>
-                <header></header>
-                <media-player></media-player>
-                <footer></footer>
-            </main>
-            <div class="sidebar" v-if="cueText" v-html="cueText">
-            </div>
-        </slideshow-app>
-
   sound_output:
     type: string
 

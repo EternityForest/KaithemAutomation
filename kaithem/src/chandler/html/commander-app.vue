@@ -36,7 +36,7 @@
               "
               ><i class="mdi mdi-pencil"></i
             ></a>
-            
+
             <input
               size="8"
               title="Enter a cue's shortcut code here to activate it. Keybindings are suspended while this is selected."
@@ -201,10 +201,10 @@
                     }}
                   </small>
 
-                  <group-ui
+                  <group-ui-controls
                     :unixtime="unixtime"
                     v-bind:group-data="i[1]"
-                    :cue="cuemeta[i[1].cue]"></group-ui>
+                    :cue="cuemeta[i[1].cue]"></group-ui-controls>
                 </div>
               </div>
 
@@ -531,6 +531,7 @@ import {
 
 import CueCountdown from "./cue-countdown.vue";
 import CueIter from "./cue-iter.vue";
+import GroupUiControls from "./group-ui-controls.vue";
 
 import * as Vue from "vue";
 

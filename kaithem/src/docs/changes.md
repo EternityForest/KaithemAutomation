@@ -60,6 +60,8 @@ object, and must be explicitly called.
 
 * :coffin: Remove builtin calculator and notepad utils in Chandler Commander
 
+* :coffin: BREAKING: Remove chandler custom slideshow layouts and text cues, due to an unsustainable amount of complexity that would be needed to support nicer formatting.
+
 ### 0.93.1
 
 * :technologist: Do not include dev packages in built wheel dependencies

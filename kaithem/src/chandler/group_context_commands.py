@@ -187,30 +187,6 @@ class EventCommand(CueLogicStatelessFunction):
         return True
 
 
-class SetSlideshowVariableCommand(CueLogicStatelessFunction):
-    doc = (
-        "Set a slideshow variable. These can be used in the slideshow "
-        "text as {{var_name}}"
-    )
-    args = [
-        {"name": "group", "type": "str", "default": "=GROUP"},
-        {"name": "key", "type": "str", "default": "varFoo"},
-        {"name": "value", "type": "str", "default": ""},
-    ]
-
-    def call(self, group: str = "=GROUP", key: str = "varFoo", value: str = ""):
-        context_group = self.get_parent_group()
-        if not key.startswith("var"):
-            raise ValueError(
-                "Custom slideshow variable names for slideshow must "
-                "start with 'var'"
-            )
-        context_group.board.groups_by_name[
-            group
-        ].media_link.set_slideshow_variable(key, value)
-        return True
-
-
 class ConsoleNotificationCommand(CueLogicStatelessFunction):
     doc = (
         "Send a notification to the operator, on the web editor and "
@@ -277,7 +253,6 @@ _shortcut_cmd = ShortcutCommand
 _set_alpha_cmd = SetAlphaCommand
 _if_cue_cmd = IfCueCommand
 _event_cmd = EventCommand
-_set_slideshow_var_cmd = SetSlideshowVariableCommand
 _console_notification_cmd = ConsoleNotificationCommand
 _speak_cmd = SpeakCommand
 _send_mqtt_cmd = SendMqttCommand
@@ -287,7 +262,6 @@ rootContext.commands["shortcut"] = _shortcut_cmd
 rootContext.commands["set_alpha"] = _set_alpha_cmd
 rootContext.commands["if_cue"] = _if_cue_cmd
 rootContext.commands["send_event"] = _event_cmd
-rootContext.commands["set_slideshow_variable"] = _set_slideshow_var_cmd
 rootContext.commands["console_notification"] = _console_notification_cmd
 rootContext.commands["speak"] = _speak_cmd
 rootContext.commands["send_mqtt"] = _send_mqtt_cmd

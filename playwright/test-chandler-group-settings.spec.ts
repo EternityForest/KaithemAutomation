@@ -292,9 +292,6 @@ test("test", async ({ page }) => {
 
   await expect(page.getByPlaceholder("Next cue in list")).toBeEmpty();
 
-  await page.getByText("Custom layout for slideshow").click();
-  await page.getByTestId("slideshow_layout").click();
-  await page.getByTestId("slideshow_layout").fill("LayoutPlaceholder");
 
   await page.getByTestId("close-group-settings").click();
   await page.getByTestId("close-group").click();
@@ -307,15 +304,9 @@ test("test", async ({ page }) => {
   );
   await page.getByRole("button", { name: "ts1" }).click();
   await page.getByTestId("group-properties-button").click();
-  await page.getByText("Custom layout for slideshow").click();
-  await expect(page.getByTestId("slideshow_layout")).toHaveValue(
-    "LayoutPlaceholder"
-  );
 
-  // Test flicker blend mode props and slideshow transform
 
-  await page.getByLabel("Perspective Distance cm").fill("500");
-  await page.getByLabel("Translate X %").fill("84");
+  // Test flicker blend mode props
 
   await page.getByTestId("group_blend_mode").selectOption("flicker");
 
@@ -340,8 +331,6 @@ test("test", async ({ page }) => {
   await page.getByRole("button", { name: "ts1" }).click();
   await page.getByTestId("group-properties-button").click();
 
-  await expect(page.getByLabel("Perspective Distance")).toHaveValue("500");
-  await expect(page.getByLabel("Translate X")).toHaveValue("84");
   await expect(page.getByTestId("group_blend_mode")).toHaveValue("flicker");
   await expect(page.getByLabel("agility:")).toHaveValue("0.04");
   await expect(page.getByLabel("gustiness:")).toHaveValue("0.19");

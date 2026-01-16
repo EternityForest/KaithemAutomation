@@ -3,6 +3,7 @@
 
 import re
 import traceback
+import time
 
 from scullery import messagebus, scheduling
 
@@ -127,7 +128,7 @@ once = [0]
 
 scanning_connection = None
 
-ctr = 0
+ctr = int(time.time())
 
 
 def doScan():

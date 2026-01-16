@@ -46,12 +46,14 @@ test("test", async ({ page }) => {
   await page.getByRole("button", { name: "signage" }).click();
   await page.getByRole("button", { name: "Media" }).click();
   await page.locator("#cueMediaDialog").getByText("<TOP DIRECTORY>").click();
-  await page
-    .locator("#cueMediaDialog")
-    .getByText(
-      "media/"
-    )
-    .click();
+   await page
+    .getByTestId("media-browser-container")
+    .getByText("Builtin", { exact: true })
+     .click();
+     await page
+    .getByTestId("media-browser-container")
+    .getByText("img/", { exact: true })
+   .click();
   await page.getByRole("button", { name: "Set(slide)" }).click();
 
   await page.getByTestId("close-cue-media").click();
