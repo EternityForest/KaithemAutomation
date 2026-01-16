@@ -1,0 +1,27 @@
+<base href="/chandler/" />
+
+<title>Chandler Commander</title>
+
+<style>
+  main {
+    width: 100%;
+  }
+</style>
+
+<div id="outer_app">
+  <ddf-import></ddf-import>
+</div>
+
+<script type="module">
+  import { initChandlerVueModel } from "./boardapi.mjs";
+  import DdfImport from "./ddf-import.vue";
+  import * as Vue from "vue";
+
+  const boardname = globalThis.location.pathname.split("/").at(-1);
+  document.title = boardname;
+
+  let app =Vue.createApp(CommanderApp, {});
+  app.mount("#outer_app");
+
+  initChandlerVueModel(boardname);
+</script>

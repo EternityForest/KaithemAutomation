@@ -137,12 +137,6 @@ async def get_file_thumbnail():
     )
 
 
-@quart_app.app.route("/chandler/opz_import/<board>")
-def opz_import(board: str):
-    pages.require("system_admin")
-    return get_template("opz_import.html").render()
-
-
 @quart_app.app.route("/chandler/static/<fn>")
 async def static_file(fn):
     if ".." in fn or "/" in fn or "\\" in fn:

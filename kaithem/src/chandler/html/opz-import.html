@@ -1,0 +1,25 @@
+<base href="/chandler/" />
+
+<title>UseOPZDMX</title>
+
+<style>
+  main {
+    width: 100%;
+  }
+</style>
+
+<div id="outer_app">
+  <opz-import-app></opz-import-app>
+</div>
+
+<script type="module">
+  import { initChandlerVueModel } from "./boardapi.mjs";
+  import OpzImportApp from "./opz-import.vue";
+  import * as Vue from "vue";
+  const boardname = globalThis.location.pathname.split("/").at(-1);
+
+  let app = Vue.createApp(OpzImportApp, {});
+  app.mount("#outer_app");
+
+  initChandlerVueModel(boardname);
+</script>

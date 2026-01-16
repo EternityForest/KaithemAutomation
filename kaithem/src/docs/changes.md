@@ -6,7 +6,7 @@ Change Log
 This version is all about cleaning up the old device integration system.
 
 Most notably, the NVR features have been significantly simplified, the system
-no longer aims tp provide a full security and monitoring system, as this can often
+no longer aims to provide a full security and monitoring system, as this can often
 be done better(for small setups) using only the dedicated hardwate features built into network cameras.
 
 Instead, it is now focused on web-embedabble live streaming to monitor the thing you're operating.
@@ -58,6 +58,8 @@ object, and must be explicitly called.
 * :coffin: BREAKING: The plugin API for creating new chandler functions has changed but should still work for now. Migrate ASAP though.
 * :coffin: BREAKING: Remove is_day, is_night, is_light, etc functions from Chandler scripts. Use the tag points.
 * :coffin: Remove online assets lib due to poor performance, unofficial APIs, and complexity.
+
+* :coffin: Remove builtin calculator and notepad utils in Chandler Commander
 
 ### 0.93.1
 

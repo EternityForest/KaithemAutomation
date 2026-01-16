@@ -338,7 +338,7 @@
 
           <option value="enttec"></option>
           <option value="artnet"></option>
-          <option value="null">Disabled/Unused</option>
+          <option value="dummy">Disabled/Unused</option>
         </datalist>
 
         <table border="1" data-testid="universe-configuration-table">
@@ -444,7 +444,7 @@
           <a
             class="button"
             :href="
-              '/chandler/opz_import/' +
+              '/chandler/opz-import/' +
               boardname
             "
             >Import from OP-Z format</a

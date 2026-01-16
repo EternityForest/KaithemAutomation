@@ -33,6 +33,10 @@ export default defineConfig({
         //   "kaithem/src/plugins/CorePluginExcalidraw/next/index.html"
         // ),
 
+        chandler_opz_import: resolve(
+          __dirname,
+          "kaithem/src/chandler/html/opz-import.html"
+        ),
         chandler_commander: resolve(
           __dirname,
           "kaithem/src/chandler/html/commander.html"

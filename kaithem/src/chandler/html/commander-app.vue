@@ -36,10 +36,7 @@
               "
               ><i class="mdi mdi-pencil"></i
             ></a>
-
-            <button type="button" @click="showUtils = !showUtils">
-              <i class="mdi mdi-calculator"></i>
-            </button>
+            
             <input
               size="8"
               title="Enter a cue's shortcut code here to activate it. Keybindings are suspended while this is selected."
@@ -66,22 +63,6 @@
         </header>
 
         <div class="flex-row gaps scroll max-h-48rem">
-          <article v-if="showUtils" class="card w-sm-full nogrow margin">
-            <header>
-              <h3>Calculator</h3>
-            </header>
-            <p>This calculator supports units! Try "5lb+6oz to kg"</p>
-            <iframe class="undecorated w-full" src="../util-calc"></iframe>
-          </article>
-
-          <article
-            v-if="showUtils"
-            class="card w-sm-full nogrow max-h-24rem margin">
-            <header>
-              <h3>Scratchpad</h3>
-            </header>
-            <textarea class="w-full h-60rem" v-model="scratchpad"></textarea>
-          </article>
 
           <template v-for="i in formatGroups">
             <article
@@ -565,7 +546,6 @@ function formatTime(t) {
   return strftime("%I:%M:%S%p", date);
 }
 
-const showUtils = Vue.ref(false);
 const compactCues = Vue.ref(true);
 const scratchpad = Vue.ref("Text here is NOT yet saved when page reloads.");
 
