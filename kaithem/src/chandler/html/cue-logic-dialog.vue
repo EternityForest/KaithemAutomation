@@ -6,10 +6,10 @@
     popover
     id="cueLogicDialog"
     ontoggle="globalThis.handleDialogState(event)"
-    v-if="currentcue && editinggroup">
+    v-if="props.currentcue && props.editinggroup">
     <header>
       <div class="tool-bar">
-        <h4>{{ currentcue.name }} Logic</h4>
+        <h4>{{ props.currentcue.name }} Logic</h4>
         <button
           class="nogrow"
           data-testid="close-logic"
@@ -48,11 +48,11 @@
         >Inherit rules from
         <div style="overflow: visible">
           <combo-box
-            :modelValue="currentcue.inheritRules"
-            :disabled="editinggroup.name == '__rules__' || no_edit"
-            @change="setcueproperty(currentcue.id, 'inheritRules', $event)"
+            :modelValue="props.currentcue.inheritRules"
+            :disabled="props.editinggroup.name == '__rules__' || props.no_edit"
+            @change="props.setcueproperty(props.currentcue.id, 'inheritRules', $event)"
             :options="
-              useBlankDescriptions(groupcues[editinggroup.id])
+              useBlankDescriptions(props.groupcues[props.editinggroup.id])
             "></combo-box>
         </div>
         <p>Inherited rules run after directly set rules.</p>
@@ -67,12 +67,12 @@
     <script-editor
       :completers="completers"
       v-bind:example_events="example_events"
-      :modelValue="currentcue.rules"
-      @update:model-value="setcueproperty(currentcue.id, 'rules', $event)"
+      :modelValue="props.currentcue.rules"
+      @update:model-value="props.setcueproperty(props.currentcue.id, 'rules', $event)"
       v-bind:commands="chandlerScriptEnvironment.commands"
-      v-bind:vars="editinggroup.vars"
-      v-bind:parentgroup="editinggroup.name"
-      :disabled="no_edit">
+      v-bind:vars="props.editinggroup.vars"
+      v-bind:parentgroup="props.editinggroup.name"
+      :disabled="props.no_edit">
     </script-editor>
 
     <div style="display: flex; flex-wrap: wrap">
@@ -85,7 +85,7 @@
         ">
         <h3>Group Variables</h3>
         <table border="1">
-          <tr v-for="(v, i) in editinggroup.vars" :key="i">
+          <tr v-for="(v, i) in props.editinggroup.vars" :key="i">
             <td>{{ i }}</td>
             <td>{{ v }}</td>
           </tr>
@@ -101,15 +101,15 @@
         ">
         <h3>Timers</h3>
         <table border="1" style="width: 98%">
-          <tr v-for="(v, i) in editinggroup.timers" :key="i + v">
+          <tr v-for="(v, i) in props.editinggroup.timers" :key="i + v">
             <td>{{ i }}</td>
             <td
               style="width: 8em"
               v-bind:class="{
-                warning: v - unixtime < 60,
-                blinking: v - unixtime < 5,
+                warning: v - props.unixtime < 60,
+                blinking: v - props.unixtime < 5,
               }">
-              {{ formatInterval(v - unixtime) }}
+              {{ formatInterval(v - props.unixtime) }}
             </td>
           </tr>
         </table>
@@ -174,8 +174,8 @@ const example_events = computed( () => {
         event_.push(example_events_base[i]);
       }
 
-      for (let n in this.availabletags) {
-        let i = this.availabletags[n];
+      for (let n in props.availabletags) {
+        let i = props.availabletags[n];
         event_.push(["=tv('" + n + "')", "While tag is nonzero"]);
         if (i == "trigger") {
           event_.push(["=+tv('" + n + "')", "On every nonzero change"]);
@@ -207,7 +207,7 @@ const props = defineProps({
 function groupRefCompleter(_dummy) {
   let c = [["=GROUP", "This group"]];
 
-  let x = this.groupmeta;
+  let x = props.groupmeta;
 
   if (!x) {
     return [];
@@ -222,18 +222,18 @@ function groupRefCompleter(_dummy) {
   let c = [];
   let n = a.group;
   if (n.includes("=GROUP")) {
-    n = this.editinggroup.name;
+    n = props.editinggroup.name;
   }
 
-  for (let i in this.groupmeta) {
-    let s = this.groupmeta[i];
+  for (let i in props.groupmeta) {
+    let s = props.groupmeta[i];
     if (s.name == n) {
       n = i;
       break;
     }
   }
 
-  let x = this.groupcues[n];
+  let x = props.groupcues[n];
 
   if (!x) {
     return [];
@@ -249,7 +249,7 @@ function groupRefCompleter(_dummy) {
 
 function tagpointsCompleter (_a) {
   let c = [];
-  for (let i in this.availabletags) {
+  for (let i in props.availabletags) {
     c.push([i, ""]);
   }
   return c;
@@ -268,7 +268,7 @@ function defaultExpressionCompleter(_a) {
     ["=random()", "Random from 0 to 1"],
     ["=GROUP", "Name of the group"],
   ];
-  for (let i in this.availabletags) {
+  for (let i in props.availabletags) {
     c.push(['=tv("' + i + '")', ""]);
   }
   return c;
@@ -276,11 +276,11 @@ function defaultExpressionCompleter(_a) {
 
 function cueNamesByGroupName() {
   let d = {};
-  for (let i in this.groupmeta) {
-    d[this.groupmeta[i].name] = [];
+  for (let i in props.groupmeta) {
+    d[props.groupmeta[i].name] = [];
 
-    for (let j in this.groupcues[i]) {
-      d[this.groupmeta[i].name].push(j);
+    for (let j in props.groupcues[i]) {
+      d[props.groupmeta[i].name].push(j);
     }
   }
   return d;
@@ -288,7 +288,7 @@ function cueNamesByGroupName() {
 
 let completers = {
         CueName: cueRefCompleter,
-        GroupName: groupRefCompleterm,
+        GroupName: groupRefCompleter,
         defaultExpressionCompleter: defaultExpressionCompleter,
         TagpointName: tagpointsCompleter
       }

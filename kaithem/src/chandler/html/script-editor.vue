@@ -77,9 +77,9 @@ p.small {
 
           <h4>Parameters</h4>
           <div class="stacked-form">
-            <datalist id="example_events">
+            <datalist id=" props.example_events">
               <option
-                v-for="(v, _i) in example_events"
+                v-for="(v, _i) in  props.example_events"
                 v-bind:value="v[0]"
                 v-bind:key="v[0]">
                 {{ v[1] }}
@@ -90,7 +90,7 @@ p.small {
               <input
                 :disabled="disabled"
                 v-model="selectedBinding.event"
-                list="example_events"
+                list=" props.example_events"
                 v-on:change="$emit('update:modelValue', rules)" />
             </label>
           </div>
@@ -337,7 +337,7 @@ p.small {
 </template>
 
 <script setup>
-import { computed, watch } from "vue";
+import { computed, watch,ref } from "vue";
 
 import ComboBox from "../../vue/combo-box.vue";
 const props = defineProps({
@@ -348,33 +348,41 @@ const props = defineProps({
   example_events: Array,
 });
 
+let rules = props.modelValue;
+let disabled = props.disabled;
+
 watch(props.modelValue, (newValue) => {
-  this.rules = newValue;
+  rules = newValue;
 });
 
-watch(props.completers, (newValue) => {
-  this.disabled = newValue;
+watch(props.disabled, (newValue) => {
+  disabled = newValue;
 });
+let argcompleters = props.completers || {};
+
+let selectedCommandIndex = ref(-1);
+let selectedBindingIndex = ref(-1);
+
 
 const selectedBinding = computed(() => {
-  if (this.selectedBindingIndex == -1) {
+  if (selectedBindingIndex.value== -1) {
     return 0;
   }
-  return this.rules[this.selectedBindingIndex];
+  return rules[selectedBindingIndex.value];
 });
 
 const selectedCommand = computed(() => {
-  if (this.selectedBindingIndex == -1) {
+  if (selectedBindingIndex.value == -1) {
     return 0;
   }
-  if (this.selectedCommandIndex == -1) {
+  if (selectedCommandIndex.value == -1) {
     return 0;
   }
-  if (this.rules[this.selectedBindingIndex]) {
-    const rule = this.rules[this.selectedBindingIndex];
+  if (rules[selectedBindingIndex.value]) {
+    const rule = rules[selectedBindingIndex.value];
     const actions = rule.commands || [];
-    if (actions[this.selectedCommandIndex]) {
-      return actions[this.selectedCommandIndex];
+    if (actions[selectedCommandIndex.value]) {
+      return actions[selectedCommandIndex.value];
     }
   }
   return 0;
@@ -383,35 +391,35 @@ const selectedCommand = computed(() => {
 const pinnedvars = [["_", "Output of the previous action"]];
 
 function getArgMetadata(commandName, argumentName) {
-  if (commandName in this.commands) {
-    return this.commands[commandName].args[argumentName];
+  if (commandName in props.commands) {
+    return props.commands[commandName].args[argumentName];
   }
   return {};
 }
 
 function getCompletions(actionObject, argumentName) {
   const cmdName = actionObject.command;
-  const cmdMeta = this.commands[cmdName];
+  const cmdMeta = props.commands[cmdName];
 
-  const argumentMetadata = this.getArgMetadata(cmdName, argumentName);
+  const argumentMetadata = getArgMetadata(cmdName, argumentName);
 
   if (!argumentMetadata) {
-    return this.argcompleters["defaultExpressionCompleter"](actionObject);
+    return argcompleters["defaultExpressionCompleter"](actionObject);
   }
 
-  if (this.argcompleters[cmdMeta.type]) {
+  if (argcompleters[cmdMeta.type]) {
     try {
-      return this.argcompleters[cmdMeta.type](actionObject, argumentName);
+      return argcompleters[cmdMeta.type](actionObject, argumentName);
     } catch (error) {
       console.log(error);
       return [];
     }
   }
-  return this.argcompleters["defaultExpressionCompleter"](actionObject);
+  return argcompleters["defaultExpressionCompleter"](actionObject);
 }
 
 function moveCueRuleDown(index) {
-  var rules = [...this.modelValue];
+  var rules = [...modelValue];
 
   if (index < rules.length - 1) {
     var t = rules[index + 1];
@@ -427,18 +435,16 @@ function swapArrayElements(array, indexA, indexB) {
   array[indexB] = temporary;
 }
 
-let rules = this.modelValue;
-let argcompleters = this.completers || {};
 
 function getPossibleActions() {
   var l = [];
-  for (var i in this.commands) {
-    if (this.commands[i] == null) {
+  for (var i in props.commands) {
+    if (props.commands[i] == null) {
       console.log("Warning: Null entry for command info for" + i);
     } else {
       //Just use the special version if possible
-      if (!(i in this.specialCommands)) {
-        l.push([i, this.commands[i].doc || ""]);
+      if (!(i in specialCommands)) {
+        l.push([i, props.commands[i].doc || ""]);
       }
     }
   }
@@ -447,16 +453,14 @@ function getPossibleActions() {
 
 function getSpecialActions() {
   var l = [];
-  for (var i in this.specialCommands) {
+  for (var i in specialCommands) {
     //Prefer the special version
-    l.push([i, this.specialCommands[i].description]);
+    l.push([i, specialCommands[i].description]);
   }
 
   return l;
 }
 
-let selectedCommandIndex = -1;
-let selectedBindingIndex = -1;
 
 //Stuff we have built in HTML templating for
 let specialCommands = {
@@ -479,8 +483,8 @@ let specialCommands = {
 function deleteBinding(b) {
   if (confirm("really delete binding?")) {
     console.log("jhgf");
-    this.removeElement(this.rules, b);
-    this.$emit("update:modelValue", this.rules);
+    removeElement(rules, b);
+    $emit("update:modelValue", rules);
   }
 }
 function removeElement(array, element) {
@@ -496,10 +500,10 @@ function setCommandDefaults(action) {
   let metadata = null;
 
   // Get description data
-  if (cmdName in this.specialCommands) {
-    metadata = this.specialCommands[cmdName];
-  } else if (cmdName in this.commands) {
-    metadata = this.commands[cmdName];
+  if (cmdName in specialCommands) {
+    metadata = specialCommands[cmdName];
+  } else if (cmdName in props.commands) {
+    metadata = props.commands[cmdName];
   }
 
   // If we don't know this command, nothing to do
