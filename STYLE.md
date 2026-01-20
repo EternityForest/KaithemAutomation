@@ -142,6 +142,8 @@
 
 * Don't repeat yourself, and don't do the same thing in multiple ways, such as using both client and server side templating
 
+* Don't manually keep things in sync, or manually copy things from the output of the same command regularly.  Automate everything you can.
+
 * GUI support and performance from day 1, don't build things you know are going to be slow, or lock yourself into feed forward pipeline models that provide a poor GUI experience
 
 * Don't have more than a few layers of arbitrary remappings, just specify the file should always be named X, rather than having three layers of config pointing to it.
@@ -184,7 +186,7 @@
 
 * Functions should not just ignore incorrect inputs, raise exceptions if something is not working as intended.
 
-* Do not just ignore true errors without logging them
+* Do not explicitly silence true errors without actually handling them properlt.  No except: pass
 
 * Avoid returning mutable references to persistent state, unless you intend for the caller to modify the persistent state
 

@@ -551,12 +551,11 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
             fix = {"channels": x}
 
-            self.fixture_classes[msg[1].replace("-", " ").replace("/", " ")] = (
-                fix
-            )
+            importedname = msg[1].replace("-", " ").replace("/", " ")
+            self.fixture_classes[importedname] = fix
             self.cl_reload_fixture_assignment_data()
             self.linkSend(
-                ["fixtureclass", msg[1], self.fixture_classes[msg[1]]]
+                ["fixtureclass", msg[1], self.fixture_classes[importedname]]
             )
 
         elif cmd_name == "rmfixtureclass":

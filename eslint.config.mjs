@@ -34,14 +34,13 @@ export default [
         },
 
         alias: {
-          map: [["/static/js/widget.mjs", "./kaithem/src/js/widget.mjs"
-
-
-
+          map: [
+            ["/static/js/widget.mjs", "./kaithem/src/js/widget.mjs"],
+            [
+              "/static/js/thirdparty/picodash/picodash-base.esm.js",
+              "./kaithem/src/js/thirdparty/picodash/picodash-base.esm.js",
+            ],
           ],
-        [ "/static/js/thirdparty/picodash/picodash-base.esm.js",
-          "./kaithem/src/js/thirdparty/picodash/picodash-base.esm.js"
-        ],
         },
       },
     },

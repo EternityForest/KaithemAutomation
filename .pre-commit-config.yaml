@@ -1,7 +1,7 @@
 default_install_hook_types: [pre-commit, prepare-commit-msg, commit-msg]
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v6.0.0
     hooks:
       - id: check-yaml
       - id: check-toml
@@ -13,7 +13,7 @@ repos:
           - "markdown"
           - "html"
           - "javascript"
-      - id: check-byte-order-marker
+      - id: fix-byte-order-marker
       - id: check-json
       - id: forbid-new-submodules
       - id: check-added-large-files
@@ -30,7 +30,7 @@ repos:
   #       args: ["--no-deps"]
 
   - repo: https://github.com/Lucas-C/pre-commit-hooks
-    rev: v1.5.5
+    rev: v1.5.6
     hooks:
       - id: remove-crlf
         types_or:
@@ -48,7 +48,7 @@ repos:
           - "markdown"
           - "html"
   - repo: https://github.com/sirosen/texthooks
-    rev: 0.6.6
+    rev: 0.7.1
     hooks:
       - id: fix-smartquotes
         types_or:
@@ -77,7 +77,7 @@ repos:
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     # Ruff version.
-    rev: v0.3.5
+    rev: v0.14.13
     hooks:
       # Run the linter.
       - id: ruff
@@ -87,8 +87,6 @@ repos:
         - "--select=PLE"
         - "--select=F"
         - "--select=E"
-        # Syntax error
-        - "--select=E999"
         # Mostly have auto fixes available
         - "--select=PIE"
         - "--select=UP"
@@ -116,7 +114,7 @@ repos:
 
 
   - repo: https://github.com/Yelp/detect-secrets
-    rev: v1.4.0
+    rev: v1.5.0
     hooks:
     -   id: detect-secrets
         args: ['--baseline', '.secrets.baseline']

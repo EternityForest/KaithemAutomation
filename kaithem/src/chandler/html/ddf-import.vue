@@ -11,9 +11,11 @@
         <input id="file" type="file" @change="onChange" />
         <label>Search:<input v-model="search" /></label>
         <ul v-if="d['profiles']">
-          <li v-for="(v, i) of d['profiles']" :key="i" v-if="v['name'].includes(search)">
-            <button @click="selected = v">{{ v['name'] }}</button>
-          </li>
+          <template v-for="(v, i) of d['profiles']" :key="i">
+            <li v-if="v['name'].includes(search)">
+              <button @click="selected = v">{{ v['name'] }}</button>
+            </li>
+          </template>
         </ul>
       </div>
 
@@ -32,21 +34,19 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref } from 'vue'
+import { api_link } from "./boardapi.mjs";
 
 const selected = ref({})
 const search = ref('')
 const d = ref({})
 
 const onChange = (event) => {
-  const reader = new FileReader()
-  reader.onload = onReaderLoad
-  reader.readAsText(event.target.files[0])
+  event.target.files[0].readAsText().then(onReaderLoad)
 }
 
 const onReaderLoad = (event) => {
-  console.log(event.target.result)
-  d.value = JSON.parse(event.target.result)
+  d.value = JSON.parse(event)
 }
 
 const importfixture = () => {
