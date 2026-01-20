@@ -248,7 +248,6 @@ class Group:
         midi_source: str = "",
         default_next: str = "",
         slide_overlay_url: str = "",
-        slideshow_layout: str = "",
         music_visualizations: str = "",
         require_confirm: bool = False,
         mqtt_sync_features: dict[str, Any] | None = None,
@@ -329,12 +328,6 @@ class Group:
         self.media_link_socket = self.media_link.media_link_socket
 
         self.slide_overlay_url: str = slide_overlay_url
-
-        # Kind of long so we do it in the external file
-        self.slideshow_layout: str = (
-            slideshow_layout.strip()
-            or group_schema["properties"]["slideshow_layout"]["default"]
-        )
 
         # Audio visualizations
         self.music_visualizations = music_visualizations

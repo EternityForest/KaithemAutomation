@@ -53,8 +53,9 @@ test("test", async ({ page }) => {
      await page
     .getByTestId("media-browser-container")
     .getByText("img/", { exact: true })
-   .click();
-  await page.getByRole("button", { name: "Set(slide)" }).click();
+       .click();
+  
+  await page.getByRole("button", { name: "Set(slide)" }).first().click();
 
   await page.getByTestId("close-cue-media").click();
   await page.getByTestId("close-group").click();

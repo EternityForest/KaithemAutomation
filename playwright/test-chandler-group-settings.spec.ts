@@ -143,9 +143,6 @@ test("test", async ({ page }) => {
   await expect(page.getByLabel("Alpha", { exact: true })).toHaveValue("0.25");
   await page.getByLabel("Default Alpha").click();
 
-  await page.getByLabel("Sidebar info URL").click();
-  await page.getByLabel("Sidebar info URL").fill("foourl");
-
   await page.getByLabel("Enable Timing").setChecked(false);
 
   await check_box(page, page.getByLabel("Utility Group(No controls)"));
@@ -172,7 +169,6 @@ test("test", async ({ page }) => {
 
   await expect(page.getByLabel("Utility Group(No controls)")).toBeChecked();
   await expect(page.getByLabel("Hide in Runtime Mode")).toBeChecked();
-  await expect(page.getByLabel("Sidebar info URL")).toHaveValue("foourl");
 
   await expect(page.getByLabel("Enable Timing")).not.toBeChecked();
 
