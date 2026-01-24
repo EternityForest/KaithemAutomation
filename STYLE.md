@@ -50,7 +50,9 @@
 
 * Future proof things.  Don't use stuff that won't be around in ten years, if possible, migrate early if a technology is very clearly on it's way out
 
-* People like free stuff, if something costs money, it's less likely to become "the standard", unless there are no free competitors.
+* If something costs money, it's less likely to become "the standard", unless there are no free competitors, so FOSS is usually more standard.
+
+* Don't create new low level infrastructure if you don't have to.  Don't reinvent wheels.
 
 ## Safety
 
@@ -127,6 +129,8 @@
 * Avoid making behavior dependent on inherent properties of the hardware rather than active control
 
 * Minimize the amount of information a user or developer must store in their head at one time to effectively work with the system
+
+* Where practical, avoid having multiple different representations of the same data, use the same format everywhere internally and only convert for input and output.
 
 * Prefer declarative over imperative. Interfaces should expose the minimum amount of power and flexibility, and encapsulate as much logic as possible
 

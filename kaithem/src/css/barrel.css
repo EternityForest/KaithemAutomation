@@ -60,6 +60,7 @@ dd {
   --grey-1: #e1ded7;
   --grey-2: #f1f1f1;
   --grey-3: #f8f9fa;
+  --grey-4: #fafafa;
 
   --red: #e03131;
   --yellow: #ffd43b;
@@ -405,7 +406,7 @@ audio {
   dl,
   ul,
   ol {
-    &:not(.tool-bar, .nomargin) {
+    &:not(.tool-bar, .nomargin, .no-margin) {
       margin: var(--padding);
     }
   }
@@ -1050,6 +1051,69 @@ table {
   border-color: var(--border-color);
 }
 
+
+
+.accordion details[open] summary::before {
+      transform: rotate(90deg);
+  }
+.accordion{
+  border: 2px solid var(--border-color);
+  border-radius: var(--border-radius);
+  display: flex;
+  flex-direction: column;
+
+  summary::before {
+    content: "▶ ";
+    font-size: 10px;
+    margin-right: 4px;
+    display: inline-block;
+    transition: transform 0.2s;
+    vertical-align: bottom;
+  }
+
+  details:first-child {
+    border-top-left-radius: var(--border-radius);
+    border-top-right-radius: var(--border-radius);
+  }
+  details:last-child {
+    border-bottom-left-radius: var(--border-radius);
+    border-bottom-right-radius: var(--border-radius);
+  }
+
+  details:not(:first-child) {
+    border-top: 1px solid var(--border-color);
+  }
+  details:not(:last-child) {
+    border-bottom: 1px solid var(--border-color);
+  }
+
+
+  details {
+    margin: 0px;
+    padding: 0px;
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 0%;
+    overflow: auto;
+    border-radius: 0px;
+    border: none;
+    summary {
+      padding: 8px;
+      background: var(--alt-control-bg);
+      border-bottom: 1px solid var(--border-color);
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: uppercase;
+      color: var(--control-fg);
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.2s;
+      list-style: none;
+    }
+  }
+}
+
+
 /*From the old geocities size*/
 .badge-88 {
   width: 88px;
@@ -1109,12 +1173,13 @@ header:not(.undecorated) .tool-bar {
   break-before: always;
 }
 
-.nobreaks {
+.nobreaks,.no-breaks {
   break-inside: avoid;
 }
 
 @media print {
-  .noprint {
+  .noprint,
+  .no-print {
     display: none;
   }
 }
