@@ -67,6 +67,7 @@ export default [
       "import/no-unresolved": "error",
       "vue/no-undef-properties": "error",
       "unicorn/no-null": "off",
+      "typescript-eslint/require-await": "off",
       "unicorn/prevent-abbreviations": [
         "error",
         {

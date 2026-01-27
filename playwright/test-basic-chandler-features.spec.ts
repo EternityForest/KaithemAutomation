@@ -6,7 +6,7 @@ import {
   chandlerBoardTemplate,
   deleteModule,
   makeTagPoint,
-  waitForTasks
+  waitForTasks,
 } from "./util";
 
 /*
@@ -75,18 +75,19 @@ test("test", async ({ page }) => {
   await page.getByTestId("cue-media-dialog-button").click();
   await page.getByRole("list").getByText("Refresh").click();
 
-
-   await page
+  await page
     .getByTestId("media-browser-container")
     .getByText("Builtin", { exact: true })
-     .click();
-     await page
+    .click();
+  await page
     .getByTestId("media-browser-container")
     .getByText("sounds/", { exact: true })
-   .click();
- await page.getByRole("button", { name: "New(sound)" }).first().click();
-  await expect(page.locator("#cuesbox")).toContainText("alert");
-  
+    .click();
+  await page.getByRole("button", { name: "New(sound)" }).first().click();
+  await expect(page.locator("#cuesbox")).toContainText(
+    "72125__kizilsungur__sweetalertsound1.opus"
+  );
+
   await page.getByTestId("close-cue-media").click();
 
   // Set the cue length to 0 so it doesn't end too soon
@@ -100,13 +101,14 @@ test("test", async ({ page }) => {
     .fill("0");
   await page.getByPlaceholder("New cue name").click();
   await page
-    .getByRole("row", { name: "alert" })
+    .getByRole("row", { name: "72125__kizilsungur__sweetalertsound1.opus" })
     .getByRole("button", { name: "Go", exact: true })
     .click();
 
-  
   //Select the group box in the sidebar that tells us what the cue is
-  await expect(page.getByTestId("sidebar-active-cue-name")).toHaveText(/.*x72125 *kizilsungur *sweetalertsound1.*/);
+  await expect(page.getByTestId("sidebar-active-cue-name")).toHaveText(
+    /.*x72125 *kizilsungur *sweetalertsound1.*/
+  );
   // Channel adding tab
   await page.getByTestId("add-rm-fixtures-button").click();
   // Add raw dmx channek;
@@ -167,7 +169,7 @@ test("test", async ({ page }) => {
 
   await page.getByRole("button", { name: "Go", exact: true }).first().click();
 
-await waitForTasks(page)
+  await waitForTasks(page);
   await sleep(500);
 
   // Go back and make sure it actually worked
@@ -199,22 +201,22 @@ await waitForTasks(page)
 
   await page.getByRole("button", { name: "󰆴 Remove" }).click();
 
-await waitForTasks(page)
+  await waitForTasks(page);
 
   await page.goto(
     "http://localhost:8002/chandler/editor/PlaywrightChandlerTestModule:board1"
   );
   await page.getByRole("button", { name: "tst1" }).click();
-await waitForTasks(page)
+  await waitForTasks(page);
   await sleep(500);
 
   await expect(
     page.getByRole("heading", { name: "/test_chandler_tag" })
   ).toHaveCount(0);
 
-    await page.getByTestId("close-group").click();
-    
-    //Test stopping and restarting a group
+  await page.getByTestId("close-group").click();
+
+  //Test stopping and restarting a group
 
   page.once("dialog", (dialog) => {
     console.log(`Dialog message: ${dialog.message()}`);
@@ -222,40 +224,32 @@ await waitForTasks(page)
   });
   await page.getByRole("button", { name: "󰙧 Stop" }).click();
 
-  await expect(page.getByTestId("sidebar-active-cue-name")).toBeHidden(
-    {
-      timeout: 10_000
-    }
-  );
+  await expect(page.getByTestId("sidebar-active-cue-name")).toBeHidden({
+    timeout: 10_000,
+  });
 
   await page.getByRole("button", { name: "󰐊 Go!" }).click();
-  await expect(page.getByTestId("sidebar-active-cue-name")).toContainText(
-    "c2"
-  );
-    
+  await expect(page.getByTestId("sidebar-active-cue-name")).toContainText("c2");
 
-    // Test commander
-    await page.getByTestId('commander-link').click();
-    await expect(page.getByRole('button', { name: 'tst1' })).toBeVisible();
-    await expect(page.getByRole('article')).toContainText('c2');
-    await page.getByRole('button', { name: 'tst1' }).click();
-    await page.getByRole('button', { name: 'c3 󰤔' }).click();
-    await page.getByRole('button', { name: '󰅖 Close' }).click();
-    await expect(page.getByRole('article')).toContainText('c3');
-    await expect(page.getByRole('link', { name: '(slideshow)' })).toBeVisible();
-    page.once('dialog', dialog => {
-      console.log(`Dialog message: ${dialog.message()}`);
-      dialog.accept().catch(() => {});
-    });
+  // Test commander
+  await page.getByTestId("commander-link").click();
+  await expect(page.getByRole("button", { name: "tst1" })).toBeVisible();
+  await expect(page.getByRole("article")).toContainText("c2");
+  await page.getByRole("button", { name: "tst1" }).click();
+  await page.getByRole("button", { name: "c3 󰤔" }).click();
+  await page.getByRole("button", { name: "󰅖 Close" }).click();
+  await expect(page.getByRole("article")).toContainText("c3");
+  await expect(page.getByRole("link", { name: "(slideshow)" })).toBeVisible();
+  page.once("dialog", (dialog) => {
+    console.log(`Dialog message: ${dialog.message()}`);
+    dialog.accept().catch(() => {});
+  });
 
-    // Stop Cue
-    await page.getByRole('button', { name: '󰙧' }).click();
-    await expect(page.getByTestId('active-cue-name')).toBeHidden();
-    await page.getByRole('button', { name: '󰐊' }).click();
-    await expect(page.getByTestId('active-cue-name')).toContainText('c2');
-    
-
-    
+  // Stop Cue
+  await page.getByRole("button", { name: "󰙧" }).click();
+  await expect(page.getByTestId("active-cue-name")).toBeHidden();
+  await page.getByRole("button", { name: "󰐊" }).click();
+  await expect(page.getByTestId("active-cue-name")).toContainText("c2");
 
   await deleteModule(page, module);
   await logout(page);

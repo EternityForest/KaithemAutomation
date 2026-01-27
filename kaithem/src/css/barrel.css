@@ -79,6 +79,7 @@ dd {
 
   /*Headings, links, etc*/
   --accent-color: var(--dark-blue);
+
   /*Main page bg*/
   --bg: var(--grey-1);
   /*.paper, items*/
@@ -98,25 +99,25 @@ dd {
     monospace;
 
   --main-font: var(--sans-font);
-  --font-size: 18px;
-  --line-height: calc(2px + 18px + 2px + 4px);
+  --font-size: 1rem;
+  --line-height: calc(2px + 1rem + 2px + 4px);
   --heading-font: var(--main-font);
   --control-font: var(--main-font);
 
   /*Spacing*/
-  --padding: 8px;
-  --gap: 12px;
+  --padding: 0.25rem;
+  --gap: 0.4rem;
 
   /*Borders*/
   --border-color: color-mix(in srgb, var(--graphical-fg) 50%, rgb(0 0 0 / 0%));
   --border-style: solid;
-  --border-radius: 1.2rem;
+  --border-radius: 0.6rem;
   --border-width: 1px;
 
   --border: var(--border-width) var(--border-style) var(--border-color);
   /*Inputs, buttons, etc*/
   --control-height: 1.6rem;
-  --control-border-radius: 0.8rem;
+  --control-border-radius: 0.5rem;
   --control-border-width: 1px;
 
   /*control-bg also applies to small elements like headers*/
@@ -1087,6 +1088,15 @@ table {
     border-bottom: 1px solid var(--border-color);
   }
 
+  details:not([open]){
+    flex-grow: 0;
+    flex-basis: min-content;
+    overflow: hidden;
+  }
+
+  details[open]{
+    border-bottom: 1px solid var(--border-color);
+  }
 
   details {
     margin: 0px;
@@ -1100,7 +1110,6 @@ table {
     summary {
       padding: 8px;
       background: var(--alt-control-bg);
-      border-bottom: 1px solid var(--border-color);
       font-weight: 600;
       font-size: 12px;
       text-transform: uppercase;
@@ -2225,6 +2234,10 @@ footer.padding {
   --fg: var(--warning-fg);
   --graphical-fg: var(--warning-fg);
   color: var(--fg);
+}
+
+.subtle{
+  opacity: 0.5;
 }
 
 .error:not(.specificity_hack),

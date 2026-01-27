@@ -26,15 +26,15 @@ test("test", async ({ page }) => {
 
   await page
     .getByTestId("media-browser-container")
-    .getByText("/data/static/")
+    .getByText("Builtin")
     .click();
   await page
     .getByTestId("media-browser-container")
-    .getByText("data/static/img/")
+    .getByText("img/")
     .click();
   await page
     .getByTestId("media-browser-container")
-    .getByText("data/static/img/16x9/")
+    .getByText("16x9/")
     .click();
 
   await waitForTasks(page);

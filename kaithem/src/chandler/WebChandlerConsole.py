@@ -66,10 +66,12 @@ def listsoundfolder(path: str, extra_folders: list[str] = []):
             soundfolders[i] = i
     if not path:
         return [
-            [
-                [i + ("/" if not i.endswith("/") else ""), soundfolders[i]]
-                for i in soundfolders
-            ],
+            sorted(
+                [
+                    [i + ("/" if not i.endswith("/") else ""), soundfolders[i]]
+                    for i in soundfolders
+                ]
+            ),
             [],
         ]
 
@@ -84,28 +86,34 @@ def listsoundfolder(path: str, extra_folders: list[str] = []):
             match = i
     if not match:
         return [
-            [
+            sorted(
                 [
-                    i + ("/" if not i.endswith("/") else ""),
-                    soundfolders[i],
-                    soundfolders[i],
+                    [
+                        i + ("/" if not i.endswith("/") else ""),
+                        soundfolders[i],
+                        soundfolders[i],
+                    ]
+                    for i in soundfolders
                 ]
-                for i in soundfolders
-            ],
+            ),
             [],
         ]
 
     return [
-        [
-            [os.path.join(path, i), i + "/"]
-            for i in os.listdir(path)
-            if os.path.isdir(os.path.join(path, i))
-        ],
-        [
-            [os.path.relpath(os.path.join(path, i), match), i]
-            for i in os.listdir(path)
-            if os.path.isfile(os.path.join(path, i))
-        ],
+        sorted(
+            [
+                [os.path.join(path, i), i + "/"]
+                for i in os.listdir(path)
+                if os.path.isdir(os.path.join(path, i))
+            ]
+        ),
+        sorted(
+            [
+                [os.path.relpath(os.path.join(path, i), match), i]
+                for i in os.listdir(path)
+                if os.path.isfile(os.path.join(path, i))
+            ]
+        ),
     ]
 
 
