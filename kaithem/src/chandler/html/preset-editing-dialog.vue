@@ -121,7 +121,7 @@
           </h4>
           <div class="flex-row">
             <img
-              class="avatar"
+              class="avatar margin"
               v-if="getpresetimage(ps[0])"
               style="max-height: 4rem; max-width: 8rem"
               :src="
