@@ -6,7 +6,7 @@
     id="presetsDialog"
     ontoggle="globalThis.handleDialogState"
     class="margin modal flex-item window paper"
-    style="width: 32em; max-height: 90vh">
+    style="width: 32em;">
     <datalist id="colorcategories">
       <option>neutral</option>
       <option>teal</option>
@@ -112,120 +112,119 @@
       </button>
     </div>
     <div class="scroll" style="max-height: 36rem; margin-bottom: 0.5em">
-      <dl>
-        <template v-for="(ps, i) of dictView(presets, [])">
-          <dt
-            v-if="ps[0].toLowerCase().includes(filterPresets.toLowerCase())"
-            :data-testid="'preset-inspector-' + ps[0] + '-heading'"
-            v-bind:key="i">
-            <div class="tool-bar">
-              <p>
-                <b>{{ ps[0] }}</b>
-              </p>
-              <button
-                type="button"
-                popovertarget="presetImageLabel"
-                v-on:click="selectingImageLabelForPreset = ps[0]">
-                <i class="mdi mdi-image-edit-outline"></i>
-                Image
-              </button>
-
-              <button
-                class="button"
-                type="button"
-                popovertarget="iframeDialog"
-                @click="setIframeDialog(getExcalidrawPresetLink(ps[0]))">
-                <i class="mdi mdi-fountain-pen-tip"></i>
-                Draw
-              </button>
-
-              <button type="button" v-on:click="deletepreset(ps[0])">
-                <i class="mdi mdi-delete"></i>Delete
-              </button>
-              <button type="button" v-on:click="renamepreset(ps[0])">
-                <i class="mdi mdi-pencil"></i>Rename
-              </button>
-              <button
-                type="button"
-                v-on:click="
-                  copypreset(ps[0]);
-                  filterPresets = '';
-                ">
-                <i class="mdi mdi-copy"></i>Copy
-              </button>
-            </div>
-          </dt>
-          <dd
-            :data-testid="'preset-inspector-' + ps[0] + '-body'"
-            v-if="ps[0].toLowerCase().includes(filterPresets.toLowerCase())"
-            v-bind:key="ps[0]">
+      <template v-for="(ps, i) of dictView(presets, [])" :key="i">
+        <div
+          v-if="ps[0].toLowerCase().includes(filterPresets.toLowerCase())"
+          :data-testid="'preset-inspector-' + ps[0] + '-heading'">
+          <h4>
+            <b>{{ ps[0] }}</b>
+          </h4>
+          <div class="flex-row">
             <img
               class="avatar"
               v-if="getpresetimage(ps[0])"
-              style="max-height: 8em; max-width: 8em"
+              style="max-height: 4rem; max-width: 8rem"
               :src="
                 '/chandler/WebMediaServer?file=' +
                 encodeURIComponent(getpresetimage(ps[0]))
               " />
-            <details>
-              <div class="stacked-form">
-                <label
-                  ><i class="mdi mdi-format-list-bulleted"></i>Category
-                  <input
-                    :disabled="no_edit"
-                    v-model="ps[1].category"
-                    type="text"
-                    list="colorcategories"
-                    v-on:change="
-                      ps[1].category = $event.target.value.trim();
-                      updatepreset(ps[0], ps[1]);
-                    " />
-                </label>
+            <div class="grow">
+              <div class="tool-bar">
+                <button
+                  type="button"
+                  popovertarget="presetImageLabel"
+                  v-on:click="selectingImageLabelForPreset = ps[0]">
+                  <i class="mdi mdi-image-edit-outline"></i>
+                  Image
+                </button>
 
-                <label
-                  ><i class="mdi mdi-format-color-fill"></i>HTML color
-                  <input
-                    :disabled="no_edit"
-                    v-model="ps[1].html_color"
-                    type="color"
-                    v-on:change="
-                      ps[1].html_color = $event.target.value.trim();
-                      updatepreset(ps[0], ps[1]);
-                    " />
-                </label>
+                <button
+                  class="button"
+                  type="button"
+                  popovertarget="iframeDialog"
+                  @click="setIframeDialog(getExcalidrawPresetLink(ps[0]))">
+                  <i class="mdi mdi-fountain-pen-tip"></i>
+                  Draw
+                </button>
+
+                <button type="button" v-on:click="deletepreset(ps[0])">
+                  <i class="mdi mdi-delete"></i>Delete
+                </button>
+                <button type="button" v-on:click="renamepreset(ps[0])">
+                  <i class="mdi mdi-pencil"></i>Rename
+                </button>
+                <button
+                  type="button"
+                  v-on:click="
+                    copypreset(ps[0]);
+                    filterPresets = '';
+                  ">
+                  <i class="mdi mdi-content-copy"></i>Copy
+                </button>
               </div>
-              <summary>Values</summary>
-              <div class="stacked-form">
-                <label>
-                  Reset colors not specified here
-                  <input
-                    :disabled="no_edit"
-                    type="checkbox"
-                    v-bind:checked="
-                      ps[1].reset_unspecified_colors == undefined
-                        ? true
-                        : ps[1].reset_unspecified_colors
-                    "
-                    v-on:change="
-                      ps[1].reset_unspecified_colors = $event.target.checked;
-                      updatepreset(ps[0], ps[1]);
-                    " />
-                </label>
-                <label v-for="(val, field) of ps[1].values" v-bind:key="field">
-                  {{ field
-                  }}<input
-                    :disabled="no_edit"
-                    v-model="ps[1].values[field]"
-                    v-on:change="
-                      ps[1].values[field] = $event.target.value.trim();
-                      updatepreset(ps[0], ps[1]);
-                    " />
-                </label>
-              </div>
-            </details>
-          </dd>
-        </template>
-      </dl>
+
+              <details>
+                <div class="stacked-form">
+                  <label
+                    ><i class="mdi mdi-format-list-bulleted"></i>Category
+                    <input
+                      :disabled="no_edit"
+                      v-model="ps[1].category"
+                      type="text"
+                      list="colorcategories"
+                      v-on:change="
+                        ps[1].category = $event.target.value.trim();
+                        updatepreset(ps[0], ps[1]);
+                      " />
+                  </label>
+
+                  <label
+                    ><i class="mdi mdi-format-color-fill"></i>HTML color
+                    <input
+                      :disabled="no_edit"
+                      v-model="ps[1].html_color"
+                      type="color"
+                      v-on:change="
+                        ps[1].html_color = $event.target.value.trim();
+                        updatepreset(ps[0], ps[1]);
+                      " />
+                  </label>
+                </div>
+                <summary>Values</summary>
+                <div class="stacked-form">
+                  <label>
+                    Reset colors not specified here
+                    <input
+                      :disabled="no_edit"
+                      type="checkbox"
+                      v-bind:checked="
+                        ps[1].reset_unspecified_colors == undefined
+                          ? true
+                          : ps[1].reset_unspecified_colors
+                      "
+                      v-on:change="
+                        ps[1].reset_unspecified_colors = $event.target.checked;
+                        updatepreset(ps[0], ps[1]);
+                      " />
+                  </label>
+                  <label
+                    v-for="(val, field) of ps[1].values"
+                    v-bind:key="field">
+                    {{ field
+                    }}<input
+                      :disabled="no_edit"
+                      v-model="ps[1].values[field]"
+                      v-on:change="
+                        ps[1].values[field] = $event.target.value.trim();
+                        updatepreset(ps[0], ps[1]);
+                      " />
+                  </label>
+                </div>
+              </details>
+            </div>
+          </div>
+        </div>
+      </template>
     </div>
   </section>
 </template>
