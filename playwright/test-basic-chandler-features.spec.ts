@@ -85,7 +85,7 @@ test("test", async ({ page }) => {
     .click();
   await page.getByRole("button", { name: "New(sound)" }).first().click();
   await expect(page.locator("#cuesbox")).toContainText(
-    "72125__kizilsungur__sweetalertsound1.opus"
+    "confirm click"
   );
 
   await page.getByTestId("close-cue-media").click();

@@ -38,6 +38,7 @@
           popovertarget="presetForFixture"
           popovertargetaction="hide">
           <img
+          class="avatar"
             v-if="getpresetimage(ps)"
             :src="
               '/chandler/WebMediaServer?board=' +

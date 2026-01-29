@@ -4,23 +4,15 @@
     v-cloak
     style="display: flex; flex-wrap: wrap; justify-content: center">
     <div class="flex-row w-full">
-      <section
-        class="window cols-2 max-h-24rem margin max-w-48rem"
+      <template
         v-if="Object.keys(sys_alerts).length > 0">
-        <div class="flex-row scroll gaps padding">
-          <div
-            class="card w-sm-full"
-            v-for="(v, i) of sys_alerts"
-            v-bind:key="v.id">
-            <header :class="v['barrel-class']" class="padding break-word">
-              <i class="mdi mdi-alert"></i>{{ i }}
-            </header>
-            <p :class="v['barrel-class']">
-              {{ v.message || "no trip message" }}
-            </p>
-          </div>
+        <div class="flex-row scroll gaps padding w-full">
+          <p class="w-full" :class="v['barrel-class']" v-for="(v, i) of sys_alerts" v-bind:key="v.id">
+            <i class="mdi mdi-alert"></i>{{ i }}
+            {{ v.message || "no trip message" }}
+          </p>
         </div>
-      </section>
+      </template>
 
       <div
         class="window paper cols-10 grow margin-top"
@@ -28,12 +20,7 @@
         <header>
           <div class="tool-bar">
             <button id="toolbar-clock">{{ clock }}</button>
-            <a
-              class="button"
-              :href="
-                '/chandler/editor/' +
-                boardname
-              "
+            <a class="button" :href="'/chandler/editor/' + boardname"
               ><i class="mdi mdi-pencil"></i
             ></a>
 
@@ -63,7 +50,6 @@
         </header>
 
         <div class="flex-row gaps scroll max-h-48rem">
-
           <template v-for="i in formatGroups">
             <article
               v-if="i"
@@ -84,7 +70,7 @@
                   <button
                     :disabled="i[1].utility"
                     v-bind:class="{ highlight: i[0] == groupname }"
-                    v-on:click="selectgroup(i[1], i[0],'#groupDialog')"
+                    v-on:click="selectgroup(i[1], i[0], '#groupDialog')"
                     style="font-weight: bold; width: 100%">
                     {{ i[1].name
                     }}<span v-if="i[1].ext" class="grey"> (external)</span>
@@ -144,12 +130,14 @@
                       class="flex-row"
                       :class="{ success: i[1].active, grow: 1 }"
                       v-if="i[1].active && cuemeta[i[1].cue]">
-                      <div data-testid="active-cue-name">{{
-                        cuemeta[i[1].cue].name
-                      }}</div>
-                      
+                      <div data-testid="active-cue-name">
+                        {{ cuemeta[i[1].cue].name }}
+                      </div>
+
                       <div class="w-1rem"></div>
-                      <div><small>{{ formatTime(i[1].enteredCue) }}</small></div>
+                      <div>
+                        <small>{{ formatTime(i[1].enteredCue) }}</small>
+                      </div>
                     </div>
 
                     <img
@@ -243,7 +231,6 @@
                     "
                     :value="alphas[i[0]]" />
                 </div>
-
               </footer>
             </article>
           </template>
@@ -263,7 +250,7 @@
             <span
               class="highlight"
               v-if="editingGroup.active & !editingGroup.doingHandoff"
-              >(running {{ cuemeta[editingGroup.cue].name}})</span
+              >(running {{ cuemeta[editingGroup.cue].name }})</span
             >
           </h3>
 
@@ -497,8 +484,7 @@
 </template>
 
 <script setup>
-
-import  strftime from "strftime";
+import strftime from "strftime";
 
 import {
   unixtime,
@@ -528,7 +514,6 @@ import {
   refreshCueProviders,
 } from "./boardapi.mjs";
 
-
 import CueCountdown from "./cue-countdown.vue";
 import CueIter from "./cue-iter.vue";
 import GroupUiControls from "./group-ui-controls.vue";
@@ -548,9 +533,6 @@ function formatTime(t) {
 }
 
 const compactCues = Vue.ref(true);
-const scratchpad = Vue.ref("Text here is NOT yet saved when page reloads.");
-
-
 </script>
 
 <style>

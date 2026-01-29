@@ -102,9 +102,11 @@
       </p>
     </details>
     <div class="tool-bar">
-      <input type="text" v-model="filterPresets" placeholder="Filter" 
-      data-testid="preset-inspector-filter"
-      />
+      <input
+        type="text"
+        v-model="filterPresets"
+        placeholder="Filter"
+        data-testid="preset-inspector-filter" />
       <button type="button" class="nogrow" @click="filterPresets = ''">
         <span class="mdi mdi-backspace"></span>
       </button>
@@ -158,6 +160,7 @@
             v-if="ps[0].toLowerCase().includes(filterPresets.toLowerCase())"
             v-bind:key="ps[0]">
             <img
+              class="avatar"
               v-if="getpresetimage(ps[0])"
               style="max-height: 8em; max-width: 8em"
               :src="
@@ -198,7 +201,11 @@
                   <input
                     :disabled="no_edit"
                     type="checkbox"
-                    v-bind:checked="ps[1].reset_unspecified_colors ==undefined? true : ps[1].reset_unspecified_colors"
+                    v-bind:checked="
+                      ps[1].reset_unspecified_colors == undefined
+                        ? true
+                        : ps[1].reset_unspecified_colors
+                    "
                     v-on:change="
                       ps[1].reset_unspecified_colors = $event.target.checked;
                       updatepreset(ps[0], ps[1]);
@@ -275,5 +282,4 @@ function getExcalidrawPresetLink(preset) {
     "&ratio_guide=16_9"
   );
 }
-
 </script>

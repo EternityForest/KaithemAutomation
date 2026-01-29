@@ -40,10 +40,10 @@
         <button type="button" popovertarget="presetsDialog">
           <i class="mdi mdi-playlist-edit"></i>Presets
         </button>
-        <button type="button"
-        popovertarget="eventsWindow"
-        popovertargetaction="show"
-        >
+        <button
+          type="button"
+          popovertarget="eventsWindow"
+          popovertargetaction="show">
           <i class="mdi mdi-flag"></i>Events
         </button>
 
@@ -78,23 +78,18 @@
     </section>
 
     <main class="w-full flex-row">
-      <section
-        class="window w-full max-h-12rem"
-        v-if="Object.keys(sys_alerts).length > 0">
-        <div class="flex-row scroll gaps padding">
-          <div
-            class="card w-sm-full"
-            v-bind:key="v.id"
-            v-for="(v, i) of sys_alerts">
-            <header :class="v['barrel-class']" class="padding break-word">
-              <i class="mdi mdi-alert"></i>{{ i }}
-            </header>
-            <p :class="v['barrel-class']">
-              {{ v.message || "no trip message" }}
-            </p>
-          </div>
+      <template v-if="Object.keys(sys_alerts).length > 0">
+        <div class="flex-row scroll gaps padding w-full">
+          <p
+            class="w-full"
+            :class="v['barrel-class']"
+            v-for="(v, i) of sys_alerts"
+            v-bind:key="v.id">
+            <i class="mdi mdi-alert"></i>{{ i }}
+            {{ v.message || "no trip message" }}
+          </p>
         </div>
-      </section>
+      </template>
       <section
         class="window margin w-sm-full flex-col gaps h-48rem"
         style="resize: both; padding-bottom: 1px">
@@ -305,10 +300,7 @@
               type="text"
               v-model="eventsFilterString"
               placeholder="Filter events" /><br />
-            <button type="button"
-            popovertarget="eventsWindow"
-            popoverclose
-            >
+            <button type="button" popovertarget="eventsWindow" popoverclose>
               <i class="mdi mdi-close"></i>Close
             </button>
           </div>
@@ -564,6 +556,7 @@
                     <span>{{ slotProps.i[1].name.slice(0, 64) }}</span>
 
                     <img
+                      class="avatar h-center"
                       v-if="slotProps.i[1].labelImage.length > 0"
                       :src="
                         '/chandler/WebMediaServer?labelImg=' +
@@ -571,7 +564,6 @@
                         '&timestamp=' +
                         encodeURIComponent(slotProps.i[1].labelImageTimestamp)
                       "
-                      class="h-center"
                       style="max-height: 1em" />
                   </div>
                   <span v-if="slotProps.i[1].scheduledFor">
@@ -1664,7 +1656,6 @@
                         title="If checked, the group is a utility group without sidebar controls. Use for embedding CCTV, or basic state machines." />
                     </label>
                   </p>
-
                 </div>
               </div>
 
@@ -2001,7 +1992,7 @@ let showevents = ref(false);
 
 globalThis.addEventListener(
   "servererrorevent",
-  (e) => {
+  (_event) => {
     showevents.value = true;
     document.querySelector("#eventsWindow").showPopover();
   },
@@ -2032,5 +2023,4 @@ import SlideshowTelemetry from "./slideshow-telemetry.vue";
 import CueLogicDialog from "./cue-logic-dialog.vue";
 import PresetEditingDialog from "./preset-editing-dialog.vue";
 import CueMediaDialog from "./cue-media-dialog.vue";
-
 </script>

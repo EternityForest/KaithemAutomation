@@ -155,9 +155,7 @@
           title="Save the current state now.  If not manually saved, autosave happens every 10min">
           <i class="mdi mdi-content-save"></i>Save
         </button>
-      </div>
 
-      <div class="menubar tool-bar">
         <button v-on:click="showMediaFolders = !showMediaFolders">
           <i class="mdi mdi-folder"></i>Media Folders
         </button>
@@ -441,12 +439,7 @@
           <button v-on:click="addfixturetype()">
             <i class="mdi mdi-plus"></i>New
           </button>
-          <a
-            class="button"
-            :href="
-              '/chandler/opz-import/' +
-              boardname
-            "
+          <a class="button" :href="'/chandler/opz-import/' + boardname"
             >Import from OP-Z format</a
           >
         </div>
@@ -461,7 +454,9 @@
           </option>
         </select>
 
-        <div v-if="selectedFixtureClass && fixtureClasses[selectedFixtureClass]" class="margin">
+        <div
+          v-if="selectedFixtureClass && fixtureClasses[selectedFixtureClass]"
+          class="margin">
           <h4>{{ selectedFixtureClass }}</h4>
 
           <div class="tool-bar">
@@ -491,7 +486,8 @@
           <h3>Channels in Fixture Type</h3>
           <div
             v-for="(v, i) in fixtureClasses[selectedFixtureClass].channels ||
-            []" :key="i">
+            []"
+            :key="i">
             <h4>{{ i }}.</h4>
             <label
               >Name:
@@ -582,7 +578,8 @@
                 </tr>
                 <tr
                   v-for="(w, j) in fixtureClasses[selectedFixtureClass]
-                    .channels[i].ranges" :key="j">
+                    .channels[i].ranges"
+                  :key="j">
                   <td>
                     <input
                       v-on:change="pushfixture(selectedFixtureClass)"
@@ -685,7 +682,7 @@
             <th>Universe</th>
             <th>Address</th>
             <th>Count</th>
-            <th>Spacing</th>            
+            <th>Spacing</th>
             <th>Action</th>
           </tr>
 
@@ -737,7 +734,6 @@
                 Draw
               </button>
             </td>
-
           </tr>
         </table>
 
@@ -751,11 +747,13 @@
           <tr>
             <td>Type</td>
             <td>
-              <select v-model="newfixtype"
+              <select
+                v-model="newfixtype"
                 data-testid="new-fixture-type-select">
-                <option v-for="(v, i) in fixtureClasses"
-                 v-bind:key="i"
-                 v-bind:value="i">
+                <option
+                  v-for="(v, i) in fixtureClasses"
+                  v-bind:key="i"
+                  v-bind:value="i">
                   {{ i }}
                 </option>
               </select>
@@ -771,20 +769,25 @@
           <tr>
             <td>Address</td>
             <td>
-              <input type="number" min="1" v-model.number="newfixaddr"
-              data-testid="newfixaddr"
-              />
+              <input
+                type="number"
+                min="1"
+                v-model.number="newfixaddr"
+                data-testid="newfixaddr" />
             </td>
           </tr>
 
           <tr>
             <td>Channel Spacing</td>
             <td>
-              <input type="number" min="1" v-model.number="newfixchannelspacing" />
+              <input
+                type="number"
+                min="1"
+                v-model.number="newfixchannelspacing" />
             </td>
           </tr>
 
-            <tr>
+          <tr>
             <td>Count</td>
             <td>
               <input type="number" min="1" v-model.number="newfixcount" />
@@ -812,20 +815,15 @@
         <br />
       </section>
 
-      <section class="window w-full h-8rem" v-if="sys_alerts">
-        <div class="flex-row scroll gaps padding">
-          <div class="card" v-for="(v, i) of sys_alerts"
-          v-bind:key="v.id"
-          >
-            <header :class="v['barrel-class']" class="padding">
-              <i class="mdi mdi-alert"></i>{{ i }}
-            </header>
-            <p :class="v['barrel-class']">
-              {{ v.message || "no trip message" }}
-            </p>
-          </div>
+      <template
+        v-if="Object.keys(sys_alerts).length > 0">
+        <div class="flex-row scroll gaps padding w-full">
+          <p class="w-full" :class="v['barrel-class']" v-for="(v, i) of sys_alerts" v-bind:key="v.id">
+            <i class="mdi mdi-alert"></i>{{ i }}
+            {{ v.message || "no trip message" }}
+          </p>
         </div>
-      </section>
+      </template>
     </main>
   </div>
 </template>
@@ -864,7 +862,6 @@ let newfixuniverse = Vue.ref("");
 let newfixchannelspacing = Vue.ref(10);
 let newfixcount = Vue.ref(1);
 
-
 function chTypeChanged(i) {
   const chType =
     fixtureClasses.value[selectedFixtureClass.value].channels[i].type;
@@ -888,9 +885,7 @@ function chTypeChanged(i) {
   }
   this.pushfixture(selectedFixtureClass.value);
 }
-function addFixtureAssignment(name, t, univ, addr,
-  spacing, count
-) {
+function addFixtureAssignment(name, t, univ, addr, spacing, count) {
   if (!name) {
     return;
   }
@@ -902,12 +897,14 @@ function addFixtureAssignment(name, t, univ, addr,
     addr: addr,
   };
 
-  if(count) {
+  if (count) {
     d.count = count;
     d.spacing = spacing;
 
     if (spacing < fixtureClasses.value[t].channels.length) {
-      alert("Spacing must be at least the number of channels in the fixture type");
+      alert(
+        "Spacing must be at least the number of channels in the fixture type"
+      );
       return;
     }
   }
@@ -1014,5 +1011,4 @@ function getExcalidrawFixtureLink(fixture) {
     "&ratio_guide=16_9"
   );
 }
-
 </script>

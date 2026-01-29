@@ -1936,6 +1936,10 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
   hyphens: auto;
 }
 
+.avatar{
+  border-radius: min(var(--control-border-radius), 32px);
+}
+
 .round-feathered {
   mask-image: radial-gradient(
     circle,
