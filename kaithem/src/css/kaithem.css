@@ -8,18 +8,18 @@
 
 @font-face {
     font-family: "AtkinsonHyperlegible";
-    src: url("/static/fonts/AtkinsonHyperlegible/AtkinsonHyperlegible-Regular.ttf")
+    src: url("/static/fonts/AtkinsonHyperlegible/AtkinsonHyperlegibleNext-VariableFont_wght.woff2")
 }
 
 @font-face {
     font-family: "AtkinsonHyperlegible";
-    src: url("/static/fonts/AtkinsonHyperlegible/AtkinsonHyperlegible-Bold.ttf");
+    src: url("/static/fonts/AtkinsonHyperlegible/AtkinsonHyperlegibleNext-VariableFont_wght.woff2");
     font-weight: bold
 }
 
 @font-face {
     font-family: "AtkinsonHyperlegible";
-    src: url("/static/fonts/AtkinsonHyperlegible/AtkinsonHyperlegible-Italic.ttf");
+    src: url("/static/fonts/AtkinsonHyperlegible/AtkinsonHyperlegibleNext-Italic-VariableFont_wght.woff2");
     font-style: italic;
 }
 
