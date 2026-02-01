@@ -104,9 +104,9 @@ test("test", async ({ page }) => {
   //Give it an label image
   await page.getByRole("button", { name: "󰥶 Image" }).click();
   await page.getByText("<TOP DIRECTORY>").click();
-  await page.getByText("/data/static/").click();
-  await page.getByText("data/static/img/").click();
-  await page.getByText("data/static/img/16x9/").click();
+  await page.getByText("static/").click();
+  await page.getByText("img/").click();
+  await page.getByText("16x9/").click();
   await page
     .locator("tr")
     .filter({ hasText: "old-bulb-on.avif Use" })

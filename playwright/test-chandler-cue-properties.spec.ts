@@ -124,6 +124,7 @@ test("test", async ({ page }) => {
   await page.getByTestId("close-group").click();
 
   await waitForTasks(page);
+  await sleep(250);
   // Verify
   await page.getByRole("link", { name: "󱒕 Modules" }).click();
   await page.getByRole("link", { name: "testcue" }).click();

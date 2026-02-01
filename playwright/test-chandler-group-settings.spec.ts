@@ -101,6 +101,7 @@ test("test", async ({ page }) => {
   await page.getByLabel("MQTT Server").click();
 
   await waitForTasks(page);
+  await sleep(250);
 
   // Check that the stuff is there
   await page.goto(

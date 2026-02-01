@@ -83,9 +83,15 @@ test("test", async ({ page }) => {
     .getByTestId("media-browser-container")
     .getByText("sounds/", { exact: true })
     .click();
-  await page.getByRole("button", { name: "New(sound)" }).first().click();
+  
+  await page
+    .getByRole("row", { name: "72125" })
+    .getByRole("button", {name: "New(sound)"})
+    .click();
+  
+
   await expect(page.locator("#cuesbox")).toContainText(
-    "confirm click"
+    "sweetalertsound1"
   );
 
   await page.getByTestId("close-cue-media").click();
@@ -101,7 +107,7 @@ test("test", async ({ page }) => {
     .fill("0");
   await page.getByPlaceholder("New cue name").click();
   await page
-    .getByRole("row", { name: "72125__kizilsungur__sweetalertsound1.opus" })
+    .getByRole("row", { name: "x72125" })
     .getByRole("button", { name: "Go", exact: true })
     .click();
 
@@ -202,6 +208,7 @@ test("test", async ({ page }) => {
   await page.getByRole("button", { name: "󰆴 Remove" }).click();
 
   await waitForTasks(page);
+  await sleep(500);
 
   await page.goto(
     "http://localhost:8002/chandler/editor/PlaywrightChandlerTestModule:board1"
