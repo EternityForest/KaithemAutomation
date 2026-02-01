@@ -10,6 +10,7 @@ import shutil
 from typing import Any
 from urllib.parse import quote
 
+import quart
 import yaml
 from quart import Blueprint, jsonify, request
 
@@ -113,12 +114,12 @@ class DashboardResourceType(resource_types.ResourceType):
 
     def edit_page(
         self, module: str, resource: str, data: modules_state.ResourceDictType
-    ) -> str:
+    ):
         """Redirect to the full-page dashboard editor."""
-        self.set_edit_page_redirect(
-            f"/static/vite/kaithem/src/plugins/CorePluginJackMixer/html/index.html?board={quote(module)}:{quote(resource)}"
-        )
-        return "<p>Redirecting to editor...</p>"
+
+        url = f"/static/vite/kaithem/src/plugins/CorePluginJackMixer/html/index.html?board={quote(module)}:{quote(resource)}"
+
+        return quart.redirect(url)
 
 
 # Register the resource type

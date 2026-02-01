@@ -173,12 +173,11 @@ class ProjectionMapperType(modules_state.ResourceType):
 
     def edit_page(
         self, module: str, resource: str, data: modules_state.ResourceDictType
-    ) -> str:
+    ):
         # Redirect to full-page editor
-        self.set_edit_page_redirect(
+        return quart.redirect(
             f"/projection-mapper/editor/{quote(module)}/{quote(resource)}"
         )
-        return "<p>Redirecting to editor...</p>"
 
     def on_update_request(
         self,

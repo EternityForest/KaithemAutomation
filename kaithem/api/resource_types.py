@@ -11,9 +11,11 @@ from collections.abc import Callable, Mapping
 from typing import Any, Final, TypeVar
 from urllib.parse import quote
 
+import quart
 import structlog
 import yaml
 from jsonschema import Draft7Validator, validate
+from werkzeug import Response as WerkzeugResponse
 
 from kaithem.api.web import dialogs
 from kaithem.src.validation_util import validate_args
@@ -182,7 +184,7 @@ class ResourceType:
 
     def edit_page(
         self, module: str, resource: str, data: ResourceDictType
-    ) -> str:  # pragma: no cover
+    ) -> str | quart.Response | WerkzeugResponse:  # pragma: no cover
         """Given current resource data, return a manager page.
         It may submit a form to the URL at get_update_target()
         """
