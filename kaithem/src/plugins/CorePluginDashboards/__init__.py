@@ -117,7 +117,7 @@ class DashboardResourceType(resource_types.ResourceType):
     ):
         """Redirect to the full-page dashboard editor."""
 
-        url = f"/static/vite/kaithem/src/plugins/CorePluginJackMixer/html/index.html?board={quote(module)}:{quote(resource)}"
+        url = f"/static/vite/kaithem/src/plugins/CorePluginDashboards/html/index.html?board={quote(module)}:{quote(resource)}"
 
         return quart.redirect(url)
 
