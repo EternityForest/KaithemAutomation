@@ -33,6 +33,11 @@ export default defineConfig({
         //   "kaithem/src/plugins/CorePluginExcalidraw/next/index.html"
         // ),
 
+        dashboards_editor: resolve(
+          __dirname,
+          "kaithem/src/html/dashboards/index.html"
+        ),
+
         chandler_media_display: resolve(
           __dirname,
           "kaithem/src/chandler/html/webmediadisplay.html"
