@@ -613,10 +613,15 @@ def makeclosure(f, i, scope):
 
 
 should_run = [True]
+need_shutdown_lock = threading.Lock()
+need_shutdown: dict[int, Callable[[], None]] = {}
 
 
 def shutdown_handler():
     should_run[0] = False
+    with need_shutdown_lock:
+        for k in need_shutdown:
+            need_shutdown[k]()
 
 
 lifespan.at_shutdown(shutdown_handler)
@@ -624,66 +629,81 @@ lifespan.at_shutdown(shutdown_handler)
 
 async def app(scope, receive, send):
     websocket = WebSocket(scope=scope, receive=receive, send=send)
+    wsid = id(websocket)
     await websocket.accept()
-    io_loop = asyncio.get_running_loop()
+    try:
+        io_loop = asyncio.get_running_loop()
 
-    def f():
-        try:
-            user_agent = scope.headers["User-Agent"]
-        except Exception:
-            user_agent = ""
-        x = scope["client"][0]
+        def sd():
+            async def f2():
+                await websocket.close()
 
-        if scope["scheme"] == "wss" or pages.isHTTPAllowed(x):
-            user = pages.getAcessingUser(asgi=scope)
-            cookie = scope.get("cookie", None)
-        else:
-            cookie = None
-            user = "__guest__"
+            asyncio.run_coroutine_threadsafe(f2(), io_loop)
 
-        impl: WebSocketHandler = WebSocketHandler(websocket, user, io_loop)
-        impl.cookie = cookie
-        impl.user_agent = user_agent
-        impl.asgiscope = scope
+        with need_shutdown_lock:
+            need_shutdown[wsid] = sd
 
-        impl.clientinfo = ClientInfo(impl.user, impl.cookie)
-        clients_info[impl.connection_id] = impl.clientinfo
+        def f():
+            try:
+                user_agent = scope.headers["User-Agent"]
+            except Exception:
+                user_agent = ""
+            x = scope["client"][0]
 
-        assert isinstance(x, str)
-        impl.peer_address = x
+            if scope["scheme"] == "wss" or pages.isHTTPAllowed(x):
+                user = pages.getAcessingUser(asgi=scope)
+                cookie = scope.get("cookie", None)
+            else:
+                cookie = None
+                user = "__guest__"
 
-        if (
-            user == "__guest__"
-            and (not x.startswith("127."))
-            and (len(wsrunners) > 8)
-        ):
-            runner = guestWSRunner
-        else:
-            runner = WSActionRunner()
+            impl: WebSocketHandler = WebSocketHandler(websocket, user, io_loop)
+            impl.cookie = cookie
+            impl.user_agent = user_agent
+            impl.asgiscope = scope
 
-        return impl, runner
+            impl.clientinfo = ClientInfo(impl.user, impl.cookie)
+            clients_info[impl.connection_id] = impl.clientinfo
 
-    impl, runner = await asyncio.to_thread(f)
+            assert isinstance(x, str)
+            impl.peer_address = x
 
-    while should_run[0]:
-        try:
-            x = await websocket.receive()
-        except Exception:
-            break
+            if (
+                user == "__guest__"
+                and (not x.startswith("127."))
+                and (len(wsrunners) > 8)
+            ):
+                runner = guestWSRunner
+            else:
+                runner = WSActionRunner()
 
-        if "text" in x:
-            i = x["text"]
-        elif "bytes" in x:
-            i = x["bytes"]
-        else:
-            continue
+            return impl, runner
 
-        f = makeclosure(impl.received_message, i, scope)
-        runner.dowsAction(f)
+        impl, runner = await asyncio.to_thread(f)
+
+        while should_run[0]:
+            try:
+                x = await websocket.receive()
+            except Exception:
+                break
+
+            if "text" in x:
+                i = x["text"]
+            elif "bytes" in x:
+                i = x["bytes"]
+            else:
+                continue
+
+            f = makeclosure(impl.received_message, i, scope)
+            runner.dowsAction(f)
+    finally:
+        with need_shutdown_lock:
+            need_shutdown.pop(wsid, None)
 
 
 async def rawapp(scope, receive, send):
     websocket = WebSocket(scope=scope, receive=receive, send=send)
+    wsid = id(websocket)
     await websocket.accept()
 
     try:
@@ -700,40 +720,54 @@ async def rawapp(scope, receive, send):
         user = "__guest__"
 
     io_loop = asyncio.get_running_loop()
-    impl = RawWidgetDataHandler(
-        websocket, user, io_loop, websocket.query_params["widgetid"], scope
-    )
-    impl.cookie = cookie
-    impl.user_agent = user_agent
+    try:
 
-    impl.clientinfo = ClientInfo(impl.user, impl.cookie)
-    clients_info[impl.connection_id] = impl.clientinfo
+        def sd():
+            async def f2():
+                await websocket.close()
 
-    assert isinstance(x, str)
-    impl.peer_address = x
+            asyncio.run_coroutine_threadsafe(f2(), io_loop)
 
-    if (
-        user == "__guest__"
-        and (not x.startswith("127."))
-        and (len(wsrunners) > 8)
-    ):
-        runner = guestWSRunner
-    else:
-        runner = WSActionRunner()
+        with need_shutdown_lock:
+            need_shutdown[wsid] = sd
 
-    while should_run[0]:
-        try:
-            x = await websocket.receive()
-        except Exception:
-            break
+        impl = RawWidgetDataHandler(
+            websocket, user, io_loop, websocket.query_params["widgetid"], scope
+        )
+        impl.cookie = cookie
+        impl.user_agent = user_agent
 
-        if "text" in x:
-            i = x["text"]
-        elif "bytes" in x:
-            i = x["bytes"]
+        impl.clientinfo = ClientInfo(impl.user, impl.cookie)
+        clients_info[impl.connection_id] = impl.clientinfo
+
+        assert isinstance(x, str)
+        impl.peer_address = x
+
+        if (
+            user == "__guest__"
+            and (not x.startswith("127."))
+            and (len(wsrunners) > 8)
+        ):
+            runner = guestWSRunner
         else:
-            continue
-        # runner.dowsAction(lambda: impl.received_message(i))
+            runner = WSActionRunner()
+
+        while should_run[0]:
+            try:
+                x = await websocket.receive()
+            except Exception:
+                break
+
+            if "text" in x:
+                i = x["text"]
+            elif "bytes" in x:
+                i = x["bytes"]
+            else:
+                continue
+            # runner.dowsAction(lambda: impl.received_message(i))
+    finally:
+        with need_shutdown_lock:
+            need_shutdown.pop(wsid, None)
 
 
 def randID() -> str:
