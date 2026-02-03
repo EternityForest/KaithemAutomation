@@ -3,9 +3,10 @@
  * Integrates with Kaithem for board persistence and API calls
  */
 
-import { DashboardEditor } from '../../../../../Dashbeard/src/editor/components/dashboard-editor';
-import { EditorState } from '../../../../../Dashbeard/src/editor/editor-state';
-import { BoardDefinition } from '../../../../../Dashbeard/src/boards/board-types';
+
+import type{ DashboardEditor } from 'dashbeard/src/editor/components/dashboard-editor';
+import 'dashbeard/src/editor/components/dashboard-editor';
+import { EditorState } from 'dashbeard/src/editor/editor-state';
 import { KaithemBoardAPI } from './kaithem-board-api';
 
 /**
@@ -28,14 +29,14 @@ async function initializeDashboardEditor(): Promise<void> {
 
     // Create the editor element
     const editorElement = document.createElement('ds-dashboard-editor');
-    const appContainer = document.getElementById('app');
+    const appContainer = document.querySelector('#app');
     if (!appContainer) {
       throw new Error('App container not found');
     }
-    appContainer.appendChild(editorElement);
+    appContainer.append(editorElement);
 
     // Initialize the editor with Kaithem integration
-    const boardAPI = new KaithemBoardAPI(module, resource);
+    const boardAPI = new KaithemBoardAPI(`dashboard-resource-${module}-${resource}`);
 
     // Wait for the editor to be ready
     await customElements.whenDefined('ds-dashboard-editor');
@@ -47,8 +48,7 @@ async function initializeDashboardEditor(): Promise<void> {
     const editorState = new EditorState(
       editorElement as unknown as DashboardEditor
     );
-    editorState.module.set(module);
-    editorState.resource.set(resource);
+
     editorState.setBoard(boardData);
 
     // Set up auto-save on dirty changes
@@ -78,7 +78,7 @@ async function initializeDashboardEditor(): Promise<void> {
     console.log('Dashboard editor initialized for:', { module, resource });
   } catch (error) {
     console.error('Failed to initialize dashboard editor:', error);
-    const appContainer = document.getElementById('app');
+    const appContainer = document.querySelector('#app');
     if (appContainer) {
       appContainer.innerHTML = `<div style="padding: 20px; color: red;">
         <h2>Error Loading Dashboard</h2>

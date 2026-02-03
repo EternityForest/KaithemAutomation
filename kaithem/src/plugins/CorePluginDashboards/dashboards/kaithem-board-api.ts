@@ -3,15 +3,12 @@
  * Handles all communication with the Kaithem backend for board operations
  */
 
-import { BoardDefinition } from '../../../../../Dashbeard/src/boards/board-types';
+import { BoardDefinition } from 'dashbeard/src/boards/board-types';
 
 export class KaithemBoardAPI {
-  private module: string;
-  private resource: string;
-
-  constructor(module: string, resource: string) {
-    this.module = module;
-    this.resource = resource;
+  private boardId: string;
+  constructor(boardId: string) {
+    this.boardId = boardId;
   }
 
   /**
@@ -20,7 +17,7 @@ export class KaithemBoardAPI {
   async loadBoard(): Promise<BoardDefinition> {
     try {
       const response = await fetch(
-        `/api/dashboards/${encodeURIComponent(this.module)}/${encodeURIComponent(this.resource)}/load`,
+        `/api/dashboards/${encodeURIComponent(this.boardId)}/load`,
         {
           method: 'GET',
           headers: {
@@ -51,7 +48,7 @@ export class KaithemBoardAPI {
   async saveBoard(board: BoardDefinition): Promise<void> {
     try {
       const response = await fetch(
-        `/api/dashboards/${encodeURIComponent(this.module)}/${encodeURIComponent(this.resource)}/save`,
+        `api/dashboards/${encodeURIComponent(this.boardId)}/save`,
         {
           method: 'POST',
           headers: {
@@ -81,7 +78,7 @@ export class KaithemBoardAPI {
   async deleteBoard(): Promise<void> {
     try {
       const response = await fetch(
-        `/api/dashboards/${encodeURIComponent(this.module)}/${encodeURIComponent(this.resource)}/delete`,
+        `api/dashboards/${encodeURIComponent(this.boardId)}/delete`,
         {
           method: 'DELETE',
           headers: {
@@ -108,6 +105,6 @@ export class KaithemBoardAPI {
    * Get the API base path for this board
    */
   getApiBasePath(): string {
-    return `/api/dashboards/${encodeURIComponent(this.module)}/${encodeURIComponent(this.resource)}`;
+    return `/api/dashboards/${encodeURIComponent(this.boardId)}`;
   }
 }

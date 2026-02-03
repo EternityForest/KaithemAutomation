@@ -35,7 +35,7 @@ export default defineConfig({
 
         dashboards_editor: resolve(
           __dirname,
-          "kaithem/src/html/dashboards/index.html"
+          "kaithem/src/plugins/CorePluginDashboards/dashboards/index.html"
         ),
 
         chandler_media_display: resolve(

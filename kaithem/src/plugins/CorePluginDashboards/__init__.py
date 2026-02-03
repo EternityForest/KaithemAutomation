@@ -16,13 +16,21 @@ from quart import Blueprint, jsonify, request
 
 # Import Kaithem APIs
 from kaithem.api import modules, resource_types, web
+from kaithem.api.web import quart_app
 from kaithem.api.web.dialogs import SimpleDialog
 from kaithem.src import modules_state
-from kaithem.src.plugin_system import BasePluginInterface
-
-__all__ = ["CorePluginDashboards"]
 
 logger = logging.getLogger(__name__)
+
+
+# dashboard-resource-{module}-{resource} to
+# (module, resource)
+
+
+def parseDashboardId(id: str):
+    id = id[len("dashboard-resource-") :]
+    parts = id.split("-", 1)
+    return parts[0], parts[1]
 
 
 class DashboardResourceType(resource_types.ResourceType):
@@ -71,7 +79,7 @@ class DashboardResourceType(resource_types.ResourceType):
                 "type": self.type,
             },
             "board": {
-                id: kwargs["name"],
+                "id": f"dashboard-resource-{module}-{resource}",
                 "metadata": {},
                 "rootComponent": {
                     "id": "layout-1",
@@ -117,7 +125,7 @@ class DashboardResourceType(resource_types.ResourceType):
     ):
         """Redirect to the full-page dashboard editor."""
 
-        url = f"/static/vite/kaithem/src/plugins/CorePluginDashboards/html/index.html?board={quote(module)}:{quote(resource)}"
+        url = f"/static/vite/kaithem/src/plugins/CorePluginDashboards/dashboards/index.html?board={quote(module)}:{quote(resource)}"
 
         return quart.redirect(url)
 
@@ -132,12 +140,13 @@ class DashboardFilesAPI:
 
     @staticmethod
     def list_resources(
-        module: str, resource: str, subfolder: str = ""
+        dashboard_id: str, subfolder: str = ""
     ) -> dict[str, Any]:
         """
         List available file resources in a given subfolder of the board resources dir.
         Returns list of {path, displayName, type, size, modified}.
         """
+        module, resource = parseDashboardId(dashboard_id)
         try:
             base_path = modules.filename_for_file_resource(module, resource)
             target_path = (
@@ -205,9 +214,10 @@ class DashboardFilesAPI:
 
     @staticmethod
     def upload_file(
-        module: str, resource: str, path: str, file_data: bytes
+        dashboard_id: str, path: str, file_data: bytes
     ) -> dict[str, Any]:
         """Upload a file to the board resources directory."""
+        module, resource = parseDashboardId(dashboard_id)
         try:
             # Prevent directory traversal
             if ".." in path or path.startswith("/"):
@@ -242,10 +252,9 @@ class DashboardFilesAPI:
             return {"success": False, "error": str(e)}
 
     @staticmethod
-    def get_file(
-        module: str, resource: str, path: str
-    ) -> tuple[bytes, str] | None:
+    def get_file(dashboard_id: str, path: str) -> tuple[bytes, str] | None:
         """Get file binary blob."""
+        module, resource = parseDashboardId(dashboard_id)
         try:
             if ".." in path or path.startswith("/"):
                 return None
@@ -273,8 +282,9 @@ class DashboardFilesAPI:
             return None
 
     @staticmethod
-    def search_files(module: str, resource: str, query: str) -> dict[str, Any]:
+    def search_files(dashboard_id: str, query: str) -> dict[str, Any]:
         """Search for files by filename in the resource directory."""
+        module, resource = parseDashboardId(dashboard_id)
         try:
             base_path = modules.filename_for_file_resource(module, resource)
             results = []
@@ -303,19 +313,20 @@ class DashboardFilesAPI:
 api_bp = Blueprint("dashboard_api", __name__, url_prefix="/api/dashboards")
 
 
-@api_bp.route("/<module>/<resource>/files/list", methods=["GET"])
-async def list_resources_endpoint(module: str, resource: str):
+@api_bp.route("/<boardid>/files/list", methods=["GET"])
+async def list_resources_endpoint(boardid: str):
     """List resources in a subfolder."""
     web.require("system_admin")
     subfolder = request.args.get("subfolder", "")
-    result = DashboardFilesAPI.list_resources(module, resource, subfolder)
+    result = DashboardFilesAPI.list_resources(boardid, subfolder)
     return jsonify(result)
 
 
-@api_bp.route("/<module>/<resource>/files/upload", methods=["POST"])
-async def upload_file_endpoint(module: str, resource: str):
+@api_bp.route("/<boardid>/files/upload", methods=["POST"])
+async def upload_file_endpoint(boardid: str):
     """Upload a file."""
     web.require("system_admin")
+    module, resource = parseDashboardId(boardid)
     path = (await request.form).get("path")
     files = await request.files
 
@@ -324,19 +335,19 @@ async def upload_file_endpoint(module: str, resource: str):
 
     file = files["file"]
     file_data = await file.read()
-    result = DashboardFilesAPI.upload_file(module, resource, path, file_data)
+    result = DashboardFilesAPI.upload_file(boardid, path, file_data)
     return jsonify(result)
 
 
-@api_bp.route("/<module>/<resource>/files/get", methods=["GET"])
-async def get_file_endpoint(module: str, resource: str):
+@api_bp.route("/<boardid>/files/get", methods=["GET"])
+async def get_file_endpoint(boardid: str):
     """Get a file."""
     web.require("system_admin")
     path = request.args.get("path")
     if not path:
         return jsonify({"error": "Missing path"}), 400
 
-    result = DashboardFilesAPI.get_file(module, resource, path)
+    result = DashboardFilesAPI.get_file(boardid, path)
     if result is None:
         return jsonify({"error": "File not found"}), 404
 
@@ -344,12 +355,13 @@ async def get_file_endpoint(module: str, resource: str):
     return data, 200, {"Content-Type": mime_type}
 
 
-@api_bp.route("/<module>/<resource>/files/search", methods=["GET"])
-async def search_files_endpoint(module: str, resource: str):
+@api_bp.route("/<boardid>/files/search", methods=["GET"])
+async def search_files_endpoint(boardid: str):
     """Search for files."""
     web.require("system_admin")
+
     query = request.args.get("q", "")
-    result = DashboardFilesAPI.search_files(module, resource, query)
+    result = DashboardFilesAPI.search_files(boardid, query)
     return jsonify(result)
 
 
@@ -361,25 +373,21 @@ async def get_builtin_resources_endpoint():
     return jsonify(result)
 
 
-@api_bp.route("/<module>/<resource>/load", methods=["GET"])
-async def load_board_endpoint(module: str, resource: str):
+@api_bp.route("/<boardid>/load", methods=["GET"])
+async def load_board_endpoint(boardid: str):
     """Load a board from Kaithem."""
     web.require("system_admin")
-    try:
-        # Load board from Kaithem's resource system
-        board_data = modules_state.ActiveModules[module][resource]["board"]
-        if board_data is None:
-            return jsonify({"error": "Board not found"}), 404
-        return jsonify({"board": board_data, "error": None})
-    except Exception as e:
-        logger.exception("Error loading board")
-        return jsonify({"error": str(e)}), 500
+    module, resource = parseDashboardId(boardid)
+    board_data = modules_state.ActiveModules[module][resource]["board"]
+    return jsonify({"board": board_data, "error": None})
 
 
-@api_bp.route("/<module>/<resource>/save", methods=["POST"])
-async def save_board_endpoint(module: str, resource: str):
+@api_bp.route("/<boardid>/save", methods=["POST"])
+async def save_board_endpoint(boardid: str):
     """Save a board to Kaithem."""
     web.require("system_admin")
+    module, resource = parseDashboardId(boardid)
+
     try:
         request_data = await request.json
         board = request_data.get("board")
@@ -404,25 +412,11 @@ async def save_board_endpoint(module: str, resource: str):
         return jsonify({"error": str(e)}), 500
 
 
-@api_bp.route("/<module>/<resource>/delete", methods=["DELETE"])
-async def delete_board_endpoint(module: str, resource: str):
+@api_bp.route("/<boardid>/delete", methods=["DELETE"])
+async def delete_board_endpoint(boardid: str):
     """Delete a board from Kaithem."""
     web.require("system_admin")
     raise NotImplementedError("You can Delete board like any other resource")
 
 
-class CorePluginDashboards(BasePluginInterface):
-    """Plugin service for Dashboards."""
-
-    def __init__(self):
-        self.priority = 50
-        self.service = "dashboards"
-
-    def init(self, app):
-        """Initialize plugin with Quart app."""
-        app.register_blueprint(api_bp)
-        logger.info("Dashboards plugin initialized")
-
-
-# Export plugin service
-plugin_services = [CorePluginDashboards()]
+quart_app.register_blueprint(api_bp)
