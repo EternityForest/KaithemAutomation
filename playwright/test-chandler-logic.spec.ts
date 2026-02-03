@@ -44,7 +44,7 @@ test("test", async ({ page }) => {
   await page.locator('#blockInspectorEvent').getByRole('button', { name: '󰅖 Close' }).click();
   
   
-  await page.getByRole('button', { name: 'goto =GROUP' }).nth(1).click();
+  await page.getByRole('button', { name: 'goto' }).nth(1).click();
   await page.getByRole('button', { name: 'Add Action' }).nth(1).click();
   await page.getByRole('button', { name: 'pass' }).nth(1).click();
   await page.locator('#blockInspectorCommand').getByRole('combobox').click();
@@ -72,7 +72,7 @@ test("test", async ({ page }) => {
   await page.locator('#blockInspectorCommand').getByRole('button', { name: '󰅖 Close' }).click();
 
 
-  await page.getByRole('button', { name: 'goto =GROUP' }).nth(1).click();
+  await page.getByRole('button', { name: 'goto' }).nth(1).click();
   await page.getByRole('button', { name: 'Move Forward' }).click();
   await page.locator('#blockInspectorCommand').getByRole('button', { name: '󰅖 Close' }).click();
 

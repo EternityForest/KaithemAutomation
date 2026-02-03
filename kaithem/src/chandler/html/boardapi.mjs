@@ -357,6 +357,8 @@ async function setCueProperty(cue, property, value) {
     } catch (error) {
       alert("Could not reach server: " + error);
     }
+
+    cuemeta.value[cue][property] = value;
   });
 }
 
@@ -379,6 +381,8 @@ function setCuePropertyDeferred(cue, property, value) {
       headers: {
         "Content-type": "application/json; charset=UTF-8",
       },
+    }).then((_response) => {
+      cuemeta.value[cue][property] = value;
     }).catch(function (error) {
       alert("Error setting property: " + error);
     });

@@ -178,7 +178,7 @@ class ProjectionMapperType(modules_state.ResourceType):
         self.set_edit_page_redirect(
             f"/projection-mapper/editor/{quote(module)}/{quote(resource)}"
         )
-        return "<p>Redirecting to editor...</p>"
+        return "<p>Access the editor from the resources list.</p>"
 
     def on_update_request(
         self,

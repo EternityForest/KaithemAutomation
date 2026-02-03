@@ -337,7 +337,7 @@ p.small {
 </template>
 
 <script setup>
-import { computed, watch,ref } from "vue";
+import { computed, watchEffect,ref } from "vue";
 
 import ComboBox from "../../vue/combo-box.vue";
 const props = defineProps({
@@ -348,16 +348,18 @@ const props = defineProps({
   example_events: Array,
 });
 
+const emit = defineEmits(['update:modelValue']);
+
 let rules = props.modelValue;
 let disabled = props.disabled;
 
-watch(props.modelValue, (newValue) => {
-  rules = newValue;
-});
+watchEffect(() => {
+  // `foo` transformed to `props.foo` by the compiler
+  rules = props.modelValue;
+  disabled = props.disabled;
+})
 
-watch(props.disabled, (newValue) => {
-  disabled = newValue;
-});
+
 let argcompleters = props.completers || {};
 
 let selectedCommandIndex = ref(-1);
@@ -419,14 +421,14 @@ function getCompletions(actionObject, argumentName) {
 }
 
 function moveCueRuleDown(index) {
-  var rules = [...modelValue];
+  var rules = [...props.modelValue];
 
   if (index < rules.length - 1) {
     var t = rules[index + 1];
     rules[index + 1] = rules[index];
     rules[index] = t;
   }
-  $emit("update:modelValue", rules);
+  emit("update:modelValue", rules);
 }
 
 function swapArrayElements(array, indexA, indexB) {
@@ -480,11 +482,12 @@ let specialCommands = {
     description: "Continue action with chance % probability",
   },
 };
+
 function deleteBinding(b) {
   if (confirm("really delete binding?")) {
     console.log("jhgf");
     removeElement(rules, b);
-    $emit("update:modelValue", rules);
+    emit("update:modelValue", rules);
   }
 }
 function removeElement(array, element) {
