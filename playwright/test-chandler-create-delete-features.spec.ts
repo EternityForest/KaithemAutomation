@@ -111,7 +111,9 @@ test("test", async ({ page }) => {
   await page.getByRole("button", { name: "Add Rule" }).click();
   await page.getByRole("button", { name: "Add Action" }).click();
   await page.getByRole("button", { name: "pass" }).click();
-  await page.getByRole("button", { name: "Delete Command", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Delete Command", exact: true })
+    .click();
   await page
     .locator("#blockInspectorCommand")
     .getByRole("button", { name: "󰅖 Close" })
@@ -121,17 +123,18 @@ test("test", async ({ page }) => {
   await expect(page.getByRole("button", { name: "pass" })).toBeHidden();
 
   await page.getByRole("button", { name: "On cue.enter" }).click();
-  page.once("dialog", (dialog) => {
-    console.log(`Dialog message: ${dialog.message()}`);
-    dialog.accept().catch(() => {});
-  });
+
+  page.once("dialog", (dialog) => dialog.accept().catch(() => {}));
+
   await page
     .getByRole("button", { name: "Remove binding and all actions" })
     .click();
 
   await waitForTasks(page);
   await sleep(300);
-  await expect(page.getByRole("button", { name: "On cue.enter" })).toBeHidden();
+  await expect(page.getByRole("button", { name: "On cue.enter" })).toBeHidden({
+    timeout: 1000,
+  });
 
   await page.getByTestId("close-logic").click();
   await page.getByTestId("close-group").click();
@@ -153,7 +156,6 @@ test("test", async ({ page }) => {
     dialog.accept("test").catch(() => {});
   });
   await page.getByTestId("add-group-button").click();
-
 
   await sleep(250);
 

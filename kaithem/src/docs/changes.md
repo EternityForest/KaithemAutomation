@@ -29,6 +29,7 @@ object, and must be explicitly called.
 * :technologist: BREAKING Tag point pull() is now async and returns None.
 
 * :bug: Fix obscure tagpoint \_\_call\_\_(v,t,a) feature that broke NVRChannel
+
 * :bug: Fix YoLink not working on some kaithem versions.
 
 * :sparkles: Splash screen on console
@@ -55,7 +56,9 @@ object, and must be explicitly called.
 * :bug: Fix sd protection script ability to disable swap on newer pi os
 
 * :coffin: BREAKING: The plugin API for creating new chandler functions has changed but should still work for now. Migrate ASAP though.
+
 * :coffin: BREAKING: Remove is_day, is_night, is_light, etc functions from Chandler scripts. Use the tag points.
+
 * :coffin: Remove online assets lib due to poor performance, unofficial APIs, and complexity.
 
 * :coffin: Remove builtin calculator and notepad utils in Chandler Commander

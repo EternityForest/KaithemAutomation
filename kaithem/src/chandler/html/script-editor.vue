@@ -484,8 +484,7 @@ let specialCommands = {
 };
 
 function deleteBinding(b) {
-  if (confirm("really delete binding?")) {
-    console.log("jhgf");
+  if (confirm("Really delete binding?")) {
     removeElement(rules, b);
     emit("update:modelValue", rules);
   }

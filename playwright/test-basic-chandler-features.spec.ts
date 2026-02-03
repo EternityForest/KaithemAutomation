@@ -60,6 +60,7 @@ test("test", async ({ page }) => {
     console.log(`Dialog message: ${dialog.message()}`);
     dialog.dismiss().catch(() => {});
   });
+  
   // Delete c3
   await page.getByRole("button", { name: "Delete Current" }).click();
   // Go to c2
