@@ -50,7 +50,7 @@ const d = reactive({});
 
 function onChange(event) {
   const reader = new FileReader();
-  reader.onload = onReaderLoad;
+  reader.addEventListener('load', onReaderLoad);
   reader.readAsText(event.target.files[0]);
 }
 
@@ -60,7 +60,7 @@ function onReaderLoad(event) {
 }
 
 function importfixture() {
-  window.api_link.send(["setfixtureclassopz", selected.value.name, selected.value]);
+  globalThis.api_link.send(["setfixtureclassopz", selected.value.name, selected.value]);
 }
 </script>
 
