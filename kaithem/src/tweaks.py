@@ -89,6 +89,51 @@ faulthandler.enable()
 threadlogger = structlog.get_logger(__name__)
 
 
+def _get_non_stdlib_frame_info():
+    """
+    Walk the call stack and return (module, function) of the first
+    non-stdlib frame that created the current thread. Returns
+    (None, None) if only stdlib frames found.
+    """
+    import inspect
+
+    stdlib_prefixes = (
+        "asyncio/",
+        "asyncio\\",
+        "<frozen",
+        "threading.py",
+    )
+
+    for frame_info in inspect.stack():
+        frame_file = frame_info.filename
+        # Skip stdlib
+        if any(prefix in frame_file for prefix in stdlib_prefixes):
+            continue
+        if "/lib/python" in frame_file or "\\lib\\python" in frame_file:
+            continue
+
+        module = frame_info.frame.f_globals.get("__name__", "unknown")
+        if module.endswith(".tweaks"):
+            continue
+        func = frame_info.function
+        return (module, func)
+
+    return (None, None)
+
+
+def _rename_asyncio_thread(thread):
+    """
+    If thread has a generic asyncio name like 'asyncio_11', rename it
+    to reflect the module and function that created it.
+    """
+    if thread.name and (
+        thread.name.startswith("asyncio_") or thread.name.startswith("Thread-")
+    ):
+        module, func = _get_non_stdlib_frame_info()
+        if module and func:
+            thread.name = f"async_from: {module}.{func}"
+
+
 def installThreadLogging():
     """
     Workaround for sys.excepthook thread bug
@@ -110,6 +155,9 @@ def installThreadLogging():
             kwargs["daemon"] = True
 
         init_old(self, *args, **kwargs)
+
+        # Rename generic asyncio threads to reflect their origin
+        _rename_asyncio_thread(self)
         run_old = self.run
 
         def run_with_except_hook(*args, **kw):

@@ -23,7 +23,7 @@ from quart.ctx import copy_current_request_context
 import msgpack
 from kaithem.src.validation_util import validate_args
 
-
+from kaithem.api import lifespan
 from . import auth, messagebus, pages, workers
 from http.cookies import SimpleCookie
 
@@ -612,6 +612,16 @@ def makeclosure(f, i, scope):
     return g
 
 
+should_run = [True]
+
+
+def shutdown_handler():
+    should_run[0] = False
+
+
+lifespan.at_shutdown(shutdown_handler)
+
+
 async def app(scope, receive, send):
     websocket = WebSocket(scope=scope, receive=receive, send=send)
     await websocket.accept()
@@ -655,7 +665,7 @@ async def app(scope, receive, send):
 
     impl, runner = await asyncio.to_thread(f)
 
-    while 1:
+    while should_run[0]:
         try:
             x = await websocket.receive()
         except Exception:
@@ -711,7 +721,7 @@ async def rawapp(scope, receive, send):
     else:
         runner = WSActionRunner()
 
-    while 1:
+    while should_run[0]:
         try:
             x = await websocket.receive()
         except Exception:
