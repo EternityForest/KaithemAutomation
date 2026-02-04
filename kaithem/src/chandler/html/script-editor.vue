@@ -66,6 +66,7 @@ p.small {
               <button
                 class="nogrow"
                 type="button"
+                data-testid="close-event-inspector"
                 popovertarget="blockInspectorEvent"
                 popovertargetaction="hide">
                 <i class="mdi mdi-close"></i>Close
@@ -113,6 +114,7 @@ p.small {
               <h4>Command Inspector</h4>
               <button
                 class="nogrow"
+                data-testid="close-command-inspector"
                 type="button"
                 popovertarget="blockInspectorCommand"
                 popovertargetaction="hide">
@@ -291,11 +293,11 @@ p.small {
                     </template>
                   </template>
 
-                  <template v-if="!(action.command in commands)">
+                  <template v-if="(!(action.command in commands)) && (!(action.command in specialCommands))">
                     <div
                       class="nogrow h-min-content warning"
                       style="margin: 2px">
-                      {{ action.command }}
+                      Command <b>{{ action.command }}</b> not found
                     </div>
                   </template>
                 </button>

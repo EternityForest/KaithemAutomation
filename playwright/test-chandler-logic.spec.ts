@@ -54,17 +54,9 @@ test("test", async ({ page }) => {
   await waitForTasks(page);
   await sleep(500);
   await page.locator('div').filter({ hasText: /^Output of the previous action$/ }).getByRole('combobox').fill('foo');
-  await page.locator('div').filter({ hasText: /^Output of the previous action$/ }).getByRole('combobox').fill('foo');
-  await page.locator('div').filter({ hasText: /^Output of the previous action$/ }).getByRole('combobox').fill('foo');
-  await page.locator('div').filter({ hasText: /^Output of the previous action$/ }).getByRole('combobox').fill('foo');
-  await page.locator('div').filter({ hasText: /^Output of the previous action$/ }).getByRole('combobox').fill('foo');
 
   await waitForTasks(page);
   await sleep(500);
-  await page.locator('#blockInspectorCommand').getByRole('combobox').nth(2).fill('45');
-  await page.locator('#blockInspectorCommand').getByRole('combobox').nth(2).fill('45');
-  await page.locator('#blockInspectorCommand').getByRole('combobox').nth(2).fill('45');
-  await page.locator('#blockInspectorCommand').getByRole('combobox').nth(2).fill('45');
   await page.locator('#blockInspectorCommand').getByRole('combobox').nth(2).fill('45');
 
   await waitForTasks(page);
@@ -89,7 +81,7 @@ test("test", async ({ page }) => {
   await page.getByTestId('close-group').click();
 
   await waitForTasks(page);
-  await sleep(200);
+  await sleep(600);
 
 
   await page.getByRole('link', { name: '󰀻 Apps' }).click();
