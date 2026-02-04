@@ -80,6 +80,7 @@ test("test", async ({ page }) => {
   await page.getByLabel("Cue Volume").click();
 
   await waitForTasks(page);
+  await sleep(200);
 
   await page
     .getByTestId("media-browser-container")

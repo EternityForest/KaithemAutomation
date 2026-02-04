@@ -809,7 +809,12 @@ class ChandlerConsole(console_abc.Console_ABC):
             print("cue data push error", cueid, traceback.format_exc())
 
     def pushCueData(self, cueid: str):
-        self.linkSend(["cuedata", cues[cueid].id, cues[cueid].lighting_effects])
+        try:
+            self.linkSend(
+                ["cuedata", cues[cueid].id, cues[cueid].lighting_effects]
+            )
+        except KeyError:
+            print(f"cue probably deleted {cueid}")
 
     def pushConfiguredUniverses(self):
         self.linkSend(["confuniverses", self.configured_universes])

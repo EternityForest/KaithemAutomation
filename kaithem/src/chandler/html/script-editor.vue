@@ -80,7 +80,7 @@ p.small {
           <div class="stacked-form">
             <datalist id=" props.example_events">
               <option
-                v-for="(v, _i) in  props.example_events"
+                v-for="(v, _i) in props.example_events"
                 v-bind:value="v[0]"
                 v-bind:key="v[0]">
                 {{ v[1] }}
@@ -128,43 +128,13 @@ p.small {
             :disabled="disabled"
             v-model="selectedCommand.command"
             v-bind:options="getPossibleActions()"
-            v-bind:pinned="getSpecialActions()"
             @update:modelValue="setCommandDefaults(selectedCommand)"
             v-on:change="
               setCommandDefaults(selectedCommand);
               $emit('update:modelValue', rules);
             "></combo-box>
-          <h4>Config</h4>
-          <div v-if="selectedCommand.command == 'set'">
-            Set a variable named
-            <combo-box
-              :disabled="disabled"
-              v-model="selectedCommand.variable"
-              v-bind:pinned="pinnedvars"
-              v-on:change="$emit('update:modelValue', rules)"></combo-box>
-            <br />to<br />
-            <combo-box
-              v-model="selectedCommand.value"
-              v-on:change="$emit('update:modelValue', rules)"></combo-box
-            ><br />
-            and always return True.
-          </div>
-
-          <div v-if="selectedCommand.command == 'pass'">
-            Do nothing and return True.
-          </div>
-
-          <div v-if="selectedCommand.command == 'maybe'">
-            Continue action with :<input
-              :disabled="disabled"
-              v-model="selectedCommand.chance"
-              v-on:change="$emit('update:modelValue', rules)" />% chance <br />
-            otherwise return None and stop the action.
-          </div>
-
           <div
             v-if="
-              !(selectedCommand.command in specialCommands) &&
               commands[selectedCommand.command]
             ">
             <div class="stacked-form">
@@ -188,6 +158,7 @@ p.small {
               commands[selectedCommand.command].doc
             }}</pre>
           </div>
+
           <button
             v-on:click="
               rules[selectedBindingIndex].commands.splice(
@@ -293,7 +264,7 @@ p.small {
                     </template>
                   </template>
 
-                  <template v-if="(!(action.command in commands)) && (!(action.command in specialCommands))">
+                  <template v-if="!(action.command in commands)">
                     <div
                       class="nogrow h-min-content warning"
                       style="margin: 2px">
@@ -339,7 +310,7 @@ p.small {
 </template>
 
 <script setup>
-import { computed, watchEffect,ref } from "vue";
+import { computed, watchEffect, ref } from "vue";
 
 import ComboBox from "../../vue/combo-box.vue";
 const props = defineProps({
@@ -350,7 +321,7 @@ const props = defineProps({
   example_events: Array,
 });
 
-const emit = defineEmits(['update:modelValue']);
+const emit = defineEmits(["update:modelValue"]);
 
 let rules = props.modelValue;
 let disabled = props.disabled;
@@ -359,17 +330,15 @@ watchEffect(() => {
   // `foo` transformed to `props.foo` by the compiler
   rules = props.modelValue;
   disabled = props.disabled;
-})
-
+});
 
 let argcompleters = props.completers || {};
 
 let selectedCommandIndex = ref(-1);
 let selectedBindingIndex = ref(-1);
 
-
 const selectedBinding = computed(() => {
-  if (selectedBindingIndex.value== -1) {
+  if (selectedBindingIndex.value == -1) {
     return 0;
   }
   return rules[selectedBindingIndex.value];
@@ -391,8 +360,6 @@ const selectedCommand = computed(() => {
   }
   return 0;
 });
-
-const pinnedvars = [["_", "Output of the previous action"]];
 
 function getArgMetadata(commandName, argumentName) {
   if (commandName in props.commands) {
@@ -439,51 +406,17 @@ function swapArrayElements(array, indexA, indexB) {
   array[indexB] = temporary;
 }
 
-
 function getPossibleActions() {
   var l = [];
   for (var i in props.commands) {
     if (props.commands[i] == null) {
       console.log("Warning: Null entry for command info for" + i);
     } else {
-      //Just use the special version if possible
-      if (!(i in specialCommands)) {
-        l.push([i, props.commands[i].doc || ""]);
-      }
+      l.push([i, props.commands[i].doc || ""]);
     }
   }
   return l;
 }
-
-function getSpecialActions() {
-  var l = [];
-  for (var i in specialCommands) {
-    //Prefer the special version
-    l.push([i, specialCommands[i].description]);
-  }
-
-  return l;
-}
-
-
-//Stuff we have built in HTML templating for
-let specialCommands = {
-  set: {
-    args: [
-      { name: "variable", type: "str", default: "" },
-      { name: "value", type: "str", default: "" },
-    ],
-    description: "Sets a variable",
-  },
-  pass: {
-    args: [],
-    description: "Do nothing and return True",
-  },
-  maybe: {
-    args: [{ name: "chance", type: "float", default: "50" }],
-    description: "Continue action with chance % probability",
-  },
-};
 
 function deleteBinding(b) {
   if (confirm("Really delete binding?")) {
@@ -495,18 +428,18 @@ function removeElement(array, element) {
   var index = array.indexOf(element);
   if (index > -1) {
     array.splice(index, 1);
+  } else {
+    console.log("Element not found in array");
+    alert("Element not found in array");
   }
 }
 function setCommandDefaults(action) {
   // For dict format actions, set defaults from command metadata
-  console.log(action);
   const cmdName = action.command;
   let metadata = null;
 
   // Get description data
-  if (cmdName in specialCommands) {
-    metadata = specialCommands[cmdName];
-  } else if (cmdName in props.commands) {
+  if (cmdName in props.commands) {
     metadata = props.commands[cmdName];
   }
 

@@ -17,7 +17,7 @@ from kaithem.api.midi import list_midi_inputs
 from kaithem.api.web import has_permission
 from kaithem.api.widgets import APIWidget
 
-from .. import directories, tagpoints
+from .. import directories, scriptbindings, tagpoints
 from ..alerts import getAlertState
 from ..auth import canUserDoThis
 from . import (
@@ -327,11 +327,18 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
     def _send_environment_description(self):
         """Send environment description with builtin events and command metadata."""
-        c = groups.rootContext.commands.scriptcommands
+        ctx = groups.rootContext
         ch_info = {}
-        for i in c:
-            f = c[i]
-            ch_info[i] = f.manifest()
+
+        while ctx:
+            c = ctx.commands.scriptcommands
+            for i in c:
+                f = c[i]
+                ch_info[i] = f.manifest()
+            ctx = ctx.parentContext
+
+        for i in scriptbindings.predefinedcommands:
+            ch_info[i] = scriptbindings.predefinedcommands[i].manifest()
 
         env_desc = {
             "builtinEvents": core.BUILTIN_EVENTS,

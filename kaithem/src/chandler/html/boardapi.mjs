@@ -58,6 +58,9 @@ let presets = ref({});
 
 let sendKeystrokes = ref(true);
 
+// Track pending save operations for test synchronization
+let pendingOperations = ref(0);
+
 function keyHandle(event_) {
   if (!sendKeystrokes.value) {
     return;
@@ -341,24 +344,30 @@ async function setCueProperty(cue, property, value) {
     var b = {};
     b[property] = value;
 
-    let p = fetch("/chandler/api/set-cue-properties/" + cue, {
-      method: "PUT",
-      body: JSON.stringify(b),
-      headers: {
-        "Content-type": "application/json; charset=UTF-8",
-      },
-    });
-
+    pendingOperations.value++;
     try {
-      let r = await p;
-      if (!r.ok) {
-        alert("Error setting property, possible invalid value: " + value);
-      }
-    } catch (error) {
-      alert("Could not reach server: " + error);
-    }
+      let p = fetch("/chandler/api/set-cue-properties/" + cue, {
+        method: "PUT",
+        body: JSON.stringify(b),
+        headers: {
+          "Content-type": "application/json; charset=UTF-8",
+        },
+      });
 
-    cuemeta.value[cue][property] = value;
+      try {
+        let r = await p;
+        if (!r.ok) {
+          alert("Error setting property, possible invalid value: " + value);
+        }
+      } catch (error) {
+        alert("Could not reach server: " + error);
+      }
+
+      cuemeta.value[cue][property] = value;
+      await nextTick();
+    } finally {
+      pendingOperations.value--;
+    }
   });
 }
 
@@ -375,6 +384,7 @@ function setCuePropertyDeferred(cue, property, value) {
     var b = {};
     b[property] = value;
 
+    pendingOperations.value++;
     fetch("/chandler/api/set-cue-properties/" + cue, {
       method: "PUT",
       body: JSON.stringify(b),
@@ -385,6 +395,8 @@ function setCuePropertyDeferred(cue, property, value) {
       cuemeta.value[cue][property] = value;
     }).catch(function (error) {
       alert("Error setting property: " + error);
+    }).finally(() => {
+      pendingOperations.value--;
     });
     delete cueSetData[cue + property];
   }, 3000);
@@ -958,6 +970,21 @@ async function doSerializedWithTimeout(callback, timeout) {
     timeout
   );
 }
+
+// Wait for all pending save operations to complete
+async function waitForPendingOperations(maxWaitMs = 5000) {
+  const startTime = Date.now();
+  while (pendingOperations.value > 0) {
+    if (Date.now() - startTime > maxWaitMs) {
+      console.warn("Timeout waiting for pending operations");
+      break;
+    }
+    await new Promise(resolve => setTimeout(resolve, 10));
+  }
+}
+
+// Used for tests
+globalThis.waitForPendingOperations = waitForPendingOperations;
 
 let no_edit = ref(!kaithemapi.checkPermission("system_admin"));
 

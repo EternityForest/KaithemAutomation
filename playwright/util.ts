@@ -148,7 +148,7 @@ async function chandlerBoardTemplate(page: Page, module: string) {
 async function waitForTasks(page: Page) {
     await sleep(10);
     await page.evaluate(async () => {
-        let safety = 100;  
+        let safety = 100;
         while (!globalThis.doSerialized) {
             safety-=1;
             if(safety < 0) {
@@ -156,7 +156,16 @@ async function waitForTasks(page: Page) {
             }
             await new Promise(resolve => setTimeout(resolve, 50));
         }
+        if (globalThis.nextTick) {
+            await globalThis.nextTick();
+        }
+        
         await globalThis.doSerialized();
+
+        // Wait for all pending save operations to complete
+        if (globalThis.waitForPendingOperations) {
+            await globalThis.waitForPendingOperations();
+        }
     });
 }
 export { login, login_as, logout, waitForTasks, makeModule, deleteModule, makeTagPoint, sleep, chandlerBoardTemplate };
