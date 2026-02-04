@@ -76,6 +76,11 @@ test("test", async ({ page }) => {
   await page.getByLabel("Cue Volume").fill("0.8");
   await page.getByLabel("Loops").click();
   await page.getByLabel("Loops").fill("8");
+  // Click away
+  await page.getByLabel("Cue Volume").click();
+
+  await waitForTasks(page);
+
   await page
     .getByTestId("media-browser-container")
     .getByText("<TOP DIRECTORY>")
