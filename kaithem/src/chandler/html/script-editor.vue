@@ -92,7 +92,10 @@ p.small {
                 :disabled="disabled"
                 v-model="selectedBinding.event"
                 list=" props.example_events"
-                v-on:change="$emit('update:modelValue', rules)" />
+                v-on:change="
+                  selectedBinding.event = $event.target.value;
+                  $emit('update:modelValue', rules);
+                " />
             </label>
           </div>
           <h4>Delete</h4>
@@ -130,13 +133,11 @@ p.small {
             v-bind:options="getPossibleActions()"
             @update:modelValue="setCommandDefaults(selectedCommand)"
             v-on:change="
+              selectedCommand.command = $event;
               setCommandDefaults(selectedCommand);
               $emit('update:modelValue', rules);
             "></combo-box>
-          <div
-            v-if="
-              commands[selectedCommand.command]
-            ">
+          <div v-if="commands[selectedCommand.command]">
             <div class="stacked-form">
               <label
                 v-for="(argMeta, i) in commands[selectedCommand.command].args"
@@ -146,7 +147,10 @@ p.small {
                   :disabled="disabled"
                   :testid="'command-arg-' + argMeta.name"
                   v-model="selectedCommand[argMeta.name]"
-                  v-on:change="$emit('update:modelValue', rules)"
+                  v-on:change="
+                    selectedCommand[argMeta.name] = $event;
+                    $emit('update:modelValue', rules);
+                  "
                   :options="
                     getCompletions(selectedCommand, argMeta.name)
                   "></combo-box>
