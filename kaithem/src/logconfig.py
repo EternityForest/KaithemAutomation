@@ -1,5 +1,31 @@
 import logging
 
+import structlog
+import structlog.dev
+
+structlog.stdlib.recreate_defaults()
+
+shared_processors = [
+    # Processors that have nothing to do with output,
+    # e.g., add timestamps or log level names.
+]
+
+# Pretty printing when we run in a terminal session.
+# Automatically prints pretty tracebacks when "rich" is installed
+processors = shared_processors + [
+    structlog.dev.ConsoleRenderer(
+        exception_formatter=structlog.dev.plain_traceback
+    ),
+]
+
+
+structlog.configure(
+    processors=structlog.get_config()["processors"][:-1]
+    + shared_processors
+    + processors
+)
+
+
 # Make this not spew debug logs, I'm pretty sure that lib is well tested and
 # Reliable and we don't need to know about every request.
 logs = logging.getLogger("urllib3.connectionpool")

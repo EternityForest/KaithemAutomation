@@ -50,7 +50,7 @@ if (globalThis.kaithemapi == undefined) {
         __SHOWMESSAGE__: [
           function (m) {
             picodash.snackbar.createSnackbar(m, {
-              timeout: 240000,
+              timeout: 240_000,
             });
           },
         ],
@@ -266,8 +266,7 @@ if (globalThis.kaithemapi == undefined) {
               if (i.length > 1) {
                 apiobj.serverMsgCallbacks[i[0]][j](i[1]);
               } else {
-                if (this.alreadyPostedAlertOnce) {
-                } else {
+                if (this.alreadyPostedAlertOnce) {} else {
                   this.alreadyPostedAlertOnce = true;
                   if (this.enableWidgetGoneAlert) {
                     picodash.snackbar.createSnackbar(
@@ -339,7 +338,6 @@ if (globalThis.kaithemapi == undefined) {
 
         //Check if wpoll has ran in the last 44ms. If not run it.
         //If it has, set a timeout to check again.
-        //This code is only possible because of the JS single threadedness.
         this.poll_ratelimited = function () {
           var d = new Date();
           var n = d.getTime();
@@ -520,8 +518,7 @@ class APIWidget {
   }
 
   upd(value) {
-    {
-    }
+    {}
   }
   getTime() {
     {

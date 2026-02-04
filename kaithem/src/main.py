@@ -12,32 +12,12 @@ import traceback
 from typing import Any
 
 import structlog
-import structlog.dev
 
 from . import config as config_module
 from . import console_about_page
+from . import logconfig as _logconfig  # noqa: F401
 
-structlog.stdlib.recreate_defaults()
-
-shared_processors = [
-    # Processors that have nothing to do with output,
-    # e.g., add timestamps or log level names.
-]
-
-# Pretty printing when we run in a terminal session.
-# Automatically prints pretty tracebacks when "rich" is installed
-processors = shared_processors + [
-    structlog.dev.ConsoleRenderer(
-        exception_formatter=structlog.dev.plain_traceback
-    ),
-]
-
-
-structlog.configure(
-    processors=structlog.get_config()["processors"][:-1]
-    + shared_processors
-    + processors
-)
+_logger = structlog.get_logger(__name__)
 
 
 def import_in_thread(m):
@@ -46,10 +26,10 @@ def import_in_thread(m):
         try:
             importlib.import_module(m)
         except Exception:
-            logging.exception(f"Error importing {m}")
+            _logger.exception(f"Error importing {m}")
         taken = round(time.time() - start_time, 2)
         if taken > 0.1:
-            logging.info(f"Loading {m} took {taken}s")
+            _logger.info(f"Loading {m} took {taken}s")
 
     threading.Thread(
         target=f, daemon=True, name=f"nostartstoplog.importer.{m}"

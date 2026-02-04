@@ -132,11 +132,10 @@ test("test", async ({ page }) => {
   await waitForTasks(page);
   await sleep(300);
 
-  // TODO: Manual testing needed, this doesn't work
-  // for some reason
-  // await expect(page.getByRole("button", { name: "On cue.enter" })).toBeHidden({
-  //   timeout: 1000,
-  // });
+
+  await expect(page.getByRole("button", { name: "On cue.enter" })).toBeHidden({
+    timeout: 1000,
+  });
 
   await page.getByTestId("close-logic").click();
   await page.getByTestId("close-group").click();

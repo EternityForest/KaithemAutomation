@@ -54,13 +54,15 @@ test("test", async ({ page }) => {
   await waitForTasks(page);
   await sleep(500);
   await page.locator('div').filter({ hasText: /^Output of the previous action$/ }).getByRole('combobox').fill('foo');
+  await page.locator('div').filter({ hasText: /^Output of the previous action$/ }).getByRole('combobox').blur();
 
   await waitForTasks(page);
   await sleep(500);
   await page.locator('#blockInspectorCommand').getByRole('combobox').nth(2).fill('45');
+  await page.locator('#blockInspectorCommand').getByRole('combobox').nth(2).blur();
 
   await waitForTasks(page);
-  await sleep(500);
+  await sleep(1500);
   await page.locator('#blockInspectorCommand').getByRole('button', { name: '󰅖 Close' }).click();
 
 
