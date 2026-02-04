@@ -51,12 +51,11 @@ test("test", async ({ page }) => {
   await page.locator('#blockInspectorCommand').getByRole('combobox').fill('set');
 
   await waitForTasks(page);
-  await page.locator('div').filter({ hasText: /^Output of the previous action$/ }).getByRole('combobox').fill('foo');
-  await page.locator('div').filter({ hasText: /^Output of the previous action$/ }).getByRole('combobox').blur();
+  await page.getByTestId('command-arg-name').fill('foo');
 
   await waitForTasks(page);
-  await page.locator('#blockInspectorCommand').getByRole('combobox').nth(2).fill('45');
-  await page.locator('#blockInspectorCommand').getByRole('combobox').nth(2).blur();
+  await page.getByTestId('command-arg-value').fill('45');
+  await page.getByTestId('command-arg-value').blur();
 
   await waitForTasks(page);
   await page.locator('#blockInspectorCommand').getByRole('button', { name: '󰅖 Close' }).click();

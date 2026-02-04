@@ -246,6 +246,37 @@ class StatelessFunction(FunctionBlock):
     """
 
 
+class SetVar(StatelessFunction):
+    doc = "Set a variable"
+    args = [
+        {"name": "name", "type": "str", "default": "var1"},
+        {"name": "value", "type": "any", "default": "=42"},
+    ]
+
+    def call(self, name, value):
+        ctx = self.get_script_context()
+        if not isinstance(name, str):
+            raise RuntimeError("Var name must be string")
+        if name in globalConstants or name in ctx.constants:
+            raise NameError(f"Key {name} is a constant")
+        ctx.setVar(name, value)
+
+
+class DefaultVar(StatelessFunction):
+    doc = "Get a variable or return default value"
+    args = [
+        {"name": "name", "type": "str", "default": "var1"},
+        {"name": "default", "type": "any", "default": "=42"},
+    ]
+
+    def call(self, name, default):
+        ctx = self.get_script_context()
+        try:
+            return ctx._nameLookup(name)
+        except KeyError:
+            return default
+
+
 class OnChangeBlock(FunctionBlock):
     doc = "Trigger only when input value changes from previous input"
     args = [{"name": "input", "type": "str", "default": "=_"}]
@@ -577,6 +608,8 @@ predefinedcommands: dict[str, type[FunctionBlock]] = {
     "cooldown": CooldownBlock,
     "set_tag": SetTag,
     "shell": Shell,
+    "var": DefaultVar,
+    "set": SetVar,
 }
 
 
@@ -828,26 +861,8 @@ class BaseChandlerScriptContext:
         # client about the current set of variables
         self.changedVariables: dict[str, Any] = {}
 
-        def setter(Variable, Value):
-            if not isinstance(Variable, str):
-                raise RuntimeError("Var name must be string")
-            if Variable in globalConstants or Variable in self.constants:
-                raise NameError(f"Key {Variable} is a constant")
-            self.setVar(Variable, Value)
-
-        self.setter = setter
-        self.commands["set"] = setter
-
-        def defaultVar(name, default):
-            try:
-                return self._nameLookup(name)
-            except NameError:
-                return default
-
         functions = functions.copy()
         functions.update(globalUsrFunctions)
-        functions["defaultVar"] = defaultVar
-        functions["var"] = defaultVar
 
         c = {}
         # Wrap them, so the first param becomes this context object.
