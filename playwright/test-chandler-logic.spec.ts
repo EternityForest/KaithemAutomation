@@ -49,10 +49,12 @@ test("test", async ({ page }) => {
   await page.getByRole('button', { name: 'pass' }).nth(1).click();
   await page.locator('#blockInspectorCommand').getByRole('combobox').click();
   await page.locator('#blockInspectorCommand').getByRole('combobox').fill('set');
+  await page.locator('#blockInspectorCommand').getByRole('combobox').blur();
 
   await waitForTasks(page);
   await page.getByTestId('command-arg-name').fill('foo');
-
+  await page.getByTestId('command-arg-value').blur();
+  await sleep(500);
   await waitForTasks(page);
   await page.getByTestId('command-arg-value').fill('45');
   await page.getByTestId('command-arg-value').blur();

@@ -53,7 +53,6 @@
          :data-testid="testid"
          :list="uid"
          v-bind:value="modelValue" 
-         v-on:input="$emit('update:modelValue', $event.target.value)" 
          v-on:change="$emit('update:modelValue', $event.target.value); $emit('change', $event.target.value); "
          style="flex-basis: 4rem; min-width: 4rem;">
     

@@ -148,7 +148,9 @@ p.small {
                   :testid="'command-arg-' + argMeta.name"
                   v-model="selectedCommand[argMeta.name]"
                   v-on:change="
-                    selectedCommand[argMeta.name] = $event;
+                    rules[selectedBindingIndex].commands[
+                      selectedCommandIndex
+                    ][argMeta.name] = $event;
                     $emit('update:modelValue', rules);
                   "
                   :options="
