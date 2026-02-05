@@ -2,6 +2,7 @@ import { encode, decode } from "./thirdparty/msgpackr.esm.js";
 import picodash from "/static/js/thirdparty/picodash/picodash-base.esm.js";
 
 try {
+  // eslint-disable-next-line @typescript-eslint/no-unused-expressions
   globalThis.kaithemapi;
 } catch {
   globalThis.kaithemapi = undefined;
@@ -68,7 +69,7 @@ if (globalThis.kaithemapi == undefined) {
         ],
 
         __FORCEREFRESH__: [
-          function (m) {
+          function (_m) {
             globalThis.location.reload();
           },
         ],
@@ -160,12 +161,12 @@ if (globalThis.kaithemapi == undefined) {
       sendTrigger: function (key, value) {
         var d = { upd: [[key, value]] };
         if (this.use_mp0) {
-          var j = new Blob([encode(d)]);
+          const j = new Blob([encode(d)]);
+          this.connection.send(j);
         } else {
-          var j = JSON.stringify(d);
+          const j = JSON.stringify(d);
+          this.connection.send(j);
         }
-
-        this.connection.send(j);
       },
 
       wsPrefix: function () {
@@ -185,9 +186,27 @@ if (globalThis.kaithemapi == undefined) {
       // Very first time, give it some extra before clearing old msgs
       lastDisconnect: Date.now() + 15_000,
 
-      connect: function () {
-        var apiobj = this;
+      wpoll() {
+        //Don't bother sending if we aren'y connected
+        if (this.connection.readyState == 1 && this.toSend.length > 0) {
+          var toSend = { upd: this.toSend };
+          if (this.use_mp0) {
+            const j = new Blob([encode(toSend)]);
+            this.connection.send(j);
+          } else {
+            const j = JSON.stringify(toSend);
+            this.connection.send(j);
+          }
 
+          this.toSend = [];
+        }
+
+        if (this.toSend && this.toSend.length > 0) {
+          globalThis.setTimeout(this.poll_ratelimited.bind(this), 120);
+        }
+      },
+
+      connect: function () {
         this.connection = new WebSocket(
           globalThis.location.protocol.replace("http", "ws") +
             "//" +
@@ -195,78 +214,76 @@ if (globalThis.kaithemapi == undefined) {
             "/widgets/ws"
         );
 
-        this.connection.addEventListener("close", function (e) {
+        this.connection.addEventListener("close", (event) => {
           picodash.snackbar.createSnackbar("Lost connection to server", {
             timeout: 5000,
             accent: "error",
           });
 
-          apiobj.lastDisconnect = Date.now();
-          console.log(e);
-          if (apiobj.reconnector) {
-            clearTimeout(apiobj.reconnector);
-            apiobj.reconnector = null;
+          this.lastDisconnect = Date.now();
+          console.log(event);
+          if (this.reconnector) {
+            clearTimeout(this.reconnector);
+            this.reconnector = null;
           }
-          apiobj.reconnector = setTimeout(function () {
-            apiobj.connect();
-          }, apiobj.reconnect_timeout);
+          this.reconnector = setTimeout(() => {
+            this.connect();
+          }, this.reconnect_timeout);
         });
 
-        this.connection.onerror = function (e) {
-          apiobj.lastDisconnect = Date.now();
-          console.log(e);
-          if (apiobj.reconnector) {
-            clearTimeout(apiobj.reconnector);
-            apiobj.reconnector = null;
+        this.connection.addEventListener("error", (event) => {
+          this.lastDisconnect = Date.now();
+          console.log(event);
+          if (this.reconnector) {
+            clearTimeout(this.reconnector);
+            this.reconnector = null;
           }
-          if (apiobj.connection.readyState != 1) {
-            apiobj.reconnect_timeout = Math.min(
-              apiobj.reconnect_timeout * 2,
+          if (this.connection.readyState != 1) {
+            this.reconnect_timeout = Math.min(
+              this.reconnect_timeout * 2,
               20_000
             );
-            apiobj.reconnector = setTimeout(function () {
-              apiobj.connect();
-            }, apiobj.reconnect_timeout);
+            this.reconnector = setTimeout(() => {
+              this.connect();
+            }, this.reconnect_timeout);
           }
-        };
+        });
 
-        this.connection.onmessage = function (e) {
+        this.connection.addEventListener("message", (event) => {
           try {
-            if (typeof e.data == "object") {
-              apiobj.use_mp = 1;
-
-              var resp = [0];
-              e.data.arrayBuffer().then(function (buffer) {
+            if (typeof event.data == "object") {
+              this.use_mp = 1;
+              event.data.arrayBuffer().then((buffer) => {
                 var buffer2 = new Uint8Array(buffer);
                 try {
-                  apiobj.connection.handleIncoming(decode(buffer2));
+                  this.connection.handleIncoming(decode(buffer2));
                 } catch (error) {
-                  apiobj.sendErrorMessage(
+                  this.sendErrorMessage(
                     globalThis.location.href + "\n" + error.stack
                   );
                   console.error(error.stack);
                 }
               });
             } else {
-              var resp = JSON.parse(e.data);
-              apiobj.connection.handleIncoming(resp);
+              const resp = JSON.parse(event.data);
+              this.connection.handleIncoming(resp);
             }
           } catch (error) {
-            apiobj.sendErrorMessage(
+            this.sendErrorMessage(
               globalThis.location.href + "\n" + error.stack
             );
             console.error(error.stack);
           }
-        };
+        });
 
-        this.connection.handleIncoming = function (resp) {
+        this.connection.handleIncoming = (resp) => {
           //Iterate messages
           for (let i of resp) {
-            for (var j in apiobj.serverMsgCallbacks[i[0]]) {
+            for (var j in this.serverMsgCallbacks[i[0]]) {
               if (i.length > 1) {
-                apiobj.serverMsgCallbacks[i[0]][j](i[1]);
+                this.serverMsgCallbacks[i[0]][j](i[1]);
               } else {
-                if (this.alreadyPostedAlertOnce) {} else {
+                if (!this.alreadyPostedAlertOnce) {
                   this.alreadyPostedAlertOnce = true;
                   if (this.enableWidgetGoneAlert) {
                     picodash.snackbar.createSnackbar(
@@ -282,9 +299,9 @@ if (globalThis.kaithemapi == undefined) {
             }
           }
         };
-        this.connection.addEventListener("open", function (e) {
+        this.connection.addEventListener("open", (_event) => {
           try {
-            if (apiobj.last_connected) {
+            if (this.last_connected) {
               picodash.snackbar.createSnackbar("Reconnected", {
                 timeout: 5000,
                 accent: "success",
@@ -294,44 +311,36 @@ if (globalThis.kaithemapi == undefined) {
             console.log(error);
           }
 
-          apiobj.last_connected = Date.now();
+          this.last_connected = Date.now();
 
           // Do not send very old messages on reconnect
-          if (apiobj.lastDisconnect < Date.now() - 5000) {
-            apiobj.toSend = [];
-          }
-
-          var j = JSON.stringify({
-            subsc: Object.keys(apiobj.serverMsgCallbacks),
-            req: [],
-            upd: [["__url__", globalThis.location.href]],
-          });
-          apiobj.connection.send(j);
-          console.log("WS Connection Initialized");
-          apiobj.reconnect_timeout = 1500;
-          globalThis.setTimeout(function () {
-            apiobj.wpoll();
-          }, 250);
-        });
-
-        this.wpoll = function () {
-          //Don't bother sending if we aren'y connected
-          if (this.connection.readyState == 1 && this.toSend.length > 0) {
-            var toSend = { upd: this.toSend };
-            if (this.use_mp0) {
-              var j = new Blob([encode(toSend)]);
-            } else {
-              var j = JSON.stringify(toSend);
+          if (this.lastDisconnect < Date.now() - 5000) {
+            if (this.toSend.length > 0) {
+              picodash.snackbar.createSnackbar(
+                "Reconnecting took too long, " +
+                  this.toSend.length +
+                  " messages lost.",
+                {
+                  timeout: 15_000,
+                  accent: "error",
+                }
+              );
             }
-
-            this.connection.send(j);
             this.toSend = [];
           }
 
-          if (this.toSend && this.toSend.length > 0) {
-            globalThis.setTimeout(this.poll_ratelimited.bind(this), 120);
-          }
-        };
+          var j = JSON.stringify({
+            subsc: Object.keys(this.serverMsgCallbacks),
+            req: [],
+            upd: [["__url__", globalThis.location.href]],
+          });
+          this.connection.send(j);
+          console.log("WS Connection Initialized");
+          this.reconnect_timeout = 1500;
+          globalThis.setTimeout(() => {
+            this.wpoll();
+          }, 250);
+        });
 
         this.lastSend = 0;
         this.pollWaiting = null;
@@ -365,7 +374,7 @@ if (globalThis.kaithemapi == undefined) {
   globalThis.kaithemapi = globalThis.kaithemapi();
 
   if (!globalThis.onerror) {
-    var globalPageErrorHandler = function (message, url, line, col, tb) {
+    var globalPageErrorHandler = function (message, url, line, _col, tb) {
       globalThis.kaithemapi.sendErrorMessage(
         url + "\n" + line + "\n\n" + message + "\n\n" + tb
       );
@@ -376,7 +385,7 @@ if (globalThis.kaithemapi == undefined) {
       );
     });
 
-    globalThis.onerror = globalPageErrorHandler;
+    globalThis.addEventListener("error", globalPageErrorHandler);
   }
   //Backwards compatibility hack
   //Todo deprecate someday? or not.
@@ -396,14 +405,14 @@ if (globalThis.kaithemapi == undefined) {
       try {
         if ("AmbientLightSensor" in globalThis) {
           const sensor = new AmbientLightSensor();
-          sensor.addEventListener("reading", (event) => {
+          sensor.addEventListener("reading", (_event) => {
             globalThis.kaithemapi.sendValue("__SENSORS__", {
               ambientLight: sensor.illuminance,
             });
           });
         }
-      } catch {
-        console.log(e);
+      } catch (error) {
+        console.log(error);
       }
     }
   };
@@ -453,8 +462,7 @@ if (globalThis.kaithemapi == undefined) {
       globalThis.kaithemapi.connect();
     }, 10);
   });
-}
-else{
+} else {
   console.log("kaithemapi already exists");
 }
 class APIWidget {
@@ -517,9 +525,7 @@ class APIWidget {
     }
   }
 
-  upd(value) {
-    {}
-  }
+  upd(_value) {}
   getTime() {
     {
       var x = performance.now();
@@ -528,7 +534,7 @@ class APIWidget {
     }
   }
 
-  now(value) {
+  now(_value) {
     {
       var t = performance.now();
       if (t - this._txtime > this.timeSyncInterval) {
