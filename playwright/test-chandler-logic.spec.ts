@@ -53,7 +53,8 @@ test("test", async ({ page }) => {
 
   await waitForTasks(page);
   await page.getByTestId('command-arg-name').fill('foo');
-  await page.getByTestId('command-arg-value').blur();
+  await page.getByTestId('command-arg-name').blur();
+
   await sleep(500);
   await waitForTasks(page);
   await page.getByTestId('command-arg-value').fill('45');

@@ -94,7 +94,9 @@ p.small {
                 list=" props.example_events"
                 v-on:change="
                   selectedBinding.event = $event.target.value;
-                  $emit('update:modelValue', rules);
+                  $nextTick(() => {
+                    $emit('update:modelValue', rules);
+                  });
                 " />
             </label>
           </div>
@@ -135,7 +137,9 @@ p.small {
             v-on:change="
               selectedCommand.command = $event;
               setCommandDefaults(selectedCommand);
-              $emit('update:modelValue', rules);
+              $nextTick(() => {
+                $emit('update:modelValue', rules);
+              });
             "></combo-box>
           <div v-if="commands[selectedCommand.command]">
             <div class="stacked-form">

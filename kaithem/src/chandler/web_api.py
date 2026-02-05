@@ -177,7 +177,7 @@ async def set_cue_properties(cue_id: str):
                 cue = cues[cue_id]
                 group = cue.group()
                 if group:
-                    group.board.pushCueMeta(cue_id)
+                    group.board.pushCueMeta(cue_id, [prop])
 
             if not getattr(cues[cue_id], prop) == val:
                 pass
@@ -204,7 +204,6 @@ async def set_cue_value_rest(
     group = cue.group()
     if group:
         board = group.board
-        group.board.pushCueMeta(cue_id)
     else:
         raise RuntimeError("Cue has no group")
 

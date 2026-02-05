@@ -791,11 +791,11 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         self.linkSend(["groupmeta", groupid, d])
 
-    def pushCueMeta(self, cueid: str):
+    def pushCueMeta(self, cueid: str, keys: list[str] | None = None):
         try:
             cue = cues[cueid]
 
-            d = cue.get_ui_data()
+            d = cue.get_ui_data(keys)
 
             self.linkSend(
                 [

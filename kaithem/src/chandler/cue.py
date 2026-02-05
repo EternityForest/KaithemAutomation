@@ -985,7 +985,7 @@ class Cue:
 
         return reset
 
-    def get_ui_data(self):
+    def get_ui_data(self, keys: list[str] | None = None):
         group = self.group()
         if not group:
             raise RuntimeError("Cue belongs to nonexistant group")
@@ -1010,10 +1010,15 @@ class Cue:
         }
 
         d = {}
-        # All the stuff that's just a straight 1 to 1 copy of the attributes
-        # are the same as whats in the save file
-        for i in schemas.get_schema("chandler/cue")["properties"]:
-            d[i] = getattr(self, i)
+
+        if not keys:
+            # All the stuff that's just a straight 1 to 1 copy of the attributes
+            # are the same as whats in the save file
+            for i in schemas.get_schema("chandler/cue")["properties"]:
+                d[i] = getattr(self, i)
+        else:
+            for i in keys:
+                d[i] = getattr(self, i)
 
         # Important that d2 takes priority
         d.update(d2)
