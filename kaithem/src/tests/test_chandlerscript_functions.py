@@ -63,8 +63,8 @@ def test_hysteresis_block():
     assert b.call(0.7, window=1) == 0.7
     assert b.call(0.8, window=1) == 0.8
     assert b.call(0.6, window=1) is None
-    assert b.call(0.1, window=1) == 0.1
-    assert b.call(0, window=1) == 0
+    assert b.call(0.1, window=0.4) == 0.1
+    assert b.call(0, window=0.4) == 0
     assert b.call(49, window=100) is None
 
     assert b.call(50, window=100) == 50
@@ -79,6 +79,7 @@ def test_cooldown_block():
     b = scriptbindings.CooldownBlock(ctx)
 
     ctx.setVar("_", 1)
+    time.sleep(1)
 
     assert b.call(1, window=0.1)
     assert b.call(1, window=0.1) is None

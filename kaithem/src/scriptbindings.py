@@ -282,6 +282,7 @@ class OnChangeBlock(FunctionBlock):
     args = [{"name": "input", "type": "str", "default": "=_"}]
 
     def __init__(self, ctx: ChandlerScriptContext, *args, **kwargs):
+        super().__init__(ctx, *args, **kwargs)
         self.lastValue = None
 
     def call(self, input: Any = "=_", **kwds: Any) -> Any:
@@ -302,6 +303,7 @@ class OnRisingEdgeBlock(FunctionBlock):
     args = [{"name": "input", "type": "str", "default": "=_"}]
 
     def __init__(self, ctx: ChandlerScriptContext, *args, **kwargs):
+        super().__init__(ctx, *args, **kwargs)
         self.lastValue = True
 
     def call(self, input: Any = "=_", **kwds: Any) -> Any:
@@ -321,6 +323,7 @@ class OnCounterIncreaseBlock(FunctionBlock):
     args = [{"name": "input", "type": "str", "default": "=_"}]
 
     def __init__(self, ctx: ChandlerScriptContext, *args, **kwargs):
+        super().__init__(ctx, *args, **kwargs)
         self.lastValue = None
 
     def call(self, input=0, **kwds: Any) -> Any:
@@ -348,6 +351,7 @@ class LowPassFilterBlock(FunctionBlock):
     ]
 
     def __init__(self, ctx: ChandlerScriptContext, *args, **kwargs):
+        super().__init__(ctx, *args, **kwargs)
         self.state: float = 0.0
         self.t = 0
 
@@ -384,16 +388,17 @@ class CooldownBlock(FunctionBlock):
     ]
 
     def __init__(self, ctx: ChandlerScriptContext, *args, **kwargs):
+        super().__init__(ctx, *args, **kwargs)
         self.credits = 0
         self.timestamp = 0
 
     def call(self, limit=1.0, window=1.0, **kwds: Any) -> Any:
+        t = time.monotonic()
         self.credits = min(
             float(limit),
-            self.credits
-            + ((time.monotonic() - self.timestamp) / float(window)),
+            self.credits + ((t - self.timestamp) / float(window)),
         )
-        self.timestamp = time.monotonic()
+        self.timestamp = t
 
         if self.credits >= 1:
             self.credits -= 1
@@ -410,21 +415,21 @@ class HysteresisBlock(FunctionBlock):
     ]
 
     def __init__(self, ctx: ChandlerScriptContext, *args, **kwargs):
-        self.lastMark = None
+        self.last_mark = None
 
     def call(self, input=0.0, window=1.0, **kwds: Any) -> Any:
         v: float = input  # type: ignore
-        w: float = window / 2  # type: ignore
+        half_window: float = window / 2  # type: ignore
 
-        if self.lastMark is None:
-            self.lastMark = v
+        if self.last_mark is None:
+            self.last_mark = v
             return None
 
-        elif v > self.lastMark + w:
-            self.lastMark = v - w
+        elif v >= self.last_mark + half_window:
+            self.last_mark = v - half_window
             return v
-        elif v < self.lastMark - w:
-            self.lastMark = v + w
+        elif v <= self.last_mark - half_window:
+            self.last_mark = v + half_window
             return v
 
         return None
