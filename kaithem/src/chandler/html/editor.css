@@ -10,7 +10,7 @@ div.hfader {
     border-width: 2px;
     border-color: rgba(0, 0, 0, 0.1);
     margin: 3px;
-    min-width: 8em;
+    min-width: 11rem;
     min-height: 5em;
     user-select: none;
 }
@@ -37,7 +37,7 @@ article.universe {
     border-color: grey;
     margin: 3px;
     width: 95%;
-    min-width: 9em;
+    min-width: 12rem;
     flex-basis: fit-content;
     max-width: max-content;
     flex-grow: 2;
@@ -48,7 +48,7 @@ article.fixture {
     margin: 3px;
     max-width: 24rem;
     flex-basis: min-content;
-    min-width: 9em;
+    min-width: 12rem;
     min-height: 11rem;
 }
 
