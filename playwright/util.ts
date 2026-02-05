@@ -160,12 +160,12 @@ async function waitForTasks(page: Page) {
             await globalThis.nextTick();
         }
         
-        await globalThis.doSerialized();
-
-        // Wait for all pending save operations to complete
-        if (globalThis.waitForPendingOperations) {
-            await globalThis.waitForPendingOperations();
-        }
+        await globalThis.doSerialized(
+            async () => {
+                const sp = new Promise(resolve => setTimeout(resolve, 5));
+                await sp;
+            }
+        );
     });
 }
 export { login, login_as, logout, waitForTasks, makeModule, deleteModule, makeTagPoint, sleep, chandlerBoardTemplate };

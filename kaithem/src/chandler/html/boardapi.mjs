@@ -58,9 +58,6 @@ let presets = ref({});
 
 let sendKeystrokes = ref(true);
 
-// Track pending save operations for test synchronization
-let pendingOperations = ref(0);
-
 function keyHandle(event_) {
   if (!sendKeystrokes.value) {
     return;
@@ -334,6 +331,7 @@ export async function restSetCueKeypointMeta(
 }
 
 async function setCueProperty(cue, property, value) {
+  // console.log("setCueProperty", cue, property, JSON.stringify(value));
   await doSerialized(async () => {
     var x = cueSetData[cue + property];
     if (x) {
@@ -344,8 +342,7 @@ async function setCueProperty(cue, property, value) {
     var b = {};
     b[property] = value;
 
-    pendingOperations.value++;
-    try {
+
       let p = fetch("/chandler/api/set-cue-properties/" + cue, {
         method: "PUT",
         body: JSON.stringify(b),
@@ -365,9 +362,6 @@ async function setCueProperty(cue, property, value) {
 
       cuemeta.value[cue][property] = value;
       await nextTick();
-    } finally {
-      pendingOperations.value--;
-    }
   });
 }
 
@@ -384,7 +378,6 @@ function setCuePropertyDeferred(cue, property, value) {
     var b = {};
     b[property] = value;
 
-    pendingOperations.value++;
     fetch("/chandler/api/set-cue-properties/" + cue, {
       method: "PUT",
       body: JSON.stringify(b),
@@ -395,8 +388,6 @@ function setCuePropertyDeferred(cue, property, value) {
       cuemeta.value[cue][property] = value;
     }).catch(function (error) {
       alert("Error setting property: " + error);
-    }).finally(() => {
-      pendingOperations.value--;
     });
     delete cueSetData[cue + property];
   }, 3000);
@@ -915,8 +906,9 @@ so it is pretty much a "soft" approximate serialization.
 
 It mostly exists to allow tests to wait for previous actions.
 */
-async function doSerialized(callback, timeout) {
+async function doSerialized(callback, timeout=15_000) {
   let previous = previousSerializedPromise.value;
+
 
   await nextTick();
   await new Promise((resolve) => resolve());
@@ -971,20 +963,6 @@ async function doSerializedWithTimeout(callback, timeout) {
   );
 }
 
-// Wait for all pending save operations to complete
-async function waitForPendingOperations(maxWaitMs = 5000) {
-  const startTime = Date.now();
-  while (pendingOperations.value > 0) {
-    if (Date.now() - startTime > maxWaitMs) {
-      console.warn("Timeout waiting for pending operations");
-      break;
-    }
-    await new Promise(resolve => setTimeout(resolve, 10));
-  }
-}
-
-// Used for tests
-globalThis.waitForPendingOperations = waitForPendingOperations;
 
 let no_edit = ref(!kaithemapi.checkPermission("system_admin"));
 
