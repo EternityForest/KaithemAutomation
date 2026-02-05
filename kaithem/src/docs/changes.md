@@ -16,10 +16,12 @@ We no longer support auto-polling and synchronous getters, and callables are no
 longer accepted as tag values.  Tag points getters are now set via the claim
 object, and must be explicitly called.
 
-
 * :technologist: Switching to Sphinx for docs
+
 * :technologist: BREAKING Some tagpoint properties are now private.
+
 * :technologist: Replace Beartype with Pydantic as it is now a strong de facto standard.
+
 * :technologist: BREAKING The iot_devices integration has been rewritten.  Most devices should be unchanged for users, but NVRChannel no longer supports the old AI object detection.
 
 * :technologist: BREAKING Tag points may no longer have callable values.  Instead you can set the getter property on a claim object, which takes the claim itself and sets it.
@@ -48,7 +50,7 @@ object, and must be explicitly called.
 
 * :coffin: BREAKING: Unused and poorly supported Chandler "display tags", "event buttons", and "info display" removed.
 
-* :coffin: BREAKING: Chandler "Slideshow " replaced with
+* :coffin: BREAKING: Chandler "Slideshow" filters replaced with
    a true projection mapper plugin.
 
 * :sparkles: Projection Mapper plugin for projection mapping web based sources

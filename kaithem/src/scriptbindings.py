@@ -223,13 +223,14 @@ class FunctionBlock:
         return m
 
     def get_script_context(self) -> BaseChandlerScriptContext:
-        return context_info.engine
+        return self.ctx
 
     def get_underscore_val(self) -> Any:
-        return context_info.engine.variables.get("_")
+        return self.ctx.variables.get("_")
 
     def __init__(self, ctx: BaseChandlerScriptContext, *args, **kwargs):
-        self.ctx = ctx
+        assert isinstance(ctx, BaseChandlerScriptContext)
+        self.ctx: BaseChandlerScriptContext = ctx
 
     def call(self, *args, **kwargs):
         raise NotImplementedError
@@ -416,20 +417,34 @@ class HysteresisBlock(FunctionBlock):
 
     def __init__(self, ctx: ChandlerScriptContext, *args, **kwargs):
         self.last_mark = None
+        self.direction = 0
 
     def call(self, input=0.0, window=1.0, **kwds: Any) -> Any:
         v: float = input  # type: ignore
-        half_window: float = window / 2  # type: ignore
 
         if self.last_mark is None:
             self.last_mark = v
             return None
 
-        elif v >= self.last_mark + half_window:
-            self.last_mark = v - half_window
+        if self.direction == 1:
+            upper = self.last_mark
+            lower = self.last_mark - window
+
+        elif self.direction == -1:
+            upper = self.last_mark + window
+            lower = self.last_mark
+
+        else:
+            upper = self.last_mark + (window / 2)
+            lower = self.last_mark - (window / 2)
+
+        if v >= upper:
+            self.direction = 1
+            self.last_mark = v
             return v
-        elif v <= self.last_mark - half_window:
-            self.last_mark = v + half_window
+        elif v <= lower:
+            self.direction = -1
+            self.last_mark = v
             return v
 
         return None

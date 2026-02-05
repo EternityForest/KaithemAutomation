@@ -65,10 +65,13 @@ def test_hysteresis_block():
     assert b.call(0.6, window=1) is None
     assert b.call(0.1, window=0.4) == 0.1
     assert b.call(0, window=0.4) == 0
-    assert b.call(49, window=100) is None
+    assert b.call(49, window=50) is None
 
-    assert b.call(50, window=100) == 50
-    assert b.call(51, window=100) == 51
+    assert b.call(55, window=50) == 55
+    assert b.call(56, window=50) == 56
+    assert b.call(55, window=0.1) == 55
+    assert b.call(56, window=0.1) == 56
+
     assert b.call(30, window=100) is None
 
     assert b.call(-100, window=100) == -100
@@ -87,6 +90,7 @@ def test_cooldown_block():
     assert b.call(1, window=0.1)
     time.sleep(0.001)
     assert b.call(1, window=0.1) is None
+    time.sleep(0.01)
     assert b.call(1, window=0.0001)
 
     ctr = 0
