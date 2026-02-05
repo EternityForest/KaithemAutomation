@@ -687,7 +687,7 @@ async def app(scope, receive, send):
             except Exception:
                 break
 
-            if "text" in x:
+            if "text" in x and x["text"] is not None:
                 i = x["text"]
             elif "bytes" in x:
                 i = x["bytes"]

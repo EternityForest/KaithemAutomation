@@ -81,7 +81,7 @@ if (globalThis.kaithemapi == undefined) {
 
       subscriptions: [],
       connection: 0,
-      use_mp: 0,
+      use_mp0: 0,
 
       //Doe nothinh untiul we connect, we just send that buffered data in the connection handler.
       //Todo don't dynamically define this at all?
@@ -252,7 +252,7 @@ if (globalThis.kaithemapi == undefined) {
         this.connection.addEventListener("message", (event) => {
           try {
             if (typeof event.data == "object") {
-              this.use_mp = 1;
+              // this.use_mp0 = 1;
               event.data.arrayBuffer().then((buffer) => {
                 var buffer2 = new Uint8Array(buffer);
                 try {
