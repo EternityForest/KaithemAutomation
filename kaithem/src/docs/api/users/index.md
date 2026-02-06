@@ -7,7 +7,7 @@
 
 ## Module Contents
 
-### kaithem.api.users.list_all_permissions() → dict[str, dict[str, Any]]
+### kaithem.api.users.list_all_permissions() → dict[[str](../../src/pages/index.md#kaithem.src.pages.str), dict[[str](../../src/pages/index.md#kaithem.src.pages.str), Any]]
 
 Return a dict of all permissions.
 They will all have a description item

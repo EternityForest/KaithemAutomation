@@ -23,7 +23,7 @@
 
 ## Module Contents
 
-### *class* kaithem.api.tags.BinaryTagPointClass(name: str)
+### *class* kaithem.api.tags.BinaryTagPointClass(name: [str](../../src/pages/index.md#kaithem.src.pages.str))
 
 Bases: [`GenericTagPointClass`](#kaithem.api.tags.GenericTagPointClass)[`bytes`]
 
@@ -46,9 +46,9 @@ which can get existing tags. This allows use of tags for cross=
 
 #### type *= 'binary'*
 
-#### as_base64() → str
+#### as_base64() → [str](../../src/pages/index.md#kaithem.src.pages.str)
 
-### *class* kaithem.api.tags.GenericTagPointClass(name: str)
+### *class* kaithem.api.tags.GenericTagPointClass(name: [str](../../src/pages/index.md#kaithem.src.pages.str))
 
 Bases: `Generic`[`T`]
 
@@ -69,7 +69,7 @@ which can get existing tags. This allows use of tags for cross=
 
 #### DEFAULT_ANNOTATION *= '1d289116-b250-482e-a3d3-ffd9e8ac2b57'*
 
-#### default_data *: T*
+#### default_data *: [T](../plugins/index.md#kaithem.api.plugins.T)*
 
 #### type *= 'object'*
 
@@ -77,32 +77,32 @@ which can get existing tags. This allows use of tags for cross=
 
 #### \_\_repr_\_()
 
-#### name *: str*
+#### name *: [str](../../src/pages/index.md#kaithem.src.pages.str)*
 
 The normalized name of the tag
 
-#### configLoggers *: weakref.WeakValueDictionary[str, object]*
+#### configLoggers *: weakref.WeakValueDictionary[[str](../../src/pages/index.md#kaithem.src.pages.str), object]*
 
 Internal use only, holds references to logger objects
 
-#### aliases *: set[str]*
+#### aliases *: set[[str](../../src/pages/index.md#kaithem.src.pages.str)]*
 
-#### description *: str* *= ''*
+#### description *: [str](../../src/pages/index.md#kaithem.src.pages.str)* *= ''*
 
 User settable description in free text
 
 #### unreliable *: bool* *= False*
 
-#### active_claim *: None | [Claim](../../src/tagpoints/index.md#kaithem.src.tagpoints.Claim)[T]* *= None*
+#### active_claim *: None | [Claim](../../src/tagpoints/index.md#kaithem.src.tagpoints.Claim)[[T](../plugins/index.md#kaithem.api.plugins.T)]* *= None*
 
 #### writable *= True*
 
-#### eval_context *: dict[str, Any]*
+#### eval_context *: dict[[str](../../src/pages/index.md#kaithem.src.pages.str), Any]*
 
 Dict used as globals and locals for evaluating
 alarm conditions and expression tags.
 
-#### owner *: str* *= ''*
+#### owner *: [str](../../src/pages/index.md#kaithem.src.pages.str)* *= ''*
 
 Free text user settable string describing the "owner" of the tag point
 This is not a precisely defined concept
@@ -111,7 +111,7 @@ This is not a precisely defined concept
 
 The claim named default which is normally the only one that ever gets used
 
-#### *property* timestamp *: float*
+#### *property* timestamp *: [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float)*
 
 #### *property* annotation *: Any*
 
@@ -119,7 +119,7 @@ The claim named default which is normally the only one that ever gets used
 
 True if the tag has a getter instead of a set value
 
-#### expose(read_perms: str | list[str] = '', write_perms: str | list[str] = 'system_admin', expose_priority: str | int | float = 50)
+#### expose(read_perms: [str](../../src/pages/index.md#kaithem.src.pages.str) | [list](../../src/pages/index.md#kaithem.src.pages.list)[[str](../../src/pages/index.md#kaithem.src.pages.str)] = '', write_perms: [str](../../src/pages/index.md#kaithem.src.pages.str) | [list](../../src/pages/index.md#kaithem.src.pages.list)[[str](../../src/pages/index.md#kaithem.src.pages.str)] = 'system_admin', expose_priority: [str](../../src/pages/index.md#kaithem.src.pages.str) | [int](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.int) | [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float) = 50)
 
 Expose the tag to web APIs, with the permissions specified. Permissions must be
 strings, but can use commas for multiple.
@@ -146,24 +146,24 @@ If read_perms or write_perms is empty, disable exposure.
 You cannot have different priority levels for different users this way, that
 would be highly confusing. Use multiple tags or code your own API for that.
 
-#### get_alerts() → list[[kaithem.src.alerts.Alert](../../src/alerts/index.md#kaithem.src.alerts.Alert)]
+#### get_alerts() → [list](../../src/pages/index.md#kaithem.src.pages.list)[[kaithem.src.alerts.Alert](../../src/alerts/index.md#kaithem.src.alerts.Alert)]
 
 Return a list of all alert objects for this tag, including ones that are not active
 
-#### get_effective_permissions() → tuple[str, str, float]
+#### get_effective_permissions() → tuple[[str](../../src/pages/index.md#kaithem.src.pages.str), [str](../../src/pages/index.md#kaithem.src.pages.str), [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float)]
 
 Get the permissions that currently apply here. Configured ones override in-code ones
 
 Returns:
 : list: [read_perms, write_perms, writePriority]. Priority determines the priority of web API claims.
 
-#### set_alarm(name: str, condition: str | None = '', priority: str = 'info', release_condition: str | None = '', auto_ack: bool = False, trip_delay: float | int | str = '0', enabled: bool = True) → [kaithem.src.alerts.Alert](../../src/alerts/index.md#kaithem.src.alerts.Alert) | None
+#### set_alarm(name: [str](../../src/pages/index.md#kaithem.src.pages.str), condition: [str](../../src/pages/index.md#kaithem.src.pages.str) | None = '', priority: [str](../../src/pages/index.md#kaithem.src.pages.str) = 'info', release_condition: [str](../../src/pages/index.md#kaithem.src.pages.str) | None = '', auto_ack: bool = False, trip_delay: [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float) | [int](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.int) | [str](../../src/pages/index.md#kaithem.src.pages.str) = '0', enabled: bool = True) → [kaithem.src.alerts.Alert](../../src/alerts/index.md#kaithem.src.alerts.Alert) | None
 
-#### recalc_alarm_self_subscriber(value: T, timestamp: float, annotation: Any)
+#### recalc_alarm_self_subscriber(value: [T](../plugins/index.md#kaithem.api.plugins.T), timestamp: [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float), annotation: Any)
 
 #### recalc_alerts()
 
-#### createGetterFromExpression(e: str, priority: int | float = 98) → [Claim](../../src/tagpoints/index.md#kaithem.src.tagpoints.Claim)[T]
+#### createGetterFromExpression(e: [str](../../src/pages/index.md#kaithem.src.pages.str), priority: [int](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.int) | [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float) = 98) → [Claim](../../src/tagpoints/index.md#kaithem.src.tagpoints.Claim)[[T](../plugins/index.md#kaithem.api.plugins.T)]
 
 Create a getter for tag self using expression e
 
@@ -180,25 +180,25 @@ something like that, to avoid collisions.
 "Official" ones include bool, which can be 1 or 0, or tristate, which can be
 -1 for unset/no effect, 0, or 1.
 
-#### *property* default *: T*
+#### *property* default *: [T](../plugins/index.md#kaithem.api.plugins.T)*
 
-#### *classmethod* Tag(name: str, defaults: dict[str, Any] = {})
+#### *classmethod* Tag(name: [str](../../src/pages/index.md#kaithem.src.pages.str), defaults: dict[[str](../../src/pages/index.md#kaithem.src.pages.str), Any] = {})
 
 #### *property* data_source_widget *: None | [kaithem.src.widgets.Widget](../../src/widgets/index.md#kaithem.src.widgets.Widget)*
 
-#### *property* current_source *: str*
+#### *property* current_source *: [str](../../src/pages/index.md#kaithem.src.pages.str)*
 
 Return the Claim object that is currently
 controlling the tag
 
 #### \_\_del_\_()
 
-#### \_\_call_\_(value: T | None = None, timestamp: float | None = None, annotation: Any = None, \*\*kwargs: Any)
+#### \_\_call_\_(value: [T](../plugins/index.md#kaithem.api.plugins.T) | None = None, timestamp: [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float) | None = None, annotation: Any = None, \*\*kwargs: Any)
 
 Equivalent to calling set() on the default handler. If
 no args are provided, just returns the tag's value.
 
-#### fast_push(value: T, timestamp: float | None = None, annotation: Any = None) → None
+#### fast_push(value: [T](../plugins/index.md#kaithem.api.plugins.T), timestamp: [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float) | None = None, annotation: Any = None) → None
 
 Push a value to all subscribers. Does not set the tag's value.  Ignores any and all
 overriding claims.
@@ -207,7 +207,7 @@ Does not perform any checks on the value.  Might decide to do nothing if the sys
 
 Meant for streaming video and the like.
 
-#### subscribe(f: collections.abc.Callable[[T, float, Any], Any], immediate: bool = False)
+#### subscribe(f: collections.abc.Callable[[[T](../plugins/index.md#kaithem.api.plugins.T), [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float), Any], Any], immediate: bool = False)
 
 f will be called whe the value changes, as long
 as the function f still exists.
@@ -225,7 +225,7 @@ They will all be called under the tagpoint's lock. To avoid various problems
 like endless loops, one should be careful when accessing the tagpoint itself
 from within this function.
 
-#### unsubscribe(f: collections.abc.Callable[[T, float, Any], Any])
+#### unsubscribe(f: collections.abc.Callable[[[T](../plugins/index.md#kaithem.api.plugins.T), [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float), Any], Any])
 
 #### poll()
 
@@ -233,7 +233,7 @@ from within this function.
 
 #### *property* age
 
-#### *property* value *: T*
+#### *property* value *: [T](../plugins/index.md#kaithem.api.plugins.T)*
 
 #### pull(sync=False) → None
 
@@ -241,20 +241,20 @@ Request that any getter in the active claim produce a new value if it has a gett
 Note that we do not automatically poll or run the getters anymore,
 getters must be explicitly requested.
 
-#### get_vta(force=False) → tuple[T, float, Any]
+#### get_vta(force=False) → tuple[[T](../plugins/index.md#kaithem.api.plugins.T), [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float), Any]
 
 Get the current value, timestamp and annotation.
 If force is true and the value is a getter, then force a new update.
 
-#### add_alias(alias: str)
+#### add_alias(alias: [str](../../src/pages/index.md#kaithem.src.pages.str))
 
 Adds an alias of this tag, allowing access by another name.
 
-#### remove_alias(alias: str)
+#### remove_alias(alias: [str](../../src/pages/index.md#kaithem.src.pages.str))
 
 Removes an alias of this tag
 
-#### claim(value: T, name: str | None = None, priority: float | None = None, timestamp: float | None = None, annotation: Any = None) → [Claim](../../src/tagpoints/index.md#kaithem.src.tagpoints.Claim)[T]
+#### claim(value: [T](../plugins/index.md#kaithem.api.plugins.T), name: [str](../../src/pages/index.md#kaithem.src.pages.str) | None = None, priority: [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float) | None = None, timestamp: [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float) | None = None, annotation: Any = None) → [Claim](../../src/tagpoints/index.md#kaithem.src.tagpoints.Claim)[[T](../plugins/index.md#kaithem.api.plugins.T)]
 
 Adds a claim to the tag and returns the Claim object. The claim will
 dissapear if the returned Claim object ever does. Value may be a function
@@ -270,19 +270,19 @@ Rather than using multiple claims, consider whether it's really needed, lots
 of builtin functionality in the UI is mean to just work with the default
 claim, for ease of use.
 
-#### set_claim_val(claim: str, val: T, timestamp: float | None, annotation: Any)
+#### set_claim_val(claim: [str](../../src/pages/index.md#kaithem.src.pages.str), val: [T](../plugins/index.md#kaithem.api.plugins.T), timestamp: [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float) | None, annotation: Any)
 
 Set the value of an existing claim
 
-#### claimFactory(value: Any, name: str, priority: float, timestamp: float, annotation: Any)
+#### claimFactory(value: Any, name: [str](../../src/pages/index.md#kaithem.src.pages.str), priority: [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float), timestamp: [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float), annotation: Any)
 
-#### get_top_claim() → [Claim](../../src/tagpoints/index.md#kaithem.src.tagpoints.Claim)[T]
+#### get_top_claim() → [Claim](../../src/tagpoints/index.md#kaithem.src.tagpoints.Claim)[[T](../plugins/index.md#kaithem.api.plugins.T)]
 
-#### release(name: str)
+#### release(name: [str](../../src/pages/index.md#kaithem.src.pages.str))
 
-#### *property* subscribers *: list[collections.abc.Callable[[T, float, Any], Any]]*
+#### *property* subscribers *: [list](../../src/pages/index.md#kaithem.src.pages.list)[collections.abc.Callable[[[T](../plugins/index.md#kaithem.api.plugins.T), [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float), Any], Any]]*
 
-### *class* kaithem.api.tags.NumericTagPointClass(name: str, min: float | None = None, max: float | None = None)
+### *class* kaithem.api.tags.NumericTagPointClass(name: [str](../../src/pages/index.md#kaithem.src.pages.str), min: [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float) | None = None, max: [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float) | None = None)
 
 Bases: [`GenericTagPointClass`](#kaithem.api.tags.GenericTagPointClass)[`float`]
 
@@ -319,27 +319,27 @@ things that are triggered on changes to nonzero values.
 this just increments the value, wrapping at
 2\*\*20, and wrapping to 1 instead of 0.
 
-#### claimFactory(value: float, name: str, priority: float, timestamp: float, annotation: Any)
+#### claimFactory(value: [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float), name: [str](../../src/pages/index.md#kaithem.src.pages.str), priority: [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float), timestamp: [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float), annotation: Any)
 
-#### *property* min *: float | int*
-
-Set the range of the tag point. Out of range
-values are clipped. Default is None.
-
-#### *property* max *: float | int*
+#### *property* min *: [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float) | [int](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.int)*
 
 Set the range of the tag point. Out of range
 values are clipped. Default is None.
 
-#### *property* hi *: float | int*
+#### *property* max *: [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float) | [int](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.int)*
 
-#### *property* lo *: float | int*
+Set the range of the tag point. Out of range
+values are clipped. Default is None.
 
-#### convert_to(unit: str)
+#### *property* hi *: [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float) | [int](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.int)*
+
+#### *property* lo *: [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float) | [int](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.int)*
+
+#### convert_to(unit: [str](../../src/pages/index.md#kaithem.src.pages.str))
 
 Return the tag's current value converted to the given unit
 
-#### convert_value(value: float | int, unit: str) → float | int
+#### convert_value(value: [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float) | [int](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.int), unit: [str](../../src/pages/index.md#kaithem.src.pages.str)) → [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float) | [int](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.int)
 
 Convert a value in the tag's native unit to the given unit
 
@@ -369,7 +369,7 @@ strings without raising an exception.
 
 For some units, meters will become "unit aware" on the display page.
 
-#### set_as(value: float, unit: str, timestamp: float | None = None, annotation: Any = None)
+#### set_as(value: [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float), unit: [str](../../src/pages/index.md#kaithem.src.pages.str), timestamp: [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float) | None = None, annotation: Any = None)
 
 Set the default claim, with unit conversion.
 
@@ -380,7 +380,7 @@ the tag's value should be displayed in. Base SI units imply that the correct
 prefix should be used for readability, but units that contain a prefix imply
 fixed display only in that unit.
 
-### *class* kaithem.api.tags.ObjectTagPointClass(name: str)
+### *class* kaithem.api.tags.ObjectTagPointClass(name: [str](../../src/pages/index.md#kaithem.src.pages.str))
 
 Bases: [`GenericTagPointClass`](#kaithem.api.tags.GenericTagPointClass)[`dict`[`str`, `Any`]]
 
@@ -399,13 +399,13 @@ with the one parameter being the tag's value. Any getter functions will be calle
 One generally does not instantiate a tag this way, instead they use the Tag function
 which can get existing tags. This allows use of tags for cross=
 
-#### default_data *: dict[str, Any]*
+#### default_data *: dict[[str](../../src/pages/index.md#kaithem.src.pages.str), Any]*
 
 #### type *= 'object'*
 
 #### validate *= None*
 
-### *class* kaithem.api.tags.StringTagPointClass(name: str)
+### *class* kaithem.api.tags.StringTagPointClass(name: [str](../../src/pages/index.md#kaithem.src.pages.str))
 
 Bases: [`GenericTagPointClass`](#kaithem.api.tags.GenericTagPointClass)[`str`]
 
@@ -432,7 +432,7 @@ which can get existing tags. This allows use of tags for cross=
 
 #### mqtt_encoding *= 'utf8'*
 
-### *class* kaithem.api.tags.ClaimClass(tag: [GenericTagPointClass](#kaithem.api.tags.GenericTagPointClass)[T], value: T, name: str = 'default', priority: int | float = 50.0, timestamp: int | float | None = None, annotation=None)
+### *class* kaithem.api.tags.ClaimClass(tag: [GenericTagPointClass](#kaithem.api.tags.GenericTagPointClass)[[T](../plugins/index.md#kaithem.api.plugins.T)], value: [T](../plugins/index.md#kaithem.api.plugins.T), name: [str](../../src/pages/index.md#kaithem.src.pages.str) = 'default', priority: [int](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.int) | [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float) = 50.0, timestamp: [int](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.int) | [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float) | None = None, annotation=None)
 
 Bases: `Generic`[`T`]
 
@@ -442,7 +442,7 @@ Represents a claim on a tag point's value
 
 #### tag
 
-#### vta *: tuple[T | None, float, Any]*
+#### vta *: tuple[[T](../plugins/index.md#kaithem.api.plugins.T) | None, [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float), Any]*
 
 #### lastGotValue *= 0.0*
 
@@ -452,7 +452,7 @@ Represents a claim on a tag point's value
 
 #### poller *= None*
 
-#### getter *: collections.abc.Callable[[[Claim](../../src/tagpoints/index.md#kaithem.src.tagpoints.Claim)[T]], None] | None* *= None*
+#### getter *: collections.abc.Callable[[[Claim](../../src/tagpoints/index.md#kaithem.src.tagpoints.Claim)[[T](../plugins/index.md#kaithem.api.plugins.T)]], None] | None* *= None*
 
 Getter function for this claim
 
@@ -464,21 +464,21 @@ Getter function for this claim
 
 #### \_\_eq_\_(other) → bool
 
-#### *property* value *: T | None*
+#### *property* value *: [T](../plugins/index.md#kaithem.api.plugins.T) | None*
 
 #### *property* timestamp
 
 #### *property* annotation
 
-#### set(value, timestamp: float | None = None, annotation: Any = None)
+#### set(value, timestamp: [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float) | None = None, annotation: Any = None)
 
 #### release()
 
-#### set_priority(priority: float, realPriority: bool = True)
+#### set_priority(priority: [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float), realPriority: bool = True)
 
 #### \_\_call_\_(\*args, \*\*kwargs)
 
-### kaithem.api.tags.all_tags_raw() → dict[str, weakref.ref[[kaithem.src.tagpoints.GenericTagPointClass](../../src/tagpoints/index.md#kaithem.src.tagpoints.GenericTagPointClass)]]
+### kaithem.api.tags.all_tags_raw() → dict[[str](../../src/pages/index.md#kaithem.src.pages.str), weakref.ref[[kaithem.src.tagpoints.GenericTagPointClass](../../src/tagpoints/index.md#kaithem.src.tagpoints.GenericTagPointClass)]]
 
 Return a dict of weakrefs to all existing tag points.
 
@@ -486,22 +486,22 @@ Return a dict of weakrefs to all existing tag points.
 
 Return tag by that name, of any type, if it exists, else None
 
-### kaithem.api.tags.normalize_tag_name(s: str)
+### kaithem.api.tags.normalize_tag_name(s: [str](../../src/pages/index.md#kaithem.src.pages.str))
 
 Add the leading / if needed, and normalize kebab-case to snake_case
 
-### kaithem.api.tags.NumericTag(k: str) → [kaithem.src.tagpoints.NumericTagPointClass](../../src/tagpoints/index.md#kaithem.src.tagpoints.NumericTagPointClass)
+### kaithem.api.tags.NumericTag(k: [str](../../src/pages/index.md#kaithem.src.pages.str)) → [kaithem.src.tagpoints.NumericTagPointClass](../../src/tagpoints/index.md#kaithem.src.tagpoints.NumericTagPointClass)
 
 Create a tag, if it already exists, return that one
 
-### kaithem.api.tags.StringTag(k: str) → [kaithem.src.tagpoints.StringTagPointClass](../../src/tagpoints/index.md#kaithem.src.tagpoints.StringTagPointClass)
+### kaithem.api.tags.StringTag(k: [str](../../src/pages/index.md#kaithem.src.pages.str)) → [kaithem.src.tagpoints.StringTagPointClass](../../src/tagpoints/index.md#kaithem.src.tagpoints.StringTagPointClass)
 
 Create a tag, if it already exists, return that one
 
-### kaithem.api.tags.ObjectTag(k: str) → [kaithem.src.tagpoints.ObjectTagPointClass](../../src/tagpoints/index.md#kaithem.src.tagpoints.ObjectTagPointClass)
+### kaithem.api.tags.ObjectTag(k: [str](../../src/pages/index.md#kaithem.src.pages.str)) → [kaithem.src.tagpoints.ObjectTagPointClass](../../src/tagpoints/index.md#kaithem.src.tagpoints.ObjectTagPointClass)
 
 Create a tag, if it already exists, return that one
 
-### kaithem.api.tags.BinaryTag(k: str) → [kaithem.src.tagpoints.BinaryTagPointClass](../../src/tagpoints/index.md#kaithem.src.tagpoints.BinaryTagPointClass)
+### kaithem.api.tags.BinaryTag(k: [str](../../src/pages/index.md#kaithem.src.pages.str)) → [kaithem.src.tagpoints.BinaryTagPointClass](../../src/tagpoints/index.md#kaithem.src.tagpoints.BinaryTagPointClass)
 
 Create a tag, if it already exists, return that one
