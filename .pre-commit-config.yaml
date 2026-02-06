@@ -55,9 +55,9 @@ repos:
           - "python"
           - "yaml"
           - "json"
-          - "markdown"
           - "html"
           - "javascript"
+
       - id: fix-ligatures
         types_or:
           - "python"

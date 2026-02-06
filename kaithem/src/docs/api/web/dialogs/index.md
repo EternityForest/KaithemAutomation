@@ -34,7 +34,7 @@ to serve to the user.
 #### name_to_title(s: [str](../../../src/pages/index.md#kaithem.src.pages.str))
 
 If title not provided, this will be
-called to create one fron the control's name
+called to create one fron the control’s name
 
 #### is_disabled_by_default()
 
@@ -59,11 +59,11 @@ Add a checkbox
 
 #### file_input(name: [str](../../../src/pages/index.md#kaithem.src.pages.str) = 'file', , title: [str](../../../src/pages/index.md#kaithem.src.pages.str) | None = None, disabled=None)
 
-Add a file upload input. Name it 'file' and name an input 'filename'  to auto link them.
+Add a file upload input. Name it ‘file’ and name an input ‘filename’  to auto link them.
 
 #### code_editor(name: [str](../../../src/pages/index.md#kaithem.src.pages.str) = 'file', , language: [str](../../../src/pages/index.md#kaithem.src.pages.str), title: [str](../../../src/pages/index.md#kaithem.src.pages.str) | None = None, disabled=None, default='')
 
-Add a file upload input. Name it 'file' and name an input 'filename'  to auto link them.
+Add a file upload input. Name it ‘file’ and name an input ‘filename’  to auto link them.
 
 #### selection(name: [str](../../../src/pages/index.md#kaithem.src.pages.str), , options: [list](../../../src/pages/index.md#kaithem.src.pages.list)[[str](../../../src/pages/index.md#kaithem.src.pages.str)], default='', title: [str](../../../src/pages/index.md#kaithem.src.pages.str) | None = None, disabled=None)
 

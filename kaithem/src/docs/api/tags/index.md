@@ -30,14 +30,14 @@ Bases: [`GenericTagPointClass`](#kaithem.api.tags.GenericTagPointClass)[`bytes`]
 A Tag Point is a named object that can be chooses from a set of data sources based on priority,
 filters that data, and returns it on a push or a pull basis.
 
-A data source here is called a "Claim", and can either be a number or a function. The highest
+A data source here is called a “Claim”, and can either be a number or a function. The highest
 priority claim is called the active claim.
 
 If the claim is a function, it will be called at most once per interval, which is set by tag.interval=N
 in seconds.
 
-If there are any subscribed functions to the tag, they will automatically be called at the tag's interval,
-with the one parameter being the tag's value. Any getter functions will be called to get the value.
+If there are any subscribed functions to the tag, they will automatically be called at the tag’s interval,
+with the one parameter being the tag’s value. Any getter functions will be called to get the value.
 
 One generally does not instantiate a tag this way, instead they use the Tag function
 which can get existing tags. This allows use of tags for cross=
@@ -55,14 +55,14 @@ Bases: `Generic`[`T`]
 A Tag Point is a named object that can be chooses from a set of data sources based on priority,
 filters that data, and returns it on a push or a pull basis.
 
-A data source here is called a "Claim", and can either be a number or a function. The highest
+A data source here is called a “Claim”, and can either be a number or a function. The highest
 priority claim is called the active claim.
 
 If the claim is a function, it will be called at most once per interval, which is set by tag.interval=N
 in seconds.
 
-If there are any subscribed functions to the tag, they will automatically be called at the tag's interval,
-with the one parameter being the tag's value. Any getter functions will be called to get the value.
+If there are any subscribed functions to the tag, they will automatically be called at the tag’s interval,
+with the one parameter being the tag’s value. Any getter functions will be called to get the value.
 
 One generally does not instantiate a tag this way, instead they use the Tag function
 which can get existing tags. This allows use of tags for cross=
@@ -104,7 +104,7 @@ alarm conditions and expression tags.
 
 #### owner *: [str](../../src/pages/index.md#kaithem.src.pages.str)* *= ''*
 
-Free text user settable string describing the "owner" of the tag point
+Free text user settable string describing the “owner” of the tag point
 This is not a precisely defined concept
 
 #### default_claim *= None*
@@ -125,12 +125,12 @@ Expose the tag to web APIs, with the permissions specified. Permissions must be
 strings, but can use commas for multiple.
 
 Priority must be an integer, and determines the priority at which the web
-API may set the tag's value.  The web API cannot control the priority, but
+API may set the tag’s value.  The web API cannot control the priority, but
 can release the claim entirely by sending a null, or reclaim by sending real
 data again.
 
 The way this works is that tag.data_source_widget is created, a
-Widgets.DataSource instance having id "[tag:TAGNAME](tag:TAGNAME)", with the given
+Widgets.DataSource instance having id “[tag:TAGNAME](tag:TAGNAME)”, with the given
 permissions.
 
 Messages TO the server will set a claim at the permitted priority, or release any
@@ -177,7 +177,7 @@ Affects polling and cacheing if getters are used.
 A string that determines a more specific type.  Use a com.site.x name, or
 something like that, to avoid collisions.
 
-"Official" ones include bool, which can be 1 or 0, or tristate, which can be
+“Official” ones include bool, which can be 1 or 0, or tristate, which can be
 -1 for unset/no effect, 0, or 1.
 
 #### *property* default *: [T](../plugins/index.md#kaithem.api.plugins.T)*
@@ -196,11 +196,11 @@ controlling the tag
 #### \_\_call_\_(value: [T](../plugins/index.md#kaithem.api.plugins.T) | None = None, timestamp: [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float) | None = None, annotation: Any = None, \*\*kwargs: Any)
 
 Equivalent to calling set() on the default handler. If
-no args are provided, just returns the tag's value.
+no args are provided, just returns the tag’s value.
 
 #### fast_push(value: [T](../plugins/index.md#kaithem.api.plugins.T), timestamp: [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float) | None = None, annotation: Any = None) → None
 
-Push a value to all subscribers. Does not set the tag's value.  Ignores any and all
+Push a value to all subscribers. Does not set the tag’s value.  Ignores any and all
 overriding claims.
 Bypasses all claims. Does not guarantee to get any locks, multiples of this call can happen at once.
 Does not perform any checks on the value.  Might decide to do nothing if the system is too busy at the moment.
@@ -212,7 +212,7 @@ Meant for streaming video and the like.
 f will be called whe the value changes, as long
 as the function f still exists.
 
-It will also be called the first time you set a tag's value, even if the
+It will also be called the first time you set a tag’s value, even if the
 value has not changed.
 
 It should very very rarely be called on repeated values otherwise, but this
@@ -221,7 +221,7 @@ behavior is not absolutelu guaranteed and should not be relied on.
 All subscribers are called synchronously in the same thread that set the
 value, however any errors are logged and ignored.
 
-They will all be called under the tagpoint's lock. To avoid various problems
+They will all be called under the tagpoint’s lock. To avoid various problems
 like endless loops, one should be careful when accessing the tagpoint itself
 from within this function.
 
@@ -266,7 +266,7 @@ arrived. This will not update the tags age.
 Should a claim already exist by that name, the exact same claim object as
 the previous claim is returned.
 
-Rather than using multiple claims, consider whether it's really needed, lots
+Rather than using multiple claims, consider whether it’s really needed, lots
 of builtin functionality in the UI is mean to just work with the default
 claim, for ease of use.
 
@@ -289,14 +289,14 @@ Bases: [`GenericTagPointClass`](#kaithem.api.tags.GenericTagPointClass)[`float`]
 A Tag Point is a named object that can be chooses from a set of data sources based on priority,
 filters that data, and returns it on a push or a pull basis.
 
-A data source here is called a "Claim", and can either be a number or a function. The highest
+A data source here is called a “Claim”, and can either be a number or a function. The highest
 priority claim is called the active claim.
 
 If the claim is a function, it will be called at most once per interval, which is set by tag.interval=N
 in seconds.
 
-If there are any subscribed functions to the tag, they will automatically be called at the tag's interval,
-with the one parameter being the tag's value. Any getter functions will be called to get the value.
+If there are any subscribed functions to the tag, they will automatically be called at the tag’s interval,
+with the one parameter being the tag’s value. Any getter functions will be called to get the value.
 
 One generally does not instantiate a tag this way, instead they use the Tag function
 which can get existing tags. This allows use of tags for cross=
@@ -337,16 +337,16 @@ values are clipped. Default is None.
 
 #### convert_to(unit: [str](../../src/pages/index.md#kaithem.src.pages.str))
 
-Return the tag's current value converted to the given unit
+Return the tag’s current value converted to the given unit
 
 #### convert_value(value: [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float) | [int](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.int), unit: [str](../../src/pages/index.md#kaithem.src.pages.str)) → [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float) | [int](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.int)
 
-Convert a value in the tag's native unit to the given unit
+Convert a value in the tag’s native unit to the given unit
 
 #### *property* unit
 
 A string that determines the unit of a tag. Units are
-expressed in strings like "m" or "degF". Currently only a small number of
+expressed in strings like “m” or “degF”. Currently only a small number of
 unit conversions are supported natively and others use pint, which is not as
 fast.
 
@@ -358,7 +358,7 @@ This includes kilograms, Grams should be used for internal calculations instead 
 base unit according to SI.
 
 Note that operations involving units raise an error if the unit is not set.
-To prevent this, both the "sending" and "recieving" code should set the unit
+To prevent this, both the “sending” and “recieving” code should set the unit
 before using the tag.
 
 To prevent the very obvious classes of errors where different code thinks a
@@ -367,7 +367,7 @@ been set. You can freely write the same string to it, and you can set it to
 None and then to a new value if you must, but you cannot change between two
 strings without raising an exception.
 
-For some units, meters will become "unit aware" on the display page.
+For some units, meters will become “unit aware” on the display page.
 
 #### set_as(value: [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float), unit: [str](../../src/pages/index.md#kaithem.src.pages.str), timestamp: [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float) | None = None, annotation: Any = None)
 
@@ -376,7 +376,7 @@ Set the default claim, with unit conversion.
 #### *property* display_units
 
 This can be None, or a pipe-separated string listing one or more units that
-the tag's value should be displayed in. Base SI units imply that the correct
+the tag’s value should be displayed in. Base SI units imply that the correct
 prefix should be used for readability, but units that contain a prefix imply
 fixed display only in that unit.
 
@@ -387,14 +387,14 @@ Bases: [`GenericTagPointClass`](#kaithem.api.tags.GenericTagPointClass)[`dict`[`
 A Tag Point is a named object that can be chooses from a set of data sources based on priority,
 filters that data, and returns it on a push or a pull basis.
 
-A data source here is called a "Claim", and can either be a number or a function. The highest
+A data source here is called a “Claim”, and can either be a number or a function. The highest
 priority claim is called the active claim.
 
 If the claim is a function, it will be called at most once per interval, which is set by tag.interval=N
 in seconds.
 
-If there are any subscribed functions to the tag, they will automatically be called at the tag's interval,
-with the one parameter being the tag's value. Any getter functions will be called to get the value.
+If there are any subscribed functions to the tag, they will automatically be called at the tag’s interval,
+with the one parameter being the tag’s value. Any getter functions will be called to get the value.
 
 One generally does not instantiate a tag this way, instead they use the Tag function
 which can get existing tags. This allows use of tags for cross=
@@ -412,14 +412,14 @@ Bases: [`GenericTagPointClass`](#kaithem.api.tags.GenericTagPointClass)[`str`]
 A Tag Point is a named object that can be chooses from a set of data sources based on priority,
 filters that data, and returns it on a push or a pull basis.
 
-A data source here is called a "Claim", and can either be a number or a function. The highest
+A data source here is called a “Claim”, and can either be a number or a function. The highest
 priority claim is called the active claim.
 
 If the claim is a function, it will be called at most once per interval, which is set by tag.interval=N
 in seconds.
 
-If there are any subscribed functions to the tag, they will automatically be called at the tag's interval,
-with the one parameter being the tag's value. Any getter functions will be called to get the value.
+If there are any subscribed functions to the tag, they will automatically be called at the tag’s interval,
+with the one parameter being the tag’s value. Any getter functions will be called to get the value.
 
 One generally does not instantiate a tag this way, instead they use the Tag function
 which can get existing tags. This allows use of tags for cross=
@@ -436,7 +436,7 @@ which can get existing tags. This allows use of tags for cross=
 
 Bases: `Generic`[`T`]
 
-Represents a claim on a tag point's value
+Represents a claim on a tag point’s value
 
 #### name *= 'default'*
 

@@ -34,7 +34,7 @@ Given an immutable resource, return a mutable copy
 ### *class* kaithem.api.resource_types.ResourceType(type: [str](../../src/pages/index.md#kaithem.src.pages.str), mdi_icon: [str](../../src/pages/index.md#kaithem.src.pages.str) = '', schema: dict[[str](../../src/pages/index.md#kaithem.src.pages.str), Any] | None = None, priority: [int](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.int) | [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float) = 50.0, title: [str](../../src/pages/index.md#kaithem.src.pages.str) = '')
 
 Allows creating new resource types.
-Data keys starting with "resource" are reserved.
+Data keys starting with “resource” are reserved.
 
 ALL top level keys must be snake_case.
 In fact, when loading modules,
@@ -119,7 +119,7 @@ Empty or a single overview div
 Called when the user clicks the create button.
 
 Must be a page with a form pointing at the create target.
-The only required kwarg in the form is "name".
+The only required kwarg in the form is “name”.
 
 #### on_create_request(module: [str](../../src/pages/index.md#kaithem.src.pages.str), resource: [str](../../src/pages/index.md#kaithem.src.pages.str), kwargs: dict[[str](../../src/pages/index.md#kaithem.src.pages.str), Any]) → [ResourceDictType](#kaithem.api.resource_types.ResourceDictType)
 
@@ -146,7 +146,7 @@ Called with module name when every resource has finished loading with onload(),
 and before any events or pages are loaded.
 
 Called during init with None when ALL modules are done loading.  During first
-init the individual modules don't get their own on_finished_loading calls.
+init the individual modules don’t get their own on_finished_loading calls.
 
 #### on_delete_module(module: [str](../../src/pages/index.md#kaithem.src.pages.str))
 
@@ -179,7 +179,7 @@ back to the resource.  Will and must only ever be called under the modules_lock
 
 #### save_resource(module, resource, data)
 
-Call this if your implementation has it's own editor that can save
+Call this if your implementation has it’s own editor that can save
 data back.
 
 ### kaithem.api.resource_types.resource_types *: Final[dict[[str](../../src/pages/index.md#kaithem.src.pages.str), [ResourceType](#kaithem.api.resource_types.ResourceType)]]*

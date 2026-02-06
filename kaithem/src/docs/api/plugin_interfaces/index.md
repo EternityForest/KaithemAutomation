@@ -27,7 +27,7 @@ Bases: [`kaithem.api.plugins.PluginInterface`](../plugins/index.md#kaithem.api.p
 #### *abstractmethod* get_model(model: [str](../../src/pages/index.md#kaithem.src.pages.str) = '', timeout: [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float) = 5) → [TTSEngine](#kaithem.api.plugin_interfaces.TTSEngine) | None
 
 Gets the TTS model.  However, as this may require downloading files,
-it may return "None" if the model is not available right now.
+it may return “None” if the model is not available right now.
 
 You will need to try again later.
 

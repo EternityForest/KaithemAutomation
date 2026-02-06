@@ -56,8 +56,8 @@ Get the dict data for a resource. May only be called under the modules_lock.
 
 ### kaithem.api.modules.insert_resource(module: [str](../../src/pages/index.md#kaithem.src.pages.str), resource: [str](../../src/pages/index.md#kaithem.src.pages.str), resourceData: kaithem.src.modules_state.ResourceDictType)
 
-Create a new resource, if it doesn't already exist,
-and initializing it as appropriate for it's resource type
+Create a new resource, if it doesn’t already exist,
+and initializing it as appropriate for it’s resource type
 May only be called under the modules_lock.
 
 ### kaithem.api.modules.update_resource(module: [str](../../src/pages/index.md#kaithem.src.pages.str), resource: [str](../../src/pages/index.md#kaithem.src.pages.str), resourceData: kaithem.src.modules_state.ResourceDictType)
