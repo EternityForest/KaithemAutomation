@@ -1,4 +1,3 @@
-# SPDX-FileCopyrightText: Copyright 2015 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 

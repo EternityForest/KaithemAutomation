@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-# SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-or-later
 import gc
 import importlib

@@ -1,4 +1,3 @@
-# SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 # File for keeping track of and editing kaithem modules(not python modules)

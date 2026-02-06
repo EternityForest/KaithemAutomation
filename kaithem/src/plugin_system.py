@@ -1,4 +1,3 @@
-# SPDX-FileCopyrightText: Copyright Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import importlib
@@ -86,7 +85,7 @@ def import_in_thread(m: str | importlib.machinery.ModuleSpec):
             evs.remove(e)
 
             logger.info(
-                f"Loaded plugin {m} in {round((time.monotonic()-t) * 1000,2)}ms"
+                f"Loaded plugin {m} in {round((time.monotonic() - t) * 1000, 2)}ms"
             )
         except Exception:
             logger.exception("Error loading plugin {m}")

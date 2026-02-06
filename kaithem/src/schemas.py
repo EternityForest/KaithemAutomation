@@ -1,10 +1,9 @@
-# SPDX-FileCopyrightText: Copyright Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import json
 import os
 from functools import cache
-from typing import Any, Dict
+from typing import Any
 
 import yaml
 from jsonschema import Draft202012Validator, validators
@@ -42,7 +41,7 @@ DefaultValidatingValidator = extend_with_default(Draft202012Validator)
 
 
 @cache
-def get_schema(schemaName: str) -> Dict[str, Any]:
+def get_schema(schemaName: str) -> dict[str, Any]:
     fn = os.path.join(
         os.path.dirname(os.path.normpath(__file__)),
         "schemas",
@@ -62,7 +61,7 @@ def validate(schemaName: str, data: Any):
     get_validator(schemaName).validate(data)
 
 
-def suppress_defaults(schemaName: str, data: Dict[str, Any]):
+def suppress_defaults(schemaName: str, data: dict[str, Any]):
     "Remove top level keys that are the same as the default value in the schema"
 
     sc = get_schema(schemaName)

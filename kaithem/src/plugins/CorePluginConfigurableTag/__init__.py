@@ -1,4 +1,3 @@
-# SPDX-FileCopyrightText: Copyright Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import copy
@@ -21,8 +20,8 @@ class TagType(modules_state.ResourceType):
         if t:
             return f"""
             <div>
-                <a href="/tagpoints/{quote(data['tag'])}">{data['tag']}</a><br>
-                Value: {str(t.value)[:64] }
+                <a href="/tagpoints/{quote(data["tag"])}">{data["tag"]}</a><br>
+                Value: {str(t.value)[:64]}
             </div>
             """
 

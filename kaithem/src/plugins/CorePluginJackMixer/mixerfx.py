@@ -1,4 +1,3 @@
-# SPDX-FileCopyrightText: Copyright Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 # These are templates for effect data. Note that they contain everything needed to generate and interface for
