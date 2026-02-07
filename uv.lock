@@ -1659,7 +1659,7 @@ requires-dist = [
     { name = "setproctitle" },
     { name = "sf2utils" },
     { name = "sherpa-onnx", specifier = "==1.12.17" },
-    { name = "sherpa-onnx-core" },
+    { name = "sherpa-onnx-core", specifier = "==1.12.17" },
     { name = "simpleeval" },
     { name = "soundfile", specifier = ">=0.13.1" },
     { name = "stamina", specifier = ">=24.2.0" },
@@ -3398,17 +3398,16 @@ wheels = [
 
 [[package]]
 name = "sherpa-onnx-core"
-version = "1.12.23"
+version = "1.12.17"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/0c/b7/167045c9067975f9b63eea59149e1630c721df0a9bd1915a4291cd3dc7f9/sherpa_onnx_core-1.12.23-py3-none-macosx_10_15_universal2.whl", hash = "sha256:100a001612e0f340b63a58552c62870c9862005ebae260e6ec136eb3e45bf5ea", size = 45795421, upload-time = "2026-01-15T08:28:24.106Z" },
-    { url = "https://files.pythonhosted.org/packages/99/ed/f07f7d2a2f72a5d225f88c8d477f5b8e0b863c149c22dcccc9f8c81abc8c/sherpa_onnx_core-1.12.23-py3-none-macosx_10_15_x86_64.whl", hash = "sha256:5535511e18c87d110acb9f8f4f825dc35957adbef770ed08f94ff40049ce1b63", size = 24666354, upload-time = "2026-01-15T09:16:26.629Z" },
-    { url = "https://files.pythonhosted.org/packages/82/e5/9b8f1f41505f301827bb492910aced7f8d90eb9de3037d1e655115b2a4f6/sherpa_onnx_core-1.12.23-py3-none-macosx_11_0_arm64.whl", hash = "sha256:c06b318d0deb944633a999df4a3fea4a2ce7072b10ac48b8c07f9801ce85486e", size = 21144764, upload-time = "2026-01-15T08:52:11.685Z" },
-    { url = "https://files.pythonhosted.org/packages/59/c4/82f8dc2eaa4317f7b3dbdda850645c4dfed2e5077f11346a4d43cb30ca5b/sherpa_onnx_core-1.12.23-py3-none-manylinux2014_aarch64.whl", hash = "sha256:620f93712c3f54c055068ee100946f47a30c6e88c195ce776e7df1e69fdbd375", size = 12065362, upload-time = "2026-01-15T08:28:18.938Z" },
-    { url = "https://files.pythonhosted.org/packages/98/eb/568f23454e8c5a40bc610db7f71000fb5664c7bc8616edcc326ea3508d49/sherpa_onnx_core-1.12.23-py3-none-manylinux2014_x86_64.whl", hash = "sha256:70f5a500d8d73280f1a5c99ab0e54873d90b5b6c285d6e239370e03764819bde", size = 9451059, upload-time = "2026-01-15T08:42:14.155Z" },
-    { url = "https://files.pythonhosted.org/packages/af/3e/9f753686546c95d21a21a234c2c184f77f2b12c385fb32541bcd66ae6c4c/sherpa_onnx_core-1.12.23-py3-none-manylinux_2_35_armv7l.whl", hash = "sha256:48908706455492aec082e24a8350b1b9b2c1bd11d233bf39569ae674c22364cc", size = 9027709, upload-time = "2026-01-15T10:44:37.207Z" },
-    { url = "https://files.pythonhosted.org/packages/c4/57/5c22867381440cdb92601c551df1700a3987089f6abd09c79adee3e98884/sherpa_onnx_core-1.12.23-py3-none-win32.whl", hash = "sha256:af3a4c68e99af8e0234725eb8d9ba670ab4c15d5cf63391b0bea7be67426a7d5", size = 12331282, upload-time = "2026-01-15T08:27:54.702Z" },
-    { url = "https://files.pythonhosted.org/packages/c7/ee/ee45a81c90d5588be8544cc4cad59f5c9ad11bb83db121d69b7e1c28e4ef/sherpa_onnx_core-1.12.23-py3-none-win_amd64.whl", hash = "sha256:5c2d49fb426d2ba8f591f30dbbc6ab2eaca7f8f3edea496a1a65a7c7dbac1238", size = 14180586, upload-time = "2026-01-15T08:28:45.066Z" },
+    { url = "https://files.pythonhosted.org/packages/ad/11/75d893bf3a75aec8d30dbb4ed87dba7d5ff51784e0d772427f7e14896ed3/sherpa_onnx_core-1.12.17-py3-none-macosx_10_15_universal2.whl", hash = "sha256:04497cd87b8a9c9f33cc1f788010ec6323b7bc430e2bf46c0b195710210b6df0", size = 29832883, upload-time = "2025-11-13T11:49:35.363Z" },
+    { url = "https://files.pythonhosted.org/packages/ad/09/d89f1af338245a774a600ada7476435a1bdf4e7b6f6671454b9a5e6091ff/sherpa_onnx_core-1.12.17-py3-none-macosx_10_15_x86_64.whl", hash = "sha256:7ab73a6ff88c7289ef0e4089114b60f93b0d3bf37ec5af612fb4c597fb2a5bbd", size = 15798560, upload-time = "2025-11-13T11:38:25.908Z" },
+    { url = "https://files.pythonhosted.org/packages/5b/53/4a1ff5dc412e2be7733317b92e6c6e9579b3eee92dc903063580882a2aa7/sherpa_onnx_core-1.12.17-py3-none-macosx_11_0_arm64.whl", hash = "sha256:984a0113c2e07a2c04f99fdc32401eb765a4bcceab231209b7461b2e7a29c9f3", size = 14053194, upload-time = "2025-11-13T12:03:56.505Z" },
+    { url = "https://files.pythonhosted.org/packages/a5/7d/4fdac65ab346543d80adbde9309effdf172b4f6e502297a3ecf0b1479da1/sherpa_onnx_core-1.12.17-py3-none-manylinux2014_aarch64.whl", hash = "sha256:09e9963378212fa44c2d6468af93098b88909754b17c21f0605f28e88a9ce54c", size = 6693017, upload-time = "2025-11-13T11:38:36.417Z" },
+    { url = "https://files.pythonhosted.org/packages/fa/e8/e2749097ba64e84b1afce6e8175c5cc5b3f1dfac2bf2cb8e32ce87c4ee54/sherpa_onnx_core-1.12.17-py3-none-manylinux2014_x86_64.whl", hash = "sha256:fffe6b8b91c874c25ec56e6cc908ec7a41c9ddfa77e9dac674777f6972449e94", size = 7617285, upload-time = "2025-11-13T11:48:33.531Z" },
+    { url = "https://files.pythonhosted.org/packages/20/60/35339027e6523b06fbd596988f5c15e718740f8aeef89b2cbbd3583d4aa7/sherpa_onnx_core-1.12.17-py3-none-win32.whl", hash = "sha256:e3b6734f4b1ad3f757291e0e2926ac804f1b3ba6a0c0c080e2bff7bcb88721dd", size = 10070306, upload-time = "2025-11-13T22:57:42.063Z" },
+    { url = "https://files.pythonhosted.org/packages/7b/7d/d57a8dcd2f353d03ea9d461076c3a0ff94ec89446734c791360e11ba316f/sherpa_onnx_core-1.12.17-py3-none-win_amd64.whl", hash = "sha256:ed78a285a6af0a78c01be72c3242dd11159514b08282f4f957b539e71f016ba5", size = 11693888, upload-time = "2025-11-13T11:48:24.081Z" },
 ]
 
 [[package]]

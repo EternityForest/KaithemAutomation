@@ -88,7 +88,7 @@ dependencies = [
     "starlette>=0.37.2",
     "ephem>=4.2.0",
     "sherpa-onnx==1.12.17",
-    "sherpa-onnx-core",
+    "sherpa-onnx-core==1.12.17",
     "soundfile>=0.13.1",
     "textual-image"
 ]
