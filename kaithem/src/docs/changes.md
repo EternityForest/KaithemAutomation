@@ -71,6 +71,8 @@ object, and must be explicitly called.
 
 * :bug: Fix slideshow telemetry rate limiting
 
+* :bug: Fix module search
+
 
 ### 0.93.1
 
