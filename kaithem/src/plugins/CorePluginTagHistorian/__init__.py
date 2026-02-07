@@ -425,7 +425,7 @@ class TagHistorian:
         if newfile:
             self.history.execute("PRAGMA application_id = 707898159")
         self.lock = threading.RLock()
-        self.children = {}
+        self.children: dict[int, weakref.ReferenceType[TagLogger]] = {}
 
         self.history.execute(
             """CREATE TABLE IF NOT EXISTS channel  (id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -508,9 +508,8 @@ class TagHistorian:
             for i in self.children:
                 x = self.children[i]()
                 if x:
-                    with x.lock:
-                        if x.accumCount:
-                            x.flush(force)
+                    if x.accumCount:
+                        x.flush(force)
 
             pending_data = self.pending_data_items
             self.pending_data_items = []
@@ -527,8 +526,7 @@ class TagHistorian:
                     for i in self.children:
                         x = self.children[i]()
                         if x:
-                            with x.lock:
-                                x.clearOldData(force)
+                            x.clearOldData(force)
 
                 for i in pending_data:
                     self.history.execute(
