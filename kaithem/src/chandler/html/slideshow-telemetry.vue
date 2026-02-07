@@ -15,10 +15,10 @@
         <table>
             <tr>
                 <th>
-                    Connection
+                    IP
                 </th>
                 <th>
-                    IP
+                    Name
                 </th>
                 <th>Status</th>
                 <th>Last Seen</th>
@@ -27,11 +27,11 @@
             </tr>
             <tr v-for="v, i of telemetry" 
             v-bind:key="v.id+i"
-            :class="{ 'error': v.ts < (unixtime - 70) }">
+            >
                 <td>{{ v?.ip|| '' }}</td>
                 <td>{{ v.name }}</td>
                 <td :class="{ 'error': v.status.includes('FAIL') }">
-                    {{ v.ts < (unixtime - 70) ? 'LOST CONNECTION' : v.status }}
+                    {{ v.status }}
                 </td>
                 <td>{{ formatTime(v.ts) }}</td>
                 <td :class="{ 'error': (v.battery || {}).charging == false }">

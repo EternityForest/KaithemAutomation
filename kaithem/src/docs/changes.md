@@ -69,6 +69,9 @@ object, and must be explicitly called.
 
 * :sparkles: Upgrade font to Atkinson Hyperlegible Next
 
+* :bug: Fix slideshow telemetry rate limiting
+
+
 ### 0.93.1
 
 * :technologist: Do not include dev packages in built wheel dependencies

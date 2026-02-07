@@ -4,6 +4,8 @@ import collections
 import time
 from typing import TYPE_CHECKING, Any
 
+from scullery import ratelimits
+
 import kaithem.api.widgets as widgets
 
 from . import core
@@ -35,19 +37,14 @@ class MediaLinkManager:
         self.slideshow_telemetry: collections.OrderedDict[
             str, dict[str, Any]
         ] = collections.OrderedDict()
-        self.slideshow_telemetry_ratelimit = (time.monotonic(), 200)
+        self.slideshow_telemetry_ratelimit = ratelimits.RateLimiter(0.5, 50)
         # Variables to send to the slideshow.  They are UI only and
         # we don't have any reactive features
         self.web_variables: dict[str, Any] = {}
 
         def handleMediaLink(u, v, id):
             if v[0] == "telemetry":
-                ts, remain = self.slideshow_telemetry_ratelimit
-                remain = max(
-                    0, min(200, (time.monotonic() - ts) * 3 + remain - 1)
-                )
-
-                if remain:
+                if self.slideshow_telemetry_ratelimit.limit():
                     ip = widgets.peer_info_for_connection(id).address
                     n = ip + "@" + groupObj.name
 
