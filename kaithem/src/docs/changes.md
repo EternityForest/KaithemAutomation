@@ -1,7 +1,7 @@
 Change Log
 ----------
 
-### Dev version
+### 0.94.0
 
 This version is all about cleaning up the old device integration system.
 
