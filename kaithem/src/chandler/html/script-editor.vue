@@ -373,14 +373,17 @@ const selectedCommand = computed(() => {
 
 function getArgMetadata(commandName, argumentName) {
   if (commandName in props.commands) {
-    return props.commands[commandName].args[argumentName];
+    for(var i in props.commands[commandName].args) {
+      if (props.commands[commandName].args[i].name == argumentName) {
+        return props.commands[commandName].args[i];
+      }
+    }
   }
   return {};
 }
 
 function getCompletions(actionObject, argumentName) {
   const cmdName = actionObject.command;
-  const cmdMeta = props.commands[cmdName];
 
   const argumentMetadata = getArgMetadata(cmdName, argumentName);
 
@@ -388,9 +391,9 @@ function getCompletions(actionObject, argumentName) {
     return argcompleters["defaultExpressionCompleter"](actionObject);
   }
 
-  if (argcompleters[cmdMeta.type]) {
+  if (argcompleters[argumentMetadata.type]) {
     try {
-      return argcompleters[cmdMeta.type](actionObject, argumentName);
+      return argcompleters[argumentMetadata.type](actionObject, argumentName);
     } catch (error) {
       console.log(error);
       return [];
