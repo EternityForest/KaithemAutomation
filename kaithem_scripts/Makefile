@@ -126,8 +126,8 @@ root-install-kiosk: # Sets up a pi(or similar) as a kiosk machine pointing to KI
 	@bash ./scripts/setup-kiosk-mode.sh
 	@/usr/bin/python3 ${CONFIG_HELPERS_DIR}/pi_boot_cfg.py --set_hdmi_force_hotplug=1 || true
 
-.PHONY: root-install-linux-tweaks
-root-install-linux-tweaks: root-install-sd-protection root-use-pipewire-jack # Installs assorted tweaks to the Linux system.  Only use on dedicated devices. User specific things apply to KAITHEM_USER
+.PHONY: root-install-raspios-linux-tweaks
+root-install-raspios-linux-tweaks: root-install-sd-protection root-use-pipewire-jack # Installs assorted tweaks to the Linux system.  Only use on dedicated devices. User specific things apply to KAITHEM_USER
 	@cd ${CONFIG_HELPERS_DIR}
 	@bash ./scripts/linux-tweaks.sh
 

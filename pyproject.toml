@@ -1,6 +1,6 @@
 [project]
 name = "kaithem"
-version = "0.93.1"
+version = "0.94.0"
 requires-python = ">=3.11,<4.0"
 
 description = "Home/Commercial SCADA-like automation system"
