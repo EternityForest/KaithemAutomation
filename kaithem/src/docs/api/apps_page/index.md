@@ -13,7 +13,7 @@
 
 ## Module Contents
 
-### *class* kaithem.api.apps_page.App(id, title, url, image='', module: [str](../../src/pages/index.md#kaithem.src.pages.str) | None = None, resource: [str](../../src/pages/index.md#kaithem.src.pages.str) | None = None)
+### *class* kaithem.api.apps_page.App(id, title, url, image='', module: str | None = None, resource: str | None = None)
 
 #### id
 
@@ -27,7 +27,7 @@
 
 #### html_color *= ''*
 
-#### links *: [list](../../src/pages/index.md#kaithem.src.pages.list)[tuple[[str](../../src/pages/index.md#kaithem.src.pages.str), [str](../../src/pages/index.md#kaithem.src.pages.str)]]* *= []*
+#### links *: list[tuple[str, str]]* *= []*
 
 #### module *= None*
 

@@ -13,24 +13,24 @@
 
 ## Module Contents
 
-### kaithem.api.settings.list_keys() → [list](../../src/pages/index.md#kaithem.src.pages.list)[[str](../../src/pages/index.md#kaithem.src.pages.str)]
+### kaithem.api.settings.list_keys() → list[str]
 
 List all known setting keys
 
-### kaithem.api.settings.get_val(key: [str](../../src/pages/index.md#kaithem.src.pages.str)) → [str](../../src/pages/index.md#kaithem.src.pages.str)
+### kaithem.api.settings.get_val(key: str) → str
 
 Returns the highest priority setting for the key
 
-### kaithem.api.settings.add_val(key: [str](../../src/pages/index.md#kaithem.src.pages.str), value: [str](../../src/pages/index.md#kaithem.src.pages.str), source: [str](../../src/pages/index.md#kaithem.src.pages.str) = '<code>', priority: [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float) | [int](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.int) = 0)
+### kaithem.api.settings.add_val(key: str, value: str, source: str = '<code>', priority: float | int = 0)
 
 Add a config option.   If value is empty string, remove it instead.
 
-### kaithem.api.settings.add_suggestion(key: [str](../../src/pages/index.md#kaithem.src.pages.str), value: [str](../../src/pages/index.md#kaithem.src.pages.str), description: [str](../../src/pages/index.md#kaithem.src.pages.str) = '')
+### kaithem.api.settings.add_suggestion(key: str, value: str, description: str = '')
 
 Add a suggestion for the given key
 
-### kaithem.api.settings.clear_suggestions(key: [str](../../src/pages/index.md#kaithem.src.pages.str))
+### kaithem.api.settings.clear_suggestions(key: str)
 
-### kaithem.api.settings.set_description(key: [str](../../src/pages/index.md#kaithem.src.pages.str), description: [str](../../src/pages/index.md#kaithem.src.pages.str))
+### kaithem.api.settings.set_description(key: str, description: str)
 
 ### kaithem.api.settings.subscribe_to_changes(key, callback)

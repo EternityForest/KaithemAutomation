@@ -249,31 +249,18 @@ if [ `uname -m` == "aarch64" ]; then
 
 # This is the program that lets us get the SanDisk industrial health data.
 
+# If file exists but is 0 bytes, delete it
+[ -s sdmon-arm64.tar.gz ] || rm sdmon-arm64.tar.gz
+
 wget -nc  https://github.com/Ognian/sdmon/releases/download/v0.9.0/sdmon-arm64.tar.gz
 tar zxf sdmon-arm64.tar.gz
 mv sdmon /usr/bin
 chmod 755 /usr/bin/sdmon 
 
-fi
-
-
-if [ `uname -m` == "armv7l" ]; then
-
 # This is the program that lets us get the SanDisk industrial health data.
 
-wget -nc  https://github.com/Ognian/sdmon/releases/download/v0.9.0/sdmon-armv7.tar.gz
-tar zxf sdmon-armv7.tar.gz
-mv sdmon /usr/bin
-chmod 755 /usr/bin/sdmon 
-
-fi
-
-
-
-
-if [ `uname -m` == "aarch64" ]; then
-
-# This is the program that lets us get the SanDisk industrial health data.
+# If file exists but is 0 bytes, delete it
+[ -s bluetuith_0.2.2_Linux_arm64.tar.gz ] || rm bluetuith_0.2.2_Linux_arm64.tar.gz
 
 wget -nc  https://github.com/darkhz/bluetuith/releases/download/v0.2.2/bluetuith_0.2.2_Linux_arm64.tar.gz
 tar zxf bluetuith_0.2.2_Linux_arm64.tar.gz
