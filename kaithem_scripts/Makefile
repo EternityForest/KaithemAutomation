@@ -105,9 +105,12 @@ user-restart-kaithem: # Get the status of the running kaithem instance
 	@systemctl --user restart kaithem.service
 
 
+# gstreamer1.0-tools is needed for gst-launch dummy sources
+
+
 .PHONY: root-install-system-dependencies
 root-install-system-dependencies: # Install non-python libraries using apt
-	@sudo apt install mpv lm-sensors python3-gst-1.0  gstreamer1.0-plugins-good  gstreamer1.0-plugins-bad  swh-plugins  tap-plugins  caps   gstreamer1.0-plugins-ugly libfluidsynth3 gstreamer1.0-pocketsphinx x42-plugins gstreamer1.0-opencv  gstreamer1.0-vaapi gstreamer1.0-pipewire
+	@sudo apt install mpv lm-sensors python3-gst-1.0  gstreamer1.0-plugins-good  gstreamer1.0-plugins-bad gstreamer1.0-tools swh-plugins  tap-plugins  caps   gstreamer1.0-plugins-ugly libfluidsynth3 gstreamer1.0-pocketsphinx x42-plugins gstreamer1.0-opencv  gstreamer1.0-vaapi gstreamer1.0-pipewire
 
 .PHONY: root-use-pipewire-jack
 root-use-pipewire-jack: # Make JACK clients work with pipewire

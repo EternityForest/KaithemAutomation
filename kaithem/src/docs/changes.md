@@ -73,6 +73,7 @@ object, and must be explicitly called.
 
 * :bug: Fix module search
 
+* :bug: Fix missing gstreamer1.0-tools in dependencies.
 
 ### 0.93.1
 
