@@ -82,7 +82,9 @@
               mapvaluerange(props.val, props.chinfo, $event.target.value)
             )
           ">
-          <option v-for="i of props.chinfo.ranges" :value="i.name">
+          <option v-for="i of props.chinfo.ranges" :value="i.name"
+          :key="i.name"
+          >
             {{ i.name }}({{ i.min }} to {{ i.max }})
           </option>
         </select>
@@ -127,7 +129,7 @@ function setCueVal (sc, effect, u, ch, value) {
 
   //Returns new value mapped into the range when user clicks to change the range of a custom val
   //Given current val, list of all ranges,  and old range info
-function mapvaluerange (oldv, d, newrange) {
+function mapvaluerange (_oldv, d, newrange) {
     const newd = d.ranges.find((x) => x.name == newrange);
     return newd.min;
   }

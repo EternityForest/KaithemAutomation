@@ -1,4 +1,3 @@
-# SPDX-FileCopyrightText: Copyright Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import copy
@@ -28,9 +27,9 @@ class TagOverride(modules_state.ResourceType):
         if t:
             return f"""
             <div>
-                <a href="/tagpoints/{quote(data['tag'])}">{data['tag']}</a><br>
-                Overriding to value: {str(data["value"])[:64] }<br>
-                Current value: {str(t.value)[:64] }<br>
+                <a href="/tagpoints/{quote(data["tag"])}">{data["tag"]}</a><br>
+                Overriding to value: {str(data["value"])[:64]}<br>
+                Current value: {str(t.value)[:64]}<br>
                 {data.get("notes", "")}
             </div>
             """

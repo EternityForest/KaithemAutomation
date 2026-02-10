@@ -22,7 +22,6 @@ import pydantic
 import quart
 import structlog
 
-# SPDX-FileCopyrightText: Copyright 2018 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-or-later
 from kaithem.api import lifespan
 

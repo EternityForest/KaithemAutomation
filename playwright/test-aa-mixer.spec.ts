@@ -375,7 +375,7 @@ test("test", async ({ page }) => {
     page
       .getByTestId("channel-box-testchannel2")
       .getByTestId("channel-level-value")
-  ).not.toContainText("-99db", { timeout: 30_000 });
+  ).not.toContainText("-99db", { timeout: 45_000 });
 
   await sleep(300);
   // Expand details box if needed

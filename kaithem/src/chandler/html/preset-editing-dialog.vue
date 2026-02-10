@@ -163,7 +163,9 @@
                 </button>
               </div>
 
-              <details>
+              <details
+                :data-testid="'preset-inspector-' + ps[0] + '-body'">
+              >
                 <div class="stacked-form">
                   <label
                     ><i class="mdi mdi-format-list-bulleted"></i>Category

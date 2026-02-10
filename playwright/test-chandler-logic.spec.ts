@@ -44,35 +44,30 @@ test("test", async ({ page }) => {
   await page.locator('#blockInspectorEvent').getByRole('button', { name: '󰅖 Close' }).click();
   
   
-  await page.getByRole('button', { name: 'goto =GROUP' }).nth(1).click();
+  await page.getByRole('button', { name: 'goto' }).nth(1).click();
   await page.getByRole('button', { name: 'Add Action' }).nth(1).click();
   await page.getByRole('button', { name: 'pass' }).nth(1).click();
   await page.locator('#blockInspectorCommand').getByRole('combobox').click();
   await page.locator('#blockInspectorCommand').getByRole('combobox').fill('set');
-
-  // TODO fill lines too flaky
-  await waitForTasks(page);
-  await sleep(500);
-  await page.locator('div').filter({ hasText: /^Output of the previous action$/ }).getByRole('combobox').fill('foo');
-  await page.locator('div').filter({ hasText: /^Output of the previous action$/ }).getByRole('combobox').fill('foo');
-  await page.locator('div').filter({ hasText: /^Output of the previous action$/ }).getByRole('combobox').fill('foo');
-  await page.locator('div').filter({ hasText: /^Output of the previous action$/ }).getByRole('combobox').fill('foo');
-  await page.locator('div').filter({ hasText: /^Output of the previous action$/ }).getByRole('combobox').fill('foo');
+  await page.locator('#blockInspectorCommand').getByRole('combobox').blur();
 
   await waitForTasks(page);
+  await page.getByTestId('command-arg-name').fill('foo');
+  await page.getByTestId('command-arg-name').blur();
+
   await sleep(500);
-  await page.locator('#blockInspectorCommand').getByRole('combobox').nth(2).fill('45');
-  await page.locator('#blockInspectorCommand').getByRole('combobox').nth(2).fill('45');
-  await page.locator('#blockInspectorCommand').getByRole('combobox').nth(2).fill('45');
-  await page.locator('#blockInspectorCommand').getByRole('combobox').nth(2).fill('45');
-  await page.locator('#blockInspectorCommand').getByRole('combobox').nth(2).fill('45');
+  await waitForTasks(page);
+  await page.getByTestId('command-arg-value').fill('45');
+  await page.getByTestId('command-arg-value').blur();
 
   await waitForTasks(page);
-  await sleep(500);
   await page.locator('#blockInspectorCommand').getByRole('button', { name: '󰅖 Close' }).click();
 
 
-  await page.getByRole('button', { name: 'goto =GROUP' }).nth(1).click();
+  await waitForTasks(page);
+  await sleep(200);
+  
+  await page.getByRole('button', { name: 'goto' }).nth(1).click();
   await page.getByRole('button', { name: 'Move Forward' }).click();
   await page.locator('#blockInspectorCommand').getByRole('button', { name: '󰅖 Close' }).click();
 
@@ -81,6 +76,24 @@ test("test", async ({ page }) => {
 
 
   await page.getByRole('button', { name: 'Move down' }).first().click();
+ 
+ 
+   // We reversed rule2 and rule1
+  await expect(page.getByTestId("rule-box-row").last().getByTestId("rule-trigger")).toContainText("rule1");
+  await expect(page.getByTestId("rule-box-row").first().getByTestId("rule-trigger")).toContainText("rule2");
+
+// The first rule is named rule2 and has set foo 45 then a blank goto
+  await expect(page.getByTestId("rule-box-row").first().getByTestId("rule-command").first()).toContainText("set");
+  await expect(page.getByTestId("rule-box-row").first().getByTestId("rule-command").first()).toContainText("foo");
+  await expect(page.getByTestId("rule-box-row").first().getByTestId("rule-command").first()).toContainText("45");
+
+  await expect(page.getByTestId("rule-box-row").first().getByTestId("rule-command").last()).toContainText("goto");
+
+  // Second has goto then the default pass rule
+  await expect(page.getByTestId("rule-box-row").last().getByTestId("rule-command").first()).toContainText("goto");
+  await expect(page.getByTestId("rule-box-row").last().getByTestId("rule-command").last()).toContainText("pass");
+
+
   await waitForTasks(page);
   await sleep(200);
 
@@ -89,7 +102,7 @@ test("test", async ({ page }) => {
   await page.getByTestId('close-group').click();
 
   await waitForTasks(page);
-  await sleep(200);
+  await sleep(800);
 
 
   await page.getByRole('link', { name: '󰀻 Apps' }).click();

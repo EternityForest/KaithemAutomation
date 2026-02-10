@@ -105,9 +105,12 @@ user-restart-kaithem: # Get the status of the running kaithem instance
 	@systemctl --user restart kaithem.service
 
 
+# gstreamer1.0-tools is needed for gst-launch dummy sources
+
+
 .PHONY: root-install-system-dependencies
 root-install-system-dependencies: # Install non-python libraries using apt
-	@sudo apt install mpv lm-sensors python3-gst-1.0  gstreamer1.0-plugins-good  gstreamer1.0-plugins-bad  swh-plugins  tap-plugins  caps   gstreamer1.0-plugins-ugly libfluidsynth3 gstreamer1.0-pocketsphinx x42-plugins gstreamer1.0-opencv  gstreamer1.0-vaapi gstreamer1.0-pipewire
+	@sudo apt install mpv lm-sensors python3-gst-1.0  gstreamer1.0-plugins-good  gstreamer1.0-plugins-bad gstreamer1.0-tools swh-plugins  tap-plugins  caps   gstreamer1.0-plugins-ugly libfluidsynth3 gstreamer1.0-pocketsphinx x42-plugins gstreamer1.0-opencv  gstreamer1.0-vaapi gstreamer1.0-pipewire
 
 .PHONY: root-use-pipewire-jack
 root-use-pipewire-jack: # Make JACK clients work with pipewire
@@ -126,8 +129,8 @@ root-install-kiosk: # Sets up a pi(or similar) as a kiosk machine pointing to KI
 	@bash ./scripts/setup-kiosk-mode.sh
 	@/usr/bin/python3 ${CONFIG_HELPERS_DIR}/pi_boot_cfg.py --set_hdmi_force_hotplug=1 || true
 
-.PHONY: root-install-linux-tweaks
-root-install-linux-tweaks: root-install-sd-protection root-use-pipewire-jack # Installs assorted tweaks to the Linux system.  Only use on dedicated devices. User specific things apply to KAITHEM_USER
+.PHONY: root-install-raspios-linux-tweaks
+root-install-raspios-linux-tweaks: root-install-sd-protection root-use-pipewire-jack # Installs assorted tweaks to the Linux system.  Only use on dedicated devices. User specific things apply to KAITHEM_USER
 	@cd ${CONFIG_HELPERS_DIR}
 	@bash ./scripts/linux-tweaks.sh
 

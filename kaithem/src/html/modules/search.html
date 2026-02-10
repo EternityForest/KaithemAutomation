@@ -10,14 +10,14 @@ import time
 <h3 id="results">Search Results in ${name|h}</h3>
 <section class="window paper">
 <div class="menubar">
-<form style="display:inline;" action="/modules/search/${url(name)}"><input name="search" placeholder="Search this module"/><input type=submit value="search"/></form>
+<form style="display:inline;" action="/modules/search/${url(name)}" method="POST"><input name="search" placeholder="Search this module"/><input type=submit value="search"/></form>
 
 
 %if results[1]>0 or (len(results)>2 and results[2]):
 %if not name=="__all__":
-<a href="/modules/search/${url(name)}?search=${url(search)}&start=${results[1]}">Next Page</a>
+<form style="display:inline;" action="/modules/search/${url(name)}" method="POST"><input name="search" value="${search|h}" hidden/><input name="start" value="${results[1]}" hidden/><input type=submit value="Next Page"/></form>
 %else:
-<a href="/modules/search/${url(name)}?search=${url(search)}&start=${results[2]}&mstart=${results[1]}">Next Page</a>
+<form style="display:inline;" action="/modules/search/${url(name)}" method="POST"><input name="search" value="${search|h}" hidden/><input name="start" value="${results[2]}" hidden/><input name="mstart" value="${results[1]}" hidden/><input type=submit value="Next Page"/></form>
 %endif
 %endif
 

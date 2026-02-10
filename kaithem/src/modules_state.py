@@ -1,4 +1,3 @@
-# SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 # This file is just for keeping track of state info that would otherwise cause circular issues.
@@ -6,6 +5,7 @@ import base64
 import copy
 import datetime
 import hashlib
+import json
 import os
 import threading
 import time
@@ -336,6 +336,9 @@ def raw_insert_resource(
     with modulesLock:
         resource_data_mutable = mutable_copy_resource(resource_data)
         resource_data_mutable = normalize_resource_data(resource_data_mutable)
+
+        # prevent non-jsonable data
+        _dummy = json.dumps(resource_data_mutable)
 
         check_forbidden(resource)
         assert resource[0] != "/"

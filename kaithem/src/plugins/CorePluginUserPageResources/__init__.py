@@ -1,4 +1,3 @@
-# SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-or-later
 from __future__ import annotations
 
@@ -685,11 +684,9 @@ async def catch_all(
 
     if isinstance(page, fileserver.ServerObj):
         fp = path[len(page.r) + 1 :]
-        if fp.endswith("/"):
-            fp = fp[:-1]
+        fp = fp.removesuffix("/")
 
-        if fp.startswith("/"):
-            fp = fp[1:]
+        fp = fp.removeprefix("/")
 
         fp = os.path.join(page.folder, fp)
 
@@ -702,8 +699,7 @@ async def catch_all(
         selected_resource_name = os.path.relpath(fp, module_folder_root)
 
         rel_path = quart.request.path
-        if rel_path.endswith("/"):
-            rel_path = rel_path[:-1]
+        rel_path = rel_path.removesuffix("/")
 
         # We need to reverse engineer the filename into a relative resource name
 

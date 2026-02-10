@@ -104,7 +104,7 @@ test("test", async ({ page }) => {
   //Give it an label image
   await page.getByRole("button", { name: "󰥶 Image" }).click();
   await page.getByText("<TOP DIRECTORY>").click();
-  await page.getByText("static/").click();
+  await page.getByText("Builtin").click();
   await page.getByText("img/").click();
   await page.getByText("16x9/").click();
   await page

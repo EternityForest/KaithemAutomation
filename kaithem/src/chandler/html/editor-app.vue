@@ -1984,12 +1984,13 @@ import {
   eventsFilterString,
   addGroupDialog,
 } from "./editor.mjs";
-import { ref } from "vue";
+import { ref, nextTick } from "vue";
 
 import { formatTime } from "./utils.mjs";
 
 let showevents = ref(false);
 
+globalThis.nextTick = nextTick;
 globalThis.addEventListener(
   "servererrorevent",
   (_event) => {

@@ -1,4 +1,3 @@
-# SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-or-later
 from __future__ import annotations
 
@@ -12,7 +11,7 @@ import subprocess
 import threading
 import time
 import traceback
-from typing import Coroutine
+from collections.abc import Coroutine
 
 import quart
 import quart.utils
@@ -453,9 +452,7 @@ def set_time_from_web(**kwargs):
         [
             "date",
             "-s",
-            datetime.datetime.fromtimestamp(
-                t, tz=datetime.timezone.utc
-            ).isoformat(),
+            datetime.datetime.fromtimestamp(t, tz=datetime.UTC).isoformat(),
         ]
     )
     try:

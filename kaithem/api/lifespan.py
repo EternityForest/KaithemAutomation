@@ -1,3 +1,5 @@
+from collections.abc import Callable
+
 from scullery import messagebus
 
 from kaithem.src import shutdown as shutdownapi
@@ -13,7 +15,7 @@ def shutdown_now():
     shutdownapi.shutdown()
 
 
-def at_shutdown(f):
+def at_shutdown(f: Callable[[], None]) -> None:
     """Register a function to be called when the system shuts down,
     before atexit would trigger"""
 

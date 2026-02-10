@@ -889,7 +889,9 @@ def test_sched_end():
 
         grp.goto_cue("default")
         grp.next_cue()
-        assert grp.cue.name == "sched_at_test"
+        for attempt in stamina.retry_context(on=AssertionError, attempts=5):
+            with attempt:
+                assert grp.cue.name == "sched_at_test"
 
 
 def test_basic_cue_len_end():

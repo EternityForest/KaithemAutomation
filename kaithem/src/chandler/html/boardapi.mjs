@@ -331,6 +331,7 @@ export async function restSetCueKeypointMeta(
 }
 
 async function setCueProperty(cue, property, value) {
+  // console.log("setCueProperty", cue, property, JSON.stringify(value));
   await doSerialized(async () => {
     var x = cueSetData[cue + property];
     if (x) {
@@ -341,22 +342,26 @@ async function setCueProperty(cue, property, value) {
     var b = {};
     b[property] = value;
 
-    let p = fetch("/chandler/api/set-cue-properties/" + cue, {
-      method: "PUT",
-      body: JSON.stringify(b),
-      headers: {
-        "Content-type": "application/json; charset=UTF-8",
-      },
-    });
 
-    try {
-      let r = await p;
-      if (!r.ok) {
-        alert("Error setting property, possible invalid value: " + value);
+      let p = fetch("/chandler/api/set-cue-properties/" + cue, {
+        method: "PUT",
+        body: JSON.stringify(b),
+        headers: {
+          "Content-type": "application/json; charset=UTF-8",
+        },
+      });
+
+      try {
+        let r = await p;
+        if (!r.ok) {
+          alert("Error setting property, possible invalid value: " + value);
+        }
+      } catch (error) {
+        alert("Could not reach server: " + error);
       }
-    } catch (error) {
-      alert("Could not reach server: " + error);
-    }
+
+      cuemeta.value[cue][property] = value;
+      await nextTick();
   });
 }
 
@@ -379,6 +384,8 @@ function setCuePropertyDeferred(cue, property, value) {
       headers: {
         "Content-type": "application/json; charset=UTF-8",
       },
+    }).then((_response) => {
+      cuemeta.value[cue][property] = value;
     }).catch(function (error) {
       alert("Error setting property: " + error);
     });
@@ -899,8 +906,9 @@ so it is pretty much a "soft" approximate serialization.
 
 It mostly exists to allow tests to wait for previous actions.
 */
-async function doSerialized(callback, timeout) {
+async function doSerialized(callback, timeout=15_000) {
   let previous = previousSerializedPromise.value;
+
 
   await nextTick();
   await new Promise((resolve) => resolve());
@@ -954,6 +962,7 @@ async function doSerializedWithTimeout(callback, timeout) {
     timeout
   );
 }
+
 
 let no_edit = ref(!kaithemapi.checkPermission("system_admin"));
 

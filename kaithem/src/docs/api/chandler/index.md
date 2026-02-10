@@ -9,7 +9,7 @@
 
 ## Module Contents
 
-### kaithem.api.chandler.add_command(name: str, f: Callable)
+### kaithem.api.chandler.add_command(name: str, f: [kaithem.src.scriptbindings.StatelessFunction](../../src/scriptbindings/index.md#kaithem.src.scriptbindings.StatelessFunction))
 
 Add a command which will be available in the
 Logic Editor.  Params should be strings.  Defaults and

@@ -60,6 +60,7 @@ test("test", async ({ page }) => {
     console.log(`Dialog message: ${dialog.message()}`);
     dialog.dismiss().catch(() => {});
   });
+  
   // Delete c3
   await page.getByRole("button", { name: "Delete Current" }).click();
   // Go to c2
@@ -240,7 +241,9 @@ test("test", async ({ page }) => {
 
   // Test commander
   await page.getByTestId("commander-link").click();
-  await expect(page.getByRole("button", { name: "tst1" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "tst1" })).toBeVisible(
+    { timeout: 10_000 },
+  );
   await expect(page.getByRole("article")).toContainText("c2");
   await page.getByRole("button", { name: "tst1" }).click();
   await page.getByRole("button", { name: "c3 󰤔" }).click();

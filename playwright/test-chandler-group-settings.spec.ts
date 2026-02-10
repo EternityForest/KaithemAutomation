@@ -64,11 +64,17 @@ test("test", async ({ page }) => {
   await page.getByLabel("MIDI Source").fill("midisrc");
   await page.getByPlaceholder("Next cue in list").click();
   await page.getByPlaceholder("Next cue in list").fill("foo");
+  await page.getByPlaceholder("Next cue in list").blur();
+  await waitForTasks(page);
+
+  await sleep(200);
+
   await page.getByRole("main").click();
 
   await page.getByLabel("Priority").fill("42");
   await page.getByLabel("Default Alpha").click();
   await page.getByLabel("Default Alpha").fill("0.22");
+  await page.getByLabel("Default Alpha").blur();
 
   // This one line is flaky.
   const inputvalue = await page.getByLabel("Default Alpha").inputValue();
@@ -244,19 +250,17 @@ test("test", async ({ page }) => {
 
   await page.getByPlaceholder("Next cue in list").dblclick();
   await page.getByPlaceholder("Next cue in list").fill("");
-
+  await page.getByPlaceholder("Next cue in list").blur();
+  await sleep(300);
+  await waitForTasks(page);
   await uncheck_box(page, page.getByLabel("Utility Group(No controls)"));
   await uncheck_box(page, page.getByLabel("Hide in Runtime Mode"));
   await uncheck_box(page, page.getByLabel("Backtrack"));
   await uncheck_box(page, page.getByLabel("Active By Default"));
   await uncheck_box(page, page.getByLabel("Require Confirmation for Cue"));
 
-  // await page.getByLabel('Utility Group(No controls)').uncheck();
-  // await page.getByLabel('Hide in Runtime Mode').uncheck();
-  // await page.getByLabel('Backtrack').uncheck();
-  // await page.getByLabel('Active By Default').uncheck();
-  // await page.getByLabel('Require Confirmation for Cue').uncheck();
   await sleep(100);
+  await waitForTasks(page);
 
   await page.getByTestId("close-group-settings").click();
   await page.getByTestId("close-group").click();

@@ -32,18 +32,22 @@ function setTelemetryName(s) {
 setInterval(
     function () {
         sendTelemetry()
-    }, 60000
+    }, 60_000
 )
 
-
+setTimeout(
+    function () {
+        sendTelemetry()
+    }, 5000
+)
 
 class makePlayer {
     constructor(c, group) {
         this.group = group
         this.presets = {}
-        this.isSound = function (fn) {
+        this.isSound = function (function_) {
             for (var i of atypes) {
-                if (fn.indexOf(i) > -1) {
+                if (function_.includes(i)) {
                     return true;
                 }
             }
@@ -51,9 +55,9 @@ class makePlayer {
             return false;
         };
 
-        this.isStillImage = function (fn) {
+        this.isStillImage = function (function_) {
             for (var i of itypes) {
-                if (fn.indexOf(i) > -1) {
+                if (function_.includes(i)) {
                     return true;
                 }
             }
@@ -72,23 +76,18 @@ class makePlayer {
 
 
                 var presets = {};
-                if (window.butterchurnPresets) {
+                if (globalThis.butterchurnPresets) {
                     Object.assign(presets, butterchurnPresets.getPresets());
                 }
-                if (window.butterchurnPresetsExtra) {
+                if (globalThis.butterchurnPresetsExtra) {
                     Object.assign(presets, butterchurnPresetsExtra.getPresets());
                 }
 
-                if (window.butterchurnPresetsExtra2) {
+                if (globalThis.butterchurnPresetsExtra2) {
                     Object.assign(presets, butterchurnPresetsExtra2.getPresets());
                 }
 
-                if (presets) {
-                    this.presets = _(presets).toPairs().sortBy(([k, v]) => k.toLowerCase()).fromPairs().value();
-                }
-                else {
-                    this.presets = {}
-                }
+                this.presets = presets ? _(presets).toPairs().sortBy(([k, v]) => k.toLowerCase()).fromPairs().value() : {};
 
                 this.presetKeys = _.keys(this.presets);
                 this.butterchurn_options = []
@@ -102,9 +101,9 @@ class makePlayer {
                 });
 
                 function nextPreset(blendTime = 5.7) {
-                    var numPresets = player2.presetKeys.length;
-                    if (numPresets) {
-                        if (player2.butterchurn_options.length) {
+                    var numberPresets = player2.presetKeys.length;
+                    if (numberPresets) {
+                        if (player2.butterchurn_options.length > 0) {
                             var presetIndex = Math.floor(Math.random() * player2.butterchurn_options.length);
                             visualizer.loadPreset(player2.presets[player2.butterchurn_options[presetIndex]], blendTime);
                         }
@@ -118,43 +117,43 @@ class makePlayer {
 
 
                 nextPreset(0);
-                var cycleInterval = setInterval(() => nextPreset(2.7), 12000);
+                var cycleInterval = setInterval(() => nextPreset(2.7), 12_000);
                 this.butterchurn = visualizer;
             }
             return this.butterchurn;
         }
 
-        this.isButterchurn = function (fn) {
+        this.isButterchurn = function (function_) {
             //Mor of a guess than anything exact
-            if (fn.startsWith('milkdrop:')) {
+            if (function_.startsWith('milkdrop:')) {
                 return true;
             }
             return false;
         };
 
-        this.isHTML = function (fn) {
+        this.isHTML = function (function_) {
             //Mor of a guess than anything exact
-            if (fn.endsWith('.html')) {
+            if (function_.endsWith('.html')) {
                 return true;
             }
 
-            if (fn.endsWith('.com')) {
+            if (function_.endsWith('.com')) {
                 return true;
             }
 
-            if (fn.endsWith('.net')) {
+            if (function_.endsWith('.net')) {
                 return true;
             }
 
 
-            if (fn.endsWith('.org')) {
+            if (function_.endsWith('.org')) {
                 return true;
             }
 
 
             //If the part after the last dot, or the whole thing if no dots, is longer than 4,
             //it's not an extension
-            if (fn.split(".").slice(-1)[0].length > 4) {
+            if (function_.split(".").at(-1).length > 4) {
                 return true;
             }
 
@@ -205,8 +204,8 @@ class makePlayer {
         this.setStyles(this.altLayer, this.cstyle);
 
 
-        c.appendChild(this.currentLayer);
-        c.appendChild(this.altLayer);
+        c.append(this.currentLayer);
+        c.append(this.altLayer);
         var parent = this;
 
 
@@ -226,13 +225,10 @@ class makePlayer {
             if (parent.fadeLength == 0) {
                 if (parent.currentMedia) {
                     parent.currentMedia.volume = parent.targetVolume;
-                    if (parent.currentMedia.paused) {
-
-                        // If not completed
-                        if (parent.currentMedia.position < parent.currentMedia.duration - 0.5) {
+                    if (parent.currentMedia.paused && // If not completed
+                        parent.currentMedia.position < parent.currentMedia.duration - 0.5) {
                             parent.playLater(parent.currentMedia)
                         }
-                    }
                 }
 
 
@@ -240,11 +236,9 @@ class makePlayer {
 
                 if (parent.altMedia) {
                     parent.altMedia.volume = 0;
-                    if (parent.altMedia.paused) {
-                        if (parent.altMedia.position < parent.altMedia.duration - 0.5) {
+                    if (parent.altMedia.paused && parent.altMedia.position < parent.altMedia.duration - 0.5) {
                             parent.playLater(parent.altMedia)
                         }
-                    }
                 }
 
                 parent.altLayer.style.opacity = '0%'
@@ -280,14 +274,14 @@ class makePlayer {
             myelement.setAttribute("style", "background-color: grey;color:black; width: 450px;height: 200px;position: absolute;top:0;bottom:0;left:0;right:0;margin:auto;border: 4px solid black;font-family:arial;font-size:25px;font-weight:bold;display: flex; align-items: center; justify-content: center; text-align: center;");
             myelement.innerHTML = mymsg;
             setTimeout(function () {
-                myelement.parentNode.removeChild(myelement);
+                myelement.remove();
             }, mymsecs);
-            document.body.appendChild(myelement);
+            document.body.append(myelement);
         }
 
         this.pli = false;
 
-        this.playLater = function (el) {
+        this.playLater = function (element) {
             if (this.pli) {
                 return;
             }
@@ -295,10 +289,10 @@ class makePlayer {
                 this.error_send_timeout = setTimeout(function () {
                     telemetryStatus = "PLAY FAILED"
                     sendTelemetry()
-                }, 20000)
+                }, 20_000)
             }
 
-            this.deffered_play = el
+            this.deffered_play = element
             this.pli = setInterval(async () => {
                 if (this.deffered_play) {
                     var p = this.deffered_play
@@ -360,7 +354,7 @@ class makePlayer {
             var ts = link.now() / 1000
 
             if (t.children.length > 0) {
-                t.removeChild(t.children[0]);
+                t.children[0].remove();
             }
 
             if (!f) {
@@ -370,8 +364,8 @@ class makePlayer {
             if (this.isButterchurn(f)) {
                 var s = document.createElement('audio');
                 var s2 = this.getButterchurn()
-                t.appendChild(s);
-                t.appendChild(this.butterchurn_canvas);
+                t.append(s);
+                t.append(this.butterchurn_canvas);
             }
 
 
@@ -381,16 +375,16 @@ class makePlayer {
                     link.send(['mediaEnded', sessionTag])
                 });
 
-                t.appendChild(s);
+                t.append(s);
 
             }
 
             else if (this.isStillImage(f)) {
-                t.appendChild(document.createElement('img'));
+                t.append(document.createElement('img'));
             }
 
             else if (this.isHTML(f)) {
-                t.appendChild(document.createElement('iframe'));
+                t.append(document.createElement('iframe'));
             }
 
             else {
@@ -398,7 +392,7 @@ class makePlayer {
                 x.addEventListener("ended", (event) => {
                     link.send(['mediaEnded', sessionTag])
                 });
-                t.appendChild(x);
+                t.append(x);
             }
 
             if (this.isButterchurn(f)) {
@@ -446,7 +440,7 @@ class makePlayer {
                         this.connectNewButterchurnSource(n)
                     }
                 }
-                catch (e) {
+                catch {
                     this.playLater(t.children[0]);
 
                 }
@@ -479,11 +473,11 @@ class makePlayer {
 
             this.fadeLength = Math.max(0, (t - startAt) * 1000)
 
-            if (v && v.length == 0) {
-                document.getElementsByTagName('media-player')[0].class = 'player-idle'
+            if (v && v.length === 0) {
+                document.querySelectorAll('media-player')[0].class = 'player-idle'
             }
             else {
-                document.getElementsByTagName('media-player')[0].class = ''
+                document.querySelectorAll('media-player')[0].class = ''
             }
         };
 

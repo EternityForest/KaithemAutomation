@@ -66,6 +66,7 @@ p.small {
               <button
                 class="nogrow"
                 type="button"
+                data-testid="close-event-inspector"
                 popovertarget="blockInspectorEvent"
                 popovertargetaction="hide">
                 <i class="mdi mdi-close"></i>Close
@@ -79,7 +80,7 @@ p.small {
           <div class="stacked-form">
             <datalist id=" props.example_events">
               <option
-                v-for="(v, _i) in  props.example_events"
+                v-for="(v, _i) in props.example_events"
                 v-bind:value="v[0]"
                 v-bind:key="v[0]">
                 {{ v[1] }}
@@ -91,7 +92,12 @@ p.small {
                 :disabled="disabled"
                 v-model="selectedBinding.event"
                 list=" props.example_events"
-                v-on:change="$emit('update:modelValue', rules)" />
+                v-on:change="
+                  selectedBinding.event = $event.target.value;
+                  $nextTick(() => {
+                    $emit('update:modelValue', rules);
+                  });
+                " />
             </label>
           </div>
           <h4>Delete</h4>
@@ -113,6 +119,7 @@ p.small {
               <h4>Command Inspector</h4>
               <button
                 class="nogrow"
+                data-testid="close-command-inspector"
                 type="button"
                 popovertarget="blockInspectorCommand"
                 popovertargetaction="hide">
@@ -126,45 +133,15 @@ p.small {
             :disabled="disabled"
             v-model="selectedCommand.command"
             v-bind:options="getPossibleActions()"
-            v-bind:pinned="getSpecialActions()"
             @update:modelValue="setCommandDefaults(selectedCommand)"
             v-on:change="
+              selectedCommand.command = $event;
               setCommandDefaults(selectedCommand);
-              $emit('update:modelValue', rules);
+              $nextTick(() => {
+                $emit('update:modelValue', rules);
+              });
             "></combo-box>
-          <h4>Config</h4>
-          <div v-if="selectedCommand.command == 'set'">
-            Set a variable named
-            <combo-box
-              :disabled="disabled"
-              v-model="selectedCommand.variable"
-              v-bind:pinned="pinnedvars"
-              v-on:change="$emit('update:modelValue', rules)"></combo-box>
-            <br />to<br />
-            <combo-box
-              v-model="selectedCommand.value"
-              v-on:change="$emit('update:modelValue', rules)"></combo-box
-            ><br />
-            and always return True.
-          </div>
-
-          <div v-if="selectedCommand.command == 'pass'">
-            Do nothing and return True.
-          </div>
-
-          <div v-if="selectedCommand.command == 'maybe'">
-            Continue action with :<input
-              :disabled="disabled"
-              v-model="selectedCommand.chance"
-              v-on:change="$emit('update:modelValue', rules)" />% chance <br />
-            otherwise return None and stop the action.
-          </div>
-
-          <div
-            v-if="
-              !(selectedCommand.command in specialCommands) &&
-              commands[selectedCommand.command]
-            ">
+          <div v-if="commands[selectedCommand.command]">
             <div class="stacked-form">
               <label
                 v-for="(argMeta, i) in commands[selectedCommand.command].args"
@@ -174,7 +151,12 @@ p.small {
                   :disabled="disabled"
                   :testid="'command-arg-' + argMeta.name"
                   v-model="selectedCommand[argMeta.name]"
-                  v-on:change="$emit('update:modelValue', rules)"
+                  v-on:change="
+                    rules[selectedBindingIndex].commands[
+                      selectedCommandIndex
+                    ][argMeta.name] = $event;
+                    $emit('update:modelValue', rules);
+                  "
                   :options="
                     getCompletions(selectedCommand, argMeta.name)
                   "></combo-box>
@@ -186,6 +168,7 @@ p.small {
               commands[selectedCommand.command].doc
             }}</pre>
           </div>
+
           <button
             v-on:click="
               rules[selectedBindingIndex].commands.splice(
@@ -295,7 +278,7 @@ p.small {
                     <div
                       class="nogrow h-min-content warning"
                       style="margin: 2px">
-                      {{ action.command }}
+                      Command <b>{{ action.command }}</b> not found
                     </div>
                   </template>
                 </button>
@@ -337,7 +320,7 @@ p.small {
 </template>
 
 <script setup>
-import { computed, watch,ref } from "vue";
+import { computed, watchEffect, ref } from "vue";
 
 import ComboBox from "../../vue/combo-box.vue";
 const props = defineProps({
@@ -348,24 +331,24 @@ const props = defineProps({
   example_events: Array,
 });
 
+const emit = defineEmits(["update:modelValue"]);
+
 let rules = props.modelValue;
 let disabled = props.disabled;
 
-watch(props.modelValue, (newValue) => {
-  rules = newValue;
+watchEffect(() => {
+  // `foo` transformed to `props.foo` by the compiler
+  rules = props.modelValue;
+  disabled = props.disabled;
 });
 
-watch(props.disabled, (newValue) => {
-  disabled = newValue;
-});
 let argcompleters = props.completers || {};
 
 let selectedCommandIndex = ref(-1);
 let selectedBindingIndex = ref(-1);
 
-
 const selectedBinding = computed(() => {
-  if (selectedBindingIndex.value== -1) {
+  if (selectedBindingIndex.value == -1) {
     return 0;
   }
   return rules[selectedBindingIndex.value];
@@ -388,18 +371,19 @@ const selectedCommand = computed(() => {
   return 0;
 });
 
-const pinnedvars = [["_", "Output of the previous action"]];
-
 function getArgMetadata(commandName, argumentName) {
   if (commandName in props.commands) {
-    return props.commands[commandName].args[argumentName];
+    for(var i in props.commands[commandName].args) {
+      if (props.commands[commandName].args[i].name == argumentName) {
+        return props.commands[commandName].args[i];
+      }
+    }
   }
   return {};
 }
 
 function getCompletions(actionObject, argumentName) {
   const cmdName = actionObject.command;
-  const cmdMeta = props.commands[cmdName];
 
   const argumentMetadata = getArgMetadata(cmdName, argumentName);
 
@@ -407,9 +391,9 @@ function getCompletions(actionObject, argumentName) {
     return argcompleters["defaultExpressionCompleter"](actionObject);
   }
 
-  if (argcompleters[cmdMeta.type]) {
+  if (argcompleters[argumentMetadata.type]) {
     try {
-      return argcompleters[cmdMeta.type](actionObject, argumentName);
+      return argcompleters[argumentMetadata.type](actionObject, argumentName);
     } catch (error) {
       console.log(error);
       return [];
@@ -419,14 +403,14 @@ function getCompletions(actionObject, argumentName) {
 }
 
 function moveCueRuleDown(index) {
-  var rules = [...modelValue];
+  var rules = [...props.modelValue];
 
   if (index < rules.length - 1) {
     var t = rules[index + 1];
     rules[index + 1] = rules[index];
     rules[index] = t;
   }
-  $emit("update:modelValue", rules);
+  emit("update:modelValue", rules);
 }
 
 function swapArrayElements(array, indexA, indexB) {
@@ -435,74 +419,40 @@ function swapArrayElements(array, indexA, indexB) {
   array[indexB] = temporary;
 }
 
-
 function getPossibleActions() {
   var l = [];
   for (var i in props.commands) {
     if (props.commands[i] == null) {
       console.log("Warning: Null entry for command info for" + i);
     } else {
-      //Just use the special version if possible
-      if (!(i in specialCommands)) {
-        l.push([i, props.commands[i].doc || ""]);
-      }
+      l.push([i, props.commands[i].doc || ""]);
     }
   }
   return l;
 }
 
-function getSpecialActions() {
-  var l = [];
-  for (var i in specialCommands) {
-    //Prefer the special version
-    l.push([i, specialCommands[i].description]);
-  }
-
-  return l;
-}
-
-
-//Stuff we have built in HTML templating for
-let specialCommands = {
-  set: {
-    args: [
-      { name: "variable", type: "str", default: "" },
-      { name: "value", type: "str", default: "" },
-    ],
-    description: "Sets a variable",
-  },
-  pass: {
-    args: [],
-    description: "Do nothing and return True",
-  },
-  maybe: {
-    args: [{ name: "chance", type: "float", default: "50" }],
-    description: "Continue action with chance % probability",
-  },
-};
 function deleteBinding(b) {
-  if (confirm("really delete binding?")) {
-    console.log("jhgf");
+  if (confirm("Really delete binding?")) {
     removeElement(rules, b);
-    $emit("update:modelValue", rules);
+    emit("update:modelValue", rules);
   }
 }
 function removeElement(array, element) {
   var index = array.indexOf(element);
   if (index > -1) {
     array.splice(index, 1);
+  } else {
+    console.log("Element not found in array");
+    alert("Element not found in array");
   }
 }
 function setCommandDefaults(action) {
   // For dict format actions, set defaults from command metadata
-  console.log(action);
   const cmdName = action.command;
   let metadata = null;
 
   // Get description data
-  if (cmdName in specialCommands) {
-    metadata = specialCommands[cmdName];
-  } else if (cmdName in props.commands) {
+  if (cmdName in props.commands) {
     metadata = props.commands[cmdName];
   }
 

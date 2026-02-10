@@ -108,7 +108,7 @@ kaithem-scripts user-max-volume-at-boot
 kaithem-scripts root-install-sd-protection
 
 # Sets up a collection of misc tweaks that are recommended for kaithem.
-kaithem-scripts root-install-linux-tweaks
+kaithem-scripts root-install-raspios-linux-tweaks
 
 # Installs Mosquitto and sets it up to allow anonymous clients.
 kaithem-scripts root-enable-anon-mqtt

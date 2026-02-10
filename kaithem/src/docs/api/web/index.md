@@ -93,7 +93,7 @@ access to certain Kaithem standard templates
 
 Example template that uses the standard kaithem template everything else does.
 
-{% extends "pagetemplate.j2.html" %}
+{% extends “pagetemplate.j2.html” %}
 
 {% block title %}Title Here{% endblock %}
 

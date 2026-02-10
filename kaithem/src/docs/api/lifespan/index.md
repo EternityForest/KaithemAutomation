@@ -7,9 +7,9 @@
 
 ## Functions
 
-| [`shutdown_now`](#kaithem.api.lifespan.shutdown_now)()   | Shut down the system now                                     |
-|----------------------------------------------------------|--------------------------------------------------------------|
-| [`at_shutdown`](#kaithem.api.lifespan.at_shutdown)(f)    | Register a function to be called when the system shuts down, |
+| [`shutdown_now`](#kaithem.api.lifespan.shutdown_now)()     | Shut down the system now                                     |
+|------------------------------------------------------------|--------------------------------------------------------------|
+| [`at_shutdown`](#kaithem.api.lifespan.at_shutdown)(→ None) | Register a function to be called when the system shuts down, |
 
 ## Module Contents
 
@@ -19,7 +19,7 @@
 
 Shut down the system now
 
-### kaithem.api.lifespan.at_shutdown(f)
+### kaithem.api.lifespan.at_shutdown(f: collections.abc.Callable[[], None]) → None
 
 Register a function to be called when the system shuts down,
 before atexit would trigger

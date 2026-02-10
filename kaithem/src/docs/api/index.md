@@ -1,6 +1,6 @@
 # kaithem.api
 
-This is kaithem's public API, for use in plugins and user code,
+This is kaithem’s public API, for use in plugins and user code,
 in pages and events.  Anything not in here is not part of a stable public
 API.
 

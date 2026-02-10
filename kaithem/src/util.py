@@ -1,4 +1,3 @@
-# SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import datetime
@@ -352,8 +351,7 @@ def unique_number():
 
 
 def is_private_ip(ip):
-    if ip.startswith("::ffff:"):
-        ip = ip[7:]
+    ip = ip.removeprefix("::ffff:")
     if "." in ip:
         ip = [int(i) for i in ip.split(".")]
 

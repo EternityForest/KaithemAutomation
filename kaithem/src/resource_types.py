@@ -1,4 +1,3 @@
-# SPDX-FileCopyrightText: Copyright Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from kaithem.api.resource_types import (

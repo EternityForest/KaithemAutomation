@@ -119,7 +119,7 @@
 </template>
 
 <script setup>
-import { dictView, useBlankDescriptions, formatInterval } from "./utils.mjs";
+import { useBlankDescriptions, formatInterval } from "./utils.mjs";
 import { chandlerScriptEnvironment } from "./boardapi.mjs";
 import { computed } from "vue";
 
@@ -272,18 +272,6 @@ function defaultExpressionCompleter(_a) {
     c.push(['=tv("' + i + '")', ""]);
   }
   return c;
-}
-
-function cueNamesByGroupName() {
-  let d = {};
-  for (let i in props.groupmeta) {
-    d[props.groupmeta[i].name] = [];
-
-    for (let j in props.groupcues[i]) {
-      d[props.groupmeta[i].name].push(j);
-    }
-  }
-  return d;
 }
 
 let completers = {

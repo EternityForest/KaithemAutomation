@@ -1,7 +1,7 @@
 # kaithem.api.midi
 
 You can use normalize_midi_port_name to get name for the midi device
-which can be used for things like subscribing to "/midi/portname".
+which can be used for things like subscribing to “/midi/portname”.
 
 ## Attributes
 
@@ -24,7 +24,7 @@ which can be used for things like subscribing to "/midi/portname".
 ### kaithem.api.midi.normalize_midi_port_name(name: str) → str
 
 Given a name as would be returned by
-rtmidi's get_port_name, return a normalized name
+rtmidi’s get_port_name, return a normalized name
 as used in the internal message bus.
 
 ### kaithem.api.midi.once *: list[int]* *= [0]*

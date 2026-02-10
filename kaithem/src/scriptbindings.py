@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-# SPDX-FileCopyrightText: Copyright 2013 Daniel Dunn
 # SPDX-License-Identifier: GPL-3.0-or-later
 import copy
 import datetime
@@ -223,13 +222,14 @@ class FunctionBlock:
         return m
 
     def get_script_context(self) -> BaseChandlerScriptContext:
-        return context_info.engine
+        return self.ctx
 
     def get_underscore_val(self) -> Any:
-        return context_info.engine.variables.get("_")
+        return self.ctx.variables.get("_")
 
     def __init__(self, ctx: BaseChandlerScriptContext, *args, **kwargs):
-        self.ctx = ctx
+        assert isinstance(ctx, BaseChandlerScriptContext)
+        self.ctx: BaseChandlerScriptContext = ctx
 
     def call(self, *args, **kwargs):
         raise NotImplementedError
@@ -246,11 +246,43 @@ class StatelessFunction(FunctionBlock):
     """
 
 
+class SetVar(StatelessFunction):
+    doc = "Set a variable"
+    args = [
+        {"name": "name", "type": "str", "default": "var1"},
+        {"name": "value", "type": "any", "default": "=42"},
+    ]
+
+    def call(self, name, value):
+        ctx = self.get_script_context()
+        if not isinstance(name, str):
+            raise RuntimeError("Var name must be string")
+        if name in globalConstants or name in ctx.constants:
+            raise NameError(f"Key {name} is a constant")
+        ctx.setVar(name, value)
+
+
+class DefaultVar(StatelessFunction):
+    doc = "Get a variable or return default value"
+    args = [
+        {"name": "name", "type": "str", "default": "var1"},
+        {"name": "default", "type": "any", "default": "=42"},
+    ]
+
+    def call(self, name, default):
+        ctx = self.get_script_context()
+        try:
+            return ctx._nameLookup(name)
+        except KeyError:
+            return default
+
+
 class OnChangeBlock(FunctionBlock):
     doc = "Trigger only when input value changes from previous input"
     args = [{"name": "input", "type": "str", "default": "=_"}]
 
     def __init__(self, ctx: ChandlerScriptContext, *args, **kwargs):
+        super().__init__(ctx, *args, **kwargs)
         self.lastValue = None
 
     def call(self, input: Any = "=_", **kwds: Any) -> Any:
@@ -271,6 +303,7 @@ class OnRisingEdgeBlock(FunctionBlock):
     args = [{"name": "input", "type": "str", "default": "=_"}]
 
     def __init__(self, ctx: ChandlerScriptContext, *args, **kwargs):
+        super().__init__(ctx, *args, **kwargs)
         self.lastValue = True
 
     def call(self, input: Any = "=_", **kwds: Any) -> Any:
@@ -290,6 +323,7 @@ class OnCounterIncreaseBlock(FunctionBlock):
     args = [{"name": "input", "type": "str", "default": "=_"}]
 
     def __init__(self, ctx: ChandlerScriptContext, *args, **kwargs):
+        super().__init__(ctx, *args, **kwargs)
         self.lastValue = None
 
     def call(self, input=0, **kwds: Any) -> Any:
@@ -317,6 +351,7 @@ class LowPassFilterBlock(FunctionBlock):
     ]
 
     def __init__(self, ctx: ChandlerScriptContext, *args, **kwargs):
+        super().__init__(ctx, *args, **kwargs)
         self.state: float = 0.0
         self.t = 0
 
@@ -353,16 +388,17 @@ class CooldownBlock(FunctionBlock):
     ]
 
     def __init__(self, ctx: ChandlerScriptContext, *args, **kwargs):
+        super().__init__(ctx, *args, **kwargs)
         self.credits = 0
         self.timestamp = 0
 
     def call(self, limit=1.0, window=1.0, **kwds: Any) -> Any:
+        t = time.monotonic()
         self.credits = min(
             float(limit),
-            self.credits
-            + ((time.monotonic() - self.timestamp) / float(window)),
+            self.credits + ((t - self.timestamp) / float(window)),
         )
-        self.timestamp = time.monotonic()
+        self.timestamp = t
 
         if self.credits >= 1:
             self.credits -= 1
@@ -379,21 +415,35 @@ class HysteresisBlock(FunctionBlock):
     ]
 
     def __init__(self, ctx: ChandlerScriptContext, *args, **kwargs):
-        self.lastMark = None
+        self.last_mark = None
+        self.direction = 0
 
     def call(self, input=0.0, window=1.0, **kwds: Any) -> Any:
         v: float = input  # type: ignore
-        w: float = window / 2  # type: ignore
 
-        if self.lastMark is None:
-            self.lastMark = v
+        if self.last_mark is None:
+            self.last_mark = v
             return None
 
-        elif v > self.lastMark + w:
-            self.lastMark = v - w
+        if self.direction == 1:
+            upper = self.last_mark
+            lower = self.last_mark - window
+
+        elif self.direction == -1:
+            upper = self.last_mark + window
+            lower = self.last_mark
+
+        else:
+            upper = self.last_mark + (window / 2)
+            lower = self.last_mark - (window / 2)
+
+        if v >= upper:
+            self.direction = 1
+            self.last_mark = v
             return v
-        elif v < self.lastMark - w:
-            self.lastMark = v + w
+        elif v <= lower:
+            self.direction = -1
+            self.last_mark = v
             return v
 
         return None
@@ -577,6 +627,8 @@ predefinedcommands: dict[str, type[FunctionBlock]] = {
     "cooldown": CooldownBlock,
     "set_tag": SetTag,
     "shell": Shell,
+    "var": DefaultVar,
+    "set": SetVar,
 }
 
 
@@ -828,26 +880,8 @@ class BaseChandlerScriptContext:
         # client about the current set of variables
         self.changedVariables: dict[str, Any] = {}
 
-        def setter(Variable, Value):
-            if not isinstance(Variable, str):
-                raise RuntimeError("Var name must be string")
-            if Variable in globalConstants or Variable in self.constants:
-                raise NameError(f"Key {Variable} is a constant")
-            self.setVar(Variable, Value)
-
-        self.setter = setter
-        self.commands["set"] = setter
-
-        def defaultVar(name, default):
-            try:
-                return self._nameLookup(name)
-            except NameError:
-                return default
-
         functions = functions.copy()
         functions.update(globalUsrFunctions)
-        functions["defaultVar"] = defaultVar
-        functions["var"] = defaultVar
 
         c = {}
         # Wrap them, so the first param becomes this context object.

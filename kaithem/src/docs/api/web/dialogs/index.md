@@ -34,7 +34,7 @@ to serve to the user.
 #### name_to_title(s: str)
 
 If title not provided, this will be
-called to create one fron the control's name
+called to create one fron the control’s name
 
 #### is_disabled_by_default()
 
@@ -59,11 +59,11 @@ Add a checkbox
 
 #### file_input(name: str = 'file', , title: str | None = None, disabled=None)
 
-Add a file upload input. Name it 'file' and name an input 'filename'  to auto link them.
+Add a file upload input. Name it ‘file’ and name an input ‘filename’  to auto link them.
 
 #### code_editor(name: str = 'file', , language: str, title: str | None = None, disabled=None, default='')
 
-Add a file upload input. Name it 'file' and name an input 'filename'  to auto link them.
+Add a file upload input. Name it ‘file’ and name an input ‘filename’  to auto link them.
 
 #### selection(name: str, , options: list[str], default='', title: str | None = None, disabled=None)
 
