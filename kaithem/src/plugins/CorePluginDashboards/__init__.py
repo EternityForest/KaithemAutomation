@@ -394,17 +394,18 @@ async def save_board_endpoint(boardid: str):
         if not board:
             return jsonify({"error": "Missing board data"}), 400
 
-        # Update the resource in Kaithem
-        modules.insert_resource(
-            module,
-            resource,
-            {
-                "resource": {
-                    "type": "dashboard",
+        with modules_state.modulesLock:
+            # Update the resource in Kaithem
+            modules_state.raw_insert_resource(
+                module,
+                resource,
+                {
+                    "resource": {
+                        "type": "dashboard",
+                    },
+                    "board": board,
                 },
-                "board": board,
-            },
-        )
+            )
 
         return jsonify({"success": True, "error": None})
     except Exception as e:
