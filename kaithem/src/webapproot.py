@@ -39,10 +39,8 @@ from . import (
     shutdown,
     signalhandlers,
     staticfiles,  # noqa: F401
-    systasks,
     tagpoints,
     # TODO we gotta stop depending on import side effects
-    util,
     widgets,
 )
 from .config import config
@@ -266,17 +264,6 @@ def startServer():
 
     sys.modules["kaithem"] = sys.modules["__main__"]
 
-    def save():
-        if config["save_before_shutdown"]:
-            messagebus.post_message(
-                "/system/notifications/important/",
-                "System saving before shutting down",
-            )
-            util.SaveAllState()
-
-    def pageloadnotify(*args, **kwargs):
-        systasks.aPageJustLoaded()
-
     messagebus.post_message("/system/startup", "System Initialized")
     messagebus.post_message(
         "/system/notifications/important", "System Initialized"
@@ -319,14 +306,20 @@ def startServer():
     #         )
     #         https_server.listen(config["https_port"], bindto)
     shutdown_event = asyncio.Event()
+    loop = asyncio.new_event_loop()
 
-    shutdown.add_shutdown_event(shutdown_event)
+    def shutdown_event_set():
+        async def f():
+            shutdown_event.set()
+
+        asyncio.run_coroutine_threadsafe(f(), loop)
+
+    shutdown.add_shutdown_handler(shutdown_event_set)
 
     def _signal_handler(*_) -> None:
         shutdown_event.set()
         signalhandlers.stop()
 
-    loop = asyncio.new_event_loop()
     loop.add_signal_handler(signal.SIGTERM, _signal_handler)
     loop.add_signal_handler(signal.SIGINT, _signal_handler)
 

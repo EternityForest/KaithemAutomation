@@ -1,8 +1,8 @@
-import asyncio
 import sys
 import threading
 import time
 import traceback
+from collections.abc import Callable
 
 import icemedia.sound_player
 from rich.console import Console
@@ -10,11 +10,11 @@ from rich.panel import Panel
 from rich.syntax import Syntax
 from scullery import messagebus, workers
 
-_shutdown_events: list[asyncio.Event] = []
+_shutdown_handlers: list[Callable[[], None]] = []
 
 
-def add_shutdown_event(event: asyncio.Event):
-    _shutdown_events.append(event)
+def add_shutdown_handler(event: Callable[[], None]):
+    _shutdown_handlers.append(event)
 
 
 def _print_thread_tracebacks():
@@ -83,8 +83,8 @@ def shutdown():
     )
     monitor_thread.start()
 
-    for event in _shutdown_events:
-        event.set()
+    for event in _shutdown_handlers:
+        event()
 
     threading.Thread(
         target=icemedia.sound_player.stop_all_sounds, daemon=True
