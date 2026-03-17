@@ -77,6 +77,11 @@ class ProjectionMapperType(modules_state.ResourceType):
                                         "minimum": 0,
                                         "maximum": 1,
                                     },
+                                    "opacity_tag": {
+                                        "type": "string",
+                                        "title": "Opacity Tag",
+                                        "default": "",
+                                    },
                                     "blend_mode": {
                                         "type": "string",
                                         "title": "Blend Mode",

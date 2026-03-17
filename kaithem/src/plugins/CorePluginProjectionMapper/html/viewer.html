@@ -40,6 +40,7 @@
     <script type="module">
         import { VFX } from
             '/projection-mapper/static/vfx-js/vfx.esm.js';
+        import { kaithemapi } from '/static/js/widget.mjs';
 
         const MODULE = '{{ module }}';
         const RESOURCE = '{{ resource }}';
@@ -48,11 +49,40 @@
         let animationFrameId = null;
         const sourceElements = {};
         let vfxInstances = {};
+        const tagSubscriptions = {};
+        const tagOpacityMultipliers = {};
+
+        function subscribeToTagIfNeeded(source) {
+            const tag = source.transform?.opacity_tag?.trim();
+            if (!tag) return;
+
+            const fullTag = tag.startsWith("tag:") ? tag : `tag:${tag}`;
+
+            const callback = (value) => {
+                tagOpacityMultipliers[source.id] = parseFloat(value) || 1.0;
+                if (sourceElements[source.id]) {
+                    applyTransform(sourceElements[source.id], source);
+                }
+            };
+
+            tagSubscriptions[source.id] = { tag: fullTag, callback };
+            tagOpacityMultipliers[source.id] = 1.0;
+            kaithemapi.subscribe(fullTag, callback);
+        }
+
+        function unsubscribeAllTags() {
+            for (const [sourceId, sub] of Object.entries(tagSubscriptions)) {
+                kaithemapi.unsubscribe(sub.tag, sub.callback);
+            }
+            Object.keys(tagSubscriptions).forEach((k) => delete tagSubscriptions[k]);
+            Object.keys(tagOpacityMultipliers).forEach((k) => delete tagOpacityMultipliers[k]);
+        }
 
         function initSources() {
             const container = document.getElementById(
                 'canvas-container'
             );
+            unsubscribeAllTags();
             container.innerHTML = '';
             sourceElements = {};
             vfxInstances = {};
@@ -75,6 +105,7 @@
                     applyTransform(iframe, source);
                     container.appendChild(iframe);
                     sourceElements[source.id] = iframe;
+                    subscribeToTagIfNeeded(source);
                 }
             });
         }
@@ -104,8 +135,11 @@
             }
 
             if (transform.opacity !== undefined) {
+                const manualOpacity = transform.opacity;
+                const tagMultiplier = tagOpacityMultipliers[source.id] ?? 1.0;
+                const finalOpacity = manualOpacity * tagMultiplier;
                 element.style.opacity =
-                    transform.opacity.toString();
+                    finalOpacity.toString();
             }
 
             if (transform.blend_mode) {

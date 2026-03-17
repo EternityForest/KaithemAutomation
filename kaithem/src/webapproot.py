@@ -181,6 +181,24 @@ def action_step(id, **kwargs):
     )
 
 
+@quart_app.app.route("/tag_api/list")
+def tag_api_list():
+    try:
+        pages.require("enumerate_endpoints")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+
+    tl = []
+    for t in tagpoints.allTags:
+        to = tagpoints.allTags[t]()
+        if to is None:
+            continue
+
+        td = {"name": t, "type": to.type, "subtype": to.subtype}
+        tl.append(td)
+    return json.dumps(tagpoints.allTags)
+
+
 @quart_app.app.route("/tag_api/<cmd>/<path:path>")
 def tag_api(cmd, path):
     # This page could be slow because of the db stuff, so we restrict it more
