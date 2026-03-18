@@ -134,6 +134,7 @@ class ProjectionEditor {
       this.setupCanvas();
       this.setupEventListeners();
       this.setupWebSocket();
+      this.populateTagDatalist();
     });
     this.updateSourcesList();
     this.renderPreview();
@@ -210,7 +211,10 @@ class ProjectionEditor {
                             <div class="form-group">
                                 <label>Opacity Tag (optional)</label>
                                 <input type="text" id="opacity-tag"
-                                       placeholder="/path/to/tag">
+                                       placeholder="/path/to/tag"
+                                       list="available-tags">
+                                <datalist id="available-tags">
+                                </datalist>
                             </div>
 
                             <div class="form-group">
@@ -977,6 +981,29 @@ class ProjectionEditor {
     );
   }
 
+  async populateTagDatalist() {
+    try {
+      const response = await fetch("/tag_api/list");
+      const data = await response.json();
+      const tags = Object.keys(data).sort();
+
+      const datalist = document.querySelector("#available-tags");
+      if (!datalist) return;
+
+      datalist.innerHTML = "";
+      for (const tagidx of tags) {
+        const tag = data[tagidx];
+        if (tag.type == "number") {
+          const option = document.createElement("option");
+          option.value = tag.name;
+          datalist.append(option);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch tags:", error);
+    }
+  }
+
   updateTagSubscriptions() {
     const currentSources = new Set(this.data.sources.map((s) => s.id));
 
@@ -1010,8 +1037,22 @@ class ProjectionEditor {
     // Ensure tag: prefix
     const fullTag = tagName.startsWith("tag:") ? tagName : `tag:${tagName}`;
 
+    const infourl = "/tag_api/info" + tagName;
+
+    // Get current value at start with a request
+
+    fetch(infourl)
+      .then((response) => response.json())
+      .then((data) => {
+        this.tagOpacityMultipliers[sourceId] = data.value;
+        const source = this.data.sources.find((s) => s.id === sourceId);
+        if (source) {
+          this.updatePreviewTransform(source);
+        }
+      });
+
     const callback = (value) => {
-      this.tagOpacityMultipliers[sourceId] = Number.parseFloat(value) || 1;
+      this.tagOpacityMultipliers[sourceId] = value;
       const source = this.data.sources.find((s) => s.id === sourceId);
       if (source) {
         this.updatePreviewTransform(source);

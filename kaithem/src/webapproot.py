@@ -191,12 +191,28 @@ def tag_api_list():
     tl = []
     for t in tagpoints.allTags:
         to = tagpoints.allTags[t]()
+
         if to is None:
             continue
 
-        td = {"name": t, "type": to.type, "subtype": to.subtype}
+        rperms, wperms, _apipriority = to.get_effective_permissions()
+
+        if not rperms:
+            continue
+
+        if not pages.canUserDoThis(rperms):
+            continue
+
+        td = {
+            "name": t,
+            "type": to.type,
+            "subtype": to.subtype,
+            "writable": to.writable,
+            "canWrite": to.writable and pages.canUserDoThis(wperms),
+        }
+
         tl.append(td)
-    return json.dumps(tagpoints.allTags)
+    return json.dumps(tl)
 
 
 @quart_app.app.route("/tag_api/<cmd>/<path:path>")

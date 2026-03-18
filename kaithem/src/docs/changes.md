@@ -1,6 +1,11 @@
 Change Log
 ----------
 
+
+### Dev
+
+* [sparkles] Tag points can control opacity of projection mapping sources
+
 ### 0.94.0
 
 This version is all about cleaning up the old device integration system.
