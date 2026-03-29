@@ -28,61 +28,61 @@
 
 ### kaithem.api.modules.mutable_copy_resource
 
-### kaithem.api.modules.set_resource_error(module: str, resource: str, error: str | None)
+### kaithem.api.modules.set_resource_error(module: [str](../../src/pages/index.md#kaithem.src.pages.str), resource: [str](../../src/pages/index.md#kaithem.src.pages.str), error: [str](../../src/pages/index.md#kaithem.src.pages.str) | None)
 
 Set an error notice for a resource.  Cleared when the resource is moved, updated or deleted,
 or by setting the error to None.
 
-### kaithem.api.modules.filename_for_file_resource(module: str, resource: str) → str
+### kaithem.api.modules.filename_for_file_resource(module: [str](../../src/pages/index.md#kaithem.src.pages.str), resource: [str](../../src/pages/index.md#kaithem.src.pages.str)) → [str](../../src/pages/index.md#kaithem.src.pages.str)
 
 Given the module and resource for a file, return the actual file for a file resource, or
 file data dir for directory resource
 
-### kaithem.api.modules.filename_for_resource(module: str, resource: str) → str
+### kaithem.api.modules.filename_for_resource(module: [str](../../src/pages/index.md#kaithem.src.pages.str), resource: [str](../../src/pages/index.md#kaithem.src.pages.str)) → [str](../../src/pages/index.md#kaithem.src.pages.str)
 
 DEPRECATED: use filename_for_file_resource instead
 
-### kaithem.api.modules.admin_url_for_file_resource(module: str, resource: str) → str
+### kaithem.api.modules.admin_url_for_file_resource(module: [str](../../src/pages/index.md#kaithem.src.pages.str), resource: [str](../../src/pages/index.md#kaithem.src.pages.str)) → [str](../../src/pages/index.md#kaithem.src.pages.str)
 
-### kaithem.api.modules.scan_file_resources(module: str)
+### kaithem.api.modules.scan_file_resources(module: [str](../../src/pages/index.md#kaithem.src.pages.str))
 
 Scan the resources in the filedata folder for the specified module.
 Call if you directly change something, to update the UI.  May not
 take effect immediately
 
-### kaithem.api.modules.get_resource_data(module: str, resource: str) → dict[str, Any]
+### kaithem.api.modules.get_resource_data(module: [str](../../src/pages/index.md#kaithem.src.pages.str), resource: [str](../../src/pages/index.md#kaithem.src.pages.str)) → dict[[str](../../src/pages/index.md#kaithem.src.pages.str), Any]
 
 Get the dict data for a resource. May only be called under the modules_lock.
 
-### kaithem.api.modules.insert_resource(module: str, resource: str, resourceData: kaithem.src.modules_state.ResourceDictType)
+### kaithem.api.modules.insert_resource(module: [str](../../src/pages/index.md#kaithem.src.pages.str), resource: [str](../../src/pages/index.md#kaithem.src.pages.str), resourceData: kaithem.src.modules_state.ResourceDictType)
 
 Create a new resource, if it doesn’t already exist,
 and initializing it as appropriate for it’s resource type
 May only be called under the modules_lock.
 
-### kaithem.api.modules.update_resource(module: str, resource: str, resourceData: kaithem.src.modules_state.ResourceDictType)
+### kaithem.api.modules.update_resource(module: [str](../../src/pages/index.md#kaithem.src.pages.str), resource: [str](../../src/pages/index.md#kaithem.src.pages.str), resourceData: kaithem.src.modules_state.ResourceDictType)
 
 Update an existing resource, triggering any relevant effects for that resource type.
 May only be called under the modules_lock.
 
-### kaithem.api.modules.delete_resource(module: str, resource: str)
+### kaithem.api.modules.delete_resource(module: [str](../../src/pages/index.md#kaithem.src.pages.str), resource: [str](../../src/pages/index.md#kaithem.src.pages.str))
 
 Delete a resource, triggering any relevant effects for that resource type.
 May only be called under the modules_lock.
 
-### kaithem.api.modules.list_resources(module: str) → list[str]
+### kaithem.api.modules.list_resources(module: [str](../../src/pages/index.md#kaithem.src.pages.str)) → [list](../../src/pages/index.md#kaithem.src.pages.list)[[str](../../src/pages/index.md#kaithem.src.pages.str)]
 
 List the resources in a module.
 May only be called under the modules_lock.
 
-### kaithem.api.modules.resolve_file_resource(relative_path: str) → str | None
+### kaithem.api.modules.resolve_file_resource(relative_path: [str](../../src/pages/index.md#kaithem.src.pages.str)) → [str](../../src/pages/index.md#kaithem.src.pages.str) | None
 
 Given a name of a file resource or a folder in the file resources,
 return the full path to it, if it can be found in any module.
 
 May only be called under the modules_lock.
 
-### kaithem.api.modules.save_resource(module: str, resource: str, resourceData: kaithem.src.modules_state.ResourceDictType)
+### kaithem.api.modules.save_resource(module: [str](../../src/pages/index.md#kaithem.src.pages.str), resource: [str](../../src/pages/index.md#kaithem.src.pages.str), resourceData: kaithem.src.modules_state.ResourceDictType)
 
 Save a resource without triggering any other events.
 Use this in your flush_unsaved handler. May only be called under the modules_lock.

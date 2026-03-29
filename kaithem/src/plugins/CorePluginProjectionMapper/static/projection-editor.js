@@ -2,8 +2,10 @@
 // Real-time collaborative editing with WebSocket sync
 // Uses CSS perspective transforms instead of VFX for cross-browser compatibility
 
+import { kaithemapi } from '/static/js/widget.mjs';
+
 class PositionFilter {
-  constructor(timeConstant = 5.0) {
+  constructor(timeConstant = 5) {
     this.timeConstant = timeConstant;
     this.currentPos = null;
     this.targetPos = null;
@@ -28,7 +30,7 @@ class PositionFilter {
     // Calculate distance from current to target
     const dx = targetX - this.currentPos.x;
     const dy = targetY - this.currentPos.y;
-    const distancePixels = Math.sqrt(dx * dx + dy * dy);
+    const distancePixels = Math.hypot(dx, dy);
     const thresholdPixels = this.mmToPixels(this.instantThresholdMm);
 
     const inputDx = targetX - this.targetPos.x;
@@ -38,7 +40,7 @@ class PositionFilter {
     // simulate dragging with a string,
     // get a movement vector, subtract threshhold from magnitude
     if (distancePixels >= thresholdPixels) {
-      let moveVector = Math.sqrt(inputDx * inputDx + inputDy * inputDy);
+      let moveVector = Math.hypot(inputDx, inputDy);
       moveVector = moveVector - thresholdPixels;
       const moveX = moveVector * inputDx / moveVector;
       const moveY = moveVector * inputDy / moveVector;
@@ -66,11 +68,11 @@ class PositionFilter {
     this.currentPos.y += alpha * (this.targetPos.y - this.currentPos.y);
 
     // Converge to target if within 1 pixel
-    const remainingDist = Math.sqrt(
+    const remainingDistribution = Math.sqrt(
       Math.pow(this.targetPos.x - this.currentPos.x, 2) +
         Math.pow(this.targetPos.y - this.currentPos.y, 2)
     );
-    if (remainingDist < 1.0) {
+    if (remainingDistribution < 1) {
       this.currentPos.x = this.targetPos.x;
       this.currentPos.y = this.targetPos.y;
     }
@@ -105,14 +107,18 @@ class ProjectionEditor {
 
     // Position filters for each corner
     this.cornerFilters = {
-      tl: new PositionFilter(3.0),
-      tr: new PositionFilter(3.0),
-      bl: new PositionFilter(3.0),
-      br: new PositionFilter(3.0),
+      tl: new PositionFilter(3),
+      tr: new PositionFilter(3),
+      bl: new PositionFilter(3),
+      br: new PositionFilter(3),
     };
 
     this.animationFrameId = null;
     this.lastRawMousePos = null;
+
+    // Tag-controlled opacity subscriptions
+    this.tagSubscriptions = {}; // {sourceId: {tag, callback}}
+    this.tagOpacityMultipliers = {}; // {sourceId: number}
 
     // Parse URL params for mode
     const parameters = new URLSearchParams(globalThis.location.search);
@@ -128,6 +134,7 @@ class ProjectionEditor {
       this.setupCanvas();
       this.setupEventListeners();
       this.setupWebSocket();
+      this.populateTagDatalist();
     });
     this.updateSourcesList();
     this.renderPreview();
@@ -199,6 +206,15 @@ class ProjectionEditor {
                                        min="0" max="1"
                                        step="0.01" value="1">
                                 <span id="opacity-val">1.00</span>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Opacity Tag (optional)</label>
+                                <input type="text" id="opacity-tag"
+                                       placeholder="/path/to/tag"
+                                       list="available-tags">
+                                <datalist id="available-tags">
+                                </datalist>
                             </div>
 
                             <div class="form-group">
@@ -506,7 +522,10 @@ class ProjectionEditor {
     }
 
     if (transform.opacity !== undefined) {
-      element.style.opacity = transform.opacity.toString();
+      const manualOpacity = transform.opacity;
+      const tagMultiplier = this.tagOpacityMultipliers[source.id] ?? 1;
+      const finalOpacity = manualOpacity * tagMultiplier;
+      element.style.opacity = finalOpacity.toString();
     }
 
     if (transform.blend_mode) {
@@ -711,6 +730,16 @@ class ProjectionEditor {
               Number.parseFloat(event_.target.value).toFixed(2);
             this.broadcastOpacity(source);
             this.renderPreview();
+          }
+        });
+
+      document
+        .querySelector("#opacity-tag")
+        ?.addEventListener("input", (event_) => {
+          const source = this.getSelectedSource();
+          if (source) {
+            source.transform.opacity_tag = event_.target.value;
+            this.updateTagSubscriptions();
           }
         });
 
@@ -952,6 +981,98 @@ class ProjectionEditor {
     );
   }
 
+  async populateTagDatalist() {
+    try {
+      const response = await fetch("/tag_api/list");
+      const data = await response.json();
+      const tags = Object.keys(data).sort();
+
+      const datalist = document.querySelector("#available-tags");
+      if (!datalist) return;
+
+      datalist.innerHTML = "";
+      for (const tagidx of tags) {
+        const tag = data[tagidx];
+        if (tag.type == "number") {
+          const option = document.createElement("option");
+          option.value = tag.name;
+          datalist.append(option);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch tags:", error);
+    }
+  }
+
+  updateTagSubscriptions() {
+    const currentSources = new Set(this.data.sources.map((s) => s.id));
+
+    // Unsubscribe removed sources
+    for (const sourceId of Object.keys(this.tagSubscriptions)) {
+      if (!currentSources.has(sourceId)) {
+        this.unsubscribeTag(sourceId);
+      }
+    }
+
+    // Subscribe/update active sources
+    for (const source of this.data.sources) {
+      const tag = source.transform?.opacity_tag?.trim();
+      const existing = this.tagSubscriptions[source.id];
+
+      if (!tag) {
+        // Remove subscription if tag cleared
+        if (existing) this.unsubscribeTag(source.id);
+        continue;
+      }
+
+      // Subscribe if new or tag changed
+      if (!existing || existing.tag !== tag) {
+        if (existing) this.unsubscribeTag(source.id);
+        this.subscribeTag(source.id, tag);
+      }
+    }
+  }
+
+  subscribeTag(sourceId, tagName) {
+    // Ensure tag: prefix
+    const fullTag = tagName.startsWith("tag:") ? tagName : `tag:${tagName}`;
+
+    const infourl = "/tag_api/info" + tagName;
+
+    // Get current value at start with a request
+
+    fetch(infourl)
+      .then((response) => response.json())
+      .then((data) => {
+        this.tagOpacityMultipliers[sourceId] = data.value;
+        const source = this.data.sources.find((s) => s.id === sourceId);
+        if (source) {
+          this.updatePreviewTransform(source);
+        }
+      });
+
+    const callback = (value) => {
+      this.tagOpacityMultipliers[sourceId] = value;
+      const source = this.data.sources.find((s) => s.id === sourceId);
+      if (source) {
+        this.updatePreviewTransform(source);
+      }
+    };
+
+    this.tagSubscriptions[sourceId] = { tag: fullTag, callback };
+    this.tagOpacityMultipliers[sourceId] = 1;
+    kaithemapi.subscribe(fullTag, callback);
+  }
+
+  unsubscribeTag(sourceId) {
+    const sub = this.tagSubscriptions[sourceId];
+    if (sub) {
+      kaithemapi.unsubscribe(sub.tag, sub.callback);
+      delete this.tagSubscriptions[sourceId];
+      delete this.tagOpacityMultipliers[sourceId];
+    }
+  }
+
   setupWebSocket() {
     const protocol = globalThis.location.protocol === "https:" ? "wss" : "ws";
     this.ws = new WebSocket(
@@ -1015,8 +1136,8 @@ class ProjectionEditor {
         this.selectSource(source.id);
       });
 
-      item.querySelector(".del-source")?.addEventListener("click", (e) => {
-        e.stopPropagation();
+      item.querySelector(".del-source")?.addEventListener("click", (eventObject) => {
+        eventObject.stopPropagation();
         this.deleteSource(source.id);
       });
 
@@ -1029,6 +1150,7 @@ class ProjectionEditor {
     this.updateSourcesList();
     this.updateTransformInputs();
     this.renderSourceTypeSpecificOptions();
+    this.updateTagSubscriptions();
 
     const transformSection = document.querySelector("#transform-section");
     if (transformSection) transformSection.style.display = "block";
@@ -1052,6 +1174,11 @@ class ProjectionEditor {
       document.querySelector("#opacity-val").textContent = (
         transform.opacity ?? 1
       ).toFixed(2);
+    }
+
+    const opacityTagInput = document.querySelector("#opacity-tag");
+    if (opacityTagInput) {
+      opacityTagInput.value = transform.opacity_tag ?? "";
     }
 
     const blendSelect = document.querySelector("#blend-mode");
@@ -1159,6 +1286,7 @@ class ProjectionEditor {
       transform: {
         corners: this.getDefaultCorners(),
         opacity: 1,
+        opacity_tag: "",
         blend_mode: "normal",
         rotation: 0,
       },
@@ -1345,6 +1473,7 @@ class ProjectionEditor {
   }
 
   deleteSource(sourceId) {
+    this.unsubscribeTag(sourceId);
     this.data.sources = this.data.sources.filter((s) => s.id !== sourceId);
 
     if (this.selectedSourceId === sourceId) {

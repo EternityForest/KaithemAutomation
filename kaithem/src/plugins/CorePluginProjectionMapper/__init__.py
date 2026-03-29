@@ -77,6 +77,11 @@ class ProjectionMapperType(modules_state.ResourceType):
                                         "minimum": 0,
                                         "maximum": 1,
                                     },
+                                    "opacity_tag": {
+                                        "type": "string",
+                                        "title": "Opacity Tag",
+                                        "default": "",
+                                    },
                                     "blend_mode": {
                                         "type": "string",
                                         "title": "Blend Mode",
@@ -134,9 +139,7 @@ class ProjectionMapperType(modules_state.ResourceType):
         editor_url = (
             f"/projection-mapper/editor/{quote(module)}/{quote(resource)}"
         )
-        viewer_url = (
-            f"/projection-mapper/view/{quote(module)}/{quote(resource)}"
-        )
+        viewer_url = f"/projection-mapper/viewer/{quote(module)}/{quote(resource)}?viewer"
 
         return f"""
         <div>
@@ -196,10 +199,13 @@ modules_state.resource_types["projection_mapper"] = _projection_mapper_type
 
 
 # Routes
+@quart_app.app.route("/projection-mapper/viewer/<module>/<resource>")
 @quart_app.app.route("/projection-mapper/editor/<module>/<resource>")
 async def editor_page(module: str, resource: str):
     """Authenticated projection mapper editor"""
-    pages.require("system_admin")
+
+    if "/viewer/" not in quart.request.url:
+        pages.require("system_admin")
 
     # Load the resource
     try:
@@ -208,28 +214,6 @@ async def editor_page(module: str, resource: str):
         return "Resource not found", 404
 
     template_path = os.path.join(plugin_dir, "html", "editor.html")
-    with open(template_path) as f:
-        template_content = f.read()
-
-    return await quart.render_template_string(
-        template_content,
-        module=module,
-        resource=resource,
-        data=json.dumps(data),
-    )
-
-
-@quart_app.app.route("/projection-mapper/view/<module>/<resource>")
-async def viewer_page(module: str, resource: str):
-    """Guest-accessible projection mapper viewer"""
-
-    # Load the resource
-    try:
-        data = modules_state.ActiveModules[module][resource]
-    except (KeyError, TypeError):
-        return "Resource not found", 404
-
-    template_path = os.path.join(plugin_dir, "html", "viewer.html")
     with open(template_path) as f:
         template_content = f.read()
 

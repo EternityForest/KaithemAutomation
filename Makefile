@@ -114,7 +114,7 @@ dev-build: dev-build-docs  dev-build-builtin-kegs dev-build-vite # Build for rel
 
 .PHONY: dev-publish-to-pypi
 dev-publish-to-pypi: dev-build # Publish to PyPi. Do NOT directly build and publish without the frozen wheel script
-	@~/.local/bin/uv publish
+	@twine upload dist/*
 
 .PHONY: dev-import-16_9_buttons
 dev-import-16_9_buttons: 

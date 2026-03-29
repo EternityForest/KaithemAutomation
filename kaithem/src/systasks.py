@@ -8,7 +8,6 @@ import socket
 import threading
 import time
 
-import quart
 import structlog
 from scullery import scheduling
 from zeroconf import ServiceBrowser, ServiceStateChange
@@ -81,18 +80,6 @@ pageviewpublishcountdown = 1
 nminutepagecount = 0
 
 logger = structlog.get_logger(__name__)
-
-
-# This gets called when an HTML request is made.
-def aPageJustLoaded():
-    global pageviewsthisminute
-    pageviewsthisminute = pageviewsthisminute + 1
-    if config["log_http"]:
-        messagebus.post_message(
-            "/system/http/access",
-            {"ip": quart.request.remote.ip, "req": quart.request.request_line},
-            synchronous=True,
-        )
 
 
 # Acessed by stuff outide this file
