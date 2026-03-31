@@ -63,7 +63,6 @@ export class TagpointComponent extends DashboardComponent {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async upd(data: any) {
-    console.log(data);
     this.value = data;
     this.requestUpdate();
     await this.sendData("value", this.value);
@@ -181,9 +180,9 @@ export class TagpointComponent extends DashboardComponent {
     if (!isNaN(Number(newValue)) && newValue !== "") {
       newValue = Number(newValue);
     }
+    this.pushData(newValue);
 
     this.value = newValue;
-
     doSerialized(() => this.sendData("value", this.value));
   }
 
