@@ -7,6 +7,7 @@ import "dashbeard/src/editor/components/dashboard-editor";
 import { KaithemBoardAPI } from "./kaithem-board-api";
 import { createEditor } from "dashbeard/src/index";
 import type { IBoardBackend } from "dashbeard/src/editor/types";
+import { TagpointComponent } from "./tag-point";
 
 /**
  * Extract module and resource names from URL path
@@ -37,13 +38,15 @@ async function initializeDashboardEditor(): Promise<void> {
     const backend: IBoardBackend = new KaithemBoardAPI(boardId);
 
     // Create editor instance
-    const editorObject = createEditor(appContainer, backend, true);
+    const editorObject = createEditor(appContainer, backend, true, {
+      components:[TagpointComponent]
+    });
 
     // Set up auto-save on dirty changes
     let saveTimeout: ReturnType<typeof setTimeout>;
     editorObject.editorState.isDirty.subscribe((isDirty: boolean) => {
       if (isDirty) {
-        // Debounce saves - wait 2 seconds after last change
+        // Debounce saves - wait 120 seconds after last change
         clearTimeout(saveTimeout);
         saveTimeout = setTimeout(async () => {
           const board = editorObject.editorState.board.get();
@@ -51,7 +54,7 @@ async function initializeDashboardEditor(): Promise<void> {
             await backend.save(board);
             editorObject.editorState.isDirty.set(false);
           }
-        }, 2000);
+        }, 120_000);
       }
     });
 

@@ -1,7 +1,3 @@
-// Source - https://stackoverflow.com/a
-// Posted by NetYogi
-// Retrieved 2026-01-13, License - CC BY-SA 4.0
-
 {
   "compilerOptions": {
     "target": "ESNext",
@@ -22,9 +18,9 @@
     "jsx": "react-jsx",
 
     "paths": {
-      "/static/js/*": ["./kaithem/src/js/*"] // Adjust to your actual folder structure
-    }
-  },
-  "include": ["src"],
-  "references": [{ "path": "./tsconfig.node.json" }]
+      "/static/js/*": ["./kaithem/src/js/*"]
+    },
+    "include": ["src"],
+    "references": [{ "path": "./tsconfig.node.json" }]
+  }
 }
