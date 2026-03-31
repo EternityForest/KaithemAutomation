@@ -805,7 +805,7 @@ header {
       flex-grow: 1;
       margin: 0px;
 
-      &:not(.highlight, .danger, .warning, .success, .tool-bar) {
+      &:not(.highlight, .danger, .warning, .success, .muted, .tool-bar) {
         --control-bg: none;
         --convex-item-bg: none;
       }
