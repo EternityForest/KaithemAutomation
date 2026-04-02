@@ -1,4 +1,3 @@
- 
 /**
  * Variable component - stores and outputs a value.
  */
@@ -34,6 +33,12 @@ export class TagpointComponent extends DashboardComponent {
           description: "The name of the tag point",
           default: "",
         },
+
+        visible: {
+          type: "boolean",
+          description: "Display in UI",
+          default: true,
+        },
       },
     },
   };
@@ -47,6 +52,9 @@ export class TagpointComponent extends DashboardComponent {
    * Display label.
    */
   @property() label: string = "Variable";
+
+
+  @property() visible: boolean = true;
 
   public tagParams: {
     min?: number;
@@ -171,7 +179,7 @@ export class TagpointComponent extends DashboardComponent {
     const config = this.componentConfig;
     if (config) {
       this.label = (config.config.label as string) || "Variable";
-
+      this.visible = (config.config.visible as boolean);
       this.register();
     }
     this.requestUpdate();
@@ -199,15 +207,15 @@ export class TagpointComponent extends DashboardComponent {
    */
   override render(): TemplateResult {
     return html`
-        <div class="small-dashboard-widget-container">
-            <label>${this.label}</label>
-            <input
-                type="text"
-                class="w-full"
-                .value="${String(this.value)}"
-                @change="${this.handleValueChange.bind(this)}"
-                placeholder="Enter value">
-        </div>
+      <div class="small-dashboard-widget-container">
+        <label>${this.label}</label>
+        <input
+          type="text"
+          class="w-full${this.visible?'':' hidden'}"
+          .value="${String(this.value)}"
+          @change="${this.handleValueChange.bind(this)}"
+          placeholder="Enter value" />
+      </div>
     `;
   }
 }
