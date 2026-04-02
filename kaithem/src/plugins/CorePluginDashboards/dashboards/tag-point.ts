@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/require-await */
+ 
 /**
  * Variable component - stores and outputs a value.
  */
@@ -55,6 +55,7 @@ export class TagpointComponent extends DashboardComponent {
     lo?: number;
     step?: number;
     unit?: number;
+    type?: string;
     subtype?: string;
     readonly?: boolean;
   } = {};
@@ -70,9 +71,9 @@ export class TagpointComponent extends DashboardComponent {
   async register() {
     const tagName: string = this.componentConfig.config.tag as string;
     if (this.prevTag.length > 0) {
-      kaithemapi.unsubscribe("tag:"+this.prevTag, this.boundSubscriber);
+      kaithemapi.unsubscribe("tag:" + this.prevTag, this.boundSubscriber);
     }
-    kaithemapi.subscribe("tag:"+tagName, this.boundSubscriber);
+    kaithemapi.subscribe("tag:" + tagName, this.boundSubscriber);
 
     this.prevTag = tagName;
     const url = "/tag_api/info" + tagName;
@@ -89,15 +90,36 @@ export class TagpointComponent extends DashboardComponent {
       }
     }
 
-    if (myArray.subtype) {
-      this.tagParams.subtype = myArray.subtype;
-    } else {
-      this.tagParams.subtype = "";
-    }
+    this.tagParams.subtype = myArray.subtype ? myArray.subtype : "";
     this.tagParams.readonly = !myArray.writePermission;
 
     this.value = myArray.lastVal;
 
+    let currentPort: Port | null = null;
+    try {
+      // Check if type changed - requires recreation with new port
+      currentPort = this.node.getOutputPort("value");
+    } catch {
+      //Pass
+    }
+    let newType: string = this.tagParams.type!;
+    if (this.tagParams.subtype) {
+      newType = newType + "." + this.tagParams.subtype;
+    }
+
+    if (currentPort) {
+      if (currentPort && currentPort.type !== newType) {
+        // Type changed - request recreation
+        this.requestRecreation().catch((error) => {
+          console.error("Failed to recreate tag component:", error);
+        });
+        return; // Don't update - component will be recreated
+      }
+    } else {
+      this.node
+        .addPort(new Port("value", newType, true))
+        .addDataHandler(this.onPortData.bind(this));
+    }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -116,7 +138,7 @@ export class TagpointComponent extends DashboardComponent {
     return this.value;
   }
   async close() {
-    kaithemapi.unsubscribe("tag:"+this.prevTag, this.boundSubscriber);
+    kaithemapi.unsubscribe("tag:" + this.prevTag, this.boundSubscriber);
   }
 
   constructor(config: ComponentConfig) {
@@ -124,9 +146,6 @@ export class TagpointComponent extends DashboardComponent {
 
     this.value = config.config.defaultValue ?? null;
 
-    this.node
-      .addPort(new Port("value", config.config.type as string, true))
-      .addDataHandler(this.onPortData.bind(this));
     this.onConfigUpdate();
     this.register();
   }
@@ -154,17 +173,6 @@ export class TagpointComponent extends DashboardComponent {
       this.label = (config.config.label as string) || "Variable";
 
       this.register();
-      // Check if type changed - requires recreation with new port
-      // const currentPort = this.node.getOutputPort("value");
-      // const newType = config.config.type as string;
-
-      // if (currentPort && currentPort.type !== newType) {
-      //   // Type changed - request recreation
-      //   this.requestRecreation().catch((err) => {
-      //     console.error("Failed to recreate tag component:", err);
-      //   });
-      //   return; // Don't update - component will be recreated
-      // }
     }
     this.requestUpdate();
   }
@@ -191,14 +199,15 @@ export class TagpointComponent extends DashboardComponent {
    */
   override render(): TemplateResult {
     return html`
-      <div class="small-dashboard-widget-container">
-        <label>${this.label}</label>
-        <input
-          type="text"
-          .value="${String(this.value)}"
-          @change="${this.handleValueChange.bind(this)}"
-          placeholder="Enter value" />
-      </div>
+        <div class="small-dashboard-widget-container">
+            <label>${this.label}</label>
+            <input
+                type="text"
+                class="w-full"
+                .value="${String(this.value)}"
+                @change="${this.handleValueChange.bind(this)}"
+                placeholder="Enter value">
+        </div>
     `;
   }
 }
