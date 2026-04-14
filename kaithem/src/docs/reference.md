@@ -255,7 +255,32 @@ Barrel.css uses these numbers for sizing.
 | 126 | 7E  | 01111110 | ~        |
 | 127 |     | 7F       | 01111111 | DEL |
 
+
+## Electromagnetic
+
+### Color Wavelengths
+
+| Color              | Wavelength(nm) |
+| ------------------ | -------------- |
+| Long Wave/Thermal  | 15000-8000     |
+| MWIR               | 8000-3000      |
+| SWIR               | 3000-1400      |
+| Near IR            | 1400-740       |
+| Red                | 780-625        |
+| Orange             | 625-590        |
+| Yellow             | 590-565        |
+| Green              | 565-500        |
+| Cyan               | 500-485        |
+| Blue               | 485-450        |
+| Purple             | 450-380        |
+| UVA                | 400-315        |
+| UVB                | 315-280        |
+| UVC                | 100-280        |
+| Vacuum ultraviolet | 10-200         |
+
+
 ## Notes and Frequencies(440hz tuning)
+
 | Name             | Frequency | MIDI note number |
 | ---------------- | --------- | ---------------- |
 | G9               | 12543.85  | 127              |
