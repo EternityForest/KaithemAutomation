@@ -1,21 +1,24 @@
-/**
- * Iframe source type implementation
- */
+// Iframe Source Type Implementation
 
-import type { Source } from "./source-type";
-import { SourceType, sourceTypeRegistry } from "./source-type";
+import { Source, SourceData, registerSourceType } from "./source-type";
 
-class IframeSourceType extends SourceType {
-  updateContent(container: HTMLElement, source: Source): void {
-    // Clear any existing content
-    if (container.children.length === 0) {
+export class IframeSource extends Source {
+  constructor(data: SourceData) {
+    super(data);
+  }
+
+  updateContent(container: HTMLElement): void {
+    // No unecessary refresh
+
+    if (!container.querySelector("iframe")) {
       const iframe = document.createElement("iframe");
       container.append(iframe);
-      iframe.sandbox.add("allow-same-origin", "allow-scripts", "allow-forms");
     }
+
     const iframe = container.querySelector("iframe")!;
-    if (iframe.src !== source.config.url) {
-      iframe.src = source.config.url || "";
+
+    if (iframe.src !== this.config.url || "") {
+      iframe.src = this.config.url || "";
     }
     iframe.style.border = "none";
     iframe.style.pointerEvents = "none";
@@ -23,17 +26,15 @@ class IframeSourceType extends SourceType {
     iframe.style.position = "absolute";
     iframe.style.top = "0";
     iframe.style.left = "0";
+
+    iframe.sandbox.add("allow-same-origin", "allow-scripts", "allow-forms");
   }
 
-  applyTransforms(
-    windowElement: HTMLElement,
-    source: Source,
-    getOpacityMultiplier: (sourceId: string) => number
-  ): void {
-    super.applyTransforms(windowElement, source, getOpacityMultiplier);
+  applyTransforms(windowElement: HTMLElement): void {
+    super.applyTransforms(windowElement);
 
     // Apply container sizing and cropping
-    const config = source.config || {};
+    const config = this.config || {};
     const container = windowElement.querySelector(
       ".window-container"
     ) as HTMLElement;
@@ -59,7 +60,6 @@ class IframeSourceType extends SourceType {
   }
 
   renderConfigUI(
-    source: Source,
     container: HTMLElement,
     onUpdate: (source: Source) => void
   ): void {
@@ -69,17 +69,17 @@ class IframeSourceType extends SourceType {
         <label>URL</label>
         <input type="text" id="source-url"
                placeholder="https://example.com"
-               value="${source.config.url || ""}">
+               value="${this.config.url || ""}">
       </div>
       <div class="form-group">
         <label>Window Size (px)</label>
         <div class="size-input-row">
           <input type="number" id="window-width"
                  placeholder="Width" min="1"
-                 value="${source.config.window_width || 800}">
+                 value="${this.config.window_width || 800}">
           <input type="number" id="window-height"
                  placeholder="Height" min="1"
-                 value="${source.config.window_height || 600}">
+                 value="${this.config.window_height || 600}">
         </div>
       </div>
       <div class="form-group">
@@ -87,10 +87,10 @@ class IframeSourceType extends SourceType {
         <div class="size-input-row">
           <input type="number" id="render-width"
                  placeholder="Width" min="1"
-                 value="${source.config.render_width || 800}">
+                 value="${this.config.render_width || 800}">
           <input type="number" id="render-height"
                  placeholder="Height" min="1"
-                 value="${source.config.render_height || 600}">
+                 value="${this.config.render_height || 600}">
         </div>
       </div>
       <div class="form-group">
@@ -98,10 +98,10 @@ class IframeSourceType extends SourceType {
         <div class="size-input-row">
           <input type="number" id="crop-x"
                  placeholder="X" min="0"
-                 value="${source.config.crop_x || 0}">
+                 value="${this.config.crop_x || 0}">
           <input type="number" id="crop-y"
                  placeholder="Y" min="0"
-                 value="${source.config.crop_y || 0}">
+                 value="${this.config.crop_y || 0}">
         </div>
       </div>
     `;
@@ -111,8 +111,8 @@ class IframeSourceType extends SourceType {
     ) as HTMLInputElement;
     if (sourceUrlInput) {
       sourceUrlInput.addEventListener("input", (event) => {
-        source.config.url = (event.target as HTMLInputElement).value;
-        onUpdate(source);
+        this.config.url = (event.target as HTMLInputElement).value;
+        onUpdate(this);
       });
     }
 
@@ -121,10 +121,10 @@ class IframeSourceType extends SourceType {
     ) as HTMLInputElement;
     if (windowWidthInput) {
       windowWidthInput.addEventListener("input", (event) => {
-        source.config.window_width = Number.parseInt(
+        this.config.window_width = Number.parseInt(
           (event.target as HTMLInputElement).value
         );
-        onUpdate(source);
+        onUpdate(this);
       });
     }
 
@@ -133,10 +133,10 @@ class IframeSourceType extends SourceType {
     ) as HTMLInputElement;
     if (windowHeightInput) {
       windowHeightInput.addEventListener("input", (event) => {
-        source.config.window_height = Number.parseInt(
+        this.config.window_height = Number.parseInt(
           (event.target as HTMLInputElement).value
         );
-        onUpdate(source);
+        onUpdate(this);
       });
     }
 
@@ -145,10 +145,10 @@ class IframeSourceType extends SourceType {
     ) as HTMLInputElement;
     if (renderWidthInput) {
       renderWidthInput.addEventListener("input", (event) => {
-        source.config.render_width = Number.parseInt(
+        this.config.render_width = Number.parseInt(
           (event.target as HTMLInputElement).value
         );
-        onUpdate(source);
+        onUpdate(this);
       });
     }
 
@@ -157,33 +157,34 @@ class IframeSourceType extends SourceType {
     ) as HTMLInputElement;
     if (renderHeightInput) {
       renderHeightInput.addEventListener("input", (event) => {
-        source.config.render_height = Number.parseInt(
+        this.config.render_height = Number.parseInt(
           (event.target as HTMLInputElement).value
         );
-        onUpdate(source);
+        onUpdate(this);
       });
     }
 
     const cropXInput = container.querySelector("#crop-x") as HTMLInputElement;
     if (cropXInput) {
       cropXInput.addEventListener("input", (event) => {
-        source.config.crop_x = Number.parseInt(
+        this.config.crop_x = Number.parseInt(
           (event.target as HTMLInputElement).value
         );
-        onUpdate(source);
+        onUpdate(this);
       });
     }
 
     const cropYInput = container.querySelector("#crop-y") as HTMLInputElement;
     if (cropYInput) {
       cropYInput.addEventListener("input", (event) => {
-        source.config.crop_y = Number.parseInt(
+        this.config.crop_y = Number.parseInt(
           (event.target as HTMLInputElement).value
         );
-        onUpdate(source);
+        onUpdate(this);
       });
     }
   }
 }
 
-sourceTypeRegistry["iframe"] = new IframeSourceType();
+// Register iframe source type
+registerSourceType("iframe", IframeSource);

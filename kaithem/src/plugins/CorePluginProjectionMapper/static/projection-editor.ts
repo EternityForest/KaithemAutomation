@@ -7,16 +7,21 @@
 import { LitElement, html, css } from "lit";
 import { kaithemapi } from "/static/js/widget.mjs";
 import { PerspT } from "./perspective-transform.mjs";
-
-import type { Source,Position, Corners,SourceConfig} from "./source-type";
-import { getSourceType } from "./source-type";
-import './iframe-source';
-
+import { createSourceAdapter } from "./source-type";
+import type {
+  Position,
+  Corners,
+  SourceConfig,
+  SourceTransform,
+  SourceData,
+  Source,
+} from "./source-type";
+import "./iframe-source";
 
 interface ProjectionData {
   title: string;
-  size?: { width: number; height: number };
-  sources: Source[];
+  size: { width: number; height: number };
+  sources: SourceData[];
 }
 
 class PositionFilter {
@@ -102,8 +107,6 @@ class PositionFilter {
     this.lastUpdateTime = null;
   }
 }
-
-
 
 class ProjectionEditor extends LitElement {
   static override styles = css`
@@ -441,7 +444,13 @@ class ProjectionEditor extends LitElement {
 
   canvasElement?: HTMLCanvasElement;
 
-  data: ProjectionData = { title: "", sources: [] };
+  sourceObjects: { [key: string]: Source } = {};
+
+  data: ProjectionData = {
+    title: "",
+    sources: [],
+    size: { width: 800, height: 600 },
+  };
   selectedSourceId: string | null = null;
   isDragging = false;
   draggingCorner: string | null = null;
@@ -468,7 +477,6 @@ class ProjectionEditor extends LitElement {
     string,
     { tag: string; callback: (value: number) => void }
   > = {};
-  private tagOpacityMultipliers: Record<string, number> = {};
 
   override connectedCallback(): void {
     super.connectedCallback();
@@ -488,8 +496,14 @@ class ProjectionEditor extends LitElement {
   ): void {
     this.module = module;
     this.resource = resource;
-    // Deep clone initial data
+
     this.data = structuredClone(initialData);
+    if (this.data.size == undefined) {
+      this.data.size = {
+        width: 800,
+        height: 600,
+      };
+    }
     this.requestUpdate();
 
     // Setup WebSocket and render preview after state is initialized
@@ -537,10 +551,10 @@ class ProjectionEditor extends LitElement {
     ) as HTMLCanvasElement;
 
     // Canvas is exactly the virtual screen size
-    this.canvasElement.width = w;
-    this.canvasElement.height = h;
-    this.canvasElement.style.width = `${w}px`;
-    this.canvasElement.style.height = `${h}px`;
+    this.canvasElement!.width = w;
+    this.canvasElement!.height = h;
+    this.canvasElement!.style.width = `${w}px`;
+    this.canvasElement!.style.height = `${h}px`;
 
     // Set preview-sources to same size
     const sources = this.shadowRoot?.querySelector(
@@ -592,8 +606,8 @@ class ProjectionEditor extends LitElement {
 
     // Apply scale to both canvas and sources
     const scaleStyle = `scale(${scale})`;
-    this.canvasElement.style.transform = scaleStyle;
-    this.canvasElement.style.transformOrigin = "0 0";
+    this.canvasElement!.style.transform = scaleStyle;
+    this.canvasElement!.style.transformOrigin = "0 0";
     if (sources) {
       sources.style.transform = scaleStyle;
       sources.style.transformOrigin = "0 0";
@@ -635,6 +649,15 @@ class ProjectionEditor extends LitElement {
     return { x, y };
   }
 
+  private getSourceObject(sourceData: SourceData) {
+    if (this.sourceObjects[sourceData.id] === undefined) {
+      const sourceAdapter = createSourceAdapter(sourceData);
+
+      this.sourceObjects[sourceData.id] = sourceAdapter;
+    }
+    return this.sourceObjects[sourceData.id];
+  }
+
   private renderPreview(): void {
     const sourcesContainer = this.shadowRoot?.querySelector(
       "#preview-sources"
@@ -646,35 +669,32 @@ class ProjectionEditor extends LitElement {
       sourcesContainer.innerHTML = "";
     }
 
-    for (const source of this.data.sources) {
-      if (!source.visible) continue;
-
-      const sourceType = getSourceType(source.type);
-
+    for (const sourceData of this.data.sources) {
+      if (!sourceData.visible) continue;
       // Reuse existing window if present
-      if (this.previewWindows[source.id]) {
-        sourceType.updateContent(
-          this.previewWindows[source.id].querySelector(
+      const sourceAdapter = this.getSourceObject(sourceData);
+
+      if (this.previewWindows[sourceData.id]) {
+        sourceAdapter.updateContent(
+          this.previewWindows[sourceData.id].querySelector(
             ".window-container"
-          ) as HTMLElement,
-          source
+          ) as HTMLElement
         );
-        this.updatePreviewTransform(source);
+        this.updatePreviewTransform(sourceData);
         continue;
       }
 
       // Create new preview window
-      const { window: window_, container } = sourceType.createPreviewElements();
-      window_.id = `window-${source.id}`;
-      window_.dataset.sourceId = source.id;
+      const { window: window_, container } =
+        sourceAdapter.createPreviewElements();
+      window_.id = `window-${sourceData.id}`;
+      window_.dataset.sourceId = sourceData.id;
 
-      sourceType.updateContent(container, source);
-      sourceType.applyTransforms(window_, source, (sourceId) =>
-        this.getOpacityMultiplier(sourceId)
-      );
+      sourceAdapter.updateContent(container);
+      sourceAdapter.applyTransforms(window_);
 
       sourcesContainer.append(window_);
-      this.previewWindows[source.id] = window_;
+      this.previewWindows[sourceData.id] = window_;
     }
 
     // Auto-select first source if none selected
@@ -685,16 +705,16 @@ class ProjectionEditor extends LitElement {
     this.drawCornerHandles();
   }
 
-  private updatePreviewTransform(source: Source): void {
+  private updatePreviewTransform(sourceData: SourceData): void {
     // Smoothly update just the transform without recreating DOM
-    if (!this.previewWindows[source.id]) return;
+    if (!this.previewWindows[sourceData.id]) return;
 
-    const element = this.previewWindows[source.id];
-    const sourceType = getSourceType(source.type);
+    const element = this.previewWindows[sourceData.id];
+    const sourceAdapter = this.getSourceObject(sourceData);
 
     // Apply perspective matrix if corners are available
-    const transform = source.transform || {};
-    const config = source.config || {};
+    const transform = sourceData.transform || {};
+    const config = sourceData.config || {};
     const corners = transform.corners;
 
     if (corners) {
@@ -711,14 +731,8 @@ class ProjectionEditor extends LitElement {
       element.style.transform = "none";
     }
 
-    // Let source type handle its specific transforms
-    sourceType.applyTransforms(element, source, (sourceId) =>
-      this.getOpacityMultiplier(sourceId)
-    );
-  }
-
-  private getOpacityMultiplier(sourceId: string): number {
-    return this.tagOpacityMultipliers[sourceId] ?? 1;
+    // Let source handle its specific transforms
+    sourceAdapter.applyTransforms(element);
   }
 
   private calculatePerspectiveMatrix(
@@ -855,14 +869,11 @@ class ProjectionEditor extends LitElement {
         "#size-width"
       ) as HTMLInputElement;
       sizeWidth?.addEventListener("input", (event_) => {
-        if (this.data.size === 0 || this.data.size === 0) {
-          this.data.size = { width: 0, height: 0 };
-        }
         this.data.size.width = Number.parseInt(
           (event_.target as HTMLInputElement).value
         );
-        this.canvasElement.width = this.data.size.width;
-        this.canvasElement.style.width = `${this.data.size.width}px`;
+        this.canvasElement!.width = this.data.size.width;
+        this.canvasElement!.style.width = `${this.data.size.width}px`;
         const sources = this.shadowRoot?.querySelector(
           "#preview-sources"
         ) as HTMLElement;
@@ -875,14 +886,14 @@ class ProjectionEditor extends LitElement {
         "#size-height"
       ) as HTMLInputElement;
       sizeHeight?.addEventListener("input", (event_) => {
-        if (this.data.size === 0 || this.data.size === 0) {
-          this.data.size = { width: 0, height: 0 };
-        }
+        // if (this.data.size === 0 || this.data.size === 0) {
+        //   this.data.size = { width: 0, height: 0 };
+        // }
         this.data.size.height = Number.parseInt(
           (event_.target as HTMLInputElement).value
         );
-        this.canvasElement.height = this.data.size.height;
-        this.canvasElement.style.height = `${this.data.size.height}px`;
+        this.canvasElement!.height = this.data.size.height;
+        this.canvasElement!.style.height = `${this.data.size.height}px`;
         const sources = this.shadowRoot?.querySelector(
           "#preview-sources"
         ) as HTMLElement;
@@ -986,36 +997,36 @@ class ProjectionEditor extends LitElement {
     }
 
     // Canvas interactions (always available)
-    this.canvasElement.addEventListener("mousedown", (event_) =>
+    this.canvasElement!.addEventListener("mousedown", (event_) =>
       this.onCanvasMouseDown(event_)
     );
-    this.canvasElement.addEventListener("mousemove", (event_) =>
+    this.canvasElement!.addEventListener("mousemove", (event_) =>
       this.onCanvasMouseMove(event_)
     );
-    this.canvasElement.addEventListener("mouseup", () =>
+    this.canvasElement!.addEventListener("mouseup", () =>
       this.onCanvasMouseUp()
     );
 
-    this.canvasElement.addEventListener("mouseleave", () =>
+    this.canvasElement!.addEventListener("mouseleave", () =>
       this.onCanvasMouseUp()
     );
 
     // Touch events
-    this.canvasElement.addEventListener("touchstart", (event_) =>
+    this.canvasElement!.addEventListener("touchstart", (event_) =>
       this.onCanvasTouchStart(event_)
     );
-    this.canvasElement.addEventListener("touchmove", (event_) =>
+    this.canvasElement!.addEventListener("touchmove", (event_) =>
       this.onCanvasTouchMove(event_)
     );
-    this.canvasElement.addEventListener("touchend", () =>
+    this.canvasElement!.addEventListener("touchend", () =>
       this.onCanvasTouchEnd()
     );
 
-    this.canvasElement.addEventListener("touchcancel", () =>
+    this.canvasElement!.addEventListener("touchcancel", () =>
       this.onCanvasTouchEnd()
     );
 
-    this.canvasElement.addEventListener("touchleave", () => {
+    this.canvasElement!.addEventListener("touchleave", () => {
       this.onCanvasTouchEnd();
     });
   }
@@ -1102,7 +1113,7 @@ class ProjectionEditor extends LitElement {
       clientX: touch.clientX,
       clientY: touch.clientY,
     });
-    this.canvasElement.dispatchEvent(mouseEvent);
+    this.canvasElement!.dispatchEvent(mouseEvent);
   }
 
   private onCanvasTouchMove(event_: TouchEvent): void {
@@ -1112,12 +1123,12 @@ class ProjectionEditor extends LitElement {
       clientX: touch.clientX,
       clientY: touch.clientY,
     });
-    this.canvasElement.dispatchEvent(mouseEvent);
+    this.canvasElement!.dispatchEvent(mouseEvent);
   }
 
   private onCanvasTouchEnd(): void {
     const mouseEvent = new MouseEvent("mouseup");
-    this.canvasElement.dispatchEvent(mouseEvent);
+    this.canvasElement!.dispatchEvent(mouseEvent);
   }
 
   private checkCornerClick(event_: MouseEvent): void {
@@ -1146,7 +1157,10 @@ class ProjectionEditor extends LitElement {
     }
   }
 
-  private broadcastTransform(source: Source | undefined, force = false): void {
+  private broadcastTransform(
+    source: SourceData | undefined,
+    force = false
+  ): void {
     if (!source || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
       return;
     }
@@ -1163,7 +1177,7 @@ class ProjectionEditor extends LitElement {
     );
   }
 
-  private broadcastOpacity(source: Source): void {
+  private broadcastOpacity(source: SourceData): void {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       return;
     }
@@ -1211,9 +1225,9 @@ class ProjectionEditor extends LitElement {
 
     // Update subscriptions for existing sources
     for (const source of this.data.sources) {
-      const sourceType = getSourceType(source.type);
-      sourceType.updateSubscriptions(
-        source,
+      const sourceAdapter = this.getSourceObject(source);
+
+      sourceAdapter.updateSubscriptions(
         (sourceId, tagName) => this.subscribeTag(sourceId, tagName),
         (sourceId) => this.unsubscribeTag(sourceId)
       );
@@ -1223,31 +1237,28 @@ class ProjectionEditor extends LitElement {
   private subscribeTag(sourceId: string, tagName: string): void {
     // Ensure tag: prefix
     const fullTag = tagName.startsWith("tag:") ? tagName : `tag:${tagName}`;
-
     const infourl = "/tag_api/info" + tagName;
 
-    // Get current value at start with a request
+    const source = this.data.sources.find((s) => s.id === sourceId);
+    if (!source) return;
 
+    const sourceObject = this.getSourceObject(source);
+
+    // Fetch initial tag value
     fetch(infourl)
       .then((response) => response.json())
       .then((data) => {
-        this.tagOpacityMultipliers[sourceId] = data.value;
-        const source = this.data.sources.find((s) => s.id === sourceId);
-        if (source) {
-          this.updatePreviewTransform(source);
-        }
+        sourceObject.handleTagUpdate("opacity_tag", data.value);
+        this.renderPreview();
       });
 
+    // Subscribe to future updates
     const callback = (value: number) => {
-      this.tagOpacityMultipliers[sourceId] = value;
-      const source = this.data.sources.find((s) => s.id === sourceId);
-      if (source) {
-        this.updatePreviewTransform(source);
-      }
+      sourceObject.handleTagUpdate("opacity_tag", value);
+      this.renderPreview();
     };
 
     this.tagSubscriptions[sourceId] = { tag: fullTag, callback };
-    this.tagOpacityMultipliers[sourceId] = 1;
     kaithemapi.subscribe(fullTag, callback);
   }
 
@@ -1256,7 +1267,6 @@ class ProjectionEditor extends LitElement {
     if (sub) {
       kaithemapi.unsubscribe(sub.tag, sub.callback);
       delete this.tagSubscriptions[sourceId];
-      delete this.tagOpacityMultipliers[sourceId];
     }
   }
 
@@ -1314,7 +1324,7 @@ class ProjectionEditor extends LitElement {
     this.renderPreview();
   }
 
-  private getSelectedSource(): Source | undefined {
+  private getSelectedSource(): SourceData | undefined {
     return this.data.sources.find((s) => s.id === this.selectedSourceId);
   }
 
@@ -1445,23 +1455,26 @@ class ProjectionEditor extends LitElement {
     const name = prompt("Source name:");
     if (!name) return;
 
-    const source: Source = {
-      id: this.generateId(),
-      name,
-      type: sourceType,
-      config: this.getDefaultConfig(sourceType),
-      transform: {
-        corners: this.getDefaultCorners(),
-        opacity: 1,
-        opacity_tag: "",
-        blend_mode: "normal",
-        rotation: 0,
-      },
-      visible: true,
+    const id = this.generateId();
+    const config = this.getDefaultConfig(sourceType);
+    const transform: SourceTransform = {
+      corners: this.getDefaultCorners(),
+      opacity: 1,
+      opacity_tag: "",
+      blend_mode: "normal",
+      rotation: 0,
     };
 
-    this.data.sources.push(source);
-    this.selectSource(source.id);
+    const sourceData: SourceData = {
+      id,
+      name,
+      type: sourceType,
+      config,
+      transform,
+      visible: true,
+    };
+    this.data.sources.push(sourceData);
+    this.selectSource(id);
     this.updateSourcesList();
     this.renderPreview();
   }
@@ -1486,18 +1499,19 @@ class ProjectionEditor extends LitElement {
   }
 
   private renderSourceTypeSpecificOptions(): void {
-    const source = this.getSelectedSource();
-    if (!source) return;
+    const sourceData = this.getSelectedSource();
+    if (!sourceData) return;
 
     const configSection = this.shadowRoot?.querySelector(
       "#source-config-section"
     ) as HTMLElement;
     if (!configSection) return;
 
-    const sourceType = getSourceType(source.type);
+    const sourceAdapter = this.getSourceObject(sourceData);
     configSection.innerHTML = "";
-    sourceType.renderConfigUI(source, configSection, (updatedSource) => {
-      this.updatePreviewTransform(updatedSource);
+    sourceAdapter.renderConfigUI(configSection, (adapter) => {
+      this.updatePreviewTransform(sourceData);
+      this.renderPreview();
     });
     configSection.style.display = "block";
   }
@@ -1522,6 +1536,7 @@ class ProjectionEditor extends LitElement {
       }
     }
 
+    delete this.sourceObjects[sourceId];
     this.updateSourcesList();
     this.renderPreview();
   }
@@ -1577,206 +1592,185 @@ class ProjectionEditor extends LitElement {
     if (this.isViewerMode) {
       return html`
         <div class="projection-editor viewer-mode">
-            <div class="editor-canvas-area viewer-mode" style="width: 100%; height: 100vh; overflow: hidden;">
-                <canvas id="preview-canvas"></canvas>
-                <div id="preview-sources"></div>
-            </div>
+          <div
+            class="editor-canvas-area viewer-mode"
+            style="width: 100%; height: 100vh; overflow: hidden;">
+            <canvas id="preview-canvas"></canvas>
+            <div id="preview-sources"></div>
+          </div>
         </div>
       `;
     }
 
     return html`
-        <div class="projection-editor" id="projection-editor">
-            <div class="editor-toolbar">
-                <h2>${this.data.title}</h2>
-                <button id="save-btn" class="btn btn-primary">Save</button>
-            </div>
+      <div class="projection-editor" id="projection-editor">
+        <div class="editor-toolbar">
+          <h2>${this.data.title}</h2>
+          <button id="save-btn" class="btn btn-primary">Save</button>
+        </div>
 
-            <div class="editor-main">
-                <div class="editor-canvas-area">
-                    <canvas id="preview-canvas"></canvas>
-                    <div id="preview-sources"></div>
-                </div>
+        <div class="editor-main">
+          <div class="editor-canvas-area">
+            <canvas id="preview-canvas"></canvas>
+            <div id="preview-sources"></div>
+          </div>
 
-                <div class="editor-sidebar">
-                    <div class="sidebar-section">
-                        <h3>Sources</h3>
-                        <button id="add-source-btn" class="btn btn-sm">
-                            + Add Source
-                        </button>
-                        <div id="sources-list" class="sources-list">
-      ${this.data.sources.map(
+          <div class="editor-sidebar">
+            <div class="sidebar-section">
+              <h3>Sources</h3>
+              <button id="add-source-btn" class="btn btn-sm">
+                + Add Source
+              </button>
+              <div id="sources-list" class="sources-list">
+                ${this.data.sources.map(
                   (source) => html`
-                    <div class="source-item ${source.id === this.selectedSourceId
+                    <div
+                      class="source-item ${source.id === this.selectedSourceId
                         ? "selected"
-                        : ""}" @click>
-                        <div class="source-item-content">
-                            <span>${source.name}</span>
-                            <button class="btn-small del-source" @click="${(event: MouseEvent) => {
+                        : ""}"
+                      @click>
+                      <div class="source-item-content">
+                        <span>${source.name}</span>
+                        <button
+                          class="btn-small del-source"
+                          @click="${(event: MouseEvent) => {
                             event.stopPropagation();
                             this.deleteSource(source.id);
                           }}">
-                                Delete
-                            </button>
-                        </div>
+                          Delete
+                        </button>
+                      </div>
                     </div>
                   `
                 )}
-                        </div>
-                    </div>
-
-                    <div class="sidebar-section" id="size-section">
-                        <h3>Projection Size</h3>
-                        <div class="form-group">
-                            <label>Width (px)</label>
-                            <input
-                                type="number"
-                                id="size-width"
-                                min="320"
-                                value="1920"
-                            >
-                        </div>
-                        <div class="form-group">
-                            <label>Height (px)</label>
-                            <input
-                                type="number"
-                                id="size-height"
-                                min="240"
-                                value="1080"
-                            >
-                        </div>
-                    </div>
-
-                    <div
-                        class="sidebar-section"
-                        id="transform-section"
-                        style="display: none;"
-                    >
-                        <h3>Transform</h3>
-                        <div class="form-group">
-                            <label>Opacity</label>
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <input
-                                    type="range"
-                                    id="opacity"
-                                    min="0"
-                                    max="1"
-                                    step="0.01"
-                                    value="1"
-                                    style="flex: 1;"
-                                >
-                                <span id="opacity-val">1.00</span>
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Opacity Tag (optional)</label>
-                            <input
-                                type="text"
-                                id="opacity-tag"
-                                placeholder="/path/to/tag"
-                                list="available-tags"
-                            >
-                            <datalist id="available-tags"></datalist>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Blend Mode</label>
-                            <select id="blend-mode">
-                                <option value="normal">Normal</option>
-                                <option value="multiply">Multiply</option>
-                                <option value="screen">Screen</option>
-                                <option value="overlay">Overlay</option>
-                                <option value="darken">Darken</option>
-                                <option value="lighten">Lighten</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Rotation (deg)</label>
-                            <input
-                                type="number"
-                                id="rotation"
-                                value="0"
-                                step="1"
-                            >
-                        </div>
-
-                        <div class="form-group">
-                            <h4>Corner Points</h4>
-                            <div class="corners-grid">
-                                <div>
-                                    <label>Top-Left</label>
-                                    <input
-                                        type="number"
-                                        class="corner-x"
-                                        data-corner="tl"
-                                        placeholder="X"
-                                    >
-                                    <input
-                                        type="number"
-                                        class="corner-y"
-                                        data-corner="tl"
-                                        placeholder="Y"
-                                    >
-                                </div>
-                                <div>
-                                    <label>Top-Right</label>
-                                    <input
-                                        type="number"
-                                        class="corner-x"
-                                        data-corner="tr"
-                                        placeholder="X"
-                                    >
-                                    <input
-                                        type="number"
-                                        class="corner-y"
-                                        data-corner="tr"
-                                        placeholder="Y"
-                                    >
-                                </div>
-                                <div>
-                                    <label>Bottom-Left</label>
-                                    <input
-                                        type="number"
-                                        class="corner-x"
-                                        data-corner="bl"
-                                        placeholder="X"
-                                    >
-                                    <input
-                                        type="number"
-                                        class="corner-y"
-                                        data-corner="bl"
-                                        placeholder="Y"
-                                    >
-                                </div>
-                                <div>
-                                    <label>Bottom-Right</label>
-                                    <input
-                                        type="number"
-                                        class="corner-x"
-                                        data-corner="br"
-                                        placeholder="X"
-                                    >
-                                    <input
-                                        type="number"
-                                        class="corner-y"
-                                        data-corner="br"
-                                        placeholder="Y"
-                                    >
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div
-                        class="sidebar-section"
-                        id="source-config-section"
-                        style="display: none;"
-                    ></div>
-                </div>
+              </div>
             </div>
+
+            <div class="sidebar-section" id="size-section">
+              <h3>Projection Size</h3>
+              <div class="form-group">
+                <label>Width (px)</label>
+                <input type="number" id="size-width" min="320" value="1920" />
+              </div>
+              <div class="form-group">
+                <label>Height (px)</label>
+                <input type="number" id="size-height" min="240" value="1080" />
+              </div>
+            </div>
+
+            <div
+              class="sidebar-section"
+              id="transform-section"
+              style="display: none;">
+              <h3>Transform</h3>
+              <div class="form-group">
+                <label>Opacity</label>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <input
+                    type="range"
+                    id="opacity"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    value="1"
+                    style="flex: 1;" />
+                  <span id="opacity-val">1.00</span>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>Opacity Tag (optional)</label>
+                <input
+                  type="text"
+                  id="opacity-tag"
+                  placeholder="/path/to/tag"
+                  list="available-tags" />
+                <datalist id="available-tags"></datalist>
+              </div>
+
+              <div class="form-group">
+                <label>Blend Mode</label>
+                <select id="blend-mode">
+                  <option value="normal">Normal</option>
+                  <option value="multiply">Multiply</option>
+                  <option value="screen">Screen</option>
+                  <option value="overlay">Overlay</option>
+                  <option value="darken">Darken</option>
+                  <option value="lighten">Lighten</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Rotation (deg)</label>
+                <input type="number" id="rotation" value="0" step="1" />
+              </div>
+
+              <div class="form-group">
+                <h4>Corner Points</h4>
+                <div class="corners-grid">
+                  <div>
+                    <label>Top-Left</label>
+                    <input
+                      type="number"
+                      class="corner-x"
+                      data-corner="tl"
+                      placeholder="X" />
+                    <input
+                      type="number"
+                      class="corner-y"
+                      data-corner="tl"
+                      placeholder="Y" />
+                  </div>
+                  <div>
+                    <label>Top-Right</label>
+                    <input
+                      type="number"
+                      class="corner-x"
+                      data-corner="tr"
+                      placeholder="X" />
+                    <input
+                      type="number"
+                      class="corner-y"
+                      data-corner="tr"
+                      placeholder="Y" />
+                  </div>
+                  <div>
+                    <label>Bottom-Left</label>
+                    <input
+                      type="number"
+                      class="corner-x"
+                      data-corner="bl"
+                      placeholder="X" />
+                    <input
+                      type="number"
+                      class="corner-y"
+                      data-corner="bl"
+                      placeholder="Y" />
+                  </div>
+                  <div>
+                    <label>Bottom-Right</label>
+                    <input
+                      type="number"
+                      class="corner-x"
+                      data-corner="br"
+                      placeholder="X" />
+                    <input
+                      type="number"
+                      class="corner-y"
+                      data-corner="br"
+                      placeholder="Y" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div
+              class="sidebar-section"
+              id="source-config-section"
+              style="display: none;"></div>
+          </div>
         </div>
+      </div>
     `;
   }
 }
