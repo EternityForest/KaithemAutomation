@@ -59,6 +59,10 @@ export default defineConfig({
           __dirname,
           "kaithem/src/plugins/CorePluginJackMixer/next/index.html"
         ),
+        projectionmapper: resolve(
+          __dirname,
+          "kaithem/src/plugins/CorePluginProjectionMapper/html/editor.html"
+        ),
       },
       output: {
         assetFileNames: "assets/[name]-[hash][extname]",

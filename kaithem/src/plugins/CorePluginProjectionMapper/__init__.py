@@ -205,24 +205,14 @@ modules_state.resource_types["projection_mapper"] = _projection_mapper_type
 async def editor_page(module: str, resource: str):
     """Authenticated projection mapper editor"""
 
+    edit = "false"
+
     if "/viewer/" not in quart.request.url:
         pages.require("system_admin")
+        edit = "true"
 
-    # Load the resource
-    try:
-        data = modules_state.ActiveModules[module][resource]
-    except (KeyError, TypeError):
-        return "Resource not found", 404
-
-    template_path = os.path.join(plugin_dir, "html", "editor.html")
-    with open(template_path) as f:
-        template_content = f.read()
-
-    return await quart.render_template_string(
-        template_content,
-        module=module,
-        resource=resource,
-        data=json.dumps(data),
+    return quart.redirect(
+        f"/static/vite/kaithem/src/plugins/CorePluginProjectionMapper/html/editor.html?module={module}&resource={resource}&edit={edit}"
     )
 
 
@@ -343,12 +333,3 @@ async def ws_transform_sync(module: str, resource: str):
 
         if key in _websocket_connections and not (_websocket_connections[key]):
             del _websocket_connections[key]
-
-
-@quart_app.app.route("/projection-mapper/static/<path:path>")
-async def static_files(path: str):
-    """Serve static assets for projection mapper"""
-    try:
-        return await quart.send_file(os.path.join(plugin_dir, "static", path))
-    except FileNotFoundError:
-        return "Not found", 404
