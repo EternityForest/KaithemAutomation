@@ -73,6 +73,8 @@ export class IframeSource extends Source {
       </div>
       <div class="form-group">
         <label>Window Size (px)</label>
+        <p>The window size is the cropped region
+        of the rendered page to show</p>
         <div class="size-input-row">
           <input type="number" id="window-width"
                  placeholder="Width" min="1"
@@ -84,6 +86,8 @@ export class IframeSource extends Source {
       </div>
       <div class="form-group">
         <label>Render Size (px)</label>
+        <p>The page is initially shown in the
+        render size, then cropped to the window size</p>
         <div class="size-input-row">
           <input type="number" id="render-width"
                  placeholder="Width" min="1"
