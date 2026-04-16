@@ -8,45 +8,10 @@ import { LitElement, html, css } from "lit";
 import { kaithemapi } from "/static/js/widget.mjs";
 import { PerspT } from "./perspective-transform.mjs";
 
-interface Position {
-  x: number;
-  y: number;
-}
+import type { Source,Position, Corners,SourceConfig} from "./source-type";
+import { getSourceType } from "./source-type";
+import './iframe-source';
 
-interface Corners {
-  tl: Position;
-  tr: Position;
-  bl: Position;
-  br: Position;
-}
-
-interface SourceTransform {
-  corners?: Corners;
-  opacity?: number;
-  opacity_tag?: string;
-  blend_mode?: string;
-  rotation?: number;
-}
-
-interface SourceConfig {
-  url?: string;
-  window_width?: number;
-  window_height?: number;
-  render_width?: number;
-  render_height?: number;
-  crop_x?: number;
-  crop_y?: number;
-  source_id?: string;
-}
-
-interface Source {
-  id: string;
-  name: string;
-  type: string;
-  config: SourceConfig;
-  transform: SourceTransform;
-  visible: boolean;
-}
 
 interface ProjectionData {
   title: string;
@@ -137,6 +102,8 @@ class PositionFilter {
     this.lastUpdateTime = null;
   }
 }
+
+
 
 class ProjectionEditor extends LitElement {
   static override styles = css`
@@ -682,41 +649,32 @@ class ProjectionEditor extends LitElement {
     for (const source of this.data.sources) {
       if (!source.visible) continue;
 
-      if (source.type === "iframe") {
-        // Reuse existing window if present
-        if (this.previewWindows[source.id]) {
-          this.applyWindowTransform(this.previewWindows[source.id], source);
-          continue;
-        }
+      const sourceType = getSourceType(source.type);
 
-        const window_ = document.createElement("div");
-        window_.className = "preview-window";
-        window_.id = `window-${source.id}`;
-        window_.dataset.sourceId = source.id;
-
-        const container = document.createElement("div");
-        container.className = "window-container";
-        container.style.position = "relative";
-        container.style.overflow = "hidden";
-
-        const iframe = document.createElement("iframe");
-        iframe.src = source.config.url || "";
-        iframe.style.border = "none";
-        iframe.style.pointerEvents = "none";
-        iframe.style.display = "block";
-        iframe.style.position = "absolute";
-        iframe.style.top = "0";
-        iframe.style.left = "0";
-
-        iframe.sandbox.add("allow-same-origin", "allow-scripts", "allow-forms");
-
-        container.append(iframe);
-        window_.append(container);
-
-        this.applyWindowTransform(window_, source);
-        sourcesContainer.append(window_);
-        this.previewWindows[source.id] = window_;
+      // Reuse existing window if present
+      if (this.previewWindows[source.id]) {
+        sourceType.updateContent(
+          this.previewWindows[source.id].querySelector(
+            ".window-container"
+          ) as HTMLElement,
+          source
+        );
+        this.updatePreviewTransform(source);
+        continue;
       }
+
+      // Create new preview window
+      const { window: window_, container } = sourceType.createPreviewElements();
+      window_.id = `window-${source.id}`;
+      window_.dataset.sourceId = source.id;
+
+      sourceType.updateContent(container, source);
+      sourceType.applyTransforms(window_, source, (sourceId) =>
+        this.getOpacityMultiplier(sourceId)
+      );
+
+      sourcesContainer.append(window_);
+      this.previewWindows[source.id] = window_;
     }
 
     // Auto-select first source if none selected
@@ -727,25 +685,21 @@ class ProjectionEditor extends LitElement {
     this.drawCornerHandles();
   }
 
-  private applyWindowTransform(element: HTMLElement, source: Source): void {
-    const config = source.config || {};
+  private updatePreviewTransform(source: Source): void {
+    // Smoothly update just the transform without recreating DOM
+    if (!this.previewWindows[source.id]) return;
+
+    const element = this.previewWindows[source.id];
+    const sourceType = getSourceType(source.type);
+
+    // Apply perspective matrix if corners are available
     const transform = source.transform || {};
+    const config = source.config || {};
     const corners = transform.corners;
 
-    element.style.position = "absolute";
-
-    // Apply window size
-    const windowWidth = config.window_width || 800;
-    const windowHeight = config.window_height || 600;
-    element.style.width = `${windowWidth}px`;
-    element.style.height = `${windowHeight}px`;
-
-    // Apply window position (from corners if available)
     if (corners) {
-      // Use top-left corner as position
-      element.style.left = `${corners.tl.x}px`;
-      element.style.top = `${corners.tl.y}px`;
-
+      const windowWidth = config.window_width || 800;
+      const windowHeight = config.window_height || 600;
       const matrix = this.calculatePerspectiveMatrix(
         corners,
         windowWidth,
@@ -754,48 +708,17 @@ class ProjectionEditor extends LitElement {
       element.style.transformOrigin = "0 0";
       element.style.transform = `matrix3d(${matrix.join(",")})`;
     } else {
-      element.style.left = "0";
-      element.style.top = "0";
+      element.style.transform = "none";
     }
 
-    if (transform.opacity !== undefined) {
-      const manualOpacity = transform.opacity;
-      const tagMultiplier = this.tagOpacityMultipliers[source.id] ?? 1;
-      const finalOpacity = manualOpacity * tagMultiplier;
-      element.style.opacity = finalOpacity.toString();
-    }
-
-    if (transform.blend_mode) {
-      element.style.mixBlendMode = transform.blend_mode;
-    }
-
-    // Apply container sizing and cropping
-    const container = element.querySelector(".window-container") as HTMLElement;
-    if (container) {
-      const renderWidth = config.render_width || windowWidth;
-      const renderHeight = config.render_height || windowHeight;
-      const cropX = config.crop_x || 0;
-      const cropY = config.crop_y || 0;
-
-      container.style.width = `${windowWidth}px`;
-      container.style.height = `${windowHeight}px`;
-
-      const iframe = container.querySelector("iframe") as HTMLIFrameElement;
-      if (iframe) {
-        iframe.style.width = `${renderWidth}px`;
-        iframe.style.height = `${renderHeight}px`;
-        iframe.style.left = `${-cropX}px`;
-        iframe.style.top = `${-cropY}px`;
-      }
-    }
+    // Let source type handle its specific transforms
+    sourceType.applyTransforms(element, source, (sourceId) =>
+      this.getOpacityMultiplier(sourceId)
+    );
   }
 
-  private updatePreviewTransform(source: Source): void {
-    // Smoothly update just the transform without recreating DOM
-    if (!this.previewWindows[source.id]) return;
-
-    const element = this.previewWindows[source.id];
-    this.applyWindowTransform(element, source);
+  private getOpacityMultiplier(sourceId: string): number {
+    return this.tagOpacityMultipliers[sourceId] ?? 1;
   }
 
   private calculatePerspectiveMatrix(
@@ -1286,22 +1209,14 @@ class ProjectionEditor extends LitElement {
       }
     }
 
-    // Subscribe/update active sources
+    // Update subscriptions for existing sources
     for (const source of this.data.sources) {
-      const tag = source.transform?.opacity_tag?.trim();
-      const existing = this.tagSubscriptions[source.id];
-
-      if (!tag) {
-        // Remove subscription if tag cleared
-        if (existing) this.unsubscribeTag(source.id);
-        continue;
-      }
-
-      // Subscribe if new or tag changed
-      if (!existing || existing.tag !== tag) {
-        if (existing) this.unsubscribeTag(source.id);
-        this.subscribeTag(source.id, tag);
-      }
+      const sourceType = getSourceType(source.type);
+      sourceType.updateSubscriptions(
+        source,
+        (sourceId, tagName) => this.subscribeTag(sourceId, tagName),
+        (sourceId) => this.unsubscribeTag(sourceId)
+      );
     }
   }
 
@@ -1579,155 +1494,12 @@ class ProjectionEditor extends LitElement {
     ) as HTMLElement;
     if (!configSection) return;
 
-    // Router function - delegates to type-specific renderer
-    const renderer =
-      (this as any)[`renderSourceOptions_${source.type}`] ||
-      this.renderSourceOptions_default;
-
+    const sourceType = getSourceType(source.type);
     configSection.innerHTML = "";
-    renderer.call(this, source, configSection);
+    sourceType.renderConfigUI(source, configSection, (updatedSource) => {
+      this.updatePreviewTransform(updatedSource);
+    });
     configSection.style.display = "block";
-  }
-
-  private renderSourceOptions_default(
-    source: Source,
-    container: HTMLElement
-  ): void {
-    container.innerHTML = `<h3>Source Config</h3>
-       <p>No configuration available for
-       source type: ${source.type}</p>`;
-  }
-
-  private renderSourceOptions_iframe(
-    source: Source,
-    container: HTMLElement
-  ): void {
-    container.innerHTML = `
-      <h3>Source Config</h3>
-      <div class="form-group">
-        <label>URL</label>
-        <input type="text" id="source-url"
-               placeholder="https://example.com"
-               value="${source.config.url || ""}">
-      </div>
-      <div class="form-group">
-        <label>Window Size (px)</label>
-        <div class="size-input-row">
-          <input type="number" id="window-width"
-                 placeholder="Width" min="1"
-                 value="${source.config.window_width || 800}">
-          <input type="number" id="window-height"
-                 placeholder="Height" min="1"
-                 value="${source.config.window_height || 600}">
-        </div>
-      </div>
-      <div class="form-group">
-        <label>Render Size (px)</label>
-        <div class="size-input-row">
-          <input type="number" id="render-width"
-                 placeholder="Width" min="1"
-                 value="${source.config.render_width || 800}">
-          <input type="number" id="render-height"
-                 placeholder="Height" min="1"
-                 value="${source.config.render_height || 600}">
-        </div>
-      </div>
-      <div class="form-group">
-        <label>Crop Position (px)</label>
-        <div class="size-input-row">
-          <input type="number" id="crop-x"
-                 placeholder="X" min="0"
-                 value="${source.config.crop_x || 0}">
-          <input type="number" id="crop-y"
-                 placeholder="Y" min="0"
-                 value="${source.config.crop_y || 0}">
-        </div>
-      </div>
-    `;
-
-    // Setup event listeners for iframe-specific options
-    const sourceUrlInput = container.querySelector(
-      "#source-url"
-    ) as HTMLInputElement;
-    if (sourceUrlInput) {
-      sourceUrlInput.addEventListener("input", (event) => {
-        source.config.url = (event.target as HTMLInputElement).value;
-        if (this.previewWindows[source.id]) {
-          const iframe = this.previewWindows[source.id]?.querySelector(
-            "iframe"
-          ) as HTMLIFrameElement;
-          if (iframe) iframe.src = source.config.url || "";
-        }
-      });
-    }
-
-    const windowWidthInput = container.querySelector(
-      "#window-width"
-    ) as HTMLInputElement;
-    if (windowWidthInput) {
-      windowWidthInput.addEventListener("input", (event) => {
-        source.config.window_width = Number.parseInt(
-          (event.target as HTMLInputElement).value
-        );
-        this.updatePreviewTransform(source);
-      });
-    }
-
-    const windowHeightInput = container.querySelector(
-      "#window-height"
-    ) as HTMLInputElement;
-    if (windowHeightInput) {
-      windowHeightInput.addEventListener("input", (event) => {
-        source.config.window_height = Number.parseInt(
-          (event.target as HTMLInputElement).value
-        );
-        this.updatePreviewTransform(source);
-      });
-    }
-
-    const renderWidthInput = container.querySelector(
-      "#render-width"
-    ) as HTMLInputElement;
-    if (renderWidthInput) {
-      renderWidthInput.addEventListener("input", (event) => {
-        source.config.render_width = Number.parseInt(
-          (event.target as HTMLInputElement).value
-        );
-        this.updatePreviewTransform(source);
-      });
-    }
-
-    const renderHeightInput = container.querySelector(
-      "#render-height"
-    ) as HTMLInputElement;
-    if (renderHeightInput) {
-      renderHeightInput.addEventListener("input", (event) => {
-        source.config.render_height = Number.parseInt(
-          (event.target as HTMLInputElement).value
-        );
-        this.updatePreviewTransform(source);
-      });
-    }
-
-    const cropXInput = container.querySelector("#crop-x") as HTMLInputElement;
-    if (cropXInput) {
-      cropXInput.addEventListener("input", (event) => {
-        source.config.crop_x = Number.parseInt(
-          (event.target as HTMLInputElement).value
-        );
-        this.updatePreviewTransform(source);
-      });
-    }
-
-    const cropYInput = container.querySelector("#crop-y") as HTMLInputElement;
-    if (cropYInput) {
-      cropYInput.addEventListener("input", (event) => {
-        source.config.crop_y = Number.parseInt(
-          (event.target as HTMLInputElement).value
-        );
-        this.updatePreviewTransform(source);
-      });
-    }
   }
 
   private deleteSource(sourceId: string): void {
@@ -1814,25 +1586,25 @@ class ProjectionEditor extends LitElement {
     }
 
     return html`
-      <div class="projection-editor" id="projection-editor">
-          <div class="editor-toolbar">
-              <h2>${this.data.title}</h2>
-              <button id="save-btn" class="btn btn-primary">Save</button>
-          </div>
+        <div class="projection-editor" id="projection-editor">
+            <div class="editor-toolbar">
+                <h2>${this.data.title}</h2>
+                <button id="save-btn" class="btn btn-primary">Save</button>
+            </div>
 
-          <div class="editor-main">
-              <div class="editor-canvas-area">
-                  <canvas id="preview-canvas"></canvas>
-                  <div id="preview-sources"></div>
-              </div>
+            <div class="editor-main">
+                <div class="editor-canvas-area">
+                    <canvas id="preview-canvas"></canvas>
+                    <div id="preview-sources"></div>
+                </div>
 
-              <div class="editor-sidebar">
-                  <div class="sidebar-section">
-                      <h3>Sources</h3>
-                      <button id="add-source-btn" class="btn btn-sm">
-                          + Add Source
-                      </button>
-                      <div id="sources-list" class="sources-list">
+                <div class="editor-sidebar">
+                    <div class="sidebar-section">
+                        <h3>Sources</h3>
+                        <button id="add-source-btn" class="btn btn-sm">
+                            + Add Source
+                        </button>
+                        <div id="sources-list" class="sources-list">
       ${this.data.sources.map(
                   (source) => html`
                     <div class="source-item ${source.id === this.selectedSourceId
@@ -1850,134 +1622,161 @@ class ProjectionEditor extends LitElement {
                     </div>
                   `
                 )}
-                      </div>
-                  </div>
+                        </div>
+                    </div>
 
-                  <div class="sidebar-section" id="size-section">
-                      <h3>Projection Size</h3>
-                      <div class="form-group">
-                          <label>Width (px)</label>
-                          <input type="number" id="size-width" min="320" value="1920">
-                      </div>
-                      <div class="form-group">
-                          <label>Height (px)</label>
-                          <input type="number" id="size-height" min="240" value="1080">
-                      </div>
-                  </div>
+                    <div class="sidebar-section" id="size-section">
+                        <h3>Projection Size</h3>
+                        <div class="form-group">
+                            <label>Width (px)</label>
+                            <input
+                                type="number"
+                                id="size-width"
+                                min="320"
+                                value="1920"
+                            >
+                        </div>
+                        <div class="form-group">
+                            <label>Height (px)</label>
+                            <input
+                                type="number"
+                                id="size-height"
+                                min="240"
+                                value="1080"
+                            >
+                        </div>
+                    </div>
 
-                  <div
-                      class="sidebar-section"
-                      id="transform-section"
-                      style="display: none;">
-                      <h3>Transform</h3>
-                      <div class="form-group">
-                          <label>Opacity</label>
-                          <div style="display: flex; align-items: center; gap: 8px;">
-                              <input
-                                  type="range"
-                                  id="opacity"
-                                  min="0"
-                                  max="1"
-                                  step="0.01"
-                                  value="1"
-                                  style="flex: 1;">
-                              <span id="opacity-val">1.00</span>
-                          </div>
-                      </div>
+                    <div
+                        class="sidebar-section"
+                        id="transform-section"
+                        style="display: none;"
+                    >
+                        <h3>Transform</h3>
+                        <div class="form-group">
+                            <label>Opacity</label>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <input
+                                    type="range"
+                                    id="opacity"
+                                    min="0"
+                                    max="1"
+                                    step="0.01"
+                                    value="1"
+                                    style="flex: 1;"
+                                >
+                                <span id="opacity-val">1.00</span>
+                            </div>
+                        </div>
 
-                      <div class="form-group">
-                          <label>Opacity Tag (optional)</label>
-                          <input
-                              type="text"
-                              id="opacity-tag"
-                              placeholder="/path/to/tag"
-                              list="available-tags">
-                          <datalist id="available-tags"></datalist>
-                      </div>
+                        <div class="form-group">
+                            <label>Opacity Tag (optional)</label>
+                            <input
+                                type="text"
+                                id="opacity-tag"
+                                placeholder="/path/to/tag"
+                                list="available-tags"
+                            >
+                            <datalist id="available-tags"></datalist>
+                        </div>
 
-                      <div class="form-group">
-                          <label>Blend Mode</label>
-                          <select id="blend-mode">
-                              <option value="normal">Normal</option>
-                              <option value="multiply">Multiply</option>
-                              <option value="screen">Screen</option>
-                              <option value="overlay">Overlay</option>
-                              <option value="darken">Darken</option>
-                              <option value="lighten">Lighten</option>
-                          </select>
-                      </div>
+                        <div class="form-group">
+                            <label>Blend Mode</label>
+                            <select id="blend-mode">
+                                <option value="normal">Normal</option>
+                                <option value="multiply">Multiply</option>
+                                <option value="screen">Screen</option>
+                                <option value="overlay">Overlay</option>
+                                <option value="darken">Darken</option>
+                                <option value="lighten">Lighten</option>
+                            </select>
+                        </div>
 
-                      <div class="form-group">
-                          <label>Rotation (deg)</label>
-                          <input type="number" id="rotation" value="0" step="1">
-                      </div>
+                        <div class="form-group">
+                            <label>Rotation (deg)</label>
+                            <input
+                                type="number"
+                                id="rotation"
+                                value="0"
+                                step="1"
+                            >
+                        </div>
 
-                      <div class="form-group">
-                          <h4>Corner Points</h4>
-                          <div class="corners-grid">
-                              <div>
-                                  <label>Top-Left</label>
-                                  <input
-                                      type="number"
-                                      class="corner-x"
-                                      data-corner="tl"
-                                      placeholder="X">
-                                  <input
-                                      type="number"
-                                      class="corner-y"
-                                      data-corner="tl"
-                                      placeholder="Y">
-                              </div>
-                              <div>
-                                  <label>Top-Right</label>
-                                  <input
-                                      type="number"
-                                      class="corner-x"
-                                      data-corner="tr"
-                                      placeholder="X">
-                                  <input
-                                      type="number"
-                                      class="corner-y"
-                                      data-corner="tr"
-                                      placeholder="Y">
-                              </div>
-                              <div>
-                                  <label>Bottom-Left</label>
-                                  <input
-                                      type="number"
-                                      class="corner-x"
-                                      data-corner="bl"
-                                      placeholder="X">
-                                  <input
-                                      type="number"
-                                      class="corner-y"
-                                      data-corner="bl"
-                                      placeholder="Y">
-                              </div>
-                              <div>
-                                  <label>Bottom-Right</label>
-                                  <input
-                                      type="number"
-                                      class="corner-x"
-                                      data-corner="br"
-                                      placeholder="X">
-                                  <input
-                                      type="number"
-                                      class="corner-y"
-                                      data-corner="br"
-                                      placeholder="Y">
-                              </div>
-                          </div>
-                      </div>
-                  </div>
+                        <div class="form-group">
+                            <h4>Corner Points</h4>
+                            <div class="corners-grid">
+                                <div>
+                                    <label>Top-Left</label>
+                                    <input
+                                        type="number"
+                                        class="corner-x"
+                                        data-corner="tl"
+                                        placeholder="X"
+                                    >
+                                    <input
+                                        type="number"
+                                        class="corner-y"
+                                        data-corner="tl"
+                                        placeholder="Y"
+                                    >
+                                </div>
+                                <div>
+                                    <label>Top-Right</label>
+                                    <input
+                                        type="number"
+                                        class="corner-x"
+                                        data-corner="tr"
+                                        placeholder="X"
+                                    >
+                                    <input
+                                        type="number"
+                                        class="corner-y"
+                                        data-corner="tr"
+                                        placeholder="Y"
+                                    >
+                                </div>
+                                <div>
+                                    <label>Bottom-Left</label>
+                                    <input
+                                        type="number"
+                                        class="corner-x"
+                                        data-corner="bl"
+                                        placeholder="X"
+                                    >
+                                    <input
+                                        type="number"
+                                        class="corner-y"
+                                        data-corner="bl"
+                                        placeholder="Y"
+                                    >
+                                </div>
+                                <div>
+                                    <label>Bottom-Right</label>
+                                    <input
+                                        type="number"
+                                        class="corner-x"
+                                        data-corner="br"
+                                        placeholder="X"
+                                    >
+                                    <input
+                                        type="number"
+                                        class="corner-y"
+                                        data-corner="br"
+                                        placeholder="Y"
+                                    >
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-                  <div
-                      class="sidebar-section"
-                      id="source-config-section"
-                      style="display: none;"></div>
-              </div>
-          </div>
-      </div>
+                    <div
+                        class="sidebar-section"
+                        id="source-config-section"
+                        style="display: none;"
+                    ></div>
+                </div>
+            </div>
+        </div>
     `;
   }
 }
