@@ -691,10 +691,11 @@ class ProjectionEditor extends LitElement {
       window_.dataset.sourceId = sourceData.id;
 
       sourceAdapter.updateContent(container);
-      sourceAdapter.applyTransforms(window_);
 
       sourcesContainer.append(window_);
       this.previewWindows[sourceData.id] = window_;
+      sourceAdapter.applyTransforms(window_);
+
     }
 
     // Auto-select first source if none selected
