@@ -5,6 +5,8 @@ Change Log
 ### Dev
 
 * [sparkles] Tag points can control opacity of projection mapping sources
+* [security] Remove injection footgun in filename_for_file_resource
+* [sparkles] Every module can declare public files by doing public_resources/<type>/item1.png.  They are then accessible at /static/public_resource/<module>/<type>/item1.png
 
 ### 0.94.0
 

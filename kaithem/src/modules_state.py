@@ -93,6 +93,16 @@ def filename_for_file_resource(module: str, resource: str) -> str:
     """Given the module and resource, return the actual file for a file resource, or
     file data dir for directory resource"""
 
+    module = module.strip()
+    resource = resource.strip()
+    # This could possibly be used for security violations
+    # So don't let people access wrong paths
+    if (".." in module) or (module.startswith("/")):
+        raise RuntimeError("Invalid path")
+
+    if (".." in resource) or (resource.startswith("/")):
+        raise RuntimeError("Invalid path")
+
     return os.path.join(getModuleDir(module), "__filedata__", resource)
 
 

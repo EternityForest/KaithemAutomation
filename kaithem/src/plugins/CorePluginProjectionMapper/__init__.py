@@ -226,6 +226,19 @@ async def api_get_data(module: str, resource: str):
         return quart.jsonify({"error": "not_found"}), 404
 
 
+@quart_app.app.route("/projection-mapper/api/list_resources/<module>/<folder>")
+async def api_get_resources(module: str, folder: str):
+    """Get projection data (guest accessible for viewer)"""
+    ret = []
+    for file in os.listdir(
+        modules_state.filename_for_file_resource(
+            module, f"public_resources/{folder}"
+        )
+    ):
+        ret.append(file)
+    return json.dumps(ret)
+
+
 @quart_app.app.route(
     "/projection-mapper/api/save/<module>/<resource>",
     methods=["POST"],

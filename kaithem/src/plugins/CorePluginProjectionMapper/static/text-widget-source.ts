@@ -34,6 +34,9 @@ export abstract class TextWidgetSource extends Source {
    * Subclasses call this to set the innerHTML of a display element
    */
   protected setHTML(element: HTMLElement, html: string): void {
+    if (element.innerHTML == html) {
+      return;
+    }
     element.innerHTML = html;
     this.applyTextStyles(element);
   }
@@ -49,7 +52,7 @@ export abstract class TextWidgetSource extends Source {
     element.style.fontFamily = config.font_family || "monospace";
     element.style.textAlign =
       (config.text_alignment as CanvasTextAlign) || "center";
-       element.style.justifyContent =
+    element.style.justifyContent =
       (config.text_alignment as CanvasTextAlign) || "center";
     element.style.margin = "0";
     element.style.padding = "0px";
@@ -93,8 +96,11 @@ export abstract class TextWidgetSource extends Source {
       <div class="form-group">
         <label>Font Family</label>
         <input type="text" id="font-family"
+               list="available-fonts"
                placeholder="monospace"
                value="${config.font_family || "monospace"}">
+
+               <p>Add new fonts as file resources in the module, in /public_resources/fonts</p>
       </div>
 
       <div class="form-group">
@@ -104,6 +110,21 @@ export abstract class TextWidgetSource extends Source {
           <option value="center" ${config.text_alignment === "center" || !config.text_alignment ? "selected" : ""}>Center</option>
           <option value="right" ${config.text_alignment === "right" ? "selected" : ""}>Right</option>
         </select>
+      </div>
+
+      <div class="form-group">
+        <label>Window Size (px)</label>
+        <p style="font-size: 0.85rem; color: #999; margin-top: 0rem; margin-bottom: 0.5rem;">
+          Size of the text display area before transformation
+        </p>
+        <div class="size-input-row">
+          <input type="number" id="window-width"
+                 placeholder="Width" min="1"
+                 value="${config.window_width || 800}">
+          <input type="number" id="window-height"
+                 placeholder="Height" min="1"
+                 value="${config.window_height || 200}">
+        </div>
       </div>
 
       <div class="form-group">
@@ -145,13 +166,9 @@ export abstract class TextWidgetSource extends Source {
       onUpdate(this);
     });
 
-    const textSize = container.querySelector(
-      "#text-size"
-    ) as HTMLInputElement;
+    const textSize = container.querySelector("#text-size") as HTMLInputElement;
     textSize?.addEventListener("input", (e) => {
-      config.text_size = Number.parseInt(
-        (e.target as HTMLInputElement).value
-      );
+      config.text_size = Number.parseInt((e.target as HTMLInputElement).value);
       onUpdate(this);
     });
 
@@ -167,8 +184,30 @@ export abstract class TextWidgetSource extends Source {
       "#text-alignment"
     ) as HTMLSelectElement;
     textAlignment?.addEventListener("change", (e) => {
-      config.text_alignment = (e.target as HTMLSelectElement)
-        .value as "left" | "center" | "right";
+      config.text_alignment = (e.target as HTMLSelectElement).value as
+        | "left"
+        | "center"
+        | "right";
+      onUpdate(this);
+    });
+
+    const windowWidth = container.querySelector(
+      "#window-width"
+    ) as HTMLInputElement;
+    windowWidth?.addEventListener("input", (e) => {
+      config.window_width = Number.parseInt(
+        (e.target as HTMLInputElement).value
+      );
+      onUpdate(this);
+    });
+
+    const windowHeight = container.querySelector(
+      "#window-height"
+    ) as HTMLInputElement;
+    windowHeight?.addEventListener("input", (e) => {
+      config.window_height = Number.parseInt(
+        (e.target as HTMLInputElement).value
+      );
       onUpdate(this);
     });
 

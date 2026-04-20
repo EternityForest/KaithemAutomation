@@ -8,6 +8,7 @@ import { LitElement, html, css } from "lit";
 import { kaithemapi } from "/static/js/widget.mjs";
 import { PerspT } from "./perspective-transform.mjs";
 import { createSourceAdapter } from "./source-type";
+
 import type {
   Position,
   Corners,
@@ -515,6 +516,7 @@ class ProjectionEditor extends LitElement {
       this.setupWebSocket();
       this.updateTagSubscriptions();
     });
+    this.loadFonts();
   }
 
   override firstUpdated(): void {
@@ -674,7 +676,7 @@ class ProjectionEditor extends LitElement {
       sourcesContainer.innerHTML = "";
     }
 
-    for (const sourceData of this?.data?.sources||[] ) {
+    for (const sourceData of this?.data?.sources || []) {
       if (!sourceData.visible) continue;
       // Reuse existing window if present
       const sourceAdapter = this.getSourceObject(sourceData);
@@ -700,7 +702,6 @@ class ProjectionEditor extends LitElement {
       sourcesContainer.append(window_);
       this.previewWindows[sourceData.id] = window_;
       sourceAdapter.applyTransforms(window_);
-
     }
 
     // Auto-select first source if none selected
@@ -1080,10 +1081,32 @@ class ProjectionEditor extends LitElement {
       this.lastRawMousePos.y
     );
 
+    const oldCorner = source.transform.corners[
+      this.draggingCorner as keyof Corners
+    ] as any;
+
+    const deltaX = (filtered.x - oldCorner.x);
+    const deltaY = (filtered.y - oldCorner.y);
+
     (source.transform.corners[this.draggingCorner as keyof Corners] as any) = {
       x: filtered.x,
       y: filtered.y,
     };
+    if (this.draggingCorner == "tl") {
+      source.transform.corners["bl"].x += deltaX;
+      source.transform.corners["bl"].y += deltaY;
+
+      source.transform.corners["tr"].x += deltaX;
+      source.transform.corners["tr"].y += deltaY;
+
+      source.transform.corners["br"].x += deltaX;
+      source.transform.corners["br"].y += deltaY;
+    }
+
+    if (this.draggingCorner == "br") {
+      source.transform.corners["bl"].y += deltaY;
+      source.transform.corners["tr"].x += deltaX;
+    }
 
     this.broadcastTransform(source);
     this.updatePreviewTransform(source);
@@ -1219,6 +1242,48 @@ class ProjectionEditor extends LitElement {
     }
   }
 
+  private async loadFonts(): Promise<void> {
+    try {
+      const response = await fetch(
+        `/projection-mapper/api/list_resources/${this.module}/fonts`
+      );
+      const fontFiles: string[] = await response.json();
+
+      // Populate datalist with font names (filename without extension)
+      const datalist = this.shadowRoot?.querySelector("#available-fonts");
+      if (!datalist) return;
+
+      datalist.innerHTML = "";
+      for (const file of fontFiles) {
+        const fontName = file.split(".")[0];
+        const option = document.createElement("option");
+        option.value = fontName;
+        datalist.append(option);
+      }
+
+      // Add @font-face CSS rules for all fonts
+      const style = document.createElement("style");
+      let cssRules = "";
+
+      for (const file of fontFiles) {
+        const fontName = file.split(".")[0];
+        cssRules += `
+          @font-face {
+            font-family: '${fontName}';
+            font-style: normal;
+            font-weight: 400;
+            src: url('/static/public_resource/${this.module}/fonts/${file}');
+          }
+        `;
+      }
+
+      style.textContent = cssRules;
+      document.head.append(style);
+    } catch (error) {
+      console.error("Failed to load fonts:", error);
+    }
+  }
+
   private updateTagSubscriptions(): void {
     const currentSources = new Set(this.data.sources.map((s) => s.id));
 
@@ -1237,13 +1302,18 @@ class ProjectionEditor extends LitElement {
       const sourceAdapter = this.getSourceObject(source);
 
       sourceAdapter.updateSubscriptions(
-        (sourceId, tagName, tagKey) => this.subscribeTag(sourceId, tagName, tagKey),
+        (sourceId, tagName, tagKey) =>
+          this.subscribeTag(sourceId, tagName, tagKey),
         (sourceId, tagKey) => this.unsubscribeTag(sourceId, tagKey)
       );
     }
   }
 
-  private subscribeTag(sourceId: string, tagName: string, tagKey: string): void {
+  private subscribeTag(
+    sourceId: string,
+    tagName: string,
+    tagKey: string
+  ): void {
     // Ensure tag: prefix
     const fullTag = tagName.startsWith("tag:") ? tagName : `tag:${tagName}`;
     const infourl = "/tag_api/info" + tagName;
@@ -1406,9 +1476,9 @@ class ProjectionEditor extends LitElement {
     }
   }
 
-  private getDefaultCorners(): Corners {
-    const w = this.data.size?.width || 1920;
-    const h = this.data.size?.height || 1080;
+  private getDefaultCorners(c: SourceConfig): Corners {
+    const w = c.window_width || this.data.size?.width || 1920;
+    const h = c.window_height || this.data.size?.height || 1080;
 
     return {
       tl: { x: 0, y: 0 },
@@ -1476,7 +1546,7 @@ class ProjectionEditor extends LitElement {
     const id = this.generateId();
     const config = this.getDefaultConfig(sourceType);
     const transform: SourceTransform = {
-      corners: this.getDefaultCorners(),
+      corners: this.getDefaultCorners(config),
       opacity: 1,
       opacity_tag: "",
       blend_mode: "normal",
@@ -1510,10 +1580,10 @@ class ProjectionEditor extends LitElement {
       },
       clock: {
         window_width: 800,
-        window_height: 200,
+        window_height: 400,
         clock_format: "%H:%M:%S",
         text_color: "#ffffff",
-        text_size: 72,
+        text_size: 150,
         font_family: "monospace",
         text_alignment: "center",
         text_shadow_offset_x: 2,
@@ -1523,11 +1593,11 @@ class ProjectionEditor extends LitElement {
       },
       tag: {
         window_width: 800,
-        window_height: 200,
+        window_height: 400,
         tag_name: "",
         format_string: "%s",
         text_color: "#ffffff",
-        text_size: 48,
+        text_size: 150,
         font_family: "monospace",
         text_alignment: "center",
         text_shadow_offset_x: 2,
@@ -1556,6 +1626,7 @@ class ProjectionEditor extends LitElement {
     configSection.innerHTML = "";
     sourceAdapter.renderConfigUI(configSection, (adapter) => {
       this.updatePreviewTransform(sourceData);
+      this.updateTagSubscriptions();
       this.renderPreview();
     });
     configSection.style.display = "block";
@@ -1736,6 +1807,7 @@ class ProjectionEditor extends LitElement {
                   placeholder="/path/to/tag"
                   list="available-tags" />
                 <datalist id="available-tags"></datalist>
+                <datalist id="available-fonts"></datalist>
               </div>
 
               <div class="form-group">
