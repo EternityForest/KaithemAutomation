@@ -21,7 +21,7 @@ interface ClockConfig extends TextWidgetConfig {
  */
 export class ClockSource extends TextWidgetSource {
   private updateIntervalId: number | null = null;
-  private displayElement: HTMLElement | null = null;
+  private container: HTMLElement | null = null;
 
   constructor(data: SourceData) {
     super(data);
@@ -32,15 +32,11 @@ export class ClockSource extends TextWidgetSource {
   }
 
   updateContent(container: HTMLElement): void {
-    // Create display element if needed
-    if (!this.displayElement) {
-      this.displayElement = document.createElement("div");
-      this.displayElement.style.width = "100%";
-      this.displayElement.style.height = "100%";
-      this.displayElement.style.display = "flex";
-      this.displayElement.style.alignItems = "center";
-      this.displayElement.style.justifyContent = "center";
-      container.append(this.displayElement);
+    // Store container for updates
+    if (!this.container) {
+      this.container = container;
+      container.style.position = "relative";
+      container.style.overflow = "hidden";
     }
 
     // Start update loop if not running
@@ -51,13 +47,13 @@ export class ClockSource extends TextWidgetSource {
   }
 
   private updateClock(): void {
-    if (!this.displayElement) return;
+    if (!this.container) return;
 
     const format = this.clockConfig.clock_format || "%H:%M:%S";
     const now = new Date();
     const timeString = strftime(format, now);
 
-    this.setHTML(this.displayElement, timeString);
+    this.setHTML(this.container, timeString);
   }
 
   cleanup(): void {

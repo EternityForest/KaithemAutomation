@@ -115,6 +115,16 @@ class ProjectionEditor extends LitElement {
   static override styles = css`
     /* Projection Mapper Styles */
 
+    @keyframes fadeOut {
+      to {
+        opacity: 0;
+      }
+    }
+    @keyframes fadeIn {
+      to {
+        opacity: 1;
+      }
+    }
     body {
       margin: 0;
       padding: 0;
@@ -1085,8 +1095,8 @@ class ProjectionEditor extends LitElement {
       this.draggingCorner as keyof Corners
     ] as any;
 
-    const deltaX = (filtered.x - oldCorner.x);
-    const deltaY = (filtered.y - oldCorner.y);
+    const deltaX = filtered.x - oldCorner.x;
+    const deltaY = filtered.y - oldCorner.y;
 
     (source.transform.corners[this.draggingCorner as keyof Corners] as any) = {
       x: filtered.x,
@@ -1590,6 +1600,7 @@ class ProjectionEditor extends LitElement {
         text_shadow_offset_y: 2,
         text_shadow_blur: 4,
         text_shadow_color: "rgba(0,0,0,0.5)",
+        transition_duration: 0,
       },
       tag: {
         window_width: 800,
@@ -1604,6 +1615,7 @@ class ProjectionEditor extends LitElement {
         text_shadow_offset_y: 2,
         text_shadow_blur: 4,
         text_shadow_color: "rgba(0,0,0,0.5)",
+        transition_duration: 0,
       },
     };
     return configs[sourceType] || {};

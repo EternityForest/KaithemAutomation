@@ -12,6 +12,7 @@ export interface TextWidgetConfig extends SourceConfig {
   text_shadow_blur?: number;
   text_shadow_color?: string;
   text_alignment?: "left" | "center" | "right";
+  transition_duration?: number;
 }
 
 /**
@@ -19,6 +20,11 @@ export interface TextWidgetConfig extends SourceConfig {
  * Handles common text styling and configuration
  */
 export abstract class TextWidgetSource extends Source {
+  private displayElementA: HTMLElement | null = null;
+  private displayElementB: HTMLElement | null = null;
+  private currentElement: "A" | "B" = "A";
+
+  private oldHtml = "";
   constructor(data: SourceData) {
     super(data);
   }
@@ -31,14 +37,96 @@ export abstract class TextWidgetSource extends Source {
   }
 
   /**
-   * Subclasses call this to set the innerHTML of a display element
+   * Initialize A/B display elements within a container
    */
-  protected setHTML(element: HTMLElement, html: string): void {
-    if (element.innerHTML == html) {
+  protected initializeABElements(container: HTMLElement): void {
+    if (this.displayElementA) {
+      return; // Already initialized
+    }
+
+    this.displayElementA = document.createElement("div");
+    this.displayElementA.style.position = "absolute";
+    this.displayElementA.style.top = "0";
+    this.displayElementA.style.left = "0";
+    this.displayElementA.style.width = "100%";
+    this.displayElementA.style.height = "100%";
+    this.displayElementA.style.opacity = "1";
+    container.appendChild(this.displayElementA);
+
+    this.displayElementB = document.createElement("div");
+    this.displayElementB.style.position = "absolute";
+    this.displayElementB.style.top = "0";
+    this.displayElementB.style.left = "0";
+    this.displayElementB.style.width = "100%";
+    this.displayElementB.style.height = "100%";
+    this.displayElementB.style.opacity = "0";
+    container.appendChild(this.displayElementB);
+  }
+
+  /**
+   * Subclasses call this to set the innerHTML of a display element with crossfade
+   */
+  protected setHTML(container: HTMLElement, html: string): void {
+    this.initializeABElements(container);
+
+    const currentElement =
+      this.currentElement === "A" ? this.displayElementA : this.displayElementB;
+    const nextElement =
+      this.currentElement === "A" ? this.displayElementB : this.displayElementA;
+    if (!nextElement) {
       return;
     }
-    element.innerHTML = html;
-    this.applyTextStyles(element);
+    if (!currentElement) {
+      return;
+    }
+
+    // Always apply text styles to both elements to ensure styling is current
+    this.applyTextStyles(currentElement!);
+    this.applyTextStyles(nextElement);
+
+    const contentChanged = this.oldHtml!== html;
+
+    // Only transition if content actually changed
+    if (!contentChanged) {
+      return;
+    }
+    this.oldHtml = html;
+    nextElement.innerHTML = html;
+
+    const config = this.textConfig;
+    const duration = config.transition_duration || 0;
+
+    if (duration > 0) {
+      // Animate out current element
+      currentElement.animate(
+        [{ opacity: "1" }, { opacity: "0" }],
+        {
+          duration,
+          easing: "ease-in-out",
+          fill: "forwards",
+        }
+      );
+
+      // Animate in next element
+      nextElement.animate(
+        [{ opacity: "0" }, { opacity: "1" }],
+        {
+          duration,
+          easing: "linear",
+          fill: "forwards",
+        }
+      );
+
+      // Switch current element after animation completes
+      setTimeout(() => {
+        this.currentElement = this.currentElement === "A" ? "B" : "A";
+      }, duration);
+    } else {
+      // No transition, just swap
+      currentElement!.style.opacity = "0";
+      nextElement.style.opacity = "1";
+      this.currentElement = this.currentElement === "A" ? "B" : "A";
+    }
   }
 
   /**
@@ -57,6 +145,9 @@ export abstract class TextWidgetSource extends Source {
     element.style.margin = "0";
     element.style.padding = "0px";
     element.style.lineHeight = "1.2";
+    element.style.display = "flex";
+    element.style.alignItems = "center";
+    element.style.justifyContent = "center";
 
     // Text shadow
     if (
@@ -153,6 +244,16 @@ export abstract class TextWidgetSource extends Source {
                  value="${config.text_shadow_color || "#000000"}">
         </div>
       </div>
+
+      <div class="form-group">
+        <label>Transition Duration (ms)</label>
+        <input type="number" id="transition-duration"
+               min="0" max="5000" step="50"
+               value="${config.transition_duration || 0}">
+        <p style="font-size: 0.85rem; color: #999; margin-top: 0.5rem;">
+          Time in milliseconds for fade transition when text content changes. Set to 0 for no transition.
+        </p>
+      </div>
     `;
 
     container.innerHTML += html;
@@ -246,6 +347,16 @@ export abstract class TextWidgetSource extends Source {
     ) as HTMLInputElement;
     shadowColor?.addEventListener("input", (e) => {
       config.text_shadow_color = (e.target as HTMLInputElement).value;
+      onUpdate(this);
+    });
+
+    const transitionDuration = container.querySelector(
+      "#transition-duration"
+    ) as HTMLInputElement;
+    transitionDuration?.addEventListener("input", (e) => {
+      config.transition_duration = Number.parseInt(
+        (e.target as HTMLInputElement).value
+      );
       onUpdate(this);
     });
   }

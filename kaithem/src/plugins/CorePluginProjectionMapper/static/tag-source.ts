@@ -71,7 +71,7 @@ function formatValue(value: unknown, format: string): string {
  * Uses subscriptions to update in real-time
  */
 export class TagSource extends TextWidgetSource {
-  private displayElement: HTMLElement | null = null;
+  private container: HTMLElement | null = null;
   private currentValue: unknown = null;
 
   constructor(data: SourceData) {
@@ -94,25 +94,21 @@ export class TagSource extends TextWidgetSource {
   }
 
   updateContent(container: HTMLElement): void {
-    // Create display element if needed
-    if (!this.displayElement) {
-      this.displayElement = document.createElement("div");
-      this.displayElement.style.width = "100%";
-      this.displayElement.style.height = "100%";
-      this.displayElement.style.display = "flex";
-      this.displayElement.style.alignItems = "center";
-      this.displayElement.style.justifyContent = "center";
-      container.append(this.displayElement);
+    // Store container for updates
+    if (!this.container) {
+      this.container = container;
+      container.style.position = "relative";
+      container.style.overflow = "hidden";
     }
     this.updateDisplay();
   }
 
   private updateDisplay(): void {
-    if (!this.displayElement || this.currentValue === null) return;
+    if (!this.container) return;
 
-    const format = this.tagConfig.format_string || "%s";
-    const displayText = formatValue(this.currentValue, format);
-    this.setHTML(this.displayElement, displayText);
+    // Allow display to update even if currentValue is null (shows empty)
+    const displayText = this.currentValue === null ? "" : formatValue(this.currentValue, this.tagConfig.format_string || "%s");
+    this.setHTML(this.container, displayText);
   }
 
   renderConfigUI(

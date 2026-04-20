@@ -1,8 +1,6 @@
 // Source Type Base Class Architecture
 // Each source is an instance of a source type subclass
 
-import { assert } from "console";
-
 export interface Position {
   x: number;
   y: number;
@@ -178,6 +176,8 @@ export abstract class Source {
     container.className = "window-container";
     container.style.position = "relative";
     container.style.overflow = "hidden";
+    container.style.width = "100%";
+    container.style.height = "100%";
 
     window.append(container);
     return { window, container };
