@@ -99,7 +99,7 @@ export abstract class TextWidgetSource extends Source {
     if (duration > 0) {
       // Animate out current element
       currentElement.animate(
-        [{ opacity: "1" }, { opacity: "0" }],
+        [{ opacity: "1" }, { opacity: "1" }, { opacity: "0" }],
         {
           duration,
           easing: "ease-in-out",
@@ -109,10 +109,10 @@ export abstract class TextWidgetSource extends Source {
 
       // Animate in next element
       nextElement.animate(
-        [{ opacity: "0" }, { opacity: "1" }],
+        [{ opacity: "0" }, { opacity: "1" }, { opacity: "1" },],
         {
-          duration,
-          easing: "linear",
+          duration: duration,
+          easing: "ease-in-out",
           fill: "forwards",
         }
       );
