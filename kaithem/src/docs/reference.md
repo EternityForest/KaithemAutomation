@@ -278,6 +278,15 @@ Barrel.css uses these numbers for sizing.
 | UVC                | 100-280        |
 | Vacuum ultraviolet | 10-200         |
 
+### Color Temperature
+
+
+| Color         | Temperature |
+| ------------- | ----------- |
+| Warm White    | 2700k-3500k |
+| Neutral White | 3500k-5500k |
+| Cool          | 5500k-8000k |
+
 
 ## Notes and Frequencies(440hz tuning)
 

@@ -206,3 +206,5 @@
 
 * Tests should cover any obvious mistakes you can easily imagine future devs *could* make
 
+
+* Do not skip critical tests because features they depend on are not available, fix the underlying issue.

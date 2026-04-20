@@ -17,6 +17,8 @@ import type {
   Source,
 } from "./source-type";
 import "./iframe-source";
+import "./clock-source";
+import "./tag-source";
 
 interface ProjectionData {
   title: string;
@@ -449,7 +451,7 @@ class ProjectionEditor extends LitElement {
   data: ProjectionData = {
     title: "",
     sources: [],
-    size: { width: 800, height: 600 },
+    size: { width: 1920, height: 1080 },
   };
   selectedSourceId: string | null = null;
   isDragging = false;
@@ -472,10 +474,10 @@ class ProjectionEditor extends LitElement {
   private animationFrameId: number | null = null;
   private lastRawMousePos: Position | null = null;
 
-  // Tag-controlled opacity subscriptions
+  // Tag subscriptions per source: sourceId -> { tagKey -> { tag, callback } }
   private tagSubscriptions: Record<
     string,
-    { tag: string; callback: (value: number) => void }
+    Record<string, { tag: string; callback: (value: number) => void }>
   > = {};
 
   override connectedCallback(): void {
@@ -500,8 +502,8 @@ class ProjectionEditor extends LitElement {
     this.data = structuredClone(initialData);
     if (this.data.size == undefined) {
       this.data.size = {
-        width: 800,
-        height: 600,
+        width: 1920,
+        height: 1080,
       };
     }
     this.requestUpdate();
@@ -534,7 +536,10 @@ class ProjectionEditor extends LitElement {
 
     // Unsubscribe all tags
     for (const sourceId of Object.keys(this.tagSubscriptions)) {
-      this.unsubscribeTag(sourceId);
+      const subs = this.tagSubscriptions[sourceId];
+      for (const tagKey of Object.keys(subs)) {
+        this.unsubscribeTag(sourceId, tagKey);
+      }
     }
 
     if (this.animationFrameId) {
@@ -669,7 +674,7 @@ class ProjectionEditor extends LitElement {
       sourcesContainer.innerHTML = "";
     }
 
-    for (const sourceData of this.data.sources) {
+    for (const sourceData of this?.data?.sources||[] ) {
       if (!sourceData.visible) continue;
       // Reuse existing window if present
       const sourceAdapter = this.getSourceObject(sourceData);
@@ -719,8 +724,8 @@ class ProjectionEditor extends LitElement {
     const corners = transform.corners;
 
     if (corners) {
-      const windowWidth = config.window_width || 800;
-      const windowHeight = config.window_height || 600;
+      const windowWidth = config.window_width || 1920;
+      const windowHeight = config.window_height || 1080;
       const matrix = this.calculatePerspectiveMatrix(
         corners,
         windowWidth,
@@ -1203,7 +1208,7 @@ class ProjectionEditor extends LitElement {
       datalist.innerHTML = "";
       for (const tagidx of tags) {
         const tag = data[tagidx];
-        if (tag.type == "number") {
+        if (tag.type === "number" || tag.type === "string") {
           const option = document.createElement("option");
           option.value = tag.name;
           datalist.append(option);
@@ -1220,7 +1225,10 @@ class ProjectionEditor extends LitElement {
     // Unsubscribe removed sources
     for (const sourceId of Object.keys(this.tagSubscriptions)) {
       if (!currentSources.has(sourceId)) {
-        this.unsubscribeTag(sourceId);
+        const subs = this.tagSubscriptions[sourceId];
+        for (const tagKey of Object.keys(subs)) {
+          this.unsubscribeTag(sourceId, tagKey);
+        }
       }
     }
 
@@ -1229,13 +1237,13 @@ class ProjectionEditor extends LitElement {
       const sourceAdapter = this.getSourceObject(source);
 
       sourceAdapter.updateSubscriptions(
-        (sourceId, tagName) => this.subscribeTag(sourceId, tagName),
-        (sourceId) => this.unsubscribeTag(sourceId)
+        (sourceId, tagName, tagKey) => this.subscribeTag(sourceId, tagName, tagKey),
+        (sourceId, tagKey) => this.unsubscribeTag(sourceId, tagKey)
       );
     }
   }
 
-  private subscribeTag(sourceId: string, tagName: string): void {
+  private subscribeTag(sourceId: string, tagName: string, tagKey: string): void {
     // Ensure tag: prefix
     const fullTag = tagName.startsWith("tag:") ? tagName : `tag:${tagName}`;
     const infourl = "/tag_api/info" + tagName;
@@ -1249,25 +1257,32 @@ class ProjectionEditor extends LitElement {
     fetch(infourl)
       .then((response) => response.json())
       .then((data) => {
-        sourceObject.handleTagUpdate("opacity_tag", data.value);
+        sourceObject.handleTagUpdate(tagKey, data.lastVal);
         this.renderPreview();
       });
 
     // Subscribe to future updates
     const callback = (value: number) => {
-      sourceObject.handleTagUpdate("opacity_tag", value);
+      sourceObject.handleTagUpdate(tagKey, value);
       this.renderPreview();
     };
 
-    this.tagSubscriptions[sourceId] = { tag: fullTag, callback };
+    if (!this.tagSubscriptions[sourceId]) {
+      this.tagSubscriptions[sourceId] = {};
+    }
+    this.tagSubscriptions[sourceId][tagKey] = { tag: fullTag, callback };
     kaithemapi.subscribe(fullTag, callback);
   }
 
-  private unsubscribeTag(sourceId: string): void {
-    const sub = this.tagSubscriptions[sourceId];
-    if (sub) {
+  private unsubscribeTag(sourceId: string, tagKey: string): void {
+    const subs = this.tagSubscriptions[sourceId];
+    if (subs && subs[tagKey]) {
+      const sub = subs[tagKey];
       kaithemapi.unsubscribe(sub.tag, sub.callback);
-      delete this.tagSubscriptions[sourceId];
+      delete subs[tagKey];
+      if (Object.keys(subs).length === 0) {
+        delete this.tagSubscriptions[sourceId];
+      }
     }
   }
 
@@ -1422,6 +1437,8 @@ class ProjectionEditor extends LitElement {
     typeSelect.innerHTML = `
       <option value="">-- Select a source type --</option>
       <option value="iframe">iFrame (Web Content)</option>
+      <option value="clock">Digital Clock</option>
+      <option value="tag">Tag Display</option>
     `;
 
     const buttonContainer = document.createElement("div");
@@ -1484,12 +1501,39 @@ class ProjectionEditor extends LitElement {
     const configs: Record<string, SourceConfig> = {
       iframe: {
         url: "",
-        window_width: 800,
-        window_height: 600,
-        render_width: 800,
-        render_height: 600,
+        window_width: 1920,
+        window_height: 1080,
+        render_width: 1920,
+        render_height: 1080,
         crop_x: 0,
         crop_y: 0,
+      },
+      clock: {
+        window_width: 800,
+        window_height: 200,
+        clock_format: "%H:%M:%S",
+        text_color: "#ffffff",
+        text_size: 72,
+        font_family: "monospace",
+        text_alignment: "center",
+        text_shadow_offset_x: 2,
+        text_shadow_offset_y: 2,
+        text_shadow_blur: 4,
+        text_shadow_color: "rgba(0,0,0,0.5)",
+      },
+      tag: {
+        window_width: 800,
+        window_height: 200,
+        tag_name: "",
+        format_string: "%s",
+        text_color: "#ffffff",
+        text_size: 48,
+        font_family: "monospace",
+        text_alignment: "center",
+        text_shadow_offset_x: 2,
+        text_shadow_offset_y: 2,
+        text_shadow_blur: 4,
+        text_shadow_color: "rgba(0,0,0,0.5)",
       },
     };
     return configs[sourceType] || {};
@@ -1518,7 +1562,12 @@ class ProjectionEditor extends LitElement {
   }
 
   private deleteSource(sourceId: string): void {
-    this.unsubscribeTag(sourceId);
+    const subs = this.tagSubscriptions[sourceId];
+    if (subs) {
+      for (const tagKey of Object.keys(subs)) {
+        this.unsubscribeTag(sourceId, tagKey);
+      }
+    }
     this.data.sources = this.data.sources.filter((s) => s.id !== sourceId);
 
     if (this.selectedSourceId === sourceId) {
@@ -1629,7 +1678,7 @@ class ProjectionEditor extends LitElement {
                       class="source-item ${source.id === this.selectedSourceId
                         ? "selected"
                         : ""}"
-                      @click>
+                      @click="${() => this.selectSource(source.id)}">
                       <div class="source-item-content">
                         <span>${source.name}</span>
                         <button

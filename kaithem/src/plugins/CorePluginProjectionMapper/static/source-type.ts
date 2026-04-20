@@ -99,8 +99,8 @@ export abstract class Source {
    * Compares desired vs active and calls subscribe/unsubscribe as needed
    */
   updateSubscriptions(
-    subscribe: (sourceId: string, tagName: string) => void,
-    unsubscribe: (sourceId: string) => void
+    subscribe: (sourceId: string, tagName: string, tagKey: string) => void,
+    unsubscribe: (sourceId: string, tagKey: string) => void
   ): void {
     this.desiredSubscriptions = {};
 
@@ -122,7 +122,7 @@ export abstract class Source {
     // Unsubscribe from tags no longer needed
     for (const [tagKey, tagName] of Object.entries(this.activeSubscriptions)) {
       if (!this.desiredSubscriptions[tagKey]) {
-        unsubscribe(this.id);
+        unsubscribe(this.id, tagKey);
         delete this.activeSubscriptions[tagKey];
       }
     }
@@ -130,7 +130,7 @@ export abstract class Source {
     // Subscribe to new tags
     for (const [tagKey, tagName] of Object.entries(this.desiredSubscriptions)) {
       if (this.activeSubscriptions[tagKey] !== tagName) {
-        subscribe(this.id, tagName);
+        subscribe(this.id, tagName, tagKey);
         this.activeSubscriptions[tagKey] = tagName;
       }
     }
