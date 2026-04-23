@@ -58,6 +58,11 @@ root-install-zrok: # Install or update Zrok for remote access
 	@cd ${CONFIG_HELPERS_DIR}
 	@bash ./scripts/install-zrok.sh
 
+
+.PHONY: root-setup-matter-server
+root-setup-matter-server: # Set up or update python-matter-server
+	@sudo bash ./kaithem_scripts/scripts/enable-matter.sh
+
 .PHONY: user-setup-zrok-sharing
 user-setup-zrok-sharing: # Create an account with zrok
 	@cd ${CONFIG_HELPERS_DIR}
