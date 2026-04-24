@@ -217,9 +217,8 @@ class DeviceResourceType(ResourceType):
         )
 
     def edit_page(self, module: str, resource: str, data):
-        return quart.redirect(
-            "/device/" + f"mr:{module}:{resource}" + "/manage"
-        )
+        name = modules_state.ActiveModules[module][resource]["device"]["name"]
+        return quart.redirect("/device/" + name + "/manage")
 
 
 drt = DeviceResourceType("device", mdi_icon="chip")

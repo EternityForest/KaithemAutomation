@@ -1,6 +1,14 @@
 import pytest
 
 
+def test_type_conversion():
+    from kaithem.src import tagpoints
+
+    t = tagpoints.Tag("/system/type_test_tag")
+    t.value = "89"  # type: ignore
+    assert t.value == 89
+
+
 def test_unit_conversion():
     from kaithem.src import tagpoints
 

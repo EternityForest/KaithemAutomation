@@ -270,6 +270,9 @@ def create_blank_device(name: str, module: str, resource: str, type: str):
     data["name"] = name
     data["type"] = type
 
+    if not name:
+        raise ValueError("Blank name")
+
     data["extensions"] = {}
     data["extensions"]["kaithem"] = {}
 

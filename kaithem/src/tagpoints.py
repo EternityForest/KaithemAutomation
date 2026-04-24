@@ -1360,8 +1360,6 @@ class GenericTagPointClass(Generic[T]):
         finally:
             self._lock.release()
 
-    # TODO: WHY does this have to be typed as Any????
-    # Mypy seems to think different derived classes call each other
     def set_claim_val(
         self: GenericTagPointClass[T],
         claim: str,
@@ -1377,6 +1375,7 @@ class GenericTagPointClass(Generic[T]):
         if not self._lock.acquire(timeout=10):
             raise RuntimeError("Could not get lock!")
 
+        val = self._process_value_for_tag_type(val)
         try:
             c = self._claims[claim]
 

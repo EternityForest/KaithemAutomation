@@ -147,6 +147,7 @@ if devObj.module_name and devObj.resource_name:
         %if hasattr(devObj, 'tagpoints') and devObj.tagpoints:
 
             %for i in sorted(list(devObj.tagpoints.keys())):
+            %if 'admin.' not in i:
             %if devObj.dashboard_datapoints.get(i,True):
                 %if devObj.tagpoints[i].type == 'string':
                 <div class="flex-row"><label><ds-span min="0" max="1" source="tag:${devObj.tagpoints[i].name}">
@@ -175,6 +176,7 @@ if devObj.module_name and devObj.resource_name:
                         </label>
                     %endif
                 %endif
+            %endif
             %endif
             %endfor
         %endif
