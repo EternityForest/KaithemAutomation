@@ -105,6 +105,41 @@ def test_subdevice_loading():
     assert dev.wait_device_ready().config["device.echo_number"] == 81
 
 
+def test_device_alerts():
+    from kaithem.src import (
+        alerts,
+        devices,
+        devices_interface,
+        modules,
+        modules_state,
+    )
+
+    n = "test" + str(time.time()).replace(".", "_")
+
+    modules.newModule(n)
+
+    assert n in modules_state.ActiveModules
+
+    devices_interface.create_blank_device(
+        module=n, resource="devtest", type="DemoDevice", name="pytest_demo2"
+    )
+
+    d = devices.devices_host.devices["pytest_demo2"].device
+    assert d
+    d.set_alarm("testalert137", "random", "value>0", priority="info")
+
+    found = False
+    time.sleep(0.3)
+    for i in alerts.all:
+        j = alerts.all[i]
+        if "testalert137" in j.name:
+            if j.sm.state == "normal":
+                continue
+            if j.priority == "info":
+                found = True
+    assert found
+
+
 def test_make_demo_device():
     from kaithem.src import (
         devices,

@@ -496,31 +496,6 @@ class DeviceRuntimeState(iot_devices.host.DeviceHostContainer):
         except Exception:
             logger.exception("Error releasing alerts")
 
-    def set_alarm(
-        self,
-        name: str,
-        datapoint: str,
-        expression: str,
-        priority: str = "info",
-        trip_delay: float = 0,
-        auto_ack: bool = False,
-        release_condition: str | None = None,
-        **kw,
-    ):
-        x = self.tagpoints[datapoint].set_alarm(
-            name,
-            condition=expression,
-            priority=priority,
-            trip_delay=trip_delay,
-            auto_ack=auto_ack,
-            release_condition=release_condition,
-            enabled=self.k_use_default_alerts,
-        )
-        if x:
-            self.alerts[name] = x
-        else:
-            raise RuntimeError("Alarm setter returned nothing")
-
     def on_data_change(self, name: str, value, timestamp: float, annotation):
         """used for subclassing, this is how you watch for data changes.
         Kaithem does not need this, we have direct observable tag points.
@@ -802,6 +777,41 @@ class DevicesHost(iot_devices.host.Host[DeviceRuntimeState]):
         n = self.resolve_datapoint_name(device, name)
         runtimedata = devices_host.devices[device]
         runtimedata.tagpoints[n].fast_push(value, timestamp, annotation)
+
+    def set_alarm(
+        self,
+        device: iot_devices.device.Device,
+        name: str,
+        datapoint: str,
+        expression: str,
+        priority: str = "info",
+        trip_delay: float = 0,
+        auto_ack: bool = False,
+        release_condition: str | None = None,
+        **kw,
+    ):
+        n = self.resolve_datapoint_name(device.name, datapoint)
+        runtimedata = device.get_host_container()
+        use_default_alerts = (
+            runtimedata.config.get("extensions", {})
+            .get("kaithem", {})
+            .get("use_default_alerts", True)
+        )
+        t = tagpoints.allTags[n]()
+        assert t
+        x = t.set_alarm(
+            name,
+            condition=expression,
+            priority=priority,
+            trip_delay=trip_delay,
+            auto_ack=auto_ack,
+            release_condition=release_condition,
+            enabled=use_default_alerts,
+        )
+        if x:
+            runtimedata.alerts[name] = x
+        else:
+            raise RuntimeError("Alarm setter returned nothing")
 
     def set_data_point(
         self,
