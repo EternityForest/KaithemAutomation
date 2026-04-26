@@ -22,7 +22,6 @@ from collections.abc import Callable
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any, TypedDict
 
-import dateutil.tz
 from scullery import messagebus, scheduling, snake_compat
 
 from kaithem.src.validation_util import validate_args
@@ -171,7 +170,6 @@ def fnToCueName(fn: str):
 cue_provider_types: dict[str, type[CueProvider]] = {}
 
 
-@validate_args
 def recalc_all_cue_schedules(*a, **k):
     for i in cues.values():
         i.schedule()
@@ -707,7 +705,7 @@ class Cue:
         if ts is None:
             ts = time.time()
         x = self.getGroup()
-        if x and x.is_active:
+        if x and x.is_active():
             x.goto_cue(self.name, ts)
 
     @property
@@ -746,7 +744,7 @@ class Cue:
 
                     if a:
                         if not a.tzinfo:
-                            a = a.replace(tzinfo=dateutil.tz.tzlocal())
+                            a = a.astimezone()
 
                         a2 = a.timestamp()
 

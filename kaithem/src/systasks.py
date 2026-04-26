@@ -93,6 +93,8 @@ checked = False
 time_last_minute = 0
 rhistory = []
 
+enable_time_jump_detect = True
+
 
 @scheduling.scheduler.every_minute
 def check_scheduler():
@@ -119,7 +121,9 @@ offset = time.time() - time.monotonic()
 
 @scheduling.scheduler.every_minute
 def check_time_set():
-    global offset
+    global offset, enable_time_jump_detect
+    if not enable_time_jump_detect:
+        return
     n = time.time() - time.monotonic()
     if abs(n - offset) > 20:
         messagebus.post_message(
