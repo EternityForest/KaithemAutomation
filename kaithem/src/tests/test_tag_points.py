@@ -51,7 +51,7 @@ def test_tag_override_resource():
             n,
             "test_resource",
             {
-                "resource": {"type": "tag_override"},
+                "resource": {"type": "tag_override", "modified": 1777171067},
                 "tag": "/system/unit_test_tag_override_resource",
                 "tag_type": "numeric",
                 "priority": 60,

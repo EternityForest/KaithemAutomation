@@ -75,7 +75,10 @@ def test_simple_resource_types():
             n,
             "test_resource",
             {
-                "resource": {"type": "test-basic-autogen-type"},
+                "resource": {
+                    "type": "test-basic-autogen-type",
+                    "modified": 1777171067,
+                },
                 "data": {"val": 7878},
             },
         )
@@ -96,7 +99,12 @@ async def test_modules_api():
 
     with modulesapi.modules_lock:
         modulesapi.insert_resource(
-            n, "test_resource", {"resource": {"type": "dummy"}, "val": 7878}
+            n,
+            "test_resource",
+            {
+                "resource": {"type": "dummy", "modified": 1777171067},
+                "val": 7878,
+            },
         )
 
         assert modules_state.ActiveModules[n]["test_resource"]["val"] == 7878
@@ -109,7 +117,9 @@ async def test_modules_api():
 
     with modulesapi.modules_lock:
         modulesapi.update_resource(
-            n, "test_resource", {"resource": {"type": "dummy"}, "val": 789}
+            n,
+            "test_resource",
+            {"resource": {"type": "dummy", "modified": 1777171067}, "val": 789},
         )
 
         assert modules_state.ActiveModules[n]["test_resource"]["val"] == 789
@@ -123,7 +133,10 @@ async def test_modules_api():
             modulesapi.update_resource(
                 n,
                 "nonexistent_resource",
-                {"resource": {"type": "dummy"}, "val": 789},
+                {
+                    "resource": {"type": "dummy", "modified": 1777171067},
+                    "val": 789,
+                },
             )
 
     # Can't update with wrong type
@@ -132,14 +145,22 @@ async def test_modules_api():
             modulesapi.update_resource(
                 n,
                 "test_resource",
-                {"resource": {"type": "dummy2"}, "val": "789"},
+                {
+                    "resource": {"type": "dummy2", "modified": 1777171067},
+                    "val": "789",
+                },
             )
 
     # Already exists
     with pytest.raises(ValueError):
         with modulesapi.modules_lock:
             modulesapi.insert_resource(
-                n, "test_resource", {"resource": {"type": "dummy"}, "val": 7878}
+                n,
+                "test_resource",
+                {
+                    "resource": {"type": "dummy", "modified": 1777171067},
+                    "val": 7878,
+                },
             )
 
     # Failed attempts should not modify

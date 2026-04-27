@@ -225,7 +225,10 @@ test("test", async ({ page }) => {
     .getByTestId("preset-inspector-testaqua-body")
     .getByLabel("blue")
     .fill("233");
+  
+  await waitForTasks(page);
 
+  
   //It should not affect red at all.  But this line was flaky at one point
   await page
     .getByTestId("preset-inspector-testaqua-body")
@@ -236,6 +239,8 @@ test("test", async ({ page }) => {
   await page.getByRole("textbox", { name: "blue" }).click();
 
   await waitForTasks(page);
+  await sleep(100);
+  
   // Rename the preset
   page.once("dialog", (dialog) => {
     dialog.accept("testaqua2").catch(() => {});

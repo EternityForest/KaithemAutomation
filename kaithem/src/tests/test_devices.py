@@ -70,9 +70,7 @@ def test_subdevice_loading():
     assert n in modules_state.ActiveModules
 
     devcon_child = {
-        "resource": {
-            "type": "device",
-        },
+        "resource": {"type": "device", "modified": 1777171067},
         "device": {
             "type": "DemoDevice",
             "name": "pytest_demo_parent/subdevice",
@@ -88,9 +86,7 @@ def test_subdevice_loading():
     assert "pytest_demo_parent/subdevice" in devices.device_data_cache
 
     devcon = {
-        "resource": {
-            "type": "device",
-        },
+        "resource": {"type": "device", "modified": 1777171067},
         "device": {
             "type": "DemoDevice",
             "name": "pytest_demo_parent",
