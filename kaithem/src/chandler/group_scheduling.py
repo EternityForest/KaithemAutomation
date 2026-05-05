@@ -161,7 +161,7 @@ def get_schedule_jump_point(group: groups.Group) -> None | tuple[str, float]:
                     times[cue.name] = a2
 
             except Exception:
-                logger.error(traceback.format_exc())
+                logger.exception(traceback.format_exc())
                 continue
     # Can't fast forward without a scheduled cue
     if scheduled_count:

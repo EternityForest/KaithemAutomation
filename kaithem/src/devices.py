@@ -438,7 +438,7 @@ class DeviceRuntimeState(iot_devices.host.DeviceHostContainer):
             try:
                 self.tagpoints[i].unsubscribe(f)
             except Exception:
-                logger.error(
+                logger.exception(
                     f"Error unsubscribing from tagpoint {i} for device {self.name}"
                 )
 

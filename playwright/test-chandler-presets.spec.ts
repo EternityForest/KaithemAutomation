@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { deleteModule, login, makeModule, sleep, waitForTasks } from "./util";
 declare global {
-  // eslint-disable-next-line no-var
+   
   var testMode: boolean;
 }
 
@@ -37,6 +37,21 @@ test("test", async ({ page }) => {
   await page.getByPlaceholder("New Universe Name").fill("test");
   await page.getByRole("button", { name: "Add", exact: true }).click();
   await page.getByRole("button", { name: "Update Settings" }).click();
+  
+  await waitForTasks(page);
+
+  await sleep(100);
+
+  // Refresh because sometimes this line is flaky
+  await page.goto("http://localhost:8002/chandler/config/test_presets:p")
+  await page.getByRole("button", { name: "Universes" }).click();
+
+  await expect(page
+    .getByTestId("universe-status-table")
+    .getByRole("row", { name: "test" })
+    .getByRole("link", { name: "Values" })
+  ).toBeVisible();
+  
   await page.getByRole("button", { name: "󰅖 Close" }).click();
 
   await page.getByRole("button", { name: "󰏫 Fixture Types" }).click();
@@ -240,7 +255,7 @@ test("test", async ({ page }) => {
 
   await waitForTasks(page);
   await sleep(100);
-  
+
   // Rename the preset
   page.once("dialog", (dialog) => {
     dialog.accept("testaqua2").catch(() => {});

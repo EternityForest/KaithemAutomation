@@ -18,6 +18,7 @@ import asyncio
 from collections.abc import Callable, Coroutine
 from typing import Optional, Any
 from starlette.requests import Request
+from starlette.websockets import WebSocket
 from quart.ctx import copy_current_request_context
 import msgpack
 from kaithem.src.validation_util import validate_args
@@ -513,9 +514,6 @@ class WebSocketHandler:
                 "system/errors/widgets/websocket", traceback.format_exc(6)
             )
             self.send(json.dumps([["__WIDGETERROR__", repr(e)]]))
-
-
-from starlette.websockets import WebSocket
 
 
 class RawWidgetDataHandler:

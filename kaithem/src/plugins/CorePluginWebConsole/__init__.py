@@ -123,7 +123,7 @@ async def handle_terminal_websocket():
                                 size,
                             )
                         except Exception:
-                            logger.error(
+                            logger.exception(
                                 "Error setting terminal size", exc_info=True
                             )
                     else:

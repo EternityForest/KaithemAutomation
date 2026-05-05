@@ -141,6 +141,14 @@ repos:
 
   -   repo: local
       hooks:
+      -   id: useloggerexceptionnoterror
+          name: Don't use logging.error to handle an exception
+          entry: 'except Exception:.*\n *_?logg...?.?.?\.error'
+          language: pygrep
+          types: [python]
+
+  -   repo: local
+      hooks:
       -   id: scripts/prepare-commit-msg.sh
           name: Prepare commit message
           entry: ./scripts/prepare-commit-message.sh
