@@ -144,6 +144,23 @@ test = ["pytest-cov >=5.0.0", "pytest-asyncio >=0.23.7", "time-machine >=2.0.0"]
 [tool.ruff]
 line-length = 80
 target-version = "py311"
+select = [
+        "PLE",
+        "F",
+        "E",        
+        "TRY",
+        "PIE",
+        "UP",
+        "NPY",
+        "E714",
+        "E711",
+        "E713",
+        "FURB",
+        "Q",
+        "E722",
+        "W605",
+        "I"]
+ignore = ["TRY003"]
 
 
 [tool.coverage.run]

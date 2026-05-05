@@ -57,7 +57,8 @@ def get_schedule_jump_point(group: groups.Group) -> None | tuple[str, float]:
     idx = group.pointer_for_cue(pointer)
 
     for safety_counter in range(1000):
-        # The logical next cue, except that __fast_forward also points to the next in sequence
+        # The logical next cue, except that __fast_forward also
+        # points to the next in sequence
         nextname = ""
 
         if pointer.next_cue and not pointer.next_cue == "__schedule__":
@@ -65,7 +66,7 @@ def get_schedule_jump_point(group: groups.Group) -> None | tuple[str, float]:
             if nextname not in group.cues:
                 if not nextname.startswith("__"):
                     raise RuntimeError(
-                        f"Reference to nonexistent cue {nextname} in group {group.name}"
+                        f"Nonexistent cue {nextname} in group {group.name}"
                     )
             c = group.cues[nextname]
             idx = group.pointer_for_cue(c)
@@ -83,7 +84,7 @@ def get_schedule_jump_point(group: groups.Group) -> None | tuple[str, float]:
 
             if str(pointer.length).startswith("="):
                 raise RuntimeError(
-                    "Found special =expression length cue, fast forward not possible"
+                    "with =expression length cue, fastforward unavailable"
                 )
 
         if processlen(pointer.length) or pointer is group.cue:
@@ -140,9 +141,12 @@ def get_schedule_jump_point(group: groups.Group) -> None | tuple[str, float]:
                 times[cue.name] = last + float(cue.length)
 
     # Now we do the directly scheduled cues.
-    # This won't perfectly reflect what would have happened if it were always running.
-    # If you have tons of both scheduled start and end cues mixed with external triggered stuff,
-    # But if things are complex enough it gets it wrong, you have way too much going on anyway.
+    # This won't perfectly reflect what would have
+    #  happened if it were always running.
+    # If you have tons of both scheduled start and end
+    #  cues mixed with external triggered stuff,
+    # But if things are complex enough it gets it wrong,
+    #  you have way too much going on anyway.
 
     for i in group.cues:
         cue = group.cues[i]
