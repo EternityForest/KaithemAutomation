@@ -9,6 +9,8 @@ Change Log
 * [sparkles] Every module can declare public files by doing public_resources/<type>/item1.png.  They are then accessible at /static/public_resource/<module>/<type>/item1.png
 * [bug] Fix devices showing errors when accessed via module pages.
 * [bug] Fix device default alarms not working.
+* [bug] Fix filesystem cue provider not auto-assigning numbers
+
 
 ### 0.94.0
 

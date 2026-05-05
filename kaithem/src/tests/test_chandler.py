@@ -130,6 +130,15 @@ def test_cue_provider():
 
         shutil.copytree(os.path.join(staticdir, "sounds"), tempdir)
 
+        shutil.copy(
+            os.path.join(
+                staticdir,
+                "sounds",
+                "331381__qubodup__public-domain-jump-sound.opus",
+            ),
+            os.path.join(tempdir, "SX303-test.opus"),
+        )
+
         # Check to make sure it doesn't crash on a bad provider
         grp.cue_providers = [
             "file://" + tempdir + "?import_media=sound",
@@ -160,6 +169,12 @@ def test_cue_provider():
                             if "Test adding note to provider cue" in f.read():
                                 found += 1
                 assert found == 1
+
+        found = False
+        for i in grp.cues:
+            if grp.cues[i].number == 303_000:
+                found = True
+        assert found
 
         with pytest.raises(RuntimeError):
             grp.cues_ordered[1].sound = "foo"
@@ -701,18 +716,11 @@ def test_make_group():
     s.goto_cue("cue2")
     assert s.cue.name == "cue2"
 
-    # Make sure a save file was created
-    # board.check_autosave()
-    # assert os.path.exists(os.path.join(directories.vardir, "chandler", "groups", "TestingGroup1.yaml"))
-
     s.close()
     board.rmGroup(s)
     core.wait_frame()
 
     assert "TestingGroup1" not in board.groups_by_name
-
-    # board.check_autosave()
-    # assert not os.path.exists(os.path.join(directories.vardir, "chandler", "groups", "TestingGroup1.yaml"))
 
 
 def test_setup_cue():
@@ -860,7 +868,8 @@ def test_sched_end():
 
         t = datetime.datetime.now() - datetime.timedelta(hours=2)
 
-        # Make a looping schedule.  Before_b ends before the current time, we want to be in
+        # Make a looping schedule.  Before_b ends before the current time,
+        # we want to be in
         # after_a
 
         grp.add_cue("before_a", length=f"@{t.strftime('%l%P')}")
@@ -892,7 +901,8 @@ def test_sched_end():
 
 def test_basic_cue_len_end():
     with TempGroup() as grp:
-        # Make a looping schedule.  Before_b ends before the current time, we want to be in
+        # Make a looping schedule.  Before_b ends before the current time,
+        # we want to be in
         # after_a
 
         grp.add_cue("c2")
@@ -904,7 +914,8 @@ def test_basic_cue_len_end():
 
 def test_timing_disabled():
     with TempGroup() as grp:
-        # Make a looping schedule.  Before_b ends before the current time, we want to be in
+        # Make a looping schedule.
+        # Before_b ends before the current time, we want to be in
         # after_a
 
         grp.add_cue("c2")
@@ -1007,7 +1018,8 @@ def test_transition_ratelimit():
         grp.goto_cue("cue2")
         taken = time.monotonic() - t
         gained_credits = groups.cue_transition_rate_limiter.rate * taken
-        # The value should be one minus the prior value plus whatever credits we calculate it should
+        # The value should be one minus the prior value plus whatever
+        # credits we calculate it should
         # have gained in that time.
         assert (
             abs(
@@ -1140,7 +1152,8 @@ def test_trigger_shortcuts():
             core.wait_frame()
             core.wait_frame()
 
-            # Cue2 in s should trigger the shortcut code foo, which triggers Cue2 in s2
+            # Cue2 in s should trigger the shortcut code foo,
+            # which triggers Cue2 in s2
             assert s2.cue.name == "cue2"
 
 
@@ -1533,12 +1546,11 @@ def test_commands():
 
 
 # def test_exit_cue_action():
-# TODO: As events are async,  exit happens before enter sometimes
 #     with TempGroup() as s:
 #         s.add_cue(
 #             "cue2",
 #             rules=[
-#                 ["cue.exist", [["goto", s.name, "default"]]],
+#                 ["cue.exit", [["goto", s.name, "default"]]],
 #             ],
 #         )
 
@@ -1550,15 +1562,16 @@ def test_commands():
 #         core.wait_frame()
 
 #         # Nothing happens, it's an exit action
-#         assert s2.cue.name == "cue2"
+#         assert s.cue.name == "cue2"
 
 #         s.goto_cue("cue2")
 
 #         core.wait_frame()
 #         core.wait_frame()
 
-#         # Exiting and reentering the cue causes a redirect that interrupts the goto
-#         assert s2.cue.name == "default"
+#         # Exiting and reentering the cue causes a redirect
+#         # that interrupts the goto
+#         assert s.cue.name == "default"
 
 
 def test_tag_backtrack_feature():
@@ -1569,7 +1582,8 @@ def test_tag_backtrack_feature():
         s.cues["default"].set_value_immediate("default", "/test_bt", "value", 1)
 
         # Set values and check that tags change
-        # First time allow two frames because it creates a new universe for the tag
+        # First time allow two frames because it creates
+        # a new universe for the tag
 
         core.wait_frame()
         core.wait_frame()
@@ -1590,7 +1604,8 @@ def test_tag_backtrack_feature():
 
         s.add_cue("c3")
 
-        # c3 has no lighting values, however as c2 is between default and c3 in sequence,
+        # c3 has no lighting values, however as c2 is
+        #  between default and c3 in sequence,
         # Skipping should backtrack.
         s.goto_cue("c3")
         core.wait_frame()
@@ -1716,22 +1731,6 @@ def test_lighting_value_set_tag_flicker():
                 with attempt:
                     assert t1 != tagpoints.Tag("/test1").value
                     assert t2 != tagpoints.Tag("/test2").value
-
-            # # Make sure cue vals saved
-            # p = os.path.join(directories.vardir, "chandler", "groups", "TestingGroup5.yaml")
-            # with open(p) as f:
-            #     f2 = yaml.load(f, Loader=yaml.SafeLoader)
-
-            # assert f2["cues"]["default"]["values"]["/test1"]["value"] == 50
-            # assert f2["cues"]["default"]["values"]["/test2"]["value"] == 60
-
-            # # Make sure group settings saved
-            # p = os.path.join(directories.vardir, "chandler", "groups", "TestingGroup6.yaml")
-            # with open(p) as f:
-            #     f2 = yaml.load(f, Loader=yaml.SafeLoader)
-
-            # assert f2["blend"] == "flicker"
-            # assert f2["priority"] == 65
 
 
 def test_cue_logic_plugin():
@@ -1918,7 +1917,8 @@ def test_fade_in():
         core.wait_frame()
 
     # Test the remote fading feature used for LED bulbs and the like
-    # This mode immediately jumps to the end of a fade, and tells the remote device to
+    # This mode immediately jumps to the end of a fade, and
+    # tells the remote device to
     # do the fading
     with TempGroup() as s:
         s.add_cue("cue2", fade_in=5)
