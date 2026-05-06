@@ -1545,33 +1545,36 @@ def test_commands():
             assert s.alpha == 0.76
 
 
-# def test_exit_cue_action():
-#     with TempGroup() as s:
-#         s.add_cue(
-#             "cue2",
-#             rules=[
-#                 ["cue.exit", [["goto", s.name, "default"]]],
-#             ],
-#         )
+def test_exit_cue_action():
+    with TempGroup() as s:
+        s.add_cue(
+            "cue2",
+            rules=[
+                ["cue.exit", [["set_alpha", "=GROUP", "0.65"]]],
+            ],
+        )
 
-#         s.add_cue("cue2")
+        s.goto_cue("cue2")
 
-#         s.goto_cue("cue2")
+        core.wait_frame()
+        core.wait_frame()
 
-#         core.wait_frame()
-#         core.wait_frame()
+        # Nothing happens, it's an exit action
+        assert s.cue.name == "cue2"
 
-#         # Nothing happens, it's an exit action
-#         assert s.cue.name == "cue2"
+        s.goto_cue("cue2")
 
-#         s.goto_cue("cue2")
+        core.wait_frame()
+        core.wait_frame()
 
-#         core.wait_frame()
-#         core.wait_frame()
+        assert s.alpha == 1.0
 
-#         # Exiting and reentering the cue causes a redirect
-#         # that interrupts the goto
-#         assert s.cue.name == "default"
+        s.goto_cue("default")
+
+        core.wait_frame()
+        core.wait_frame()
+
+        assert s.alpha == 0.65
 
 
 def test_tag_backtrack_feature():
