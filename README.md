@@ -129,6 +129,17 @@ kaithem-scripts root-enable-passwordless-sudo
 
 ```
 
+#### Matter Support
+
+Kaithem has experimental support for the Matter protocol, if the python matter server is running.  Use this command to set it up with Docker:
+
+```bash
+kaithem-scripts root-setup-matter-server
+```
+
+Then add a MatterControllerClient device via the UI.  All commisioned devices will be auto-added as subdevices.
+
+
 ## Manual dev install 🖐️
 
 Info for devs here on the wiki (https://github.com/EternityForest/KaithemAutomation/wiki/Development)
