@@ -122,14 +122,60 @@ def upload():
     # This lets the user upload modules
 
 
+def _get_module_description(module_name):
+    """Extract module description, return empty string if it's the default."""
+    try:
+        desc = modules_state.ActiveModules[module_name]["__metadata__"][
+            "description"
+        ]
+        if desc == "Module info here":
+            return ""
+        else:
+            return desc
+    except Exception:
+        return ""
+
+
 @quart_app.app.route("/modules")
 def modules_index():
     try:
         pages.require("view_admin_info")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
-    return pages.get_template("modules/index.html").render(
-        ActiveModules=modules_state.ActiveModules
+
+    # Preprocess module data
+    modules_list = []
+    for module_name in sorted(modules_state.ActiveModules.keys()):
+        try:
+            module_hash = modules_state.getModuleHash(module_name)
+            external_location = modules.external_module_locations.get(
+                module_name
+            )
+            description = _get_module_description(module_name)
+
+            modules_list.append(
+                {
+                    "name": module_name,
+                    "hash": module_hash,
+                    "external_location": external_location,
+                    "description": description,
+                    "safe_id": module_name.replace('"', ""),
+                }
+            )
+        except Exception as e:
+            modules_list.append(
+                {
+                    "name": module_name,
+                    "error": str(e),
+                    "safe_id": module_name.replace('"', ""),
+                }
+            )
+
+    return pages.render_jinja_template(
+        "modules/index.j2.html",
+        modules=modules_list,
+        modules_hash=modules_state.moduleshash,
+        memorableHash=util.memorableHash,
     )
 
 
@@ -155,7 +201,8 @@ async def newmoduletarget():
     def f():
         check_forbidden(kwargs["name"])
 
-        # If there is no module by that name, create a blank template and the scope obj
+        # If there is no module by that name, create a blank
+        # template and the scope obj
         with modules_state.modulesLock:
             if kwargs["name"] in modules_state.ActiveModules:
                 return pages.get_template("error.html").render(

@@ -1,0 +1,49 @@
+{% include "pageheader.html" %}
+<script src="/static/js/thirdparty/showdown.min.js"></script>
+
+<h1>Modules</h1>
+<title>Modules</title>
+<section class="window paper">
+
+    <header>
+    <div class="tool-bar menubar">
+    <a class="button" href="/modules/newmodule" aria-label="Add Module" data-testid="add-module-button"><i class="mdi mdi-plus"></i></a>
+    <a class="button" href="/modules/deletemodule" aria-label="Delete"><i class="mdi mdi-delete"></i></a>
+    <a class="button" href="/modules/upload"><i class="mdi mdi-upload" aria-label="Upload"></i></a>
+    <a class="button" href="/modules/library"><i class="mdi mdi-library"></i>Library</a>
+    <form style="display:inline-flex;" action="/modules/search/__all__" method="POST"><input name="search" size="4" placeholder="Search all modules"/>
+        <button type=submit value="search" aria-label="Search"><span class="mdi mdi-magnify"></span>
+        </button>
+            </form>
+    <p title="{{ modules_hash }}">{{ memorableHash(modules_hash, 3, separator=" ").upper() }}</p>
+    </header>
+
+<div class="padding">
+{% for module in modules %}
+<details>
+<summary>
+{% if module.error %}
+<dt>
+    {{ module.error }}
+</dt>
+{% else %}
+<a href="/modules/module/{{ module.name|urlencode }}" title="MD5: {{ module.hash }}">{{ module.name }}</a>
+{% if module.external_location %}
+<small> ({{ module.external_location }})</small>
+{% endif %}
+{% endif %}
+</summary>
+<div id="{{ module.safe_id }}">{{ module.description }}</div>
+</details>
+<script>
+    showdown.setFlavor('github');
+    var c = document.getElementById("{{ module.safe_id }}").innerHTML;
+    var converter=new
+    showdown.Converter();
+    document.getElementById("{{ module.safe_id }}").innerHTML=converter.makeHtml(c);
+</script>
+
+{% endfor %}
+</div>
+</section>
+{% include "pagefooter.html" %}
