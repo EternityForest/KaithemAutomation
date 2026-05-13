@@ -85,7 +85,8 @@ async def favicon():
 settings_overrides.set_meta(
     "core/homepage_redirect",
     "description",
-    "Redirect the main page to this URL. Got to /index to get the real main page",
+    "Redirect the main page to this URL. Got"
+    " to /index to get the real main page",
 )
 
 
@@ -141,8 +142,90 @@ def tagpoints_index(*path, show_advanced="", **data):
     except PermissionError:
         return pages.loginredirect(pages.geturl())
 
-    return pages.get_template("settings/tagpoints.html").render(
-        data=data, module="", resource=""
+    page_number = int(data.get("pageNumber", 0))
+    search_filter = data.get("searchFilter", "").strip()
+
+    # Filter tags by search term
+    filtered_tags = [
+        tag
+        for tag in tagpoints.allTagsAtomic.keys()
+        if search_filter.lower() in tag.lower()
+    ]
+    filtered_tags_sorted = sorted(filtered_tags)
+
+    # Paginate results (250 per page)
+    paginated_tags = filtered_tags_sorted[
+        page_number * 250 : (page_number + 1) * 250
+    ]
+
+    # Build tag data for template
+    tags_data = []
+    for tag_name in paginated_tags:
+        if tag_name not in tagpoints.allTags:
+            continue
+
+        tag = tagpoints.allTagsAtomic[tag_name]()
+        if tag is None:
+            tags_data.append(
+                {
+                    "name": tag_name,
+                    "type": "deleted",
+                    "value": "DELETED",
+                    "alerts_count": 0,
+                }
+            )
+        elif isinstance(tag, tagpoints.NumericTagPointClass):
+            tags_data.append(
+                {
+                    "name": tag_name,
+                    "type": "numeric",
+                    "value": tag.last_value,
+                    "alerts_count": len(tag.get_alerts()),
+                }
+            )
+        elif isinstance(tag, tagpoints.StringTagPointClass):
+            tags_data.append(
+                {
+                    "name": tag_name,
+                    "type": "string",
+                    "value": str(tag.last_value)[:32],
+                    "alerts_count": len(tag.get_alerts()),
+                }
+            )
+        elif isinstance(tag, tagpoints.ObjectTagPointClass):
+            tags_data.append(
+                {
+                    "name": tag_name,
+                    "type": "object",
+                    "value": str(tag.last_value)[:32],
+                    "alerts_count": len(tag.get_alerts()),
+                }
+            )
+        elif isinstance(tag, tagpoints.BinaryTagPointClass):
+            tags_data.append(
+                {
+                    "name": tag_name,
+                    "type": "binary",
+                    "value": "Value is binary data",
+                    "alerts_count": len(tag.get_alerts()),
+                }
+            )
+
+    extra_url_stuff = ""
+    if quart.request.args.get("kaithem_disable_header", 0):
+        extra_url_stuff = "?kaithem_disable_header=true"
+
+    total_pages = int(len(filtered_tags_sorted) / 250) + 1
+    page_numbers = list(range(total_pages))
+
+    return pages.render_jinja_template(
+        "settings/tagpoints.j2.html",
+        page_number=page_number,
+        search_filter=search_filter,
+        tags_data=tags_data,
+        extra_url_stuff=extra_url_stuff,
+        page_numbers=page_numbers,
+        total_pages=total_pages,
     )
 
 
@@ -328,14 +411,17 @@ def startServer():
     config2.worker_class = "uvloop"
 
     # if config["https_port"]:
-    #     if not os.path.exists(os.path.join(directories.ssldir, "certificate.key")):
+    #     if not os.path.exists(
+    #         os.path.join(directories.ssldir, "certificate.key")):
     #         raise RuntimeError("No SSL certificate found")
     #     else:
     #         https_server = tornado.httpserver.HTTPServer(
     #             router,
     #             ssl_options={
-    #                 "certfile": os.path.join(directories.ssldir, "certificate.cert"),
-    #                 "keyfile": os.path.join(directories.ssldir, "certificate.key"),
+    #                 "certfile": os.path.join(directories.ssldir,
+    #  "certificate.cert"),
+    #                 "keyfile": os.path.join(directories.ssldir,
+    # "certificate.key"),
     #             },
     #         )
     #         https_server.listen(config["https_port"], bindto)

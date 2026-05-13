@@ -9,9 +9,25 @@ Jinja2 files are rendered using
 
 from kaithem.pages
 
-Project Jinja templates live in /kaithem/src/html/jinjatemplates
+Reusable Jinja templates live in /kaithem/src/html/jinjatemplates. That's only for geberic reusable templates.
+
+Normal page files are in appropriate subdirectories of /kaithem/src/html/
+
+Paths given to render_jinja_template are relative to /kaithem/src/html/
+
 
 Almost every page uses a template.
+
+Most Jinja pages look like this, pagetemplate.j2.html replaces the old pageheader and
+pagefooter imports.
+
+```
+{% extends "pagetemplate.j2.html" %}
+
+{% block body %}
+
+{% endblock %}
+```
 
 
 ## Instructions

@@ -1,0 +1,84 @@
+{% extends "pagetemplate.j2.html" %}
+
+{% block body %}
+
+<title>Tag Points</title>
+
+<h1>Tag Points</h1>
+<div class="window paper">
+<details class="help"><summary><i class="mdi mdi-help-circle-outline"></i></summary>
+    This page lists all <a href="/docs/mdtemplate/tagpoints.md">Tag Points</a> currently managed by Kaithem.
+    Creating a tag with a name beginning with "=" allows you to create expression tags,
+    similar to soft tags in many SCADA systems.
+
+</details>
+
+
+<h3>Active Tags</h3>
+<div class="menubar">
+<form method="POST" action="/tagpoints" class="inline">
+    <input type="hidden" value="{{ search_filter }}" name="searchFilter">
+
+    <ul class="pagination">
+        <li>Page {{ page_number }}/{{ total_pages }}</li>
+        {% for i in page_numbers %}
+        <li>
+            <input name="pageNumber" type="submit" value="{{ i }}">
+        </li>
+        {% endfor %}
+    </ul>
+</form>
+
+<div class="tool-bar">
+    <form method="post" action="/tagpoints?pageNumber={{ page_number }}">
+        <input name="searchFilter" value="{{ search_filter|escape }}" size="8"> <input type="submit" value="Search">
+    </form>
+</div>
+</div>
+<table border="1" class="w-full">
+<tr><th>Name</th><th  class="desktop-only">Value(not realtime)</th>
+    <th  class="desktop-only">Alarms</th>
+
+</tr>
+{% for tag in tags_data %}
+{% if tag.type == 'numeric' %}
+<tr>
+    <td  style="word-wrap: break-word;"><a href="/tagpoints/{{ tag.name|urlencode }}{{ extra_url_stuff }}">{{ tag.name|escape }}</a>
+    </td>
+    <td  class="desktop-only" style="word-wrap: break-word;">{{ tag.value }}</td>
+    <td  class="desktop-only">{{ tag.alerts_count }}</td>
+</tr>
+{% elif tag.type == 'string' %}
+<tr>
+    <td  style="word-wrap: break-word;"><a href="/tagpoints/{{ tag.name|urlencode }}{{ extra_url_stuff }}">{{ tag.name|escape }}</a></td>
+    <td  class="desktop-only" style="word-wrap: break-word;">{{ tag.value|escape }} </td>
+    <td  class="desktop-only">{{ tag.alerts_count }}</td>
+
+</tr>
+{% elif tag.type == 'object' %}
+<tr>
+    <td  style="word-wrap: break-word;"><a href="/tagpoints/{{ tag.name|urlencode }}{{ extra_url_stuff }}">{{ tag.name|escape }}</a></td>
+    <td  class="desktop-only" style="word-wrap: break-word;">{{ tag.value|escape }} </td>
+    <td  class="desktop-only">{{ tag.alerts_count }}</td>
+</tr>
+{% elif tag.type == 'binary' %}
+<tr>
+    <td  style="word-wrap: break-word;"><a href="/tagpoints/{{ tag.name|urlencode }}{{ extra_url_stuff }}">{{ tag.name|escape }}</a></td>
+    <td  class="desktop-only"><span style="color: grey">Value is binary data</span></td>
+    <td  class="desktop-only">{{ tag.alerts_count }}</td>
+</tr>
+{% elif tag.type == 'deleted' %}
+<tr>
+    <td>{{ tag.name|escape }}</td>
+    <td>DELETED</td>
+    <td>DELETED</td>
+    <td>DELETED</td>
+    <td>DELETED</td>
+</tr>
+{% endif %}
+{% endfor %}
+</table>
+
+</div>
+
+{% endblock %}

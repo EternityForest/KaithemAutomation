@@ -1,4 +1,6 @@
-{% include "pageheader.html" %}
+{% extends "pagetemplate.j2.html" %}
+
+{% block body %}
 <script src="/static/js/thirdparty/showdown.min.js"></script>
 
 <h1>Modules</h1>
@@ -46,4 +48,4 @@
 {% endfor %}
 </div>
 </section>
-{% include "pagefooter.html" %}
+{% endblock %}
