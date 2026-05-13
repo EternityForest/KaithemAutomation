@@ -43,10 +43,6 @@ def onFail(ip, user, lockout=True):
 @quart_app.app.route("/login")
 def login_index():
     kwargs = quart.request.args
-    if not quart.request.scheme == "https":
-        x = quart.request.remote_addr
-        if not pages.isHTTPAllowed(x):
-            return quart.redirect("/errors/gosecure")
     return pages.get_template("login.html").render(target=kwargs.get("go", "/"))
 
 
@@ -77,10 +73,6 @@ async def login():
             if not util.is_private_ip(quart.request.remote_addr):
                 r = quart.redirect("/errors/localonly")
 
-        if not quart.request.scheme == "https":
-            x = quart.request.remote_addr
-            if not pages.isHTTPAllowed(x):
-                r = quart.redirect("/errors/gosecure")
         # Insert a delay that has a random component of up to 256us that is derived from the username
         # and password, to prevent anyone from being able to average it out, as it is the same per
         # query

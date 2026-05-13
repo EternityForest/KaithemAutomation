@@ -647,12 +647,8 @@ async def app(scope, receive, send):
                 user_agent = ""
             x = scope["client"][0]
 
-            if scope["scheme"] == "wss" or pages.isHTTPAllowed(x):
-                user = pages.getAcessingUser(asgi=scope)
-                cookie = scope.get("cookie", None)
-            else:
-                cookie = None
-                user = "__guest__"
+            user = pages.getAcessingUser(asgi=scope)
+            cookie = scope.get("cookie", None)
 
             impl: WebSocketHandler = WebSocketHandler(websocket, user, io_loop)
             impl.cookie = cookie
@@ -709,12 +705,8 @@ async def rawapp(scope, receive, send):
         user_agent = ""
     x = scope["client"][0]
 
-    if scope["scheme"] == "wss" or pages.isHTTPAllowed(x):
-        user = pages.getAcessingUser(asgi=scope)
-        cookie = scope.get("cookie", None)
-    else:
-        cookie = None
-        user = "__guest__"
+    user = pages.getAcessingUser(asgi=scope)
+    cookie = scope.get("cookie", None)
 
     io_loop = asyncio.get_running_loop()
     try:
