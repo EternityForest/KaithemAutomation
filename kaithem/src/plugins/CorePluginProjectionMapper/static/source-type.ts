@@ -256,6 +256,14 @@ export abstract class Source {
   getData(): SourceData {
     return this.data;
   }
+
+  /**
+   * Called when the transform (corners) changes
+   * Override in subclasses to respond to transform updates
+   */
+  onTransformChanged(_corners: Corners): void {
+    // Override in subclasses if needed
+  }
 }
 
 // Source type registry and factory

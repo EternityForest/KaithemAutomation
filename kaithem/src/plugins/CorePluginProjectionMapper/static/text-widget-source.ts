@@ -206,15 +206,15 @@ export abstract class TextWidgetSource extends Source {
       <div class="form-group">
         <label>Window Size (px)</label>
         <p style="font-size: 0.85rem; color: #999; margin-top: 0rem; margin-bottom: 0.5rem;">
-          Size of the text display area before transformation
+          Width and height are automatically computed from the flattened dimensions of the 3D projection rectangle based on corner positions.
         </p>
-        <div class="size-input-row">
-          <input type="number" id="window-width" data-testid="text-window-width"
-                 placeholder="Width" min="1"
-                 value="${config.window_width || 800}">
-          <input type="number" id="window-height" data-testid="text-window-height"
-                 placeholder="Height" min="1"
-                 value="${config.window_height || 200}">
+        <div style="padding: 0.5rem; background: #222; border-radius: 4px; border: 1px solid #333;">
+          <div style="margin-bottom: 0.5rem;">
+            <label style="display: block; margin-bottom: 0.25rem; font-size: 0.85rem; color: #aaa;">Width: <span id="computed-width" style="color: #fff; font-weight: bold;">${config.window_width || 'N/A'}</span> px</label>
+          </div>
+          <div>
+            <label style="display: block; margin-bottom: 0.25rem; font-size: 0.85rem; color: #aaa;">Height: <span id="computed-height" style="color: #fff; font-weight: bold;">${config.window_height || 'N/A'}</span> px</label>
+          </div>
         </div>
       </div>
 
@@ -289,26 +289,6 @@ export abstract class TextWidgetSource extends Source {
         | "left"
         | "center"
         | "right";
-      onUpdate(this);
-    });
-
-    const windowWidth = container.querySelector(
-      "#window-width"
-    ) as HTMLInputElement;
-    windowWidth?.addEventListener("input", (eventObject) => {
-      config.window_width = Number.parseInt(
-        (eventObject.target as HTMLInputElement).value
-      );
-      onUpdate(this);
-    });
-
-    const windowHeight = container.querySelector(
-      "#window-height"
-    ) as HTMLInputElement;
-    windowHeight?.addEventListener("input", (eventObject) => {
-      config.window_height = Number.parseInt(
-        (eventObject.target as HTMLInputElement).value
-      );
       onUpdate(this);
     });
 

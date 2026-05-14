@@ -736,12 +736,15 @@ class ProjectionEditor extends LitElement {
     const corners = transform.corners;
 
     if (corners) {
-      const windowWidth = config.window_width || 1920;
-      const windowHeight = config.window_height || 1080;
+      // Compute window dimensions from the flattened rectangle
+      const dims = this.computeDimensionsFromCorners(corners);
+      config.window_width = dims.width;
+      config.window_height = dims.height;
+
       const matrix = this.calculatePerspectiveMatrix(
         corners,
-        windowWidth,
-        windowHeight
+        dims.width,
+        dims.height
       );
       element.style.transformOrigin = "0 0";
       element.style.transform = `matrix3d(${matrix.join(",")})`;
@@ -792,6 +795,33 @@ class ProjectionEditor extends LitElement {
 
     // Convert 3x3 matrix to matrix3d format
     return this.coeffsToMatrix3d(coeffs);
+  }
+
+  private computeDimensionsFromCorners(corners: Corners): {
+    width: number;
+    height: number;
+  } {
+    // Compute flattened edge lengths from the 3D rectangle
+    // Top edge: TR - TL
+    const topEdge = {
+      dx: corners.tr.x - corners.tl.x,
+      dy: corners.tr.y - corners.tl.y,
+    };
+    const topLength = Math.hypot(topEdge.dx, topEdge.dy);
+
+    // Left edge: BL - TL
+    const leftEdge = {
+      dx: corners.bl.x - corners.tl.x,
+      dy: corners.bl.y - corners.tl.y,
+    };
+    const leftLength = Math.hypot(leftEdge.dx, leftEdge.dy);
+
+    // Use edge lengths as content dimensions
+    // Clamp to reasonable minimums to avoid division by zero or extreme values
+    const width = Math.max(1, Math.round(topLength));
+    const height = Math.max(1, Math.round(leftLength));
+
+    return { width, height };
   }
 
   private coeffsToMatrix3d(coeffs: number[]): number[] {
@@ -986,7 +1016,7 @@ class ProjectionEditor extends LitElement {
       );
       if (cornerInputs)
         for (const input of cornerInputs) {
-          input.addEventListener("input", (event_) => {
+          input.addEventListener("change", (event_) => {
             const source = this.getSelectedSource();
             if (source) {
               const corner = (event_.target as HTMLInputElement).dataset.corner;
@@ -1009,6 +1039,12 @@ class ProjectionEditor extends LitElement {
               this.broadcastTransform(source);
               this.updatePreviewTransform(source);
               this.drawCornerHandles();
+
+              // Notify source of transform changes
+              if (source.transform?.corners) {
+                const sourceAdapter = this.getSourceObject(source);
+                sourceAdapter.onTransformChanged(source.transform.corners);
+              }
             }
           });
         }
@@ -1103,6 +1139,7 @@ class ProjectionEditor extends LitElement {
       x: filtered.x,
       y: filtered.y,
     };
+
     if (this.draggingCorner == "tl") {
       source.transform.corners["bl"].x += deltaX;
       source.transform.corners["bl"].y += deltaY;
@@ -1115,8 +1152,17 @@ class ProjectionEditor extends LitElement {
     }
 
     if (this.draggingCorner == "br") {
-      source.transform.corners["bl"].y += deltaY;
-      source.transform.corners["tr"].x += deltaX;
+      if (Math.abs(
+        source.transform.corners["bl"].y
+        - filtered.y
+      ) < 64) {
+        source.transform.corners["bl"].y = filtered.y;
+      }
+      if (Math.abs(
+        source.transform.corners["tr"].x - filtered.x
+      ) < 64) {
+        source.transform.corners["tr"].x = filtered.x;
+      }
     }
 
     this.broadcastTransform(source);
@@ -1145,6 +1191,12 @@ class ProjectionEditor extends LitElement {
     const source = this.getSelectedSource();
 
     this.broadcastTransform(source, true);
+
+    // Notify source of transform changes after drag completes
+    if (source && source.transform?.corners) {
+      const sourceAdapter = this.getSourceObject(source);
+      sourceAdapter.onTransformChanged(source.transform.corners);
+    }
   }
 
   private onCanvasTouchStart(event_: TouchEvent): void {
