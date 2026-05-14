@@ -42,7 +42,7 @@ export class ClockSource extends TextWidgetSource {
     // Start update loop if not running
     if (!this.updateIntervalId) {
       this.updateClock();
-      this.updateIntervalId = window.setInterval(() => this.updateClock(), 100);
+      this.updateIntervalId = globalThis.setInterval(() => this.updateClock(), 100);
     }
   }
 
@@ -73,7 +73,7 @@ export class ClockSource extends TextWidgetSource {
       <h3>Clock Config</h3>
       <div class="form-group">
         <label>Time Format (strftime)</label>
-        <input type="text" id="clock-format"
+        <input type="text" id="clock-format" data-testid="clock-format"
                placeholder="%H:%M:%S"
                value="${config.clock_format || "%H:%M:%S"}">
         <p style="font-size: 0.85rem; color: #999; margin-top: 0.5rem;">
@@ -90,8 +90,8 @@ export class ClockSource extends TextWidgetSource {
     const clockFormat = container.querySelector(
       "#clock-format"
     ) as HTMLInputElement;
-    clockFormat?.addEventListener("input", (e) => {
-      config.clock_format = (e.target as HTMLInputElement).value;
+    clockFormat?.addEventListener("input", (eventObject) => {
+      config.clock_format = (eventObject.target as HTMLInputElement).value;
       onUpdate(this);
     });
   }

@@ -20,8 +20,8 @@ function formatValue(value: unknown, format: string): string {
     return String(value);
   }
 
-  const num = Number(value);
-  if (Number.isNaN(num)) {
+  const number_ = Number(value);
+  if (Number.isNaN(number_)) {
     // For non-numeric values with numeric format, just return string
     return String(value);
   }
@@ -39,28 +39,25 @@ function formatValue(value: unknown, format: string): string {
 
   switch (type) {
     case "d": {
-      result = Math.floor(num).toString();
+      result = Math.floor(number_).toString();
       break;
     }
     case "f": {
-      result = num.toFixed(p);
+      result = number_.toFixed(p);
       break;
     }
     case "e": {
-      result = num.toExponential(p);
+      result = number_.toExponential(p);
       break;
     }
-    default:
+    default: {
       result = String(value);
+    }
   }
 
   // Handle width padding
   if (w > 0) {
-    if (leftAlign) {
-      result = result.padEnd(w, " ");
-    } else {
-      result = result.padStart(w, " ");
-    }
+    result = leftAlign ? result.padEnd(w, " ") : result.padStart(w, " ");
   }
 
   return result;
@@ -121,7 +118,7 @@ export class TagSource extends TextWidgetSource {
       <h3>Tag Display Config</h3>
       <div class="form-group">
         <label>Tag Name</label>
-        <input type="text" id="tag-name"
+        <input type="text" id="tag-name" data-testid="tag-name"
                list="available-tags"
                placeholder="Enter tag name"
                value="${config.tag_name || ""}">
@@ -129,7 +126,7 @@ export class TagSource extends TextWidgetSource {
 
       <div class="form-group">
         <label>Format String</label>
-        <input type="text" id="format-string"
+        <input type="text" id="format-string" data-testid="tag-format-string"
                placeholder="%s"
                value="${config.format_string || "%s"}">
         <p style="font-size: 0.85rem; color: #999; margin-top: 0.5rem;">

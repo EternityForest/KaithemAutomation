@@ -51,7 +51,7 @@ export abstract class TextWidgetSource extends Source {
     this.displayElementA.style.width = "100%";
     this.displayElementA.style.height = "100%";
     this.displayElementA.style.opacity = "1";
-    container.appendChild(this.displayElementA);
+    container.append(this.displayElementA);
 
     this.displayElementB = document.createElement("div");
     this.displayElementB.style.position = "absolute";
@@ -60,7 +60,7 @@ export abstract class TextWidgetSource extends Source {
     this.displayElementB.style.width = "100%";
     this.displayElementB.style.height = "100%";
     this.displayElementB.style.opacity = "0";
-    container.appendChild(this.displayElementB);
+    container.append(this.displayElementB);
   }
 
   /**
@@ -173,20 +173,20 @@ export abstract class TextWidgetSource extends Source {
 
       <div class="form-group">
         <label>Text Color</label>
-        <input type="color" id="text-color"
+        <input type="color" id="text-color" data-testid="text-color"
                value="${config.text_color || "#ffffff"}">
       </div>
 
       <div class="form-group">
         <label>Font Size (px)</label>
-        <input type="number" id="text-size"
+        <input type="number" id="text-size" data-testid="text-size"
                min="8" max="200" step="1"
                value="${config.text_size || 48}">
       </div>
 
       <div class="form-group">
         <label>Font Family</label>
-        <input type="text" id="font-family"
+        <input type="text" id="font-family" data-testid="font-family"
                list="available-fonts"
                placeholder="monospace"
                value="${config.font_family || "monospace"}">
@@ -196,7 +196,7 @@ export abstract class TextWidgetSource extends Source {
 
       <div class="form-group">
         <label>Text Alignment</label>
-        <select id="text-alignment">
+        <select id="text-alignment" data-testid="text-alignment">
           <option value="left" ${config.text_alignment === "left" ? "selected" : ""}>Left</option>
           <option value="center" ${config.text_alignment === "center" || !config.text_alignment ? "selected" : ""}>Center</option>
           <option value="right" ${config.text_alignment === "right" ? "selected" : ""}>Right</option>
@@ -209,10 +209,10 @@ export abstract class TextWidgetSource extends Source {
           Size of the text display area before transformation
         </p>
         <div class="size-input-row">
-          <input type="number" id="window-width"
+          <input type="number" id="window-width" data-testid="text-window-width"
                  placeholder="Width" min="1"
                  value="${config.window_width || 800}">
-          <input type="number" id="window-height"
+          <input type="number" id="window-height" data-testid="text-window-height"
                  placeholder="Height" min="1"
                  value="${config.window_height || 200}">
         </div>
@@ -222,32 +222,32 @@ export abstract class TextWidgetSource extends Source {
         <label>Text Shadow</label>
         <div class="form-group">
           <label>Shadow Offset X (px)</label>
-          <input type="number" id="shadow-offset-x"
+          <input type="number" id="shadow-offset-x" data-testid="shadow-offset-x"
                  step="1"
                  value="${config.text_shadow_offset_x || 2}">
         </div>
         <div class="form-group">
           <label>Shadow Offset Y (px)</label>
-          <input type="number" id="shadow-offset-y"
+          <input type="number" id="shadow-offset-y" data-testid="shadow-offset-y"
                  step="1"
                  value="${config.text_shadow_offset_y || 2}">
         </div>
         <div class="form-group">
           <label>Shadow Blur (px)</label>
-          <input type="number" id="shadow-blur"
+          <input type="number" id="shadow-blur" data-testid="shadow-blur"
                  min="0" max="50" step="1"
                  value="${config.text_shadow_blur || 4}">
         </div>
         <div class="form-group">
           <label>Shadow Color</label>
-          <input type="color" id="shadow-color"
+          <input type="color" id="shadow-color" data-testid="shadow-color"
                  value="${config.text_shadow_color || "#000000"}">
         </div>
       </div>
 
       <div class="form-group">
         <label>Transition Duration (ms)</label>
-        <input type="number" id="transition-duration"
+        <input type="number" id="transition-duration" data-testid="transition-duration"
                min="0" max="5000" step="50"
                value="${config.transition_duration || 0}">
         <p style="font-size: 0.85rem; color: #999; margin-top: 0.5rem;">
@@ -262,8 +262,8 @@ export abstract class TextWidgetSource extends Source {
     const textColor = container.querySelector(
       "#text-color"
     ) as HTMLInputElement;
-    textColor?.addEventListener("input", (e) => {
-      config.text_color = (e.target as HTMLInputElement).value;
+    textColor?.addEventListener("input", (eventObject) => {
+      config.text_color = (eventObject.target as HTMLInputElement).value;
       onUpdate(this);
     });
 

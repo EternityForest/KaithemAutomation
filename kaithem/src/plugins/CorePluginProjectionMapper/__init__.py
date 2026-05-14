@@ -139,16 +139,17 @@ class ProjectionMapperType(modules_state.ResourceType):
         editor_url = (
             f"/projection-mapper/editor/{quote(module)}/{quote(resource)}"
         )
-        viewer_url = f"/projection-mapper/viewer/{quote(module)}/{quote(resource)}?viewer"
+
+        viewer_url = f"/projection-mapper/viewer/{quote(module)}/{quote(resource)}?viewer"  # noqa: E501
 
         return f"""
-        <div>
+        <div data-testid="pjm-blurb-{quote(resource)}">
             <p><strong>{title}</strong></p>
             <p>{sources_count} source(s)</p>
-            <a href="{editor_url}" class="btn">Edit</a>
-            <a href="{viewer_url}" class="btn" target="_blank">View</a>
+            <a href="{editor_url}" class="btn" data-testid="edit-pj-map" >Edit</a>
+            <a href="{viewer_url}" class="btn" data-testid="view-pj-map" target="_blank">View</a>
         </div>
-        """
+        """  # noqa: E501
 
     def create_page(self, module: str, path: str) -> str:
         d = dialogs.SimpleDialog("New Projection Mapper")

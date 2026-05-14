@@ -29,6 +29,7 @@ export interface SourceConfig {
   render_height?: number;
   crop_x?: number;
   crop_y?: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 }
 
@@ -118,7 +119,7 @@ export abstract class Source {
     this.collectDesiredSubscriptions(this.desiredSubscriptions);
 
     // Unsubscribe from tags no longer needed
-    for (const [tagKey, tagName] of Object.entries(this.activeSubscriptions)) {
+    for (const [tagKey, _tagName] of Object.entries(this.activeSubscriptions)) {
       if (!this.desiredSubscriptions[tagKey]) {
         unsubscribe(this.id, tagKey);
         delete this.activeSubscriptions[tagKey];
@@ -138,7 +139,7 @@ export abstract class Source {
    * Hook for subclasses to add additional tag subscriptions
    * Override to add source-type-specific tag handling
    */
-  protected collectDesiredSubscriptions(desired: Record<string, string>): void {
+  protected collectDesiredSubscriptions(_desired: Record<string, string>): void {
     // Override in subclasses to add more subscriptions
   }
 
@@ -170,7 +171,7 @@ export abstract class Source {
    */
   createPreviewElements(): { window: HTMLElement; container: HTMLElement } {
     const window = document.createElement("div");
-    window.className = "preview-window";
+    window.className = "source-window";
 
     const container = document.createElement("div");
     container.className = "window-container";
@@ -235,7 +236,7 @@ export abstract class Source {
    */
   renderConfigUI(
     container: HTMLElement,
-    onUpdate: (source: Source) => void
+    _onUpdate: (source: Source) => void
   ): void {
     container.innerHTML = `<h3>Source Config</h3>
        <p>No configuration available for source type: ${this.type}</p>`;

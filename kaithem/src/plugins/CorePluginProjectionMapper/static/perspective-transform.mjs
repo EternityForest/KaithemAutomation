@@ -8,26 +8,26 @@ import numeric from 'numeric';
 /**
  * Calculate perspective transformation coefficients
  */
-function getNormalizationCoefficients(sourcePts, dstPts, isInverse) {
+function getNormalizationCoefficients(sourcePoints, destinationPoints, isInverse) {
   if (isInverse) {
-    const temporary = dstPts;
-    dstPts = sourcePts;
-    sourcePts = temporary;
+    const temporary = destinationPoints;
+    destinationPoints = sourcePoints;
+    sourcePoints = temporary;
   }
 
   // Build system matrix
   const matA = [
-    [sourcePts[0], sourcePts[1], 1, 0, 0, 0, -1*dstPts[0]*sourcePts[0], -1*dstPts[0]*sourcePts[1]],
-    [0, 0, 0, sourcePts[0], sourcePts[1], 1, -1*dstPts[1]*sourcePts[0], -1*dstPts[1]*sourcePts[1]],
-    [sourcePts[2], sourcePts[3], 1, 0, 0, 0, -1*dstPts[2]*sourcePts[2], -1*dstPts[2]*sourcePts[3]],
-    [0, 0, 0, sourcePts[2], sourcePts[3], 1, -1*dstPts[3]*sourcePts[2], -1*dstPts[3]*sourcePts[3]],
-    [sourcePts[4], sourcePts[5], 1, 0, 0, 0, -1*dstPts[4]*sourcePts[4], -1*dstPts[4]*sourcePts[5]],
-    [0, 0, 0, sourcePts[4], sourcePts[5], 1, -1*dstPts[5]*sourcePts[4], -1*dstPts[5]*sourcePts[5]],
-    [sourcePts[6], sourcePts[7], 1, 0, 0, 0, -1*dstPts[6]*sourcePts[6], -1*dstPts[6]*sourcePts[7]],
-    [0, 0, 0, sourcePts[6], sourcePts[7], 1, -1*dstPts[7]*sourcePts[6], -1*dstPts[7]*sourcePts[7]],
+    [sourcePoints[0], sourcePoints[1], 1, 0, 0, 0, -1*destinationPoints[0]*sourcePoints[0], -1*destinationPoints[0]*sourcePoints[1]],
+    [0, 0, 0, sourcePoints[0], sourcePoints[1], 1, -1*destinationPoints[1]*sourcePoints[0], -1*destinationPoints[1]*sourcePoints[1]],
+    [sourcePoints[2], sourcePoints[3], 1, 0, 0, 0, -1*destinationPoints[2]*sourcePoints[2], -1*destinationPoints[2]*sourcePoints[3]],
+    [0, 0, 0, sourcePoints[2], sourcePoints[3], 1, -1*destinationPoints[3]*sourcePoints[2], -1*destinationPoints[3]*sourcePoints[3]],
+    [sourcePoints[4], sourcePoints[5], 1, 0, 0, 0, -1*destinationPoints[4]*sourcePoints[4], -1*destinationPoints[4]*sourcePoints[5]],
+    [0, 0, 0, sourcePoints[4], sourcePoints[5], 1, -1*destinationPoints[5]*sourcePoints[4], -1*destinationPoints[5]*sourcePoints[5]],
+    [sourcePoints[6], sourcePoints[7], 1, 0, 0, 0, -1*destinationPoints[6]*sourcePoints[6], -1*destinationPoints[6]*sourcePoints[7]],
+    [0, 0, 0, sourcePoints[6], sourcePoints[7], 1, -1*destinationPoints[7]*sourcePoints[6], -1*destinationPoints[7]*sourcePoints[7]],
   ];
 
-  const matB = dstPts;
+  const matB = destinationPoints;
 
   try {
     const matAT = numeric.transpose(matA);
@@ -52,9 +52,9 @@ function getNormalizationCoefficients(sourcePts, dstPts, isInverse) {
  * Perspective Transform Class
  */
 export class PerspT {
-  constructor(sourcePts, dstPts) {
-    this.srcPts = sourcePts;
-    this.dstPts = dstPts;
+  constructor(sourcePoints, destinationPoints) {
+    this.srcPts = sourcePoints;
+    this.dstPts = destinationPoints;
     this.coeffs = getNormalizationCoefficients(this.srcPts, this.dstPts, false);
     this.coeffsInv = getNormalizationCoefficients(this.srcPts, this.dstPts, true);
   }

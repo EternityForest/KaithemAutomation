@@ -20,6 +20,7 @@ import type {
 import "./iframe-source";
 import "./clock-source";
 import "./tag-source";
+import { t } from "@excalidraw/excalidraw/i18n";
 
 interface ProjectionData {
   title: string;
@@ -205,7 +206,7 @@ class ProjectionEditor extends LitElement {
       background: black;
     }
 
-    .preview-window {
+    .source-window {
       position: absolute;
     }
 
@@ -706,6 +707,7 @@ class ProjectionEditor extends LitElement {
         sourceAdapter.createPreviewElements();
       window_.id = `window-${sourceData.id}`;
       window_.dataset.sourceId = sourceData.id;
+      window_.dataset.testid = `source-window-${sourceData.name}`;
 
       sourceAdapter.updateContent(container);
 
@@ -1511,6 +1513,8 @@ class ProjectionEditor extends LitElement {
     title.style.margin = "0 0 16px 0";
 
     const typeSelect = document.createElement("select");
+    // eslint-disable-next-line unicorn/prefer-dom-node-dataset
+    typeSelect.setAttribute('data-testid','source-type-select');
     typeSelect.style.cssText =
       "width: 100%; padding: 8px; margin-bottom: 16px; " +
       "border: 1px solid #ccc; border-radius: 4px; font-size: 14px;";
@@ -1725,186 +1729,238 @@ class ProjectionEditor extends LitElement {
     if (this.isViewerMode) {
       return html`
         <div class="projection-editor viewer-mode">
-          <div
-            class="editor-canvas-area viewer-mode"
-            style="width: 100%; height: 100vh; overflow: hidden;">
-            <canvas id="preview-canvas"></canvas>
-            <div id="preview-sources"></div>
-          </div>
+            <div class="editor-canvas-area viewer-mode" style="width: 100%; height: 100vh; overflow: hidden;">
+                <canvas id="preview-canvas"></canvas>
+                <div id="preview-sources"></div>
+            </div>
         </div>
       `;
     }
 
     return html`
-      <div class="projection-editor" id="projection-editor">
-        <div class="editor-toolbar">
-          <h2>${this.data.title}</h2>
-          <button id="save-btn" class="btn btn-primary">Save</button>
-        </div>
+        <div class="projection-editor" id="projection-editor">
+            <div class="editor-toolbar">
+                <h2>${this.data.title}</h2>
+                <button
+                    id="save-btn"
+                    data-testid="save-btn"
+                    class="btn btn-primary"
+                >
+                    Save
+                </button>
+            </div>
 
-        <div class="editor-main">
-          <div class="editor-canvas-area">
-            <canvas id="preview-canvas"></canvas>
-            <div id="preview-sources"></div>
-          </div>
+            <div class="editor-main">
+                <div class="editor-canvas-area">
+                    <canvas id="preview-canvas"></canvas>
+                    <div id="preview-sources"></div>
+                </div>
 
-          <div class="editor-sidebar">
-            <div class="sidebar-section">
-              <h3>Sources</h3>
-              <button id="add-source-btn" class="btn btn-sm">
-                + Add Source
-              </button>
-              <div id="sources-list" class="sources-list">
-                ${this.data.sources.map(
+                <div class="editor-sidebar">
+                    <div class="sidebar-section">
+                        <h3>Sources</h3>
+                        <button
+                            id="add-source-btn"
+                            data-testid="add-source-btn"
+                            class="btn btn-sm"
+                        >
+                            + Add Source
+                        </button>
+                        <div id="sources-list" class="sources-list">
+      ${this.data.sources.map(
                   (source) => html`
                     <div
-                      class="source-item ${source.id === this.selectedSourceId
+                        class="source-item ${source.id === this.selectedSourceId
                         ? "selected"
                         : ""}"
-                      @click="${() => this.selectSource(source.id)}">
-                      <div class="source-item-content">
-                        <span>${source.name}</span>
-                        <button
-                          class="btn-small del-source"
-                          @click="${(event: MouseEvent) => {
+                        data-testid="source-item-${source.name}"
+                        @click="${() => this.selectSource(source.id)}"
+                    >
+                        <div class="source-item-content">
+                            <span>${source.name}</span>
+                            <button
+                                class="btn-small del-source"
+                                data-testid="delete-source-${source.name}"
+                                @click="${(event: MouseEvent) => {
                             event.stopPropagation();
                             this.deleteSource(source.id);
-                          }}">
-                          Delete
-                        </button>
-                      </div>
+                          }}"
+                            >
+                                Delete
+                            </button>
+                        </div>
                     </div>
                   `
                 )}
-              </div>
-            </div>
+                        </div>
+                    </div>
 
-            <div class="sidebar-section" id="size-section">
-              <h3>Projection Size</h3>
-              <div class="form-group">
-                <label>Width (px)</label>
-                <input type="number" id="size-width" min="320" value="1920" />
-              </div>
-              <div class="form-group">
-                <label>Height (px)</label>
-                <input type="number" id="size-height" min="240" value="1080" />
-              </div>
-            </div>
+                    <div class="sidebar-section" id="size-section">
+                        <h3>Projection Size</h3>
+                        <div class="form-group">
+                            <label>Width (px)</label>
+                            <input
+                                type="number"
+                                id="size-width"
+                                data-testid="size-width"
+                                min="320"
+                                value="1920"
+                            >
+                        </div>
+                        <div class="form-group">
+                            <label>Height (px)</label>
+                            <input
+                                type="number"
+                                id="size-height"
+                                data-testid="size-height"
+                                min="240"
+                                value="1080"
+                            >
+                        </div>
+                    </div>
 
-            <div
-              class="sidebar-section"
-              id="transform-section"
-              style="display: none;">
-              <h3>Transform</h3>
-              <div class="form-group">
-                <label>Opacity</label>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                  <input
-                    type="range"
-                    id="opacity"
-                    min="0"
-                    max="1"
-                    step="0.01"
-                    value="1"
-                    style="flex: 1;" />
-                  <span id="opacity-val">1.00</span>
+                    <div
+                        class="sidebar-section"
+                        id="transform-section"
+                        style="display: none;"
+                    >
+                        <h3>Transform</h3>
+                        <div class="form-group">
+                            <label>Opacity</label>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <input
+                                    type="range"
+                                    id="opacity"
+                                    data-testid="opacity"
+                                    min="0"
+                                    max="1"
+                                    step="0.01"
+                                    value="1"
+                                    style="flex: 1;"
+                                >
+                                <span id="opacity-val">1.00</span>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Opacity Tag (optional)</label>
+                            <input
+                                type="text"
+                                id="opacity-tag"
+                                data-testid="opacity-tag"
+                                placeholder="/path/to/tag"
+                                list="available-tags"
+                            >
+                            <datalist id="available-tags"></datalist>
+                            <datalist id="available-fonts"></datalist>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Blend Mode</label>
+                            <select id="blend-mode" data-testid="blend-mode">
+                                <option value="normal">Normal</option>
+                                <option value="multiply">Multiply</option>
+                                <option value="screen">Screen</option>
+                                <option value="overlay">Overlay</option>
+                                <option value="darken">Darken</option>
+                                <option value="lighten">Lighten</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Rotation (deg)</label>
+                            <input
+                                type="number"
+                                id="rotation"
+                                data-testid="rotation"
+                                value="0"
+                                step="1"
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <h4>Corner Points</h4>
+                            <div class="corners-grid">
+                                <div>
+                                    <label>Top-Left</label>
+                                    <input
+                                        type="number"
+                                        class="corner-x"
+                                        data-corner="tl"
+                                        data-testid="corner-x-tl"
+                                        placeholder="X"
+                                    >
+                                    <input
+                                        type="number"
+                                        class="corner-y"
+                                        data-corner="tl"
+                                        data-testid="corner-y-tl"
+                                        placeholder="Y"
+                                    >
+                                </div>
+                                <div>
+                                    <label>Top-Right</label>
+                                    <input
+                                        type="number"
+                                        class="corner-x"
+                                        data-corner="tr"
+                                        data-testid="corner-x-tr"
+                                        placeholder="X"
+                                    >
+                                    <input
+                                        type="number"
+                                        class="corner-y"
+                                        data-corner="tr"
+                                        data-testid="corner-y-tr"
+                                        placeholder="Y"
+                                    >
+                                </div>
+                                <div>
+                                    <label>Bottom-Left</label>
+                                    <input
+                                        type="number"
+                                        class="corner-x"
+                                        data-corner="bl"
+                                        data-testid="corner-x-bl"
+                                        placeholder="X"
+                                    >
+                                    <input
+                                        type="number"
+                                        class="corner-y"
+                                        data-corner="bl"
+                                        data-testid="corner-y-bl"
+                                        placeholder="Y"
+                                    >
+                                </div>
+                                <div>
+                                    <label>Bottom-Right</label>
+                                    <input
+                                        type="number"
+                                        class="corner-x"
+                                        data-corner="br"
+                                        data-testid="corner-x-br"
+                                        placeholder="X"
+                                    >
+                                    <input
+                                        type="number"
+                                        class="corner-y"
+                                        data-corner="br"
+                                        data-testid="corner-y-br"
+                                        placeholder="Y"
+                                    >
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        class="sidebar-section"
+                        id="source-config-section"
+                        style="display: none;"
+                    ></div>
                 </div>
-              </div>
-
-              <div class="form-group">
-                <label>Opacity Tag (optional)</label>
-                <input
-                  type="text"
-                  id="opacity-tag"
-                  placeholder="/path/to/tag"
-                  list="available-tags" />
-                <datalist id="available-tags"></datalist>
-                <datalist id="available-fonts"></datalist>
-              </div>
-
-              <div class="form-group">
-                <label>Blend Mode</label>
-                <select id="blend-mode">
-                  <option value="normal">Normal</option>
-                  <option value="multiply">Multiply</option>
-                  <option value="screen">Screen</option>
-                  <option value="overlay">Overlay</option>
-                  <option value="darken">Darken</option>
-                  <option value="lighten">Lighten</option>
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label>Rotation (deg)</label>
-                <input type="number" id="rotation" value="0" step="1" />
-              </div>
-
-              <div class="form-group">
-                <h4>Corner Points</h4>
-                <div class="corners-grid">
-                  <div>
-                    <label>Top-Left</label>
-                    <input
-                      type="number"
-                      class="corner-x"
-                      data-corner="tl"
-                      placeholder="X" />
-                    <input
-                      type="number"
-                      class="corner-y"
-                      data-corner="tl"
-                      placeholder="Y" />
-                  </div>
-                  <div>
-                    <label>Top-Right</label>
-                    <input
-                      type="number"
-                      class="corner-x"
-                      data-corner="tr"
-                      placeholder="X" />
-                    <input
-                      type="number"
-                      class="corner-y"
-                      data-corner="tr"
-                      placeholder="Y" />
-                  </div>
-                  <div>
-                    <label>Bottom-Left</label>
-                    <input
-                      type="number"
-                      class="corner-x"
-                      data-corner="bl"
-                      placeholder="X" />
-                    <input
-                      type="number"
-                      class="corner-y"
-                      data-corner="bl"
-                      placeholder="Y" />
-                  </div>
-                  <div>
-                    <label>Bottom-Right</label>
-                    <input
-                      type="number"
-                      class="corner-x"
-                      data-corner="br"
-                      placeholder="X" />
-                    <input
-                      type="number"
-                      class="corner-y"
-                      data-corner="br"
-                      placeholder="Y" />
-                  </div>
-                </div>
-              </div>
             </div>
-
-            <div
-              class="sidebar-section"
-              id="source-config-section"
-              style="display: none;"></div>
-          </div>
         </div>
-      </div>
     `;
   }
 }

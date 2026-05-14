@@ -3,6 +3,9 @@
 import { Source, SourceData, registerSourceType } from "./source-type";
 
 export class IframeSource extends Source {
+
+  prevUrl: string = "gfghfhgfhgffgj"
+  
   constructor(data: SourceData) {
     super(data);
   }
@@ -17,7 +20,8 @@ export class IframeSource extends Source {
 
     const iframe = container.querySelector("iframe")!;
 
-    if (iframe.src !== this.config.url || "") {
+    if (this.prevUrl !== this.config.url || "") {
+      this.prevUrl =  this.config.url || ""
       iframe.src = this.config.url || "";
     }
     iframe.style.border = "none";
@@ -67,7 +71,7 @@ export class IframeSource extends Source {
       <h3>Source Config</h3>
       <div class="form-group">
         <label>URL</label>
-        <input type="text" id="source-url"
+        <input type="text" id="source-url" data-testid="iframe-url"
                placeholder="https://example.com"
                value="${this.config.url || ""}">
       </div>
@@ -76,10 +80,10 @@ export class IframeSource extends Source {
         <p>The window size is the cropped region
         of the rendered page to show</p>
         <div class="size-input-row">
-          <input type="number" id="window-width"
+          <input type="number" id="window-width" data-testid="iframe-window-width"
                  placeholder="Width" min="1"
                  value="${this.config.window_width || 800}">
-          <input type="number" id="window-height"
+          <input type="number" id="window-height" data-testid="iframe-window-height"
                  placeholder="Height" min="1"
                  value="${this.config.window_height || 600}">
         </div>
@@ -89,10 +93,10 @@ export class IframeSource extends Source {
         <p>The page is initially shown in the
         render size, then cropped to the window size</p>
         <div class="size-input-row">
-          <input type="number" id="render-width"
+          <input type="number" id="render-width" data-testid="iframe-render-width"
                  placeholder="Width" min="1"
                  value="${this.config.render_width || 800}">
-          <input type="number" id="render-height"
+          <input type="number" id="render-height" data-testid="iframe-render-height"
                  placeholder="Height" min="1"
                  value="${this.config.render_height || 600}">
         </div>
@@ -100,10 +104,10 @@ export class IframeSource extends Source {
       <div class="form-group">
         <label>Crop Position (px)</label>
         <div class="size-input-row">
-          <input type="number" id="crop-x"
+          <input type="number" id="crop-x" data-testid="iframe-crop-x"
                  placeholder="X" min="0"
                  value="${this.config.crop_x || 0}">
-          <input type="number" id="crop-y"
+          <input type="number" id="crop-y" data-testid="iframe-crop-y"
                  placeholder="Y" min="0"
                  value="${this.config.crop_y || 0}">
         </div>
