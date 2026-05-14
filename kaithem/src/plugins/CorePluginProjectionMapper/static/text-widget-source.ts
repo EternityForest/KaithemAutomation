@@ -147,7 +147,7 @@ export abstract class TextWidgetSource extends Source {
     element.style.lineHeight = "1.2";
     element.style.display = "flex";
     element.style.alignItems = "center";
-    element.style.justifyContent = "center";
+    element.style.justifyContent = (config.text_alignment as CanvasTextAlign) || "center";
 
     // Text shadow
     if (
@@ -268,24 +268,24 @@ export abstract class TextWidgetSource extends Source {
     });
 
     const textSize = container.querySelector("#text-size") as HTMLInputElement;
-    textSize?.addEventListener("input", (e) => {
-      config.text_size = Number.parseInt((e.target as HTMLInputElement).value);
+    textSize?.addEventListener("input", (eventObject) => {
+      config.text_size = Number.parseInt((eventObject.target as HTMLInputElement).value);
       onUpdate(this);
     });
 
     const fontFamily = container.querySelector(
       "#font-family"
     ) as HTMLInputElement;
-    fontFamily?.addEventListener("input", (e) => {
-      config.font_family = (e.target as HTMLInputElement).value;
+    fontFamily?.addEventListener("input", (eventObject) => {
+      config.font_family = (eventObject.target as HTMLInputElement).value;
       onUpdate(this);
     });
 
     const textAlignment = container.querySelector(
       "#text-alignment"
     ) as HTMLSelectElement;
-    textAlignment?.addEventListener("change", (e) => {
-      config.text_alignment = (e.target as HTMLSelectElement).value as
+    textAlignment?.addEventListener("change", (eventObject) => {
+      config.text_alignment = (eventObject.target as HTMLSelectElement).value as
         | "left"
         | "center"
         | "right";
@@ -295,9 +295,9 @@ export abstract class TextWidgetSource extends Source {
     const windowWidth = container.querySelector(
       "#window-width"
     ) as HTMLInputElement;
-    windowWidth?.addEventListener("input", (e) => {
+    windowWidth?.addEventListener("input", (eventObject) => {
       config.window_width = Number.parseInt(
-        (e.target as HTMLInputElement).value
+        (eventObject.target as HTMLInputElement).value
       );
       onUpdate(this);
     });
@@ -305,9 +305,9 @@ export abstract class TextWidgetSource extends Source {
     const windowHeight = container.querySelector(
       "#window-height"
     ) as HTMLInputElement;
-    windowHeight?.addEventListener("input", (e) => {
+    windowHeight?.addEventListener("input", (eventObject) => {
       config.window_height = Number.parseInt(
-        (e.target as HTMLInputElement).value
+        (eventObject.target as HTMLInputElement).value
       );
       onUpdate(this);
     });
@@ -315,9 +315,9 @@ export abstract class TextWidgetSource extends Source {
     const shadowOffsetX = container.querySelector(
       "#shadow-offset-x"
     ) as HTMLInputElement;
-    shadowOffsetX?.addEventListener("input", (e) => {
+    shadowOffsetX?.addEventListener("input", (eventObject) => {
       config.text_shadow_offset_x = Number.parseInt(
-        (e.target as HTMLInputElement).value
+        (eventObject.target as HTMLInputElement).value
       );
       onUpdate(this);
     });
@@ -325,9 +325,9 @@ export abstract class TextWidgetSource extends Source {
     const shadowOffsetY = container.querySelector(
       "#shadow-offset-y"
     ) as HTMLInputElement;
-    shadowOffsetY?.addEventListener("input", (e) => {
+    shadowOffsetY?.addEventListener("input", (eventObject) => {
       config.text_shadow_offset_y = Number.parseInt(
-        (e.target as HTMLInputElement).value
+        (eventObject.target as HTMLInputElement).value
       );
       onUpdate(this);
     });
@@ -335,9 +335,9 @@ export abstract class TextWidgetSource extends Source {
     const shadowBlur = container.querySelector(
       "#shadow-blur"
     ) as HTMLInputElement;
-    shadowBlur?.addEventListener("input", (e) => {
+    shadowBlur?.addEventListener("input", (eventObject) => {
       config.text_shadow_blur = Number.parseInt(
-        (e.target as HTMLInputElement).value
+        (eventObject.target as HTMLInputElement).value
       );
       onUpdate(this);
     });
@@ -345,17 +345,17 @@ export abstract class TextWidgetSource extends Source {
     const shadowColor = container.querySelector(
       "#shadow-color"
     ) as HTMLInputElement;
-    shadowColor?.addEventListener("input", (e) => {
-      config.text_shadow_color = (e.target as HTMLInputElement).value;
+    shadowColor?.addEventListener("input", (eventObject) => {
+      config.text_shadow_color = (eventObject.target as HTMLInputElement).value;
       onUpdate(this);
     });
 
     const transitionDuration = container.querySelector(
       "#transition-duration"
     ) as HTMLInputElement;
-    transitionDuration?.addEventListener("input", (e) => {
+    transitionDuration?.addEventListener("input", (eventObject) => {
       config.transition_duration = Number.parseInt(
-        (e.target as HTMLInputElement).value
+        (eventObject.target as HTMLInputElement).value
       );
       onUpdate(this);
     });

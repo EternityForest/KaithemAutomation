@@ -143,8 +143,8 @@ export class TagSource extends TextWidgetSource {
     const tagNameInput = container.querySelector(
       "#tag-name"
     ) as HTMLInputElement;
-    tagNameInput?.addEventListener("input", (e) => {
-      config.tag_name = (e.target as HTMLInputElement).value;
+    tagNameInput?.addEventListener("input", (eventObject) => {
+      config.tag_name = (eventObject.target as HTMLInputElement).value;
       onUpdate(this);
     });
 
@@ -152,8 +152,8 @@ export class TagSource extends TextWidgetSource {
     const formatStringInput = container.querySelector(
       "#format-string"
     ) as HTMLInputElement;
-    formatStringInput?.addEventListener("input", (e) => {
-      config.format_string = (e.target as HTMLInputElement).value;
+    formatStringInput?.addEventListener("input", (eventObject) => {
+      config.format_string = (eventObject.target as HTMLInputElement).value;
       onUpdate(this);
     });
   }

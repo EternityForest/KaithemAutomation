@@ -20,7 +20,6 @@ import type {
 import "./iframe-source";
 import "./clock-source";
 import "./tag-source";
-import { t } from "@excalidraw/excalidraw/i18n";
 
 interface ProjectionData {
   title: string;
@@ -996,7 +995,7 @@ class ProjectionEditor extends LitElement {
               ).className.includes("corner-x");
 
               if (!source.transform.corners) {
-                source.transform.corners = this.getDefaultCorners();
+                source.transform.corners = this.getDefaultCorners(source.config);
               }
 
               if (isX) {
@@ -1640,7 +1639,7 @@ class ProjectionEditor extends LitElement {
 
     const sourceAdapter = this.getSourceObject(sourceData);
     configSection.innerHTML = "";
-    sourceAdapter.renderConfigUI(configSection, (adapter) => {
+    sourceAdapter.renderConfigUI(configSection, (_adapter) => {
       this.updatePreviewTransform(sourceData);
       this.updateTagSubscriptions();
       this.renderPreview();
@@ -1681,7 +1680,7 @@ class ProjectionEditor extends LitElement {
   private async save(): Promise<void> {
     try {
       // Ensure size is set
-      if (this.data.size === 0 || this.data.size === 0) {
+      if (this.data.size.height === 0 || this.data.size.width === 0) {
         this.data.size = {
           width: 1920,
           height: 1080,
