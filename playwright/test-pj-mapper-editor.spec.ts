@@ -195,15 +195,8 @@ async function fillClockConfig(page: Page) {
   await textColor.fill("#ff0000");
   await waitForTasks(page);
 
-  const windowWidth = page.getByTestId("text-window-width");
-  await windowWidth.fill("600");
-  await windowWidth.fill("600");
-  await waitForTasks(page);
-
-  const windowHeight = page.getByTestId("text-window-height");
-  await windowHeight.fill("200");
-  await windowHeight.fill("200");
-  await waitForTasks(page);
+  // Window dimensions are now auto-computed from corner positions
+  // No manual input needed for text-window-width and text-window-height
 }
 
 /**

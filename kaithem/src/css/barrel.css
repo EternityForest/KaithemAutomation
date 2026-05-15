@@ -2029,6 +2029,10 @@ iframe.h-center {
   backdrop-filter: none !important;
 }
 
+.display-contents{
+  display: contents;
+}
+
 .border {
   border: var(--border);
 }
