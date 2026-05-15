@@ -454,7 +454,7 @@ function openPopoverWhenAvailable(popover, attempts) {
 }
 
 function selectgroup(sc, sn, popover, noRetry) {
-  const cid = groupcues.value[sn][selectedCues.value[sc]];
+  const cid = groupcues.value[sn][selectedCues.value[sn]];
 
   if (!cid) {
     if (noRetry) {
