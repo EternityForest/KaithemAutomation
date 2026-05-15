@@ -129,7 +129,8 @@ async function chandlerBoardTemplate(page: Page, module: string) {
     console.log(`Dialog message: ${dialog.message()}`);
     dialog.accept("tst1").catch(() => {});
   });
-  await page.getByTestId("add-group-button").click();
+    await page.getByTestId("add-group-button").click();
+    await sleep(100);
 
 
     await page.getByRole('button', { name: 'tst1' }).click();
