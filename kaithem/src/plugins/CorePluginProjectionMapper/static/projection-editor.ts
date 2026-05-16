@@ -4,10 +4,10 @@
 // compatibility
 // Built with Lit for lightweight, self-contained rendering
 
-import { LitElement, html, css } from "lit";
+import { LitElement, html, css } from 'lit';
 import { kaithemapi } from "/static/js/widget.mjs";
-import { PerspT } from "./perspective-transform.mjs";
-import { createSourceAdapter } from "./source-type";
+import { PerspT } from './perspective-transform.mjs';
+import { createSourceAdapter } from './source-type';
 
 import type {
   Position,
@@ -16,10 +16,10 @@ import type {
   SourceTransform,
   SourceData,
   Source,
-} from "./source-type";
-import "./iframe-source";
-import "./clock-source";
-import "./tag-source";
+} from './source-type';
+import './iframe-source';
+import './clock-source';
+import './tag-source';
 
 interface ProjectionData {
   title: string;
@@ -141,7 +141,7 @@ class ProjectionEditor extends LitElement {
       height: 100vh;
       background: #1a1a1a;
       color: #fff;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
         sans-serif;
       user-select: none;
       -webkit-user-select: none;
@@ -356,8 +356,8 @@ class ProjectionEditor extends LitElement {
       font-size: 0.9rem;
     }
 
-    .form-group input[type="range"]:focus,
-    .form-group input[type="number"]:focus,
+    .form-group input[type='range']:focus,
+    .form-group input[type='number']:focus,
     .form-group select:focus {
       outline: none;
       border-color: #2a90db;
@@ -452,15 +452,15 @@ class ProjectionEditor extends LitElement {
     }
   `;
 
-  module: string = "";
-  resource: string = "";
+  module: string = '';
+  resource: string = '';
 
   canvasElement?: HTMLCanvasElement;
 
   sourceObjects: { [key: string]: Source } = {};
 
   data: ProjectionData = {
-    title: "",
+    title: '',
     sources: [],
     size: { width: 1920, height: 1080 },
   };
@@ -482,6 +482,8 @@ class ProjectionEditor extends LitElement {
     br: new PositionFilter(3),
   };
 
+  private sessionID = Date.now();
+
   private animationFrameId: number | null = null;
   private lastRawMousePos: Position | null = null;
 
@@ -497,9 +499,9 @@ class ProjectionEditor extends LitElement {
     // Parse URL params for mode
     const parameters = new URLSearchParams(globalThis.location.search);
     this.isViewerMode =
-      parameters.has("fullscreen") ||
-      parameters.has("viewer") ||
-      parameters.get("edit") != "true";
+      parameters.has('fullscreen') ||
+      parameters.has('viewer') ||
+      parameters.get('edit') != 'true';
   }
 
   setInitialState(
@@ -564,7 +566,7 @@ class ProjectionEditor extends LitElement {
     const h = this.data.size?.height || 1080;
 
     this.canvasElement = this.shadowRoot?.querySelector(
-      "#preview-canvas"
+      '#preview-canvas'
     ) as HTMLCanvasElement;
 
     // Canvas is exactly the virtual screen size
@@ -575,7 +577,7 @@ class ProjectionEditor extends LitElement {
 
     // Set preview-sources to same size
     const sources = this.shadowRoot?.querySelector(
-      "#preview-sources"
+      '#preview-sources'
     ) as HTMLElement;
     if (sources) {
       sources.style.width = `${w}px`;
@@ -589,10 +591,10 @@ class ProjectionEditor extends LitElement {
 
     // Update size inputs
     const sizeWidth = this.shadowRoot?.querySelector(
-      "#size-width"
+      '#size-width'
     ) as HTMLInputElement;
     const sizeHeight = this.shadowRoot?.querySelector(
-      "#size-height"
+      '#size-height'
     ) as HTMLInputElement;
     if (sizeWidth) sizeWidth.value = String(w);
     if (sizeHeight) sizeHeight.value = String(h);
@@ -602,10 +604,10 @@ class ProjectionEditor extends LitElement {
     if (!this.canvasElement) return;
 
     const sources = this.shadowRoot?.querySelector(
-      "#preview-sources"
+      '#preview-sources'
     ) as HTMLElement;
     const canvasArea = this.shadowRoot?.querySelector(
-      ".editor-canvas-area"
+      '.editor-canvas-area'
     ) as HTMLElement;
 
     if (!canvasArea) return;
@@ -624,10 +626,10 @@ class ProjectionEditor extends LitElement {
     // Apply scale to both canvas and sources
     const scaleStyle = `scale(${scale})`;
     this.canvasElement!.style.transform = scaleStyle;
-    this.canvasElement!.style.transformOrigin = "0 0";
+    this.canvasElement!.style.transformOrigin = '0 0';
     if (sources) {
       sources.style.transform = scaleStyle;
-      sources.style.transformOrigin = "0 0";
+      sources.style.transformOrigin = '0 0';
     }
   }
 
@@ -677,13 +679,13 @@ class ProjectionEditor extends LitElement {
 
   private renderPreview(): void {
     const sourcesContainer = this.shadowRoot?.querySelector(
-      "#preview-sources"
+      '#preview-sources'
     ) as HTMLElement;
     if (!sourcesContainer) return;
 
     // Only clear and rebuild if sources changed
     if (Object.keys(this.previewWindows).length === 0) {
-      sourcesContainer.innerHTML = "";
+      sourcesContainer.innerHTML = '';
     }
 
     for (const sourceData of this?.data?.sources || []) {
@@ -694,7 +696,7 @@ class ProjectionEditor extends LitElement {
       if (this.previewWindows[sourceData.id]) {
         sourceAdapter.updateContent(
           this.previewWindows[sourceData.id].querySelector(
-            ".window-container"
+            '.window-container'
           ) as HTMLElement
         );
         this.updatePreviewTransform(sourceData);
@@ -736,20 +738,22 @@ class ProjectionEditor extends LitElement {
     const corners = transform.corners;
 
     if (corners) {
-      // Compute window dimensions from the flattened rectangle
+      // Compute window dimensions from the flattened rectangle (unless disabled)
       const dims = this.computeDimensionsFromCorners(corners);
-      config.window_width = dims.width;
-      config.window_height = dims.height;
+      if (config.auto_window_size !== false) {
+        config.window_width = dims.width;
+        config.window_height = dims.height;
+      }
 
       const matrix = this.calculatePerspectiveMatrix(
         corners,
-        dims.width,
-        dims.height
+        config.window_width || dims.width,
+        config.window_height || dims.height
       );
-      element.style.transformOrigin = "0 0";
-      element.style.transform = `matrix3d(${matrix.join(",")})`;
+      element.style.transformOrigin = '0 0';
+      element.style.transform = `matrix3d(${matrix.join(',')})`;
     } else {
-      element.style.transform = "none";
+      element.style.transform = 'none';
     }
 
     // Let source handle its specific transforms
@@ -859,11 +863,11 @@ class ProjectionEditor extends LitElement {
     if (!canvas) return;
 
     if (this.isViewerMode) {
-      canvas.style.display = "none";
+      canvas.style.display = 'none';
       return;
     }
 
-    const context = canvas.getContext("2d");
+    const context = canvas.getContext('2d');
     if (!context) return;
     context.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -877,24 +881,24 @@ class ProjectionEditor extends LitElement {
     const corners = source.transform.corners;
 
     // Draw corner handles
-    const cornerKeys = ["tl", "tr", "bl", "br"] as const;
+    const cornerKeys = ['tl', 'tr', 'bl', 'br'] as const;
     for (const key of cornerKeys) {
       const corner = corners[key];
       if (!corner) continue;
 
-      context.fillStyle = "#167f16ff";
+      context.fillStyle = '#167f16ff';
       context.beginPath();
       context.arc(corner.x, corner.y, 30, 0, Math.PI * 2);
       context.fill();
 
-      context.strokeStyle = "#dff6ebff";
+      context.strokeStyle = '#dff6ebff';
       context.lineWidth = 8;
       context.beginPath();
       context.arc(corner.x, corner.y, 30, 0, Math.PI * 2);
       context.stroke();
 
-      context.fillStyle = "#000";
-      context.font = "12px Arial";
+      context.fillStyle = '#000';
+      context.font = '12px Arial';
       context.fillText(key, corner.x + 15, corner.y + 15);
     }
   }
@@ -904,26 +908,26 @@ class ProjectionEditor extends LitElement {
     if (!this.isViewerMode) {
       // Save button
       this.shadowRoot
-        ?.querySelector("#save-btn")
-        ?.addEventListener("click", () => this.save());
+        ?.querySelector('#save-btn')
+        ?.addEventListener('click', () => this.save());
 
       // Add source button
       this.shadowRoot
-        ?.querySelector("#add-source-btn")
-        ?.addEventListener("click", () => this.addSource());
+        ?.querySelector('#add-source-btn')
+        ?.addEventListener('click', () => this.addSource());
 
       // Size inputs
       const sizeWidth = this.shadowRoot?.querySelector(
-        "#size-width"
+        '#size-width'
       ) as HTMLInputElement;
-      sizeWidth?.addEventListener("input", (event_) => {
+      sizeWidth?.addEventListener('input', (event_) => {
         this.data.size.width = Number.parseInt(
           (event_.target as HTMLInputElement).value
         );
         this.canvasElement!.width = this.data.size.width;
         this.canvasElement!.style.width = `${this.data.size.width}px`;
         const sources = this.shadowRoot?.querySelector(
-          "#preview-sources"
+          '#preview-sources'
         ) as HTMLElement;
         if (sources) sources.style.width = `${this.data.size.width}px`;
         this.updateVirtualScreenScale();
@@ -931,9 +935,9 @@ class ProjectionEditor extends LitElement {
       });
 
       const sizeHeight = this.shadowRoot?.querySelector(
-        "#size-height"
+        '#size-height'
       ) as HTMLInputElement;
-      sizeHeight?.addEventListener("input", (event_) => {
+      sizeHeight?.addEventListener('input', (event_) => {
         // if (this.data.size === 0 || this.data.size === 0) {
         //   this.data.size = { width: 0, height: 0 };
         // }
@@ -943,7 +947,7 @@ class ProjectionEditor extends LitElement {
         this.canvasElement!.height = this.data.size.height;
         this.canvasElement!.style.height = `${this.data.size.height}px`;
         const sources = this.shadowRoot?.querySelector(
-          "#preview-sources"
+          '#preview-sources'
         ) as HTMLElement;
         if (sources) sources.style.height = `${this.data.size.height}px`;
         this.updateVirtualScreenScale();
@@ -952,15 +956,15 @@ class ProjectionEditor extends LitElement {
 
       // Transform controls
       const opacityInput = this.shadowRoot?.querySelector(
-        "#opacity"
+        '#opacity'
       ) as HTMLInputElement;
-      opacityInput?.addEventListener("input", (event_) => {
+      opacityInput?.addEventListener('input', (event_) => {
         const source = this.getSelectedSource();
         if (source) {
           source.transform.opacity = Number.parseFloat(
             (event_.target as HTMLInputElement).value
           );
-          const opacityVal = this.shadowRoot?.querySelector("#opacity-val");
+          const opacityVal = this.shadowRoot?.querySelector('#opacity-val');
           if (opacityVal) {
             opacityVal.textContent = Number.parseFloat(
               (event_.target as HTMLInputElement).value
@@ -972,9 +976,9 @@ class ProjectionEditor extends LitElement {
       });
 
       const opacityTag = this.shadowRoot?.querySelector(
-        "#opacity-tag"
+        '#opacity-tag'
       ) as HTMLInputElement;
-      opacityTag?.addEventListener("input", (event_) => {
+      opacityTag?.addEventListener('input', (event_) => {
         const source = this.getSelectedSource();
         if (source) {
           source.transform.opacity_tag = (
@@ -985,9 +989,9 @@ class ProjectionEditor extends LitElement {
       });
 
       const blendMode = this.shadowRoot?.querySelector(
-        "#blend-mode"
+        '#blend-mode'
       ) as HTMLSelectElement;
-      blendMode?.addEventListener("change", (event_) => {
+      blendMode?.addEventListener('change', (event_) => {
         const source = this.getSelectedSource();
         if (source) {
           source.transform.blend_mode = (
@@ -998,9 +1002,9 @@ class ProjectionEditor extends LitElement {
       });
 
       const rotation = this.shadowRoot?.querySelector(
-        "#rotation"
+        '#rotation'
       ) as HTMLInputElement;
-      rotation?.addEventListener("input", (event_) => {
+      rotation?.addEventListener('input', (event_) => {
         const source = this.getSelectedSource();
         if (source) {
           source.transform.rotation = Number.parseInt(
@@ -1012,27 +1016,29 @@ class ProjectionEditor extends LitElement {
 
       // Corner inputs
       const cornerInputs = this.shadowRoot?.querySelectorAll(
-        "input.corner-x, input.corner-y"
+        'input.corner-x, input.corner-y'
       );
       if (cornerInputs)
         for (const input of cornerInputs) {
-          input.addEventListener("change", (event_) => {
+          input.addEventListener('change', (event_) => {
             const source = this.getSelectedSource();
             if (source) {
               const corner = (event_.target as HTMLInputElement).dataset.corner;
               const isX = (
                 event_.target as HTMLInputElement
-              ).className.includes("corner-x");
+              ).className.includes('corner-x');
 
               if (!source.transform.corners) {
-                source.transform.corners = this.getDefaultCorners(source.config);
+                source.transform.corners = this.getDefaultCorners(
+                  source.config
+                );
               }
 
               if (isX) {
-                (source.transform.corners[corner as keyof Corners] as any).x =
+                (source.transform.corners[corner as keyof Corners]).x =
                   Number.parseFloat((event_.target as HTMLInputElement).value);
               } else {
-                (source.transform.corners[corner as keyof Corners] as any).y =
+                (source.transform.corners[corner as keyof Corners]).y =
                   Number.parseFloat((event_.target as HTMLInputElement).value);
               }
 
@@ -1051,36 +1057,36 @@ class ProjectionEditor extends LitElement {
     }
 
     // Canvas interactions (always available)
-    this.canvasElement!.addEventListener("mousedown", (event_) =>
+    this.canvasElement!.addEventListener('mousedown', (event_) =>
       this.onCanvasMouseDown(event_)
     );
-    this.canvasElement!.addEventListener("mousemove", (event_) =>
+    this.canvasElement!.addEventListener('mousemove', (event_) =>
       this.onCanvasMouseMove(event_)
     );
-    this.canvasElement!.addEventListener("mouseup", () =>
+    this.canvasElement!.addEventListener('mouseup', () =>
       this.onCanvasMouseUp()
     );
 
-    this.canvasElement!.addEventListener("mouseleave", () =>
+    this.canvasElement!.addEventListener('mouseleave', () =>
       this.onCanvasMouseUp()
     );
 
     // Touch events
-    this.canvasElement!.addEventListener("touchstart", (event_) =>
+    this.canvasElement!.addEventListener('touchstart', (event_) =>
       this.onCanvasTouchStart(event_)
     );
-    this.canvasElement!.addEventListener("touchmove", (event_) =>
+    this.canvasElement!.addEventListener('touchmove', (event_) =>
       this.onCanvasTouchMove(event_)
     );
-    this.canvasElement!.addEventListener("touchend", () =>
+    this.canvasElement!.addEventListener('touchend', () =>
       this.onCanvasTouchEnd()
     );
 
-    this.canvasElement!.addEventListener("touchcancel", () =>
+    this.canvasElement!.addEventListener('touchcancel', () =>
       this.onCanvasTouchEnd()
     );
 
-    this.canvasElement!.addEventListener("touchleave", () => {
+    this.canvasElement!.addEventListener('touchleave', () => {
       this.onCanvasTouchEnd();
     });
   }
@@ -1130,38 +1136,33 @@ class ProjectionEditor extends LitElement {
 
     const oldCorner = source.transform.corners[
       this.draggingCorner as keyof Corners
-    ] as any;
+    ];
 
     const deltaX = filtered.x - oldCorner.x;
     const deltaY = filtered.y - oldCorner.y;
 
-    (source.transform.corners[this.draggingCorner as keyof Corners] as any) = {
+    (source.transform.corners[this.draggingCorner as keyof Corners]) = {
       x: filtered.x,
       y: filtered.y,
     };
 
-    if (this.draggingCorner == "tl") {
-      source.transform.corners["bl"].x += deltaX;
-      source.transform.corners["bl"].y += deltaY;
+    if (this.draggingCorner == 'tl') {
+      source.transform.corners['bl'].x += deltaX;
+      source.transform.corners['bl'].y += deltaY;
 
-      source.transform.corners["tr"].x += deltaX;
-      source.transform.corners["tr"].y += deltaY;
+      source.transform.corners['tr'].x += deltaX;
+      source.transform.corners['tr'].y += deltaY;
 
-      source.transform.corners["br"].x += deltaX;
-      source.transform.corners["br"].y += deltaY;
+      source.transform.corners['br'].x += deltaX;
+      source.transform.corners['br'].y += deltaY;
     }
 
-    if (this.draggingCorner == "br") {
-      if (Math.abs(
-        source.transform.corners["bl"].y
-        - filtered.y
-      ) < 64) {
-        source.transform.corners["bl"].y = filtered.y;
+    if (this.draggingCorner == 'br') {
+      if (Math.abs(source.transform.corners['bl'].y - filtered.y) < 64) {
+        source.transform.corners['bl'].y = filtered.y;
       }
-      if (Math.abs(
-        source.transform.corners["tr"].x - filtered.x
-      ) < 64) {
-        source.transform.corners["tr"].x = filtered.x;
+      if (Math.abs(source.transform.corners['tr'].x - filtered.x) < 64) {
+        source.transform.corners['tr'].x = filtered.x;
       }
     }
 
@@ -1201,7 +1202,7 @@ class ProjectionEditor extends LitElement {
 
   private onCanvasTouchStart(event_: TouchEvent): void {
     const touch = event_.touches[0];
-    const mouseEvent = new MouseEvent("mousedown", {
+    const mouseEvent = new MouseEvent('mousedown', {
       clientX: touch.clientX,
       clientY: touch.clientY,
     });
@@ -1211,7 +1212,7 @@ class ProjectionEditor extends LitElement {
   private onCanvasTouchMove(event_: TouchEvent): void {
     event_.preventDefault();
     const touch = event_.touches[0];
-    const mouseEvent = new MouseEvent("mousemove", {
+    const mouseEvent = new MouseEvent('mousemove', {
       clientX: touch.clientX,
       clientY: touch.clientY,
     });
@@ -1219,7 +1220,7 @@ class ProjectionEditor extends LitElement {
   }
 
   private onCanvasTouchEnd(): void {
-    const mouseEvent = new MouseEvent("mouseup");
+    const mouseEvent = new MouseEvent('mouseup');
     this.canvasElement!.dispatchEvent(mouseEvent);
   }
 
@@ -1263,6 +1264,7 @@ class ProjectionEditor extends LitElement {
     this.broadcastRateLimitTime = Date.now();
     this.ws.send(
       JSON.stringify({
+        session_id: this.sessionID,
         source_id: source.id,
         corners: source.transform.corners,
       })
@@ -1276,6 +1278,7 @@ class ProjectionEditor extends LitElement {
 
     this.ws.send(
       JSON.stringify({
+        session_id: this.sessionID,
         source_id: source.id,
         opacity: source.transform.opacity,
       })
@@ -1284,24 +1287,24 @@ class ProjectionEditor extends LitElement {
 
   private async populateTagDatalist(): Promise<void> {
     try {
-      const response = await fetch("/tag_api/list");
+      const response = await fetch('/tag_api/list');
       const data = await response.json();
       const tags = Object.keys(data).sort();
 
-      const datalist = this.shadowRoot?.querySelector("#available-tags");
+      const datalist = this.shadowRoot?.querySelector('#available-tags');
       if (!datalist) return;
 
-      datalist.innerHTML = "";
+      datalist.innerHTML = '';
       for (const tagidx of tags) {
         const tag = data[tagidx];
-        if (tag.type === "number" || tag.type === "string") {
-          const option = document.createElement("option");
+        if (tag.type === 'number' || tag.type === 'string') {
+          const option = document.createElement('option');
           option.value = tag.name;
           datalist.append(option);
         }
       }
     } catch (error) {
-      console.error("Failed to fetch tags:", error);
+      console.error('Failed to fetch tags:', error);
     }
   }
 
@@ -1313,23 +1316,23 @@ class ProjectionEditor extends LitElement {
       const fontFiles: string[] = await response.json();
 
       // Populate datalist with font names (filename without extension)
-      const datalist = this.shadowRoot?.querySelector("#available-fonts");
+      const datalist = this.shadowRoot?.querySelector('#available-fonts');
       if (!datalist) return;
 
-      datalist.innerHTML = "";
+      datalist.innerHTML = '';
       for (const file of fontFiles) {
-        const fontName = file.split(".")[0];
-        const option = document.createElement("option");
+        const fontName = file.split('.')[0];
+        const option = document.createElement('option');
         option.value = fontName;
         datalist.append(option);
       }
 
       // Add @font-face CSS rules for all fonts
-      const style = document.createElement("style");
-      let cssRules = "";
+      const style = document.createElement('style');
+      let cssRules = '';
 
       for (const file of fontFiles) {
-        const fontName = file.split(".")[0];
+        const fontName = file.split('.')[0];
         cssRules += `
           @font-face {
             font-family: '${fontName}';
@@ -1343,7 +1346,7 @@ class ProjectionEditor extends LitElement {
       style.textContent = cssRules;
       document.head.append(style);
     } catch (error) {
-      console.error("Failed to load fonts:", error);
+      console.error('Failed to load fonts:', error);
     }
   }
 
@@ -1378,8 +1381,8 @@ class ProjectionEditor extends LitElement {
     tagKey: string
   ): void {
     // Ensure tag: prefix
-    const fullTag = tagName.startsWith("tag:") ? tagName : `tag:${tagName}`;
-    const infourl = "/tag_api/info" + tagName;
+    const fullTag = tagName.startsWith('tag:') ? tagName : `tag:${tagName}`;
+    const infourl = '/tag_api/info' + tagName;
 
     const source = this.data.sources.find((s) => s.id === sourceId);
     if (!source) return;
@@ -1420,17 +1423,21 @@ class ProjectionEditor extends LitElement {
   }
 
   private setupWebSocket(): void {
-    const protocol = globalThis.location.protocol === "https:" ? "wss" : "ws";
+    const protocol = globalThis.location.protocol === 'https:' ? 'wss' : 'ws';
     this.ws = new WebSocket(
       `${protocol}://${globalThis.location.host}` +
         `/projection-mapper/ws/${this.module}/${this.resource}`
     );
 
-    this.ws.addEventListener("message", (event) => {
+    this.ws.addEventListener('message', (event) => {
       const message = JSON.parse(event.data);
-      if (message.type === "refresh_page") {
+      if (message.type === 'refresh_page') {
         // eslint-disable-next-line unicorn/prefer-global-this
         window.location.reload();
+      }
+
+      if (message.session_id && message.session_id == this.sessionID) {
+        return;
       }
 
       const source = this.data.sources.find((s) => s.id === message.source_id);
@@ -1466,9 +1473,9 @@ class ProjectionEditor extends LitElement {
     this.updateTagSubscriptions();
 
     const transformSection = this.shadowRoot?.querySelector(
-      "#transform-section"
+      '#transform-section'
     ) as HTMLElement;
-    if (transformSection) transformSection.style.display = "block";
+    if (transformSection) transformSection.style.display = 'block';
 
     this.renderPreview();
   }
@@ -1484,39 +1491,39 @@ class ProjectionEditor extends LitElement {
     const transform = source.transform || {};
 
     const opacitySlider = this.shadowRoot?.querySelector(
-      "#opacity"
+      '#opacity'
     ) as HTMLInputElement;
     if (opacitySlider) {
       opacitySlider.value = String(transform.opacity ?? 1);
-      const opacityVal = this.shadowRoot?.querySelector("#opacity-val");
+      const opacityVal = this.shadowRoot?.querySelector('#opacity-val');
       if (opacityVal) {
         opacityVal.textContent = (transform.opacity ?? 1).toFixed(2);
       }
     }
 
     const opacityTagInput = this.shadowRoot?.querySelector(
-      "#opacity-tag"
+      '#opacity-tag'
     ) as HTMLInputElement;
     if (opacityTagInput) {
-      opacityTagInput.value = transform.opacity_tag ?? "";
+      opacityTagInput.value = transform.opacity_tag ?? '';
     }
 
     const blendSelect = this.shadowRoot?.querySelector(
-      "#blend-mode"
+      '#blend-mode'
     ) as HTMLSelectElement;
     if (blendSelect) {
-      blendSelect.value = transform.blend_mode ?? "normal";
+      blendSelect.value = transform.blend_mode ?? 'normal';
     }
 
     const rotationInput = this.shadowRoot?.querySelector(
-      "#rotation"
+      '#rotation'
     ) as HTMLInputElement;
     if (rotationInput) {
       rotationInput.value = String(transform.rotation ?? 0);
     }
 
     if (transform.corners) {
-      const cornerKeys = ["tl", "tr", "bl", "br"] as const;
+      const cornerKeys = ['tl', 'tr', 'bl', 'br'] as const;
       for (const key of cornerKeys) {
         const corner = transform.corners[key];
         const xInputs = this.shadowRoot?.querySelectorAll(
@@ -1552,23 +1559,23 @@ class ProjectionEditor extends LitElement {
   }
 
   private showSourceTypeDialog(): void {
-    const container = document.createElement("div");
+    const container = document.createElement('div');
     container.style.cssText =
-      "position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); " +
-      "background: white; padding: 20px; border-radius: 8px; " +
-      "box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 10000; " +
-      "font-family: system-ui; max-width: 400px;";
+      'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); ' +
+      'background: white; padding: 20px; border-radius: 8px; ' +
+      'box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 10000; ' +
+      'font-family: system-ui; max-width: 400px;';
 
-    const title = document.createElement("h3");
-    title.textContent = "Choose Source Type";
-    title.style.margin = "0 0 16px 0";
+    const title = document.createElement('h3');
+    title.textContent = 'Choose Source Type';
+    title.style.margin = '0 0 16px 0';
 
-    const typeSelect = document.createElement("select");
+    const typeSelect = document.createElement('select');
     // eslint-disable-next-line unicorn/prefer-dom-node-dataset
-    typeSelect.setAttribute('data-testid','source-type-select');
+    typeSelect.setAttribute('data-testid', 'source-type-select');
     typeSelect.style.cssText =
-      "width: 100%; padding: 8px; margin-bottom: 16px; " +
-      "border: 1px solid #ccc; border-radius: 4px; font-size: 14px;";
+      'width: 100%; padding: 8px; margin-bottom: 16px; ' +
+      'border: 1px solid #ccc; border-radius: 4px; font-size: 14px;';
     typeSelect.innerHTML = `
       <option value="">-- Select a source type --</option>
       <option value="iframe">iFrame (Web Content)</option>
@@ -1576,22 +1583,22 @@ class ProjectionEditor extends LitElement {
       <option value="tag">Tag Display</option>
     `;
 
-    const buttonContainer = document.createElement("div");
+    const buttonContainer = document.createElement('div');
     buttonContainer.style.cssText =
-      "display: flex; gap: 8px; justify-content: flex-end;";
+      'display: flex; gap: 8px; justify-content: flex-end;';
 
-    const cancelButton = document.createElement("button");
-    cancelButton.textContent = "Cancel";
-    cancelButton.className = "btn btn-sm";
-    cancelButton.style.marginRight = "8px";
-    cancelButton.addEventListener("click", () => {
+    const cancelButton = document.createElement('button');
+    cancelButton.textContent = 'Cancel';
+    cancelButton.className = 'btn btn-sm';
+    cancelButton.style.marginRight = '8px';
+    cancelButton.addEventListener('click', () => {
       container.remove();
     });
 
-    const nextButton = document.createElement("button");
-    nextButton.textContent = "Next";
-    nextButton.className = "btn btn-primary btn-sm";
-    nextButton.addEventListener("click", () => {
+    const nextButton = document.createElement('button');
+    nextButton.textContent = 'Next';
+    nextButton.className = 'btn btn-primary btn-sm';
+    nextButton.addEventListener('click', () => {
       const type = typeSelect.value;
       if (!type) return;
       container.remove();
@@ -1605,7 +1612,7 @@ class ProjectionEditor extends LitElement {
   }
 
   private promptSourceName(sourceType: string): void {
-    const name = prompt("Source name:");
+    const name = prompt('Source name:');
     if (!name) return;
 
     const id = this.generateId();
@@ -1613,8 +1620,8 @@ class ProjectionEditor extends LitElement {
     const transform: SourceTransform = {
       corners: this.getDefaultCorners(config),
       opacity: 1,
-      opacity_tag: "",
-      blend_mode: "normal",
+      opacity_tag: '',
+      blend_mode: 'normal',
       rotation: 0,
     };
 
@@ -1635,7 +1642,7 @@ class ProjectionEditor extends LitElement {
   private getDefaultConfig(sourceType: string): SourceConfig {
     const configs: Record<string, SourceConfig> = {
       iframe: {
-        url: "",
+        url: '',
         window_width: 1920,
         window_height: 1080,
         render_width: 1920,
@@ -1646,30 +1653,30 @@ class ProjectionEditor extends LitElement {
       clock: {
         window_width: 800,
         window_height: 400,
-        clock_format: "%H:%M:%S",
-        text_color: "#ffffff",
+        clock_format: '%H:%M:%S',
+        text_color: '#ffffff',
         text_size: 150,
-        font_family: "monospace",
-        text_alignment: "center",
+        font_family: 'monospace',
+        text_alignment: 'center',
         text_shadow_offset_x: 2,
         text_shadow_offset_y: 2,
         text_shadow_blur: 4,
-        text_shadow_color: "rgba(0,0,0,0.5)",
+        text_shadow_color: 'rgba(0,0,0,0.5)',
         transition_duration: 0,
       },
       tag: {
         window_width: 800,
         window_height: 400,
-        tag_name: "",
-        format_string: "%s",
-        text_color: "#ffffff",
+        tag_name: '',
+        format_string: '%s',
+        text_color: '#ffffff',
         text_size: 150,
-        font_family: "monospace",
-        text_alignment: "center",
+        font_family: 'monospace',
+        text_alignment: 'center',
         text_shadow_offset_x: 2,
         text_shadow_offset_y: 2,
         text_shadow_blur: 4,
-        text_shadow_color: "rgba(0,0,0,0.5)",
+        text_shadow_color: 'rgba(0,0,0,0.5)',
         transition_duration: 0,
       },
     };
@@ -1685,18 +1692,18 @@ class ProjectionEditor extends LitElement {
     if (!sourceData) return;
 
     const configSection = this.shadowRoot?.querySelector(
-      "#source-config-section"
+      '#source-config-section'
     ) as HTMLElement;
     if (!configSection) return;
 
     const sourceAdapter = this.getSourceObject(sourceData);
-    configSection.innerHTML = "";
+    configSection.innerHTML = '';
     sourceAdapter.renderConfigUI(configSection, (_adapter) => {
       this.updatePreviewTransform(sourceData);
       this.updateTagSubscriptions();
       this.renderPreview();
     });
-    configSection.style.display = "block";
+    configSection.style.display = 'block';
   }
 
   private deleteSource(sourceId: string): void {
@@ -1711,16 +1718,16 @@ class ProjectionEditor extends LitElement {
     if (this.selectedSourceId === sourceId) {
       this.selectedSourceId = null;
       const transformSection = this.shadowRoot?.querySelector(
-        "#transform-section"
+        '#transform-section'
       ) as HTMLElement;
       if (transformSection) {
-        transformSection.style.display = "none";
+        transformSection.style.display = 'none';
       }
       const configSection = this.shadowRoot?.querySelector(
-        "#source-config-section"
+        '#source-config-section'
       ) as HTMLElement;
       if (configSection) {
-        configSection.style.display = "none";
+        configSection.style.display = 'none';
       }
     }
 
@@ -1742,9 +1749,9 @@ class ProjectionEditor extends LitElement {
       const response = await fetch(
         `/projection-mapper/api/save/${this.module}/${this.resource}`,
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify(this.data),
         }
@@ -1752,270 +1759,271 @@ class ProjectionEditor extends LitElement {
 
       if (response.ok) {
         await response.json();
-        alert("Saved successfully");
+        alert('Saved successfully');
 
         // Broadcast reload to viewers
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
           this.ws.send(
             JSON.stringify({
-              type: "reload",
+              type: 'reload',
             })
           );
         }
       } else {
         const errorData = await response.json();
-        alert("Save failed: " + (errorData.message || "Unknown error"));
+        alert('Save failed: ' + (errorData.message || 'Unknown error'));
       }
     } catch (error) {
-      console.error("Save error:", error);
-      alert("Save failed: " + (error as Error).message);
+      console.error('Save error:', error);
+      alert('Save failed: ' + (error as Error).message);
     }
   }
 
+
   private generateId(): string {
-    return "src_" + Math.random().toString(36).slice(2, 11);
+    return 'src_' + Math.random().toString(36).slice(2, 11);
   }
 
   override render() {
     if (this.isViewerMode) {
       return html`
         <div class="projection-editor viewer-mode">
-            <div class="editor-canvas-area viewer-mode" style="width: 100%; height: 100vh; overflow: hidden;">
-                <canvas id="preview-canvas"></canvas>
-                <div id="preview-sources"></div>
-            </div>
+          <div class="editor-canvas-area viewer-mode" style="width: 100%; height: 100vh; overflow: hidden;">
+            <canvas id="preview-canvas"></canvas>
+            <div id="preview-sources"></div>
+          </div>
         </div>
       `;
     }
 
     return html`
-        <div class="projection-editor" id="projection-editor">
-            <div class="editor-toolbar">
-                <h2>${this.data.title}</h2>
-                <button
-                    id="save-btn"
-                    data-testid="save-btn"
-                    class="btn btn-primary"
-                >
-                    Save
-                </button>
-            </div>
+      <div class="projection-editor" id="projection-editor">
+        <div class="editor-toolbar">
+          <h2>${this.data.title}</h2>
+          <button
+id="save-btn"
+data-testid="save-btn"
+class="btn btn-primary"
+>
+            Save
+          </button>
+        </div>
 
-            <div class="editor-main">
-                <div class="editor-canvas-area">
-                    <canvas id="preview-canvas"></canvas>
-                    <div id="preview-sources"></div>
-                </div>
+        <div class="editor-main">
+          <div class="editor-canvas-area">
+            <canvas id="preview-canvas"></canvas>
+            <div id="preview-sources"></div>
+          </div>
 
-                <div class="editor-sidebar">
-                    <div class="sidebar-section">
-                        <h3>Sources</h3>
-                        <button
-                            id="add-source-btn"
-                            data-testid="add-source-btn"
-                            class="btn btn-sm"
-                        >
-                            + Add Source
-                        </button>
-                        <div id="sources-list" class="sources-list">
-      ${this.data.sources.map(
+          <div class="editor-sidebar">
+            <div class="sidebar-section">
+              <h3>Sources</h3>
+              <button
+                id="add-source-btn"
+                data-testid="add-source-btn"
+                class="btn btn-sm"
+              >
+                + Add Source
+              </button>
+              <div id="sources-list" class="sources-list">
+                ${this.data.sources.map(
                   (source) => html`
                     <div
-                        class="source-item ${source.id === this.selectedSourceId
-                        ? "selected"
-                        : ""}"
-                        data-testid="source-item-${source.name}"
-                        @click="${() => this.selectSource(source.id)}"
+                      class="source-item ${source.id === this.selectedSourceId
+                        ? 'selected'
+                        : ''}"
+                      data-testid="source-item-${source.name}"
+                      @click="${() => this.selectSource(source.id)}"
                     >
-                        <div class="source-item-content">
-                            <span>${source.name}</span>
-                            <button
-                                class="btn-small del-source"
-                                data-testid="delete-source-${source.name}"
-                                @click="${(event: MouseEvent) => {
+                      <div class="source-item-content">
+                        <span>${source.name}</span>
+                        <button
+                          class="btn-small del-source"
+                          data-testid="delete-source-${source.name}"
+                          @click="${(event: MouseEvent) => {
                             event.stopPropagation();
                             this.deleteSource(source.id);
                           }}"
-                            >
-                                Delete
-                            </button>
-                        </div>
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
                   `
                 )}
-                        </div>
-                    </div>
-
-                    <div class="sidebar-section" id="size-section">
-                        <h3>Projection Size</h3>
-                        <div class="form-group">
-                            <label>Width (px)</label>
-                            <input
-                                type="number"
-                                id="size-width"
-                                data-testid="size-width"
-                                min="320"
-                                value="1920"
-                            >
-                        </div>
-                        <div class="form-group">
-                            <label>Height (px)</label>
-                            <input
-                                type="number"
-                                id="size-height"
-                                data-testid="size-height"
-                                min="240"
-                                value="1080"
-                            >
-                        </div>
-                    </div>
-
-                    <div
-                        class="sidebar-section"
-                        id="transform-section"
-                        style="display: none;"
-                    >
-                        <h3>Transform</h3>
-                        <div class="form-group">
-                            <label>Opacity</label>
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <input
-                                    type="range"
-                                    id="opacity"
-                                    data-testid="opacity"
-                                    min="0"
-                                    max="1"
-                                    step="0.01"
-                                    value="1"
-                                    style="flex: 1;"
-                                >
-                                <span id="opacity-val">1.00</span>
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Opacity Tag (optional)</label>
-                            <input
-                                type="text"
-                                id="opacity-tag"
-                                data-testid="opacity-tag"
-                                placeholder="/path/to/tag"
-                                list="available-tags"
-                            >
-                            <datalist id="available-tags"></datalist>
-                            <datalist id="available-fonts"></datalist>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Blend Mode</label>
-                            <select id="blend-mode" data-testid="blend-mode">
-                                <option value="normal">Normal</option>
-                                <option value="multiply">Multiply</option>
-                                <option value="screen">Screen</option>
-                                <option value="overlay">Overlay</option>
-                                <option value="darken">Darken</option>
-                                <option value="lighten">Lighten</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Rotation (deg)</label>
-                            <input
-                                type="number"
-                                id="rotation"
-                                data-testid="rotation"
-                                value="0"
-                                step="1"
-                            >
-                        </div>
-
-                        <div class="form-group">
-                            <h4>Corner Points</h4>
-                            <div class="corners-grid">
-                                <div>
-                                    <label>Top-Left</label>
-                                    <input
-                                        type="number"
-                                        class="corner-x"
-                                        data-corner="tl"
-                                        data-testid="corner-x-tl"
-                                        placeholder="X"
-                                    >
-                                    <input
-                                        type="number"
-                                        class="corner-y"
-                                        data-corner="tl"
-                                        data-testid="corner-y-tl"
-                                        placeholder="Y"
-                                    >
-                                </div>
-                                <div>
-                                    <label>Top-Right</label>
-                                    <input
-                                        type="number"
-                                        class="corner-x"
-                                        data-corner="tr"
-                                        data-testid="corner-x-tr"
-                                        placeholder="X"
-                                    >
-                                    <input
-                                        type="number"
-                                        class="corner-y"
-                                        data-corner="tr"
-                                        data-testid="corner-y-tr"
-                                        placeholder="Y"
-                                    >
-                                </div>
-                                <div>
-                                    <label>Bottom-Left</label>
-                                    <input
-                                        type="number"
-                                        class="corner-x"
-                                        data-corner="bl"
-                                        data-testid="corner-x-bl"
-                                        placeholder="X"
-                                    >
-                                    <input
-                                        type="number"
-                                        class="corner-y"
-                                        data-corner="bl"
-                                        data-testid="corner-y-bl"
-                                        placeholder="Y"
-                                    >
-                                </div>
-                                <div>
-                                    <label>Bottom-Right</label>
-                                    <input
-                                        type="number"
-                                        class="corner-x"
-                                        data-corner="br"
-                                        data-testid="corner-x-br"
-                                        placeholder="X"
-                                    >
-                                    <input
-                                        type="number"
-                                        class="corner-y"
-                                        data-corner="br"
-                                        data-testid="corner-y-br"
-                                        placeholder="Y"
-                                    >
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div
-                        class="sidebar-section"
-                        id="source-config-section"
-                        style="display: none;"
-                    ></div>
-                </div>
+              </div>
             </div>
+
+            <div class="sidebar-section" id="size-section">
+              <h3>Projection Size</h3>
+              <div class="form-group">
+                <label>Width (px)</label>
+                <input
+                  type="number"
+                  id="size-width"
+                  data-testid="size-width"
+                  min="320"
+                  value="1920"
+                >
+              </div>
+              <div class="form-group">
+                <label>Height (px)</label>
+                <input
+                  type="number"
+                  id="size-height"
+                  data-testid="size-height"
+                  min="240"
+                  value="1080"
+                >
+              </div>
+            </div>
+
+            <div
+              class="sidebar-section"
+              id="transform-section"
+              style="display: none;"
+            >
+              <h3>Transform</h3>
+              <div class="form-group">
+                <label>Opacity</label>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <input
+                    type="range"
+                    id="opacity"
+                    data-testid="opacity"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    value="1"
+                    style="flex: 1;"
+                  >
+                  <span id="opacity-val">1.00</span>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>Opacity Tag (optional)</label>
+                <input
+                  type="text"
+                  id="opacity-tag"
+                  data-testid="opacity-tag"
+                  placeholder="/path/to/tag"
+                  list="available-tags"
+                >
+                <datalist id="available-tags"></datalist>
+                <datalist id="available-fonts"></datalist>
+              </div>
+
+              <div class="form-group">
+                <label>Blend Mode</label>
+                <select id="blend-mode" data-testid="blend-mode">
+                  <option value="normal">Normal</option>
+                  <option value="multiply">Multiply</option>
+                  <option value="screen">Screen</option>
+                  <option value="overlay">Overlay</option>
+                  <option value="darken">Darken</option>
+                  <option value="lighten">Lighten</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Rotation (deg)</label>
+                <input
+                  type="number"
+                  id="rotation"
+                  data-testid="rotation"
+                  value="0"
+                  step="1"
+                >
+              </div>
+
+              <div class="form-group">
+                <h4>Corner Points</h4>
+                <div class="corners-grid">
+                  <div>
+                    <label>Top-Left</label>
+                    <input
+                      type="number"
+                      class="corner-x"
+                      data-corner="tl"
+                      data-testid="corner-x-tl"
+                      placeholder="X"
+                    >
+                    <input
+                      type="number"
+                      class="corner-y"
+                      data-corner="tl"
+                      data-testid="corner-y-tl"
+                      placeholder="Y"
+                    >
+                  </div>
+                  <div>
+                    <label>Top-Right</label>
+                    <input
+                      type="number"
+                      class="corner-x"
+                      data-corner="tr"
+                      data-testid="corner-x-tr"
+                      placeholder="X"
+                    >
+                    <input
+                      type="number"
+                      class="corner-y"
+                      data-corner="tr"
+                      data-testid="corner-y-tr"
+                      placeholder="Y"
+                    >
+                  </div>
+                  <div>
+                    <label>Bottom-Left</label>
+                    <input
+                      type="number"
+                      class="corner-x"
+                      data-corner="bl"
+                      data-testid="corner-x-bl"
+                      placeholder="X"
+                    >
+                    <input
+                      type="number"
+                      class="corner-y"
+                      data-corner="bl"
+                      data-testid="corner-y-bl"
+                      placeholder="Y"
+                    >
+                  </div>
+                  <div>
+                    <label>Bottom-Right</label>
+                    <input
+                      type="number"
+                      class="corner-x"
+                      data-corner="br"
+                      data-testid="corner-x-br"
+                      placeholder="X"
+                    >
+                    <input
+                      type="number"
+                      class="corner-y"
+                      data-corner="br"
+                      data-testid="corner-y-br"
+                      placeholder="Y"
+                    >
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div
+              class="sidebar-section"
+              id="source-config-section"
+              style="display: none;"
+            ></div>
+          </div>
         </div>
+      </div>
     `;
   }
 }
 
-customElements.define("projection-editor", ProjectionEditor);
+customElements.define('projection-editor', ProjectionEditor);
 
 export default ProjectionEditor;

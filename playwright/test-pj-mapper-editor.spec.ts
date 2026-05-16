@@ -116,6 +116,9 @@ async function testCommonSourceProperties(page: Page, sourceName: string) {
   await expect(cornerXTl).toHaveValue("100");
   await expect(cornerYTl).toHaveValue("150");
 
+  await sleep(150);
+
+  
   // Save
   await page.getByTestId("save-btn").click();
   await sleep(750);

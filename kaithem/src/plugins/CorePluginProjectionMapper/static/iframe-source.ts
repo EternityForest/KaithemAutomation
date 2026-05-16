@@ -5,9 +5,11 @@ import { Source, SourceData, registerSourceType } from "./source-type";
 export class IframeSource extends Source {
 
   prevUrl: string = "gfghfhgfhgffgj"
-  
+
   constructor(data: SourceData) {
     super(data);
+    // Disable auto window size for iframes - use explicit config
+    this.config.auto_window_size = false;
   }
 
   updateContent(container: HTMLElement): void {
@@ -52,6 +54,7 @@ export class IframeSource extends Source {
 
       container.style.width = `${windowWidth}px`;
       container.style.height = `${windowHeight}px`;
+      container.style.overflow = "hidden";
 
       const iframe = container.querySelector("iframe") as HTMLIFrameElement;
       if (iframe) {

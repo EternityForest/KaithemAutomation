@@ -48,7 +48,7 @@ test("test", async ({ page }) => {
 
   await expect(page
     .getByTestId("universe-status-table")
-    .getByRole("row", { name: "test" })
+    .getByRole("row").filter({hasText:"test"})
     .getByRole("link", { name: "Values" })
   ).toBeVisible();
   
@@ -307,8 +307,8 @@ test("test", async ({ page }) => {
     await page.getByRole("button", { name: "Universes" }).click();
     await page
       .getByTestId("universe-status-table")
-      .getByRole("row", { name: "test" })
-      .getByRole("link", { name: "Values" })
+     .getByRole("row").filter({hasText:"test"})
+    .getByRole("link", { name: "Values" })
       .click();
     await expect(page.locator("section")).toContainText("255.0");
     await expect(page.locator("section")).toContainText("233.0");

@@ -29,6 +29,7 @@ export interface SourceConfig {
   render_height?: number;
   crop_x?: number;
   crop_y?: number;
+  auto_window_size?: boolean;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 }
