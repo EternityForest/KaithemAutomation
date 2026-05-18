@@ -4,15 +4,15 @@
 
 import { html, TemplateResult } from "lit";
 import { customElement, property } from "lit/decorators.js";
-import { DashboardComponent } from "dashbeard/src/components/dashboard-component";
-import type { ComponentConfig } from "dashbeard/src/boards/board-types";
-import type { ComponentTypeSchema } from "dashbeard/src/editor/types";
-import { doSerialized } from "dashbeard/src/core/serialized-actions";
+import { DashboardComponent } from "dashbeard/src/components/dashboard-component.ts";
+import type { ComponentConfig } from "dashbeard/src/boards/board-types.ts";
+import type { ComponentTypeSchema } from "dashbeard/src/editor/types.ts";
+import { doSerialized } from "dashbeard/src/core/serialized-actions.ts";
 
-import { Port, SourceType } from "dashbeard/src/flow/port";
-import type { PortData } from "dashbeard/src/flow/data-types";
+import { Port, SourceType } from "dashbeard/src/flow/port.ts";
+import type { PortData } from "dashbeard/src/flow/data-types.ts";
 
-import { kaithemapi } from "/static/js/widget.mjs";
+import {kaithemapi } from "/static/js/widget.mjs";
 
 /**
  * Variable component - simple storage and output of values.
@@ -98,7 +98,7 @@ export class TagpointComponent extends DashboardComponent {
       }
     }
 
-    this.tagParams.subtype = myArray.subtype ? myArray.subtype : "";
+    this.tagParams.subtype = myArray.subtype || "";
     this.tagParams.readonly = !myArray.writePermission;
 
     this.value = myArray.lastVal;
@@ -152,7 +152,7 @@ export class TagpointComponent extends DashboardComponent {
   constructor(config: ComponentConfig) {
     super(config);
 
-    this.value = config.config.defaultValue ?? null;
+    this.value = config?.config?.defaultValue ?? null;
 
     this.onConfigUpdate();
     this.register();
@@ -193,7 +193,7 @@ export class TagpointComponent extends DashboardComponent {
     let newValue: unknown = target.value;
 
     // Try to parse as number
-    if (!isNaN(Number(newValue)) && newValue !== "") {
+    if (!Number.isNaN(Number(newValue)) && newValue !== "") {
       newValue = Number(newValue);
     }
     this.pushData(newValue);
@@ -210,11 +210,12 @@ export class TagpointComponent extends DashboardComponent {
       <div class="small-dashboard-widget-container">
         <label>${this.label}</label>
         <input
-          type="text"
-          class="w-full${this.visible?'':' hidden'}"
-          .value="${String(this.value)}"
-          @change="${this.handleValueChange.bind(this)}"
-          placeholder="Enter value" />
+type="text"
+class="w-full${this.visible?'':' hidden'}"
+.value="${String(this.value)}"
+@change="${this.handleValueChange.bind(this)}"
+placeholder="Enter value"
+>
       </div>
     `;
   }

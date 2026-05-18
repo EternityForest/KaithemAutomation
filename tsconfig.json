@@ -15,13 +15,12 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "experimentalDecorators": true,
-
+    "allowImportingTsExtensions":true,
     "noEmit": true,
     "jsx": "react-jsx",
     "paths": {
-      "/static/js/*": ["./kaithem/src/js/*"]
+      "/static/js/*": ["./kaithem/src/js/*"],
     },
-    "include": ["src"],
     "typeRoots": ["./node_modules/@types", "./kaithem/src/js/"]
   },
 }

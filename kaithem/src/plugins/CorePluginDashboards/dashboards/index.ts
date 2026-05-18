@@ -3,11 +3,11 @@
  * Integrates with Kaithem for board persistence and API calls
  */
 
-import "dashbeard/src/editor/components/dashboard-editor";
-import { KaithemBoardAPI } from "./kaithem-board-api";
-import { createEditor } from "dashbeard/src/index";
-import type { IBoardBackend } from "dashbeard/src/editor/types";
-import { TagpointComponent } from "./tag-point";
+import "dashbeard/src/editor/components/dashboard-editor.ts";
+import { KaithemBoardAPI } from "./kaithem-board-api.ts";
+import { createEditor } from "dashbeard/src/index.ts";
+import type { IBoardBackend } from "dashbeard/src/editor/types.ts";
+import { TagpointComponent } from "./tag-point.ts";
 
 /**
  * Extract module and resource names from URL path

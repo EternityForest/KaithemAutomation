@@ -4,8 +4,8 @@
  * Implements IBoardBackend for use with the Dashbeard editor
  */
 
-import { BoardDefinition } from 'dashbeard/src/boards/board-types';
-import type { FileMetadata, IBoardBackend } from 'dashbeard/src/editor/types';
+import { BoardDefinition } from 'dashbeard/src/boards/board-types.ts';
+import type { FileMetadata, IBoardBackend } from 'dashbeard/src/editor/types.ts';
 
 export class KaithemBoardAPI implements IBoardBackend {
   private boardId: string;
