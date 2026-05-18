@@ -145,6 +145,10 @@ test('test', async ({ page }) => {
   await page.getByTestId('close-logic').click();
   await page.getByTestId('close-group').click();
   await page.getByRole('button', { name: 'test' }).click();
+  
+  // Todo why this wait?
+  await waitForTasks(page);
+
   page.once('dialog', (dialog) => {
     console.log(`Dialog message: ${dialog.message()}`);
     dialog.accept();
