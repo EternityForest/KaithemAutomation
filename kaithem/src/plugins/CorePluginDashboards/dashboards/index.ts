@@ -5,9 +5,10 @@
 
 import "dashbeard/src/editor/components/dashboard-editor.ts";
 import { KaithemBoardAPI } from "./kaithem-board-api.ts";
-import { createEditor } from "dashbeard/src/index.ts";
+import { createEditor, registerFormatDatalist } from "dashbeard/src/index.ts";
 import type { IBoardBackend } from "dashbeard/src/editor/types.ts";
 import { TagpointComponent } from "./tag-point.ts";
+import { populateTagsDatalist } from "/static/js/widget.mjs";
 
 /**
  * Extract module and resource names from URL path
@@ -21,11 +22,30 @@ function extractPathParameters(): { module: string; resource: string } {
 }
 
 /**
+ * Set up tag point autocomplete datalist for the "tagpoint" format
+ */
+async function setupTagpointDatalist(): Promise<void> {
+  // Create the datalist element
+  const datalist = document.createElement("datalist");
+  datalist.id = "tagpoint-datalist";
+  document.body.appendChild(datalist);
+
+  // Populate with available tags
+  await populateTagsDatalist(datalist);
+
+  // Register the datalist for the "tagpoint" format
+  registerFormatDatalist("tagpoint", "tagpoint-datalist");
+}
+
+/**
  * Initialize the dashboard editor with Kaithem integration
  */
 async function initializeDashboardEditor(): Promise<void> {
   try {
     const { module, resource } = extractPathParameters();
+
+    // Set up tag autocomplete before creating the editor
+    await setupTagpointDatalist();
 
     // Create the editor element
     const appContainer = document.querySelector("#app");

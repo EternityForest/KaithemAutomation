@@ -30,6 +30,7 @@ export class TagpointComponent extends DashboardComponent {
       properties: {
         tag: {
           type: "string",
+          format: "tagpoint",
           description: "The name of the tag point",
           default: "",
         },
