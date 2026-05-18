@@ -2,6 +2,13 @@
 
 Web frontend API for subscribing to and accessing tag point values in Kaithem.
 
+
+If you are developing an external plugin, copy and paste
+`kaithem/src/js/types-widget.d.ts` and add it to  "typeRoots" in tsconfig, to get interactive type hints in your IDE.
+
+
+
+
 ## TagSubscriptionManager
 
 A class for managing tag point subscriptions with local name-based deduplication.

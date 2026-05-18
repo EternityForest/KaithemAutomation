@@ -22,7 +22,9 @@
     "jsx": "react-jsx",
     "paths": {
       "/static/js/*": ["./kaithem/src/js/*"]
-    }
+    },
+
+    "typeRoots": ["./node_modules/@types", "./kaithem/src/js/"]
   },
   "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]
