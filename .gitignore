@@ -39,3 +39,4 @@ sounds_pack
 /index.html.*
 
 target/
+.aider*

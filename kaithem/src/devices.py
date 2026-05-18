@@ -1096,7 +1096,7 @@ def updateDevice(
 
         if not subdevice:
             devices_host.close_device(devname)
-            assert current_device_object.device is None
+            assert devname not in devices_host.devices
             messagebus.post_message("/devices/removed/", devname)
 
         gc.collect()

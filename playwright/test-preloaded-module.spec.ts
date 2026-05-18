@@ -9,7 +9,7 @@ test("test", async ({ page }) => {
   // Device conflict between the twi preloaded modules should put an error notice on the main page.
   await expect(
     page.getByText(
-      "Error in resource test_preloaded_ext_module,PreloadedDemoDevice: Device with"
+      "Error in resource test_preloaded_ext_module,PreloadedDemoDevice: Device at"
     )
   ).toBeVisible();
 
@@ -90,7 +90,7 @@ test("test", async ({ page }) => {
     page.getByText("nonsense-resource", { exact: true })
   ).toBeVisible();
 
-  await expect(page.getByText("Device with this name already").first()).toBeVisible();
+  await expect(page.getByText("Device at").getByText("shares name").first()).toBeVisible();
 
   // Make sure apps from ext module load
   await page.getByRole("link", { name: "󰀻 Apps" }).click();

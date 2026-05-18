@@ -93,7 +93,7 @@
 
 * Avoid things that create an appearance of being associated with suspicious activity, such as P2P technology that may be flagged by AI bots
 
-* Things should still work offline
+* Things should still work offline.  Copy needed resources locally, rather than using the CDN.
 
 ## User Experience
 
@@ -192,6 +192,10 @@
 * Do not explicitly silence true errors without actually handling them properlt.  No except: pass
 
 * Avoid returning mutable references to persistent state, unless you intend for the caller to modify the persistent state
+
+
+* Put imports at the top of the file, not in the individual functions, unless there is a reason to do otherwise.
+
 
 ## Testing
 
