@@ -93,7 +93,7 @@ export class TagpointComponent extends DashboardComponent {
 
     const myArray = await response.json();
 
-    for (const i of ["min", "max", "hi", "lo", "step", "unit"]) {
+    for (const i of ["min", "max", "hi", "lo", "step", "unit","type","subtype"]) {
       if (myArray[i]) {
         this.tagParams[i] = myArray[i];
       }
