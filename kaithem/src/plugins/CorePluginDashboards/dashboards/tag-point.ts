@@ -208,11 +208,11 @@ export class TagpointComponent extends DashboardComponent {
    */
   override render(): TemplateResult {
     return html`
-      <div class="small-dashboard-widget-container">
+      <div class="small-dashboard-widget-container${this.visible?'':' hidden'}">
         <label>${this.label}</label>
         <input
 type="text"
-class="w-full${this.visible?'':' hidden'}"
+class="w-full"
 .value="${String(this.value)}"
 @change="${this.handleValueChange.bind(this)}"
 placeholder="Enter value"
