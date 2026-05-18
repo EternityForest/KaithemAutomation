@@ -173,7 +173,7 @@ export abstract class Source {
   createPreviewElements(): { window: HTMLElement; container: HTMLElement } {
     const window = document.createElement("div");
     window.className = "source-window";
-
+    this.activeDestination = window;
     const container = document.createElement("div");
     container.className = "window-container";
     container.style.position = "relative";

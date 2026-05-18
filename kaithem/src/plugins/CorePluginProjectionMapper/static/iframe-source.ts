@@ -36,8 +36,10 @@ export class IframeSource extends Source {
     iframe.sandbox.add("allow-same-origin", "allow-scripts", "allow-forms");
   }
 
-  applyTransforms(windowElement: HTMLElement): void {
+  applyTransforms(windowElement?: HTMLElement): void {
     super.applyTransforms(windowElement);
+
+    if (!windowElement) return;
 
     // Apply container sizing and cropping
     const config = this.config || {};

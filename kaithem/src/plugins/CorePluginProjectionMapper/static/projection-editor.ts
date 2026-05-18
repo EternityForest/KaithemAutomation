@@ -5,7 +5,7 @@
 // Built with Lit for lightweight, self-contained rendering
 
 import { LitElement, html, css } from 'lit';
-import { kaithemapi } from "/static/js/widget.mjs";
+import { populateTagsDatalist, TagSubscriptionManager } from "/static/js/widget.mjs";
 import { PerspT } from './perspective-transform.mjs';
 import { createSourceAdapter } from './source-type';
 
@@ -487,11 +487,8 @@ class ProjectionEditor extends LitElement {
   private animationFrameId: number | null = null;
   private lastRawMousePos: Position | null = null;
 
-  // Tag subscriptions per source: sourceId -> { tagKey -> { tag, callback } }
-  private tagSubscriptions: Record<
-    string,
-    Record<string, { tag: string; callback: (value: number) => void }>
-  > = {};
+  // Tag subscription manager
+  private tagSubMgr = new TagSubscriptionManager();
 
   override connectedCallback(): void {
     super.connectedCallback();
@@ -549,12 +546,7 @@ class ProjectionEditor extends LitElement {
     }
 
     // Unsubscribe all tags
-    for (const sourceId of Object.keys(this.tagSubscriptions)) {
-      const subs = this.tagSubscriptions[sourceId];
-      for (const tagKey of Object.keys(subs)) {
-        this.unsubscribeTag(sourceId, tagKey);
-      }
-    }
+    this.tagSubMgr.destroy();
 
     if (this.animationFrameId) {
       cancelAnimationFrame(this.animationFrameId);
@@ -1286,26 +1278,10 @@ class ProjectionEditor extends LitElement {
   }
 
   private async populateTagDatalist(): Promise<void> {
-    try {
-      const response = await fetch('/tag_api/list');
-      const data = await response.json();
-      const tags = Object.keys(data).sort();
-
-      const datalist = this.shadowRoot?.querySelector('#available-tags');
-      if (!datalist) return;
-
-      datalist.innerHTML = '';
-      for (const tagidx of tags) {
-        const tag = data[tagidx];
-        if (tag.type === 'number' || tag.type === 'string') {
-          const option = document.createElement('option');
-          option.value = tag.name;
-          datalist.append(option);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch tags:', error);
-    }
+    await populateTagsDatalist(
+    this.shadowRoot?.querySelector('#available-tags'), (tag) => {
+      return tag.type === 'number' || tag.type === 'string';
+    });
   }
 
   private async loadFonts(): Promise<void> {
@@ -1351,19 +1327,7 @@ class ProjectionEditor extends LitElement {
   }
 
   private updateTagSubscriptions(): void {
-    const currentSources = new Set(this.data.sources.map((s) => s.id));
-
-    // Unsubscribe removed sources
-    for (const sourceId of Object.keys(this.tagSubscriptions)) {
-      if (!currentSources.has(sourceId)) {
-        const subs = this.tagSubscriptions[sourceId];
-        for (const tagKey of Object.keys(subs)) {
-          this.unsubscribeTag(sourceId, tagKey);
-        }
-      }
-    }
-
-    // Update subscriptions for existing sources
+    // Update subscriptions for all sources
     for (const source of this.data.sources) {
       const sourceAdapter = this.getSourceObject(source);
 
@@ -1380,46 +1344,27 @@ class ProjectionEditor extends LitElement {
     tagName: string,
     tagKey: string
   ): void {
-    // Ensure tag: prefix
-    const fullTag = tagName.startsWith('tag:') ? tagName : `tag:${tagName}`;
-    const infourl = '/tag_api/info' + tagName;
-
     const source = this.data.sources.find((s) => s.id === sourceId);
     if (!source) return;
 
     const sourceObject = this.getSourceObject(source);
+    const subName = `${sourceId}:${tagKey}`;
 
-    // Fetch initial tag value
-    fetch(infourl)
-      .then((response) => response.json())
-      .then((data) => {
-        sourceObject.handleTagUpdate(tagKey, data.lastVal);
+    // Subscribe with initial state fetch
+    this.tagSubMgr.setSubscription(
+      subName,
+      tagName,
+      (value: number) => {
+        sourceObject.handleTagUpdate(tagKey, value);
         this.renderPreview();
-      });
-
-    // Subscribe to future updates
-    const callback = (value: number) => {
-      sourceObject.handleTagUpdate(tagKey, value);
-      this.renderPreview();
-    };
-
-    if (!this.tagSubscriptions[sourceId]) {
-      this.tagSubscriptions[sourceId] = {};
-    }
-    this.tagSubscriptions[sourceId][tagKey] = { tag: fullTag, callback };
-    kaithemapi.subscribe(fullTag, callback);
+      },
+      true
+    );
   }
 
   private unsubscribeTag(sourceId: string, tagKey: string): void {
-    const subs = this.tagSubscriptions[sourceId];
-    if (subs && subs[tagKey]) {
-      const sub = subs[tagKey];
-      kaithemapi.unsubscribe(sub.tag, sub.callback);
-      delete subs[tagKey];
-      if (Object.keys(subs).length === 0) {
-        delete this.tagSubscriptions[sourceId];
-      }
-    }
+    const subName = `${sourceId}:${tagKey}`;
+    this.tagSubMgr.setSubscription(subName, null, null);
   }
 
   private setupWebSocket(): void {
@@ -1707,12 +1652,6 @@ class ProjectionEditor extends LitElement {
   }
 
   private deleteSource(sourceId: string): void {
-    const subs = this.tagSubscriptions[sourceId];
-    if (subs) {
-      for (const tagKey of Object.keys(subs)) {
-        this.unsubscribeTag(sourceId, tagKey);
-      }
-    }
     this.data.sources = this.data.sources.filter((s) => s.id !== sourceId);
 
     if (this.selectedSourceId === sourceId) {
