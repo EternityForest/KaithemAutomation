@@ -66,7 +66,8 @@ env.globals["len"] = len
 env.globals["str"] = str
 env.globals["hasattr"] = hasattr
 
-# These get imported by the page header template, which is also what imp0rt is for
+# These get imported by the page header template,
+# which is also what imp0rt is for
 list = list
 sorted = sorted
 len = len
@@ -115,26 +116,6 @@ def get_bar_plugins():
 
     for i in nbp:
         yield i[1]
-
-
-# There are cases where this may not exactly be perfect,
-# but the point is just an extra guard against user error.
-def isHTTPAllowed(ip):
-    return (
-        ip.startswith(
-            (
-                "::1",
-                "127.",
-                "::ffff:192.",
-                "::ffff:10.",
-                "192.",
-                "10.",
-                "fc",
-                "fd",
-            )
-        )
-        or ip == "::ffff:127.0.0.1"
-    )
 
 
 def getSubdomain():
@@ -212,18 +193,6 @@ def require(permission: str | list[str]):
             if "__all_permissions__" in auth.Users["__guest__"].permissions:
                 return
 
-        # Anything guest can't do needs https
-        if not (
-            quart.request.scheme == "https"
-            or quart.request.remote_addr == "<local>"
-        ):
-            x = quart.request.remote_addr
-            # Allow localhost, and Yggdrasil mesh.
-            # This check is really just to be sure nobody accidentally uses HTTP,
-            # But localhost and encrypted mesh are legitamate uses of HTTP.
-            if not isHTTPAllowed(x):
-                raise KaithemUserPermissionError(permission)
-
         if not auth.canUserDoThis(user, permission):
             raise KaithemUserPermissionError(permission)
 
@@ -298,6 +267,26 @@ def noCrossSite(asgi: dict[str, Any] | None = None):
                 )
 
 
+# There are cases where this may not exactly be perfect,
+# but the point is just an extra guard against user error.
+def isHTTPAllowed(ip):
+    return (
+        ip.startswith(
+            (
+                "::1",
+                "127.",
+                "::ffff:192.",
+                "::ffff:10.",
+                "192.",
+                "10.",
+                "fc",
+                "fd",
+            )
+        )
+        or ip == "::ffff:127.0.0.1"
+    )
+
+
 def strictNoCrossSite():
     if not quart.request.base_url == quart.request.headers.get("Origin", ""):
         raise PermissionError(
@@ -319,8 +308,6 @@ def getAcessingUser(asgi=None, quart_req=None) -> str:
 
         headers = asgi["headers"]
         headers = {i.decode(): j.decode() for i, j in headers}
-        scheme = asgi["scheme"]
-        remote_ip = asgi["client"][0]
         cookie = r.cookies
         host = headers["host"]
 
@@ -330,8 +317,6 @@ def getAcessingUser(asgi=None, quart_req=None) -> str:
             return "__no_request__"
 
         headers = dict(quart_req.headers)
-        scheme = quart_req.scheme
-        remote_ip = quart_req.remote_addr
         cookie = quart_req.cookies
         host = quart_req.host
 
@@ -342,13 +327,6 @@ def getAcessingUser(asgi=None, quart_req=None) -> str:
             b = base64.b64decode(x[1]).decode()
             b = b.split(";")
 
-            if not scheme == "https":
-                # Basic auth over http is not secure at all, so we raise an error if we catch it.
-                x = remote_ip
-                if not isHTTPAllowed(x):
-                    raise PermissionError(
-                        "Cannot make this request from plain http"
-                    )
             # Get token using username and password
             auth.userLogin(b[0], b[1])
             # Check the credentials of that token

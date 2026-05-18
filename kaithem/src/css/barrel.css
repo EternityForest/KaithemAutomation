@@ -1141,6 +1141,10 @@ table {
   }
 }
 
+.hidden{
+  display: none !important;
+}
+
 /*This handles the old style "section box", but also top level HTML section elements. It's basicattly for independant sections of content.*/
 .window {
   background: var(--box-bg);
@@ -2022,6 +2026,10 @@ iframe.h-center {
   box-shadow: none !important;
   background: transparent !important;
   backdrop-filter: none !important;
+}
+
+.display-contents{
+  display: contents;
 }
 
 .border {

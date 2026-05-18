@@ -1,10 +1,23 @@
 Change Log
 ----------
-
-
 ### Dev
 
+* [sparkles] Projection mapper more intuitive text widgets.
+
+
+### 0.95.0
+
+This is being release a bit ahead of schedule because of the dissapearing
+old version of the sherpa-onnx library
+
 * [sparkles] Tag points can control opacity of projection mapping sources
+* [security] Remove injection footgun in filename_for_file_resource
+* [sparkles] Every module can declare public files by doing public_resources/<type>/item1.png.  They are then accessible at /static/public_resource/<module>/<type>/item1.png
+* [bug] Fix devices showing errors when accessed via module pages.
+* [bug] Fix device default alarms not working.
+* [bug] Fix filesystem cue provider not auto-assigning numbers
+* [bug] Fix dependency on a version of sherpa-onnx that stopped existing.
+
 
 ### 0.94.0
 

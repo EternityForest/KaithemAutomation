@@ -1,5 +1,5 @@
-import { encode, decode } from "./thirdparty/msgpackr.esm.js";
-import picodash from "/static/js/thirdparty/picodash/picodash-base.esm.js";
+import { encode, decode } from './thirdparty/msgpackr.esm.js';
+import picodash from '/static/js/thirdparty/picodash/picodash-base.esm.js';
 
 try {
   // eslint-disable-next-line @typescript-eslint/no-unused-expressions
@@ -18,10 +18,10 @@ if (globalThis.kaithemapi == undefined) {
   globalThis.kaithemapi = function () {
     var x = {
       checkPermission: async function (perm) {
-        let permissionurl = "/api.core/check-permission/" + perm;
+        let permissionurl = '/api.core/check-permission/' + perm;
 
         return fetch(permissionurl, {
-          method: "GET",
+          method: 'GET',
         }).then((response) => {
           return response.json();
         });
@@ -39,11 +39,11 @@ if (globalThis.kaithemapi == undefined) {
               Date.now() - 30_000
             ) {
               globalThis.kaithemapilastDidSnackbarError = Date.now();
-              KaithemWidgetApiSnackbar("Ratelimited msg: " + m);
+              KaithemWidgetApiSnackbar('Ratelimited msg: ' + m);
 
-              picodash.snackbar.createSnackbar("Ratelimited msg: " + m, {
+              picodash.snackbar.createSnackbar('Ratelimited msg: ' + m, {
                 timeout: 5000,
-                accent: "error",
+                accent: 'error',
               });
             }
           },
@@ -136,12 +136,12 @@ if (globalThis.kaithemapi == undefined) {
         this.lastErrMsg = Date.now();
 
         try {
-          error = error + "\n" + error.stack;
+          error = error + '\n' + error.stack;
         } catch (error_) {
           console.error(error_);
         }
 
-        this.sendValue("__ERROR__", error);
+        this.sendValue('__ERROR__', error);
       },
 
       register: function (key, callback) {
@@ -171,8 +171,8 @@ if (globalThis.kaithemapi == undefined) {
 
       wsPrefix: function () {
         return (
-          globalThis.location.protocol.replace("http", "ws") +
-          "//" +
+          globalThis.location.protocol.replace('http', 'ws') +
+          '//' +
           globalThis.location.host
         );
       },
@@ -208,16 +208,16 @@ if (globalThis.kaithemapi == undefined) {
 
       connect: function () {
         this.connection = new WebSocket(
-          globalThis.location.protocol.replace("http", "ws") +
-            "//" +
+          globalThis.location.protocol.replace('http', 'ws') +
+            '//' +
             globalThis.location.host +
-            "/widgets/ws"
+            '/widgets/ws'
         );
 
-        this.connection.addEventListener("close", (event) => {
-          picodash.snackbar.createSnackbar("Lost connection to server", {
+        this.connection.addEventListener('close', (event) => {
+          picodash.snackbar.createSnackbar('Lost connection to server', {
             timeout: 5000,
-            accent: "error",
+            accent: 'error',
           });
 
           this.lastDisconnect = Date.now();
@@ -231,7 +231,7 @@ if (globalThis.kaithemapi == undefined) {
           }, this.reconnect_timeout);
         });
 
-        this.connection.addEventListener("error", (event) => {
+        this.connection.addEventListener('error', (event) => {
           this.lastDisconnect = Date.now();
           console.log(event);
           if (this.reconnector) {
@@ -249,9 +249,9 @@ if (globalThis.kaithemapi == undefined) {
           }
         });
 
-        this.connection.addEventListener("message", (event) => {
+        this.connection.addEventListener('message', (event) => {
           try {
-            if (typeof event.data == "object") {
+            if (typeof event.data == 'object') {
               // this.use_mp0 = 1;
               event.data.arrayBuffer().then((buffer) => {
                 var buffer2 = new Uint8Array(buffer);
@@ -259,7 +259,7 @@ if (globalThis.kaithemapi == undefined) {
                   this.connection.handleIncoming(decode(buffer2));
                 } catch (error) {
                   this.sendErrorMessage(
-                    globalThis.location.href + "\n" + error.stack
+                    globalThis.location.href + '\n' + error.stack
                   );
                   console.error(error.stack);
                 }
@@ -270,7 +270,7 @@ if (globalThis.kaithemapi == undefined) {
             }
           } catch (error) {
             this.sendErrorMessage(
-              globalThis.location.href + "\n" + error.stack
+              globalThis.location.href + '\n' + error.stack
             );
             console.error(error.stack);
           }
@@ -287,10 +287,10 @@ if (globalThis.kaithemapi == undefined) {
                   this.alreadyPostedAlertOnce = true;
                   if (this.enableWidgetGoneAlert) {
                     picodash.snackbar.createSnackbar(
-                      "A widget used by this page no longer exists on the server.  Try refreshing later.",
+                      'A widget used by this page no longer exists on the server.  Try refreshing later.',
                       {
                         timeout: 5000,
-                        accent: "error",
+                        accent: 'error',
                       }
                     );
                   }
@@ -299,12 +299,12 @@ if (globalThis.kaithemapi == undefined) {
             }
           }
         };
-        this.connection.addEventListener("open", (_event) => {
+        this.connection.addEventListener('open', (_event) => {
           try {
             if (this.last_connected) {
-              picodash.snackbar.createSnackbar("Reconnected", {
+              picodash.snackbar.createSnackbar('Reconnected', {
                 timeout: 5000,
-                accent: "success",
+                accent: 'success',
               });
             }
           } catch (error) {
@@ -317,12 +317,12 @@ if (globalThis.kaithemapi == undefined) {
           if (this.lastDisconnect < Date.now() - 5000) {
             if (this.toSend.length > 0) {
               picodash.snackbar.createSnackbar(
-                "Reconnecting took too long, " +
+                'Reconnecting took too long, ' +
                   this.toSend.length +
-                  " messages lost.",
+                  ' messages lost.',
                 {
                   timeout: 15_000,
-                  accent: "error",
+                  accent: 'error',
                 }
               );
             }
@@ -332,10 +332,10 @@ if (globalThis.kaithemapi == undefined) {
           var j = JSON.stringify({
             subsc: Object.keys(this.serverMsgCallbacks),
             req: [],
-            upd: [["__url__", globalThis.location.href]],
+            upd: [['__url__', globalThis.location.href]],
           });
           this.connection.send(j);
-          console.log("WS Connection Initialized");
+          console.log('WS Connection Initialized');
           this.reconnect_timeout = 1500;
           globalThis.setTimeout(() => {
             this.wpoll();
@@ -376,24 +376,24 @@ if (globalThis.kaithemapi == undefined) {
   if (!globalThis.onerror) {
     var globalPageErrorHandler = function (message, url, line, _col, tb) {
       globalThis.kaithemapi.sendErrorMessage(
-        url + "\n" + line + "\n\n" + message + "\n\n" + tb
+        url + '\n' + line + '\n\n' + message + '\n\n' + tb
       );
     };
-    globalThis.addEventListener("unhandledrejection", (event) => {
+    globalThis.addEventListener('unhandledrejection', (event) => {
       globalThis.kaithemapi.sendErrorMessage(
         `UNHANDLED PROMISE REJECTION: ${event.reason}`
       );
     });
 
-    globalThis.addEventListener("error", globalPageErrorHandler);
+    globalThis.addEventListener('error', globalPageErrorHandler);
   }
   //Backwards compatibility hack
   //Todo deprecate someday? or not.
   let __kwidget_doBattery = function () {
-    if (!navigator.userAgent.includes("Firefox")) {
+    if (!navigator.userAgent.includes('Firefox')) {
       try {
         navigator.getBattery().then(function (battery) {
-          globalThis.kaithemapi.sendValue("__BATTERY__", {
+          globalThis.kaithemapi.sendValue('__BATTERY__', {
             level: battery.level,
             charging: battery.charging,
           });
@@ -403,10 +403,10 @@ if (globalThis.kaithemapi == undefined) {
       }
 
       try {
-        if ("AmbientLightSensor" in globalThis) {
+        if ('AmbientLightSensor' in globalThis) {
           const sensor = new AmbientLightSensor();
-          sensor.addEventListener("reading", (_event) => {
-            globalThis.kaithemapi.sendValue("__SENSORS__", {
+          sensor.addEventListener('reading', (_event) => {
+            globalThis.kaithemapi.sendValue('__SENSORS__', {
               ambientLight: sensor.illuminance,
             });
           });
@@ -417,21 +417,21 @@ if (globalThis.kaithemapi == undefined) {
     }
   };
 
-  if (!navigator.userAgent.includes("Firefox")) {
+  if (!navigator.userAgent.includes('Firefox')) {
     try {
       navigator.permissions
-        .query({ name: "idle-detection" })
+        .query({ name: 'idle-detection' })
         .then(async function (result) {
-          if (result.state === "granted") {
+          if (result.state === 'granted') {
             try {
               const controller = new AbortController();
               const signal = controller.signal;
 
               const idleDetector = new IdleDetector();
-              idleDetector.addEventListener("change", () => {
+              idleDetector.addEventListener('change', () => {
                 const userState = idleDetector.userState;
                 const screenState = idleDetector.screenState;
-                globalThis.kaithemapi.sendValue("__USERIDLE__", {
+                globalThis.kaithemapi.sendValue('__USERIDLE__', {
                   userState: userState,
                   screenState: screenState,
                 });
@@ -457,18 +457,18 @@ if (globalThis.kaithemapi == undefined) {
   setTimeout(__kwidget_doBattery, 60);
   setInterval(__kwidget_doBattery, 1_800_000);
 
-  window.addEventListener("load", function () {
+  window.addEventListener('load', function () {
     setTimeout(function () {
       globalThis.kaithemapi.connect();
     }, 10);
   });
 } else {
-  console.log("kaithemapi already exists");
+  // console.log('kaithemapi already exists');
 }
 class APIWidget {
   constructor(uuid, handler, defer_connect) {
     this.uuid = uuid;
-    this.value = "Waiting...";
+    this.value = 'Waiting...';
     this.clean = 0;
     this._maxsyncdelay = 250;
     this.timeSyncInterval = 120 * 1000;
@@ -485,7 +485,7 @@ class APIWidget {
   }
 
   connect() {
-    kaithemapi.subscribe("_ws_timesync_channel", this.onTimeResponse);
+    kaithemapi.subscribe('_ws_timesync_channel', this.onTimeResponse);
     kaithemapi.subscribe(this.uuid, this._upd.bind(this));
     setTimeout(this.getTime.bind(this), 500);
   }
@@ -530,7 +530,7 @@ class APIWidget {
     {
       var x = performance.now();
       this._txtime = x;
-      kaithemapi.sendValue("_ws_timesync_channel", x);
+      kaithemapi.sendValue('_ws_timesync_channel', x);
     }
   }
 
@@ -565,4 +565,110 @@ class APIWidget {
 }
 
 let kaithemapi = globalThis.kaithemapi;
-export { kaithemapi, APIWidget };
+
+// Global subscriptions map - shared across all TagSubscriptionManager instances
+const __globalTagSubscriptions = new Map();
+
+/**
+ * TagSubscriptionManager - Manages tag point subscriptions with local name-based deduplication
+ *
+ * setSubscription(name, tagname, callback, callWithInitialState) - Subscribe to a tag point
+ *   - name: local identifier for this subscription (unique within this manager)
+ *   - tagname: tag point name (e.g., "/my/tag"), or null to unsubscribe by name
+ *   - callback: function to call with tag value, or null to unsubscribe by name
+ *   - callWithInitialState: if true, fetch initial value from /tag_api/info before subscribing
+ *
+ * destroy() - Unsubscribe all subscriptions for this manager
+ *
+ * getTagsDatalist(datalistName, filterFunction) - Populate a datalist with available tags
+ */
+class TagSubscriptionManager {
+  constructor() {
+    this.subscriptions = new Map();
+  }
+
+  setSubscription(name, tagname, callback, callWithInitialState = false) {
+    // Unsubscribe if tagname or callback is null
+    if (tagname === null || callback === null) {
+      this._unsubscribeByName(name);
+      return;
+    }
+
+    // Unsubscribe any previous subscription with same name
+    this._unsubscribeByName(name);
+
+    const fullTag = tagname.startsWith('tag:') ? tagname : `tag:${tagname}`;
+
+    const wrappedCallback = (value) => {
+      callback(value);
+    };
+
+    // Fetch initial state if requested
+    if (callWithInitialState) {
+      fetch('/tag_api/info' + tagname)
+        .then((response) => response.json())
+        .then((data) => {
+          callback(data.lastVal);
+        })
+        .catch(console.error);
+    }
+
+    // Subscribe to the tag
+    kaithemapi.subscribe(fullTag, wrappedCallback);
+
+    // Store subscription
+    this.subscriptions.set(name, { tag: fullTag, callback: wrappedCallback });
+    __globalTagSubscriptions.set(
+      fullTag,
+      (__globalTagSubscriptions.get(fullTag) || 0) + 1
+    );
+  }
+
+  _unsubscribeByName(name) {
+    const sub = this.subscriptions.get(name);
+    if (sub) {
+      kaithemapi.unsubscribe(sub.tag, sub.callback);
+      const count = __globalTagSubscriptions.get(sub.tag) || 1;
+      if (count <= 1) {
+        __globalTagSubscriptions.delete(sub.tag);
+      } else {
+        __globalTagSubscriptions.set(sub.tag, count - 1);
+      }
+      this.subscriptions.delete(name);
+    }
+  }
+
+  destroy() {
+    for (const name of this.subscriptions.keys()) {
+      this._unsubscribeByName(name);
+    }
+  }
+}
+async function populateTagsDatalist(datalist, filterFunction) {
+  const response = await fetch('/tag_api/list');
+  const data = await response.json();
+  const tags = Object.keys(data).sort();
+
+  datalist.innerHTML = '';
+  for (const tag of tags) {
+    if (!filterFunction || filterFunction(data[tag])) {
+      const option = document.createElement('option');
+      option.value = data[tag].name;
+      datalist.append(option);
+    }
+  }
+}
+
+/**
+ * Fetch full metadata for a specific tag point.
+ * @param {string} tagname - Tag point name (e.g., "/my/tag")
+ * @returns {Promise<Object>} Promise resolving to FullTagDescription with tag metadata including current value
+ */
+async function getTagMetadata(tagname) {
+  const response = await fetch('/tag_api/info' + tagname);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch tag metadata: ${response.statusText}`);
+  }
+  return response.json();
+}
+export { kaithemapi, APIWidget, TagSubscriptionManager, populateTagsDatalist, getTagMetadata };

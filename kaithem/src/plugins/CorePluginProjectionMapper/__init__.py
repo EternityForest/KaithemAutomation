@@ -139,16 +139,17 @@ class ProjectionMapperType(modules_state.ResourceType):
         editor_url = (
             f"/projection-mapper/editor/{quote(module)}/{quote(resource)}"
         )
-        viewer_url = f"/projection-mapper/viewer/{quote(module)}/{quote(resource)}?viewer"
+
+        viewer_url = f"/projection-mapper/viewer/{quote(module)}/{quote(resource)}?viewer"  # noqa: E501
 
         return f"""
-        <div>
+        <div data-testid="pjm-blurb-{quote(resource)}">
             <p><strong>{title}</strong></p>
             <p>{sources_count} source(s)</p>
-            <a href="{editor_url}" class="btn">Edit</a>
-            <a href="{viewer_url}" class="btn" target="_blank">View</a>
+            <a href="{editor_url}" class="btn" data-testid="edit-pj-map" >Edit</a>
+            <a href="{viewer_url}" class="btn" data-testid="view-pj-map" target="_blank">View</a>
         </div>
-        """
+        """  # noqa: E501
 
     def create_page(self, module: str, path: str) -> str:
         d = dialogs.SimpleDialog("New Projection Mapper")
@@ -204,24 +205,14 @@ modules_state.resource_types["projection_mapper"] = _projection_mapper_type
 async def editor_page(module: str, resource: str):
     """Authenticated projection mapper editor"""
 
+    edit = "false"
+
     if "/viewer/" not in quart.request.url:
         pages.require("system_admin")
+        edit = "true"
 
-    # Load the resource
-    try:
-        data = modules_state.ActiveModules[module][resource]
-    except (KeyError, TypeError):
-        return "Resource not found", 404
-
-    template_path = os.path.join(plugin_dir, "html", "editor.html")
-    with open(template_path) as f:
-        template_content = f.read()
-
-    return await quart.render_template_string(
-        template_content,
-        module=module,
-        resource=resource,
-        data=json.dumps(data),
+    return quart.redirect(
+        f"/static/vite/kaithem/src/plugins/CorePluginProjectionMapper/html/editor.html?module={module}&resource={resource}&edit={edit}"
     )
 
 
@@ -233,6 +224,19 @@ async def api_get_data(module: str, resource: str):
         return quart.jsonify(data)
     except (KeyError, TypeError):
         return quart.jsonify({"error": "not_found"}), 404
+
+
+@quart_app.app.route("/projection-mapper/api/list_resources/<module>/<folder>")
+async def api_get_resources(module: str, folder: str):
+    """Get projection data (guest accessible for viewer)"""
+    ret = []
+    for file in os.listdir(
+        modules_state.filename_for_file_resource(
+            module, f"public_resources/{folder}"
+        )
+    ):
+        ret.append(file)
+    return json.dumps(ret)
 
 
 @quart_app.app.route(
@@ -342,12 +346,3 @@ async def ws_transform_sync(module: str, resource: str):
 
         if key in _websocket_connections and not (_websocket_connections[key]):
             del _websocket_connections[key]
-
-
-@quart_app.app.route("/projection-mapper/static/<path:path>")
-async def static_files(path: str):
-    """Serve static assets for projection mapper"""
-    try:
-        return await quart.send_file(os.path.join(plugin_dir, "static", path))
-    except FileNotFoundError:
-        return "Not found", 404

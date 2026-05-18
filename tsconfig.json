@@ -6,23 +6,22 @@
     "allowJs": true,
     "checkJs": true,
     "skipLibCheck": true,
-    "esModuleInterop": false,
+    "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "strict": true,
     "forceConsistentCasingInFileNames": true,
-    "module": "ESNext",
-    "moduleResolution": "Node",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "experimentalDecorators": true,
 
     "noEmit": true,
     "jsx": "react-jsx",
-
     "paths": {
       "/static/js/*": ["./kaithem/src/js/*"]
     },
     "include": ["src"],
-    "references": [{ "path": "./tsconfig.node.json" }]
-  }
+    "typeRoots": ["./node_modules/@types", "./kaithem/src/js/"]
+  },
 }

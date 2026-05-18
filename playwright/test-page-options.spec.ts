@@ -58,7 +58,7 @@ test('test', async ({ page }) => {
     await page.getByText('Require Permissions').click();
     await page.getByLabel('__all_permissions__').check();
     await page.getByRole('button', { name: 'Save and go to page' }).click();
-    await page.goBack()
+    await page.goto("http://localhost:8002/modules/module/testpageoptions/resource/test_options")
     
     
     // Make sure the data actually saved

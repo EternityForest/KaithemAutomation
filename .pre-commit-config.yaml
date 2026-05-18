@@ -83,31 +83,6 @@ repos:
       - id: ruff
         args:
         - "--fix"
-        # Errors
-        - "--select=PLE"
-        - "--select=F"
-        - "--select=E"
-        # Mostly have auto fixes available
-        - "--select=PIE"
-        - "--select=UP"
-        - "--select=NPY"
-        - "--select=E714"
-        - "--select=E711"
-        - "--select=E713"
-        - "--select=FURB"
-
-        # Autofixable quote rules
-        - "--select=Q"
-        - "--select=E722"
-        # Fix bad escape sequence
-        - "--select=W605"
-        # Import
-        - "--select=I"
-        # Bandit
-        #- "--select=S"
-        # Allow long lines for legacy code
-        - "--config"
-        - "line-length=140"
 
       # Run the formatter.
       - id: ruff-format

@@ -17,12 +17,7 @@ import {
 import { kaithemapi, APIWidget } from "/static/js/widget.mjs";
 import picodash from "/static/js/thirdparty/picodash/picodash-base.esm.js";
 
-import {
-  computed,
-  ref,
-  toRaw,
-  nextTick,
-} from "vue";
+import { computed, ref, toRaw, nextTick } from "vue";
 
 let keysdown = {};
 
@@ -342,26 +337,25 @@ async function setCueProperty(cue, property, value) {
     var b = {};
     b[property] = value;
 
+    let p = fetch("/chandler/api/set-cue-properties/" + cue, {
+      method: "PUT",
+      body: JSON.stringify(b),
+      headers: {
+        "Content-type": "application/json; charset=UTF-8",
+      },
+    });
 
-      let p = fetch("/chandler/api/set-cue-properties/" + cue, {
-        method: "PUT",
-        body: JSON.stringify(b),
-        headers: {
-          "Content-type": "application/json; charset=UTF-8",
-        },
-      });
-
-      try {
-        let r = await p;
-        if (!r.ok) {
-          alert("Error setting property, possible invalid value: " + value);
-        }
-      } catch (error) {
-        alert("Could not reach server: " + error);
+    try {
+      let r = await p;
+      if (!r.ok) {
+        alert("Error setting property, possible invalid value: " + value);
       }
+    } catch (error) {
+      alert("Could not reach server: " + error);
+    }
 
-      cuemeta.value[cue][property] = value;
-      await nextTick();
+    cuemeta.value[cue][property] = value;
+    await nextTick();
   });
 }
 
@@ -384,11 +378,13 @@ function setCuePropertyDeferred(cue, property, value) {
       headers: {
         "Content-type": "application/json; charset=UTF-8",
       },
-    }).then((_response) => {
-      cuemeta.value[cue][property] = value;
-    }).catch(function (error) {
-      alert("Error setting property: " + error);
-    });
+    })
+      .then((_response) => {
+        cuemeta.value[cue][property] = value;
+      })
+      .catch(function (error) {
+        alert("Error setting property: " + error);
+      });
     delete cueSetData[cue + property];
   }, 3000);
 }
@@ -451,12 +447,26 @@ function openPopoverWhenAvailable(popover, attempts) {
       setTimeout(function () {
         openPopoverWhenAvailable(popover, attempts);
       }, 50);
+    } else {
+      console.error("Failed to load popover " + popover);
     }
   }
 }
 
-function selectgroup(sc, sn, popover) {
-  getcuedata(groupcues.value[sn][selectedCues.value[sc] || "default"]);
+function selectgroup(sc, sn, popover, noRetry) {
+  const cid = groupcues.value[sn][selectedCues.value[sn]];
+
+  if (!cid) {
+    if (noRetry) {
+      console.error("Failed to select scene " + sn);
+    } else {
+      setTimeout(function () {
+        selectgroup(sc, sn, popover, true);
+      }, 350);
+    }
+    return;
+  }
+  getcuedata(cid);
   if (cuePage.value[sn] == undefined) {
     cuePage.value[sn] = 0;
   }
@@ -699,7 +709,6 @@ function setmqttfeature(sc, feature, v) {
   api_link.send(["setmqttfeature", sc, feature, v]);
 }
 
-
 function setbpm(sc, v) {
   api_link.send(["setbpm", sc, v]);
 }
@@ -906,9 +915,8 @@ so it is pretty much a "soft" approximate serialization.
 
 It mostly exists to allow tests to wait for previous actions.
 */
-async function doSerialized(callback, timeout=15_000) {
+async function doSerialized(callback, timeout = 15_000) {
   let previous = previousSerializedPromise.value;
-
 
   await nextTick();
   await new Promise((resolve) => resolve());
@@ -962,7 +970,6 @@ async function doSerializedWithTimeout(callback, timeout) {
     timeout
   );
 }
-
 
 let no_edit = ref(!kaithemapi.checkPermission("system_admin"));
 
@@ -1350,7 +1357,6 @@ function handleServerMessage(v) {
     }
   } else if (c == "environmentDescription") {
     chandlerScriptEnvironment.value = v[1];
-
   } else if (c == "scv") {
     let cue = v[1];
     let effect = v[2];

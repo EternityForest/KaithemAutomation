@@ -40,6 +40,7 @@ from . import (
     signalhandlers,
     staticfiles,  # noqa: F401
     tagpoints,
+    tags_ui,  # noqa: F401
     # TODO we gotta stop depending on import side effects
     widgets,
 )
@@ -85,7 +86,8 @@ async def favicon():
 settings_overrides.set_meta(
     "core/homepage_redirect",
     "description",
-    "Redirect the main page to this URL. Got to /index to get the real main page",
+    "Redirect the main page to this URL. Got"
+    " to /index to get the real main page",
 )
 
 
@@ -129,43 +131,6 @@ def dropdownpanel():
         return pages.loginredirect(pages.geturl())
     return pages.get_template("dropdownpanel.html").render(
         api=notifications.api, alertsapi=alerts.api
-    )
-
-
-@quart_app.app.route("/tagpoints", methods=["GET", "POST"])
-@quart_app.wrap_sync_route_handler
-def tagpoints_index(*path, show_advanced="", **data):
-    # This page could be slow because of the db stuff, so we restrict it more
-    try:
-        pages.require("system_admin")
-    except PermissionError:
-        return pages.loginredirect(pages.geturl())
-
-    return pages.get_template("settings/tagpoints.html").render(
-        data=data, module="", resource=""
-    )
-
-
-@quart_app.app.route("/tagpoints/<path:path>", methods=["GET", "POST"])
-def specific_tagpoint(path):
-    path = path.split("/")
-    # This page could be slow because of the db stuff, so we restrict it more
-    try:
-        pages.require("system_admin")
-    except PermissionError:
-        return pages.loginredirect(pages.geturl())
-
-    tn = "/".join(path)
-    if (not tn.startswith("=")) and not tn.startswith("/"):
-        tn = "/" + tn
-    if tagpoints.normalize_tag_name(tn) not in tagpoints.allTags:
-        raise ValueError("This tag does not exist")
-    return pages.get_template("settings/tagpoint.html").render(
-        tagName=tn,
-        data=request.args,
-        show_advanced=True,
-        module="",
-        resource="",
     )
 
 
@@ -328,14 +293,17 @@ def startServer():
     config2.worker_class = "uvloop"
 
     # if config["https_port"]:
-    #     if not os.path.exists(os.path.join(directories.ssldir, "certificate.key")):
+    #     if not os.path.exists(
+    #         os.path.join(directories.ssldir, "certificate.key")):
     #         raise RuntimeError("No SSL certificate found")
     #     else:
     #         https_server = tornado.httpserver.HTTPServer(
     #             router,
     #             ssl_options={
-    #                 "certfile": os.path.join(directories.ssldir, "certificate.cert"),
-    #                 "keyfile": os.path.join(directories.ssldir, "certificate.key"),
+    #                 "certfile": os.path.join(directories.ssldir,
+    #  "certificate.cert"),
+    #                 "keyfile": os.path.join(directories.ssldir,
+    # "certificate.key"),
     #             },
     #         )
     #         https_server.listen(config["https_port"], bindto)

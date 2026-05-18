@@ -2,6 +2,7 @@ import globals from "globals";
 import pluginJs from "@eslint/js";
 import tseslint from "typescript-eslint";
 import pluginVue from "eslint-plugin-vue";
+import eslintConfigPrettier from "eslint-config-prettier/flat";
 import eslintPluginUnicorn from "eslint-plugin-unicorn";
 import importPlugin from "eslint-plugin-import";
 import html from "eslint-plugin-html";
@@ -35,7 +36,7 @@ export default [
 
         alias: {
           map: [
-            ["/static/js/widget.mjs", "./kaithem/src/js/widget.mjs"],
+            ["/static/js/widget.mjs", "kaithem/src/js/widget.mjs"],
             [
               "/static/js/thirdparty/picodash/picodash-base.esm.js",
               "./kaithem/src/js/thirdparty/picodash/picodash-base.esm.js",
@@ -107,6 +108,10 @@ export default [
           ignoreRestSiblings: true,
         },
       ],
+
+      "@html-eslint/indent": "off",
+
     },
   },
+  eslintConfigPrettier
 ];

@@ -45,7 +45,7 @@ _active: dict[str, weakref.ref[Alert]] = {}
 tripped: dict[str, weakref.ref[Alert]] = {}
 _tripped: dict[str, weakref.ref[Alert]] = {}
 
-all = weakref.WeakValueDictionary()
+all: weakref.WeakValueDictionary[str, Alert] = weakref.WeakValueDictionary()
 
 priority_to_class = {
     "critical": {"danger": 1},

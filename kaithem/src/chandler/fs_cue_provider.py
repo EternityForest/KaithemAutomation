@@ -28,7 +28,7 @@ video_extensions = (
     ".mkv",
     ".webp",
 )
-image_extensions = (".png", ".jpeg", ".jpg", ".gif", ".svg")
+image_extensions = (".png", ".jpeg", ".jpg", ".gif", ".svg", ".avif")
 
 media_extensions = (
     sound_extensions + video_extensions + image_extensions + (".cue.yaml",)
@@ -38,7 +38,8 @@ logger = structlog.get_logger(__name__)
 
 
 def get_number_from_fn(fn):
-    r = re.match(r"[:alpha:][:alpha:]?([0-9]+\.?[0-9]*)", fn)
+    fn = os.path.basename(fn)
+    r = re.match(r"[a-zA-Z][a-zA-Z]?([0-9]+\.?[0-9]*).*", fn)
     if r:
         return int(float(r.group(1)) * 1000)
 

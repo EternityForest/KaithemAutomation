@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-# This file is just for keeping track of state info that would otherwise cause circular issues.
 import base64
 import copy
 import datetime
@@ -12,13 +11,13 @@ import time
 import urllib
 import urllib.parse
 import warnings
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from typing import Any, Final
 
 import structlog
 import yaml
 from scullery import messagebus, snake_compat, workers
-from stream_zip import ZIP_64, stream_zip
+from stream_zip import ZIP_64, MemberFile, stream_zip
 
 from kaithem.api import resource_types as resource_types_api
 from kaithem.api.resource_types import (
@@ -55,7 +54,8 @@ _resource_errors_lock = threading.RLock()
 
 
 def set_resource_error(module: str, resource: str, error: str | None):
-    """Set an error notice for a resource.  Cleared when the resource is updated or deleted"""
+    """Set an error notice for a resource.
+    Cleared when the resource is updated or deleted"""
     if error is not None:
         logger.error(f"Error in resource {module},{resource}: {error}")
         if not resource_errors.get((module, resource), None):
@@ -90,8 +90,19 @@ def get_resource_label_image_url(module: str, path: str):
 
 
 def filename_for_file_resource(module: str, resource: str) -> str:
-    """Given the module and resource, return the actual file for a file resource, or
+    """Given the module and resource, return the actual
+    file for a file resource, or
     file data dir for directory resource"""
+
+    module = module.strip()
+    resource = resource.strip()
+    # This could possibly be used for security violations
+    # So don't let people access wrong paths
+    if (".." in module) or (module.startswith("/")):
+        raise RuntimeError("Invalid path")
+
+    if (".." in resource) or (resource.startswith("/")):
+        raise RuntimeError("Invalid path")
 
     return os.path.join(getModuleDir(module), "__filedata__", resource)
 
@@ -128,37 +139,55 @@ def getModuleDir(module: str) -> str:
         return os.path.join(directories.moduledir, "data", module)
 
 
-# Items must be dicts, with the key being the name of the type, and the dict itself having the key 'editpage'
-# That is a function which takes 3 arguments, module and resource, and the current resource arg,
+# Items must be dicts, with the key being the name
+# of the type,
+# and the dict itself having the key 'editpage'
+# That is a function which takes 3 arguments,
+# module and resource, and the current resource arg,
 # and must return an HTML string to be returned to the user.
 
 # The key update must also be defined.
-# This must take a module, a resource, the current resource object, and a dict created from a form
+# This must take a module, a resource,
+# the current resource object, and a dict created
+# from a form
 # POST, and returning a new updated resource object.
 
 
-# If you want to be able to move the module, you must define a function 'on_move' that takes(module,resource,newmodule,newresource,object)
+# If you want to be able to move the module,
+# you must define a function 'on_move'
+# that takes(module,resource,newmodule,newresource,object)
 # The update function will always run under a lock.
 
 
-# If you want your resource to do something special when it loads, you must define onload(module,resource,object)
+# If you want your resource to do something
+# special when it loads, you must define onload(module,resource,object)
 
-# All of these functions are guaranteed to only be called during times when the entire list of modules is locked, only
+# All of these functions are guaranteed
+# to only be called during times when the
+# entire list of modules is locked, only
 # one at a time, etc.
 
 
-# If you, as is most likely, want to be able to create new resources, define a function createpage(module,resource)
+# If you, as is most likely, want to be able to create
+# new resources, define a function createpage(module,resource)
 # That returns an HTML page for creating a new resource.
 
-# It must post to /modules/module/MODULENAME/addresourcetarget/TYPE/THE/PATH/WITHIN/THE/MODULE with name as a kwarg
+# It must post to
+# /modules/module/MODULENAME/addresourcetarget/TYPE/THE/PATH/WITHIN/THE/MODULE
+# with name as a kwarg
 
 
-# To actually create the page, define a function create(module,resource, kwargs)
-# TWhich must return the JSON object of the module. Onload will be automatically called for newly created resources.
+# To actually create the page, define a
+# function create(module,resource, kwargs)
+# TWhich must return the JSON object of the module.
+#
+#  Onload will be automatically called for newly created resources.
 
-# Note that the actual dict objects are directly passed, you can modify them in place but you still must return them.
+# Note that the actual dict objects are directly passed,
+# you can modify them in place but you still must return them.
 
-# When a module is saved outside of the var dir, we put the folder in which it is saved in here.
+# When a module is saved outside of the var dir,
+# we put the folder in which it is saved in here.
 external_module_locations = {}
 
 
@@ -222,11 +251,11 @@ def writeResource(
     for bn in files:
         if not ".".join(bn.split(".")[:-1]) == resource_name.split("/")[-1]:
             raise RuntimeError(
-                f"Plugin wants to save file {bn} that doesn't match resource {resource_name}"
+                f"Plugin wants to save file {bn} that doesn't match resource {resource_name}"  # noqa: E501
             )
         if "/" in bn:
             raise RuntimeError(
-                f"Resource saving plugins can't create subfolder. Requested fn {bn}"
+                f"Resource saving plugins can't create subfolder. Requested fn {bn}"  # noqa: E501
             )
         fn = os.path.join(dir, bn)
         d = files[bn]
@@ -414,9 +443,12 @@ def is_module_readonly(m: str) -> bool:
 def saveModule(
     module: dict[str, ResourceDictType], modulename: str
 ) -> list[str] | None:
-    """Returns a list of saved module,resource tuples and the saved resource.
-    ignore_func if present must take an abs path and return true if that path should be
-    left alone. It's meant for external modules and version control systems.
+    """Returns a list of saved module,resource tuples
+    and the saved resource.
+    ignore_func if present must take an abs path and
+    return true if that path should be
+    left alone. It's meant for external modules
+    and version control systems.
     """
     with modulesLock:
         if "__do__not__save__to__disk__:" in modulename:
@@ -440,7 +472,8 @@ def saveModule(
                 with open(fn, "w") as f:
                     f.write(external_module_locations[modulename])
 
-        # Iterate over all of the resources in a module and save them as json files
+        # Iterate over all of
+        # the resources in a module and save them as json files
         # under the URL url module name for the filename.
         logger.debug("Saving module " + str(modulename))
         saved: list[str] = []
@@ -451,18 +484,15 @@ def saveModule(
         if not modulename:
             raise RuntimeError("Something wrong")
 
-        try:
-            # Make sure there is a directory at where/module/
-            os.makedirs(dir, exist_ok=True)
-            util.chmod_private_try(dir)
-            for resource in module:
-                r = module[resource]
-                save_resource(modulename, resource, resourceData=r)
+        # Make sure there is a directory at where/module/
+        os.makedirs(dir, exist_ok=True)
+        util.chmod_private_try(dir)
+        for resource in module:
+            r = module[resource]
+            save_resource(modulename, resource, resourceData=r)
 
-            saved.append(modulename)
-            return saved
-        except Exception:
-            raise
+        saved.append(modulename)
+        return saved
 
 
 # Lets just store the entire list of modules as a huge dict for now at least
@@ -577,15 +607,7 @@ def iter_fc(f: str) -> Iterator[bytes]:
 
 def member_files(
     module: str,
-) -> Iterator[
-    tuple[
-        str,
-        datetime.datetime,
-        int,
-        Callable[[Any, Any], tuple[object, object, Any, None, None]],
-        Iterator[Any],
-    ]
-]:
+) -> Iterator[MemberFile]:
     dir = getModuleDir(module)
     for root, dirs, files in deterministic_walk(dir):
         for i in files:
@@ -602,7 +624,7 @@ def member_files(
             yield (f"{module}/{fn}", mtime, mode, ZIP_64, iter_fc(x))
 
 
-def getModuleAsYamlZip(module: str) -> Iterator[Any]:
+def getModuleAsYamlZip(module: str) -> Iterable[bytes]:
     return stream_zip(member_files(module))
 
 
@@ -619,7 +641,8 @@ def hashModule(module: str) -> str:
 
 def in_folder(n: str, folder_name: str) -> bool:
     """Return true if name r represents a kaithem resource in folder f"""
-    # Note: this is about kaithem resources and folders, not actual filesystem dirs.
+    # Note: this is about kaithem resources and folders,
+    # not actual filesystem dirs.
     if not n.startswith(folder_name):
         return False
     # Get the path as a list
@@ -645,7 +668,8 @@ def ls_folder(m: str, d: str) -> list[str]:
 
 
 modulesLock = context_restrictions.Context("ModulesLock")
-"this lock protects the activemodules thing. Any changes at all should go through this."
+"""this lock protects the activemodules thing. "
+Any changes at all should go through this."""
 
 
 # For passing things to that owning thread
@@ -653,6 +677,7 @@ mlockFunctionQueue: list[Callable[[], Any]] = []
 
 
 # Define a place to keep the module private scope objects.
-# Every module has a object of class object that is used so user code can share state between resources in
+# Every module has a object of class object that is
+# used so user code can share state between resources in
 # a module
 scopes: dict[str, Any] = {}

@@ -137,7 +137,8 @@ class GroupMediaPlayer:
                     if not out == "groupwebplayer":
                         # Always fade in if the face in time set.
                         # Also fade in for crossfade,
-                        # but in that case we only do it if there is something to fade in from.
+                        # but in that case we only do it if
+                        # there is something to fade in from.
 
                         spd = self.group.script_context.preprocessArgument(
                             cue.media_speed
@@ -175,7 +176,8 @@ class GroupMediaPlayer:
                                 or cue.sound_fade_in
                                 or self.group.crossfade
                             )
-                            # Odd cases where there's a wind up but specifically disabled fade
+                            # Odd cases where there's a wind up but
+                            #  specifically disabled fade
                             if cue.sound_fade_in < 0:
                                 fade = 0.1
 

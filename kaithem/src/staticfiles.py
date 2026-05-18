@@ -3,6 +3,7 @@ import os
 import quart
 from structlog import get_logger
 
+from kaithem.api import modules
 from kaithem.src import quart_app
 
 logger = get_logger(__name__)
@@ -59,3 +60,14 @@ async def static_fbsounds(path):
 @quart_app.app.route("/static/img/<path:path>")
 async def static_img(path):
     return await quart.send_file(os.path.join(ddn, "static", "img", path))
+
+
+@quart_app.app.route("/static/public_resource/<path:path>")
+async def static_pub_resource(path):
+    path = path.split("/")
+    p = modules.filename_for_file_resource(path[0], "public_resources")
+
+    p2 = os.path.normpath(os.path.join(p, *(path[1:])))
+    if not p2.startswith(p):
+        raise RuntimeError("Path blocked: " + p2 + " not under " + p)
+    return await quart.send_file(p2)

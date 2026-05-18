@@ -12,7 +12,7 @@ from kaithem.src import util
     }
 </style>
 <h1>Running Proceses</h1>
-<div class="window paper">
+<div>
 <h2>Running Threads</h2>
 <title>Running Threads</title>
 
@@ -39,11 +39,12 @@ info = sys._current_frames()
 </dt>
 <dd>
 
+<div class="window paper scroll max-h-18rem">
 %try:
 running function ${i._original_target_function.__name__ if hasattr(i,'_original_target_function')  else i.target.__name__ if hasattr(i,'_target') else  "<unknown>"|h}
 defined in ${i._original_target_function.__module__ if hasattr(i,'_original_target_function') and i._original_target_function else i.__module__}
 %except:
-running a function defined in <b>${i._target.__module__ if hasattr(i,'_target') and i._target else i.__module__}</b></dt><dd>
+running a function defined in <b>${i._target.__module__ if hasattr(i,'_target') and i._target else i.__module__}</b>
 
 %try:
 <pre>
@@ -62,7 +63,7 @@ ${info[i.ident].f_locals|h}
     %endtry
 %endtry
 
-
+</div>
 </dd>
 %endtry
 %endfor

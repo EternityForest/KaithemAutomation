@@ -14,9 +14,10 @@
 
 * Use Git branches in a disciplined way and write proper commit messages.
 
-* Use "accessory" tools like pre-commit, direnv, make, Atuin, etc, rather than piles of random scripts
+* Use "accessory" tools like uv,pre-commit, direnv, make, Atuin, etc, rather than piles of random scripts or low level commands.
 
-* Auto format code with the most common formatter in the most common configuration, and be done with it.
+* Auto format code with the most common formatter in the most common configuration
+
 
 * Secret scanning must be used on repos
 
@@ -34,7 +35,7 @@
 
 * User created content should be version controllable and ideally sync-able with file sync tools
 
-* To decrease fragmentation and avoid depending to on small obscure vendors, generally prefer multifunctional, one size fits all toold
+* To decrease fragmentation and avoid depending to on small obscure vendors, generally prefer multifunctional, one size fits all tools.
 
 * Do things in common, boring ways, unless there is a reason to do otherwise, try to make sure as much of the system as possible is tested and proven.
 
@@ -92,7 +93,7 @@
 
 * Avoid things that create an appearance of being associated with suspicious activity, such as P2P technology that may be flagged by AI bots
 
-* Things should still work offline
+* Things should still work offline.  Copy needed resources locally, rather than using the CDN.
 
 ## User Experience
 
@@ -110,9 +111,9 @@
 
 * Don't waste time reinventing features that already exist in a technology users already have, such as chat or calendars, unless there is specific value in tight integration.
 
-* Remember that liability protection is almost as important as actual security and reliability, don't expect users to do anything they couldn't justify to the security guy at a major bank
+* Don't expect users to do anything they couldn't justify to the security guy at a major bank
 
-* Even tiny amounts of unreliability are unacceptable to many users, especially if they are not protected from liability.  Do not expect them to do something like hosting their own email and risking getting fired for that choice if the server fails and they miss an important message.
+* Even tiny amounts of unreliability are unacceptable to many users, especially if they are not protected from liability.  Do not expect them to do something like hosting their own email.
 
 * Make heavy use of the "sidebar inspector" pattern for intuitiveness and consistency.
 
@@ -180,8 +181,6 @@
 
 * Spaces not tabs.  We don't need two different whitespace chars.
 
-* No hand formatted code.  Just let the formattter do it and move on.
-
 * No single letter or extremlely terse names except in absolutely trivial functions.
 
 * Use assertions generously, actively look for places they might be inserted.
@@ -193,6 +192,10 @@
 * Do not explicitly silence true errors without actually handling them properlt.  No except: pass
 
 * Avoid returning mutable references to persistent state, unless you intend for the caller to modify the persistent state
+
+
+* Put imports at the top of the file, not in the individual functions, unless there is a reason to do otherwise.
+
 
 ## Testing
 
@@ -206,3 +209,5 @@
 
 * Tests should cover any obvious mistakes you can easily imagine future devs *could* make
 
+
+* Do not skip critical tests because features they depend on are not available, fix the underlying issue.

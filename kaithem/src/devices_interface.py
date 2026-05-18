@@ -34,33 +34,12 @@ from kaithem.src.devices import (
 from kaithem.src.quart_app import app, wrap_sync_route_handler
 
 
-def read(f):
-    try:
-        with open(f) as fd:
-            return fd.read()
-    except Exception:
-        return ""
-
-
 def url(u):
     return urllib.parse.quote(u, safe="")
 
 
-def getshownkeys(obj: Device):
-    return sorted(
-        [
-            i
-            for i in obj.config.keys()
-            if i not in specialKeys
-            and not i.startswith("kaithem.")
-            and not i.startswith("temp.kaithem")
-        ]
-    )
-
-
 device_page_env = {
     "specialKeys": specialKeys,
-    "read": read,
     "url": url,
     "hasattr": hasattr,
 }
@@ -144,7 +123,8 @@ def device_manage(name):
     except PermissionError:
         return pages.loginredirect(pages.geturl())
 
-    # Some framework only keys are not passed to the actual device since we use what amounts
+    # Some framework only keys are not passed to the
+    # actual device since we use what amounts
     # to an extension, so we have to merge them in
     merged = {}
 
@@ -212,7 +192,8 @@ def updateDeviceTarget(devname, **kwargs):
 @wrap_sync_route_handler
 def discoveryStep(type, devname, **kwargs):
     """
-    Do a step of iterative device discovery.  Can start either from just a type or we can take
+    Do a step of iterative device discovery.
+    Can start either from just a type or we can take
     an existing device config and ask it for refinements.
     """
     try:
@@ -269,6 +250,9 @@ def create_blank_device(name: str, module: str, resource: str, type: str):
 
     data["name"] = name
     data["type"] = type
+
+    if not name:
+        raise ValueError("Blank name")
 
     data["extensions"] = {}
     data["extensions"]["kaithem"] = {}

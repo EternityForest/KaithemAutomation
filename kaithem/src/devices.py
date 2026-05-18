@@ -41,8 +41,11 @@ from .modules_state import ResourceType, resource_types
 
 SUBDEVICE_SEPARATOR = "/"
 
-# Our lock to be the same lock as the modules lock otherwise there would be too may easy ways to make a deadlock, we have to be able to
-# edit the state because self modifying devices exist and can be saved in a module
+# Our lock to be the same lock as the modules lock otherwise
+#  there would be too
+# many easy ways to make a deadlock, we have to be able to
+# edit the state because self modifying devices
+#  exist and can be saved in a module
 logger = structlog.get_logger(__name__)
 
 saveLocation = os.path.join(directories.vardir, "devices")
@@ -85,10 +88,13 @@ def delete_bookkeep(name, confdir=False):
                 if old_dev_conf_folder and os.path.isdir(old_dev_conf_folder):
                     if not old_dev_conf_folder.count("/") > 3:
                         # Basically since rmtree is so dangerous we make sure
-                        # it absolutely cannot be any root or nearly root level folder
-                        # in the user's home dir even if some unknown future error happens.
-                        # I have no reason to think this will ever actually be needed.
-                        raise RuntimeError(
+                        # it absolutely cannot be any root or nearly root level
+                        # folder
+                        # in the user's home dir even if som
+                        # unknown future error happens.
+                        # I have no reason to think this will ever
+                        # actually be needed.
+                        raise RuntimeError(  # noqa: TRY301
                             f"Defensive check failed: {old_dev_conf_folder}"
                         )
 
@@ -163,7 +169,7 @@ class DeviceResourceType(ResourceType):
                     modules_state.set_resource_error(
                         module,
                         resource,
-                        f"Device with this name already exists and is in {m}/{r}",
+                        f"Device at {m}/{r} shares name",
                     )
                     raise RuntimeError(
                         "Can't overwrite device from a different resource"
@@ -175,7 +181,7 @@ class DeviceResourceType(ResourceType):
                 ):
                     if not old_dev.device.device_type == dev_data["type"]:
                         raise RuntimeError(
-                            f"Can't overwrite device with a different type {dev_data['type']} != {old_dev.device.device_type}"
+                            f"Expected {old_dev.device.device_type}"
                         )
 
             if devname in devices_host.devices:
@@ -192,7 +198,8 @@ class DeviceResourceType(ResourceType):
                 deferred_loaders.append((module, resource, load_closure))
 
     def on_update(self, module, resource: str, data: Mapping[str, Any]):
-        # TODO is this ugly? I think it will be called whenever we change something
+        # TODO is this ugly? I think it will be called
+        # whenever we change something
         # and only the change detection stops it from double loading
         if data["name"] in device_data_cache:
             if data["device"] == device_data_cache[data["name"]][2]:
@@ -217,9 +224,8 @@ class DeviceResourceType(ResourceType):
         )
 
     def edit_page(self, module: str, resource: str, data):
-        return quart.redirect(
-            "/device/" + f"mr:{module}:{resource}" + "/manage"
-        )
+        name = modules_state.ActiveModules[module][resource]["device"]["name"]
+        return quart.redirect("/device/" + name + "/manage")
 
 
 drt = DeviceResourceType("device", mdi_icon="chip")
@@ -293,7 +299,7 @@ def makeBackgroundErrorFunction(t, time, self):
     # Don't block everything up
     def f():
         self.logWindow.write(
-            f'<div class="danger"><b>Error at {time}</b><br><pre>{t}</pre></div>'
+            f'<div class="danger"><b>Error at {time}</b><br><pre>{t}</pre></div>'  # noqa: E501
         )
 
     return f
@@ -377,7 +383,9 @@ class DeviceRuntimeState(iot_devices.host.DeviceHostContainer):
             str, Callable[[Any, float, Any], None]
         ] = {}
 
-        # The new devices spec has a way more limited idea of what a data point is.
+        # The new devices spec has
+        # a way more limited idea of what
+        # a data point is.
         self.datapoints: dict[
             str, int | float | str | bytes | Mapping[str, Any] | None
         ] = {}
@@ -439,9 +447,7 @@ class DeviceRuntimeState(iot_devices.host.DeviceHostContainer):
             try:
                 self.tagpoints[i].unsubscribe(f)
             except Exception:
-                logger.error(
-                    f"Error unsubscribing from tagpoint {i} for device {self.name}"
-                )
+                logger.exception(f"Error unsubscribing from tagpoint {i}")
 
     def onGenericUIMessage(self, u, v):
         if v[0] == "set":
@@ -481,11 +487,11 @@ class DeviceRuntimeState(iot_devices.host.DeviceHostContainer):
             except Exception:
                 if not lifespan.is_shutting_down:
                     logger.exception(
-                        "Error unsubscribing from tagpoints while closing device"
+                        "unsub fail from tagpoints while closing device"
                     )
 
             try:
-                del self.tagpoints
+                self.tagpoints.clear()
             except Exception:
                 pass
         try:
@@ -496,31 +502,6 @@ class DeviceRuntimeState(iot_devices.host.DeviceHostContainer):
                     logger.exception("Error releasing alerts")
         except Exception:
             logger.exception("Error releasing alerts")
-
-    def set_alarm(
-        self,
-        name: str,
-        datapoint: str,
-        expression: str,
-        priority: str = "info",
-        trip_delay: float = 0,
-        auto_ack: bool = False,
-        release_condition: str | None = None,
-        **kw,
-    ):
-        x = self.tagpoints[datapoint].set_alarm(
-            name,
-            condition=expression,
-            priority=priority,
-            trip_delay=trip_delay,
-            auto_ack=auto_ack,
-            release_condition=release_condition,
-            enabled=self.k_use_default_alerts,
-        )
-        if x:
-            self.alerts[name] = x
-        else:
-            raise RuntimeError("Alarm setter returned nothing")
 
     def on_data_change(self, name: str, value, timestamp: float, annotation):
         """used for subclassing, this is how you watch for data changes.
@@ -537,20 +518,19 @@ class DeviceRuntimeState(iot_devices.host.DeviceHostContainer):
         s["properties"]["extensions"]["kaithem"]["read_perms"] = {
             "type": "string",
             "title": "Read Permissions",
-            "description": "The permissions required to read this device, comma separated",
+            "description": "Comma separated permissions required to read",
         }
 
         s["properties"]["extensions"]["kaithem"]["write_perms"] = {
             "type": "string",
             "title": "Write Permissions",
-            "description": "The permissions required to write this device, comma separated",
+            "description": "Comma separated permissions required to write",
         }
 
         s["properties"]["extensions"]["kaithem"]["use_default_alerts"] = {
             "type": "boolean",
             "title": "Enable the device's default alerts",
             "default": True,
-            "description": "The permissions required to read this device, comma separated",
         }
 
         return s
@@ -566,7 +546,8 @@ class DevicesHost(iot_devices.host.Host[DeviceRuntimeState]):
             t = f"<b>{title}</b><br>{t}"
         t = t.replace("\n", "<br>")
 
-        # Can't use a def here, wouldn't want it to possibly capture more than just a string,
+        # Can't use a def here, wouldn't want it to possibly
+        # capture more than just a string,
         # And keep stuff from GCIng for too long
         workers.do(makeBackgroundPrintFunction(t, tm, title, device))
 
@@ -804,6 +785,41 @@ class DevicesHost(iot_devices.host.Host[DeviceRuntimeState]):
         runtimedata = devices_host.devices[device]
         runtimedata.tagpoints[n].fast_push(value, timestamp, annotation)
 
+    def set_alarm(
+        self,
+        device: iot_devices.device.Device,
+        name: str,
+        datapoint: str,
+        expression: str,
+        priority: str = "info",
+        trip_delay: float = 0,
+        auto_ack: bool = False,
+        release_condition: str | None = None,
+        **kw,
+    ):
+        n = self.resolve_datapoint_name(device.name, datapoint)
+        runtimedata = device.get_host_container()
+        use_default_alerts = (
+            runtimedata.config.get("extensions", {})
+            .get("kaithem", {})
+            .get("use_default_alerts", True)
+        )
+        t = tagpoints.allTags[n]()
+        assert t
+        x = t.set_alarm(
+            name,
+            condition=expression,
+            priority=priority,
+            trip_delay=trip_delay,
+            auto_ack=auto_ack,
+            release_condition=release_condition,
+            enabled=use_default_alerts,
+        )
+        if x:
+            runtimedata.alerts[name] = x
+        else:
+            raise RuntimeError("Alarm setter returned nothing")
+
     def set_data_point(
         self,
         device: str,
@@ -1009,7 +1025,7 @@ def updateDevice(
                     == "device"
                 ):
                     raise ValueError(
-                        "A resource in the module with that name exists and is not a device."
+                        "Nondevice obj in the module with that name exists."
                     )
 
                 if "module_lock" in modules_state.get_module_metadata(m):
@@ -1017,7 +1033,8 @@ def updateDevice(
 
                 if "lock" in modules_state.ActiveModules[m][r]["resource"]:
                     raise PermissionError("Device is locked")
-            # Make sure we don't corrupt state by putting a folder where a file already is
+            # Make sure we don't corrupt state by putting a folder
+            # where a file already is
             ensure_module_path_ok(m, r)
         else:
             raise RuntimeError("You can now only save devices into modules.")
@@ -1078,7 +1095,8 @@ def updateDevice(
             )
 
         if not subdevice:
-            current_device_object.close()
+            devices_host.close_device(devname)
+            assert devname not in devices_host.devices
             messagebus.post_message("/devices/removed/", devname)
 
         gc.collect()
@@ -1117,10 +1135,14 @@ def updateDevice(
                         dirs_exist_ok=True,
                     )
                     if not old_dev_conf_folder.count("/") > 3:
-                        # Basically since rmtree is so dangerous we make sure
-                        # it absolutely cannot be any root or nearly root level folder
-                        # in the user's home dir even if some unknown future error happens.
-                        # I have no reason to think this will ever actually be needed.
+                        # Basically since rmtree is so dangerous
+                        # we make sure
+                        # it absolutely cannot be any root
+                        # or nearly root level folder
+                        # in the user's home dir even if some
+                        #  unknown future error happens.
+                        # I have no reason to think this will
+                        #  ever actually be needed.
                         raise RuntimeError(
                             f"Defensive check failed: {old_dev_conf_folder}"
                         )
@@ -1151,9 +1173,11 @@ def updateDevice(
         # Only actually update data structures
         # after updating the device runtime successfully
 
-        # Delete and then recreate because we may be renaming to a different name
+        # Delete and then recreate because
+        #  we may be renaming to a different name
 
-        # This might be created as a subdevice rather than a configured device
+        # This might be created as a subdevice
+        #  rather than a configured device
 
         assert (parent_module and parent_resource) or (
             not parent_module and not parent_resource
@@ -1237,7 +1261,9 @@ def makeDevice(
 
     # We need to make sure we have a name
 
-    # Cls lets us force make a device of a different type for placeholders if we can't support them yet
+    # Cls lets us force make a device
+    # of a different type for placeholders
+    # if we can't support them yet
     if cls:
         data["type"] = cls.device_type
 
@@ -1246,7 +1272,7 @@ def makeDevice(
             cls = cls or iot_devices.host.get_class(data)
 
             if not cls:
-                raise ValueError("Couldn't get class")
+                raise ValueError("Couldn't get class")  # noqa: TRY301
 
         except KeyError:
             cls = UnsupportedDevice
@@ -1340,7 +1366,10 @@ def storeDeviceInModule(d: dict[str, Any], module: str, resource: str) -> None:
 def getDeviceType(t):
     try:
         t = iot_devices.host.get_class({"type": t})
-        return t or UnsupportedDevice
+        if t:
+            return t
+        else:
+            return UnsupportedDevice
     except Exception:
         logger.exception("Could not look up class")
         return UnsupportedDevice

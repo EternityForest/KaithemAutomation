@@ -70,9 +70,7 @@ def test_subdevice_loading():
     assert n in modules_state.ActiveModules
 
     devcon_child = {
-        "resource": {
-            "type": "device",
-        },
+        "resource": {"type": "device", "modified": 1777171067},
         "device": {
             "type": "DemoDevice",
             "name": "pytest_demo_parent/subdevice",
@@ -88,9 +86,7 @@ def test_subdevice_loading():
     assert "pytest_demo_parent/subdevice" in devices.device_data_cache
 
     devcon = {
-        "resource": {
-            "type": "device",
-        },
+        "resource": {"type": "device", "modified": 1777171067},
         "device": {
             "type": "DemoDevice",
             "name": "pytest_demo_parent",
@@ -103,6 +99,41 @@ def test_subdevice_loading():
     # TODO test init where they both get made at once
     dev = devices.devices_host.devices["pytest_demo_parent/subdevice"]
     assert dev.wait_device_ready().config["device.echo_number"] == 81
+
+
+def test_device_alerts():
+    from kaithem.src import (
+        alerts,
+        devices,
+        devices_interface,
+        modules,
+        modules_state,
+    )
+
+    n = "test" + str(time.time()).replace(".", "_")
+
+    modules.newModule(n)
+
+    assert n in modules_state.ActiveModules
+
+    devices_interface.create_blank_device(
+        module=n, resource="devtest", type="DemoDevice", name="pytest_demo2"
+    )
+
+    d = devices.devices_host.devices["pytest_demo2"].device
+    assert d
+    d.set_alarm("testalert137", "random", "value>0", priority="info")
+
+    found = False
+    time.sleep(0.3)
+    for i in alerts.all:
+        j = alerts.all[i]
+        if "testalert137" in j.name:
+            if j.sm.state == "normal":
+                continue
+            if j.priority == "info":
+                found = True
+    assert found
 
 
 def test_make_demo_device():
