@@ -20,7 +20,6 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-
     "paths": {
       "/static/js/*": ["./kaithem/src/js/*"]
     }

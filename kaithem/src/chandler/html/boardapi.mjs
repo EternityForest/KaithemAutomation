@@ -14,7 +14,7 @@ import {
   dictView,
   formatTime,
 } from "./utils.mjs";
-import { kaithemapi, APIWidget } from "/static/js/widget.mjs";
+import { kaithemapi, APIWidget } from "../../js/widget.mjs";
 import picodash from "/static/js/thirdparty/picodash/picodash-base.esm.js";
 
 import { computed, ref, toRaw, nextTick } from "vue";

@@ -463,7 +463,7 @@ if (globalThis.kaithemapi == undefined) {
     }, 10);
   });
 } else {
-  console.log('kaithemapi already exists');
+  // console.log('kaithemapi already exists');
 }
 class APIWidget {
   constructor(uuid, handler, defer_connect) {
