@@ -47,15 +47,46 @@ mgr.destroy();
 
 Fetch available tag points and populate an HTML `<datalist>` element.
 
-- `datalist` (HTML Objet): The datalist to update.
-- `filterFunction` (function, optional): Filter function receiving tag info object. Return `true` to include the tag.
+- `datalist` (HTMLDataListElement): The datalist to update.
+- `filterFunction` (function, optional): Filter function receiving a CompactTagDescription object. Return `true` to include the tag.
+
+The CompactTagDescription object has these properties:
+- `name`: Tag point name (e.g., "/my/tag")
+- `type`: Tag type ("number", "string", "object", "binary")
+- `subtype`: Additional subtype information
+- `writable`: Whether the tag is writable
+- `canWrite`: Whether the current user can write to this tag
 
 ```javascript
 // Populate datalist with all tags
-await mgr.getTagsDatalist("tag-list");
+await populateTagsDatalist(document.getElementById("tag-list"));
 
-// Populate datalist with only numeric tags
-await mgr.getTagsDatalist("numeric-tags", (tag) => tag.valueType === "numeric");
+// Populate datalist with only numeric or string tags
+await populateTagsDatalist(document.getElementById("numeric-tags"), (tag) => {
+  return tag.type === 'number' || tag.type === 'string';
+});
+```
+
+#### `getTagMetadata(tagname)`
+
+Fetch full metadata for a specific tag point, including the current value.
+
+- `tagname` (string): Tag point name (e.g., "/my/tag")
+
+Returns a Promise resolving to a FullTagDescription object with these properties:
+- `writePermission`: Whether the current user can write to this tag
+- `type`: Tag type ("number", "string", "object", "binary")
+- `subtype`: Additional subtype information
+- `lastVal`: Current value of the tag
+- `min`, `max`, `high`, `low`, `unit`: Numeric tag specifics (if applicable)
+
+```javascript
+import { getTagMetadata } from "/static/js/widget.mjs";
+
+const metadata = await getTagMetadata("/sensors/temperature");
+console.log("Current temperature:", metadata.lastVal);
+console.log("Unit:", metadata.unit);
+console.log("Can write:", metadata.writePermission);
 ```
 
 ## Example

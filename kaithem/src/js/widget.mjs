@@ -658,4 +658,17 @@ async function populateTagsDatalist(datalist, filterFunction) {
     }
   }
 }
-export { kaithemapi, APIWidget, TagSubscriptionManager, populateTagsDatalist };
+
+/**
+ * Fetch full metadata for a specific tag point.
+ * @param {string} tagname - Tag point name (e.g., "/my/tag")
+ * @returns {Promise<Object>} Promise resolving to FullTagDescription with tag metadata including current value
+ */
+async function getTagMetadata(tagname) {
+  const response = await fetch('/tag_api/info' + tagname);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch tag metadata: ${response.statusText}`);
+  }
+  return response.json();
+}
+export { kaithemapi, APIWidget, TagSubscriptionManager, populateTagsDatalist, getTagMetadata };

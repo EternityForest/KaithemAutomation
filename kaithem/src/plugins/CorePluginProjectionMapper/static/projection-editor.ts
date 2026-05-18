@@ -5,7 +5,7 @@
 // Built with Lit for lightweight, self-contained rendering
 
 import { LitElement, html, css } from 'lit';
-import { populateTagsDatalist, TagSubscriptionManager } from "/static/js/widget.mjs";
+import { populateTagsDatalist, TagSubscriptionManager } from "../../../js/widget.mjs";
 import { PerspT } from './perspective-transform.mjs';
 import { createSourceAdapter } from './source-type';
 
@@ -1279,7 +1279,7 @@ class ProjectionEditor extends LitElement {
 
   private async populateTagDatalist(): Promise<void> {
     await populateTagsDatalist(
-    this.shadowRoot?.querySelector('#available-tags'), (tag) => {
+    this.shadowRoot!.querySelector('#available-tags')!, (tag) => {
       return tag.type === 'number' || tag.type === 'string';
     });
   }

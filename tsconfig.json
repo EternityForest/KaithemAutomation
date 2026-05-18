@@ -10,19 +10,19 @@
     "allowJs": true,
     "checkJs": true,
     "skipLibCheck": true,
-    "esModuleInterop": false,
+    "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "strict": true,
     "forceConsistentCasingInFileNames": true,
-    "module": "ESNext",
-    "moduleResolution": "Node",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
 
     "paths": {
-      "/static/js/*": ["./kaithem/src/js/*"] // Adjust to your actual folder structure
+      "/static/js/*": ["./kaithem/src/js/*"]
     }
   },
   "include": ["src"],
