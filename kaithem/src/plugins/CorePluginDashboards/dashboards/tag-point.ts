@@ -6,7 +6,7 @@ import { html, TemplateResult } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import { DashboardComponent } from "dashbeard/src/components/dashboard-component.ts";
 import type { ComponentConfig } from "dashbeard/src/boards/board-types.ts";
-import type { ComponentTypeSchema } from "dashbeard/src/editor/types.ts";
+import type { ComponentTypeSchema,PortSchema } from "dashbeard/src/editor/types.ts";
 import { doSerialized } from "dashbeard/src/core/serialized-actions.ts";
 
 import { Port, SourceType } from "dashbeard/src/flow/port.ts";
@@ -63,7 +63,7 @@ export class TagpointComponent extends DashboardComponent {
     hi?: number;
     lo?: number;
     step?: number;
-    unit?: number;
+    unit?: string;
     type?: string;
     subtype?: string;
     readonly?: boolean;
@@ -125,8 +125,40 @@ export class TagpointComponent extends DashboardComponent {
         return; // Don't update - component will be recreated
       }
     } else {
+
+      const schema: PortSchema = {
+        name: "value",
+        direction: "output",
+        type: newType,
+      };
+
+      if(!(this.tagParams.hi == undefined)) {
+        schema.hi = this.tagParams.hi;
+      }
+
+      if(!(this.tagParams.lo == undefined)) {
+        schema.lo = this.tagParams.lo;
+      }
+
+      if(!(this.tagParams.step == undefined)) {
+        schema.step = this.tagParams.step;
+      }
+
+      if(!(this.tagParams.unit == undefined)) {
+        schema.unit = this.tagParams.unit;
+      }
+
+      if(!(this.tagParams.min == undefined)) {
+        schema.min = this.tagParams.min;
+      }
+
+      if(!(this.tagParams.max == undefined)) {
+        schema.max = this.tagParams.max;
+      }
       this.node
-        .addPort(new Port("value", newType, true))
+        .addPort(new Port("value", newType, true,
+          schema
+        ))
         .addDataHandler(this.onPortData.bind(this));
     }
   }
@@ -135,10 +167,11 @@ export class TagpointComponent extends DashboardComponent {
   async pushData(d: any) {
     if (d != this.value) {
       this.value = d;
+      await this.sendData("value", this.value);
       if (this.tagParams.subtype == "trigger") {
-        kaithemapi.sendTrigger(this.prevTag, d);
+        kaithemapi.sendTrigger("tag:" + this.prevTag, d);
       } else {
-        kaithemapi.sendValue(this.prevTag, d);
+        kaithemapi.sendValue("tag:" + this.prevTag, d);
       }
     }
   }
@@ -165,9 +198,8 @@ export class TagpointComponent extends DashboardComponent {
   ): Promise<void> {
     if (data.value === this.value) return;
     if (sourceType === SourceType.PortOwner) return;
-    this.value = data.value;
     this.requestUpdate();
-    await this.sendData("value", this.value);
+    await this.pushData(data.value);
   }
 
   private boundSubscriber = this.upd.bind(this);
