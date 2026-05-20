@@ -2,42 +2,43 @@
  * Variable component - stores and outputs a value.
  */
 
-import { html, TemplateResult } from "lit";
-import { customElement, property } from "lit/decorators.js";
-import { DashboardComponent } from "dashbeard/src/components/dashboard-component.ts";
-import type { ComponentConfig } from "dashbeard/src/boards/board-types.ts";
-import type { ComponentTypeSchema,PortSchema } from "dashbeard/src/editor/types.ts";
-import { doSerialized } from "dashbeard/src/core/serialized-actions.ts";
+import { html, TemplateResult } from 'lit';
+import { customElement, property } from 'lit/decorators.js';
+import { DashboardComponent } from 'dashbeard/src/components/dashboard-component.ts';
+import type { ComponentConfig } from 'dashbeard/src/boards/board-types.ts';
+import type { ComponentTypeSchema } from 'dashbeard/src/editor/types.ts';
+import type { PortSchema } from 'dashbeard/src/flow/port.ts';
+import { doSerialized } from 'dashbeard/src/core/serialized-actions.ts';
 
-import { Port, SourceType } from "dashbeard/src/flow/port.ts";
-import type { PortData } from "dashbeard/src/flow/data-types.ts";
+import { Port, SourceType } from 'dashbeard/src/flow/port.ts';
+import type { PortData } from 'dashbeard/src/flow/data-types.ts';
 
-import {kaithemapi } from "/static/js/widget.mjs";
+import { kaithemapi } from '/static/js/widget.mjs';
 
 /**
  * Variable component - simple storage and output of values.
  * Used for constants, state, or user-input values.
  */
-@customElement("ds-tagpoint")
+@customElement('ds-tagpoint')
 export class TagpointComponent extends DashboardComponent {
   static readonly typeSchema: ComponentTypeSchema = {
-    name: "tagpoint",
-    displayName: "Tag Point",
-    category: "data",
-    description: "Connect to a KaithemAutomation tag point",
+    name: 'tagpoint',
+    displayName: 'Tag Point',
+    category: 'data',
+    description: 'Connect to a KaithemAutomation tag point',
     configSchema: {
-      type: "object",
+      type: 'object',
       properties: {
         tag: {
-          type: "string",
-          format: "tagpoint",
-          description: "The name of the tag point",
-          default: "",
+          type: 'string',
+          format: 'tagpoint',
+          description: 'The name of the tag point',
+          default: '',
         },
 
         visible: {
-          type: "boolean",
-          description: "Display in UI",
+          type: 'boolean',
+          description: 'Display in UI',
           default: true,
         },
       },
@@ -52,8 +53,7 @@ export class TagpointComponent extends DashboardComponent {
   /**
    * Display label.
    */
-  @property() label: string = "Variable";
-
+  @property() label: string = 'Variable';
 
   @property() visible: boolean = true;
 
@@ -69,37 +69,46 @@ export class TagpointComponent extends DashboardComponent {
     readonly?: boolean;
   } = {};
 
-  private prevTag = "";
+  private prevTag = '';
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async upd(data: any) {
     this.value = data;
     this.requestUpdate();
-    await this.sendData("value", this.value);
+    await this.sendData('value', this.value);
   }
   async register() {
     const tagName: string = this.componentConfig.config.tag as string;
     if (this.prevTag.length > 0) {
-      kaithemapi.unsubscribe("tag:" + this.prevTag, this.boundSubscriber);
+      kaithemapi.unsubscribe('tag:' + this.prevTag, this.boundSubscriber);
     }
-    kaithemapi.subscribe("tag:" + tagName, this.boundSubscriber);
+    kaithemapi.subscribe('tag:' + tagName, this.boundSubscriber);
 
     this.prevTag = tagName;
-    const url = "/tag_api/info" + tagName;
+    const url = '/tag_api/info' + tagName;
 
     const response = await fetch(url, {
-      method: "GET",
+      method: 'GET',
     });
 
     const myArray = await response.json();
 
-    for (const i of ["min", "max", "hi", "lo", "step", "unit","type","subtype"]) {
+    for (const i of [
+      'min',
+      'max',
+      'hi',
+      'lo',
+      'step',
+      'unit',
+      'type',
+      'subtype',
+    ]) {
       if (myArray[i]) {
         this.tagParams[i] = myArray[i];
       }
     }
 
-    this.tagParams.subtype = myArray.subtype || "";
+    this.tagParams.subtype = myArray.subtype || '';
     this.tagParams.readonly = !myArray.writePermission;
 
     this.value = myArray.lastVal;
@@ -107,58 +116,55 @@ export class TagpointComponent extends DashboardComponent {
     let currentPort: Port | null = null;
     try {
       // Check if type changed - requires recreation with new port
-      currentPort = this.node.getOutputPort("value");
+      currentPort = this.node.getOutputPort('value');
     } catch {
       //Pass
     }
     let newType: string = this.tagParams.type!;
     if (this.tagParams.subtype) {
-      newType = newType + "." + this.tagParams.subtype;
+      newType = newType + '.' + this.tagParams.subtype;
     }
 
     if (currentPort) {
       if (currentPort && currentPort.type !== newType) {
         // Type changed - request recreation
         this.requestRecreation().catch((error) => {
-          console.error("Failed to recreate tag component:", error);
+          console.error('Failed to recreate tag component:', error);
         });
         return; // Don't update - component will be recreated
       }
     } else {
-
       const schema: PortSchema = {
-        name: "value",
-        direction: "output",
+        name: 'value',
+        direction: 'output',
         type: newType,
       };
 
-      if(!(this.tagParams.hi == undefined)) {
+      if (!(this.tagParams.hi == undefined)) {
         schema.hi = this.tagParams.hi;
       }
 
-      if(!(this.tagParams.lo == undefined)) {
+      if (!(this.tagParams.lo == undefined)) {
         schema.lo = this.tagParams.lo;
       }
 
-      if(!(this.tagParams.step == undefined)) {
+      if (!(this.tagParams.step == undefined)) {
         schema.step = this.tagParams.step;
       }
 
-      if(!(this.tagParams.unit == undefined)) {
+      if (!(this.tagParams.unit == undefined)) {
         schema.unit = this.tagParams.unit;
       }
 
-      if(!(this.tagParams.min == undefined)) {
+      if (!(this.tagParams.min == undefined)) {
         schema.min = this.tagParams.min;
       }
 
-      if(!(this.tagParams.max == undefined)) {
+      if (!(this.tagParams.max == undefined)) {
         schema.max = this.tagParams.max;
       }
       this.node
-        .addPort(new Port("value", newType, true,
-          schema
-        ))
+        .addPort(new Port(schema))
         .addDataHandler(this.onPortData.bind(this));
     }
   }
@@ -167,11 +173,11 @@ export class TagpointComponent extends DashboardComponent {
   async pushData(d: any) {
     if (d != this.value) {
       this.value = d;
-      await this.sendData("value", this.value);
-      if (this.tagParams.subtype == "trigger") {
-        kaithemapi.sendTrigger("tag:" + this.prevTag, d);
+      await this.sendData('value', this.value);
+      if (this.tagParams.subtype == 'trigger') {
+        kaithemapi.sendTrigger('tag:' + this.prevTag, d);
       } else {
-        kaithemapi.sendValue("tag:" + this.prevTag, d);
+        kaithemapi.sendValue('tag:' + this.prevTag, d);
       }
     }
   }
@@ -180,7 +186,7 @@ export class TagpointComponent extends DashboardComponent {
     return this.value;
   }
   async close() {
-    kaithemapi.unsubscribe("tag:" + this.prevTag, this.boundSubscriber);
+    kaithemapi.unsubscribe('tag:' + this.prevTag, this.boundSubscriber);
   }
 
   constructor(config: ComponentConfig) {
@@ -211,8 +217,8 @@ export class TagpointComponent extends DashboardComponent {
   public override onConfigUpdate(): void {
     const config = this.componentConfig;
     if (config) {
-      this.label = (config.config.label as string) || "Variable";
-      this.visible = (config.config.visible as boolean);
+      this.label = (config.config.label as string) || 'Variable';
+      this.visible = config.config.visible as boolean;
       this.register();
     }
     this.requestUpdate();
@@ -226,13 +232,13 @@ export class TagpointComponent extends DashboardComponent {
     let newValue: unknown = target.value;
 
     // Try to parse as number
-    if (!Number.isNaN(Number(newValue)) && newValue !== "") {
+    if (!Number.isNaN(Number(newValue)) && newValue !== '') {
       newValue = Number(newValue);
     }
     this.pushData(newValue);
 
     this.value = newValue;
-    doSerialized(() => this.sendData("value", this.value));
+    doSerialized(() => this.sendData('value', this.value));
   }
 
   /**
@@ -240,15 +246,17 @@ export class TagpointComponent extends DashboardComponent {
    */
   override render(): TemplateResult {
     return html`
-      <div class="small-dashboard-widget-container${this.visible?'':' hidden'}">
+      <div
+        class="small-dashboard-widget-container${this.visible ? '' : ' hidden'}"
+      >
         <label>${this.label}</label>
         <input
-type="text"
-class="w-full"
-.value="${String(this.value)}"
-@change="${this.handleValueChange.bind(this)}"
-placeholder="Enter value"
->
+          type="text"
+          class="w-full"
+          .value="${String(this.value)}"
+          @change="${this.handleValueChange.bind(this)}"
+          placeholder="Enter value"
+        />
       </div>
     `;
   }
