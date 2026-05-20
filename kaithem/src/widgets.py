@@ -949,8 +949,14 @@ class Widget:
         if push:
             self.send(value)
 
-    def send(self, value: Any) -> None:
-        "Send a value to all subscribers without invoking the local callback or setting the value"
+    def send(
+        self, value: Any, exclude_connection_id: str | None = None
+    ) -> None:
+        """Send a value to all subscribers without invoking
+        the local callback or setting the value
+
+        Exclude a connection ID is used to prevent unwanted loops.
+        """
         x = self.subscriptions_atomic
 
         if not x:
@@ -966,6 +972,8 @@ class Widget:
         # Somehow the dict was replaced with the new version in the middle of iteration
         # So we use an intermediate value so we know it won't change
         for i in x:
+            if i == exclude_connection_id:
+                continue
             try:
                 x[i](d, value)
             except Exception:

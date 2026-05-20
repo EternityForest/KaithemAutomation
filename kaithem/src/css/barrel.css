@@ -88,15 +88,17 @@ dd {
 
   /*typography*/
 
-  --sans-font: font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
-    "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans",
-    "Helvetica Neue", sans-serif;
+  --sans-font:
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto',
+    'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans',
+    'Helvetica Neue', sans-serif;
 
-  --serif-font: Iowan Old Style, Apple Garamond, Baskerville, Times New Roman,
-    Droid Serif, Times, Source Serif Pro, serif, Apple Color Emoji,
-    Segoe UI Emoji, Segoe UI Symbol;
-  --mono-font: Menlo, Consolas, Monaco, Liberation Mono, Lucida Console,
-    monospace;
+  --serif-font:
+    Iowan Old Style, Apple Garamond, Baskerville, Times New Roman, Droid Serif,
+    Times, Source Serif Pro, serif, Apple Color Emoji, Segoe UI Emoji,
+    Segoe UI Symbol;
+  --mono-font:
+    Menlo, Consolas, Monaco, Liberation Mono, Lucida Console, monospace;
 
   --main-font: var(--sans-font);
   --font-size: 1rem;
@@ -238,24 +240,24 @@ dd {
   }
 
   a::after {
-    content: " (" attr(href) ") ";
+    content: ' (' attr(href) ') ';
     color: gray;
     font-size: 80%;
   }
 
   a:local-link::after {
-    content: "";
+    content: '';
   }
 
-  a[href^="/"]::after {
-    content: "";
+  a[href^='/']::after {
+    content: '';
   }
 
   details.help:not([open]) {
     display: none;
   }
 
-  input[type="checkbox"] {
+  input[type='checkbox'] {
     background: none !important;
 
     &.toggle::before {
@@ -275,7 +277,7 @@ dd {
 .danger,
 .success,
 meter,
-input[type="range"],
+input[type='range'],
 .round-feathered,
 .print-exact {
   -webkit-print-color-adjust: exact;
@@ -328,7 +330,7 @@ input[type="range"],
 :modal,
 .modal {
   &::backdrop {
-    content: "";
+    content: '';
     background-color: black;
     opacity: 0.3;
   }
@@ -432,7 +434,6 @@ dl:not(:has(li:nth-last-child(n + 5))) {
   break-inside: avoid;
 }
 
-
 li,
 dd,
 dt {
@@ -457,7 +458,7 @@ p {
 /*Stack labels on the form elements*/
 label
   > :is(
-    input:not(input[type="radio"], input[type="checkbox"]),
+    input:not(input[type='radio'], input[type='checkbox']),
     select,
     button,
     div
@@ -486,8 +487,8 @@ label {
   min-width: max-content;
   padding-inline-start: calc(var(--padding) / 2);
 
-  & > input[type="checkbox"]:first-child,
-  & > input[type="radio"]:first-child {
+  & > input[type='checkbox']:first-child,
+  & > input[type='radio']:first-child {
     margin-inline-end: calc(var(--padding) / 2);
   }
 }
@@ -500,8 +501,8 @@ p:empty {
   padding: var(--padding);
 }
 
-input[type="checkbox"],
-input[type="color"] {
+input[type='checkbox'],
+input[type='color'] {
   min-width: var(--control-height);
   height: var(--control-height);
   flex-basis: var(--control-height);
@@ -556,17 +557,24 @@ td details {
 button {
   border-style: solid;
   color: var(--control-fg);
-    transition: scale 0.05s ease-in; /* Transition duration and timing function */
+  transition: scale 0.05s ease-in; /* Transition duration and timing function */
 }
 
-button:active,
+button:active:not(:disabled),
 a:active,
-input:is([type="submit"], [type="button"]):active {
+input:is([type='submit'], [type='button']):active:not(:disabled) {
   background: var(--convex-item-active-bg) !important;
   box-shadow: var(--concave-item-box-shadow) !important;
   color: var(--control-fg);
   scale: 0.95;
   transition: scale 0.03s ease-in; /* Transition duration and timing function */
+}
+
+button:disabled,
+a:disabled,
+input:is([type='submit'], [type='button']):disabled {
+  text-decoration: line-through
+    color-mix(in srgb, var(--control-fg) 25%, var(--box-bg) 50%);
 }
 
 summary h2:first-child {
@@ -634,18 +642,18 @@ select {
 
 button,
 .button,
-input:is([type="submit"], [type="button"]),
+input:is([type='submit'], [type='button']),
 label,
 .tool-bar :is(p, h1, h2, h3, h4, h5) {
   text-shadow: var(--control-text-shadow);
 }
-.tool-bar input[type="file"] {
+.tool-bar input[type='file'] {
   padding: 0px;
 }
 
 button,
 .button,
-input:is([type="submit"], [type="button"]) {
+input:is([type='submit'], [type='button']) {
   background: var(--convex-item-bg);
   text-decoration: none;
   border: var(--control-border);
@@ -655,15 +663,14 @@ input:is([type="submit"], [type="button"]) {
   padding-inline: var(--padding);
 }
 
-input:not([type="submit"], [type="range"], [type="checkbox"], [type="radio"]),
+input:not([type='submit'], [type='range'], [type='checkbox'], [type='radio']),
 select {
   background: var(--concave-item-bg);
   box-shadow: var(--concave-item-box-shadow);
   padding-inline: var(--padding);
 }
 
-
-input:not([type="checkbox"], [type="radio"]),
+input:not([type='checkbox'], [type='radio']),
 textarea {
   border: var(--control-border);
   box-shadow: var(--concave-item-box-shadow);
@@ -732,7 +739,12 @@ h4 {
   text-shadow: var(--heading-text-shadow);
 }
 
-h1, h2, h3 ,h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   break-after: avoid;
 }
 
@@ -1052,19 +1064,17 @@ table {
   border-color: var(--border-color);
 }
 
-
-
 .accordion details[open] summary::before {
-      transform: rotate(90deg);
-  }
-.accordion{
+  transform: rotate(90deg);
+}
+.accordion {
   border: 2px solid var(--border-color);
   border-radius: var(--border-radius);
   display: flex;
   flex-direction: column;
 
   summary::before {
-    content: "▶ ";
+    content: '▶ ';
     font-size: 10px;
     margin-right: 4px;
     display: inline-block;
@@ -1088,13 +1098,13 @@ table {
     border-bottom: 1px solid var(--border-color);
   }
 
-  details:not([open]){
+  details:not([open]) {
     flex-grow: 0;
     flex-basis: min-content;
     overflow: hidden;
   }
 
-  details[open]{
+  details[open] {
     border-bottom: 1px solid var(--border-color);
   }
 
@@ -1122,7 +1132,6 @@ table {
   }
 }
 
-
 /*From the old geocities size*/
 .badge-88 {
   width: 88px;
@@ -1142,7 +1151,7 @@ table {
   }
 }
 
-.hidden{
+.hidden {
   display: none !important;
 }
 
@@ -1186,7 +1195,8 @@ header:not(.undecorated) .tool-bar {
   break-before: always;
 }
 
-.nobreaks,.no-breaks {
+.nobreaks,
+.no-breaks {
   break-inside: avoid;
 }
 
@@ -1267,7 +1277,7 @@ header:not(.undecorated) .tool-bar {
     padding: 0px;
     user-select: none;
 
-    & > :is(input:not(input[type="radio"], input[type="checkbox"])) {
+    & > :is(input:not(input[type='radio'], input[type='checkbox'])) {
       width: 100%;
       max-width: 100%;
     }
@@ -1276,7 +1286,7 @@ header:not(.undecorated) .tool-bar {
       max-width: max-content;
     }
 
-    &:has(input[type="radio"], input[type="checkbox"]) {
+    &:has(input[type='radio'], input[type='checkbox']) {
       flex-direction: row;
     }
   }
@@ -1287,19 +1297,19 @@ header:not(.undecorated) .tool-bar {
     flex-basis: min-content;
   }
 
-  & :is(input:not([type="checkbox"], [type="radio"]), select, label) {
+  & :is(input:not([type='checkbox'], [type='radio']), select, label) {
     min-width: 6em;
   }
 }
 
 /*This is a fallback for Firefox.  It's not great but it makes
 it usable.  Remove when FF fully supports :has()*/
-.stacked-form *::has(input[type="radio"], input[type="checkbox"]) {
+.stacked-form *::has(input[type='radio'], input[type='checkbox']) {
   flex-direction: row;
 }
 
-.stacked-form label input[type="checkbox"],
-.stacked-form label input[type="radio"] {
+.stacked-form label input[type='checkbox'],
+.stacked-form label input[type='radio'] {
   place-self: baseline;
 }
 
@@ -1946,7 +1956,7 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
   hyphens: auto;
 }
 
-.avatar{
+.avatar {
   border-radius: min(var(--control-border-radius), 32px);
 }
 
@@ -1977,7 +1987,6 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
 .no-background {
   background: transparent !important;
 }
-
 
 .readability-outline {
   text-shadow:
@@ -2029,7 +2038,7 @@ iframe.h-center {
   backdrop-filter: none !important;
 }
 
-.display-contents{
+.display-contents {
   display: contents;
 }
 
@@ -2037,8 +2046,8 @@ iframe.h-center {
   border: var(--border);
 }
 
-
-.noselect, .no-select {
+.noselect,
+.no-select {
   user-select: none;
 }
 
@@ -2046,7 +2055,8 @@ iframe.h-center {
   user-select: auto !important;
 }
 
-.nogaps, .no-gaps {
+.nogaps,
+.no-gaps {
   gap: 0px;
 
   & > :not(.specificity_hack) {
@@ -2084,15 +2094,18 @@ footer.padding {
   font-style: normal;
 }
 
-.nopadding, .no-padding {
+.nopadding,
+.no-padding {
   padding: 0px;
 }
 
-.nogrow, .no-grow {
+.nogrow,
+.no-grow {
   flex-grow: 0 !important;
 }
 
-.noshrink, .no-shrink {
+.noshrink,
+.no-shrink {
   flex-grow: 0;
 }
 
@@ -2112,7 +2125,8 @@ footer.padding {
   margin-bottom: var(--gap);
 }
 
-.nomargin, .no-margin {
+.nomargin,
+.no-margin {
   margin: 0px;
 }
 
@@ -2254,7 +2268,7 @@ footer.padding {
   color: var(--fg);
 }
 
-.subtle{
+.subtle {
   opacity: 0.5;
 }
 
@@ -2441,7 +2455,7 @@ input:invalid:not(.specificity_hack) {
     border-radius: var(--control-border-radius);
   }
 
-  & form :is(button, input[type="button"], select) {
+  & form :is(button, input[type='button'], select) {
     flex-grow: 1;
   }
 
@@ -2479,14 +2493,14 @@ input:invalid:not(.specificity_hack) {
     margin: 0px;
 
     &:has(
-        input:not(
-            [type="submit"],
-            [type="range"],
-            [type="checkbox"],
-            [type="radio"],
-            [type="button"]
-          )
-      ) {
+      input:not(
+        [type='submit'],
+        [type='range'],
+        [type='checkbox'],
+        [type='radio'],
+        [type='button']
+      )
+    ) {
       flex-grow: 50;
     }
 
@@ -2499,13 +2513,13 @@ input:invalid:not(.specificity_hack) {
     width: fit-content;
   }
 
-  & :is(a, .button, button, input[type="submit"]) {
+  & :is(a, .button, button, input[type='submit']) {
     flex-grow: 1;
   }
 
   /*Most likely to make good use of the extra space*/
 
-  & input:not([type="submit"], [type="checkbox"], [type="radio"]),
+  & input:not([type='submit'], [type='checkbox'], [type='radio']),
   & select {
     flex-grow: 50;
   }
@@ -2521,26 +2535,26 @@ input:invalid:not(.specificity_hack) {
   & h5,
   & label,
   & meter,
-  & input[type="submit"] {
+  & input[type='submit'] {
     background: var(--convex-item-bg);
   }
 
   & meter,
-  & input[type="range"] {
+  & input[type='range'] {
     min-height: 100%;
     flex-grow: 25;
     width: 4em;
     flex-basis: 4em;
   }
 
-  & input[type="range"] {
+  & input[type='range'] {
     flex-basis: 4em;
     flex-grow: 20;
     background: var(--concave-item-bg);
   }
 
   /*repeat here, specificity issue*/
-  & input[type="checkbox"].toggle {
+  & input[type='checkbox'].toggle {
     width: calc(var(--control-height) * 1.77) !important;
     min-width: calc(var(--control-height) * 1.77) !important;
   }
@@ -2565,14 +2579,14 @@ input:invalid:not(.specificity_hack) {
     align-items: flex-start;
 
     &:has(
-        input:not(
-            [type="submit"],
-            [type="range"],
-            [type="checkbox"],
-            [type="radio"],
-            [type="button"]
-          )
-      ) {
+      input:not(
+        [type='submit'],
+        [type='range'],
+        [type='checkbox'],
+        [type='radio'],
+        [type='button']
+      )
+    ) {
       flex-grow: 50;
     }
 
@@ -2583,7 +2597,7 @@ input:invalid:not(.specificity_hack) {
     & > input {
       background-color: var(--alt-control-bg);
 
-      &:not([type="checkbox"], [type="radio"]) {
+      &:not([type='checkbox'], [type='radio']) {
         flex-grow: 5;
         border-top: none;
         border-bottom: none;
@@ -2738,17 +2752,17 @@ input:invalid:not(.specificity_hack) {
     padding: 0px;
   }
 
-  & > input:not([type="submit"]) {
+  & > input:not([type='submit']) {
     border: var(--tool-bar-element-border);
   }
 
   & label {
     /*Label BG should match element bg*/
-    &:has(input[type="range"]) {
+    &:has(input[type='range']) {
       background: var(--concave-item-bg);
     }
 
-    & > input[type="range"] {
+    & > input[type='range'] {
       background: none;
     }
   }
@@ -2819,7 +2833,7 @@ input:invalid:not(.specificity_hack) {
 /* The Range inputs */
 
 /****/
-input[type="range"] {
+input[type='range'] {
   -webkit-appearance: none;
   appearance: none;
   background-color: transparent;
@@ -2827,7 +2841,7 @@ input[type="range"] {
   --concave-item-box-shadow: none;
 }
 
-input[type="range"]::-webkit-slider-runnable-track {
+input[type='range']::-webkit-slider-runnable-track {
   background-color: color-mix(
     in srgb,
     var(--control-bg) 70%,
@@ -2838,7 +2852,7 @@ input[type="range"]::-webkit-slider-runnable-track {
   height: calc(var(--control-height) / 3);
 }
 
-input[type="range"]::-webkit-slider-thumb {
+input[type='range']::-webkit-slider-thumb {
   margin-top: -7.8px;
   width: calc(var(--control-height) / 1.6);
   height: calc(var(--control-height) / 1.2);
@@ -2849,7 +2863,7 @@ input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
 }
 
-input[type="range"]::-moz-range-track {
+input[type='range']::-moz-range-track {
   background-color: color-mix(
     in srgb,
     var(--control-bg) 70%,
@@ -2860,7 +2874,7 @@ input[type="range"]::-moz-range-track {
   height: calc(var(--control-height) / 3);
 }
 
-input[type="range"]::-moz-range-thumb {
+input[type='range']::-moz-range-thumb {
   width: calc(var(--control-height) / 1.6);
   height: calc(var(--control-height) / 1.2);
   background: var(--slider-thumb);
@@ -2983,9 +2997,9 @@ meter:-moz-meter-sub-sub-optimum::-moz-meter-bar {
 
 /*Checkbox*/
 
-input[type="checkbox"],
-input[type="radio"],
-:is(input[type="checkbox"], input[type="radio"])::before {
+input[type='checkbox'],
+input[type='radio'],
+:is(input[type='checkbox'], input[type='radio'])::before {
   -webkit-print-color-adjust: exact;
   /* Chrome, Safari 6 – 15.3, Edge */
   color-adjust: exact;
@@ -2993,8 +3007,8 @@ input[type="radio"],
   print-color-adjust: exact;
 }
 
-input[type="checkbox"],
-input[type="radio"] {
+input[type='checkbox'],
+input[type='radio'] {
   -webkit-appearance: none;
   border-radius: 50px;
   appearance: none;
@@ -3008,14 +3022,14 @@ input[type="radio"] {
   --slider-position: 0px;
 }
 
-input[type="radio"] {
+input[type='radio'] {
   &::before {
     transition:
       background 0.4s ease,
       height 0.1s ease,
       width 0.1s ease;
     background: none;
-    content: "";
+    content: '';
     position: relative;
     display: inline-block;
     box-sizing: border-box;
@@ -3045,13 +3059,13 @@ input[type="radio"] {
 }
 
 .numval,
-input[type="number"] {
+input[type='number'] {
   font-family:
     Fira Code,
     monospace;
 }
 
-input[type="checkbox"].led {
+input[type='checkbox'].led {
   border-radius: 50%;
   margin: 0px 0px;
   width: var(--line-height);
@@ -3106,7 +3120,7 @@ input[type="checkbox"].led {
   }
 }
 
-input[type="checkbox"]:not(.toggle, .led) {
+input[type='checkbox']:not(.toggle, .led) {
   border-radius: calc(var(--control-border-radius) / 2);
 
   &:checked {
@@ -3120,7 +3134,7 @@ input[type="checkbox"]:not(.toggle, .led) {
       height 0.25s ease;
     width: 0px;
     height: 0px;
-    content: "";
+    content: '';
     background: transparent;
     border-color: transparent;
     display: block;
@@ -3132,7 +3146,7 @@ input[type="checkbox"]:not(.toggle, .led) {
       border-color 0.4s ease,
       width 0.25s ease,
       height 0.25s ease;
-    content: "";
+    content: '';
     transform: rotate(45deg);
 
     margin: 0px;
@@ -3148,7 +3162,7 @@ input[type="checkbox"]:not(.toggle, .led) {
   }
 }
 
-input[type="checkbox"].toggle {
+input[type='checkbox'].toggle {
   border-radius: 50px;
   width: calc(var(--control-height) * 1.77) !important;
   min-width: calc(var(--control-height) * 1.77) !important;
@@ -3164,7 +3178,7 @@ input[type="checkbox"].toggle {
   }
 
   &:before {
-    content: "";
+    content: '';
     position: relative;
     display: inline-block;
     box-sizing: border-box;
@@ -3210,10 +3224,10 @@ label {
   a:hover :not(i, b, small, span),
   .tool-bar > :hover,
   .tool-bar > a:hover,
-  input:not([type="submit"]):not([type="range"]):hover,
+  input:not([type='submit']):not([type='range']):hover,
   header:not(.undecorated)
     > :only-child
-    :is(button, .button, input:is([type="submit"], [type="button"])):hover,
+    :is(button, .button, input:is([type='submit'], [type='button'])):hover,
   header:not(.undecorated)
     > .tool-bar:only-child
     :is(input, button, select, a):hover,
@@ -3229,7 +3243,7 @@ label {
   }
 
   /*Non toolbsar things don't have a background normally*/
-  .tool-bar input[type="range"]:hover,
+  .tool-bar input[type='range']:hover,
   .tool-bar label:hover {
     background: var(--hover-color);
   }
@@ -3261,7 +3275,7 @@ label {
 
 [v-cloak]:before,
 [x-cloak]:before {
-  content: "";
+  content: '';
   box-sizing: border-box;
   position: absolute;
   top: 50%;
@@ -3352,7 +3366,7 @@ label {
   border: none;
   padding: 4px;
   &:before {
-    content: "⚙️";
+    content: '⚙️';
   }
   span {
     display: none;
@@ -3363,7 +3377,7 @@ label {
   border: none;
   padding: 4px;
   &:before {
-    content: "➕";
+    content: '➕';
   }
   span {
     display: none;
