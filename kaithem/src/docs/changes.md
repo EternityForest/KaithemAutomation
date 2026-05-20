@@ -1,5 +1,6 @@
 Change Log
 ----------
+
 ### Dev
 
 * [sparkles] Projection mapper more intuitive text widgets.

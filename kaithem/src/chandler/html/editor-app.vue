@@ -1664,41 +1664,6 @@
                   <h4>Import/Export</h4>
                 </header>
                 <div class="stacked-form">
-                  <label
-                    >Download just this group
-                    <a
-                      class="button"
-                      v-bind:href="
-                        'downloadOneGroup?id=' +
-                        groupname +
-                        '&name=' +
-                        editingGroup.name
-                      "
-                      title="Download your group as a file"
-                      ><i class="mdi mdi-download"></i>Download Group</a
-                    >
-                  </label>
-
-                  <label
-                    >Download audio playlist as m3u
-                    <a
-                      class="button"
-                      v-bind:href="
-                        'downloadm3u?id=' +
-                        groupname +
-                        '&rel=&name=' +
-                        editingGroup.name
-                      "
-                      title="Download your group as a file"
-                      ><i class="mdi mdi-download"></i>Download Playlist</a
-                    >
-                  </label>
-
-                  <p>
-                    This playlist should work in other apps such as VLC on other
-                    computers, as long as the same media folders are in the same
-                    place relative to your home folder.
-                  </p>
 
                   <label
                     >Add new cues from playlist
