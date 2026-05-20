@@ -452,34 +452,39 @@ class DeviceRuntimeState(iot_devices.host.DeviceHostContainer):
             except Exception:
                 logger.exception(f"Error unsubscribing from tagpoint {i}")
 
-            try:
-                for i in self._tagBookKeepers:
-                    if i in self.tagpoints:
-                        self.tagpoints[i].unsubscribe(self._tagBookKeepers[i])
-            except Exception:
-                if not lifespan.is_shutting_down:
-                    logger.exception(
-                        "unsub fail from tagpoints while closing device"
-                    )
-            try:
-                self.tagpoints.clear()
-            except Exception:
-                pass
+        self.tagpointhandlerfunctions.clear()
 
-            try:
-                for i in self.alerts:
-                    try:
-                        self.alerts[i].release()
-                    except Exception:
-                        logger.exception("Error releasing alerts")
+        try:
+            for i in self._tagBookKeepers:
+                if i in self.tagpoints:
+                    self.tagpoints[i].unsubscribe(self._tagBookKeepers[i])
+        except Exception:
+            if not lifespan.is_shutting_down:
+                logger.exception(
+                    "unsub fail from tagpoints while closing device"
+                )
 
-                    try:
-                        self.alerts[i].close()
-                    except Exception:
-                        logger.exception("Error cleaning up alerts")
+        self._tagBookKeepers.clear()
 
-            except Exception:
-                logger.exception("Error releasing alerts")
+        try:
+            self.tagpoints.clear()
+        except Exception:
+            pass
+
+        try:
+            for i in self.alerts:
+                try:
+                    self.alerts[i].release()
+                except Exception:
+                    logger.exception("Error releasing alerts")
+
+                try:
+                    self.alerts[i].close()
+                except Exception:
+                    logger.exception("Error cleaning up alerts")
+
+        except Exception:
+            logger.exception("Error releasing alerts")
 
     def onGenericUIMessage(self, u, v):
         if v[0] == "set":
