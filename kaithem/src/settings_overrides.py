@@ -32,6 +32,12 @@ def add_suggestion(key: str, value: str, description: str = ""):
         suggestions_by_key[key].append((value, description))
 
 
+def get_suggestions(key: str) -> list[tuple[str, str]]:
+    """Get suggestions for the given key"""
+    key = normalize_key(key)
+    return suggestions_by_key.get(key, [])
+
+
 def clear_suggestions(key: str):
     key = normalize_key(key)
     if key in suggestions_by_key:
@@ -45,8 +51,7 @@ def set_description(key: str, description: str):
 
 @functools.lru_cache(256)
 def normalize_key(key: str) -> str:
-    if key.startswith("/"):
-        key = key[1:]
+    key = key.removeprefix("/")
     key = key.lower()
     key = key.replace("  ", " ")
     key = key.replace("  ", " ")

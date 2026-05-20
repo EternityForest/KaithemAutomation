@@ -33,6 +33,10 @@ def set_description(key: str, description: str):
     return settings_overrides.set_description(key, description)
 
 
+def get_suggestions(key: str) -> list[tuple[str, str]]:
+    return settings_overrides.get_suggestions(key)
+
+
 def subscribe_to_changes(key, callback):
     def cb(t, v):
         if v == key:
