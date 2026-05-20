@@ -135,6 +135,17 @@ def test_device_alerts():
                 found = True
     assert found
 
+    devices_interface.delete_device("pytest_demo2")
+
+    found = False
+    time.sleep(0.3)
+    for i in alerts.all:
+        j = alerts.all[i]
+        if "testalert137" in j.name:
+            found = True
+
+    assert not found
+
 
 def test_make_demo_device():
     from kaithem.src import (

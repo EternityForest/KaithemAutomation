@@ -452,6 +452,35 @@ class DeviceRuntimeState(iot_devices.host.DeviceHostContainer):
             except Exception:
                 logger.exception(f"Error unsubscribing from tagpoint {i}")
 
+            try:
+                for i in self._tagBookKeepers:
+                    if i in self.tagpoints:
+                        self.tagpoints[i].unsubscribe(self._tagBookKeepers[i])
+            except Exception:
+                if not lifespan.is_shutting_down:
+                    logger.exception(
+                        "unsub fail from tagpoints while closing device"
+                    )
+            try:
+                self.tagpoints.clear()
+            except Exception:
+                pass
+
+            try:
+                for i in self.alerts:
+                    try:
+                        self.alerts[i].release()
+                    except Exception:
+                        logger.exception("Error releasing alerts")
+
+                    try:
+                        self.alerts[i].close()
+                    except Exception:
+                        logger.exception("Error cleaning up alerts")
+
+            except Exception:
+                logger.exception("Error releasing alerts")
+
     def onGenericUIMessage(self, u, v):
         if v[0] == "set":
             if v[2] is not None:
@@ -469,42 +498,6 @@ class DeviceRuntimeState(iot_devices.host.DeviceHostContainer):
 
         elif v[0] == "refresh":
             self.tagpoints[v[1]].get_vta()
-
-    # delete a device, it should not be used after this
-    def close(self):
-        with modules_state.modulesLock:
-            try:
-                for i in self.tagpointhandlerfunctions:
-                    if i in self.tagpoints:
-                        self.tagpoints[i].unsubscribe(
-                            self.tagpointhandlerfunctions[i]
-                        )
-            except Exception:
-                if not lifespan.is_shutting_down:
-                    logger.exception("Error unsubscribing from tagpoints")
-
-            try:
-                for i in self._tagBookKeepers:
-                    if i in self.tagpoints:
-                        self.tagpoints[i].unsubscribe(self._tagBookKeepers[i])
-            except Exception:
-                if not lifespan.is_shutting_down:
-                    logger.exception(
-                        "unsub fail from tagpoints while closing device"
-                    )
-
-            try:
-                self.tagpoints.clear()
-            except Exception:
-                pass
-        try:
-            for i in self.alerts:
-                try:
-                    self.alerts[i].release()
-                except Exception:
-                    logger.exception("Error releasing alerts")
-        except Exception:
-            logger.exception("Error releasing alerts")
 
     def on_data_change(self, name: str, value, timestamp: float, annotation):
         """used for subclassing, this is how you watch for data changes.
