@@ -234,10 +234,13 @@ resource_types["device"] = drt
 
 def getZombies():
     x = []
-    v = devices_host.get_devices()
-    for i in dbgd:
-        if dbgd[i] not in v:
-            x.append((i, dbgd[i]))
+    try:
+        v = devices_host.get_devices()
+        for i in dbgd:
+            if dbgd[i] not in v:
+                x.append((i, dbgd[i]))
+    except Exception:
+        print(traceback.format_exc())
     return x
 
 

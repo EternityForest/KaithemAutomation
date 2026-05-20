@@ -2334,9 +2334,7 @@ class Group:
             else:
                 x = channel.strip()
                 if not x == channel:
-                    raise Exception(
-                        "Channel name cannot begin or end with whitespace"
-                    )
+                    raise ValueError("Name cannot begin or end with whitespace")
 
             old_val = cue.get_fixture_keypoint(effect, universe)
             if old_val:

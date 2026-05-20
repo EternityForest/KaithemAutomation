@@ -26,7 +26,6 @@ from .. import (
     directories,
     modules_state,
 )
-from . import console_abc
 
 if TYPE_CHECKING:
     from . import ChandlerConsole
@@ -42,9 +41,10 @@ completed_frame_number = 0
 # Use it so you can mark something for rerender but make sure
 # it gets the new values.
 
-# It also covers some universe and fixture data, and can be held for any updates
-# you want to apply all at once, as long as you do not ever get any other lock under
-# It
+# It also covers some universe and fixture data,
+# and can be held for any updates
+# you want to apply all at once, as long as
+#  you do not ever get any other lock under it
 
 # It does not cover any other part of rendering
 # You have to NEVER get a group lock, or the cl_context
@@ -151,7 +151,7 @@ def iter_boards():
 
 
 def add_data_pusher_to_all_boards(
-    func: Callable[[console_abc.Console_ABC], Any],
+    func: Callable[[ChandlerConsole.ChandlerConsole], Any],
 ):
     """Add a function to every lightboard, which will be called from within it's
     GUI loop and passed the board as first param"""
@@ -211,8 +211,8 @@ def resolve_sound(sound: str, extra_folders: list[str] | None = None) -> str:
 
 
 # https://stackoverflow.com/questions/517923/what-is-the-best-way-to-remove-accents-normalize-in-a-python-unicode-string
-LATIN = "ä  æ  ǽ  đ ð ƒ ħ ı ł ø ǿ ö  œ  ß  ŧ ü  Ä  Æ  Ǽ  Đ Ð Ƒ Ħ I Ł Ø Ǿ Ö  Œ  ẞ  Ŧ Ü "
-ASCII = "ae ae ae d d f h i l o o oe oe ss t ue AE AE AE D D F H I L O O OE OE SS T UE"
+LATIN = "ä  æ  ǽ  đ ð ƒ ħ ı ł ø ǿ ö  œ  ß  ŧ ü  Ä  Æ  Ǽ  Đ Ð Ƒ Ħ I Ł Ø Ǿ Ö  Œ  ẞ  Ŧ Ü "  # noqa: E501
+ASCII = "ae ae ae d d f h i l o o oe oe ss t ue AE AE AE D D F H I L O O OE OE SS T UE"  # noqa: E501
 
 
 def remove_diacritics(
@@ -377,8 +377,10 @@ threading.Thread(target=action_queue_thread).start()
 
 
 def serialized_async_with_core_lock(f):
-    """Do f in bg thread. Events are delayed but guaranteed to be processed in order.
-    Note that this can block the frame rendering loop, the frame won't advance till all
+    """Do f in bg thread. Events are delayed
+    but guaranteed to be processed in order.
+    Note that this can block the frame rendering loop,
+    the frame won't advance till all
     events that happened during the last frame have been processed.
     """
 
