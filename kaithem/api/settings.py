@@ -37,6 +37,23 @@ def get_suggestions(key: str) -> list[tuple[str, str]]:
     return settings_overrides.get_suggestions(key)
 
 
+def get_system_themes() -> list[dict[str, str]]:
+    """Get system themes with name and URL for frontend consumption.
+    Returns list of {name, url} dicts."""
+    from kaithem.src import theming
+
+    suggestions = settings_overrides.get_suggestions("core/css_theme")
+    themes = []
+    for name, description in suggestions:
+        theme = theming.cssthemes.get(name)
+        if theme:
+            themes.append({"name": name, "url": theme.css_url})
+        else:
+            # Fallback: treat name as URL if not in cssthemes
+            themes.append({"name": name, "url": name})
+    return themes
+
+
 def subscribe_to_changes(key, callback):
     def cb(t, v):
         if v == key:

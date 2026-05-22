@@ -109,33 +109,121 @@ class DashboardFilesAPI:
     """API for managing dashboard file resources."""
 
     @staticmethod
-    def get_file(dashboard_id: str, path: str):
+    def _resolve_virtual_path(dashboard_id: str, path: str) -> tuple[str, str]:
+        """
+        Resolve a virtual path to a real filesystem path.
+
+        Virtual paths:
+        - /board/... -> maps to {resource}.d folder (board's data folder)
+        - /public_resources/... -> maps to public_resources/ in module root
+
+        Returns (real_base_path, relative_path) where relative_path is the path
+        within the base directory.
+        """
         module, resource = parseDashboardId(dashboard_id)
 
-        base_path = modules.filename_for_file_resource(module, resource + ".d")
+        # Normalize path - remove leading slash
+        path = path.lstrip("/")
 
-        target_path = os.path.join(base_path, path)
+        if path.startswith("board/"):
+            # Board folder - maps to resource.d folder
+            relative_path = path[6:]  # Remove "board/" prefix
+            base_path = modules.filename_for_file_resource(
+                module, resource + ".d"
+            )
+            return base_path, relative_path
+        elif path.startswith("public_resources/"):
+            # Public resources - maps to public_resources/ in module root
+            relative_path = path[17:]  # Remove "public_resources/" prefix
+            base_path = modules.filename_for_file_resource(
+                module, "public_resources"
+            )
+            return base_path, relative_path
+        else:
+            # Default to board folder for backward compatibility
+            base_path = modules.filename_for_file_resource(
+                module, resource + ".d"
+            )
+            return base_path, path
+
+    @staticmethod
+    def get_file(dashboard_id: str, path: str) -> tuple[str, str] | None:
+        """
+        Get a file's content and MIME type.
+        Returns (content, mime_type) or None if not found.
+        """
+        base_path, relative_path = DashboardFilesAPI._resolve_virtual_path(
+            dashboard_id, path
+        )
+
+        target_path = os.path.join(base_path, relative_path)
+
+        # Security check - ensure path is within base
+        if not os.path.normpath(target_path).startswith(
+            os.path.normpath(base_path)
+        ):
+            return None
+
+        if not os.path.isfile(target_path):
+            return None
+
+        # Determine MIME type
+        import mimetypes
+
+        mime_type = (
+            mimetypes.guess_type(target_path)[0] or "application/octet-stream"
+        )
 
         with open(target_path) as f:
-            return f.read()
+            return f.read(), mime_type
 
     @staticmethod
     def list_resources(
         dashboard_id: str, subfolder: str = ""
     ) -> dict[str, Any]:
         """
-        List available file resources in a given subfolder of the board resources dir.
-        Returns list of {path, displayName, type, size, modified}.
+        List available file resources in a given subfolder.
+        Supports virtual paths:
+        - /board/... -> lists from board's .d folder
+        - /public_resources/... -> lists from module's public_resources folder
+
+        Returns dict with {resources: [...], error: ...}.
         """
         module, resource = parseDashboardId(dashboard_id)
 
-        try:
+        # Determine base path and relative path based on virtual path
+        if subfolder.startswith("public_resources"):
+            # Public resources folder
+            if subfolder.startswith("public_resources/"):
+                relative_path = subfolder[
+                    17:
+                ]  # Remove "public_resources/" prefix
+            else:
+                relative_path = ""
+            base_path = modules.filename_for_file_resource(
+                module, "public_resources"
+            )
+        elif subfolder.startswith("board"):
+            # Board folder
+            if subfolder.startswith("board/"):
+                relative_path = subfolder[6:]  # Remove "board/" prefix
+            else:
+                relative_path = ""
             base_path = modules.filename_for_file_resource(
                 module, resource + ".d"
             )
+        else:
+            # Default to board folder for backward compatibility
+            base_path = modules.filename_for_file_resource(
+                module, resource + ".d"
+            )
+            relative_path = subfolder
 
+        try:
             target_path = (
-                os.path.join(base_path, subfolder) if subfolder else base_path
+                os.path.join(base_path, relative_path)
+                if relative_path
+                else base_path
             )
 
             resources = []
@@ -145,19 +233,26 @@ class DashboardFilesAPI:
                 # Skip directories in listing (they're just organization)
                 if os.path.isfile(filepath):
                     stat = os.stat(filepath)
+                    # Build the virtual path for URL construction
+                    virtual_path = (
+                        f"{subfolder}/{filename}" if subfolder else filename
+                    )
                     resources.append(
                         {
-                            "url": f"{dashboard_id}/files/get{filepath}",
-                            "size": stat.st_size,
                             "name": os.path.basename(filepath),
+                            "size": stat.st_size,
                             "type": "file",
+                            "url": f"/api/dashboards/{dashboard_id}/files/get?path={virtual_path}",
                         }
                     )
 
             return {
-                "resources": sorted(resources, key=lambda x: x["displayName"]),
+                "resources": sorted(resources, key=lambda x: x["name"]),
                 "error": None,
             }
+        except FileNotFoundError:
+            # Directory doesn't exist - return empty list
+            return {"resources": [], "error": None}
         except Exception as e:
             logger.exception("Error listing resources")
             return {"resources": [], "error": str(e)}
@@ -169,7 +264,11 @@ api_bp = Blueprint("dashboard_api", __name__, url_prefix="/api/dashboards")
 
 @api_bp.route("/<boardid>/files/list", methods=["GET"])
 async def list_resources_endpoint(boardid: str):
-    """List resources in a subfolder."""
+    """List resources in a subfolder.
+
+    Query params:
+    - subfolder: virtual path like "/board/subfolder" or "/public_resources"
+    """
     web.require("system_admin")
     subfolder = request.args.get("subfolder", "")
     result = DashboardFilesAPI.list_resources(boardid, subfolder)
@@ -230,6 +329,15 @@ async def save_board_endpoint(boardid: str):
     except Exception as e:
         logger.exception("Error saving board")
         return jsonify({"error": str(e)}), 500
+
+
+@api_bp.route("/system-themes", methods=["GET"])
+async def get_system_themes_endpoint():
+    """Get list of available system themes."""
+    from kaithem.api import settings as api_settings
+
+    themes = api_settings.get_system_themes()
+    return jsonify({"themes": themes, "error": None})
 
 
 quart_app.register_blueprint(api_bp)

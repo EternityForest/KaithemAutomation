@@ -5,7 +5,7 @@
  */
 
 import { BoardDefinition } from 'dashbeard/src/boards/board-types.ts';
-import type { FileMetadata, IBoardBackend } from 'dashbeard/src/editor/types.ts';
+import type { FileMetadata, IBoardBackend, SystemTheme } from 'dashbeard/src/editor/types.ts';
 
 export class KaithemBoardAPI implements IBoardBackend {
   private boardId: string;
@@ -16,17 +16,25 @@ export class KaithemBoardAPI implements IBoardBackend {
 
 
   async listResourceFolder(folder: string): Promise<FileMetadata[]> {
-        const response = await fetch(
-        `/api/dashboards/${encodeURIComponent(this.boardId)}/files/get${folder}`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-        );
+    // folder is a virtual path like "/board/subfolder" or "/public_resources"
+    // Map to the backend list endpoint
+    const response = await fetch(
+      `/api/dashboards/${encodeURIComponent(this.boardId)}/files/list?subfolder=${encodeURIComponent(folder)}`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
     
-    return response.json();
+    const result = await response.json();
+    
+    if (result.error) {
+      throw new Error(result.error);
+    }
+    
+    return result.resources || [];
   }
 
   async load(): Promise<BoardDefinition> {
@@ -81,6 +89,34 @@ export class KaithemBoardAPI implements IBoardBackend {
     } catch (error) {
       console.error('Error saving board:', error);
       throw error;
+    }
+  }
+
+  async getSystemThemes(): Promise<SystemTheme[]> {
+    try {
+      const response = await fetch(
+        `/api/dashboards/system-themes`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to get system themes: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      return data.themes || [];
+    } catch (error) {
+      console.error('Error getting system themes:', error);
+      return [];
     }
   }
 }
