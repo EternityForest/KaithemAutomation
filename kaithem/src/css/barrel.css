@@ -566,8 +566,6 @@ input:is([type='submit'], [type='button']):active:not(:disabled) {
   background: var(--convex-item-active-bg) !important;
   box-shadow: var(--concave-item-box-shadow) !important;
   color: var(--control-fg);
-  scale: 0.95;
-  transition: scale 0.03s ease-in; /* Transition duration and timing function */
 }
 
 button:disabled,
@@ -1280,6 +1278,7 @@ header:not(.undecorated) .tool-bar {
     & > :is(input:not(input[type='radio'], input[type='checkbox'])) {
       width: 100%;
       max-width: 100%;
+      margin-top: 8px;
     }
 
     & > :is(select) {
@@ -1555,272 +1554,6 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
   }
 }
 
-.w-100vw {
-  width: 100vw;
-  flex-basis: 100vw;
-  max-width: 100vw;
-}
-
-.w-1rem {
-  width: 1rem;
-}
-
-.w-2rem {
-  width: 2rem;
-}
-
-.w-4rem {
-  width: 4rem;
-}
-
-.w-6rem {
-  width: 6rem;
-}
-
-.w-8rem {
-  width: 8rem;
-}
-
-.w-12rem {
-  width: 12rem;
-}
-
-.w-16rem {
-  width: 16rem;
-}
-
-.w-18rem {
-  width: 18rem;
-}
-
-.w-20rem {
-  width: 20rem;
-}
-
-.w-24rem {
-  width: 24rem;
-}
-
-.control-height {
-  height: var(--control-height);
-}
-
-.max-w-1rem {
-  max-width: 1rem;
-}
-
-.max-w-2rem {
-  max-width: 2rem;
-}
-
-.max-w-4rem {
-  max-width: 4rem;
-}
-
-.max-w-6rem {
-  max-width: 6rem;
-}
-
-.max-w-8rem {
-  max-width: 8rem;
-}
-
-.max-w-12rem {
-  max-width: 12rem;
-}
-
-.max-w-16rem {
-  max-width: 16rem;
-}
-
-.max-w-18rem {
-  max-width: 18rem;
-}
-
-.max-w-20rem {
-  max-width: 20rem;
-}
-
-.max-w-24rem {
-  max-width: 24rem;
-}
-
-.max-w-36rem {
-  max-width: 36rem;
-}
-
-.max-w-48rem {
-  max-width: 48rem;
-}
-
-.max-w-60rem {
-  max-width: 60rem;
-}
-
-.max-h-1rem {
-  max-height: 1rem;
-}
-
-.max-h-2rem {
-  max-height: 2rem;
-}
-
-.max-h-4rem {
-  max-height: 4rem;
-}
-
-.max-h-6rem {
-  max-height: 6rem;
-}
-
-.max-h-8rem {
-  max-height: 8rem;
-}
-
-.max-h-12rem {
-  max-height: 12rem;
-}
-
-.max-h-16rem {
-  max-height: 16rem;
-}
-
-.max-h-18rem {
-  max-height: 18rem;
-}
-
-.max-h-20rem {
-  max-height: 20rem;
-}
-
-.max-h-24rem {
-  max-height: 24rem;
-}
-
-.max-h-36rem {
-  max-height: 36rem;
-}
-
-.max-h-48rem {
-  max-height: 48rem;
-}
-
-.max-h-60rem {
-  max-height: 60rem;
-}
-
-.min-h-1rem {
-  min-height: 1rem;
-}
-
-.min-h-2rem {
-  min-height: 2rem;
-}
-
-.min-h-4rem {
-  min-height: 4rem;
-}
-
-.min-h-6rem {
-  min-height: 6rem;
-}
-
-.min-h-8rem {
-  min-height: 8rem;
-}
-
-.min-h-12rem {
-  min-height: 12rem;
-}
-
-.min-h-16rem {
-  min-height: 16rem;
-}
-
-.min-h-18rem {
-  min-height: 18rem;
-}
-
-.min-h-20rem {
-  min-height: 20rem;
-}
-
-.min-h-24rem {
-  min-height: 24rem;
-}
-
-.min-h-36rem {
-  min-height: 36rem;
-}
-
-.min-h-48rem {
-  min-height: 48rem;
-}
-
-.min-h-60rem {
-  min-height: 60rem;
-}
-
-.h-1rem {
-  height: 1rem;
-}
-
-.h-2rem {
-  height: 2rem;
-}
-
-.h-4rem {
-  height: 4rem;
-}
-
-.h-6rem {
-  height: 6rem;
-}
-
-.h-8rem {
-  height: 8rem;
-}
-
-.h-12rem {
-  height: 12rem;
-}
-
-.h-16rem {
-  height: 16rem;
-}
-
-.h-18rem {
-  height: 18rem;
-}
-
-.h-24rem {
-  height: 24rem;
-}
-
-.h-36rem {
-  height: 36rem;
-}
-
-.h-48rem {
-  height: 48rem;
-}
-
-.h-60rem {
-  height: 60rem;
-}
-
-.h-min-content {
-  height: min-content;
-}
-
-.h-max-content {
-  height: min-content;
-}
-
-.h-fit-content {
-  height: min-content;
-}
-
 .flex-col,
 .stacked-form {
   & > .h-1rem {
@@ -1876,7 +1609,7 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
   }
 }
 
-:is(.flex-row, .tool-bar) {
+:is(.flex-row, .tool-bar, .tool-bar > label) {
   & > .w-1rem {
     flex-basis: 1rem;
   }
@@ -2392,7 +2125,7 @@ input:invalid:not(.specificity_hack) {
     var(--control-height) - calc(var(--control-border-width) * 2 + 1px)
   );
 
-  & > * {
+  & * {
     text-wrap: nowrap;
   }
 
@@ -2402,12 +2135,20 @@ input:invalid:not(.specificity_hack) {
     display: inline-block;
   }
 
-  & > li {
+  & li {
     display: inline;
   }
 
   & img {
     display: inline;
+  }
+  
+  & i:not(.specificity_hack),
+  & span:not(.specificity_hack),
+  & .mdi:not(.specificity_hack),
+  & b:not(.specificity_hack) 
+  {
+    border: none !important;
   }
 
   & a {
@@ -2417,9 +2158,9 @@ input:invalid:not(.specificity_hack) {
     padding-inline-end: var(--padding);
   }
 
-  & > *,
-  & > input,
-  & > a {
+  & *,
+  & input,
+  & a {
     box-sizing: border-box;
     font-size: inherit;
     height: var(--control-height);
@@ -2559,7 +2300,7 @@ input:invalid:not(.specificity_hack) {
     min-width: calc(var(--control-height) * 1.77) !important;
   }
 
-  & > label,
+  & label,
   li {
     margin: 0px;
     padding-top: 0px;
@@ -2624,114 +2365,45 @@ input:invalid:not(.specificity_hack) {
 
   /*:not(i) is for icons*/
   &
-    > :is(
-      a,
-      .button,
-      li,
-      select,
-      p,
-      h1,
-      h2,
-      h3,
-      h4,
-      h5,
-      h6,
-      label,
-      input,
-      meter,
-      button,
-      .input-group-prepend
-    ):first-child,
+    > :first-child:not(:last-child),
   &
-    :is(
-      a,
-      .button,
-      li,
-      select,
-      p,
-      h1,
-      h2,
-      h3,
-      h4,
-      h5,
-      h6,
-      input,
-      meter,
-      button,
-      form,
-      .input-group-prepend
-    ):first-child
-    :first-child:not(i) {
+  :first-child:not(:last-child)>
+    :first-child,
+      &
+  :first-child:not(:last-child)>:first-child>
+    :first-child {
+
+      &:not(.toggle):not(i) {
     border-radius: var(--control-border-radius) 0px 0px
       var(--control-border-radius);
-    margin-inline-start: 0px;
+      }
+
   }
 
   &
-    > :is(
-      a,
-      .button,
-      li,
-      select,
-      p,
-      h1,
-      h2,
-      h3,
-      h4,
-      h5,
-      h6,
-      label,
-      input,
-      meter,
-      button,
-      .input-group-append
-    ):last-child,
+    > :last-child:not(:first-child),
   &
-    :is(
-      a,
-      .button,
-      li,
-      select,
-      p,
-      h1,
-      h2,
-      h3,
-      h4,
-      h5,
-      h6,
-      label,
-      meter,
-      button,
-      form,
-      .input-group-append
-    ):last-child
-    :last-child:not(i):not(.toggle) {
+   :last-child:not(:first-child) >
+    :last-child,
+       :last-child:not(:first-child) > :last-child >
+    :last-child
+     {
+      &:not(.toggle):not(i) {
+    
     border-radius: 0px var(--control-border-radius) var(--control-border-radius)
       0px;
+      }
     margin-inline-end: 0px;
+    
   }
 
-  &
-    > :is(
-      a,
-      .button,
-      li,
-      select,
-      p,
-      h1,
-      h2,
-      h3,
-      h4,
-      h5,
-      h6,
-      label,
-      input,
-      meter,
-      button,
-      .input-group-append
-    ):first-child:last-child {
+  & > :only-child, & > :only-child > :only-child,
+    & > :only-child > :only-child > :only-child {
+
+      &:not(.toggle) {
     border-radius: var(--control-border-radius) var(--control-border-radius)
       var(--control-border-radius) var(--control-border-radius);
+      }
   }
 
   & meter::-webkit-meter-inner-element {
@@ -2741,18 +2413,23 @@ input:invalid:not(.specificity_hack) {
     height: var(--control-height);
   }
 
-  & > *:not(meter),
-  & > form > *:not(meter) {
+  & *:not(meter),
+  &  form > *:not(meter) {
     border: var(--tool-bar-element-border);
   }
 
-  & > meter {
-    height: var(--control-height);
+  & meter {
+    max-height: var(--control-height);
     border: var(--tool-bar-element-border);
     padding: 0px;
   }
 
-  & > input:not([type='submit']) {
+  & label meter{
+    border: none;
+        max-height: calc(var(--control-height) -5px);
+  }
+
+  & input:not([type="submit"]) {
     border: var(--tool-bar-element-border);
   }
 
@@ -3382,4 +3059,272 @@ label {
   span {
     display: none;
   }
+}
+
+
+
+.w-100vw {
+  width: 100vw;
+  flex-basis: 100vw;
+  max-width: 100vw;
+}
+
+.w-1rem {
+  width: 1rem;
+}
+
+.w-2rem {
+  width: 2rem;
+}
+
+.w-4rem {
+  width: 4rem;
+}
+
+.w-6rem {
+  width: 6rem;
+}
+
+.w-8rem {
+  width: 8rem;
+}
+
+.w-12rem {
+  width: 12rem;
+}
+
+.w-16rem {
+  width: 16rem;
+}
+
+.w-18rem {
+  width: 18rem;
+}
+
+.w-20rem {
+  width: 20rem;
+}
+
+.w-24rem {
+  width: 24rem;
+}
+
+.control-height {
+  height: var(--control-height);
+}
+
+.max-w-1rem {
+  max-width: 1rem;
+}
+
+.max-w-2rem {
+  max-width: 2rem;
+}
+
+.max-w-4rem {
+  max-width: 4rem;
+}
+
+.max-w-6rem {
+  max-width: 6rem;
+}
+
+.max-w-8rem {
+  max-width: 8rem;
+}
+
+.max-w-12rem {
+  max-width: 12rem;
+}
+
+.max-w-16rem {
+  max-width: 16rem;
+}
+
+.max-w-18rem {
+  max-width: 18rem;
+}
+
+.max-w-20rem {
+  max-width: 20rem;
+}
+
+.max-w-24rem {
+  max-width: 24rem;
+}
+
+.max-w-36rem {
+  max-width: 36rem;
+}
+
+.max-w-48rem {
+  max-width: 48rem;
+}
+
+.max-w-60rem {
+  max-width: 60rem;
+}
+
+.max-h-1rem {
+  max-height: 1rem;
+}
+
+.max-h-2rem {
+  max-height: 2rem;
+}
+
+.max-h-4rem {
+  max-height: 4rem;
+}
+
+.max-h-6rem {
+  max-height: 6rem;
+}
+
+.max-h-8rem {
+  max-height: 8rem;
+}
+
+.max-h-12rem {
+  max-height: 12rem;
+}
+
+.max-h-16rem {
+  max-height: 16rem;
+}
+
+.max-h-18rem {
+  max-height: 18rem;
+}
+
+.max-h-20rem {
+  max-height: 20rem;
+}
+
+.max-h-24rem {
+  max-height: 24rem;
+}
+
+.max-h-36rem {
+  max-height: 36rem;
+}
+
+.max-h-48rem {
+  max-height: 48rem;
+}
+
+.max-h-60rem {
+  max-height: 60rem;
+}
+
+.min-h-1rem {
+  min-height: 1rem;
+}
+
+.min-h-2rem {
+  min-height: 2rem;
+}
+
+.min-h-4rem {
+  min-height: 4rem;
+}
+
+.min-h-6rem {
+  min-height: 6rem;
+}
+
+.min-h-8rem {
+  min-height: 8rem;
+}
+
+.min-h-12rem {
+  min-height: 12rem;
+}
+
+.min-h-16rem {
+  min-height: 16rem;
+}
+
+.min-h-18rem {
+  min-height: 18rem;
+}
+
+.min-h-20rem {
+  min-height: 20rem;
+}
+
+.min-h-24rem {
+  min-height: 24rem;
+}
+
+.min-h-36rem {
+  min-height: 36rem;
+}
+
+.min-h-48rem {
+  min-height: 48rem;
+}
+
+.min-h-60rem {
+  min-height: 60rem;
+}
+
+.h-1rem {
+  height: 1rem;
+}
+
+.h-2rem {
+  height: 2rem;
+}
+
+.h-4rem {
+  height: 4rem;
+}
+
+.h-6rem {
+  height: 6rem;
+}
+
+.h-8rem {
+  height: 8rem;
+}
+
+.h-12rem {
+  height: 12rem;
+}
+
+.h-16rem {
+  height: 16rem;
+}
+
+.h-18rem {
+  height: 18rem;
+}
+
+.h-24rem {
+  height: 24rem;
+}
+
+.h-36rem {
+  height: 36rem;
+}
+
+.h-48rem {
+  height: 48rem;
+}
+
+.h-60rem {
+  height: 60rem;
+}
+
+.h-min-content {
+  height: min-content;
+}
+
+.h-max-content {
+  height: min-content;
+}
+
+.h-fit-content {
+  height: min-content;
 }
