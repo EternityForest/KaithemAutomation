@@ -18,7 +18,7 @@ classifiers = [
 dependencies = [
     # First party"
     "scullery>=0.4.0",
-    "iot-devices>=0.32.0",
+    "iot-devices>=0.33.0",
     "icemedia>=0.2.0",
     "NVRChannel>=0.20.0",
     # New numpy needs new opencv
@@ -90,7 +90,7 @@ dependencies = [
     "sherpa-onnx==1.13.0",
     "sherpa-onnx-core==1.13.0",
     "soundfile>=0.13.1",
-    "textual-image"
+    "textual-image",
 ]
 
 [build-system]
