@@ -103,6 +103,7 @@ type_codes: dict[str, int] = {
     "uv": 10,
     "x": 11,
     "y": 12,
+    "generic": 13,
 }
 
 
@@ -211,16 +212,21 @@ class WASMPlugin:
                     except Exception:
                         continue
 
-                    mapped_channel = mapChannel(
-                        i_target.split("[")[0] + f"[{j}]", ch
-                    )
+                    if i_target.startswith("/"):
+                        mapped_channel = mapChannel(i_target, ch)
+                    else:
+                        mapped_channel = mapChannel(
+                            i_target.split("[")[0] + f"[{j}]", ch
+                        )
 
                     if mapped_channel is None:
                         continue
 
                     m = get_channel_meta(*mapped_channel).get("type", "unknown")
-                    typecode = type_codes.get(m, 0)
-
+                    if mapped_channel[0].startswith("/"):
+                        typecode = type_codes["generic"]
+                    else:
+                        typecode = type_codes.get(m, 0)
                     metadata_tuples.append(
                         (
                             fixture_id,

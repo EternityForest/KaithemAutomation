@@ -51,17 +51,6 @@ last_state_update = time.time()
 request_rerender: dict[str, bool] = {}
 
 
-class IDCounter:
-    def __init__(self):
-        self.id = 0
-        self.lock = threading.Lock()
-
-    def next(self):
-        with self.lock:
-            self.id += 1
-            return self.id
-
-
 def get_channel_meta(u: str, ch: str | int) -> dict[str, Any]:
     mapped = mapChannel(u, ch)
     if not mapped:
@@ -108,12 +97,15 @@ def get_on_demand_universe(name: str) -> Universe:
 
 class Fixture:
     def __init__(self, name: str, data: dict[str, Any] | None = None):
-        """Represents a contiguous range of channels each with a defined role in one universe.
+        """Represents a contiguous range of channels
+        each with a defined role in one universe.
 
-        data is the definition of the type of fixture. It can be a list of channels, or
+        data is the definition of the type of fixture.
+        It can be a list of channels, or
         a dict having a 'channels' property.
 
-        Each channel must be described by a dict having name and type at minimum.
+        Each channel must be described by a dict having name
+        and type at minimum.
 
         red
         green
@@ -126,11 +118,15 @@ class Fixture:
         hue
 
         The name must be unique per-fixture.
-        If a channel has the type "fine" it will be interpreted as the fine value of
-        the immediately preceding coarse channel, and should automatically
+        If a channel has the type "fine" it will be interpreted
+        as the fine value of
+        the immediately preceding coarse channel,
+        and should automatically
         get its value from the fractional part.
-        If the coarse channel is not the immediate preceding channel,
-        use the first argument to specify the number of the coarse channel,
+        If the coarse channel is not the immediate
+        preceding channel,
+        use the first argument to specify the number of the
+        coarse channel,
         with 0 being the fixture's first channel.
         """
         # Not threadsafe or something to rely on,
@@ -240,8 +236,10 @@ class Fixture:
         if self.universe and self.startAddress:
             oldUniverseObj = getUniverse(self.universe)
 
-            # All fixture channels together. This is safe because there are no nontrivial
-            # function calls under this, and we are in the proper lock order
+            # All fixture channels together.
+            # This is safe because there are no nontrivial
+            # function calls under this, and we
+            # are in the proper lock order
             with core.render_loop_lock:
                 if oldUniverseObj:
                     # Delete current assignments
@@ -250,13 +248,16 @@ class Fixture:
                         self.startAddress + len(self.channels),
                     ):
                         if i in oldUniverseObj.channels:
-                            # Ensure we are not assigning something else with same name
+                            # Ensure we are not assigning something
+                            # else with same name
                             if (
                                 oldUniverseObj.channels[i]()
                                 and oldUniverseObj.channels[i]() is self
                             ):
                                 del oldUniverseObj.channels[i]
-                                # We just unassigned it, so it's not a hue channel anymore
+                                # We just unassigned it,
+                                # so it's not a hue channel
+                                # anymore
                                 oldUniverseObj.hueBlendMask[i] = 0
                             else:
                                 print(
@@ -286,7 +287,8 @@ class Fixture:
 
             if not channel:
                 return
-            # 2 separate loops, first is just to check, so that we don't have half-completed stuff
+            # 2 separate loops, first is just to check,
+            # so that we don't have half-completed stuff
             for i in range(channel, channel + len(self.channels)):
                 if i in universeObj.channels:
                     if universeObj.channels[i]:
@@ -317,7 +319,8 @@ class Fixture:
 
 
 class Universe:
-    "Represents a lighting universe, similar to a DMX universe, but is not limited to DMX."
+    """Represents a lighting universe,
+    similar to a DMX universe, but is not limited to DMX."""
 
     refresh_on_create = True
 
@@ -333,12 +336,15 @@ class Universe:
 
         self.hidden = True
 
-        # If local fading is disabled, the rendering tries to compress everything down to a set of fade commands.
+        # If local fading is disabled, the rendering
+        # tries to compress everything down to a set of fade commands.
         # This is the time at which the current fade is supposed to end.
         self.fadeEndTime = 0.0
 
-        # If False, lighting values don't fade in, they just jump straight to the target,
-        # For things like smart bulbs where we want to use the remote fade instead.
+        # If False, lighting values don't fade in, they just jump
+        #  straight to the target,
+        # For things like smart bulbs where we want to use the
+        # remote fade instead.
         self.local_fading = True
 
         # Used by blend modes to request that the
@@ -356,10 +362,12 @@ class Universe:
         if not hasattr(self, "ok"):
             self.ok = True
 
-        # name:weakref(fixture) for every fixture that is mapped to this universe
+        # name:weakref(fixture) for every fixture that is
+        # mapped to this universe
         self.fixtures = {}
 
-        # Represents the telemetry data back from the physical device of this universe.
+        # Represents the telemetry data back from the physical
+        #  device of this universe.
         self.telemetry = {}
 
         # Dict of all board ids that have already pushed a status update
@@ -374,8 +382,10 @@ class Universe:
         self.values = numpy.array([0.0] * count, dtype="f4")
         self.alphas = numpy.array([0.0] * count, dtype="f4")
 
-        # These channels should blend like Hue, which is normal blending but
-        # There's no "background" of zeros. If there's nothing "behind" it, we consider it
+        # These channels should blend like Hue, which is normal
+        #  blending but
+        # There's no "background" of zeros.
+        # If there's nothing "behind" it, we consider it
         # 100% opaque
         # Type is bool
         self.hueBlendMask = numpy.array([0.0] * count, dtype="?")
@@ -385,14 +395,16 @@ class Universe:
         self.fine_channels: dict[int, int] = {}
 
         # Map fixed channel numbers to values.
-        # We implemnet that here so they are fixed no matter what the groups and blend modes say
+        # We implemnet that here so they are fixed no
+        #  matter what the groups and blend modes say
         self.fixed_channels: dict[int, float] = {}
 
         self.error_alert = alerts.Alert(
             f"{self.name}.errorState", priority="error", auto_ack=True
         )
 
-        # Maybe there might be an iteration error. But it's just a GUI convenience that
+        # Maybe there might be an iteration error.
+        # But it's just a GUI convenience that
         # A simple refresh solves, so ignore it.
         try:
             for i in core.iter_boards():
@@ -405,7 +417,8 @@ class Universe:
             gc.collect()
             time.sleep(0.1)
             gc.collect()
-            # We retry, because the universes are often temporarily cached as strong refs
+            # We retry, because the universes are often
+            # temporarily cached as strong refs
             if name in _universes and _universes[name]():
                 try:
                     u = None
@@ -461,7 +474,9 @@ class Universe:
         last_state_update = time.time()
 
     def setStatus(self, s: str, ok: bool):
-        "Set the status shown in the gui. ok is a bool value that indicates if the object is able to transmit data to the fixtures"
+        """Set the status shown in the gui. ok is a bool value
+          that indicates if the object is able to transmit
+        data to the fixtures"""
         if ok:
             self.error_alert.release()
         else:
@@ -475,7 +490,8 @@ class Universe:
         self.statusChanged = {}
 
     def refresh_groups(self):
-        """Stop and restart all active groups, because some caches might need to be updated
+        """Stop and restart all active groups,
+        because some caches might need to be updated
         when a new universes is added
         """
         refresh_groups()
@@ -484,7 +500,8 @@ class Universe:
         if not self.closed:
             if self.refresh_on_create:
                 if lifespan and not lifespan.is_shutting_down:
-                    # Do as little as possible in the undefined __del__ thread
+                    # Do as little as possible in the undefined
+                    #  __del__ thread
                     refresh_groups()
             global last_state_update
             last_state_update = time.time()
@@ -541,8 +558,10 @@ class Universe:
         self.alphas = numpy.array([0.0] * self.count, dtype="f4")
 
     def preFrame(self):
-        "Frame preprocessor, uses fixture-specific info, generally only called under lock"
-        # Assign fine channels their value based on the coarse channel
+        """Frame preprocessor, uses fixture-specific info,"
+        generally only called under lock"""
+        # Assign fine channels their value based on the
+        #  coarse channel
         for i in self.fine_channels:
             self.values[i] = (self.values[self.fine_channels[i]] % 1) * 255
 
@@ -615,8 +634,10 @@ class EnttecUniverse(Universe):
 
 
 class DMXSender:
-    """This object is used by the universe object to send data to the enttec adapter.
-    It runs in it's own thread because the frame rate might have nothing to do with
+    """This object is used by the universe object
+    to send data to the enttec adapter.
+    It runs in it's own thread because
+    the frame rate might have nothing to do with
     the rate at which the data actually gets rendered.
     """
 
@@ -657,7 +678,7 @@ class DMXSender:
                 if p:
                     if len(p) > 1:
                         self.setStatus(
-                            "More than one device found, refusing to guess. Please specify a device.",
+                            "More than one device found, refusing to guess.",
                             False,
                         )
                         return
@@ -677,9 +698,11 @@ class DMXSender:
                 pass
             self.port = serial.Serial(p, 57600, timeout=1.0, write_timeout=1.0)
 
-            # This is a flush to try to re-sync receivers that don't have any kind of time out detection
-            # We do this by sending a frame where each value is the packet end code,
-            # Hoping that it lines up with the end of whatever unfinished data we don't know about.
+            # This is a flush to try to re-sync receivers
+            #  that don't have any kind of time out detection
+            # We do this by sending a frame where each value
+            # is the packet end code, Hoping that it lines up with
+            # the end of whatever unfinished data we don't know about.
             self.setStatus("Found port, writing sync data", True)
 
             for i in range(8):
@@ -733,12 +756,15 @@ class DMXSender:
                             "disconnected, " + str(e)[:100] + "...", False
                         )
                     self.port = None
-                    # I don't remember why we retry twice here. But reusing the port list should reduce CPU a lot.
+                    # I don't remember why we retry twice here.
+                    # But reusing the port list should reduce CPU a lot.
                     time.sleep(3)
 
                     portlist = serial.tools.list_ports.comports()
-                    # reconnect is designed not to raise Exceptions, so if there's0
-                    # an error here it's probably because the whole scope is being cleaned
+                    # reconnect is designed not to raise Exceptions,
+                    #  so if there's
+                    # an error here it's probably because the whole scope
+                    #  is being cleaned
                     self.reconnect(portlist)
                     time.sleep(10)
                 except Exception:
@@ -809,8 +835,10 @@ def makeSender(c, uref, *a):
 
 
 class ArtNetSender:
-    """This object is used by the universe object to send data to the enttec adapter.
-    It runs in it's own thread because the frame rate might have nothing to do with
+    """This object is used by the universe object
+    to send data to the enttec adapter.
+    It runs in it's own thread because the
+    frame rate might have nothing to do with
     the rate at which the data actually gets rendered.
     """
 
@@ -949,8 +977,10 @@ def makeDMXSender(uref, port, fr):
 
 
 class RawDMXSender:
-    """This object is used by the universe object to send data to the enttec adapter.
-    It runs in it's own thread because the frame rate might have nothing to do with
+    """This object is used by the
+    universe object to send data to the enttec adapter.
+    It runs in it's own thread because the
+    frame rate might have nothing to do with
     the rate at which the data actually gets rendered.
     """
 
@@ -998,7 +1028,7 @@ class RawDMXSender:
                 if p:
                     if len(p) > 1:
                         self.setStatus(
-                            "More than one device found, refusing to guess. Please specify a device.",
+                            "More than one device found, refusing to guess.",
                             False,
                         )
                         return
@@ -1072,8 +1102,9 @@ class RawDMXSender:
                             "disconnected, " + str(e)[:100] + "...", False
                         )
                     self.port = None
-                    # reconnect is designed not to raise Exceptions, so if there's0
-                    # an error here it's probably because the whole scope is being cleaned
+                    # reconnect is designed not to raise Exceptions,
+                    # so if there's an error here it's probably because
+                    # the whole scope is being cleaned
                     time.sleep(8)
                     self.reconnect()
                 except Exception:
@@ -1152,7 +1183,8 @@ def cl_discover_color_tag_devices():
         last_sd = None
         for j in sorted(d.tagpoints.keys()):
             jn = d.tagpoints[j].name
-            # everything between the last slash and the dot, because the dot marks "property of"
+            # everything between the last slash and the dot,
+            # because the dot marks "property of"
             subdevice = jn.split("/")[-1].split(".")[0]
 
             if last_sd and c and not subdevice == last_sd:
@@ -1229,15 +1261,18 @@ class ColorTagUniverse(Universe):
 
         tm = time.time()
 
-        # Only set the fade tag right before we are about to do something with the bulb, otherwise we would be adding a ton
-        # of useless writes
+        # Only set the fade tag right before we are about to do
+        # something with the bulb, otherwise we would be adding
+        # a ton of useless writes
         if not c == self.lastColor or not c == self.tag.value:
             self.lastColor = c
             if self.fadeTag:
                 t = max(
                     self.fadeEndTime - time.time(), self.interpolationTime, 0
                 )
-                # Round to the nearest 20th of a second so we don't accidentally set the values more often than needed if it doesn't change
+                # Round to the nearest 20th of a second
+                # so we don't accidentally set the values more
+                # often than needed if it doesn't change
                 t = int(t * 20) / 20
                 self.fadeTag(t, tm, annotation="Chandler")
 

@@ -1,8 +1,14 @@
 Change Log
 ----------
+
 ### Dev
 
 * [sparkles] Projection mapper more intuitive text widgets.
+* [sparkles] Disabled UI elements have a grey line through them.
+* [bug] Disabled UI elements don't show the click animation
+* [bug] Widget APIs no longer echo messages back to the same client that sent them.
+* [sparkles] Generator effects now work with tag points
+* [bug] Deleted devices could leave behind alerts
 
 
 ### 0.95.0

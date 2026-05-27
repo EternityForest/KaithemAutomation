@@ -914,6 +914,7 @@ class Cue:
         channel: str,
         value: str | int | float | None,
     ):
+        """If the universe/channel is not present, it is added to the end"""
         gr = self.getGroup()
         if gr:
             gr.set_cue_value(self.name, effect, universe, channel, value)
@@ -926,6 +927,7 @@ class Cue:
         channel: str,
         value: str | int | float | None,
     ):
+        """If the universe/channel is not present, it is added to the end"""
         # Allow [] for range effects
         disallow_special(universe, allow="_@./[:],")
 

@@ -1645,6 +1645,123 @@ def test_priorities():
             assert tagpoints.Tag("/test_p").value == 1
 
 
+def test_lighting_value_gradient():
+    from kaithem.src import tagpoints
+    from kaithem.src.chandler import core
+
+    with TempGroup() as s:
+        s.cues["default"].set_value_immediate("default", "/test1", "value", 50)
+        s.cues["default"].set_value_immediate(
+            "default", "/test2", "value", -1000001
+        )
+        s.cues["default"].set_value_immediate("default", "/test3", "value", 60)
+        x = s.cues["default"].get_effect_by_id("default")
+        assert x
+        x["type"] = "kaithem.builtin.lighting-generator-fx:gradient-generator"
+
+        s.lighting_manager.refresh()
+
+        core.wait_frame()
+        core.wait_frame()
+
+        assert tagpoints.Tag("/test1").value == 50
+        assert abs(tagpoints.Tag("/test2").value - 55) < 0.01
+        assert tagpoints.Tag("/test3").value == 60
+
+
+def test_lighting_value_gradient_fixtures():
+    from kaithem.src.chandler import (
+        core,
+        universes,
+    )
+
+    u = {
+        "dmx": {
+            "channels": 512,
+            "framerate": 44,
+            "number": 1,
+            "type": "enttecopen",
+        }
+    }
+    fixtypes = {
+        "TestFixtureType": {
+            "channels": [
+                {"name": "red", "type": "red"},
+                {"name": "green", "type": "green"},
+                {"name": "blue", "type": "blue"},
+            ]
+        }
+    }
+
+    # fixps = {"tst": {"blue": 42, "dim": 0, "green": 0, "red": 0}}
+    fixture_assignments = {
+        "testFixture": {
+            "addr": 1,
+            "name": "testFixture",
+            "type": "TestFixtureType",
+            "universe": "dmx",
+        },
+        "testFixture2": {
+            "addr": 4,
+            "name": "testFixture2",
+            "type": "TestFixtureType",
+            "universe": "dmx",
+        },
+        "testFixture3": {
+            "addr": 8,
+            "name": "testFixture3",
+            "type": "TestFixtureType",
+            "universe": "dmx",
+        },
+    }
+
+    board._onmsg("__admin__", ["setconfuniverses", u], "test")
+
+    board._onmsg(
+        "__admin__",
+        ["setfixtureclass", "TestFixtureType", fixtypes["TestFixtureType"]],
+        "test",
+    )
+
+    for i in fixture_assignments:
+        board._onmsg(
+            "__admin__",
+            [
+                "setFixtureAssignment",
+                i,
+                fixture_assignments[i],
+            ],
+            "test",
+        )
+
+    core.wait_frame()
+    core.wait_frame()
+
+    with TempGroup() as s:
+        s.cues["default"].set_value_immediate(
+            "default", "@testFixture", "red", 50
+        )
+        s.cues["default"].set_value_immediate(
+            "default", "@testFixture2", "red", -1000001
+        )
+        s.cues["default"].set_value_immediate(
+            "default", "@testFixture3", "red", 60
+        )
+
+        x = s.cues["default"].get_effect_by_id("default")
+        assert x
+        x["type"] = "kaithem.builtin.lighting-generator-fx:gradient-generator"
+
+        s.lighting_manager.refresh()
+
+        core.wait_frame()
+        core.wait_frame()
+
+        assert int(universes.universes["dmx"]().values[1]) == 50
+        assert int(universes.universes["dmx"]().values[4]) == 55.0
+        assert int(universes.universes["dmx"]().values[8]) == 60
+
+
 def test_lighting_value_set_tag_flicker():
     from kaithem.src import tagpoints
     from kaithem.src.chandler import core

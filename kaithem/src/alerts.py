@@ -454,17 +454,24 @@ class Alert:
 
     def close(self):
         try:
-            if not system_shutdown.is_set():
-                self.acknowledge("<DELETED>")
-                self.clear()
+            if self.id not in all:
+                return
 
-                def f():
-                    with lock:
-                        cleanup()
+            all.pop(self.id, None)
 
-                workers.do(f)
-                sendMessage()
-                pushAlertState()
+            if system_shutdown.is_set():
+                return
+
+            self.acknowledge("<DELETED>")
+            self.clear()
+
+            def f():
+                with lock:
+                    cleanup()
+
+            workers.do(f)
+            sendMessage()
+            pushAlertState()
         except Exception:
             logger.exception("Error cleaning up tag")
 

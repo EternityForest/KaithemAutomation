@@ -36,20 +36,6 @@ _Lookup = TemplateLookup(
 get_template = _Lookup.get_template
 
 
-# @quart_app.app.route("/chandler/downloadOneGroup")
-# def download_one_group():
-#     kwargs = quart.request.args
-#     r=yaml.dump({kwargs['name']:board.groupmemory[kwargs['id']].toDict()})
-#     return quart.Response(r, mimetype="text/yaml", headers={"Content-Disposition": "attachment; filename="+kwargs['name']+".yaml"})
-
-
-# @quart_app.app.route("/chandler/downloadm3u")
-# def download_one_group():
-#     kwargs = quart.request.args
-#     r=m3u_io.get_m3u(module.board.groupmemory[kwargs['id']] ,kwargs['rel'])
-#     return quart.Response(r, mimetype="text/yaml",  headers={"Content-Disposition": "attachment; filename="+kwargs['name']+".m3u"})
-
-
 @quart_app.app.route("/chandler/universe_info/<universe>")
 def debug_universe_values(universe):
     pages.require("chandler_operator")

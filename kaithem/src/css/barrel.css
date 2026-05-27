@@ -88,15 +88,17 @@ dd {
 
   /*typography*/
 
-  --sans-font: font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
-    "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans",
-    "Helvetica Neue", sans-serif;
+  --sans-font:
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto',
+    'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans',
+    'Helvetica Neue', sans-serif;
 
-  --serif-font: Iowan Old Style, Apple Garamond, Baskerville, Times New Roman,
-    Droid Serif, Times, Source Serif Pro, serif, Apple Color Emoji,
-    Segoe UI Emoji, Segoe UI Symbol;
-  --mono-font: Menlo, Consolas, Monaco, Liberation Mono, Lucida Console,
-    monospace;
+  --serif-font:
+    Iowan Old Style, Apple Garamond, Baskerville, Times New Roman, Droid Serif,
+    Times, Source Serif Pro, serif, Apple Color Emoji, Segoe UI Emoji,
+    Segoe UI Symbol;
+  --mono-font:
+    Menlo, Consolas, Monaco, Liberation Mono, Lucida Console, monospace;
 
   --main-font: var(--sans-font);
   --font-size: 1rem;
@@ -238,24 +240,24 @@ dd {
   }
 
   a::after {
-    content: " (" attr(href) ") ";
+    content: ' (' attr(href) ') ';
     color: gray;
     font-size: 80%;
   }
 
   a:local-link::after {
-    content: "";
+    content: '';
   }
 
-  a[href^="/"]::after {
-    content: "";
+  a[href^='/']::after {
+    content: '';
   }
 
   details.help:not([open]) {
     display: none;
   }
 
-  input[type="checkbox"] {
+  input[type='checkbox'] {
     background: none !important;
 
     &.toggle::before {
@@ -275,7 +277,7 @@ dd {
 .danger,
 .success,
 meter,
-input[type="range"],
+input[type='range'],
 .round-feathered,
 .print-exact {
   -webkit-print-color-adjust: exact;
@@ -328,7 +330,7 @@ input[type="range"],
 :modal,
 .modal {
   &::backdrop {
-    content: "";
+    content: '';
     background-color: black;
     opacity: 0.3;
   }
@@ -432,7 +434,6 @@ dl:not(:has(li:nth-last-child(n + 5))) {
   break-inside: avoid;
 }
 
-
 li,
 dd,
 dt {
@@ -457,7 +458,7 @@ p {
 /*Stack labels on the form elements*/
 label
   > :is(
-    input:not(input[type="radio"], input[type="checkbox"]),
+    input:not(input[type='radio'], input[type='checkbox']),
     select,
     button,
     div
@@ -486,8 +487,8 @@ label {
   min-width: max-content;
   padding-inline-start: calc(var(--padding) / 2);
 
-  & > input[type="checkbox"]:first-child,
-  & > input[type="radio"]:first-child {
+  & > input[type='checkbox']:first-child,
+  & > input[type='radio']:first-child {
     margin-inline-end: calc(var(--padding) / 2);
   }
 }
@@ -500,8 +501,8 @@ p:empty {
   padding: var(--padding);
 }
 
-input[type="checkbox"],
-input[type="color"] {
+input[type='checkbox'],
+input[type='color'] {
   min-width: var(--control-height);
   height: var(--control-height);
   flex-basis: var(--control-height);
@@ -556,17 +557,22 @@ td details {
 button {
   border-style: solid;
   color: var(--control-fg);
-    transition: scale 0.05s ease-in; /* Transition duration and timing function */
+  transition: scale 0.05s ease-in; /* Transition duration and timing function */
 }
 
-button:active,
+button:active:not(:disabled),
 a:active,
-input:is([type="submit"], [type="button"]):active {
+input:is([type='submit'], [type='button']):active:not(:disabled) {
   background: var(--convex-item-active-bg) !important;
   box-shadow: var(--concave-item-box-shadow) !important;
   color: var(--control-fg);
-  scale: 0.95;
-  transition: scale 0.03s ease-in; /* Transition duration and timing function */
+}
+
+button:disabled,
+a:disabled,
+input:is([type='submit'], [type='button']):disabled {
+  text-decoration: line-through
+    color-mix(in srgb, var(--control-fg) 25%, var(--box-bg) 50%);
 }
 
 summary h2:first-child {
@@ -634,18 +640,18 @@ select {
 
 button,
 .button,
-input:is([type="submit"], [type="button"]),
+input:is([type='submit'], [type='button']),
 label,
 .tool-bar :is(p, h1, h2, h3, h4, h5) {
   text-shadow: var(--control-text-shadow);
 }
-.tool-bar input[type="file"] {
+.tool-bar input[type='file'] {
   padding: 0px;
 }
 
 button,
 .button,
-input:is([type="submit"], [type="button"]) {
+input:is([type='submit'], [type='button']) {
   background: var(--convex-item-bg);
   text-decoration: none;
   border: var(--control-border);
@@ -655,15 +661,14 @@ input:is([type="submit"], [type="button"]) {
   padding-inline: var(--padding);
 }
 
-input:not([type="submit"], [type="range"], [type="checkbox"], [type="radio"]),
+input:not([type='submit'], [type='range'], [type='checkbox'], [type='radio']),
 select {
   background: var(--concave-item-bg);
   box-shadow: var(--concave-item-box-shadow);
   padding-inline: var(--padding);
 }
 
-
-input:not([type="checkbox"], [type="radio"]),
+input:not([type='checkbox'], [type='radio']),
 textarea {
   border: var(--control-border);
   box-shadow: var(--concave-item-box-shadow);
@@ -732,7 +737,12 @@ h4 {
   text-shadow: var(--heading-text-shadow);
 }
 
-h1, h2, h3 ,h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   break-after: avoid;
 }
 
@@ -1052,19 +1062,17 @@ table {
   border-color: var(--border-color);
 }
 
-
-
 .accordion details[open] summary::before {
-      transform: rotate(90deg);
-  }
-.accordion{
+  transform: rotate(90deg);
+}
+.accordion {
   border: 2px solid var(--border-color);
   border-radius: var(--border-radius);
   display: flex;
   flex-direction: column;
 
   summary::before {
-    content: "▶ ";
+    content: '▶ ';
     font-size: 10px;
     margin-right: 4px;
     display: inline-block;
@@ -1088,13 +1096,13 @@ table {
     border-bottom: 1px solid var(--border-color);
   }
 
-  details:not([open]){
+  details:not([open]) {
     flex-grow: 0;
     flex-basis: min-content;
     overflow: hidden;
   }
 
-  details[open]{
+  details[open] {
     border-bottom: 1px solid var(--border-color);
   }
 
@@ -1121,7 +1129,6 @@ table {
   }
 }
 
-
 /*From the old geocities size*/
 .badge-88 {
   width: 88px;
@@ -1141,7 +1148,7 @@ table {
   }
 }
 
-.hidden{
+.hidden {
   display: none !important;
 }
 
@@ -1185,7 +1192,8 @@ header:not(.undecorated) .tool-bar {
   break-before: always;
 }
 
-.nobreaks,.no-breaks {
+.nobreaks,
+.no-breaks {
   break-inside: avoid;
 }
 
@@ -1266,16 +1274,17 @@ header:not(.undecorated) .tool-bar {
     padding: 0px;
     user-select: none;
 
-    & > :is(input:not(input[type="radio"], input[type="checkbox"])) {
+    & > :is(input:not(input[type='radio'], input[type='checkbox'])) {
       width: 100%;
       max-width: 100%;
+      margin-top: 8px;
     }
 
     & > :is(select) {
       max-width: max-content;
     }
 
-    &:has(input[type="radio"], input[type="checkbox"]) {
+    &:has(input[type='radio'], input[type='checkbox']) {
       flex-direction: row;
     }
   }
@@ -1286,19 +1295,19 @@ header:not(.undecorated) .tool-bar {
     flex-basis: min-content;
   }
 
-  & :is(input:not([type="checkbox"], [type="radio"]), select, label) {
+  & :is(input:not([type='checkbox'], [type='radio']), select, label) {
     min-width: 6em;
   }
 }
 
 /*This is a fallback for Firefox.  It's not great but it makes
 it usable.  Remove when FF fully supports :has()*/
-.stacked-form *::has(input[type="radio"], input[type="checkbox"]) {
+.stacked-form *::has(input[type='radio'], input[type='checkbox']) {
   flex-direction: row;
 }
 
-.stacked-form label input[type="checkbox"],
-.stacked-form label input[type="radio"] {
+.stacked-form label input[type='checkbox'],
+.stacked-form label input[type='radio'] {
   place-self: baseline;
 }
 
@@ -1543,6 +1552,1515 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
     max-height: 70vh;
   }
 }
+
+.flex-col,
+.stacked-form {
+  & > .h-1rem {
+    flex-basis: 1rem;
+  }
+
+  & > .h-2rem {
+    flex-basis: 2rem;
+  }
+
+  & > .h-4rem {
+    flex-basis: 4rem;
+  }
+
+  & > .h-6rem {
+    flex-basis: 6rem;
+  }
+
+  & > .h-8rem {
+    flex-basis: 8rem;
+  }
+
+  & > .h-12rem {
+    flex-basis: 12rem;
+  }
+
+  & > .h-16rem {
+    flex-basis: 16rem;
+  }
+
+  & > .h-18rem {
+    flex-basis: 16rem;
+  }
+
+  & > .h-24rem {
+    flex-basis: 24rem;
+  }
+
+  & > .h-36rem {
+    flex-basis: 36rem;
+  }
+
+  & > .h-48rem {
+    flex-basis: 48rem;
+  }
+
+  & > .h-60rem {
+    flex-basis: 60rem;
+  }
+
+  & > .h-min-content {
+    flex-basis: min-content;
+  }
+}
+
+:is(.flex-row, .tool-bar, .tool-bar > label) {
+  & > .w-1rem {
+    flex-basis: 1rem;
+  }
+
+  & > .w-2rem {
+    flex-basis: 2rem;
+  }
+
+  & > .w-4rem {
+    flex-basis: 4rem;
+  }
+
+  & > .w-6rem {
+    flex-basis: 6rem;
+  }
+
+  & > .w-8rem {
+    flex-basis: 8rem;
+  }
+
+  & > .w-12rem {
+    flex-basis: 12rem;
+  }
+
+  & > .w-16rem {
+    flex-basis: 16rem;
+  }
+
+  & > .w-18rem {
+    flex-basis: 18rem;
+  }
+
+  & > .w-20rem {
+    flex-basis: 18rem;
+  }
+
+  & > .w-24rem {
+    flex-basis: 24rem;
+  }
+
+  & > .w-min-content {
+    flex-basis: min-content;
+  }
+
+  & > .w-full {
+    flex-basis: 100%;
+  }
+
+  .w-sm-full {
+    flex-basis: 300px;
+    flex-shrink: 1;
+  }
+
+  .w-sm-quarter {
+    flex-basis: 70px;
+  }
+
+  .w-sm-half {
+    flex-basis: 175px;
+  }
+
+  .w-sm-double {
+    flex-basis: 16cm;
+    flex-shrink: 1;
+    flex-grow: 1;
+  }
+}
+
+/*Simple utilities */
+
+.break-word {
+  word-break: break-all;
+  word-break: break-word;
+  -ms-hyphens: auto;
+  -moz-hyphens: auto;
+  -webkit-hyphens: auto;
+  hyphens: auto;
+}
+
+.avatar {
+  border-radius: min(var(--control-border-radius), 32px);
+}
+
+.round-feathered {
+  mask-image: radial-gradient(
+    circle,
+    rgba(0, 0, 0, 1) 50%,
+    rgba(0, 0, 0, 0.1) 67%,
+    rgba(0, 0, 0, 0) 71%
+  );
+  -webkit-mask-image: radial-gradient(
+    circle,
+    rgba(0, 0, 0, 1) 50%,
+    rgba(0, 0, 0, 0.1) 67%,
+    rgba(0, 0, 0, 0) 71%
+  );
+  -webkit-print-color-adjust: exact;
+  /* Chrome, Safari 6 – 15.3, Edge */
+  color-adjust: exact;
+  /* Firefox 48 – 96 */
+  print-color-adjust: exact;
+}
+
+.paper {
+  background: var(--box-bg);
+}
+
+.no-background {
+  background: transparent !important;
+}
+
+.readability-outline {
+  text-shadow:
+    2px 2px 2px var(--contrasting-bg-color),
+    -2px 2px 3px var(--contrasting-bg-color),
+    -2px -2px 3px var(--contrasting-bg-color),
+    2px -2px 2px var(--contrasting-bg-color);
+}
+
+pre {
+  width: fit-content;
+}
+
+/*Don't let people use non-pre elements or they
+will get a nasty surprise later when the auto formatter
+ruins it*/
+pre.poem {
+  white-space: pre-wrap;
+  font-family: inherit;
+  width: fit-content;
+  line-height: var(--line-height);
+  break-inside: avoid;
+
+  & p {
+    white-space: pre-wrap;
+    margin-bottom: 2.4ex;
+  }
+}
+
+.v-center {
+  margin-top: auto;
+  margin-bottom: auto;
+}
+
+.h-center {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+img.h-center,
+iframe.h-center {
+  display: block;
+}
+
+.undecorated {
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+}
+
+.display-contents {
+  display: contents;
+}
+
+.border {
+  border: var(--border);
+}
+
+.noselect,
+.no-select {
+  user-select: none;
+}
+
+.selectable {
+  user-select: auto !important;
+}
+
+.nogaps,
+.no-gaps {
+  gap: 0px;
+
+  & > :not(.specificity_hack) {
+    margin: 0px;
+    margin-block-end: 0px;
+  }
+}
+
+.rounded {
+  border-radius: var(--border-radius);
+}
+
+.control-rounded {
+  border-radius: var(--control-border-radius);
+}
+
+.padding {
+  padding: var(--padding);
+}
+
+.padding-inline {
+  padding-inline: var(--padding);
+}
+
+.padding-block {
+  padding-block: var(--padding);
+}
+
+header.padding,
+footer.padding {
+  padding: calc(max(4px, calc(var(--padding) / 3)));
+}
+
+.font-normal {
+  font-style: normal;
+}
+
+.nopadding,
+.no-padding {
+  padding: 0px;
+}
+
+.nogrow,
+.no-grow {
+  flex-grow: 0 !important;
+}
+
+.noshrink,
+.no-shrink {
+  flex-grow: 0;
+}
+
+.grow {
+  flex-grow: 1;
+}
+
+.margin {
+  margin: var(--gap);
+}
+
+.margin-top {
+  margin-top: var(--gap);
+}
+
+.margin-bottom {
+  margin-bottom: var(--gap);
+}
+
+.nomargin,
+.no-margin {
+  margin: 0px;
+}
+
+.margin-indent {
+  margin-inline-start: var(--gap);
+}
+
+/*This user added margin is likely unwanted on tiny screens where*/
+@media screen and (max-width: 500px) {
+  .window,
+  .window.margin,
+  .card.w-sm-full,
+  .card.w-sm-double {
+    margin-left: 0px;
+    margin-right: 0px;
+
+    &.margin {
+      margin-top: 4px;
+      margin-bottom: 4px;
+    }
+  }
+}
+
+.relative {
+  position: relative;
+}
+
+.block {
+  display: block;
+}
+
+.inline {
+  display: inline;
+}
+
+.inline.block,
+.inline-block {
+  display: inline-block;
+}
+
+.inline-flex,
+.flex-row.inline,
+.flex-col.inline,
+.tool-bar.inline {
+  display: inline-flex;
+}
+
+.align-left {
+  text-align: left;
+  justify-content: left;
+}
+
+.align-right {
+  text-align: right;
+  justify-content: right;
+}
+
+.align-center {
+  text-align: center;
+  justify-content: center;
+  place-items: center;
+}
+
+.flex-col.align-center {
+  place-items: center;
+}
+
+.float-left {
+  float: left;
+}
+
+.float-right {
+  float: right;
+}
+
+.left {
+  margin-left: 0px;
+  margin-right: auto;
+}
+
+.right {
+  margin-left: auto;
+  margin-right: 0px;
+}
+
+/*Overrides to not break the margin class*/
+.left.margin {
+  margin-left: var(--padding);
+}
+
+.right.margin {
+  margin-right: var(--padding);
+}
+
+/*Colorways*/
+
+/*danger is the canonical*/
+
+.highlight:not(.specificity_hack) {
+  --highlight-tint: color-mix(
+    in srgb,
+    var(--highlight-color) var(--highlight-opacity),
+    transparent
+  );
+  --alt-control-bg: var(--highlight-tint);
+  background-color: var(--highlight-tint);
+
+  &:not(meter),
+  & :not(meter) {
+    --control-bg: var(--highlight-tint);
+  }
+}
+
+.success:not(.specificity_hack) {
+  --highlight-tint: color-mix(
+    in srgb,
+    var(--success-color) var(--highlight-opacity),
+    transparent
+  );
+  --alt-control-bg: var(--highlight-tint);
+  background-color: var(--highlight-tint);
+  --fg: var(--success-fg);
+  --graphical-fg: var(--success-fg);
+  color: var(--fg);
+}
+
+.warning:not(.specificity_hack),
+.warn:not(.specificity_hack) {
+  --highlight-tint: color-mix(
+    in srgb,
+    var(--warning-color) var(--highlight-opacity),
+    transparent
+  );
+  --alt-control-bg: var(--highlight-tint);
+  background-color: var(--highlight-tint);
+
+  --fg: var(--warning-fg);
+  --graphical-fg: var(--warning-fg);
+  color: var(--fg);
+}
+
+.subtle {
+  opacity: 0.5;
+}
+
+.error:not(.specificity_hack),
+.danger:not(.specificity_hack),
+.bad:not(.specificity_hack),
+input:invalid:not(.specificity_hack) {
+  --highlight-tint: color-mix(
+    in srgb,
+    var(--danger-color) var(--highlight-opacity),
+    transparent
+  );
+  --alt-control-bg: var(--highlight-tint);
+  background-color: var(--highlight-tint);
+
+  --fg: var(--danger-fg);
+  --graphical-fg: var(--danger-fg);
+  background-color: color-mix(
+    in srgb,
+    var(--danger-color) var(--highlight-opacity),
+    transparent
+  );
+  color: var(--fg);
+}
+
+/*Apply control bg only to some elements, not meters*/
+.error:not(.specificity_hack),
+.danger:not(.specificity_hack),
+.bad:not(.specificity_hack),
+.highlight:not(.specificity_hack),
+.success:not(.specificity_hack),
+.warning:not(.specificity_hack),
+input:invalid:not(.specificity_hack) {
+  &:not(meter),
+  & :is(input, button, textarea, select, .button) {
+    --control-bg: var(--highlight-tint);
+
+    /* Hacky duplication */
+    --concave-shadow: color-mix(
+      in srgb,
+      var(--3d-shadow) 40%,
+      var(--control-bg)
+    );
+    --concave-highlight: color-mix(
+      in srgb,
+      var(--3d-highlight) 60%,
+      var(--control-bg)
+    );
+    --concave-item-bg: linear-gradient(
+      180deg,
+      var(--concave-shadow) 4px,
+      var(--concave-highlight) 43%
+    );
+    --convex-item-bg: linear-gradient(
+      180deg,
+      var(--concave-highlight) 0%,
+      var(--concave-shadow) 96%
+    );
+  }
+}
+
+.highlight.paper {
+  background-color: color-mix(
+    in srgb,
+    var(--highlight-color) 35%,
+    var(--box-bg)
+  );
+}
+
+.success.paper {
+  background-color: color-mix(in srgb, var(--success-color) 35%, var(--box-bg));
+}
+
+.warning.paper {
+  background-color: color-mix(in srgb, var(--warning-color) 25%, var(--box-bg));
+}
+
+.error.paper {
+  background-color: color-mix(in srgb, var(--error-color) 25%, var(--box-bg));
+}
+
+/******************The tool bar *************************/
+/*This class very much needs some refactoring */
+.multibar {
+  flex-basis: content;
+  flex-grow: 5;
+  flex-direction: row;
+  display: flex;
+  height: fit-content;
+  flex-basis: max-content;
+  flex-wrap: wrap;
+}
+
+.tool-bar {
+  user-select: none;
+}
+
+.multibar .tool-bar {
+  width: unset;
+}
+
+.tool-bar,
+.pagination {
+  --tool-bar-element-border: var(--control-border);
+  --header-padding: 0px;
+  flex-basis: max-content;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  border-radius: var(--control-border-radius);
+  min-height: var(--control-height);
+  flex-grow: 1;
+  vertical-align: middle;
+  height: fit-content;
+  align-items: flex-start;
+  align-content: flex-start;
+  box-sizing: border-box;
+  background-clip: content-box;
+  gap: 0px;
+  line-height: calc(
+    var(--control-height) - calc(var(--control-border-width) * 2 + 1px)
+  );
+
+  & * {
+    text-wrap: nowrap;
+  }
+
+  /*Undo any effect something else set on convex elements for consistency*/
+  & :is(button, .button) {
+    box-shadow: none;
+    display: inline-block;
+  }
+
+  & li {
+    display: inline;
+  }
+
+  & img {
+    display: inline;
+  }
+  
+  & i:not(.specificity_hack),
+  & span:not(.specificity_hack),
+  & .mdi:not(.specificity_hack),
+  & b:not(.specificity_hack) 
+  {
+    border: none !important;
+  }
+
+  & a {
+    display: block;
+    text-align: center;
+    padding-inline-start: var(--padding);
+    padding-inline-end: var(--padding);
+  }
+
+  & *,
+  & input,
+  & a {
+    box-sizing: border-box;
+    font-size: inherit;
+    height: var(--control-height);
+    color: var(--control-fg);
+  }
+
+  & :is(a, .button, select, input, meter, button, label, li) {
+    border-radius: 0px;
+    flex-shrink: 1;
+    border-radius: 0px;
+  }
+
+  & :is(a, .button, select, button) {
+    align-items: stretch;
+    border-radius: 0px;
+    flex-shrink: 1;
+    border-radius: 0px;
+  }
+
+  & :only-child {
+    flex-grow: 1;
+  }
+
+  & form {
+    border: 0px !important;
+    margin: 0px !important;
+    padding: 0px !important;
+    flex-grow: 50;
+    border: 0px !important;
+    display: flex;
+    flex-basis: fit-content;
+    border: none !important;
+    border-radius: var(--control-border-radius);
+  }
+
+  & form :is(button, input[type='button'], select) {
+    flex-grow: 1;
+  }
+
+  & :is(h1, h2, h3, h4, h5, h6) * {
+    border: none;
+    margin: 0px;
+    padding: 0px;
+
+    & :first-child {
+      flex-grow: 10;
+    }
+  }
+
+  & :is(h1, h2, h3, h4, h5, h6) {
+    margin: 0px;
+    padding-top: 1px;
+    padding-bottom: 0px;
+    vertical-align: middle;
+    text-align: center;
+    display: flex;
+    min-width: fit-content;
+    flex-grow: 50;
+  }
+
+  & p {
+    &:not(:has(input)) {
+      padding-inline-start: var(--padding);
+      padding-inline-end: var(--padding);
+      padding-top: 1px;
+    }
+
+    min-width: fit-content;
+    display: flex;
+    flex-grow: 2;
+    margin: 0px;
+
+    &:has(
+      input:not(
+        [type='submit'],
+        [type='range'],
+        [type='checkbox'],
+        [type='radio'],
+        [type='button']
+      )
+    ) {
+      flex-grow: 50;
+    }
+
+    & :first-child {
+      flex-grow: 5;
+    }
+  }
+
+  & :is(a, .button, button) {
+    width: fit-content;
+  }
+
+  & :is(a, .button, button, input[type='submit']) {
+    flex-grow: 1;
+  }
+
+  /*Most likely to make good use of the extra space*/
+
+  & input:not([type='submit'], [type='checkbox'], [type='radio']),
+  & select {
+    flex-grow: 50;
+  }
+
+  & li,
+  & a,
+  & p,
+  & div,
+  & h1,
+  & h2,
+  & h3,
+  & h4,
+  & h5,
+  & label,
+  & meter,
+  & input[type='submit'] {
+    background: var(--convex-item-bg);
+  }
+
+  & meter,
+  & input[type='range'] {
+    min-height: 100%;
+    flex-grow: 25;
+    width: 4em;
+    flex-basis: 4em;
+  }
+
+  & input[type='range'] {
+    flex-basis: 4em;
+    flex-grow: 20;
+    background: var(--concave-item-bg);
+  }
+
+  /*repeat here, specificity issue*/
+  & input[type='checkbox'].toggle {
+    width: calc(var(--control-height) * 1.77) !important;
+    min-width: calc(var(--control-height) * 1.77) !important;
+  }
+
+  & label,
+  li {
+    margin: 0px;
+    padding-top: 0px;
+    padding-bottom: 0px;
+    vertical-align: middle;
+    min-width: fit-content;
+    padding-top: 1px;
+
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: var(--padding);
+    border-top: var(--tool-bar-element-border);
+    border-bottom: var(--tool-bar-element-border);
+    border: 0px;
+    text-align: right;
+    place-content: flex-start;
+    align-items: flex-start;
+
+    &:has(
+      input:not(
+        [type='submit'],
+        [type='range'],
+        [type='checkbox'],
+        [type='radio'],
+        [type='button']
+      )
+    ) {
+      flex-grow: 50;
+    }
+
+    &:has(meter) {
+      flex-grow: 10;
+    }
+
+    & > input {
+      background-color: var(--alt-control-bg);
+
+      &:not([type='checkbox'], [type='radio']) {
+        flex-grow: 5;
+        border-top: none;
+        border-bottom: none;
+        border-inline-end: none;
+      }
+    }
+
+    & > :is(input, select, meter):not(.specificity-hack) {
+      max-height: 100%;
+    }
+
+    &:last-child {
+      padding-inline-end: 0px;
+    }
+
+    &:first-child:not(li) {
+      flex-grow: 0.05;
+    }
+
+    &:is(input, select) {
+      border: none;
+    }
+  }
+
+  /*:not(i) is for icons*/
+  &
+    > :first-child:not(:last-child),
+  &
+  :first-child:not(:last-child)>
+    :first-child,
+      &
+  :first-child:not(:last-child)>:first-child>
+    :first-child {
+
+      &:not(.toggle):not(i) {
+    border-radius: var(--control-border-radius) 0px 0px
+      var(--control-border-radius);
+      }
+
+  }
+
+  &
+    > :last-child:not(:first-child),
+  &
+   :last-child:not(:first-child) >
+    :last-child,
+       :last-child:not(:first-child) > :last-child >
+    :last-child
+     {
+      &:not(.toggle):not(i) {
+    
+    border-radius: 0px var(--control-border-radius) var(--control-border-radius)
+      0px;
+      }
+    margin-inline-end: 0px;
+    
+  }
+
+  & > :only-child, & > :only-child > :only-child,
+    & > :only-child > :only-child > :only-child {
+
+      &:not(.toggle) {
+    border-radius: var(--control-border-radius) var(--control-border-radius)
+      var(--control-border-radius) var(--control-border-radius);
+      }
+  }
+
+  & meter::-webkit-meter-inner-element {
+    -webkit-appearance: inherit;
+    box-sizing: inherit;
+    border: var(--control-border);
+    height: var(--control-height);
+  }
+
+  & *:not(meter),
+  &  form > *:not(meter) {
+    border: var(--tool-bar-element-border);
+  }
+
+  & meter {
+    max-height: var(--control-height);
+    border: var(--tool-bar-element-border);
+    padding: 0px;
+  }
+
+  & label meter{
+    border: none;
+        max-height: calc(var(--control-height) -5px);
+  }
+
+  & input:not([type="submit"]) {
+    border: var(--tool-bar-element-border);
+  }
+
+  & label {
+    /*Label BG should match element bg*/
+    &:has(input[type='range']) {
+      background: var(--concave-item-bg);
+    }
+
+    & > input[type='range'] {
+      background: none;
+    }
+  }
+
+  & .spacer {
+    flex-grow: 1;
+  }
+}
+
+.flex-col > .tool-bar {
+  flex-grow: 0;
+}
+
+/*Meters, ranges, Scrollbars*/
+
+/* Firefox */
+* {
+  scrollbar-width: var(--scrollbar-width);
+  scrollbar-color: var(--control-fg) var(--control-bg);
+}
+
+/* Other browsers */
+::-webkit-scrollbar {
+  width: var(--scrollbar-width);
+  background-color: color-mix(in srgb, var(--accent-color) 30%, transparent);
+}
+
+::-webkit-scrollbar-track {
+  background-color: color-mix(
+    in srgb,
+    var(--accent-color) 15%,
+    var(--control-bg)
+  );
+  border-radius: 0px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--control-fg);
+  border-radius: calc(min(var(--border-radius), 5px));
+  border: none;
+}
+
+::-webkit-scrollbar-corner {
+  background-color: color-mix(
+    in srgb,
+    var(--accent-color) 20%,
+    var(--control-bg)
+  );
+  border-radius: 0px 0px 4px 0px;
+}
+
+::-webkit-scrollbar-button {
+  background-color: color-mix(
+    in srgb,
+    var(--accent-color) 20%,
+    var(--control-bg)
+  );
+}
+
+::-webkit-scrollbar-button:vertical:decrement {
+  border-radius: 6px 6px 0px 0px;
+}
+
+::-webkit-scrollbar-button:vertical:increment {
+  border-radius: 0px 0px 0px 0px;
+}
+
+/* The Range inputs */
+
+/****/
+input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  background-color: transparent;
+  border: none;
+  --concave-item-box-shadow: none;
+}
+
+input[type='range']::-webkit-slider-runnable-track {
+  background-color: color-mix(
+    in srgb,
+    var(--control-bg) 70%,
+    var(--control-fg)
+  );
+  border: var(--control-border);
+  border-radius: 250px;
+  height: calc(var(--control-height) / 3);
+}
+
+input[type='range']::-webkit-slider-thumb {
+  margin-top: -7.8px;
+  width: calc(var(--control-height) / 1.6);
+  height: calc(var(--control-height) / 1.2);
+  background: var(--slider-thumb);
+  border: var(--control-border);
+  border-width: 2px;
+  border-radius: 100px;
+  -webkit-appearance: none;
+}
+
+input[type='range']::-moz-range-track {
+  background-color: color-mix(
+    in srgb,
+    var(--control-bg) 70%,
+    var(--control-fg)
+  );
+  border: var(--control-border);
+  border-radius: 250px;
+  height: calc(var(--control-height) / 3);
+}
+
+input[type='range']::-moz-range-thumb {
+  width: calc(var(--control-height) / 1.6);
+  height: calc(var(--control-height) / 1.2);
+  background: var(--slider-thumb);
+  border: var(--control-border);
+  border-width: 2px;
+  border-radius: 100px;
+}
+
+/*Meter element */
+
+progress {
+  height: var(--control-height);
+
+  /* For Firefox */
+  background: var(--control-bg);
+  box-shadow: var(--concave-item-box-shadow);
+  border-radius: var(--control-border-radius);
+}
+
+progress::-webkit-progress-bar {
+  background: var(--control-bg);
+  box-shadow: var(--concave-item-box-shadow);
+  border-radius: var(--control-border-radius);
+}
+
+progress::-webkit-progress-value {
+  background-color: var(--highlight-color);
+  border-radius: var(--control-border-radius);
+}
+
+progress::-moz-progress-bar {
+  background-color: var(--highlight-color);
+  border-radius: var(--control-border-radius);
+}
+
+meter {
+  height: var(--control-height);
+
+  /* For Firefox */
+  border-radius: var(--control-border-radius);
+  border-color: var(--control-border-color);
+  padding: 0px;
+}
+
+/*Try to make it look kinda like webkit*/
+@supports (-moz-appearance: none) {
+  meter,
+  .tool-bar > label > meter {
+    height: 12px;
+    margin-top: calc((calc(var(--control-height) - 12px)) / 2);
+    box-shadow: var(--concave-item-box-shadow);
+    background: var(--concave-item-bg);
+    min-height: 12px;
+    border-radius: 60px;
+  }
+
+  .tool-bar {
+    & label {
+      & meter {
+        min-height: 12px;
+      }
+    }
+  }
+}
+
+*::-moz-meter-bar {
+  width: 100% !important;
+  display: block !important;
+  flex-grow: 1;
+  height: 10px;
+  background: var(--control-bg);
+  border: var(--thin-border);
+  border-radius: var(--control-border-radius);
+}
+
+/* WebKit */
+
+meter::-webkit-meter-optimum-value,
+meter::-webkit-meter-suboptimum-value,
+meter::-webkit-meter-even-less-good-value {
+  transition: 0.15s linear width;
+}
+
+meter::-webkit-meter-bar {
+  border-color: var(--control-border-color);
+  background: var(--control-bg);
+  box-shadow: var(--concave-item-box-shadow);
+  border-radius: var(--control-border-radius);
+}
+
+meter::-webkit-meter-optimum-value,
+meter::-webkit-meter-suboptimum-value,
+meter::-webkit-meter-even-less-good-value {
+  border-radius: var(--control-border-radius);
+}
+
+meter::-webkit-meter-optimum-value {
+  background: var(--success-color);
+}
+
+meter::-webkit-meter-suboptimum-value {
+  background: var(--warning-color);
+}
+
+meter::-webkit-meter-even-less-good-value {
+  background: var(--danger-color);
+}
+
+meter:-moz-meter-optimum::-moz-meter-bar {
+  background: var(--success-color);
+}
+
+meter:-moz-meter-sub-optimum::-moz-meter-bar {
+  background: var(--warning-color);
+}
+
+meter:-moz-meter-sub-sub-optimum::-moz-meter-bar {
+  background: var(--danger-color);
+}
+
+/*Checkbox*/
+
+input[type='checkbox'],
+input[type='radio'],
+:is(input[type='checkbox'], input[type='radio'])::before {
+  -webkit-print-color-adjust: exact;
+  /* Chrome, Safari 6 – 15.3, Edge */
+  color-adjust: exact;
+  /* Firefox 48 – 96 */
+  print-color-adjust: exact;
+}
+
+input[type='checkbox'],
+input[type='radio'] {
+  -webkit-appearance: none;
+  border-radius: 50px;
+  appearance: none;
+  background: var(--concave-item-bg);
+  box-shadow: var(--concave-item-box-shadow);
+  border: var(--control-border);
+  width: var(--control-height);
+  flex-basis: var(--control-height);
+  height: var(--control-height);
+  flex-grow: 0 !important;
+  --slider-position: 0px;
+}
+
+input[type='radio'] {
+  &::before {
+    transition:
+      background 0.4s ease,
+      height 0.1s ease,
+      width 0.1s ease;
+    background: none;
+    content: '';
+    position: relative;
+    display: inline-block;
+    box-sizing: border-box;
+    border: none;
+    border-radius: 50px;
+    margin: 0px;
+    padding: 0px;
+    top: 5px;
+    left: 5px;
+    height: 0px;
+    width: 0px;
+  }
+
+  &:checked::before {
+    transition:
+      background 0.4s ease,
+      height 0.1s ease,
+      width 0.1s ease;
+    height: calc(
+      calc(var(--control-height) - calc(var(--control-border-width) * 2)) - 10px
+    );
+    width: calc(
+      calc(var(--control-height) - calc(var(--control-border-width) * 2)) - 10px
+    );
+    background: var(--control-fg);
+  }
+}
+
+.numval,
+input[type='number'] {
+  font-family:
+    Fira Code,
+    monospace;
+}
+
+input[type='checkbox'].led {
+  border-radius: 50%;
+  margin: 0px 0px;
+  width: var(--line-height);
+  height: var(--line-height);
+
+  background: rgb(6, 65, 3);
+  box-shadow:
+    #55555500 0 -1px 7px 1px,
+    inset #6d6d6d 0 -1px 9px,
+    rgba(44, 44, 44, 0) 0 2px 12px;
+
+  &.led-red:checked {
+    background: rgb(255, 0, 0);
+    box-shadow:
+      inset #7d3e3e 0 -1px 9px,
+      rgba(243, 0, 0, 0.74) 0 2px 12px;
+  }
+
+  &.led-yellow:checked {
+    background: rgb(251, 255, 0);
+    box-shadow:
+      inset #7d7c3e 0 -1px 9px,
+      rgba(243, 239, 0, 0.74) 0 2px 12px;
+  }
+
+  &.led-green:checked {
+    background: rgb(0 255 0);
+    box-shadow:
+      inset #3f7d3e 0 -1px 9px,
+      rgb(0 243 46 / 74%) 0 2px 12px;
+  }
+
+  &.led-cyan:checked {
+    background: rgb(0, 247, 255);
+    box-shadow:
+      inset #3e7d78 0 -1px 9px,
+      rgba(0, 227, 243, 0.74) 0 2px 12px;
+  }
+
+  &.led-blue:checked {
+    background: rgb(0, 4, 255);
+    box-shadow:
+      inset #443e7d 0 -1px 9px,
+      rgba(0, 16, 243, 0.74) 0 2px 12px;
+  }
+
+  &.led-purple:checked {
+    background: rgb(255, 0, 234);
+    box-shadow:
+      inset #7d3e7a 0 -1px 9px,
+      rgba(243, 0, 243, 0.74) 0 2px 12px;
+  }
+}
+
+input[type='checkbox']:not(.toggle, .led) {
+  border-radius: calc(var(--control-border-radius) / 2);
+
+  &:checked {
+    position: relative;
+  }
+
+  &::before {
+    transition:
+      border-color 0.4s ease,
+      width 0.25s ease,
+      height 0.25s ease;
+    width: 0px;
+    height: 0px;
+    content: '';
+    background: transparent;
+    border-color: transparent;
+    display: block;
+    position: relative;
+  }
+
+  &:checked::before {
+    transition:
+      border-color 0.4s ease,
+      width 0.25s ease,
+      height 0.25s ease;
+    content: '';
+    transform: rotate(45deg);
+
+    margin: 0px;
+    padding: 0px;
+    border-color: var(--control-fg);
+
+    border-bottom: 4px solid;
+    border-right: 4px solid;
+    left: calc(var(--control-height) / 4);
+
+    height: calc(var(--control-height) / 1.3);
+    width: calc(var(--control-height) / 2.3);
+  }
+}
+
+input[type='checkbox'].toggle {
+  border-radius: 50px;
+  width: calc(var(--control-height) * 1.77) !important;
+  min-width: calc(var(--control-height) * 1.77) !important;
+
+  --slider-position: var(--control-border-width);
+
+  &:checked {
+    background: var(--highlight-color);
+    position: relative;
+    --slider-position: calc(
+      calc(var(--control-height) * 0.777) + var(--control-border-width)
+    );
+  }
+
+  &:before {
+    content: '';
+    position: relative;
+    display: inline-block;
+    box-sizing: border-box;
+    border: var(--control-border);
+    left: var(--slider-position);
+    top: var(--control-border-width);
+    border-radius: 50px;
+    margin: 0px;
+    padding: 0px;
+    height: calc(100% - calc(var(--control-border-width) * 2));
+    aspect-ratio: 1;
+    background: var(--convex-item-bg);
+    transition:
+      left 0.25s ease,
+      background 0.4s ease;
+  }
+}
+
+/*Catch icons*/
+i[class],
+button i[class] {
+  color: var(--graphical-fg);
+  vertical-align: middle;
+}
+
+/*Animation and behavior*/
+button,
+a,
+input,
+select,
+tr,
+label {
+  &::after {
+    transition: color 0.2s ease;
+  }
+}
+
+@media (hover: hover) {
+  button:hover,
+  .button:hover,
+  a:hover,
+  button:hover :not(i, b, small, span),
+  a:hover :not(i, b, small, span),
+  .tool-bar > :hover,
+  .tool-bar > a:hover,
+  input:not([type='submit']):not([type='range']):hover,
+  header:not(.undecorated)
+    > :only-child
+    :is(button, .button, input:is([type='submit'], [type='button'])):hover,
+  header:not(.undecorated)
+    > .tool-bar:only-child
+    :is(input, button, select, a):hover,
+  input:hover,
+  select:hover,
+  tr:hover {
+    &:not(:active):not(.specificity_hack) {
+      color: var(--accent-color);
+      --fg: var(--accent-color);
+      background: var(--hover-color);
+      --control-fg: var(--accent-color);
+    }
+  }
+
+  /*Non toolbsar things don't have a background normally*/
+  .tool-bar input[type='range']:hover,
+  .tool-bar label:hover {
+    background: var(--hover-color);
+  }
+}
+
+::selection {
+  background: var(--highlight-color);
+}
+
+::-moz-selection {
+  background: var(--highlight-color);
+}
+
+/*Vue*/
+
+/* Loading spinner */
+
+[v-cloak],
+[x-cloak] {
+  display: block;
+  padding: 50px 0;
+}
+
+@keyframes spinner {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+[v-cloak]:before,
+[x-cloak]:before {
+  content: '';
+  box-sizing: border-box;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(4em, 80%);
+  height: min(4em, 80%);
+  margin-top: -10px;
+  margin-left: -10px;
+  border-radius: 50%;
+  border: 8px solid var(--control-bg);
+  border-top-color: var(--control-fg);
+  animation: spinner 0.6s linear infinite;
+  text-indent: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+[v-cloak] > *,
+[x-cloak] > * {
+  display: none !important;
+}
+
+/* JSON Editor Compatibility */
+
+.je-modal {
+  border-radius: var(--border-radius);
+  background-color: var(--box-bg);
+  border: var(--border);
+  box-shadow: var(--window-box-shadow);
+  position: absolute;
+  z-index: 10;
+}
+
+.je-indented-panel:not(.specificity_hack) {
+  border: none;
+  margin: 3px;
+  padding: 3px;
+}
+
+.je-object__container {
+  margin: 3px;
+  border: var(--border);
+  border-radius: var(--border-radius);
+  padding: var(--padding);
+  box-shadow: var(--item-box-shadow);
+}
+
+.je-tab--top:not(.specificity_hack) {
+  border-color: var(--fg-color);
+  border-width: 2px;
+  border-top-left-radius: var(--control-border-radius);
+  border-top-right-radius: var(--control-border-radius);
+  box-shadow: var(--window-box-shadow);
+  background: var(--control-bg) !important;
+}
+
+.je-header > span {
+  font-weight: bold;
+}
+
+.je-indented-panel--top:not(.specificity) {
+  margin-left: 3px;
+  padding-left: 3px;
+}
+
+.je-indented-panel {
+  .form-control {
+    display: flex;
+    flex-direction: column;
+
+    & > label:is(:first-child) {
+      font-weight: bold;
+    }
+    & > input,
+    & > select,
+    & > textarea,
+    & > p {
+      margin-left: var(--gap);
+    }
+    & > p {
+      color: var(--graphical-fg);
+      font-size: 80%;
+    }
+  }
+}
+
+.json-editor-btn-edit_properties {
+  border: none;
+  padding: 4px;
+  &:before {
+    content: '⚙️';
+  }
+  span {
+    display: none;
+  }
+}
+
+.json-editor-btn-add {
+  border: none;
+  padding: 4px;
+  &:before {
+    content: '➕';
+  }
+  span {
+    display: none;
+  }
+}
+
+
 
 .w-100vw {
   width: 100vw;
@@ -1808,1563 +3326,4 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
 
 .h-fit-content {
   height: min-content;
-}
-
-.flex-col,
-.stacked-form {
-  & > .h-1rem {
-    flex-basis: 1rem;
-  }
-
-  & > .h-2rem {
-    flex-basis: 2rem;
-  }
-
-  & > .h-4rem {
-    flex-basis: 4rem;
-  }
-
-  & > .h-6rem {
-    flex-basis: 6rem;
-  }
-
-  & > .h-8rem {
-    flex-basis: 8rem;
-  }
-
-  & > .h-12rem {
-    flex-basis: 12rem;
-  }
-
-  & > .h-16rem {
-    flex-basis: 16rem;
-  }
-
-  & > .h-18rem {
-    flex-basis: 16rem;
-  }
-
-  & > .h-24rem {
-    flex-basis: 24rem;
-  }
-
-  & > .h-36rem {
-    flex-basis: 36rem;
-  }
-
-  & > .h-48rem {
-    flex-basis: 48rem;
-  }
-
-  & > .h-60rem {
-    flex-basis: 60rem;
-  }
-
-  & > .h-min-content {
-    flex-basis: min-content;
-  }
-}
-
-:is(.flex-row, .tool-bar) {
-  & > .w-1rem {
-    flex-basis: 1rem;
-  }
-
-  & > .w-2rem {
-    flex-basis: 2rem;
-  }
-
-  & > .w-4rem {
-    flex-basis: 4rem;
-  }
-
-  & > .w-6rem {
-    flex-basis: 6rem;
-  }
-
-  & > .w-8rem {
-    flex-basis: 8rem;
-  }
-
-  & > .w-12rem {
-    flex-basis: 12rem;
-  }
-
-  & > .w-16rem {
-    flex-basis: 16rem;
-  }
-
-  & > .w-18rem {
-    flex-basis: 18rem;
-  }
-
-  & > .w-20rem {
-    flex-basis: 18rem;
-  }
-
-  & > .w-24rem {
-    flex-basis: 24rem;
-  }
-
-  & > .w-min-content {
-    flex-basis: min-content;
-  }
-
-  & > .w-full {
-    flex-basis: 100%;
-  }
-
-  .w-sm-full {
-    flex-basis: 300px;
-    flex-shrink: 1;
-  }
-
-  .w-sm-quarter {
-    flex-basis: 70px;
-  }
-
-  .w-sm-half {
-    flex-basis: 175px;
-  }
-
-  .w-sm-double {
-    flex-basis: 16cm;
-    flex-shrink: 1;
-    flex-grow: 1;
-  }
-}
-
-/*Simple utilities */
-
-.break-word {
-  word-break: break-all;
-  word-break: break-word;
-  -ms-hyphens: auto;
-  -moz-hyphens: auto;
-  -webkit-hyphens: auto;
-  hyphens: auto;
-}
-
-.avatar{
-  border-radius: min(var(--control-border-radius), 32px);
-}
-
-.round-feathered {
-  mask-image: radial-gradient(
-    circle,
-    rgba(0, 0, 0, 1) 50%,
-    rgba(0, 0, 0, 0.1) 67%,
-    rgba(0, 0, 0, 0) 71%
-  );
-  -webkit-mask-image: radial-gradient(
-    circle,
-    rgba(0, 0, 0, 1) 50%,
-    rgba(0, 0, 0, 0.1) 67%,
-    rgba(0, 0, 0, 0) 71%
-  );
-  -webkit-print-color-adjust: exact;
-  /* Chrome, Safari 6 – 15.3, Edge */
-  color-adjust: exact;
-  /* Firefox 48 – 96 */
-  print-color-adjust: exact;
-}
-
-.paper {
-  background: var(--box-bg);
-}
-
-.no-background {
-  background: transparent !important;
-}
-
-
-.readability-outline {
-  text-shadow:
-    2px 2px 2px var(--contrasting-bg-color),
-    -2px 2px 3px var(--contrasting-bg-color),
-    -2px -2px 3px var(--contrasting-bg-color),
-    2px -2px 2px var(--contrasting-bg-color);
-}
-
-pre {
-  width: fit-content;
-}
-
-/*Don't let people use non-pre elements or they
-will get a nasty surprise later when the auto formatter
-ruins it*/
-pre.poem {
-  white-space: pre-wrap;
-  font-family: inherit;
-  width: fit-content;
-  line-height: var(--line-height);
-  break-inside: avoid;
-
-  & p {
-    white-space: pre-wrap;
-    margin-bottom: 2.4ex;
-  }
-}
-
-.v-center {
-  margin-top: auto;
-  margin-bottom: auto;
-}
-
-.h-center {
-  margin-left: auto;
-  margin-right: auto;
-}
-
-img.h-center,
-iframe.h-center {
-  display: block;
-}
-
-.undecorated {
-  border: none !important;
-  box-shadow: none !important;
-  background: transparent !important;
-  backdrop-filter: none !important;
-}
-
-.display-contents{
-  display: contents;
-}
-
-.border {
-  border: var(--border);
-}
-
-
-.noselect, .no-select {
-  user-select: none;
-}
-
-.selectable {
-  user-select: auto !important;
-}
-
-.nogaps, .no-gaps {
-  gap: 0px;
-
-  & > :not(.specificity_hack) {
-    margin: 0px;
-    margin-block-end: 0px;
-  }
-}
-
-.rounded {
-  border-radius: var(--border-radius);
-}
-
-.control-rounded {
-  border-radius: var(--control-border-radius);
-}
-
-.padding {
-  padding: var(--padding);
-}
-
-.padding-inline {
-  padding-inline: var(--padding);
-}
-
-.padding-block {
-  padding-block: var(--padding);
-}
-
-header.padding,
-footer.padding {
-  padding: calc(max(4px, calc(var(--padding) / 3)));
-}
-
-.font-normal {
-  font-style: normal;
-}
-
-.nopadding, .no-padding {
-  padding: 0px;
-}
-
-.nogrow, .no-grow {
-  flex-grow: 0 !important;
-}
-
-.noshrink, .no-shrink {
-  flex-grow: 0;
-}
-
-.grow {
-  flex-grow: 1;
-}
-
-.margin {
-  margin: var(--gap);
-}
-
-.margin-top {
-  margin-top: var(--gap);
-}
-
-.margin-bottom {
-  margin-bottom: var(--gap);
-}
-
-.nomargin, .no-margin {
-  margin: 0px;
-}
-
-.margin-indent {
-  margin-inline-start: var(--gap);
-}
-
-/*This user added margin is likely unwanted on tiny screens where*/
-@media screen and (max-width: 500px) {
-  .window,
-  .window.margin,
-  .card.w-sm-full,
-  .card.w-sm-double {
-    margin-left: 0px;
-    margin-right: 0px;
-
-    &.margin {
-      margin-top: 4px;
-      margin-bottom: 4px;
-    }
-  }
-}
-
-.relative {
-  position: relative;
-}
-
-.block {
-  display: block;
-}
-
-.inline {
-  display: inline;
-}
-
-.inline.block,
-.inline-block {
-  display: inline-block;
-}
-
-.inline-flex,
-.flex-row.inline,
-.flex-col.inline,
-.tool-bar.inline {
-  display: inline-flex;
-}
-
-.align-left {
-  text-align: left;
-  justify-content: left;
-}
-
-.align-right {
-  text-align: right;
-  justify-content: right;
-}
-
-.align-center {
-  text-align: center;
-  justify-content: center;
-  place-items: center;
-}
-
-.flex-col.align-center {
-  place-items: center;
-}
-
-.float-left {
-  float: left;
-}
-
-.float-right {
-  float: right;
-}
-
-.left {
-  margin-left: 0px;
-  margin-right: auto;
-}
-
-.right {
-  margin-left: auto;
-  margin-right: 0px;
-}
-
-/*Overrides to not break the margin class*/
-.left.margin {
-  margin-left: var(--padding);
-}
-
-.right.margin {
-  margin-right: var(--padding);
-}
-
-/*Colorways*/
-
-/*danger is the canonical*/
-
-.highlight:not(.specificity_hack) {
-  --highlight-tint: color-mix(
-    in srgb,
-    var(--highlight-color) var(--highlight-opacity),
-    transparent
-  );
-  --alt-control-bg: var(--highlight-tint);
-  background-color: var(--highlight-tint);
-
-  &:not(meter),
-  & :not(meter) {
-    --control-bg: var(--highlight-tint);
-  }
-}
-
-.success:not(.specificity_hack) {
-  --highlight-tint: color-mix(
-    in srgb,
-    var(--success-color) var(--highlight-opacity),
-    transparent
-  );
-  --alt-control-bg: var(--highlight-tint);
-  background-color: var(--highlight-tint);
-  --fg: var(--success-fg);
-  --graphical-fg: var(--success-fg);
-  color: var(--fg);
-}
-
-.warning:not(.specificity_hack),
-.warn:not(.specificity_hack) {
-  --highlight-tint: color-mix(
-    in srgb,
-    var(--warning-color) var(--highlight-opacity),
-    transparent
-  );
-  --alt-control-bg: var(--highlight-tint);
-  background-color: var(--highlight-tint);
-
-  --fg: var(--warning-fg);
-  --graphical-fg: var(--warning-fg);
-  color: var(--fg);
-}
-
-.subtle{
-  opacity: 0.5;
-}
-
-.error:not(.specificity_hack),
-.danger:not(.specificity_hack),
-.bad:not(.specificity_hack),
-input:invalid:not(.specificity_hack) {
-  --highlight-tint: color-mix(
-    in srgb,
-    var(--danger-color) var(--highlight-opacity),
-    transparent
-  );
-  --alt-control-bg: var(--highlight-tint);
-  background-color: var(--highlight-tint);
-
-  --fg: var(--danger-fg);
-  --graphical-fg: var(--danger-fg);
-  background-color: color-mix(
-    in srgb,
-    var(--danger-color) var(--highlight-opacity),
-    transparent
-  );
-  color: var(--fg);
-}
-
-/*Apply control bg only to some elements, not meters*/
-.error:not(.specificity_hack),
-.danger:not(.specificity_hack),
-.bad:not(.specificity_hack),
-.highlight:not(.specificity_hack),
-.success:not(.specificity_hack),
-.warning:not(.specificity_hack),
-input:invalid:not(.specificity_hack) {
-  &:not(meter),
-  & :is(input, button, textarea, select, .button) {
-    --control-bg: var(--highlight-tint);
-
-    /* Hacky duplication */
-    --concave-shadow: color-mix(
-      in srgb,
-      var(--3d-shadow) 40%,
-      var(--control-bg)
-    );
-    --concave-highlight: color-mix(
-      in srgb,
-      var(--3d-highlight) 60%,
-      var(--control-bg)
-    );
-    --concave-item-bg: linear-gradient(
-      180deg,
-      var(--concave-shadow) 4px,
-      var(--concave-highlight) 43%
-    );
-    --convex-item-bg: linear-gradient(
-      180deg,
-      var(--concave-highlight) 0%,
-      var(--concave-shadow) 96%
-    );
-  }
-}
-
-.highlight.paper {
-  background-color: color-mix(
-    in srgb,
-    var(--highlight-color) 35%,
-    var(--box-bg)
-  );
-}
-
-.success.paper {
-  background-color: color-mix(in srgb, var(--success-color) 35%, var(--box-bg));
-}
-
-.warning.paper {
-  background-color: color-mix(in srgb, var(--warning-color) 25%, var(--box-bg));
-}
-
-.error.paper {
-  background-color: color-mix(in srgb, var(--error-color) 25%, var(--box-bg));
-}
-
-/******************The tool bar *************************/
-/*This class very much needs some refactoring */
-.multibar {
-  flex-basis: content;
-  flex-grow: 5;
-  flex-direction: row;
-  display: flex;
-  height: fit-content;
-  flex-basis: max-content;
-  flex-wrap: wrap;
-}
-
-.tool-bar {
-  user-select: none;
-}
-
-.multibar .tool-bar {
-  width: unset;
-}
-
-.tool-bar,
-.pagination {
-  --tool-bar-element-border: var(--control-border);
-  --header-padding: 0px;
-  flex-basis: max-content;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: stretch;
-  border-radius: var(--control-border-radius);
-  min-height: var(--control-height);
-  flex-grow: 1;
-  vertical-align: middle;
-  height: fit-content;
-  align-items: flex-start;
-  align-content: flex-start;
-  box-sizing: border-box;
-  background-clip: content-box;
-  gap: 0px;
-  line-height: calc(
-    var(--control-height) - calc(var(--control-border-width) * 2 + 1px)
-  );
-
-  & > * {
-    text-wrap: nowrap;
-  }
-
-  /*Undo any effect something else set on convex elements for consistency*/
-  & :is(button, .button) {
-    box-shadow: none;
-    display: inline-block;
-  }
-
-  & > li {
-    display: inline;
-  }
-
-  & img {
-    display: inline;
-  }
-
-  & a {
-    display: block;
-    text-align: center;
-    padding-inline-start: var(--padding);
-    padding-inline-end: var(--padding);
-  }
-
-  & > *,
-  & > input,
-  & > a {
-    box-sizing: border-box;
-    font-size: inherit;
-    height: var(--control-height);
-    color: var(--control-fg);
-  }
-
-  & :is(a, .button, select, input, meter, button, label, li) {
-    border-radius: 0px;
-    flex-shrink: 1;
-    border-radius: 0px;
-  }
-
-  & :is(a, .button, select, button) {
-    align-items: stretch;
-    border-radius: 0px;
-    flex-shrink: 1;
-    border-radius: 0px;
-  }
-
-  & :only-child {
-    flex-grow: 1;
-  }
-
-  & form {
-    border: 0px !important;
-    margin: 0px !important;
-    padding: 0px !important;
-    flex-grow: 50;
-    border: 0px !important;
-    display: flex;
-    flex-basis: fit-content;
-    border: none !important;
-    border-radius: var(--control-border-radius);
-  }
-
-  & form :is(button, input[type="button"], select) {
-    flex-grow: 1;
-  }
-
-  & :is(h1, h2, h3, h4, h5, h6) * {
-    border: none;
-    margin: 0px;
-    padding: 0px;
-
-    & :first-child {
-      flex-grow: 10;
-    }
-  }
-
-  & :is(h1, h2, h3, h4, h5, h6) {
-    margin: 0px;
-    padding-top: 1px;
-    padding-bottom: 0px;
-    vertical-align: middle;
-    text-align: center;
-    display: flex;
-    min-width: fit-content;
-    flex-grow: 50;
-  }
-
-  & p {
-    &:not(:has(input)) {
-      padding-inline-start: var(--padding);
-      padding-inline-end: var(--padding);
-      padding-top: 1px;
-    }
-
-    min-width: fit-content;
-    display: flex;
-    flex-grow: 2;
-    margin: 0px;
-
-    &:has(
-        input:not(
-            [type="submit"],
-            [type="range"],
-            [type="checkbox"],
-            [type="radio"],
-            [type="button"]
-          )
-      ) {
-      flex-grow: 50;
-    }
-
-    & :first-child {
-      flex-grow: 5;
-    }
-  }
-
-  & :is(a, .button, button) {
-    width: fit-content;
-  }
-
-  & :is(a, .button, button, input[type="submit"]) {
-    flex-grow: 1;
-  }
-
-  /*Most likely to make good use of the extra space*/
-
-  & input:not([type="submit"], [type="checkbox"], [type="radio"]),
-  & select {
-    flex-grow: 50;
-  }
-
-  & li,
-  & a,
-  & p,
-  & div,
-  & h1,
-  & h2,
-  & h3,
-  & h4,
-  & h5,
-  & label,
-  & meter,
-  & input[type="submit"] {
-    background: var(--convex-item-bg);
-  }
-
-  & meter,
-  & input[type="range"] {
-    min-height: 100%;
-    flex-grow: 25;
-    width: 4em;
-    flex-basis: 4em;
-  }
-
-  & input[type="range"] {
-    flex-basis: 4em;
-    flex-grow: 20;
-    background: var(--concave-item-bg);
-  }
-
-  /*repeat here, specificity issue*/
-  & input[type="checkbox"].toggle {
-    width: calc(var(--control-height) * 1.77) !important;
-    min-width: calc(var(--control-height) * 1.77) !important;
-  }
-
-  & > label,
-  li {
-    margin: 0px;
-    padding-top: 0px;
-    padding-bottom: 0px;
-    vertical-align: middle;
-    min-width: fit-content;
-    padding-top: 1px;
-
-    display: inline-flex;
-    flex-wrap: wrap;
-    gap: var(--padding);
-    border-top: var(--tool-bar-element-border);
-    border-bottom: var(--tool-bar-element-border);
-    border: 0px;
-    text-align: right;
-    place-content: flex-start;
-    align-items: flex-start;
-
-    &:has(
-        input:not(
-            [type="submit"],
-            [type="range"],
-            [type="checkbox"],
-            [type="radio"],
-            [type="button"]
-          )
-      ) {
-      flex-grow: 50;
-    }
-
-    &:has(meter) {
-      flex-grow: 10;
-    }
-
-    & > input {
-      background-color: var(--alt-control-bg);
-
-      &:not([type="checkbox"], [type="radio"]) {
-        flex-grow: 5;
-        border-top: none;
-        border-bottom: none;
-        border-inline-end: none;
-      }
-    }
-
-    & > :is(input, select, meter):not(.specificity-hack) {
-      max-height: 100%;
-    }
-
-    &:last-child {
-      padding-inline-end: 0px;
-    }
-
-    &:first-child:not(li) {
-      flex-grow: 0.05;
-    }
-
-    &:is(input, select) {
-      border: none;
-    }
-  }
-
-  /*:not(i) is for icons*/
-  &
-    > :is(
-      a,
-      .button,
-      li,
-      select,
-      p,
-      h1,
-      h2,
-      h3,
-      h4,
-      h5,
-      h6,
-      label,
-      input,
-      meter,
-      button,
-      .input-group-prepend
-    ):first-child,
-  &
-    :is(
-      a,
-      .button,
-      li,
-      select,
-      p,
-      h1,
-      h2,
-      h3,
-      h4,
-      h5,
-      h6,
-      input,
-      meter,
-      button,
-      form,
-      .input-group-prepend
-    ):first-child
-    :first-child:not(i) {
-    border-radius: var(--control-border-radius) 0px 0px
-      var(--control-border-radius);
-    margin-inline-start: 0px;
-  }
-
-  &
-    > :is(
-      a,
-      .button,
-      li,
-      select,
-      p,
-      h1,
-      h2,
-      h3,
-      h4,
-      h5,
-      h6,
-      label,
-      input,
-      meter,
-      button,
-      .input-group-append
-    ):last-child,
-  &
-    :is(
-      a,
-      .button,
-      li,
-      select,
-      p,
-      h1,
-      h2,
-      h3,
-      h4,
-      h5,
-      h6,
-      label,
-      meter,
-      button,
-      form,
-      .input-group-append
-    ):last-child
-    :last-child:not(i):not(.toggle) {
-    border-radius: 0px var(--control-border-radius) var(--control-border-radius)
-      0px;
-    margin-inline-end: 0px;
-  }
-
-  &
-    > :is(
-      a,
-      .button,
-      li,
-      select,
-      p,
-      h1,
-      h2,
-      h3,
-      h4,
-      h5,
-      h6,
-      label,
-      input,
-      meter,
-      button,
-      .input-group-append
-    ):first-child:last-child {
-    border-radius: var(--control-border-radius) var(--control-border-radius)
-      var(--control-border-radius) var(--control-border-radius);
-  }
-
-  & meter::-webkit-meter-inner-element {
-    -webkit-appearance: inherit;
-    box-sizing: inherit;
-    border: var(--control-border);
-    height: var(--control-height);
-  }
-
-  & > *:not(meter),
-  & > form > *:not(meter) {
-    border: var(--tool-bar-element-border);
-  }
-
-  & > meter {
-    height: var(--control-height);
-    border: var(--tool-bar-element-border);
-    padding: 0px;
-  }
-
-  & > input:not([type="submit"]) {
-    border: var(--tool-bar-element-border);
-  }
-
-  & label {
-    /*Label BG should match element bg*/
-    &:has(input[type="range"]) {
-      background: var(--concave-item-bg);
-    }
-
-    & > input[type="range"] {
-      background: none;
-    }
-  }
-
-  & .spacer {
-    flex-grow: 1;
-  }
-}
-
-.flex-col > .tool-bar {
-  flex-grow: 0;
-}
-
-/*Meters, ranges, Scrollbars*/
-
-/* Firefox */
-* {
-  scrollbar-width: var(--scrollbar-width);
-  scrollbar-color: var(--control-fg) var(--control-bg);
-}
-
-/* Other browsers */
-::-webkit-scrollbar {
-  width: var(--scrollbar-width);
-  background-color: color-mix(in srgb, var(--accent-color) 30%, transparent);
-}
-
-::-webkit-scrollbar-track {
-  background-color: color-mix(
-    in srgb,
-    var(--accent-color) 15%,
-    var(--control-bg)
-  );
-  border-radius: 0px;
-}
-
-::-webkit-scrollbar-thumb {
-  background-color: var(--control-fg);
-  border-radius: calc(min(var(--border-radius), 5px));
-  border: none;
-}
-
-::-webkit-scrollbar-corner {
-  background-color: color-mix(
-    in srgb,
-    var(--accent-color) 20%,
-    var(--control-bg)
-  );
-  border-radius: 0px 0px 4px 0px;
-}
-
-::-webkit-scrollbar-button {
-  background-color: color-mix(
-    in srgb,
-    var(--accent-color) 20%,
-    var(--control-bg)
-  );
-}
-
-::-webkit-scrollbar-button:vertical:decrement {
-  border-radius: 6px 6px 0px 0px;
-}
-
-::-webkit-scrollbar-button:vertical:increment {
-  border-radius: 0px 0px 0px 0px;
-}
-
-/* The Range inputs */
-
-/****/
-input[type="range"] {
-  -webkit-appearance: none;
-  appearance: none;
-  background-color: transparent;
-  border: none;
-  --concave-item-box-shadow: none;
-}
-
-input[type="range"]::-webkit-slider-runnable-track {
-  background-color: color-mix(
-    in srgb,
-    var(--control-bg) 70%,
-    var(--control-fg)
-  );
-  border: var(--control-border);
-  border-radius: 250px;
-  height: calc(var(--control-height) / 3);
-}
-
-input[type="range"]::-webkit-slider-thumb {
-  margin-top: -7.8px;
-  width: calc(var(--control-height) / 1.6);
-  height: calc(var(--control-height) / 1.2);
-  background: var(--slider-thumb);
-  border: var(--control-border);
-  border-width: 2px;
-  border-radius: 100px;
-  -webkit-appearance: none;
-}
-
-input[type="range"]::-moz-range-track {
-  background-color: color-mix(
-    in srgb,
-    var(--control-bg) 70%,
-    var(--control-fg)
-  );
-  border: var(--control-border);
-  border-radius: 250px;
-  height: calc(var(--control-height) / 3);
-}
-
-input[type="range"]::-moz-range-thumb {
-  width: calc(var(--control-height) / 1.6);
-  height: calc(var(--control-height) / 1.2);
-  background: var(--slider-thumb);
-  border: var(--control-border);
-  border-width: 2px;
-  border-radius: 100px;
-}
-
-/*Meter element */
-
-progress {
-  height: var(--control-height);
-
-  /* For Firefox */
-  background: var(--control-bg);
-  box-shadow: var(--concave-item-box-shadow);
-  border-radius: var(--control-border-radius);
-}
-
-progress::-webkit-progress-bar {
-  background: var(--control-bg);
-  box-shadow: var(--concave-item-box-shadow);
-  border-radius: var(--control-border-radius);
-}
-
-progress::-webkit-progress-value {
-  background-color: var(--highlight-color);
-  border-radius: var(--control-border-radius);
-}
-
-progress::-moz-progress-bar {
-  background-color: var(--highlight-color);
-  border-radius: var(--control-border-radius);
-}
-
-meter {
-  height: var(--control-height);
-
-  /* For Firefox */
-  border-radius: var(--control-border-radius);
-  border-color: var(--control-border-color);
-  padding: 0px;
-}
-
-/*Try to make it look kinda like webkit*/
-@supports (-moz-appearance: none) {
-  meter,
-  .tool-bar > label > meter {
-    height: 12px;
-    margin-top: calc((calc(var(--control-height) - 12px)) / 2);
-    box-shadow: var(--concave-item-box-shadow);
-    background: var(--concave-item-bg);
-    min-height: 12px;
-    border-radius: 60px;
-  }
-
-  .tool-bar {
-    & label {
-      & meter {
-        min-height: 12px;
-      }
-    }
-  }
-}
-
-*::-moz-meter-bar {
-  width: 100% !important;
-  display: block !important;
-  flex-grow: 1;
-  height: 10px;
-  background: var(--control-bg);
-  border: var(--thin-border);
-  border-radius: var(--control-border-radius);
-}
-
-/* WebKit */
-
-meter::-webkit-meter-optimum-value,
-meter::-webkit-meter-suboptimum-value,
-meter::-webkit-meter-even-less-good-value {
-  transition: 0.15s linear width;
-}
-
-meter::-webkit-meter-bar {
-  border-color: var(--control-border-color);
-  background: var(--control-bg);
-  box-shadow: var(--concave-item-box-shadow);
-  border-radius: var(--control-border-radius);
-}
-
-meter::-webkit-meter-optimum-value,
-meter::-webkit-meter-suboptimum-value,
-meter::-webkit-meter-even-less-good-value {
-  border-radius: var(--control-border-radius);
-}
-
-meter::-webkit-meter-optimum-value {
-  background: var(--success-color);
-}
-
-meter::-webkit-meter-suboptimum-value {
-  background: var(--warning-color);
-}
-
-meter::-webkit-meter-even-less-good-value {
-  background: var(--danger-color);
-}
-
-meter:-moz-meter-optimum::-moz-meter-bar {
-  background: var(--success-color);
-}
-
-meter:-moz-meter-sub-optimum::-moz-meter-bar {
-  background: var(--warning-color);
-}
-
-meter:-moz-meter-sub-sub-optimum::-moz-meter-bar {
-  background: var(--danger-color);
-}
-
-/*Checkbox*/
-
-input[type="checkbox"],
-input[type="radio"],
-:is(input[type="checkbox"], input[type="radio"])::before {
-  -webkit-print-color-adjust: exact;
-  /* Chrome, Safari 6 – 15.3, Edge */
-  color-adjust: exact;
-  /* Firefox 48 – 96 */
-  print-color-adjust: exact;
-}
-
-input[type="checkbox"],
-input[type="radio"] {
-  -webkit-appearance: none;
-  border-radius: 50px;
-  appearance: none;
-  background: var(--concave-item-bg);
-  box-shadow: var(--concave-item-box-shadow);
-  border: var(--control-border);
-  width: var(--control-height);
-  flex-basis: var(--control-height);
-  height: var(--control-height);
-  flex-grow: 0 !important;
-  --slider-position: 0px;
-}
-
-input[type="radio"] {
-  &::before {
-    transition:
-      background 0.4s ease,
-      height 0.1s ease,
-      width 0.1s ease;
-    background: none;
-    content: "";
-    position: relative;
-    display: inline-block;
-    box-sizing: border-box;
-    border: none;
-    border-radius: 50px;
-    margin: 0px;
-    padding: 0px;
-    top: 5px;
-    left: 5px;
-    height: 0px;
-    width: 0px;
-  }
-
-  &:checked::before {
-    transition:
-      background 0.4s ease,
-      height 0.1s ease,
-      width 0.1s ease;
-    height: calc(
-      calc(var(--control-height) - calc(var(--control-border-width) * 2)) - 10px
-    );
-    width: calc(
-      calc(var(--control-height) - calc(var(--control-border-width) * 2)) - 10px
-    );
-    background: var(--control-fg);
-  }
-}
-
-.numval,
-input[type="number"] {
-  font-family:
-    Fira Code,
-    monospace;
-}
-
-input[type="checkbox"].led {
-  border-radius: 50%;
-  margin: 0px 0px;
-  width: var(--line-height);
-  height: var(--line-height);
-
-  background: rgb(6, 65, 3);
-  box-shadow:
-    #55555500 0 -1px 7px 1px,
-    inset #6d6d6d 0 -1px 9px,
-    rgba(44, 44, 44, 0) 0 2px 12px;
-
-  &.led-red:checked {
-    background: rgb(255, 0, 0);
-    box-shadow:
-      inset #7d3e3e 0 -1px 9px,
-      rgba(243, 0, 0, 0.74) 0 2px 12px;
-  }
-
-  &.led-yellow:checked {
-    background: rgb(251, 255, 0);
-    box-shadow:
-      inset #7d7c3e 0 -1px 9px,
-      rgba(243, 239, 0, 0.74) 0 2px 12px;
-  }
-
-  &.led-green:checked {
-    background: rgb(0 255 0);
-    box-shadow:
-      inset #3f7d3e 0 -1px 9px,
-      rgb(0 243 46 / 74%) 0 2px 12px;
-  }
-
-  &.led-cyan:checked {
-    background: rgb(0, 247, 255);
-    box-shadow:
-      inset #3e7d78 0 -1px 9px,
-      rgba(0, 227, 243, 0.74) 0 2px 12px;
-  }
-
-  &.led-blue:checked {
-    background: rgb(0, 4, 255);
-    box-shadow:
-      inset #443e7d 0 -1px 9px,
-      rgba(0, 16, 243, 0.74) 0 2px 12px;
-  }
-
-  &.led-purple:checked {
-    background: rgb(255, 0, 234);
-    box-shadow:
-      inset #7d3e7a 0 -1px 9px,
-      rgba(243, 0, 243, 0.74) 0 2px 12px;
-  }
-}
-
-input[type="checkbox"]:not(.toggle, .led) {
-  border-radius: calc(var(--control-border-radius) / 2);
-
-  &:checked {
-    position: relative;
-  }
-
-  &::before {
-    transition:
-      border-color 0.4s ease,
-      width 0.25s ease,
-      height 0.25s ease;
-    width: 0px;
-    height: 0px;
-    content: "";
-    background: transparent;
-    border-color: transparent;
-    display: block;
-    position: relative;
-  }
-
-  &:checked::before {
-    transition:
-      border-color 0.4s ease,
-      width 0.25s ease,
-      height 0.25s ease;
-    content: "";
-    transform: rotate(45deg);
-
-    margin: 0px;
-    padding: 0px;
-    border-color: var(--control-fg);
-
-    border-bottom: 4px solid;
-    border-right: 4px solid;
-    left: calc(var(--control-height) / 4);
-
-    height: calc(var(--control-height) / 1.3);
-    width: calc(var(--control-height) / 2.3);
-  }
-}
-
-input[type="checkbox"].toggle {
-  border-radius: 50px;
-  width: calc(var(--control-height) * 1.77) !important;
-  min-width: calc(var(--control-height) * 1.77) !important;
-
-  --slider-position: var(--control-border-width);
-
-  &:checked {
-    background: var(--highlight-color);
-    position: relative;
-    --slider-position: calc(
-      calc(var(--control-height) * 0.777) + var(--control-border-width)
-    );
-  }
-
-  &:before {
-    content: "";
-    position: relative;
-    display: inline-block;
-    box-sizing: border-box;
-    border: var(--control-border);
-    left: var(--slider-position);
-    top: var(--control-border-width);
-    border-radius: 50px;
-    margin: 0px;
-    padding: 0px;
-    height: calc(100% - calc(var(--control-border-width) * 2));
-    aspect-ratio: 1;
-    background: var(--convex-item-bg);
-    transition:
-      left 0.25s ease,
-      background 0.4s ease;
-  }
-}
-
-/*Catch icons*/
-i[class],
-button i[class] {
-  color: var(--graphical-fg);
-  vertical-align: middle;
-}
-
-/*Animation and behavior*/
-button,
-a,
-input,
-select,
-tr,
-label {
-  &::after {
-    transition: color 0.2s ease;
-  }
-}
-
-@media (hover: hover) {
-  button:hover,
-  .button:hover,
-  a:hover,
-  button:hover :not(i, b, small, span),
-  a:hover :not(i, b, small, span),
-  .tool-bar > :hover,
-  .tool-bar > a:hover,
-  input:not([type="submit"]):not([type="range"]):hover,
-  header:not(.undecorated)
-    > :only-child
-    :is(button, .button, input:is([type="submit"], [type="button"])):hover,
-  header:not(.undecorated)
-    > .tool-bar:only-child
-    :is(input, button, select, a):hover,
-  input:hover,
-  select:hover,
-  tr:hover {
-    &:not(:active):not(.specificity_hack) {
-      color: var(--accent-color);
-      --fg: var(--accent-color);
-      background: var(--hover-color);
-      --control-fg: var(--accent-color);
-    }
-  }
-
-  /*Non toolbsar things don't have a background normally*/
-  .tool-bar input[type="range"]:hover,
-  .tool-bar label:hover {
-    background: var(--hover-color);
-  }
-}
-
-::selection {
-  background: var(--highlight-color);
-}
-
-::-moz-selection {
-  background: var(--highlight-color);
-}
-
-/*Vue*/
-
-/* Loading spinner */
-
-[v-cloak],
-[x-cloak] {
-  display: block;
-  padding: 50px 0;
-}
-
-@keyframes spinner {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-[v-cloak]:before,
-[x-cloak]:before {
-  content: "";
-  box-sizing: border-box;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: min(4em, 80%);
-  height: min(4em, 80%);
-  margin-top: -10px;
-  margin-left: -10px;
-  border-radius: 50%;
-  border: 8px solid var(--control-bg);
-  border-top-color: var(--control-fg);
-  animation: spinner 0.6s linear infinite;
-  text-indent: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-}
-
-[v-cloak] > *,
-[x-cloak] > * {
-  display: none !important;
-}
-
-/* JSON Editor Compatibility */
-
-.je-modal {
-  border-radius: var(--border-radius);
-  background-color: var(--box-bg);
-  border: var(--border);
-  box-shadow: var(--window-box-shadow);
-  position: absolute;
-  z-index: 10;
-}
-
-.je-indented-panel:not(.specificity_hack) {
-  border: none;
-  margin: 3px;
-  padding: 3px;
-}
-
-.je-object__container {
-  margin: 3px;
-  border: var(--border);
-  border-radius: var(--border-radius);
-  padding: var(--padding);
-  box-shadow: var(--item-box-shadow);
-}
-
-.je-tab--top:not(.specificity_hack) {
-  border-color: var(--fg-color);
-  border-width: 2px;
-  border-top-left-radius: var(--control-border-radius);
-  border-top-right-radius: var(--control-border-radius);
-  box-shadow: var(--window-box-shadow);
-  background: var(--control-bg) !important;
-}
-
-.je-header > span {
-  font-weight: bold;
-}
-
-.je-indented-panel--top:not(.specificity) {
-  margin-left: 3px;
-  padding-left: 3px;
-}
-
-.je-indented-panel {
-  .form-control {
-    display: flex;
-    flex-direction: column;
-
-    & > label:is(:first-child) {
-      font-weight: bold;
-    }
-    & > input,
-    & > select,
-    & > textarea,
-    & > p {
-      margin-left: var(--gap);
-    }
-    & > p {
-      color: var(--graphical-fg);
-      font-size: 80%;
-    }
-  }
-}
-
-.json-editor-btn-edit_properties {
-  border: none;
-  padding: 4px;
-  &:before {
-    content: "⚙️";
-  }
-  span {
-    display: none;
-  }
-}
-
-.json-editor-btn-add {
-  border: none;
-  padding: 4px;
-  &:before {
-    content: "➕";
-  }
-  span {
-    display: none;
-  }
 }
