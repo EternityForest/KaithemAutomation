@@ -815,7 +815,7 @@ header {
       flex-grow: 1;
       margin: 0px;
 
-      &:not(.highlight, .danger, .warning, .success, .tool-bar) {
+      &:not(.highlight, .danger, .warning, .success, .muted, .tool-bar) {
         --control-bg: none;
         --convex-item-bg: none;
       }
@@ -1112,7 +1112,6 @@ table {
     display: flex;
     flex-direction: column;
     flex: 1 1 0%;
-    overflow: auto;
     border-radius: 0px;
     border: none;
     summary {
@@ -1222,6 +1221,9 @@ header:not(.undecorated) .tool-bar {
   display: flex;
   flex-direction: column;
 
+  gap: var(--gap);
+  padding: var(--padding);
+
   & label:has(*) {
     display: inline-block;
     text-align: start;
@@ -1278,15 +1280,10 @@ header:not(.undecorated) .tool-bar {
     & > :is(input:not(input[type='radio'], input[type='checkbox'])) {
       width: 100%;
       max-width: 100%;
-      margin-top: 8px;
     }
 
     & > :is(select) {
       max-width: max-content;
-    }
-
-    &:has(input[type='radio'], input[type='checkbox']) {
-      flex-direction: row;
     }
   }
 
@@ -2433,6 +2430,13 @@ input:invalid:not(.specificity_hack) {
     border: var(--tool-bar-element-border);
   }
 
+  & * a{
+    border: none;
+    background: none;
+    height: unset;
+  }
+
+  
   & label {
     /*Label BG should match element bg*/
     &:has(input[type='range']) {
