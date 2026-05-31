@@ -144,6 +144,10 @@ Then add a MatterControllerClient device via the UI.  All commisioned devices wi
 
 Info for devs here on the wiki (https://github.com/EternityForest/KaithemAutomation/wiki/Development)
 
+### Build dependencies
+Dashbeard(https://github.com/EternityForest/Dashbeard) must be cloned into the same folder you cloned this repo into.
+
+### Setup
 
 ```bash
 uv sync

@@ -9,6 +9,7 @@ Change Log
 * [bug] Widget APIs no longer echo messages back to the same client that sent them.
 * [sparkles] Generator effects now work with tag points
 * [bug] Deleted devices could leave behind alerts
+* [sparkles] Preview of the alpha Dashboard creator.
 
 
 ### 0.95.0
