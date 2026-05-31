@@ -165,7 +165,10 @@ async def addresourcetarget(module, rtype, path=""):
     kwargs = dict(await request.form)
     kwargs.update(request.args)
 
-    check_forbidden(kwargs["name"])
+    if rtype == "directory":
+        check_forbidden(kwargs["name"], ".")
+    else:
+        check_forbidden(kwargs["name"])
 
     @copy_current_request_context
     def f():
@@ -174,8 +177,6 @@ async def addresourcetarget(module, rtype, path=""):
         path = path = kwargs.get("dir", "")
 
         modules_state.recalcModuleHashes()
-
-        check_forbidden(kwargs["name"])
 
         name_with_path = kwargs["name"]
         if path:

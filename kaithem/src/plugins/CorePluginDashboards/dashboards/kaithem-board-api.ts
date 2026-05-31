@@ -19,7 +19,7 @@ export class KaithemBoardAPI implements IBoardBackend {
     // folder is a virtual path like "/board/subfolder" or "/public_resources"
     // Map to the backend list endpoint
     const response = await fetch(
-      `/api/dashboards/${encodeURIComponent(this.boardId)}/files/list?subfolder=${encodeURIComponent(folder)}`,
+      `/api/dashboards/${encodeURIComponent(this.boardId)}/files/list?path=${encodeURIComponent(folder)}`,
       {
         method: 'GET',
         headers: {

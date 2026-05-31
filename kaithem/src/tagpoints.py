@@ -475,21 +475,22 @@ class GenericTagPointClass(Generic[T]):
 
                     # We don't want the web connection to be able to keep the tag alive
                     # so don't give it a reference to us
-                    self._weakApiHandler: Callable[[str, T | None], None] = (
-                        self._makeWeakApiHandler(weakref.ref(self))
+                    self._weakApiHandler = self._makeWeakApiHandler(
+                        weakref.ref(self)
                     )
-                    w.attach(self._weakApiHandler)
+
+                    w.attach2(self._weakApiHandler)
 
                     self._data_source_widget = w
 
     @staticmethod
     def _makeWeakApiHandler(
         wr: weakref.ref[GenericTagPointClass[T]],
-    ) -> Callable[[str, T | None], None]:
-        def f(u: str, v: T | None):
+    ) -> Callable[[str, T | None, str], None]:
+        def f(u: str, v: T | None, conn_id: str):
             x = wr()
             if x:
-                x._apiHandler(u, v)
+                x._apiHandler(u, v, conn_id)
 
         return f
 
@@ -498,7 +499,7 @@ class GenericTagPointClass(Generic[T]):
         with lock:
             return list(self._alerts.values())
 
-    def _apiHandler(self, acting_user: str, v: T | None):
+    def _apiHandler(self, acting_user: str, v: T | None, conn_id: str):
         if v is None:
             if self._apiClaim:
                 self._apiClaim.release()

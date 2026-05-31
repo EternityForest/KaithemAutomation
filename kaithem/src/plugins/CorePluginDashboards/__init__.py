@@ -125,16 +125,20 @@ class DashboardFilesAPI:
         # Normalize path - remove leading slash
         path = path.lstrip("/")
 
-        if path.startswith("board/"):
+        # Use exact match or proper path prefix to avoid false positives
+        # Check for exact match first, then prefix match
+        if path == "board" or path.startswith("board/"):
             # Board folder - maps to resource.d folder
-            relative_path = path[6:]  # Remove "board/" prefix
+            relative_path = path[6:] if path.startswith("board/") else ""
             base_path = modules.filename_for_file_resource(
                 module, resource + ".d"
             )
             return base_path, relative_path
-        elif path.startswith("public_resources/"):
+        elif path == "public_resources" or path.startswith("public_resources/"):
             # Public resources - maps to public_resources/ in module root
-            relative_path = path[17:]  # Remove "public_resources/" prefix
+            relative_path = (
+                path[17:] if path.startswith("public_resources/") else ""
+            )
             base_path = modules.filename_for_file_resource(
                 module, "public_resources"
             )
@@ -174,7 +178,7 @@ class DashboardFilesAPI:
             mimetypes.guess_type(target_path)[0] or "application/octet-stream"
         )
 
-        with open(target_path) as f:
+        with open(target_path, "rb") as f:
             return f.read(), mime_type
 
     @staticmethod
@@ -186,13 +190,37 @@ class DashboardFilesAPI:
         Supports virtual paths:
         - /board/... -> lists from board's .d folder
         - /public_resources/... -> lists from module's public_resources folder
+        - "" (empty) -> lists virtual root folders (imaginary folders)
 
         Returns dict with {resources: [...], error: ...}.
         """
+        subfolder = subfolder.removeprefix("/")
         module, resource = parseDashboardId(dashboard_id)
 
+        # Return virtual root folders when empty path is provided
+        if not subfolder:
+            return {
+                "resources": [
+                    {
+                        "name": "board",
+                        "type": "folder",
+                        "url": f"/api/dashboards/{dashboard_id}/files/list?path=board",
+                    },
+                    {
+                        "name": "public_resources",
+                        "type": "folder",
+                        "url": f"/api/dashboards/{dashboard_id}/files/list?path=public_resources",
+                    },
+                ],
+                "error": None,
+            }
+
         # Determine base path and relative path based on virtual path
-        if subfolder.startswith("public_resources"):
+        # Use exact match or proper path prefix to avoid false positives
+        # (e.g., "board" should match but "board_something" should not)
+        if subfolder == "public_resources" or subfolder.startswith(
+            "public_resources/"
+        ):
             # Public resources folder
             if subfolder.startswith("public_resources/"):
                 relative_path = subfolder[
@@ -203,7 +231,7 @@ class DashboardFilesAPI:
             base_path = modules.filename_for_file_resource(
                 module, "public_resources"
             )
-        elif subfolder.startswith("board"):
+        elif subfolder == "board" or subfolder.startswith("board/"):
             # Board folder
             if subfolder.startswith("board/"):
                 relative_path = subfolder[6:]  # Remove "board/" prefix
@@ -213,11 +241,8 @@ class DashboardFilesAPI:
                 module, resource + ".d"
             )
         else:
-            # Default to board folder for backward compatibility
-            base_path = modules.filename_for_file_resource(
-                module, resource + ".d"
-            )
-            relative_path = subfolder
+            # Unknown path - return empty list with error
+            return {"resources": [], "error": f"Unknown path: {subfolder}"}
 
         try:
             target_path = (
@@ -229,14 +254,21 @@ class DashboardFilesAPI:
             resources = []
             for filename in os.listdir(target_path):
                 filepath = os.path.join(target_path, filename)
+                virtual_path = (
+                    f"{subfolder}/{filename}" if subfolder else filename
+                )
 
-                # Skip directories in listing (they're just organization)
-                if os.path.isfile(filepath):
-                    stat = os.stat(filepath)
-                    # Build the virtual path for URL construction
-                    virtual_path = (
-                        f"{subfolder}/{filename}" if subfolder else filename
+                if os.path.isdir(filepath):
+                    resources.append(
+                        {
+                            "name": os.path.basename(filepath),
+                            "size": 0,
+                            "type": "folder",
+                            "url": f"/api/dashboards/{dashboard_id}/files/list?path={virtual_path}",
+                        }
                     )
+                elif os.path.isfile(filepath):
+                    stat = os.stat(filepath)
                     resources.append(
                         {
                             "name": os.path.basename(filepath),
@@ -267,10 +299,10 @@ async def list_resources_endpoint(boardid: str):
     """List resources in a subfolder.
 
     Query params:
-    - subfolder: virtual path like "/board/subfolder" or "/public_resources"
+    - path: virtual path like "/board/subfolder" or "/public_resources"
     """
     web.require("system_admin")
-    subfolder = request.args.get("subfolder", "")
+    subfolder = request.args.get("path", "")
     result = DashboardFilesAPI.list_resources(boardid, subfolder)
     return jsonify(result)
 

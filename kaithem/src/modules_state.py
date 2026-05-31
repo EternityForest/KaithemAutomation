@@ -116,7 +116,7 @@ def get_module_metadata(module: str) -> dict[str, Any]:
 
 
 @validate_args
-def check_forbidden(s: str) -> None:
+def check_forbidden(s: str, allow="") -> None:
     if not s:
         raise ValueError("Resource or module name cannot be empty")
 
@@ -125,6 +125,8 @@ def check_forbidden(s: str) -> None:
 
     for i in s:
         if i in FORBID_CHARS:
+            if i in allow:
+                continue
             raise ValueError(f"{s} contains {i}")
 
     if s[0] == "/":
@@ -369,7 +371,12 @@ def raw_insert_resource(
         # prevent non-jsonable data
         _dummy = json.dumps(resource_data_mutable)
 
-        check_forbidden(resource)
+        rtype = resource_data_mutable["resource"]["type"]
+        if rtype == "directory":
+            check_forbidden(resource, ".")
+        else:
+            check_forbidden(resource)
+
         assert resource[0] != "/"
 
         # todo maybe we don't need os independence
