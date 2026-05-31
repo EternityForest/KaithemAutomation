@@ -1,19 +1,23 @@
 """
-Kaithem plugin for Dashboards resource type and file management.
-Provides storage, APIs, and UI for managing dashboard boards and their assets (images, CSS, etc).
+Kaithem plugin for Dashboards resource type and
+file management.
+Provides storage, APIs,
+and UI for managing dashboard boards and their assets (images, CSS, etc).
 """
 
 import logging
 import os
 import shutil
+import time
+from collections.abc import Mapping
 from typing import Any
 from urllib.parse import quote
 
-import quart
 from quart import Blueprint, jsonify, request
 
 # Import Kaithem APIs
-from kaithem.api import modules, resource_types, web
+from kaithem.api import modules, resource_types, web, widgets
+from kaithem.api.modules import mutable_copy_resource
 from kaithem.api.web import quart_app
 from kaithem.api.web.dialogs import SimpleDialog
 from kaithem.src import modules_state
@@ -23,6 +27,9 @@ logger = logging.getLogger(__name__)
 
 # dashboard-resource-{module}-{resource} to
 # (module, resource)
+
+
+refresher_widgets: dict[str, widgets.APIWidget] = {}
 
 
 def parseDashboardId(id: str):
@@ -44,6 +51,18 @@ class DashboardResourceType(resource_types.ResourceType):
             priority=50.0,
             title="Dashboard",
         )
+
+    def blurb(
+        self, module: str, resource: str, data: modules_state.ResourceDictType
+    ) -> str:
+        url = f"/static/vite/kaithem/src/plugins/CorePluginDashboards/dashboards/index.html?board={quote(module)}:{quote(resource)}"  # noqa: E501
+
+        return f"""
+        <div data-testid="dashbeard-blurb-{quote(resource)}">
+            <a href="{url}&dashboard-mode=edit" class="btn" data-testid="edit-db-map" >Edit</a>
+            <a href="{url}&dashboard-mode=view" class="btn" data-testid="view-db-map" target="_blank">View</a>
+        </div>
+        """  # noqa: E501
 
     def create_page(self, module, path):
         d = SimpleDialog(f"New {self.type.capitalize()} in {module}")
@@ -77,6 +96,19 @@ class DashboardResourceType(resource_types.ResourceType):
     ):
         """Initialize dashboard when loaded."""
 
+        if (
+            f"dashboard-resource-{module}-{resource}-refresher"
+            not in refresher_widgets
+        ):
+            refresher_widgets[
+                f"dashboard-resource-{module}-{resource}-refresher"
+            ] = widgets.APIWidget(
+                False, id=f"dashboard-resource-{module}-{resource}-refresher"
+            )
+        refresher_widgets[
+            f"dashboard-resource-{module}-{resource}-refresher"
+        ].send(time.time())
+
     def on_delete(
         self, module: str, resource: str, data: modules.ResourceDictType
     ):
@@ -90,14 +122,50 @@ class DashboardResourceType(resource_types.ResourceType):
                 "Error cleaning up dashboard files for %s/%s", module, resource
             )
 
+        try:
+            widgetid = f"dashboard-resource-{module}-{resource}"
+            del refresher_widgets[widgetid]
+        except Exception:
+            logger.exception(
+                "Error cleaning up dashboard refresher widget for %s/%s",
+                module,
+                resource,
+            )
+
     def edit_page(
         self, module: str, resource: str, data: modules_state.ResourceDictType
     ):
-        """Redirect to the full-page dashboard editor."""
+        d = SimpleDialog("Editing Dashboard Metadata")
+        d.text_input(
+            "permissions",
+            title="Permissions (comma-separated)",
+            default=data.get("board", {}).get("permissions", ""),
+        )
+        d.submit_button("Save")
+        return d.render(self.get_update_target(module, resource))
 
-        url = f"/static/vite/kaithem/src/plugins/CorePluginDashboards/dashboards/index.html?board={quote(module)}:{quote(resource)}"
+    def on_update_request(
+        self,
+        module: str,
+        resource: str,
+        data: modules_state.ResourceDictType,
+        kwargs: dict[str, Any],
+    ):
+        """Handle updating dashboard permissions."""
+        # Preserve the board data and update permissions
+        board_data = data.get("board", {}).copy()
+        board_data["permissions"] = kwargs.get("permissions", "")
 
-        return quart.redirect(url)
+        # Return updated data
+        result = mutable_copy_resource(data)
+        result["board"] = board_data
+        return result
+
+    def on_update(self, module, resource: str, data: Mapping[str, Any]):
+        refresher_widgets[
+            f"dashboard-resource-{module}-{resource}-refresher"
+        ].send(time.time())
+        return super().on_update(module, resource, data)
 
 
 # Register the resource type
@@ -151,7 +219,7 @@ class DashboardFilesAPI:
             return base_path, path
 
     @staticmethod
-    def get_file(dashboard_id: str, path: str) -> tuple[str, str] | None:
+    def get_file(dashboard_id: str, path: str) -> tuple[bytes, str] | None:
         """
         Get a file's content and MIME type.
         Returns (content, mime_type) or None if not found.
@@ -204,12 +272,12 @@ class DashboardFilesAPI:
                     {
                         "name": "board",
                         "type": "folder",
-                        "url": f"/api/dashboards/{dashboard_id}/files/list?path=board",
+                        "url": f"/api/dashboards/{dashboard_id}/files/list?path=board",  # noqa: E501
                     },
                     {
                         "name": "public_resources",
                         "type": "folder",
-                        "url": f"/api/dashboards/{dashboard_id}/files/list?path=public_resources",
+                        "url": f"/api/dashboards/{dashboard_id}/files/list?path=public_resources",  # noqa: E501
                     },
                 ],
                 "error": None,
@@ -264,7 +332,7 @@ class DashboardFilesAPI:
                             "name": os.path.basename(filepath),
                             "size": 0,
                             "type": "folder",
-                            "url": f"/api/dashboards/{dashboard_id}/files/list?path={virtual_path}",
+                            "url": f"/api/dashboards/{dashboard_id}/files/list?path={virtual_path}",  # noqa: E501
                         }
                     )
                 elif os.path.isfile(filepath):
@@ -274,7 +342,7 @@ class DashboardFilesAPI:
                             "name": os.path.basename(filepath),
                             "size": stat.st_size,
                             "type": "file",
-                            "url": f"/api/dashboards/{dashboard_id}/files/get?path={virtual_path}",
+                            "url": f"/api/dashboards/{dashboard_id}/files/get?path={virtual_path}",  # noqa: E501
                         }
                     )
 
@@ -294,6 +362,27 @@ class DashboardFilesAPI:
 api_bp = Blueprint("dashboard_api", __name__, url_prefix="/api/dashboards")
 
 
+def _check_board_permission(boardid: str):
+    """Check if user has permission to access the board."""
+    module, resource = parseDashboardId(boardid)
+    board_data = modules_state.ActiveModules[module][resource]["board"]
+
+    permissions = board_data.get("permissions", "").strip()
+    if not permissions:
+        return
+
+    perm_list = [p.strip() for p in permissions.split(",") if p.strip()]
+    for perm in perm_list:
+        try:
+            web.require(perm)
+        except PermissionError:
+            continue
+        else:
+            break
+    else:
+        raise PermissionError("No permission to access this board")
+
+
 @api_bp.route("/<boardid>/files/list", methods=["GET"])
 async def list_resources_endpoint(boardid: str):
     """List resources in a subfolder.
@@ -301,7 +390,7 @@ async def list_resources_endpoint(boardid: str):
     Query params:
     - path: virtual path like "/board/subfolder" or "/public_resources"
     """
-    web.require("system_admin")
+    _check_board_permission(boardid)
     subfolder = request.args.get("path", "")
     result = DashboardFilesAPI.list_resources(boardid, subfolder)
     return jsonify(result)
@@ -310,7 +399,7 @@ async def list_resources_endpoint(boardid: str):
 @api_bp.route("/<boardid>/files/get", methods=["GET"])
 async def get_file_endpoint(boardid: str):
     """Get a file."""
-    web.require("system_admin")
+    _check_board_permission(boardid)
     path = request.args.get("path")
     if not path:
         return jsonify({"error": "Missing path"}), 400
@@ -326,7 +415,7 @@ async def get_file_endpoint(boardid: str):
 @api_bp.route("/<boardid>/load", methods=["GET"])
 async def load_board_endpoint(boardid: str):
     """Load a board from Kaithem."""
-    web.require("system_admin")
+    _check_board_permission(boardid)
     module, resource = parseDashboardId(boardid)
     board_data = modules_state.ActiveModules[module][resource]["board"]
     return jsonify({"board": board_data, "error": None})
@@ -336,6 +425,7 @@ async def load_board_endpoint(boardid: str):
 async def save_board_endpoint(boardid: str):
     """Save a board to Kaithem."""
     web.require("system_admin")
+
     module, resource = parseDashboardId(boardid)
 
     try:
@@ -357,7 +447,15 @@ async def save_board_endpoint(boardid: str):
                 },
             )
 
+        try:
+            refresher_widgets[
+                f"dashboard-resource-{module}-{resource}-refresher"
+            ].send(time.time())
+        except Exception:
+            pass
         return jsonify({"success": True, "error": None})
+    except PermissionError:
+        return jsonify({"error": "Permission denied"}), 403
     except Exception as e:
         logger.exception("Error saving board")
         return jsonify({"error": str(e)}), 500
@@ -367,6 +465,8 @@ async def save_board_endpoint(boardid: str):
 async def get_system_themes_endpoint():
     """Get list of available system themes."""
     from kaithem.api import settings as api_settings
+
+    web.require("enumerate_endpoints")
 
     themes = api_settings.get_system_themes()
     return jsonify({"themes": themes, "error": None})

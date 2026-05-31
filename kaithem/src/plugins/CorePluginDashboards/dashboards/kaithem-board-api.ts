@@ -6,12 +6,24 @@
 
 import { BoardDefinition } from 'dashbeard/src/boards/board-types.ts';
 import type { FileMetadata, IBoardBackend, SystemTheme } from 'dashbeard/src/editor/types.ts';
+import { kaithemapi } from '/static/js/widget.mjs';
 
 export class KaithemBoardAPI implements IBoardBackend {
   private boardId: string;
 
+  private ignoreCount = 0;
+
   constructor(boardId: string) {
     this.boardId = boardId;
+
+    kaithemapi.subscribe(boardId + "-refresher", () => {
+      if(this.ignoreCount > 0) {
+        this.ignoreCount--;
+        return;
+      }
+      globalThis.location.reload();
+    });
+    
   }
 
 
@@ -67,6 +79,7 @@ export class KaithemBoardAPI implements IBoardBackend {
 
   async save(board: BoardDefinition): Promise<void> {
     try {
+      this.ignoreCount++;
       const response = await fetch(
         `/api/dashboards/${encodeURIComponent(this.boardId)}/save`,
         {
@@ -87,6 +100,7 @@ export class KaithemBoardAPI implements IBoardBackend {
         throw new Error(data.error);
       }
     } catch (error) {
+      this.ignoreCount = 0;
       console.error('Error saving board:', error);
       throw error;
     }
