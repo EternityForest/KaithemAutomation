@@ -1221,6 +1221,9 @@ header:not(.undecorated) .tool-bar {
   display: flex;
   flex-direction: column;
 
+  gap: var(--gap);
+  padding: var(--padding);
+
   & label:has(*) {
     display: inline-block;
     text-align: start;
@@ -1277,15 +1280,10 @@ header:not(.undecorated) .tool-bar {
     & > :is(input:not(input[type='radio'], input[type='checkbox'])) {
       width: 100%;
       max-width: 100%;
-      margin-top: 8px;
     }
 
     & > :is(select) {
       max-width: max-content;
-    }
-
-    &:has(input[type='radio'], input[type='checkbox']) {
-      flex-direction: row;
     }
   }
 
@@ -2432,6 +2430,13 @@ input:invalid:not(.specificity_hack) {
     border: var(--tool-bar-element-border);
   }
 
+  & * a{
+    border: none;
+    background: none;
+    height: unset;
+  }
+
+  
   & label {
     /*Label BG should match element bg*/
     &:has(input[type='range']) {
