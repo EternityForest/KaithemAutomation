@@ -78,6 +78,7 @@ dependencies = [
     "types-jsonschema",
     "stamina>=24.2.0",
     "stream-zip>=0.0.83",
+    "pycrdt>=0.11.0",
     "argon2-cffi",
     "msgpack-types",
     "niquests>=3.15.1",
