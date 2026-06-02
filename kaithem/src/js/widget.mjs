@@ -340,6 +340,8 @@ if (globalThis.kaithemapi == undefined) {
           globalThis.setTimeout(() => {
             this.wpoll();
           }, 250);
+
+          globalThis.dispatchEvent(new Event('kaithemapi_connected'));
         });
 
         this.lastSend = 0;

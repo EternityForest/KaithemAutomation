@@ -34,6 +34,14 @@ export function getDocument(documentName: string): Y.Doc {
 
     // Wait for WebSocket subscription to establish, then fetch initial state
     setTimeout(() => {
+
+        // Ensure that we refetch the initial state if the
+        // connection is re-established due to
+        // a temporary network issue or server restart
+        globalThis.addEventListener('kaithemapi_connected', () => {
+            fetchInitialState(documentName, document_);
+        });
+
         fetchInitialState(documentName, document_);
     }, 60);
 

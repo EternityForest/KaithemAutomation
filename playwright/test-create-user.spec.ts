@@ -42,7 +42,7 @@ test("test", async ({ page }) => {
 
   await login_as(page, "test_user", "1234");
 
-  await expect(page.getByRole("banner")).toContainText("Logout(test_user)");
+  await expect(page.getByTestId("k-main-header-toolbar")).toContainText("Logout(test_user)");
 
   page.once("dialog", (dialog) => {
     console.log(`Dialog message: ${dialog.message()}`);
