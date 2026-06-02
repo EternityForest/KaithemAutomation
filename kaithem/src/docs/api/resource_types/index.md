@@ -127,7 +127,7 @@ Must return a resource object given all the kwargs from the createpage.
 Called on submitting create form.  This should not actually do anything
 besides create the resource object.
 
-#### edit_page(module: [str](../../src/pages/index.md#kaithem.src.pages.str), resource: [str](../../src/pages/index.md#kaithem.src.pages.str), data: [ResourceDictType](#kaithem.api.resource_types.ResourceDictType)) → [str](../../src/pages/index.md#kaithem.src.pages.str)
+#### edit_page(module: [str](../../src/pages/index.md#kaithem.src.pages.str), resource: [str](../../src/pages/index.md#kaithem.src.pages.str), data: [ResourceDictType](#kaithem.api.resource_types.ResourceDictType)) → [str](../../src/pages/index.md#kaithem.src.pages.str) | quart.Response | werkzeug.Response
 
 Given current resource data, return a manager page.
 It may submit a form to the URL at get_update_target()

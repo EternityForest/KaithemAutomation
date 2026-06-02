@@ -645,6 +645,7 @@ label,
 .tool-bar :is(p, h1, h2, h3, h4, h5) {
   text-shadow: var(--control-text-shadow);
 }
+
 .tool-bar input[type='file'] {
   padding: 0px;
 }
@@ -2183,7 +2184,7 @@ input:invalid:not(.specificity_hack) {
     flex-grow: 1;
   }
 
-  & * a{
+  & *>a:not(.specifity-hack):not(.specificity_hack) {
     border: none;
     background: none;
     height: unset;
