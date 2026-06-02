@@ -74,21 +74,23 @@ def _sync_alerts_to_yjs():
         alerts_map = doc.get("alerts", type=pycrdt.Map)
 
         with lock:
-            # Clear and rebuild the map
-            for key in list(alerts_map.keys()):
-                del alerts_map[key]
+            with doc.transaction():
+                # Clear and rebuild the map
+                for key in list(alerts_map.keys()):
+                    del alerts_map[key]
 
-            for alert_ref in active.values():
-                alert = alert_ref()
-                if alert:
-                    alerts_map[alert.id] = {
-                        "name": alert.name,
-                        "state": alert.sm.state,
-                        "priority": alert.priority,
-                        "description": alert.description,
-                        "message": alert.trip_message,
-                        "zone": alert.zone,
-                    }
+                for alert_ref in active.values():
+                    alert = alert_ref()
+                    if alert:
+                        alerts_map[alert.id] = {
+                            "name": alert.name,
+                            "id": alert.id,
+                            "state": alert.sm.state,
+                            "priority": alert.priority,
+                            "description": alert.description,
+                            "message": alert.trip_message,
+                            "zone": alert.zone,
+                        }
     except Exception:
         logger.exception("Failed to sync alerts to YJS")
 
@@ -584,12 +586,11 @@ class Alert:
         self.trip_message = msg
 
 
-# REST endpoint to acknowledge an alert by name
-@quart_app.app.route("/api/alerts/ack/<path:alert_name>", methods=["POST"])
+@quart_app.app.route("/api/alerts/ack/<path:alert_id>", methods=["POST"])
 @quart_app.wrap_sync_route_handler
-def acknowledge_alert(alert_name: str):
+def acknowledge_alert(alert_id: str):
     """
-    Acknowledge an alert by name. Requires acknowledge_alerts permission.
+    Acknowledge an alert by ID. Requires acknowledge_alerts permission.
     """
     try:
         pages.require("users/alerts.acknowledge")
@@ -598,19 +599,14 @@ def acknowledge_alert(alert_name: str):
 
     # Find alert by name (not id)
     alert_to_ack = None
-    with lock:
-        for alert_ref in all.values():
-            alert = alert_ref
-            if alert and alert.name == alert_name:
-                alert_to_ack = alert
-                break
+    alert_to_ack = all.get(alert_id)
 
     if not alert_to_ack:
-        return {"error": f"Alert '{alert_name}' not found"}, 404
+        return {"error": f"Alert '{alert_id}' not found"}, 404
 
     # Check if already acknowledged
     if alert_to_ack.sm.state in ("acknowledged", "normal"):
         return {"message": "Alert already acknowledged"}, 200
 
     alert_to_ack.acknowledge(by="api")
-    return {"message": f"Alert '{alert_name}' acknowledged"}, 200
+    return {"message": f"Alert '{alert_id}' acknowledged"}, 200

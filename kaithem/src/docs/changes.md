@@ -10,6 +10,8 @@ Change Log
 * [sparkles] Generator effects now work with tag points
 * [bug] Deleted devices could leave behind alerts
 * [sparkles] Preview of the alpha Dashboard creator.
+* [sparkles] Front page alerts now powered by our new YJS core primitive.
+
 
 
 ### 0.95.0

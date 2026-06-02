@@ -8,6 +8,7 @@ import { LitElement, html, css } from 'lit';
 import { getDocument } from './yjs-provider.ts';
 
 interface AlertInfo {
+  id: string, 
   name: string;
   state: string;
   priority: string;
@@ -180,7 +181,7 @@ export class KaithemAlerts extends LitElement {
                 ? html`
                     <button
                       class="ack-button"
-                      @click="${() => this._ackAlert(alert.name)}"
+                      @click="${() => this._ackAlert(alert.id)}"
                     >
                       ACK
                     </button>

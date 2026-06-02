@@ -59,7 +59,7 @@ test('test', async ({ page }) => {
     
 
     // Should be logged in
-    await expect(page.getByRole('banner')).toContainText('Logout');
+    await expect(page.getByTestId("k-main-header-toolbar")).toContainText('Logout');
     await page.getByRole('link', { name: 'Tools' }).click();
     await page.getByRole('link', { name: 'My Account' }).click();
 
@@ -102,7 +102,7 @@ test('test', async ({ page }) => {
     await login_as(page, 'testgroupuser', '1234');
 
     // New password should work
-    await expect(page.getByRole('banner')).toContainText('Logout');
+    await expect(page.getByTestId("k-main-header-toolbar")).toContainText('Logout');
 
     
     await logout(page);

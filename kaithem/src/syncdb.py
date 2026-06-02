@@ -65,7 +65,11 @@ class SyncDatabase:
                 raise ValueError(f"SyncDatabase {name} already exists")
             allSyncDbs[name] = weakref.ref(self)
 
+        self.yjs_doc.observe(self._on_doc_update)
         logger.info("SyncDatabase created", name=name)
+
+    def _on_doc_update(self, evt: pycrdt.TransactionEvent):
+        self.broadcast_update(evt.update)
 
     def _on_widget_message(self, acting_user: str, value: Any, conn_id: str):
         """Handle incoming messages from the widget subscription."""
