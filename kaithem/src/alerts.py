@@ -71,10 +71,11 @@ def _sync_alerts_to_yjs():
     """Push current alert state to YJS document."""
     try:
         doc = get_alerts_sync_doc().yjs_doc
-        alerts_map = doc.get("alerts", type=pycrdt.Map)
 
         with lock:
-            with doc.transaction():
+            with doc.new_transaction():
+                alerts_map = doc.get("alerts", type=pycrdt.Map)
+
                 # Clear and rebuild the map
                 for key in list(alerts_map.keys()):
                     del alerts_map[key]
