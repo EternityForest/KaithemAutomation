@@ -159,33 +159,13 @@ export class KaithemAlerts extends LitElement {
     return html`
       ${alertList.map(
         (alert) => html`
-          <div class="alert ${this._getPriorityClass(alert.priority)} flex-row margin padding">
+          <div class="alert ${this._getPriorityClass(alert.priority)} margin flex-row margin padding">
             <div class="flex-col grow">
-              <heading>${alert.name}</heading>
+              <header>${alert.name}</header>
               <div class="alert-message">${alert.message || alert.description}</div>
             </div>
             <div style="display: flex; align-items: center; gap: 8px;" class="no-grow">
               <span class="alert-state">${alert.state}</span>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -273,7 +253,7 @@ export class KaithemNotifications extends LitElement {
           (n) => {
             const topic = n[1] || '';
             return html`
-              <div class="alert ${this._getClass(topic)} flex-row gaps">
+              <div class="alert ${this._getClass(topic)} margin flex-row gaps">
                 <small class="no-grow w-6rem">${new Date((n[0] || 0) * 1000).toLocaleString()}</small>
                 <p class="grow">${n[2] || ''}</p>
               </div>

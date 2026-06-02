@@ -1,84 +1,35 @@
-{% extends "pagetemplate.j2.html" %}
+{% set theming = imp0rt( 'kaithem.src.theming' ) %}
+{% set config = imp0rt( 'kaithem.src.config' ).config %}
 
-{% block title %}Notifications{% endblock %}
-
-{% block head %}
-<link rel="stylesheet" type="text/css" href="/dynamic.css/{{ theming.theme_ver }}">
-<link rel="stylesheet" type="text/css" href="{{ theming.getCSSTheme() or config['theme-url'] }}">
-<script type="module" src="/static/vite/assets/alerts_component.js"></script>
-{% endblock %}
-
-{% block body %}
-<div id="app" class="w-full">
-    <!-- Lit-based alerts component for dropdown -->
-    <kaithem-alerts show-ack-button max-alerts="5"></kaithem-alerts>
-
-    <transition-group name="notificationstg" tag="div">
-            <div v-for="i in notifications.slice().reverse()" :key="i[0]">
-                <div v-bind:class="getClass(i)" style="border-radius: 12px; padding: 4px; margin: 8px;">
-                    <b>{{"{{"}}formatTime(i[0]){{"}}"}}</b>
-                    <p>{{"{{"}}i[2]{{"}}"}}</p>
-                </div>
-            </div>
-    </transition-group>
-</div>
-</main>
+<html>
+  <head>
+  <link rel="stylesheet" type="text/css" href="/static/css/barrel.css">
+  <link rel="stylesheet" type="text/css" href="/static/css/kaithem.css">
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="/dynamic.css/{{ theming.theme_ver }}"
+    />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="{{ theming.getCSSTheme() or config['theme-url'] }}"
+    />
 
 
+    <script
+      type="module"
+      src="/static/vite/assets/alerts_component.js"
+    ></script>
+  </head>
 
-<script type="module">
-    import {APIWidget} from "/static/js/widget.mjs?"
-    let api = new APIWidget("{{ api.uuid }}");
+  <body>
+    <div class="w-full">
+      <!-- Lit-based alerts component for dropdown -->
+      <kaithem-alerts show-ack-button max-alerts="5"></kaithem-alerts>
 
-    var app = new Vue({
-        el: '#app',
-        data: {
-            notifications: [],
-            getClass: function(i) {
-
-                if (i[1].includes("errors")) {
-                    return 'error notification'
-                }
-                 if (i[1].includes("important")) {
-                    return 'highlight notification'
-                }
-                 if (i[1].includes("warning")) {
-                    return 'warning notification'
-                }
-                if (i[2].includes("Alarm") && i[2].includes("is active")) {
-                    return 'notification warning'
-                }
-                if (i[2].includes("Alarm")) {
-                    return 'notification'
-                }
-
-                if( window.location.search.indexOf('summary')>-1)
-                {
-                    return 'invisible'
-                }
-
-                else{
-                    return "notification"
-                }
-            },
-
-            formatTime: function(t) {
-                var date = new Date(t * 1000);
-                return date.toLocaleDateString();
-            }
-        }
-    });
-
-    api.upd = function(msg) {
-        if (msg[0] == "all") {
-            app.$data.notifications = msg[1]
-        }
-        if (msg[0] == 'notification') {
-            app.$data.notifications.push(msg[1])
-            app.$data.notifications = app.$data.notifications.slice(-100)
-        }
-    }
-
-
-</script>
-{% endblock %}
+      <!-- Lit-based notifications component -->
+      <kaithem-notifications source="{{ api.uuid }}"></kaithem-notifications>
+    </div>
+  </body>
+</html>

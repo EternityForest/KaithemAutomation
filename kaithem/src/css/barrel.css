@@ -2934,21 +2934,24 @@ label {
 /*Alert boxes*/
 .alert {
     padding: 8px 12px;
-    margin: 4px 0;
+    margin: 4px 4px;
     border-radius: var(--border-radius);
     display: flex;
     justify-content: space-between;
     align-items: center;
     border-left: 6px solid var(--fg);
     color: var(--graphical-fg);
+    box-shadow: var(--item-box-shadow);
 
       & header {
         font-family: var(--heading-font);
-        color: var(--accent-color);
+        color: var(--fg-color);
         font-weight: bold;
+        border: none !important;
+        background: transparent !important;
       }
 
-        &.warning {
+      &.warning {
         border-color: var(--warning-color);
       }
 
