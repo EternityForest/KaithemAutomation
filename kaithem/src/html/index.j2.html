@@ -1,0 +1,35 @@
+{% extends "pagetemplate.j2.html" %}
+
+{% block title %}Kaithem Automation{% endblock %}
+
+{% block head %}
+<meta http-equiv="refresh" content="240" />
+{% endblock %}
+
+{% block body %}
+<script type="module" src="/static/vite/assets/alerts_component.js"></script>
+
+<div style="display: flex; flex-wrap: wrap; justify-content: center;" class="margin">
+
+    <div style="flex-basis: 20%; text-align: center;"><div class="decorative-image-main decorative-image" style="height: 16em; width:16em; max-width: 80vw; margin: auto;"></div></div>
+
+    <section style="flex-basis: 60%; max-width: 32em;  min-width: 22em;" class="window">
+    <p class="align-center">{{ config['front_page_banner'] }}</p>
+    </section>
+
+    <div style="flex-basis: 20%; min-width: 12em;"></div>
+</div>
+
+    <div class="window margin">
+        <header>
+            <h2>Active Alerts</h2>
+        </header>
+        <kaithem-alerts show-ack-button max-alerts="10"></kaithem-alerts>
+    </div>
+
+            <div class="window margin">
+                <header>
+                <h2>Notifications</h2></header>
+                <kaithem-notifications source="{{ api.uuid }}"></kaithem-notifications>
+            </div>
+{% endblock %}

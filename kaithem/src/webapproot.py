@@ -27,7 +27,6 @@ from kaithem.src.asgimiddleware.dispatcher import AsgiDispatcher
 from kaithem.src.chandler import web  # noqa: F401
 
 from . import (
-    alerts,
     devices,
     directories,
     messagebus,
@@ -101,8 +100,8 @@ def index_default(*path, **data):
         pages.require("view_status")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
-    r = pages.get_template("index.html").render(
-        api=notifications.api, alertsapi=alerts.api
+    r = pages.render_jinja_template(
+        "index.j2.html", api=notifications.api, config=config
     )
     r2 = quart.Response(r)
     r2.set_cookie("LastSawMainPage", str(time.time()))
@@ -115,8 +114,8 @@ def index_direct():
         pages.require("view_status")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
-    r = pages.get_template("index.html").render(
-        api=notifications.api, alertsapi=alerts.api
+    r = pages.render_jinja_template(
+        "index.j2.html", api=notifications.api, config=config
     )
     r2 = quart.Response(r)
     r2.set_cookie("LastSawMainPage", str(time.time()))
@@ -129,8 +128,8 @@ def dropdownpanel():
         pages.require("view_status")
     except PermissionError:
         return pages.loginredirect(pages.geturl())
-    return pages.get_template("dropdownpanel.html").render(
-        api=notifications.api, alertsapi=alerts.api
+    return pages.render_jinja_template(
+        "dropdownpanel.j2.html", api=notifications.api
     )
 
 

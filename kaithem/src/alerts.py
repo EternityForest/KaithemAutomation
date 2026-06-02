@@ -6,6 +6,7 @@ import uuid
 import weakref
 from typing import Any
 
+import pycrdt
 import structlog
 from scullery import statemachines, workers
 
@@ -14,6 +15,8 @@ from kaithem.src.validation_util import validate_args
 from . import (
     messagebus,
     pages,
+    quart_app,
+    syncdb,
     widgets,
 )
 
@@ -46,6 +49,49 @@ tripped: dict[str, weakref.ref[Alert]] = {}
 _tripped: dict[str, weakref.ref[Alert]] = {}
 
 all: weakref.WeakValueDictionary[str, Alert] = weakref.WeakValueDictionary()
+
+# YJS-based sync for alerts - syncs alert state across clients
+_alerts_sync_doc: syncdb.SyncDatabase | None = None
+
+
+def get_alerts_sync_doc() -> syncdb.SyncDatabase:
+    """Get or create the alerts sync document."""
+    global _alerts_sync_doc
+    if _alerts_sync_doc is None:
+        _alerts_sync_doc = syncdb.SyncDatabase.get("/system/active_alerts")
+        # Set default permissions - anyone with view_status can read,
+        # users/alerts.acknowledge can write
+        _alerts_sync_doc.set_permissions(
+            "view_status", "users/alerts.acknowledge"
+        )
+    return _alerts_sync_doc
+
+
+def _sync_alerts_to_yjs():
+    """Push current alert state to YJS document."""
+    try:
+        doc = get_alerts_sync_doc().yjs_doc
+        alerts_map = doc.get("alerts", type=pycrdt.Map)
+
+        with lock:
+            # Clear and rebuild the map
+            for key in list(alerts_map.keys()):
+                del alerts_map[key]
+
+            for alert_ref in active.values():
+                alert = alert_ref()
+                if alert:
+                    alerts_map[alert.id] = {
+                        "name": alert.name,
+                        "state": alert.sm.state,
+                        "priority": alert.priority,
+                        "description": alert.description,
+                        "message": alert.trip_message,
+                        "zone": alert.zone,
+                    }
+    except Exception:
+        logger.exception("Failed to sync alerts to YJS")
+
 
 priority_to_class = {
     "critical": {"danger": 1},
@@ -89,6 +135,8 @@ def getAlertState() -> dict[str, str | dict[str, Any]]:
 
 def pushAlertState():
     messagebus.post_message("/system/alerts/state", getAlertState())
+    # Also sync to YJS for collaborative access
+    _sync_alerts_to_yjs()
 
 
 priorities = {
@@ -194,30 +242,43 @@ class Alert:
         Create a new Alert object. An alert is a persistant notification
         implemented as a state machine.
 
-        Alerts begin in the "normal" state, and if tripped enter the "tripped"
-        state. An alert remaining in the tripped state for more than "trip_delay"
-        enters the active state and will show in notifications, trigger automated actions
+        Alerts begin in the "normal" state, and if tripped
+          enter the "tripped"
+        state. An alert remaining in the tripped state
+        for more than "trip_delay"
+        enters the active state and will show in notifications,
+          trigger automated actions
         etc.
 
-        An alert may be manually acknowledged at which point it will become "acknowledged"
-        and may stop sounding alarms, etc. An alarm that is "cleared" but
-        not acknowledged, meaning the issue that caused the alarm is no longer present
+        An alert may be manually acknowledged at which point it
+          will become "acknowledged"
+        and may stop sounding alarms, etc. An alarm that is
+          "cleared" but
+        not acknowledged, meaning the issue that caused the alarm
+        is no longer present
         will will still show up until acknowledged.
 
-        An alarm that is tripped while in the cleared state enters the "retripped" state, which
-        can return to active, like tripped, but otherwise acts like cleared.
+        An alarm that is tripped while in the cleared state enters
+          the "retripped" state, which
+        can return to active, like tripped,
+        but otherwise acts like cleared.
 
-        Alarms can self-acknowledge after a certain delay after being cleared, set this
+        Alarms can self-acknowledge after a certain delay
+          after being cleared, set this
         delay using auto_ack. False or 0 disables auto_ack.
 
-        Finally, alarms can be in the "error" state, which is an error with the alarm
-        triggering logic itself. The priority of errored alarms is always
+        Finally, alarms can be in the "error" state,
+          which is an error with the alarm
+        triggering logic itself.
+
+        The priority of errored alarms is always
         temporarily upgraded to error.
 
-        Errored alarms return to the "normal" state when acknowledged and otherwise
-        remain in the error state.
+        Errored alarms return to the "normal" state when
+        acknowledged and otherwise remain in the error state.
 
-        The zone parameter is a hierarchal location specified used to indicate
+        The zone parameter is a hierarchal location specified
+        used to indicate
         it's physical location.
 
         There is no cleanup action required when deleting an alarm, nor
@@ -356,7 +417,8 @@ class Alert:
         pushAlertState()
 
     def _on_normal(self):
-        "Mostly defensive but also cleans up if the autoclear occurs and we skip the acknowledged state"
+        """Mostly defensive but also cleans up if the
+        autoclear occurs and we skip the acknowledged state"""
         global unacknowledged, active, tripped
         if not self.sm.prev_state == "tripped":
             if self.priority in (
@@ -520,3 +582,35 @@ class Alert:
         global unacknowledged
         self.sm.goto("error")
         self.trip_message = msg
+
+
+# REST endpoint to acknowledge an alert by name
+@quart_app.app.route("/api/alerts/ack/<path:alert_name>", methods=["POST"])
+@quart_app.wrap_sync_route_handler
+def acknowledge_alert(alert_name: str):
+    """
+    Acknowledge an alert by name. Requires acknowledge_alerts permission.
+    """
+    try:
+        pages.require("users/alerts.acknowledge")
+    except PermissionError:
+        return {"error": "Permission denied"}, 403
+
+    # Find alert by name (not id)
+    alert_to_ack = None
+    with lock:
+        for alert_ref in all.values():
+            alert = alert_ref
+            if alert and alert.name == alert_name:
+                alert_to_ack = alert
+                break
+
+    if not alert_to_ack:
+        return {"error": f"Alert '{alert_name}' not found"}, 404
+
+    # Check if already acknowledged
+    if alert_to_ack.sm.state in ("acknowledged", "normal"):
+        return {"message": "Alert already acknowledged"}, 200
+
+    alert_to_ack.acknowledge(by="api")
+    return {"message": f"Alert '{alert_name}' acknowledged"}, 200

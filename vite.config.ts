@@ -27,11 +27,30 @@ export default defineConfig({
         "/static/js/thirdparty/picodash/picodash-base.esm.js",
       ],
 
+      output: {
+        manualChunks: (id) => {
+          // Put yjs and related into single chunks
+          if (id.includes('node_modules/yjs') || id.includes('yjs_provider')) {
+            return 'yjs-bundle';
+          }
+        },
+      },
+
       input: {
         // excalidraw: resolve(
         //   __dirname,
         //   "kaithem/src/plugins/CorePluginExcalidraw/next/index.html"
         // ),
+
+        alerts_component: resolve(
+          __dirname,
+          "kaithem/src/js/alerts-component.ts"
+        ),
+
+        yjs_provider: resolve(
+          __dirname,
+          "kaithem/src/js/yjs-provider.ts"
+        ),
 
         dashboards_editor: resolve(
           __dirname,
@@ -71,8 +90,17 @@ export default defineConfig({
       },
       output: {
         assetFileNames: "assets/[name]-[hash][extname]",
-
-        preserveModules: true,
+        entryFileNames: "assets/[name].js",
+        footer: "\n//# sourceMappingURL",
+      },
+      treeshake: {
+        moduleSideEffects: (id) => {
+          // Keep yjs and provider modules
+          if (id.includes('yjs') || id.includes('yjs-provider') || id.includes('alerts-component')) {
+            return true;
+          }
+          return 'no-treeshake';
+        },
       },
     },
   },

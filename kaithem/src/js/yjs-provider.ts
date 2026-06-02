@@ -16,6 +16,7 @@ const documentCache = new Map<string, Y.Doc>();
 
 /**
  * Get a YJS document by name. Creates a new one or returns existing from cache.
+ * Will fetch initial state after WebSocket subscription is established.
  *
  * @param documentName - The name of the document to get
  * @returns The YJS document
@@ -31,7 +32,43 @@ export function getDocument(documentName: string): Y.Doc {
     // Subscribe to the syncdb widget to receive updates
     subscribeToDocument(documentName, document_);
 
+    // Wait for WebSocket subscription to establish, then fetch initial state
+    setTimeout(() => {
+        fetchInitialState(documentName, document_);
+    }, 60);
+
     return document_;
+}
+
+/**
+ * Fetch initial state from server after WebSocket connection is established
+ */
+async function fetchInitialState(documentName: string, document_: Y.Doc): Promise<void> {
+    try {
+        // Get our current state vector
+        const stateVector = Y.encodeStateVector(document_);
+
+        const response = await fetch(`/api/syncdb/${encodeURIComponent(documentName)}/sync`, {
+            method: 'POST',
+            body: stateVector,
+            headers: {
+                'Content-Type': 'application/octet-stream',
+            },
+        });
+
+        if (!response.ok) {
+            console.error('Failed to fetch initial state:', response.status);
+            return;
+        }
+
+        const update = await response.arrayBuffer();
+        if (update.byteLength > 0) {
+            Y.applyUpdate(document_, new Uint8Array(update));
+            console.log('Synced initial state for:', documentName);
+        }
+    } catch (error) {
+        console.error('Error fetching initial state:', error);
+    }
 }
 
 /**

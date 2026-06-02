@@ -815,7 +815,7 @@ header {
       flex-grow: 1;
       margin: 0px;
 
-      &:not(.highlight, .danger, .warning, .success, .muted, .tool-bar) {
+      &:not(.highlight, .danger, .warning, .success, .tool-bar) {
         --control-bg: none;
         --convex-item-bg: none;
       }
@@ -1112,6 +1112,7 @@ table {
     display: flex;
     flex-direction: column;
     flex: 1 1 0%;
+    overflow: auto;
     border-radius: 0px;
     border: none;
     summary {
@@ -2005,6 +2006,7 @@ footer.padding {
 .error:not(.specificity_hack),
 .danger:not(.specificity_hack),
 .bad:not(.specificity_hack),
+.critical:not(.specificity_hack),
 input:invalid:not(.specificity_hack) {
   --highlight-tint: color-mix(
     in srgb,
@@ -2076,7 +2078,7 @@ input:invalid:not(.specificity_hack) {
   background-color: color-mix(in srgb, var(--warning-color) 25%, var(--box-bg));
 }
 
-.error.paper {
+.error.paper, .critical.paper, .danger.paper {
   background-color: color-mix(in srgb, var(--error-color) 25%, var(--box-bg));
 }
 
@@ -2181,6 +2183,11 @@ input:invalid:not(.specificity_hack) {
     flex-grow: 1;
   }
 
+  & * a{
+    border: none;
+    background: none;
+    height: unset;
+  }
   & form {
     border: 0px !important;
     margin: 0px !important;
@@ -2430,13 +2437,6 @@ input:invalid:not(.specificity_hack) {
     border: var(--tool-bar-element-border);
   }
 
-  & * a{
-    border: none;
-    background: none;
-    height: unset;
-  }
-
-  
   & label {
     /*Label BG should match element bg*/
     &:has(input[type='range']) {
@@ -2929,6 +2929,44 @@ label {
     background: var(--hover-color);
   }
 }
+
+
+/*Alert boxes*/
+.alert {
+    padding: 8px 12px;
+    margin: 4px 0;
+    border-radius: var(--border-radius);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-left: 6px solid var(--fg);
+    color: var(--graphical-fg);
+
+      & header {
+        font-family: var(--heading-font);
+        color: var(--accent-color);
+        font-weight: bold;
+      }
+
+        &.warning {
+        border-color: var(--warning-color);
+      }
+
+      &.danger,
+      &.error, &.critical {
+        border-color: var(--danger-color);
+      }
+
+      &.success {
+        border-color: var(--success-color);
+      }
+
+      &.highlight {
+        border-color: var(--highlight-color);
+      }
+  }
+
+
 
 ::selection {
   background: var(--highlight-color);

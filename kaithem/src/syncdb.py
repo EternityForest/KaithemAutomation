@@ -7,9 +7,10 @@ import weakref
 from typing import Any
 
 import pycrdt
+import quart
 import structlog
 
-from . import widgets
+from . import quart_app, widgets
 
 logger = structlog.get_logger(__name__)
 
@@ -38,6 +39,9 @@ class SyncDatabase:
         if not name:
             raise ValueError("SyncDatabase name cannot be empty")
 
+        if not name.startswith("/"):
+            name = "/" + name
+
         # Normalize name - use similar rules to tagpoints
         self.name = name
         """The name of the sync database"""
@@ -57,6 +61,8 @@ class SyncDatabase:
         self._widget.attach2(self._on_widget_message)
 
         with lock:
+            if name in allSyncDbs:
+                raise ValueError(f"SyncDatabase {name} already exists")
             allSyncDbs[name] = weakref.ref(self)
 
         logger.info("SyncDatabase created", name=name)
@@ -121,6 +127,10 @@ class SyncDatabase:
         This is similar to how TagPoints work - creates on demand,
         returns existing if found.
         """
+        global allSyncDbs
+        if not name.startswith("/"):
+            name = "/" + name
+
         with lock:
             if name in allSyncDbs:
                 existing = allSyncDbs[name]()
@@ -132,9 +142,38 @@ class SyncDatabase:
 
     def __del__(self):
         global allSyncDbs
+
         with lock:
             if hasattr(self, "name") and self.name in allSyncDbs:
                 try:
                     del allSyncDbs[self.name]
                 except Exception:
                     pass
+
+
+# State vector sync endpoint
+# Client sends their state vector, server returns updates needed
+@quart_app.app.route("/api/syncdb/<path:document_name>/sync", methods=["POST"])
+async def syncdb_sync(document_name: str):
+    """Sync endpoint - takes client state vector, returns updates needed."""
+    try:
+        # Get or create the sync database
+        doc = SyncDatabase.get(document_name).yjs_doc
+
+        # Read the client's state vector from the request
+        client_state_vector = await quart.request.get_data()
+        assert isinstance(client_state_vector, bytes)
+
+        # If client sends empty bytes, they want the full document
+        if not client_state_vector:
+            # Return full state as update
+            update = doc.get_update()
+        else:
+            # Return updates since client's state vector
+            update = doc.get_update(client_state_vector)
+
+        # Return the update as binary response
+        return quart.Response(update, mimetype="application/octet-stream")
+    except Exception:
+        logger.exception("Failed to sync document", document=document_name)
+        return quart.Response("Sync failed", status=500)
