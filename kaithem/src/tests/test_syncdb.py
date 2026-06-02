@@ -2,6 +2,8 @@
 
 import time
 
+import pycrdt
+
 # Use a global timestamp for test uniqueness
 _test_timestamp = None
 
@@ -62,14 +64,14 @@ def test_syncdb_yjs_integration():
     doc = db.crdt
 
     # Test basic YJS operations with pycrdt
-    yarray = doc.get("test_array", type=doc.Array)
+    yarray = doc.get("test_array", type=pycrdt.Array)
     yarray.append([1, 2, 3])
 
     assert len(yarray) == 3
     assert list(yarray) == [1, 2, 3]
 
     # Test YMap
-    ymap = doc.get("test_map", type=doc.Map)
+    ymap = doc.get("test_map", type=pycrdt.Map)
     ymap["key"] = "value"
 
     assert ymap["key"] == "value"
