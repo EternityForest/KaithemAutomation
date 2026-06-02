@@ -28,7 +28,7 @@ def test_syncdb_create_and_get():
 
     assert db1 is db2
     assert db1.name == name
-    assert db1.yjs_doc is not None
+    assert db1.crdt is not None
 
 
 def test_syncdb_permissions():
@@ -59,7 +59,7 @@ def test_syncdb_yjs_integration():
     name = _get_test_name("/test/syncdb_yjs_test")
 
     db = syncdb.SyncDatabase.get(name)
-    doc = db.yjs_doc
+    doc = db.crdt
 
     # Test basic YJS operations with pycrdt
     yarray = doc.get("test_array", type=doc.Array)

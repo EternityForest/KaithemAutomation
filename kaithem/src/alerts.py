@@ -70,7 +70,7 @@ def get_alerts_sync_doc() -> syncdb.SyncDatabase:
 def _sync_alerts_to_yjs():
     """Push current alert state to YJS document."""
     try:
-        doc = get_alerts_sync_doc().yjs_doc
+        doc = get_alerts_sync_doc().crdt
 
         with lock:
             with doc.new_transaction():

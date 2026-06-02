@@ -46,7 +46,7 @@ class SyncDatabase:
         self.name = name
         """The name of the sync database"""
 
-        self.yjs_doc = pycrdt.Doc()
+        self._crdt = pycrdt.Doc()
         """The underlying YJS document"""
 
         self._widget: widgets.DataSource | None = None
@@ -65,8 +65,15 @@ class SyncDatabase:
                 raise ValueError(f"SyncDatabase {name} already exists")
             allSyncDbs[name] = weakref.ref(self)
 
-        self.yjs_doc.observe(self._on_doc_update)
+        self._crdt.observe(self._on_doc_update)
         logger.info("SyncDatabase created", name=name)
+
+    @property
+    def crdt(self) -> pycrdt.Doc:
+        """The underlying YJS document. To use this class,
+        Interact directly with the CRDT.
+        """
+        return self._crdt
 
     def _on_doc_update(self, evt: pycrdt.TransactionEvent):
         self.broadcast_update(evt.update)
@@ -78,7 +85,7 @@ class SyncDatabase:
 
         # Value should be a YJS update that can be applied to the doc
         try:
-            self.yjs_doc.apply_update(value)
+            self.crdt.apply_update(value)
         except Exception:
             logger.exception("Failed to apply YJS update", database=self.name)
 
@@ -162,7 +169,7 @@ async def syncdb_sync(document_name: str):
     """Sync endpoint - takes client state vector, returns updates needed."""
     try:
         # Get or create the sync database
-        doc = SyncDatabase.get(document_name).yjs_doc
+        doc = SyncDatabase.get(document_name).crdt
 
         # Read the client's state vector from the request
         client_state_vector = await quart.request.get_data()
