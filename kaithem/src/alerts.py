@@ -573,7 +573,7 @@ class Alert:
 
         self.sm.event("acknowledge")
         if not by == "<DELETED>":
-            logger.info(f"Alarm {self.name} acknowledged by{by}{notes}")
+            logger.info(f"Alarm {self.name} acknowledged by {by}{notes}")
 
             if self.priority in ("error", "critical", "warning", "important"):
                 messagebus.post_message(
@@ -609,5 +609,5 @@ def acknowledge_alert(alert_id: str):
     if alert_to_ack.sm.state in ("acknowledged", "normal"):
         return {"message": "Alert already acknowledged"}, 200
 
-    alert_to_ack.acknowledge(by="api")
+    alert_to_ack.acknowledge(by=pages.getAcessingUser())
     return {"message": f"Alert '{alert_id}' acknowledged"}, 200
