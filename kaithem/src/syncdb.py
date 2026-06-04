@@ -10,7 +10,7 @@ import pycrdt
 import quart
 import structlog
 
-from . import quart_app, widgets
+from . import quart_app, widget_api, widgets
 
 logger = structlog.get_logger(__name__)
 
@@ -160,6 +160,129 @@ class SyncDatabase:
                     del allSyncDbs[self.name]
                 except Exception:
                     pass
+
+
+class WebsocketClient:
+    """
+    WebSocket client for syncing a SyncDatabase with a remote server.
+
+    Maintains a weak reference to the database - if the database is deleted,
+    this client will stop.
+    """
+
+    def __init__(
+        self,
+        database: SyncDatabase,
+        server: str,
+        username: str,
+        password: str,
+        server_side_db_name: str | None = None,
+    ):
+        """
+        Initialize the WebSocket client.
+
+        Args:
+            database: The SyncDatabase to sync (kept via weak reference)
+            server: The server URL (e.g., "http://localhost:8010")
+            username: Username for authentication
+            password: Password for authentication
+        """
+        self._db_ref: weakref.ref[SyncDatabase] = weakref.ref(database)
+        self._server = server
+        self._username = username
+        self._password = password
+
+        # The channel name matches the widget ID format
+        self._channel = f"syncdb:{server_side_db_name or database.name}"
+
+        self._client: widget_api.WidgetApiClient | None = None
+        self._running = False
+
+        database.crdt.observe(self._on_doc_update)
+
+        # Start the client
+        self._start()
+
+    def _start(self) -> None:
+        """Start the websocket client."""
+        self._running = True
+
+        # Create the client and subscribe
+        self._client = widget_api.WidgetApiClient(
+            self._server, self._username, self._password
+        )
+
+        # Subscribe to the channel to receive updates
+        self._client.subscribe(self._channel, self._on_message)
+
+    def _on_message(self, value: Any) -> None:
+        """Handle incoming YJS updates."""
+        if value is None:
+            return
+
+        db = self._db_ref()
+        if db is None:
+            # Database was deleted, stop
+            self.close()
+            return
+
+        # Value should be a YJS update that can be applied to the doc
+        try:
+            db.crdt.apply_update(value)
+        except Exception:
+            logger.exception("Failed to apply YJS update", database=db.name)
+
+    def _on_doc_update(self, evt: pycrdt.TransactionEvent):
+        self.send_update(evt.update)
+
+    def send_update(self, update: bytes) -> None:
+        """
+        Send a YJS update to the server.
+
+        Args:
+            update: The YJS update bytes to send
+        """
+        if not self._client:
+            return
+
+        db = self._db_ref()
+        if db is None:
+            self.close()
+            return
+
+        # Send via the widget API - this goes through the widget
+        # which will broadcast to all subscribers including this client
+        self._client.send(self._channel, update)
+
+    def is_connected(self) -> bool:
+        """Check if the client is connected."""
+        return (
+            self._client is not None
+            and self._running
+            and self._client.connected
+        )
+
+    def close(self) -> None:
+        """Close the WebSocket connection. Can be called from any thread."""
+        self._running = False
+
+        if self._client:
+            try:
+                self._client.close()
+            except Exception:
+                logger.exception("Failed to close client")
+            self._client = None
+
+        try:
+            db = self._db_ref()
+            if db:
+                db.crdt.unobserve(self._on_doc_update)
+        except Exception:
+            logger.exception("Failed to unobserve document", database=db.name)
+
+    def __del__(self):
+        """Cleanup when the client is garbage collected."""
+        self.close()
 
 
 # State vector sync endpoint

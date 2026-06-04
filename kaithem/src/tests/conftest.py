@@ -152,5 +152,13 @@ chandlerapi.add_command("foo_command", FooCommand)
     # TODO Sound can't be imported before config init, eventually
     # A refactor should fix that
     import kaithem.src.sound  # noqa
+    import kaithem.src.webapproot
 
     kaithem.src.sound.select_backend("test")
+
+    def f():
+        kaithem.src.webapproot.startServer(False)
+
+    t = threading.Thread(target=f)
+    t.daemon = True
+    t.start()

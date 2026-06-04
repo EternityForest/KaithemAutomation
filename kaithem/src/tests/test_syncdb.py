@@ -3,6 +3,9 @@
 import time
 
 import pycrdt
+import stamina
+
+from kaithem.src import auth, syncdb
 
 # Use a global timestamp for test uniqueness
 _test_timestamp = None
@@ -65,7 +68,7 @@ def test_syncdb_yjs_integration():
 
     # Test basic YJS operations with pycrdt
     yarray = doc.get("test_array", type=pycrdt.Array)
-    yarray.append([1, 2, 3])
+    yarray.extend([1, 2, 3])
 
     assert len(yarray) == 3
     assert list(yarray) == [1, 2, 3]
@@ -87,3 +90,77 @@ def test_syncdb_repr():
 
     assert "SyncDatabase" in repr(db)
     assert name in repr(db)
+
+
+def test_syncdb_websocket_client():
+    """Test that WebsocketClient can connect and sync with a server."""
+
+    # Ensure admin user exists (should already from conftest.py)
+    auth.add_user("admin", "test-admin-password")
+    auth.add_user_to_group("admin", "Administrators")
+
+    name = _get_test_name("/test/syncdb_ws_test")
+
+    # Create a database
+    db = syncdb.SyncDatabase.get(name)
+
+    server_url = "http://localhost:8002"
+
+    # Create a websocket client (this will try to connect)
+    # We just test that it can be created and closed
+    client = syncdb.WebsocketClient(
+        db, server_url, "admin", "test-admin-password"
+    )
+
+    for attempt in stamina.retry_context(on=AssertionError):
+        with attempt:
+            assert client.is_connected()
+
+    # Close the client
+    client.close()
+
+    # Should not be running after close
+    assert not client.is_connected()
+
+
+def test_syncdb_sync_e2e():
+    """End-to-end test: two databases sync via WebsocketClient."""
+    from kaithem.src import auth, syncdb
+
+    # Ensure admin user exists
+    auth.add_user("admin", "test-admin-password")
+    auth.add_user_to_group("admin", "Administrators")
+
+    server_url = "http://localhost:8002"
+
+    name = _get_test_name("/test/syncdb_e2e_test")
+
+    # Create two databases
+    db1 = syncdb.SyncDatabase.get(name)
+    db2 = syncdb.SyncDatabase.get(name + "_mirror")
+
+    client2 = syncdb.WebsocketClient(
+        db2,
+        server_url,
+        "admin",
+        "test-admin-password",
+        server_side_db_name=db1.name,
+    )
+
+    # Wait for connections
+    for attempt in stamina.retry_context(on=AssertionError):
+        with attempt:
+            assert client2.is_connected()
+
+    # Make a change to db1
+    yarray = db1.crdt.get("test_array", type=pycrdt.Array)
+    yarray.extend([1, 2, 3])
+
+    for attempt in stamina.retry_context(on=AssertionError):
+        with attempt:
+            assert len(db2.crdt.get("test_array", type=pycrdt.Array)) == 3
+
+    client2.close()
+
+    assert db1.name == name
+    assert db2.name == name + "_mirror"

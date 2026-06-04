@@ -244,7 +244,7 @@ def license():
     return pages.get_template("help/license.html").render()
 
 
-def startServer():
+def startServer(handle_signals=True):
     quart_app.app.config["MAX_CONTENT_LENGTH"] = 2**62
 
     hypercornapps = {}
@@ -321,8 +321,9 @@ def startServer():
         shutdown_event.set()
         signalhandlers.stop()
 
-    loop.add_signal_handler(signal.SIGTERM, _signal_handler)
-    loop.add_signal_handler(signal.SIGINT, _signal_handler)
+    if handle_signals:
+        loop.add_signal_handler(signal.SIGTERM, _signal_handler)
+        loop.add_signal_handler(signal.SIGINT, _signal_handler)
 
     wrapped_app = ContentSizeLimitMiddleware(dispatcher_app)
 
