@@ -95,11 +95,15 @@ def test_syncdb_yjs_impl_bloat():
 
     sz = len(db.crdt.get_update())
 
+    client_ids_seen = {}
+
     for i in range(500):
         db2 = syncdb.SyncDatabase.get(name + str(i))
         doc2 = db2.crdt
 
         doc2.apply_update(doc.get_update())
+
+        client_ids_seen[doc2.client_id] = True
 
         test = doc.get("test", type=pycrdt.Map)
 
@@ -117,7 +121,27 @@ def test_syncdb_yjs_impl_bloat():
 
     assert sz2 < sz * 3
 
-    assert len(db.crdt.get_state()) < 16000
+    # Be sure that pycrdt is doing it's secret undocumented
+    # background client ID thing
+    assert len(db.crdt.get_state()) < 100
+    assert len(client_ids_seen) > 490
+
+    # But also make sure the state vector expands when
+    # it seems like it should, create some non overlapping
+    # data that seems like it should expand things.
+
+    sz = len(db.crdt.get_state())
+
+    db2 = syncdb.SyncDatabase.get(name + "jhgfdfghjkl")
+    doc2 = db2.crdt
+    test2 = doc2.get("test2", type=pycrdt.Map)
+    test2["key"] = shouldbe
+
+    db.crdt.apply_update(db2.crdt.get_update())
+
+    assert doc.get("test2", type=pycrdt.Map)["key"] == shouldbe
+
+    assert len(db.crdt.get_state()) > sz
 
 
 def test_syncdb_repr():
