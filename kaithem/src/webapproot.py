@@ -244,7 +244,11 @@ def license():
     return pages.get_template("help/license.html").render()
 
 
+loop_stopped = False
+
+
 def startServer(handle_signals=True):
+    global loop_stopped
     quart_app.app.config["MAX_CONTENT_LENGTH"] = 2**62
 
     hypercornapps = {}
@@ -344,3 +348,5 @@ def startServer(handle_signals=True):
     for i in range(5):
         gc.collect()
         time.sleep(0.1)
+
+    loop_stopped = True

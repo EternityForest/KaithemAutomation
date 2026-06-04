@@ -7,6 +7,7 @@
 import os
 import sys
 import threading
+import time
 
 import pytest
 
@@ -48,6 +49,7 @@ def cleanup(request):
         from kaithem.api import lifespan
 
         lifespan.shutdown_now()
+        time.sleep(0.5)
 
     request.addfinalizer(remove_test_dir)
 

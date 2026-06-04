@@ -66,7 +66,6 @@ class SyncDatabase:
             allSyncDbs[name] = weakref.ref(self)
 
         self._crdt.observe(self._on_doc_update)
-        logger.info("SyncDatabase created", name=name)
 
     @property
     def crdt(self) -> pycrdt.Doc:

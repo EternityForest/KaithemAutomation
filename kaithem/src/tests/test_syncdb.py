@@ -80,6 +80,46 @@ def test_syncdb_yjs_integration():
     assert ymap["key"] == "value"
 
 
+def test_syncdb_yjs_impl_bloat():
+    """Make sure the implementation works like we think it does."""
+    from kaithem.src import syncdb
+
+    name = _get_test_name("/test/syncdb_yjs_test")
+
+    db = syncdb.SyncDatabase.get(name)
+    doc = db.crdt
+    shouldbe = 2
+
+    test = doc.get("test", type=pycrdt.Map)
+    test["key"] = shouldbe
+
+    sz = len(db.crdt.get_update())
+
+    for i in range(500):
+        db2 = syncdb.SyncDatabase.get(name + str(i))
+        doc2 = db2.crdt
+
+        doc2.apply_update(doc.get_update())
+
+        test = doc.get("test", type=pycrdt.Map)
+
+        assert isinstance(test["key"], int | float)
+
+        shouldbe += 1
+        # doc2["test"] = pycrdt.Map()
+        test["key"] = shouldbe
+
+        db.crdt.apply_update(db2.crdt.get_update())
+
+    assert doc["test"]["key"] == shouldbe
+
+    sz2 = len(db.crdt.get_update())
+
+    assert sz2 < sz * 3
+
+    assert len(db.crdt.get_state()) < 16000
+
+
 def test_syncdb_repr():
     """Test string representation."""
     from kaithem.src import syncdb
