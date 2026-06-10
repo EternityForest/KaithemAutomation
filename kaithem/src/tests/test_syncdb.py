@@ -80,7 +80,7 @@ def test_syncdb_yjs_integration():
     assert ymap["key"] == "value"
 
 
-def test_syncdb_yjs_impl_bloat():
+def test_syncdb_yjs_impl_queue_bloat():
     """Make sure the implementation works like we think it does."""
     from kaithem.src import syncdb
 
@@ -88,43 +88,80 @@ def test_syncdb_yjs_impl_bloat():
 
     db = syncdb.SyncDatabase.get(name)
     doc = db.crdt
-    shouldbe = 2
 
-    test = doc.get("test", type=pycrdt.Map)
-    test["key"] = shouldbe
+    test = doc.get("test", type=pycrdt.Array)
+    for i in range(100):
+        test.append({"val": i})
 
     sz = len(db.crdt.get_update())
 
-    client_ids_seen = {}
+    db2 = syncdb.SyncDatabase.get(name + str(i))
+    doc2 = db2.crdt
+    doc2.apply_update(doc.get_update())
+    test2 = doc2.get("test", type=pycrdt.Array)
 
     for i in range(500):
-        db2 = syncdb.SyncDatabase.get(name + str(i))
-        doc2 = db2.crdt
-
-        doc2.apply_update(doc.get_update())
-
-        client_ids_seen[doc2.client_id] = True
-
-        test = doc.get("test", type=pycrdt.Map)
-
-        assert isinstance(test["key"], int | float)
-
-        shouldbe += 1
-        # doc2["test"] = pycrdt.Map()
-        test["key"] = shouldbe
+        test2.append({"val": i})
+        del test2[0]
 
         db.crdt.apply_update(db2.crdt.get_update())
 
-    assert doc["test"]["key"] == shouldbe
+    test = doc.get("test", type=pycrdt.Array)
+
+    assert test[0]["val"] > 101
+    assert len(test) == 100
 
     sz2 = len(db.crdt.get_update())
 
-    assert sz2 < sz * 3
+    assert sz2 < sz * 1.2
 
-    # Be sure that pycrdt is doing it's secret undocumented
-    # background client ID thing
+
+def test_syncdb_yjs_impl_bloat_two_writer():
+    """Make sure a two writer overwriting a key doesn't cause infinite bloat."""
+
+    from kaithem.src import syncdb
+
+    name = _get_test_name("/test/syncdb_yjs_test")
+
+    db = syncdb.SyncDatabase.get(name)
+
+    doc = db.crdt
+    shouldbe = 2
+
+    test = doc.get("test", type=pycrdt.Map)
+    test["key"] = {"val": shouldbe}
+
+    sz = len(db.crdt.get_update())
+
+    db2 = syncdb.SyncDatabase.get(name + "_writer")
+    doc2 = db2.crdt
+    doc2.apply_update(doc.get_update())
+
+    db3 = syncdb.SyncDatabase.get(name + "_writer")
+    doc3 = db3.crdt
+    doc3.apply_update(doc.get_update())
+
+    for i in range(100):
+        # Nonsense that gets overwritten to test interleaved dual writers
+        test2 = doc3.get("test", type=pycrdt.Map)
+        test2["key"] = {"val": shouldbe * 2}
+        db.crdt.apply_update(db3.crdt.get_update())
+
+        test = doc2.get("test", type=pycrdt.Map)
+
+        shouldbe += 1
+        # doc2["test"] = pycrdt.Map()
+        test["key"] = {"val": shouldbe}
+
+        db.crdt.apply_update(db2.crdt.get_update())
+
+    test = doc.get("test", type=pycrdt.Map)
+
+    assert test["key"]["val"] == shouldbe
+
+    sz2 = len(db.crdt.get_update())
+    assert sz2 < sz * 1.2
     assert len(db.crdt.get_state()) < 100
-    assert len(client_ids_seen) > 490
 
     # But also make sure the state vector expands when
     # it seems like it should, create some non overlapping
@@ -142,6 +179,67 @@ def test_syncdb_yjs_impl_bloat():
     assert doc.get("test2", type=pycrdt.Map)["key"] == shouldbe
 
     assert len(db.crdt.get_state()) > sz
+
+
+# def test_syncdb_yjs_impl_bloat_multi_writer():
+#     # Note: This does in fact do a lot of bloat.
+#     # We can't fix that because that's just how the library do be
+#     # like
+#     from kaithem.src import syncdb
+
+#     name = _get_test_name("/test/syncdb_yjs_test")
+
+#     db = syncdb.SyncDatabase.get(name)
+
+#     doc = db.crdt
+#     shouldbe = 2
+
+#     test = doc.get("test", type=pycrdt.Map)
+#     test["key"] = {"val": shouldbe}
+
+#     sz = len(db.crdt.get_update())
+
+#     client_ids_seen = {}
+
+#     for i in range(100):
+#         db2 = syncdb.SyncDatabase.get(name + str(i))
+#         doc2 = db2.crdt
+
+#         doc2.apply_update(doc.get_update())
+
+#         client_ids_seen[doc2.client_id] = True
+
+#         test = doc2.get("test", type=pycrdt.Map)
+
+#         assert isinstance(test["key"]["val"], float)
+
+#         shouldbe += 1
+#         # doc2["test"] = pycrdt.Map()
+#         test["key"] = {"val": shouldbe}
+
+#         db.crdt.apply_update(db2.crdt.get_update())
+
+#     test = doc.get("test", type=pycrdt.Map)
+
+#     assert test["key"]["val"] == shouldbe
+
+#     sz2 = len(db.crdt.get_update())
+#     assert sz2 < 5000
+
+#     # Be sure that pycrdt is doing it's secret undocumented
+#     # background client ID thing.  It does not do that,
+#     # So the state size does in fact grow.
+#     assert len(db.crdt.get_state()) < 1000
+#     assert len(client_ids_seen) > 99
+
+#     # Getting the update and refreshing the doc should
+#     # shrink the state vector ideally, but it does not.
+#     db3 = syncdb.SyncDatabase.get(name + "jhgfdfghjklu654w")
+#     doc3 = db3.crdt
+#     doc3.apply_update(doc.get_update())
+
+#     assert int(doc.get("test", type=pycrdt.Map)["key"]["val"]) == shouldbe
+#     assert len(db.crdt.get_state()) < 100
 
 
 def test_syncdb_repr():

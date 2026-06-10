@@ -1,7 +1,24 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+"""
+SyncDatabase provides a YJS document for collaborative editing.
+
+YJS has a few oddities to work around.
+
+Long term documents that have many writer
+sessions coming and going will eventually get bloated with client IDs.
+
+One writer, many reader documents do not have this problem as much.
+
+
+See https://yjs.dev for more information.
+"""
+
 from __future__ import annotations
 
+import hashlib
+import os
+import struct
 import threading
 import weakref
 from typing import Any
@@ -20,6 +37,44 @@ exposedSyncDbs: weakref.WeakValueDictionary[str, SyncDatabase] = (
     weakref.WeakValueDictionary()
 )
 lock = threading.RLock()
+
+
+idlock = threading.RLock()
+
+
+if os.path.exists("/etc/machine-id"):
+    with open("/etc/machine-id") as f:
+        machine_id = f.read().strip()
+else:
+    machine_id = os.urandom(32).hex()
+
+
+def make_id(domain: str, num: int) -> int:
+    hashable = (
+        struct.pack("Q", num)
+        + machine_id.encode("utf-8")
+        + domain.encode("utf-8")
+    )
+    st = hashlib.sha256(hashable).digest()[:8]
+    id = struct.unpack("Q", st)[0] % 2**52
+    return id
+
+
+class SyncDatabaseWidget(widgets.DataSource):
+    def __init__(self, id: str):
+        super().__init__(id)
+        self.crdt_id_counter = 0
+
+    def on_new_subscriber(self, user, connection_id, **kw):
+        with idlock:
+            self.crdt_id_counter += 1
+            self.crdt_id = make_id(user, self.crdt_id_counter)
+            self.send_to({"crdt_id": self.crdt_id}, connection_id)
+
+    def on_subscriber_disconnected(self, user, connection_id, **kw):
+        with idlock:
+            if self.crdt_id:
+                self.crdt_id_counter -= 1
 
 
 class SyncDatabase:
@@ -46,7 +101,9 @@ class SyncDatabase:
         self.name = name
         """The name of the sync database"""
 
-        self._crdt = pycrdt.Doc()
+        self._crdt = pycrdt.Doc(
+            client_id=make_id(name, 0), allow_multithreading=True
+        )
         """The underlying YJS document"""
 
         self._widget: widgets.DataSource | None = None
@@ -55,7 +112,7 @@ class SyncDatabase:
         self._lock = threading.RLock()
 
         # Create the DataSource widget for this database
-        self._widget = widgets.DataSource(id=f"syncdb:{name}")
+        self._widget = SyncDatabaseWidget(id=f"syncdb:{name}")
 
         # Subscribe to the widget - every message is an update to apply
         self._widget.attach2(self._on_widget_message)

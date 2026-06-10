@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/no-lonely-if */
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /**
@@ -94,9 +95,8 @@ function subscribeToDocument(documentName: string, document_: Y.Doc): void {
             if (value instanceof Uint8Array) {
                 update = value;
             }else if (typeof value === 'object' && value !== null) {
-                const val = value as Record<string, unknown>;
-                if (val.data && val.data instanceof Uint8Array) {
-                    update = val.data as Uint8Array;
+                if ('crdt_id' in value) {
+                    document_.clientID = value.crdt_id as number;
                 }
             }
 
