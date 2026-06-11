@@ -182,6 +182,8 @@ if (globalThis.kaithemapi == undefined) {
       last_connected: 0,
       reconnect_timeout: 1500,
 
+      was_open: false,
+
       reconnector: null,
       // Very first time, give it some extra before clearing old msgs
       lastDisconnect: Date.now() + 15_000,
@@ -215,10 +217,21 @@ if (globalThis.kaithemapi == undefined) {
         );
 
         this.connection.addEventListener('close', (event) => {
-          picodash.snackbar.createSnackbar('Lost connection to server', {
-            timeout: 5000,
-            accent: 'error',
-          });
+          if (this.was_open) {
+            if (this.serverMsgCallbacks['__SERVER_DISCONNECTED__'].length > 0) {
+              for (const callback of this.serverMsgCallbacks['__SERVER_DISCONNECTED__']) {
+                  callback();
+                }
+
+            }
+
+            picodash.snackbar.createSnackbar('Lost connection to server', {
+              timeout: 5000,
+              accent: 'error',
+            });
+          }
+
+          this.was_open = false;
 
           this.lastDisconnect = Date.now();
           console.log(event);
@@ -310,6 +323,7 @@ if (globalThis.kaithemapi == undefined) {
           } catch (error) {
             console.log(error);
           }
+          this.was_open = true;
 
           this.last_connected = Date.now();
 
@@ -673,4 +687,10 @@ async function getTagMetadata(tagname) {
   }
   return response.json();
 }
-export { kaithemapi, APIWidget, TagSubscriptionManager, populateTagsDatalist, getTagMetadata };
+export {
+  kaithemapi,
+  APIWidget,
+  TagSubscriptionManager,
+  populateTagsDatalist,
+  getTagMetadata,
+};

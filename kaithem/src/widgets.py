@@ -322,7 +322,7 @@ class WebSocketHandler:
         # TIL this can actually run in the same thread it seems like?
         asyncio.run_coroutine_threadsafe(f(), self.loop)
 
-    def sl_close(self, *a: Any) -> None:
+    def sl_close_all_subscriptions(self, *a: Any) -> None:
         with subscriptionLock:
             while self.subscriptions:
                 i = self.subscriptions.pop(0)
@@ -339,7 +339,7 @@ class WebSocketHandler:
 
     def closeUnderLock(self):
         def f():
-            self.sl_close()
+            self.sl_close_all_subscriptions()
 
         workers.do(f)
 
@@ -573,7 +573,7 @@ class RawWidgetDataHandler:
 
     def closeUnderLock(self):
         def f():
-            self.sl_close()
+            self.sl_close_all_subscriptions()
 
         workers.do(f)
 
@@ -588,7 +588,7 @@ class RawWidgetDataHandler:
         self.sending_queue.append(b)
         asyncio.run_coroutine_threadsafe(f(), self.loop)
 
-    def sl_close(self, *a):
+    def sl_close_all_subscriptions(self, *a):
         "SL is because we use subscription lock"
         with subscriptionLock:
             while self.subscriptions:
@@ -693,6 +693,8 @@ async def app(scope, receive, send):
         with need_shutdown_lock:
             need_shutdown.pop(wsid, None)
 
+        impl.closeUnderLock()
+
 
 async def rawapp(scope, receive, send):
     websocket = WebSocket(scope=scope, receive=receive, send=send)
@@ -757,6 +759,7 @@ async def rawapp(scope, receive, send):
     finally:
         with need_shutdown_lock:
             need_shutdown.pop(wsid, None)
+        impl.closeUnderLock()
 
 
 def randID() -> str:

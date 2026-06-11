@@ -62,19 +62,28 @@ def make_id(domain: str, num: int) -> int:
 
 class SyncDatabaseWidget(widgets.DataSource):
     def __init__(self, id: str):
-        super().__init__(id)
+        super().__init__(id=id)
         self.crdt_id_counter = 0
+        self.crdt_used: dict[str, int] = {}
+        self.crdt_pool: list[int] = []
+
+    ## Clients MUST release these when disconneted
 
     def on_new_subscriber(self, user, connection_id, **kw):
         with idlock:
-            self.crdt_id_counter += 1
-            self.crdt_id = make_id(user, self.crdt_id_counter)
-            self.send_to({"crdt_id": self.crdt_id}, connection_id)
+            # Make a new one if none are available
+            if not self.crdt_pool:
+                self.crdt_id_counter += 1
+                self.crdt_pool.append(make_id(user, self.crdt_id_counter))
+
+            crdt_id = self.crdt_pool.pop(0)
+            self.crdt_used[connection_id] = crdt_id
+            self.send_to({"crdt_id": crdt_id}, connection_id)
 
     def on_subscriber_disconnected(self, user, connection_id, **kw):
         with idlock:
-            if self.crdt_id:
-                self.crdt_id_counter -= 1
+            if connection_id in self.crdt_used:
+                self.crdt_pool.append(self.crdt_used.pop(connection_id))
 
 
 class SyncDatabase:
@@ -113,6 +122,10 @@ class SyncDatabase:
 
         # Create the DataSource widget for this database
         self._widget = SyncDatabaseWidget(id=f"syncdb:{name}")
+
+        self._widget.set_permissions(
+            read=["system_admin"], write=["system_admin"]
+        )
 
         # Subscribe to the widget - every message is an update to apply
         self._widget.attach2(self._on_widget_message)

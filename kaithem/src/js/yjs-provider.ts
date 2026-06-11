@@ -10,6 +10,18 @@ import * as Y from 'yjs';
 
 import { kaithemapi } from './widget.mjs';
 
+
+const getRandom52BitInt = () => {
+    // Create an array to hold 2 32-bit unsigned integers (to cover 52 bits)
+    const array = new Uint32Array(2);
+    globalThis.crypto.getRandomValues(array);
+    
+    // Combine the two 32-bit chunks using BigInt for precision
+    const combined = (BigInt(array[0]) << 32n) + BigInt(array[1]);
+    
+    return Number(combined & 0xF_FF_FF_FF_FF_FF_FFn)
+};
+
 /**
  * Cache of YJS documents by name
  */
@@ -86,6 +98,13 @@ async function fetchInitialState(documentName: string, document_: Y.Doc): Promis
 function subscribeToDocument(documentName: string, document_: Y.Doc): void {
     const widgetId = `syncdb:${documentName}`;
 
+    // This is needed because when the server is down, it
+    // loses all information on assigned IDs
+    kaithemapi.subscribe("__SERVER_DISCONNECTED__", () => {
+        document_.clientID = getRandom52BitInt();
+        console.log('Disconnected from server, resetting client ID to:', document_.clientID);
+    })
+
     kaithemapi.subscribe(widgetId, (value: unknown) => {
         if (!value) return;
 
@@ -96,6 +115,7 @@ function subscribeToDocument(documentName: string, document_: Y.Doc): void {
                 update = value;
             }else if (typeof value === 'object' && value !== null) {
                 if ('crdt_id' in value) {
+                    console.log('Received update for document:', documentName, 'with client ID:', value.crdt_id);
                     document_.clientID = value.crdt_id as number;
                 }
             }
