@@ -27,15 +27,6 @@ export default defineConfig({
         "/static/js/thirdparty/picodash/picodash-base.esm.js",
       ],
 
-      output: {
-        manualChunks: (id) => {
-          // Put yjs and related into single chunks
-          if (id.includes('node_modules/yjs') || id.includes('yjs_provider')) {
-            return 'yjs-bundle';
-          }
-        },
-      },
-
       input: {
         // excalidraw: resolve(
         //   __dirname,

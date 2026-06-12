@@ -66,6 +66,21 @@ export function getDocument(documentName: string): Y.Doc {
  */
 async function fetchInitialState(documentName: string, document_: Y.Doc): Promise<void> {
     try {
+
+
+        // s
+        const server_vector = await fetch(`/api/syncdb/${encodeURIComponent(documentName)}/state_vector`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/octet-stream',
+            },
+        });
+
+        const updates_for_server = Y.encodeStateAsUpdate(document_, new Uint8Array(await server_vector.arrayBuffer()));
+
+        kaithemapi.sendValue(`syncdb:${documentName}`, updates_for_server);
+
+
         // Get our current state vector
         const stateVector = Y.encodeStateVector(document_);
 

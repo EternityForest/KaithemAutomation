@@ -1,4 +1,20 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
+from __future__ import annotations
+
+import hashlib
+import os
+import struct
+import threading
+import weakref
+from typing import Any
+
+import pycrdt
+import quart
+import structlog
+
+from kaithem.src import pages
+
+from . import quart_app, widget_api, widgets
 
 """
 SyncDatabase provides a YJS document for collaborative editing.
@@ -13,21 +29,6 @@ One writer, many reader documents do not have this problem as much.
 
 See https://yjs.dev for more information.
 """
-
-from __future__ import annotations
-
-import hashlib
-import os
-import struct
-import threading
-import weakref
-from typing import Any
-
-import pycrdt
-import quart
-import structlog
-
-from . import quart_app, widget_api, widgets
 
 logger = structlog.get_logger(__name__)
 
@@ -123,12 +124,12 @@ class SyncDatabase:
         # Create the DataSource widget for this database
         self._widget = SyncDatabaseWidget(id=f"syncdb:{name}")
 
-        self._widget.set_permissions(
+        self.widget.set_permissions(
             read=["system_admin"], write=["system_admin"]
         )
 
         # Subscribe to the widget - every message is an update to apply
-        self._widget.attach2(self._on_widget_message)
+        self.widget.attach2(self._on_widget_message)
 
         with lock:
             if name in allSyncDbs:
@@ -159,7 +160,7 @@ class SyncDatabase:
             logger.exception("Failed to apply YJS update", database=self.name)
 
     @property
-    def widget(self) -> widgets.DataSource | None:
+    def widget(self) -> widgets.DataSource:
         """Return the underlying widget for this database."""
         return self._widget
 
@@ -173,7 +174,7 @@ class SyncDatabase:
             read: Read permissions (can be list or comma-separated string)
             write: Write permissions (can be list or comma-separated string)
         """
-        if not self._widget:
+        if not self.widget:
             return
 
         if isinstance(read, str):
@@ -181,7 +182,7 @@ class SyncDatabase:
         if isinstance(write, str):
             write = [i.strip() for i in write.split(",") if i.strip()]
 
-        self._widget.set_permissions(read, write)
+        self.widget.set_permissions(read, write)
 
     def broadcast_update(self, update: bytes) -> None:
         """
@@ -190,11 +191,11 @@ class SyncDatabase:
         Args:
             update: The YJS update bytes to broadcast
         """
-        if not self._widget:
+        if not self.widget:
             return
 
         # Send the raw bytes - subscribers will apply this update
-        self._widget.send(update)
+        self.widget.send(update)
 
     def __repr__(self) -> str:
         return f"<SyncDatabase: {self.name}>"
@@ -361,7 +362,10 @@ async def syncdb_sync(document_name: str):
     """Sync endpoint - takes client state vector, returns updates needed."""
     try:
         # Get or create the sync database
-        doc = SyncDatabase.get(document_name).crdt
+        doc = SyncDatabase.get(document_name)
+
+        for perm in doc.widget._read_perms:
+            pages.require(perm)
 
         # Read the client's state vector from the request
         client_state_vector = await quart.request.get_data()
@@ -370,13 +374,34 @@ async def syncdb_sync(document_name: str):
         # If client sends empty bytes, they want the full document
         if not client_state_vector:
             # Return full state as update
-            update = doc.get_update()
+            update = doc.crdt.get_update()
         else:
             # Return updates since client's state vector
-            update = doc.get_update(client_state_vector)
+            update = doc.crdt.get_update(client_state_vector)
 
         # Return the update as binary response
         return quart.Response(update, mimetype="application/octet-stream")
     except Exception:
         logger.exception("Failed to sync document", document=document_name)
+        return quart.Response("Sync failed", status=500)
+
+
+# State vector sync endpoint
+# Client sends their state vector, server returns updates needed
+@quart_app.app.route(
+    "/api/syncdb/<path:document_name>/state_vector", methods=["GET"]
+)
+async def syncdb_vector(document_name: str):
+    try:
+        # Get or create the sync database
+        doc = SyncDatabase.get(document_name)
+
+        for perm in doc.widget._read_perms:
+            pages.require(perm)
+
+        vector = doc.crdt.get_state()
+
+        return quart.Response(vector, mimetype="application/octet-stream")
+    except Exception:
+        logger.exception("Failed to get state vector", document=document_name)
         return quart.Response("Sync failed", status=500)
