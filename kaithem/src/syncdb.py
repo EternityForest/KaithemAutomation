@@ -26,6 +26,20 @@ sessions coming and going will eventually get bloated with client IDs.
 
 One writer, many reader documents do not have this problem as much.
 
+Kaithem uses a workaround where the server assigns persistent to each browser
+tab, so things should very often "just work".  However, any time a browser
+client disconnects, it releases the persistent ID, any actions taken until
+reconnecting may permanently add a few bytes of data to the document.
+
+There is currently no way to clean this up except by starting all over.
+
+If a document is not supposed to persist across reboots,
+use a random temporary document ID.  Otherwise, when clients reconnect, they will
+push all their old document state into the new document.
+
+This may be desirable, but also makes it hard to get rid of document bloat.
+It's effectively there forever.
+
 
 See https://yjs.dev for more information.
 """

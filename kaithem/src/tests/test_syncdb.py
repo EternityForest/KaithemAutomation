@@ -160,8 +160,10 @@ def test_syncdb_yjs_impl_bloat_two_writer():
     assert test["key"]["val"] == shouldbe
 
     sz2 = len(db.crdt.get_update())
-    assert sz2 < sz * 1.2
-    assert len(db.crdt.get_state()) < 100
+    # Less than 1 byte per interleaved write
+    assert sz2 < sz + 100
+
+    assert len(db.crdt.get_state()) < 50
 
     # But also make sure the state vector expands when
     # it seems like it should, create some non overlapping
@@ -179,6 +181,51 @@ def test_syncdb_yjs_impl_bloat_two_writer():
     assert doc.get("test2", type=pycrdt.Map)["key"] == shouldbe
 
     assert len(db.crdt.get_state()) > sz
+
+
+# def test_syncdb_yjs_impl_bloat_multi_writer_cleanup_attemp():
+#     from kaithem.src import syncdb
+
+#     name = _get_test_name("/test/syncdb_yjs_test")
+
+#     db = syncdb.SyncDatabase.get(name)
+
+#     doc = db.crdt
+#     shouldbe = 2
+
+#     test = doc.get("test", type=pycrdt.Map)
+#     test["key"] = {"val": shouldbe}
+
+#     client_ids_seen = {}
+
+#     for i in range(150):
+#         db2 = syncdb.SyncDatabase.get(name + str(i))
+#         doc2 = db2.crdt
+
+#         doc2.apply_update(doc.get_update())
+
+#         client_ids_seen[doc2.client_id] = True
+
+#         test = doc2.get("test", type=pycrdt.Map)
+
+#         assert isinstance(test["key"]["val"], float)
+
+#         shouldbe += 1
+#         # doc2["test"] = pycrdt.Map()
+#         test["key"] = {"val": shouldbe}
+
+#         db.crdt.apply_update(db2.crdt.get_update())
+
+#     test = doc.get("test", type=pycrdt.Map)
+
+#     assert test["key"]["val"] == shouldbe
+
+#     # Try to wipe everything out with a hard overwrite
+#     # It doesn't work.
+#     db.crdt["test"] = pycrdt.Map({"key": pycrdt.Map({"val": shouldbe})})
+
+#     assert int(doc.get("test", type=pycrdt.Map)["key"]["val"]) == shouldbe
+#     assert len(db.crdt.get_update()) < 1000
 
 
 # def test_syncdb_yjs_impl_bloat_multi_writer():
