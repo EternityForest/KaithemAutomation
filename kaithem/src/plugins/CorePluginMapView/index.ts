@@ -1,20 +1,16 @@
 import maplibregl from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
 import { LayerControl } from "maplibre-gl-layer-control";
+import "maplibre-gl-layer-control/style.css";
 import MaplibreGeocoder from "@maplibre/maplibre-gl-geocoder";
 import "@maplibre/maplibre-gl-geocoder/dist/maplibre-gl-geocoder.css";
 
-// Import Maplibre CSS - using Vite's ?url import for CSS
-import maplibreCss from "maplibre-gl/dist/maplibre-gl.css?url";
-
-
-
 // Wait for DOM
 document.addEventListener("DOMContentLoaded", async () => {
-  // Load Maplibre CSS
-  await loadMaplibreCSS();
+
 
   // Define tile sources - using Kaithem's internal tile server
-  const sources: Record<string, maplibregl.AnySourceSpec> = {
+  const sources: Record<string, maplibregl.SourceSpecification> = {
     osm: {
       type: "raster",
       tiles: ["/maptiles/tile/{z}/{x}/{y}.png"],
@@ -35,16 +31,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Define layers using the layer-control format
   const layers = [
     {
-      id: "osm-layer",
-      source: "osm",
-      type: "raster" as const,
-      name: "OpenStreetMap",
-    },
-    {
       id: "usgs-layer",
       source: "usgs",
       type: "raster" as const,
       name: "USGS Imagery/Topo",
+    },
+    {
+      id: "osm-layer",
+      source: "osm",
+      type: "raster" as const,
+      name: "OpenStreetMap",
     },
   ];
 
@@ -60,7 +56,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     },
     center: [-0.09, 51.505], // Default: London
     zoom: 6,
-    attributionControl: true,
+    attributionControl: {
+      compact: true,
+    },
   });
 
   // Add navigation control (zoom buttons)
@@ -74,26 +72,58 @@ document.addEventListener("DOMContentLoaded", async () => {
       maximumAge: 0,
     },
     trackUserLocation: false,
-    showUserHeading: true,
-    showUserAccuracyCircle: true,
   });
   map.addControl(geolocateControl, "top-right");
 
   // Add layer control for switching between map layers
   const layerControl = new LayerControl({
-    layers: layers,
-    publicId: "map-layers",
   });
   map.addControl(layerControl, "top-left");
 
+
+  const geocoderApi = {
+    forwardGeocode: async (config) => {
+        const features = [];
+        try {
+            const request =
+        `https://nominatim.openstreetmap.org/search?q=${
+            config.query
+        }&format=geojson&polygon_geojson=1&addressdetails=1`;
+            const response = await fetch(request);
+            const geojson = await response.json();
+            for (const feature of geojson.features) {
+                const center = [
+                    feature.bbox[0] +
+                (feature.bbox[2] - feature.bbox[0]) / 2,
+                    feature.bbox[1] +
+                (feature.bbox[3] - feature.bbox[1]) / 2
+                ];
+                const point = {
+                    type: 'Feature',
+                    geometry: {
+                        type: 'Point',
+                        coordinates: center
+                    },
+                    place_name: feature.properties.display_name,
+                    properties: feature.properties,
+                    text: feature.properties.display_name,
+                    place_type: ['place'],
+                    center
+                };
+                features.push(point);
+            }
+        } catch (e) {
+            console.error(`Failed to forwardGeocode with error: ${e}`);
+        }
+
+        return {
+            features
+        };
+    }
+  };
+  
   // Add geocoder for location search
-  const geocoder = new MaplibreGeocoder(maplibregl, {
-    maplibregl: maplibregl,
-    placeholder: "Search for a location",
-    showResultMarkers: true,
-    showPoweredBy: false,
-    reverseGeocode: false,
-  });
+  const geocoder = new MaplibreGeocoder(geocoderApi, {maplibregl});
   map.addControl(geocoder as unknown as maplibregl.IControl, "top-left");
 
   // Handle click to show coordinates
