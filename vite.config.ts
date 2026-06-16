@@ -78,6 +78,10 @@ export default defineConfig({
           __dirname,
           "kaithem/src/plugins/CorePluginProjectionMapper/html/editor.html"
         ),
+        mapview: resolve(
+          __dirname,
+          "kaithem/src/plugins/CorePluginMapView/index.html"
+        ),
       },
       output: {
         assetFileNames: "assets/[name]-[hash][extname]",
