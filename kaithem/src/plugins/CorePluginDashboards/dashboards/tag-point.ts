@@ -85,13 +85,35 @@ export class TagpointComponent extends DashboardComponent {
     kaithemapi.subscribe('tag:' + tagName, this.boundSubscriber);
 
     this.prevTag = tagName;
-    const url = '/tag_api/info' + tagName;
 
-    const response = await fetch(url, {
-      method: 'GET',
-    });
+    let myArray: {
+      min?: number;
+      max?: number;
+      hi?: number;
+      lo?: number;
+      step?: number;
+      unit?: string;
+      type?: string;
+      subtype?: string;
+      readonly?: boolean;
+    } = {
 
-    const myArray = await response.json();
+      type: "number",
+      max: 100,
+      min: 0,
+      subtype: '',
+      readonly: true
+    };
+
+    if (tagName.length > 0) {
+      const url = '/tag_api/info' + tagName;
+
+      const response = await fetch(url, {
+        method: 'GET',
+      });
+
+      myArray = await response.json();
+    }
 
     for (const i of [
       'min',
