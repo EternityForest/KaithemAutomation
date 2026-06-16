@@ -102,7 +102,7 @@ test('test', async ({ page }) => {
     .getByTestId('edit-db-map')
     .click();
 
-  await sleep(200);
+  await sleep(500);
   await expect(async () => {
     await expect(
       page.getByRole('slider', { name: 'Value (1.00)' })

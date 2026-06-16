@@ -32,14 +32,19 @@ tab, so things should very often "just work".  However, any time a browser
 client disconnects, it releases the persistent ID, any actions taken until
 reconnecting may permanently add a few bytes of data to the document.
 
+These persistent IDs use /etc/machine-id as a salt, so this must be set up
+correctly, which it will be, unless you're copying disk images.
+
 There is currently no way to clean this up except by starting all over.
 
-If a document is not supposed to persist across reboots,
-use a random temporary document ID.  Otherwise, when clients reconnect, they will
-push all their old document state into the new document.
+Documents on the server have a session ID that is currently random,
+and if a web client tries to reconnect to a server, or if
+the session id changes, the web client refreshes the page.
 
-This may be desirable, but also makes it hard to get rid of document bloat.
-It's effectively there forever.
+Python nodes are not clients of any particular server, and do not do this.
+Therefore, if you have a bunch of python nodes and you want to wipe the document
+and start over, you must reboot them all at the same time, or the one that still
+has the data will re-spread it to everything else.
 
 
 See https://yjs.dev for more information.

@@ -82,7 +82,6 @@ export class TagpointComponent extends DashboardComponent {
     if (this.prevTag.length > 0) {
       kaithemapi.unsubscribe('tag:' + this.prevTag, this.boundSubscriber);
     }
-    kaithemapi.subscribe('tag:' + tagName, this.boundSubscriber);
 
     this.prevTag = tagName;
 
@@ -189,6 +188,9 @@ export class TagpointComponent extends DashboardComponent {
         .addPort(new Port(schema))
         .addDataHandler(this.onPortData.bind(this));
     }
+
+    kaithemapi.subscribe('tag:' + tagName, this.boundSubscriber);
+
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
