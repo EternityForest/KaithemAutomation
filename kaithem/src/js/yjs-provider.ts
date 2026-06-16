@@ -27,6 +27,9 @@ const getRandom52BitInt = () => {
  */
 const documentCache = new Map<string, Y.Doc>();
 
+/*Persistent name to what the server says it its session ID for that doc*/
+const serverSessionIdMap = new Map<string, string>();
+
 /**
  * Get a YJS document by name. Creates a new one or returns existing from cache.
  * Will fetch initial state after WebSocket subscription is established.
@@ -43,27 +46,14 @@ export function getDocument(documentName: string): Y.Doc {
   documentCache.set(documentName, document_);
 
   // Subscribe to the syncdb widget to receive updates
-  subscribeToDocument(documentName, document_);
-
-  // Wait for WebSocket subscription to establish, then fetch initial state
-  setTimeout(() => {
-    // Ensure that we refetch the initial state if the
-    // connection is re-established due to
-    // a temporary network issue or server restart
-    globalThis.addEventListener('kaithemapi_connected', () => {
-      fetchInitialState(documentName, document_);
-    });
-
-    fetchInitialState(documentName, document_);
-  }, 60);
-
+  _subscribeToDocument(documentName, document_);
   return document_;
 }
 
 /**
  * Fetch initial state from server after WebSocket connection is established
  */
-async function fetchInitialState(
+async function _fetchInitialState(
   documentName: string,
   document_: Y.Doc
 ): Promise<void> {
@@ -125,7 +115,7 @@ async function fetchInitialState(
 /**
  * Subscribe to a document's updates from the server
  */
-function subscribeToDocument(documentName: string, document_: Y.Doc): void {
+function _subscribeToDocument(documentName: string, document_: Y.Doc): void {
   const widgetId = `syncdb:${documentName}`;
 
   // This is needed because when the server is down, it
@@ -156,6 +146,21 @@ function subscribeToDocument(documentName: string, document_: Y.Doc): void {
           );
           document_.clientID = value.crdt_id as number;
         }
+
+        // The server always sends this when we connect.
+        // If the server changes the session ID, we need to reload everything.
+        
+        if ('session_id' in value) {
+          const oldSessionId = serverSessionIdMap.get(documentName);
+
+          if (oldSessionId === undefined) {
+              serverSessionIdMap.set(documentName, value.session_id as string);
+              _fetchInitialState(documentName, document_);
+          } else if (oldSessionId !== value.session_id) {
+            console.log('Session ID changed for document, reloading.', documentName);
+            globalThis.location.reload();
+          }
+        }
       }
 
       if (update) {
@@ -167,67 +172,6 @@ function subscribeToDocument(documentName: string, document_: Y.Doc): void {
   });
 }
 
-/**
- * Broadcast a YJS update to the server
- *
- * @param documentName - The document name
- * @param update - The YJS update to broadcast
- */
-export function broadcastUpdate(
-  documentName: string,
-  update: Uint8Array
-): void {
-  const widgetId = `syncdb:${documentName}`;
-
-  kaithemapi.sendValue(widgetId, update);
-}
-
-/**
- * Observe changes to a document
- *
- * @param documentName - The document name
- * @param observer - Callback receiving (transaction, context)
- * @returns Unsubscribe function
- */
-export function observeDocument(
-  documentName: string,
-  observer: (update: Uint8Array, origin: unknown) => void
-): () => void {
-  const document_ = getDocument(documentName);
-
-  document_.on('update', observer);
-
-  return () => {
-    document_.off('update', observer);
-  };
-}
-
-/**
- * Get the current state vector for a document
- *
- * @param documentName - The document name
- * @returns The state vector
- */
-export function getStateVector(documentName: string): Uint8Array {
-  const document_ = getDocument(documentName);
-  return Y.encodeStateVector(document_);
-}
-
-/**
- * Get the full document state
- *
- * @param documentName - The document name
- * @returns The encoded document state
- */
-export function getDocumentState(documentName: string): Uint8Array {
-  const document_ = getDocument(documentName);
-  return Y.encodeStateAsUpdate(document_);
-}
-
 export default {
   getDocument,
-  broadcastUpdate,
-  observeDocument,
-  getStateVector,
-  getDocumentState,
 };

@@ -5,6 +5,7 @@ import hashlib
 import os
 import struct
 import threading
+import uuid
 import weakref
 from typing import Any
 
@@ -47,10 +48,10 @@ See https://yjs.dev for more information.
 logger = structlog.get_logger(__name__)
 
 # Global registry - uses weak references like tagpoints
+# Indexed by document session ID
 allSyncDbs: dict[str, weakref.ref[SyncDatabase]] = {}
-exposedSyncDbs: weakref.WeakValueDictionary[str, SyncDatabase] = (
-    weakref.WeakValueDictionary()
-)
+
+
 lock = threading.RLock()
 
 
@@ -76,8 +77,9 @@ def make_id(domain: str, num: int) -> int:
 
 
 class SyncDatabaseWidget(widgets.DataSource):
-    def __init__(self, id: str):
+    def __init__(self, id: str, session_id: str):
         super().__init__(id=id)
+        self.session_id = session_id
         self.crdt_id_counter = 0
         self.crdt_used: dict[str, int] = {}
         self.crdt_pool: list[int] = []
@@ -93,7 +95,10 @@ class SyncDatabaseWidget(widgets.DataSource):
 
             crdt_id = self.crdt_pool.pop(0)
             self.crdt_used[connection_id] = crdt_id
-            self.send_to({"crdt_id": crdt_id}, connection_id)
+            self.send_to(
+                {"crdt_id": crdt_id, "session_id": self.session_id},
+                connection_id,
+            )
 
     def on_subscriber_disconnected(self, user, connection_id, **kw):
         with idlock:
@@ -121,6 +126,10 @@ class SyncDatabase:
         if not name.startswith("/"):
             name = "/" + name
 
+        self.document_session_id = uuid.uuid4().hex
+        """The document session ID.
+        Used to track when clients need to completely replace the document"""
+
         # Normalize name - use similar rules to tagpoints
         self.name = name
         """The name of the sync database"""
@@ -135,8 +144,16 @@ class SyncDatabase:
 
         self._lock = threading.RLock()
 
+        self.accept_updates = False
+        """Whether to accept any updates from websockets.
+           If true, anything you put will likely be put back by
+           a client reconnecting after reboots.
+        """
+
         # Create the DataSource widget for this database
-        self._widget = SyncDatabaseWidget(id=f"syncdb:{name}")
+        self._widget = SyncDatabaseWidget(
+            id=f"syncdb:{name}", session_id=self.document_session_id
+        )
 
         self.widget.set_permissions(
             read=["system_admin"], write=["system_admin"]
@@ -165,6 +182,12 @@ class SyncDatabase:
     def _on_widget_message(self, acting_user: str, value: Any, conn_id: str):
         """Handle incoming messages from the widget subscription."""
         if value is None:
+            return
+
+        if not isinstance(value, bytes):
+            return
+
+        if not self.accept_updates:
             return
 
         # Value should be a YJS update that can be applied to the doc
@@ -197,6 +220,12 @@ class SyncDatabase:
             write = [i.strip() for i in write.split(",") if i.strip()]
 
         self.widget.set_permissions(read, write)
+
+        self.widget.send(
+            {
+                "session": self.document_session_id,
+            }
+        )
 
     def broadcast_update(self, update: bytes) -> None:
         """

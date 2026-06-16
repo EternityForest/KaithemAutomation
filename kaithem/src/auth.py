@@ -129,6 +129,7 @@ BasePermissions: dict[str, str] = {
     "chandler_operator": "Access the Chandler console, jump to cues, change input fields.  Does not allow editing settings or groups.",
     "__guest__": "Everyone always has this permission even when not logged in",
     "__all_permissions__": "Special universal permission that grants all permissions in the system. Use with care.",
+    "__never__": "Even admin cannot do this.",
 }
 
 crossSiteRestrictedPermissions = BasePermissions.copy()

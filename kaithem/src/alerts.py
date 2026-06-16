@@ -61,9 +61,7 @@ def get_alerts_sync_doc() -> syncdb.SyncDatabase:
         _alerts_sync_doc = syncdb.SyncDatabase.get("/system/active_alerts")
         # Set default permissions - anyone with view_status can read,
         # users/alerts.acknowledge can write
-        _alerts_sync_doc.set_permissions(
-            "view_status", "users/alerts.acknowledge"
-        )
+        _alerts_sync_doc.set_permissions("view_status", "__never__")
     return _alerts_sync_doc
 
 
