@@ -1,7 +1,7 @@
 Change Log
 ----------
 
-### Dev
+### 0.96.0
 
 * [sparkles] Projection mapper more intuitive text widgets.
 * [sparkles] Disabled UI elements have a grey line through them.
@@ -12,7 +12,6 @@ Change Log
 * [sparkles] Preview of the alpha Dashboard creator.
 * [sparkles] Front page alerts now powered by our new YJS core primitive.
 * [sparkles] Leaflet maps replaced with maplibre
-
 
 
 ### 0.95.0
