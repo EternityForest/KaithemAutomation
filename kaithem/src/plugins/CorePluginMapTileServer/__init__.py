@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import io
+import json
 import os
 import random
 import threading
@@ -29,6 +30,77 @@ async def fetch(f) -> bytes:
         r.raise_for_status()
     assert r.content
     return r.content
+
+
+# Default layer configurations
+DEFAULT_LAYERS = {
+    "mapterhorn": {
+        "type": "raster-dem",
+        "tilejson": "3.0.0",
+        "scheme": "xyz",
+        "tiles": ["https://tiles.mapterhorn.com/{z}/{x}/{y}.webp"],
+        "attribution": "<a href='https://mapterhorn.com/attribution'>© Mapterhorn</a>",  # noqa: E501
+        "bounds": [-180, -85.0511287, 180, 85.0511287],
+        "center": [0, 0, 6],
+        "encoding": "terrarium",
+        "tileSize": 512,
+    },
+    "openstreetmap": {
+        "type": "raster",
+        "name": "OpenStreetMap",
+        "attribution": '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',  # noqa: E501
+        "tiles": ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+        "max_zoom": 19,
+        "min_zoom": 0,
+    },
+    "opentopomap": {
+        "type": "raster",
+        "name": "OpenTopoMap",
+        "attribution": '&copy; <a href="https://opentopomap.org">OpenTopoMap</a>',
+        "tiles": [
+            "https://a.tile.opentopomap.org/{z}/{x}/{y}.png",
+            "https://b.tile.opentopomap.org/{z}/{x}/{y}.png",
+            "https://c.tile.opentopomap.org/{z}/{x}/{y}.png",
+        ],
+        "max_zoom": 17,
+        "min_zoom": 0,
+    },
+    "usgs": {
+        "type": "raster",
+        "name": "USGS Imagery/Topo",
+        "attribution": 'Tiles courtesy of the <a href="https://usgs.gov/">U.S. Geological Survey</a>',  # noqa: E501
+        "tiles": [
+            "https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryTopo/MapServer/tile/{z}/{y}/{x}",
+            "https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}",
+        ],
+        "max_zoom": 16,
+        "min_zoom": 0,
+        "max_zoom_fallback": 16,
+        "min_zoom_fallback": 9,
+        "fallback_tiles": [
+            "https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}"
+        ],
+    },
+}
+
+
+def get_layers_config() -> dict:
+    """Load layers config from file or return defaults."""
+    config_path = os.path.join(directories.vardir, "maptiles", "layers.json")
+
+    if os.path.exists(config_path):
+        try:
+            with open(config_path) as f:
+                return json.load(f)
+        except (OSError, json.JSONDecodeError):
+            pass
+
+    # Create default config if it doesn't exist
+    os.makedirs(os.path.dirname(config_path), exist_ok=True)
+    with open(config_path, "w") as f:
+        json.dump(DEFAULT_LAYERS, f, indent=2)
+
+    return DEFAULT_LAYERS
 
 
 approximate_tile_cache_size = 0
@@ -95,6 +167,29 @@ t.start()
 schedule = scheduling.scheduler.every(clean, 60 * 60 * 24 * 30 * 3)
 
 
+def _get_tile_urls_for_zoom(map_name: str, z: int) -> list[str]:
+    """Get the appropriate tile URLs for a given zoom level."""
+    layers = get_layers_config()
+    layer = layers.get(map_name, DEFAULT_LAYERS.get("openstreetmap"))
+
+    z = int(z)
+
+    # Check for zoom-specific fallback
+    max_zoom_fallback = layer.get("max_zoom_fallback", -1)
+    min_zoom_fallback = layer.get("min_zoom_fallback", -1)
+
+    # If we're in the fallback zoom range, use fallback URLs
+    if min_zoom_fallback <= z <= max_zoom_fallback:
+        fallback_urls = layer.get("fallback_tiles")
+        if fallback_urls:
+            return fallback_urls
+
+    # Return primary URLs, shuffled for random load balancing
+    urls = layer.get("tiles", [])
+    random.shuffle(urls)
+    return urls
+
+
 async def get_tile(x, y, z, map="openstreetmap"):
     global approximate_tile_cache_size
 
@@ -107,37 +202,25 @@ async def get_tile(x, y, z, map="openstreetmap"):
     if pages.canUserDoThis("system_admin", pages.getAcessingUser()):
         os.makedirs(os.path.dirname(get_fn(x, y, z, map)), exist_ok=True)
 
-        if map == "opentopomap":
-            if random.random() > 0.5:
-                r = fetch(f"https://b.tile.{map}.org/{z}/{x}/{y}.png")
-            else:
-                r = fetch(f"https://a.tile.{map}.org/{z}/{x}/{y}.png")
-            r = await r
+        # Get URLs to try (shuffled for random fallback order)
+        urls = _get_tile_urls_for_zoom(map, z)
 
-        elif map == "usgs":
-            if int(z) > 16:
-                raise ValueError("USGS only supports up to zoom level 16")
-            if int(z) < 9:
-                r = fetch(
-                    f"https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}"
-                )
-                r = await r
+        # Try each URL in order until one works
+        r = None
+        last_error = None
+        for url_template in urls:
+            try:
+                url = url_template.format(z=z, x=x, y=y)
+                r = await fetch(url)
+                break
+            except Exception as e:
+                last_error = e
+                continue
 
-            else:
-                try:
-                    r = fetch(
-                        f"https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryTopo/MapServer/tile/{z}/{y}/{x}"
-                    )
-                    r = await r
-                except Exception:
-                    r = fetch(
-                        f"https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}"
-                    )
-                    r = await r
-
-        else:
-            r = fetch(f"https://tile.openstreetmap.org/{z}/{x}/{y}.png")
-            r = await r
+        if r is None:
+            raise last_error or ValueError(
+                f"Failed to fetch tile from any URL for map {map}"
+            )
 
         fn = get_fn(x, y, z, map)
         if os.path.exists(fn):
@@ -163,34 +246,6 @@ async def serve_map_tile(z, x, y):
             img.save(b, format="png")
             return quart.Response(b.getvalue(), mimetype="image/png")
 
-        if os.path.exists(
-            os.path.join(
-                os.path.expanduser(f"~/.local/share/marble/maps/earth/{map}"),
-                z,
-                x,
-                y,
-            )
-        ):
-            return await quart.send_file(
-                os.path.join(
-                    os.path.expanduser(
-                        f"~/.local/share/marble/maps/earth/{map}"
-                    ),
-                    z,
-                    x,
-                    y,
-                )
-            )
-
-        if os.path.exists(
-            os.path.join(
-                f"/home/pi/.local/share/marble/maps/earth/{map}", z, x, y
-            )
-        ):
-            return await quart.send_file(
-                os.path.join(f"/home/pi/share/marble/maps/earth/{map}", z, x, y)
-            )
-
         await get_tile(x, y, z, map)
 
         fn = get_fn(x, y, z, map)
@@ -203,3 +258,29 @@ async def serve_map_tile(z, x, y):
 
             return await quart.send_file(get_fn(x, y, z, map))
     raise RuntimeError("No Tile Found")
+
+
+@quart_app.app.route("/maptiles/tilejson")
+async def serve_tilejson():
+    """Serve TileJSON fragments for all configured layers."""
+
+    layers = get_layers_config()
+    result = {}
+
+    for map_name, layer_config in layers.items():
+        # Replace {z}/{x}/{y} in tile URLs with our internal tile server URL
+        internal_tiles = [f"/maptiles/tile/{{z}}/{{x}}/{{y}}?map={map_name}"]
+
+        tilejson = {
+            "tilejson": "2.1.0",
+            "name": layer_config.get("name", map_name),
+            "attribution": layer_config.get("attribution", ""),
+            "tiles": internal_tiles,
+            "minzoom": layer_config.get("min_zoom", 0),
+            "maxzoom": layer_config.get("max_zoom", 19),
+            "type": layer_config.get("type", "raster"),
+        }
+
+        result[map_name] = tilejson
+
+    return quart.jsonify(result)
