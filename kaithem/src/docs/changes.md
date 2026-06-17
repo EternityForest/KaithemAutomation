@@ -11,6 +11,7 @@ Change Log
 * [bug] Deleted devices could leave behind alerts
 * [sparkles] Preview of the alpha Dashboard creator.
 * [sparkles] Front page alerts now powered by our new YJS core primitive.
+* [sparkles] Leaflet maps replaced with maplibre
 
 
 
