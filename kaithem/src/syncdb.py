@@ -453,3 +453,76 @@ async def syncdb_vector(document_name: str):
     except Exception:
         logger.exception("Failed to get state vector", document=document_name)
         return quart.Response("Sync failed", status=500)
+
+
+# Admin page for listing all SyncDatabase documents
+@quart_app.app.route("/syncdb", methods=["GET", "POST"])
+@quart_app.wrap_sync_route_handler
+def syncdb_admin_index(*path, **data):
+    """Admin page listing all SyncDatabase documents."""
+    try:
+        pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+
+    page_number = int(data.get("pageNumber", 0))
+    search_filter = data.get("searchFilter", "").strip()
+
+    # Collect all documents from the registry
+    docs_list = []
+    with lock:
+        for name, ref in allSyncDbs.items():
+            doc = ref()
+            if doc is not None:
+                docs_list.append((name, doc))
+
+    # Filter by search term
+    if search_filter:
+        docs_list = [
+            (name, doc)
+            for name, doc in docs_list
+            if search_filter.lower() in name.lower()
+        ]
+
+    # Sort by name
+    docs_list_sorted = sorted(docs_list, key=lambda x: x[0])
+
+    # Paginate results (250 per page)
+    paginated_docs = docs_list_sorted[
+        page_number * 250 : (page_number + 1) * 250
+    ]
+
+    # Build doc data for template
+    docs_data = []
+    for name, doc in paginated_docs:
+        try:
+            doc_size = len(doc.crdt.get_update())
+            sv_size = len(doc.crdt.get_state())
+        except Exception:
+            doc_size = 0
+            sv_size = 0
+
+        read_perms = list(doc.widget._read_perms)
+        write_perms = list(doc.widget._write_perms)
+
+        docs_data.append(
+            {
+                "name": name,
+                "doc_size": doc_size,
+                "sv_size": sv_size,
+                "read_perms": read_perms,
+                "write_perms": write_perms,
+            }
+        )
+
+    total_pages = max(1, int(len(docs_list_sorted) / 250) + 1)
+    page_numbers = list(range(total_pages))
+
+    return pages.render_jinja_template(
+        "settings/syncdb_admin.j2.html",
+        page_number=page_number,
+        search_filter=search_filter,
+        docs_data=docs_data,
+        page_numbers=page_numbers,
+        total_pages=total_pages,
+    )

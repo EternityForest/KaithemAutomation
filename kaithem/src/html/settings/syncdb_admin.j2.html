@@ -1,0 +1,57 @@
+{% extends "pagetemplate.j2.html" %}
+
+{% block body %}
+
+<title>SyncDatabase Documents</title>
+
+<h1>SyncDatabase Documents</h1>
+<div class="window paper">
+<details class="help"><summary><i class="mdi mdi-help-circle-outline"></i></summary>
+    This page lists all SyncDatabase documents currently managed by Kaithem.
+    SyncDatabase provides YJS-based collaborative editing.
+
+</details>
+
+
+<h3>Active Documents</h3>
+<div class="menubar">
+<form method="POST" action="/syncdb" class="inline">
+    <input type="hidden" value="{{ search_filter }}" name="searchFilter">
+
+    <ul class="pagination">
+        <li>Page {{ page_number }}/{{ total_pages }}</li>
+        {% for i in page_numbers %}
+        <li>
+            <input name="pageNumber" type="submit" value="{{ i }}">
+        </li>
+        {% endfor %}
+    </ul>
+</form>
+
+<div class="tool-bar">
+    <form method="post" action="/syncdb?pageNumber={{ page_number }}">
+        <input name="searchFilter" value="{{ search_filter|escape }}" size="8"> <input type="submit" value="Search">
+    </form>
+</div>
+</div>
+<table border="1" class="w-full">
+<tr><th>Document Name</th>
+    <th>Doc Size (bytes)</th>
+    <th>State Vector Size (bytes)</th>
+    <th>Read Permissions</th>
+    <th>Write Permissions</th>
+</tr>
+{% for doc in docs_data %}
+<tr>
+    <td style="word-wrap: break-word;">{{ doc.name|escape }}</td>
+    <td>{{ doc.doc_size }}</td>
+    <td>{{ doc.sv_size }}</td>
+    <td>{{ doc.read_perms|join(', ') }}</td>
+    <td>{{ doc.write_perms|join(', ') }}</td>
+</tr>
+{% endfor %}
+</table>
+
+</div>
+
+{% endblock %}

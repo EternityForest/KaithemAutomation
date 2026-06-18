@@ -15,6 +15,8 @@
 * Very simple UI pages can use server side Jinja2, but Mako is deprecated legacy work
 * Vite sources are scattered everywhere but output to /static/vite
 * /static/vite URLs map to /kaithem/data/static/vite
+* Both Vue and Lit JS are used. Lit components do not use shadow DOM, they must work with the global barrel.css theme unless there's a specicif reason to isolate them.
+
 
 ## Links / Authority
 

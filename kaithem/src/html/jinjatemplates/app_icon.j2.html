@@ -18,11 +18,13 @@ data-testid="app-{{app.id}}"
                 {{ app.title }}
             </a>
         </div>
+        {% if app.links %}
         <button type="button" aria-label="Extras"
             data-testid="extras-button-{{app.id}}"
             popovertarget="extras-{{app.id}}" popovertargetaction="close">
             <span class="mdi mdi-menu"></span>
         </button>
+        {% endif %}
     </header>
 
     <div class="label-bottom"
