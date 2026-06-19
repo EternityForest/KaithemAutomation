@@ -36,7 +36,7 @@ def test_resolve_file_resource():
 
 
 def test_simple_resource_types():
-    import kaithem.api.modules as modulesapi
+    from kaithem.api import modules as modulesapi
     from kaithem.api.resource_types import (
         ResourceTypeRuntimeObject,
         resource_type_from_schema,
@@ -89,7 +89,7 @@ def test_simple_resource_types():
 
 
 async def test_modules_api():
-    import kaithem.api.modules as modulesapi
+    from kaithem.api import modules as modulesapi
     from kaithem.src import modules, modules_state
 
     n = "test" + str(time.time()).replace(".", "_")
@@ -175,10 +175,11 @@ async def test_modules_api():
     fn = modulesapi.filename_for_file_resource(n, "test_file_resource.txt")
     assert (
         fn
-        == f"/dev/shm/kaithem_tests/modules/data/{n}/__filedata__/test_file_resource.txt"
+        == f"/dev/shm/kaithem_tests/modules/data/{n}/__filedata__/test_file_resource.txt"  # noqa: E501
     )
 
-    # Paths aren't guaranteed to exist just because filename_for_file_resource returns them
+    # Paths aren't guaranteed to exist just because
+    # filename_for_file_resource returns them
     os.makedirs(os.path.dirname(fn), exist_ok=True)
 
     with open(fn, "w") as f:
@@ -197,7 +198,7 @@ async def test_modules_api():
 
 
 async def test_scan_file_resources():
-    import kaithem.api.modules as modulesapi
+    from kaithem.api import modules as modulesapi
     from kaithem.src import modules, modules_state
 
     n = "test" + str(time.time()).replace(".", "_")

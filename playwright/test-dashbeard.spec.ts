@@ -84,6 +84,8 @@ test('test', async ({ page }) => {
   await page.getByRole('slider').fill('0.68');
   await page.getByRole('button', { name: 'Save' }).click();
 
+  await sleep(1000);
+
   await page.goto('http://localhost:8002/modules/module/TestingServerModule');
 
   await page
@@ -92,8 +94,18 @@ test('test', async ({ page }) => {
     .first()
     .click();
 
-  await expect(page.getByRole('slider')).toHaveValue('0.68');
-  await page.getByRole('slider').fill('1');
+  await expect(
+    page
+      .getByRole('article')
+      .filter({ hasText: 'testgroup1' })
+      .getByRole('slider')
+  ).toHaveValue('0.68');
+
+  await page
+    .getByRole('article')
+    .filter({ hasText: 'testgroup1' })
+    .getByRole('slider')
+    .fill('1');
 
   await page.goto('http://localhost:8002/modules/module/TestingServerModule');
 
@@ -122,6 +134,12 @@ test('test', async ({ page }) => {
     .locator('div')
     .filter({ hasText: 'Edit Commander Config' })
     .first()
-    .click();
-  await expect(page.getByRole('slider')).toHaveValue('0.37');
+      .click();
+
+  await expect(
+    page
+      .getByRole('article')
+      .filter({ hasText: 'testgroup1' })
+      .getByRole('slider')
+  ).toHaveValue('0.37');
 });

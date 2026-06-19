@@ -33,7 +33,7 @@ test('test', async ({ page }) => {
   });
   await page.getByTestId('add-group-button').click();
 
-  await page.getByRole('button', { name: 'test' }).click();
+  await page.getByRole('button', { name: 'test', exact: true }).click();
 
   await page.getByPlaceholder('New cue name').click();
   await page.getByPlaceholder('New cue name').fill('foo');
@@ -144,7 +144,7 @@ test('test', async ({ page }) => {
 
   await page.getByTestId('close-logic').click();
   await page.getByTestId('close-group').click();
-  await page.getByRole('button', { name: 'test' }).click();
+  await page.getByRole('button', { name: 'test', exact: true }).click();
   
   // Todo why this wait?
   await waitForTasks(page);
@@ -158,7 +158,7 @@ test('test', async ({ page }) => {
   await waitForTasks(page);
 
   await expect(async () => {
-    await expect(page.getByRole('button', { name: 'test' })).toBeHidden();
+    await expect(page.getByRole('button', { name: 'test', exact: true })).toBeHidden();
   }).toPass({
     intervals: [1000, 2000, 10_000],
     timeout: 10_000,
