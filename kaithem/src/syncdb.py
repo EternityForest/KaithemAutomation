@@ -50,6 +50,10 @@ has the data will re-spread it to everything else.
 See https://yjs.dev for more information.
 """
 
+# Message type codes for WebSocket communication (4-byte big-endian)
+MSG_UPDATE = b"\x00\x00\x00\x01"  # Regular YJS document updates
+MSG_AWARENESS = b"\x00\x00\x00\x02"  # YJS Awareness updates
+
 logger = structlog.get_logger(__name__)
 
 # Global registry - uses weak references like tagpoints
@@ -144,6 +148,9 @@ class SyncDatabase:
         )
         """The underlying YJS document"""
 
+        self.awareness = pycrdt.Awareness(self._crdt)
+        """The YJS awareness document"""
+
         self._widget: widgets.DataSource | None = None
         """The widget used for subscribing to updates"""
 
@@ -173,6 +180,7 @@ class SyncDatabase:
             allSyncDbs[name] = weakref.ref(self)
 
         self._crdt.observe(self._on_doc_update)
+        self.awareness.observe(self._on_awareness_update)
 
     @property
     def crdt(self) -> pycrdt.Doc:
@@ -183,6 +191,16 @@ class SyncDatabase:
 
     def _on_doc_update(self, evt: pycrdt.TransactionEvent):
         self.broadcast_update(evt.update)
+
+    def _on_awareness_update(
+        self, type: str, changes: tuple[dict[str, Any], Any]
+    ) -> None:
+        if type != "update" or changes[1] != "local":
+            return
+
+        updated_clients = [v for value in changes[0].values() for v in value]
+        state = self.awareness.encode_awareness_update(updated_clients)
+        self.broadcast_awareness(state)
 
     def _on_widget_message(self, acting_user: str, value: Any, conn_id: str):
         """Handle incoming messages from the widget subscription."""
@@ -195,11 +213,26 @@ class SyncDatabase:
         if not self.accept_updates:
             return
 
-        # Value should be a YJS update that can be applied to the doc
-        try:
-            self.crdt.apply_update(value)
-        except Exception:
-            logger.exception("Failed to apply YJS update", database=self.name)
+        # Check message type code (first 4 bytes)
+        if len(value) < 4:
+            return
+
+        msg_type = value[:4]
+        payload = value[4:]
+
+        if msg_type == MSG_UPDATE:
+            # Regular YJS update
+            try:
+                self.crdt.apply_update(payload)
+            except Exception:
+                logger.exception(
+                    "Failed to apply YJS update", database=self.name
+                )
+        elif msg_type == MSG_AWARENESS:
+            self.awareness.apply_awareness_update(payload, self)
+            self.widget.send(
+                MSG_AWARENESS + payload, exclude_connection_id=conn_id
+            )
 
     @property
     def widget(self) -> widgets.DataSource:
@@ -242,8 +275,21 @@ class SyncDatabase:
         if not self.widget:
             return
 
-        # Send the raw bytes - subscribers will apply this update
-        self.widget.send(update)
+        # Prefix with type code (MSG_UPDATE)
+        self.widget.send(MSG_UPDATE + update)
+
+    def broadcast_awareness(self, awareness_update: bytes) -> None:
+        """
+        Broadcast an awareness update to all subscribers.
+
+        Args:
+            awareness_update: The YJS awareness update bytes to broadcast
+        """
+        if not self.widget:
+            return
+
+        # Prefix with type code (MSG_AWARENESS)
+        self.widget.send(MSG_AWARENESS + awareness_update)
 
     def __repr__(self) -> str:
         return f"<SyncDatabase: {self.name}>"
@@ -317,6 +363,7 @@ class WebsocketClient:
         self._running = False
 
         database.crdt.observe(self._on_doc_update)
+        database.awareness.observe(self._on_awareness_update)
 
         # Start the client
         self._start()
@@ -344,14 +391,42 @@ class WebsocketClient:
             self.close()
             return
 
-        # Value should be a YJS update that can be applied to the doc
-        try:
-            db.crdt.apply_update(value)
-        except Exception:
-            logger.exception("Failed to apply YJS update", database=db.name)
+        # Handle both raw bytes and type-coded messages
+        if isinstance(value, bytes) and len(value) >= 4:
+            msg_type = value[:4]
+            payload = value[4:]
+
+            if msg_type == MSG_UPDATE:
+                try:
+                    db.crdt.apply_update(payload)
+                except Exception:
+                    logger.exception(
+                        "Failed to apply YJS update", database=db.name
+                    )
+            elif msg_type == MSG_AWARENESS:
+                db.awareness.apply_awareness_update(payload, self)
+
+        elif isinstance(value, bytes):
+            # Legacy: raw bytes without type code (backwards compatibility)
+            try:
+                db.crdt.apply_update(value)
+            except Exception:
+                logger.exception("Failed to apply YJS update", database=db.name)
 
     def _on_doc_update(self, evt: pycrdt.TransactionEvent):
         self.send_update(evt.update)
+
+    def _on_awareness_update(
+        self, type: str, changes: tuple[dict[str, Any], Any]
+    ) -> None:
+        if type != "update" or changes[1] != "local":
+            return
+
+        updated_clients = [v for value in changes[0].values() for v in value]
+        state = self._db_ref().awareness.encode_awareness_update(
+            updated_clients
+        )
+        self.send_awareness(state)
 
     def send_update(self, update: bytes) -> None:
         """
@@ -368,9 +443,21 @@ class WebsocketClient:
             self.close()
             return
 
-        # Send via the widget API - this goes through the widget
-        # which will broadcast to all subscribers including this client
-        self._client.send(self._channel, update)
+        # Send via the widget API with type code prefix
+        self._client.send(self._channel, MSG_UPDATE + update)
+
+    def send_awareness(self, awareness_update: bytes) -> None:
+        """
+        Send an awareness update to the server.
+
+        Args:
+            awareness_update: The YJS awareness update bytes to send
+        """
+        if not self._client:
+            return
+
+        # Send via the widget API with type code prefix
+        self._client.send(self._channel, MSG_AWARENESS + awareness_update)
 
     def is_connected(self) -> bool:
         """Check if the client is connected."""
@@ -395,6 +482,7 @@ class WebsocketClient:
             db = self._db_ref()
             if db:
                 db.crdt.unobserve(self._on_doc_update)
+                db.awareness.unobserve(self._on_awareness_update)
         except Exception:
             logger.exception("Failed to unobserve document", database=db.name)
 

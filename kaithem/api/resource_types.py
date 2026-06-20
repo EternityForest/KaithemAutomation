@@ -85,7 +85,7 @@ class ResourceType:
     def __del__(self):
         if logger:
             logger.error(
-                f"Deleting resource type {self.type}. Deleting resource types not supported."
+                f"Type {self.type}: deleting resource types not supported."
             )
 
     def set_edit_page_redirect(self, url: str = "__repeat__"):
@@ -142,7 +142,7 @@ class ResourceType:
         """
 
     def get_create_target(self, module: str, folder: str) -> str:
-        return f"/modules/module/{module}/addresourcetarget/{self.type}?dir={quote(folder, safe='')}"
+        return f"/modules/module/{module}/addresourcetarget/{self.type}?dir={quote(folder, safe='')}"  # noqa: E501
 
     def get_update_target(self, module: str, resource: str) -> str:
         return f"/modules/module/{quote(module)}/updateresource/{resource}"
@@ -151,7 +151,7 @@ class ResourceType:
         try:
             return self.blurb(module, resource, data)
         except Exception:
-            return f'<div class="scroll max-h-12rem">{html.escape(traceback.format_exc())}</div>'
+            return f'<div class="scroll max-h-12rem">{html.escape(traceback.format_exc())}</div>'  # noqa: E501
 
     def blurb(self, module: str, resource: str, data: ResourceDictType) -> str:
         """Empty or a single overview div"""
@@ -170,13 +170,15 @@ class ResourceType:
         <input name="name">
         <input type="submit">
         </form>
-        """
+        """  # noqa: E501
 
     def on_create_request(
         self, module: str, resource: str, kwargs: dict[str, Any]
     ) -> ResourceDictType:  # pragma: no cover
-        """Must return a resource object given all the kwargs from the createpage.
-        Called on submitting create form.  This should not actually do anything
+        """Must return a resource object given all
+        the kwargs from the createpage.
+        Called on submitting create form.  This should not
+        actually do anything
         besides create the resource object.
         """
         return {"resource": {"type": "example"}}
@@ -196,20 +198,25 @@ class ResourceType:
         data: ResourceDictType,
         kwargs: dict[str, Any],
     ) -> ResourceDictType:  # pragma: no cover
-        "Called with the kwargs from editpage.  Gets old resource obj, must return new"
+        """Called with the kwargs from editpage.
+        Gets old resource obj, must return new"""
         return data
 
     def on_load(
         self, module: str, resource: str, data: ResourceDictType
     ):  # pragma: no cover
-        """Called when loaded from disk, or otherwise created for the first time."""
+        """Called when loaded from disk, or otherwise
+        created for the first time."""
 
     def on_finished_loading(self, module: str | None):  # pragma: no cover
-        """Called with module name when every resource has finished loading with onload(),
+        """Called with module name when every resource
+        has finished loading with onload(),
         and before any events or pages are loaded.
 
-        Called during init with None when ALL modules are done loading.  During first
-        init the individual modules don't get their own on_finished_loading calls.
+        Called during init with None when ALL modules are done loading.
+        During first
+        init the individual modules don't get their own on_finished_loading
+        calls.
         """
 
     def on_delete_module(self, module: str):  # pragma: no cover
@@ -224,7 +231,8 @@ class ResourceType:
     def on_unload(
         self, module, resource: str, data: ResourceDictType
     ):  # pragma: no cover
-        """Called when a resource is unloaded.  It does not necessarliy mean it is being
+        """Called when a resource is unloaded.
+        It does not necessarliy mean it is being
         permanently deleted."""
 
     def on_delete(
@@ -237,12 +245,14 @@ class ResourceType:
     def on_update(
         self, module, resource: str, data: ResourceDictType
     ):  # pragma: no cover
-        """Called when something has updated the data on a resource that already exists.
+        """Called when something has updated the data
+         on a resource that already exists.
         Usually the web UI but could be anything."""
 
     def flush_unsaved(self, module, resource):  # pragma: no cover
         """Called when the resource should save any unsaved data it has
-        back to the resource.  Will and must only ever be called under the modules_lock"""
+        back to the resource.  Will and must only ever be
+         called under the modules_lock"""
 
     def save_resource(self, module, resource, data):
         """Call this if your implementation has it's own editor that can save
@@ -302,7 +312,7 @@ def resource_type_from_schema(
     if not len(inspect.signature(runtime_object_cls.__init__).parameters) >= 4:
         # pragma: no cover
         raise ValueError(
-            "Runtime object class __init__ must have 4 parameters: self, module, resource, and data"
+            "__init__ must have 4 parameters: self, module, resource, and data"
         )
 
     if callable(schema):

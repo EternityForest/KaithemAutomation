@@ -373,3 +373,91 @@ def test_syncdb_sync_e2e():
 
     assert db1.name == name
     assert db2.name == name + "_mirror"
+
+
+def test_syncdb_awareness_e2e():
+    """End-to-end test: two databases sync awareness updates."""
+    from kaithem.src import auth, syncdb
+
+    # Ensure admin user exists
+    auth.add_user("admin", "test-admin-password")
+    auth.add_user_to_group("admin", "Administrators")
+
+    server_url = "http://localhost:8002"
+
+    name = _get_test_name("/test/syncdb_awareness_test")
+
+    # Create two databases
+    db1 = syncdb.SyncDatabase.get(name)
+    db2 = syncdb.SyncDatabase.get(name + "_mirror")
+
+    client2 = syncdb.WebsocketClient(
+        db2,
+        server_url,
+        "admin",
+        "test-admin-password",
+        server_side_db_name=db1.name,
+    )
+
+    # Wait for connections
+    for attempt in stamina.retry_context(on=AssertionError):
+        with attempt:
+            assert client2.is_connected()
+    db1.awareness.set_local_state(
+        {
+            "user": {"name": "Jane Doe", "color": "#007ACC"},
+        }
+    )
+
+    id = 0
+
+    for attempt in stamina.retry_context(on=KeyError):
+        with attempt:
+            for i in db2.awareness.states:
+                if "user" in db2.awareness.states[i]:
+                    id = i
+            assert db2.awareness.states[id]["user"]["name"] == "Jane Doe"
+
+
+def test_syncdb_awareness_e2e_reverse():
+    """End-to-end test: two databases sync awareness updates."""
+    from kaithem.src import auth, syncdb
+
+    # Ensure admin user exists
+    auth.add_user("admin", "test-admin-password")
+    auth.add_user_to_group("admin", "Administrators")
+
+    server_url = "http://localhost:8002"
+
+    name = _get_test_name("/test/syncdb_awareness_test")
+
+    # Create two databases
+    db1 = syncdb.SyncDatabase.get(name)
+    db2 = syncdb.SyncDatabase.get(name + "_mirror")
+
+    client2 = syncdb.WebsocketClient(
+        db2,
+        server_url,
+        "admin",
+        "test-admin-password",
+        server_side_db_name=db1.name,
+    )
+
+    # Wait for connections
+    for attempt in stamina.retry_context(on=AssertionError):
+        with attempt:
+            assert client2.is_connected()
+    db2.awareness.set_local_state(
+        {
+            "user": {"name": "Jane Doe", "color": "#007ACC"},
+        }
+    )
+
+    id = 0
+
+    for attempt in stamina.retry_context(on=KeyError):
+        with attempt:
+            for i in db1.awareness.states:
+                if "user" in db1.awareness.states[i]:
+                    id = i
+            assert db1.awareness.states[id]["user"]["name"] == "Jane Doe"

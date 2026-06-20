@@ -7,9 +7,14 @@
  */
 
 import * as Y from 'yjs';
+import { Awareness } from 'y-protocols/awareness';
 
 import { kaithemapi } from './widget.mjs';
 import picodash from '/static/js/thirdparty/picodash/picodash-base.esm.js';
+
+// Message type codes (4-byte big-endian)
+const MSG_UPDATE = new Uint8Array([0x00, 0x00, 0x00, 0x01]);
+const MSG_AWARENESS = new Uint8Array([0x00, 0x00, 0x00, 0x02]);
 
 const getRandom52BitInt = () => {
   // Create an array to hold 2 32-bit unsigned integers (to cover 52 bits)
@@ -23,12 +28,38 @@ const getRandom52BitInt = () => {
 };
 
 /**
+ * Compare two Uint8Arrays for equality
+ */
+const _bytesEqual = (a: Uint8Array, b: Uint8Array): boolean => {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+};
+
+/**
+ * Combine type code with payload
+ */
+const _makeTypedMessage = (type: Uint8Array, payload: Uint8Array): Uint8Array => {
+  const result = new Uint8Array(type.length + payload.length);
+  result.set(type, 0);
+  result.set(payload, type.length);
+  return result;
+};
+
+/**
  * Cache of YJS documents by name
  */
 const documentCache = new Map<string, Y.Doc>();
 
 /*Persistent name to what the server says it its session ID for that doc*/
 const serverSessionIdMap = new Map<string, string>();
+
+/**
+ * Cache of YJS Awareness instances by document name
+ */
+const awarenessMap = new Map<string, Awareness>();
 
 /**
  * Get a YJS document by name. Creates a new one or returns existing from cache.
@@ -74,7 +105,11 @@ async function _fetchInitialState(
       new Uint8Array(await server_vector.arrayBuffer())
     );
 
-    kaithemapi.sendValue(`syncdb:${documentName}`, updates_for_server);
+    // Send update with type code prefix
+    kaithemapi.sendValue(
+      `syncdb:${documentName}`,
+      _makeTypedMessage(MSG_UPDATE, updates_for_server)
+    );
 
     // Get our current state vector
     const stateVector = Y.encodeStateVector(document_);
@@ -132,6 +167,26 @@ function _subscribeToDocument(documentName: string, document_: Y.Doc): void {
     if (!value) return;
 
     try {
+      // Handle typed messages (with 4-byte type code prefix)
+      if (value instanceof Uint8Array && value.byteLength >= 4) {
+        const msgType = value.slice(0, 4);
+        const payload = value.slice(4);
+
+        // Check message type
+        if (_bytesEqual(msgType, MSG_UPDATE)) {
+          // Regular YJS update
+          Y.applyUpdate(document_, payload);
+        } else if (_bytesEqual(msgType, MSG_AWARENESS)) {
+          // Awareness update - apply to awareness if available
+          const awareness = awarenessMap.get(documentName);
+          if (awareness) {
+            Awareness.applyUpdate(awareness, payload);
+          }
+        }
+        return;
+      }
+
+      // Handle legacy messages without type code
       let update: Uint8Array | null = null;
 
       if (value instanceof Uint8Array) {
@@ -149,7 +204,7 @@ function _subscribeToDocument(documentName: string, document_: Y.Doc): void {
 
         // The server always sends this when we connect.
         // If the server changes the session ID, we need to reload everything.
-        
+
         if ('session_id' in value) {
           const oldSessionId = serverSessionIdMap.get(documentName);
 
@@ -172,6 +227,43 @@ function _subscribeToDocument(documentName: string, document_: Y.Doc): void {
   });
 }
 
+/**
+ * Get or create a YJS Awareness instance for a document.
+ * Awareness is used for presence, cursor positions, and other
+ * ephemeral user state.
+ *
+ * @param documentName - The name of the document
+ * @returns The YJS Awareness instance
+ */
+export function getAwareness(documentName: string): Awareness {
+  if (awarenessMap.has(documentName)) {
+    return awarenessMap.get(documentName)!;
+  }
+
+  // Get or create the document
+  const document_ = getDocument(documentName);
+
+  // Create awareness instance
+  const awareness = new Awareness(document_);
+
+  // Listen for local awareness changes and send to server
+  awareness.on('update', ({ added, updated, removed }: { added: number[]; updated: number[]; removed: number[] }) => {
+    const changedClients = added.concat(updated).concat(removed);
+    const update = Awareness.encodeAwarenessUpdate(awareness, changedClients);
+
+    if (update.byteLength > 0) {
+      kaithemapi.sendValue(
+        `syncdb:${documentName}`,
+        _makeTypedMessage(MSG_AWARENESS, update)
+      );
+    }
+  });
+
+  awarenessMap.set(documentName, awareness);
+  return awareness;
+}
+
 export default {
   getDocument,
+  getAwareness,
 };
