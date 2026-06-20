@@ -38,7 +38,7 @@ def test_normalize_tag_names():
 def test_tag_override_resource():
     import time
 
-    import kaithem.api.modules as modulesapi
+    from kaithem.api import modules as modulesapi
     from kaithem.src import alerts, modules, tagpoints
 
     n = "test" + str(time.time()).replace(".", "_")
@@ -157,7 +157,7 @@ def test_tag_getter_error():
     def f(claim: tagpoints.Claim[float]):
         if err_once[0]:
             err_once[0] = False
-            raise Exception("Test Error")
+            raise RuntimeError("Test Error")
         claim.set(6)
 
     t.default_claim.getter = f
@@ -339,7 +339,7 @@ def test_tags_error():
     tagpoints.subscriber_error_handlers.append(onError)
 
     def f(value, timestamp, annotation):
-        raise Exception("Test Error")
+        raise RuntimeError("Test Error")
 
     t.subscribe(f)
     t.set_claim_val("default", 50, ts, "TestAnnotation")
