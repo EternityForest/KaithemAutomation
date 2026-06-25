@@ -203,19 +203,6 @@ ws_connections: weakref.WeakValueDictionary[
 ] = weakref.WeakValueDictionary()
 
 
-def get_connectionRefForID(
-    id: str,
-    deleteCallback: Callable[
-        [weakref.ref[WebSocketHandler | RawWidgetDataHandler]], None
-    ]
-    | None = None,
-):
-    try:
-        return weakref.ref(ws_connections[id], deleteCallback)
-    except KeyError:
-        return None
-
-
 # Message, start time, duration
 lastGlobalAlertMessage = ["", 0, 0]
 

@@ -665,7 +665,7 @@ async function getcuemeta(c) {
       setTimeout(() => {
         reject();
         alert("Timeout waiting for cue data.");
-      }, 5000);
+      }, 10_000);
     });
     api_link.send(["getcuemeta", c]);
     try {
