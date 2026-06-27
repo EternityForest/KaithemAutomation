@@ -525,7 +525,9 @@ class ProjectionEditor extends LitElement {
       this.setupWebSocket();
       this.updateTagSubscriptions();
     });
-    this.loadFonts();
+    if(!this.isViewerMode) {
+      this.loadFonts();
+    }
   }
 
   override firstUpdated(): void {

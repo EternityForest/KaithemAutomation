@@ -12,6 +12,8 @@ import traceback
 
 import structlog
 
+from kaithem.src.print_thread_tracebacks import watchdog
+
 from . import directories, messagebus, pathsetup, schemas
 
 logger = structlog.get_logger(__name__)
@@ -49,6 +51,9 @@ def import_in_thread(m: str | importlib.machinery.ModuleSpec):
     evs.append(e)
 
     def f():
+        wdt_evt = threading.Event()
+        watchdog(wdt_evt, f"Timed out importing {m}")
+
         try:
             t = time.monotonic()
 
@@ -71,7 +76,7 @@ def import_in_thread(m: str | importlib.machinery.ModuleSpec):
                 if isinstance(services, list):
                     for i in services:
                         if not isinstance(i, BasePluginInterface):
-                            raise Exception(
+                            raise TypeError(  # noqa: TRY301
                                 f"Plugin {m} has invalid service {i}"
                             )
                         if i in providers:
@@ -85,8 +90,10 @@ def import_in_thread(m: str | importlib.machinery.ModuleSpec):
             evs.remove(e)
 
             logger.info(
-                f"Loaded plugin {m} in {round((time.monotonic() - t) * 1000, 2)}ms"
+                f"Loaded {m} in {round((time.monotonic() - t) * 1000, 2)}ms"
             )
+            wdt_evt.set()
+
         except Exception:
             logger.exception("Error loading plugin {m}")
             messagebus.post_message(
@@ -107,6 +114,7 @@ def load_plugins():
                 # Very important to use the full name, not just add it to path,
                 # or it would not know that it was the same module we might
                 # import elsewhere
+
                 import_in_thread("kaithem.src.plugins." + i)
 
         # Search every module on the import path

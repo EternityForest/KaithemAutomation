@@ -310,19 +310,17 @@ def startServer(handle_signals=True):
     #             },
     #         )
     #         https_server.listen(config["https_port"], bindto)
-    shutdown_event = asyncio.Event()
+    shutdown_event = [None]
     loop = asyncio.new_event_loop()
 
     def shutdown_event_set():
         async def f():
-            shutdown_event.set()
+            if shutdown_event[0] is not None:
+                shutdown_event[0].set()
 
         asyncio.run_coroutine_threadsafe(f(), loop)
 
-    shutdown.add_shutdown_handler(shutdown_event_set)
-
     def _signal_handler(*_) -> None:
-        shutdown_event.set()
         signalhandlers.stop()
 
     if handle_signals:
@@ -336,7 +334,11 @@ def startServer(handle_signals=True):
 
         # p = Profiler(async_mode="strict")
         # with p:
-        await serve(wrapped_app, config2, shutdown_trigger=shutdown_event.wait)
+        shutdown_event[0] = asyncio.Event()
+        shutdown.add_shutdown_handler(shutdown_event_set)
+        await serve(
+            wrapped_app, config2, shutdown_trigger=shutdown_event[0].wait
+        )
 
         # p.print(show_all=True)
 
