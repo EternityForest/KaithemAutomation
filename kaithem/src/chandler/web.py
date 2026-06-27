@@ -271,10 +271,11 @@ async def default(path: str):
     if "." not in path.split("/")[-1]:
         # Todo template rendering on the server should really be
         # gone
-        try:
-            pages.require("chandler_operator")
-        except PermissionError:
-            return pages.loginredirect(pages.geturl())
+        if "webmedia" not in path:
+            try:
+                pages.require("chandler_operator")
+            except PermissionError:
+                return pages.loginredirect(pages.geturl())
 
         path = path.split("/")[0] + ".html"
 

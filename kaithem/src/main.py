@@ -15,17 +15,27 @@ import structlog
 from . import config as config_module
 from . import console_about_page
 from . import logconfig as _logconfig  # noqa: F401
+from .print_thread_tracebacks import watchdog
 
 _logger = structlog.get_logger(__name__)
+
+max_background_import_threads = 8
+backround_import_count = threading.Semaphore(max_background_import_threads)
 
 
 def import_in_thread(m):
     def f():
         start_time = time.time()
         try:
+            backround_import_count.acquire()
+            evt = threading.Event()
+            watchdog(evt, f"Timed out importing {m}")
             importlib.import_module(m)
+            evt.set()
         except Exception:
             _logger.exception(f"Error importing {m}")
+        finally:
+            backround_import_count.release()
         taken = round(time.time() - start_time, 2)
         if taken > 0.1:
             _logger.info(f"Loading {m} took {taken}s")
@@ -36,7 +46,8 @@ def import_in_thread(m):
 
 
 def initialize(config: dict[str, Any] | None = None):
-    "Config priority is default, then cfg param, then cmd line cfg file as highest priority"
+    """Config priority is default, then cfg param,
+    then cmd line cfg file as highest priority"""
 
     start_time = time.time()
 
@@ -46,6 +57,9 @@ def initialize(config: dict[str, Any] | None = None):
 
     if version:
         sys.exit(0)
+
+    # Single threaded pre-import due to https://github.com/jawah/niquests/issues/415
+    import niquests  # noqa: F401
 
     from . import (
         logconfig,  # noqa: F401
@@ -76,6 +90,18 @@ def initialize(config: dict[str, Any] | None = None):
         import_in_thread(i)
     time.sleep(0.1)
 
+    # Hard takeover
+    for i in range(max_background_import_threads):
+        backround_import_count.acquire()
+    for i in range(max_background_import_threads):
+        backround_import_count.release()
+
+    # Paralellize slow imports
+    for i in [
+        "kaithem.src.jackmanager",
+    ]:
+        import_in_thread(i)
+
     # config needs to be available before init for overrides
     # but it can't be initialized until after pathsetup which may
     config_module.initialize(config)
@@ -101,7 +127,8 @@ def initialize(config: dict[str, Any] | None = None):
     sound.init()
 
     # Enable importing stuff directly from ./thirdparty,
-    # Since we include lots of dependancies that would normally be provided by the system.
+    # Since we include lots of dependancies
+    # that would normally be provided by the system.
     # This must be done before CherryPy
     # Thhese happpen early so we cab start logging stuff soon
     from . import (

@@ -12,6 +12,9 @@ Change Log
 * [sparkles] Preview of the alpha Dashboard creator.
 * [sparkles] Front page alerts now powered by our new YJS core primitive.
 * [sparkles] Leaflet maps replaced with maplibre
+* [bug] Permission denied issue with Chandler slideshows
+* [sparkles] Force shutdown if cleanup takes 60s
+* [bug] Nuisiance font listing error in Chandler media display
 
 
 ### 0.95.0
