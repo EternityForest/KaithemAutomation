@@ -175,16 +175,21 @@ def importPermissionsFromModules() -> None:
         ) in modules_state.ActiveModules.copy():  # Iterate over all modules
             # for every resource of type permission
             for resource in modules_state.ActiveModules[module].copy():
-                if (
-                    modules_state.ActiveModules[module][resource]["resource"][
-                        "type"
-                    ]
-                    == "permission"
-                ):
-                    # add it to the permissions list
-                    p2[resource.split("/")[-1]] = modules_state.ActiveModules[
-                        module
-                    ][resource]
+                try:
+                    if (
+                        modules_state.ActiveModules[module][resource][
+                            "resource"
+                        ]["type"]
+                        == "permission"
+                    ):
+                        # add it to the permissions list
+                        p2[resource.split("/")[-1]] = (
+                            modules_state.ActiveModules[module][resource]
+                        )
+                except Exception:
+                    logger.exception(
+                        f"Invalid resource {resource} in module {module}"
+                    )
     global Permissions
     Permissions = p2
 

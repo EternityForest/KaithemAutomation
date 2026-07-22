@@ -36,7 +36,7 @@ def print_thread_tracebacks(reason: str = ""):
             f"""
             [red]⚠️  {reason}[/red]
             [yellow]Printing thread tracebacks for debugging...[/yellow]""",
-            title="⚠️  Shutdown Timeout",
+            title="⚠️ Timeout",
             border_style="red",
         )
     )
