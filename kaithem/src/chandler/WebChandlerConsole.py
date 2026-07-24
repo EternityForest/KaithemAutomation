@@ -1,5 +1,6 @@
 """Don't waste too much time cleaning this.
-The way forward is moving individual setters to setCueProperty and setGroupProperty"""
+The way forward is moving individual setters to
+setCueProperty and setGroupProperty"""
 
 from __future__ import annotations
 
@@ -53,7 +54,8 @@ def limitedTagsListing():
 
 
 def listsoundfolder(path: str, extra_folders: list[str] = []):
-    """return format [ [subfolderfolder,displayname],[subfolder2,displayname]  ],
+    """return format
+    [ [subfolderfolder,displayname],[subfolder2,displayname]  ],
     [[fn, fn_relative_to_its_configured_folder]...]
 
     Note we store things as relative paths excluding the folder,
@@ -326,7 +328,8 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             )
 
     def _send_environment_description(self):
-        """Send environment description with builtin events and command metadata."""
+        """Send environment description with
+        builtin events and command metadata."""
         ctx = groups.rootContext
         ch_info = {}
 
@@ -382,8 +385,10 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             self.pushCueMeta(msg[1])
             return
 
-        # There's such a possibility for an iteration error if universes changes.
-        # I'm not going to worry about it, this is only for the GUI list of universes.
+        # There's such a possibility for an iteration
+        # error if universes changes.
+        # I'm not going to worry about it, this is only for the
+        #  GUI list of universes.
         elif cmd_name == "getuniverses":
             self.push_setup()
             return
@@ -417,7 +422,8 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             return
 
         else:
-            # Not in allowed read only commands, need chandler_operator below this point
+            # Not in allowed read only commands,
+            # need chandler_operator below this point
             # Right now there's no separate chandler view, just operator
             if not has_permission("chandler_operator", user=user):
                 if not has_permission("system_admin", user=user):
@@ -506,78 +512,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             else:
                 raise RuntimeError("User does not have permission")
 
-        elif cmd_name == "setfixtureclass":
-            ch_info = []
-            d = copy.deepcopy(msg[2])
-
-            for i in d["channels"]:
-                assert isinstance(i, dict)
-                assert "name" in i
-                assert "type" in i
-                ch_info.append(i)
-
-            d["channels"] = ch_info
-
-            self.cl_set_fixture_type(msg[1], d)
-
-        elif cmd_name == "setfixtureclassopz":
-            x = []
-
-            for i in msg[2]["channels"]:
-                i = str(i)
-                if i in ("red", "green", "blue", "white", "fog", "uv"):
-                    x.append(
-                        {
-                            "name": i,
-                            "type": i,
-                        }
-                    )
-
-                elif i.startswith("knob"):
-                    x.append(
-                        {
-                            "name": i,
-                            "type": "generic",
-                        }
-                    )
-
-                elif i == "intensity":
-                    x.append(
-                        {
-                            "name": "dim",
-                            "type": "intensity",
-                        }
-                    )
-                elif i == "off":
-                    x.append({"name": i, "type": "fixed", "value": 0})
-                elif i == "on":
-                    x.append({"name": i, "type": "fixed", "value": 255})
-                elif i.isnumeric():
-                    x.append({"name": i, "type": "fixed", "value": int(i)})
-                elif i == "color":
-                    x.append(
-                        {
-                            "name": "hue",
-                            "type": "hue",
-                        }
-                    )
-                else:
-                    raise RuntimeError("Unknown channel type: " + i)
-
-            fix = {"channels": x}
-
-            importedname = msg[1].replace("-", " ").replace("/", " ")
-            self.fixture_classes[importedname] = fix
-            self.cl_reload_fixture_assignment_data()
-            self.linkSend(
-                ["fixtureclass", msg[1], self.fixture_classes[importedname]]
-            )
-
-        elif cmd_name == "rmfixtureclass":
-            del self.fixture_classes[msg[1]]
-            self.cl_reload_fixture_assignment_data()
-            self.linkSend(["fixtureclass", msg[1], None])
-
         elif cmd_name == "setFixtureAssignment":
             if not msg[2]["type"]:
                 raise RuntimeError("Fixture type must be specified")
@@ -614,10 +548,12 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             effect = msg[2]
             fixture = msg[3]
 
-            # Get rid of any index part, treat it like it's part of the same fixture.
+            # Get rid of any index part, treat it
+            #  like it's part of the same fixture.
             x = universes.get_assigned_fixture(fixture.split("[")[0])
             # Add every non-unused channel.  Fixtures
-            # Are stored as if they are their own universe, starting with an @ sign.
+            # Are stored as if they are their own universe,
+            # starting with an @ sign.
             # Channels are stored by name and not by number.
             for i in x.channels:
                 if i["type"] not in ("unused", "fixed"):

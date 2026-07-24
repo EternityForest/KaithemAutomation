@@ -1,3 +1,4 @@
+import asyncio
 import importlib.metadata
 import mimetypes
 import os
@@ -16,6 +17,9 @@ try:
     safe_ver = importlib.metadata.version("kaithem")
 except importlib.metadata.PackageNotFoundError:
     safe_ver = str(os.urandom(8).hex())
+
+
+main_web_loop: asyncio.AbstractEventLoop | None = None
 
 
 @app.after_request

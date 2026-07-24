@@ -915,7 +915,7 @@ so it is pretty much a "soft" approximate serialization.
 
 It mostly exists to allow tests to wait for previous actions.
 */
-async function doSerialized(callback, timeout = 15_000) {
+export async function doSerialized(callback, timeout = 15_000) {
   let previous = previousSerializedPromise.value;
 
   await nextTick();
@@ -1583,7 +1583,6 @@ export {
   cuePage,
   nuisianceRateLimit,
   previousSerializedPromise,
-  doSerialized,
   doSerializedWithTimeout,
   no_edit,
   recentEventsLog,

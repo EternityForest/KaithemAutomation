@@ -5,7 +5,8 @@ import time
 
 import stamina
 
-"""Does NOT fully replace physically testing DMX due to the lack of detecting the special
+"""Does NOT fully replace physically testing
+ DMX due to the lack of detecting the special
 dmx break."""
 
 if "--collect-only" not in sys.argv:  # pragma: no cover
@@ -15,10 +16,11 @@ if "--collect-only" not in sys.argv:  # pragma: no cover
     )
 
     from . import test_chandler
+    from .helpers import make_client
     from .test_chandler import TempGroup
 
 
-def test_fixtures_to_dmx():
+async def test_fixtures_to_dmx():
     """Create a universe, a fixture type, and a fixture,
     add the fixture to a group, che/ck the universe vals
     """
@@ -68,10 +70,11 @@ def test_fixtures_to_dmx():
                 x += os.read(master_fd, 1024)
                 assert bytes([0, 0, 0, 0, 0, 0]) in x
 
-        test_chandler.board._onmsg(
-            "__admin__",
-            ["setfixtureclass", "TestFixtureType", fixtypes["TestFixtureType"]],
-            "test",
+        tc = await make_client()
+
+        await tc.put(
+            f"/chandler/api/set-fixture-class/{test_chandler.board.name}/TestFixtureType",
+            json=fixtypes["TestFixtureType"],
         )
 
         test_chandler.board._onmsg(

@@ -30,7 +30,7 @@ def chandler_list_plugins():
 
 @quart_app.route("/chandler/api/go-to-cue-by-cue-id/<cue_id>", methods=["PUT"])
 async def api_go_to_cue_by_cue_id(cue_id: str):
-    require("system_admin")
+    require("chandler_operator")
     c = cues[cue_id]
     g = c.group()
     assert g
@@ -42,7 +42,7 @@ async def api_go_to_cue_by_cue_id(cue_id: str):
     "/chandler/api/go-to-cue-by-name/<group>/<cue_name>", methods=["PUT"]
 )
 async def api_go_to_cue_by_name(group: str, cue_name: str):
-    require("system_admin")
+    require("chandler_operator")
     g = groups[group]
     g.goto_cue(cue_name)
     return {"success": True}
@@ -50,7 +50,7 @@ async def api_go_to_cue_by_name(group: str, cue_name: str):
 
 @quart_app.route("/chandler/api/group-go/<group_id>", methods=["PUT"])
 async def group_go(group_id: str):
-    require("system_admin")
+    require("chandler_operator")
     x = groups[group_id]
     x.go()
     return {"success": True}
@@ -60,7 +60,7 @@ async def group_go(group_id: str):
     "/chandler/api/refresh-group-cue-providers/<group_id>", methods=["PUT"]
 )
 async def refresh_group_cue_providers(group_id: str):
-    require("system_admin")
+    require("chandler_operator")
     x = groups[group_id]
     x.refresh_cue_providers()
     return {"success": True}
@@ -68,7 +68,7 @@ async def refresh_group_cue_providers(group_id: str):
 
 @quart_app.route("/chandler/api/group-stop/<group_id>", methods=["PUT"])
 async def group_stop(group_id: str):
-    require("system_admin")
+    require("chandler_operator")
     x = groups[group_id]
     x.stop()
     return {"success": True}
@@ -78,7 +78,7 @@ async def group_stop(group_id: str):
     "/chandler/api/delete-group/<board>/<group_id>", methods=["PUT"]
 )
 async def delete_chandler_group(board: str, group_id: str):
-    require("system_admin")
+    require("chandler_operator")
     x = groups[group_id]
     x.stop()
     board_obj = boards[board]
@@ -87,9 +87,103 @@ async def delete_chandler_group(board: str, group_id: str):
     return {"success": True}
 
 
+@quart_app.route(
+    "/chandler/api/set-fixture-class/<board>/<fixture_type_name>",
+    methods=["PUT"],
+)
+async def set_fixture_class(board: str, fixture_type_name: str):
+    """Set a fixture class definition."""
+    require("chandler_operator")
+
+    data = json.loads(await request.body)
+
+    ch_info = []
+    for i in data["channels"]:
+        assert isinstance(i, dict)
+        assert "name" in i
+        assert "type" in i
+        ch_info.append(i)
+
+    data["channels"] = ch_info
+
+    @quart.ctx.copy_current_request_context
+    def f():
+        with cl_context:
+            b = boards[board]
+            b.cl_set_fixture_type(fixture_type_name, data)
+        return {"success": True}
+
+    return await f()
+
+
+@quart_app.route(
+    "/chandler/api/set-fixture-class-opz/<board>",
+    methods=["PUT"],
+)
+async def set_fixture_class_opz(board: str):
+    """Set a fixture class from OPZ/DDF format (simplified channel types)."""
+    require("chandler_operator")
+
+    data = json.loads(await request.body)
+
+    x = []
+    for i in data["channels"]:
+        i = str(i)
+        if i in ("red", "green", "blue", "white", "fog", "uv"):
+            x.append({"name": i, "type": i})
+        elif i.startswith("knob"):
+            x.append({"name": i, "type": "generic"})
+        elif i == "intensity":
+            x.append({"name": "dim", "type": "intensity"})
+        elif i == "off":
+            x.append({"name": i, "type": "fixed", "value": 0})
+        elif i == "on":
+            x.append({"name": i, "type": "fixed", "value": 255})
+        elif i.isnumeric():
+            x.append({"name": i, "type": "fixed", "value": int(i)})
+        elif i == "color":
+            x.append({"name": "hue", "type": "hue"})
+        else:
+            raise RuntimeError("Unknown channel type: " + i)
+
+    fix = {"channels": x}
+
+    importedname = data["name"].replace("-", " ").replace("/", " ")
+
+    @quart.ctx.copy_current_request_context
+    def f():
+        with cl_context:
+            b = boards[board]
+            b.fixture_classes[importedname] = fix
+            b.cl_reload_fixture_assignment_data()
+        return {"success": True}
+
+    return await f()
+
+
+@quart_app.route(
+    "/chandler/api/rm-fixture-class/<board>/<fixture_type_name>",
+    methods=["PUT"],
+)
+async def rm_fixture_class(board: str, fixture_type_name: str):
+    """Remove a fixture class."""
+    require("chandler_operator")
+
+    @quart.ctx.copy_current_request_context
+    def f():
+        with cl_context:
+            b = boards[board]
+            del b.fixture_classes[fixture_type_name]
+            b.cl_reload_fixture_assignment_data()
+
+        return {"success": True}
+
+    return await f()
+
+
 @quart_app.route("/chandler/api/import-file/<board>", methods=["PUT", "POST"])
 async def import_setup(board: str):
-    require("system_admin")
+    require("chandler_operator")
 
     form = await quart.request.form
 
@@ -140,7 +234,7 @@ async def set_cue_properties(cue_id: str):
     camelCase top level keys are converted to snake_case to that
     web code can use JS conventions.
     """
-    require("system_admin")
+    require("chandler_operator")
 
     kw = json.loads(await request.body)
 
@@ -179,11 +273,11 @@ async def set_cue_properties(cue_id: str):
                 if group:
                     group.board.pushCueMeta(cue_id, [prop])
 
-            if not getattr(cues[cue_id], prop) == val:
-                pass
-                # logger.warning(
-                #     f"""User set property {prop} on cue {cue_id} to {val} but it was set to {getattr(cues[cue_id], prop)}"""
-                # )
+            # if not getattr(cues[cue_id], prop) == val:
+            #     logger.warning(
+            #         f"""User set property {prop} on cue {cue_id} to {val} but
+            #         it was set to {getattr(cues[cue_id], prop)}"""
+            #     )
 
         return {"success": True}
 
@@ -197,7 +291,7 @@ async def set_cue_properties(cue_id: str):
 async def set_cue_value_rest(
     cue_id: str, effect: str, universe: str, channel: str
 ):
-    require("system_admin")
+    require("chandler_operator")
     v = json.loads(quart.request.args["value"])
 
     cue = cues[cue_id]
@@ -227,7 +321,7 @@ async def set_cue_value_rest(
     methods=["PUT"],
 )
 async def set_cue_keypoint_position(cue_id: str, effect: str, universe: str):
-    require("system_admin")
+    require("chandler_operator")
     cue = cues[cue_id]
     group = cue.group()
     if group:
@@ -257,7 +351,7 @@ async def set_cue_keypoint_position(cue_id: str, effect: str, universe: str):
 async def set_cue_keypoint_meta(
     cue_id: str, effect: str, universe: str, key: str
 ):
-    require("system_admin")
+    require("chandler_operator")
     cue = cues[cue_id]
     group = cue.group()
     if group:
@@ -283,7 +377,7 @@ async def set_cue_keypoint_meta(
     methods=["PUT"],
 )
 async def set_cue_effect_rest(cue_id: str, effect: str):
-    require("system_admin")
+    require("chandler_operator")
     v = json.loads(quart.request.args["value"])
 
     cue = cues[cue_id]
@@ -330,7 +424,7 @@ async def set_group_properties(group_id: str):
     camelCase top level keys are converted to snake_case to that
     web code can use JS conventions.
     """
-    require("system_admin")
+    require("chandler_operator")
 
     kw = json.loads(await request.body)
 

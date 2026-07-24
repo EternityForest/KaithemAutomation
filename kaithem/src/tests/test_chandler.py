@@ -1,6 +1,5 @@
 # pyright: strict, reportOptionalMemberAccess=false,  reportUnknownMemberType=false, reportAttributeAccessIssue=false
 
-
 import datetime
 import gc
 import os
@@ -19,6 +18,8 @@ if "--collect-only" not in sys.argv:  # pragma: no cover
     from kaithem.src.chandler import (
         core,
     )
+
+    from . import helpers
 
     if "test_chandler_module" not in modules_state.ActiveModules:
         modules.newModule("test_chandler_module")
@@ -462,7 +463,7 @@ def test_midi():
         midiout.close_port()
 
 
-def test_fixtures():
+async def test_fixtures():
     """Create a universe, a fixture type, and a fixture,
     add the fixture to a group, che/ck the universe vals
     """
@@ -505,11 +506,12 @@ def test_fixtures():
 
     board._onmsg("__admin__", ["setconfuniverses", u], "test")
 
-    board._onmsg(
-        "__admin__",
-        ["setfixtureclass", "TestFixtureType", fixtypes["TestFixtureType"]],
-        "test",
+    tc = await helpers.make_client()
+    await tc.put(
+        f"/chandler/api/set-fixture-class/{board.name}/TestFixtureType",
+        json=fixtypes["TestFixtureType"],
     )
+
     with modules_lock:
         board.ml_cl_check_autosave()
 
@@ -1669,7 +1671,7 @@ def test_lighting_value_gradient():
         assert tagpoints.Tag("/test3").value == 60
 
 
-def test_lighting_value_gradient_fixtures():
+async def test_lighting_value_gradient_fixtures():
     from kaithem.src.chandler import (
         core,
         universes,
@@ -1717,10 +1719,11 @@ def test_lighting_value_gradient_fixtures():
 
     board._onmsg("__admin__", ["setconfuniverses", u], "test")
 
-    board._onmsg(
-        "__admin__",
-        ["setfixtureclass", "TestFixtureType", fixtypes["TestFixtureType"]],
-        "test",
+    tc = await helpers.make_client()
+
+    await tc.put(
+        f"/chandler/api/set-fixture-class/{board.name}/TestFixtureType",
+        json=fixtypes["TestFixtureType"],
     )
 
     for i in fixture_assignments:

@@ -418,6 +418,8 @@ def test_syncdb_awareness_e2e():
                     id = i
             assert db2.awareness.states[id]["user"]["name"] == "Jane Doe"
 
+    client2.close()
+
 
 def test_syncdb_awareness_e2e_reverse():
     """End-to-end test: two databases sync awareness updates."""
@@ -461,3 +463,5 @@ def test_syncdb_awareness_e2e_reverse():
                 if "user" in db1.awareness.states[i]:
                     id = i
             assert db1.awareness.states[id]["user"]["name"] == "Jane Doe"
+
+    client2.close()

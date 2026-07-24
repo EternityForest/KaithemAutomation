@@ -50,7 +50,14 @@ const onReaderLoad = (event) => {
 }
 
 const importfixture = () => {
-  api_link.send(['setfixtureclassopz', selected.value['name'], selected.value])
+  globalThis.doSerialized(async () => {
+    await fetch("/chandler/api/set-fixture-class-opz/" + encodeURIComponent(selected.value['name']), {
+      method: "PUT",
+      body: JSON.stringify(selected.value),
+    });
+  }).catch(function (error) {
+    alert("Could not import fixture: " + error);
+  });
 }
 </script>
 

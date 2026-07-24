@@ -847,6 +847,7 @@ import {
   refreshPorts,
   pushSettings,
   deleteUniverse,
+  doSerialized
 } from "./boardapi.mjs";
 
 import MediaBrowser from "./media-browser.vue";
@@ -929,7 +930,9 @@ function getfixtureclass(i) {
   if (i == "") {
     return;
   }
-  globalThis.api_link.send(["getfixtureclass", i]);
+  doSerialized(() => {
+      globalThis.api_link.send(["getfixtureclass", i]);
+  })
 }
 
 function addfixturetype() {
@@ -937,20 +940,45 @@ function addfixturetype() {
   if (x) {
     old_vue_set(fixtureClasses.value, x, { channels: [] });
     selectedFixtureType.value = x;
-    globalThis.api_link.send(["setfixtureclass", x, fixtureClasses.value[x]]);
-    globalThis.api_link.send(["getfixtureclass", x]);
+    globalThis.doSerialized(async () => {
+      await fetch("/chandler/api/set-fixture-class/" +
+        encodeURIComponent(boardname.value) + "/" +
+       encodeURIComponent(x), {
+        method: "PUT",
+        body: JSON.stringify(fixtureClasses.value[x]),
+      });
+    }).catch(function (error) {
+      alert("Could not set fixture class: " + error);
+    });
   }
 }
 function delfixturetype() {
   let x = confirm("Really delete?");
   if (x) {
     old_vue_delete(fixtureClasses.value, selectedFixtureType.value);
-    globalThis.api_link.send(["rmfixtureclass", selectedFixtureType.value]);
+    globalThis.doSerialized(async () => {
+      await fetch("/chandler/api/rm-fixture-class/" +
+        encodeURIComponent(boardname.value) + "/" +
+        encodeURIComponent(selectedFixtureType.value), {
+        method: "PUT",
+      });
+    }).catch(function (error) {
+      alert("Could not remove fixture class: " + error);
+    });
     selectedFixtureType.value = "";
   }
 }
 function pushfixture(i) {
-  globalThis.api_link.send(["setfixtureclass", i, fixtureClasses.value[i]]);
+  globalThis.doSerialized(async () => {
+    await fetch("/chandler/api/set-fixture-class/" +
+      encodeURIComponent(boardname.value) + "/" +
+      encodeURIComponent(i), {
+      method: "PUT",
+      body: JSON.stringify(fixtureClasses.value[i]),
+    });
+  }).catch(function (error) {
+    alert("Could not set fixture class: " + error);
+  });
 }
 
 function setFixtureAssignment(i, v) {

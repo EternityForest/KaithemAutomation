@@ -19,7 +19,11 @@
         <input id="file" type="file" @change="onChange" />
         <label>Search:<input v-model="search" /></label>
         <ul v-if="d.profiles">
-          <li v-for="(v, i) of d.profiles" :key="i" v-show="v.name.includes(search)">
+          <li
+            v-for="(v, i) of d.profiles"
+            :key="i"
+            v-show="v.name.includes(search)"
+          >
             <button @click="selected = v">{{ v.name }}</button>
           </li>
         </ul>
@@ -42,9 +46,11 @@
 </template>
 
 <script setup>
-import { ref, reactive } from "vue";
+import { ref, reactive } from 'vue';
 
-const search = ref("");
+import { boardname } from './boardapi.mjs';
+
+const search = ref('');
 const selected = ref({});
 const d = reactive({});
 
@@ -60,7 +66,20 @@ function onReaderLoad(event) {
 }
 
 function importfixture() {
-  globalThis.api_link.send(["setfixtureclassopz", selected.value.name, selected.value]);
+  globalThis
+    .doSerialized(async () => {
+      await fetch(
+        '/chandler/api/set-fixture-class-opz/' +
+          encodeURIComponent(boardname.value),
+        {
+          method: 'PUT',
+          body: JSON.stringify(selected.value),
+        }
+      );
+    })
+    .catch(function (error) {
+      alert('Could not import fixture: ' + error);
+    });
 }
 </script>
 

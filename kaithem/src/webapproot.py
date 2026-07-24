@@ -312,6 +312,7 @@ def startServer(handle_signals=True):
     #         https_server.listen(config["https_port"], bindto)
     shutdown_event = [None]
     loop = asyncio.new_event_loop()
+    quart_app.main_web_loop = loop
 
     def shutdown_event_set():
         async def f():
