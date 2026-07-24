@@ -127,7 +127,7 @@ required-environments=[
 # Duplicate here so we can use uv to test in specific environments
 [dependency-groups]
 dev = [
-    "kaithem-plugin-datasette>=2.0.0",
+    "kaithem-plugin-datasette>=0.2.0",
     "pytest-cov >=5.0.0",
     "pytest-asyncio >=0.23.7",
     "time-machine >=2.0.0",
