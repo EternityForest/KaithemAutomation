@@ -33,14 +33,7 @@ def setupPath():
 
     startupPluginsPath = os.path.join(x, "plugins")
 
-    # With snaps, lets not use this style of including the packages.
-    # Perhaps we'll totally leave it behind later!
-    if not os.path.normpath(__file__).startswith("/snap"):
-        sys.path = [os.path.join(x, "thirdparty")] + sys.path
-
-    else:
-        # Still a few old things we need in Thirdparty
-        sys.path = sys.path + [os.path.join(x, "thirdparty")]
+    sys.path = [os.path.join(x, "thirdparty")] + sys.path
 
     # Truly an awefullehaccken
     # Break out of venv to get to gstreamer
@@ -61,7 +54,7 @@ def setupPath():
 
             if os.path.exists(s) and (not os.path.exists(p)):
                 os.symlink(s, p)
-    except Exception:
+    except Exception:  # pragma: no cover
         logger.exception("Failed to do the gstreamer hack")
 
 

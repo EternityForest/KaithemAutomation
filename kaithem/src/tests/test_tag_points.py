@@ -1,4 +1,7 @@
+import time
+
 import pytest
+import stamina
 
 
 def test_type_conversion():
@@ -113,6 +116,10 @@ def test_tags_fail():
     with pytest.raises(ValueError):
         t.add_alias("/multiple/forward/slashes/in/alias")
 
+    with pytest.raises(ValueError):
+        # Empty name
+        t.set_alarm("", "value < 10", priority="debug")
+
     assert isinstance(t.value, float)
 
     with pytest.raises(RuntimeError):
@@ -224,6 +231,18 @@ def test_tags_basic():
     from kaithem.src import tagpoints
 
     t = tagpoints.Tag("/system/unit_test_tag_5457647")
+
+    with pytest.raises(TypeError):
+        tagpoints.StringTag(t.name)
+
+    # Default sets value if the value has never been actually set
+    t.default = 50
+    assert t.value == 50
+
+    t.default = None
+    assert t.default == t.default_data
+    assert t.value == t.default_data
+
     # TODO should probably actualluly do some assertions here,
     # but at least we can check that it doesn't block up.
     t._testForDeadlock()
@@ -259,6 +278,35 @@ def test_tags_basic():
     # Make sure setting None uses the time
     t.set_claim_val("default", 50, None, "TestAnnotation")
     assert abs(t.timestamp - time.time()) < 0.1
+
+    t.interval = None
+    assert t.interval == 0
+
+    t.interval = 0.1
+    assert t.interval == 0.1
+
+
+def test_tag_alarm_error():
+    from kaithem.src import messagebus, tagpoints
+
+    t = tagpoints.Tag("/system/unit_test_tag_545j7647")
+
+    found = []
+
+    def error(topic, m):
+        if t.name in m:
+            found.append(m)
+
+    messagebus.subscribe("/system/notifications/errors", error)
+    time.sleep(0.1)
+
+    t.set_alarm("bad", "namerr < 390")
+
+    for attempt in stamina.retry_context(on=AssertionError, attempts=20):
+        with attempt:
+            assert len(found) > 0
+
+    assert len(found) < 5
 
 
 def test_tags_claim_release():
@@ -321,6 +369,34 @@ def test_tags_claim_change_active_claim_priority():
     assert t.value == 51
     claim1.release()
     assert t.value == 0
+
+
+def test_tags_permission_conf():
+    from kaithem.src import tagpoints
+
+    t = tagpoints.Tag("/system/unit_test_tag_545j764ere7")
+
+    assert not t._data_source_widget
+
+    # Any falsy value for read perms disables it
+    t.expose("", "dummy")
+
+    assert not t._data_source_widget
+    assert t.get_effective_permissions()[0] == ""
+
+    t = tagpoints.Tag("/system/unit_test_tag_545j764erre7")
+    # Make sure spaces don't do anything
+    t.expose("   ", "dummy")
+
+    assert not t._data_source_widget
+    assert t.get_effective_permissions()[0] == ""
+
+    t = tagpoints.Tag("/system/unit_test_tag_544erre7")
+    # Make sure never works the same
+    t.expose("__never__", "dummy")
+
+    assert not t._data_source_widget
+    assert t.get_effective_permissions()[0] == ""
 
 
 def test_tags_error():
@@ -480,6 +556,9 @@ def test_tags():
     t2._alerts["TestTagAlarm"].acknowledge()
 
     assert t2._alerts["TestTagAlarm"].sm.state == "normal"
+
+    t2.set_alarm("TestTagAlarm", None)
+    assert "TestTagAlarm" not in t2._alerts
 
     gc.collect()
     gc.collect()

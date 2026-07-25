@@ -40,10 +40,8 @@ def get_tag_meta(tag_name: str) -> dict[str, Any]:
     t = allTagsAtomic[tag_name]()
     assert t
 
-    try:
-        pages.require(t.get_effective_permissions()[0])
-    except PermissionError:
-        raise
+    pages.require(t.get_effective_permissions()[0])
+
     if not t:
         raise RuntimeError("Tag not found")
 
@@ -107,7 +105,9 @@ _default_display_units = {
 
 @functools.lru_cache(4096, False)
 def normalize_tag_name(name: str, replacementChar: str | None = None) -> str:
-    "Normalize hte name, and raise errors on anything just plain invalid, unless a replacement char is supplied"
+    """Normalize hte name, and raise errors on anything
+    just plain invalid,
+    unless a replacement char is supplied"""
     name = name.strip()
     if name == "":
         raise ValueError("Tag with empty name")
@@ -143,20 +143,26 @@ T = TypeVar("T")
 
 class GenericTagPointClass(Generic[T]):
     """
-    A Tag Point is a named object that can be chooses from a set of data sources based on priority,
+    A Tag Point is a named object that can be chooses
+    from a set of data sources based on priority,
     filters that data, and returns it on a push or a pull basis.
 
-    A data source here is called a "Claim", and can either be a number or a function. The highest
+    A data source here is called a "Claim",
+     and can either be a number or a function. The highest
     priority claim is called the active claim.
 
-    If the claim is a function, it will be called at most once per interval, which is set by tag.interval=N
+    If the claim is a function, it will be called at most once
+     per interval, which is set by tag.interval=N
     in seconds.
 
-    If there are any subscribed functions to the tag, they will automatically be called at the tag's interval,
-    with the one parameter being the tag's value. Any getter functions will be called to get the value.
+    If there are any subscribed functions to the tag,
+    they will automatically be called at the tag's interval,
+    with the one parameter being the tag's value.
+     Any getter functions will be called to get the value.
 
 
-    One generally does not instantiate a tag this way, instead they use the Tag function
+    One generally does not instantiate a tag this way,
+    instead they use the Tag function
     which can get existing tags. This allows use of tags for cross=
 
     """
@@ -171,11 +177,11 @@ class GenericTagPointClass(Generic[T]):
     def __repr__(self):
         try:
             return f"<Tag Point: {self.name}={str(self._vta[0])[:20]}>"
-        except Exception:
+        except Exception:  # pragma: no cover
             try:
                 return f"<Tag Point: {self.name}>"
             except Exception:  # pragma: no cover
-                return f"<Tag Point: No name, not initialzed yet at {hex(id(self))}>"
+                return f"<Tag Point at {hex(id(self))}>"
 
     @validate_args
     def __init__(self, name: str):
@@ -190,7 +196,7 @@ class GenericTagPointClass(Generic[T]):
 
         if _name in allTags:
             raise RuntimeError(
-                "Tag with this name already exists, use the getter function to get it instead"
+                "Tag with this name already exists, use the getter function"
             )
 
         self.name: str = _name
@@ -209,7 +215,8 @@ class GenericTagPointClass(Generic[T]):
         # Where we store a ref for the widget
         self._gui_updateSubscriber: Callable[[T, float, Any], Any]
 
-        # Dependency tracking, if a tag depends on other tags, such as =expression based ones
+        # Dependency tracking, if a tag depends on other tags,
+        # such as =expression based ones
         self._source_tags: dict[str, GenericTagPointClass[Any]] = {}
 
         self._default: T
@@ -246,11 +253,15 @@ class GenericTagPointClass(Generic[T]):
         """
         In unreliable mode the tag's acts like a simple UDP connection.
         The only supported feature is that writing the tag notifies subscribers.
-        It is not guaranteed to store the last value, to error check the value,
-        To prevent multiple writes at the same time, and the claims may be ignored.
+        It is not guaranteed to store the last value,
+         to error check the value,
+        To prevent multiple writes at the same time,
+         and the claims may be ignored.
 
-        Subscribing the tag directly to another tga uses fast_push that bypasses all claims.
-        In unreliable mode you should only use fast_push to set values.
+        Subscribing the tag directly to another
+        tga uses fast_push that bypasses all claims.
+        In unreliable mode you should only
+        use fast_push to set values.
         """
         self.unreliable: bool = False
 
@@ -282,7 +293,9 @@ class GenericTagPointClass(Generic[T]):
 
         self._poller: scheduling.RepeatingEvent | None = None
 
-        # The "Owner" of a tag can use this to say if anyone else should write it
+        # The "Owner" of a tag can use this
+        # to say if anyone else should
+        # write it
         self.writable = True
 
         self.eval_context: dict[str, Any] = {
@@ -296,7 +309,8 @@ class GenericTagPointClass(Generic[T]):
         self._lastError: float | int = 0
 
         self.owner: str = ""
-        """Free text user settable string describing the "owner" of the tag point
+        """Free text user settable string
+        describing the "owner" of the tag point
         This is not a precisely defined concept"""
 
         self._lastPushedValue: T | None = None
@@ -311,14 +325,18 @@ class GenericTagPointClass(Generic[T]):
             timestamp=0,
             annotation=self.DEFAULT_ANNOTATION,
         )
-        """The claim named default which is normally the only one that ever gets used"""
+        """The claim named default which is normally
+        the only one that ever gets used"""
 
-        # Reset this so that any future value sets actually do push.  First write should always push
+        # Reset this so that any future value sets actually do push.
+        #  First write should always push
         # Independent of change detection.
         self._lastPushedValue = None
 
         # What permissions are needed to
-        # read or override this tag, as a tuple of 2 permission strings and an int representing the priority
+        # read or override this tag,
+        # as a tuple of 2 permission strings
+        # and an int representing the priority
         # that api clients can use.
         # As always, configured takes priority
         self._permissions = ("", "", 50)
@@ -362,33 +380,45 @@ class GenericTagPointClass(Generic[T]):
         expose_priority: str | int | float = 50,
     ):
         """
-        Expose the tag to web APIs, with the permissions specified. Permissions must be
+        Expose the tag to web APIs, with the permissions specified.
+        Permissions must be
         strings, but can use commas for multiple.
 
-        Priority must be an integer, and determines the priority at which the web
-        API may set the tag's value.  The web API cannot control the priority, but
-        can release the claim entirely by sending a null, or reclaim by sending real
+        Priority must be an integer, and determines
+         the priority at which the web
+        API may set the tag's value.  The web API cannot control
+         the priority, but
+        can release the claim entirely by sending a null, or
+         reclaim by sending real
         data again.
 
 
-        The way this works is that tag.data_source_widget is created, a
-        Widgets.DataSource instance having id "tag:TAGNAME", with the given
+        The way this works is that tag.data_source_widget is
+        created, a
+        Widgets.DataSource instance having id "tag:TAGNAME",
+        with the given
         permissions.
 
-        Messages TO the server will set a claim at the permitted priority, or release any
-        claim if the data is None. Data FROM the server indicates the actual current
-        value of the tag.
+        Messages TO the server will set a claim at the permitted
+         priority, or release any
+        claim if the data is None. Data FROM the server indicates
+        the actual current value of the tag.
 
 
 
-        You must always have at least one read permission, and write_perms defaults
-        to `__admin__`.   Note that if the user sets or configures any permissions
+        You must always have at least one read permission,
+        and write_perms defaults
+        to `__admin__`.   Note that if the user sets or
+        configures any permissions
         via the web API, they will override those set in code.
 
         If read_perms or write_perms is empty, disable exposure.
 
-        You cannot have different priority levels for different users this way, that
-        would be highly confusing. Use multiple tags or code your own API for that.
+        You cannot have different priority levels
+        for different users this way, that
+        would be highly confusing.
+
+        Use multiple tags or code your own API for that.
         """
 
         if isinstance(read_perms, list):
@@ -399,7 +429,8 @@ class GenericTagPointClass(Generic[T]):
             write_perms = ",".join(write_perms)
             write_perms = write_perms.strip()
 
-        # Handle different falsy things someone might use to try and disable this
+        # Handle different falsy things someone
+        # might use to try and disable this
         if not read_perms:
             read_perms = ""
         if not write_perms:
@@ -447,7 +478,7 @@ class GenericTagPointClass(Generic[T]):
                 # Be safe, only allow writes if user specifies a permission
                 perms_list[1] = perms_list[1] or "system_admin"
 
-                if not perms_list[0]:
+                if (not perms_list[0]) or perms_list[0] == "__never__":
                     self._data_source_widget = None
                     try:
                         del exposedTags[self.name]
@@ -473,7 +504,8 @@ class GenericTagPointClass(Generic[T]):
                         self._apiClaim.set_priority(expose_priority)
                     self._apiPush()
 
-                    # We don't want the web connection to be able to keep the tag alive
+                    # We don't want the web connection
+                    # to be able to keep the tag alive
                     # so don't give it a reference to us
                     self._weakApiHandler = self._makeWeakApiHandler(
                         weakref.ref(self)
@@ -495,7 +527,8 @@ class GenericTagPointClass(Generic[T]):
         return f
 
     def get_alerts(self) -> list[alerts.Alert]:
-        """Return a list of all alert objects for this tag, including ones that are not active"""
+        """Return a list of all alert objects for this tag,
+        including ones that are not active"""
         with lock:
             return list(self._alerts.values())
 
@@ -504,7 +537,8 @@ class GenericTagPointClass(Generic[T]):
             if self._apiClaim:
                 self._apiClaim.release()
         else:
-            # No locking things up if the times are way mismatched and it sets a time way in the future
+            # No locking things up if the times are way mismatched
+            # and it sets a time way in the future
             self._apiClaim = self.claim(
                 v,
                 "WebAPIClaim",
@@ -518,10 +552,11 @@ class GenericTagPointClass(Generic[T]):
 
     def get_effective_permissions(self) -> tuple[str, str, float]:
         """
-        Get the permissions that currently apply here. Configured ones override in-code ones
+        Get the permissions that currently apply here.
 
         Returns:
-            list: [read_perms, write_perms, writePriority]. Priority determines the priority of web API claims.
+            list: [read_perms, write_perms, writePriority].
+            Priority determines the priority of web API claims.
         """
         d2: tuple[str, str, float] = (
             str(self._permissions[0]),
@@ -540,21 +575,24 @@ class GenericTagPointClass(Generic[T]):
         if not self._data_source_widget:
             return
 
-        # Immediate write, don't push yet, do that in a thread because TCP can block
+        # Immediate write, don't push yet,
+        # do that in a thread because TCP can block
         def pushFunction():
             # Set value immediately, for later page loads
             assert self._data_source_widget
             self._data_source_widget.value = self.value
             if self._data_source_ws_lock.acquire(timeout=1):
                 try:
-                    # Use the new literal computed value, not what we were passed,
-                    # Because it could have changed by the time we actually get to push
+                    # Use the new literal computed value,
+                    #  not what we were passed,
+                    # Because it could have changed by the time
+                    # we actually get to push
                     self._data_source_widget.send(self.value)
                 finally:
                     self._data_source_ws_lock.release()
 
-        # Should there already be a function queued for this exact reason, we just let
-        # That one do it's job
+        # Should there already be a function queued for this
+        # exact reason, we just let That one do it's job
         if self._data_source_ws_lock.acquire(timeout=0.001):
             try:
                 workers.do(pushFunction)
@@ -579,7 +617,7 @@ class GenericTagPointClass(Generic[T]):
                         "/system/notifications/errors",
                         "Tag point: "
                         + self.name
-                        + " has been unavailable for 30s and may be involved in a deadlock. see threads view.",
+                        + " has been unavailable for 30s. See threads view.",
                     )
                     self._alreadyPostedDeadlock = True
 
@@ -597,7 +635,8 @@ class GenericTagPointClass(Generic[T]):
         self.recalc_alerts()
 
     def _context_get_numeric_tag_value(self, n: str) -> float:
-        "Get the tag value, adding it to the list of source tags. Creates tag if it isn't there"
+        """Get the tag value, adding it to the list of source tags.
+        Creates tag if it isn't there"""
         try:
             return self._source_tags[n].value
         except KeyError:
@@ -607,7 +646,8 @@ class GenericTagPointClass(Generic[T]):
             return self._source_tags[n].value
 
     def _context_get_string_tag_value(self, n: str) -> str:
-        "Get the tag value, adding it to the list of source tags. Creates tag if it isn't there"
+        """Get the tag value, adding it to the list of source tags.
+        Creates tag if it isn't there"""
         try:
             return self._source_tags[n].value
         except KeyError:
@@ -616,7 +656,8 @@ class GenericTagPointClass(Generic[T]):
             self._source_tags[n].subscribe(self._recalc)
             return self._source_tags[n].value
 
-    # Note the black default condition, that lets us override a normal alarm while using the default condition.
+    # Note the black default condition, that lets us override
+    #  a normal alarm while using the default condition.
     @validate_args
     def set_alarm(
         self,
@@ -638,7 +679,7 @@ class GenericTagPointClass(Generic[T]):
                 return
 
             if not name:
-                raise RuntimeError("Empty string name")
+                raise ValueError("Empty string name")
 
             trip_delay = float(trip_delay)
 
@@ -658,31 +699,33 @@ class GenericTagPointClass(Generic[T]):
 
             def poll_alerts():
                 # Only trip on real data, not defaults.
+                # Always eval though to detect errors faster
+                trip = eval(trip_code, self.eval_context)
+
                 if self.timestamp > 0:
-                    trip = eval(trip_code, self.eval_context)
                     if trip:
                         v = self.value
                         if isinstance(v, (int | float)) or (
                             isinstance(v, str) and len(v) < 64
                         ):
                             alert.trip(f"Value: {v}, Condition: {condition}")
-                        else:
-                            alert.trip()
+                        else:  # pragma: no cover
+                            alert.trip(message=f"Value: {v}")
                         return
+
                 if release_code:
                     release = eval(release_code, self.eval_context)
                     if release:
                         alert.release()
                         return
                 else:
-                    alert.release()
+                    if not trip:
+                        alert.release()
 
             self._alerts[name] = alert
             self._alert_poll_functions[name] = poll_alerts
             self.recalc_alerts()
             return alert
-
-        self.recalc_alerts()
 
     def recalc_alarm_self_subscriber(
         self, value: T, timestamp: float, annotation: Any
@@ -700,7 +743,7 @@ class GenericTagPointClass(Generic[T]):
                 self._can_post_alert_error = False
                 messagebus.post_message(
                     "/system/notifications/errors",
-                    "Error in tag alarm expression",
+                    f"Error in tag alarm expression for {self.name}",
                 )
                 logger.exception("Error in tag alarm")
 
@@ -711,9 +754,9 @@ class GenericTagPointClass(Generic[T]):
         try:
             for i in self._source_tags:
                 self._source_tags[i].unsubscribe(self._recalc)
-        except Exception:
+        except Exception:  # pragma: no cover
             logger.exception(
-                "Unsubscribe fail to old tag.  A subscription mau be leaked, wasting CPU. This should not happen."
+                "Unsubscribe fail to old tag.  This should not happen."
             )
 
         self._source_tags = {}
@@ -760,10 +803,12 @@ class GenericTagPointClass(Generic[T]):
     @property
     def subtype(self):
         """
-        A string that determines a more specific type.  Use a com.site.x name, or
+        A string that determines a more specific type.
+        Use a com.site.x name, or
         something like that, to avoid collisions.
 
-        "Official" ones include bool, which can be 1 or 0, or tristate, which can be
+        "Official" ones include bool, which can be 1 or 0,
+         or tristate, which can be
         -1 for unset/no effect, 0, or 1.
         """
         return self._subtype
@@ -788,7 +833,8 @@ class GenericTagPointClass(Generic[T]):
 
         with self._lock:
             if self.timestamp == 0:
-                # Set timestamp to 0, this marks the tag as still using a default
+                # Set timestamp to 0,
+                # this marks the tag as still using a default
                 # Which can be further changed
                 self.set_claim_val("default", self._default, 0, "Code default")
 
@@ -802,7 +848,7 @@ class GenericTagPointClass(Generic[T]):
                 if x:
                     if x.__class__ is not cls:
                         raise TypeError(
-                            "A tag of that name exists, but it is the wrong type. Existing: "
+                            "That name exists with wrong type. Existing:"
                             + str(x.__class__)
                             + " New: "
                             + str(cls)
@@ -829,9 +875,9 @@ class GenericTagPointClass(Generic[T]):
             try:
                 if self.active_claim:
                     return self.active_claim.name
-            except Exception:
+            except Exception:  # pragma: no cover
                 time.sleep(0.001)
-        raise RuntimeError("Corrupt state")
+        raise RuntimeError("Corrupt state")  # pragma: no cover
 
     def __del__(self):
         # Since tags can't be deleted by the owner we rely on this
@@ -845,7 +891,7 @@ class GenericTagPointClass(Generic[T]):
             try:
                 del allTags[self.name]
                 allTagsAtomic = allTags.copy()
-            except Exception:
+            except Exception:  # pragma: no cover
                 logger.exception("Tag may have already been deleted")
             messagebus.post_message(
                 "/system/tags/deleted", self.name, synchronous=True
@@ -857,7 +903,7 @@ class GenericTagPointClass(Generic[T]):
                         if allTags[i]() is self or allTags[i]() is None:
                             del allTags[i]
                             allTagsAtomic = allTags.copy()
-                except Exception:
+                except Exception:  # pragma: no cover
                     logger.exception("Tag may have already been deleted")
 
         if self._poller:
@@ -893,10 +939,14 @@ class GenericTagPointClass(Generic[T]):
         self, value: T, timestamp: float | None = None, annotation: Any = None
     ) -> None:
         """
-        Push a value to all subscribers. Does not set the tag's value.  Ignores any and all
-        overriding claims.
-        Bypasses all claims. Does not guarantee to get any locks, multiples of this call can happen at once.
-        Does not perform any checks on the value.  Might decide to do nothing if the system is too busy at the moment.
+        Push a value to all subscribers. Does not set the tag's value.
+         Ignores any and all overriding claims.
+        Bypasses all claims. Does not guarantee to get any locks,
+         multiples of this call can happen at once.
+        Does not perform any checks on the value.
+
+        Might decide to do nothing if the system is too
+        busy at the moment.
 
         Meant for streaming video and the like.
         """
@@ -914,8 +964,10 @@ class GenericTagPointClass(Generic[T]):
         # Set value immediately, for later page loads
         if self._data_source_ws_lock.acquire(timeout=0.3):
             try:
-                # Use the new literal computed value, not what we were passed,
-                # Because it could have changed by the time we actually get to push
+                # Use the new literal computed value,
+                # not what we were passed,
+                # Because it could have changed by
+                #  the time we actually get to push
                 self._data_source_widget.send(value)
 
             except Exception:
@@ -936,14 +988,18 @@ class GenericTagPointClass(Generic[T]):
         It will also be called the first time you set a tag's value, even if the
         value has not changed.
 
-        It should very very rarely be called on repeated values otherwise, but this
-        behavior is not absolutelu guaranteed and should not be relied on.
+        It should very very rarely be called on repeated values otherwise,
+        but this behavior is not absolutelu guaranteed and
+        should not be relied on.
 
-        All subscribers are called synchronously in the same thread that set the
+        All subscribers are called synchronously in the same
+         thread that set the
         value, however any errors are logged and ignored.
 
-        They will all be called under the tagpoint's lock. To avoid various problems
-        like endless loops, one should be careful when accessing the tagpoint itself
+        They will all be called under the tagpoint's lock.
+        To avoid various problems
+        like endless loops, one should be careful when accessing
+         the tagpoint itself
         from within this function.
 
         """
@@ -968,12 +1024,12 @@ class GenericTagPointClass(Generic[T]):
                 logger.warning(
                     "Function: "
                     + desc
-                    + " was deleted <0.5s after being subscribed.  This is probably not what you wanted."
+                    + " was deleted <0.5s after being subscribed."
                 )
             try:
                 if r in self._subscribers:
                     logger.warning(
-                        f"Tag point subscriber {desc} on tag {self.name} was not explicitly unsubscribed."
+                        f"subscriber {desc} on {self.name} auto unsubscribed."
                     )
             # Could be iteration errors or something here,
             # this check isn't that important
@@ -996,9 +1052,9 @@ class GenericTagPointClass(Generic[T]):
                 for i in self._subscribers:
                     if f == i():
                         logger.warning(
-                            "Double subscribe detected, same function subscribed to "
+                            "Double subscribe detected at "
                             + self.name
-                            + " more than once.  Only the first takes effect."
+                            + ", Only the first takes effect."
                         )
                         return
 
@@ -1025,7 +1081,8 @@ class GenericTagPointClass(Generic[T]):
         else:  # pragma: no cover
             self._testForDeadlock()
             raise RuntimeError(
-                "Cannot get lock to subscribe to this tag. Is there a long running subscriber?"
+                "Cannot get lock to subscribe to this tag."
+                "Is there a long running subscriber?"
             )
 
     @validate_args
@@ -1050,7 +1107,8 @@ class GenericTagPointClass(Generic[T]):
         else:  # pragma: no cover
             self._testForDeadlock()
             raise RuntimeError(
-                "Cannot get lock to subscribe to this tag. Is there a long running subscriber?"
+                "Cannot get lock to subscribe to this tag."
+                "Is there a long running subscriber?"
             )
 
     def poll(self):
@@ -1104,10 +1162,9 @@ class GenericTagPointClass(Generic[T]):
                         )
                     except Exception as e:
                         extraData = str(e)
-                    logger.exception(
-                        f"Tag subscriber error, val,time,annotation was: {extraData}"
-                    )
-                    # Return the error from whence it came to display in the proper place
+                    logger.exception(f"Tag subscriber error, data: {extraData}")
+                    # Return the error from whence it
+                    # came to display in the proper place
                     for i in subscriber_error_handlers:
                         try:
                             i(self, f, self.last_value)
@@ -1140,8 +1197,10 @@ class GenericTagPointClass(Generic[T]):
 
     def pull(self, sync=False) -> None:
         """
-        Request that any getter in the active claim produce a new value if it has a getter.
-        Note that we do not automatically poll or run the getters anymore,
+        Request that any getter in the active claim produce
+         a new value if it has a getter.
+        Note that we do not automatically poll or
+        run the getters anymore,
         getters must be explicitly requested.
         """
         if not self._lock.acquire(timeout=15):
@@ -1183,7 +1242,9 @@ class GenericTagPointClass(Generic[T]):
             self._lock.release()
 
     def _get_value(self) -> tuple[T, float, Any]:
-        "Get the processed value of the tag, and update last_value, It is meant to be called under lock."
+        """Get the processed value of the tag,
+        and update last_value,
+        It is meant to be called under lock."""
 
         active_claim = self.active_claim
         if active_claim is None:
@@ -1193,8 +1254,6 @@ class GenericTagPointClass(Generic[T]):
 
         if not active_claim_value:
             return self._vta
-
-        # We no longer are aiming to support using the processor for impure functions
 
         self._getter_cache_time = time.time()
         self._vta = (
@@ -1251,17 +1310,22 @@ class GenericTagPointClass(Generic[T]):
     ) -> Claim[T]:
         """
         Adds a claim to the tag and returns the Claim object. The claim will
-        dissapear if the returned Claim object ever does. Value may be a function
+        dissapear if the returned Claim object ever does.
+        Value may be a function
         that can be polled to return a float, or a number.
 
-        If a function is provided, it may return None to indicate no new data has
+        If a function is provided, it may return None
+         to indicate no new data has
         arrived. This will not update the tags age.
 
-        Should a claim already exist by that name, the exact same claim object as
+        Should a claim already exist by that name,
+        the exact same claim object as
         the previous claim is returned.
 
-        Rather than using multiple claims, consider whether it's really needed, lots
-        of builtin functionality in the UI is mean to just work with the default
+        Rather than using multiple claims, consider whether
+         it's really needed, lots
+        of builtin functionality in the UI is mean to just work
+         with the default
         claim, for ease of use.
         """
 
@@ -1278,8 +1342,8 @@ class GenericTagPointClass(Generic[T]):
             # we're changing the value of an existing claim,
             # We need to get the claim object, which we stored by weakref
             claim = None
-            # try:
-            #     ##If there's an existing claim by that name we're just going to modify it
+            # If there's an existing claim by that name
+            # we're just going to modify it
             if name in self._claims:
                 claim = self._claims[name]
 
@@ -1319,7 +1383,8 @@ class GenericTagPointClass(Generic[T]):
             claim.effective_priority = priority
             claim.vta = value, timestamp, annotation
 
-            # If we have priority on them, or if we have the same priority but are newer
+            # If we have priority on them,
+            # or if we have the same priority but are newer
             if (
                 (active_claim is None)
                 or (priority > oldAcPriority)
@@ -1465,7 +1530,8 @@ class GenericTagPointClass(Generic[T]):
 
             self._claims[name].released = True
             o = self.get_top_claim()
-            # All claims gone means this is probably in a __del__ function as it is disappearing
+            # All claims gone means this is probably
+            # in a __del__ function as it is disappearing
             if not o:
                 return
             v, t, a = o.vta
@@ -1640,29 +1706,41 @@ class NumericTagPointClass(GenericTagPointClass[float]):
     def unit(self):
         """
         A string that determines the unit of a tag. Units are
-        expressed in strings like "m" or "degF". Currently only a small number of
-        unit conversions are supported natively and others use pint, which is not as
+        expressed in strings like "m" or "degF".
+         Currently only a small number of
+        unit conversions are supported natively and others
+        use pint, which is not as
         fast.
 
-        SI prefixes should not be used in units, as it interferes with
+        SI prefixes should not be used in units, as it
+         interferes with
         auto-prefixing for display that meter widgets can do, and generally
         complicates coding.
 
-        This includes kilograms, Grams should be used for internal calculations instead despite Kg being the
+        This includes kilograms, Grams should be used for
+         internal calculations instead despite Kg being the
         base unit according to SI.
 
 
-        Note that operations involving units raise an error if the unit is not set.
-        To prevent this, both the "sending" and "recieving" code should set the unit
+        Note that operations involving units raise an error if
+         the unit is not set.
+        To prevent this, both the "sending" and "recieving" code
+         should set the unit
         before using the tag.
 
-        To prevent the very obvious classes of errors where different code thinks a
-        unit is a different thing, this property will not allow changes once it has
-        been set. You can freely write the same string to it, and you can set it to
-        None and then to a new value if you must, but you cannot change between two
+        To prevent the very obvious classes of errors
+         where different code thinks a
+        unit is a different thing, this
+         property will not allow changes once it has
+        been set. You can freely write the same string to it,
+         and you can set it to
+        None and then to a new value if you must,
+
+        but you cannot change between two
         strings without raising an exception.
 
-        For some units, meters will become "unit aware" on the display page.
+        For some units, meters will become "unit aware"
+        on the display page.
         """
         return self._unit
 
@@ -1676,7 +1754,8 @@ class NumericTagPointClass(GenericTagPointClass[float]):
             if not self._unit == value:
                 if value:
                     raise ValueError(
-                        "Cannot change unit of tagpoint. To override this, set to None or '' first"
+                        """Cannot change unit of tagpoint.
+                         To override this, set to None or '' first"""
                     )
         # TODO race condition in between check,
         # but nobody will be setting this from different threads
@@ -1711,9 +1790,13 @@ class NumericTagPointClass(GenericTagPointClass[float]):
     @property
     def display_units(self):
         """
-        This can be None, or a pipe-separated string listing one or more units that
-        the tag's value should be displayed in. Base SI units imply that the correct
-        prefix should be used for readability, but units that contain a prefix imply
+        This can be None, or a pipe-separated
+        string listing one or more units that
+        the tag's value should be displayed in.
+
+        Base SI units imply that the correct
+        prefix should be used for readability,
+        but units that contain a prefix imply
         fixed display only in that unit.
         """
         return self._display_units
@@ -1814,7 +1897,9 @@ class Claim(Generic[T]):
             annotation,
         )
 
-        # Track the last *attempt* at reading the value if it is a callable, regardless of whether
+        # Track the last *attempt* at reading the
+        #  value if it is a callable,
+        #  regardless of whether
         # it had new data or not.
 
         # It is in unix time.
@@ -1822,7 +1907,8 @@ class Claim(Generic[T]):
 
         self.effective_priority = priority
 
-        # The priority set in code, regardless of whether we released or not
+        # The priority set in code, regardless
+        # of whether we released or not
         self.priority = priority
 
         self.poller = None
