@@ -970,8 +970,6 @@ class GenericTagPointClass(Generic[T]):
                 #  the time we actually get to push
                 self._data_source_widget.send(value)
 
-            except Exception:
-                raise
             finally:
                 self._data_source_ws_lock.release()
         else:
@@ -1920,7 +1918,8 @@ class Claim(Generic[T]):
 
     def __del__(self):
         if self.name != "default":
-            # Must be self.release not self.tag.release or old claims with the same name would
+            # Must be self.release not self.tag.release or
+            #  old claims with the same name would
             # mess up new ones. The class method has a check for that.
             self.release()
 
@@ -1961,7 +1960,8 @@ class Claim(Generic[T]):
     ):
         if timestamp is None:
             timestamp = time.time()
-        # Not threadsafe here if multiple threads use the same claim, value, timestamp, and annotation can
+        # Not threadsafe here if multiple threads use the same
+        # claim, value, timestamp, and annotation can
         self.vta = (value, timestamp, annotation)
 
         # In the released state we must do it all over again
@@ -1988,9 +1988,11 @@ class Claim(Generic[T]):
 
     def release(self):
         try:
-            # Stop any weirdness with an old claim double releasing and thus releasing a new claim
+            # Stop any weirdness with an old claim double releasing
+            #  and thus releasing a new claim
             if self.tag._claims[self.name] is not self:
-                # If the old replaced claim is somehow the active omne we actually should handle that
+                # If the old replaced claim is somehow the
+                # active omne we actually should handle that
                 if self.tag.active_claim is not self:
                     return
         except KeyError:
