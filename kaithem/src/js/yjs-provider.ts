@@ -32,8 +32,8 @@ const getRandom52BitInt = () => {
  */
 const _bytesEqual = (a: Uint8Array, b: Uint8Array): boolean => {
   if (a.length !== b.length) return false;
-  for (let i = 0; i < a.length; i++) {
-    if (a[i] !== b[i]) return false;
+  for (const [i, element] of a.entries()) {
+    if (element !== b[i]) return false;
   }
   return true;
 };
@@ -52,9 +52,6 @@ const _makeTypedMessage = (type: Uint8Array, payload: Uint8Array): Uint8Array =>
  * Cache of YJS documents by name
  */
 const documentCache = new Map<string, Y.Doc>();
-
-/*Persistent name to what the server says it its session ID for that doc*/
-const serverSessionIdMap = new Map<string, string>();
 
 /**
  * Cache of YJS Awareness instances by document name
@@ -201,21 +198,6 @@ function _subscribeToDocument(documentName: string, document_: Y.Doc): void {
           );
           document_.clientID = value.crdt_id as number;
         }
-
-        // The server always sends this when we connect.
-        // If the server changes the session ID, we need to reload everything.
-
-        if ('session_id' in value) {
-          const oldSessionId = serverSessionIdMap.get(documentName);
-
-          if (oldSessionId === undefined) {
-              serverSessionIdMap.set(documentName, value.session_id as string);
-              _fetchInitialState(documentName, document_);
-          } else if (oldSessionId !== value.session_id) {
-            console.log('Session ID changed for document, reloading.', documentName);
-            globalThis.location.reload();
-          }
-        }
       }
 
       if (update) {
@@ -225,6 +207,8 @@ function _subscribeToDocument(documentName: string, document_: Y.Doc): void {
       console.error('Failed to apply YJS update:', error);
     }
   });
+
+  _fetchInitialState(documentName, document_);
 }
 
 /**

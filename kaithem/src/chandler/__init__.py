@@ -21,17 +21,18 @@ min = min
 
 @core.cl_context.entry_point
 def cl_refresh_fixtures(topic, val):
-    # Deal with fixtures in this universe that aren't actually attached to this object yet.
-    for i in range(5):
+    # Deal with fixtures in this universe that
+    #  aren't actually attached to this object yet.
+    for i in range(10):
         try:
             for i in universes.fixtures:
                 f = universes.fixtures[i]()
-                if not f:
+                if not f:  # pragma: no cover
                     continue
                 if f.universe == val or val is None:
                     f.cl_assign(f.universe, f.startAddress)
             break
-        except RuntimeError:
+        except RuntimeError:  # pragma: no cover
             # Should there be some kind of dict changed size problem, retry
             time.sleep(0.1)
 
@@ -112,7 +113,8 @@ def cl_loop():
 
             group_lighting.do_output(changed, u_cache)
 
-            # Don't go to the next frame until all events and tasks from this frame are done
+            # Don't go to the next frame until all events
+            #  and tasks from this frame are done
             # But if the action queue is empty, we skip the step
             queue_wait = False
             if core.action_queue:
@@ -121,12 +123,14 @@ def cl_loop():
 
             core.process_next_frame_actions()
 
-            # Sleep happens at the end, ideally the next frame actions could be done before rendering
+            # Sleep happens at the end, ideally the next frame
+            # actions could be done before rendering
             # and we could save some latency.
             time.sleep(1 / 60)
 
             if queue_wait:
-                # Don't go to the next frame until all events and tasks from this frame are done
+                # Don't go to the next frame until all events
+                # and tasks from this frame are done
                 # Waiting happens after sleep because i think it uses more cpu
                 # than just sleeping
                 frame_wait.wait(1)

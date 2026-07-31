@@ -1,9 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 from __future__ import annotations
 
-import hashlib
-import os
-import struct
 import threading
 import uuid
 import weakref
@@ -64,55 +61,10 @@ allSyncDbs: dict[str, weakref.ref[SyncDatabase]] = {}
 lock = threading.RLock()
 
 
-idlock = threading.RLock()
-
-
-if os.path.exists("/etc/machine-id"):
-    with open("/etc/machine-id") as f:
-        machine_id = f.read().strip()
-else:
-    machine_id = os.urandom(32).hex()
-
-
-def make_id(domain: str, num: int) -> int:
-    hashable = (
-        struct.pack("Q", num)
-        + machine_id.encode("utf-8")
-        + domain.encode("utf-8")
-    )
-    st = hashlib.sha256(hashable).digest()[:8]
-    id = struct.unpack("Q", st)[0] % 2**52
-    return id
-
-
 class SyncDatabaseWidget(widgets.DataSource):
     def __init__(self, id: str, session_id: str):
         super().__init__(id=id)
         self.session_id = session_id
-        self.crdt_id_counter = 0
-        self.crdt_used: dict[str, int] = {}
-        self.crdt_pool: list[int] = []
-
-    ## Clients MUST release these when disconneted
-
-    def on_new_subscriber(self, user, connection_id, **kw):
-        with idlock:
-            # Make a new one if none are available
-            if not self.crdt_pool:
-                self.crdt_id_counter += 1
-                self.crdt_pool.append(make_id(user, self.crdt_id_counter))
-
-            crdt_id = self.crdt_pool.pop(0)
-            self.crdt_used[connection_id] = crdt_id
-            self.send_to(
-                {"crdt_id": crdt_id, "session_id": self.session_id},
-                connection_id,
-            )
-
-    def on_subscriber_disconnected(self, user, connection_id, **kw):
-        with idlock:
-            if connection_id in self.crdt_used:
-                self.crdt_pool.append(self.crdt_used.pop(connection_id))
 
 
 class SyncDatabase:
@@ -143,9 +95,7 @@ class SyncDatabase:
         self.name = name
         """The name of the sync database"""
 
-        self._crdt = pycrdt.Doc(
-            client_id=make_id(name, 0), allow_multithreading=True
-        )
+        self._crdt = pycrdt.Doc(allow_multithreading=True)
         """The underlying YJS document"""
 
         self.awareness = pycrdt.Awareness(self._crdt)

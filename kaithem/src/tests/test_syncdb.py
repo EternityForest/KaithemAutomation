@@ -36,6 +36,33 @@ def test_syncdb_create_and_get():
     assert db1.crdt is not None
 
 
+def test_syncdb_impl_merge():
+    """Ensure our implementation lets us merge the top level keys.
+    Merging nested keys will NOT work.
+    """
+    from kaithem.src import syncdb
+
+    name = _get_test_name("/test/syncdb_test")
+
+    db1 = syncdb.SyncDatabase.get(name + "_merge1")
+    db2 = syncdb.SyncDatabase.get(name + "_merge2")
+
+    d1 = db1.crdt.get("test_map", type=pycrdt.Map)
+    d2 = db2.crdt.get("test_map", type=pycrdt.Map)
+
+    d1["key1"] = "val1"
+    d2["key2"] = "val2"
+
+    db1.crdt.apply_update(db2.crdt.get_update())
+    db2.crdt.apply_update(db1.crdt.get_update())
+
+    assert db1.crdt.get("test_map", type=pycrdt.Map)["key1"] == "val1"
+    assert db1.crdt.get("test_map", type=pycrdt.Map)["key2"] == "val2"
+
+    assert db2.crdt.get("test_map", type=pycrdt.Map)["key1"] == "val1"
+    assert db2.crdt.get("test_map", type=pycrdt.Map)["key2"] == "val2"
+
+
 def test_syncdb_permissions():
     """Test that permissions can be set on the SyncDatabase."""
     from kaithem.src import syncdb

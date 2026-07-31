@@ -1791,7 +1791,7 @@ requires-dist = [
 dev = [
     { name = "coverage", specifier = ">=7.2.7" },
     { name = "datasette", specifier = ">=1.0a19" },
-    { name = "kaithem-plugin-datasette", editable = "../kaithem-plugin-datasette" },
+    { name = "kaithem-plugin-datasette", specifier = ">=0.2.0" },
     { name = "pytest-asyncio", specifier = ">=0.23.7" },
     { name = "pytest-cov", specifier = ">=5.0.0" },
     { name = "roman-numerals", specifier = "==4.0.0" },
@@ -1809,20 +1809,15 @@ test = [
 
 [[package]]
 name = "kaithem-plugin-datasette"
-version = "0.1.2"
-source = { editable = "../kaithem-plugin-datasette" }
+version = "0.2.0"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "datasette" },
     { name = "datasette-checkbox" },
     { name = "kaithem" },
 ]
-
-[package.metadata]
-requires-dist = [
-    { name = "datasette", specifier = "==1.0a37" },
-    { name = "datasette-checkbox" },
-    { name = "kaithem" },
-    { name = "kaithem", specifier = ">=0.96.0" },
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/bd/46/f4a3575a6c8d960af2354b6e58a930d04f38e8ce1e5edd366416d1afe3b0/kaithem_plugin_datasette-0.2.0-py3-none-any.whl", hash = "sha256:c20d0beaa3658d030cd16f3a4f07c308755fbedbb505047404a32f102e001fcf", size = 16748, upload-time = "2026-07-22T05:49:12.477Z" },
 ]
 
 [[package]]
