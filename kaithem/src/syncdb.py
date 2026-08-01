@@ -25,23 +25,18 @@ sessions coming and going will eventually get bloated with client IDs.
 One writer, many reader documents do not have this problem as much.
 
 Kaithem uses a workaround where the server assigns persistent to each browser
-tab, so things should very often "just work".  However, any time a browser
-client disconnects, it releases the persistent ID, any actions taken until
-reconnecting may permanently add a few bytes of data to the document.
-
-These persistent IDs use /etc/machine-id as a salt, so this must be set up
-correctly, which it will be, unless you're copying disk images.
+tab, so things should very often "just work".
 
 There is currently no way to clean this up except by starting all over.
 
-Documents on the server have a session ID that is currently random,
-and if a web client tries to reconnect to a server, or if
-the session id changes, the web client refreshes the page.
-
-Python nodes are not clients of any particular server, and do not do this.
-Therefore, if you have a bunch of python nodes and you want to wipe the document
+If you have a bunch of python nodes and you want to wipe the document
 and start over, you must reboot them all at the same time, or the one that still
 has the data will re-spread it to everything else.
+
+
+YJS top level keys are not deletable, but they are referenced by name instead of
+ID.  You can merge two top level lists with the same name even on two documents
+created totally separately, but nested items do not merge like that.
 
 
 See https://yjs.dev for more information.
@@ -65,6 +60,15 @@ class SyncDatabaseWidget(widgets.DataSource):
     def __init__(self, id: str, session_id: str):
         super().__init__(id=id)
         self.session_id = session_id
+
+    def on_new_subscriber(self, user, connection_id, **kw):
+        """Let the clients know they should refresh"""
+        self.send_to(
+            {
+                "session": self.session_id,
+            },
+            connection_id,
+        )
 
 
 class SyncDatabase:

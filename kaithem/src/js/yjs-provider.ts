@@ -48,6 +48,7 @@ const _makeTypedMessage = (type: Uint8Array, payload: Uint8Array): Uint8Array =>
   return result;
 };
 
+const server_session_ids = new Map<string, string>();
 /**
  * Cache of YJS documents by name
  */
@@ -86,7 +87,6 @@ async function _fetchInitialState(
   document_: Y.Doc
 ): Promise<void> {
   try {
-    // s
     const server_vector = await fetch(
       `/api/syncdb/${encodeURIComponent(documentName)}/state_vector`,
       {
@@ -182,27 +182,17 @@ function _subscribeToDocument(documentName: string, document_: Y.Doc): void {
         }
         return;
       }
-
-      // Handle legacy messages without type code
-      let update: Uint8Array | null = null;
-
-      if (value instanceof Uint8Array) {
-        update = value;
-      } else if (typeof value === 'object' && value !== null) {
-        if ('crdt_id' in value) {
-          console.log(
-            'Received update for document:',
-            documentName,
-            'with client ID:',
-            value.crdt_id
-          );
-          document_.clientID = value.crdt_id as number;
+       else if (typeof value === 'object' && value !== null) {
+        if ('session' in value) {
+          if((server_session_ids[documentName] || value.session) !=
+           value.session){
+            // Easiest way to handle things
+            globalThis.location.reload();
+          }
+          server_session_ids[documentName] = value.session
         }
       }
-
-      if (update) {
-        Y.applyUpdate(document_, update);
-      }
+      
     } catch (error) {
       console.error('Failed to apply YJS update:', error);
     }
