@@ -70,26 +70,7 @@ export default [
       "vue/no-undef-properties": "error",
       "unicorn/no-null": "off",
       "typescript-eslint/require-await": "off",
-      "unicorn/prevent-abbreviations": [
-        "error",
-        {
-          allowList: {
-            i: true,
-            j: true,
-            k: true,
-            v: true,
-            ref: true,
-            Ref: true,
-            props: true,
-            arg: true,
-            Arg: true,
-            dir: true,
-            Dir: true,
-            val: true,
-            Val: true,
-          },
-        },
-      ],
+      "unicorn/prevent-abbreviations": "off",
 
       "vue/no-unused-vars": [
         "error",
