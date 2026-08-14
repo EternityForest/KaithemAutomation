@@ -47,7 +47,7 @@ logger = structlog.get_logger(__name__)
 external_module_locations: dict[str, str] = {}
 
 
-prev_versions: dict[tuple, dict] = {}
+prev_versions: dict[tuple[str, str], ResourceDictType] = {}
 
 resource_errors: dict[tuple[str, str], str] = {}
 _resource_errors_lock = threading.RLock()

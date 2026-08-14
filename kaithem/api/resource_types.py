@@ -7,7 +7,7 @@ import json
 import threading
 import traceback
 from collections.abc import Callable, Mapping
-from typing import Any, Final, TypeVar
+from typing import Any, Final, TypeVar, override
 from urllib.parse import quote
 
 import quart
@@ -77,8 +77,7 @@ class ResourceType:
         """
         self.type = type
         self.mdi_icon = mdi_icon
-        self.createButton = None
-        self.schema: dict | None = schema
+        self.schema: dict[str, Any] | None = schema
         self.priority = priority
         self.title = title or type.capitalize()
 
@@ -157,7 +156,7 @@ class ResourceType:
         """Empty or a single overview div"""
         return ""
 
-    def create_page(self, module: str, path) -> str:
+    def create_page(self, module: str, path: str) -> str:
         """
         Called when the user clicks the create button.
 
@@ -223,38 +222,43 @@ class ResourceType:
         """Called before the resource deleter callbacks"""
 
     def on_move(
-        self, module: str, resource: str, to_module: str, to_resource: str, data
+        self,
+        module: str,
+        resource: str,
+        to_module: str,
+        to_resource: str,
+        data: ResourceDictType,
     ):  # pragma: no cover
         """Called when object has been moved.
         All resource_types must be movable."""
 
     def on_unload(
-        self, module, resource: str, data: ResourceDictType
+        self, module: str, resource: str, data: ResourceDictType
     ):  # pragma: no cover
         """Called when a resource is unloaded.
         It does not necessarliy mean it is being
         permanently deleted."""
 
     def on_delete(
-        self, module, resource: str, data: ResourceDictType
+        self, module: str, resource: str, data: ResourceDictType
     ):  # pragma: no cover
         """Called when a resource is actually being deleted.
         Will be called before on_unload
         """
 
     def on_update(
-        self, module, resource: str, data: ResourceDictType
+        self, module: str, resource: str, data: ResourceDictType
     ):  # pragma: no cover
         """Called when something has updated the data
          on a resource that already exists.
         Usually the web UI but could be anything."""
 
-    def flush_unsaved(self, module, resource):  # pragma: no cover
+    def flush_unsaved(self, module: str, resource: str):  # pragma: no cover
         """Called when the resource should save any unsaved data it has
         back to the resource.  Will and must only ever be
          called under the modules_lock"""
 
-    def save_resource(self, module, resource, data):
+    def save_resource(self, module: str, resource: str, data: ResourceDictType):
         """Call this if your implementation has it's own editor that can save
         data back.
         """
@@ -326,6 +330,7 @@ def resource_type_from_schema(
     class BasicResourceType(ResourceType):
         runtime_objects: dict[tuple[str, str], Any] = {}
 
+        @override
         def blurb(
             self, module: str, resource: str, data: ResourceDictType
         ) -> str:
@@ -336,6 +341,7 @@ def resource_type_from_schema(
                 self.runtime_objects[(module, resource)], module, resource
             )
 
+        @override
         def edit_page(
             self, module: str, resource: str, data: Mapping[str, Any]
         ) -> str:
@@ -350,6 +356,7 @@ def resource_type_from_schema(
                 self.get_update_target(module, resource), {"name": data["name"]}
             )
 
+        @override
         def create_page(self, module: str, path: str) -> str:
             if callable(schema):
                 sch = schema()
@@ -361,6 +368,7 @@ def resource_type_from_schema(
             d.submit_button("submit", title="Save")
             return d.render(self.get_create_target(module, path))
 
+        @override
         def on_create_request(
             self, module: str, resource: str, kwargs: dict[str, Any]
         ) -> Mapping[str, Any]:
@@ -372,9 +380,10 @@ def resource_type_from_schema(
                 "resource": {"type": resource_type},
             }
 
+        @override
         def on_update_request(
             self,
-            module,
+            module: str,
             resource: str,
             data: Mapping[str, Any],
             kwargs: dict[str, Any],
@@ -390,18 +399,22 @@ def resource_type_from_schema(
             d3.update(d2)
             return d3
 
-        def on_delete(self, module, resource: str, data: Mapping[str, Any]):
+        @override
+        def on_delete(
+            self, module: str, resource: str, data: Mapping[str, Any]
+        ):
             if (module, resource) in self.runtime_objects:
                 self.runtime_objects[(module, resource)].close()
                 del self.runtime_objects[(module, resource)]
 
+        @override
         def on_move(
             self,
             module: str,
             resource: str,
             to_module: str,
             to_resource: str,
-            data,
+            data: ResourceDictType,
         ):
             if (module, resource) in self.runtime_objects:
                 self.runtime_objects[(to_module, to_resource)].close()
@@ -409,18 +422,21 @@ def resource_type_from_schema(
 
             self.on_load(to_module, to_resource, data)
 
+        @override
         def on_load(self, module: str, resource: str, data: Mapping[str, Any]):
             self.runtime_objects[(module, resource)] = runtime_object_cls(
                 module, resource, data["data"]
             )
             return self.runtime_objects[(module, resource)]
 
+        @override
         def on_update(
             self, module: str, resource: str, data: Mapping[str, Any]
         ):
             self.on_delete(module, resource, data)
             self.on_load(module, resource, data)
 
+        @override
         def on_unload(
             self, module: str, resource: str, data: Mapping[str, Any]
         ):
