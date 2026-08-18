@@ -130,21 +130,16 @@
                 except IOError:
                     pass
         try:
-            import netifaces
-            x =[iface for iface in netifaces.interfaces()]
-            for i in x:
-                try:
-                    v4 = netifaces.ifaddresses(i)[netifaces.AF_INET][0]['addr']
-                except Exception:
-                    v4= None
-
-                try:
-                    v6 = netifaces.ifaddresses(i)[netifaces.AF_INET6][0]['addr']
-                except Exception:
-                    v6= None
-
-
-                ips[i]=[v4,v6]
+            import psutil
+            for interface, addrs in psutil.net_if_addrs().items():
+                v4 = None
+                v6 = None
+                for addr in addrs:
+                    if addr.family == socket.AF_INET:
+                        v4 = addr.address
+                    elif addr.family == socket.AF_INET6:
+                        v6 = addr.address
+                ips[interface] = [v4, v6]
         except ImportError:
             pass
 

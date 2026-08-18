@@ -4,7 +4,7 @@ Change Log
 ### Dev
 
 * [coffin] All install and provisioning scripts moved to a [separate repo](https://github.com/EternityForest/kaithem-scripts/tree/main/debian)
-
+* [:technologist:] remove dependency on netifaces.
 
 ### 0.96.0
 

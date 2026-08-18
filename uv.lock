@@ -1643,7 +1643,6 @@ dependencies = [
     { name = "markupsafe" },
     { name = "msgpack" },
     { name = "msgpack-types" },
-    { name = "netifaces" },
     { name = "niquests" },
     { name = "nmcli" },
     { name = "ntplib" },
@@ -1736,7 +1735,6 @@ requires-dist = [
     { name = "markupsafe" },
     { name = "msgpack" },
     { name = "msgpack-types" },
-    { name = "netifaces" },
     { name = "niquests", specifier = ">=3.15.1" },
     { name = "nmcli" },
     { name = "ntplib" },
@@ -2267,12 +2265,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/e2/a9/a0c57aee75f77794a
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ef/82/7a9d0550484a62c6da82858ee9419f3dd1ccc9aa1c26a1e43da3ecd20b0d/natsort-8.4.0-py3-none-any.whl", hash = "sha256:4732914fb471f56b5cce04d7bae6f164a592c7712e1c85f9ef585e197299521c", size = 38268, upload-time = "2023-06-20T04:17:17.522Z" },
 ]
-
-[[package]]
-name = "netifaces"
-version = "0.11.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/a6/91/86a6eac449ddfae239e93ffc1918cf33fd9bab35c04d1e963b311e347a73/netifaces-0.11.0.tar.gz", hash = "sha256:043a79146eb2907edf439899f262b3dfe41717d34124298ed281139a8b93ca32", size = 30106, upload-time = "2021-05-31T08:33:02.506Z" }
 
 [[package]]
 name = "niquests"
