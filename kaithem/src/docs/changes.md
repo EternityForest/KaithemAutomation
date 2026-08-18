@@ -1,6 +1,11 @@
 Change Log
 ----------
 
+### Dev
+
+* [coffin] All install and provisioning scripts moved to a [separate repo](https://github.com/EternityForest/kaithem-scripts/tree/main/debian)
+
+
 ### 0.96.0
 
 * [sparkles] Projection mapper more intuitive text widgets.

@@ -36,8 +36,6 @@ export USER
 export KIOSK_HOME
 export ROOT_DIR
 
-
-include kaithem_scripts/Makefile
 default: help 
 
 

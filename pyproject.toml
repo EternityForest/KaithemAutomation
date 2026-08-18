@@ -102,7 +102,7 @@ build-backend = "uv_build"
 wheel-exclude = ["*.dev.excalidraw.svg", "**/.ruff_cache",
 "**/src/rust/**", "plugin.debug.wasm"]
 module-root=""
-module-name=["kaithem", "kaithem_cli", "kaithem_scripts", "wasm_kegs"]
+module-name=["kaithem", "kaithem_cli", "wasm_kegs"]
 
 [tool.uv]
 exclude-newer = "3 days"
@@ -116,8 +116,6 @@ required-environments=[
 [project.scripts]
 "kaithem" = "kaithem:__main__"
 "kaithem-cli" = "kaithem_cli.cli:main"
-"kaithem-scripts" = "kaithem_scripts.makefile_runner:main"
-"kaithem-pi-boot-cfg" = "kaithem_scripts.pi_boot_cfg:main"
 "kaithem-keg-sdk" = "wasm_kegs.sdk:main"
 
 "kaithem._jackmanager_server" = "icemedia.jack_client_subprocess:main"

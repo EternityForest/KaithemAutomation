@@ -36,42 +36,27 @@ See the barrel.css [demo](https://eternityforest.github.io/barrel.css/) for more
 
 ## Installation 🌲
 
+
 >The careful text-books measure\
 >  (Let all who build beware!)\
 > The load, the shock, the pressure\
 >  Material can bear.
 
 
-### Installing UV
+Assuming you're on Debian or similar and have uv installed,
+you can run it directly from UV tool.
 
-First you'll need to get [pipx](https://pipx.pypa.io/stable/installation/) and uv, if you haven't yet.  In the future, pipx will likely not be needed at all, for now this seems to be the most convenient way to get uv.
 
 ```bash
-sudo apt install pipx
-# This may prompt you to log out and log back in
-python3 -m pipx ensurepath
-pipx install uv
+sudo apt install -y mpv lm-sensors python3-gst-1.0  gstreamer1.0-plugins-good  gstreamer1.0-plugins-bad gstreamer1.0-tools swh-plugins  tap-plugins  caps   gstreamer1.0-plugins-ugly libfluidsynth3 gstreamer1.0-pocketsphinx x42-plugins gstreamer1.0-opencv  gstreamer1.0-vaapi gstreamer1.0-pipewire
 
-# You may need to log out and log back to make uv available
-uv tool update-shell
-```
-
-
-### Installing Kaithem itself
-
-Next you can just install it right from PyPi!
-
-```bash
 uv tool install --force kaithem
 
-kaithem-scripts root-install-system-dependencies
+# Start it
+kaithem
 
 ```
 
-To get the latest dev version, do this instead.  You probably don't want this.
-```bash
-uv tool install --force --from git+https://github.com/EternityForest/KaithemAutomation kaithem
-```
 
 ### System Configuration 🛠️
 
@@ -81,66 +66,11 @@ uv tool install --force --from git+https://github.com/EternityForest/KaithemAuto
 >  Is laid upon the man.\
 >    Not on the Stuff — the Man!
 
-kaithem-scripts provides some helpful utilities to set up the system.
-
-Scripts starting with . will do sudo by themselves, you call them as your normal user,
-and sudo will prompt you if needed.  This is because running uv/pipx scripts directly with root
-would need extra setup.
-
-```bash
-
-# Launch at startup
-kaithem-scripts user-start-kaithem-at-boot
-
-# Currently, most distros don't have pipewire JACK enabled by default, which
-# is needed for the audio mixing features.
-kaithem-scripts root-use-pipewire-jack
-kaithem-scripts user-restart-pipewire
+For real deployment or adding plugins like Matter support, see the scripts [here](https://github.com/EternityForest/kaithem-scripts/tree/main/debian)
 
 
-# This activates a maxvolume service, which sets volume to full at boot.
-kaithem-scripts user-max-volume-at-boot
 
-# Linux by default has a LOT of stuff that writes
-# excessively to the SD card. On a raspberry pi this
-# Should make the system much more reliable without
-# making anything work differently, except for putting logs in RAM
-kaithem-scripts root-install-sd-protection
-
-# Sets up a collection of misc tweaks that are recommended for kaithem.
-kaithem-scripts root-install-raspios-linux-tweaks
-
-# Installs Mosquitto and sets it up to allow anonymous clients.
-kaithem-scripts root-enable-anon-mqtt
-
-# Installs Mosquitto and sets it up to allow anonymous clients.
-kaithem-scripts root-uninstall-bloatware
-
-# Set up the Pi to display the Kaithem homepage(Can configure redirect in settings)
-# On boot in a fullscreen kiosk, under the default user.
-
-# Should work on non-pi systems that use lightdm too.
-# Note this reconfgures lots of stuff and can't be undone except manually.
-kaithem-scripts root-install-kiosk
-
-# Sets sudo to passwordless by creating a /etc/sudoers.d/sudo-nopasswd file
-# 0.89.0+ only
-kaithem-scripts root-enable-passwordless-sudo
-
-```
-
-#### Matter Support
-
-Kaithem has experimental support for the Matter protocol, if the python matter server is running.  Use this command to set it up with Docker:
-
-```bash
-kaithem-scripts root-setup-matter-server
-```
-
-Then add a MatterControllerClient device via the UI.  All commisioned devices will be auto-added as subdevices.
-
-
-## Manual dev install 🖐️
+## Dev install 🖐️
 
 Info for devs here on the wiki (https://github.com/EternityForest/KaithemAutomation/wiki/Development)
 
@@ -148,6 +78,8 @@ Info for devs here on the wiki (https://github.com/EternityForest/KaithemAutomat
 Dashbeard(https://github.com/EternityForest/Dashbeard) must be cloned into the same folder you cloned this repo into.
 
 ### Setup
+
+First get all system dependencies as per the main install section.
 
 ```bash
 uv sync
