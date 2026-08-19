@@ -54,9 +54,7 @@ int, unless it is quoted.
 The return value of the previous function is always available as $chain
 
 This means functions can potentially recieve any python data type.
-All functions should be strongly typed for this reason, and should use
-the typeguard library to ensure this.
-
+All functions should be strongly typed for this reason and should do checking.
 
 commands can have a manifest property applied to the function.
 

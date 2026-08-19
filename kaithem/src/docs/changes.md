@@ -5,6 +5,7 @@ Change Log
 
 * [coffin] All install and provisioning scripts moved to a [separate repo](https://github.com/EternityForest/kaithem-scripts/tree/main/debian)
 * [:technologist:] remove dependency on netifaces.
+* [bug] Set environment variables to use host certs instead of certifi's bundled ones
 
 ### 0.96.0
 

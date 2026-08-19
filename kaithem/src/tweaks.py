@@ -22,11 +22,24 @@ mimetypes.add_type("text/html", ".vue", strict=False)
 mimetypes.add_type("application/javascript", ".js", strict=True)
 
 
-# Fix any bad environment that doesn't have this set which might break the display list feature
+# Fix any bad environment that doesn't have this set
+# which might break the display list feature
 if not os.environ.get("DISPLAY"):
     os.environ["DISPLAY"] = ":0"
 
+certs_file = "/etc/ssl/certs/ca-certificates.crt"
+certs_dir = "/etc/ssl/certs"
 
+# Work around the bundled certifi nonsense
+if os.path.isfile(certs_file):
+    os.environ["SSL_CERT_FILE"] = certs_file
+    os.environ["REQUESTS_CA_BUNDLE"] = certs_file
+
+if os.path.isdir(certs_dir):
+    os.environ["SSL_CERT_DIR"] = certs_dir
+
+
+# pyrefly: ignore [implicit-any-parameter]
 def str_presenter(dumper, data):
     """configures yaml for dumping multiline strings
     Ref: https://stackoverflow.com/questions/8640959/how-can-i-control-what-scalar-form-pyyaml-uses-for-my-data"""
@@ -40,6 +53,7 @@ yaml.representer.SafeRepresenter.add_representer(
     str, str_presenter
 )  # to use with safe_dum
 
+
 if not os.environ.get("VIRTUAL_ENV"):
     if "pipx" in sys.executable:
         os.environ["VIRTUAL_ENV"] = os.path.dirname(
@@ -51,30 +65,34 @@ if not os.environ.get("VIRTUAL_ENV"):
             "No virtual environment detected.  This may cause issues.",
         )
 
-try:
-    import typeguard  # noqa
-except Exception:
-    v = importlib.metadata.version
 
-    def version(p):
-        x = v(p)
-        if not x:
-            raise importlib.metadata.PackageNotFoundError()
-        return p
-
-    importlib.metadata.version = version
+v = importlib.metadata.version
 
 
-def test_access(i):
+# Todo: Remove this when python 3.11 is dropped I think
+# https://github.com/python/cpython/issues/91216
+def version(distribution_name: str) -> str:
+    x = v(distribution_name)
+    if not x:
+        raise importlib.metadata.PackageNotFoundError()
+    return distribution_name
+
+
+importlib.metadata.version = version
+
+
+def test_access(i: str):
     try:
         os.listdir(i)
-        return True
     except Exception:
+        print(f"Skipping {i} as bad sys path entry")
         return False
+    return False
 
 
 original_path = sys.path
 # Snapcraft is putting in nonsense path entries
+# We no longer do snap but other things might do it
 sys.path = [i for i in sys.path if test_access(i)]
 
 
@@ -120,7 +138,7 @@ def _get_non_stdlib_frame_info():
     return (None, None)
 
 
-def _rename_asyncio_thread(thread):
+def _rename_asyncio_thread(thread: threading.Thread):
     """
     If thread has a generic asyncio name like 'asyncio_11', rename it
     to reflect the module and function that created it.
@@ -143,12 +161,15 @@ def installThreadLogging():
     If using psyco, call psyco.cannotcompile(threading.Thread.run)
     since this replaces a new-style class method.
 
-    Modified by kaithem project to do something slightly different. Credit to Ian Beaver.
-    What our version does is posts to the message bus when a thread starts, stops, or has an exception.
+    Modified by kaithem project to do something slightly different.
+    Credit to Ian Beaver.
+    What our version does is posts to the message bus when a
+    thread starts, stops, or has an exception.
     """
     init_old = threading.Thread.__init__
 
-    def init(self, *args, **kwargs):
+    # pyrefly: ignore [implicit-any-parameter]
+    def init(self: threading.Thread, *args, **kwargs):
         # This does not need to block shutdown.
         if kwargs.get("name", "").startswith("zeroconf-ServiceBrowser"):
             kwargs["daemon"] = True
@@ -159,20 +180,21 @@ def installThreadLogging():
         _rename_asyncio_thread(self)
         run_old = self.run
 
+        # pyrefly: ignore [implicit-any-parameter]
         def run_with_except_hook(*args, **kw):
             if self.name.startswith("nostartstoplog.") or self.name.startswith(
                 "Thread-"
             ):
                 try:
                     run_old(*args, **kw)
-                except Exception as e:
+                except Exception:
                     threadlogger.exception(
                         "Thread stopping due to exception: "
                         + self.name
                         + " with ID: "
                         + str(threading.current_thread().ident)
                     )
-                    raise e
+                    raise
             else:
                 try:
                     threadlogger.debug(
@@ -192,7 +214,7 @@ def installThreadLogging():
                         + str(threading.current_thread().ident)
                     )
 
-                except Exception as e:
+                except Exception:
                     threadlogger.exception(
                         "Thread stopping due to exception: "
                         + self.name
@@ -209,11 +231,13 @@ def installThreadLogging():
                         + str(threading.current_thread().ident)
                         + " stopped due to exception ",
                     )
-                    raise e
+                    raise
 
         # Rename thread so debugging works
         try:
+            # pyrefly: ignore [missing-attribute]
             if self._target:
+                # pyrefly: ignore [missing-attribute]
                 run_with_except_hook.__name__ = self._target.__name__
                 run_with_except_hook.__module__ = self._target.__module__
         except Exception:
