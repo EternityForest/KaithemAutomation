@@ -83,11 +83,12 @@ importlib.metadata.version = version
 
 def test_access(i: str):
     try:
-        os.listdir(i)
+        if os.path.isdir(i):
+            os.listdir(i)
     except Exception:
         print(f"Skipping {i} as bad sys path entry")
         return False
-    return False
+    return True
 
 
 original_path = sys.path
