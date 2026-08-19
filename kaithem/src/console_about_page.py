@@ -1,3 +1,4 @@
+import getpass
 import logging
 import os
 import platform
@@ -137,7 +138,7 @@ def do_splash_screen(version_only=False):
         # Identifiable user info
         add_kv("Executable", sys.executable)
         add_kv("Network Name", platform.node())
-        add_kv("User", os.getlogin())
+        add_kv("User", getpass.getuser())
 
         text = Panel("".join(meta), title="User Info", width=w)
         console.print(text)
