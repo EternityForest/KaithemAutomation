@@ -2,9 +2,12 @@ version = 1
 revision = 3
 requires-python = ">=3.11, <4.0"
 resolution-markers = [
-    "python_full_version >= '3.14'",
-    "python_full_version >= '3.12' and python_full_version < '3.14'",
-    "python_full_version < '3.12'",
+    "(python_full_version >= '3.14' and platform_machine != 'aarch64') or (python_full_version >= '3.14' and sys_platform != 'linux')",
+    "python_full_version >= '3.14' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "(python_full_version >= '3.12' and python_full_version < '3.14' and platform_machine != 'aarch64') or (python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform != 'linux')",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "(python_full_version < '3.12' and platform_machine != 'aarch64') or (python_full_version < '3.12' and sys_platform != 'linux')",
+    "python_full_version < '3.12' and platform_machine == 'aarch64' and sys_platform == 'linux'",
 ]
 required-markers = [
     "platform_machine == 'x86_64' and sys_platform == 'linux'",
@@ -1294,7 +1297,8 @@ name = "home-assistant-chip-clusters"
 version = "2024.11.4"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version < '3.12'",
+    "(python_full_version < '3.12' and platform_machine != 'aarch64') or (python_full_version < '3.12' and sys_platform != 'linux')",
+    "python_full_version < '3.12' and platform_machine == 'aarch64' and sys_platform == 'linux'",
 ]
 dependencies = [
     { name = "aenum", marker = "python_full_version < '3.12'" },
@@ -1309,8 +1313,10 @@ name = "home-assistant-chip-clusters"
 version = "2025.7.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version >= '3.14'",
-    "python_full_version >= '3.12' and python_full_version < '3.14'",
+    "(python_full_version >= '3.14' and platform_machine != 'aarch64') or (python_full_version >= '3.14' and sys_platform != 'linux')",
+    "python_full_version >= '3.14' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "(python_full_version >= '3.12' and python_full_version < '3.14' and platform_machine != 'aarch64') or (python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform != 'linux')",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and platform_machine == 'aarch64' and sys_platform == 'linux'",
 ]
 dependencies = [
     { name = "aenum", marker = "python_full_version >= '3.12'" },
@@ -1662,7 +1668,6 @@ dependencies = [
     { name = "pyserial" },
     { name = "python-dateutil" },
     { name = "python-mpv-jsonipc" },
-    { name = "python-rtmidi" },
     { name = "pytz" },
     { name = "pyyaml" },
     { name = "quart" },
@@ -1754,7 +1759,6 @@ requires-dist = [
     { name = "pyserial" },
     { name = "python-dateutil" },
     { name = "python-mpv-jsonipc" },
-    { name = "python-rtmidi", specifier = "==1.5.8" },
     { name = "pytz" },
     { name = "pyyaml" },
     { name = "quart", specifier = ">=0.20.0" },
@@ -3112,7 +3116,7 @@ name = "pyobjc-framework-cocoa"
 version = "12.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "pyobjc-core" },
+    { name = "pyobjc-core", marker = "platform_machine != 'aarch64' or sys_platform != 'linux'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/02/a3/16ca9a15e77c061a9250afbae2eae26f2e1579eb8ca9462ae2d2c71e1169/pyobjc_framework_cocoa-12.1.tar.gz", hash = "sha256:5556c87db95711b985d5efdaaf01c917ddd41d148b1e52a0c66b1a2e2c5c1640", size = 2772191, upload-time = "2025-11-14T10:13:02.069Z" }
 wheels = [
@@ -3129,8 +3133,8 @@ name = "pyobjc-framework-corebluetooth"
 version = "12.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "pyobjc-core" },
-    { name = "pyobjc-framework-cocoa" },
+    { name = "pyobjc-core", marker = "platform_machine != 'aarch64' or sys_platform != 'linux'" },
+    { name = "pyobjc-framework-cocoa", marker = "platform_machine != 'aarch64' or sys_platform != 'linux'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/4b/25/d21d6cb3fd249c2c2aa96ee54279f40876a0c93e7161b3304bf21cbd0bfe/pyobjc_framework_corebluetooth-12.1.tar.gz", hash = "sha256:8060c1466d90bbb9100741a1091bb79975d9ba43911c9841599879fc45c2bbe0", size = 33157, upload-time = "2025-11-14T10:13:28.064Z" }
 wheels = [
@@ -3147,8 +3151,8 @@ name = "pyobjc-framework-libdispatch"
 version = "12.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "pyobjc-core" },
-    { name = "pyobjc-framework-cocoa" },
+    { name = "pyobjc-core", marker = "platform_machine != 'aarch64' or sys_platform != 'linux'" },
+    { name = "pyobjc-framework-cocoa", marker = "platform_machine != 'aarch64' or sys_platform != 'linux'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/26/e8/75b6b9b3c88b37723c237e5a7600384ea2d84874548671139db02e76652b/pyobjc_framework_libdispatch-12.1.tar.gz", hash = "sha256:4035535b4fae1b5e976f3e0e38b6e3442ffea1b8aa178d0ca89faa9b8ecdea41", size = 38277, upload-time = "2025-11-14T10:16:46.235Z" }
 wheels = [
@@ -3247,7 +3251,8 @@ name = "python-matter-server"
 version = "7.0.1"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version < '3.12'",
+    "(python_full_version < '3.12' and platform_machine != 'aarch64') or (python_full_version < '3.12' and sys_platform != 'linux')",
+    "python_full_version < '3.12' and platform_machine == 'aarch64' and sys_platform == 'linux'",
 ]
 dependencies = [
     { name = "aiohttp", marker = "python_full_version < '3.12'" },
@@ -3267,8 +3272,10 @@ name = "python-matter-server"
 version = "8.1.2"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version >= '3.14'",
-    "python_full_version >= '3.12' and python_full_version < '3.14'",
+    "(python_full_version >= '3.14' and platform_machine != 'aarch64') or (python_full_version >= '3.14' and sys_platform != 'linux')",
+    "python_full_version >= '3.14' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "(python_full_version >= '3.12' and python_full_version < '3.14' and platform_machine != 'aarch64') or (python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform != 'linux')",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and platform_machine == 'aarch64' and sys_platform == 'linux'",
 ]
 dependencies = [
     { name = "aiohttp", marker = "python_full_version >= '3.12'" },
@@ -3298,24 +3305,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/6a/da/879f1c849e886b783239b8a4710daac73535ba2cfcf672ee4548543e3a74/python-pam-2.0.2.tar.gz", hash = "sha256:97235235ba9b82dbae8068d1099508455949b275f77273ca22fdbd8b1fb5d950", size = 11439, upload-time = "2022-03-18T00:32:09.856Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/9b/2d/9fbb3bd686a474d76fbd0b79abdcc016f3da760b1d1c2048bf4c611a4939/python_pam-2.0.2-py3-none-any.whl", hash = "sha256:4ac51dd8953ac59aa45505882b565eef6a22e0423dcf25d63369902080416c20", size = 10658, upload-time = "2022-03-18T00:32:07.802Z" },
-]
-
-[[package]]
-name = "python-rtmidi"
-version = "1.5.8"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/dd/ee/0f91965dcc471714c69df21e5ca3d94dc81411b7dee2d31ff1184bea07c9/python_rtmidi-1.5.8.tar.gz", hash = "sha256:7f9ade68b068ae09000ecb562ae9521da3a234361ad5449e83fc734544d004fa", size = 368130, upload-time = "2023-11-20T21:55:02.192Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/4b/0c/23be16b75c90946784b8d233e61db14cf0482def5396821a1ae0bdcd2739/python_rtmidi-1.5.8-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:30d117193dcad8af67c600c405f53eb096e4ff84849760be14c97270af334922", size = 150205, upload-time = "2023-11-20T21:54:31.849Z" },
-    { url = "https://files.pythonhosted.org/packages/4b/12/37d41151b08a292719f05dbeae15475537f8aa291cda34c6634b35916dff/python_rtmidi-1.5.8-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:4e234dca7f9d783dd3f1e9c9c5c2f295f02b7af3085301d6eed3b428cf49d327", size = 146737, upload-time = "2023-11-20T21:54:33.299Z" },
-    { url = "https://files.pythonhosted.org/packages/53/5e/b866491545135c699bfbed62f54b93c4d6587afc2bba6e2cbbe898570c32/python_rtmidi-1.5.8-cp311-cp311-manylinux_2_28_aarch64.whl", hash = "sha256:271d625c489fffb39b3edc5aba67f7c8e29a04a0a0f056ce19e5a888a08b4c59", size = 294847, upload-time = "2023-11-20T21:54:35.017Z" },
-    { url = "https://files.pythonhosted.org/packages/a0/79/1ddb4fb1bdb1a8b8bd62007ca4980344a53b7f29633a7bca1088eed964ce/python_rtmidi-1.5.8-cp311-cp311-manylinux_2_28_x86_64.whl", hash = "sha256:46bbf32c8a4bf6c8f0df1c02a68689d0757f13cb7a69f27ccbbed3d7b2365918", size = 305433, upload-time = "2023-11-20T21:54:36.322Z" },
-    { url = "https://files.pythonhosted.org/packages/13/ff/2c55797dbf020d462132d1bc5b34d596b400fa197e2a259b8dd2ea2e5954/python_rtmidi-1.5.8-cp311-cp311-win_amd64.whl", hash = "sha256:cfea32c91752fa7aecfe3d6827535c190ba0e646a9accd6604f4fc70cf4b780f", size = 132937, upload-time = "2023-11-20T21:54:38.3Z" },
-    { url = "https://files.pythonhosted.org/packages/51/27/887b0378e0a907489a07bdeb808fa5ed349675245c6ee14d9f6d00304f96/python_rtmidi-1.5.8-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:5443634597eb340cdec0734f76267a827c2d366f00a6f9195141c78828016ac2", size = 158861, upload-time = "2023-11-20T21:54:39.549Z" },
-    { url = "https://files.pythonhosted.org/packages/4d/ec/57cecde253daab896ce53778520cd41eb062641862ebdb0ee6f97511b1d9/python_rtmidi-1.5.8-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:29d9c9d9f82ce679fecad7bb4cb79f3a24574ea84600e377194b4cc1baacec0e", size = 153416, upload-time = "2023-11-20T21:54:40.835Z" },
-    { url = "https://files.pythonhosted.org/packages/6f/5b/dc19c53d9d512b74dc2cca3725591cc612b9465645695a0696352a8c8b54/python_rtmidi-1.5.8-cp312-cp312-manylinux_2_28_aarch64.whl", hash = "sha256:25f5a5db7be98911c41ca5bebb262fcf9a7c89600b88fd3c207ceafd3101e721", size = 305696, upload-time = "2023-11-20T21:54:42.037Z" },
-    { url = "https://files.pythonhosted.org/packages/f6/92/5a60f56dfb2740e644e932233928947423cd2101895319b331f84527eb31/python_rtmidi-1.5.8-cp312-cp312-manylinux_2_28_x86_64.whl", hash = "sha256:cec30924e305f55284594ccf35a71dee7216fd308dfa2dec1b3ed03e6f243803", size = 315579, upload-time = "2023-11-20T21:54:43.339Z" },
-    { url = "https://files.pythonhosted.org/packages/93/46/6af077d262f521ea2bf1ab60b8aad72f34fe6dd55af739176605369d449c/python_rtmidi-1.5.8-cp312-cp312-win_amd64.whl", hash = "sha256:052c89933cae4fca354012d8ca7248f4f9e1e3f062471409d48415a7f7d7e59e", size = 129755, upload-time = "2023-11-20T21:54:44.935Z" },
 ]
 
 [[package]]
@@ -3959,7 +3948,8 @@ name = "sphinx"
 version = "9.0.4"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version < '3.12'",
+    "(python_full_version < '3.12' and platform_machine != 'aarch64') or (python_full_version < '3.12' and sys_platform != 'linux')",
+    "python_full_version < '3.12' and platform_machine == 'aarch64' and sys_platform == 'linux'",
 ]
 dependencies = [
     { name = "alabaster", marker = "python_full_version < '3.12'" },
@@ -3990,8 +3980,10 @@ name = "sphinx"
 version = "9.1.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version >= '3.14'",
-    "python_full_version >= '3.12' and python_full_version < '3.14'",
+    "(python_full_version >= '3.14' and platform_machine != 'aarch64') or (python_full_version >= '3.14' and sys_platform != 'linux')",
+    "python_full_version >= '3.14' and platform_machine == 'aarch64' and sys_platform == 'linux'",
+    "(python_full_version >= '3.12' and python_full_version < '3.14' and platform_machine != 'aarch64') or (python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform != 'linux')",
+    "python_full_version >= '3.12' and python_full_version < '3.14' and platform_machine == 'aarch64' and sys_platform == 'linux'",
 ]
 dependencies = [
     { name = "alabaster", marker = "python_full_version >= '3.12'" },
@@ -4596,7 +4588,7 @@ name = "winrt-runtime"
 version = "3.2.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions" },
+    { name = "typing-extensions", marker = "platform_machine != 'aarch64' or sys_platform != 'linux'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/16/dd/acdd527c1d890c8f852cc2af644aa6c160974e66631289420aa871b05e65/winrt_runtime-3.2.1.tar.gz", hash = "sha256:c8dca19e12b234ae6c3dadf1a4d0761b51e708457492c13beb666556958801ea", size = 21721, upload-time = "2025-06-06T14:40:27.593Z" }
 wheels = [
@@ -4619,7 +4611,7 @@ name = "winrt-windows-devices-bluetooth"
 version = "3.2.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "winrt-runtime" },
+    { name = "winrt-runtime", marker = "platform_machine != 'aarch64' or sys_platform != 'linux'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/b2/a0/1c8a0c469abba7112265c6cb52f0090d08a67c103639aee71fc690e614b8/winrt_windows_devices_bluetooth-3.2.1.tar.gz", hash = "sha256:db496d2d92742006d5a052468fc355bf7bb49e795341d695c374746113d74505", size = 23732, upload-time = "2025-06-06T14:41:20.489Z" }
 wheels = [
@@ -4642,7 +4634,7 @@ name = "winrt-windows-devices-bluetooth-advertisement"
 version = "3.2.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "winrt-runtime" },
+    { name = "winrt-runtime", marker = "platform_machine != 'aarch64' or sys_platform != 'linux'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/06/fc/7ffe66ca4109b9e994b27c00f3d2d506e6e549e268791f755287ad9106d8/winrt_windows_devices_bluetooth_advertisement-3.2.1.tar.gz", hash = "sha256:0223852a7b7fa5c8dea3c6a93473bd783df4439b1ed938d9871f947933e574cc", size = 16906, upload-time = "2025-06-06T14:41:21.448Z" }
 wheels = [
@@ -4665,7 +4657,7 @@ name = "winrt-windows-devices-bluetooth-genericattributeprofile"
 version = "3.2.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "winrt-runtime" },
+    { name = "winrt-runtime", marker = "platform_machine != 'aarch64' or sys_platform != 'linux'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/44/21/aeeddc0eccdfbd25e543360b5cc093233e2eab3cdfb53ad3cabae1b5d04d/winrt_windows_devices_bluetooth_genericattributeprofile-3.2.1.tar.gz", hash = "sha256:cdf6ddc375e9150d040aca67f5a17c41ceaf13a63f3668f96608bc1d045dde71", size = 38896, upload-time = "2025-06-06T14:41:22.687Z" }
 wheels = [
@@ -4688,7 +4680,7 @@ name = "winrt-windows-devices-enumeration"
 version = "3.2.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "winrt-runtime" },
+    { name = "winrt-runtime", marker = "platform_machine != 'aarch64' or sys_platform != 'linux'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/9e/dd/75835bfbd063dffa152109727dedbd80f6e92ea284855f7855d48cdf31c9/winrt_windows_devices_enumeration-3.2.1.tar.gz", hash = "sha256:df316899e39bfc0ffc1f3cb0f5ee54d04e1d167fbbcc1484d2d5121449a935cf", size = 23538, upload-time = "2025-06-06T14:41:26.787Z" }
 wheels = [
@@ -4711,7 +4703,7 @@ name = "winrt-windows-devices-radios"
 version = "3.2.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "winrt-runtime" },
+    { name = "winrt-runtime", marker = "platform_machine != 'aarch64' or sys_platform != 'linux'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/5e/02/9704ea359ad8b0d6faa1011f98fb477e8fb6eac5201f39d19e73c2407e7b/winrt_windows_devices_radios-3.2.1.tar.gz", hash = "sha256:4dc9b9d1501846049eb79428d64ec698d6476c27a357999b78a8331072e18a0b", size = 5908, upload-time = "2025-06-06T14:41:44.868Z" }
 wheels = [
@@ -4734,7 +4726,7 @@ name = "winrt-windows-foundation"
 version = "3.2.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "winrt-runtime" },
+    { name = "winrt-runtime", marker = "platform_machine != 'aarch64' or sys_platform != 'linux'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/0c/55/098ce7ea0679efcc1298b269c48768f010b6c68f90c588f654ec874c8a74/winrt_windows_foundation-3.2.1.tar.gz", hash = "sha256:ad2f1fcaa6c34672df45527d7c533731fdf65b67c4638c2b4aca949f6eec0656", size = 30485, upload-time = "2025-06-06T14:41:53.344Z" }
 wheels = [
@@ -4757,7 +4749,7 @@ name = "winrt-windows-foundation-collections"
 version = "3.2.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "winrt-runtime" },
+    { name = "winrt-runtime", marker = "platform_machine != 'aarch64' or sys_platform != 'linux'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/ef/62/d21e3f1eeb8d47077887bbf0c3882c49277a84d8f98f7c12bda64d498a07/winrt_windows_foundation_collections-3.2.1.tar.gz", hash = "sha256:0eff1ad0d8d763ad17e9e7bbd0c26a62b27215016393c05b09b046d6503ae6d5", size = 16043, upload-time = "2025-06-06T14:41:53.983Z" }
 wheels = [
@@ -4780,7 +4772,7 @@ name = "winrt-windows-storage-streams"
 version = "3.2.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "winrt-runtime" },
+    { name = "winrt-runtime", marker = "platform_machine != 'aarch64' or sys_platform != 'linux'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/00/50/f4488b07281566e3850fcae1021f0285c9653992f60a915e15567047db63/winrt_windows_storage_streams-3.2.1.tar.gz", hash = "sha256:476f522722751eb0b571bc7802d85a82a3cae8b1cce66061e6e758f525e7b80f", size = 34335, upload-time = "2025-06-06T14:43:23.905Z" }
 wheels = [

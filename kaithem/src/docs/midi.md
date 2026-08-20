@@ -1,7 +1,8 @@
 # Kaithem MIDI input support
 
-All connected MIDI devices that RtMidi can see will be linked to the message bus and tag points by name.
-
+All MIDI output ports that JACK can see (which under pipewire-jack
+corresponds to every MIDI device the system can see) will be linked
+to the message bus and tag points by name.
 
 You can see a list of all these names on the about page.
 

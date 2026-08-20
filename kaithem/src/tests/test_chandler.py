@@ -16,6 +16,7 @@ import yaml
 if "--collect-only" not in sys.argv:  # pragma: no cover
     from kaithem.src import modules, modules_state
     from kaithem.src.chandler import (
+        WebChandlerConsole,
         core,
     )
 
@@ -29,6 +30,7 @@ if "--collect-only" not in sys.argv:  # pragma: no cover
             {"resource": {"type": "chandler_board", "modified": 1777171067}},
         )
     board = core.boards["test_chandler_module:test_board"]
+    assert isinstance(board, WebChandlerConsole.WebConsole)
 
 
 def getBoardResourceData():
@@ -404,11 +406,13 @@ def test_tap_tempo():
 
 
 def test_midi():
-    import rtmidi
+    import time
 
     from kaithem.api import midi
     from kaithem.src.chandler import WebChandlerConsole, core
-    from kaithem.src.plugins import CorePluginMidiToTags
+    from kaithem.src.plugins import CorePluginMidiToTags  # noqa: F401
+
+    from .helpers import JackMidiSender
 
     # TODO thi belongs in it's on test
     non_normalized = "Midi Through:Midi Through Port-0 14:0"
@@ -418,49 +422,52 @@ def test_midi():
     # Make sure redoing it doesn't change it
     assert midi.normalize_midi_port_name(normalized) == normalized
 
-    # Create virtual midi input
-    midiout = rtmidi.MidiOut(name="Kaithem Test")
-    midiout.open_virtual_port("virtualoutput")
+    # Create a JACK MIDI output port and wait for Kaithem's MidiManager
+    # to register an input port and connect to it.
+    with JackMidiSender("Kaithem Test", "virtualoutput") as midiout:
+        for _ in range(40):
+            x = WebChandlerConsole.list_midi_inputs(force_update=True)
+            if "kaithem_test_virtualoutput" in x:
+                break
+            time.sleep(0.1)
 
-    # Hack so we don't have to wait ten seconds
-    CorePluginMidiToTags.doScan()
+        assert "kaithem_test_virtualoutput" in x
+        time.sleep(1)
 
-    note_on = [0x90, 60, 112]  # channel 1, middle C, velocity 112
-    note_off = [0x80, 60, 0]
+        note_on = [0x90, 60, 112]  # channel 1, middle C, velocity 112
+        note_off = [0x80, 60, 0]
 
-    with TempGroup() as grp:
-        grp.add_cue("cue2")
+        with TempGroup() as grp:
+            grp.add_cue("cue2")
 
-        grp.midi_source = "kaithem_test_virtualoutput"
+            grp.midi_source = "kaithem_test_virtualoutput"
 
-        # Ensure that this name is something a user could find
-        # Via UI
-        assert grp.midi_source in WebChandlerConsole.list_midi_inputs()
+            # Ensure that this name is something a user could find
+            # Via UI
+            assert grp.midi_source in WebChandlerConsole.list_midi_inputs()
 
-        # Note we have converted to the note name here
-        grp.cue.rules = [
-            ["midi.note:1.C5", [["goto", "=GROUP", "cue2"]]],
-        ]
+            # Note we have converted to the note name here
+            grp.cue.rules = [
+                ["midi.note:1.C4", [["goto", "=GROUP", "cue2"]]],
+            ]
 
-        grp.cues["cue2"].rules = [
-            ["midi.noteoff:1.C5", [["goto", "=GROUP", "default"]]],
-        ]
+            grp.cues["cue2"].rules = [
+                ["midi.noteoff:1.C4", [["goto", "=GROUP", "default"]]],
+            ]
 
-        core.wait_frame()
-        core.wait_frame()
+            core.wait_frame()
+            core.wait_frame()
 
-        assert grp.cue.name == "default"
-        midiout.send_message(note_on)
-        core.wait_frame()
-        core.wait_frame()
+            assert grp.cue.name == "default"
+            midiout.send_message(note_on)
+            core.wait_frame()
+            core.wait_frame()
 
-        assert grp.cue.name == "cue2"
-        midiout.send_message(note_off)
-        core.wait_frame()
-        core.wait_frame()
-        assert grp.cue.name == "default"
-
-        midiout.close_port()
+            assert grp.cue.name == "cue2"
+            midiout.send_message(note_off)
+            core.wait_frame()
+            core.wait_frame()
+            assert grp.cue.name == "default"
 
 
 async def test_fixtures():

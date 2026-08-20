@@ -6,6 +6,9 @@ Change Log
 * [coffin] All install and provisioning scripts moved to a [separate repo](https://github.com/EternityForest/kaithem-scripts/tree/main/debian)
 * [:technologist:] remove dependency on netifaces.
 * [bug] Set environment variables to use host certs instead of certifi's bundled ones
+* [sparkles] BREAKING MIDI note 60 standardized as C4
+* [sparkles] Can use numbered midi notes like midi.note:1.60 in chandler
+
 
 ### 0.96.0
 

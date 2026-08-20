@@ -15,4 +15,4 @@ NOTES_IN_OCTAVE = len(NOTES)
 def number_to_note(number: int) -> str:
     octave = number // NOTES_IN_OCTAVE
     note = NOTES[number % NOTES_IN_OCTAVE]
-    return note + str(octave)
+    return note + str(octave - 1)

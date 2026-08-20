@@ -1,14 +1,19 @@
 """
-You can use normalize_midi_port_name to get name for the midi device
-which can be used for things like subscribing to "/midi/portname".
+Public MIDI API.
 
+All MIDI in/out is handled via a JACK client (works under pipewire-jack).
+The plugin :mod:`kaithem.src.plugins.CorePluginMidiToTags` owns the actual
+JACK client that listens on MIDI inputs and fans events out to the
+internal message bus and tag points.
 
+This module is intentionally just a thin abstraction layer so callers
+(the about page, WebChandlerConsole, etc.) don't have to know how MIDI
+is wired under the hood.
 """
 
 import time
 
 import structlog
-from scullery import messagebus
 
 from kaithem.src.plugins.CorePluginMidiToTags import normalize_midi_name
 
@@ -16,51 +21,30 @@ logger = structlog.get_logger(__name__)
 
 
 def normalize_midi_port_name(name: str) -> str:
-    """Given a name as would be returned by
-    rtmidi's get_port_name, return a normalized name
-    as used in the internal message bus.
+    """Given a raw JACK MIDI port name (e.g. ``"My Keyboard:midi_out"``),
+    return a normalized name as used in the internal message bus.
     """
     return normalize_midi_name(name)
 
 
-once: list[int] = [0]
 inputs_cache: tuple[float, list[str]] = (0.0, [])
 
 
 def __list_midi_inputs() -> list[str]:
+    """Return a list of normalized MIDI input port names currently
+    visible to JACK (which under pipewire corresponds to all MIDI
+    sources the system can see).
+    """
     try:
-        import rtmidi
-    except ImportError:  # pragma: no cover
-        if once[0] == 0:
-            messagebus.post_message(
-                "/system/notifications/errors/",
-                "python-rtmidi is missing. Most MIDI related features will not work.",
-            )
-            once[0] = 1
-        return []
-    m = None
-    try:
-        try:
-            m = rtmidi.MidiIn()
-        except Exception:  # pragma: no cover
-            logger.exception("Error in MIDI system, trying again")
-            m = rtmidi.MidiIn()
+        from kaithem.src.plugins.CorePluginMidiToTags import (
+            get_jack_client_name,  # noqa: F401
+            list_midi_sources,
+        )
 
-        x = [
-            normalize_midi_port_name(m.get_port_name(i))
-            for i in range(m.get_port_count())
-        ]
-        return x
+        return [normalize_midi_port_name(n) for n in list_midi_sources()]
     except Exception:  # pragma: no cover
-        logger.exception("Error in MIDI system")
+        logger.exception("Error listing MIDI inputs via JACK")
         return []
-    finally:
-        if m:
-            try:
-                m.close_port()
-            except Exception:  # pragma: no cover
-                logger.exception("Error in MIDI system")
-            del m
 
 
 def list_midi_inputs(force_update: bool = False) -> list[str]:

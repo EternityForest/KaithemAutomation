@@ -15,7 +15,7 @@ import urllib.parse
 import uuid
 import weakref
 from collections.abc import Callable, Iterable
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, override
 
 import icemedia.sound_player
 import structlog
@@ -109,15 +109,17 @@ def is_static_media(s: str):
     return False
 
 
-def makeWrappedConnectionClass(parent: Group):
+def makeWrappedConnectionClass(parent: Group) -> type[mqtt.MQTTConnection]:
     self_closure_ref = parent
 
     class Connection(mqtt.MQTTConnection):
+        @override
         def on_connect(self):
             self_closure_ref.event("board.mqtt.connected")
             self_closure_ref.push_to_frontend(statusOnly=True)
             return super().on_connect()
 
+        @override
         def on_disconnect(self):
             self_closure_ref.event("board.mqtt.disconnected")
             self_closure_ref.push_to_frontend(statusOnly=True)
@@ -125,6 +127,7 @@ def makeWrappedConnectionClass(parent: Group):
                 self_closure_ref.event("board.mqtt.error", "Disconnected")
             return super().on_disconnect()
 
+        @override
         def on_message(self, t: str, m: str | bytes):
             if isinstance(m, bytes):
                 m2 = m.decode()
@@ -294,7 +297,7 @@ class Group:
         # Get whatever defaults it sets up for the UI
         self._blend_args = copy.deepcopy(self.lighting_manager.blend_args)
 
-        self.mqttConnection = None
+        self.mqttConnection: mqtt.MQTTConnection | None = None
         self.mqttSubscribed: dict[str, bool]
 
         self.require_confirm = require_confirm
@@ -1647,7 +1650,7 @@ class Group:
                     if x not in self.cues:
                         self.event(
                             "script.error",
-                            f"Could not find cue {x} for cue inheritance in group {self.name}",
+                            f"No cue {x} for inheritance in {self.name}",
                         )
                         break
 
@@ -2087,10 +2090,14 @@ class Group:
             )
 
     def noteOn(self, ch: int, note: int, vel: float):
+        # Legacy name based thing
         self.event("midi.note:" + str(ch) + "." + number_to_note(note), vel)
+        self.event(f"midi.note:{ch}.{note}", vel)
 
     def noteOff(self, ch: int, note: int):
+        # Legacy name based thing
         self.event("midi.noteoff:" + str(ch) + "." + number_to_note(note), 0)
+        self.event(f"midi.noteoff:{ch}.{note}", 0)
 
     def cc(self, ch: int, n: int, v: float):
         self.event("midi.cc:" + str(ch) + "." + str(n), v)

@@ -119,6 +119,9 @@ def load_plugins():
 
         # Search every module on the import path
         for i in sys.path:
+            if not os.path.isdir(i):
+                continue
+
             for j in os.listdir(i):
                 if j.startswith("kaithem_plugin_"):
                     try:

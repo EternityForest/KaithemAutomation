@@ -15,6 +15,7 @@
 
     import kaithem
     from scullery import workers as sworkers
+    from kaithem.api.midi import list_midi_inputs
     from kaithem.src import unitsofmeasure
     from kaithem.src import systasks
     from kaithem.src import settings_overrides
@@ -88,22 +89,7 @@
         return ip,s
 
 
-    def listRtmidi():
-        try:
-            import rtmidi
-        except ImportError:
-            if once[0] == 0:
-                messagebus.post_message("/system/notifications/errors/","python-rtmidi is missing. Most MIDI related features will not work.")
-                once[0]=1
-            return []
 
-        try:
-            m = rtmidi.MidiIn(name="KaithemTemp"+str(random.random()))
-            x = [(m.get_port_name(i)) for i in range(m.get_port_count())]
-
-            return x
-        except Exception:
-            return ''
 
     def list_ips():
         ips={}
@@ -417,9 +403,9 @@ except Exception:
     %endfor
 </ul>
 
-<h3>RTMidi Inputs</h3>
+<h3>MIDI Inputs (JACK)</h3>
 <ul>
-    %for i in listRtmidi():
+    %for i in list_midi_inputs(force_update=True):
     <li>${i|h}</li>
     %endfor
 </ul>

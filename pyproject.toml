@@ -62,7 +62,6 @@ dependencies = [
     "holidays",
     "pyserial",
     "pygrep",
-    "python-rtmidi==1.5.8",
     "paho-mqtt>=1.6.0",
     "setproctitle",
     "psutil",

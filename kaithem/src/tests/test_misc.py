@@ -96,20 +96,26 @@ def test_private_ip_check():
 
 
 def test_midi_scanner():
-    import rtmidi
+    """Verify that a freshly-registered JACK MIDI output port shows up
+    in the public list of inputs."""
+    import time
 
     from kaithem.api.midi import list_midi_inputs
 
-    midiout = rtmidi.MidiOut(name="test457")
-    midiout.open_virtual_port("test123")
-    found = 0
-    try:
-        x = list_midi_inputs(force_update=True)
-        for i in x:
-            if "test123" in i and "test457" in i:
-                found += 1
-    finally:
-        midiout.close_port()
+    from .helpers import JackMidiSender
+
+    with JackMidiSender("test457", "test123") as midiout:
+        # Give the MidiManager a moment to receive the /system/jack/newport
+        # event and add the port to its tracking.
+        for _ in range(20):
+            x = list_midi_inputs(force_update=True)
+            if any("test457" in i and "test123" in i for i in x):
+                break
+            time.sleep(0.1)
+        else:
+            x = list_midi_inputs(force_update=True)
+
+        found = sum(1 for i in x if "test123" in i and "test457" in i)
 
     assert found == 1
 
