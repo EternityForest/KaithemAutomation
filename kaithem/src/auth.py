@@ -1,14 +1,19 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 """This file manages the concept of Users, Groups, and Permissions.
-A "User" is a user of the system who can belong to zero or more "Groups" each of which can have
-"Permissions". "Permissions" are strings like "WriteDisk". A user must be in at least one group
+A "User" is a user of the system who can belong to zero
+ or more "Groups" each of which can have
+"Permissions". "Permissions" are strings like "WriteDisk".
+ A user must be in at least one group
 With a given permission to do that thing.
-Users log in by means of a username and password and are given a token.
-The token lets them do things. A user is considered "Logged in" if he is in possession
+Users log in by means of a username and password and are given
+a token.
+The token lets them do things. A user is considered "Logged in"
+if he is in possession
 of a valid token"""
 
-# Users and groups are saved in RAM and synched with the filesystem due to the goal
+# Users and groups are saved in RAM and synched
+#  with the filesystem due to the goal
 # of not using the filesystem much to save any SD cards.
 
 import base64
@@ -22,7 +27,7 @@ import sqlite3
 import struct
 import threading
 import time
-from typing import Any
+from typing import Any, final, override
 
 import structlog
 import yaml
@@ -41,7 +46,7 @@ db.row_factory = sqlite3.Row
 c = db.cursor()
 
 c.execute(
-    "CREATE TABLE IF NOT EXISTS tokens (username TEXT, tokenhash TEXT, data TEXT)"
+    "CREATE TABLE IF NOT EXISTS tokens (username TEXT, tokenhash TEXT, data TEXT)"  # noqa: E501
 )
 db.commit()
 
@@ -74,8 +79,8 @@ default_data = {
 # Python doesn't let us make custom attributes on normal dicts
 
 
-class User(dict):
-    def __init__(self, *a, **k) -> None:
+class User(dict[str, Any]):
+    def __init__(self, *a: Any, **k: Any) -> None:
         dict.__init__(self, *a, **k)
 
         self.permissions: dict[str, bool] | set[str] = {}
@@ -88,7 +93,13 @@ logger = structlog.get_logger(__name__)
 Tokens: dict[str, User] = {}
 
 Groups = {}
-Users = {}
+Users: dict[str, User] = {}
+
+
+def get_kaithem_configured_user_db() -> dict[str, User]:
+    global Users
+    return Users
+
 
 # This maps hashed tokens to users. There's an easy timing attack I'd imagine
 # with looking up tokens literally in a dict.
@@ -100,7 +111,7 @@ Users = {}
 
 # This post discusses token auth directly:
 # https://stackoverflow.com/questions/18605294/is-devises-token-authenticatable-secure
-tokenHashes: dict[bytes, User] = {}
+tokenHashes: dict[str, User] = {}
 
 with open(os.path.join(directories.datadir, "defaultusersettings.yaml")) as f:
     defaultusersettings = yaml.load(f, Loader=yaml.SafeLoader)
@@ -113,7 +124,7 @@ usr_bytes = bytes
 """A dict of all the users"""
 Users: dict[str, User] = {}
 """A dict of all the groups"""
-Groups: dict[str, dict] = {}
+Groups: dict[str, dict[str, Any]] = {}
 
 """These are the "built in" permissions required to control basic functions
 User code can add to these"""
@@ -146,7 +157,7 @@ Permissions = {i: {"description": BasePermissions[i]} for i in BasePermissions}
 __local_secret = os.urandom(24)
 
 
-def resist_timing_attack(data, maxdelay=0.0001) -> None:
+def resist_timing_attack(data: bytes, maxdelay: float = 0.0001) -> None:
     """Input dependant deterministic pseudorandom delay. Use to make sure delay
     is constant for a given user input, so that averaging won't work.
     Theory: http://blog.ircmaxell.com/2014/11/its-all-about-time.html
@@ -194,7 +205,7 @@ def importPermissionsFromModules() -> None:
     Permissions = p2
 
 
-def changeUsername(old, new) -> None:
+def changeUsername(old: str, new: str) -> None:
     "Change a user's username"
     with lock:
         # this should work because tokens stores object references ad we are not deleting
@@ -204,7 +215,9 @@ def changeUsername(old, new) -> None:
         dumpDatabase()
 
 
-def changePassword(user, newpassword, useSystem=False) -> None:
+def changePassword(
+    user: str, newpassword: str, useSystem: bool = False
+) -> None:
     "Change a user's password"
     if len(newpassword) > 256:
         raise ValueError("Password cannot be longer than 256 bytes")
@@ -225,7 +238,7 @@ def changePassword(user, newpassword, useSystem=False) -> None:
         dumpDatabase()
 
 
-def add_user(username, password, useSystem=False) -> None:
+def add_user(username: str, password: str, useSystem: bool = False) -> None:
     with lock:
         if username not in Users:  # stop overwriting attempts
             Users[username] = User({"username": username, "groups": []})
@@ -234,7 +247,14 @@ def add_user(username, password, useSystem=False) -> None:
         dumpDatabase()
 
 
-def removeUser(user) -> None:
+def set_user_if_not_exists(username: str, data: User) -> None:
+    with lock:
+        if username not in Users:
+            Users[username] = data
+            dumpDatabase()
+
+
+def removeUser(user: str) -> None:
     global tokenHashes
     with lock:
         x = Users.pop(user)
@@ -259,7 +279,7 @@ def removeUser(user) -> None:
         dumpDatabase()
 
 
-def removeGroup(group) -> None:
+def removeGroup(group: str) -> None:
     with lock:
         Groups.pop(group)
         # Remove all references to that group from all users
@@ -270,14 +290,14 @@ def removeGroup(group) -> None:
         dumpDatabase()
 
 
-def addGroup(groupname) -> None:
+def addGroup(groupname: str) -> None:
     with lock:
         if groupname not in Groups:  # stop from overwriting
             Groups[groupname] = {"permissions": []}
         dumpDatabase()
 
 
-def add_user_to_group(username, group) -> None:
+def add_user_to_group(username: str, group: str) -> None:
     with lock:
         # Don't add multiple copies of a group
         if group not in Users[username]["groups"]:
@@ -287,7 +307,7 @@ def add_user_to_group(username, group) -> None:
         dumpDatabase()
 
 
-def removeUserFromGroup(username, group) -> None:
+def removeUserFromGroup(username: str, group: str) -> None:
     with lock:
         Users[username]["groups"].remove(group)
         # Regenerate the per-user permissions cache for that user
@@ -331,7 +351,7 @@ def loadFromData(
 
             try:
                 for row in c.fetchall():
-                    tokenHashes[base64.b64decode(row[1])] = Users[user]
+                    tokenHashes[row[1]] = Users[user]
             except Exception:
                 logger.exception("Error loading token")
 
@@ -345,9 +365,12 @@ data_bad = False
 
 def initializeAuthentication() -> None:
     with lock:
-        "Load the saved users and groups, but not the permissions from the modules. "
-        # If no file use default but set filename anyway so the dump function will work
-        # Gets the highest numbered of all directories that are named after floating point values(i.e. most recent timestamp)
+        # Load the saved users and groups,
+        #  but not the permissions from the modules.
+        # If no file use default but set filename anyway so the dump
+        #  function will work
+        # Gets the highest numbered of all directories that are named after
+        # floating point values(i.e. most recent timestamp)
 
         if os.path.exists(
             os.path.join(directories.usersdir, "data", "users.json")
@@ -368,14 +391,13 @@ def initializeAuthentication() -> None:
 
         else:
             loadFromData(default_data)
-            addLinuxSystemUser()
             messagebus.post_message(
                 "/system/notifications/warnings",
                 "No auth data found, using default admin user",
             )
 
 
-def generateUserPermissions(username: None = None) -> None:
+def generateUserPermissions(username: str | None = None) -> None:
     """Generate the list of permissions for each user from their groups plus __guest__"""
     with lock:
         # TODO let you do one user at a time
@@ -383,7 +405,7 @@ def generateUserPermissions(username: None = None) -> None:
         global tokenHashes
 
         for i in Users:
-            limits = {}
+            limits: dict[str, int | float] = {}
 
             newp = []
             for j in Users[i].get("groups", []):
@@ -420,128 +442,130 @@ def generateUserPermissions(username: None = None) -> None:
             Users[i].permissions = set(newp)
 
 
-def addLinuxSystemUser() -> None:
-    """
-    Add an admin user, representing the Linux system user actually running the process, using the system
-    login mechanism.
+class BaseAuthenticationPlugin:
+    priority = 50
 
-    The rationale for this is that the system user has full acess to everything anyway.  Restrict to LAN for the obvious reason
-    we might to that on a local system.
-    """
-    import getpass
+    def password_login(
+        self, username: str, password: str, **kwargs: Any
+    ) -> str | None:
+        """return a base64
+        authentication token on success or None on failure"""
+        return None
 
-    username = getpass.getuser()
-    with lock:
-        if username not in Users:  # stop overwriting attempts
-            Users[username] = User(
-                {
-                    "username": username,
-                    "groups": ["Administrators"],
-                    "password": "system",  # pragma: allowlist secret
-                    "settings": {"restrict-lan": True},
-                }
-            )
-
-            Users[username].limits = {}
-            generateUserPermissions()
-
-        dumpDatabase()
-
-
-def userLogin(username, password) -> str:
-    """return a base64 authentication token on success or return False on failure"""
-
-    # The user that we are running as
-
-    try:
-        import getpass
-        import pwd
-
-        # pragma: allowlist nextline secret
-        if (
-            username in Users
-            and ("password" in Users[username])
-            and Users[username]["password"]
-            == "system"  # pragma: allowlist secret
-        ):
-            runningUser = getpass.getuser()
-            if runningUser in (username, "root"):
-                if pwd.getpwnam(username):
-                    import pam
-
-                    # Two APIs??
-                    try:
-                        p = pam.authenticate()  # type: ignore
-                    except Exception:
-                        p = pam
-                    if p.authenticate(username, password):
-                        with lock:
-                            if not Users[username].token:
-                                assignNewToken(username, False)
-                            x = Users[username].token
-                            assert x
-                            return x
-
-            return "failure"
-
-    except ImportError:
-        logger.error("Could not import PAM")
-        return "failure"
-
-    except KeyError:
+    def logout(self, token: str):
         pass
 
-    with lock:
-        if username in Users and ("password" in Users[username]):
-            if Users[username].get("algorithm", "sha256") == "sha256":
-                m = hashlib.sha256()
-                m.update(usr_bytes(password, "utf8"))
-                m.update(
-                    base64.b64decode(Users[username]["salt"].encode("utf8"))
-                )
-                m = m.digest()
-                if hmac.compare_digest(
-                    base64.b64decode(
-                        Users[username]["password"].encode("utf8")
-                    ),
-                    m,
+    def token_to_user(self, token: str) -> User | None:
+        """Look up a user from a token"""
+        return None
+
+    @final
+    def get_system_user_db(self) -> dict[str, User]:
+        return get_kaithem_configured_user_db()
+
+
+class KaithemConfiguredUserAuthenticationPlugin(BaseAuthenticationPlugin):
+    # Comes last because it expects more stuff than more self contained
+    # plugins
+    priority = 100
+
+    def __init__(self):
+        pass
+
+    @override
+    def token_to_user(self, token: str) -> User | None:
+        global tokenHashes
+        with lock:
+            tokenhash = hashToken(token)
+
+            if tokenhash in tokenHashes:
+                return tokenHashes[tokenhash]
+
+        return None
+
+    @override
+    def password_login(
+        self, username: str, password: str, **kwargs: Any
+    ) -> str | None:
+        """Reuse the same token for every login over and over even
+        though we have code for multiple tokens per user"""
+
+        with lock:
+            if username in Users and ("password" in Users[username]):
+                # These users don't have the password format
+                # we expect and belong to some other plugin.
+                if ("algorithm" not in Users[username]) or (
+                    "salt" not in Users[username]
                 ):
-                    # We can't just always assign a new token because that would break multiple
-                    # Logins as same user
-                    if not Users[username].token:
-                        assignNewToken(username, False)
-                    x = Users[username].token
-                    assert x
-                    return x
-            else:
-                ph = PasswordHasher()
-                if ph.verify(Users[username]["password"], password):
-                    # We can't just always assign a new token because that would break multiple
-                    # Logins as same user
-                    if not Users[username].token:
-                        assignNewToken(username, False)
-                    x = Users[username].token
-                    assert x
-                    return x
-        return "failure"
+                    return None
+
+                if Users[username].get("algorithm", "sha256") == "sha256":
+                    m = hashlib.sha256()
+                    m.update(usr_bytes(password, "utf8"))
+                    m.update(
+                        base64.b64decode(Users[username]["salt"].encode("utf8"))
+                    )
+                    m = m.digest()
+                    if hmac.compare_digest(
+                        base64.b64decode(
+                            Users[username]["password"].encode("utf8")
+                        ),
+                        m,
+                    ):
+                        # We can't just always assign a new
+                        # token because then every login would
+                        # make disk activity
+                        if not Users[username].token:
+                            assignNewToken(username, False)
+                        x = Users[username].token
+                        assert x
+                        return x
+                else:
+                    ph = PasswordHasher()
+                    if ph.verify(Users[username]["password"], password):
+                        if not Users[username].token:
+                            assignNewToken(username, False)
+                        x = Users[username].token
+                        assert x
+                        return x
+            return None
 
 
-def checkTokenPermission(token, permission) -> bool:
-    """return true if the user associated with token has the permission"""
-    global tokenHashes
+auth_plugins: list[BaseAuthenticationPlugin] = [
+    KaithemConfiguredUserAuthenticationPlugin(),
+]
 
+
+def add_auth_plugin(plugin: BaseAuthenticationPlugin):
     with lock:
-        token = hashToken(token)
-        if token in tokenHashes:
-            if permission in tokenHashes[token].permissions:
+        auth_plugins.append(plugin)
+        auth_plugins.sort(key=lambda x: x.priority)
+
+
+def userLogin(username: str, password: str) -> str:
+    """return a base64 authentication token on success
+    or return False on failure"""
+    for i in auth_plugins:
+        x = i.password_login(username, password)
+        if x:
+            return x
+    return "failure"
+
+
+def checkTokenPermission(token: str, permission: str) -> bool:
+    """return true if the user associated with token has the permission"""
+
+    for i in auth_plugins:
+        x = i.token_to_user(token)
+        if x:
+            if permission in x.permissions:
                 return True
             else:
-                if "__all_permissions__" in tokenHashes[token].permissions:
+                if "__all_permissions__" in x.permissions:
                     return True
                 else:
                     return False
-        else:
-            return False
+    return False
 
 
 def dumpDatabase() -> bool:
@@ -570,7 +594,7 @@ def dumpDatabase() -> bool:
         return True
 
 
-def setGroupLimit(group, limit, val) -> None:
+def setGroupLimit(group: str, limit: str, val: int | float) -> None:
     with lock:
         if val == 0:
             try:
@@ -581,7 +605,7 @@ def setGroupLimit(group, limit, val) -> None:
             # TODO unlikely race condition here
             gr = Groups[group]
             if "limits" not in gr:
-                gr["limits"] = {}
+                gr["limits"] = {}  # type: ignore
             gr["limits"][limit] = val
 
         dumpDatabase()
@@ -597,7 +621,7 @@ def addGroupPermission(group: str, permission: str) -> None:
 
 
 # Unused?
-def removeGroupPermission(group, permission) -> None:
+def removeGroupPermission(group: str, permission: str) -> None:
     with lock:
         Groups[group]["permissions"].remove(permission)
         dumpDatabase()
@@ -609,22 +633,30 @@ def removeGroupPermission(group, permission) -> None:
 # so it should be safe to compare them and look them in dicts.
 # due to them being completely secret and random.
 
-# You don't get useful information from timing attacks because the remote node doesn't know the tokenHashSecret
+# You don't get useful information from timing attacks because the
+#  remote node doesn't know the tokenHashSecret
 
 # TODO: Someone who knows more about crypto should look this over.
 
 
 def whoHasToken(token: str) -> str:
     global tokenHashes
-    return tokenHashes[hashToken(token)]["username"]
+    for i in auth_plugins:
+        x = i.token_to_user(token)
+        if x:
+            return x["username"]
+
+    raise KeyError("Token not found")
 
 
-def hashToken(token: str) -> bytes:
-    return hashlib.sha256(usr_bytes(token, "utf8")).digest()
+def hashToken(token: str) -> str:
+    return base64.b64encode(
+        hashlib.sha256(usr_bytes(token, "utf8")).digest()
+    ).decode()
 
 
 def assignNewToken(user: str, logout_old: bool = True) -> None:
-    """if logout_old is true, Log user out by defining a new token"""
+    """if logout_old is true, Log user out of everything"""
     global tokenHashes
     with lock:
         # Generate new token
@@ -639,29 +671,39 @@ def assignNewToken(user: str, logout_old: bool = True) -> None:
             for i in to_rm:
                 del tokenHashes[i]
 
+            to_rm = []
+            for i in Tokens:
+                u = Tokens[i]
+                if u["username"] == user:
+                    to_rm.append(i)
+            for i in to_rm:
+                del Tokens[i]
+
         Users[user].token = x
         Tokens[x] = Users[user]
         tokenHashes[hashToken(x)] = Users[user]
 
         db = sqlite3.connect(tokens_db_fn)
         c = db.cursor()
-        # c.execute("DELETE FROM tokens WHERE username=?", (user,))
 
-        # Delete all but the most recent 32 tokens for the user, sorting by rowid
-        c.execute(
-            "SELECT rowid FROM tokens WHERE username=? ORDER BY rowid ASC",
-            (user,),
-        )
-        token_rows = c.fetchall()
-        old_tokens = [i[0] for i in token_rows]
-        old_tokens = old_tokens[-32:]
-        if len(old_tokens) > 32:
-            for i in old_tokens:
-                c.execute("DELETE FROM tokens WHERE rowid=?)", (i,))
+        if logout_old:
+            c.execute("DELETE FROM tokens WHERE username=?", (user,))
+        else:
+            # Delete all but the most recent 32 tokens for the user, sorting by rowid
+            c.execute(
+                "SELECT rowid FROM tokens WHERE username=? ORDER BY rowid ASC",
+                (user,),
+            )
+            token_rows = c.fetchall()
+            old_tokens = [i[0] for i in token_rows]
+            old_tokens = old_tokens[-32:]
+            if len(old_tokens) > 32:
+                for i in old_tokens:
+                    c.execute("DELETE FROM tokens WHERE rowid=?)", (i,))
 
         c.execute(
             "INSERT INTO tokens VALUES(?,?,?)",
-            (user, base64.b64encode(hashToken(x)), "{}"),
+            (user, hashToken(x), "{}"),
         )
         db.commit()
         db.close()
@@ -671,16 +713,17 @@ class UnsetSettingException:
     pass
 
 
-def setUserSetting(user, setting, value) -> None:
+def setUserSetting(user: str, setting: str, value: Any) -> None:
     with lock:
         un = user
         if user == "__guest__":
             return
-        user = Users[user]
+
+        user_object = Users[user]
         # This line is just there to raise an error on bad data.
         json.dumps(value)
-        if "settings" not in user:
-            user["settings"] = {}
+        if "settings" not in user_object:
+            user_object["settings"] = {}
 
         Users[un]["settings"][setting] = value
         dumpDatabase()
@@ -727,7 +770,6 @@ def getUserLimit(
         if user == "__no_request__":
             return maximum
         return guestlimit
-    return 0
 
 
 def canUserDoThis(user: str, permission: str) -> bool:

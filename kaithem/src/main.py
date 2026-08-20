@@ -206,6 +206,8 @@ def initialize(config: dict[str, Any] | None = None):
     auth.initializeAuthentication()
     logger.info("Loaded auth data")
 
+    # MUST be after auth because auth plugins
+    # exist
     plugin_system.load_plugins()
     plugin_system.load_user_plugins()
 

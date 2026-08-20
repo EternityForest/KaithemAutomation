@@ -81,6 +81,7 @@ async def login():
             + kwargs["password"].encode("utf8")
         )
         x = auth.userLogin(kwargs["username"], kwargs["password"])
+        # TODO: Use scullery rate limiter to allow bursts
         # Don't ratelimit very long passwords, we'll just assume they are secure
         # Someone might still make a very long insecure password, but
         # for now lets assume that people with long passwords know what they're doing.

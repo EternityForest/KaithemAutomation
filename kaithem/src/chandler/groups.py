@@ -154,24 +154,26 @@ cue_transition_rate_limiter = ratelimits.RateLimiter(hz=20, burst=20)
 
 
 class DebugScriptContext(scriptbindings.ChandlerScriptContext):
-    def __init__(self, parent_group: Group, *a, **k):
+    def __init__(self, parent_group: Group, *a: Any, **k: Any):
         self.parent_group: weakref.ref[Group] = weakref.ref(parent_group)
         self.groupName: str = parent_group.name
         self.groupId = parent_group.id
         super().__init__(*a, **k)
 
-    def onVarSet(self, k, v):
+    @override
+    def onVarSet(self, k: str, v: Any):
         group = self.parent_group()
         if group:
             group.on_scripting_var_set(k, v)
 
     @slow_group_lock_context.entry_point
+    @override
     def event(
         self,
         evt: str,
         val: str | float | int | bool | None = None,
-        timestamp=None,
-        sync=False,
+        timestamp: float | None = None,
+        sync: bool = False,
     ):
         group = self.parent_group()
         if not group:
@@ -190,7 +192,8 @@ class DebugScriptContext(scriptbindings.ChandlerScriptContext):
             core.rl_log_exc("error handling event")
             print(traceback.format_exc())
 
-    def onTimerChange(self, timer, nextRunTime):
+    @override
+    def onTimerChange(self, timer: str, nextRunTime: float):
         group = self.parent_group()
         if group:
             group.runningTimers[timer] = nextRunTime
@@ -203,7 +206,8 @@ class DebugScriptContext(scriptbindings.ChandlerScriptContext):
                 core.rl_log_exc("Error handling timer set notification")
                 print(traceback.format_exc())
 
-    def canGetTagpoint(self, t):
+    @override
+    def canGetTagpoint(self, t: str):
         if t not in self.tagpoints and len(self.tagpoints) > 128:
             raise RuntimeError("Too many tagpoints in one group")
         return t
@@ -361,7 +365,7 @@ class Group:
         )
 
         # Allow goto_cue
-        def cueTagHandler(val, timestamp, annotation):
+        def cueTagHandler(val: str, timestamp: float, annotation: str):
             # We generated this event, that means we don't have to respond to it
             if annotation == "GroupObject":
                 return
@@ -408,7 +412,7 @@ class Group:
         )
 
         # Allow setting the alpha
-        def alphaTagHandler(val, timestamp, annotation):
+        def alphaTagHandler(val: float, timestamp: float, annotation: str):
             # We generated this event, that means we don't have to respond to it
             if annotation == "GroupObject":
                 return
@@ -453,7 +457,7 @@ class Group:
 
         # Used for storing when the sound file  or slide ended. 0 indicates a sound file end event hasn't
         # happened since the cue started
-        self.media_ended_at = 0
+        self.media_ended_at: float = 0
 
         self.cueTagClaim.set(self.cue.name, annotation="GroupObject")
 
@@ -503,7 +507,7 @@ class Group:
         self.refresh_rules()
 
         self.mqtt_server = mqtt_server
-        self.activeMqttServer = None
+        self.activeMqttServer: str | None = None
 
         self._midi_source = ""
 
@@ -662,9 +666,10 @@ class Group:
                         f"Cue has no keypoint or effect matching {effect} {universe}"
                     )
                 if value is None:
-                    del kp[key]
+                    assert key not in ("target", "values")
+                    del kp[key]  # type: ignore
                 else:
-                    kp[key] = value
+                    kp[key] = value  # type: ignore
 
     @slow_group_lock_context.object_session_entry_point
     def scan_cue_providers(self):
@@ -944,7 +949,7 @@ class Group:
                 print(traceback.format_exc())
 
     @slow_group_lock_context.object_session_entry_point
-    def _add_cue(self, cue: Cue, forceAdd=True):
+    def _add_cue(self, cue: Cue, forceAdd: bool = True):
         name = cue.name
         with self.lock:
             self._nl_insert_cue_sorted(cue)
@@ -978,7 +983,7 @@ class Group:
         )
 
     @slow_group_lock_context.object_session_entry_point
-    def on_scripting_var_set(self, k, v):
+    def on_scripting_var_set(self, k: str, v: Any):
         try:
             if not k.startswith("_") and not k == "event":
                 for board in core.iter_boards():
@@ -1001,7 +1006,7 @@ class Group:
         value: Any = True,
         info: str = "",
         exclude_errors: bool = True,
-        ts=None,
+        ts: float | None = None,
     ):
         def f():
             self.event(s, value, info, exclude_errors, ts)
@@ -1015,8 +1020,8 @@ class Group:
         value: Any = True,
         info: str = "",
         exclude_errors: bool = True,
-        ts=None,
-        sync=False,
+        ts: float | None = None,
+        sync: bool = False,
     ):
         # No error loops allowed!
         if (not s == "script.error") and exclude_errors:
@@ -1025,8 +1030,7 @@ class Group:
     def _event(self, s: str, value: Any, info: str = "", ts=None, sync=False):
         "Manually trigger any script bindings on an event"
         try:
-            if self.script_context:
-                self.script_context.event(s, value, timestamp=ts, sync=sync)
+            self.script_context.event(s, value, timestamp=ts, sync=sync)
         except Exception:
             core.rl_log_exc("Error handling event: " + str(s))
             print(traceback.format_exc(6))
@@ -1330,8 +1334,10 @@ class Group:
             self.media_ended_at = 0
 
             try:
-                # Take rules from new cue, don't actually set this as the cue we are in
-                # Until we succeed in running all the rules that happen as we enter
+                # Take rules from new cue,
+                #  don't actually set this as the cue we are in
+                # Until we succeed in running all the rules that happen
+                #  as we enter
                 # We do set the local variables for the incoming cue though.
                 self.refresh_rules(cobj)
             except Exception:
@@ -1353,12 +1359,16 @@ class Group:
             if not self.entered_cue == entered:
                 return
 
-            # We don't fully reset until after we are done fading in and have rendered.
-            # Until then, the affect list has to stay because it has stuff that prev cues affected.
-            # Even if we are't tracking, we still need to know to rerender them without the old effects,
+            # We don't fully reset until after we are done fading
+            #  in and have rendered.
+            # Until then, the affect list has to stay because
+            #  it has stuff that prev cues affected.
+            # Even if we are't tracking, we still need to know
+            #  to rerender them without the old effects,
             # And the fade means we might still affect them for a brief time.
 
-            # optimization, try to se if we can just increment if we are going to the next cue, else
+            # optimization, try to se if we can just increment
+            #  if we are going to the next cue, else
             # we have to actually find the index of the new cue
             if (
                 self.cuePointer < (len(self.cues_ordered) - 1)
@@ -1391,7 +1401,8 @@ class Group:
                 self.cues[cue], fade_in=bool(self.cues[cue].length)
             )
 
-            # We don't render here. Very short cues coupt create loops of rerendering and goto
+            # We don't render here.
+            # Very short cues coupt create loops of rerendering and goto
             # self.render(force_repaint=True)
 
             # Instead we set the flag
@@ -1411,7 +1422,8 @@ class Group:
         if self.cue.name == "__setup__":
             self.goto_cue("default", sendSync=False)
 
-        # Suppose we manually enter a scheduled cue, we don't want it to re-enter
+        # Suppose we manually enter a scheduled cue,
+        # we don't want it to re-enter
         # At that time it was already scheduled
         self.cue.schedule()
 
@@ -2008,9 +2020,11 @@ class Group:
         beats = ts / time_per_beat
 
         fbeat = beats % 1
-        # We are almost right on where a beat would be, make a small phase adjustment
+        # We are almost right on where a beat would be,
+        # make a small phase adjustment
 
-        # Back project N beats into the past finding the closest beat to when we entered the cue
+        # Back project N beats into the past finding
+        # the closest beat to when we entered the cue
         new_ts = round(beats) * time_per_beat
         x = t - new_ts
 
@@ -2028,6 +2042,7 @@ class Group:
     def stop(self):
         with self.lock:
             # No need to set rerender
+            # pyrefly: ignore [redundant-condition]
             if self.script_context:
                 self.script_context.clearBindings()
                 self.script_context.clearState()

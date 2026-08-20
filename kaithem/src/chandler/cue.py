@@ -20,9 +20,10 @@ import uuid
 import weakref
 from collections.abc import Callable
 from decimal import Decimal
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import TYPE_CHECKING, Any
 
 from scullery import messagebus, scheduling, snake_compat
+from typing_extensions import TypedDict
 
 from kaithem.src.validation_util import validate_args
 
@@ -228,7 +229,7 @@ def add_cue_property_update_handler(
 first_property_error_while_loading: list[bool] = [False]
 
 
-class Keypoint(TypedDict):
+class Keypoint(TypedDict, extra_items=Any):
     # Universe or fixture
     target: str
     values: dict[str, int | float | str | None]
