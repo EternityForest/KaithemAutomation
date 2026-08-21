@@ -96,7 +96,7 @@ dev-file-lines: # Show files sorted by line count
 
 .PHONY: dev-build-vite
 dev-build-vite:
-	@npx vite build
+	@npm run build
 
 .PHONY: dev-watch-vite
 dev-watch-vite:
