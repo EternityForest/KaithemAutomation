@@ -5,7 +5,7 @@ set -euo pipefail
 uv lock --check
 if [ -n "$(git status --porcelain)" ]; then
     echo "Working directory not clean."
-    git status
+    git status -vv
     exit 1
 fi
 
