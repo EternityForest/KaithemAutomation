@@ -55,7 +55,7 @@ def validate_keg_structure(root: Path):
 
         if metadata["plugin"].get("name") != plugin_name:
             raise KegBuildError(
-                f"{plugin_name}: metadata.toml name does not match keg.toml name"
+                f"{plugin_name}: metadata.toml name does not match keg.toml"
             )
 
         # Optional schema.toml
@@ -103,10 +103,14 @@ def build_rust_crates(root: Path, plugin_dir: Path):
 
     print(f"[build] Building Rust crate {crate}")
 
+    cargo_bin = shutil.which("cargo")
+    if cargo_bin is None:
+        raise KegBuildError(f"cargo not found in PATH: {os.environ['PATH']}")
+
     # Perform cargo build
     result = subprocess.run(
         [
-            "cargo",
+            cargo_bin,
             "build",
             "--release",
             "--target",
