@@ -58,9 +58,7 @@ Once created, deleting them is not supported.
 
 #### mdi_icon *= ''*
 
-#### createButton *= None*
-
-#### schema *: dict | None* *= None*
+#### schema *: dict[[str](../../src/pages/index.md#kaithem.src.pages.str), Any] | None* *= None*
 
 #### priority *= 50.0*
 
@@ -114,7 +112,7 @@ just the resource specific stuff.
 
 Empty or a single overview div
 
-#### create_page(module: [str](../../src/pages/index.md#kaithem.src.pages.str), path) → [str](../../src/pages/index.md#kaithem.src.pages.str)
+#### create_page(module: [str](../../src/pages/index.md#kaithem.src.pages.str), path: [str](../../src/pages/index.md#kaithem.src.pages.str)) → [str](../../src/pages/index.md#kaithem.src.pages.str)
 
 Called when the user clicks the create button.
 
@@ -123,8 +121,10 @@ The only required kwarg in the form is “name”.
 
 #### on_create_request(module: [str](../../src/pages/index.md#kaithem.src.pages.str), resource: [str](../../src/pages/index.md#kaithem.src.pages.str), kwargs: dict[[str](../../src/pages/index.md#kaithem.src.pages.str), Any]) → [ResourceDictType](#kaithem.api.resource_types.ResourceDictType)
 
-Must return a resource object given all the kwargs from the createpage.
-Called on submitting create form.  This should not actually do anything
+Must return a resource object given all
+the kwargs from the createpage.
+Called on submitting create form.  This should not
+actually do anything
 besides create the resource object.
 
 #### edit_page(module: [str](../../src/pages/index.md#kaithem.src.pages.str), resource: [str](../../src/pages/index.md#kaithem.src.pages.str), data: [ResourceDictType](#kaithem.api.resource_types.ResourceDictType)) → [str](../../src/pages/index.md#kaithem.src.pages.str) | quart.Response | werkzeug.Response
@@ -134,50 +134,60 @@ It may submit a form to the URL at get_update_target()
 
 #### on_update_request(module: [str](../../src/pages/index.md#kaithem.src.pages.str), resource: [str](../../src/pages/index.md#kaithem.src.pages.str), data: [ResourceDictType](#kaithem.api.resource_types.ResourceDictType), kwargs: dict[[str](../../src/pages/index.md#kaithem.src.pages.str), Any]) → [ResourceDictType](#kaithem.api.resource_types.ResourceDictType)
 
-Called with the kwargs from editpage.  Gets old resource obj, must return new
+Called with the kwargs from editpage.
+Gets old resource obj, must return new
 
 #### on_load(module: [str](../../src/pages/index.md#kaithem.src.pages.str), resource: [str](../../src/pages/index.md#kaithem.src.pages.str), data: [ResourceDictType](#kaithem.api.resource_types.ResourceDictType))
 
-Called when loaded from disk, or otherwise created for the first time.
+Called when loaded from disk, or otherwise
+created for the first time.
 
 #### on_finished_loading(module: [str](../../src/pages/index.md#kaithem.src.pages.str) | None)
 
-Called with module name when every resource has finished loading with onload(),
+Called with module name when every resource
+has finished loading with onload(),
 and before any events or pages are loaded.
 
-Called during init with None when ALL modules are done loading.  During first
-init the individual modules don’t get their own on_finished_loading calls.
+Called during init with None when ALL modules are done loading.
+During first
+init the individual modules don’t get their own on_finished_loading
+calls.
 
 #### on_delete_module(module: [str](../../src/pages/index.md#kaithem.src.pages.str))
 
 Called before the resource deleter callbacks
 
-#### on_move(module: [str](../../src/pages/index.md#kaithem.src.pages.str), resource: [str](../../src/pages/index.md#kaithem.src.pages.str), to_module: [str](../../src/pages/index.md#kaithem.src.pages.str), to_resource: [str](../../src/pages/index.md#kaithem.src.pages.str), data)
+#### on_move(module: [str](../../src/pages/index.md#kaithem.src.pages.str), resource: [str](../../src/pages/index.md#kaithem.src.pages.str), to_module: [str](../../src/pages/index.md#kaithem.src.pages.str), to_resource: [str](../../src/pages/index.md#kaithem.src.pages.str), data: [ResourceDictType](#kaithem.api.resource_types.ResourceDictType))
 
 Called when object has been moved.
 All resource_types must be movable.
 
-#### on_unload(module, resource: [str](../../src/pages/index.md#kaithem.src.pages.str), data: [ResourceDictType](#kaithem.api.resource_types.ResourceDictType))
+#### on_unload(module: [str](../../src/pages/index.md#kaithem.src.pages.str), resource: [str](../../src/pages/index.md#kaithem.src.pages.str), data: [ResourceDictType](#kaithem.api.resource_types.ResourceDictType))
 
-Called when a resource is unloaded.  It does not necessarliy mean it is being
+Called when a resource is unloaded.
+It does not necessarliy mean it is being
 permanently deleted.
 
-#### on_delete(module, resource: [str](../../src/pages/index.md#kaithem.src.pages.str), data: [ResourceDictType](#kaithem.api.resource_types.ResourceDictType))
+#### on_delete(module: [str](../../src/pages/index.md#kaithem.src.pages.str), resource: [str](../../src/pages/index.md#kaithem.src.pages.str), data: [ResourceDictType](#kaithem.api.resource_types.ResourceDictType))
 
 Called when a resource is actually being deleted.
 Will be called before on_unload
 
-#### on_update(module, resource: [str](../../src/pages/index.md#kaithem.src.pages.str), data: [ResourceDictType](#kaithem.api.resource_types.ResourceDictType))
+#### on_update(module: [str](../../src/pages/index.md#kaithem.src.pages.str), resource: [str](../../src/pages/index.md#kaithem.src.pages.str), data: [ResourceDictType](#kaithem.api.resource_types.ResourceDictType))
 
-Called when something has updated the data on a resource that already exists.
+Called when something has updated the data
+: on a resource that already exists.
+
 Usually the web UI but could be anything.
 
-#### flush_unsaved(module, resource)
+#### flush_unsaved(module: [str](../../src/pages/index.md#kaithem.src.pages.str), resource: [str](../../src/pages/index.md#kaithem.src.pages.str))
 
 Called when the resource should save any unsaved data it has
-back to the resource.  Will and must only ever be called under the modules_lock
+back to the resource.  Will and must only ever be
 
-#### save_resource(module, resource, data)
+> called under the modules_lock
+
+#### save_resource(module: [str](../../src/pages/index.md#kaithem.src.pages.str), resource: [str](../../src/pages/index.md#kaithem.src.pages.str), data: [ResourceDictType](#kaithem.api.resource_types.ResourceDictType))
 
 Call this if your implementation has it’s own editor that can save
 data back.
