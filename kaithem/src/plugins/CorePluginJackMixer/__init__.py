@@ -106,7 +106,7 @@ def start_dummy_source_if_needed():
             time.sleep(0.1)
 
         dummy_silence_source = subprocess.Popen(
-            "gst-launch-1.0 audiotestsrc volume=0 ! pipewiresink client-name=SILENCE",
+            "gst-launch-1.0 audiotestsrc volume=0 ! capsfilter caps=audio/x-raw,format=F32LE ! pipewiresink client-name=SILENCE",  # noqa: E501
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             shell=True,
