@@ -280,7 +280,8 @@ class Recorder(Pipeline):
         workers.do(f)
 
         self.capsfilter = self.add_element(
-            "capsfilter", caps=f"audio/x-raw,channels={str(channels)}"
+            "capsfilter",
+            caps=f"audio/x-raw,format=F32LE,channels={str(channels)}",
         )
 
         filename = os.path.join(
@@ -385,7 +386,7 @@ class ChannelStrip(Pipeline, BaseChannel):
 
                 self.capsfilter = self.add_element(
                     "capsfilter",
-                    caps=f"audio/x-raw,channels={str(channels)}",
+                    caps=f"audio/x-raw,format=F32LE,channels={str(channels)}",
                 )
             else:
                 self.src = self.add_element(

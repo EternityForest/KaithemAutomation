@@ -189,7 +189,7 @@
                     error: channelStatus[channelname] !== 'running',
                     success: channelStatus[channelname] === 'running',
                   }">
-                  <small data-testid="channel-status">{{
+                  <small data-testid="channel-status" style="border: none;">{{
                     channelStatus[channelname]
                   }}</small>
                 </p>
