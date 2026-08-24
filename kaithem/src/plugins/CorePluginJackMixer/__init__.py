@@ -83,6 +83,7 @@ elif audio_api == "jack":
         "blocksize": 128,
         "connect": 0,
         "connect_when_available": "audio",
+        "async": True,
     }
 else:
     raise ValueError(f"Unknown AUDIO_API: {audio_api}")

@@ -81,7 +81,7 @@
         <div class="flex-row gaps margin">
           <section class="card w-sm-full">
             <header>
-              <h4>Inputs(Sources)</h4>
+              <h4>Sources</h4>
             </header>
             <table>
               <tr v-for="(v, i) in outports" :key="i">
@@ -92,7 +92,7 @@
 
           <section class="card w-sm-full">
             <header>
-              <h4>Outputs(Sinks)</h4>
+              <h4>Sinks</h4>
             </header>
             <table>
               <tr v-for="(v, i) in inports" :key="i">

@@ -63,11 +63,13 @@ def do_splash_image(console: Console, width=80):
 
 def try_cmd(cmd: str):
     try:
-        return subprocess.check_output(
+        x = subprocess.check_output(
             cmd, shell=True, stderr=subprocess.STDOUT, timeout=2
         )
     except subprocess.CalledProcessError as e:
-        return e.output
+        x = e.output
+
+    return x.decode("utf-8", "ignore")[:80]
 
 
 def do_splash_screen(version_only=False):

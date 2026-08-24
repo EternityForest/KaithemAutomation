@@ -388,19 +388,20 @@ class Alert:
         if self.priority in ("error", "critical", "important"):
             logger.error(f"Alarm {self.name} ACTIVE")
             messagebus.post_message(
-                "/system/notifications/errors", f"Alarm {self.name} is active"
+                "/system/notifications/errors", f"Alarm {self.name} is alerting"
             )
         elif self.priority in ("warning"):
             messagebus.post_message(
-                "/system/notifications/warnings", f"Alarm {self.name} is active"
+                "/system/notifications/warnings",
+                f"Alarm {self.name} is alerting",
             )
-            logger.warning(f"Alarm {self.name} ACTIVE")
+            logger.warning(f"Alarm {self.name} ALERTING")
         else:
-            logger.info(f"Alarm {self.name} active")
+            logger.info(f"Alarm {self.name} ALERTING")
 
         if self.priority in ("info"):
             messagebus.post_message(
-                "/system/notifications", f"Alarm {self.name} is active"
+                "/system/notifications", f"Alarm {self.name} is alerting"
             )
         sendMessage()
         pushAlertState()
