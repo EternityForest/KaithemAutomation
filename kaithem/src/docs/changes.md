@@ -8,7 +8,7 @@ Change Log
 * [bug] Set environment variables to use host certs instead of certifi's bundled ones
 * [sparkles] BREAKING MIDI note 60 standardized as C4
 * [sparkles] Can use numbered midi notes like midi.note:1.60 in chandler
-
+* [sparkles] KAITHEM_AUDIO_API=jack sets the mixer to use jack instead of direct pipewire.
 
 ### 0.96.0
 

@@ -54,6 +54,39 @@ dummy_silence_sink = None
 
 staticdir = get_builtin_datadir()
 
+audio_api: str = os.environ.get("KAITHEM_AUDIO_API", "pipewire").lower().strip()
+
+if audio_api == "pipewire":
+    SOURCE_ELEMENT = "pipewiresrc"
+    SINK_ELEMENT = "pipewiresink"
+
+    SOURCE_ELEMENT_PARAMS = {
+        "blocksize": 128,
+        "stream_properties": {"node.autoconnect": "false"},
+        # Try to prevent connectiong to some nonsese video thing
+        # and doing
+        # video-info video-info.c:540:gst_video_info_from_caps:
+        # wrong name 'audio/x-raw', expected video/ or image/
+        "connect_when_available": "audio",
+    }
+    SINK_ELEMENT_PARAMS = {"blocksize": 128, "mode": 2, "async": False}
+elif audio_api == "jack":
+    SOURCE_ELEMENT = "jackaudiosrc"
+    SINK_ELEMENT = "jackaudiosink"
+
+    SOURCE_ELEMENT_PARAMS = {
+        "blocksize": 128,
+        "connect": 0,
+        "connect_when_available": "audio",
+    }
+    SINK_ELEMENT_PARAMS = {
+        "blocksize": 128,
+        "connect": 0,
+        "connect_when_available": "audio",
+    }
+else:
+    raise ValueError(f"Unknown AUDIO_API: {audio_api}")
+
 
 class BeatDetector:
     def __init__(self, name):
@@ -106,7 +139,7 @@ def start_dummy_source_if_needed():
             time.sleep(0.1)
 
         dummy_silence_source = subprocess.Popen(
-            "gst-launch-1.0 audiotestsrc volume=0 ! capsfilter caps=audio/x-raw,format=F32LE ! pipewiresink client-name=SILENCE",  # noqa: E501
+            f"gst-launch-1.0 audiotestsrc volume=0 ! capsfilter caps=audio/x-raw,format=F32LE ! {SINK_ELEMENT} client-name=SILENCE",  # noqa: E501
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             shell=True,
@@ -121,7 +154,7 @@ def start_dummy_source_if_needed():
                 return
             time.sleep(0.1)
 
-        raise Exception("Failed to start dummy source")
+        raise RuntimeError("Failed to start dummy source")
 
 
 def start_dummy_sink_if_needed():
@@ -144,7 +177,7 @@ def start_dummy_sink_if_needed():
             time.sleep(0.1)
 
         dummy_silence_sink = subprocess.Popen(
-            "gst-launch-1.0 pipewiresrc client-name=DUMMYSINK | fakesink",
+            f"gst-launch-1.0 {SOURCE_ELEMENT} client-name=DUMMYSINK | fakesink",
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             shell=True,
@@ -159,7 +192,7 @@ def start_dummy_sink_if_needed():
                 return
             time.sleep(0.1)
 
-        raise Exception("Failed to start dummy sink")
+        raise RuntimeError("Failed to start dummy sink")
 
 
 def onPortAdd(t, m):
@@ -245,16 +278,19 @@ class BaseChannel:
 
 
 class Recorder(Pipeline):
-    def __init__(self, name="krecorder", channels=2, pattern="mixer_"):
+    def __init__(
+        self,
+        name: str = "krecorder",
+        channels: int = 2,
+        pattern: str = "mixer_",
+    ):
         Pipeline.__init__(self, name, realtime=70)
-
         self.src = self.add_element(
-            "pipewiresrc",
-            client_name=name,
-            do_timestamp=True,
-            always_copy=True,
-            stream_properties={"node.autoconnect": "false"},
+            SOURCE_ELEMENT,
+            client_name=f"{name}_in",
+            **SOURCE_ELEMENT_PARAMS,
         )
+
         # It is not ginna start unless we can make the connection to the silence thing
         # Before the thing even exists...
         self.silencein = jacktools.Airwire("SILENCE", name)
@@ -326,7 +362,7 @@ class ChannelStrip(Pipeline, BaseChannel):
                 else:
                     time.sleep(0.5)
             if self.check_ports():
-                raise Exception(
+                raise RuntimeError(
                     "The ports that this channel needs already exist"
                 )
 
@@ -373,15 +409,9 @@ class ChannelStrip(Pipeline, BaseChannel):
 
             if not input or not input.startswith("rtplisten://"):
                 self.src = self.add_element(
-                    "pipewiresrc",
+                    SOURCE_ELEMENT,
                     client_name=f"{name}_in",
-                    always_copy=True,
-                    stream_properties={"node.autoconnect": "false"},
-                    # Try to prevent connectiong to some nonsese video thing
-                    # and doing
-                    # video-info video-info.c:540:gst_video_info_from_caps:
-                    # wrong name 'audio/x-raw', expected video/ or image/
-                    connect_when_available="audio",
+                    **SOURCE_ELEMENT_PARAMS,
                 )
 
                 self.capsfilter = self.add_element(
@@ -457,13 +487,12 @@ class ChannelStrip(Pipeline, BaseChannel):
         self._soundFuseSetting = v
         self.levelTag.eval_context["soundFuseSetting"] = v
 
-    def finalize(self, wait=3):
+    def finalize(self, wait: float = 3):
         with self.lock:
             self.sink = self.add_element(
-                "pipewiresink",
+                SINK_ELEMENT,
                 client_name=f"{self.name}_out",
-                mode=2,
-                **{"async": False},
+                **SINK_ELEMENT_PARAMS,
             )
 
         # It is not going to start unless we can make the connection to the silence thing
@@ -664,12 +693,11 @@ class ChannelStrip(Pipeline, BaseChannel):
             )
 
             self.add_element(
-                "pipewiresink",
+                SINK_ELEMENT,
                 client_name=cname,
-                mode=2,
                 connect_to_output=linkTo,
                 sidechain=True,
-                **{"async": False},
+                **SINK_ELEMENT_PARAMS,
             )
 
             self.effectsById[id] = vl

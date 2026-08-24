@@ -2,6 +2,7 @@ import getpass
 import logging
 import os
 import platform
+import subprocess
 import sys
 
 import psutil
@@ -60,6 +61,15 @@ def do_splash_image(console: Console, width=80):
     )
 
 
+def try_cmd(cmd: str):
+    try:
+        return subprocess.check_output(
+            cmd, shell=True, stderr=subprocess.STDOUT, timeout=2
+        )
+    except subprocess.CalledProcessError as e:
+        return e.output
+
+
 def do_splash_screen(version_only=False):
     try:
         import importlib.metadata
@@ -113,6 +123,10 @@ def do_splash_screen(version_only=False):
         add_kv("Platform Version", platform.version())
         add_kv("Platform Release", platform.release())
         add_kv("Init System", get_process_name_by_pid(1))
+        add_kv(
+            "XDG Session", os.environ.get("XDG_SESSION_TYPE", "Unknown/None")
+        )
+        add_kv("Pipewire Version", try_cmd("pipewire --version"))
 
         add_kv("CPU", platform.processor() or "Unknown")
 

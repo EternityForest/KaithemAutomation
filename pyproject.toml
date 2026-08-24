@@ -90,6 +90,7 @@ dependencies = [
     "sherpa-onnx-core==1.13.0",
     "soundfile>=0.13.1",
     "textual-image",
+    "urllib3-future",
 ]
 
 [build-system]
