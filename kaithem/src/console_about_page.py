@@ -111,8 +111,6 @@ def do_splash_screen(version_only=False):
         add_kv("Python", sys.version)
         add_kv("Repo", "https://github.com/EternityForest/KaithemAutomation")
 
-        add_kv("User ID", os.getuid())
-
         add_kv("Parent PID", os.getppid())
         add_kv("Parent Name", get_process_name_by_pid(os.getppid()))
         add_kv("PID", os.getpid())
@@ -155,6 +153,7 @@ def do_splash_screen(version_only=False):
         add_kv("Executable", sys.executable)
         add_kv("Network Name", platform.node())
         add_kv("User", getpass.getuser())
+        add_kv("User ID", os.getuid())
 
         text = Panel("".join(meta), title="User Info", width=w)
         console.print(text)

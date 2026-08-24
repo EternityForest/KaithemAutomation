@@ -75,15 +75,16 @@ elif audio_api == "jack":
     SINK_ELEMENT = "jackaudiosink"
 
     SOURCE_ELEMENT_PARAMS = {
-        "blocksize": 128,
+        "blocksize": 64,
         "connect": 0,
-        "connect_when_available": "audio",
+        "buffer_time": 1000,
     }
     SINK_ELEMENT_PARAMS = {
-        "blocksize": 128,
+        "blocksize": 64,
         "connect": 0,
-        "connect_when_available": "audio",
+        "buffer_time": 1000,
         "async": True,
+        "slave_method": 0,
     }
 else:
     raise ValueError(f"Unknown AUDIO_API: {audio_api}")
@@ -463,19 +464,24 @@ class ChannelStrip(Pipeline, BaseChannel):
                 raise
             raise
 
-    def check_ports(self):
+    def check_ports(self, execptions: bool = False):
         "Check that the ports actually exist"
-        if not [
-            i.name
-            for i in jacktools.get_ports()
-            if i.name.startswith(f"{self.name}_in:")
-        ]:
-            return False
-        if not [
-            i.name
-            for i in jacktools.get_ports()
-            if i.name.startswith(f"{self.name}_out:")
-        ]:
+        try:
+            if not [
+                i.name
+                for i in jacktools.get_ports()
+                if i.name.startswith(f"{self.name}_in:")
+            ]:
+                return False
+            if not [
+                i.name
+                for i in jacktools.get_ports()
+                if i.name.startswith(f"{self.name}_out:")
+            ]:
+                return False
+        except Exception:
+            if execptions:
+                raise
             return False
         return True
 
