@@ -181,3 +181,9 @@ dev-run-all-tests:
 	@killall kmakefiletest
 	@sleep 10
 	@killall -9 kmakefiletest
+
+
+.PHONY: dev-build-docker
+dev-build-docker:
+	@sudo docker build --progress=plain --build-arg CACHE_BUST=$(date +%s) -t kaithem-build:dev ./docker/build
+	@sudo docker build --progress=plain --build-arg CACHE_BUST=$(date +%s) -t kaithem:dev ./docker/app

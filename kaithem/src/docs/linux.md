@@ -23,6 +23,11 @@ You need the ./ if it's in the local dir, it's a security thing to be sure you a
 
 If it is an installed app on the PATH, the name alone will suffice.
 
+## Use sudo but use all the normal environment vars
+
+`sudo -E command arg1 arg2`
+
+
 ## Make a file runnable
 
 `chmod a+x file` adds the "executable by all users" flag to the file.
@@ -81,3 +86,12 @@ etc
 Note that there's no feature to have multiple packages or versions under one architecture name,
 instead, the package contains multiple boards, so just use the VENDOR_NAME to organize different
 projects.
+
+
+## Docker
+
+```bash
+# List images in internal store
+docker image ls
+
+```
