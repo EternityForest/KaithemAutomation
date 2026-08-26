@@ -19,6 +19,8 @@ exclude-newer = "0001-01-01T00:00:00Z" # This has no effect and is included for 
 exclude-newer-span = "P3D"
 
 [options.exclude-newer-package]
+icemedia = { timestamp = "0001-01-01T00:00:00Z", span = "PT0S" }
+scullery = { timestamp = "0001-01-01T00:00:00Z", span = "PT0S" }
 iot-devices = { timestamp = "0001-01-01T00:00:00Z", span = "PT0S" }
 
 [[package]]
@@ -1410,15 +1412,15 @@ wheels = [
 
 [[package]]
 name = "icemedia"
-version = "0.2.0"
+version = "0.2.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jack-client" },
     { name = "scullery" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a8/8c/6821f696b6a2c2c9f03c6cf00d9f445d215d6ae5679c0e0aee033b023ed4/icemedia-0.2.0.tar.gz", hash = "sha256:524ab8601d07b38c00d0ccbf6fc438e15b2d1cc58cb4e2ed5921b641795c01d9", size = 40152, upload-time = "2025-11-09T01:01:07.164Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/71/af/2d989c0cf88b9be851343184e429a149b4a83cf3c0351755340027ef21e9/icemedia-0.2.1.tar.gz", hash = "sha256:0eea6ecb9be1a5cbf4717688a7380361f3c8e58aab8d894c5829b795b938b2d4", size = 41017, upload-time = "2026-08-26T00:58:12.168Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c6/ba/21633f58401f83a9b951aafe5b5cd6a22274fbc9514237dbb7f7fac25a7e/icemedia-0.2.0-py3-none-any.whl", hash = "sha256:35f1676bda78672c4b2e7e680e1ea41eabc82a57d449bbd6693a7addc7dc70ea", size = 43772, upload-time = "2025-11-09T01:01:06.111Z" },
+    { url = "https://files.pythonhosted.org/packages/29/c5/1359673a21dce4e263dbe1e70dd31a6eaa74a89b9a9943933561264279b7/icemedia-0.2.1-py3-none-any.whl", hash = "sha256:180064daf6ea5a43094c8db3fe71e5fef0dca1856efa891dcaac425f6b0be786", size = 45576, upload-time = "2026-08-26T00:58:10.79Z" },
 ]
 
 [[package]]
@@ -1732,7 +1734,7 @@ requires-dist = [
     { name = "ffmpeg-python" },
     { name = "holidays" },
     { name = "hypercorn", specifier = ">=0.18.0" },
-    { name = "icemedia", specifier = ">=0.2.0" },
+    { name = "icemedia", specifier = ">=0.2.1" },
     { name = "iot-devices", specifier = ">=0.33.0" },
     { name = "jack-client" },
     { name = "jinja2" },

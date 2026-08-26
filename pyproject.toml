@@ -19,7 +19,7 @@ dependencies = [
     # First party"
     "scullery>=0.4.0",
     "iot-devices>=0.33.0",
-    "icemedia>=0.2.0",
+    "icemedia>=0.2.1",
     "NVRChannel>=0.20.0",
     # New numpy needs new opencv
     "numpy>=2.0.0",
@@ -105,7 +105,7 @@ module-name=["kaithem", "kaithem_cli", "wasm_kegs"]
 
 [tool.uv]
 exclude-newer = "3 days"
-exclude-newer-package = { iot-devices = "0 days"}
+exclude-newer-package = { iot-devices = "0 days", icemedia = "0 days", "scullery" = "0 days" }
 
 required-environments=[
     "sys_platform == 'linux' and platform_machine == 'x86_64'",
@@ -235,7 +235,7 @@ aiohappyeyeballs = ">0.0.1"
 async-interrupt = ">0.0.1"
 
 # First party and should be permissive, not sure why they show as Other/Proprietary
-icemedia = ">=0.2.0"
+icemedia = ">=0.2.o"
 scullery = ">=0.4.0"
 
 kaithem-plugin-datasette = ">0.0.1"

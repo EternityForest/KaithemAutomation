@@ -9,6 +9,8 @@ Change Log
 * [sparkles] BREAKING MIDI note 60 standardized as C4
 * [sparkles] Can use numbered midi notes like midi.note:1.60 in chandler
 * [sparkles] KAITHEM_AUDIO_API=jack sets the mixer to use jack instead of direct pipewire.
+* [bug] Work around gstreamer struct version regression
+
 
 ### 0.96.0
 

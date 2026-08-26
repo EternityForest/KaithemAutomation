@@ -208,8 +208,11 @@ if psutil:
 
             partitions = psutil.disk_partitions(all=True)
             found = {}
-
             for p in partitions:
+                # Bind mounts making noise
+                if os.path.isfile(p.mountpoint):
+                    continue
+
                 if p.device.startswith("/dev") or p.device == "tmpfs":
                     if "rw" in p.opts.split(","):
                         id = p.device + " at " + p.mountpoint
@@ -217,7 +220,7 @@ if psutil:
 
                         if id not in diskAlerts:
                             diskAlerts[id] = alerts.Alert(
-                                "Low remaining space on " + id,
+                                f"Low remaining space on {id} at {p.mountpoint}",
                                 priority="warning",
                                 description="This alert may take a while to go away once the root cause is fixed.",
                             )
@@ -226,9 +229,9 @@ if psutil:
                             space = psutil.disk_usage(p.mountpoint).free
                         except OSError:
                             continue
-                        if (full > 90 and space < (10**9 * 50)) or full > 95:
-                            diskAlerts[id].trip()
-                        if full < 80:
+                        if (full > 91 and space < (10**9 * 20)) or full > 95:
+                            diskAlerts[id].trip(f"{full}% full, {space} free")
+                        if full < 85:
                             diskAlerts[id].release()
 
             for i in list(diskAlerts.keys()):
