@@ -1,0 +1,39 @@
+{
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "1.7.1",
+      "resolved": "ghcr.io/devcontainers/features/node@sha256:8c0de46939b61958041700ee89e3493f3b2e4131a06dc46b4d9423427d06e5f6",
+      "integrity": "sha256:8c0de46939b61958041700ee89e3493f3b2e4131a06dc46b4d9423427d06e5f6"
+    },
+    "ghcr.io/helpers4/devcontainer/essential-dev:1": {
+      "version": "1.0.9",
+      "resolved": "ghcr.io/helpers4/devcontainer/essential-dev@sha256:fa2dbd2d0ee918528d861daf15e8fc2a1271a0eb50287496f28d033ef9c22ecb",
+      "integrity": "sha256:fa2dbd2d0ee918528d861daf15e8fc2a1271a0eb50287496f28d033ef9c22ecb",
+      "dependsOn": [
+        "ghcr.io/helpers4/devcontainer/helpers4-common:1"
+      ]
+    },
+    "ghcr.io/helpers4/devcontainer/helpers4-common:1": {
+      "version": "1.0.1",
+      "resolved": "ghcr.io/helpers4/devcontainer/helpers4-common@sha256:9f5b93e5f2f4be868b52754b3bb9e3f3ac8a44f13418d61a1fff0d5618a5893b",
+      "integrity": "sha256:9f5b93e5f2f4be868b52754b3bb9e3f3ac8a44f13418d61a1fff0d5618a5893b"
+    },
+    "ghcr.io/helpers4/devcontainer/playwright-dev:1": {
+      "version": "1.0.1",
+      "resolved": "ghcr.io/helpers4/devcontainer/playwright-dev@sha256:1c78bfee0f1c74f4ad072b0fdd5203b95f615932ed225d1f43904e45dab06336",
+      "integrity": "sha256:1c78bfee0f1c74f4ad072b0fdd5203b95f615932ed225d1f43904e45dab06336",
+      "dependsOn": [
+        "ghcr.io/helpers4/devcontainer/typescript-dev:1",
+        "ghcr.io/devcontainers/features/node:1"
+      ]
+    },
+    "ghcr.io/helpers4/devcontainer/typescript-dev:1": {
+      "version": "1.0.7",
+      "resolved": "ghcr.io/helpers4/devcontainer/typescript-dev@sha256:76abf803b00fcfaa628588e0f6e0c532c590fabdd88748a65557a83d66de3f6d",
+      "integrity": "sha256:76abf803b00fcfaa628588e0f6e0c532c590fabdd88748a65557a83d66de3f6d",
+      "dependsOn": [
+        "ghcr.io/helpers4/devcontainer/essential-dev:1"
+      ]
+    }
+  }
+}

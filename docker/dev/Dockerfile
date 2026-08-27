@@ -19,17 +19,8 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     python3-venv gstreamer1.0-libav network-manager libnss-mdns ffmpeg rsync \
     libjack-jackd2-0
 
-# The iceflow hack doesn't work with readonly images so
-# Do it ahead of time.
+# Do it ahead of time sice the gi hack doesnt work on read only
 RUN ln -s /usr/lib/python3/dist-packages/gi /opt/uv-tools/kaithem/lib/python3.13/site-packages/gi
-
-
-# Create a group and user with UID/GID 1000
-RUN addgroup -g 1000 devuser && \
-    adduser -u 1000 -G vscode -D -s /bin/sh vscode
-
-# (Optional) Set it as default for the image
-USER vscode
 
 
 ENTRYPOINT ["pw-jack", "kaithem"]
