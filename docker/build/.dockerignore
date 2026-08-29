@@ -1,0 +1,14 @@
+node_modules
+vendor
+.git
+*.log
+.venv
+.venv311
+.venv312
+.venv313
+.venv314
+.venv315
+.venv316
+.venv317
+.venv_clean_no_dev
+__pycache__
