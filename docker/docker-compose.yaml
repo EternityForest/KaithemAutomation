@@ -51,7 +51,6 @@ services:
       - /home/$KAITHEM_USER/kaithem:/home/$KAITHEM_USER/kaithem
       - /home/$KAITHEM_USER/.cache/sherpa-onnx-models:/home/$KAITHEM_USER/.cache/sherpa-onnx-models
       #
-      - /home/$KAITHEM_USER/.cache/uv
       - /dev:/dev
       - /tmp:/tmp
 
@@ -62,19 +61,17 @@ services:
 
       # Mount in the Kaithem files, so that we can do dev with
       # it.
-      # - ./../../KaithemAutomation:/workspace/KaithemAutomation
-      # - ./../../Dashbeard:/workspace/Dashbeard
-      # - /workspace/KaithemAutomation/.venv
-      # - /workspace/KaithemAutomation/.venv311
-      # - /workspace/KaithemAutomation/.venv312
-      # - /workspace/KaithemAutomation/.venv313
-      # - /workspace/KaithemAutomation/.venv_clean_no_dev
-      # - /workspace/KaithemAutomation/__pycache__
-      # - /workspace/KaithemAutomation/target
-      # - /workspace/KaithemAutomation/dist
-      # - /workspace/KaithemAutomation/wasm_kegs/__pycache__
-      # - /workspace/Dashbeard/.npm
-      # - /workspace/Dashbeard/dist
+      - ./../../KaithemAutomation:/workspace/KaithemAutomation
+      - ./../../Dashbeard:/workspace/Dashbeard
+      - /workspace/KaithemAutomation/.venv
+      - /workspace/KaithemAutomation/.test_venvs
+      - /workspace/KaithemAutomation/__pycache__
+      - /workspace/KaithemAutomation/target
+      - /workspace/KaithemAutomation/dist
+      - /workspace/KaithemAutomation/wasm_kegs/__pycache__
+      - /workspace/Dashbeard/.npm
+      - /workspace/Dashbeard/dist
+      - /workspace/uvcache
 
 
     network_mode: host

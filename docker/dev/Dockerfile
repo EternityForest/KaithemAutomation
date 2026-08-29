@@ -25,21 +25,27 @@ RUN ln -s /usr/lib/python3/dist-packages/gi /opt/uv-tools/kaithem/lib/python3.13
 
 
 RUN mkdir -p /workspace/KaithemAutomation/.venv; \
-    mkdir -p /workspace/KaithemAutomation/.venv311; \
-    mkdir -p /workspace/KaithemAutomation/.venv312; \
-    mkdir -p /workspace/KaithemAutomation/.venv313; \
-    mkdir -p /workspace/KaithemAutomation/.venv_clean_no_dev; \
+    mkdir -p /workspace/KaithemAutomation/.test_venvs; \
     mkdir -p /workspace/KaithemAutomation/__pycache__; \
-    mkdir -p /workspace/Dashbeard/ ; \
-    chown 1000:1000 /workspace/*
+    mkdir -p /workspace/Dashbeard/ ; \    
+    mkdir -p /workspace/Dashbeard/.npm; \
+    mkdir -p /workspace/Dashbeard/dist; \
+    mkdir -p /workspace/KaithemAutomation/wasm_kegs/__pycache__ ;\
+    mkdir -p /workspace/KaithemAutomation/target ;\
+    mkdir -p /workspace/KaithemAutomation/dist ; \
+    mkdir -p /workspace/uv_cache ; \
+    chown -R 1000:1000 /workspace/ ; 
 
+ENV UV_LINK_MODE=copy
+ENV UV_CACHE_DIR=/workspace/uv_cache
 USER 1000:1000
 
 WORKDIR /workspace/KaithemAutomation
 
 
 
-#Debug in image: cd
+#Debug in image: pw-jack uv run debugpy --listen 5178 /usr/local/bin/kaithem
+
 
 
 ENTRYPOINT ["pw-jack", "kaithem"]

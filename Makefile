@@ -180,14 +180,14 @@ dev-run-all-tests:
 	
 	@echo "Rerunning pytest tests against 3.11, 3.12 and 3.13"
 
-	@UV_PROJECT_ENVIRONMENT=.venv311  uv run --group dev --python 3.11 pytest
-	@UV_PROJECT_ENVIRONMENT=.venv312  uv run --group dev --python 3.12 pytest
-	@UV_PROJECT_ENVIRONMENT=.venv313  uv run --group dev --python 3.13 pytest
+	@UV_PROJECT_ENVIRONMENT=.test_venvs/.venv311  uv run --group dev --python 3.11 pytest
+	@UV_PROJECT_ENVIRONMENT=.test_venvs/.venv312  uv run --group dev --python 3.12 pytest
+	@UV_PROJECT_ENVIRONMENT=.test_venvs/.venv313  uv run --group dev --python 3.13 pytest
 
 
 	@echo "Rerunning playwright tests in a clean venv without dev dependencies"
 
-	@UV_PROJECT_ENVIRONMENT=.venv_clean_no_dev  uv run --python=/usr/bin/python3 --no-dev testing_server.py --process-title kmakefiletest  &
+	@UV_PROJECT_ENVIRONMENT=.test_venvs/.venv_clean_no_dev  uv run --python=/usr/bin/python3 --no-dev testing_server.py --process-title kmakefiletest  &
 	@wget --retry-connrefused --waitretry=1 --read-timeout=20 --quiet --timeout=15 -t 0 http://localhost:8002
 	@npx playwright test --reporter=html  --workers 1 --max-failures 1
 
@@ -203,8 +203,8 @@ dev-build-docker:
 	@echo "Building docker images for Kaithem ${KAITHEM_VERSION}"
 	@echo "Dev user must be 1000, current is: ${KAITHEM_USER}  UID: ${KAITHEM_UID}  GID: ${KAITHEM_GROUP}"
 	@cd ./docker
-	@docker compose build --progress=plain kaithem-builder
-# 	@docker compose build --progress=plain kaithem-dev
+#	@docker compose build --progress=plain kaithem-builder
+	@docker compose build --progress=plain kaithem-dev
 
 .PHONY: dev-docker-shell
 dev-docker-shell:

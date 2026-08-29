@@ -32,7 +32,6 @@ COPY --from=builder /usr/local/bin/kaithem /usr/local/bin/kaithem
 # Do it ahead of time.
 RUN ln -s /usr/lib/python3/dist-packages/gi /opt/uv-tools/kaithem/lib/python3.13/site-packages/gi
 
-#Debug in image: pw-jack debugpy --listen 5178 /usr/local/bin/kaithem
 
 
 ENTRYPOINT ["pw-jack", "kaithem"]

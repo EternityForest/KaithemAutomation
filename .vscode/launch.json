@@ -8,8 +8,21 @@
       "name": "Attach to kaithem-dev docker process",
       "type": "debugpy",
       "request": "attach",
-      "connect": { "host": "localhost", "port": 5678 },
-      "pathMappings": [{ "localRoot": "${workspaceFolder}", "remoteRoot": "." }]
+      "connect": { "host": "localhost", "port": 5178 },
+      "subProcess": true,
+      "justMyCode": false,
+      "pathMappings": [
+        // WARNING: This is a hack, the paths have to be updated for python
+        // version changes, and the python version in the docker image has to match the local python version for this to work.
+        {
+          "localRoot": "${workspaceFolder:KaithemAutomation}/.venv/lib/python3.12/site-packages",
+          "remoteRoot": "/workspace/KaithemAutomation/.venv/lib/python3.13/site-packages"
+        },
+        {
+          "localRoot": "${workspaceFolder:KaithemAutomation}",
+          "remoteRoot": "/workspace/KaithemAutomation"
+        },
+      ]
     },
 
     {
