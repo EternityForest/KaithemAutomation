@@ -9,10 +9,10 @@ services:
       dockerfile: KaithemAutomation/docker/build/Dockerfile
 
   kaithem-dev:
-    image: kaithem:${KAITHEM_VERSION:?error}
+    image: kaithem-dev:${KAITHEM_VERSION:?error}
     build:
       context: ../../
-      dockerfile: KaithemAutomation/docker/app/Dockerfile
+      dockerfile: KaithemAutomation/docker/dev/Dockerfile
       args:
         - KAITHEM_VERSION=${KAITHEM_VERSION:?error}
 
@@ -62,15 +62,20 @@ services:
 
       # Mount in the Kaithem files, so that we can do dev with
       # it.
-      - ./../KaithemAutomation:/workspace/KaithemAutomation
-      - ./../Dashbeard:/workspace/Dashbeard
-      - /workspace/KaithemAutomation/.venv
-      - /workspace/KaithemAutomation/.venv311
-      - /workspace/KaithemAutomation/.venv312
-      - /workspace/KaithemAutomation/.venv313
-      - /workspace/KaithemAutomation/.venv_clean_no_dev
-      - /workspace/KaithemAutomation/__pycache__
-      - /workspace/Dashbeard/.npm
+      # - ./../../KaithemAutomation:/workspace/KaithemAutomation
+      # - ./../../Dashbeard:/workspace/Dashbeard
+      # - /workspace/KaithemAutomation/.venv
+      # - /workspace/KaithemAutomation/.venv311
+      # - /workspace/KaithemAutomation/.venv312
+      # - /workspace/KaithemAutomation/.venv313
+      # - /workspace/KaithemAutomation/.venv_clean_no_dev
+      # - /workspace/KaithemAutomation/__pycache__
+      # - /workspace/KaithemAutomation/target
+      # - /workspace/KaithemAutomation/dist
+      # - /workspace/KaithemAutomation/wasm_kegs/__pycache__
+      # - /workspace/Dashbeard/.npm
+      # - /workspace/Dashbeard/dist
+
 
     network_mode: host
     pid: host

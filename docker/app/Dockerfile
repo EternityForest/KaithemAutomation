@@ -21,8 +21,6 @@ ENV UV_TOOL_BIN_DIR=/usr/local/bin
 RUN --mount=type=cache,target=/root/.cache/uv \
     UV_LINK_MODE=copy uv tool install debugpy
 
-WORKDIR /app/debian
-
 
 
 # Copy the built and installed Kaithem files along with the UV venv

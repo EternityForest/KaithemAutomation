@@ -69,8 +69,8 @@ RUN --mount=type=cache,target=/root/.npm \
     --mount=type=cache,target=/app/target \
     --mount=type=cache,target=/root/.cache/uv \ 
     --mount=type=cache,target=/root/.local/share/uv \
-    --mount=type=bind,source=KaithemAutomation,target=/workspace/KaithemAutomation \
-    --mount=type=bind,source=Dashbeard,target=/workspace/Dashbeard \
+    --mount=type=bind,source=KaithemAutomation,target=/workspace/KaithemAutomation,rw  \
+    --mount=type=bind,source=Dashbeard,target=/workspace/Dashbeard,rw  \
     --mount=type=cache,target=/workspace/KaithemAutomation/.venv \
     --mount=type=cache,target=/workspace/KaithemAutomation/__pycache__ \
     cd /workspace/KaithemAutomation && UV_LINK_MODE=copy uv sync
@@ -80,19 +80,27 @@ RUN --mount=type=cache,target=/root/.npm \
     --mount=type=cache,target=/app/target \
     --mount=type=cache,target=/root/.cache/uv \ 
     --mount=type=cache,target=/root/.local/share/uv \
-    --mount=type=bind,source=KaithemAutomation,target=/workspace/KaithemAutomation \
-    --mount=type=bind,source=Dashbeard,target=/workspace/Dashbeard \
+    --mount=type=bind,source=KaithemAutomation,target=/workspace/KaithemAutomation,rw  \
+    --mount=type=bind,source=Dashbeard,target=/workspace/Dashbeard,rw \
     --mount=type=cache,target=/workspace/KaithemAutomation/.venv \
     --mount=type=cache,target=/workspace/KaithemAutomation/__pycache__ \
-    cd /workspace/KaithemAutomation && UV_LINK_MODE=copy make dev-build
+    --mount=type=cache,target=/workspace/KaithemAutomation/target \
+    --mount=type=cache,target=/workspace/KaithemAutomation/dist \
+    --mount=type=cache,target=/workspace/KaithemAutomation/wasm_kegs/__pycache__ \
+    --mount=type=cache,target=/workspace/Dashbeard/.npm \
+    --mount=type=cache,target=/workspace/Dashbeard/dist \
+    cd /workspace/Dashbeard && npm install && npm run build ; \
+    cd /workspace/KaithemAutomation && UV_LINK_MODE=copy make dev-build 
 
 
 ENV UV_TOOL_DIR=/opt/uv-tools
 ENV UV_TOOL_BIN_DIR=/usr/local/bin
 
 RUN --mount=type=cache,target=/root/.local/share/uv \
-    --mount=type=bind,source=KaithemAutomation,target=/workspace/KaithemAutomation \
-    --mount=type=bind,source=Dashbeard,target=/workspace/Dashbeard \
+    --mount=type=bind,source=KaithemAutomation,target=/workspace/KaithemAutomation,rw \
+    --mount=type=bind,source=Dashbeard,target=/workspace/Dashbeard,rw \
     --mount=type=cache,target=/workspace/KaithemAutomation/.venv \
     --mount=type=cache,target=/workspace/KaithemAutomation/__pycache__ \
+    --mount=type=cache,target=/workspace/KaithemAutomation/target \
+    --mount=type=cache,target=/workspace/KaithemAutomation/dist \
     UV_LINK_MODE=copy uv tool install --verbose /workspace/KaithemAutomation

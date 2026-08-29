@@ -3,6 +3,7 @@
 # Needed to make CD work
 .ONESHELL:
 
+.DELETE_ON_ERROR:
 
 # We autoselect the user who will be running Kaithem if we install it.
 ifdef KAITHEM_USER
@@ -199,12 +200,18 @@ dev-run-all-tests:
 
 .PHONY: dev-build-docker
 dev-build-docker:
-	@echo "${KAITHEM_VERSION}"
+	@echo "Building docker images for Kaithem ${KAITHEM_VERSION}"
+	@echo "Dev user must be 1000, current is: ${KAITHEM_USER}  UID: ${KAITHEM_UID}  GID: ${KAITHEM_GROUP}"
 	@cd ./docker
 	@docker compose build --progress=plain kaithem-builder
-	@docker compose build --progress=plain kaithem-dev
+# 	@docker compose build --progress=plain kaithem-dev
 
 .PHONY: dev-docker-shell
 dev-docker-shell:
 	@cd ./docker
-	@docker compose run --entrypoint /bin/bash kaithem-dev
+	@docker compose run --remove-orphans --entrypoint /bin/bash kaithem-dev
+
+.PHONY: dev-docker-clean-storage
+dev-docker-clean-storage:
+	@cd ./docker
+	@docker compose rm -v
