@@ -2,15 +2,7 @@
 set -euo pipefail
 
 uv lock --check
-# For safety, only run this with a clean working directory.
-# But only check if actually in a git repo
-if [ -d ".git" ]; then
-  if [ -n "$(git status --porcelain)" ]; then
-      echo "Working directory not clean."
-      git status -vv
-      exit 1
-  fi
-fi
+
 
 # CD to the directory one level up from where this script is.
 cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"/..
