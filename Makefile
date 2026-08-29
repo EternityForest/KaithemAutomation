@@ -203,7 +203,7 @@ dev-build-docker:
 	@echo "Building docker images for Kaithem ${KAITHEM_VERSION}"
 	@echo "Dev user must be 1000, current is: ${KAITHEM_USER}  UID: ${KAITHEM_UID}  GID: ${KAITHEM_GROUP}"
 	@cd ./docker
-#	@docker compose build --progress=plain kaithem-builder
+	@docker compose build --progress=plain kaithem-builder
 	@docker compose build --progress=plain kaithem-dev
 
 .PHONY: dev-docker-shell
