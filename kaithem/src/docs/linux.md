@@ -94,4 +94,24 @@ projects.
 # List images in internal store
 docker image ls
 
+
+# Run your build with plain progress output to
+# see every layer hash clearly:
+docker compose build --progress=plain <service_name>
+
+# Run an interactive shell inside the last working
+# intermediate layer to debug what went wrong:
+
+docker run -it <layer_hash> /bin/sh
+```
+
+
+
+
+## Cleaning
+
+```bash
+
+# Clear systemd journal, this can be a few gb
+sudo journalctl --vacuum-size=100M
 ```

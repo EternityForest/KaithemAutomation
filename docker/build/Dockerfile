@@ -1,6 +1,15 @@
-# Docker multi staeg build that gets Rust and npm to compile the images
+# Docker multi stage build that gets Rust and npm to compile the images.
+
+# This expects its build context to be set to a workspace folder which
+# contains KaithemAutomation and Dashbeard.
+
+
 FROM debian:trixie AS builder
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    apt-get update
 
 # Prevent interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
@@ -25,7 +34,7 @@ RUN node -v && npx -v
 
 # Install Rust and wasm32-unknown-unknown
 
-RUN     --mount=type=cache,target=/root/.cargo \
+RUN --mount=type=cache,target=/root/.cargo \
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 
 # Configure the environment path manually
@@ -41,70 +50,49 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
     bash -c '[ -z "$(find /var/cache/apt/pkgcache.bin -mmin -1440 2>/dev/null)" ] && apt-get update'
 
+RUN mkdir -p /workspace
 
+# Central management of the debian deps list
+COPY ./KaithemAutomation/kaithem/data/debian_setup_dependencies.sh \
+    /workspace/debian_setup_dependencies.sh
 
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
-    apt-get install -y \
-    libasound2-dev libjack-jackd2-dev
-
-RUN mkdir -p /app/debian/gits
+    bash /workspace/debian_setup_dependencies.sh
 
 
-# Most of this is just dowloading all the kaithem repos
-WORKDIR /app/debian
-
-RUN --mount=type=cache,target=/app/debian/gits,sharing=locked \
-    [ -d /app/debian/gits/Dashbeard ] || git clone --depth 1 https://github.com/EternityForest/Dashbeard /app/debian/gits/Dashbeard
-
-
-RUN --mount=type=cache,target=/app/debian/gits,sharing=locked \
-    cd /app/debian/gits/Dashbeard && git fetch origin main && git reset --hard origin/main
-
-
-RUN --mount=type=cache,target=/root/.npm \
-    --mount=type=cache,target=/app/debian/gits,sharing=locked \
-    cd /app/debian/gits/KaithemAutomation && npm ci
-
-
-RUN --mount=type=cache,target=/root/.npm \
-    --mount=type=cache,target=/app/debian/gits,sharing=locked \
-    cd /app/debian/gits/Dashbeard && npm ci
-
-ARG CACHE_BUST=1
-
-
-
-RUN --mount=type=cache,target=/app/debian/gits,sharing=locked \
-    --mount=type=bind,source=.,target=/tmp/KaithemAutomation \
-    rsync -a --delete --filter=":- /tmp/KaithemAutomation/.gitignore" --exclude=".git/" /tmp/KaithemAutomation /app/debian/gits/KaithemAutomation
-
-
-RUN --mount=type=cache,target=/app/debian/gits,sharing=locked \
-    --mount=type=bind,source=.,target=/tmp/KaithemAutomation \
-    ls -al /app/debian/gits/KaithemAutomation/
-
-
-RUN --mount=type=cache,target=/app/debian/gits,sharing=locked \
-    rm -rf /app/debian/gits/KaithemAutomation/.git
-
-RUN --mount=type=cache,target=/app/debian/gits,sharing=locked \
-    rm -rf /app/debian/gits/KaithemAutomation/.venv
 
 # Actually build!
 
-RUN --mount=type=cache,target=/app/debian/gits,sharing=locked \
-    --mount=type=cache,target=/root/.npm \
+RUN --mount=type=cache,target=/root/.npm \
     --mount=type=cache,target=/root/.cargo \
     --mount=type=cache,target=/app/target \
     --mount=type=cache,target=/root/.cache/uv \ 
     --mount=type=cache,target=/root/.local/share/uv \
-    cd /app/debian/gits/KaithemAutomation && UV_LINK_MODE=copy uv sync && UV_LINK_MODE=copy make dev-build
+    --mount=type=bind,source=KaithemAutomation,target=/workspace/KaithemAutomation \
+    --mount=type=bind,source=Dashbeard,target=/workspace/Dashbeard \
+    --mount=type=cache,target=/workspace/KaithemAutomation/.venv \
+    --mount=type=cache,target=/workspace/KaithemAutomation/__pycache__ \
+    cd /workspace/KaithemAutomation && UV_LINK_MODE=copy uv sync
+    
+RUN --mount=type=cache,target=/root/.npm \
+    --mount=type=cache,target=/root/.cargo \
+    --mount=type=cache,target=/app/target \
+    --mount=type=cache,target=/root/.cache/uv \ 
+    --mount=type=cache,target=/root/.local/share/uv \
+    --mount=type=bind,source=KaithemAutomation,target=/workspace/KaithemAutomation \
+    --mount=type=bind,source=Dashbeard,target=/workspace/Dashbeard \
+    --mount=type=cache,target=/workspace/KaithemAutomation/.venv \
+    --mount=type=cache,target=/workspace/KaithemAutomation/__pycache__ \
+    cd /workspace/KaithemAutomation && UV_LINK_MODE=copy make dev-build
 
 
 ENV UV_TOOL_DIR=/opt/uv-tools
 ENV UV_TOOL_BIN_DIR=/usr/local/bin
 
-RUN --mount=type=cache,target=/app/debian/gits,sharing=locked \
-    --mount=type=cache,target=/root/.local/share/uv \
-    UV_LINK_MODE=copy uv tool install --verbose /app/debian/gits/KaithemAutomation
+RUN --mount=type=cache,target=/root/.local/share/uv \
+    --mount=type=bind,source=KaithemAutomation,target=/workspace/KaithemAutomation \
+    --mount=type=bind,source=Dashbeard,target=/workspace/Dashbeard \
+    --mount=type=cache,target=/workspace/KaithemAutomation/.venv \
+    --mount=type=cache,target=/workspace/KaithemAutomation/__pycache__ \
+    UV_LINK_MODE=copy uv tool install --verbose /workspace/KaithemAutomation

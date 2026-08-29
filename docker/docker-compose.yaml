@@ -1,0 +1,104 @@
+services:
+
+  kaithem-builder:
+    image: kaithem-builder:${KAITHEM_VERSION:?error}
+    build:
+      # Expects to be in a projects directory containing
+      # Kaithem alongside Dashbeard.
+      context: ../../
+      dockerfile: KaithemAutomation/docker/build/Dockerfile
+
+  kaithem-dev:
+    image: kaithem:${KAITHEM_VERSION:?error}
+    build:
+      context: ../../
+      dockerfile: KaithemAutomation/docker/app/Dockerfile
+      args:
+        - KAITHEM_VERSION=${KAITHEM_VERSION:?error}
+
+    privileged: true
+
+    cap_add:
+      - SYS_NICE
+    ulimits:
+      rtprio: 99
+
+
+    user: "${KAITHEM_UID:?error}:${KAITHEM_GROUP:?error}"
+    environment:
+      - DISPLAY=${DISPLAY:-:0}
+      - WAYLAND_DISPLAY=${WAYLAND_DISPLAY:-wayland-0}
+      - XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR}
+      - PIPEWIRE_REMOTE=pipewire-0
+      - USER=${KAITHEM_USER:?error}
+      - HOME=/home/${KAITHEM_USER:?error}
+      - LOGNAME=${KAITHEM_USER:?error}
+      - DBUS_SESSION_BUS_ADDRESS=${DBUS_SESSION_BUS_ADDRESS}
+      - KAITHEM_AUDIO_API=jack
+      - XDG_SESSION_TYPE=${XDG_SESSION_TYPE}
+      - XAUTHORITY=${XAUTHORITY}
+      - PIPEWIRE_LATENCY="128/48000"
+      - PIPEWIRE_QUANTUM="128/48000"
+
+    volumes:
+      # Seems to be needed for getpass.getuser()
+      - /etc/passwd:/etc/passwd:ro
+      - /etc/group:/etc/group:ro
+
+      - ${XDG_RUNTIME_DIR}:${XDG_RUNTIME_DIR}
+      - /var/run/dbus:/var/run/dbus
+      - /home/$KAITHEM_USER:/home/$KAITHEM_USER:ro
+      - /home/$KAITHEM_USER/kaithem:/home/$KAITHEM_USER/kaithem
+      - /home/$KAITHEM_USER/.cache/sherpa-onnx-models:/home/$KAITHEM_USER/.cache/sherpa-onnx-models
+      #
+      - /home/$KAITHEM_USER/.cache/uv
+      - /dev:/dev
+      - /tmp:/tmp
+
+      # Use the host certificate bundle so we don't have to keep
+      # updating the bundle
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+      - /etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro
+
+      # Mount in the Kaithem files, so that we can do dev with
+      # it.
+      - ./../KaithemAutomation:/workspace/KaithemAutomation
+      - ./../Dashbeard:/workspace/Dashbeard
+      - /workspace/KaithemAutomation/.venv
+      - /workspace/KaithemAutomation/.venv311
+      - /workspace/KaithemAutomation/.venv312
+      - /workspace/KaithemAutomation/.venv313
+      - /workspace/KaithemAutomation/.venv_clean_no_dev
+      - /workspace/KaithemAutomation/__pycache__
+      - /workspace/Dashbeard/.npm
+
+    network_mode: host
+    pid: host
+
+    group_add:
+      - audio
+      - video
+      - dialout
+
+    restart: unless-stopped
+
+  # kaithem-host-setup:
+  #   image: kaithem-host-setup:dev
+  #   build:
+  #     context: ../../
+  #     dockerfile_inline: |
+  #       FROM alpine:3.14
+  #       cat <<'EOF' > /setup.sh
+  #       #!/bin/sh
+  #       mkdir -p /home/$USER/kaithem
+  #       mkdir -p /home/$USER/.cache
+  #       mkdir -p /home/$USER/.local/kaithem
+  #       EOF
+  #       ENTRYPOINT ["/setup.sh"]
+
+
+  #   user: "${KAITHEM_UID}:${KAITHEM_GROUP}"
+
+  #   volumes:
+  #     - /home/$KAITHEM_USER:/home/$KAITHEM_USER
+

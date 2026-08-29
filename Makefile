@@ -14,7 +14,11 @@ KAITHEM_UID:=$(shell id -u $(KAITHEM_UID))
 endif
 
 ifndef KAITHEM_UID
-KAITHEM_UID:=1000
+KAITHEM_UID:=$(shell id -u)
+endif
+
+ifndef KAITHEM_GROUP
+KAITHEM_GROUP:=$(shell id -g)
 endif
 
 KAITHEM_USER:= $(shell id -un $(KAITHEM_UID))
@@ -24,17 +28,19 @@ ROOT_DIR:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 
 export KAITHEM_UID
 export KAITHEM_USER
+export KAITHEM_GROUP
 
 ifndef KIOSK_HOME
 KIOSK_HOME:="http://localhost:8002"
 endif
 
 USER:= $(shell id -un)
-
+KAITHEM_VERSION:=$(shell python3 -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')
 
 export USER
 export KIOSK_HOME
 export ROOT_DIR
+export KAITHEM_VERSION
 
 default: help 
 
@@ -43,8 +49,8 @@ default: help
 help: # Show help for each of the available commands
 	@cd ${ROOT_DIR}
 	@echo
-	@echo Kaithem Make CLI
-	@echo "Quickstart: install-system-dependencies, .venv, install-dependencies, run, then visit localhost:8002"
+	@echo Kaithem Make CLI.  
+	@echo "Quickstart: Get rust and wasm target, get node, install uv, then run 'make dev-build' to build the project and 'make dev-run-sandbox' to run it."
 	@echo "Most use the virtualenv in the project folder, unless you are already in a different venv"
 	@echo "dev- commands always use the .venv in this project folder"
 	@echo "root- commands require root and affect the whole system, and probably only work on Debian/PiOs/Ubuntu"
@@ -57,6 +63,11 @@ help: # Show help for each of the available commands
 .PHONY: update
 update: # Fetch new code into this project folder
 	git pull
+
+.PHONY: dev-install-system-dependencies
+dev-install-system-dependencies: # Install system dependencies for Kaithem development
+	@bash kaithem/data/debian_setup_dependencies.sh
+	@bash kaithem/data/debian_runtime_dependencies.sh
 
 .PHONY: dev-build-docs
 dev-build-docs:
@@ -109,6 +120,9 @@ dev-build: dev-build-docs  dev-build-builtin-kegs dev-build-vite # Build for rel
 	@ ! rm .venv/lib/python3.12/site-packages/pandas/pyproject.toml
 	@bash scripts/uv_pinned_build.sh
 
+.PHONY: dev-run-sandbox
+dev-run: # Run kaithem with throwaway user data folder 
+	@uv run python3 testing_server.py
 
 .PHONY: dev-publish-to-pypi
 dev-publish-to-pypi: dev-build # Publish to PyPi. Do NOT directly build and publish without the frozen wheel script
@@ -185,5 +199,12 @@ dev-run-all-tests:
 
 .PHONY: dev-build-docker
 dev-build-docker:
-	@sudo docker build --progress=plain --build-arg CACHE_BUST=$(date +%s) -t kaithem-build:dev ./docker/build
-	@sudo docker build --progress=plain --build-arg CACHE_BUST=$(date +%s) -t kaithem:dev ./docker/app
+	@echo "${KAITHEM_VERSION}"
+	@cd ./docker
+	@docker compose build --progress=plain kaithem-builder
+	@docker compose build --progress=plain kaithem-dev
+
+.PHONY: dev-docker-shell
+dev-docker-shell:
+	@cd ./docker
+	@docker compose run --entrypoint /bin/bash kaithem-dev

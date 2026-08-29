@@ -47,8 +47,12 @@ Assuming you're on Debian or similar and have uv installed,
 you can run it directly from UV tool.
 
 
+See [Install dependencies](./kaithem/data/debian_setup_dependencies.sh) and [Runtime dependencies](./kaithem/data/debian_runtime_dependencies.sh)
+
 ```bash
-sudo apt install -y mpv lm-sensors python3-gst-1.0  gstreamer1.0-plugins-good  gstreamer1.0-plugins-bad gstreamer1.0-tools swh-plugins  tap-plugins  caps   gstreamer1.0-plugins-ugly libfluidsynth3 gstreamer1.0-pocketsphinx x42-plugins gstreamer1.0-opencv  gstreamer1.0-vaapi gstreamer1.0-pipewire
+
+# See links for the list of apt packages you'll need
+sudo apt install ......
 
 uv tool install --force kaithem
 
@@ -70,7 +74,7 @@ For real deployment or adding plugins like Matter support, see the scripts [here
 
 
 
-## Dev install 🖐️
+## Dev Install 🖐️
 
 Info for devs here on the wiki (https://github.com/EternityForest/KaithemAutomation/wiki/Development)
 
@@ -93,6 +97,26 @@ rustup target add wasm32-unknown-unknown
 npm install
 
 make build
+```
+
+### Docker Building
+
+Clone this repo and dashbeard, do
+
+```bash
+cd docker
+docker compose build
+```
+
+This will buid three images, a builder that creates the kaithem Wheel,
+the runtime app image that would be used for production, and
+a dev image that can be used to debug.
+
+The dev image contains /workspaces/KaithemAutomation as the default working directory, so you can
+
+```bash
+KAITHEM_UID=$UID KAITHEM_GROUP=$GID KAITHEM_USER=$USR docker compose run kaithem-d
+ev testing_server.py
 ```
 
 Recent Changes 🕗

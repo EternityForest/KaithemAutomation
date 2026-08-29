@@ -104,6 +104,16 @@ def build_rust_crates(root: Path, plugin_dir: Path):
     print(f"[build] Building Rust crate {crate}")
 
     cargo_bin = shutil.which("cargo")
+
+    if cargo_bin is None:
+        for i in os.environ["PATH"].split(os.pathsep):
+            cargo_bin_path = os.path.join(i, "cargo")
+            if os.path.isfile(cargo_bin_path) and os.access(
+                cargo_bin_path, os.X_OK
+            ):
+                cargo_bin = cargo_bin_path
+                break
+
     if cargo_bin is None:
         raise KegBuildError(f"cargo not found in PATH: {os.environ['PATH']}")
 

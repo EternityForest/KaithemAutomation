@@ -1,35 +1,41 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "name": "Python: Attach using Process Id",
-            "type": "python",
-            "request": "attach",
-            "processId": "${command:pickProcess}",
-            "justMyCode": false,
-            "subProcess": true
-        },
-        {
-            "name": "Python3",
-            "type": "debugpy",
-            "python": "${workspaceFolder}/.venv/bin/python3",
-            "request": "launch",
-            "stopOnEntry": true,
-            "program": "${file}",
-            "cwd": "${workspaceFolder}",
-            "env": {
-                "GST_DEBUG": "*:3",
-                "WASMTIME_BACKTRACE_DETAILS": "1"
-            },
-            "envFile": "${workspaceFolder}/.env",
-            "debugOptions": [
-                "RedirectOutput"
-            ],
-            "justMyCode": false,
-            "subProcess": true
-        }
-    ]
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Attach to kaithem-dev docker process",
+      "type": "debugpy",
+      "request": "attach",
+      "connect": { "host": "localhost", "port": 5678 },
+      "pathMappings": [{ "localRoot": "${workspaceFolder}", "remoteRoot": "." }]
+    },
+
+    {
+      "name": "Python: Attach using Process Id",
+      "type": "python",
+      "request": "attach",
+      "processId": "${command:pickProcess}",
+      "justMyCode": false,
+      "subProcess": true
+    },
+    {
+      "name": "Python3",
+      "type": "debugpy",
+      "python": "${workspaceFolder}/.venv/bin/python3",
+      "request": "launch",
+      "stopOnEntry": true,
+      "program": "${file}",
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "GST_DEBUG": "*:3",
+        "WASMTIME_BACKTRACE_DETAILS": "1"
+      },
+      "envFile": "${workspaceFolder}/.env",
+      "debugOptions": ["RedirectOutput"],
+      "justMyCode": false,
+      "subProcess": true
+    }
+  ]
 }
