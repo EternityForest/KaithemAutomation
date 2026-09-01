@@ -20,19 +20,22 @@ does the realtime work in C, one OS process per source, which keeps the
 Python side essentially idle.
 """
 
+import logging
 import os
-import queue
 import re
+import shutil
 import subprocess
 import sys
 import threading
 import time
 import traceback
+from typing import Any
 
 from scullery import jacktools, messagebus, workers
 
 from kaithem.src import tagpoints
 
+_logger = logging.getLogger(__name__)
 # Public name of the JACK clients we own.  Each source gets a unique
 # suffix appended, e.g. "KaithemMidi_0".  Used both as the client name
 # passed to ``jack_midi_dump`` and to filter our own clients out of
@@ -48,10 +51,15 @@ JACK_MIDI_DUMP_WRAPPER = os.path.join(
 )
 
 
+if not shutil.which("jack_midi_dump"):
+    raise RuntimeError(
+        "jack_midi_dump not found on PATH; MIDI features disabled."
+    )
+
 midi_tags = {}
 
 
-def setTag(n, v, a=None):
+def setTag(n: str, v: float, a: Any = None):
     if n not in midi_tags:
         midi_tags[n] = tagpoints.Tag(n)
         midi_tags[n].min = 0
@@ -59,7 +67,7 @@ def setTag(n, v, a=None):
     midi_tags[n].set_claim_val("default", v, timestamp=None, annotation=None)
 
 
-def setTag14(n, v, a=None):
+def setTag14(n: str, v: float, a: Any = None):
     if n not in midi_tags:
         midi_tags[n] = tagpoints.Tag(n)
         midi_tags[n].min = 0
@@ -389,7 +397,7 @@ class JackMidiManager:
         except Exception:
             traceback.print_exc()
 
-    def _on_new_port(self, _topic, port_info):
+    def _on_new_port(self, _topic, port_info: jacktools.PortInfo):
         try:
             if port_info.is_audio or port_info.is_input:
                 return
@@ -397,7 +405,7 @@ class JackMidiManager:
         except Exception:
             traceback.print_exc()
 
-    def _on_del_port(self, _topic, port_info):
+    def _on_del_port(self, _topic, port_info: jacktools.PortInfo):
         with _workers_lock:
             worker = _workers.pop(port_info.name, None)
         if worker is not None:
@@ -412,9 +420,9 @@ class JackMidiManager:
             _workers.clear()
         for w in old:
             try:
-                w.stop()
+                w[1].stop()
             except Exception:
-                pass
+                _logger.exception("Error stopping MIDI worker for %s", w[0])
         self._initial_scan()
 
     def _next_slot(self) -> int:
@@ -425,7 +433,7 @@ class JackMidiManager:
             ) % self._MAX_CLIENT_NAME_SLOT
         return slot
 
-    def _register_source(self, port_info):
+    def _register_source(self, port_info: jacktools.PortInfo):
         with _workers_lock:
             if port_info.name in _workers:
                 return
