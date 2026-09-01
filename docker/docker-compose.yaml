@@ -101,6 +101,9 @@ services:
     ulimits:
       rtprio: 99
 
+    security_opt:
+    - apparmor:unconfined
+
     user: "${KAITHEM_UID:?error}:${KAITHEM_GROUP:?error}"
     environment:
       - DISPLAY=${DISPLAY:-:0}

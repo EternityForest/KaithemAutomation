@@ -68,10 +68,10 @@ def load(cfg: dict[str, Any]):
         _defconfig = yaml.load(f, Loader=yaml.SafeLoader)
     # Config starts out as the default but individual options
     # Can be added or overridden by the user's settings.
-    config = _defconfig.copy()
+    loading_config = _defconfig.copy()
 
-    config.update(cfg or {})
-    config = snake_compat.snakify_dict_keys(config)
+    loading_config.update(cfg or {})
+    loading_config = snake_compat.snakify_dict_keys(loading_config)
 
     default_conf_location = os.path.expanduser("~/kaithem/config.yaml")
     vd = os.path.expanduser("~/kaithem/")
@@ -104,18 +104,18 @@ def load(cfg: dict[str, Any]):
         _usr_config = {}
         logger.info("No CFG File Specified. Using Defaults.")
 
-    config["site_data_dir"] = vd
+    loading_config["site_data_dir"] = vd
 
     for i in _usr_config:
-        config[i] = _usr_config[i]
+        loading_config[i] = _usr_config[i]
 
     if argcmd.p:
-        config["https_port"] = int(argcmd.p)
+        loading_config["https_port"] = int(argcmd.p)
 
     if argcmd.process_title:
-        config["process_title"] = argcmd.process_title
+        loading_config["process_title"] = argcmd.process_title
 
-    return config
+    return loading_config
 
 
 def initialize(cfg: dict[str, Any] | None = None):
@@ -123,7 +123,7 @@ def initialize(cfg: dict[str, Any] | None = None):
     c = load(cfg or {})
     with open(os.path.join(_dn, "config-schema.yaml")) as f:
         jsonschema.validate(c, yaml.load(f, Loader=yaml.SafeLoader))
-    # Allow code to set config keys before this loads that can override the
-    # file
+    # Allow code to set config keys before this loads
+    # that can override the file
     c.update(config)
     config.update(c)

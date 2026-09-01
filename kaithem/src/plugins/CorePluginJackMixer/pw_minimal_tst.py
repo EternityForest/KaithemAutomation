@@ -1,7 +1,7 @@
-from time import time
 import time
-from icemedia.iceflow import GstreamerPipeline
+from time import time
 
+from icemedia.iceflow import GstreamerPipeline
 
 p = GstreamerPipeline()
 p.add_element(
