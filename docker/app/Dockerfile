@@ -1,7 +1,13 @@
 ARG KAITHEM_VERSION
 FROM kaithem-builder:${KAITHEM_VERSION:?error} AS builder
 
-FROM debian:trixie
+FROM debian:trixie-slim
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    apt-get install -y \
+    tz-data ca-certificates curl wget \
+    iputils-ping make nano
 
 
 # Central management of the debian deps list

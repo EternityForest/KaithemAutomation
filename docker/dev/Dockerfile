@@ -4,6 +4,10 @@ ARG KAITHEM_GID
 FROM kaithem-builder:${KAITHEM_VERSION:?error}
 
 
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    apt-get update
+
 # Central management of the debian deps list
 COPY ./KaithemAutomation/kaithem/data/debian_runtime_dependencies.sh \
     /workspace/debian_runtime_dependencies.sh
@@ -35,6 +39,7 @@ RUN mkdir -p /workspace/KaithemAutomation/.venv; \
     mkdir -p /workspace/KaithemAutomation/dist ; \
     mkdir -p /workspace/uv_cache ; \
     chown -R 1000:1000 /workspace/ ; 
+
 
 ENV UV_LINK_MODE=copy
 ENV UV_CACHE_DIR=/workspace/uv_cache

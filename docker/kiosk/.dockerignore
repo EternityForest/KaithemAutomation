@@ -1,0 +1,7 @@
+node_modules
+vendor
+.git
+*.log
+.venv
+.test_venvs
+__pycache__

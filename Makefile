@@ -205,11 +205,18 @@ dev-build-docker:
 	@cd ./docker
 	@docker compose build --progress=plain kaithem-builder
 	@docker compose build --progress=plain kaithem-dev
+	@docker compose build --progress=plain kaithem-kiosk
 
 .PHONY: dev-docker-shell
 dev-docker-shell:
 	@cd ./docker
 	@docker compose run --remove-orphans --entrypoint /bin/bash kaithem-dev
+
+.PHONY: dev-docker-kiosk
+dev-docker-kiosk: # Launch the kiosk browser in a docker.
+	@cd ./docker
+	@docker compose run --remove-orphans --entrypoint /bin/bash kaithem-kiosk 
+
 
 .PHONY: dev-docker-clean-storage
 dev-docker-clean-storage:

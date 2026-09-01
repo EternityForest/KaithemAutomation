@@ -44,6 +44,9 @@ services:
       # Seems to be needed for getpass.getuser()
       - /etc/passwd:/etc/passwd:ro
       - /etc/group:/etc/group:ro
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+      - /usr/lib/locale:/usr/lib/locale:ro
 
       - ${XDG_RUNTIME_DIR}:${XDG_RUNTIME_DIR}
       - /var/run/dbus:/var/run/dbus
@@ -76,6 +79,56 @@ services:
 
     network_mode: host
     pid: host
+
+    group_add:
+      - audio
+      - video
+      - dialout
+
+    restart: unless-stopped
+
+
+  kaithem-kiosk:
+    image: kaithem-kiosk:${KAITHEM_VERSION:?error}
+    build:
+      context: ../../
+      dockerfile: KaithemAutomation/docker/kiosk/Dockerfile
+      args:
+        - KAITHEM_VERSION=${KAITHEM_VERSION:?error}
+
+    cap_add:
+      - SYS_NICE
+    ulimits:
+      rtprio: 99
+
+    user: "${KAITHEM_UID:?error}:${KAITHEM_GROUP:?error}"
+    environment:
+      - DISPLAY=${DISPLAY:-:0}
+      - WAYLAND_DISPLAY=${WAYLAND_DISPLAY:-wayland-0}
+      - XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR}
+      - PIPEWIRE_REMOTE=pipewire-0
+      - USER=${KAITHEM_USER:?error}
+      - HOME=/home/${KAITHEM_USER:?error}
+      - LOGNAME=${KAITHEM_USER:?error}
+      - DBUS_SESSION_BUS_ADDRESS=${DBUS_SESSION_BUS_ADDRESS}
+      - KAITHEM_AUDIO_API=jack
+      - XDG_SESSION_TYPE=${XDG_SESSION_TYPE}
+      - XAUTHORITY=${XAUTHORITY}
+      - PIPEWIRE_LATENCY="128/48000"
+      - PIPEWIRE_QUANTUM="128/48000"
+
+    volumes:
+      - /var/run/dbus:/var/run/dbus
+      - ${XDG_RUNTIME_DIR}:${XDG_RUNTIME_DIR}
+      - /dev:/dev
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+      - /usr/lib/locale:/usr/lib/locale:ro
+  
+    tmpfs:
+      - /dev/shm:size=300M,mode=1777
+
+    network_mode: host
 
     group_add:
       - audio

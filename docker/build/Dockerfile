@@ -104,3 +104,10 @@ RUN --mount=type=cache,target=/root/.local/share/uv \
     --mount=type=cache,target=/workspace/KaithemAutomation/target \
     --mount=type=cache,target=/workspace/KaithemAutomation/dist \
     UV_LINK_MODE=copy uv tool install --verbose /workspace/KaithemAutomation
+
+
+# Compile the tool the kiosk needs
+RUN --mount=type=cache,target=/root/.cargo \
+    command -v wayinhibit >/dev/null 2>&1  || cargo install wayinhibit; \
+    mkdir -p /root/.local/bin; \
+    cp /root/.cargo/bin/wayinhibit /root/.local/bin/wayinhibit

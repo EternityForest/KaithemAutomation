@@ -99,39 +99,6 @@ def displaysToTags():
             display_tags[i].value = 1 if displays[i] else 0
 
 
-def getSDHealth():
-    import json
-    import os
-
-    p = None
-    if util.which("sdmon"):
-        if os.path.exists("/dev/mmcblk0"):
-            try:
-                # Requires passwordless sudo.
-                # Eventually we need a better solution.
-                # TODO fix passwordless sudo requirement
-                p = subprocess.check_output(
-                    "sudo sdmon /dev/mmcblk0 -a", shell=True
-                )
-            except Exception:
-                logging.exception("Failed to get SD health status")
-                messagebus.post_message(
-                    "/system/notifications/warnings",
-                    "Sdmon is installed, but failed to get SD card health status. Probably an unsupported card ormissing passwordless sudo",
-                )
-                return None
-    if p:
-        try:
-            d = json.load(p)
-        except Exception:
-            return None
-
-        if "enduranceRemainLifePercent" in d:
-            return d["enduranceRemainLifePercent"]
-        elif "healthStatusPercentUsed" in d:
-            return 100 - d["healthStatusPercentUsed"]
-
-
 try:
     import psutil
 
@@ -170,29 +137,6 @@ if battery:
         priority="warning",
     )
     acPowerTag.expose("view_status")
-
-
-sdhealth = getSDHealth()
-
-
-# EmberOS has the service needed to make this work
-if sdhealth is not None:
-    sdTag = tagpoints.Tag("/system/sdcard.health")
-    sdTag.min = 0
-    sdTag.max = 100
-    sdTag.unit = "%"
-    sdTag.lo = 50
-    sdTag.expose("view_status")
-
-    sdTag.set_alarm("SDCardWear", "value < 70", priority="info")
-    sdTag.set_alarm("SDCardCloseToFailure", "value < 10", priority="error")
-    sdTag.value = sdhealth
-
-    @scheduling.scheduler.every_hour
-    def doSD():
-        s = getSDHealth()
-        if s is not None:
-            sdTag.value = s
 
 
 diskAlerts = {}
