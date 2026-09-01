@@ -252,6 +252,7 @@ def set_user_if_not_exists(username: str, data: User) -> None:
         if username not in Users:
             Users[username] = data
             dumpDatabase()
+            generateUserPermissions(username)
 
 
 def removeUser(user: str) -> None:
