@@ -215,7 +215,7 @@ dev-docker-shell:
 .PHONY: dev-docker-kiosk
 dev-docker-kiosk: # Launch the kiosk browser in a docker.
 	@cd ./docker
-	@docker compose run --remove-orphans --entrypoint /bin/bash kaithem-kiosk 
+	@KIOSK_URL=http://localhost:8002 docker compose run --remove-orphans kaithem-kiosk 
 
 
 .PHONY: dev-docker-clean-storage

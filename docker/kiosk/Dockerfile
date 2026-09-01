@@ -25,7 +25,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     apt-get update && apt-get install -y \
     mesa-va-drivers \
     libgl1-mesa-dri \
-    libglx-mesa0 libgl1 \
+    libgl1 \
     libgles2 \
     libvulkan1 swayidle pipewire-audio-client-libraries wget
 

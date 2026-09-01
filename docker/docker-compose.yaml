@@ -116,6 +116,7 @@ services:
       - XAUTHORITY=${XAUTHORITY}
       - PIPEWIRE_LATENCY="128/48000"
       - PIPEWIRE_QUANTUM="128/48000"
+      - KIOSK_URL=${KIOSK_URL:?error}
 
     volumes:
       - /var/run/dbus:/var/run/dbus
@@ -124,7 +125,7 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
       - /usr/lib/locale:/usr/lib/locale:ro
-  
+
     tmpfs:
       - /dev/shm:size=300M,mode=1777
 
