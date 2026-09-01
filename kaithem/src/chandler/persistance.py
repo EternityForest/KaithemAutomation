@@ -12,7 +12,7 @@ from kaithem.src import directories
 logger = structlog.get_logger(__name__)
 
 
-fn = os.path.expanduser("~/.local/kaithem/chandler_state.db")
+fn = os.path.join(directories.vardir, "chandler", "state.db")
 
 if "/dev/shm" in directories.vardir:
     fn = os.path.join(directories.vardir, "test_chandler_state.db")

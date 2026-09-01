@@ -77,7 +77,8 @@ elif audio_api == "jack":
     SOURCE_ELEMENT_PARAMS = {
         "blocksize": 64,
         "connect": 0,
-        "buffer_time": 1000,
+        "buffer_time": 1500000,
+        "slave_method": 0,
     }
     SINK_ELEMENT_PARAMS = {
         "blocksize": 64,
@@ -140,12 +141,20 @@ def start_dummy_source_if_needed():
                 return
             time.sleep(0.1)
 
-        dummy_silence_source = subprocess.Popen(
-            f"gst-launch-1.0 audiotestsrc volume=0 ! capsfilter caps=audio/x-raw,format=F32LE ! {SINK_ELEMENT} client-name=SILENCE",  # noqa: E501
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            shell=True,
-        )
+        if SINK_ELEMENT == "pipewiresink":
+            dummy_silence_source = subprocess.Popen(
+                f"gst-launch-1.0 audiotestsrc volume=0 ! capsfilter caps=audio/x-raw,format=F32LE ! {SINK_ELEMENT} client-name=SILENCE",  # noqa: E501
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                shell=True,
+            )
+        else:
+            dummy_silence_source = subprocess.Popen(
+                f"gst-launch-1.0 audiotestsrc volume=0 ! capsfilter caps=audio/x-raw,format=F32LE ! {SINK_ELEMENT} blocksize=64 buffer-time=1000 slave-method=0 async=true connect=0 client-name=SILENCE",  # noqa: E501
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                shell=True,
+            )
 
         for i in range(25):
             if [
@@ -247,9 +256,11 @@ def echo(e, p, v):
 def queue(e, p, v):
     if p == "min-threshold-time":
         e.set_property("min-threshold-time", v * 1000000)
-        # Set to something short to clear the already buffered crap through leakage
+        # Set to something short to clear the already
+        # buffered crap through leakage
         e.set_property("max-size-time", v * 1000000)
-        # We should be able to depend on JACK not to let us get horribly out of sync,
+        # We should be able to depend on JACK not to let us get
+        # horribly out of sync,
         # The read rate should be exactly the write rate, so we give
         # As much buffer as you can before delay sounds worse than dropouts.
         e.set_property("max-size-time", v * 1000000 + 50 * 1000 * 1000)
@@ -458,10 +469,7 @@ class ChannelStrip(Pipeline, BaseChannel):
         except Exception:
             print(traceback.format_exc())
             # Ensure fully cleaned up if any failure
-            try:
-                self.stop()
-            except Exception:
-                raise
+            self.stop()
             raise
 
     def check_ports(self, execptions: bool = False):
@@ -502,7 +510,8 @@ class ChannelStrip(Pipeline, BaseChannel):
                 **SINK_ELEMENT_PARAMS,
             )
 
-        # It is not going to start unless we can make the connection to the silence thing
+        # It is not going to start unless we can make
+        # the connection to the silence thing
         # Before the thing even exists...
         # so we start it then do the connection in the background
         self.silencein = jacktools.Airwire("SILENCE", f"{self.name}_in")

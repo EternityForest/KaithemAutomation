@@ -16,10 +16,15 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
     bash /workspace/debian_runtime_dependencies.sh
 
+
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
-    apt-get install -y direnv
+    apt-get install -y tz-data ca-certificates curl wget \
+    iputils-ping make nano
 
+
+# Try to fix mdns?
+RUN sed -i 's/hosts:.*/hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4/' /etc/nsswitch.conf
 
 
 
@@ -40,6 +45,12 @@ RUN mkdir -p /workspace/KaithemAutomation/.venv; \
     mkdir -p /workspace/uv_cache ; \
     chown -R 1000:1000 /workspace/ ; 
 
+
+RUN mkdir -p /app-home ; \
+    mkdir -p /app-home/.cache/sherpa-onnx-models ; \
+    chown -R 1000:1000 /app-home ; 
+
+ENV HOME=/app-home
 
 ENV UV_LINK_MODE=copy
 ENV UV_CACHE_DIR=/workspace/uv_cache

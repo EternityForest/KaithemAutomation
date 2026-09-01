@@ -26,7 +26,8 @@ def parse_plugin_name(plugin: str) -> tuple[str, str]:
 
 
 default_package_store_dir = os.environ.get(
-    "WASM_KEGS_PACKAGE_STORE_DIR", "~/.local/share/wasm-kegs/packages"
+    "WASM_KEGS_PACKAGE_STORE_DIR",
+    os.path.expandvars("$XDG_DATA_HOME/wasm-kegs/packages"),
 )
 
 

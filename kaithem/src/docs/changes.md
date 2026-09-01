@@ -11,6 +11,7 @@ Change Log
 * [sparkles] KAITHEM_AUDIO_API=jack sets the mixer to use jack instead of direct pipewire.
 * [bug] Work around gstreamer struct version regression
 * [coffin] Remove sdmon support
+* [:technologist:] Respect XDG_CACHE_HOME
 
 ### 0.96.0
 

@@ -28,6 +28,11 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     UV_LINK_MODE=copy uv tool install debugpy
 
 
+RUN mkdir -p /app-home ; \
+    mkdir -p /app-home/.cache/sherpa-onnx-models ; \
+    chown -R 1000:1000 /app-home ; 
+
+ENV HOME=/app-home
 
 # Copy the built and installed Kaithem files along with the UV venv
 COPY --from=builder /opt/uv-tools/kaithem/ /opt/uv-tools/kaithem/

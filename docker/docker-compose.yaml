@@ -31,7 +31,6 @@ services:
       - XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR}
       - PIPEWIRE_REMOTE=pipewire-0
       - USER=${KAITHEM_USER:?error}
-      - HOME=/home/${KAITHEM_USER:?error}
       - LOGNAME=${KAITHEM_USER:?error}
       - DBUS_SESSION_BUS_ADDRESS=${DBUS_SESSION_BUS_ADDRESS}
       - KAITHEM_AUDIO_API=jack
@@ -50,10 +49,8 @@ services:
 
       - ${XDG_RUNTIME_DIR}:${XDG_RUNTIME_DIR}
       - /var/run/dbus:/var/run/dbus
-      - /home/$KAITHEM_USER:/home/$KAITHEM_USER:ro
-      - /home/$KAITHEM_USER/kaithem:/home/$KAITHEM_USER/kaithem
-      - /home/$KAITHEM_USER/.cache/sherpa-onnx-models:/home/$KAITHEM_USER/.cache/sherpa-onnx-models
-      #
+      - ${HOME}/kaithem-docker-home:/app-home
+
       - /dev:/dev
       - /tmp:/tmp
 
@@ -74,7 +71,7 @@ services:
       - /workspace/KaithemAutomation/wasm_kegs/__pycache__
       - /workspace/Dashbeard/.npm
       - /workspace/Dashbeard/dist
-      - /workspace/uvcache
+      - /workspace/uv_cache
 
 
     network_mode: host
@@ -119,7 +116,7 @@ services:
       - XAUTHORITY=${XAUTHORITY}
       - PIPEWIRE_LATENCY="128/48000"
       - PIPEWIRE_QUANTUM="128/48000"
-      - KIOSK_URL=${KIOSK_URL:?error}
+      - KIOSK_URL="${KIOSK_URL:-http://localhost:8002}"
 
     volumes:
       - /var/run/dbus:/var/run/dbus

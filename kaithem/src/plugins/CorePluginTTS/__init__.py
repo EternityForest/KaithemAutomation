@@ -206,8 +206,8 @@ class PiperTTS(plugin_interfaces.TTSEngine):
 
         model2 = model.replace("vits-piper-", "")
 
-        cache_dir = model_cache_dir or os.path.expanduser(
-            "~/.cache/sherpa-onnx-models/"
+        cache_dir = model_cache_dir or os.path.expandvars(
+            "$XDG_CACHE_HOME/sherpa-onnx-models/"
         )
         os.makedirs(cache_dir, exist_ok=True)
 
@@ -352,8 +352,8 @@ class KokoroTTS(PiperTTS):
 
         selected_model_dir = model
 
-        cache_dir = model_cache_dir or os.path.expanduser(
-            "~/.cache/sherpa-onnx-models/"
+        cache_dir = model_cache_dir or os.path.expandvars(
+            "$XDG_CACHE_HOME/sherpa-onnx-models/"
         )
         os.makedirs(cache_dir, exist_ok=True)
 
