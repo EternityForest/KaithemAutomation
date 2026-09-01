@@ -3,38 +3,55 @@
 """
 JACK-based MIDI input fan-out.
 
-A dedicated JACK client (registered under the name ``OUR_CLIENT_NAME``)
-listens on every external MIDI output port in the JACK graph (which
-under pipewire-jack corresponds to every MIDI device the system can
-see) and dispatches events to the messagebus at ``/midi/<normalized>``
-and to tag points at ``/midi/<normalized>/<channel>.<kind>``.
+For every external MIDI output port visible to JACK (which under
+pipewire-jack corresponds to every MIDI source the system can see) we
+spawn a dedicated ``jack_midi_dump`` subprocess and connect that
+subprocess's input port to the external source with an airwire via
+``jacktools.connect``.
 
-We deliberately do *not* use python-rtmidi / rtmidi2 any more: the
-JACK-Client library's built-in MIDI support is sufficient and means we
-have one audio/MIDI subsystem instead of two.
+A small daemon thread per source reads the subprocess's stdout, parses
+the leading hex bytes from each line, and forwards the resulting bytes
+to :func:`onMidiMessageTuple` which dispatches them to the messagebus
+and tag points.
+
+We deliberately do *not* use python-rtmidi / rtmidi2 any more, and we
+also avoid running an in-process JACK realtime callback: ``jack_midi_dump``
+does the realtime work in C, one OS process per source, which keeps the
+Python side essentially idle.
 """
 
+import os
 import queue
 import re
+import subprocess
+import sys
 import threading
 import time
 import traceback
-from typing import Any
 
-import jack
-from scullery import jacktools, messagebus
+from scullery import jacktools, messagebus, workers
 
 from kaithem.src import tagpoints
 
-# Public name of our JACK client.  Used both for the actual jack.Client
-# call and to filter our own ports out of the listing.
+# Public name of the JACK clients we own.  Each source gets a unique
+# suffix appended, e.g. "KaithemMidi_0".  Used both as the client name
+# passed to ``jack_midi_dump`` and to filter our own clients out of
+# ``list_midi_sources``.
 OUR_CLIENT_NAME = "KaithemMidi"
+
+# Path to the wrapper script that ensures the ``jack_midi_dump``
+# subprocess is killed if our Python process dies (it sets
+# ``PR_SET_PDEATHSIG`` via ctypes before exec'ing the wrapped command).
+JACK_MIDI_DUMP_WRAPPER = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "jack_midi_dump_pdeathsig.py",
+)
 
 
 midi_tags = {}
 
 
-def setTag(n: str, v: int, a: Any = None):
+def setTag(n, v, a=None):
     if n not in midi_tags:
         midi_tags[n] = tagpoints.Tag(n)
         midi_tags[n].min = 0
@@ -42,7 +59,7 @@ def setTag(n: str, v: int, a: Any = None):
     midi_tags[n].set_claim_val("default", v, timestamp=None, annotation=None)
 
 
-def setTag14(n: str, v: int, a: Any = None):
+def setTag14(n, v, a=None):
     if n not in midi_tags:
         midi_tags[n] = tagpoints.Tag(n)
         midi_tags[n].min = 0
@@ -71,7 +88,7 @@ def normalize_midi_name(t: str):
     return t
 
 
-def onMidiMessageTuple(m: tuple[list[int]], d: str):
+def onMidiMessageTuple(m: tuple[tuple[int, int, int]], d: str):
     sb = m[0][0]
     code = sb & 240
     ch = sb & 15
@@ -100,73 +117,258 @@ def onMidiMessageTuple(m: tuple[list[int]], d: str):
 
 
 # ---------------------------------------------------------------------------
-# JACK client management
+# Subprocess worker (one per MIDI source)
 # ---------------------------------------------------------------------------
 
-# source_port_name -> (jack.OwnMidiPort, normalized_name)
-_our_ports: dict[str, tuple[jack.OwnMidiPort, str]] = {}
-_ports_lock = threading.Lock()
 
-# FIFO between the JACK RT process callback and our worker thread.
-_event_queue: "queue.Queue[tuple[str, bytes]]" = queue.Queue()
+# Match the optional "<digits>:" timestamp prefix that jack_midi_dump
+# prints at the start of each line.  Examples:
+#   "  3: e0 11 46"
+#   "266: b0 08 45 control change ..."
+_TIME_PREFIX_RE = re.compile(r"^\s*\d+:")
 
-# Singleton manager (populated by init()).
-_manager: "JackMidiManager | None" = None
+
+def _parse_line(line: str) -> bytes | None:
+    """Extract the raw MIDI bytes from a single jack_midi_dump line.
+
+    Returns ``None`` for blank lines or lines that don't contain any
+    hex bytes.  ``jack_midi_dump`` prints one event per line::
+
+         3: e0 11 46
+        266: b0 08 45 control change (channel  0): controller   8, value  69
+
+    We only care about the leading hex tokens; the human-readable text
+    after them isn't reliable for every message type.
+    """
+    if not line:
+        return None
+
+    line = _TIME_PREFIX_RE.sub("", line)
+
+    out = bytearray()
+    for tok in line.split():
+        # A valid MIDI byte token is exactly two hex digits.
+        if len(tok) != 2:
+            break
+        try:
+            out.append(int(tok, 16))
+        except ValueError:
+            break
+
+    return bytes(out) if out else None
+
+
+class MidiSourceWorker:
+    """One ``jack_midi_dump`` subprocess + a reader thread.
+
+    The subprocess registers an input port whose name matches its
+    client name.  The owning :class:`JackMidiManager` connects the
+    external MIDI source port to that input port.
+    """
+
+    # Backoff (seconds) between restart attempts when the subprocess
+    # exits unexpectedly.  Capped at MAX_RESTART_BACKOFF.
+    INITIAL_RESTART_BACKOFF = 1.0
+    MAX_RESTART_BACKOFF = 30.0
+
+    def __init__(
+        self, source_port_name: str, normalized: str, client_name: str
+    ):
+        self.source_port_name = source_port_name
+        self.normalized = normalized
+        self.client_name = client_name
+
+        self.target_port_name = f"{client_name}:input"
+
+        self._stopped = threading.Event()
+        self._thread: threading.Thread | None = None
+        self._proc: subprocess.Popen[str] | None = None
+        self._lock = threading.Lock()
+        # Used by the manager to wait for the subprocess to be ready
+        # before attempting the airwire connect.
+        self._ready = threading.Event()
+        self._last_exit_returncode: int | None = None
+
+    # -- Lifecycle -----------------------------------------------------------
+
+    def start(self):
+        self._stopped.clear()
+        self._thread = threading.Thread(
+            target=self._run_forever,
+            daemon=True,
+            name=f"MidiDump[{self.normalized}]",
+        )
+        self._thread.start()
+
+    def stop(self):
+        self._stopped.set()
+        with self._lock:
+            proc = self._proc
+        if proc is not None:
+            try:
+                proc.terminate()
+            except Exception:
+                pass
+
+    def wait_until_ready(self, timeout: float = 5.0) -> bool:
+        """Block until the subprocess has registered its port.
+
+        ``jack_midi_dump`` blocks until JACK accepts the new client,
+        so by the time ``Popen`` returns the port is (almost) always
+        already visible.  We also poll the port list to be safe.
+        """
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            try:
+                ports = jacktools.get_ports(is_midi=True, is_output=False)
+                for p in ports:
+                    if p.name == self.target_port_name:
+                        self._ready.set()
+                        return True
+            except Exception:
+                pass
+            time.sleep(0.05)
+        return False
+
+    # -- Internal ------------------------------------------------------------
+
+    def _run_forever(self):
+        backoff = self.INITIAL_RESTART_BACKOFF
+        while not self._stopped.is_set():
+            try:
+                self._spawn_and_read()
+            except Exception:
+                traceback.print_exc()
+            if self._stopped.is_set():
+                return
+            # Subprocess died unexpectedly; back off and try again.
+            time.sleep(backoff)
+            backoff = min(self.MAX_RESTART_BACKOFF, backoff * 2)
+
+    def _spawn_and_read(self):
+        # Use line-buffered text mode so readline() returns complete
+        # lines.  jack_midi_dump emits one event per line.
+        #
+        # We run the wrapped command via our ``JACK_MIDI_DUMP_WRAPPER``
+        # script, which sets PR_SET_PDEATHSIG before exec'ing the real
+        # command.  That guarantees the subprocess (and any descendants
+        # it might fork off) are killed if our Python process dies for
+        # any reason — not just an orderly shutdown, but SIGKILL, a
+        # segfault, OOM-kill, etc.  Without this we'd leave orphaned
+        # jack clients holding MIDI ports in the JACK graph.
+        argv = [
+            sys.executable,
+            JACK_MIDI_DUMP_WRAPPER,
+            "jack_midi_dump",
+            self.client_name,
+        ]
+        try:
+            proc = subprocess.Popen(
+                argv,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                stdin=subprocess.DEVNULL,
+                bufsize=1,
+                text=True,
+            )
+        except FileNotFoundError:
+            messagebus.post_message(
+                "/system/notifications/errors",
+                "jack_midi_dump not found on PATH; MIDI features disabled.",
+            )
+            return
+        except Exception:
+            traceback.print_exc()
+            return
+
+        with self._lock:
+            self._proc = proc
+        self._ready.set()
+
+        try:
+            assert proc.stdout is not None
+            for raw_line in proc.stdout:
+                if self._stopped.is_set():
+                    break
+                data = _parse_line(raw_line)
+                if not data:
+                    continue
+                try:
+                    # pyrefly: ignore [bad-argument-type]
+                    onMidiMessageTuple((tuple(data),), self.normalized)
+                except Exception:
+                    traceback.print_exc()
+        except Exception:
+            traceback.print_exc()
+        finally:
+            try:
+                proc.wait(timeout=2)
+            except Exception:
+                try:
+                    proc.kill()
+                except Exception:
+                    pass
+            self._last_exit_returncode = proc.returncode
+            with self._lock:
+                self._proc = None
+
+
+# ---------------------------------------------------------------------------
+# Manager
+# ---------------------------------------------------------------------------
+
+# source_port_name -> MidiSourceWorker
+_workers: dict[str, MidiSourceWorker] = {}
+_workers_lock = threading.Lock()
 
 
 def get_jack_client_name() -> str:
-    """Name of the JACK client we own.  Used by other modules that
-    need to filter our ports out of the listing."""
+    """Name of the JACK clients we own.
+
+    Used by other modules that need to filter our ports out of the
+    listing.
+    """
     return OUR_CLIENT_NAME
 
 
 def list_midi_sources() -> list[str]:
     """Return raw (unnormalized) full port names of all external MIDI
-    output ports visible to JACK right now."""
+    output ports visible to JACK right now.
+    """
     try:
         ports = jacktools.get_ports(is_midi=True, is_output=True)
-        return [p.name for p in ports if p.clientName != OUR_CLIENT_NAME]
+        return [
+            p.name
+            for p in ports
+            if not p.name.split(":", 1)[0].startswith(OUR_CLIENT_NAME + "_")
+        ]
     except Exception:
         return []
 
 
-class JackMidiManager:
-    """Owns a single JACK client, auto-connects to external MIDI output
-    ports, and dispatches incoming MIDI events to the messagebus / tag
-    points.
+def _slot_index_from_client_name(name: str) -> int | None:
+    """Inverse of the slot-index convention used by ``JackMidiManager``."""
+    prefix = f"{OUR_CLIENT_NAME}_"
+    if not name.startswith(prefix):
+        return None
+    try:
+        return int(name[len(prefix) :])
+    except ValueError:
+        return None
 
-    A small FIFO is used to move bytes out of the real-time process
-    callback so the worker thread can do all the user-facing work.
+
+class JackMidiManager:
+    """Keeps one :class:`MidiSourceWorker` per external MIDI output port.
+
+    Subscribes to JACK port-lifecycle messages on the messagebus so the
+    set of workers tracks the actual JACK graph.
     """
 
+    _MAX_CLIENT_NAME_SLOT = 10**6
+
     def __init__(self):
-        self._stopped = threading.Event()
-        self._worker_thread: threading.Thread | None = None
-        self._client: jack.Client | None = None
-        # Counter used to give each of our input ports a unique shortname.
         self._slot_counter = 0
-
-        try:
-            self._client = jack.Client(OUR_CLIENT_NAME)
-        except Exception:
-            messagebus.post_message(
-                "/system/notifications/errors",
-                "Failed to create JACK MIDI client. MIDI features disabled.\n"
-                + traceback.format_exc(),
-            )
-            return
-
-        try:
-            self._client.set_process_callback(self._process)
-            self._client.activate()
-        except Exception:
-            messagebus.post_message(
-                "/system/notifications/errors",
-                "Failed to activate JACK MIDI client. MIDI features disabled.\n"
-                + traceback.format_exc(),
-            )
-            self._client = None
-            return
+        self._slot_lock = threading.Lock()
 
         messagebus.subscribe("/system/jack/newport", self._on_new_port)
         messagebus.subscribe("/system/jack/delport", self._on_del_port)
@@ -177,119 +379,91 @@ class JackMidiManager:
         # before we subscribed to the messagebus.
         self._initial_scan()
 
-        self._worker_thread = threading.Thread(
-            target=self._worker, daemon=True, name="KaithemMidiWorker"
-        )
-        self._worker_thread.start()
-
     # -- JACK port lifecycle -------------------------------------------------
 
     def _initial_scan(self):
         try:
             ports = jacktools.get_ports(is_midi=True, is_output=True)
             for p in ports:
-                if p.clientName != OUR_CLIENT_NAME:
-                    self._register_source(p)
+                self._register_source(p)
         except Exception:
             traceback.print_exc()
 
-    def _on_new_port(self, _topic, port_info: jacktools.PortInfo):
+    def _on_new_port(self, _topic, port_info):
         try:
             if port_info.is_audio or port_info.is_input:
-                return
-            if port_info.clientName == OUR_CLIENT_NAME:
                 return
             self._register_source(port_info)
         except Exception:
             traceback.print_exc()
 
-    def _on_del_port(self, _topic, port_info: jacktools.PortInfo):
-        with _ports_lock:
-            _our_ports.pop(port_info.name, None)
+    def _on_del_port(self, _topic, port_info):
+        with _workers_lock:
+            worker = _workers.pop(port_info.name, None)
+        if worker is not None:
+            worker.stop()
 
     def _on_jack_start(self, _topic, _msg):
-        # JACK came back up.  Re-scan so we re-attach to anything that
-        # is still there.
+        # JACK came back up.  Stop everything we know about (their
+        # jack_midi_dump children will have lost their connections
+        # anyway) and re-scan.
+        with _workers_lock:
+            old = list(_workers.items())
+            _workers.clear()
+        for w in old:
+            try:
+                w.stop()
+            except Exception:
+                pass
         self._initial_scan()
 
-    def _register_source(self, port_info: jacktools.PortInfo):
-        if self._client is None:
-            return
-
-        with _ports_lock:
-            if port_info.name in _our_ports:
-                return
-
+    def _next_slot(self) -> int:
+        with self._slot_lock:
             slot = self._slot_counter
-            self._slot_counter += 1
-            shortname = f"midi_in_{slot}"
-            try:
-                our_port = self._client.midi_inports.register(shortname)
-            except Exception:
-                traceback.print_exc()
+            self._slot_counter = (
+                self._slot_counter + 1
+            ) % self._MAX_CLIENT_NAME_SLOT
+        return slot
+
+    def _register_source(self, port_info):
+        with _workers_lock:
+            if port_info.name in _workers:
                 return
-
-            assert isinstance(our_port, jack.OwnMidiPort)
-
+            slot = self._next_slot()
             normalized = normalize_midi_name(port_info.name)
-            _our_ports[port_info.name] = (our_port, normalized)
+            client_name = f"{OUR_CLIENT_NAME}_{slot}"
+            worker = MidiSourceWorker(
+                source_port_name=port_info.name,
+                normalized=normalized,
+                client_name=client_name,
+            )
+            _workers[port_info.name] = worker
 
-            our_full_name = our_port.name
-            source_name = port_info.name
+        worker.start()
 
-        # Connecting straight away often fails because the port isn't
-        # visible to the rest of the graph yet.  Try a few times with a
-        # small delay.
-        def connect_later():
-            for _ in range(10):
+        def f():
+            self._connect_later(worker)
+
+        workers.do(f)
+
+    def _connect_later(self, worker: MidiSourceWorker):
+        if not worker.wait_until_ready(timeout=15.0):
+            raise RuntimeError("Timed out waiting for worker to be ready")
+
+        for _ in range(10):
+            try:
+                jacktools.connect(
+                    worker.source_port_name, worker.target_port_name
+                )
+            except Exception:
                 time.sleep(0.2)
-                try:
-                    jacktools.connect(source_name, our_full_name)
-                except Exception:
-                    continue
-                else:
-                    return
-            traceback.print_exc()
-
-        threading.Thread(
-            target=connect_later, daemon=True, name="KaithemMidiConnect"
-        ).start()
-
-    # -- Process callback / worker ------------------------------------------
-
-    def _process(self, _frames):
-        # Keep the work here minimal: snapshot the port list under the
-        # lock, then drain events from each one and push the bytes onto
-        # the queue.  Doing the messagebus work here would be unsafe.
-        with _ports_lock:
-            ports_snapshot = list(_our_ports.items())
-
-        for _source_name, (port, normalized) in ports_snapshot:
-            try:
-                for _time, event in port.incoming_midi_events():
-                    # The event buffer is reused on the next iteration;
-                    # copy it before queueing.
-                    _event_queue.put((normalized, bytes(event)))
-            except Exception:
-                traceback.print_exc()
-
-    def _worker(self):
-        while not self._stopped.is_set():
-            try:
-                normalized, data = _event_queue.get(timeout=0.5)
-            except queue.Empty:
-                continue
-            try:
-                onMidiMessageTuple((list(data),), normalized)
-            except Exception:
-                traceback.print_exc()
+            else:
+                return
+        traceback.print_exc()
 
 
 def init():
-    global _manager
-    if _manager is not None:
-        return
-    _manager = JackMidiManager()
+    JackMidiManager()
 
 
 init()
