@@ -247,3 +247,4 @@ aiostream = ">0.0.1"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+testpaths = ["kaithem/src/tests"]

@@ -495,9 +495,7 @@ class KaithemConfiguredUserAuthenticationPlugin(BaseAuthenticationPlugin):
             if username in Users and ("password" in Users[username]):
                 # These users don't have the password format
                 # we expect and belong to some other plugin.
-                if ("algorithm" not in Users[username]) or (
-                    "salt" not in Users[username]
-                ):
+                if "algorithm" not in Users[username]:
                     return None
 
                 if Users[username].get("algorithm", "sha256") == "sha256":
