@@ -50,11 +50,10 @@ JACK_MIDI_DUMP_WRAPPER = os.path.join(
     "jack_midi_dump_pdeathsig.py",
 )
 
-
+USE_MIDI = True
 if not shutil.which("jack_midi_dump"):
-    raise RuntimeError(
-        "jack_midi_dump not found on PATH; MIDI features disabled."
-    )
+    USE_MIDI = False
+    _logger.warning("jack_midi_dump not found on PATH; MIDI features disabled.")
 
 midi_tags = {}
 
@@ -474,4 +473,5 @@ def init():
     JackMidiManager()
 
 
-init()
+if USE_MIDI:
+    init()
