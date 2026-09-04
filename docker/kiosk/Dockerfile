@@ -4,11 +4,12 @@ FROM kaithem-builder:${KAITHEM_VERSION:?error} as builder
 # Stage 2: Final minimal runtime
 FROM debian:trixie-slim
 
+COPY ./KaithemAutomation/kaithem/data/debian_core_utils.sh \
+    /workspace/debian_core_utils.sh
+
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
-    apt-get install -y \
-    tz-data ca-certificates curl wget \
-    iputils-ping make nano
+    bash /workspace/debian_core_utils.sh
 
 
 # Ensure the wayland environment variables are exposed

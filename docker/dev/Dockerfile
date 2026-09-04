@@ -19,7 +19,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
-    apt-get install -y tz-data ca-certificates curl wget \
+    apt-get install -y tzdata ca-certificates curl wget \
     iputils-ping make nano
 
 
@@ -32,6 +32,14 @@ RUN sed -i 's/hosts:.*/hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4/' 
 # Do it ahead of time.
 RUN ln -s /usr/lib/python3/dist-packages/gi /opt/uv-tools/kaithem/lib/python3.13/site-packages/gi
 
+
+
+
+
+RUN mkdir -p /app-home ; \
+    chown -R 1000:1000 /app-home ; 
+
+ENV HOME=/app-home
 
 RUN mkdir -p /workspace/KaithemAutomation/.venv; \
     mkdir -p /workspace/KaithemAutomation/.test_venvs; \
@@ -46,22 +54,19 @@ RUN mkdir -p /workspace/KaithemAutomation/.venv; \
     chown -R 1000:1000 /workspace/ ; 
 
 
-RUN mkdir -p /app-home ; \
-    mkdir -p /app-home/.cache/sherpa-onnx-models ; \
-    chown -R 1000:1000 /app-home ; 
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    apt-get install -y mosquitto
 
-ENV HOME=/app-home
+# Dev specific stuff
+RUN mkdir -p /root/.cache && \
+    chown -R 1000:1000 /root/.cache
 
-ENV UV_LINK_MODE=copy
-ENV UV_CACHE_DIR=/workspace/uv_cache
+
 USER 1000:1000
 
 WORKDIR /workspace/KaithemAutomation
 
-
-
 #Debug in image: pw-jack uv run debugpy --listen 5178 /usr/local/bin/kaithem
 
-
-
-ENTRYPOINT ["pw-jack", "kaithem"]
+CMD ["tail", "-f", "/dev/null"]

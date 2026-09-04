@@ -5,6 +5,10 @@
 
 .DELETE_ON_ERROR:
 
+COMPOSE_FILE := docker/docker-compose.yaml
+IN_DEV_DOCKER := docker compose -f $(COMPOSE_FILE) up -d kaithem-dev && docker compose -f $(COMPOSE_FILE) exec kaithem-dev
+IN_APP_DOCKER := docker compose -f $(COMPOSE_FILE) up -d kaithem && docker compose -f $(COMPOSE_FILE) exec kaithem
+PLAYWRIGHT := docker compose -f $(COMPOSE_FILE) run --rm playwright npx playwright
 # We autoselect the user who will be running Kaithem if we install it.
 ifdef KAITHEM_USER
 KAITHEM_UID:=$(shell id -u $(KAITHEM_USER))
@@ -94,13 +98,8 @@ dev-playwright-ui: # Open playwright tests UI
 
 .PHONY: dev-record-playwright
 dev-record-playwright: # Record playwright tests
-	@npx playwright codegen http://localhost:8002
+	@${PLAYWRIGHT} codegen http://localhost:8002
 
-
-.PHONY: dev-update-playwright
-dev-update-playwright: # Update playwright tests
-	@npm install -D @playwright/test@latest
-	@npx playwright install --with-deps
 
 .PHONY: dev-file-lines
 dev-file-lines: # Show files sorted by line count
@@ -156,40 +155,43 @@ dev-install-dev-tools:
 # Due to the gstreamer hack we
 .PHONY: dev-run-all-tests
 dev-run-all-tests:
+	@trap 'echo "Stopping all subprocesses..."; kill -9 0' EXIT INT TERM
 	@echo "Starting test server and running all playwright and pytest tests in active .venv"
 	@echo "Stopping any other process named coverage"
 	@killall -9 kmakefiletest
 	@killall -9 coverage
 	@sleep 1
-	@coverage erase
-	@coverage run testing_server.py --process-title kmakefiletest &
+	@ ${IN_DEV_DOCKER} coverage erase
+	@ ${IN_DEV_DOCKER} pw-jack uv run coverage run testing_server.py --process-title kmakefiletest > /dev/shm/kmakefiletest.log &
 	@echo "Waiting for server to start"
 	@sleep 5
+	@echo "wgetting server to make sure it is up, this may take a minute"
 	@wget --retry-connrefused --waitretry=1 --read-timeout=20 --quiet --timeout=15 -t 0 http://localhost:8002
-	@npx playwright test --reporter=html  --workers 1 --max-failures 1
+	@echo "Running playwright tests"
+	@${PLAYWRIGHT} test --reporter=html  --workers 1 --max-failures 1
 	@sleep 5
 	@echo "Stopping server"
 	@killall kmakefiletest
 	@sleep 1
 	@killall -w kmakefiletest
 	@sleep 10
-	@coverage run --append -m pytest
-	@coverage html -i
-	@npx playwright show-report &
+	@${IN_DEV_DOCKER} coverage run --append -m pytest
+	@${IN_DEV_DOCKER} coverage html -i
 	@open htmlcov/index.html
-	
-	@echo "Rerunning pytest tests against 3.11, 3.12 and 3.13"
+	@open playwright-report/index.html
 
-	@UV_PROJECT_ENVIRONMENT=.test_venvs/.venv311  uv run --group dev --python 3.11 pytest
-	@UV_PROJECT_ENVIRONMENT=.test_venvs/.venv312  uv run --group dev --python 3.12 pytest
-	@UV_PROJECT_ENVIRONMENT=.test_venvs/.venv313  uv run --group dev --python 3.13 pytest
+	@echo "Rerunning pytest tests against 3.11, 3.12 and 3.13 on local machine"
+
+	@UV_PROJECT_ENVIRONMENT=.test_venvs/.venv311  pw-jack  uv run --group dev --python 3.11 pytest
+	@UV_PROJECT_ENVIRONMENT=.test_venvs/.venv312  pw-jack  uv run --group dev --python 3.12 pytest
+	@UV_PROJECT_ENVIRONMENT=.test_venvs/.venv313  pw-jack uv run --group dev --python 3.13 pytest
 
 
 	@echo "Rerunning playwright tests in a clean venv without dev dependencies"
 
-	@UV_PROJECT_ENVIRONMENT=.test_venvs/.venv_clean_no_dev  uv run --python=/usr/bin/python3 --no-dev testing_server.py --process-title kmakefiletest  &
+	@UV_PROJECT_ENVIRONMENT=.test_venvs/.venv_clean_no_dev  pw-jack  uv run --python=/usr/bin/python3 --no-dev testing_server.py --process-title kmakefiletest  &
 	@wget --retry-connrefused --waitretry=1 --read-timeout=20 --quiet --timeout=15 -t 0 http://localhost:8002
-	@npx playwright test --reporter=html  --workers 1 --max-failures 1
+	@${PLAYWRIGHT} test --reporter=html  --workers 1 --max-failures 1
 
 	@echo "Finished running Kaithem test suite"
 	@echo "Stopping server"
@@ -203,14 +205,19 @@ dev-build-docker:
 	@echo "Building docker images for Kaithem ${KAITHEM_VERSION}"
 	@echo "Dev user must be 1000, current is: ${KAITHEM_USER}  UID: ${KAITHEM_UID}  GID: ${KAITHEM_GROUP}"
 	@cd ./docker
-	@docker compose build --progress=plain kaithem-builder
+# 	@docker compose build --progress=plain kaithem-builder
 	@docker compose build --progress=plain kaithem-dev
-	@docker compose build --progress=plain kaithem-kiosk
+# 	@docker compose build --progress=plain kaithem-kiosk
+# 	@docker compose build --progress=plain playwright
+	@docker compose build --progress=plain kaithem
+
+
 
 .PHONY: dev-docker-shell
 dev-docker-shell:
-	@cd ./docker
-	@docker compose run --remove-orphans --entrypoint /bin/bash kaithem-dev
+	@${IN_DEV_DOCKER} /bin/bash
+
+
 
 .PHONY: dev-docker-kiosk
 dev-docker-kiosk: # Launch the kiosk browser in a docker.

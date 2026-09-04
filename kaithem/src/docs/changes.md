@@ -13,6 +13,7 @@ Change Log
 * [coffin] Remove sdmon support
 * [:technologist:] Respect XDG_CACHE_HOME
 * [:technologist:] MIDI features depend on jack_midi_dump to avoid the horrendous performance hit of in-process JACK.
+* [:technologist:] Dev workflow now uses Docker for tests.
 
 ### 0.96.0
 

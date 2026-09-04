@@ -3,12 +3,12 @@ FROM kaithem-builder:${KAITHEM_VERSION:?error} AS builder
 
 FROM debian:trixie-slim
 
+COPY ./KaithemAutomation/kaithem/data/debian_core_utils.sh \
+    /workspace/debian_core_utils.sh
+
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
-    apt-get install -y \
-    tz-data ca-certificates curl wget \
-    iputils-ping make nano
-
+    bash /workspace/debian_core_utils.sh
 
 # Central management of the debian deps list
 COPY ./KaithemAutomation/kaithem/data/debian_runtime_dependencies.sh \

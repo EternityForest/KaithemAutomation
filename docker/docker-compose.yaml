@@ -8,11 +8,26 @@ services:
       context: ../../
       dockerfile: KaithemAutomation/docker/build/Dockerfile
 
-  kaithem-dev:
-    image: kaithem-dev:${KAITHEM_VERSION:?error}
+  playwright:
+    image: kaithem-dev-playwright:${KAITHEM_VERSION:?error}
     build:
       context: ../../
-      dockerfile: KaithemAutomation/docker/dev/Dockerfile
+      dockerfile: KaithemAutomation/docker/playwright/Dockerfile
+    user: "${KAITHEM_UID:?error}:${KAITHEM_GROUP:?error}"
+
+    volumes:
+      - ./../../KaithemAutomation:/work
+  
+    working_dir: /work
+    network_mode: host
+
+
+
+  kaithem:
+    image: kaithem:${KAITHEM_VERSION:?error}
+    build:
+      context: ../../
+      dockerfile: KaithemAutomation/docker/app/Dockerfile
       args:
         - KAITHEM_VERSION=${KAITHEM_VERSION:?error}
 
@@ -46,11 +61,9 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
       - /usr/lib/locale:/usr/lib/locale:ro
-
       - ${XDG_RUNTIME_DIR}:${XDG_RUNTIME_DIR}
       - /var/run/dbus:/var/run/dbus
       - ${HOME}/kaithem-docker-home:/app-home
-
       - /dev:/dev
       - /tmp:/tmp
 
@@ -58,21 +71,6 @@ services:
       # updating the bundle
       - /etc/ssl/certs:/etc/ssl/certs:ro
       - /etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro
-
-      # Mount in the Kaithem files, so that we can do dev with
-      # it.
-      - ./../../KaithemAutomation:/workspace/KaithemAutomation
-      - ./../../Dashbeard:/workspace/Dashbeard
-      - /workspace/KaithemAutomation/.venv
-      - /workspace/KaithemAutomation/.test_venvs
-      - /workspace/KaithemAutomation/__pycache__
-      - /workspace/KaithemAutomation/target
-      - /workspace/KaithemAutomation/dist
-      - /workspace/KaithemAutomation/wasm_kegs/__pycache__
-      - /workspace/Dashbeard/.npm
-      - /workspace/Dashbeard/dist
-      - /workspace/uv_cache
-
 
     network_mode: host
     pid: host
@@ -84,6 +82,27 @@ services:
 
     restart: unless-stopped
 
+  kaithem-dev:
+    extends: 
+      service: kaithem
+    image: kaithem-dev:${KAITHEM_VERSION:?error}
+    build:
+      context: ../../
+      dockerfile: KaithemAutomation/docker/dev/Dockerfile
+
+    volumes:
+      # Mount in the Kaithem files, so that we can do dev with it.
+      - ./../../KaithemAutomation:/workspace/KaithemAutomation
+      - ./../../Dashbeard:/workspace/Dashbeard
+      - /workspace/KaithemAutomation/.venv
+      - /workspace/KaithemAutomation/.test_venvs
+      - /workspace/KaithemAutomation/__pycache__
+      - /workspace/KaithemAutomation/target
+      - /workspace/KaithemAutomation/dist
+      - /workspace/KaithemAutomation/wasm_kegs/__pycache__
+      - /workspace/Dashbeard/.npm
+      - /workspace/Dashbeard/dist
+      - /workspace/uv_cache
 
   kaithem-kiosk:
     image: kaithem-kiosk:${KAITHEM_VERSION:?error}
