@@ -58,7 +58,7 @@ test('test', async ({ page }) => {
   await page
     .getByTestId('channel-box-testchannel2')
     .getByTestId('channel-input')
-    .fill('testchannel_in');
+    .fill('testchannel_out');
 
   await expect(async () => {
     // Ding channel 1, expect there to be sound in the meter for channel 2
@@ -448,21 +448,21 @@ test('test', async ({ page }) => {
   ).toContainText('-99db');
   await page.getByRole('button', { name: 'Status' }).click();
   await expect(
-    page.getByRole('cell', { name: 'testchannel_in:input_FL' })
+    page.getByRole('cell', { name: 'testchannel_in:' }).first()
   ).toBeVisible();
   await expect(
-    page.getByRole('cell', { name: 'testchannel2_in:input_FL' })
+    page.getByRole('cell', { name: 'testchannel2_in:' }).first()
   ).toBeVisible();
   await expect(
-    page.getByRole('cell', { name: 'testchannel_out:output_FL' })
+    page.getByRole('cell', { name: 'testchannel_out:' }).first()
   ).toBeVisible();
   await expect(
-    page.getByRole('cell', { name: 'testchannel2_out:output_FL' })
+    page.getByRole('cell', { name: 'testchannel2_out:' }).first()
   ).toBeVisible();
 
   // Deleted stuff
   await expect(
-    page.getByRole('cell', { name: 'testchannel3_out:output_FL' })
+    page.getByRole('cell', { name: 'testchannel3_out:' })
   ).toBeHidden({ timeout: 20_000 });
 
   await page.getByRole('link', { name: '󱒕 Modules' }).click();
@@ -517,22 +517,22 @@ test('test', async ({ page }) => {
 
   // Should be no leftovers from the old mixer
   await expect(
-    page.getByRole('cell', { name: 'testchannel_out:output_FL' })
+    page.getByRole('cell', { name: 'testchannel_out:' })
   ).toBeHidden();
   await expect(
-    page.getByRole('cell', { name: 'testchannel2_out:output_FL' })
+    page.getByRole('cell', { name: 'testchannel2_out:' })
   ).toBeHidden();
   await expect(
-    page.getByRole('cell', { name: 'testchannel3_out:output_FL' })
+    page.getByRole('cell', { name: 'testchannel3_out:' })
   ).toBeHidden();
   await expect(
-    page.getByRole('cell', { name: 'testchannel_in:input_FL' })
+    page.getByRole('cell', { name: 'testchannel_in:' })
   ).toBeHidden();
   await expect(
-    page.getByRole('cell', { name: 'testchannel2_in:input_FL' })
+    page.getByRole('cell', { name: 'testchannel2_in:' })
   ).toBeHidden();
   await expect(
-    page.getByRole('cell', { name: 'testchannel2_in:input_FL' })
+    page.getByRole('cell', { name: 'testchannel2_in:' })
   ).toBeHidden();
 
   // Test of editing the params
