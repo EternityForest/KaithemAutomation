@@ -281,7 +281,7 @@
               type="button"
               :disabled="no_edit"
               data-testid="add-group-button"
-              v-on:click="addGroupDialog()">
+              v-on:click="addgroup()">
               <i class="mdi mdi-plus"></i>Add Group
             </button>
           </div>
@@ -1939,6 +1939,7 @@ import {
   notifyPopupComputedCueLength,
   refreshCueProviders,
   sendKeystrokes,
+  addgroup
 } from "./boardapi.mjs";
 
 import {
@@ -1947,7 +1948,6 @@ import {
   closePreview,
   iframeDialog,
   eventsFilterString,
-  addGroupDialog,
 } from "./editor.mjs";
 import { ref, nextTick } from "vue";
 

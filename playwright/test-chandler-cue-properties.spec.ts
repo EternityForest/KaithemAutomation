@@ -37,8 +37,10 @@ test("test", async ({ page }) => {
   });
   await page.getByTestId("add-group-button").click();
 
-  await sleep(200);
+  await sleep(250);
+  await waitForTasks(page);
 
+  
   await page.getByRole("button", { name: "tst" }).click();
   await page.getByTestId("cue-media-dialog-button").click();
 

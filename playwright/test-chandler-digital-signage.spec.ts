@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { login, logout, makeModule, deleteModule } from "./util";
+import { login, logout, makeModule, deleteModule, sleep, waitForTasks } from "./util";
 
 test("test", async ({ page }) => {
   test.setTimeout(2_400_000);
@@ -40,7 +40,11 @@ test("test", async ({ page }) => {
     console.log(`Dialog message: ${dialog.message()}`);
     dialog.accept("signage").catch(() => {});
   });
+  
   await page.getByTestId("add-group-button").click();
+
+  await sleep(250);
+  await waitForTasks(page);
 
   //Set the slide for the cue
   await page.getByRole("button", { name: "signage" }).click();

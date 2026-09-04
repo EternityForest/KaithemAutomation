@@ -130,7 +130,9 @@ async function chandlerBoardTemplate(page: Page, module: string) {
     dialog.accept("tst1").catch(() => {});
   });
     await page.getByTestId("add-group-button").click();
-    await sleep(100);
+    await sleep(300);
+    await waitForTasks(page);
+    await sleep(300);
 
 
     await page.getByRole('button', { name: 'tst1' }).click();

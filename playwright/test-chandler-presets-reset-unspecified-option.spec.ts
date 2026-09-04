@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { deleteModule, login, makeModule, waitForTasks } from "./util";
+import { deleteModule, login, makeModule, waitForTasks, sleep} from "./util";
 
 test("test", async ({ page }) => {
   test.setTimeout(120_000);
@@ -68,6 +68,9 @@ test("test", async ({ page }) => {
     dialog.accept("testgroup1").catch(() => {});
   });
   await page.getByTestId("add-group-button").click();
+
+  await sleep(250);
+  await waitForTasks(page);
 
   await page.getByRole("button", { name: "testgroup1" }).click();
   await page.getByTestId("add-rm-fixtures-button").click();

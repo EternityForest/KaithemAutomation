@@ -90,12 +90,7 @@ function closePreview() {
 
 
 
-function addGroupDialog() {
-  const x = prompt("New Group Name?");
-  if (x != null) {
-    globalThis.api_link.send(["addgroup", x]);
-  }
-}
+
 
 
 let eventsFilterString = ref("");
@@ -109,5 +104,4 @@ export {
   iframeDialog,
   selectingImageLabelForPreset,
   eventsFilterString,
-  addGroupDialog
 };

@@ -494,12 +494,40 @@ async function delgroup(group) {
       let result2 = await result;
       if (!result2.ok) {
         {
-          alert("Error deleting group: " + result.statusText);
+          alert("Error deleting group: " + result2.statusText);
         }
       }
     });
   }
 }
+
+async function addgroup() {
+  var r = prompt("New group name?");
+  if (!(r == null || r == "")) {
+    await doSerialized(async () => {
+      let result = fetch(
+        "/chandler/api/add-group/" + boardname.value + "/" + r,
+        {
+          method: "PUT",
+        }
+      ).catch(function (error) {
+        alert("Could not reach server:" + error);
+      });
+
+      let result2 = await result;
+      if(!result2){
+        alert("????");
+        return
+      }
+      if (!result2.ok) {
+        {
+          alert("Error adding group: " + result2.statusText);
+        }
+      }
+    });
+  }
+}
+
 
 async function go(group) {
   await doSerialized(async () => {
@@ -1631,6 +1659,7 @@ export {
   selectcue,
   selectgroup,
   delgroup,
+  addgroup,
   go,
   stop,
   setalpha,

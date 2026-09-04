@@ -826,7 +826,7 @@ class ChandlerConsole(console_abc.Console_ABC):
         self.linkSend(["fixtureclass", type, self.fixture_classes[type]])
 
     @core.cl_context.entry_point
-    def cl_del_group(self, sc):
+    def cl_del_group(self, sc: str):
         i = None
         if sc in self.groups:
             i = self.groups.pop(sc)
@@ -835,6 +835,15 @@ class ChandlerConsole(console_abc.Console_ABC):
             self.groups_by_name.pop(i.name)
             self.linkSend(["del", i.id])
             persistance.del_checkpoint(i.id)
+
+    @core.cl_context.entry_point
+    def cl_add_group(self, name: str):
+        if name in self.groups_by_name:
+            raise RuntimeError(f"{name} already exists")
+        sc = Group(self, name)
+        self.groups[sc.id] = sc
+        self.push_group_meta(sc.id)
+        sc.go()
 
     @core.cl_context.entry_point
     def cl_add_to_active_groups(self, group: Group):

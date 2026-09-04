@@ -32,6 +32,8 @@ def init_db():
     # Self test line to be sure it works
     con.execute("SELECT * FROM checkpoint LIMIT 1")
 
+    con.close()
+
 
 try:
     init_db()

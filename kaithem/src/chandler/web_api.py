@@ -88,6 +88,16 @@ async def delete_chandler_group(board: str, group_id: str):
 
 
 @quart_app.route(
+    "/chandler/api/add-group/<board>/<group_name>", methods=["PUT"]
+)
+async def add_chandler_group(board: str, group_name: str):
+    require("chandler_operator")
+    board_obj = boards[board]
+    board_obj.cl_add_group(group_name)
+    return {"success": True}
+
+
+@quart_app.route(
     "/chandler/api/set-fixture-class/<board>/<fixture_type_name>",
     methods=["PUT"],
 )

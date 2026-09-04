@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { login, makeModule, deleteModule } from "./util";
+import { login, makeModule, deleteModule, sleep, waitForTasks } from "./util";
 
 test("test", async ({ page }) => {
   test.setTimeout(2_400_000);
@@ -26,6 +26,8 @@ test("test", async ({ page }) => {
   });
   await page.getByTestId("add-group-button").click();
 
+  await sleep(250);
+  await waitForTasks(page);
 
   await expect(page.getByRole("button", { name: "td1" })).toBeVisible({ timeout: 15_000 });
 

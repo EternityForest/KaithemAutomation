@@ -306,7 +306,9 @@ class Recorder(Pipeline):
 
         # It is not ginna start unless we can make the connection to the silence thing
         # Before the thing even exists...
-        self.silencein = jacktools.Airwire("SILENCE", name)
+        self.silencein = jacktools.Airwire(
+            "SILENCE", name, force_combining=True
+        )
 
         def f():
             for i in range(100):
@@ -514,7 +516,9 @@ class ChannelStrip(Pipeline, BaseChannel):
         # the connection to the silence thing
         # Before the thing even exists...
         # so we start it then do the connection in the background
-        self.silencein = jacktools.Airwire("SILENCE", f"{self.name}_in")
+        self.silencein = jacktools.Airwire(
+            "SILENCE", f"{self.name}_in", force_combining=True
+        )
         # self.dummyout = jacktools.Airwire(f"{self.name}_out", "DUMMYSINK")
 
         def f():

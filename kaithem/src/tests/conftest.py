@@ -8,6 +8,7 @@ import os
 import sys
 import threading
 import time
+import weakref
 
 import pytest
 
@@ -81,7 +82,16 @@ if "--collect-only" not in sys.argv:  # pragma: no cover
                             + str(path)
                         )
 
-        return old_open(path, mode, *args, **kwargs)
+        x = old_open(path, mode, *args, **kwargs)
+
+        def f():
+            if x.closed:
+                return
+            print(f"************Unclosed file: {path} {mode}")
+
+        weakref.finalize(x, f)
+
+        return x
 
     builtins.open = open2
 

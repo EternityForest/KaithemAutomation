@@ -28,6 +28,9 @@ test('test', async ({ page }) => {
     dialog.accept('foo').catch(() => {});
   });
   await page.getByTestId('add-group-button').click();
+  
+  await sleep(250);
+  await waitForTasks(page);
 
   await page.getByLabel('Settings').click();
 

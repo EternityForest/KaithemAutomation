@@ -1279,15 +1279,15 @@ wheels = [
 
 [[package]]
 name = "icemedia"
-version = "0.2.2"
+version = "0.2.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jack-client" },
     { name = "scullery" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/bb/01/6be7c86db6c2d9b664f9a9173e1bb17380aea99b1efb8b5f878761004f03/icemedia-0.2.2.tar.gz", hash = "sha256:487026826c30020345852537e5c3f877500ad0d0744cfca76cc4f531fd10ab79", size = 41028, upload-time = "2026-08-29T21:32:56.187Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/fb/11/87bfaf006ca418f1e662047bc10d6a31b2c47fb75b6bc3aa48a6f9d81d0e/icemedia-0.2.3.tar.gz", hash = "sha256:62738dcf200bce61fd9c39850e0ea0bc4086f0f4373bf0acd15f8535742801a3", size = 41042, upload-time = "2026-09-04T21:36:13.925Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/cc/b0/8d4697179ee51bda138e81f3074f2e4622354898aea45c75bc8638eaba10/icemedia-0.2.2-py3-none-any.whl", hash = "sha256:eb3e6bcba5559f112a833275cad26009d633a715072ab444712e26fb09f5bc40", size = 45559, upload-time = "2026-08-29T21:32:55Z" },
+    { url = "https://files.pythonhosted.org/packages/4a/e7/241370b29fd64b6ca5a1b33d391a30a1205b26f6899f667380edb00d86c1/icemedia-0.2.3-py3-none-any.whl", hash = "sha256:837c4fedde3de7d5b73f9f5f56863d84b4474e18fe5dc9225d623b5d242bfdf4", size = 45580, upload-time = "2026-09-04T21:36:12.487Z" },
 ]
 
 [[package]]
@@ -1588,7 +1588,7 @@ requires-dist = [
     { name = "ffmpeg-python" },
     { name = "holidays" },
     { name = "hypercorn", specifier = ">=0.18.0" },
-    { name = "icemedia", specifier = ">=0.2.2" },
+    { name = "icemedia", specifier = ">=0.2.3" },
     { name = "iot-devices", specifier = ">=0.33.0" },
     { name = "jack-client" },
     { name = "jinja2" },

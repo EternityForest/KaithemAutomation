@@ -52,6 +52,9 @@ test("test", async ({ page }) => {
     dialog.accept("ts1").catch(() => {});
   });
   await page.getByTestId("add-group-button").click();
+  
+  await sleep(250);
+  await waitForTasks(page);
 
   await page.getByRole("button", { name: "ts1" }).click();
 
