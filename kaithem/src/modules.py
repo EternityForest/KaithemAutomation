@@ -141,7 +141,7 @@ def readResourceFromData(
         # This regex is meant to handle any combination of cr, lf, and trailing whitespaces
         # We don't do anything with more that 3 sections yet, so limit just in case there's ----
         # in a markdown file
-        sections = re.split(r"\r?\n?----*\s*\r?\n*", d, 2)
+        sections = re.split(r"\r?\n?----*\s*\r?\n*", d, maxsplit=2)
 
         shouldRemoveExtension = False
 

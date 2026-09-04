@@ -36,6 +36,7 @@ from argon2 import PasswordHasher
 from kaithem.src.validation_util import validate_args
 
 from . import directories, messagebus, util
+from .auth_defaults import BasePermissions, default_data
 
 # Store tokens in a sqlite database
 tokens_db_fn = os.path.join(directories.usersdir, "tokens.db")
@@ -49,32 +50,11 @@ c.execute(
     "CREATE TABLE IF NOT EXISTS tokens (username TEXT, tokenhash TEXT, data TEXT)"  # noqa: E501
 )
 db.commit()
+db.close()
 
 
 lock = threading.RLock()
 
-default_data = {
-    "groups": {
-        "Administrators": {"permissions": ["__all_permissions__"]},
-        "Guests": {
-            "permissions": [
-                "view_admin_info",
-                "view_admin_info",
-                "view_status",
-                "enumerate_endpoints",
-            ]
-        },
-    },
-    "users": {
-        "__guest__": {
-            "groups": ["Guests"],
-            "password": "V+hZrbd22NjvNwvQAfwOAzLrudfX/+SMuddMmetm0Vk=",  # pragma: allowlist secret
-            "salt": "AtTjOSUQyNFoklVv+i8Lbw==",  # pragma: allowlist secret
-            "settings": {"restrict-lan": False},
-            "username": "__guest__",
-        }
-    },
-}
 
 # Python doesn't let us make custom attributes on normal dicts
 
@@ -126,22 +106,6 @@ Users: dict[str, User] = {}
 """A dict of all the groups"""
 Groups: dict[str, dict[str, Any]] = {}
 
-"""These are the "built in" permissions required to control basic functions
-User code can add to these"""
-BasePermissions: dict[str, str] = {
-    "system_admin": "The main admin permission. Implies that the user can do anything the base account running the server can.",
-    "view_admin_info": "Allows read but not write access to most of the system state",
-    "view_status": "View the main page of the application, the active alerts, the about box, and other basic overview info",
-    "enumerate_endpoints": "Required for any action that reveals whether something like a page or tagpoint exists.",
-    "acknowledge_alerts": "Required to acknowledge alerts",
-    "view_devices": "The default permission used to expose device points for reading, but devices can be configured to use others.",
-    "write_devices": "The default permission used to expose device points for writing, but devices can be configured to use others.",
-    "own_account_settings": "Edit ones own account preferences",
-    "chandler_operator": "Access the Chandler console, jump to cues, change input fields.  Does not allow editing settings or groups.",
-    "__guest__": "Everyone always has this permission even when not logged in",
-    "__all_permissions__": "Special universal permission that grants all permissions in the system. Use with care.",
-    "__never__": "Even admin cannot do this.",
-}
 
 crossSiteRestrictedPermissions = BasePermissions.copy()
 crossSiteRestrictedPermissions.pop("__guest__")
@@ -170,8 +134,10 @@ def resist_timing_attack(data: bytes, maxdelay: float = 0.0001) -> None:
 
 
 def importPermissionsFromModules() -> None:
-    """Import all user defined permissions that are module resources into the global
-    list of modules that can be assigned, and delete any that are no loger defined
+    """Import all user defined permissions that are
+    module resources into the global
+    list of modules that can be assigned,
+    and delete any that are no loger defined
     in modules."""
 
     # Avoid a circular import
@@ -208,7 +174,8 @@ def importPermissionsFromModules() -> None:
 def changeUsername(old: str, new: str) -> None:
     "Change a user's username"
     with lock:
-        # this should work because tokens stores object references ad we are not deleting
+        # this should work because tokens
+        # stores object references ad we are not deleting
         # the actual user object
         Users[new] = Users.pop(old)
         Users[new]["username"] = new
@@ -344,8 +311,9 @@ def loadFromData(
         global Tokens
         Tokens = {}
         tokenHashes.clear()
+        db = sqlite3.connect(tokens_db_fn)
+
         for user in temp["users"]:
-            db = sqlite3.connect(tokens_db_fn)
             c = db.cursor()
             c.execute("SELECT * FROM tokens WHERE username = ?", (user,))
             Users[user] = User(temp["users"][user])
@@ -357,6 +325,7 @@ def loadFromData(
                 logger.exception("Error loading token")
 
             # assignNewToken(user, False)
+        db.close()
         generateUserPermissions()
         return True
 
@@ -399,7 +368,8 @@ def initializeAuthentication() -> None:
 
 
 def generateUserPermissions(username: str | None = None) -> None:
-    """Generate the list of permissions for each user from their groups plus __guest__"""
+    """Generate the list of permissions
+    for each user from their groups plus __guest__"""
     with lock:
         # TODO let you do one user at a time
         # Give each user all of the permissions that his or her groups have
@@ -419,7 +389,8 @@ def generateUserPermissions(username: str | None = None) -> None:
                 for k in Groups[j]["permissions"]:
                     newp.append(k)
 
-                # A user has access to the highest limit of all the groups he's in
+                # A user has access to the highest
+                # limit of all the groups he's in
                 for k in Groups[j].get("limits", {}):
                     limits[k] = max(
                         Groups[j].get("limits", {})[k], limits.get(k, 0)
@@ -427,7 +398,8 @@ def generateUserPermissions(username: str | None = None) -> None:
 
             Users[i].limits = limits
 
-            # If the user has a token, update the stored copy of user in the tokens dict too
+            # If the user has a token,
+            # update the stored copy of user in the tokens dict too
             t = Users[i].token
             if t:
                 Tokens[t] = Users[i]
@@ -688,7 +660,8 @@ def assignNewToken(user: str, logout_old: bool = True) -> None:
         if logout_old:
             c.execute("DELETE FROM tokens WHERE username=?", (user,))
         else:
-            # Delete all but the most recent 32 tokens for the user, sorting by rowid
+            # Delete all but the most recent
+            # 32 tokens for the user, sorting by rowid
             c.execute(
                 "SELECT rowid FROM tokens WHERE username=? ORDER BY rowid ASC",
                 (user,),
@@ -772,7 +745,8 @@ def getUserLimit(
 
 
 def canUserDoThis(user: str, permission: str) -> bool:
-    """Return True if given user(by username) has access to the given permission"""
+    """Return True if given user(by username)
+    has access to the given permission"""
 
     if permission == "__never__":
         return False

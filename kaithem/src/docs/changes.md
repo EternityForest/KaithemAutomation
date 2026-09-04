@@ -14,6 +14,7 @@ Change Log
 * [:technologist:] Respect XDG_CACHE_HOME
 * [:technologist:] MIDI features depend on jack_midi_dump to avoid the horrendous performance hit of in-process JACK.
 * [:technologist:] Dev workflow now uses Docker for tests.
+* [coffin] Drop Python 3.11 support
 
 ### 0.96.0
 

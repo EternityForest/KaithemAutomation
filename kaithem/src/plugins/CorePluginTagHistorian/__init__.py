@@ -212,9 +212,9 @@ class TagLogger:
                     break
                 # Can fail due to iterationerror, we don't lock the pending list,
                 # We just hope we can finish very fast.
-                except Exception:
+                except Exception:  # noqa: TRY203
                     raise
-
+            conn.close()
             return (list(reversed(d)) + x)[-maxRecords:]
 
     def __del__(self):

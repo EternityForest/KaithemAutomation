@@ -151,6 +151,15 @@ repos:
           types:
             - python
 
+  -   repo: local
+      hooks:
+      -   id: dontcommentmakefileline
+          name: It looks like you commented a makefile line for testing
+          entry: "#\t"
+          language: pygrep
+          files: Makefile
+
+
 
   -   repo: local
       hooks:

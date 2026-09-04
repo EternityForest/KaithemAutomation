@@ -17,7 +17,7 @@ services:
 
     volumes:
       - ./../../KaithemAutomation:/work
-  
+
     working_dir: /work
     network_mode: host
 
@@ -83,12 +83,15 @@ services:
     restart: unless-stopped
 
   kaithem-dev:
-    extends: 
+    extends:
       service: kaithem
     image: kaithem-dev:${KAITHEM_VERSION:?error}
     build:
       context: ../../
       dockerfile: KaithemAutomation/docker/dev/Dockerfile
+
+    environment:
+      - PYTHONDEVMODE=1
 
     volumes:
       # Mount in the Kaithem files, so that we can do dev with it.

@@ -50,12 +50,27 @@ connections = threading.local()
 try_remake_limit = 0
 
 
+class Cleaner:
+    def __init__(self, db: sqlite3.Connection):
+        self.db: sqlite3.Connection | None = db
+
+    def __del__(self):
+        """Make it explicit so we don't get a warning"""
+        try:
+            if self.db:
+                self.db.close()
+            self.db = None
+        except Exception:
+            logger.exception("Error closing chandler state DB")
+
+
 def get_con():
     global try_remake_limit
 
     if not hasattr(connections, "con"):
         connections.con = sqlite3.connect(fn)
         connections.con.row_factory = sqlite3.Row
+        connections.cleaner = Cleaner(connections.con)
 
     try:
         connections.con.execute("SELECT * FROM checkpoint LIMIT 1")

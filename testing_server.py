@@ -7,8 +7,11 @@ It creates a clean var dir in /dev/shm/ every run
 import builtins
 import os
 import shutil
+import tracemalloc
 
 import kaithem
+
+tracemalloc.start()
 
 # test module setting spec moves the module here
 if os.path.exists("/dev/shm/test_ext_module_location"):

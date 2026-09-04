@@ -147,7 +147,6 @@ dev-install-dev-tools:
 	@uv tool install licccheck
 	@uv tool install pygount
 	@uv tool install scalene
-# 	@uv tool install sphinx --with sphinx-autoapi --with sphinx-markdown-builder --with sphinx-pyproject
 
 # Note that we use uv to test against different versions.  Eventually we will hopefully
 # be able to go to all uv all the time.
@@ -180,9 +179,8 @@ dev-run-all-tests:
 	@open htmlcov/index.html
 	@open playwright-report/index.html
 
-	@echo "Rerunning pytest tests against 3.11, 3.12 and 3.13 on local machine"
+	@echo "Rerunning pytest tests against 3.12 and 3.13 on local machine"
 
-	@UV_PROJECT_ENVIRONMENT=.test_venvs/.venv311  pw-jack  uv run --group dev --python 3.11 pytest
 	@UV_PROJECT_ENVIRONMENT=.test_venvs/.venv312  pw-jack  uv run --group dev --python 3.12 pytest
 	@UV_PROJECT_ENVIRONMENT=.test_venvs/.venv313  pw-jack uv run --group dev --python 3.13 pytest
 
@@ -205,10 +203,10 @@ dev-build-docker:
 	@echo "Building docker images for Kaithem ${KAITHEM_VERSION}"
 	@echo "Dev user must be 1000, current is: ${KAITHEM_USER}  UID: ${KAITHEM_UID}  GID: ${KAITHEM_GROUP}"
 	@cd ./docker
-# 	@docker compose build --progress=plain kaithem-builder
+	@docker compose build --progress=plain kaithem-builder
 	@docker compose build --progress=plain kaithem-dev
-# 	@docker compose build --progress=plain kaithem-kiosk
-# 	@docker compose build --progress=plain playwright
+	@docker compose build --progress=plain kaithem-kiosk
+	@docker compose build --progress=plain playwright
 	@docker compose build --progress=plain kaithem
 
 

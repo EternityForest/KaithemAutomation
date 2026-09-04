@@ -1,7 +1,7 @@
 [project]
 name = "kaithem"
 version = "0.96.0"
-requires-python = ">=3.11,<4.0"
+requires-python = ">=3.12,<4.0"
 
 description = "Home/Commercial SCADA-like automation system"
 license = "GPL-3.0-or-later"
