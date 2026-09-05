@@ -647,11 +647,13 @@
           </div>
           <button
             v-on:click="
-              fixtureClasses[selectedFixtureClass].channels.push({
-                name: 'red',
-                type: 'red',
-              });
-              pushfixture(selectedFixtureClass);
+              doSerialized(() => {
+                fixtureClasses[selectedFixtureClass].channels.push({
+                  name: 'red',
+                  type: 'red',
+                });
+                pushfixture(selectedFixtureClass);
+              }, 10000)
             ">
             Add Channel
           </button>

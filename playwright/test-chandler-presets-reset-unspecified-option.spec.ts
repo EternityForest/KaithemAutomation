@@ -30,6 +30,7 @@ test("test", async ({ page }) => {
 
   await page.getByRole("button", { name: "󰐕 New" }).click();
   await page.getByTestId("fixture-type-to-edit").selectOption("testwithuv");
+  await waitForTasks(page);
   await page.getByRole("button", { name: "Add Channel" }).click();
   await waitForTasks(page);
   await page.getByRole("button", { name: "Add Channel" }).click();
