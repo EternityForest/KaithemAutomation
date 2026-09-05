@@ -276,7 +276,7 @@ test('test', async ({ page }) => {
         .getByTestId('channel-level-value')
     ).not.toContainText('-99db');
   }).toPass({
-    intervals: [1000, 2000, 10_000],
+    intervals: [1000, 2000, 5000],
     timeout: 60_000,
   });
 

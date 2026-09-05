@@ -11,6 +11,7 @@ from typing import Any
 
 import yaml
 from scullery import messagebus, scheduling, snake_compat, workers
+from tinytag import TinyTag
 
 from kaithem.api.modules import modules_lock
 from kaithem.src.validation_util import validate_args
@@ -28,9 +29,10 @@ from . import (
     soundmanager,
     universes,
 )
-from .core import logger
+from .core import disallow_special, logger
+from .cue import fnToCueName
 from .global_actions import async_event
-from .groups import Group, cues
+from .groups import Group, cues, is_static_media
 from .universes import getUniverse, getUniverses
 
 
@@ -907,3 +909,125 @@ class ChandlerConsole(console_abc.Console_ABC):
             if self.id not in i.metadata_already_pushed_by:
                 self.push_group_meta(i.id)
                 i.metadata_already_pushed_by[self.id] = False
+
+    @core.cl_context.entry_point
+    def cl_delete_universe(self, name: str):
+        """Remove a configured universe and rebuild universe objects."""
+        self.configured_universes.pop(name, None)
+        self.cl_create_universes(self.configured_universes)
+
+    @core.cl_context.entry_point
+    def cl_add_time_to_group(self, group_id: str, minutes: float):
+        """Add extra time (in minutes) to a group's cuelen if it has one."""
+        g = groups.groups[group_id]
+        if g.cuelen:
+            g.cuelen += float(minutes) * 60
+            self.push_group_meta(group_id)
+
+    @core.cl_context.entry_point
+    def cl_rename_cue(self, group_id: str, old: str, new: str):
+        """Rename a cue within a group."""
+        if not new:
+            return
+        n = old.strip()
+        n2 = new.strip()
+        groups.groups[group_id].rename_cue(n, n2)
+
+    @core.cl_context.entry_point
+    def cl_new_cue_from_sound(self, group_id: str, path: str):
+        """Create a new cue preconfigured to play the given sound file."""
+        g = groups.groups[group_id]
+
+        bn = os.path.basename(path)
+        bn = fnToCueName(bn)
+        try:
+            media_tags = TinyTag.get(path)
+            if media_tags.artist and media_tags.title:
+                bn = media_tags.title + " ~ " + media_tags.artist
+        except Exception:
+            logger.exception("Could not read sound tags")
+
+        bn = disallow_special(bn, "_~", replaceMode=" ")
+        if bn not in g.cues:
+            g.add_cue(bn)
+            g.cues[bn].rel_length = True
+            g.cues[bn].length = 0.01
+
+            soundfolders = core.getSoundFolders(
+                extra_folders=self.media_folders
+            )
+            s = None
+            for i in soundfolders:
+                s = path
+                # Make paths relative.
+                if not i.endswith("/"):
+                    i = i + "/"
+                if s.startswith(i):
+                    s = s[len(i) :]
+                    break
+            if not s:
+                raise RuntimeError("Unknown, linter said was possible")
+            g.cues[bn].sound = s
+            g.cues[bn].named_for_sound = True
+
+            self.pushCueMeta(g.cues[bn].id)
+
+    @core.cl_context.entry_point
+    def cl_new_cue_from_slide(self, group_id: str, path: str):
+        """Create a new cue preconfigured to show the given slide file."""
+        g = groups.groups[group_id]
+
+        bn = os.path.basename(path)
+        bn = fnToCueName(bn)
+
+        bn = disallow_special(bn, "_~", replaceMode=" ")
+        if bn not in g.cues:
+            g.add_cue(bn)
+            soundfolders = core.getSoundFolders(
+                extra_folders=self.media_folders
+            )
+            assert soundfolders
+            s = ""
+            for i in soundfolders:
+                s = path
+                # Make paths relative.
+                if not i.endswith("/"):
+                    i = i + "/"
+                if s.startswith(i):
+                    s = s[len(i) :]
+                    break
+            assert s
+            g.cues[bn].slide = s
+
+            if not is_static_media(s):
+                g.cues[bn].rel_length = True
+                g.cues[bn].length = 0.01
+
+            self.pushCueMeta(g.cues[bn].id)
+
+    @core.cl_context.entry_point
+    def cl_rm_fix_from_cue(self, cue_id: str, effect: str, fixture: str):
+        """Remove the keypoint targetting a fixture from a cue's effect."""
+        cue = cues[cue_id]
+        x = cue.get_fixture_keypoint(effect, fixture)
+        if not x:
+            return
+        x2 = list(x["values"])
+
+        for i in x2:
+            cue.set_value_immediate(effect, fixture, i, None)
+
+        self.linkSend(["cuedata", cue.id, cue.lighting_effects])
+        self.pushCueMeta(cue.id)
+
+    @core.cl_context.entry_point
+    def cl_set_preset(self, name: str, data: dict[str, Any] | None):
+        """Set or delete a fixture preset by name.
+
+        data=None deletes the preset.
+        """
+        if data is None:
+            self.fixture_presets.pop(name, None)
+        else:
+            self.fixture_presets[name] = data
+        self.linkSend(["fixturePresets", self.fixture_presets])

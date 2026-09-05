@@ -78,7 +78,7 @@ async def group_stop(group_id: str):
     "/chandler/api/delete-group/<board>/<group_id>", methods=["PUT"]
 )
 async def delete_chandler_group(board: str, group_id: str):
-    require("chandler_operator")
+    require("system_admin")
     x = groups[group_id]
     x.stop()
     board_obj = boards[board]
@@ -91,7 +91,7 @@ async def delete_chandler_group(board: str, group_id: str):
     "/chandler/api/add-group/<board>/<group_name>", methods=["PUT"]
 )
 async def add_chandler_group(board: str, group_name: str):
-    require("chandler_operator")
+    require("system_admin")
     board_obj = boards[board]
     board_obj.cl_add_group(group_name)
     return {"success": True}
@@ -474,3 +474,93 @@ async def set_group_properties(group_id: str):
         return {"success": True}
 
     return await f()
+
+
+@quart_app.route(
+    "/chandler/api/delete-universe/<board>/<name>", methods=["PUT"]
+)
+async def delete_universe(board: str, name: str):
+    """Remove a configured universe from the given board."""
+    require("system_admin")
+    board_obj = boards[board]
+    board_obj.cl_delete_universe(name)
+    return {"success": True}
+
+
+@quart_app.route("/chandler/api/group-add-time/<group_id>", methods=["PUT"])
+async def group_add_time(group_id: str):
+    """Add extra time (in minutes) to a group's cue length."""
+    require("chandler_operator")
+    kw = json.loads(await request.body)
+    board = groups[group_id].board
+    board.cl_add_time_to_group(group_id, kw["minutes"])
+    return {"success": True}
+
+
+@quart_app.route(
+    "/chandler/api/rename-cue/<group_id>/<old>/<new>", methods=["PUT"]
+)
+async def rename_cue(group_id: str, old: str, new: str):
+    """Rename a cue within a group."""
+    require("system_admin")
+    board = groups[group_id].board
+    board.cl_rename_cue(group_id, old, new)
+    return {"success": True}
+
+
+@quart_app.route(
+    "/chandler/api/new-cue-from-sound/<board>/<group_id>", methods=["PUT"]
+)
+async def new_cue_from_sound(board: str, group_id: str):
+    """Create a new cue preconfigured to play the given sound file."""
+    require("system_admin")
+    kw = json.loads(await request.body)
+    boards[board].cl_new_cue_from_sound(group_id, kw["path"])
+    return {"success": True}
+
+
+@quart_app.route(
+    "/chandler/api/new-cue-from-slide/<board>/<group_id>", methods=["PUT"]
+)
+async def new_cue_from_slide(board: str, group_id: str):
+    """Create a new cue preconfigured to show the given slide file."""
+    require("system_admin")
+    kw = json.loads(await request.body)
+    boards[board].cl_new_cue_from_slide(group_id, kw["path"])
+    return {"success": True}
+
+
+@quart_app.route(
+    "/chandler/api/rm-fix-from-cue/<cue_id>/<effect>/<fixture>",
+    methods=["PUT"],
+)
+async def rm_fix_from_cue(cue_id: str, effect: str, fixture: str):
+    """Remove a fixture keypoint from a cue's effect."""
+    require("system_admin")
+    cue = cues[cue_id]
+    group = cue.group()
+    if group is None:
+        raise RuntimeError("Cue has no group")
+    group.board.cl_rm_fix_from_cue(cue_id, effect, fixture)
+    return {"success": True}
+
+
+@quart_app.route("/chandler/api/cue-meta/<cue_id>")
+async def get_cue_meta(cue_id: str):
+    """Return the UI metadata for a single cue, or ``None`` if the cue is gone."""
+    require("chandler_operator")
+    if cue_id not in cues:
+        return {"cue_id": cue_id, "data": None}
+    return {"cue_id": cue_id, "data": cues[cue_id].get_ui_data()}
+
+
+@quart_app.route("/chandler/api/set-preset/<board>", methods=["PUT"])
+async def set_preset(board: str):
+    """Set or delete a fixture preset by name.
+
+    Pass {"name": ..., "data": null} to delete.
+    """
+    require("system_admin")
+    kw = json.loads(await request.body)
+    boards[board].cl_set_preset(kw["name"], kw.get("data"))
+    return {"success": True}

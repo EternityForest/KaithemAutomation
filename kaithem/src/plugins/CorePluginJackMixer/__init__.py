@@ -18,6 +18,7 @@ import structlog
 from icemedia.iceflow import GstreamerPipeline as Pipeline
 from scullery import jacktools, scheduling, workers
 
+from kaithem.api import lifespan
 from kaithem.api.util import get_builtin_datadir
 from kaithem.api.web import render_html_file
 from kaithem.src import (
@@ -49,8 +50,8 @@ recorder = None
 
 # Some things will auto connect to sys inputs if we don't give
 # them a source
-dummy_silence_source = None
-dummy_silence_sink = None
+dummy_silence_source: subprocess.Popen[str] | None = None
+dummy_silence_sink: subprocess.Popen[str] | None = None
 
 staticdir = get_builtin_datadir()
 
@@ -1660,7 +1661,7 @@ class MixingBoard:
             log.exception("Failed to remove app icon")
 
 
-def STOP(*a):
+def STOP():
     global dummy_silence_source, dummy_silence_sink
     # Shut down in opposite order we started in
     for board in boards.values():
@@ -1680,7 +1681,7 @@ def STOP(*a):
         logging.exception("Exception stopping dummy source")
 
 
-messagebus.subscribe("/system/shutdown", STOP)
+lifespan.at_shutdown(STOP)
 
 
 td = os.path.join(os.path.dirname(__file__), "html", "mixer.html")

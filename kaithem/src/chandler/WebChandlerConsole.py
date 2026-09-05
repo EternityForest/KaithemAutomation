@@ -377,14 +377,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             self.linkSend(["fixtureclasses", self.fixture_classes])
             return
 
-        elif cmd_name == "getcuemeta":
-            if msg[1] not in cues:
-                self.linkSend(["cuemeta", msg[1], None])
-                return
-            s = cues[msg[1]]
-            self.pushCueMeta(msg[1])
-            return
-
         # There's such a possibility for an iteration
         # error if universes changes.
         # I'm not going to worry about it, this is only for the

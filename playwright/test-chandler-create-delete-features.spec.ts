@@ -184,6 +184,8 @@ test('test', async ({ page }) => {
     .getByTestId('preset-inspector-Cinnamon-heading')
     .getByRole('button', { name: '󰆴 Delete' })
     .click();
+  
+  await waitForTasks(page);
 
   await expect(
     page.getByTestId('preset-inspector-Cinnamon-heading')

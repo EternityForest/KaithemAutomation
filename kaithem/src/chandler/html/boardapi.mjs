@@ -682,24 +682,21 @@ async function getcuedata(c) {
   });
 }
 
-const gettingCueMetaPromises = {};
-
 async function getcuemeta(c) {
   await doSerialized(async () => {
-    const p = new Promise((_resolve, _reject) => {
-      gettingCueMetaPromises[c] = _resolve;
-    });
-    const timeoutPromise = new Promise((_resolve, reject) => {
-      setTimeout(() => {
-        reject();
-        alert("Timeout waiting for cue data.");
-      }, 10_000);
-    });
-    api_link.send(["getcuemeta", c]);
     try {
-      await Promise.race([p, timeoutPromise]);
+      const v = await fetch("/chandler/api/cue-meta/" + encodeURIComponent(c), {
+        method: "GET",
+      });
+      if (!v.ok) {
+        alert("Error getting cue data: " + v.status);
+        return;
+      }
+      const j = await v.json();
+      handleCueInfo(j.cue_id, j.data);
     } catch (error) {
       console.log("Error getting cue data", error);
+      alert("Error getting cue data: " + error);
     }
   });
 }
@@ -824,10 +821,6 @@ function newCueFromSlide(sc, index) {
 
 function newCueFromSound(sc, index) {
   api_link.send(["newFromSound", sc, index]);
-}
-
-function setTagInputValue(sc, tag, v) {
-  api_link.send(["inputtagvalue", sc, tag, v]);
 }
 
 function _currentcue() {
@@ -1314,10 +1307,6 @@ function handleServerMessage(v) {
       old_vue_set(groupcues.value, v[1], {});
     }
   } else if (c == "cuemeta") {
-    if (gettingCueMetaPromises[v[1]]) {
-      gettingCueMetaPromises[v[1]]();
-      delete gettingCueMetaPromises[v[1]];
-    }
     handleCueInfo(v[1], v[2]);
   } else if (c == "event") {
     recentEventsLog.value.unshift(v[1]);
@@ -1686,7 +1675,6 @@ export {
   pushSettings,
   newCueFromSlide,
   newCueFromSound,
-  setTagInputValue,
   addTimeToGroup,
   lookupFixtureType,
   lookupFixtureColorProfile,
