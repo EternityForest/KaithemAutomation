@@ -108,6 +108,8 @@ test('test', async ({ page }) => {
   await page.locator('select').selectOption('textfixtype');
   await waitForTasks(page);
 
+
+  
   await page.getByRole('textbox').click();
   await page.getByRole('textbox').fill('test1');
   await page

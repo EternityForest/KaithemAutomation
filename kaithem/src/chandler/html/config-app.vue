@@ -899,6 +899,8 @@ import {
   pushSettings,
   deleteUniverse,
   doSerialized,
+  setAwaitMessage,
+  awaitMessage,
 } from './boardapi.mjs';
 
 import MediaBrowser from './media-browser.vue';
@@ -1034,6 +1036,8 @@ function delfixturetype() {
 function pushfixture(i) {
   globalThis
     .doSerialized(async () => {
+      setAwaitMessage((m) => m[0] == 'fixturetype' && m[1] == i);
+
       await fetch(
         '/chandler/api/set-fixture-class/' +
           encodeURIComponent(boardname.value) +
@@ -1044,6 +1048,7 @@ function pushfixture(i) {
           body: JSON.stringify(fixtureClasses.value[i]),
         }
       );
+      await awaitMessage();
     })
     .catch(function (error) {
       alert('Could not set fixture class: ' + error);

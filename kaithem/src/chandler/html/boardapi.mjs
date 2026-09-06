@@ -348,6 +348,10 @@ async function setCueProperty(cue, property, value) {
     var b = {};
     b[property] = value;
 
+     // Could still be from another command but really this is
+    // just to make tests work
+    setAwaitMessage((m) => m[0] == 'cuemeta' && m[1] == cue);
+
     let p = fetch('/chandler/api/set-cue-properties/' + cue, {
       method: 'PUT',
       body: JSON.stringify(b),
@@ -373,6 +377,9 @@ async function setCueProperty(cue, property, value) {
         resolve(0);
       }, 0)
     );
+
+    await awaitMessage();
+
   });
 }
 
@@ -1230,11 +1237,15 @@ function getPresetImage(preset) {
   return '1x1.png';
 }
 
-function updatePreset(index, v) {
+function updatePreset(name, v) {
   doSerialized(async () => {
     /*Update given a name and the modified data as would be found in the presets file*/
-    presets.value[index] = v;
-    api_link.send(['preset', index, v]);
+    presets.value[name] = v;
+
+    setAwaitMessage((m) => m[0] == 'preset' && m[1] == name);
+    api_link.send(['preset', name, v]);
+    await awaitMessage();
+
   }).catch(console.error);
 }
 
@@ -1278,8 +1289,35 @@ function handleCueInfo(id, cue) {
 
 let downloadRequestId = ref('');
 
+
+let awaitMessageChecker = null
+
+// Used by the UI to wait until we actually get a message
+// indicating the request we made really happened
+// otherwise the queued ws messages would be out of sync
+// and break tests
+export function setAwaitMessage(predicate){
+
+  awaitMessageChecker = predicate;
+}
+
+export async function awaitMessage(){
+  let safety = 1000
+  while (awaitMessageChecker != null) {
+    safety--;
+    if (safety < 0) {
+      throw new Error("Timed out waiting for message")
+    }
+    await new Promise(resolve => setTimeout(resolve, 5));
+  }
+}
+
 function handleServerMessage(v) {
   let c = v[0];
+
+  if(awaitMessageChecker != null && awaitMessageChecker(v)) {
+    awaitMessageChecker = null;
+  }
 
   if (c == 'soundfolders') {
     soundfolders.value = v[1];
