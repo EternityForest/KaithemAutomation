@@ -38,7 +38,8 @@ if TYPE_CHECKING:
 
 cues: weakref.WeakValueDictionary[str, Cue] = weakref.WeakValueDictionary()
 
-# All the properties that can be saved and loaded are actually defined in the schema,
+# All the properties that can be saved and loaded
+# are actually defined in the schema
 cue_schema = schemas.get_schema("chandler/cue")
 
 # These are in the schema but the corresponding entry on the object has
@@ -110,7 +111,7 @@ def upgrade_legacy_lighting_values(d: dict[str, Any]):
 
     messagebus.post_message(
         "/system/notifications/warnings/",
-        "Upgrading legacy lighting value format, please re-save your Chandler board.",
+        "Upgrading legacy lighting value format, please re-save the board.",
     )
 
     d.pop("values")
@@ -171,7 +172,7 @@ def fnToCueName(fn: str):
 cue_provider_types: dict[str, type[CueProvider]] = {}
 
 
-def recalc_all_cue_schedules(*a, **k):
+def recalc_all_cue_schedules(*_a, **_k):
     for i in cues.values():
         i.schedule()
 
@@ -180,7 +181,7 @@ messagebus.subscribe("/system/time_adjusted", recalc_all_cue_schedules)
 
 
 class CueProvider:
-    def __init__(self, url: str, group: Group, *a, **k):
+    def __init__(self, url: str, group: Group, *_a: Any, **_k: Any):
         self.discovered_cues: dict[str, Cue] = {}
         self.url = url
         self.group = group
@@ -304,7 +305,8 @@ class Cue:
 
         self.lighting_effects: list[EffectData]
         """
-        Outer dict is the effect, inner is the universe, innermost is the channel
+        Outer dict is the effect, inner is the universe,
+        innermost is the channel
         Normally we have exactly one effect called "direct",
         where we directly set channel values.
         """
@@ -354,7 +356,8 @@ class Cue:
                 self.number = 5000
 
         upgrade_legacy_lighting_values(kw)
-        # Set up all the underscore internal vals for the properties before settingthe actual
+        # Set up all the underscore internal vals for
+        # the properties before settingthe actual
         # properties
         for i in cue_schema["properties"]:
             if i in stored_as_property:
@@ -407,7 +410,7 @@ class Cue:
             if i not in cue_schema["properties"]:
                 logging.error(
                     "Unknown cue data key "
-                    + str(i)
+                    + i
                     + " loading anyway but data may be lost"
                 )
 
@@ -427,7 +430,7 @@ class Cue:
         # with half set up cues
         self._provider = (provider or "").strip()
 
-    def __setattr__(self, name, value):
+    def __setattr__(self, name: str, value: Any) -> None:
         if not hasattr(self, "group"):
             if name == "group":
                 object.__setattr__(self, name, value)
@@ -449,10 +452,8 @@ class Cue:
             return
 
         if self._provider:
-            if g:
-                p = g.get_cue_provider(self._provider)
-                if p:
-                    p.validate_property_update(self, name, value)
+            p = g.get_cue_provider(self._provider)
+            p.validate_property_update(self, name, value)
 
         object.__setattr__(self, name, value)
         if name in property_update_handlers:
@@ -472,13 +473,14 @@ class Cue:
         return self._provider
 
     @provider.setter
-    def provider(self, value):
+    def provider(self, value: str):
         raise RuntimeError("Provider is read only")
 
     def get_fixture_keypoint(
         self, effect: str, fixture: str
     ) -> Keypoint | None:
-        """Return the keypoint targetting the given fixture, or None if not found"""
+        """Return the keypoint targetting the given fixture,
+        or None if not found"""
         fx = self.get_effect_by_id(effect)
         if not fx:
             return None
@@ -553,6 +555,7 @@ class Cue:
 
     @track.setter
     def track(self, val: bool):
+        # pyrefly: ignore [unnecessary-type-conversion]
         v = bool(val)
         if v == self._track:
             return
@@ -564,8 +567,9 @@ class Cue:
 
         core.serialized_async_with_core_lock(f)
 
-    def setNumber(self, n):
-        "Can take a string representing a decimal number for best accuracy, saves as *1000 fixed point"
+    def setNumber(self, n: int | float | str):
+        """Can take a string representing a decimal number
+        for best accuracy, saves as *1000 fixed point"""
         if self.shortcut == number_to_shortcut(self.number):
             self.shortcut = number_to_shortcut(
                 int((Decimal(n) * Decimal(1000)).quantize(1))
@@ -575,7 +579,7 @@ class Cue:
         # re-sort the cuelist
         self.getGroup()._nl_insert_cue_sorted(None)
 
-        self.push()
+        self.push(["number", "shortcut"])
 
     @property
     def markdown(self):
@@ -586,7 +590,7 @@ class Cue:
         s = s.strip().replace("\r", "")
         if not s == self._markdown:
             self._markdown = s
-            self.push()
+            self.push(["markdown"])
             group = self.group()
             if group:
                 group.media_link_socket.send(
@@ -606,16 +610,15 @@ class Cue:
             val = float(val)
         except Exception:
             if not isinstance(val, str):
-                raise ValueError("Invalid cue length")
+                raise TypeError("Invalid cue length")
 
         if val == self._length:
             return
         if self.is_active:
             g = self.getGroup()
-            if g:
-                g.recalc_cue_len()
+            g.recalc_cue_len()
         self._length = val
-        self.push()
+        self.push(["length"])
 
     @property
     def sound_loops(self) -> int:
@@ -627,6 +630,7 @@ class Cue:
             return
 
         try:
+            # pyrefly: ignore [unnecessary-type-conversion]
             val = int(val)
         except Exception:
             pass
@@ -634,7 +638,7 @@ class Cue:
         val = val if (not val == -1) else 99999999999999999
 
         self._sound_loops = val
-        self.push()
+        self.push(["sound_loops"])
 
     def validate_rules(
         self,
@@ -699,7 +703,7 @@ class Cue:
             g = self.group()
             if g:
                 g.recalc_randomize_modifier()
-            self.push()
+            self.push(["length_randomize"])
 
     def goto_if_scene_active(self, ts: float | None = None):
         """Go to this cue if the scene it belongs to is active"""
@@ -741,7 +745,7 @@ class Cue:
                     ref = datetime.datetime.now()
 
                     selector = util.get_rrule_selector(val[1:], ref)
-                    a: datetime.datetime = selector.after(ref)
+                    a: datetime.datetime | None = selector.after(ref)
 
                     if a:
                         if not a.tzinfo:
@@ -768,20 +772,18 @@ class Cue:
             print(traceback.format_exc())
             try:
                 g = self.getGroup()
-                if g:
-                    g.event("error", f"Failed to schedule {self._schedule_at}")
+                g.event("error", f"Failed to schedule {self._schedule_at}")
             except Exception:
                 print(traceback.format_exc())
 
         try:
             g = self.getGroup()
-            if g:
-                g.find_next_scheduled_cue()
+            g.find_next_scheduled_cue()
         except Exception:
             logging.exception("Failed to find next scheduled cue")
             print(traceback.format_exc())
 
-        self.push()
+        self.push(["schedule_at"])
 
         return s
 
@@ -833,7 +835,7 @@ class Cue:
 
         s = s.strip()
         if s and self.sound and self.named_for_sound:
-            self.push()
+            self.push(["sound"])
             raise RuntimeError(
                 """This cue was named for a specific sound file,
                 forbidding change to avoid confusion.
@@ -904,7 +906,7 @@ class Cue:
 
         if not self.closing:
             if push:
-                self.push()
+                self.push(["shortcut"])
 
     # TODO what is the difference with immediate?
     # document it
@@ -917,8 +919,7 @@ class Cue:
     ):
         """If the universe/channel is not present, it is added to the end"""
         gr = self.getGroup()
-        if gr:
-            gr.set_cue_value(self.name, effect, universe, channel, value)
+        gr.set_cue_value(self.name, effect, universe, channel, value)
 
     @validate_args
     def set_value(
@@ -931,6 +932,13 @@ class Cue:
         """If the universe/channel is not present, it is added to the end"""
         # Allow [] for range effects
         disallow_special(universe, allow="_@./[:],")
+
+        # pyrefly: ignore [unnecessary-type-conversion]
+        channel = str(channel)
+        if not channel:
+            raise ValueError("Channel cannot be empty")
+        if channel.strip() != channel:
+            raise ValueError("Name cannot begin or end with whitespace")
 
         group = self.getGroup()
 
@@ -959,10 +967,10 @@ class Cue:
                 fx["keypoints"].append(keypoint)
                 reset = True
 
-            if str(channel) not in keypoint["values"]:
+            if channel not in keypoint["values"]:
                 reset = True
 
-            keypoint["values"][str(channel)] = value
+            keypoint["values"][channel] = value
         else:
             empty = False
 
@@ -973,8 +981,8 @@ class Cue:
                 return
 
             if keypoint["target"] == universe:
-                if str(channel) in keypoint["values"]:
-                    del keypoint["values"][str(channel)]
+                if channel in keypoint["values"]:
+                    del keypoint["values"][channel]
 
             if not keypoint["values"]:
                 empty = True
@@ -1001,8 +1009,10 @@ class Cue:
             "number": self.number / 1000.0,
             "prev": group.getParent(self.name),
             "hasLightingData": len(self.lighting_effects),
-            "labelImageTimestamp": self.getGroup().board.get_file_timestamp_if_exists(
-                self.label_image
+            "labelImageTimestamp": (
+                self.getGroup().board.get_file_timestamp_if_exists(
+                    self.label_image
+                )
             ),
             "provider": self.provider,
             "scheduled_for": self.scheduler_object.time
@@ -1032,10 +1042,12 @@ class Cue:
 
         return d
 
-    def push(self):
+    def push(self, keys: list[str] | None = None):
         # Not even set up yet don't bother
         if self.id in cues:
-            core.add_data_pusher_to_all_boards(lambda s: s.pushCueMeta(self.id))
+            core.add_data_pusher_to_all_boards(
+                lambda s: s.pushCueMeta(self.id, keys)
+            )
 
     def pushData(self):
         core.add_data_pusher_to_all_boards(lambda s: s.pushCueData(self.id))
