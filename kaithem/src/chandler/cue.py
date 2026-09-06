@@ -809,7 +809,7 @@ class Cue:
                 break
 
         self._slide = s
-        self.push()
+        self.push(["slide"])
 
     @property
     def sound(self):
@@ -844,7 +844,7 @@ class Cue:
 
         self._sound = s
 
-        self.push()
+        self.push(["sound"])
 
     def close(self):
         self.closing = True
