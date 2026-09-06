@@ -345,9 +345,6 @@ def normalize_resource_data(x: ResourceDictType):
         )
     # end legacy compatibility
 
-    if not resourceData["resource"].get("modified"):
-        resourceData["resource"]["modified"] = int(time.time())
-
     if not resourceData == x:
         str1 = json.dumps(resourceData, sort_keys=True, indent=2).splitlines()
         str2 = json.dumps(x, sort_keys=True, indent=2).splitlines()
@@ -361,6 +358,11 @@ def normalize_resource_data(x: ResourceDictType):
             "Automatically normalized resource: \n" + "".join(diff) + "\n",
             DeprecationWarning,
         )
+
+    # Acceptable to leave out modification date when creating new
+    # Resources for simplicity
+    if not resourceData["resource"].get("modified"):
+        resourceData["resource"]["modified"] = int(time.time())
 
     return resourceData
 
