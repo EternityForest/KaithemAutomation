@@ -151,6 +151,8 @@ test("test", async ({ page }) => {
     .getByRole("button", { name: "Pure Red" })
     .click();
 
+  await waitForTasks(page);
+  
   await expect(
     page
       .locator("div.hfader")
