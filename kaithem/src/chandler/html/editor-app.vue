@@ -1296,7 +1296,11 @@
                       step="0.01"
                       min="0"
                       v-on:change="
-                        setalpha(groupname, parseFloat($event.target.value))
+                        doSerialized(async () => {
+                          setAwaitMessage((m) => m[0] == 'groupmeta' && m[1] == groupname);
+                          setalpha(groupname, parseFloat($event.target.value))
+                          await awaitMessage();
+                        })
                       "
                       v-model="alphas[groupname]" />
                   </label>
@@ -1543,7 +1547,11 @@
                       step="0.01"
                       min="0"
                       v-on:change="
-                        setcrossfade(groupname, parseFloat($event.target.value))
+                        setGroupProperty(
+                          groupname,
+                          'crossfade',
+                          parseFloat($event.target.value)
+                        )
                       "
                       v-model="editingGroup.crossfade" />
                   </label>
@@ -1922,7 +1930,6 @@ import {
   setprobability,
   promptsetnumber,
   setnumber,
-  setcrossfade,
   setmqtt,
   setmqttfeature,
   setbpm,
@@ -1939,7 +1946,10 @@ import {
   notifyPopupComputedCueLength,
   refreshCueProviders,
   sendKeystrokes,
-  addgroup
+  addgroup,
+  setAwaitMessage,
+  awaitMessage,
+  doSerialized
 } from "./boardapi.mjs";
 
 import {

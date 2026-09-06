@@ -8,6 +8,7 @@ import subprocess
 import sys
 import time
 import uuid
+from typing import Any
 
 import pytest
 import stamina
@@ -55,8 +56,9 @@ class TempGroup:
     Asserts a whole bunch of stuff every time.
     """
 
-    def __init__(self, name: str | None = None):
+    def __init__(self, name: str | None = None, **kw: Any):
         self.name = name or ("test_group_" + str(uuid.uuid4()).replace("-", ""))
+        self.kw = kw
 
     def __enter__(self):
         from kaithem.src.chandler import (
@@ -64,7 +66,7 @@ class TempGroup:
             groups,
         )
 
-        self.group = groups.Group(board, self.name)
+        self.group = groups.Group(board, self.name, **self.kw)
         assert self.group.name == self.name
         board.addGroup(self.group)
         self.group.go()
@@ -1772,6 +1774,19 @@ async def test_lighting_value_gradient_fixtures():
         assert int(universes.universes["dmx"]().values[8]) == 60
 
 
+def test_blend_args_start():
+    with TempGroup(blend_args={"gustiness": 0.212}, blend="flicker") as s:
+        s.go()
+
+        assert s.blend_args["gustiness"] == 0.212
+        assert s.lighting_manager.blend_args["gustiness"] == 0.212
+        assert s.lighting_manager._blend.blend_args["gustiness"] == 0.212
+
+        assert "gustiness" in s.lighting_manager._blend.parameters
+        # Defaults must be there
+        assert len(s.lighting_manager._blend.blend_args) > 1
+
+
 def test_lighting_value_set_tag_flicker():
     from kaithem.src import tagpoints
     from kaithem.src.chandler import core
@@ -1815,7 +1830,13 @@ def test_lighting_value_set_tag_flicker():
 
             # Move it up and set it as a flicker layer
             s2.blend = "flicker"
+            s2.blend_args["gustiness"] = 0.45
+            s2.blend_args = s.blend_args
             s2.priority = 65
+
+            # Assert that it follows
+            assert s2.lighting_manager.blend_args["gustiness"] == 0.45
+            assert s2.lighting_manager._blend.blend_args["gustiness"] == 0.45
 
             # Set values and check that tags change
             s2.cues["default"].set_value_immediate(

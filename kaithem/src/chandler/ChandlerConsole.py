@@ -946,16 +946,9 @@ class ChandlerConsole(console_abc.Console_ABC):
                 universes_snapshot[i].statusChanged[self.id] = True
 
         for i in self.groups:
-            # Tell clients about any changed alpha values and stuff.
             if self.id not in self.groups[i].metadata_already_pushed_by:
-                self.push_group_meta(i, statusOnly=True)
+                self.push_group_meta(i)
                 self.groups[i].metadata_already_pushed_by[self.id] = False
-
-        for i in self.active_groups:
-            # Tell clients about any changed alpha values and stuff.
-            if self.id not in i.metadata_already_pushed_by:
-                self.push_group_meta(i.id)
-                i.metadata_already_pushed_by[self.id] = False
 
     @core.cl_context.entry_point
     def cl_delete_universe(self, name: str):

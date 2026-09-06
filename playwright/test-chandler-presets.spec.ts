@@ -87,29 +87,37 @@ test('test', async ({ page }) => {
   await page.getByLabel('Type:').first().selectOption('intensity');
   await page.getByRole('button', { name: 'Add Channel' }).click();
   await waitForTasks(page);
+  await sleep(200);
 
   await page.getByLabel('Type:').nth(1).selectOption('red');
   await page.getByRole('button', { name: 'Add Channel' }).click();
   await waitForTasks(page);
+  await sleep(200);
 
   await page.getByLabel('Type:').nth(2).selectOption('green');
   await page.getByRole('button', { name: 'Add Channel' }).click();
   await waitForTasks(page);
+  await sleep(200);
 
   await page.getByLabel('Type:').nth(3).selectOption('blue');
   await page.getByRole('button', { name: 'Add Channel' }).click();
   await waitForTasks(page);
+  await sleep(200);
+
 
   await page.getByLabel('Type:').nth(4).selectOption('uv');
   await page.getByRole('button', { name: '󰅖 Close' }).click();
   await waitForTasks(page);
+  await sleep(200);
 
   await page.getByRole('button', { name: 'Fixtures' }).click();
   await page.locator('select').selectOption('textfixtype');
   await waitForTasks(page);
+  await sleep(200);
 
 
-  
+
+
   await page.getByRole('textbox').click();
   await page.getByRole('textbox').fill('test1');
   await page

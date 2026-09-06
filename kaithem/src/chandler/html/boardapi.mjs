@@ -206,6 +206,8 @@ async function setGroupProperty(group, property, value) {
     var b = {};
     b[property] = value;
 
+    setAwaitMessage((m) => m[0] == 'groupmeta' && m[1] == group);
+
     let response = fetch('/chandler/api/set-group-properties/' + group, {
       method: 'PUT',
       body: JSON.stringify(b),
@@ -227,6 +229,8 @@ async function setGroupProperty(group, property, value) {
         resolve(0);
       }, 0)
     );
+
+    await awaitMessage();
   });
 }
 
@@ -237,6 +241,7 @@ export async function restSetCueEffectMeta(cue, effect, value) {
       clearTimeout(x);
       delete cueSetData[cue + 'value'];
     }
+    setAwaitMessage((m) => m[0] == 'cuedata' && m[1] == cue);
 
     let response = fetch(
       '/chandler/api/set-cue-effect-meta/' +
@@ -257,6 +262,7 @@ export async function restSetCueEffectMeta(cue, effect, value) {
     if (!v.ok) {
       alert('Error setting value, possible invalid value: ' + value);
     }
+    await awaitMessage();
   });
 }
 
@@ -268,6 +274,15 @@ async function restSetCueValue(cue, effect, universe, channel, value) {
       delete cueSetData[cue + 'value'];
     }
 
+    // setAwaitMessage(
+    //   (m) =>
+    //     m[0] == 'scv' &&
+    //     m[1] == cue &&
+    //     m[2] == effect &&
+    //     m[3] == universe &&
+    //     m[4] == channel &&
+    //     m[5] == value
+    // );
     let response = fetch(
       '/chandler/api/set-cue-value/' +
         cue +
@@ -288,6 +303,7 @@ async function restSetCueValue(cue, effect, universe, channel, value) {
 
     let v = await response;
 
+    // await awaitMessage();
     if (!v.ok) {
       alert('Error setting value, possible invalid value: ' + value);
     }
@@ -348,7 +364,7 @@ async function setCueProperty(cue, property, value) {
     var b = {};
     b[property] = value;
 
-     // Could still be from another command but really this is
+    // Could still be from another command but really this is
     // just to make tests work
     setAwaitMessage((m) => m[0] == 'cuemeta' && m[1] == cue);
 
@@ -379,7 +395,6 @@ async function setCueProperty(cue, property, value) {
     );
 
     await awaitMessage();
-
   });
 }
 
@@ -740,25 +755,33 @@ function promptsetnumber(cue) {
   ]);
 }
 
-function setnumber(cue, v) {
-  api_link.send(['setnumber', cue, v]);
+async function setnumber(cue, v) {
+  await doSerialized(async () => {
+    setAwaitMessage((m) => m[0] == 'cuemeta' && m[1] == cue);
+    api_link.send(['setnumber', cue, v]);
+    await awaitMessage();
+  });
 }
 
-function setcrossfade(sc, v) {
-  groupmeta.value[sc].crossfade = v;
-  api_link.send(['setcrossfade', sc, v]);
-}
-function setmqtt(sc, v) {
-  groupmeta.value[sc].mqttServer = v;
-  api_link.send(['setMqttServer', sc, v]);
+async function setmqtt(sc, v) {
+  await doSerialized(async () => {
+    setAwaitMessage((m) => m[0] == 'groupmeta' && m[1] == sc);
+    groupmeta.value[sc].mqttServer = v;
+    api_link.send(['setMqttServer', sc, v]);
+    await awaitMessage();
+  });
 }
 
 function setmqttfeature(sc, feature, v) {
   api_link.send(['setmqttfeature', sc, feature, v]);
 }
 
-function setbpm(sc, v) {
-  api_link.send(['setbpm', sc, v]);
+async function setbpm(sc, v) {
+  await doSerialized(async () => {
+    setAwaitMessage((m) => m[0] == 'groupmeta' && m[1] == sc);
+    api_link.send(['setbpm', sc, v]);
+    await awaitMessage();
+  });
 }
 function tap(sc) {
   api_link.send(['tap', sc, api_link.now() / 1000]);
@@ -767,11 +790,16 @@ function testSoundCard(sc, c) {
   api_link.send(['testSoundCard', sc, c]);
 }
 
-function addfixToCue(cue, effect, fix) {
-  api_link.send(['add_cuef', cue, effect, fix]);
+async function addfixToCue(cue, effect, fix) {
+
+  await doSerialized(async () => {
+    setAwaitMessage((m) => m[0] == 'cuedata' && m[1] == cue);
+    api_link.send(['add_cuef', cue, effect, fix]);
+    await awaitMessage();
+  });
 }
 
-export function addRangeFix(cue, effect, fix) {
+export async function addRangeFix(cue, effect, fix) {
   let startIndex = Number.parseInt(
     prompt('Enter start index(0 = start):', '0')
   );
@@ -796,10 +824,15 @@ export function addRangeFix(cue, effect, fix) {
     postFix = '[' + startIndex + ':' + endIndex + ':' + step + ']';
   }
 
+
+  await doSerialized(async () => {
+    setAwaitMessage((m) => m[0] == 'cuedata' && m[1] == cue);
   api_link.send(['add_cuef', cue, effect, fix + postFix]);
+    await awaitMessage();
+  });
 }
 
-export function addAutoFix(cue, effect, fix) {
+export async function addAutoFix(cue, effect, fix) {
   let startIndex = Number.parseInt(
     prompt('Enter start index(0 = start):', '0')
   );
@@ -824,16 +857,26 @@ export function addAutoFix(cue, effect, fix) {
     postFix = '[' + startIndex + ':' + endIndex + ':' + step + ']';
   }
 
-  api_link.send(['add_cuef_auto', cue, effect, fix + postFix]);
+
+  await doSerialized(async () => {
+    setAwaitMessage((m) => m[0] == 'cuedata' && m[1] == cue);
+    api_link.send(['add_cuef_auto', cue, effect, fix + postFix]);
+    await awaitMessage();
+  });
 }
 
-function rmFixCue(cue, effect, fix) {
-  api_link.send(['rmcuef', cue, effect, fix]);
+async function rmFixCue(cue, effect, fix) {
+  await doSerialized(async () => {
+    setAwaitMessage((m) => m[0] == 'cuedata' && m[1] == cue);
+    api_link.send(['rmcuef', cue, effect, fix]);
+    await awaitMessage();
+  });
 }
 
 function refreshPorts() {
   api_link.send(['getserports']);
 }
+
 function pushSettings() {
   api_link.send(['setconfuniverses', configuredUniverses.value]);
 }
@@ -1245,7 +1288,6 @@ function updatePreset(name, v) {
     setAwaitMessage((m) => m[0] == 'preset' && m[1] == name);
     api_link.send(['preset', name, v]);
     await awaitMessage();
-
   }).catch(console.error);
 }
 
@@ -1289,33 +1331,31 @@ function handleCueInfo(id, cue) {
 
 let downloadRequestId = ref('');
 
-
-let awaitMessageChecker = null
+let awaitMessageChecker = null;
 
 // Used by the UI to wait until we actually get a message
 // indicating the request we made really happened
 // otherwise the queued ws messages would be out of sync
 // and break tests
-export function setAwaitMessage(predicate){
-
+export function setAwaitMessage(predicate) {
   awaitMessageChecker = predicate;
 }
 
-export async function awaitMessage(){
-  let safety = 1000
+export async function awaitMessage() {
+  let safety = 1000;
   while (awaitMessageChecker != null) {
     safety--;
     if (safety < 0) {
-      throw new Error("Timed out waiting for message")
+      throw new Error('Timed out waiting for message');
     }
-    await new Promise(resolve => setTimeout(resolve, 5));
+    await new Promise((resolve) => setTimeout(resolve, 5));
   }
 }
 
 function handleServerMessage(v) {
   let c = v[0];
 
-  if(awaitMessageChecker != null && awaitMessageChecker(v)) {
+  if (awaitMessageChecker != null && awaitMessageChecker(v)) {
     awaitMessageChecker = null;
   }
 
@@ -1750,7 +1790,6 @@ export {
   setprobability,
   promptsetnumber,
   setnumber,
-  setcrossfade,
   setmqtt,
   setmqttfeature,
   setbpm,

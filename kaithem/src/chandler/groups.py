@@ -342,11 +342,11 @@ class Group:
         self.hide = hide
 
         self.lock = threading.RLock()
-        self.randomizeModifier = 0
+        self.randomizeModifier: float = 0
 
         self.notes = notes
         self._midi_source: str = ""
-        self.default_next = str(default_next).strip()
+        self.default_next: str = default_next.strip()
 
         # TagPoint for managing the current cue
         self.cueTag = tags.StringTag("/chandler/groups/" + name + ".cue")
@@ -1027,7 +1027,14 @@ class Group:
         if (not s == "script.error") and exclude_errors:
             self._event(s, value, info, ts=ts, sync=sync)
 
-    def _event(self, s: str, value: Any, info: str = "", ts=None, sync=False):
+    def _event(
+        self,
+        s: str,
+        value: Any,
+        info: str = "",
+        ts: float | None = None,
+        sync: bool = False,
+    ):
         "Manually trigger any script bindings on an event"
         try:
             self.script_context.event(s, value, timestamp=ts, sync=sync)
@@ -1187,9 +1194,9 @@ class Group:
         self,
         cue: str,
         cue_entered_time: float | None = None,
-        sendSync=True,
-        generateEvents=True,
-        cause="generic",
+        sendSync: bool = True,
+        generateEvents: bool = True,
+        cause: str = "generic",
     ):
         """
         A method to go to a specific cue with optional time, synchronization, event generation, and cause specification.
@@ -1239,7 +1246,7 @@ class Group:
             cue, args = cue.split("?")
             kwargs = urllib.parse.parse_qs(args)
         else:
-            kwargs = {}
+            kwargs: dict[str, list[str]] = {}
 
         k2: dict[str, str] = {}
 
@@ -1455,7 +1462,7 @@ class Group:
                 except Exception:
                     print(traceback.format_exc())
 
-    def resolve_media(self, sound, cue_scope: Cue | None = None) -> str:
+    def resolve_media(self, sound: str, cue_scope: Cue | None = None) -> str:
         f = copy.copy(self.board.media_folders)
 
         if cue_scope:
@@ -2210,7 +2217,6 @@ class Group:
     @blend.setter
     def blend(self, blend: str):
         disallow_special(blend)
-        blend = str(blend)[:256]
         # if blend not in blendmodes.blendmodes:
         #     raise ValueError(f"Invalid blend mode: {blend}")
         if blend != self._blend:
@@ -2235,11 +2241,14 @@ class Group:
     @blend_args.setter
     @slow_group_lock_context.object_session_entry_point
     def blend_args(self, data: dict[str, Any]):
+        for i in list(self._blend_args.keys()):
+            if i not in data:
+                del self._blend_args[i]
+
         for key, val in data.items():
             disallow_special(key, "_")
             # serializableness check
             json.dumps(val)
-            self.lighting_manager.setBlendArg(key, val)
 
             if val is None:
                 del self._blend_args[key]
@@ -2249,6 +2258,7 @@ class Group:
                 except Exception:
                     pass
                 self._blend_args[key] = val
+                self.lighting_manager.setBlendArg(key, val)
 
             self.poll_again_flag = True
             self.metadata_already_pushed_by = {}

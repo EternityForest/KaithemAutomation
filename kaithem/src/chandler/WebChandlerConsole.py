@@ -508,10 +508,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
         elif cmd_name == "setnumber":
             cues[msg[1]].setNumber(msg[2])
 
-        elif cmd_name == "setsoundout":
-            cues[msg[1]].sound_output = msg[2]
-            self.pushCueMeta(msg[1], ["sound_output"])
-
         elif cmd_name == "setMqttServer":
             if has_permission("system_admin", user=user):
                 groups.groups[msg[1]].setMqttServer(msg[2])
@@ -593,9 +589,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             groups.groups[msg[1]].tap(msg[2])
         elif cmd_name == "setbpm":
             groups.groups[msg[1]].setBPM(msg[2])
-
-        elif cmd_name == "setcrossfade":
-            groups.groups[msg[1]].crossfade = float(msg[2] or 0)
 
         elif cmd_name == "add_cue":
             n = msg[2].strip()

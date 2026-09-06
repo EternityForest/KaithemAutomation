@@ -1036,7 +1036,7 @@ function delfixturetype() {
 function pushfixture(i) {
   globalThis
     .doSerialized(async () => {
-      setAwaitMessage((m) => m[0] == 'fixturetype' && m[1] == i);
+      setAwaitMessage((m) => m[0] == 'fixtureclass' && m[1] == i);
 
       await fetch(
         '/chandler/api/set-fixture-class/' +

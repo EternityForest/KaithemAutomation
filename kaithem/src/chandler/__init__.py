@@ -107,7 +107,7 @@ def cl_loop():
                 with group_lighting.render_loop_lock:
                     for b in core.boards.values():
                         c = group_lighting.composite_layers_from_board(
-                            b, u=u_cache, repaint=full_repaint
+                            b, relevant_universes=u_cache, repaint=full_repaint
                         )
                         changed.update(c)
 

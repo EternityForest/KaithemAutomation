@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import copy
 import re
 import time
 import traceback
+from collections.abc import Iterable
 from typing import TYPE_CHECKING
 
 import numpy
@@ -88,8 +90,6 @@ class GroupLightingManager:
 
         # Generator per-effect
         self.generators_by_effect: dict[str, generator_plugins.WASMPlugin] = {}
-
-        self.preprocessed_mapping = None
 
     def clean(self):
         with render_loop_lock:
@@ -252,13 +252,14 @@ class GroupLightingManager:
             if cue.track and self.group.backtrack:
                 backtracked = self.collect_backtracked_values(cue)
             else:
-                backtracked = []
+                backtracked: list[Cue] = []
 
             with render_loop_lock:
                 self.fading_from_flattened = self.get_current_flattened_outputs(
                     universes.getUniverses()
                 )
-                # Because just assigning would make them the same obj and it would be all
+                # Because just assigning would make them
+                # the same obj and it would be all
                 # corrupt so we make a new layer copy
                 op = self.get_current_flattened_outputs(
                     universes.getUniverses()
@@ -277,7 +278,8 @@ class GroupLightingManager:
                     self.apply_backtracked_values(backtracked)
 
                 # Recalc what universes are affected by this group.
-                # We don't clear the old universes, we do that when we're done fading in.
+                # We don't clear the old universes,
+                # we do that when we're done fading in.
                 for effect in cue.lighting_effects:
                     for universe in effect["keypoints"]:
                         i = universes.mapUniverse(universe["target"])
@@ -312,8 +314,8 @@ class GroupLightingManager:
     def update_state_from_cue_vals(
         self,
         cue: Cue,
-        use_dynamic=True,
-        clearBefore=False,
+        use_dynamic: bool = True,
+        clearBefore: bool = False,
     ):
         """Apply everything from the cue to the fade canvas"""
 
@@ -413,9 +415,12 @@ class GroupLightingManager:
             self.fade_in_completed = True
 
     def collect_backtracked_values(self, destination_cue: Cue) -> list[Cue]:
-        # When jumping to a cue that isn't directly the next one, apply and "parent" cues.
-        # We go backwards until we find a cue that has no parent. A cue has a parent if and only if it has either
-        # an explicit parent or the previous cue in the numbered list either has the default next cue or explicitly
+        # When jumping to a cue that isn't directly the next one,
+        # apply and "parent" cues.
+        # We go backwards until we find a cue that has no parent.
+        # A cue has a parent if and only if it has either
+        # an explicit parent or the previous cue in the numbered list
+        # either has the default next cue or explicitly
         # references this cue.
 
         # Returns a dict of backtracked variables for
@@ -432,7 +437,8 @@ class GroupLightingManager:
 
             if (
                 self.group.backtrack
-                # Track whenever the cue we are going to is not the next one in the numbering sequence
+                # Track whenever the cue we are going to
+                # is not the next one in the numbering sequence
                 and not new_cue == (self.group.getDefaultNext())
                 and destination_cue.track
             ):
@@ -458,24 +464,29 @@ class GroupLightingManager:
 
     def apply_backtracked_values(self, to_apply: list[Cue]):
         with render_loop_lock:
-            # Apply all the lighting changes we would have seen if we had gone through the list one at a time.
+            # Apply all the lighting changes we would have seen
+            # if we had gone through the list one at a time.
             for c in reversed(to_apply):
                 self.update_state_from_cue_vals(c, use_dynamic=False)
 
     def setup_blend_args(self):
         # Fill in defaults
         with render_loop_lock:
-            for i in self._blend.blend_args:
+            for i in self.blendClass.parameters:
                 if i not in self.blend_args:
-                    self.blend_args[i] = self._blend.blend_args[i]
+                    self.blend_args[i] = self.blendClass.parameters[i][3]
+
+            # Delete args we don't have anymore
+            for i in list(self.blend_args):
+                if i not in self.blendClass.parameters:
+                    del self.blend_args[i]
 
             # Set the val
-            self._blend.blend_args.update(self.blend_args)
+            self._blend.blend_args = copy.deepcopy(self.blend_args)
 
     def setBlend(self, blend: str):
         with self.group.lock:
             with render_loop_lock:
-                blend = str(blend)[:256]
                 self.blend = blend
                 if blend in blendmodes.blendmodes:
                     if self.group.is_active():
@@ -483,9 +494,12 @@ class GroupLightingManager:
                     self.blendClass = blendmodes.blendmodes[blend]
                     self.setup_blend_args()
                 else:
-                    self.blend_args = self.blend_args or {}
+                    self.blend_args = {}
                     self._blend = blendmodes.HardcodedBlendMode(self)
                     self.blendClass = blendmodes.HardcodedBlendMode
+                    # sync args to blend object
+                    self.setup_blend_args()
+
                 self.mark_need_repaint_onto_universes()
 
     def setBlendArg(self, key: str, val: float | bool | str):
@@ -495,7 +509,7 @@ class GroupLightingManager:
                     not hasattr(self.blendClass, "parameters")
                     or key not in self.blendClass.parameters
                 ):
-                    raise KeyError("No such param")
+                    raise KeyError(f"No such param: {key}")
 
                 if val is None:
                     del self.blend_args[key]
@@ -509,8 +523,14 @@ class GroupLightingManager:
                 self.mark_need_repaint_onto_universes()
 
 
-def _composite(background, values, alphas, alpha):
-    "In place compositing of one universe as a numpy array on a background.  Returns background."
+def _composite(
+    background: numpy.ndarray,
+    values: numpy.ndarray,
+    alphas: numpy.ndarray,
+    alpha: float,
+):
+    """In place compositing of one universe
+    as a numpy array on a background.  Returns background."""
     background = background * (1 - (alphas * alpha)) + values * alphas * alpha
     return background
 
@@ -533,8 +553,10 @@ def composite_rendered_layer_onto_universe(
 
     # The universe may need to know when it's current fade should end,
     # if it handles fading in a different way.
-    # This will look really bad for complex things, to try and reduce them to a series of fades,
-    # but we just do the best we can, and assume there's mostly only 1 group at a time affecting things
+    # This will look really bad for complex things,
+    # to try and reduce them to a series of fades,
+    # but we just do the best we can, and assume
+    # there's mostly only 1 group at a time affecting things
     universe_object.fadeEndTime = max(
         universe_object.fadeEndTime, group.cue.fade_in + group.entered_cue
     )
@@ -551,7 +573,8 @@ def composite_rendered_layer_onto_universe(
         )
 
         universe_values = _composite(universe_values, vals, alphas, fade)
-        # Essentially calculate remaining light percent, then multiply layers and convert back to alpha
+        # Essentially calculate remaining light percent,
+        # then multiply layers and convert back to alpha
         universe_alphas = 1 - ((1 - (alphas * fade)) * (1 - (universe_alphas)))
 
     elif bm == "HTP":
@@ -574,16 +597,18 @@ def composite_rendered_layer_onto_universe(
                 universe_values * vals
             ) / c
 
-            # COMPLETELY incorrect, but we don't use alpha for that much, and the real math
+            # COMPLETELY incorrect,
+            # but we don't use alpha for that much, and the real math
             # Is complicated. #TODO
             universe_alphas = (alphas * group.alpha) > 0
 
-    elif group.lighting_manager._blend:
+    else:
         try:
             universe_values = group.lighting_manager._blend.frame(
                 universe, universe_values, vals, alphas, group.alpha
             )
-            # Also incorrect-ish, but treating modified vals as fully opaque is good enough.
+            # Also incorrect-ish,
+            # but treating modified vals as fully opaque is good enough.
             universe_alphas = (alphas * group.alpha) > 0
         except Exception:
             print("Error in blend function")
@@ -593,16 +618,21 @@ def composite_rendered_layer_onto_universe(
 
 
 def composite_layers_from_board(
-    board: ChandlerConsole, t=None, u=None, repaint=False
+    board: ChandlerConsole,
+    timestamp: float | None = None,
+    relevant_universes: dict[str, universes.Universe] | None = None,
+    repaint: bool = False,
 ):
     """This is the primary rendering function.
     Returns dict of universes we know changes.
 
     Happens under the render loop lock
     """
-    universesSnapshot = u or universes.getUniverses()
+    universesSnapshot: dict[str, universes.Universe] = (
+        relevant_universes or universes.getUniverses()
+    )
     # Getting list of universes is apparently slow, so we pass it as a param
-    t = t or time.time()
+    timestamp = timestamp or time.time()
 
     changed = {}
 
@@ -668,16 +698,15 @@ def composite_layers_from_board(
     return changed
 
 
-def do_output(changed, universesSnapshot):
+def do_output(
+    changed: Iterable[str], universesSnapshot: dict[str, universes.Universe]
+):
     """Trigger all universes to actually output the frames.
     Need a snapshot list of universes because getting
     it is expensive according to profiler
     """
     for i in changed:
-        try:
-            if i in universesSnapshot:
-                x = universesSnapshot[i]
-                x.preFrame()
-                x.onFrame()
-        except Exception:
-            raise
+        if i in universesSnapshot:
+            x = universesSnapshot[i]
+            x.preFrame()
+            x.onFrame()
