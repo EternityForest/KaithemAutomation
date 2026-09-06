@@ -3,6 +3,7 @@
 import base64
 import copy
 import datetime
+import difflib
 import hashlib
 import json
 import os
@@ -116,7 +117,7 @@ def get_module_metadata(module: str) -> dict[str, Any]:
 
 
 @validate_args
-def check_forbidden(s: str, allow="") -> None:
+def check_forbidden(s: str, allow: str = "") -> None:
     if not s:
         raise ValueError("Resource or module name cannot be empty")
 
@@ -318,6 +319,7 @@ def normalize_resource_data(x: ResourceDictType):
     resourceData = snake_compat.snakify_dict_keys(resourceData)
 
     if "resource" not in resourceData:
+        # pyrefly: ignore [implicit-any-empty-container]
         resourceData["resource"] = {}
 
     # begin legacy compatibility
@@ -347,7 +349,18 @@ def normalize_resource_data(x: ResourceDictType):
         resourceData["resource"]["modified"] = int(time.time())
 
     if not resourceData == x:
-        warnings.warn("Automatically normalized resource", DeprecationWarning)
+        str1 = json.dumps(resourceData, sort_keys=True, indent=2).splitlines()
+        str2 = json.dumps(x, sort_keys=True, indent=2).splitlines()
+
+        # 2. Use unified_diff to generate the lines
+        diff = difflib.unified_diff(
+            str1, str2, fromfile="new", tofile="old", lineterm=""
+        )
+
+        warnings.warn(
+            "Automatically normalized resource: \n" + "".join(diff) + "\n",
+            DeprecationWarning,
+        )
 
     return resourceData
 
@@ -482,7 +495,7 @@ def saveModule(
         # Iterate over all of
         # the resources in a module and save them as json files
         # under the URL url module name for the filename.
-        logger.debug("Saving module " + str(modulename))
+        logger.debug(f"Saving module {modulename}")
         saved: list[str] = []
 
         # do the saving
