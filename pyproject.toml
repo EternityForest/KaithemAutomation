@@ -161,7 +161,7 @@ select = [
         "E722",
         "W605",
         "I"]
-ignore = ["TRY003"]
+ignore = ["TRY003", "TRY301"]
 
 
 [tool.coverage.run]

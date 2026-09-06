@@ -1515,6 +1515,9 @@ function handleServerMessage(v) {
 
 async function initChandlerVueModel(board) {
   await doSerialized(async () => {
+    // Wait for anything the server was already sending to us
+    await pingServer();
+
     await initializeState(board);
 
     api_link.upd = handleServerMessage;

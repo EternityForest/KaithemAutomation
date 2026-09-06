@@ -37,7 +37,7 @@ from .universes import getUniverse, getUniverses
 
 
 class ChandlerConsole(console_abc.Console_ABC):
-    "Represents a web GUI board. Pretty much the whole GUI app is part of this class"
+    """Represents a web GUI board."""
 
     def __init__(self, name: str = "ChandlerConsole") -> None:
         super().__init__()
@@ -58,12 +58,14 @@ class ChandlerConsole(console_abc.Console_ABC):
         self._active_groups: list[Group] = []
         self.active_groups: list[Group] = []
 
-        # This light board's group memory, or the set of groups 'owned' by this board.
+        # This light board's group memory,
+        #  or the set of groups 'owned' by this board.
         self.groups: dict[str, Group] = {}
 
         self.media_folders: list[str] = []
 
-        # For change detection in groups. Tuple is folder, file indicating where it should go,
+        # For change detection in groups. Tuple is folder,
+        # file indicating where it should go,
         # as would be passed to saveasfiles
         self.last_saved_version: dict[str, Any] = {}
 
@@ -96,12 +98,13 @@ class ChandlerConsole(console_abc.Console_ABC):
         messagebus.subscribe("/system/jack/newport", f)
         messagebus.subscribe("/system/jack/delport", f)
 
-        # Use only for stuff in background threads, to avoid pileups that clog the
+        # Use only for stuff in background threads,
+        # to avoid pileups that clog the
         # Whole worker pool
         self.gui_send_lock = threading.Lock()
 
         # For logging ratelimiting
-        self.last_logged_gui_send_error = 0
+        self.last_logged_gui_send_error: float = 0
         self.fixture_errors = ""
 
         self.autosave_checker = scheduling.scheduler.every(
@@ -492,7 +495,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                     raise ValueError(
                         "Group "
                         + i
-                        + " already exists. We cannot overwrite, because it was not created through this board"
+                        + " exists. cannot overwrite other board group"
                     )
             try:
                 x = False
@@ -524,13 +527,13 @@ class ChandlerConsole(console_abc.Console_ABC):
                 if not errs:
                     logger.exception(
                         "Failed to load group "
-                        + str(i)
+                        + i
                         + " "
                         + str(data[i].get("name", ""))
                     )
                     print(
                         "Failed to load group "
-                        + str(i)
+                        + i
                         + " "
                         + str(data[i].get("name", ""))
                         + ": "
@@ -556,10 +559,11 @@ class ChandlerConsole(console_abc.Console_ABC):
         event: str,
         target_group: str,
         time_unix: float | None = None,
-        value=None,
-        info="",
+        value: Any = None,
+        info: str = "",
     ):
-        # TODO: Do we want a better way of handling this? We don't want to clog up the semi-re
+        # TODO: Do we want a better way of handling this?
+        # We don't want to clog up
         def f():
             if self.gui_send_lock.acquire(timeout=5):
                 try:
@@ -587,9 +591,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                     self.gui_send_lock.release()
             else:
                 if time.monotonic() - self.last_logged_gui_send_error < 60:
-                    logger.error(
-                        "Timeout getting lock to push event. (Log ratelimit: 60)"
-                    )
+                    logger.error("Timeout getting lock to push event.")
                     self.last_logged_gui_send_error = time.monotonic()
 
         workers.do(f)
@@ -637,7 +639,7 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         return sd
 
-    def ml_cl_check_autosave(self, sync=False):
+    def ml_cl_check_autosave(self, sync: bool = False):
         """Only call sync if you already have the modules lock"""
         if self.initialized:
             self.ml_cl_save_project_data()
@@ -695,7 +697,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                         d[f.channels[i]["name"]] = [u[1:], f.channels[i]]
             self.linkSend(["cnames", u, d])
 
-    def pushPreset(self, preset):
+    def pushPreset(self, preset: str):
         preset_data = copy.deepcopy(self.fixture_presets.get(preset, {}))
         preset_data["labelImageTimestamp"] = self.get_file_timestamp_if_exists(
             preset_data.get("label_image", "")
@@ -714,34 +716,35 @@ class ChandlerConsole(console_abc.Console_ABC):
         | None = None,
         target: str | None = None,
     ):
-        "Statusonly=only the stuff relevant to a cue change. Keys is iterable of what to send, or None for all"
+        """Statusonly=only the stuff relevant to a cue change.
+        Keys is iterable of what to send, or None for all"""
         group = self.groups.get(groupid, None)
         # Race condition of deleted groups
         if not group:
             return
 
         v = {}
-        if group.script_context:
-            try:
-                for j in group.script_context.variables:
-                    if not j == "_":
-                        if isinstance(
-                            group.script_context.variables[j],
-                            int | float | str | bool,
-                        ):
-                            v[j] = group.script_context.variables[j]
+        try:
+            for j in group.script_context.variables:
+                if not j == "_":
+                    if isinstance(
+                        group.script_context.variables[j],
+                        int | float | str | bool,
+                    ):
+                        v[j] = group.script_context.variables[j]
 
-                        else:
-                            v[j] = "__PYTHONDATA__"
-            except Exception:
-                print(traceback.format_exc())
+                    else:
+                        v[j] = "__PYTHONDATA__"
+        except Exception:
+            print(traceback.format_exc())
 
         if not statusOnly:
             data: dict[str, Any] = {
-                # These dynamic runtime vars aren't part of the schema for stuff that gets saved
+                # These dynamic runtime vars aren't part
+                # of the schema for stuff that gets saved
                 "status": group.getStatusString(),
                 "blendDesc": blendmodes.getblenddesc(group.blend),
-                "cue": group.cue.id if group.cue else group.cues["default"].id,
+                "cue": group.cue.id,
                 "ext": groupid not in self.groups,
                 "id": groupid,
                 "uuid": groupid,
@@ -753,8 +756,10 @@ class ChandlerConsole(console_abc.Console_ABC):
                 # Placeholder because cues are separate in the web thing.
                 "cues": {},
                 "started": group.started,
-                # TODO ?? this is confusing because in the files and schemas alpha means
-                # default but everywhere else it means the current.  Maybe unify them.
+                # TODO ?? this is confusing because in the files
+                #  and schemas alpha means
+                # default but everywhere else it means the current.
+                #  Maybe unify them.
                 # Maybe unify active default too
                 "alpha": group.alpha,
                 "default_alpha": group.default_alpha,
@@ -766,7 +771,8 @@ class ChandlerConsole(console_abc.Console_ABC):
                 group.next_scheduled_cue
                 and group.next_scheduled_cue.scheduler_object
             ):
-                # Too race conditiony feeling with this property access chain TODO?
+                # Too race conditiony
+                # feeling with this property access chain TODO?
                 try:
                     data["next_scheduled_cue"] = [
                         group.next_scheduled_cue.name,
@@ -787,7 +793,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                 "active": group.is_active(),
                 "default_active": group.default_active,
                 "entered_cue": group.entered_cue,
-                "cue": group.cue.id if group.cue else group.cues["default"].id,
+                "cue": group.cue.id,
                 "cuelen": group.cuelen,
                 "status": group.getStatusString(),
             }
@@ -911,14 +917,16 @@ class ChandlerConsole(console_abc.Console_ABC):
         self.active_groups = self._active_groups[:]
 
     @core.cl_context.required
-    def cl_gui_push(self, universes_snapshot):
-        "Snapshot is a list of all universes because the getter for that is slow"
+    def cl_gui_push(self, universes_snapshot: dict[str, universes.Universe]):
+        """Snapshot is a list of all universes
+        because the getter for that is slow"""
         while self.newDataFunctions:
             self.newDataFunctions.pop(0)(self)
 
         for i in universes_snapshot:
             if self.id not in universes_snapshot[i].statusChanged:
-                # TODO just resend the whole universe object to prevent nuisance errors
+                # TODO just resend the whole
+                # universe object to prevent nuisance errors
                 self.linkSend(
                     [
                         "universe_status",
@@ -956,7 +964,7 @@ class ChandlerConsole(console_abc.Console_ABC):
         """Add extra time (in minutes) to a group's cuelen if it has one."""
         g = groups.groups[group_id]
         if g.cuelen:
-            g.cuelen += float(minutes) * 60
+            g.cuelen += minutes * 60
             self.push_group_meta(group_id)
 
     @core.cl_context.entry_point

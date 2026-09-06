@@ -136,7 +136,7 @@ async def set_fixture_class_opz(board: str):
 
     data = json.loads(await request.body)
 
-    x = []
+    x: list[dict[str, str | float]] = []
     for i in data["channels"]:
         i = str(i)
         if i in ("red", "green", "blue", "white", "fog", "uv"):
@@ -374,8 +374,7 @@ async def set_cue_keypoint_meta(
 
         g = cue.getGroup()
 
-        if g:
-            g.set_cue_keypoint_key(cue_id, effect, universe, key, v)
+        g.set_cue_keypoint_key(cue_id, effect, universe, key, v)
 
     board.pushCueData(cue_id)
 
@@ -492,7 +491,7 @@ async def group_add_time(group_id: str):
     require("chandler_operator")
     kw = json.loads(await request.body)
     board = groups[group_id].board
-    board.cl_add_time_to_group(group_id, kw["minutes"])
+    board.cl_add_time_to_group(group_id, float(kw["minutes"]))
     return {"success": True}
 
 
@@ -546,7 +545,9 @@ async def rm_fix_from_cue(cue_id: str, effect: str, fixture: str):
 
 @quart_app.route("/chandler/api/cue-meta/<cue_id>")
 async def get_cue_meta(cue_id: str):
-    """Return the UI metadata for a single cue, or ``None`` if the cue is gone."""
+    """Return the UI metadata for a single cue,
+    or ``None`` if the cue is gone."""
+
     require("chandler_operator")
     if cue_id not in cues:
         return {"cue_id": cue_id, "data": None}
