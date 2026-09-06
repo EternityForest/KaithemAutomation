@@ -61,14 +61,24 @@ test("test", async ({ page }) => {
   await waitForTasks(page);
 
   await page.getByTestId("group-properties-button").click();
+
   await page.getByLabel("Slideshow Overlay").click();
   await page.getByLabel("Slideshow Overlay").fill("overlay");
+
   await page.getByLabel("MIDI Source").click();
   await page.getByLabel("MIDI Source").fill("midisrc");
+
   await page.getByPlaceholder("Next cue in list").click();
   await page.getByPlaceholder("Next cue in list").fill("foo");
   await page.getByPlaceholder("Next cue in list").blur();
+
+
   await waitForTasks(page);
+  
+  await expect(page.getByLabel("Slideshow Overlay")).toHaveValue("overlay");
+  await expect(page.getByLabel("MIDI Source")).toHaveValue("midisrc");
+  await expect(page.getByPlaceholder("Next cue in list")).toHaveValue("foo");
+
 
   await sleep(200);
 

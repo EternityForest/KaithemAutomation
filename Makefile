@@ -160,7 +160,7 @@ dev-run-all-tests:
 	@killall -9 kmakefiletest
 	@killall -9 coverage
 	@sleep 1
-	@ ${IN_DEV_DOCKER} coverage erase
+	@ ${IN_DEV_DOCKER} uv run coverage erase
 	@ ${IN_DEV_DOCKER} pw-jack uv run coverage run testing_server.py --process-title kmakefiletest > /dev/shm/kmakefiletest.log &
 	@echo "Waiting for server to start"
 	@sleep 5
@@ -174,8 +174,8 @@ dev-run-all-tests:
 	@sleep 1
 	@killall -w kmakefiletest
 	@sleep 10
-	@${IN_DEV_DOCKER} coverage run --append -m pytest
-	@${IN_DEV_DOCKER} coverage html -i
+	@${IN_DEV_DOCKER} uv run coverage run --append -m pytest
+	@${IN_DEV_DOCKER} uv run coverage html -i
 	@open htmlcov/index.html
 	@open playwright-report/index.html
 

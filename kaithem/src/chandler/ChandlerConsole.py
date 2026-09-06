@@ -7,7 +7,7 @@ import traceback
 import uuid
 import weakref
 from collections.abc import Iterable
-from typing import Any
+from typing import Any, override
 
 import yaml
 from scullery import messagebus, scheduling, snake_compat, workers
@@ -693,6 +693,7 @@ class ChandlerConsole(console_abc.Console_ABC):
         )
         self.linkSend(["preset", preset, preset_data])
 
+    @override
     def push_group_meta(
         self,
         groupid: str,
@@ -702,6 +703,7 @@ class ChandlerConsole(console_abc.Console_ABC):
         | dict[Any, Any]
         | Iterable[str]
         | None = None,
+        target: str | None = None,
     ):
         "Statusonly=only the stuff relevant to a cue change. Keys is iterable of what to send, or None for all"
         group = self.groups.get(groupid, None)
@@ -790,31 +792,55 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         d = {i: data[i] for i in data if (not keys or (i in keys))}
         d = snake_compat.camelify_dict_keys(d)
+        if target:
+            self.linkSendTo(["groupmeta", groupid, d], target)
+        else:
+            self.linkSend(["groupmeta", groupid, d])
 
-        self.linkSend(["groupmeta", groupid, d])
-
-    def pushCueMeta(self, cueid: str, keys: list[str] | None = None):
+    @override
+    def pushCueMeta(
+        self,
+        cueid: str,
+        keys: list[str] | None = None,
+        target: str | None = None,
+    ):
         try:
             cue = cues[cueid]
 
             d = cue.get_ui_data(keys)
-
-            self.linkSend(
-                [
-                    "cuemeta",
-                    cueid,
-                    d,
-                ]
-            )
+            if target:
+                self.linkSendTo(
+                    [
+                        "cuemeta",
+                        cueid,
+                        d,
+                    ],
+                    target,
+                )
+            else:
+                self.linkSend(
+                    [
+                        "cuemeta",
+                        cueid,
+                        d,
+                    ]
+                )
         except Exception:
             core.rl_log_exc("Error pushing cue data")
             print("cue data push error", cueid, traceback.format_exc())
 
-    def pushCueData(self, cueid: str):
+    @override
+    def pushCueData(self, cueid: str, target: str | None = None):
         try:
-            self.linkSend(
-                ["cuedata", cues[cueid].id, cues[cueid].lighting_effects]
-            )
+            if target:
+                self.linkSendTo(
+                    ["cuedata", cues[cueid].id, cues[cueid].lighting_effects],
+                    target,
+                )
+            else:
+                self.linkSend(
+                    ["cuedata", cues[cueid].id, cues[cueid].lighting_effects]
+                )
         except KeyError:
             print(f"cue probably deleted {cueid}")
 

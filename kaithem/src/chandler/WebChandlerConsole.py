@@ -217,10 +217,12 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
     def push_sys_alerts(self, t: str, m: dict[str, Any]):
         self.linkSend(["alerts", m])
 
+    @override
     def linkSend(self, data: list[Any]):
         if self.link:
             return self.link.send(data)
 
+    @override
     def linkSendTo(self, data: list[Any], target: str):
         if self.link:
             return self.link.send_to(data, target)
@@ -245,19 +247,22 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
     def send_everything(self, sessionid: str):
         self.push_setup()
         self.push_setup()
-        self.linkSend(["alerts", getAlertState()])
-        self.linkSend(["soundfolders", self.media_folders])
+        self.linkSendTo(["alerts", getAlertState()], sessionid)
+        self.linkSendTo(["soundfolders", self.media_folders], sessionid)
 
-        self.linkSend(["availableTags", limitedTagsListing()])
+        self.linkSendTo(["availableTags", limitedTagsListing()], sessionid)
 
-        self.linkSend(
-            ["soundoutputs", [i for i in soundmanager.list_outputs()]]
+        self.linkSendTo(
+            ["soundoutputs", [i for i in soundmanager.list_outputs()]],
+            sessionid,
         )
 
-        self.linkSend(["midiInputs", list_midi_inputs()])
+        self.linkSendTo(["midiInputs", list_midi_inputs()], sessionid)
 
-        self.linkSend(["blendModes", list(blendmodes.blendmodes.keys())])
-        self.linkSend(["fixtureclasses", self.fixture_classes])
+        self.linkSendTo(
+            ["blendModes", list(blendmodes.blendmodes.keys())], sessionid
+        )
+        self.linkSendTo(["fixtureclasses", self.fixture_classes], sessionid)
 
         sc = []
 
@@ -265,7 +270,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             if not i.isdecimal():
                 sc.append(i)
 
-        self.linkSend(["shortcuts", sc])
+        self.linkSendTo(["shortcuts", sc], sessionid)
 
         for i in self.groups:
             s = self.groups[i]
@@ -299,33 +304,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             if i.id not in self.groups:
                 self.push_group_meta(i.id)
         self.pushConfiguredUniverses()
-        self.linkSend(["serports", getSerPorts()])
-
-        shows = os.path.join(directories.vardir, "chandler", "shows")
-        if os.path.isdir(shows):
-            self.linkSend(
-                [
-                    "shows",
-                    [
-                        i
-                        for i in os.listdir(shows)
-                        if os.path.isdir(os.path.join(shows, i))
-                    ],
-                ]
-            )
-
-        setups = os.path.join(directories.vardir, "chandler", "setups")
-        if os.path.isdir(setups):
-            self.linkSend(
-                [
-                    "setups",
-                    [
-                        i
-                        for i in os.listdir(setups)
-                        if os.path.isdir(os.path.join(setups, i))
-                    ],
-                ]
-            )
+        self.linkSendTo(["serports", getSerPorts()], sessionid)
 
     def _send_environment_description(self):
         """Send environment description with
@@ -354,7 +333,11 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         cmd_name: str = str(msg[0])
 
-        if cmd_name == "get_state":
+        if cmd_name == "ping":
+            self.linkSendTo(["pong", msg[1]], sessionid)
+            return
+
+        elif cmd_name == "get_state":
             self.send_everything(sessionid)
             return
 
@@ -364,7 +347,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 return
             s = cues[msg[1]]
             self.linkSend(["cuedata", msg[1], s.lighting_effects])
-            self.pushCueMeta(msg[1])
             return
 
         elif cmd_name == "getfixtureclass":
@@ -528,7 +510,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         elif cmd_name == "setsoundout":
             cues[msg[1]].sound_output = msg[2]
-            self.pushCueMeta(msg[1])
+            self.pushCueMeta(msg[1], ["sound_output"])
 
         elif cmd_name == "setMqttServer":
             if has_permission("system_admin", user=user):
@@ -567,7 +549,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                     )
 
             self.linkSend(["cuedata", cue.id, cue.lighting_effects])
-            self.pushCueMeta(cue.id)
 
         elif cmd_name == "rmcuef":
             cue = cues[msg[1]]
@@ -582,7 +563,6 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
                 cue.set_value_immediate(effect, fixture, i, None)
 
             self.linkSend(["cuedata", cue.id, cue.lighting_effects])
-            self.pushCueMeta(cue.id)
 
         elif cmd_name == "listsoundfolder":
             lst = listsoundfolder(msg[1], extra_folders=self.media_folders)
@@ -603,9 +583,8 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             self.linkSend(["scv", msg[1], msg[2], msg[3], ch, v])
 
             if v is None:
-                # Count of values in the metadata changed
+                # Set of values in the metadata changed
                 self.pushCueData(msg[1])
-                self.pushCueMeta(msg[1])
 
         elif cmd_name == "setMusicVisualizations":
             groups.groups[msg[1]].setMusicVisualizations(msg[2])
@@ -733,11 +712,11 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
             else:
                 c = None
             cues[msg[1]].next_cue = c or ""
-            self.pushCueMeta(msg[1])
+            self.pushCueMeta(msg[1], ["next_cue"])
 
         elif cmd_name == "setprobability":
             cues[msg[1]].probability = msg[2][:2048]
-            self.pushCueMeta(msg[1])
+            self.pushCueMeta(msg[1], ["probability"])
 
         elif cmd_name == "setgroupname":
             groups.groups[msg[1]].setName(msg[2])

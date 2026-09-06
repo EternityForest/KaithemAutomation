@@ -120,7 +120,7 @@ async function chandlerBoardTemplate(page: Page, module: string) {
     await page.getByRole('link', { name: 'Modules' }).click();
     await page.getByRole('link', { name: module }).click();
     await page.getByRole('link', { name: 'Edit' }).click();
-
+ 
     // Wait a bit before trying to fill out this so it doesn't get overwritten
     await waitForTasks(page);
     await sleep(500);

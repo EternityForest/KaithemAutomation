@@ -394,7 +394,6 @@ async def set_cue_effect_rest(cue_id: str, effect: str):
     group = cue.group()
     if group:
         board = group.board
-        group.board.pushCueMeta(cue_id)
     else:
         raise RuntimeError("Cue has no group")
 

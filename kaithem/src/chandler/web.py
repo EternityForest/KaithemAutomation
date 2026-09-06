@@ -66,7 +66,7 @@ async def label_update_callback(path: str):
             cue.label_image = kwargs["resource"][len("media/") :]
             gr = cue.group()
             if gr:
-                gr.board.pushCueMeta(path2[1])
+                gr.board.pushCueMeta(path2[1], ["label_image"])
         elif path2[0] == "preset":
             preset = core.boards[path2[1]].fixture_presets[path2[2]]
             preset["label_image"] = kwargs["resource"][len("media/") :]

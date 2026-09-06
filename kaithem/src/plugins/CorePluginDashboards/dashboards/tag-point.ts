@@ -262,7 +262,7 @@ export class TagpointComponent extends DashboardComponent {
     this.pushData(newValue);
 
     this.value = newValue;
-    doSerialized(() => this.sendData('value', this.value));
+    doSerialized(async () => await this.sendData('value', this.value));
   }
 
   /**

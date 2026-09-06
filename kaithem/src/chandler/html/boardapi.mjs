@@ -13,11 +13,11 @@ import {
   formatInterval,
   dictView,
   formatTime,
-} from "./utils.mjs";
-import { kaithemapi, APIWidget } from "/static/js/widget.mjs";
-import picodash from "/static/js/thirdparty/picodash/picodash-base.esm.js";
+} from './utils.mjs';
+import { kaithemapi, APIWidget } from '/static/js/widget.mjs';
+import picodash from '/static/js/thirdparty/picodash/picodash-base.esm.js';
 
-import { computed, ref, toRaw, nextTick } from "vue";
+import { computed, ref, toRaw, nextTick } from 'vue';
 
 let keysdown = {};
 
@@ -30,7 +30,7 @@ let groupname = ref(null);
 let editingGroup = ref(null);
 let universes = ref({});
 let cues = ref({});
-let newcuename = ref("");
+let newcuename = ref('');
 let cuemeta = ref({});
 let chandlerScriptEnvironment = ref({});
 // per scene user selected for editing
@@ -61,11 +61,11 @@ function keyHandle(event_) {
     return;
   }
   const target = event_.target;
-  if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") {
+  if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
     return;
   }
   keysdown[event_.key] = true;
-  api_link.send(["event", "keydown." + event_.key, 1, "int", "__global__"]);
+  api_link.send(['event', 'keydown.' + event_.key, 1, 'int', '__global__']);
 }
 function keyUpHandle(event_) {
   if (!sendKeystrokes.value) {
@@ -75,28 +75,28 @@ function keyUpHandle(event_) {
     return;
   }
   const target = event_.target;
-  if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") {
+  if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
     return;
   }
   keysdown[event_.key] = false;
-  api_link.send(["event", "keyup." + event_.key, 1, "int", "__global__"]);
+  api_link.send(['event', 'keyup.' + event_.key, 1, 'int', '__global__']);
 }
 
-globalThis.addEventListener("keydown", keyHandle);
-globalThis.addEventListener("keyup", keyUpHandle);
+globalThis.addEventListener('keydown', keyHandle);
+globalThis.addEventListener('keyup', keyUpHandle);
 
 export function refreshCueProviders(group) {
-  const url = "/chandler/api/refresh-group-cue-providers/" + group;
+  const url = '/chandler/api/refresh-group-cue-providers/' + group;
   fetch(url, {
-    method: "PUT",
+    method: 'PUT',
   }).catch(function (error) {
-    alert("Could not reach server:" + error);
+    alert('Could not reach server:' + error);
   });
 }
 
 function playAlert(m) {
   if (uiAlertSounds.value) {
-    var mp3_url = "/static/sounds/72127__kizilsungur__sweetalertsound3.opus";
+    var mp3_url = '/static/sounds/72127__kizilsungur__sweetalertsound3.opus';
     new Audio(mp3_url).play().catch(() => {});
   }
   if (m) {
@@ -109,16 +109,21 @@ function playAlert(m) {
 function errorTone(m) {
   if (uiAlertSounds.value) {
     var mp3_url =
-      "/static/sounds/423166__plasterbrain__minimalist-sci-fi-ui-error.opus";
+      '/static/sounds/423166__plasterbrain__minimalist-sci-fi-ui-error.opus';
     new Audio(mp3_url).play().catch(() => {});
   }
   if (m) {
     picodash.snackbar.createSnackbar(m, {
-      accent: "error",
+      accent: 'error',
       timeout: 60 * 1000,
     });
   }
 }
+
+export function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 // Legacy compatibility equivalents for the old vue2 apis. TODO get rid of this
 function old_vue_set(o, k, v) {
   o[k] = v;
@@ -146,24 +151,24 @@ function set(o, k, v) {
 }
 
 async function initializeState(board) {
-  var plugin_info_resp = await fetch("/chandler/plugin-info", {
-    method: "GET",
+  var plugin_info_resp = await fetch('/chandler/plugin-info', {
+    method: 'GET',
   });
 
   let plugin_info_json = await plugin_info_resp.json();
 
   plugin_info.value = plugin_info_json;
 
-  var v = await fetch("/chandler/api/all-cues/" + board, {
-    method: "GET",
+  var v = await fetch('/chandler/api/all-cues/' + board, {
+    method: 'GET',
   });
 
   if (!v.ok) {
     picodash.snackbar.createSnackbar(
-      "Error getting state.  Board might be nonexistent",
+      'Error getting state.  Board might be nonexistent',
       {
         timeout: 600_000,
-        accent: "error",
+        accent: 'error',
       }
     );
     return;
@@ -179,7 +184,7 @@ async function initializeState(board) {
 let cueSetData = {};
 
 function triggerShortcut(sc) {
-  api_link.send(["shortcut", sc]);
+  api_link.send(['shortcut', sc]);
 }
 
 export function getPluginSchema(type, plugin) {
@@ -201,84 +206,90 @@ async function setGroupProperty(group, property, value) {
     var b = {};
     b[property] = value;
 
-    let response = fetch("/chandler/api/set-group-properties/" + group, {
-      method: "PUT",
+    let response = fetch('/chandler/api/set-group-properties/' + group, {
+      method: 'PUT',
       body: JSON.stringify(b),
       headers: {
-        "Content-type": "application/json; charset=UTF-8",
+        'Content-type': 'application/json; charset=UTF-8',
       },
     }).catch(function (error) {
-      alert("Could not reach server:" + error);
+      alert('Could not reach server:' + error);
     });
 
     let v = await response;
 
     if (!v.ok) {
-      alert("Error setting property, possible invalid value: " + value);
+      alert('Error setting property, possible invalid value: ' + value);
     }
+    await nextTick();
+    await new Promise((resolve) =>
+      setTimeout(() => {
+        resolve(0);
+      }, 0)
+    );
   });
 }
 
 export async function restSetCueEffectMeta(cue, effect, value) {
   await doSerialized(async () => {
-    var x = cueSetData[cue + "value"];
+    var x = cueSetData[cue + 'value'];
     if (x) {
       clearTimeout(x);
-      delete cueSetData[cue + "value"];
+      delete cueSetData[cue + 'value'];
     }
 
     let response = fetch(
-      "/chandler/api/set-cue-effect-meta/" +
+      '/chandler/api/set-cue-effect-meta/' +
         cue +
-        "/" +
+        '/' +
         effect +
-        "?" +
+        '?' +
         new URLSearchParams({ value: JSON.stringify(value) }).toString(),
       {
-        method: "PUT",
+        method: 'PUT',
       }
     ).catch(function (error) {
-      alert("Could not reach server:" + error);
+      alert('Could not reach server:' + error);
     });
 
     let v = await response;
 
     if (!v.ok) {
-      alert("Error setting value, possible invalid value: " + value);
+      alert('Error setting value, possible invalid value: ' + value);
     }
   });
 }
 
 async function restSetCueValue(cue, effect, universe, channel, value) {
   await doSerialized(async () => {
-    var x = cueSetData[cue + "value"];
+    var x = cueSetData[cue + 'value'];
     if (x) {
       clearTimeout(x);
-      delete cueSetData[cue + "value"];
+      delete cueSetData[cue + 'value'];
     }
 
     let response = fetch(
-      "/chandler/api/set-cue-value/" +
+      '/chandler/api/set-cue-value/' +
         cue +
-        "/" +
+        '/' +
         effect +
-        "/" +
+        '/' +
         encodeURIComponent(universe) +
-        "/" +
+        '/' +
         encodeURIComponent(channel.toString()) +
-        "?" +
+        '?' +
         new URLSearchParams({ value: JSON.stringify(value) }).toString(),
       {
-        method: "PUT",
+        method: 'PUT',
       }
     ).catch(function (error) {
-      alert("Could not reach server:" + error);
+      alert('Could not reach server:' + error);
     });
 
     let v = await response;
 
     if (!v.ok) {
-      alert("Error setting value, possible invalid value: " + value);
+      alert('Error setting value, possible invalid value: ' + value);
     }
   });
 }
@@ -291,36 +302,36 @@ export async function restSetCueKeypointMeta(
   value
 ) {
   await doSerialized(async () => {
-    var x = cueSetData[cue + "value"];
+    var x = cueSetData[cue + 'value'];
     if (x) {
       clearTimeout(x);
-      delete cueSetData[cue + "value"];
+      delete cueSetData[cue + 'value'];
     }
 
     let response = fetch(
-      "/chandler/api/set-cue-keypoint-meta/" +
+      '/chandler/api/set-cue-keypoint-meta/' +
         cue +
-        "/" +
+        '/' +
         effect +
-        "/" +
+        '/' +
         encodeURIComponent(universe) +
-        "/" +
+        '/' +
         encodeURIComponent(channel.toString()) +
-        "?" +
+        '?' +
         new URLSearchParams({
           value: JSON.stringify(value),
         }).toString(),
       {
-        method: "PUT",
+        method: 'PUT',
       }
     ).catch(function (error) {
-      alert("Could not reach server:" + error);
+      alert('Could not reach server:' + error);
     });
 
     let v = await response;
 
     if (!v.ok) {
-      alert("Error setting value, possible invalid value: " + value);
+      alert('Error setting value, possible invalid value: ' + value);
     }
   });
 }
@@ -337,25 +348,31 @@ async function setCueProperty(cue, property, value) {
     var b = {};
     b[property] = value;
 
-    let p = fetch("/chandler/api/set-cue-properties/" + cue, {
-      method: "PUT",
+    let p = fetch('/chandler/api/set-cue-properties/' + cue, {
+      method: 'PUT',
       body: JSON.stringify(b),
       headers: {
-        "Content-type": "application/json; charset=UTF-8",
+        'Content-type': 'application/json; charset=UTF-8',
       },
     });
 
     try {
       let r = await p;
       if (!r.ok) {
-        alert("Error setting property, possible invalid value: " + value);
+        alert('Error setting property, possible invalid value: ' + value);
       }
     } catch (error) {
-      alert("Could not reach server: " + error);
+      alert('Could not reach server: ' + error);
     }
 
     cuemeta.value[cue][property] = value;
+    // Ensure UI updates after
     await nextTick();
+    await new Promise((resolve) =>
+      setTimeout(() => {
+        resolve(0);
+      }, 0)
+    );
   });
 }
 
@@ -372,18 +389,18 @@ function setCuePropertyDeferred(cue, property, value) {
     var b = {};
     b[property] = value;
 
-    fetch("/chandler/api/set-cue-properties/" + cue, {
-      method: "PUT",
+    fetch('/chandler/api/set-cue-properties/' + cue, {
+      method: 'PUT',
       body: JSON.stringify(b),
       headers: {
-        "Content-type": "application/json; charset=UTF-8",
+        'Content-type': 'application/json; charset=UTF-8',
       },
     })
       .then((_response) => {
         cuemeta.value[cue][property] = value;
       })
       .catch(function (error) {
-        alert("Error setting property: " + error);
+        alert('Error setting property: ' + error);
       });
     delete cueSetData[cue + property];
   }, 3000);
@@ -401,31 +418,31 @@ function setGroupPropertyDeferred(group, property, value) {
     var b = {};
     b[property] = value;
 
-    fetch("/chandler/api/set-group-properties/" + group, {
-      method: "PUT",
+    fetch('/chandler/api/set-group-properties/' + group, {
+      method: 'PUT',
       body: JSON.stringify(b),
       headers: {
-        "Content-type": "application/json; charset=UTF-8",
+        'Content-type': 'application/json; charset=UTF-8',
       },
     }).catch(function (error) {
-      alert("Error setting property: " + error);
+      alert('Error setting property: ' + error);
     });
     delete cueSetData[group + property];
   }, 3000);
 }
 
 function saveToDisk() {
-  api_link.send(["saveState"]);
+  api_link.send(['saveState']);
 }
 
 function sendGroupEventWithConfirm(event_, where) {
   if (confirm_for_group(where)) {
-    api_link.send(["event", event_, "", "str", where]);
+    api_link.send(['event', event_, '', 'str', where]);
   }
 }
 
 function refreshhistory(sc) {
-  api_link.send(["getcuehistory", sc]);
+  api_link.send(['getcuehistory', sc]);
 }
 
 function selectcue(sc, cue) {
@@ -448,7 +465,7 @@ function openPopoverWhenAvailable(popover, attempts) {
         openPopoverWhenAvailable(popover, attempts);
       }, 50);
     } else {
-      console.error("Failed to load popover " + popover);
+      console.error('Failed to load popover ' + popover);
     }
   }
 }
@@ -458,7 +475,7 @@ function selectgroup(sc, sn, popover, noRetry) {
 
   if (!cid) {
     if (noRetry) {
-      console.error("Failed to select scene " + sn);
+      console.error('Failed to select scene ' + sn);
     } else {
       setTimeout(function () {
         selectgroup(sc, sn, popover, true);
@@ -479,22 +496,22 @@ function selectgroup(sc, sn, popover, noRetry) {
 }
 
 async function delgroup(group) {
-  var r = confirm("Really delete group?");
+  var r = confirm('Really delete group?');
   if (r == true) {
     await doSerialized(async () => {
       let result = fetch(
-        "/chandler/api/delete-group/" + boardname.value + "/" + group,
+        '/chandler/api/delete-group/' + boardname.value + '/' + group,
         {
-          method: "PUT",
+          method: 'PUT',
         }
       ).catch(function (error) {
-        alert("Could not reach server:" + error);
+        alert('Could not reach server:' + error);
       });
 
       let result2 = await result;
       if (!result2.ok) {
         {
-          alert("Error deleting group: " + result2.statusText);
+          alert('Error deleting group: ' + result2.statusText);
         }
       }
     });
@@ -502,84 +519,83 @@ async function delgroup(group) {
 }
 
 async function addgroup() {
-  var r = prompt("New group name?");
-  if (!(r == null || r == "")) {
+  var r = prompt('New group name?');
+  if (!(r == null || r == '')) {
     await doSerialized(async () => {
       let result = fetch(
-        "/chandler/api/add-group/" + boardname.value + "/" + r,
+        '/chandler/api/add-group/' + boardname.value + '/' + r,
         {
-          method: "PUT",
+          method: 'PUT',
         }
       ).catch(function (error) {
-        alert("Could not reach server:" + error);
+        alert('Could not reach server:' + error);
       });
 
       let result2 = await result;
-      if(!result2){
-        alert("????");
-        return
+      if (!result2) {
+        alert('????');
+        return;
       }
       if (!result2.ok) {
         {
-          alert("Error adding group: " + result2.statusText);
+          alert('Error adding group: ' + result2.statusText);
         }
       }
     });
   }
 }
 
-
 async function go(group) {
   await doSerialized(async () => {
-    const result = fetch("/chandler/api/group-go/" + group, {
-      method: "PUT",
+    const result = fetch('/chandler/api/group-go/' + group, {
+      method: 'PUT',
     }).catch(function (error) {
-      alert("Could not reach server:" + error);
+      alert('Could not reach server:' + error);
     });
     const result2 = await result;
     if (!result2.ok) {
-      alert("Error activating group: " + result.statusText);
+      alert('Error activating group: ' + result.statusText);
     }
   });
 }
 
 async function stop(group) {
   var x = confirm(
-    "Really stop group? The cue and all variables will be reset."
+    'Really stop group? The cue and all variables will be reset.'
   );
 
   if (x) {
-    const result = fetch("/chandler/api/group-stop/" + group, {
-      method: "PUT",
+    const result = fetch('/chandler/api/group-stop/' + group, {
+      method: 'PUT',
     }).catch(function (error) {
-      alert("Could not reach server:" + error);
+      alert('Could not reach server:' + error);
     });
     const result2 = await result;
     if (!result2.ok) {
-      alert("Error activating group: " + result.statusText);
+      alert('Error activating group: ' + result.statusText);
     }
   }
 }
 
 function setalpha(sc, v) {
-  api_link.send(["setalpha", sc, v]);
+  api_link.send(['setalpha', sc, v]);
   alphas.value[sc] = v;
 }
 
 function gotoNextCue(sc) {
   if (confirm_for_group(sc)) {
-    api_link.send(["gotoNextCue", sc]);
+    api_link.send(['gotoNextCue', sc]);
   }
 }
 
 function gotoPreviousCue(sc) {
   if (confirm_for_group(sc)) {
-    api_link.send(["gotoPreviousCue", sc]);
+    api_link.send(['gotoPreviousCue', sc]);
   }
 }
 
 function add_cue(sc, v, after_cue) {
-  api_link.send(["add_cue", sc, v, Number.parseFloat(after_cue.number) * 1000]);
+  api_link.send(['add_cue', sc, v, Number.parseFloat(after_cue.number) * 1000]);
   //There's a difference between "not there" undefined and actually set to undefined....
   if (groupcues.value[sc][v] == undefined) {
     //Placeholder so we can at least show a no cue found message till it arrives
@@ -594,7 +610,7 @@ function add_cue(sc, v, after_cue) {
 }
 
 function clonecue(sc, cue, v) {
-  api_link.send(["clonecue", cue, v]);
+  api_link.send(['clonecue', cue, v]);
   //There's a difference between "not there" undefined and actually set to undefined....
   if (groupcues.value[sc][v] == undefined) {
     //Placeholder so we can at least show a no cue found message till it arrives
@@ -617,8 +633,8 @@ function gotonext(currentcueid, group) {
   if (!cue) {
     return;
   }
-  api_link.send(["add_cue", groupname.value, nextcue]);
-  api_link.send(["getcuedata", cue]);
+  api_link.send(['add_cue', groupname.value, nextcue]);
+  api_link.send(['getcuedata', cue]);
 
   //There's a difference between "not there" undefined and actually set to undefined....
   if (groupcues.value[cue] == undefined) {
@@ -630,11 +646,11 @@ function gotonext(currentcueid, group) {
   }, 30);
 }
 function rmcue(cue) {
-  if (!confirm("Delete cue?")) {
+  if (!confirm('Delete cue?')) {
     return;
   }
-  selectedCues.value[groupname.value] = "default";
-  api_link.send(["rmcue", cue]);
+  selectedCues.value[groupname.value] = 'default';
+  api_link.send(['rmcue', cue]);
 }
 
 async function jumpToCueWithConfirmationIfNeeded(cueid, group) {
@@ -644,19 +660,19 @@ async function jumpToCueWithConfirmationIfNeeded(cueid, group) {
     //   accent: "error"
     // });
 
-    alert("Group is not active");
+    alert('Group is not active');
     return;
   }
   if (confirm_for_group(group)) {
     await doSerialized(async () => {
-      const result = fetch("/chandler/api/go-to-cue-by-cue-id/" + cueid, {
-        method: "PUT",
+      const result = fetch('/chandler/api/go-to-cue-by-cue-id/' + cueid, {
+        method: 'PUT',
       }).catch(function (error) {
-        alert("Could not reach server:" + error);
+        alert('Could not reach server:' + error);
       });
       const result2 = await result;
       if (!result2.ok) {
-        alert("Error activating cue: " + result.statusText);
+        alert('Error activating cue: ' + result.statusText);
       }
     });
   }
@@ -673,11 +689,11 @@ async function getcuedata(c) {
         reject();
       }, 5000);
     });
-    api_link.send(["getcuedata", c]);
+    api_link.send(['getcuedata', c]);
     try {
       await Promise.race([p, timeoutPromise]);
     } catch (error) {
-      console.log("Error getting cue data", error);
+      console.log('Error getting cue data', error);
     }
   });
 }
@@ -685,142 +701,142 @@ async function getcuedata(c) {
 async function getcuemeta(c) {
   await doSerialized(async () => {
     try {
-      const v = await fetch("/chandler/api/cue-meta/" + encodeURIComponent(c), {
-        method: "GET",
+      const v = await fetch('/chandler/api/cue-meta/' + encodeURIComponent(c), {
+        method: 'GET',
       });
       if (!v.ok) {
-        alert("Error getting cue data: " + v.status);
+        alert('Error getting cue data: ' + v.status);
         return;
       }
       const j = await v.json();
       handleCueInfo(j.cue_id, j.data);
     } catch (error) {
-      console.log("Error getting cue data", error);
-      alert("Error getting cue data: " + error);
+      console.log('Error getting cue data', error);
+      alert('Error getting cue data: ' + error);
     }
   });
 }
 
 function setnext(sc, cue, v) {
-  api_link.send(["setnext", sc, cue, v]);
+  api_link.send(['setnext', sc, cue, v]);
 }
 
 function setprobability(sc, cue, v) {
-  api_link.send(["setprobability", sc, cue, v]);
+  api_link.send(['setprobability', sc, cue, v]);
 }
 
 function promptsetnumber(cue) {
   api_link.send([
-    "setnumber",
+    'setnumber',
     cue,
-    Number(prompt("Enter new number for cue.value:")),
+    Number(prompt('Enter new number for cue.value:')),
   ]);
 }
 
 function setnumber(cue, v) {
-  api_link.send(["setnumber", cue, v]);
+  api_link.send(['setnumber', cue, v]);
 }
 
 function setcrossfade(sc, v) {
   groupmeta.value[sc].crossfade = v;
-  api_link.send(["setcrossfade", sc, v]);
+  api_link.send(['setcrossfade', sc, v]);
 }
 function setmqtt(sc, v) {
   groupmeta.value[sc].mqttServer = v;
-  api_link.send(["setMqttServer", sc, v]);
+  api_link.send(['setMqttServer', sc, v]);
 }
 
 function setmqttfeature(sc, feature, v) {
-  api_link.send(["setmqttfeature", sc, feature, v]);
+  api_link.send(['setmqttfeature', sc, feature, v]);
 }
 
 function setbpm(sc, v) {
-  api_link.send(["setbpm", sc, v]);
+  api_link.send(['setbpm', sc, v]);
 }
 function tap(sc) {
-  api_link.send(["tap", sc, api_link.now() / 1000]);
+  api_link.send(['tap', sc, api_link.now() / 1000]);
 }
 function testSoundCard(sc, c) {
-  api_link.send(["testSoundCard", sc, c]);
+  api_link.send(['testSoundCard', sc, c]);
 }
 
 function addfixToCue(cue, effect, fix) {
-  api_link.send(["add_cuef", cue, effect, fix]);
+  api_link.send(['add_cuef', cue, effect, fix]);
 }
 
 export function addRangeFix(cue, effect, fix) {
   let startIndex = Number.parseInt(
-    prompt("Enter start index(0 = start):", "0")
+    prompt('Enter start index(0 = start):', '0')
   );
   if (Number.isNaN(startIndex)) {
     return;
   }
-  let endIndex = Number.parseInt(prompt("Enter end index(inlcusive):", "0"));
+  let endIndex = Number.parseInt(prompt('Enter end index(inlcusive):', '0'));
   if (Number.isNaN(endIndex)) {
     return;
   }
-  let step = Number.parseInt(prompt("Enter step:", "1"));
+  let step = Number.parseInt(prompt('Enter step:', '1'));
   if (Number.isNaN(step)) {
     return;
   }
 
-  let postFix = "";
+  let postFix = '';
 
   if (!(startIndex == 0 && endIndex == 0 && step == 1)) {
     if (step == 1) {
-      postFix = "[" + startIndex + "," + endIndex + "]";
+      postFix = '[' + startIndex + ',' + endIndex + ']';
     }
-    postFix = "[" + startIndex + ":" + endIndex + ":" + step + "]";
+    postFix = '[' + startIndex + ':' + endIndex + ':' + step + ']';
   }
 
-  api_link.send(["add_cuef", cue, effect, fix + postFix]);
+  api_link.send(['add_cuef', cue, effect, fix + postFix]);
 }
 
 export function addAutoFix(cue, effect, fix) {
   let startIndex = Number.parseInt(
-    prompt("Enter start index(0 = start):", "0")
+    prompt('Enter start index(0 = start):', '0')
   );
   if (Number.isNaN(startIndex)) {
     return;
   }
-  let endIndex = Number.parseInt(prompt("Enter end index(inlcusive):", "0"));
+  let endIndex = Number.parseInt(prompt('Enter end index(inlcusive):', '0'));
   if (Number.isNaN(endIndex)) {
     return;
   }
-  let step = Number.parseInt(prompt("Enter step:", "1"));
+  let step = Number.parseInt(prompt('Enter step:', '1'));
   if (Number.isNaN(step)) {
     return;
   }
 
-  let postFix = "";
+  let postFix = '';
 
   if (!(startIndex == 0 && endIndex == 0 && step == 1)) {
     if (step == 1) {
-      postFix = "[" + startIndex + "," + endIndex + "]";
+      postFix = '[' + startIndex + ',' + endIndex + ']';
     }
-    postFix = "[" + startIndex + ":" + endIndex + ":" + step + "]";
+    postFix = '[' + startIndex + ':' + endIndex + ':' + step + ']';
   }
 
-  api_link.send(["add_cuef_auto", cue, effect, fix + postFix]);
+  api_link.send(['add_cuef_auto', cue, effect, fix + postFix]);
 }
 
 function rmFixCue(cue, effect, fix) {
-  api_link.send(["rmcuef", cue, effect, fix]);
+  api_link.send(['rmcuef', cue, effect, fix]);
 }
 
 function refreshPorts() {
-  api_link.send(["getserports"]);
+  api_link.send(['getserports']);
 }
 function pushSettings() {
-  api_link.send(["setconfuniverses", configuredUniverses.value]);
+  api_link.send(['setconfuniverses', configuredUniverses.value]);
 }
 
 function newCueFromSlide(sc, index) {
-  api_link.send(["newFromSlide", sc, index]);
+  api_link.send(['newFromSlide', sc, index]);
 }
 
 function newCueFromSound(sc, index) {
-  api_link.send(["newFromSound", sc, index]);
+  api_link.send(['newFromSound', sc, index]);
 }
 
 function _currentcue() {
@@ -856,14 +872,14 @@ function _formatCues() {
   if (filt) {
     return dictView(
       z,
-      ["number"],
+      ['number'],
       undefined,
       cuePage.value[groupname.value]
     ).filter((item) => item[1].id);
   } else {
     formattedCues.value = dictView(
       z,
-      ["number"],
+      ['number'],
       undefined,
       cuePage.value[groupname.value]
     ).filter((item) => item[1].id);
@@ -876,7 +892,7 @@ let formatCues = computed(_formatCues);
 function _formatAllGroups() {
   /*Sorted list of group objects*/
   var flt = groupfilter.value;
-  var x = dictView(groupmeta.value, ["!priority", "!started", "name"]).filter(
+  var x = dictView(groupmeta.value, ['!priority', '!started', 'name']).filter(
     function (x) {
       return x[1].name && x[1].name.includes(flt);
     }
@@ -888,7 +904,7 @@ let formatAllGroups = computed(_formatAllGroups);
 function _formatGroups() {
   var flt = groupfilter.value;
 
-  return dictView(groupmeta.value, ["!priority", "!started", "name"]).filter(
+  return dictView(groupmeta.value, ['!priority', '!started', 'name']).filter(
     function (x) {
       return x[1].name && x[1].name.includes(flt) && !x[1].hide;
     }
@@ -896,18 +912,18 @@ function _formatGroups() {
 }
 let formatGroups = computed(_formatGroups);
 
-globalThis.boardname = globalThis.location.pathname.split("/").at(-1);
+globalThis.boardname = globalThis.location.pathname.split('/').at(-1);
 
 //https://stackoverflow.com/questions/6312993/javascript-seconds-to-time-string-with-format-hhmmss
-let boardname = ref(globalThis.location.pathname.split("/").at(-1));
-let clock = ref("time_should_be_here");
+let boardname = ref(globalThis.location.pathname.split('/').at(-1));
+let clock = ref('time_should_be_here');
 let serports = ref([]);
 let shortcuts = ref([]);
 //Index by name
 let fixtureAssignments = ref({});
 
 //Fixture error info str
-let ferrs = ref("");
+let ferrs = ref('');
 
 //For each group what page are we on
 let cuePage = ref({});
@@ -937,10 +953,18 @@ so it is pretty much a "soft" approximate serialization.
 It mostly exists to allow tests to wait for previous actions.
 */
 export async function doSerialized(callback, timeout = 15_000) {
-  let previous = previousSerializedPromise.value;
-
+  // Make sure the UI event we are probably trying to wait on
+  // has actually had a chnce to queue the promise we are looking for
   await nextTick();
-  await new Promise((resolve) => resolve());
+  await new Promise((resolve) =>
+    setTimeout(() => {
+      resolve(0);
+    }, 0)
+  );
+
+  //taking this then setting it have to happen in one atomic
+  //block
+  let previous = previousSerializedPromise.value;
 
   const f = async () => {
     try {
@@ -954,14 +978,14 @@ export async function doSerialized(callback, timeout = 15_000) {
           try {
             await Promise.race([previous, timeoutPromise]);
           } catch (error) {
-            console.log("Error in previous serialized promise", error);
+            console.log('Error in previous serialized promise', error);
           }
         } else {
           await previous;
         }
       }
     } catch (error) {
-      console.log("Eror in previous serialized promise", error);
+      console.log('Eror in previous serialized promise', error);
     }
     if (callback) {
       return await callback();
@@ -982,7 +1006,7 @@ async function doSerializedWithTimeout(callback, timeout) {
   const timeoutPromise = new Promise((_resolve, reject) => {
     setTimeout(() => {
       reject();
-      alert("Timeout waiting for action.");
+      alert('Timeout waiting for action.');
     }, timeout);
   });
 
@@ -992,16 +1016,16 @@ async function doSerializedWithTimeout(callback, timeout) {
   );
 }
 
-let no_edit = ref(!kaithemapi.checkPermission("system_admin"));
+let no_edit = ref(!kaithemapi.checkPermission('system_admin'));
 
 // Sorted from most to least recent
-let recentEventsLog = ref([["Page Load", formatTime(Date.now() / 1000)]]);
+let recentEventsLog = ref([['Page Load', formatTime(Date.now() / 1000)]]);
 let soundCards = ref({});
 
 //What universe if any to show the full settings page for
 let universeFullSettings = ref(false);
 
-let fixtureassg = ref("");
+let fixtureassg = ref('');
 
 let availableTags = ref({});
 let midiInputs = ref([]);
@@ -1010,14 +1034,14 @@ let blendModes = ref([]);
 let soundfolders = ref([]);
 
 let configuredUniverses = ref({
-  blah: { type: "enttec", interface: "xyz" },
+  blah: { type: 'enttec', interface: 'xyz' },
 });
 
 let fixtureClasses = ref({});
 
 //Filter which groups are shown in the list
-let groupfilter = ref("");
-let cuefilter = ref("");
+let groupfilter = ref('');
+let cuefilter = ref('');
 //Keep track of what timers are running in a group
 let grouptimers = ref({});
 //Formatted for display
@@ -1037,18 +1061,18 @@ function doRateLimit() {
 
 function lookupFixtureType(f) {
   for (var index in fixtureAssignments.value) {
-    if ("@" + fixtureAssignments.value[index].name == f) {
+    if ('@' + fixtureAssignments.value[index].name == f) {
       return fixtureAssignments.value[index].type;
     }
   }
-  return "";
+  return '';
 }
 
 function lookupFixtureColorProfile(f) {
   // If fixture has no color profile, the profile is just the type
-  let x = "";
+  let x = '';
   for (var index in fixtureAssignments.value) {
-    if ("@" + fixtureAssignments.value[index].name == f) {
+    if ('@' + fixtureAssignments.value[index].name == f) {
       x = fixtureAssignments.value[index].type;
       break;
     }
@@ -1062,7 +1086,7 @@ function lookupFixtureColorProfile(f) {
   return x;
 }
 function getfixtureassg() {
-  api_link.send(["getfixtureassg"]);
+  api_link.send(['getfixtureassg']);
 }
 
 function getChannelCompletions(u) {
@@ -1074,22 +1098,22 @@ function getChannelCompletions(u) {
 
 function promptRename(s) {
   var x = prompt(
-    "Enter new name for group(May break existing references to group)"
+    'Enter new name for group(May break existing references to group)'
   );
 
   if (x != null) {
-    api_link.send(["setgroupname", s, x]);
+    api_link.send(['setgroupname', s, x]);
   }
 }
 
 function promptRenameCue(sc, s) {
   var x = prompt(
-    "Enter new name for cue(May break existing references to cue)"
+    'Enter new name for cue(May break existing references to cue)'
   );
 
   if (x != null) {
     doSerialized(async () => {
-      api_link.send(["rename_cue", sc, s, x]);
+      api_link.send(['rename_cue', sc, s, x]);
     }).catch((error) => {
       console.error(error);
     });
@@ -1101,31 +1125,31 @@ function deleteUniverse(u) {
 }
 
 function deletePreset(p) {
-  if (confirm("Really Delete")) {
+  if (confirm('Really Delete')) {
     delete presets.value[p];
-    api_link.send(["preset", p, null]);
+    api_link.send(['preset', p, null]);
   }
 }
 
 function addTimeToGroup(group) {
-  var t = prompt("Add minutes?");
+  var t = prompt('Add minutes?');
   if (t) {
-    api_link.send(["addTimeToGroup", group, t]);
+    api_link.send(['addTimeToGroup', group, t]);
   }
 }
 
 function renamePreset(p) {
-  var n = prompt("Preset Name?");
+  var n = prompt('Preset Name?');
 
   if (n && n.length > 0) {
     var b = presets.value[p];
     if (b) {
       doSerialized(async () => {
         delete presets.value[p];
-        api_link.send(["preset", p, null]);
+        api_link.send(['preset', p, null]);
 
         presets.value[n] = b;
-        api_link.send(["preset", n, b]);
+        api_link.send(['preset', n, b]);
       }).catch((error) => {
         console.error(error);
       });
@@ -1134,14 +1158,14 @@ function renamePreset(p) {
 }
 
 function copyPreset(p) {
-  var n = prompt("Copy to name?");
+  var n = prompt('Copy to name?');
 
   if (n && n.length > 0) {
     var b = presets.value[p];
     if (b) {
       doSerialized(async () => {
         presets.value[n] = structuredClone(toRaw(b));
-        api_link.send(["preset", n, b]);
+        api_link.send(['preset', n, b]);
       }).catch((error) => {
         console.error(error);
       });
@@ -1152,15 +1176,15 @@ function copyPreset(p) {
 function savePreset(v, suggestedname) {
   /*Prompt saving data from the cuevals dict as a preset*/
 
-  var n = prompt("Preset Name?", suggestedname || "");
-  console.log("Saving preset", n, v);
+  var n = prompt('Preset Name?', suggestedname || '');
+  console.log('Saving preset', n, v);
 
   var v2 = presets.value[n] || {};
   v2.values = {};
 
   // Just the vals
   for (var index in v.values) {
-    if (index[0] == "_") {
+    if (index[0] == '_') {
       continue;
     }
     v2.values[index] = v.values[index];
@@ -1169,7 +1193,7 @@ function savePreset(v, suggestedname) {
   doSerialized(async () => {
     if (n && n.length > 0) {
       presets.value[n] = v2;
-      api_link.send(["preset", n, v2]);
+      api_link.send(['preset', n, v2]);
     }
   }).catch((error) => {
     console.error(error);
@@ -1181,15 +1205,15 @@ async function notifyPopupComputedCueLengthgth(cuelenstr, force) {
     return;
   }
 
-  let x = fetch("/chandler/api/eval-cue-length?rule=" + cuelenstr, {
-    method: "GET",
+  let x = fetch('/chandler/api/eval-cue-length?rule=' + cuelenstr, {
+    method: 'GET',
   });
 
   x = await x;
   alert(
-    "Cue len: " +
+    'Cue len: ' +
       cuelenstr +
-      ". If cue started now, it would end at " +
+      '. If cue started now, it would end at ' +
       (await x.text())
   );
 }
@@ -1200,17 +1224,17 @@ function getPresetImage(preset) {
     return presets.value[preset]?.label_image;
   }
 
-  if (presets.value[preset.split("@")[0]]?.label_image) {
-    return presets.value[preset.split("@")[0]]?.label_image;
+  if (presets.value[preset.split('@')[0]]?.label_image) {
+    return presets.value[preset.split('@')[0]]?.label_image;
   }
-  return "1x1.png";
+  return '1x1.png';
 }
 
 function updatePreset(index, v) {
   doSerialized(async () => {
     /*Update given a name and the modified data as would be found in the presets file*/
     presets.value[index] = v;
-    api_link.send(["preset", index, v]);
+    api_link.send(['preset', index, v]);
   }).catch(console.error);
 }
 
@@ -1252,37 +1276,37 @@ function handleCueInfo(id, cue) {
   set(cuemeta.value, id, cue);
 }
 
-let downloadRequestId = ref("");
+let downloadRequestId = ref('');
 
 function handleServerMessage(v) {
   let c = v[0];
 
-  if (c == "soundfolders") {
+  if (c == 'soundfolders') {
     soundfolders.value = v[1];
-  } else if (c == "ui_alert") {
+  } else if (c == 'ui_alert') {
     playAlert(v[1]);
-  } else if (c == "slideshow_telemetry") {
+  } else if (c == 'slideshow_telemetry') {
     if (v[2] == null) {
       delete slideshow_telemetry.value[v[1]];
     } else {
       if (
         v[2].status != (slideshow_telemetry.value[v[1]] || {}).status &&
-        v[2].status.includes("FAILED") &&
+        v[2].status.includes('FAILED') &&
         doRateLimit()
       ) {
-        errorTone("A slideshow display may need attention");
+        errorTone('A slideshow display may need attention');
         showslideshowtelemetry.value = true;
       }
 
       slideshow_telemetry.value[v[1]] = v[2];
     }
-  } else if (c == "grouptimers") {
+  } else if (c == 'grouptimers') {
     if (groupmeta.value[v[1]]) {
       groupmeta.value[v[1]].timers = v[2];
     }
-  } else if (c == "cuehistory") {
+  } else if (c == 'cuehistory') {
     groupmeta.value[v[1]].history = v[2];
-  } else if (c == "groupmeta") {
+  } else if (c == 'groupmeta') {
     if (v[2].cue && cuemeta.value[v[2].cue] == undefined) {
       getcuemeta(v[2].cue);
     }
@@ -1300,57 +1324,59 @@ function handleServerMessage(v) {
     }
 
     if (selectedCues.value[v[1]] == undefined) {
-      old_vue_set(selectedCues.value, v[1], "default");
+      old_vue_set(selectedCues.value, v[1], 'default');
     }
     //Make an empty list of cues as a placeholder till the real data arrives
     if (groupcues.value[v[1]] == undefined) {
       old_vue_set(groupcues.value, v[1], {});
     }
-  } else if (c == "cuemeta") {
+  } else if (c == 'cuemeta') {
     handleCueInfo(v[1], v[2]);
-  } else if (c == "event") {
+  } else if (c == 'event') {
     recentEventsLog.value.unshift(v[1]);
     if (recentEventsLog.value.length > 250) {
       recentEventsLog.value = recentEventsLog.value.slice(-250);
     }
 
-    if (v[1][0].includes("error")) {
-      const event = new Event("servererrorevent");
+    if (v[1][0].includes('error')) {
+      const event = new Event('servererrorevent');
       globalThis.dispatchEvent(event);
-      errorTone("");
+      errorTone('');
     }
-  } else if (c == "serports") {
+  } else if (c == 'serports') {
     serports.value = v[1];
-  } else if (c == "alerts") {
+  } else if (c == 'alerts') {
     if (JSON.stringify(sys_alerts.value) != JSON.stringify(v[1]) && v[1]) {
       errorTone();
     }
 
     sys_alerts.value = v[1];
-  } else if (c == "confuniverses") {
+  } else if (c == 'confuniverses') {
     configuredUniverses.value = v[1];
-  } else if (c == "universe_status") {
+  } else if (c == 'universe_status') {
     universes.value[v[1]] = v[2];
-  } else if (c == "varchange") {
+  } else if (c == 'varchange') {
     if (groupmeta.value[v[1]]) {
-      groupmeta.value[v[1]]["vars"][v[2]] = v[3];
+      groupmeta.value[v[1]]['vars'][v[2]] = v[3];
     }
-  } else if (c == "delcue") {
+  } else if (c == 'pong') {
+    pingPromises[v[1]]();
+  } else if (c == 'delcue') {
     c = cuemeta.value[v[1]];
     old_vue_delete(cuemeta.value, v[1]);
     old_vue_delete(cuevals.value, v[1]);
     old_vue_delete(groupcues.value[c.group], c.name);
-  } else if (c == "cnames") {
+  } else if (c == 'cnames') {
     old_vue_set(channelInfoByUniverseAndNumber.value, v[1], v[2]);
-  } else if (c == "universes") {
+  } else if (c == 'universes') {
     universes.value = v[1];
-  } else if (c == "soundoutputs") {
+  } else if (c == 'soundoutputs') {
     soundCards.value = v[1];
-  } else if (c == "soundsearchresults") {
-    const event = new Event("onsoundsearchresults");
+  } else if (c == 'soundsearchresults') {
+    const event = new Event('onsoundsearchresults');
     event.data = [v[1], v[2]];
     globalThis.dispatchEvent(event);
-  } else if (c == "cuedata") {
+  } else if (c == 'cuedata') {
     if (gettingCueDataPromises[v[1]]) {
       gettingCueDataPromises[v[1]]();
       delete gettingCueDataPromises[v[1]];
@@ -1368,13 +1394,13 @@ function handleServerMessage(v) {
 
     for (var index in v[2]) {
       if (!(index in channelInfoByUniverseAndNumber.value)) {
-        api_link.send(["getcnames", index]);
+        api_link.send(['getcnames', index]);
       }
       old_vue_set(d, index, v[2][index]);
     }
-  } else if (c == "environmentDescription") {
+  } else if (c == 'environmentDescription') {
     chandlerScriptEnvironment.value = v[1];
-  } else if (c == "scv") {
+  } else if (c == 'scv') {
     let cue = v[1];
     let effect = v[2];
     let universe = v[3];
@@ -1388,7 +1414,7 @@ function handleServerMessage(v) {
 
     let fx = null;
     for (let i of cuevals.value[cue]) {
-      if (i["id"] === effect) {
+      if (i['id'] === effect) {
         fx = i;
         break;
       }
@@ -1406,8 +1432,8 @@ function handleServerMessage(v) {
     }
 
     let kp = null;
-    for (let i of fx["keypoints"]) {
-      if (i["target"] === universe) {
+    for (let i of fx['keypoints']) {
+      if (i['target'] === universe) {
         kp = i;
         break;
       }
@@ -1421,51 +1447,51 @@ function handleServerMessage(v) {
         target: universe,
         values: {},
       };
-      fx["keypoints"].push(kp);
+      fx['keypoints'].push(kp);
     }
 
     if (value === null) {
-      delete kp["values"][channel];
-      if (kp["values"].length === 0) {
-        fx["keypoints"].splice(fx["keypoints"].indexOf(kp), 1);
+      delete kp['values'][channel];
+      if (kp['values'].length === 0) {
+        fx['keypoints'].splice(fx['keypoints'].indexOf(kp), 1);
       }
     } else {
-      kp["values"][channel] = value;
+      kp['values'][channel] = value;
     }
-  } else if (c == "refreshPage") {
+  } else if (c == 'refreshPage') {
     globalThis.reload();
-  } else if (c == "ferrs") {
+  } else if (c == 'ferrs') {
     ferrs.value = v[1];
-  } else if (c == "fixtureclasses") {
+  } else if (c == 'fixtureclasses') {
     fixtureClasses.value = v[1];
-  } else if (c == "fixtureclass") {
+  } else if (c == 'fixtureclass') {
     if (v[2] == null) {
       old_vue_delete(fixtureClasses.value, v[1]);
     } else {
       old_vue_set(fixtureClasses.value, v[1], v[2]);
     }
-  } else if (c == "fixtureAssignments") {
+  } else if (c == 'fixtureAssignments') {
     fixtureAssignments.value = v[1];
-  } else if (c == "del") {
+  } else if (c == 'del') {
     old_vue_delete(selectedCues.value, v[1]);
     old_vue_delete(groupmeta.value, v[1]);
     editingGroup.value = null;
-  } else if (c == "soundfolderlisting") {
+  } else if (c == 'soundfolderlisting') {
     // Handled in media-browser.vue
-    const event = new Event("onsoundfolderlisting");
+    const event = new Event('onsoundfolderlisting');
     event.data = [v[1], v[2]];
     globalThis.dispatchEvent(event);
-  } else if (c == "fixturePresets") {
+  } else if (c == 'fixturePresets') {
     presets.value = v[1];
-  } else if (c == "preset") {
+  } else if (c == 'preset') {
     presets.value[v[1]] = v[2];
-  } else if (c == "fileDownload") {
+  } else if (c == 'fileDownload') {
     if (v[1] == downloadRequestId.value) {
       const file = new File([v[2]], v[3], {
-        type: "text/plain",
+        type: 'text/plain',
       });
 
-      const link = document.createElement("a");
+      const link = document.createElement('a');
       const url = URL.createObjectURL(file);
 
       link.href = url;
@@ -1476,67 +1502,75 @@ function handleServerMessage(v) {
       link.remove();
       globalThis.URL.revokeObjectURL(url);
     }
-  } else if (c == "shortcuts") {
+  } else if (c == 'shortcuts') {
     shortcuts.value = v[1];
-  } else if (c == "availableTags") {
+  } else if (c == 'availableTags') {
     availableTags.value = v[1];
-  } else if (c == "midiInputs") {
+  } else if (c == 'midiInputs') {
     midiInputs.value = v[1];
-  } else if (c == "blendModes") {
+  } else if (c == 'blendModes') {
     blendModes.value = v[1];
   }
 }
 
 async function initChandlerVueModel(board) {
-  await initializeState(board);
+  await doSerialized(async () => {
+    await initializeState(board);
 
-  api_link.upd = handleServerMessage;
-  api_link.send(["get_state"]);
-  api_link.send(["getCommands"]);
+    api_link.upd = handleServerMessage;
+    api_link.send(['get_state']);
+    api_link.send(['getCommands']);
 
-  // Exact sync on half seconds
-  function unix_time_upd() {
-    unixtime.value = api_link.now() / 1000;
-    setTimeout(unix_time_upd, 10_000 - (api_link.now() % 10_000));
-  }
-
-  unix_time_upd();
-
-  function clock_upd() {
-    var c = new Date(api_link.now()).toLocaleTimeString();
-    const element = document.querySelector("#toolbar-clock");
-    if (element) {
-      element.innerHTML = c;
+    // Exact sync on half seconds
+    function unix_time_upd() {
+      unixtime.value = api_link.now() / 1000;
+      setTimeout(unix_time_upd, 10_000 - (api_link.now() % 10_000));
     }
 
-    setTimeout(clock_upd, 1000 - (api_link.now() % 1000));
-  }
+    unix_time_upd();
 
-  clock_upd();
+    function clock_upd() {
+      var c = new Date(api_link.now()).toLocaleTimeString();
+      const element = document.querySelector('#toolbar-clock');
+      if (element) {
+        element.innerHTML = c;
+      }
 
-  var update_meters = function () {
-    var u = api_link.now() / 1000;
-
-    for (let index of document.querySelectorAll("[data-meter-ref]")) {
-      index.value = u - Number.parseFloat(index.dataset.meterRef);
+      setTimeout(clock_upd, 1000 - (api_link.now() % 1000));
     }
 
-    for (let index of document.querySelectorAll("[data-count-ref]")) {
-      let durationLength =
-        Number.parseFloat(index.dataset.countLen) *
-        (60 / Number.parseFloat(index.dataset.countBpm));
+    clock_upd();
 
-      let endTime = Number.parseFloat(index.dataset.countRef) + durationLength;
+    var update_meters = function () {
+      var u = api_link.now() / 1000;
 
-      index.innerHTML = formatInterval(endTime - u);
-    }
-  };
-  setInterval(update_meters, 200);
+      for (let index of document.querySelectorAll('[data-meter-ref]')) {
+        index.value = u - Number.parseFloat(index.dataset.meterRef);
+      }
+
+      for (let index of document.querySelectorAll('[data-count-ref]')) {
+        let durationLength =
+          Number.parseFloat(index.dataset.countLen) *
+          (60 / Number.parseFloat(index.dataset.countBpm));
+
+        let endTime =
+          Number.parseFloat(index.dataset.countRef) + durationLength;
+
+        index.innerHTML = formatInterval(endTime - u);
+      }
+    };
+    setInterval(update_meters, 200);
+
+    //This is a hack to wait until
+    // we actually get the data for stuff that
+    // really should be REST apis
+    await pingServer();
+  }, 240_000);
 }
 
 function confirm_for_group(sc) {
   if (groupmeta.value[sc].requireConfirm) {
-    if (confirm("Confirm Action for Group: " + groupmeta.value[sc].name)) {
+    if (confirm('Confirm Action for Group: ' + groupmeta.value[sc].name)) {
       return true;
     }
   } else {
@@ -1544,38 +1578,49 @@ function confirm_for_group(sc) {
   }
 }
 
+const pingPromises = {};
+
+export async function pingServer() {
+  const p = new Promise((resolve) => {
+    const t = api_link.now();
+    pingPromises[t] = resolve;
+    api_link.send(['ping', t]);
+  });
+  await p;
+}
+
 // Suspected unused
 // TODO: remove
 function next(sc) {
   return function () {
-    api_link.send(["gotoNextCuebyname", sc]);
+    api_link.send(['gotoNextCuebyname', sc]);
   };
 }
 
 async function goto(group, cue) {
   await doSerialized(async () => {
     const result = fetch(
-      "/chandler/api/go-to-cue-by-name/" + group + "/" + cue,
+      '/chandler/api/go-to-cue-by-name/' + group + '/' + cue,
       {
-        method: "PUT",
+        method: 'PUT',
       }
     ).catch(function (error) {
-      alert("Could not reach server:" + error);
+      alert('Could not reach server:' + error);
     });
     const result2 = await result;
     if (!result2.ok) {
-      alert("Error activating cue: " + result.statusText);
+      alert('Error activating cue: ' + result.statusText);
     }
   });
 }
 
-var script = document.createElement("script");
-script.addEventListener("load", function () {
-  const boardname = globalThis.location.pathname.split("/").at(-1);
+var script = document.createElement('script');
+script.addEventListener('load', function () {
+  const boardname = globalThis.location.pathname.split('/').at(-1);
   initChandlerVueModel(boardname);
 });
 
-let api_link = new APIWidget("WebChandlerConsole:" + boardname.value);
+let api_link = new APIWidget('WebChandlerConsole:' + boardname.value);
 globalThis.api_link = api_link;
 
 export {
@@ -1697,4 +1742,4 @@ export {
   restSetCueValue,
 };
 
-export { formatInterval, useBlankDescriptions, dictView } from "./utils.mjs";
+export { formatInterval, useBlankDescriptions, dictView } from './utils.mjs';
