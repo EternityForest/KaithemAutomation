@@ -1,4 +1,5 @@
-from typing import Any, Callable, Dict, Iterable, List, Optional, Set
+from collections.abc import Callable, Iterable
+from typing import Any
 
 
 class Console_ABC:
@@ -7,14 +8,14 @@ class Console_ABC:
     def cl_setup(self, project: dict[str, Any]):
         pass
 
-    def linkSend(self, data: List[Any]):
+    def linkSend(self, data: list[Any]):
         pass
 
     def linkSendTo(self, data: list[Any], target: str):
         pass
 
     def __init__(self) -> None:
-        self.newDataFunctions: List[Callable[..., Any]] = []
+        self.newDataFunctions: list[Callable[..., Any]] = []
 
     def pushCueMeta(
         self,
@@ -40,5 +41,12 @@ class Console_ABC:
     ):
         "Push group metadata"
 
-    def pushEv(self, event: str, target, time_unix=None, value=None, info=""):
+    def pushEv(
+        self,
+        event: str,
+        target_group: str,
+        time_unix: float | None = None,
+        value: Any = None,
+        info: str = "",
+    ):
         "Tell frontend about event"

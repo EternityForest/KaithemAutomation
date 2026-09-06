@@ -153,7 +153,7 @@ const sorts = Vue.ref([
   "!values.dim",
 ]);
 
-function setFixturePreset(sc, effect, fix, preset) {
+async function setFixturePreset(sc, effect, fix, preset) {
   const deleteIndex = recentPresets.value.indexOf(preset);
 
   if (deleteIndex !== -1) {
@@ -229,15 +229,15 @@ function setFixturePreset(sc, effect, fix, preset) {
 
     if (selectedPreset.values[i] == undefined) {
       if (resetOthers && i in resettablechannels) {
-        restSetCueValue(sc,effect, fix, i, resettablechannels[i]);
+        await restSetCueValue(sc,effect, fix, i, resettablechannels[i]);
       }
     } else {
-      restSetCueValue(sc,effect,fix, i, valFromPreset);
+      await restSetCueValue(sc,effect,fix, i, valFromPreset);
     }
   }
 
   if (!properties.fordestination) {
-      restSetCueValue(sc,effect,fix, "__preset__", preset);
+      await restSetCueValue(sc,effect,fix, "__preset__", preset);
   }
 }
 

@@ -8,7 +8,7 @@ import copy
 import os
 import time
 import traceback
-from typing import Any
+from typing import Any, override
 
 from icemedia import sound_player
 from scullery import messagebus
@@ -18,7 +18,7 @@ from kaithem.api.midi import list_midi_inputs
 from kaithem.api.web import has_permission
 from kaithem.api.widgets import APIWidget
 
-from .. import directories, scriptbindings, tagpoints
+from .. import scriptbindings, tagpoints
 from ..alerts import getAlertState
 from ..auth import canUserDoThis
 from . import (

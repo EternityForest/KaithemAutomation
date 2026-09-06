@@ -87,7 +87,7 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         self.initialized = False
 
-        def f(t, m):
+        def f(t: str, m: Any):
             if not m.clientName.startswith("kplayer"):
                 time.sleep(0.1)
                 self.on_soundcards_changed()
@@ -202,6 +202,7 @@ class ChandlerConsole(console_abc.Console_ABC):
             self.cl_load_groups_from_dict(d)
             self.linkSend(["refreshPage", self.fixture_assignments])
 
+    @override
     @core.cl_context.entry_point
     def cl_setup(self, project: dict[str, Any]):
         console_abc.Console_ABC.cl_setup(self, project)
@@ -549,7 +550,15 @@ class ChandlerConsole(console_abc.Console_ABC):
         except Exception:
             print(traceback.format_exc())
 
-    def pushEv(self, event: str, target, time_unix=None, value=None, info=""):
+    @override
+    def pushEv(
+        self,
+        event: str,
+        target_group: str,
+        time_unix: float | None = None,
+        value=None,
+        info="",
+    ):
         # TODO: Do we want a better way of handling this? We don't want to clog up the semi-re
         def f():
             if self.gui_send_lock.acquire(timeout=5):
@@ -559,7 +568,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                             "event",
                             [
                                 event,
-                                target,
+                                target_group,
                                 unitsofmeasure.strftime(
                                     time_unix or time.time()
                                 ),
