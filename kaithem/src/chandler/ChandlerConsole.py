@@ -886,6 +886,10 @@ class ChandlerConsole(console_abc.Console_ABC):
         sc = Group(self, name)
         self.groups[sc.id] = sc
         self.push_group_meta(sc.id)
+        # Make sure we send the info for the default cue too
+        for i in sc.cues.values():
+            self.pushCueMeta(i.id)
+            self.pushCueData(i.id)
         sc.go()
 
     @core.cl_context.entry_point

@@ -1515,12 +1515,13 @@ function handleServerMessage(v) {
 
 async function initChandlerVueModel(board) {
   await doSerialized(async () => {
+    api_link.upd = handleServerMessage;
+
     // Wait for anything the server was already sending to us
     await pingServer();
 
     await initializeState(board);
 
-    api_link.upd = handleServerMessage;
     api_link.send(['get_state']);
     api_link.send(['getCommands']);
 
