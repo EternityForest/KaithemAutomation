@@ -45,21 +45,36 @@ test('test', async ({ page }) => {
 
   await waitForTasks(page);
 
+  // These number controls seem unreliable
+  // Add extra delays in between even though I
+  // don't really know why it's flaky
   await page.getByLabel('Sound start s into file.').click();
   await page.getByLabel('Sound start s into file.').fill('1');
   await expect(page.getByLabel('Sound start s into file.')).toHaveValue('1');
+  await page.getByLabel('Sound start s into file.').blur();
+  await waitForTasks(page);
 
   await page.getByLabel('Media Speed').click();
   await page.getByLabel('Media Speed').fill('1.2');
+  await page.getByLabel('Media Speed').blur();
+  await waitForTasks(page);
+
 
   await page.getByLabel('Windup').click();
   await page.getByLabel('Windup').fill('0.1');
+  await page.getByLabel('Windup').blur();
+  await waitForTasks(page);
+
 
   await page.getByLabel('Winddown').click();
   await page.getByLabel('Winddown').fill('0.3');
+  await page.getByLabel('Winddown').blur();
+  await waitForTasks(page);
+
 
   await page.getByLabel('Device Play media file in web').click();
   await page.getByLabel('Device Play media file in web').fill('groupwebplayer');
+
 
   await page.getByLabel('Relative length').click({
     button: 'right',
@@ -70,16 +85,22 @@ test('test', async ({ page }) => {
 
   await page.getByLabel('Fade sound after end').click();
   await page.getByLabel('Fade sound after end').fill('0.6');
+  await page.getByLabel('Fade sound after end').blur();
+  await waitForTasks(page);
+  
 
   await page.getByLabel('Sound fadein:').click();
   await page.getByLabel('Sound fadein:').fill('0.7');
+  await page.getByLabel('Sound fadein:').blur();
+  await waitForTasks(page);
 
   await page.getByLabel('Cue Volume').click();
   await page.getByLabel('Cue Volume').fill('0.8');
+  await page.getByLabel('Cue Volume').blur();
+  await waitForTasks(page);
 
   await page.getByLabel('Loops').click();
   await page.getByLabel('Loops').fill('8');
-
   await page.getByLabel('Loops').blur();
 
   // Make sure no race condition stuff happens righ away here

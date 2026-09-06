@@ -7,7 +7,7 @@ import {
   deleteModule,
   makeTagPoint,
   waitForTasks,
-} from "./util";
+} from "./util.ts";
 
 /*
 Create a module, make a chandler board, test very simple logic,
@@ -106,6 +106,11 @@ test("test", async ({ page }) => {
     .getByRole("cell", { name: "0.01" })
     .getByRole("combobox")
     .fill("0");
+  await page
+    .getByRole("cell", { name: "0.01" })
+    .getByRole("combobox")
+    .blur();
+  await waitForTasks(page);
   await page.getByPlaceholder("New cue name").click();
   await page
     .getByRole("row", { name: "x72125" })

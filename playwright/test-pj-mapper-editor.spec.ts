@@ -1,5 +1,6 @@
 import { test, expect, Page } from "@playwright/test";
 import { login, logout, makeModule, deleteModule, makeTagPoint } from "./util";
+import { aw } from "../kaithem/data/static/vite/assets/_plugin-vue_export-helper-DqOvxstC.js";
 
 /* Test suite for Projection Mapper Editor
  * Tests data-testid attributes, source properties, and real-time sync
@@ -84,8 +85,12 @@ async function testCommonSourceProperties(page: Page, sourceName: string) {
 
   // Test opacity
   const opacityInput = page.getByTestId("opacity");
+  
+  await opacityInput.click();
   await opacityInput.fill("0.5");
   await waitForTasks(page);
+  await opacityInput.blur();
+
   await expect(opacityInput).toHaveValue("0.5");
 
   // Test blend mode
@@ -96,8 +101,10 @@ async function testCommonSourceProperties(page: Page, sourceName: string) {
 
   // Test rotation
   const rotation = page.getByTestId("rotation");
+  await rotation.click();
   await rotation.fill("45");
   await rotation.press("Enter");
+  await rotation.blur();
   await waitForTasks(page);
   await expect(rotation).toHaveValue("45");
 

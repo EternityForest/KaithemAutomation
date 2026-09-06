@@ -6,7 +6,7 @@ import {
   chandlerBoardTemplate,
   deleteModule,
   waitForTasks,
-} from "./util";
+} from "./util.ts";
 
 /*/
 Create a module, make a chandler board, test very simple logic,
@@ -129,7 +129,17 @@ test("test", async ({ page }) => {
   await page
     .getByRole("row", { name: "c3" })
     .getByRole("combobox", { name: "Cue Length" })
+    .click();
+  await page
+    .getByRole("row", { name: "c3" })
+    .getByRole("combobox", { name: "Cue Length" })
     .fill("0.25");
+  await page
+    .getByRole("row", { name: "c3" })
+    .getByRole("combobox", { name: "Cue Length" })
+    .blur();
+
+  await waitForTasks(page);
 
   // Go on c3 again
   await page
@@ -170,8 +180,18 @@ test("test", async ({ page }) => {
   await page
     .getByRole("row", { name: "c2" })
     .getByTitle("Cue Length")
+    .click();
+  await page
+    .getByRole("row", { name: "c2" })
+    .getByTitle("Cue Length")
     .fill("0");
+  await page
+    .getByRole("row", { name: "c2" })
+    .getByTitle("Cue Length")
+    .blur();
+  await waitForTasks(page);
 
+  
   // Set a global default, EVERY cue's "Next" points to c2 now if not explicitly set
   // Per cue
   await page.getByTestId("group-properties-button").click();

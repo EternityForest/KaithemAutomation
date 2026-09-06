@@ -6,7 +6,7 @@ import {
   deleteModule,
   sleep,
   waitForTasks,
-} from "./util";
+} from "./util.ts";
 
 async function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -109,8 +109,12 @@ test("test", async ({ page }) => {
   await page.getByLabel("Require Confirmation for Cue").click();
   await page.getByLabel("Sound Output").click();
   await page.getByLabel("Sound Output").fill("defaultout");
+
   await page.getByLabel("Crossfade Media").click();
   await page.getByLabel("Crossfade Media").fill("0.56");
+  await page.getByLabel("Crossfade Media").blur();
+  await waitForTasks(page);
+
   await page.getByLabel("MQTT Server").click();
   await page.getByLabel("MQTT Server").fill("ppp");
   await page.getByLabel("Sync Group Name").click();
