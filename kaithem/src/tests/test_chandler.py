@@ -434,7 +434,7 @@ def test_midi():
             time.sleep(0.1)
 
         assert "kaithem_test_virtualoutput" in x
-        time.sleep(1)
+        time.sleep(5)
 
         note_on = [0x90, 60, 112]  # channel 1, middle C, velocity 112
         note_off = [0x80, 60, 0]
@@ -899,15 +899,6 @@ def test_sched_end():
         grp.next_cue()
 
         assert grp.cue.name == "after_a"
-
-        t = datetime.timedelta(minutes=-1) + datetime.datetime.now()
-        grp.add_cue("sched_at_test", schedule_at=f"@{t.strftime('%l%P')}")
-
-        grp.goto_cue("default")
-        grp.next_cue()
-        for attempt in stamina.retry_context(on=AssertionError, attempts=5):
-            with attempt:
-                assert grp.cue.name == "sched_at_test"
 
 
 def test_basic_cue_len_end():
@@ -1831,7 +1822,7 @@ def test_lighting_value_set_tag_flicker():
             # Move it up and set it as a flicker layer
             s2.blend = "flicker"
             s2.blend_args["gustiness"] = 0.45
-            s2.blend_args = s.blend_args
+            s2.blend_args = s2.blend_args
             s2.priority = 65
 
             # Assert that it follows

@@ -1,6 +1,7 @@
 services:
 
   kaithem-builder:
+    restart: "no"
     image: kaithem-builder:${KAITHEM_VERSION:?error}
     build:
       # Expects to be in a projects directory containing
@@ -9,6 +10,7 @@ services:
       dockerfile: KaithemAutomation/docker/build/Dockerfile
 
   playwright:
+    restart: "no"
     image: kaithem-dev-playwright:${KAITHEM_VERSION:?error}
     build:
       context: ../../
@@ -24,6 +26,7 @@ services:
 
 
   kaithem:
+    restart: "no"
     image: kaithem:${KAITHEM_VERSION:?error}
     build:
       context: ../../
@@ -80,9 +83,9 @@ services:
       - video
       - dialout
 
-    restart: unless-stopped
 
   kaithem-dev:
+    restart: "no"
     extends:
       service: kaithem
     image: kaithem-dev:${KAITHEM_VERSION:?error}
@@ -108,6 +111,7 @@ services:
       - /workspace/uv_cache
 
   kaithem-kiosk:
+    restart: "no"
     image: kaithem-kiosk:${KAITHEM_VERSION:?error}
     build:
       context: ../../

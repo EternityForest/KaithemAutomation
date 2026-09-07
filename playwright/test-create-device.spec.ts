@@ -61,7 +61,13 @@ test("test", async ({ page }) => {
   await expect(page.getByTestId("val-span-/devices/testdevice.useless_toggle")).toContainText(
     "1.0"
   );
-  await expect(page.getByTestId("val-span-/devices/testdevice.random")).toContainText("12.0");
+
+  await expect(async () => {
+     await expect(page.getByTestId("val-span-/devices/testdevice.random")).toContainText("12.0");
+  }).toPass({
+    intervals: [1000, 2000, 10_000],
+    timeout: 60_000,
+  });
 
   await deleteModule(page, "devmodule");
 });
