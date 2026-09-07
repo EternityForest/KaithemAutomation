@@ -24,7 +24,7 @@ test('test', async ({ page }) => {
   await page.getByRole('button', { name: 'Submit' }).click();
 
   await page.getByRole('link', { name: '󰀻 Apps' }).click();
-  await page.getByLabel('Extras').nth(2).click();
+  await page.getByTestId("extras-button-foo_xyz").click();
   await page.getByRole('link', { name: 'Editor' }).click();
 
   page.once('dialog', (dialog) => {
