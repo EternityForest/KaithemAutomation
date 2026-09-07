@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from '@playwright/test';
 import {
   login,
   logout,
@@ -6,7 +6,7 @@ import {
   deleteModule,
   sleep,
   waitForTasks,
-} from "./util.ts";
+} from './util.ts';
 
 async function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -25,130 +25,129 @@ async function uncheck_box(_page, box) {
     return;
   }
   await box.click();
+  waitForTasks(_page);
 }
 
-test("test", async ({ page }) => {
+test('test', async ({ page }) => {
   test.setTimeout(4_800_000);
   page.setDefaultTimeout(30_000);
 
   await login(page);
 
-  makeModule(page, "testchandlerproperties");
+  makeModule(page, 'testchandlerproperties');
 
-  await page.getByTestId("add-resource-button").click();
+  await page.getByTestId('add-resource-button').click();
 
-  await page.getByTestId("add-chandler_board").click();
-  await page.getByLabel("Resource Name").click();
-  await page.getByLabel("Resource Name").fill("b1");
+  await page.getByTestId('add-chandler_board').click();
+  await page.getByLabel('Resource Name').click();
+  await page.getByLabel('Resource Name').fill('b1');
 
-  await page.getByRole("button", { name: "Submit" }).click();
-  await page.getByRole("link", { name: "󱒕 Modules" }).click();
-  await page.getByRole("link", { name: "testchandlerproperties" }).click();
-  await page.getByRole("link", { name: "󰏬 Edit" }).click();
+  await page.getByRole('button', { name: 'Submit' }).click();
+  await page.getByRole('link', { name: '󱒕 Modules' }).click();
+  await page.getByRole('link', { name: 'testchandlerproperties' }).click();
+  await page.getByRole('link', { name: '󰏬 Edit' }).click();
 
   // Now on the editor
-  page.once("dialog", (dialog) => {
+  page.once('dialog', (dialog) => {
     console.log(`Dialog message: ${dialog.message()}`);
-    dialog.accept("ts1").catch(() => {});
+    dialog.accept('ts1').catch(() => {});
   });
-  await page.getByTestId("add-group-button").click();
-  
+  await page.getByTestId('add-group-button').click();
+
   await sleep(250);
   await waitForTasks(page);
 
-  await page.getByRole("button", { name: "ts1" }).click();
+  await page.getByRole('button', { name: 'ts1' }).click();
 
   await waitForTasks(page);
 
-  await page.getByTestId("group-properties-button").click();
+  await page.getByTestId('group-properties-button').click();
 
-  await page.getByLabel("Slideshow Overlay").click();
-  await page.getByLabel("Slideshow Overlay").fill("overlay");
+  await page.getByLabel('Slideshow Overlay').click();
+  await page.getByLabel('Slideshow Overlay').fill('overlay');
 
-  await page.getByLabel("MIDI Source").click();
-  await page.getByLabel("MIDI Source").fill("midisrc");
+  await page.getByLabel('MIDI Source').click();
+  await page.getByLabel('MIDI Source').fill('midisrc');
 
-  await page.getByPlaceholder("Next cue in list").click();
-  await page.getByPlaceholder("Next cue in list").fill("foo");
-  await page.getByPlaceholder("Next cue in list").blur();
-
+  await page.getByPlaceholder('Next cue in list').click();
+  await page.getByPlaceholder('Next cue in list').fill('foo');
+  await page.getByPlaceholder('Next cue in list').blur();
 
   await waitForTasks(page);
-  
-  await expect(page.getByLabel("Slideshow Overlay")).toHaveValue("overlay");
-  await expect(page.getByLabel("MIDI Source")).toHaveValue("midisrc");
-  await expect(page.getByPlaceholder("Next cue in list")).toHaveValue("foo");
 
+  await expect(page.getByLabel('Slideshow Overlay')).toHaveValue('overlay');
+  await expect(page.getByLabel('MIDI Source')).toHaveValue('midisrc');
+  await expect(page.getByPlaceholder('Next cue in list')).toHaveValue('foo');
 
   await sleep(200);
 
-  await page.getByRole("main").click();
+  await page.getByRole('main').click();
 
-  await page.getByLabel("Priority").fill("42");
-  await page.getByLabel("Default Alpha").click();
-  await page.getByLabel("Default Alpha").fill("0.22");
-  await page.getByLabel("Default Alpha").blur();
+  await page.getByLabel('Priority').fill('42');
+  await page.getByLabel('Default Alpha').click();
+  await page.getByLabel('Default Alpha').fill('0.22');
+  await page.getByLabel('Default Alpha').blur();
 
   // This one line is flaky.
-  const inputvalue = await page.getByLabel("Default Alpha").inputValue();
-  if (!(inputvalue == "0.22")) {
+  const inputvalue = await page.getByLabel('Default Alpha').inputValue();
+  if (!(inputvalue == '0.22')) {
     await delay(2500);
-    await page.getByLabel("Default Alpha").click();
-    await page.getByLabel("Default Alpha").fill("0.22");
+    await page.getByLabel('Default Alpha').click();
+    await page.getByLabel('Default Alpha').fill('0.22');
   }
   await delay(200);
-  expect(await page.getByLabel("Default Alpha").inputValue()).toBe("0.22");
+  expect(await page.getByLabel('Default Alpha').inputValue()).toBe('0.22');
 
-  await page.getByRole("heading", { name: "Sound" }).click();
+  await page.getByRole('heading', { name: 'Sound' }).click();
 
   // This doesn't seem to work the first time despite working in manual
-  await page.getByLabel("Alpha", { exact: true }).fill("0.25");
-  await page.getByRole("heading", { name: "Sound" }).click();
-  await page.getByLabel("Alpha", { exact: true }).fill("0.25");
-  await page.getByRole("heading", { name: "Sound" }).click();
-  await page.getByLabel("Require Confirmation for Cue").click();
-  await page.getByLabel("Sound Output").click();
-  await page.getByLabel("Sound Output").fill("defaultout");
+  await page.getByLabel('Alpha', { exact: true }).fill('0.25');
+  await page.getByRole('heading', { name: 'Sound' }).click();
+  await page.getByLabel('Alpha', { exact: true }).fill('0.25');
+  await page.getByRole('heading', { name: 'Sound' }).click();
+  await page.getByLabel('Require Confirmation for Cue').click();
+  await page.getByLabel('Sound Output').click();
+  await page.getByLabel('Sound Output').fill('defaultout');
 
-  await page.getByLabel("Crossfade Media").click();
-  await page.getByLabel("Crossfade Media").fill("0.56");
-  await page.getByLabel("Crossfade Media").blur();
+  await page.getByLabel('Crossfade Media').click();
+  await page.getByLabel('Crossfade Media').fill('0.56');
+  await page.getByLabel('Crossfade Media').blur();
   await waitForTasks(page);
 
-  await page.getByLabel("MQTT Server").click();
-  await page.getByLabel("MQTT Server").fill("ppp");
-  await page.getByLabel("Sync Group Name").click();
-  await page.getByLabel("Sync Group Name").fill("grp");
+  await page.getByLabel('MQTT Server').click();
+  await page.getByLabel('MQTT Server').fill('ppp');
+  await page.getByLabel('Sync Group Name').click();
+  await page.getByLabel('Sync Group Name').fill('grp');
 
   // Click away
-  await page.getByLabel("MQTT Server").click();
+  await page.getByLabel('MQTT Server').click();
 
   await waitForTasks(page);
   await sleep(250);
 
   // Check that the stuff is there
   await page.goto(
-    "http://localhost:8002/chandler/editor/testchandlerproperties:b1"
+    'http://localhost:8002/chandler/editor/testchandlerproperties:b1'
   );
-  await expect(page.getByRole("main")).toContainText("STATUS: MQTT");
-  await page.getByRole("button", { name: "ts1" }).click();
-  await page.getByTestId("group-properties-button").click();
+  await expect(page.getByRole('main')).toContainText('STATUS: MQTT');
+  await page.getByRole('button', { name: 'ts1' }).click();
+  await page.getByTestId('group-properties-button').click();
 
-  await expect(page.getByLabel("Priority")).toHaveValue("42");
+  await expect(page.getByLabel('Priority')).toHaveValue('42');
 
-  await expect(page.getByLabel("Alpha", { exact: true })).toHaveValue("0.25");
-  await expect(page.getByLabel("Default Alpha")).toHaveValue("0.22");
-  await expect(page.getByLabel("Slideshow Overlay")).toHaveValue("overlay");
-  await expect(page.getByLabel("MIDI Source")).toHaveValue("midisrc");
+  await expect(page.getByLabel('Alpha', { exact: true })).toHaveValue('0.25');
+  await expect(page.getByLabel('Default Alpha')).toHaveValue('0.22');
+  await expect(page.getByLabel('Slideshow Overlay')).toHaveValue('overlay');
+  await expect(page.getByLabel('MIDI Source')).toHaveValue('midisrc');
 
-  await expect(page.getByPlaceholder("Next cue in list")).toHaveValue("foo");
-  await expect(page.getByLabel("Sound Output")).toHaveValue("defaultout");
-  await expect(page.getByLabel("Crossfade Media")).toHaveValue("0.56");
-  await expect(page.getByLabel("MQTT Server")).toHaveValue("ppp");
-  await expect(page.getByLabel("Sync Group Name")).toHaveValue("grp");
+  await expect(page.getByPlaceholder('Next cue in list')).toHaveValue('foo');
+  await expect(page.getByLabel('Sound Output')).toHaveValue('defaultout');
+  await expect(page.getByLabel('Crossfade Media')).toHaveValue('0.56');
+  await expect(page.getByLabel('MQTT Server')).toHaveValue('ppp');
+  await expect(page.getByLabel('Sync Group Name')).toHaveValue('grp');
 
-  await page.getByTestId("close-group-settings").click();
-  await page.getByTestId("close-group").click();
+  await page.getByTestId('close-group-settings').click();
+  await page.getByTestId('close-group').click();
 
   await waitForTasks(page);
 
@@ -156,206 +155,231 @@ test("test", async ({ page }) => {
 
   // More settings
   await page.goto(
-    "http://localhost:8002/chandler/editor/testchandlerproperties:b1"
+    'http://localhost:8002/chandler/editor/testchandlerproperties:b1'
   );
-  await page.getByRole("button", { name: "ts1" }).click();
-  await page.getByTestId("group-properties-button").click();
+  await page.getByRole('button', { name: 'ts1' }).click();
+  await page.getByTestId('group-properties-button').click();
   await waitForTasks(page);
   await sleep(1000);
 
-  await page.getByTestId("group_blend_mode").selectOption("HTP");
-  await expect(page.getByLabel("Alpha", { exact: true })).toHaveValue("0.25");
-  await page.getByLabel("Default Alpha").click();
+  await page.getByTestId('group_blend_mode').selectOption('HTP');
+  await expect(page.getByLabel('Alpha', { exact: true })).toHaveValue('0.25');
+  await page.getByLabel('Default Alpha').click();
 
-  await page.getByLabel("Enable Timing").setChecked(false);
+  await page.getByLabel('Enable Timing').setChecked(false);
 
-  await check_box(page, page.getByLabel("Utility Group(No controls)"));
+  await check_box(page, page.getByLabel('Utility Group(No controls)'));
   //await page.getByLabel('Utility Group(No controls)').check();
 
-  await check_box(page, page.getByLabel("Hide in Runtime Mode"));
+  await check_box(page, page.getByLabel('Hide in Runtime Mode'));
   //await page.getByLabel('Hide in Runtime Mode').check();
 
-  await page.getByTestId("close-group-settings").click();
-  await page.getByTestId("close-group").click();
+  await page.getByTestId('close-group-settings').click();
+  await page.getByTestId('close-group').click();
   await waitForTasks(page);
   await sleep(100);
 
   // More checking
   await page.goto(
-    "http://localhost:8002/chandler/editor/testchandlerproperties:b1"
+    'http://localhost:8002/chandler/editor/testchandlerproperties:b1'
   );
-  await page.getByRole("button", { name: "ts1" }).click();
-  await page.getByTestId("group-properties-button").click();
+  await page.getByRole('button', { name: 'ts1' }).click();
+  await page.getByTestId('group-properties-button').click();
 
   // We disabled timing so it should give the user a warning
   // otherwise they'll spend al day wondering why it doesn't work
-  await expect(page.getByText("Timing Disabled")).toHaveClass("warning");
+  await expect(page.getByText('Timing Disabled')).toHaveClass('warning');
 
-  await expect(page.getByLabel("Utility Group(No controls)")).toBeChecked();
-  await expect(page.getByLabel("Hide in Runtime Mode")).toBeChecked();
+  await expect(page.getByLabel('Utility Group(No controls)')).toBeChecked();
+  await expect(page.getByLabel('Hide in Runtime Mode')).toBeChecked();
 
-  await expect(page.getByLabel("Enable Timing")).not.toBeChecked();
+  await expect(page.getByLabel('Enable Timing')).not.toBeChecked();
 
-  await expect(page.getByTestId("group_blend_mode")).toHaveValue("HTP");
+  await expect(page.getByTestId('group_blend_mode')).toHaveValue('HTP');
 
   await waitForTasks(page);
 
   await sleep(600);
 
-  await page.getByTestId("close-group-settings").click();
+  await page.getByTestId('close-group-settings').click();
 
   // More time waste
-  await page.getByTestId("close-group").click();
+  await page.getByTestId('close-group').click();
 
   await sleep(300);
   await waitForTasks(page);
   await sleep(100);
 
   await page.goto(
-    "http://localhost:8002/chandler/editor/testchandlerproperties:b1"
+    'http://localhost:8002/chandler/editor/testchandlerproperties:b1'
   );
-  await page.getByRole("button", { name: "ts1" }).click();
-  await page.getByTestId("group-properties-button").click();
+  await page.getByRole('button', { name: 'ts1' }).click();
+  await page.getByTestId('group-properties-button').click();
 
   await sleep(300);
- 
-  await check_box(page, page.getByLabel("Require Confirmation for Cue"));
+
+  await check_box(page, page.getByLabel('Require Confirmation for Cue'));
   //await page.getByLabel('Require Confirmation for Cue').check();
 
   // Click elsewhere, do other stuff, let it save
 
-  await page.getByTestId("close-group-settings").click();
-  await page.getByTestId("close-group").click();
+  await page.getByTestId('close-group-settings').click();
+  await page.getByTestId('close-group').click();
 
   await waitForTasks(page);
   await sleep(100);
 
   await page.goto(
-    "http://localhost:8002/chandler/editor/testchandlerproperties:b1"
+    'http://localhost:8002/chandler/editor/testchandlerproperties:b1'
   );
-  await page.getByRole("button", { name: "ts1" }).click();
-  await page.getByTestId("group-properties-button").click();
+  await page.getByRole('button', { name: 'ts1' }).click();
+  await page.getByTestId('group-properties-button').click();
 
-  await expect(page.getByLabel("Require Confirmation for Cue")).toBeChecked();
+  await expect(page.getByLabel('Require Confirmation for Cue')).toBeChecked();
 
   // Now lets set stuff back to defaults
 
-  await page.getByLabel("Sound Output").click();
-  await page.getByLabel("Sound Output").fill("");
-  await page.getByLabel("Crossfade Media").click();
-  await page.getByLabel("Crossfade Media").click();
-  await page.getByLabel("Crossfade Media").dblclick();
-  await page.getByLabel("Crossfade Media").fill("");
-  await page.getByLabel("Default Alpha").click();
-  await page.getByLabel("Crossfade Media").click();
-  await page.getByLabel("Crossfade Media").fill("0");
-  await page.getByRole("heading", { name: "Sound" }).click();
-  await page.getByLabel("MQTT Server").dblclick();
-  await page.getByLabel("MQTT Server").fill("");
-  await page.getByLabel("Sync Group Name").dblclick();
-  await page.getByLabel("Sync Group Name").fill("");
-  await page.getByLabel("Slideshow Overlay").click({
+  await page.getByLabel('Sound Output').click();
+  waitForTasks(page);
+
+  await page.getByLabel('Sound Output').fill('');
+  await page.getByLabel('Crossfade Media').click();
+  await page.getByLabel('Crossfade Media').click();
+  await page.getByLabel('Crossfade Media').dblclick();
+  waitForTasks(page);
+
+  await page.getByLabel('Crossfade Media').fill('');
+  await page.getByLabel('Default Alpha').click();
+
+  await page.getByLabel('Crossfade Media').click();
+  waitForTasks(page);
+
+  await page.getByLabel('Crossfade Media').fill('0');
+  await page.getByRole('heading', { name: 'Sound' }).click();
+  await page.getByLabel('MQTT Server').dblclick();
+  waitForTasks(page);
+
+  await page.getByLabel('MQTT Server').fill('');
+  await page.getByLabel('Sync Group Name').dblclick();
+  await sleep(1000);
+
+  waitForTasks(page);
+
+  await page.getByLabel('Sync Group Name').fill('');
+  await page.getByLabel('Slideshow Overlay').click({
     clickCount: 3,
   });
-  await page.getByLabel("Slideshow Overlay").fill("");
-  await page.getByLabel("MIDI Source").dblclick();
+  await sleep(1000);
 
-  await page.getByLabel("MIDI Source").click({
+  waitForTasks(page);
+  await page.getByLabel('Slideshow Overlay').fill('');
+  waitForTasks(page);
+
+  // Mqtt status breaks stuff after change
+  await sleep(1000);
+
+  // check this because it flakes a lot
+  await expect(page.getByLabel('Slideshow Overlay')).toBeEmpty();
+
+  await page.getByLabel('MIDI Source').dblclick();
+  waitForTasks(page);
+
+  await page.getByLabel('MIDI Source').click({
     clickCount: 3,
   });
-  await page.getByLabel("MIDI Source").fill("");
+  await page.getByLabel('MIDI Source').fill('');
 
-  await page.getByPlaceholder("Next cue in list").dblclick();
-  await page.getByPlaceholder("Next cue in list").fill("");
-  await page.getByPlaceholder("Next cue in list").blur();
+  await page.getByPlaceholder('Next cue in list').dblclick();
+  waitForTasks(page);
+
+  await page.getByPlaceholder('Next cue in list').fill('');
+  await page.getByPlaceholder('Next cue in list').blur();
   await sleep(300);
   await waitForTasks(page);
-  await uncheck_box(page, page.getByLabel("Utility Group(No controls)"));
-  await uncheck_box(page, page.getByLabel("Hide in Runtime Mode"));
-  await uncheck_box(page, page.getByLabel("Backtrack"));
-  await uncheck_box(page, page.getByLabel("Active By Default"));
-  await uncheck_box(page, page.getByLabel("Require Confirmation for Cue"));
+  await uncheck_box(page, page.getByLabel('Utility Group(No controls)'));
+  await uncheck_box(page, page.getByLabel('Hide in Runtime Mode'));
+  await uncheck_box(page, page.getByLabel('Backtrack'));
+  await uncheck_box(page, page.getByLabel('Active By Default'));
+  await uncheck_box(page, page.getByLabel('Require Confirmation for Cue'));
 
   await sleep(100);
   await waitForTasks(page);
 
-  await page.getByTestId("close-group-settings").click();
-  await page.getByTestId("close-group").click();
+  await page.getByTestId('close-group-settings').click();
+  await page.getByTestId('close-group').click();
 
   await waitForTasks(page);
   await sleep(100);
 
   // Check that it worked
   await page.goto(
-    "http://localhost:8002/chandler/editor/testchandlerproperties:b1"
+    'http://localhost:8002/chandler/editor/testchandlerproperties:b1'
   );
-  await page.getByRole("button", { name: "ts1" }).click();
-  await page.getByTestId("group-properties-button").click();
+  await page.getByRole('button', { name: 'ts1' }).click();
+  await page.getByTestId('group-properties-button').click();
 
-  await expect(page.getByLabel("MQTT Server")).toBeEmpty();
-  await expect(page.getByLabel("Sync Group Name")).toBeEmpty();
-  await expect(page.getByLabel("Slideshow Overlay")).toBeEmpty();
-  await expect(page.getByLabel("MIDI Source")).toBeEmpty();
+  await expect(page.getByLabel('MQTT Server')).toBeEmpty();
+  await expect(page.getByLabel('Sync Group Name')).toBeEmpty();
+  await expect(page.getByLabel('Slideshow Overlay')).toBeEmpty();
+  await expect(page.getByLabel('MIDI Source')).toBeEmpty();
 
-  await expect(page.getByPlaceholder("Next cue in list")).toBeEmpty();
-  await expect(page.getByLabel("Crossfade Media")).toHaveValue("0");
-  await expect(page.getByLabel("Sound Output")).toBeEmpty();
-  await expect(page.getByLabel("Utility Group(No controls)")).not.toBeChecked();
-  await expect(page.getByLabel("Hide in Runtime Mode")).not.toBeChecked();
+  await expect(page.getByPlaceholder('Next cue in list')).toBeEmpty();
+  await expect(page.getByLabel('Crossfade Media')).toHaveValue('0');
+  await expect(page.getByLabel('Sound Output')).toBeEmpty();
+  await expect(page.getByLabel('Utility Group(No controls)')).not.toBeChecked();
+  await expect(page.getByLabel('Hide in Runtime Mode')).not.toBeChecked();
   await expect(
-    page.getByLabel("Require Confirmation for Cue")
+    page.getByLabel('Require Confirmation for Cue')
   ).not.toBeChecked();
-  await expect(page.getByLabel("Active By Default")).not.toBeChecked();
-  await expect(page.getByLabel("Backtrack")).not.toBeChecked();
+  await expect(page.getByLabel('Active By Default')).not.toBeChecked();
+  await expect(page.getByLabel('Backtrack')).not.toBeChecked();
 
-  await expect(page.getByPlaceholder("Next cue in list")).toBeEmpty();
+  await expect(page.getByPlaceholder('Next cue in list')).toBeEmpty();
 
-
-  await page.getByTestId("close-group-settings").click();
-  await page.getByTestId("close-group").click();
+  await page.getByTestId('close-group-settings').click();
+  await page.getByTestId('close-group').click();
 
   await waitForTasks(page);
   await sleep(100);
 
   await page.goto(
-    "http://localhost:8002/chandler/editor/testchandlerproperties:b1"
+    'http://localhost:8002/chandler/editor/testchandlerproperties:b1'
   );
-  await page.getByRole("button", { name: "ts1" }).click();
-  await page.getByTestId("group-properties-button").click();
-
+  await page.getByRole('button', { name: 'ts1' }).click();
+  await page.getByTestId('group-properties-button').click();
 
   // Test flicker blend mode props
 
-  await page.getByTestId("group_blend_mode").selectOption("flicker");
+  await page.getByTestId('group_blend_mode').selectOption('flicker');
 
   await waitForTasks(page);
 
   // Retry because number inputs can be flaky
-  await page.getByLabel("agility:").fill("0.04");
+  await page.getByLabel('agility:').fill('0.04');
   await waitForTasks(page);
-  await page.getByLabel("agility:").fill("0.04");
+  await page.getByLabel('agility:').fill('0.04');
 
-  await page.getByLabel("gustiness:").fill("0.19");
+  await page.getByLabel('gustiness:').fill('0.19');
   await waitForTasks(page);
-  await page.getByLabel("gustiness:").fill("0.19");
+  await page.getByLabel('gustiness:').fill('0.19');
   await waitForTasks(page);
 
-  await page.getByTestId("close-group-settings").click();
-  await page.getByTestId("close-group").click();
+  await page.getByTestId('close-group-settings').click();
+  await page.getByTestId('close-group').click();
 
-  await page.getByRole("link", { name: "󰀻 Apps" }).click();
-  await page.getByTestId("extras-button-testchandlerproperties_b1").click();
-  await page.getByRole("link", { name: "Editor" }).click();
-  await page.getByRole("button", { name: "ts1" }).click();
-  await page.getByTestId("group-properties-button").click();
+  await page.getByRole('link', { name: '󰀻 Apps' }).click();
+  await page.getByTestId('extras-button-testchandlerproperties_b1').click();
+  await page.getByRole('link', { name: 'Editor' }).click();
+  await page.getByRole('button', { name: 'ts1' }).click();
+  await page.getByTestId('group-properties-button').click();
 
-  await expect(page.getByTestId("group_blend_mode")).toHaveValue("flicker");
-  await expect(page.getByLabel("agility:")).toHaveValue("0.04");
-  await expect(page.getByLabel("gustiness:")).toHaveValue("0.19");
+  await expect(page.getByTestId('group_blend_mode')).toHaveValue('flicker');
+  await expect(page.getByLabel('agility:')).toHaveValue('0.04');
+  await expect(page.getByLabel('gustiness:')).toHaveValue('0.19');
 
-  await page.getByTestId("close-group-settings").click();
-  await page.getByTestId("close-group").click();
+  await page.getByTestId('close-group-settings').click();
+  await page.getByTestId('close-group').click();
 
-  await deleteModule(page, "testchandlerproperties");
+  await deleteModule(page, 'testchandlerproperties');
   await logout(page);
 });

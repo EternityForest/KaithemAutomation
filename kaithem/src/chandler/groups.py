@@ -1494,15 +1494,13 @@ class Group:
             ref = datetime.datetime.now()
             selector = util.get_rrule_selector(cuelen_str[1:], ref)
             nextruntime = selector.after(ref, True)
-
-            if nextruntime <= ref:
-                nextruntime = selector.after(nextruntime, False)
-
-            t2 = nextruntime.timestamp()
-
-            nextruntime = t2
-
-            v = nextruntime - time.time()
+            if nextruntime:
+                if nextruntime <= ref:
+                    nextruntime = selector.after(nextruntime, False)
+                if nextruntime:
+                    t2 = nextruntime.timestamp()
+                    nextruntime = t2
+                    v = nextruntime - time.time()
 
         else:
             v = float(v)
@@ -1518,15 +1516,13 @@ class Group:
                         # The crossfade to work
                         # TODO this should not stop early if the next cue overrides
                         duration = core.get_audio_duration(path) or 0
-
-                        loops: int = (
-                            int(
-                                self.script_context.preprocessArgument(
-                                    self.cue.sound_loops
-                                )
-                            )
-                            or 0
+                        loops_temp = self.script_context.preprocessArgument(
+                            self.cue.sound_loops
                         )
+                        if not isinstance(loops_temp, (int, float)):
+                            raise TypeError("Bad sound_loops value")
+
+                        loops: int = int(loops_temp) or 0
                         if loops > 1:
                             duration = duration * loops
 

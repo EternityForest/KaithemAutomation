@@ -27,26 +27,37 @@ test("test", async ({ page }) => {
   await page.getByLabel('Inherit rules from Inherited').fill('c2');
   await page.getByText('default LogicClose Automation').click();
   await page.getByRole('button', { name: 'Add Rule' }).click();
+  await waitForTasks(page);
+
   await page.getByTestId('rule-trigger').click();
   await page.getByLabel('Run on(type to search)').dblclick();
   await page.getByLabel('Run on(type to search)').press('ControlOrMeta+a');
   await page.getByLabel('Run on(type to search)').fill('rule1');
   await page.locator('#blockInspectorEvent').getByRole('button', { name: '󰅖 Close' }).click();
+  await waitForTasks(page);
   await page.getByRole('button', { name: 'Add Action' }).click();
   await page.getByRole('button', { name: 'pass' }).click();
   await page.locator('#blockInspectorCommand').getByRole('button', { name: '󰅖 Close' }).click();
   await page.getByRole('button', { name: 'Add Rule' }).click();
+  await waitForTasks(page);
+
   await page.getByRole('button', { name: 'On cue.enter' }).click();
+  await waitForTasks(page);
+
   await page.locator('#blockInspectorEvent div').filter({ hasText: 'Run when script loadsWhen' }).click();
   await page.getByLabel('Run on(type to search)').press('ControlOrMeta+a');
   await page.getByLabel('Run on(type to search)').fill('rule2');
   await page.getByText('Event Trigger. Runs the').click();
+  await waitForTasks(page);
+
   await page.locator('#blockInspectorEvent').getByRole('button', { name: '󰅖 Close' }).click();
-  
-  
+  await waitForTasks(page);  
   await page.getByRole('button', { name: 'goto' }).nth(1).click();
   await page.getByRole('button', { name: 'Add Action' }).nth(1).click();
+  await waitForTasks(page);
+
   await page.getByRole('button', { name: 'pass' }).nth(1).click();
+
   await page.locator('#blockInspectorCommand').getByRole('combobox').click();
   await page.locator('#blockInspectorCommand').getByRole('combobox').fill('set');
   await page.locator('#blockInspectorCommand').getByRole('combobox').blur();

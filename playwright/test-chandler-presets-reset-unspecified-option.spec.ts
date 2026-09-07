@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { deleteModule, login, makeModule, waitForTasks, sleep} from "./util";
+import { aw } from "../kaithem/data/static/vite/assets/_plugin-vue_export-helper-DqOvxstC.js";
 
 test("test", async ({ page }) => {
   test.setTimeout(120_000);
@@ -39,11 +40,16 @@ test("test", async ({ page }) => {
   await page.getByLabel("Type:").nth(1).selectOption("uv");
 
   await page.getByRole("button", { name: "Fixtures" }).click();
+  await waitForTasks(page);
+
   await page
     .getByRole("row", { name: "Name", exact: true })
     .getByRole("cell")
     .nth(1)
     .click();
+  
+  await waitForTasks(page);
+
   await page
     .getByRole("row", { name: "Name", exact: true })
     .getByRole("textbox")
@@ -81,6 +87,7 @@ test("test", async ({ page }) => {
     .locator("summary")
     .click();
   await page.getByRole("button", { name: "󰢻 Normal View" }).click();
+  await sleep(250);
 
   // set to nonsense
   await page
@@ -88,11 +95,17 @@ test("test", async ({ page }) => {
     .filter({ hasText: "red" })
     .getByRole("slider")
     .fill("175");
+  await sleep(250);
+  await waitForTasks(page);
+
   await page
     .locator("div.hfader")
     .filter({ hasText: "uv" })
     .getByRole("slider")
     .fill("126");
+  
+  await sleep(250);
+  await waitForTasks(page);
 
   await page
     .getByTestId("details-fixture-channels-summary")
@@ -126,6 +139,7 @@ test("test", async ({ page }) => {
     .filter({ hasText: "red" })
     .getByRole("slider")
     .fill("140");
+  
   await page
     .locator("div.hfader")
     .filter({ hasText: "uv" })
@@ -152,7 +166,7 @@ test("test", async ({ page }) => {
     .click();
 
   await waitForTasks(page);
-  
+
   await expect(
     page
       .locator("div.hfader")

@@ -1904,8 +1904,8 @@ def readStringFromSource(s: str, var: str) -> None | str:
         if isinstance(i, ast.Assign):
             for t in i.targets:
                 if isinstance(t, ast.Name):
-                    if t.id == var:
-                        return str(i.value)
+                    if t.id == var and isinstance(i.value, ast.Constant):
+                        return str(i.value.value)
 
 
 def indent(s: str, prefix: str = "    "):
