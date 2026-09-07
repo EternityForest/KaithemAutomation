@@ -24,7 +24,7 @@ services:
     network_mode: host
 
 
-
+  # This is the actual app, the rest are for testing
   kaithem:
     restart: "no"
     image: kaithem:${KAITHEM_VERSION:?error}
@@ -66,7 +66,6 @@ services:
       - /usr/lib/locale:/usr/lib/locale:ro
       - ${XDG_RUNTIME_DIR}:${XDG_RUNTIME_DIR}
       - /var/run/dbus:/var/run/dbus
-      - ${HOME}/kaithem-docker-home:/app-home
       - /dev:/dev
       - /tmp:/tmp
 
@@ -74,6 +73,9 @@ services:
       # updating the bundle
       - /etc/ssl/certs:/etc/ssl/certs:ro
       - /etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro
+
+    tmpfs:
+      - /app-home:mode=755,uid=1000,gid=1000,size=512M
 
     network_mode: host
     pid: host
@@ -161,26 +163,3 @@ services:
       - audio
       - video
       - dialout
-
-    restart: unless-stopped
-
-  # kaithem-host-setup:
-  #   image: kaithem-host-setup:dev
-  #   build:
-  #     context: ../../
-  #     dockerfile_inline: |
-  #       FROM alpine:3.14
-  #       cat <<'EOF' > /setup.sh
-  #       #!/bin/sh
-  #       mkdir -p /home/$USER/kaithem
-  #       mkdir -p /home/$USER/.cache
-  #       mkdir -p /home/$USER/.local/kaithem
-  #       EOF
-  #       ENTRYPOINT ["/setup.sh"]
-
-
-  #   user: "${KAITHEM_UID}:${KAITHEM_GROUP}"
-
-  #   volumes:
-  #     - /home/$KAITHEM_USER:/home/$KAITHEM_USER
-

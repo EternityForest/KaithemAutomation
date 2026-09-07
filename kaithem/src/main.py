@@ -8,6 +8,7 @@ import sys
 import threading
 import time
 import traceback
+from collections.abc import Callable
 from typing import Any
 
 import structlog
@@ -23,25 +24,25 @@ max_background_import_threads = 8
 backround_import_count = threading.Semaphore(max_background_import_threads)
 
 
-def import_in_thread(m):
+def import_in_thread(module_name: str):
     def f():
         start_time = time.time()
         try:
             backround_import_count.acquire()
             evt = threading.Event()
-            watchdog(evt, f"Timed out importing {m}")
-            importlib.import_module(m)
+            watchdog(evt, f"Timed out importing {module_name}")
+            importlib.import_module(module_name)
             evt.set()
         except Exception:
-            _logger.exception(f"Error importing {m}")
+            _logger.exception(f"Error importing {module_name}")
         finally:
             backround_import_count.release()
         taken = round(time.time() - start_time, 2)
         if taken > 0.1:
-            _logger.info(f"Loading {m} took {taken}s")
+            _logger.info(f"Loading {module_name} took {taken}s")
 
     threading.Thread(
-        target=f, daemon=True, name=f"nostartstoplog.importer.{m}"
+        target=f, daemon=True, name=f"nostartstoplog.importer.{module_name}"
     ).start()
 
 
@@ -156,7 +157,8 @@ def initialize(config: dict[str, Any] | None = None):
     )
     from .chandler import resource_type  # noqa
 
-    def handle_error(f):
+    def handle_error(f: Callable[..., None]):
+        "Callback to deal with the first error from any given event"
         # If we can, try to send the exception back whence it came
         try:
             from .plugins import CorePluginEventResources
@@ -182,7 +184,7 @@ def initialize(config: dict[str, Any] | None = None):
         except Exception:
             logger.exception(f"Exception in scheduled function {repr(f)}")
 
-    def handle_first_error(f):
+    def handle_first_error(f: Callable[..., None]):
         "Callback to deal with the first error from any given event"
         m = f.__module__
         messagebus.post_message(
@@ -205,6 +207,15 @@ def initialize(config: dict[str, Any] | None = None):
 
     auth.initializeAuthentication()
     logger.info("Loaded auth data")
+
+    # Should only be used for testing
+    try:
+        admin_password = config_module.config.get("set_admin_password", "")
+        if admin_password.strip():
+            auth.add_user("admin", "test-admin-password")
+            auth.add_user_to_group("admin", "Administrators")
+    except Exception:
+        logging.exception("error creating test admin user")
 
     # MUST be after auth because auth plugins
     # exist

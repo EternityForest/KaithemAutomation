@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-"""This file handles the big configuration file, provides access to it, and handles default settings"""
+"""This file handles the big configuration file,
+provides access to it, and handles default settings"""
 
 import argparse
 import os
@@ -16,10 +17,11 @@ logger = structlog.get_logger(__name__)
 config: dict[str, Any] = {}
 
 ##########################################################
-# Modified code from ibt of stackoverflow. Uses literal style for scalars instead of ugly folded.
+# Modified code from ibt of stackoverflow.
+# Uses literal style for scalars instead of ugly folded.
 
 
-def should_use_block(value):
+def should_use_block(value: str):
     if "\n" in value:
         return True
     if "\r" in value:
@@ -27,6 +29,7 @@ def should_use_block(value):
     return False
 
 
+# pyrefly: ignore [implicit-any-parameter]
 def my_represent_scalar(self, tag, value, style=None):
     if style is None:
         if should_use_block(value):
@@ -51,10 +54,14 @@ def load(cfg: dict[str, Any]):
     "Param overrtides defaults"
     _argp = argparse.ArgumentParser()
 
-    # Manually specify a confifuration file, or else there must be one in /etc/kaithem
+    # Manually specify a confifuration file,
+    # or else there must be one in /etc/kaithem
     _argp.add_argument("-d")
     _argp.add_argument("-p")
     _argp.add_argument("--process-title")
+
+    # Only used for testing, probably a security risk to do otherwise
+    _argp.add_argument("--set-admin-password")
 
     # Debig runners put weird stuff that breaks things
     if ("pytest" in sys.argv[0]) or "sphinx-build" in sys.argv:
@@ -76,7 +83,7 @@ def load(cfg: dict[str, Any]):
     default_conf_location = os.path.expanduser("~/kaithem/config.yaml")
     vd = os.path.expanduser("~/kaithem/")
 
-    _usr_config = {}
+    _usr_config: dict[str, Any] = {}
 
     # Attempt to open any manually specified config file
     if argcmd.d:
@@ -114,6 +121,9 @@ def load(cfg: dict[str, Any]):
 
     if argcmd.process_title:
         loading_config["process_title"] = argcmd.process_title
+
+    if argcmd.set_admin_password:
+        loading_config["set_admin_password"] = argcmd.set_admin_password
 
     return loading_config
 

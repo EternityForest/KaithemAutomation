@@ -198,6 +198,30 @@ dev-run-all-tests:
 	@killall -9 kmakefiletest
 
 
+.PHONY: dev-run-all-tests
+dev-run-playwright-against-production-app:
+	@trap 'echo "Stopping all subprocesses..."; kill -9 0' EXIT INT TERM
+	@echo "Starting test server and running all playwright and pytest tests in active .venv"
+	@echo "Stopping any other process named coverage"
+	@killall -9 kmakefiletest
+	@sleep 1
+	@ ${IN_APP_DOCKER} pw-jack kaithem --process-title kmakefiletest --set-admin-password=test-admin-password > /dev/shm/kmakefiletest.log &
+	@echo "Waiting for server to start"
+	@sleep 5
+	@echo "wgetting server to make sure it is up, this may take a minute"
+	@wget --retry-connrefused --waitretry=1 --read-timeout=20 --quiet --timeout=15 -t 0 http://localhost:8002
+	@echo "Running playwright tests"
+	@${PLAYWRIGHT} test --reporter=html  --workers 1 --max-failures 1
+	@sleep 5
+	@echo "Stopping server"
+	@killall kmakefiletest
+	@sleep 1
+	@killall -w kmakefiletest
+	@open playwright-report/index.html
+
+
+
+
 .PHONY: dev-build-docker
 dev-build-docker:
 	@echo "Building docker images for Kaithem ${KAITHEM_VERSION}"
