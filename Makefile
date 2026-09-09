@@ -6,8 +6,8 @@
 .DELETE_ON_ERROR:
 
 COMPOSE_FILE := docker/docker-compose.yaml
-IN_DEV_DOCKER := docker compose -f $(COMPOSE_FILE) up -d kaithem-dev && docker compose -f $(COMPOSE_FILE) exec kaithem-dev
-IN_APP_DOCKER := docker compose -f $(COMPOSE_FILE) up -d kaithem && docker compose -f $(COMPOSE_FILE) exec kaithem
+IN_DEV_DOCKER := docker compose -f $(COMPOSE_FILE) up -d kaithem-dev && docker compose -f $(COMPOSE_FILE) exec cooperskeep/kaithem-dev
+IN_APP_DOCKER := docker compose -f $(COMPOSE_FILE) up -d kaithem && docker compose -f $(COMPOSE_FILE) exec cooperskeep/kaithem
 PLAYWRIGHT := docker compose -f $(COMPOSE_FILE) run --rm playwright npx playwright
 # We autoselect the user who will be running Kaithem if we install it.
 ifdef KAITHEM_USER
@@ -42,9 +42,12 @@ endif
 USER:= $(shell id -un)
 KAITHEM_VERSION:=$(shell python3 -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')
 
+DOCKER_BUILD_DIR := ${ROOT_DIR}/docker-build
+
 export USER
 export KIOSK_HOME
 export ROOT_DIR
+export DOCKER_BUILD_DIR
 export KAITHEM_VERSION
 
 default: help 
@@ -227,11 +230,28 @@ dev-build-docker:
 	@echo "Building docker images for Kaithem ${KAITHEM_VERSION}"
 	@echo "Dev user must be 1000, current is: ${KAITHEM_USER}  UID: ${KAITHEM_UID}  GID: ${KAITHEM_GROUP}"
 	@cd ./docker
-	@docker compose build --progress=plain kaithem-builder
-	@docker compose build --progress=plain kaithem-dev
-	@docker compose build --progress=plain kaithem-kiosk
+	@docker compose build --progress=plain cooperskeep/kaithem-builder
+	@docker compose build --progress=plain cooperskeep/kaithem-dev
+	@docker compose build --progress=plain cooperskeep/kaithem-kiosk
 	@docker compose build --progress=plain playwright
-	@docker compose build --progress=plain kaithem
+	@docker compose build --progress=plain cooperskeep/kaithem
+
+
+dev-create-producton-buildx-context:
+	@docker buildx create --name kaithem-multiarch-builder --driver docker-container
+
+
+dev-clear-docker-production-cache:
+	@BUILDX_BUILDER=kaithem-multiarch-builder docker buildx prune --filter type=exec.cachemount -f
+
+dev-build-docker-production:
+	@echo "Building docker ARM64 images for Kaithem ${KAITHEM_VERSION}"
+	@cd ./docker
+	@mkdir -p ${DOCKER_BUILD_DIR}
+	@BUILDX_BUILDER=kaithem-multiarch-builder docker buildx bake --progress=plain kaithem-builder 
+	@BUILDX_BUILDER=kaithem-multiarch-builder docker buildx bake --progress=plain --set="*.output=type=tar,dest=${DOCKER_BUILD_DIR}/kaithem-${KAITHEM_VERSION}.tar" kaithem
+	@BUILDX_BUILDER=kaithem-multiarch-builder docker buildx bake --progress=plain kaithem-native-rust-builder 
+	@BUILDX_BUILDER=kaithem-multiarch-builder docker buildx bake --no-cache --progress=plain --set="*.output=type=tar,dest=${DOCKER_BUILD_DIR}/kaithem-kiosk${KAITHEM_VERSION}.tar" kaithem-kiosk
 
 
 

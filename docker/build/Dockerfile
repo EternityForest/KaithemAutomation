@@ -7,15 +7,22 @@
 FROM debian:trixie AS builder
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+ARG TARGETARCH
+
+
+
+RUN rm -f /etc/apt/apt.conf.d/docker-clean; \
+    echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
+   
+RUN --mount=type=cache,id=apt-cache-${TARGETARCH},target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,id=apt-lists-${TARGETARCH},target=/var/lib/apt/lists,sharing=locked \
     apt-get update
 
 # Prevent interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+RUN --mount=type=cache,id=apt-cache-${TARGETARCH},target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,id=apt-lists-${TARGETARCH},target=/var/lib/apt/lists,sharing=locked \
     apt-get install -y \
     curl \
     build-essential \
@@ -45,19 +52,14 @@ RUN --mount=type=cache,target=/root/.cargo \
 
 
 
-# Apt update only if we really have to
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
-    bash -c '[ -z "$(find /var/cache/apt/pkgcache.bin -mmin -1440 2>/dev/null)" ] && apt-get update'
-
 RUN mkdir -p /workspace
 
 # Central management of the debian deps list
 COPY ./KaithemAutomation/kaithem/data/debian_setup_dependencies.sh \
     /workspace/debian_setup_dependencies.sh
 
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+RUN --mount=type=cache,id=apt-cache-${TARGETARCH},target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,id=apt-lists-${TARGETARCH},target=/var/lib/apt/lists,sharing=locked \
     bash /workspace/debian_setup_dependencies.sh
 
 
@@ -104,10 +106,3 @@ RUN --mount=type=cache,target=/root/.local/share/uv \
     --mount=type=cache,target=/workspace/KaithemAutomation/target \
     --mount=type=cache,target=/workspace/KaithemAutomation/dist \
     UV_LINK_MODE=copy uv tool install --verbose /workspace/KaithemAutomation
-
-
-# Compile the tool the kiosk needs
-RUN --mount=type=cache,target=/root/.cargo \
-    command -v wayinhibit >/dev/null 2>&1  || cargo install wayinhibit; \
-    mkdir -p /root/.local/bin; \
-    cp /root/.cargo/bin/wayinhibit /root/.local/bin/wayinhibit

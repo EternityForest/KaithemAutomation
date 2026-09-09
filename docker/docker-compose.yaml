@@ -1,5 +1,10 @@
+name: kaithem
 services:
 
+  # This strictly builds the platform-independent wheel.
+  # That is why only linux/amd64 is supported
+  # Platform specific stuff is installed from uv or apt
+  # or cargo in the native-rust-builder
   kaithem-builder:
     restart: "no"
     image: kaithem-builder:${KAITHEM_VERSION:?error}
@@ -8,7 +13,9 @@ services:
       # Kaithem alongside Dashbeard.
       context: ../../
       dockerfile: KaithemAutomation/docker/build/Dockerfile
-
+      x-bake:
+        platforms:
+          - linux/amd64
   playwright:
     restart: "no"
     image: kaithem-dev-playwright:${KAITHEM_VERSION:?error}
@@ -27,12 +34,18 @@ services:
   # This is the actual app, the rest are for testing
   kaithem:
     restart: "no"
-    image: kaithem:${KAITHEM_VERSION:?error}
+    image: cooperskeep/kaithem:${KAITHEM_VERSION:?error}
     build:
       context: ../../
       dockerfile: KaithemAutomation/docker/app/Dockerfile
       args:
         - KAITHEM_VERSION=${KAITHEM_VERSION:?error}
+      x-bake:
+        platforms:
+          - linux/amd64
+          - linux/arm64
+      additional_contexts:
+        kaithem-builder: service:kaithem-builder
 
     privileged: true
 
@@ -90,7 +103,7 @@ services:
     restart: "no"
     extends:
       service: kaithem
-    image: kaithem-dev:${KAITHEM_VERSION:?error}
+    image: cooperskeep/kaithem-dev:${KAITHEM_VERSION:?error}
     build:
       context: ../../
       dockerfile: KaithemAutomation/docker/dev/Dockerfile
@@ -114,12 +127,20 @@ services:
 
   kaithem-kiosk:
     restart: "no"
-    image: kaithem-kiosk:${KAITHEM_VERSION:?error}
+    image: cooperskeep/kaithem-kiosk:${KAITHEM_VERSION:?error}
     build:
       context: ../../
       dockerfile: KaithemAutomation/docker/kiosk/Dockerfile
       args:
         - KAITHEM_VERSION=${KAITHEM_VERSION:?error}
+      x-bake:
+        platforms:
+          - linux/amd64
+          - linux/arm64
+
+      additional_contexts:
+        # Maps the 'base_image_alias' used in the Dockerfile to the 'base-image' service build graph
+        kaithem-native-rust-builder: service:kaithem-native-rust-builder
 
     cap_add:
       - SYS_NICE
@@ -163,3 +184,14 @@ services:
       - audio
       - video
       - dialout
+
+  kaithem-native-rust-builder:
+    restart: "no"
+    image: kaithem-native-rust-builder:${KAITHEM_VERSION:?error}
+    build:
+      context: ../../
+      dockerfile: KaithemAutomation/docker/native-rust-builder/Dockerfile
+      x-bake:
+        platforms:
+          - linux/amd64
+          - linux/arm64

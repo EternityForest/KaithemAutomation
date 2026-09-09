@@ -40,3 +40,5 @@ sounds_pack
 
 target/
 .aider*
+
+docker-build/
