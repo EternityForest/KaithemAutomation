@@ -5,6 +5,7 @@
 
 .DELETE_ON_ERROR:
 
+KAITHEM_GROUPS := "$(getent group audio video dialout rtkit gpio i2c spi render bluetooth serial | cut -d: -f3 | tr '\n' ' ')"
 COMPOSE_FILE := docker/docker-compose.yaml
 IN_DEV_DOCKER := docker compose -f $(COMPOSE_FILE) up -d kaithem-dev && docker compose -f $(COMPOSE_FILE) exec cooperskeep/kaithem-dev
 IN_APP_DOCKER := docker compose -f $(COMPOSE_FILE) up -d kaithem && docker compose -f $(COMPOSE_FILE) exec cooperskeep/kaithem
@@ -34,6 +35,7 @@ ROOT_DIR:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 export KAITHEM_UID
 export KAITHEM_USER
 export KAITHEM_GROUP
+export KAITHEM_GROUPS
 
 ifndef KIOSK_HOME
 KIOSK_HOME:="http://localhost:8002"
@@ -245,14 +247,16 @@ dev-clear-docker-production-cache:
 	@BUILDX_BUILDER=kaithem-multiarch-builder docker buildx prune --filter type=exec.cachemount -f
 
 dev-build-docker-production:
-	@echo "Building docker ARM64 images for Kaithem ${KAITHEM_VERSION}"
+	@echo "Building docker cross platform images for Kaithem ${KAITHEM_VERSION}"
 	@cd ./docker
 	@mkdir -p ${DOCKER_BUILD_DIR}
 	@BUILDX_BUILDER=kaithem-multiarch-builder docker buildx bake --progress=plain kaithem-builder 
-	@BUILDX_BUILDER=kaithem-multiarch-builder docker buildx bake --progress=plain --set="*.output=type=tar,dest=${DOCKER_BUILD_DIR}/kaithem-${KAITHEM_VERSION}.tar" kaithem
+	@BUILDX_BUILDER=kaithem-multiarch-builder docker buildx bake --progress=plain --no-cache --set="*.output=type=oci,dest=${DOCKER_BUILD_DIR}/kaithem-${KAITHEM_VERSION}.tar" kaithem
 	@BUILDX_BUILDER=kaithem-multiarch-builder docker buildx bake --progress=plain kaithem-native-rust-builder 
-	@BUILDX_BUILDER=kaithem-multiarch-builder docker buildx bake --no-cache --progress=plain --set="*.output=type=tar,dest=${DOCKER_BUILD_DIR}/kaithem-kiosk${KAITHEM_VERSION}.tar" kaithem-kiosk
-
+	@BUILDX_BUILDER=kaithem-multiarch-builder docker buildx bake --no-cache --progress=plain --set="*.output=type=oci,dest=${DOCKER_BUILD_DIR}/kaithem-kiosk-${KAITHEM_VERSION}.tar" kaithem-kiosk
+	@echo "Pushing images to local registry on port 5000"
+	@skopeo copy --multi-arch all oci-archive:${DOCKER_BUILD_DIR}/kaithem-${KAITHEM_VERSION}.tar docker://localhost:5000/cooperskeep/kaithem:${KAITHEM_VERSION} --dest-tls-verify=false
+	@skopeo copy --multi-arch all oci-archive:${DOCKER_BUILD_DIR}/kaithem-kiosk-${KAITHEM_VERSION}.tar docker://localhost:5000/cooperskeep/kaithem-kiosk:${KAITHEM_VERSION} --dest-tls-verify=false
 
 
 .PHONY: dev-docker-shell

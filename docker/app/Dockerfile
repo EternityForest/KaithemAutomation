@@ -4,6 +4,12 @@ FROM --platform=${BUILDPLATFORM} kaithem-builder AS builder
 
 FROM debian:trixie-slim
 
+LABEL org.opencontainers.image.title="KaithemAutomation"
+LABEL org.opencontainers.image.description="Home/Commercial Automation server"
+LABEL org.opencontainers.image.documentation="https://github.com/EternityForest/KaithemAutomation"
+LABEL org.opencontainers.image.source="https://github.com/EternityForest/KaithemAutomation"
+LABEL org.opencontainers.image.licenses="GPL-3.0"
+
 ARG KAITHEM_VERSION
 ARG TARGETARCH
 
@@ -37,6 +43,12 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 ENV UV_TOOL_DIR=/opt/uv-tools
 ENV UV_TOOL_BIN_DIR=/usr/local/bin
 
+RUN mkdir -p /workspace/KaithemAutomation
+COPY --from=builder /workspace/KaithemAutomation/dist /workspace/KaithemAutomation/dist
+
+RUN --mount=type=cache,id=uv-cache-${TARGETARCH},target=/root/.cache/uv \
+    UV_LINK_MODE=copy uv tool install /workspace/KaithemAutomation/dist/*.whl
+
 # UV_LINK_MODE=copy ensures packages are physically copied into the 
 # image rather than hardlinked from the temporary cache mount.
 RUN --mount=type=cache,id=uv-cache-${TARGETARCH},target=/root/.cache/uv \
@@ -48,6 +60,7 @@ RUN mkdir -p /app-home ; \
     chown -R 1000:1000 /app-home ; 
 
 ENV HOME=/app-home
+
 
 # Copy the built and installed Kaithem files along with the UV venv
 COPY --from=builder /opt/uv-tools/kaithem/ /opt/uv-tools/kaithem/

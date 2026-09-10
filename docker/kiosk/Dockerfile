@@ -6,6 +6,9 @@ FROM debian:trixie-slim
 ARG KAITHEM_VERSION
 ARG TARGETARCH
 
+LABEL org.opencontainers.image.title="KaithemAutomation Kiosk Browser"
+
+
 
 RUN rm -f /etc/apt/apt.conf.d/docker-clean; \
     echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache

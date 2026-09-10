@@ -94,9 +94,7 @@ services:
     pid: host
 
     group_add:
-      - audio
-      - video
-      - dialout
+      - ${KAITHEM_GROUPS:?error}
 
 
   kaithem-dev:
@@ -181,9 +179,7 @@ services:
     network_mode: host
 
     group_add:
-      - audio
-      - video
-      - dialout
+      - ${KAITHEM_GROUPS:?error}
 
   kaithem-native-rust-builder:
     restart: "no"
