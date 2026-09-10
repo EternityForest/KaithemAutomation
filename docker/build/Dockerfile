@@ -14,15 +14,15 @@ ARG TARGETARCH
 RUN rm -f /etc/apt/apt.conf.d/docker-clean; \
     echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
    
-RUN --mount=type=cache,id=apt-cache-${TARGETARCH},target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,id=apt-lists-${TARGETARCH},target=/var/lib/apt/lists,sharing=locked \
+RUN --mount=type=cache,id=apt-cache-${TARGETARCH},target=/var/cache/apt,sharing=private \
+    --mount=type=cache,id=apt-lists-${TARGETARCH},target=/var/lib/apt/lists,sharing=private \
     apt-get update
 
 # Prevent interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN --mount=type=cache,id=apt-cache-${TARGETARCH},target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,id=apt-lists-${TARGETARCH},target=/var/lib/apt/lists,sharing=locked \
+RUN --mount=type=cache,id=apt-cache-${TARGETARCH},target=/var/cache/apt,sharing=private \
+    --mount=type=cache,id=apt-lists-${TARGETARCH},target=/var/lib/apt/lists,sharing=private \
     apt-get install -y \
     curl \
     build-essential \
@@ -41,13 +41,13 @@ RUN node -v && npx -v
 
 # Install Rust and wasm32-unknown-unknown
 
-RUN --mount=type=cache,target=/root/.cargo \
+RUN --mount=type=cache,id=root-cargo-${TARGETARCH},target=/root/.cargo \
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 
 # Configure the environment path manually
 ENV PATH="/root/.cargo/bin:${PATH}"
 
-RUN --mount=type=cache,target=/root/.cargo \
+RUN --mount=type=cache,id=root-cargo-${TARGETARCH},target=/root/.cargo \
     rustup target add wasm32-unknown-unknown
 
 
@@ -58,30 +58,28 @@ RUN mkdir -p /workspace
 COPY ./KaithemAutomation/kaithem/data/debian_setup_dependencies.sh \
     /workspace/debian_setup_dependencies.sh
 
-RUN --mount=type=cache,id=apt-cache-${TARGETARCH},target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,id=apt-lists-${TARGETARCH},target=/var/lib/apt/lists,sharing=locked \
+RUN --mount=type=cache,id=apt-cache-${TARGETARCH},target=/var/cache/apt,sharing=private \
+    --mount=type=cache,id=apt-lists-${TARGETARCH},target=/var/lib/apt/lists,sharing=private \
     bash /workspace/debian_setup_dependencies.sh
 
 
 
 # Actually build!
 
-RUN --mount=type=cache,target=/root/.npm \
-    --mount=type=cache,target=/root/.cargo \
-    --mount=type=cache,target=/app/target \
-    --mount=type=cache,target=/root/.cache/uv \ 
-    --mount=type=cache,target=/root/.local/share/uv \
+RUN --mount=type=cache,id=root-npm-${TARGETARCH},target=/root/.npm \
+    --mount=type=cache,id=root-cargo-${TARGETARCH},target=/root/.cargo \
+    --mount=type=cache,id=cache-uv-${TARGETARCH},target=/root/.cache/uv \ 
+    --mount=type=cache,id=cache-local-uv-${TARGETARCH},target=/root/.local/share/uv \
     --mount=type=bind,source=KaithemAutomation,target=/workspace/KaithemAutomation,rw  \
     --mount=type=bind,source=Dashbeard,target=/workspace/Dashbeard,rw  \
     --mount=type=cache,target=/workspace/KaithemAutomation/.venv \
     --mount=type=cache,target=/workspace/KaithemAutomation/__pycache__ \
     cd /workspace/KaithemAutomation && UV_LINK_MODE=copy uv sync
     
-RUN --mount=type=cache,target=/root/.npm \
-    --mount=type=cache,target=/root/.cargo \
-    --mount=type=cache,target=/app/target \
-    --mount=type=cache,target=/root/.cache/uv \ 
-    --mount=type=cache,target=/root/.local/share/uv \
+RUN --mount=type=cache,id=root-npm-${TARGETARCH},target=/root/.npm \
+    --mount=type=cache,id=root-cargo-${TARGETARCH},target=/root/.cargo \
+    --mount=type=cache,id=cache-uv-${TARGETARCH},target=/root/.cache/uv \ 
+    --mount=type=cache,id=cache-local-uv-${TARGETARCH},target=/root/.local/share/uv \
     --mount=type=bind,source=KaithemAutomation,target=/workspace/KaithemAutomation,rw  \
     --mount=type=bind,source=Dashbeard,target=/workspace/Dashbeard,rw \
     --mount=type=cache,target=/workspace/KaithemAutomation/.venv \

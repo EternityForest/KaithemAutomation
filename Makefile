@@ -250,7 +250,7 @@ dev-build-docker-production:
 	@echo "Building docker cross platform images for Kaithem ${KAITHEM_VERSION}"
 	@cd ./docker
 # 	@mkdir -p ${DOCKER_BUILD_DIR}
-	@BUILDX_BUILDER=kaithem-multiarch-builder docker buildx bake --progress=plain kaithem-builder 
+	@BUILDX_BUILDER=kaithem-multiarch-builder docker buildx bake --no-cache --progress=plain kaithem-builder 
 	@BUILDX_BUILDER=kaithem-multiarch-builder docker buildx bake --progress=plain  --set="*.output=type=oci,dest=${DOCKER_BUILD_DIR}/kaithem-${KAITHEM_VERSION}.tar" kaithem
 	@BUILDX_BUILDER=kaithem-multiarch-builder docker buildx bake --progress=plain kaithem-native-rust-builder 
 	@BUILDX_BUILDER=kaithem-multiarch-builder docker buildx bake --progress=plain --set="*.output=type=oci,dest=${DOCKER_BUILD_DIR}/kaithem-kiosk-${KAITHEM_VERSION}.tar" kaithem-kiosk
