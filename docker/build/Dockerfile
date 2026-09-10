@@ -87,7 +87,6 @@ RUN --mount=type=cache,target=/root/.npm \
     --mount=type=cache,target=/workspace/KaithemAutomation/.venv \
     --mount=type=cache,target=/workspace/KaithemAutomation/__pycache__ \
     --mount=type=cache,target=/workspace/KaithemAutomation/target \
-    --mount=type=cache,target=/workspace/KaithemAutomation/dist \
     --mount=type=cache,target=/workspace/KaithemAutomation/wasm_kegs/__pycache__ \
     --mount=type=cache,target=/workspace/Dashbeard/.npm \
     --mount=type=cache,target=/workspace/Dashbeard/dist \
@@ -104,5 +103,10 @@ RUN --mount=type=cache,target=/root/.local/share/uv \
     --mount=type=cache,target=/workspace/KaithemAutomation/.venv \
     --mount=type=cache,target=/workspace/KaithemAutomation/__pycache__ \
     --mount=type=cache,target=/workspace/KaithemAutomation/target \
-    --mount=type=cache,target=/workspace/KaithemAutomation/dist \
     UV_LINK_MODE=copy uv tool install --verbose /workspace/KaithemAutomation
+
+RUN mkdir -p /workspace/build
+
+
+RUN --mount=type=bind,source=KaithemAutomation,target=/workspace/KaithemAutomation,rw  \
+cp /workspace/KaithemAutomation/dist/*.whl /workspace/build/

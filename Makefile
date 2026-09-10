@@ -249,11 +249,11 @@ dev-clear-docker-production-cache:
 dev-build-docker-production:
 	@echo "Building docker cross platform images for Kaithem ${KAITHEM_VERSION}"
 	@cd ./docker
-	@mkdir -p ${DOCKER_BUILD_DIR}
+# 	@mkdir -p ${DOCKER_BUILD_DIR}
 	@BUILDX_BUILDER=kaithem-multiarch-builder docker buildx bake --progress=plain kaithem-builder 
-	@BUILDX_BUILDER=kaithem-multiarch-builder docker buildx bake --progress=plain --no-cache --set="*.output=type=oci,dest=${DOCKER_BUILD_DIR}/kaithem-${KAITHEM_VERSION}.tar" kaithem
+	@BUILDX_BUILDER=kaithem-multiarch-builder docker buildx bake --progress=plain  --set="*.output=type=oci,dest=${DOCKER_BUILD_DIR}/kaithem-${KAITHEM_VERSION}.tar" kaithem
 	@BUILDX_BUILDER=kaithem-multiarch-builder docker buildx bake --progress=plain kaithem-native-rust-builder 
-	@BUILDX_BUILDER=kaithem-multiarch-builder docker buildx bake --no-cache --progress=plain --set="*.output=type=oci,dest=${DOCKER_BUILD_DIR}/kaithem-kiosk-${KAITHEM_VERSION}.tar" kaithem-kiosk
+	@BUILDX_BUILDER=kaithem-multiarch-builder docker buildx bake --progress=plain --set="*.output=type=oci,dest=${DOCKER_BUILD_DIR}/kaithem-kiosk-${KAITHEM_VERSION}.tar" kaithem-kiosk
 	@echo "Pushing images to local registry on port 5000"
 	@skopeo copy --multi-arch all oci-archive:${DOCKER_BUILD_DIR}/kaithem-${KAITHEM_VERSION}.tar docker://localhost:5000/cooperskeep/kaithem:${KAITHEM_VERSION} --dest-tls-verify=false
 	@skopeo copy --multi-arch all oci-archive:${DOCKER_BUILD_DIR}/kaithem-kiosk-${KAITHEM_VERSION}.tar docker://localhost:5000/cooperskeep/kaithem-kiosk:${KAITHEM_VERSION} --dest-tls-verify=false
