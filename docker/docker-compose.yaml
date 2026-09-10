@@ -117,7 +117,6 @@ services:
       - /workspace/KaithemAutomation/.test_venvs
       - /workspace/KaithemAutomation/__pycache__
       - /workspace/KaithemAutomation/target
-      - /workspace/KaithemAutomation/dist
       - /workspace/KaithemAutomation/wasm_kegs/__pycache__
       - /workspace/Dashbeard/.npm
       - /workspace/Dashbeard/dist

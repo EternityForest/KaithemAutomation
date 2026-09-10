@@ -40,11 +40,11 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 ENV UV_TOOL_DIR=/opt/uv-tools
 ENV UV_TOOL_BIN_DIR=/usr/local/bin
 
-RUN mkdir -p /workspace/KaithemAutomation
-COPY --from=builder /workspace/KaithemAutomation/dist /workspace/KaithemAutomation/dist
+RUN mkdir -p /workspace/build
+COPY --from=builder /workspace/build/ /workspace/build/
 
 RUN --mount=type=cache,id=uv-cache-${TARGETARCH},sharing=private,target=/root/.cache/uv \
-    UV_LINK_MODE=copy uv tool install /workspace/KaithemAutomation/dist/*.whl
+    UV_LINK_MODE=copy uv tool install /workspace/build/*.whl
 
 # UV_LINK_MODE=copy ensures packages are physically copied into the 
 # image rather than hardlinked from the temporary cache mount.

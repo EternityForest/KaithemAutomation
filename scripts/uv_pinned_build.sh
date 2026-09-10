@@ -27,6 +27,10 @@ fi
 
 uv add  -r pinned_requirements.txt
 
+# Remove any stale wheels/sdists from a previous build so uv build doesn't
+# leave behind artifacts whose METADATA references removed dependencies.
+rm -f dist/*.whl dist/*.tar.gz
+
 # Build the package.
 uv build
 
