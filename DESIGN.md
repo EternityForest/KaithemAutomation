@@ -85,6 +85,11 @@ These are always there. They load like plugins, but may access private internal 
 
 Docker is used here for almost everything.
 
+### Code style
+
+AI agents and humans alike can read the cooperskeep-code-style skill:
+
+https://github.com/EternityForest/agent-skills
 
 ### Running directly in uv
 
