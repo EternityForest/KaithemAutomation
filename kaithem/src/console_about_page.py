@@ -9,7 +9,7 @@ import psutil
 from rich.console import Console
 
 
-def get_process_name_by_pid(pid):
+def get_process_name_by_pid(pid: int):
     try:
         process = psutil.Process(pid)
         return process.name()
@@ -45,7 +45,7 @@ He thrusts his fists against the posts,
 And still insists he sees the ghosts."""
 
 
-def do_splash_image(console: Console, width=80):
+def do_splash_image(console: Console, width: int = 80):
     from textual_image.renderable import Image
 
     d = os.path.dirname(os.path.abspath(__file__))
@@ -72,7 +72,7 @@ def try_cmd(cmd: str):
     return x.decode("utf-8", "ignore")[:80]
 
 
-def do_splash_screen(version_only=False):
+def do_splash_screen(version_only: bool = False):
     try:
         import importlib.metadata
 
@@ -90,7 +90,7 @@ def do_splash_screen(version_only=False):
         console.print(text)
 
         pkg_metadata = importlib.metadata.metadata("kaithem")
-        meta = []
+        meta: list[str] = []
 
         include_meta = {
             "name": "App Name",
@@ -99,13 +99,22 @@ def do_splash_screen(version_only=False):
             "license_expression": "App License",
         }
 
-        def add_kv(key, value):
+        def add_kv(key: str, value: str | int | float | bool):
             meta.append(f"[bold]{key}:[/bold] {value}\n")
 
         for key in include_meta:
             if key in pkg_metadata:
                 value = pkg_metadata[key]
                 add_kv(include_meta[key], value)
+
+        try:
+            temps = psutil.sensors_temperatures()
+            if "coretemp" in temps:
+                coretemp = f"{temps['coretemp'][0].current:.2f} °C"
+            else:
+                coretemp = f"{temps['cpu_thermal'][0].current:.2f} °C"
+        except Exception:
+            coretemp = "N/A"
 
         # No seriously private info here
         add_kv("Python", sys.version)
@@ -134,16 +143,17 @@ def do_splash_screen(version_only=False):
         add_kv("Memory Usage", f"{psutil.virtual_memory().percent}%")
         add_kv(
             "Disk Total",
-            f"{psutil.disk_usage(os.path.expanduser('~')).total / 1024**3:.2f} GB",
+            f"{
+                psutil.disk_usage(os.path.expanduser('~')).total
+                / 1024**3:.2f} GB",
         )
         add_kv(
             "Disk Free",
-            f"{psutil.disk_usage(os.path.expanduser('~')).free / 1024**3:.2f} GB",
+            f"{
+                psutil.disk_usage(os.path.expanduser('~')).free
+                / 1024**3:.2f} GB",
         )
-        add_kv(
-            "Temperature",
-            f"{psutil.sensors_temperatures()['coretemp'][0].current:.2f} °C",
-        )
+        add_kv("Temperature", coretemp)
         text = Panel("".join(meta), title="System Info", width=w)
         console.print(text)
 
@@ -158,7 +168,8 @@ def do_splash_screen(version_only=False):
         text = Panel("".join(meta), title="User Info", width=w)
         console.print(text)
 
-        # Via SSH might be too taxing over bad wifi at 1AM when you need to debug something
+        # Via SSH might be too taxing over bad wifi at
+        # 1AM when you need to debug something
         if is_interactive_terminal() and not is_running_via_ssh():
             try:
                 do_splash_image(console, width=w - 1)
