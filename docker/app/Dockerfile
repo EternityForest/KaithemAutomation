@@ -53,15 +53,9 @@ RUN --mount=type=cache,id=uv-cache-${TARGETARCH},sharing=private,target=/root/.c
 
 
 RUN mkdir -p /app-home ; \
-    mkdir -p /app-home/.cache/sherpa-onnx-models ; \
     chown -R 1000:1000 /app-home ; 
 
 ENV HOME=/app-home
-
-
-# Copy the built and installed Kaithem files along with the UV venv
-COPY --from=builder /opt/uv-tools/kaithem/ /opt/uv-tools/kaithem/
-COPY --from=builder /usr/local/bin/kaithem /usr/local/bin/kaithem
 
 
 # The iceflow hack doesn't work with readonly images so

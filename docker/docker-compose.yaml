@@ -16,6 +16,7 @@ services:
       x-bake:
         platforms:
           - linux/amd64
+
   playwright:
     restart: "no"
     image: kaithem-dev-playwright:${KAITHEM_VERSION:?error}
