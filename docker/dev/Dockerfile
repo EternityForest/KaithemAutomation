@@ -2,7 +2,7 @@ ARG KAITHEM_VERSION
 ARG KAITHEM_UID
 ARG KAITHEM_GID
 
-FROM cooperskeep/kaithem-builder:${KAITHEM_VERSION:?error}
+FROM --platform=${BUILDPLATFORM} kaithem-builder AS builder
 
 ARG TARGETARCH
 
@@ -32,14 +32,6 @@ RUN sed -i 's/hosts:.*/hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4/' 
 
 
 
-# The iceflow hack doesn't work with readonly images so
-# Do it ahead of time.
-RUN ln -s /usr/lib/python3/dist-packages/gi /opt/uv-tools/kaithem/lib/python3.13/site-packages/gi
-
-
-
-
-
 RUN mkdir -p /app-home ; \
     chown -R 1000:1000 /app-home ; 
 
@@ -66,6 +58,8 @@ RUN --mount=type=cache,id=apt-cache-${TARGETARCH},target=/var/cache/apt,sharing=
 RUN mkdir -p /root/.cache && \
     chown -R 1000:1000 /root/.cache
 
+RUN mkdir -p /app-home/.cache && \
+    chown -R 1000:1000 /app-home
 
 USER 1000:1000
 

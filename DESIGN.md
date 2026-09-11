@@ -81,21 +81,42 @@ These are always there. They load like plugins, but may access private internal 
 
 
 
-## Dev Workflow
-
-Docker is used here for almost everything.
-
-### Code style
-
-AI agents and humans alike can read the cooperskeep-code-style skill:
-
-https://github.com/EternityForest/agent-skills
+## Dev Info
 
 ### Running directly in uv
 
 Running directly in a UV on bare metal is currently fully supported for development, because it makes debugging using VS Code tools much easier.
 
 See https://github.com/EternityForest/KaithemAutomation/blob/master/kaithem/data/debian_runtime_dependencies.sh for what to install at the host level.
+
+
+
+## Docker
+
+Docker is normally used here for almost everything.  Development requires having a local docker
+registry on port 5000, and being user 1000 on AMD64 linux, which you probably are.
+
+To install the local registry:
+
+`docker run -d -p 5000:5000 --restart always --name registry registry:3`
+
+You will also need skopeo to upload images to the registry.
+
+The docker build command will:
+
+* build the production and dev images as OCI files
+* Put them in the local registry
+* pull them from the registry to the daemon
+  
+When in the daemon, they get prefixed with localhost:5000, which is what
+we run.
+
+
+### Code style
+
+AI agents and humans alike can read the cooperskeep-code-style skill:
+
+https://github.com/EternityForest/agent-skills
 
 
 ### The kaithem-host-services service
@@ -112,16 +133,24 @@ kiosk: Chromium configured for kiosk use.
 
 ### Build for production
 
- * Install docker compose with buildx support.
- * Set up a local docker registry on port 5000
-
+* Install docker compose with buildx support.
+* Set up a local docker registry on port 5000
 
 Create the builder: `make dev-create-producton-buildx-context`
-Run the build command: `dev-build-docker-production`
+Run the build command: `make dev-build-docker-production`
+
+Run the unit tests: `make dev-run-all-tests`
+
+That command runs the tests against whatever is currently in the local filesystem,
+but does it inside the docker.
+
+`dev-run-playwright-against-production-app` Runs against `localhost:5000/cooperskeep/kaithem-dev:XXXX`,
+which is the built production image lacking the dev tools.  This matters because we have to make
+sure we don't depend on a dev tool.
+
+
+#### Test on embedded hardware:
 
 Now you can pull them on a Pi after configuring an unsecured repo:
 `docker pull --platform linux/arm64 192.168.1.XX:5000/cooperskeep/kaithem:0.96.0`
 
-Then test, then push to the public repo.
-
-All published stuff must be manually tested!

@@ -43,25 +43,21 @@ ENV UV_TOOL_BIN_DIR=/usr/local/bin
 RUN mkdir -p /workspace/build
 COPY --from=builder /workspace/build/ /workspace/build/
 
-RUN --mount=type=cache,id=uv-cache-${TARGETARCH},sharing=private,target=/root/.cache/uv \
-    UV_LINK_MODE=copy uv tool install /workspace/build/*.whl
-
 # UV_LINK_MODE=copy ensures packages are physically copied into the 
 # image rather than hardlinked from the temporary cache mount.
 RUN --mount=type=cache,id=uv-cache-${TARGETARCH},sharing=private,target=/root/.cache/uv \
     UV_LINK_MODE=copy uv tool install debugpy
-
 
 RUN mkdir -p /app-home ; \
     chown -R 1000:1000 /app-home ; 
 
 ENV HOME=/app-home
 
-
 # The iceflow hack doesn't work with readonly images so
 # Do it ahead of time.
-RUN ln -s /usr/lib/python3/dist-packages/gi /opt/uv-tools/kaithem/lib/python3.13/site-packages/gi
-
+RUN --mount=type=cache,id=uv-cache-${TARGETARCH},sharing=private,target=/root/.cache/uv \
+    UV_LINK_MODE=copy uv tool install /workspace/build/*.whl && \
+    ln -s /usr/lib/python3/dist-packages/gi /opt/uv-tools/kaithem/lib/python3.13/site-packages/gi
 
 
 ENTRYPOINT ["pw-jack", "kaithem"]
