@@ -15,6 +15,7 @@ Change Log
 * [:technologist:] MIDI features depend on jack_midi_dump to avoid the horrendous performance hit of in-process JACK.
 * [:technologist:] Dev workflow now uses Docker for tests.
 * [coffin] Drop Python 3.11 support
+* [coffin] No automatic IP geolocation, instead you can set by searching a city.
 
 ### 0.96.0
 

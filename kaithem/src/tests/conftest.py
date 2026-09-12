@@ -98,7 +98,7 @@ if "--collect-only" not in sys.argv:  # pragma: no cover
     cfg = {
         "ssl_dir": "/dev/shm/kaithem_tests/ssl",
         "site_data_dir": "/dev/shm/kaithem_tests",
-        # Prevent it from getting IP geolocation every time
+        # Set a fixed default location so no lookup is needed
         "location": "0.123,0.345",
         "log_format": "normal",
         "local_access_only": True,

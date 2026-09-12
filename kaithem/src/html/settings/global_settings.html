@@ -34,8 +34,17 @@ location = geolocation.getLocation('default')
 <section class="window paper">
 <details class="help"><summary><i class="mdi mdi-help-circle-outline"></i></summary>
 This is mostly used for astronomical calculations. All are optional.
-Get Location uses <a href="http://ip-api.com/">ip-api.com</a>
+Search for a place by name (e.g. "City, State, Country") using
+<a href="https://nominatim.openstreetmap.org/">OpenStreetMap Nominatim</a>
+to fill in the fields below.
 </details>
+
+<form method="post" action="/settings/geolocate">
+<label for="location">Set by lookup:</label>
+<input name="location" id="location" placeholder="City, State, Country" required>
+<button type="submit">Search</button>
+</form>
+<hr>
 <form method="POST" action="/settings/changesettingstarget">
 <table border=1>
 <tr>
@@ -72,9 +81,7 @@ Get Location uses <a href="http://ip-api.com/">ip-api.com</a>
 </table>
 <input type="submit" >
 </form>
-<form method="post" action="/settings/ip_geolocate">
-<button type="submit">Get Location now</button>
-</form>
+
 </section>
 
 

@@ -436,7 +436,7 @@ def changesettingstarget(**kwargs):
 
 
 @legacy_route
-def ip_geolocate():
+def geolocate(**kwargs):
     try:
         pages.require("system_admin")
     except PermissionError:
@@ -444,7 +444,11 @@ def ip_geolocate():
     pages.postOnly()
     from . import geolocation
 
-    discovered_location = geolocation.ip_geolocate()
+    location = kwargs.get("location", "").strip()
+    if not location:
+        raise RuntimeError("Please enter a location to search for")
+
+    discovered_location = geolocation.nominatim_geolocate(location)
     geolocation.setDefaultLocation(
         discovered_location["lat"],
         discovered_location["lon"],

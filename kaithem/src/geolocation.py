@@ -1,29 +1,62 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import logging
 import os
 
 import niquests
 from scullery import persist
 
-from . import config, directories, messagebus
+from . import config, directories
 
 
-def ip_geolocate():
-    # Block for a bit if its been less than a second since the last time we did this
-    u = niquests.get("https://reallyfreegeoip.org/json", timeout=15)
+def nominatim_geolocate(location):
+    """Search for a place by name using OpenStreetMap's Nominatim service.
+
+    Returns the most likely (first) match as a dict using the same keys as
+    the rest of this module.
+    """
+    u = niquests.get(
+        "https://nominatim.openstreetmap.org/search",
+        params={
+            "q": location,
+            "format": "json",
+            "addressdetails": 1,
+            "limit": 1,
+        },
+        # Nominatim's usage policy requires an identifying User-Agent.
+        headers={"User-Agent": "Kaithem (home automation system)"},
+        timeout=15,
+    )
     u.raise_for_status()
 
     try:
-        d = u.json()
+        results = u.json()
+
+        if not results:
+            raise RuntimeError(f"No location found for {location!r}")
+
+        d = results[0]
+        address = d.get("address", {})
 
         r = {}
-        r["lat"] = d["latitude"]
-        r["lon"] = d["longitude"]
-        r["city"] = d["city"]
-        r["timezone"] = d["time_zone"]
-        r["regionName"] = d["region_name"]
-        r["countryCode"] = d["country_code"]
+        r["lat"] = float(d["lat"])
+        r["lon"] = float(d["lon"])
+        r["city"] = (
+            address.get("city")
+            or address.get("town")
+            or address.get("village")
+            or address.get("hamlet")
+            or address.get("municipality")
+            or ""
+        )
+        # Nominatim does not provide a timezone.
+        r["timezone"] = ""
+        r["regionName"] = (
+            address.get("state")
+            or address.get("state_district")
+            or address.get("county")
+            or ""
+        )
+        r["countryCode"] = (address.get("country_code") or "").upper()
 
         return r
     finally:
@@ -46,26 +79,10 @@ if config.config["location"]:
 
 
 def use_api_if_needed():
+    # Location is no longer guessed automatically. The user is prompted to
+    # search for a location from the settings page instead.
     if "default" not in file:
         file["default"] = {}
-
-    if not file["default"].get("lat", None) and not file["default"].get(
-        "lon", None
-    ):
-        try:
-            location = ip_geolocate()
-            messagebus.post_message(
-                "/system/notifications/important",
-                "Got server location by IP geolocation.  You can change this in settings.",
-            )
-            file["default"] = location
-
-            try:
-                persist.save(file, fn, private=True)
-            except Exception:
-                logging.exception("Save fail")
-        except Exception:
-            logging.exception("IP Geolocation failed")
 
 
 def getCoords():
