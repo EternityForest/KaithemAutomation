@@ -245,11 +245,7 @@ dev-build-docker-production:
 	@echo "Building docker cross platform images for Kaithem ${KAITHEM_VERSION}"
 	@cd ./docker
 	@mkdir -p ${DOCKER_BUILD_DIR}
-	@BUILDX_BUILDER=kaithem-multiarch-builder docker buildx bake --progress=plain --set="*.output=type=oci,dest=${DOCKER_BUILD_DIR}/kaithem-${KAITHEM_VERSION}.tar" kaithem
-	@BUILDX_BUILDER=kaithem-multiarch-builder docker buildx bake --progress=plain --set="*.output=type=oci,dest=${DOCKER_BUILD_DIR}/kaithem-kiosk-${KAITHEM_VERSION}.tar" kaithem-kiosk
-	
-# Build the dev images too
-	@BUILDX_BUILDER=kaithem-multiarch-builder docker buildx bake --progress=plain  --set="*.output=type=oci,dest=${DOCKER_BUILD_DIR}/kaithem-dev-${KAITHEM_VERSION}.tar" --set *.platform=linux/amd64 kaithem-dev
+	@BUILDX_BUILDER=kaithem-multiarch-builder docker buildx bake -f docker-compose.yaml -f docker-bake.hcl --progress=plain
 
 	@echo "Pushing images to local registry on port 5000"
 	@skopeo copy --multi-arch all oci-archive:${DOCKER_BUILD_DIR}/kaithem-${KAITHEM_VERSION}.tar docker://localhost:5000/cooperskeep/kaithem:${KAITHEM_VERSION} --dest-tls-verify=false
@@ -274,7 +270,10 @@ dev-docker-print-compose:
 	@cd ./docker
 	@docker compose config
 
-
+.PHONY: dev-docker-print-bake
+dev-docker-print-bake:
+	@cd ./docker
+	@docker buildx bake --print -f docker-compose.yaml -f docker-bake.hcl
 
 dev-docker-kiosk: export IMAGE_PREFIX=localhost:5000/
 

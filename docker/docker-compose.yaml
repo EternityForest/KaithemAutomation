@@ -13,9 +13,6 @@ services:
       # Kaithem alongside Dashbeard.
       context: ../../
       dockerfile: KaithemAutomation/docker/build/Dockerfile
-      x-bake:
-        platforms:
-          - linux/amd64
 
   playwright:
     restart: "no"
@@ -44,12 +41,6 @@ services:
       dockerfile: KaithemAutomation/docker/app/Dockerfile
       args:
         - KAITHEM_VERSION=${KAITHEM_VERSION:?error}
-      x-bake:
-        platforms:
-          - linux/amd64
-          - linux/arm64
-      additional_contexts:
-        kaithem-builder: service:kaithem-builder
 
     privileged: true
 
@@ -134,14 +125,6 @@ services:
       dockerfile: KaithemAutomation/docker/kiosk/Dockerfile
       args:
         - KAITHEM_VERSION=${KAITHEM_VERSION:?error}
-      x-bake:
-        platforms:
-          - linux/amd64
-          - linux/arm64
-
-      additional_contexts:
-        # Maps the 'base_image_alias' used in the Dockerfile to the 'base-image' service build graph
-        kaithem-native-rust-builder: service:kaithem-native-rust-builder
 
     cap_add:
       - SYS_NICE
@@ -191,7 +174,3 @@ services:
     build:
       context: ../../
       dockerfile: KaithemAutomation/docker/native-rust-builder/Dockerfile
-      x-bake:
-        platforms:
-          - linux/amd64
-          - linux/arm64
