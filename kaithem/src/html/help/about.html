@@ -274,10 +274,6 @@ except Exception:
             <td>${time.strftime(settings_overrides.get_val('core/strftime_string'),time.localtime(systasks.systemStarted))}</td>
         </tr>
         <tr>
-            <td>HTTP Requests per minute(~5min avg)</td>
-            <td>${round(systasks.pageviewcountsmoother.value,3)}</td>
-        </tr>
-        <tr>
             <td>Thread pool latency</td>
             <td>
                 %try:

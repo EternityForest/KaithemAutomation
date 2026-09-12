@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import ctypes  # Calm down, this has become standard library since 2.5
-import datetime
 import inspect
 import logging
 import os
@@ -410,38 +409,6 @@ def system():
     except PermissionError:
         return pages.loginredirect(pages.geturl())
     return pages.get_template("settings/global_settings.html").render()
-
-
-@legacy_route
-def settime():
-    try:
-        pages.require("system_admin")
-    except PermissionError:
-        return pages.loginredirect(pages.geturl())
-    return pages.get_template("settings/settime.html").render()
-
-
-@legacy_route
-def set_time_from_web(**kwargs):
-    try:
-        pages.require("system_admin")
-    except PermissionError:
-        return pages.loginredirect(pages.geturl())
-    pages.postOnly()
-    t = float(kwargs["time"])
-    subprocess.call(
-        [
-            "date",
-            "-s",
-            datetime.datetime.fromtimestamp(t, tz=datetime.UTC).isoformat(),
-        ]
-    )
-    try:
-        subprocess.call(["sudo", "hwclock", "--systohc"])
-    except Exception:
-        pass
-
-    return quart.redirect("/settings/system")
 
 
 @legacy_route
