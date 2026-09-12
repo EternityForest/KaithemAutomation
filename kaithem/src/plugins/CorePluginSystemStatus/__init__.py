@@ -15,8 +15,6 @@ from . import log_environment
 t = threading.Thread(target=log_environment.go, daemon=True)
 t.start()
 
-undervoltageDuringBootPosted = False
-overTempDuringBootPosted = False
 battery = None
 
 
@@ -236,63 +234,96 @@ if psutil:
     doPsutil()
 
 
-# Every minute, we check for overtemperature or overvoltage problems
-if util.which("vcgencmd"):
-    undervoltageTag = tagpoints.Tag("/system/pi/undervoltage")
-    undervoltageTag.set_alarm("undervoltage", "value>0.5")
-    undervoltageTag.expose("view_status")
+# Human readable descriptions for the cryptic hwmon alarm file names.
+# Keys are regexes matched against the alarm file name.
+hwmon_alarm_descriptions: dict[str, str] = {
+    r"in\d+_lcrit_alarm": "Low voltage on input or rail",
+    r"in\d+_crit_alarm": "Input or rail voltage outside critical range",
+    r"in\d+_min_alarm": "Input or rail voltage below minimum",
+    r"in\d+_max_alarm": "Input or rail voltage above maximum",
+    r"temp\d+_crit_alarm": "Temperature exceeded the critical threshold",
+    r"temp\d+_max_alarm": "Temperature exceeded the maximum threshold",
+    r"temp\d+_emergency_alarm": "Temperature reached the emergency threshold",
+    r"fan\d+_alarm": "Cooling fan stopped or running too slowly",
+    r"fan\d+_fault": "Cooling fan reported a fault",
+    r"curr\d+_crit_alarm": "Current exceeded the critical threshold",
+    r"curr\d+_max_alarm": "Current exceeded the maximum threshold",
+    r"power\d+_crit_alarm": "Power exceeded the critical threshold",
+    r"power\d+_max_alarm": "Power exceeded the maximum threshold",
+    r"power\d+_alarm": "Power reading outside the allowed range",
+    r"humidity\d+_alarm": "Humidity outside the allowed range",
+}
 
-    undervoltageTagClaim = undervoltageTag.claim(0, "HWSensor")
 
-    overtemperatureTag = tagpoints.Tag("/system/pi/overtemperature")
-    overtemperatureTag.set_alarm("temp", "value>0.5", priority="error")
-    overtemperatureTag.expose("view_status")
+def getHwmonAlarmDescription(alarm_name: str) -> str:
+    """Map a cryptic hwmon alarm file name to a human readable description."""
+    for pattern, description in hwmon_alarm_descriptions.items():
+        if re.match(pattern, alarm_name):
+            return description
+    return "Hardware alarm condition detected"
 
-    overtemperatureTagClaim = overtemperatureTag.claim(0, "HWSensor")
 
-    @scheduling.scheduler.every_minute
-    def checkPiFlags():
-        global undervoltageDuringBootPosted
-        global overTempDuringBootPosted
+hwmon_alarm_tags: dict[str, tagpoints.Tag] = {}
+hwmon_alarm_claims: dict[str, tagpoints.Claim] = {}
+
+
+# Every minute, check every hwmon device for *_alarm flags.
+# We name the tag after the hwmon "name" file rather than the path,
+# so e.g. /sys/hwmon/coretemp/temp4_crit_alarm
+@scheduling.scheduler.every_minute
+def checkHwmonAlarms():
+    base = "/sys/class/hwmon"
+    try:
+        entries = os.listdir(base)
+    except OSError:
+        return
+
+    for entry in entries:
+        hwmon_dir = os.path.join(base, entry)
         try:
-            # This is a trusted system util! Eval is fine here!
-            x = subprocess.check_output(["vcgencmd", "get_throttled"])
-            x = eval(x.decode("utf8").split("=")[1])
+            with open(os.path.join(hwmon_dir, "name")) as f:
+                name = f.read().strip()
+        except OSError:
+            continue
 
-            # https://github.com/raspberrypi/documentation/blob/JamesH65-patch-vcgencmd-vcdbg-docs/raspbian/applications/vcgencmd.md
-            if x & (2**0):
-                undervoltageTagClaim.set(1)
-            else:
-                undervoltageTagClaim.set(0)
+        if not name:
+            continue
 
-            if x & (2**3):
-                overtemperatureTagClaim.set(1)
-            else:
-                overtemperatureTagClaim.set(0)
+        try:
+            files = os.listdir(hwmon_dir)
+        except OSError:
+            continue
 
-            # These are persistent flags. We check to see if something happened before Kaithem started,
-            # But we don't actually need to do repeatedly spam the message
+        for file in files:
+            if not file.endswith("_alarm"):
+                continue
 
-            if x & (2**16):
-                if not undervoltageDuringBootPosted:
-                    messagebus.post_message(
-                        "/system/notifications/errors",
-                        "A low input voltage condition has occurred at some point on this system",
-                    )
-                    undervoltageDuringBootPosted = True
+            tag_name = tagpoints.normalize_tag_name(
+                "/sys/hwmon/" + name + "/" + file, "_"
+            )
 
-            if x & (2**19):
-                if not overTempDuringBootPosted:
-                    messagebus.post_message(
-                        "/system/notifications/errors",
-                        "An overtemperature condition has occurred at some point on this system",
-                    )
-                    overTempDuringBootPosted = True
+            # Multiple hwmon devices can share a name, in which case we
+            # reuse the existing tag rather than clobbering it.
+            if tag_name not in hwmon_alarm_tags:
+                tag = tagpoints.Tag(tag_name)
+                tag.subtype = "bool"
+                tag.min = 0
+                tag.max = 1
+                tag.set_alarm(file, "value>0.5", priority="warning")
+                tag.description = getHwmonAlarmDescription(file)
+                tag.expose("view_status")
+                hwmon_alarm_tags[tag_name] = tag
+                hwmon_alarm_claims[tag_name] = tag.claim(0, "HWSensor")
 
-        except Exception:
-            logging.exception("err")
+            try:
+                with open(os.path.join(hwmon_dir, file)) as f:
+                    value = 1 if f.read().strip() == "1" else 0
+                hwmon_alarm_claims[tag_name].set(value)
+            except OSError:
+                pass
 
-    checkPiFlags()
+
+checkHwmonAlarms()
 
 
 ledDefaults: dict[str, str] = {}
@@ -307,7 +338,7 @@ def makeLedTagIfNonexistant(f, n):
 
     if os.path.exists(f):
 
-        def setLedWithSudo(v, *x):
+        def setLed(v, *x):
             if v > 0.5:
                 v = 255
             elif v < 0:
@@ -315,9 +346,9 @@ def makeLedTagIfNonexistant(f, n):
             else:
                 v = 0
 
-            os.system('sudo bash -c  "echo ' + str(v) + " > " + f + '"')
+            os.system('bash -c  "echo ' + str(v) + " > " + f + '"')
 
-        refs.append(setLedWithSudo)
+        refs.append(setLed)
 
         with open(f) as f2:
             ledDefaults[n] = f2.read()
@@ -328,13 +359,8 @@ def makeLedTagIfNonexistant(f, n):
         t.min = -1
         t.max = 1
         t.subtype = "tristate"
-        t.subscribe(setLedWithSudo)
+        t.subscribe(setLed)
         ledtags[n] = t
-
-        try:
-            setLedWithSudo(t.value)
-        except Exception:
-            logging.exception("Error setting up LED state")
 
 
 makeLedTagIfNonexistant(

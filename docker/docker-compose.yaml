@@ -76,6 +76,8 @@ services:
       - /var/run/dbus:/var/run/dbus
       - /dev:/dev
       - /tmp:/tmp
+      - /sys/class:/sys/class
+
 
       # Use the host certificate bundle so we don't have to keep
       # updating the bundle
