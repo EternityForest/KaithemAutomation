@@ -80,10 +80,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       version: 8,
       sources: maplibreSources,
       layers: maplibreLayers,
-      terrain: {
-        source: 'mapterhorn',
-        exaggeration: 1,
-      },
+      // terrain: {
+      //   source: 'mapterhorn',
+      //   exaggeration: 1,
+      // },
       sky: undefined,
     },
     center: [-0.09, 51.505], // Default: London
