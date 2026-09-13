@@ -17,6 +17,7 @@ Change Log
 * [coffin] Drop Python 3.11 support
 * [coffin] No automatic IP geolocation, instead you can set by searching a city.
 * [sparkles] Detect hwmon alarms and make tags like /sys/hwmon/coretemp/temp1_crit_alarm, replaces raspi specific vcgencmd stuff.
+* [sparkles] Use sysfs to detect display ports. Names of tags and alerts might be different.
 
 ### 0.96.0
 

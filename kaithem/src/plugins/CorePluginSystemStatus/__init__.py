@@ -1,3 +1,4 @@
+import glob
 import logging
 import os
 import random
@@ -8,7 +9,7 @@ import time
 
 from scullery import scheduling, workers
 
-from kaithem.src import alerts, messagebus, tagpoints, util
+from kaithem.src import alerts, messagebus, tagpoints
 
 from . import log_environment
 
@@ -22,34 +23,26 @@ ports_ever_seen: dict[str, bool] = {}
 
 
 def getConnectedDisplays():
-    """Return the status of the display ports."""
-    # format
-    # Connector 0 (32) HDMI-A-1 (connected)
-    # Encoder 0 (31) TMDS
-    # Connector 1 (42) HDMI-A-2 (disconnected)
-    # Encoder 1 (41) TMDS
+    """Return the status of the display ports, read from sysfs.
+
+    Connectors show up as /sys/class/drm/card<N>-<connector>/status,
+    with a status of either "connected" or "disconnected". This covers
+    all connector types, not just HDMI.
+    """
     displays = {}
 
-    if util.which("kmsprint"):
-        data = subprocess.check_output("kmsprint", shell=True)
-        for line in data.splitlines():
-            match = re.search(
-                r"Connector \d+ \((\d+)\) (.+) \((connected|disconnected)\)",
-                line.decode("utf-8"),
-            )
-            if match:
-                _connector_id = match.group(1)
-                display_name = match.group(2)
-                status = match.group(3) == "connected"
-                displays[display_name] = status
+    for path in glob.glob("/sys/class/drm/card*-*/status"):
+        # The directory name looks like "card1-HDMI-A-1", we only want
+        # the connector name as a stable, card-independent identifier.
+        connector = os.path.basename(os.path.dirname(path)).split("-", 1)[-1]
 
-    elif util.which("xrandr"):
-        data = subprocess.check_output("xrandr", shell=True)
-        for line in data.splitlines():
-            match = re.search(r"(.+?) connected", line.decode("utf-8"))
-            if match:
-                display_name = match.group(1)
-                displays[display_name] = True
+        try:
+            with open(path) as f:
+                status = f.read().strip()
+        except OSError:
+            continue
+
+        displays[connector] = status == "connected"
 
     for i in displays:
         ports_ever_seen[i] = False
