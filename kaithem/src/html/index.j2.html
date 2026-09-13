@@ -13,9 +13,11 @@
 
     <div style="flex-basis: 20%; text-align: center;"><div class="decorative-image-main decorative-image" style="height: 16em; width:16em; max-width: 80vw; margin: auto;"></div></div>
 
+    {% if config['front_page_banner'] %}
     <section style="flex-basis: 60%; max-width: 32em;  min-width: 22em;" class="window">
     <p class="align-center">{{ config['front_page_banner'] }}</p>
     </section>
+    {% endif %}
 
     <div style="flex-basis: 20%; min-width: 12em;"></div>
 </div>

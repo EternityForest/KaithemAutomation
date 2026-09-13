@@ -101,10 +101,7 @@ audio_paths:
 
 #####################THEMING AND BRANDING#######################################
 #This HTML Goes into the top box on the main page. It is configurable in case a deployment wants to add branding.
-front_page_banner: |
-  Kaithem is free software licensed under the GPLv3.<br>
-  Any and all activities on this server may be monitored and logged by the machine's admin.  You can configure this homepage
-  to redirect to a different page in the Settings.
+front_page_banner: ""
 
 #This HTML is used as the top banner for deployment branding, in pages without a nav bar
 top_banner_html: |

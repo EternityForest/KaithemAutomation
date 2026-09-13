@@ -23,6 +23,5 @@ test('test', async ({ page }) => {
 
   // Should still be logged in at the main page
   await expect(page.getByTestId("k-main-header-toolbar")).toContainText('Logout(admin)');
-  await expect(page.locator('section')).toContainText('Kaithem is free software licensed');
 
 });
