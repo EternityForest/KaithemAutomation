@@ -18,6 +18,7 @@ Change Log
 * [coffin] No automatic IP geolocation, instead you can set by searching a city.
 * [sparkles] Detect hwmon alarms and make tags like /sys/hwmon/coretemp/temp1_crit_alarm, replaces raspi specific vcgencmd stuff.
 * [sparkles] Use sysfs to detect display ports. Names of tags and alerts might be different.
+* [coffin] Remove main page decorative image
 
 ### 0.96.0
 
