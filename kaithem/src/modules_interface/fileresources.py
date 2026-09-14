@@ -1,9 +1,11 @@
+import json
 import os
 
 import quart
 import quart.utils
 import structlog
 import vignette
+import werkzeug
 from quart import request
 from quart.ctx import copy_current_request_context
 
@@ -12,8 +14,85 @@ from .. import modules, modules_state, pages, quart_app, util
 syslog = structlog.get_logger("system")
 
 
+@quart_app.app.route("/modules/scan-file-resources/<path:path>")
+async def scanfileresources(path: str):
+    try:
+        pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+
+    # list all modules
+    modules = modules_state.ActiveModules.keys()
+
+    ret = []
+    for module in modules:
+        dir = modules_state.getModuleDir(module)
+        if os.path.isdir(os.path.join(dir, "__filedata__", path)):
+            for root, dirs, files in os.walk(
+                os.path.join(dir, "__filedata__", path)
+            ):
+                for f in files:
+                    ret.append(
+                        {
+                            "module": module,
+                            "path": os.path.join(root, f),
+                            "size": os.path.getsize(os.path.join(root, f)),
+                        }
+                    )
+                for d in dirs:
+                    ret.append(
+                        {
+                            "module": module,
+                            "path": os.path.join(root, d),
+                            "size": 0,
+                            "is_dir": True,
+                        }
+                    )
+    return json.dumps(ret)
+
+
+@quart_app.app.route("/modules/module/<module>/list-file-resources/<path:path>")
+async def listfileresourcesfolder(
+    module: str, path: str
+) -> werkzeug.wrappers.response.Response | list[dict[str, int | str | bool]]:
+    try:
+        pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+    d = modules.getModuleDir(module)
+    abs_dir = os.path.join(d, "__filedata__", path)
+    if not os.path.isdir(abs_dir):
+        raise FileNotFoundError(f"Directory not found: {abs_dir}")
+
+    files: list[str] = []
+
+    recursive = request.args.get("recursive", "false")
+    if recursive == "true":
+        for root, dirs, files in os.walk(abs_dir):
+            for i in files:
+                files.append(os.path.join(root, i))
+    else:
+        files = os.listdir(abs_dir)
+
+    ret = []
+
+    for i in files:
+        abs = os.path.join(d, "__filedata__", path, i)
+        if os.path.isdir(abs):
+            i = i + "/"
+        ret.append(
+            {
+                "name": i,
+                "size": os.path.getsize(abs),
+                "is_dir": os.path.isdir(abs),
+            }
+        )
+
+    return json.dumps(ret)
+
+
 @quart_app.app.route("/modules/module/<module>/getfileresource/<path:resource>")
-async def getfileresource(module, resource):
+async def getfileresource(module: str, resource: str):
     try:
         pages.require("system_admin")
     except PermissionError:
@@ -47,7 +126,7 @@ icon_types = {
 @quart_app.app.route(
     "/modules/module/<module>/getfileresourcethumb/<path:resource>"
 )
-async def getfileresourcethumb(module, resource):
+async def getfileresourcethumb(module: str, resource: str):
     try:
         pages.require("view_admin_info")
     except PermissionError:
@@ -76,7 +155,7 @@ async def getfileresourcethumb(module, resource):
 
 
 @quart_app.app.route("/modules/module/<module>/addfileresource")
-async def addfileresource(module):
+async def addfileresource(module: str):
     try:
         pages.require("system_admin")
     except PermissionError:
@@ -85,7 +164,8 @@ async def addfileresource(module):
         raise PermissionError("Module is locked")
     path = request.args.get("dir", "")
 
-    # path[1] tells what type of resource is being created and addResourceDispatcher returns the appropriate crud screen
+    # path[1] tells what type of resource is being created and addResource
+    # Dispatcher returns the appropriate crud screen
     return pages.get_template("modules/uploadfileresource.html").render(
         module=module, path=path
     )
@@ -94,7 +174,7 @@ async def addfileresource(module):
 @quart_app.app.route(
     "/modules/module/<module>/uploadfileresourcetarget", methods=["POST"]
 )
-async def uploadfileresourcetarget(module):
+async def uploadfileresourcetarget(module: str):
     try:
         pages.require("system_admin")
     except PermissionError:

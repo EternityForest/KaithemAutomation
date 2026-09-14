@@ -12,6 +12,7 @@ import threading
 import time
 import traceback
 import uuid
+from typing import Any
 
 import quart
 import structlog
@@ -19,6 +20,7 @@ from icemedia.iceflow import GstreamerPipeline as Pipeline
 from scullery import jacktools, scheduling, workers
 
 from kaithem.api import lifespan
+from kaithem.api.modules import resolve_file_resource
 from kaithem.api.util import get_builtin_datadir
 from kaithem.api.web import render_html_file
 from kaithem.src import (
@@ -40,7 +42,7 @@ global_api = widgets.APIWidget()
 global_api.require("system_admin")
 
 # Configured list of mixer channel strips
-channels: dict[str, dict] = {}
+channels: dict[str, dict[str, Any]] = {}
 
 log = structlog.get_logger("system.mixer")
 
@@ -93,10 +95,10 @@ else:
 
 
 class BeatDetector:
-    def __init__(self, name):
+    def __init__(self, name: str):
         self.last_beat = time.time()
-        self.peaks = 0
-        self.avg = 0
+        self.peaks: float = 0
+        self.avg: float = 0
         self.tc = 1 / 20
         self.sens = 0.75
         self.sens_fast = 0.83
@@ -743,34 +745,34 @@ class ChannelStrip(Pipeline, BaseChannel):
 
         end_chain = []
 
-        for i in d["effects"]:
+        for effect_data in d["effects"]:
             if d.get("bypass", False):
                 continue
-            if "id" not in i or not i["id"]:
-                i["id"] = str(uuid.uuid4())
-            if i["type"] == "fader":
+            if "id" not in effect_data or not effect_data["id"]:
+                effect_data["id"] = str(uuid.uuid4())
+            if effect_data["type"] == "fader":
                 self.fader = self.add_element("volume")
                 # Set to 0 until all is set up
                 self.initialFader = d["fader"]
                 self.fader.set_property("volume", 0.0)
             # Special case this, it's made of multiple gstreamer blocks and also airwires
-            elif i["type"] == "send":
+            elif effect_data["type"] == "send":
                 self.addSend(
-                    i["params"]["*destination"]["value"],
-                    i["id"],
-                    i["params"]["*db_volume"]["value"],
+                    effect_data["params"]["*destination"]["value"],
+                    effect_data["id"],
+                    effect_data["params"]["*db_volume"]["value"],
                 )
 
             else:
                 # Sidechain lets us split off a whole effect chain that does not
                 # feed the main chain.
-                if i.get("sidechain", 0):
+                if effect_data.get("sidechain", 0):
                     linkTo = self.add_element("tee")
                     self.add_element(
                         "queue",
                         leaky=2,
                         max_size_time=100_0000_0000,
-                        name=f"mainchainq_{i['id']}",
+                        name=f"mainchainq_{effect_data['id']}",
                         connect_to_output=linkTo,
                     )
                     linkTo = self.add_element(
@@ -779,7 +781,7 @@ class ChannelStrip(Pipeline, BaseChannel):
                         sidechain=True,
                         connect_to_output=linkTo,
                         max_size_buffers=1,
-                        name=f"sidechainq_{i['id']}",
+                        name=f"sidechainq_{effect_data['id']}",
                     )
                     sidechain = True
 
@@ -789,8 +791,8 @@ class ChannelStrip(Pipeline, BaseChannel):
                     sidechain = False
 
                 supports = []
-                if "preSupportElements" in i:
-                    for j in i["preSupportElements"]:
+                if "preSupportElements" in effect_data:
+                    for j in effect_data["preSupportElements"]:
                         linkTo = self.add_element(
                             j["gstElement"],
                             **j["gstSetup"] or {},
@@ -803,54 +805,61 @@ class ChannelStrip(Pipeline, BaseChannel):
                         supports.append(linkTo)
 
                 # Prioritize specific mono or stereo version of elements
-                if self.channels == 1 and "monoGstElement" in i:
-                    linkTo = self.effectsById[i["id"]] = self.add_element(
-                        i["monoGstElement"],
-                        **i["gstSetup"] or {},
-                        sidechain=sidechain,
-                        auto_insert_audio_convert=True,
-                        connect_to_output=linkTo
-                        if (not i.get("noConnectInput", False))
-                        else False,
-                        connect_when_available=i.get(
-                            "connect_when_available", None
-                        ),
+                if self.channels == 1 and "monoGstElement" in effect_data:
+                    linkTo = self.effectsById[effect_data["id"]] = (
+                        self.add_element(
+                            effect_data["monoGstElement"],
+                            **effect_data["gstSetup"] or {},
+                            sidechain=sidechain,
+                            auto_insert_audio_convert=True,
+                            connect_to_output=linkTo
+                            if (not effect_data.get("noConnectInput", False))
+                            else False,
+                            connect_when_available=effect_data.get(
+                                "connect_when_available", None
+                            ),
+                        )
                     )
-                elif self.channels == 2 and "stereoGstElement" in i:
-                    linkTo = self.effectsById[i["id"]] = self.add_element(
-                        i["stereoGstElement"],
-                        **i["gstSetup"] or {},
-                        sidechain=sidechain,
-                        auto_insert_audio_convert=True,
-                        connect_to_output=linkTo
-                        if (not i.get("noConnectInput", False))
-                        else False,
-                        connect_when_available=i.get(
-                            "connect_when_available", None
-                        ),
+                elif self.channels == 2 and "stereoGstElement" in effect_data:
+                    linkTo = self.effectsById[effect_data["id"]] = (
+                        self.add_element(
+                            effect_data["stereoGstElement"],
+                            **effect_data["gstSetup"] or {},
+                            sidechain=sidechain,
+                            auto_insert_audio_convert=True,
+                            connect_to_output=linkTo
+                            if (not effect_data.get("noConnectInput", False))
+                            else False,
+                            connect_when_available=effect_data.get(
+                                "connect_when_available", None
+                            ),
+                        )
                     )
                 else:
-                    linkTo = self.effectsById[i["id"]] = self.add_element(
-                        i["gstElement"],
-                        **i["gstSetup"],
-                        sidechain=sidechain,
-                        auto_insert_audio_convert=True,
-                        connect_to_output=linkTo
-                        if (not i.get("noConnectInput", False))
-                        else False,
-                        connect_when_available=i.get(
-                            "connect_when_available", None
-                        ),
+                    linkTo = self.effectsById[effect_data["id"]] = (
+                        self.add_element(
+                            effect_data["gstElement"],
+                            **effect_data["gstSetup"],
+                            sidechain=sidechain,
+                            auto_insert_audio_convert=True,
+                            connect_to_output=linkTo
+                            if (not effect_data.get("noConnectInput", False))
+                            else False,
+                            connect_when_available=effect_data.get(
+                                "connect_when_available", None
+                            ),
+                        )
                     )
 
                 elmt = linkTo
+                # pyrefly: ignore [missing-attribute]
                 linkTo.preSupports = supports
 
-                self.effectDataById[i["id"]] = i
+                self.effectDataById[effect_data["id"]] = effect_data
 
                 supports = []
-                if "postSupportElements" in i:
-                    for j in i["postSupportElements"]:
+                if "postSupportElements" in effect_data:
+                    for j in effect_data["postSupportElements"]:
                         linkTo = self.add_element(
                             j["gstElement"],
                             **j["gstSetup"],
@@ -862,33 +871,54 @@ class ChannelStrip(Pipeline, BaseChannel):
                         )
                         supports.append(linkTo)
 
-                if "endChainSupportElements" in i:
-                    for j in i["endChainSupportElements"]:
+                if "endChainSupportElements" in effect_data:
+                    for j in effect_data["endChainSupportElements"]:
                         end_chain.append(j)
 
+                # pyrefly: ignore [missing-attribute]
                 elmt.postSupports = supports
 
-                for j in i["params"]:
+                for j in effect_data["params"]:
                     if j == "bypass":
                         continue
-                    if i["type"] in specialCaseParamCallbacks:
-                        x = specialCaseParamCallbacks[i["type"]]
-                        if x(
-                            self.effectsById[i["id"]],
+
+                    if effect_data["type"] == "file_resource":
+                        p = resolve_file_resource(
+                            effect_data["params"][j]["value"]
+                        )
+                        if not p:
+                            raise RuntimeError(
+                                f"Failed to resolve file resource {effect_data['params'][j]['value']}"
+                            )
+
+                        self.set_property(
+                            self.effectsById[effect_data["id"]],
                             j,
-                            i["params"][j]["value"],
+                            p,
+                        )
+
+                    elif effect_data["type"] in specialCaseParamCallbacks:
+                        x = specialCaseParamCallbacks[effect_data["type"]]
+                        if x(
+                            self.effectsById[effect_data["id"]],
+                            j,
+                            effect_data["params"][j]["value"],
                         ):
                             self.set_property(
-                                self.effectsById[i["id"]],
+                                self.effectsById[effect_data["id"]],
                                 j,
-                                i["params"][j]["value"],
+                                effect_data["params"][j]["value"],
                             )
                     else:
-                        self.setEffectParam(i["id"], j, i["params"][j]["value"])
+                        self.setEffectParam(
+                            effect_data["id"],
+                            j,
+                            effect_data["params"][j]["value"],
+                        )
 
                 # Sidechain FX have a bug where they always cause an output to the system channel, we have to work around
                 # That with a hack.  Basically sidechains only exist to let us to alternative outputs anyway.
-                if i.get("silenceMainChain", False):
+                if effect_data.get("silenceMainChain", False):
                     self.add_element("volume", volume=0)
         for j in end_chain:
             self.add_element(
