@@ -469,9 +469,13 @@ class JackMidiManager:
         traceback.print_exc()
 
 
+manager: JackMidiManager | None = None
+
+
 def init():
-    JackMidiManager()
+    global manager
+    manager = JackMidiManager()
 
 
 if USE_MIDI:
-    init()
+    workers.do(init)
