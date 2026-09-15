@@ -1,7 +1,9 @@
 Change Log
 ----------
 
-### Dev
+### 0.97.0
+
+This release is largely about using Docker instead of running on bare metal.
 
 * [coffin] All install and provisioning scripts moved to a [separate repo](https://github.com/EternityForest/kaithem-scripts/tree/main/debian)
 * [:technologist:] remove dependency on netifaces.

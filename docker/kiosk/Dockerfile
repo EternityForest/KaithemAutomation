@@ -34,9 +34,6 @@ ENV XDG_RUNTIME_DIR=/tmp/runtime-dir
 ENV WAYLAND_DISPLAY=wayland-0
 
 
-
-
-
 # Slow changing drivers
 RUN --mount=type=cache,id=apt-cache-${TARGETARCH},target=/var/cache/apt,sharing=locked \
     --mount=type=cache,id=apt-lists-${TARGETARCH},target=/var/lib/apt/lists,sharing=locked \

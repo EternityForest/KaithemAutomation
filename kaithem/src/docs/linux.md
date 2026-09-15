@@ -65,6 +65,11 @@ Replace with your host, folder, etc:
 
 ## Troubleshooting
 
+
+### Find anything in folder not owned by a specific user
+
+`find /home/pi ! -user pi`
+
 ### Try to fix a corrupt disk
 
 Back up an image or consult a pro first if the disc contains anything critical.
