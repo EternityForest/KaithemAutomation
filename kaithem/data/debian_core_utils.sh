@@ -6,4 +6,4 @@
 
 apt-get install -y \
     tzdata ca-certificates curl wget \
-    iputils-ping make nano busybox
+    iputils-ping make nano busybox strace

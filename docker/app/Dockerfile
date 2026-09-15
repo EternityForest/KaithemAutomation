@@ -56,7 +56,7 @@ ENV HOME=/app-home
 # The iceflow hack doesn't work with readonly images so
 # Do it ahead of time.
 RUN --mount=type=cache,id=uv-cache-${TARGETARCH},sharing=locked,target=/root/.cache/uv \
-    UV_LINK_MODE=copy uv tool install /workspace/build/*.whl && \
+    UV_LINK_MODE=copy uv tool install --python /usr/bin/python3 /workspace/build/*.whl && \
     ln -s /usr/lib/python3/dist-packages/gi /opt/uv-tools/kaithem/lib/python3.13/site-packages/gi
 
 

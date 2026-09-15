@@ -107,7 +107,7 @@ The docker build command will:
 * build the production and dev images as OCI files
 * Put them in the local registry
 * pull them from the registry to the daemon
-  
+
 When in the daemon, they get prefixed with localhost:5000, which is what
 we run.
 
@@ -154,3 +154,10 @@ sure we don't depend on a dev tool.
 Now you can pull them on a Pi after configuring an unsecured repo:
 `docker pull --platform linux/arm64 192.168.1.XX:5000/cooperskeep/kaithem:0.96.0`
 
+Unsecured repo setup in /etc/docker/daemon.json
+
+```json
+{
+  "insecure-registries" : ["192.168.1.26:5000"]
+}
+```

@@ -238,7 +238,7 @@ dev-create-producton-buildx-context:
 
 .PHONY: dev-clear-docker-production-cache
 dev-clear-docker-production-cache:
-	@BUILDX_BUILDER=kaithem-multiarch-builder docker buildx prune --filter type=exec.cachemount -f
+	@BUILDX_BUILDER=kaithem-multiarch-builder docker buildx prune
 
 .PHONY: dev-build-docker-production
 dev-build-docker-production:
