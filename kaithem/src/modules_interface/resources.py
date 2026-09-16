@@ -185,7 +185,7 @@ async def addresourcetarget(module, rtype, path=""):
         name_with_path = "/".join(x[1:] + [name_with_path])
         root = x[0]
 
-        def insertResource(r):
+        def insertResource(r: modules_state.ResourceDictType):
             modules_state.raw_insert_resource(root, name_with_path, r)
 
         with modules_state.modulesLock:

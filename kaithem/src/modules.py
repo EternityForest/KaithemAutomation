@@ -11,7 +11,6 @@ import time
 import traceback
 import weakref
 import zipfile
-from collections.abc import Callable
 from io import BytesIO
 from typing import Any
 
@@ -28,6 +27,7 @@ from .modules_state import (
     getModuleDir,
     getModuleFn,
     modulesLock,
+    mutable_copy_resource,
     resource_types,
     saveModule,
     scopes,
@@ -79,7 +79,7 @@ def loadAllCustomResourceTypes() -> None:
                             logger.info(f"Loading {i}:{j} took {taken}s")
                 if not r == orig:
                     logger.warning(
-                        f"Loader tried to modify resource object {i}:{j} during load"
+                        f"Tried to modify resource object {i}:{j} during load"
                     )
 
     for i in resource_types:
@@ -92,9 +92,12 @@ def loadAllCustomResourceTypes() -> None:
 class ModuleObject:
     """
     These are the objects acessible as 'module' within pages, events, etc.
-    Normally you use them to share variables, but they have incomplete and undocumented support
-    For acting as an API for user code to acess or modify the resources, which could be useful if you want to be able to
-    dynamically create resources, or more likely just acess file resource contents or metadata about the module.
+    Normally you use them to share variables,
+    but they have incomplete and undocumented support
+    For acting as an API for user code to acess or modify
+     the resources, which could be useful if you want to be able to
+    dynamically create resources, or more likely just acess
+     file resource contents or metadata about the module.
     """
 
     def __init__(self, modulename: str) -> None:
@@ -105,10 +108,12 @@ class ModuleObject:
 def readResourceFromFile(
     fn: str, relative_name: str, ver: int = 1, modulename: str | None = None
 ) -> tuple[ResourceDictType | None, str | None]:
-    """Relative name is rel to the folder, aka the part of the path that actually belongs in
+    """Relative name is rel to the folder,
+    aka the part of the path that actually belongs in
     the resource name.
 
-    Modulename is there because this function will one day auto-migrate to new versions of the file
+    Modulename is there because this function will one day
+     auto-migrate to new versions of the file
     format.
     """
     with open(fn, "rb") as f:
@@ -120,7 +125,7 @@ def readResourceFromFile(
 
     if not (x[0] == original):
         logger.info(
-            f"Resource {x[1]} is in an older format and should be migrated to the new file type"
+            f"Resource {x[1]} is in an older format and should be migrated"
         )
     # For now don't break anything by actually changing the data.
     return (original, x[1])
@@ -138,8 +143,10 @@ def readResourceFromData(
     if filename and (not filename.endswith((".yaml", ".toml", ".json"))):
         return None, None
     try:
-        # This regex is meant to handle any combination of cr, lf, and trailing whitespaces
-        # We don't do anything with more that 3 sections yet, so limit just in case there's ----
+        # This regex is meant to handle any combination of cr, lf,
+        # and trailing whitespaces
+        # We don't do anything with more that 3 sections yet,
+        # so limit just in case there's ----
         # in a markdown file
         sections = re.split(r"\r?\n?----*\s*\r?\n*", d, maxsplit=2)
 
@@ -170,9 +177,11 @@ def readResourceFromData(
                 f"Potential problem or nonstandard encoding with file: {fn}",
             )
     except Exception:
-        # This is a workaround for when dolphin puts .directory files in directories and gitignore files
+        # This is a workaround for when dolphin puts
+        # .directory files in directories and gitignore files
         # and things like that. Also ignore attempts to load from filedata
-        # I'd like to add more workarounds if there are other programs that insert similar crap files.
+        # I'd like to add more workarounds
+        # if there are other programs that insert similar crap files.
         if (
             "/.git" in fn
             or "/.gitignore" in fn
@@ -207,14 +216,17 @@ def readResourceFromData(
 
 def initModules() -> None:
     global external_module_locations
-    """"Find the most recent module dump folder and use that. Should there not be a module dump folder, it is corrupted, etc,
-    Then start with an empty list of modules. Should normally be called once at startup."""
+    """"Find the most recent module dump folder and use that.
+    Should there not be a module dump folder, it is corrupted, etc,
+    Then start with an empty list of modules.
+    Should normally be called once at startup."""
 
     if not os.path.isdir(directories.moduledir):
         os.makedirs(directories.moduledir, exist_ok=True)
 
     try:
-        # __COMPLETE__ is a special file we write to the dump directory to show it as valid
+        # __COMPLETE__ is a special file we write to the
+        # dump directory to show it as valid
         possibledir = os.path.join(directories.moduledir, "data")
         if os.path.isdir(possibledir):
             loadModules(possibledir)
@@ -251,7 +263,7 @@ def loadModules(modulesdir: str) -> None:
             with modulesLock:
                 external_module_locations[util.unurl(i[0:-9])] = s
             # We use the ignore func when loading ext modules
-            loadModule(s, util.unurl(i[0:-9]), detect_ignorable)
+            loadModule(s, util.unurl(i[0:-9]))
         except Exception:
             messagebus.post_message(
                 "/system/notifications/errors",
@@ -259,8 +271,9 @@ def loadModules(modulesdir: str) -> None:
             )
 
 
-def detect_ignorable(path: str) -> bool:
-    "Recursive detect paths that should be ignored and left alone when loading and saving"
+def ignore_func(path: str) -> bool:
+    """Recursive detect paths that should be ignored
+    and left alone when loading and saving"""
     # Safety counter, this seems like it might need it.
     for i in range(64):
         if _detect_ignorable(path):
@@ -272,30 +285,34 @@ def detect_ignorable(path: str) -> bool:
     return False
 
 
+special_resources = ["__metadata__"]
+
+
 def _detect_ignorable(path: str) -> bool:
     "Detect paths that should be ignored when loading a module"
-    # Detect .git
-    if os.path.basename(path) == ".git":
-        # Double check, because we can, on the off chance something else is named .git
-        if os.path.exists(os.path.join(path, "HEAD")) or os.path.exists(
-            os.path.join(path, "branches")
-        ):
+    bn = os.path.basename(path)
+    parts = bn.split(os.path.sep)
+
+    if bn.startswith("."):
+        return True
+
+    if bn.startswith("__"):
+        if bn.split(".")[0] not in special_resources:
             return True
-    # I think that's how you detect hg repos?
-    if os.path.basename(path) == ".hg" and os.path.isdir(path):
+
+    if "__filedata__" in parts:
         return True
-    if os.path.basename(path) in [".gitignore", ".gitconfig"]:
-        return True
+
     return False
 
 
 def loadModule(
     folder: str,
     modulename: str,
-    ignore_func: Callable[[str], bool] | None = None,
     resource_folder: str | None = None,
 ) -> None:
-    """Load a single module but don't bookkeep it and actually init everything with resource types.
+    """Load a single module but don't bookkeep it
+     and actually init everything with resource types.
     Used by loadModules"""
     logger.debug(f"Attempting to load module {modulename}")
 
@@ -307,16 +324,24 @@ def loadModule(
         module: dict[str, ResourceDictType] = {}
 
         for t in resource_types:
-            found = resource_types[t].scan_dir(folder)
-            for rn in found:
-                rsc = modules_state.normalize_resource_data(found[rn])
-                module[rn] = rsc
+            try:
+                found = resource_types[t].scan_dir(folder)
+            except Exception:
+                messagebus.post_message(
+                    "/system/notifications/errors",
+                    f"Loading resource type {t}: {traceback.format_exc(4)}",
+                )
+            else:
+                for rn in found:
+                    rsc = modules_state.normalize_resource_data(found[rn])
+                    module[rn] = rsc
 
         # Iterate over all resource files and load them
         for root, dirs, files in os.walk(folder):
             # Function used to ignore things like VCS folders and such
-            if ignore_func and ignore_func(root):
+            if ignore_func(root):
                 continue
+
             if root.startswith(resource_folder):
                 continue
 
@@ -325,26 +350,38 @@ def loadModule(
             # TODO multiple storage types for one
             # Name mean we can have conflicts, detect and warn
             for i in dirs:
-                if "/__" not in i:
+                if not ignore_func(i):
                     for t in resource_types:
                         abs = os.path.join(root, i)
                         rel = os.path.relpath(abs, folder)
-                        found = resource_types[t].scan_dir(abs)
-                        found = copy.deepcopy(found)
-
-                        for rn in found:
-                            rsc = modules_state.normalize_resource_data(
-                                found[rn]
+                        try:
+                            found = resource_types[t].scan_dir(abs)
+                        except Exception:
+                            messagebus.post_message(
+                                "/system/notifications/errors",
+                                f"resource type {t}: {traceback.format_exc(4)}",
                             )
-                            if rel:
-                                module[rel + "/" + rn] = rsc
-                            else:
-                                module[rn] = rsc
+                        else:
+                            found = copy.deepcopy(found)
+                            for rn in found:
+                                rsc = modules_state.normalize_resource_data(
+                                    found[rn]
+                                )
+                                if rel:
+                                    module[rel + "/" + rn] = rsc
+                                else:
+                                    module[rn] = rsc
 
             for i in files:
+                # For testing
+                if ".fail_to_load_this_module_instantly" in i:
+                    raise RuntimeError(
+                        f"File {i} in module {modulename} is a fail to load"
+                    )
+
                 relfn = os.path.relpath(os.path.join(root, i), folder)
                 fn = os.path.join(folder, relfn)
-                if ignore_func and ignore_func(i):
+                if ignore_func(i):
                     continue
 
                 if "/." in fn:
@@ -352,8 +389,6 @@ def loadModule(
 
                 if fn.endswith((".yaml", ".json", ".toml")):
                     try:
-                        # TODO: Lib modules? filedata?
-                        # Load the resource and add it to the dict. Resouce names are urlencodes in filenames.
                         try:
                             r, resourcename = readResourceFromFile(fn, relfn)
                             if not r or not resourcename:
@@ -376,17 +411,15 @@ def loadModule(
                     except Exception:
                         messagebus.post_message(
                             "/system/notifications/errors",
-                            f"Error loading from: {fn}\r\n{traceback.format_exc()}",
+                            f"Error loading: {fn}\r\n{traceback.format_exc()}",
                         )
                         raise
 
             for i in dirs:
-                if ignore_func and ignore_func(i):
+                if ignore_func(i):
                     continue
                 relfn = os.path.relpath(os.path.join(root, i), folder)
                 fn = os.path.join(folder, relfn)
-                if "/__filedata__/" in fn or fn.endswith("/__filedata__"):
-                    continue
 
                 # Create a directory resource for the dirrctory
                 module[util.unurl(relfn)] = {"resource": {"type": "directory"}}
@@ -456,7 +489,8 @@ def load_modules_from_zip(f: BytesIO, replace: bool = False) -> None:
                         )
                         loadModule(dest, i)
                         bookkeeponemodule(i)
-                        # Purely defensive try catch since we're adding close to release
+                        # Purely defensive try catch since
+                        # we're adding close to release
                         # Todo: Remove?
                         try:
                             modules_state.importFiledataFolderStructure(i)
@@ -472,13 +506,31 @@ def load_modules_from_zip(f: BytesIO, replace: bool = False) -> None:
                                 if i in modules_state.ActiveModules:
                                     rmModule(i)
                             except Exception:
-                                pass
+                                logger.exception(
+                                    "Failed to remove module on upload failure"
+                                )
 
                             shutil.move(
                                 m_backup, os.path.dirname(old_module_dir)
                             )
                             loadModule(old_module_dir, i)
                             bookkeeponemodule(i)
+                        else:
+                            failed_module_folder = os.path.join(
+                                directories.vardir, "modules", "data", i
+                            )
+                            # Paranoid asserts are needed with rmtree
+                            assert os.path.abspath(
+                                failed_module_folder
+                            ).startswith(
+                                os.path.abspath(
+                                    os.path.join(directories.vardir, "modules")
+                                )
+                            )
+
+                            if os.path.isdir(failed_module_folder):
+                                shutil.rmtree(failed_module_folder)
+
                         raise
 
     finally:
@@ -518,7 +570,8 @@ def bookkeeponemodule(module: str, update: bool = False) -> None:
 
 
 def mvResource(module: str, resource: str, to_module: str, to_resource: str):
-    # Raise an error if the user ever tries to move something somewhere that does not exist.
+    # Raise an error if the user ever tries
+    # to move something somewhere that does not exist.
     new = to_resource.split("/")
     for i in new:
         check_forbidden(i)
@@ -530,8 +583,10 @@ def mvResource(module: str, resource: str, to_module: str, to_resource: str):
         raise ValueError("Invalid destination")
     if to_module not in modules_state.ActiveModules:
         raise ValueError("Invalid destination")
-    # If something by the name of the directory we are moving to exists but it is not a directory.
-    # short circuit evaluating the len makes this clause ignore moves that are to the root of a module.
+    # If something by the name of the directory we
+    # are moving to exists but it is not a directory.
+    # short circuit evaluating the len makes this
+    #  clause ignore moves that are to the root of a module.
     if not (
         len(new) < 2
         or modules_state.ActiveModules[to_module]["/".join(new[:-1])][
@@ -580,7 +635,8 @@ def mvResource(module: str, resource: str, to_module: str, to_resource: str):
 def rmResource(
     module: str, resource: str, message: str = "Resource Deleted"
 ) -> None:
-    "Delete one resource by name, message is an optional message explaining the change"
+    """Delete one resource by name, message
+    is an optional message explaining the change"""
     with modulesLock:
         if resource not in modules_state.ActiveModules[module]:
             fr = os.path.join(getModuleDir(module), "__filedata__", resource)
@@ -611,7 +667,7 @@ def rmResource(
                 os.remove(fn)
 
         elif rt == "permission":
-            auth.importPermissionsFromModules()  # sync auth's list of permissions
+            auth.importPermissionsFromModules()
 
     except Exception:
         messagebus.post_message(
@@ -635,15 +691,18 @@ def newModule(
     metadata_defaults: dict[str, Any] = {},
 ) -> None:
     """Create a new module by the supplied name,
-    throwing an error if one already exists. If location exists, load from there.
+    throwing an error if one already exists.
+    If location exists, load from there.
 
-    metadata_defaults is a dictionary of default values, ignored if loading an existing module
+    metadata_defaults is a dictionary of default values,
+    ignored if loading an existing module
     """
 
     check_forbidden(name)
     already_exists = False
 
-    # If there is no module by that name, create a blank template and the scope obj
+    # If there is no module by that name,
+    # create a blank template and the scope obj
     with modulesLock:
         if location:
             external_module_locations[name] = os.path.expanduser(location)
@@ -662,7 +721,7 @@ def newModule(
 
                 loadModule(location, name)
             else:
-                r: modules_state.ResourceDictType = {
+                _r: modules_state.ResourceDictType = {
                     "__metadata__": {
                         "resource": {
                             "type": "module_metadata",
@@ -671,12 +730,14 @@ def newModule(
                         "description": "",
                     }
                 }
+                r = mutable_copy_resource(_r)
+
                 for i in metadata_defaults:
                     r[i] = copy.deepcopy(metadata_defaults[i])
 
                 modules_state.ActiveModules[name] = r
         else:
-            r: modules_state.ResourceDictType = {
+            _r: modules_state.ResourceDictType = {
                 "__metadata__": {
                     "resource": {
                         "type": "module_metadata",
@@ -685,6 +746,8 @@ def newModule(
                     "description": "",
                 }
             }
+            r = mutable_copy_resource(_r)
+
             for i in metadata_defaults:
                 r[i] = copy.deepcopy(metadata_defaults[i])
 
@@ -756,10 +819,6 @@ def rmModule(module: str, message: str = "deleted") -> None:
     )
 
 
-class KaithemEvent(dict):
-    pass
-
-
 def createResource(module: str, resource: str, data: ResourceDictType):
     """Insert a  resource and instantiate whatever it makes"""
     if resource in modules_state.ActiveModules[module]:
@@ -793,13 +852,13 @@ def handleResourceChange(
             return
 
         if t == "permission":
-            auth.importPermissionsFromModules()  # sync auth's list of permissions
+            auth.importPermissionsFromModules()
         if t == "module-description":
             pass
         else:
             if t not in resource_types:
                 logger.warning(
-                    f"Unknown resource type {t} for resource {resource} in module {module}"
+                    f"Unknown resource type {t} for {resource}:{module}"
                 )
             else:
                 if not newly_added:

@@ -1,5 +1,4 @@
 import copy
-import difflib
 import gc
 import io
 import json
@@ -7,6 +6,9 @@ import os
 import sys
 import time
 import weakref
+import zipfile
+
+import pytest
 
 if "--collect-only" not in sys.argv:  # pragma: no cover
     from kaithem.api import modules as modulesapi
@@ -27,12 +29,14 @@ def test_make_module():
     modules.newModule(n)
     assert n in modules_state.ActiveModules
 
-    # Todo we should probably have a cleaner interface for doing this programmatically
+    # Todo we should probably have a cleaner interface
+    # for doing this programmatically
 
     with modules_state.modulesLock:
         type = "event"
         rt = modules_state.resource_types[type]
-        # If create returns None, assume it doesn't want to insert a module or handles it by itself
+        # If create returns None, assume it doesn't want
+        #  to insert a module or handles it by itself
         r = rt.on_create_request(n, "testevt", {})
         rt._validate(r)
         if r:
@@ -137,10 +141,13 @@ def test_make_module():
     new_json = json.dumps(
         modules_state.ActiveModules[n], sort_keys=True, indent=4
     )
+    if not old_json == new_json:
+        print("old_json != new_json")
+        print(old_json)
+        print("new_json")
+        print(new_json)
 
-    diff = difflib.unified_diff(old_json.splitlines(), new_json.splitlines())
-
-    assert "\n".join(diff) == ""
+    assert old_json == new_json
 
     assert n in modules_state.ActiveModules
     assert "/test_tag_foo" in tags.all_tags_raw()
@@ -148,3 +155,20 @@ def test_make_module():
     assert old_hash == modules_state.getModuleHash(n)
 
     modules.rmModule(n)
+
+
+def test_zip_fail_upload():
+    zf = io.BytesIO()
+
+    zp = zipfile.ZipFile(zf, "w")
+    zp.writestr("failmodule/.fail_to_load_this_module_instantly", b"foo")
+
+    zp.close()
+    zf.seek(0)
+
+    with pytest.raises(RuntimeError):
+        modules.load_modules_from_zip(zf)
+
+    assert "failmodule" not in modules_state.ActiveModules
+
+    assert "failmodule" not in os.listdir(os.path.join(dir, "modules/data/"))

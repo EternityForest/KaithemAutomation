@@ -7,6 +7,7 @@ import difflib
 import hashlib
 import json
 import os
+import re
 import threading
 import time
 import urllib
@@ -35,6 +36,15 @@ from .util import url
 # Dummy keeps linter happy
 ResourceType = ResourceType
 mutable_copy_resource = mutable_copy_resource
+
+
+smart_quotes_pattern = re.compile(
+    r"[\u201C\u201D\u2018\u2019\u201E\u201F\u201B]"
+)
+
+
+def has_smart_quotes(text: str) -> bool:
+    return bool(smart_quotes_pattern.search(text))
 
 
 # / is there because we just forbid use of that char for anything but dirs,
@@ -119,10 +129,16 @@ def get_module_metadata(module: str) -> dict[str, Any]:
 @validate_args
 def check_forbidden(s: str, allow: str = "") -> None:
     if not s:
-        raise ValueError("Resource or module name cannot be empty")
+        raise ValueError("name cannot be empty")
 
     if len(s) > 255:
         raise ValueError(f"Excessively long name {s[:128]}...")
+
+    if not s == s.strip():
+        raise ValueError("name cannot start or end with whitespace")
+
+    if has_smart_quotes(s):
+        raise ValueError("name cannot contain smart quotes")
 
     for i in s:
         if i in FORBID_CHARS:
@@ -132,6 +148,12 @@ def check_forbidden(s: str, allow: str = "") -> None:
 
     if s[0] == "/":
         raise ValueError("Resource or module name cannot start with /")
+
+    if s[0] == ".":
+        raise ValueError("Resource or module name cannot start with .")
+
+    if s.startswith("__"):
+        raise ValueError("Resource or module name cannot start with __")
 
 
 def getModuleDir(module: str) -> str:
@@ -467,10 +489,6 @@ def saveModule(
 ) -> list[str] | None:
     """Returns a list of saved module,resource tuples
     and the saved resource.
-    ignore_func if present must take an abs path and
-    return true if that path should be
-    left alone. It's meant for external modules
-    and version control systems.
     """
     with modulesLock:
         if "__do__not__save__to__disk__:" in modulename:

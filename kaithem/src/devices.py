@@ -51,8 +51,6 @@ logger = structlog.get_logger(__name__)
 saveLocation = os.path.join(directories.vardir, "devices")
 
 
-recent_scanned_tags = {}
-
 # Used by device tag j2 template
 callable = callable
 
@@ -108,12 +106,6 @@ def delete_bookkeep(name, confdir=False):
         gc.collect()
 
         messagebus.post_message("/devices/removed/", name)
-
-
-def log_scanned_tag(v: str, *args):
-    recent_scanned_tags[v] = time.time()
-    if len(recent_scanned_tags) > 15:
-        recent_scanned_tags.pop(next(iter(recent_scanned_tags)))
 
 
 dbgd: weakref.WeakValueDictionary[str, DeviceRuntimeState] = (

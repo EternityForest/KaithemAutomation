@@ -22,6 +22,7 @@ This release is largely about using Docker instead of running on bare metal.
 * [sparkles] Use sysfs to detect display ports. Names of tags and alerts might be different.
 * [coffin] Remove main page decorative image
 * [coffin] Remove default front page banner text
+* [coffin] Fully ignore . and __ resources in all contexts.
 
 ### 0.96.0
 
