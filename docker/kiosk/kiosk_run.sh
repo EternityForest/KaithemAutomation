@@ -10,7 +10,7 @@ mkdir -p $XDG_CONFIG_HOME
 mkdir -p $XDG_CACHE_HOME
 mkdir -p $HOME
 
-echo "Waiting fors server to be available"
+echo "Waiting for server to be available"
 # In theory chrome retry should be enough but it's not so wait
 wget --retry-connrefused --waitretry=1 --read-timeout=1800 --quiet --timeout=1800 -t 0 $KIOSK_URL
 

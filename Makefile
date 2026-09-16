@@ -32,7 +32,6 @@ KAITHEM_GROUP:=$(shell id -g)
 endif
 
 
-
 KAITHEM_USER:= $(shell id -un $(KAITHEM_UID))
 
 # The dir the makefile is in
@@ -42,6 +41,8 @@ export KAITHEM_UID
 export KAITHEM_USER
 export KAITHEM_GROUP
 export KAITHEM_GROUPS
+export SOURCE_DATE_EPOCH=0
+
 
 ifndef KIOSK_HOME
 KIOSK_HOME:="http://localhost:8002"
