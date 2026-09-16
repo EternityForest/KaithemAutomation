@@ -38,6 +38,9 @@ def test_cue_names():
     assert cue.fnToCueName("1.2-foo.mp3") == "track_1.2_foo"
     assert cue.fnToCueName("foo.mp3") == "foo"
     assert cue.fnToCueName("foo bar.mp3") == "foo_bar"
+    assert cue.fnToCueName("foo__bar.mp3") == "foo_bar"
+    assert cue.fnToCueName("foo___bar.mp3") == "foo_bar"
+    assert cue.fnToCueName("foo____bar.mp3") == "foo_bar"
     assert cue.fnToCueName("$hockwayve.mp3") == "Shockwayve"
 
 

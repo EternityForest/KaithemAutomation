@@ -140,6 +140,14 @@ def fnToCueName(fn: str):
 
     try:
         if num is None:
+            num = float(fn.split("_")[0].strip())
+            fn = fn.split("_", 1)[1]
+
+    except Exception:
+        pass
+
+    try:
+        if num is None:
             num = float(fn.split("-")[0].strip())
             fn = fn.split("-", 1)[1]
 
@@ -185,6 +193,10 @@ def fnToCueName(fn: str):
 
     if fn[0] in "1234567890":
         fn = "x" + fn
+
+    # Largely for freesound
+    fn = fn.replace("__", "_")
+    fn = fn.replace("__", "_")
 
     return fn
 

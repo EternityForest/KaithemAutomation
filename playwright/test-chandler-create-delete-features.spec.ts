@@ -78,10 +78,10 @@ test('test', async ({ page }) => {
     .nth(4)
     .click();
   await page.getByTestId('close-cue-media').click();
-  await page.locator('#cuesbox').getByText('x220176 gameaudio confirm').click();
+  await page.locator('#cuesbox').getByText('track_220176_gameaudio').click();
   await expect(page.getByText('Sound: sounds/')).toBeVisible();
 
-  await page.locator('#cuesbox').getByText('x320181 dland hint').click();
+  await page.locator('#cuesbox').getByText('track_320181_dland_hint').click();
   await expect(page.getByText('Slide: sounds/')).toBeVisible();
   page.once('dialog', (dialog) => {
     console.log(`Dialog message: ${dialog.message()}`);
@@ -90,10 +90,10 @@ test('test', async ({ page }) => {
   await page.getByRole('button', { name: '󰆴 Delete Current' }).click();
 
   await expect(
-    page.locator('#cuesbox').getByText('x320181 dland hint')
+    page.locator('#cuesbox').getByText('track_320181_dland_hint')
   ).toBeHidden();
 
-  await page.locator('#cuesbox').getByText('x220176 gameaudio confirm').click();
+  await page.locator('#cuesbox').getByText('track_220176_gameaudio').click();
   page.once('dialog', (dialog) => {
     console.log(`Dialog message: ${dialog.message()}`);
     dialog.accept();
@@ -104,7 +104,7 @@ test('test', async ({ page }) => {
   await sleep(300);
 
   await expect(
-    page.locator('#cuesbox').getByText('x220176 gameaudio confirm')
+    page.locator('#cuesbox').getByText('track_220176_gameaudio')
   ).toBeHidden();
 
   await page.getByTestId('cue-logic-button').click();
