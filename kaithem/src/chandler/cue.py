@@ -131,26 +131,45 @@ def fnToCueName(fn: str):
      And suitable for use as a cue name
     Takes a string `fn` as input and returns a processed cue name string.
     """
-    isNum = False
+    num = None
     try:
-        int(fn.split(".")[0])
-        isNum = True
+        num = float(fn.split(" ")[0].strip())
+        fn = fn.split(" ", 1)[1]
     except Exception:
         pass
 
-    # Nicely Handle stuff of the form "84. trackname"
-    if isNum and len(fn.split(".")) > 2:
-        fn = fn.split(".", 1)[-1]
+    try:
+        if num is None:
+            num = float(fn.split("-")[0].strip())
+            fn = fn.split("-", 1)[1]
 
-    fn = fn.split(".")[0]
+    except Exception:
+        pass
+
+    try:
+        if num is None:
+            num = float(fn.split(".")[0].strip())
+            fn = fn.split(".", 1)[1]
+    except Exception:
+        pass
+
+    fn = fn.lstrip("-_~#.")
+    fn = fn.strip()
+
+    if "." in fn:
+        fn = ".".join(fn.split(".")[:-1])
+
+    # Nicely Handle stuff of the form "84. trackname"
+    if num is not None:
+        num = f"{num:.4f}".rstrip("0").rstrip(".")
+        fn = f"track_{num}_{fn.split('.', 1)[-1].strip()}"
 
     fn = fn.replace("-", "_")
-    fn = fn.replace("_", " ")
-    fn = fn.replace(":", " ")
+    fn = fn.replace(":", "_")
 
     # Sometimes used as a stylized S
     fn = fn.replace("$", "S")
-    fn = fn.replace("@", " at ")
+    fn = fn.replace("@", "_at_")
 
     # Usually going to be the number sign, we can ditch
     fn = fn.replace("#", "")
@@ -158,6 +177,7 @@ def fnToCueName(fn: str):
     # Handle spaces already there or not
     fn = fn.replace(" & ", " and ")
     fn = fn.replace("&", " and ")
+    fn = fn.replace(" ", "_")
 
     for i in r"""\~!@#$%^&*()+`-=[]\{}|;':"./,<>?""":
         if i not in allowedCueNameSpecials:

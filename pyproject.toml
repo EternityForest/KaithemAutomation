@@ -91,6 +91,7 @@ dependencies = [
     "soundfile>=0.13.1",
     "textual-image",
     "urllib3-future",
+    "scipy-stubs"
 ]
 
 [build-system]

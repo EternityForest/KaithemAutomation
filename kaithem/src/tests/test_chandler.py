@@ -16,10 +16,7 @@ import yaml
 
 if "--collect-only" not in sys.argv:  # pragma: no cover
     from kaithem.src import modules, modules_state
-    from kaithem.src.chandler import (
-        WebChandlerConsole,
-        core,
-    )
+    from kaithem.src.chandler import WebChandlerConsole, core, cue
 
     from . import helpers
 
@@ -32,6 +29,16 @@ if "--collect-only" not in sys.argv:  # pragma: no cover
         )
     board = core.boards["test_chandler_module:test_board"]
     assert isinstance(board, WebChandlerConsole.WebConsole)
+
+
+def test_cue_names():
+    assert cue.fnToCueName("10. foo.mp3") == "track_10_foo"
+    assert cue.fnToCueName("1-foo.mp3") == "track_1_foo"
+    assert cue.fnToCueName("1 - foo.mp3") == "track_1_foo"
+    assert cue.fnToCueName("1.2-foo.mp3") == "track_1.2_foo"
+    assert cue.fnToCueName("foo.mp3") == "foo"
+    assert cue.fnToCueName("foo bar.mp3") == "foo_bar"
+    assert cue.fnToCueName("$hockwayve.mp3") == "Shockwayve"
 
 
 def getBoardResourceData():
@@ -156,6 +163,9 @@ def test_cue_provider():
 
         assert len(grp.cues) > 2
         assert grp.cues_ordered[1].sound
+
+        with pytest.raises(RuntimeError):
+            grp.cues_ordered[1].sound = "foo"
 
         grp.cues_ordered[1].notes = "Test adding note to provider cue"
 
@@ -895,6 +905,57 @@ def test_sched_end():
         grp.add_cue(
             "after_b", length=f"@{t.strftime('%l%P')}", next_cue="before_a"
         )
+
+        grp.next_cue()
+
+        assert grp.cue.name == "after_a"
+
+
+def test_sched_end_invalid():
+    "Presence of an invalid schedule must not crash everything"
+    with TempGroup() as grp:
+        grp.cue.next_cue = "__schedule__"
+
+        t = datetime.datetime.now() - datetime.timedelta(hours=2)
+
+        grp.add_cue("a", length=f"@{t.strftime('%l%P')}")
+
+        grp.add_cue("b", length="@invalidtime")
+
+        grp.add_cue("c")
+
+        grp.next_cue()
+        time.sleep(1)
+        assert grp.cue.name == "b"
+
+
+def test_sched_end_recalc_all():
+    """Ensure recalc does't break anything"""
+    with TempGroup() as grp:
+        grp.cue.next_cue = "__schedule__"
+
+        t = datetime.datetime.now() - datetime.timedelta(hours=2)
+
+        # Make a looping schedule.  Before_b ends before the current time,
+        # we want to be in
+        # after_a
+
+        grp.add_cue("before_a", length=f"@{t.strftime('%l%P')}")
+
+        t += datetime.timedelta(hours=1)
+        grp.add_cue("before_b", length=f"@{t.strftime('%l%P')}")
+        cue.recalc_all_cue_schedules()
+
+        t += datetime.timedelta(hours=2)
+        grp.add_cue("after_a", length=f"@{t.strftime('%l%P')}")
+
+        cue.recalc_all_cue_schedules()
+
+        t += datetime.timedelta(hours=2)
+        grp.add_cue(
+            "after_b", length=f"@{t.strftime('%l%P')}", next_cue="before_a"
+        )
+        cue.recalc_all_cue_schedules()
 
         grp.next_cue()
 
@@ -1671,6 +1732,35 @@ def test_lighting_value_gradient():
         assert tagpoints.Tag("/test3").value == 60
 
 
+def test_lighting_value_gradient_with_nonexistent_value():
+    """Mostly just interested in it not crashing"""
+    from kaithem.src import tagpoints
+    from kaithem.src.chandler import core
+
+    with TempGroup() as s:
+        s.cues["default"].set_value_immediate(
+            "default", "nonexistent_u", "nonexistant_c", 50
+        )
+
+        s.cues["default"].set_value_immediate("default", "/test1", "value", 50)
+        s.cues["default"].set_value_immediate(
+            "default", "/test2", "value", -1000001
+        )
+        s.cues["default"].set_value_immediate("default", "/test3", "value", 60)
+        x = s.cues["default"].get_effect_by_id("default")
+        assert x
+        x["type"] = "kaithem.builtin.lighting-generator-fx:gradient-generator"
+
+        s.lighting_manager.refresh()
+
+        core.wait_frame()
+        core.wait_frame()
+
+        assert tagpoints.Tag("/test1").value == 50
+        assert abs(tagpoints.Tag("/test2").value - 55) < 0.01
+        assert tagpoints.Tag("/test3").value == 60
+
+
 async def test_lighting_value_gradient_fixtures():
     from kaithem.src.chandler import (
         core,
@@ -1751,6 +1841,16 @@ async def test_lighting_value_gradient_fixtures():
             "default", "@testFixture3", "red", 60
         )
 
+        s.cues["default"].set_value_immediate(
+            "default", "@testFixture", "green", 10
+        )
+        s.cues["default"].set_value_immediate(
+            "default", "@testFixture2", "green", -1000001
+        )
+        s.cues["default"].set_value_immediate(
+            "default", "@testFixture3", "green", 20
+        )
+
         x = s.cues["default"].get_effect_by_id("default")
         assert x
         x["type"] = "kaithem.builtin.lighting-generator-fx:gradient-generator"
@@ -1760,9 +1860,15 @@ async def test_lighting_value_gradient_fixtures():
         core.wait_frame()
         core.wait_frame()
 
+        # Reds
         assert int(universes.universes["dmx"]().values[1]) == 50
         assert int(universes.universes["dmx"]().values[4]) == 55.0
         assert int(universes.universes["dmx"]().values[8]) == 60
+
+        # Greens
+        assert int(universes.universes["dmx"]().values[2]) == 10
+        assert int(universes.universes["dmx"]().values[5]) == 15.0
+        assert int(universes.universes["dmx"]().values[9]) == 20
 
 
 def test_blend_args_start():

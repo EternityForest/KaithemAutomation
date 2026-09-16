@@ -213,6 +213,8 @@ class GroupLightingManager:
                 for j in gen.precomputed_mappings:
                     m = gen.precomputed_mappings[j]
                     if j not in v.values:
+                        if i not in universes_cache:
+                            continue
                         v.values[j] = numpy.zeros(
                             len(universes_cache[i].values)
                         )

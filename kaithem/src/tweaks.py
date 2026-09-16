@@ -27,6 +27,9 @@ mimetypes.add_type("application/javascript", ".js", strict=True)
 if not os.environ.get("DISPLAY"):
     os.environ["DISPLAY"] = ":0"
 
+if not os.environ.get("XDG_CACHE_HOME"):
+    os.environ["XDG_CACHE_HOME"] = os.path.expandvars("$HOME/.cache")
+
 certs_file = "/etc/ssl/certs/ca-certificates.crt"
 certs_dir = "/etc/ssl/certs"
 

@@ -23,6 +23,7 @@ This release is largely about using Docker instead of running on bare metal.
 * [coffin] Remove main page decorative image
 * [coffin] Remove default front page banner text
 * [coffin] Fully ignore . and __ resources in all contexts.
+* [sparkles] Improve automatic cue name generation
 
 ### 0.96.0
 

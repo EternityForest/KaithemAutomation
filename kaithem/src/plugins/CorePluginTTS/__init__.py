@@ -6,6 +6,7 @@ import subprocess
 import threading
 import time
 import weakref
+from typing import Any, override
 
 # TODO: This needs to be moved to a core plugin
 import icemedia.sound_player
@@ -193,7 +194,7 @@ class PiperTTS(plugin_interfaces.TTSEngine):
         self,
         model: str = "vits-piper-en_US-libritts_r-medium",
         model_cache_dir: str = "",
-        **kwargs,
+        **kwargs: Any,
     ):
         import sherpa_onnx
 
@@ -217,8 +218,9 @@ class PiperTTS(plugin_interfaces.TTSEngine):
         tar xvf {model}.tar.bz2
         rm {model}.tar.bz2
         """
-        if not os.path.exists(
-            os.path.join(selected_model_dir, f"{model2}.onnx")
+        if not (
+            os.path.exists(os.path.join(selected_model_dir, f"{model2}.onnx"))
+            or os.path.exists(os.path.join(selected_model_dir, "model.onnx"))
         ):
             a = alerts.Alert(
                 "A TTS Model is still downloading", priority="warning"
@@ -228,10 +230,14 @@ class PiperTTS(plugin_interfaces.TTSEngine):
             a.clear()
             a.close()
 
-        if not os.path.exists(
-            os.path.join(selected_model_dir, f"{model2}.onnx")
+        if not (
+            os.path.exists(os.path.join(selected_model_dir, f"{model2}.onnx"))
+            or os.path.exists(os.path.join(selected_model_dir, "model.onnx"))
         ):
             raise RuntimeError("Downloading Piper model failed")
+
+        if os.path.exists(os.path.join(selected_model_dir, "model.onnx")):
+            model2 = "model"
 
         tts_config = sherpa_onnx.OfflineTtsConfig(
             model=sherpa_onnx.OfflineTtsModelConfig(
@@ -248,6 +254,7 @@ class PiperTTS(plugin_interfaces.TTSEngine):
 
         models[model] = self
 
+    @override
     def synth(self, s: str, speed: float = 1, sid: int = -1, file: str = ""):
         import scipy.signal
         import soundfile as sf
@@ -265,9 +272,7 @@ class PiperTTS(plugin_interfaces.TTSEngine):
             audio = self.tts.generate("--..." + s, sid=sid, speed=speed)
 
         if len(audio.samples) == 0:
-            raise RuntimeError(
-                "Error in generating audios. Please read previous error messages."
-            )
+            raise RuntimeError("Error in generating audios.")
 
         resampled = scipy.signal.resample(
             audio.samples, int((48000 / audio.sample_rate) * len(audio.samples))
@@ -283,6 +288,7 @@ class PiperTTS(plugin_interfaces.TTSEngine):
         )
         return file
 
+    @override
     def speak(
         self,
         s: str,
@@ -312,7 +318,7 @@ class PiperTTS(plugin_interfaces.TTSEngine):
             i = x.pop(0)
             os.remove(os.path.join("/dev/shm/tts-cache", i[1]))
 
-    def get_fn(self, s: str, sid, speed) -> str:
+    def get_fn(self, s: str, sid: int, speed: float) -> str:
         hash = (
             hashlib.sha256(f"{self.name} {sid} {speed} {s}".encode())
             .hexdigest()
@@ -343,7 +349,7 @@ class KokoroTTS(PiperTTS):
         self,
         model: str = "",
         model_cache_dir: str = "",
-        **kwargs,
+        **kwargs: Any,
     ):
         import sherpa_onnx
 
@@ -408,9 +414,11 @@ lock = threading.RLock()
 
 
 class TTSInterface(plugin_interfaces.TTSAPI):
+    @override
     def list_available_models(self):
         return piper_voices
 
+    @override
     def get_model(self, model: str = "", timeout: float = 5):
         global default_tts
         speaker = 0
@@ -473,7 +481,7 @@ api = TTSInterface()
 plugin_services = [api]
 
 
-def on_key_change(topic: str, key):
+def on_key_change(topic: str, key: str):
     global default_tts
 
     if key == "core_plugin_tts/default_model":
@@ -498,7 +506,8 @@ api.get_model()
 class TTSAction(module_actions.ModuleAction):
     title = "Speech Synthesis"
 
-    def step(self, **kwargs):
+    @override
+    def step(self, **kwargs: Any):
         global default_tts
         super().step(**kwargs)
 
