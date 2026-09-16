@@ -31,6 +31,7 @@ from .modules_state import (
     resource_types,
     saveModule,
     scopes,
+    special_resources,
 )
 
 logger = structlog.get_logger(__name__)
@@ -283,9 +284,6 @@ def ignore_func(path: str) -> bool:
         if not os.path.split(path)[1]:
             return False
     return False
-
-
-special_resources = ["__metadata__"]
 
 
 def _detect_ignorable(path: str) -> bool:
@@ -575,6 +573,9 @@ def mvResource(module: str, resource: str, to_module: str, to_resource: str):
     new = to_resource.split("/")
     for i in new:
         check_forbidden(i)
+
+    if resource in special_resources or to_resource in special_resources:
+        raise ValueError("Cannot move special resource")
 
     if not (
         "/".join(new[:-1]) in modules_state.ActiveModules[to_module]

@@ -37,6 +37,9 @@ from .util import url
 ResourceType = ResourceType
 mutable_copy_resource = mutable_copy_resource
 
+# List of special resources exempt from the name rules
+special_resources = ["__metadata__"]
+
 
 smart_quotes_pattern = re.compile(
     r"[\u201C\u201D\u2018\u2019\u201E\u201F\u201B]"
@@ -409,10 +412,12 @@ def raw_insert_resource(
         _dummy = json.dumps(resource_data_mutable)
 
         rtype = resource_data_mutable["resource"]["type"]
-        if rtype == "directory":
-            check_forbidden(resource, ".")
-        else:
-            check_forbidden(resource)
+
+        if resource not in special_resources:
+            if rtype == "directory":
+                check_forbidden(resource, ".")
+            else:
+                check_forbidden(resource)
 
         assert resource[0] != "/"
 
