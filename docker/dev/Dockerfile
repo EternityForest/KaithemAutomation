@@ -24,7 +24,7 @@ RUN --mount=type=cache,id=apt-cache-${TARGETARCH},target=/var/cache/apt,sharing=
 RUN --mount=type=cache,id=apt-cache-${TARGETARCH},target=/var/cache/apt,sharing=locked \
     --mount=type=cache,id=apt-lists-${TARGETARCH},target=/var/lib/apt/lists,sharing=locked \
     apt-get install -y tzdata ca-certificates curl wget \
-    iputils-ping make nano
+    iputils-ping make nano mosquitto
 
 
 # Try to fix mdns?
@@ -48,11 +48,6 @@ RUN mkdir -p /workspace/KaithemAutomation/.venv; \
     mkdir -p /workspace/KaithemAutomation/dist ; \
     mkdir -p /workspace/uv_cache ; \
     chown -R 1000:1000 /workspace/ ; 
-
-
-RUN --mount=type=cache,id=apt-cache-${TARGETARCH},target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,id=apt-lists-${TARGETARCH},target=/var/lib/apt/lists,sharing=locked \
-    apt-get install -y mosquitto
 
 # Dev specific stuff
 RUN mkdir -p /root/.cache && \
