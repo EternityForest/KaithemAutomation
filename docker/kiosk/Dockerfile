@@ -12,10 +12,6 @@ LABEL org.opencontainers.image.title="KaithemAutomation Kiosk Browser"
 
 RUN rm -f /etc/apt/apt.conf.d/docker-clean; \
     echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
-   
-RUN --mount=type=cache,id=apt-cache-${TARGETARCH},target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,id=apt-lists-${TARGETARCH},target=/var/lib/apt/lists,sharing=locked \
-    apt-get update
 
 # Prevent interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
@@ -26,7 +22,7 @@ COPY ./KaithemAutomation/kaithem/data/debian_core_utils.sh \
 
 RUN --mount=type=cache,id=apt-cache-${TARGETARCH},target=/var/cache/apt,sharing=locked \
     --mount=type=cache,id=apt-lists-${TARGETARCH},target=/var/lib/apt/lists,sharing=locked \
-    bash /workspace/debian_core_utils.sh
+    apt-get update && bash /workspace/debian_core_utils.sh
 
 
 # Ensure the wayland environment variables are exposed
@@ -48,7 +44,7 @@ RUN --mount=type=cache,id=apt-cache-${TARGETARCH},target=/var/cache/apt,sharing=
 # chromium itself
 RUN --mount=type=cache,id=apt-cache-${TARGETARCH},target=/var/cache/apt,sharing=locked \
     --mount=type=cache,id=apt-lists-${TARGETARCH},target=/var/lib/apt/lists,sharing=locked \
-    apt-get install -y \
+    apt-get update && apt-get install -y \
     chromium \
     chromium-sandbox
 
