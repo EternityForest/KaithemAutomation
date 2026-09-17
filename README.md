@@ -83,10 +83,8 @@ kaithem
 >  Is laid upon the man.\
 >    Not on the Stuff — the Man!
 
-Coming soon: Everything is in the process of being moved to docker.
-Old scripts are broken on new Debian/Raspios, breaking changes are taking
-an unsustainable amount of time and this project does not
-have the resources for an interim solution.
+For real use, see the Docker install instructions in
+the scripts repo! (https://github.com/EternityForest/kaithem-scripts/blob/main/docker/README.md)
 
 ## Dev Install 🖐️
 
