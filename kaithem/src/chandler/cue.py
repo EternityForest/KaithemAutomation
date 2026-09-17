@@ -571,9 +571,10 @@ class Cue:
             fade_in=self.fade_in,
             length=self.length,
             length_randomize=self._length_randomize,
-            values=copy.deepcopy(self.lighting_effects),
+            effects=copy.deepcopy(self.lighting_effects),
             next_cue=self.next_cue,
             rel_length=self.rel_length,
+            rules=copy.deepcopy(self.rules),
             track=self.track,
             number=n,
         )

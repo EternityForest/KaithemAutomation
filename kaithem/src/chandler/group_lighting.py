@@ -606,6 +606,9 @@ def composite_rendered_layer_onto_universe(
 
     else:
         try:
+            group.lighting_manager.should_repaint_onto_universes[universe] = (
+                True
+            )
             universe_values = group.lighting_manager._blend.frame(
                 universe, universe_values, vals, alphas, group.alpha
             )
@@ -665,9 +668,6 @@ def composite_layers_from_board(
 
     # Remember that groups get rendered in ascending priority order here
     for i in board.active_groups:
-        if i.blend == "monitor":
-            continue
-
         # It takes a while to add and remove self from the active list.
         if not i.active:
             continue
