@@ -47,7 +47,7 @@ You might see some warnings on the command line about the hardware it can't acce
 mkdir -p kaithem-test && docker run --rm -v ./kaithem-test:/app-home/ -p 8002:8002 -u "$(id -u):$(id -g)" -e USER=$(id -un) -e LOGNAME=$(id -un)  cooperskeep/kaithem:0.97.0 --set-admin-password test-admin-password
 ```
 
-## Installation 🌲
+## UV Installation 🌲
 
 
 >The careful text-books measure\
@@ -85,51 +85,6 @@ kaithem
 
 For real use, see the Docker install instructions in
 the scripts repo! (https://github.com/EternityForest/kaithem-scripts/blob/main/docker/README.md)
-
-## Dev Install 🖐️
-
-Info for devs here on the wiki (https://github.com/EternityForest/KaithemAutomation/wiki/Development)
-
-### Build dependencies
-Dashbeard(https://github.com/EternityForest/Dashbeard) must be cloned into the same folder you cloned this repo into.
-
-### Setup
-
-First get all system dependencies as per the main install section.
-
-```bash
-uv sync
-
-# Need to set up Rust if you don't already have everything
-# All Rust code currently compiles to .wasm
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-rustup target add wasm32-unknown-unknown
-
-# Need install deps to build the frontend with npm
-npm install
-
-make build
-```
-
-### Docker Building
-
-Clone this repo and dashbeard, do
-
-```bash
-cd docker
-docker compose build
-```
-
-This will buid three images, a builder that creates the kaithem Wheel,
-the runtime app image that would be used for production, and
-a dev image that can be used to debug.
-
-The dev image contains /workspaces/KaithemAutomation as the default working directory, so you can
-
-```bash
-KAITHEM_UID=$UID KAITHEM_GROUP=$GID KAITHEM_USER=$USR docker compose run kaithem-d
-ev testing_server.py
-```
 
 Recent Changes 🕗
 ============
