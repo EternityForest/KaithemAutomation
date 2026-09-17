@@ -2,6 +2,7 @@
 
 import datetime
 import gc
+import json
 import os
 import shutil
 import subprocess
@@ -126,9 +127,17 @@ def test_cue_unique():
 
 def test_cue_clone():
     with TempGroup() as grp:
+        grp.cue.set_value_immediate("default", "kjhgfx", "1", 255)
         grp.cue.clone("clone")
         assert "clone" in grp.cues
+
         assert grp.cues["clone"].id != grp.cues["default"].id
+        assert json.dumps(grp.cues["clone"].lighting_effects) == json.dumps(
+            grp.cues["default"].lighting_effects
+        )
+        assert id(grp.cues["clone"].lighting_effects) != id(
+            grp.cues["default"].lighting_effects
+        )
 
         # No duplicate names
         with pytest.raises(ValueError):

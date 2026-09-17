@@ -551,7 +551,7 @@ class Cue:
 
         schemas.suppress_defaults("chandler/cue", x2)
 
-        return x2
+        return copy.deepcopy(x2)
 
     def getGroup(self):
         s = self.group()
@@ -565,18 +565,23 @@ class Cue:
 
         n = self.getGroup().get_number_for_new_cue(after=self.number)
 
+        cuedata = self.serialize()
+        cuedata["number"] = n
+        if "id" in cuedata:
+            del cuedata["id"]
+        if "shortcut" in cuedata:
+            del cuedata["shortcut"]
+        if "named_for_sound" in cuedata:
+            del cuedata["named_for_sound"]
+
+        # TODO?
+        if "schedule_at" in cuedata:
+            del cuedata["schedule_at"]
+
         c = Cue(
             self.getGroup(),
             name,
-            fade_in=self.fade_in,
-            length=self.length,
-            length_randomize=self._length_randomize,
-            effects=copy.deepcopy(self.lighting_effects),
-            next_cue=self.next_cue,
-            rel_length=self.rel_length,
-            rules=copy.deepcopy(self.rules),
-            track=self.track,
-            number=n,
+            **cuedata,
         )
 
         core.add_data_pusher_to_all_boards(lambda s: s.pushCueMeta(c.id))
