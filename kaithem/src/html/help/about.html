@@ -11,7 +11,7 @@
     import re
     import threading
     import random
-    from importlib.metadata import version
+    from importlib.metadata import metadata, version
 
     import kaithem
     from scullery import workers as sworkers
@@ -26,7 +26,7 @@
     from kaithem.src.config import config
 
     try:
-        __version__ = version("kaithem")
+        __version__ = metadata("kaithem").get("Version", version("kaithem"))
     except Exception as e:
         __version__ = str(e)
 
@@ -415,6 +415,10 @@ ${sensors()|h}
 </pre>
 <%
 def module_version(m, name):
+    try:
+        return metadata(name)["Version"]
+    except Exception:
+        pass
     try:
         v = version(name)
         if v:
