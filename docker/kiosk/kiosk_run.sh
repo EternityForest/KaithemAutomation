@@ -21,7 +21,7 @@ echo "Found server or timed out, starting chromium"
 
 while true
 do
-    if chromium  --kiosk  --no-sandbox --start-fullscreen --enable-features=UseOzonePlatform --ozone-platform=wayland --disable-features=TouchpadOverscrollHistoryNavigation,GCM --disable-restore-session-state --start-maximized --noerrdialogs --disable-translate --disable-extensions --disable-apps --disable-component-extensions-with-background-pages --auto-accept-camera-and-microphone-capture --no-first-run --fast --fast-start --disable-infobars --disable-features=TranslateUI --autoplay-policy=no-user-gesture-required --no-default-browser-check --disk-cache-size=48000000 --no-first-run --password-store=basic --simulate-outdated-no-au='Tue, 31 Dec 2099 23:59:59 GMT' $KIOSK_URL; then
+    if chromium  --kiosk  --no-sandbox --start-fullscreen --enable-features=UseOzonePlatform --ozone-platform=wayland --disable-features=TouchpadOverscrollHistoryNavigation,GCM --disable-restore-session-state --start-maximized --noerrdialogs --disable-translate --disable-extensions --disable-device-discovery-notifications --disable-apps --disable-component-extensions-with-background-pages --auto-accept-camera-and-microphone-capture --no-first-run --fast --fast-start --disable-infobars --disable-features=TranslateUI --autoplay-policy=no-user-gesture-required --no-default-browser-check --disk-cache-size=48000000 --no-first-run --password-store=basic --simulate-outdated-no-au='Tue, 31 Dec 2099 23:59:59 GMT' $KIOSK_URL; then
         echo "Restarting because of error in Chromium"
     else
         echo "Exiting due to sucessful chrome exit"

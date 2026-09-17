@@ -33,6 +33,19 @@ You automate things by directly writing python and HTML via a web IDE, or by usi
 
 See the barrel.css [demo](https://eternityforest.github.io/barrel.css/) for more themes
 
+## Try it out in a Docker sandbox
+
+With Docker's sandboxing, you won't be able to access any hardware,
+but you can check out the UI, and if you want to set it up for real,
+see the kaithem-scripts repo and the docker instructions.
+
+You might see some warnings on the command line about the hardware it can't access, but it should eventually load.
+
+--set-admin-password is NOT meant for normal use, and will always set the password to test-admin-password, it only exists for demos.
+
+```bash
+mkdir -p kaithem-test && docker run --rm -v ./kaithem-test:/app-home/ -p 8002:8002 -u "$(id -u):$(id -g)" -e USER=$(id -un) -e LOGNAME=$(id -un)  cooperskeep/kaithem:0.97.0 --set-admin-password test-admin-password
+```
 
 ## Installation 🌲
 
