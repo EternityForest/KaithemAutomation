@@ -120,3 +120,19 @@ docker run -it <layer_hash> /bin/sh
 # Clear systemd journal, this can be a few gb
 sudo journalctl --vacuum-size=100M
 ```
+
+
+## Legacy Systems
+
+### Headless setup on older RasPi
+
+At some point they changed the way the pi imager works.
+
+For new pi images, just use the new pi imager.
+
+
+At least with older pi images, put a file named `ssh` on the boot partition,
+then put "pi:$6$IUrENOQFEW/XKPvd$Up1jxHiZ9dJzXffzGnZcPOOfBc4A71Q9p2j/Roac8nRSQR7uSb5ooOuYI1D1NHDdBfn2e.ld.VXrrnjhJqCiX." without quotes into
+a file named `userconf`.
+
+Then you can log in with the old pi:raspberry password.

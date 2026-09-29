@@ -257,6 +257,9 @@ dev-build-docker-production:
 	@docker pull localhost:5000/cooperskeep/kaithem-kiosk:${KAITHEM_VERSION}
 	@docker pull localhost:5000/cooperskeep/kaithem-dev:${KAITHEM_VERSION}
 
+# Upload with command like:
+# skopeo copy --multi-arch all oci-archive:docker-build/kaithem-0.97.0.tar docker://docker.io/cooperskeep/kaithem:0.97.0
+
 
 dev-docker-shell: export IMAGE_PREFIX=localhost:5000/
 

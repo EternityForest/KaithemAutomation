@@ -1,6 +1,9 @@
 Change Log
 ----------
 
+### Dev
+* [sparkles] Improve the corner dragging in projection mapping
+
 ### 0.97.0
 
 This release is largely about using Docker instead of running on bare metal.

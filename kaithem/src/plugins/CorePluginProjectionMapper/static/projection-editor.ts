@@ -5,7 +5,10 @@
 // Built with Lit for lightweight, self-contained rendering
 
 import { LitElement, html, css } from 'lit';
-import { populateTagsDatalist, TagSubscriptionManager } from "/static/js/widget.mjs";
+import {
+  populateTagsDatalist,
+  TagSubscriptionManager,
+} from '/static/js/widget.mjs';
 import { PerspT } from './perspective-transform.mjs';
 import { createSourceAdapter } from './source-type';
 
@@ -141,8 +144,8 @@ class ProjectionEditor extends LitElement {
       height: 100vh;
       background: #1a1a1a;
       color: #fff;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-        sans-serif;
+      font-family:
+        -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       user-select: none;
       -webkit-user-select: none;
     }
@@ -525,7 +528,7 @@ class ProjectionEditor extends LitElement {
       this.setupWebSocket();
       this.updateTagSubscriptions();
     });
-    if(!this.isViewerMode) {
+    if (!this.isViewerMode) {
       this.loadFonts();
     }
   }
@@ -1029,10 +1032,10 @@ class ProjectionEditor extends LitElement {
               }
 
               if (isX) {
-                (source.transform.corners[corner as keyof Corners]).x =
+                source.transform.corners[corner as keyof Corners].x =
                   Number.parseFloat((event_.target as HTMLInputElement).value);
               } else {
-                (source.transform.corners[corner as keyof Corners]).y =
+                source.transform.corners[corner as keyof Corners].y =
                   Number.parseFloat((event_.target as HTMLInputElement).value);
               }
 
@@ -1128,19 +1131,23 @@ class ProjectionEditor extends LitElement {
       this.lastRawMousePos.y
     );
 
-    const oldCorner = source.transform.corners[
-      this.draggingCorner as keyof Corners
-    ];
+    const oldCorner =
+      source.transform.corners[this.draggingCorner as keyof Corners];
 
     const deltaX = filtered.x - oldCorner.x;
     const deltaY = filtered.y - oldCorner.y;
 
-    (source.transform.corners[this.draggingCorner as keyof Corners]) = {
+    source.transform.corners[this.draggingCorner as keyof Corners] = {
       x: filtered.x,
       y: filtered.y,
     };
 
-    if (this.draggingCorner == 'tl') {
+    // if corner would be constrained against wall,
+    // don't pull others
+    if (this.draggingCorner == 'tl' && 
+      source.transform.corners['bl'].x + deltaX > 0 &&
+      source.transform.corners['bl'].y + deltaY > 0
+    ) {
       source.transform.corners['bl'].x += deltaX;
       source.transform.corners['bl'].y += deltaY;
 
@@ -1157,6 +1164,30 @@ class ProjectionEditor extends LitElement {
       }
       if (Math.abs(source.transform.corners['tr'].x - filtered.x) < 64) {
         source.transform.corners['tr'].x = filtered.x;
+      }
+    }
+
+    for (const corner in source.transform.corners) {
+      if (source.transform.corners[corner as keyof Corners].x < 0) {
+        source.transform.corners[corner as keyof Corners].x = 0;
+      }
+      if (source.transform.corners[corner as keyof Corners].y < 0) {
+        source.transform.corners[corner as keyof Corners].y = 0;
+      }
+
+      if (
+        source.transform.corners[corner as keyof Corners].x >
+        this.data.size?.width
+      ) {
+        source.transform.corners[corner as keyof Corners].x =
+          this.data.size?.width || 1920;
+      }
+      if (
+        source.transform.corners[corner as keyof Corners].y >
+        this.data.size?.height
+      ) {
+        source.transform.corners[corner as keyof Corners].y =
+          this.data.size?.height || 1080;
       }
     }
 
@@ -1225,7 +1256,7 @@ class ProjectionEditor extends LitElement {
     const { x, y } = this.getCanvasPixel(event_);
 
     const corners = source.transform.corners;
-    const hitRadius = 30;
+    const hitRadius = 45;
 
     for (const [key, corner] of Object.entries(corners)) {
       const distribution = Math.hypot(x - corner.x, y - corner.y);
@@ -1281,9 +1312,11 @@ class ProjectionEditor extends LitElement {
 
   private async populateTagDatalist(): Promise<void> {
     await populateTagsDatalist(
-    this.shadowRoot!.querySelector('#available-tags')!, (tag) => {
-      return tag.type === 'number' || tag.type === 'string';
-    });
+      this.shadowRoot!.querySelector('#available-tags')!,
+      (tag) => {
+        return tag.type === 'number' || tag.type === 'string';
+      }
+    );
   }
 
   private async loadFonts(): Promise<void> {
@@ -1720,7 +1753,6 @@ class ProjectionEditor extends LitElement {
     }
   }
 
-
   private generateId(): string {
     return 'src_' + Math.random().toString(36).slice(2, 11);
   }
@@ -1729,7 +1761,10 @@ class ProjectionEditor extends LitElement {
     if (this.isViewerMode) {
       return html`
         <div class="projection-editor viewer-mode">
-          <div class="editor-canvas-area viewer-mode" style="width: 100%; height: 100vh; overflow: hidden;">
+          <div
+            class="editor-canvas-area viewer-mode"
+            style="width: 100%; height: 100vh; overflow: hidden;"
+          >
             <canvas id="preview-canvas"></canvas>
             <div id="preview-sources"></div>
           </div>
@@ -1741,17 +1776,13 @@ class ProjectionEditor extends LitElement {
       <div class="projection-editor" id="projection-editor">
         <div class="editor-toolbar">
           <h2>${this.data.title}</h2>
-          <button
-id="save-btn"
-data-testid="save-btn"
-class="btn btn-primary"
->
+          <button id="save-btn" data-testid="save-btn" class="btn btn-primary">
             Save
           </button>
         </div>
 
         <div class="editor-main">
-          <div class="editor-canvas-area">
+          <div class="editor-canvas-area" style="margin:15px; border: 2px dashed rgba(30,30,30,0.2);">
             <canvas id="preview-canvas"></canvas>
             <div id="preview-sources"></div>
           </div>
@@ -1805,7 +1836,7 @@ class="btn btn-primary"
                   data-testid="size-width"
                   min="320"
                   value="1920"
-                >
+                />
               </div>
               <div class="form-group">
                 <label>Height (px)</label>
@@ -1815,7 +1846,7 @@ class="btn btn-primary"
                   data-testid="size-height"
                   min="240"
                   value="1080"
-                >
+                />
               </div>
             </div>
 
@@ -1837,7 +1868,7 @@ class="btn btn-primary"
                     step="0.01"
                     value="1"
                     style="flex: 1;"
-                  >
+                  />
                   <span id="opacity-val">1.00</span>
                 </div>
               </div>
@@ -1850,7 +1881,7 @@ class="btn btn-primary"
                   data-testid="opacity-tag"
                   placeholder="/path/to/tag"
                   list="available-tags"
-                >
+                />
                 <datalist id="available-tags"></datalist>
                 <datalist id="available-fonts"></datalist>
               </div>
@@ -1875,7 +1906,7 @@ class="btn btn-primary"
                   data-testid="rotation"
                   value="0"
                   step="1"
-                >
+                />
               </div>
 
               <div class="form-group">
@@ -1889,14 +1920,14 @@ class="btn btn-primary"
                       data-corner="tl"
                       data-testid="corner-x-tl"
                       placeholder="X"
-                    >
+                    />
                     <input
                       type="number"
                       class="corner-y"
                       data-corner="tl"
                       data-testid="corner-y-tl"
                       placeholder="Y"
-                    >
+                    />
                   </div>
                   <div>
                     <label>Top-Right</label>
@@ -1906,14 +1937,14 @@ class="btn btn-primary"
                       data-corner="tr"
                       data-testid="corner-x-tr"
                       placeholder="X"
-                    >
+                    />
                     <input
                       type="number"
                       class="corner-y"
                       data-corner="tr"
                       data-testid="corner-y-tr"
                       placeholder="Y"
-                    >
+                    />
                   </div>
                   <div>
                     <label>Bottom-Left</label>
@@ -1923,14 +1954,14 @@ class="btn btn-primary"
                       data-corner="bl"
                       data-testid="corner-x-bl"
                       placeholder="X"
-                    >
+                    />
                     <input
                       type="number"
                       class="corner-y"
                       data-corner="bl"
                       data-testid="corner-y-bl"
                       placeholder="Y"
-                    >
+                    />
                   </div>
                   <div>
                     <label>Bottom-Right</label>
@@ -1940,14 +1971,14 @@ class="btn btn-primary"
                       data-corner="br"
                       data-testid="corner-x-br"
                       placeholder="X"
-                    >
+                    />
                     <input
                       type="number"
                       class="corner-y"
                       data-corner="br"
                       data-testid="corner-y-br"
                       placeholder="Y"
-                    >
+                    />
                   </div>
                 </div>
               </div>
