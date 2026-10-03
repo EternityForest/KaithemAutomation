@@ -1043,7 +1043,6 @@ class ScrollingWindow(Widget):
 
         return """<div class="w-full card">
         <div id=%(htmlid)s class ="max-h-12rem scroll border %(cssclass)s" style="%(style)s">
-        %(content)s
         </div>
         <script type="module">
         import { kaithemapi } from "/static/js/widget.mjs?"
@@ -1074,7 +1073,6 @@ class ScrollingWindow(Widget):
         </div>""" % {
             "htmlid": mkid(),
             "maxlen": self.maxlen,
-            "content": content,
             "cssclass": cssclass,
             "style": style,
             "id": self.uuid,

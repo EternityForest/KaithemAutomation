@@ -36,7 +36,7 @@
 </div>
 </div>
 <table border="1" class="w-full">
-<tr><th>Name</th><th  class="desktop-only">Value(not realtime)</th>
+<tr><th>Name</th><th>Value(not realtime)</th>
     <th  class="desktop-only">Alarms</th>
 
 </tr>
@@ -45,26 +45,26 @@
 <tr>
     <td  style="word-wrap: break-word;"><a href="/tagpoints/{{ tag.name|urlencode }}{{ extra_url_stuff }}">{{ tag.name|escape }}</a>
     </td>
-    <td  class="desktop-only" style="word-wrap: break-word;">{{ tag.value }}</td>
+    <td  style="word-wrap: break-word;">{{ tag.value }}</td>
     <td  class="desktop-only">{{ tag.alerts_count }}</td>
 </tr>
 {% elif tag.type == 'string' %}
 <tr>
     <td  style="word-wrap: break-word;"><a href="/tagpoints/{{ tag.name|urlencode }}{{ extra_url_stuff }}">{{ tag.name|escape }}</a></td>
-    <td  class="desktop-only" style="word-wrap: break-word;">{{ tag.value|escape }} </td>
+    <td style="word-wrap: break-word;">{{ tag.value|escape }} </td>
     <td  class="desktop-only">{{ tag.alerts_count }}</td>
 
 </tr>
 {% elif tag.type == 'object' %}
 <tr>
     <td  style="word-wrap: break-word;"><a href="/tagpoints/{{ tag.name|urlencode }}{{ extra_url_stuff }}">{{ tag.name|escape }}</a></td>
-    <td  class="desktop-only" style="word-wrap: break-word;">{{ tag.value|escape }} </td>
+    <td   style="word-wrap: break-word;">{{ tag.value|escape }} </td>
     <td  class="desktop-only">{{ tag.alerts_count }}</td>
 </tr>
 {% elif tag.type == 'binary' %}
 <tr>
     <td  style="word-wrap: break-word;"><a href="/tagpoints/{{ tag.name|urlencode }}{{ extra_url_stuff }}">{{ tag.name|escape }}</a></td>
-    <td  class="desktop-only"><span style="color: grey">Value is binary data</span></td>
+    <td  class="desktop-only"><span style="color: grey">binary data</span></td>
     <td  class="desktop-only">{{ tag.alerts_count }}</td>
 </tr>
 {% elif tag.type == 'deleted' %}

@@ -3,6 +3,8 @@ Change Log
 
 ### Dev
 * [sparkles] Improve the corner dragging in projection mapping
+* [bug] iot_devices: fix gpiodevice
+
 
 ### 0.97.0
 

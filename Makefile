@@ -243,19 +243,19 @@ dev-clear-docker-production-cache:
 
 .PHONY: dev-build-docker-production
 dev-build-docker-production:
-	@echo "Building docker cross platform images for Kaithem ${KAITHEM_VERSION}"
-	@cd ./docker
-	@mkdir -p ${DOCKER_BUILD_DIR}
-	@BUILDX_BUILDER=kaithem-multiarch-builder docker buildx bake -f docker-compose.yaml -f docker-bake.hcl --progress=plain
+# 	@echo "Building docker cross platform images for Kaithem ${KAITHEM_VERSION}"
+# 	@cd ./docker
+# 	@mkdir -p ${DOCKER_BUILD_DIR}
+# 	@BUILDX_BUILDER=kaithem-multiarch-builder docker buildx bake -f docker-compose.yaml -f docker-bake.hcl --progress=plain
 
-	@echo "Pushing images to local registry on port 5000"
+# 	@echo "Pushing images to local registry on port 5000"
 	@skopeo copy --multi-arch all oci-archive:${DOCKER_BUILD_DIR}/kaithem-${KAITHEM_VERSION}.tar docker://localhost:5000/cooperskeep/kaithem:${KAITHEM_VERSION} --dest-tls-verify=false
-	@skopeo copy --multi-arch all oci-archive:${DOCKER_BUILD_DIR}/kaithem-kiosk-${KAITHEM_VERSION}.tar docker://localhost:5000/cooperskeep/kaithem-kiosk:${KAITHEM_VERSION} --dest-tls-verify=false
-	@skopeo copy --multi-arch all oci-archive:${DOCKER_BUILD_DIR}/kaithem-dev-${KAITHEM_VERSION}.tar docker://localhost:5000/cooperskeep/kaithem-dev:${KAITHEM_VERSION} --dest-tls-verify=false
+# 	@skopeo copy --multi-arch all oci-archive:${DOCKER_BUILD_DIR}/kaithem-kiosk-${KAITHEM_VERSION}.tar docker://localhost:5000/cooperskeep/kaithem-kiosk:${KAITHEM_VERSION} --dest-tls-verify=false
+# 	@skopeo copy --multi-arch all oci-archive:${DOCKER_BUILD_DIR}/kaithem-dev-${KAITHEM_VERSION}.tar docker://localhost:5000/cooperskeep/kaithem-dev:${KAITHEM_VERSION} --dest-tls-verify=false
 # Pull those images locally
 	@docker pull localhost:5000/cooperskeep/kaithem:${KAITHEM_VERSION}
-	@docker pull localhost:5000/cooperskeep/kaithem-kiosk:${KAITHEM_VERSION}
-	@docker pull localhost:5000/cooperskeep/kaithem-dev:${KAITHEM_VERSION}
+# 	@docker pull localhost:5000/cooperskeep/kaithem-kiosk:${KAITHEM_VERSION}
+# 	@docker pull localhost:5000/cooperskeep/kaithem-dev:${KAITHEM_VERSION}
 
 # Upload with command like:
 # skopeo copy --multi-arch all oci-archive:docker-build/kaithem-0.97.0.tar docker://docker.io/cooperskeep/kaithem:0.97.0
