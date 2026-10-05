@@ -23,25 +23,6 @@
 
     <div>
       <h3>Automation Logic</h3>
-      <details class="help">
-        <summary><i class="mdi mdi-help-circle-outline"></i></summary>
-        <p>
-          Here you can create rules that apply whenever the group is in this
-          cue, to do things like trigger other cues when this one enters or
-          exits.
-        </p>
-
-        <p>
-          Action parameters can use spreadsheet-style =expressions. The special
-          function tv('name') or stv('name') gets the value of a tag or string
-          tag.
-        </p>
-
-        <p>
-          The variables "event.name", "event.value", and "event.time" are
-          available to get info on the event that triggered a rule.
-        </p>
-      </details>
     </div>
     <div class="card w-sm-full" style="overflow: visible">
       <label
@@ -131,15 +112,6 @@ const example_events_base = [
   ["cue.exit", "When exiting the cue"],
   ["cue.enter", "When entering a cue"],
   ["=tv('TagPointName')", "Run when tag point is nonzero"],
-  [
-    "=/tv('TagPointName')",
-    "Run when tag point newly becomes nonzero(edge trigger)",
-  ],
-  ["=~tv('TagPointName')", "Run when tag point changes"],
-  [
-    "=+tv('TagPointName')",
-    "Run when changes and is not zero(Counter/bang trigger)",
-  ],
   ["button.a", "A button in groups sidebar"],
   [
     "keydown.a",
@@ -152,8 +124,8 @@ const example_events_base = [
   ["@january 5th", "Run every jan 5 at midnight"],
   ["@every day at 2am US/Pacific", "Time zones supported"],
   ["@every 10 seconds", "Simple repeating trigger"],
-  ["=isNight()", "Run if it is nighttime(polled)"],
-  ["=isNight()", "Run if it is nighttime(polled)"],
+  ["=isNight()", "Run while it is nighttime(polled)"],
+  ["=isNight()", "Run while it is nighttime(polled)"],
   [
     "=tv('/system/alerts.level') >= 30 ",
     "Run if the highest priority alert is warning(30), error(40), or critical(50) level",
@@ -176,16 +148,7 @@ const example_events = computed( () => {
 
       for (let n in props.availabletags) {
         let i = props.availabletags[n];
-        event_.push(["=tv('" + n + "')", "While tag is nonzero"]);
-        if (i == "trigger") {
-          event_.push(["=+tv('" + n + "')", "On every nonzero change"]);
-        }
-        if (i == "bool") {
-          event_.push([
-            "=/tv('" + n + "')",
-            "When tag newly becomes nonzero(edge trigger)",
-          ]);
-        }
+        event_.push(["=tv('" + n + "')", "Repeat while tag is nonzero"]);
       }
 
       return event_;

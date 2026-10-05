@@ -467,14 +467,6 @@ globalUsrFunctions = {
 globalConstants = {"e": math.e, "pi": math.pi}
 
 
-class ReturnValue(StatelessFunction):
-    doc = "Returns the parameter x, and continues the action (Unless the value is None)"
-    args = [{"name": "x", "type": "any", "default": ""}]
-
-    def call(self, x):
-        return x
-
-
 class PassAction(StatelessFunction):
     doc = "Does nothing and returns True, continuing the action"
     args = []
@@ -496,7 +488,7 @@ class ContinueIf(StatelessFunction):
     args = [{"name": "v", "type": "str", "default": ""}]
 
     def call(self, v):
-        return True if v else None
+        return v if v else None
 
 
 class SetTag(FunctionBlock):
@@ -613,7 +605,6 @@ class Shell(StatelessFunction):
 context_info = threading.local()
 
 predefinedcommands: dict[str, type[FunctionBlock]] = {
-    "return": ReturnValue,
     "pass": PassAction,
     "maybe": Maybe,
     "continue_if": ContinueIf,
@@ -918,7 +909,15 @@ class BaseChandlerScriptContext:
         with self.gil:
             for i in self.event_listeners:
                 try:
-                    if i["event"].startswith("="):
+                    if i["event"].startswith("=^"):
+                        self.eval_times = 0
+                        r = self.preprocessArgument(i["event"])
+                        if r:
+                            self.event(
+                                i["event"], r, self.eval_times or time.time()
+                            )
+
+                    elif i["event"].startswith("="):
                         self.eval_times = 0
                         r = self.preprocessArgument(i["event"])
                         self.event(
@@ -1310,7 +1309,7 @@ class BaseChandlerScriptContext:
                     if not self.slowpoller:
                         needCheck = True
                         self.slowpoller = scheduler.schedule_repeating(
-                            self.checkPollEvents, 3
+                            self.checkPollEvents, 1.0
                         )
 
             # Run right away for faster response

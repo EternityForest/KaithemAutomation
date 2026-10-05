@@ -48,7 +48,7 @@ class GotoCommand(CueLogicStatelessFunction):
             raise ValueError("Timestamp sanity check failed")
 
         # Ignore empty
-        if not cue.strip():
+        if not cue or not cue.strip():
             return True
 
         # Track layers of recursion

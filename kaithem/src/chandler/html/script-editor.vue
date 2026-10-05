@@ -18,7 +18,7 @@
 
 .action,
 .event {
-  height: 12em;
+  height: 7rem;
   min-width: 8rem;
 }
 
@@ -55,7 +55,7 @@ p.small {
     <div class="w-full">
       <div class="flex-row gaps">
         <div
-          class="card paper margin col-3 card min-h-24rem w-sm-full"
+          class="card paper margin col-3 card min-h-24rem w-full"
           popover
           id="blockInspectorEvent"
           ontoggle="globalThis.handleDialogState(event)"
@@ -307,7 +307,7 @@ p.small {
             v-on:click="
               rules.push({
                 event: 'cue.enter',
-                commands: [{ command: 'goto', group: '=GROUP', cue: '' }],
+                commands: [{ command: 'continue_if', v:'=_'}],
               });
               $emit('update:modelValue', rules);
             ">
@@ -435,6 +435,7 @@ function deleteBinding(b) {
   if (confirm("Really delete binding?")) {
     removeElement(rules, b);
     emit("update:modelValue", rules);
+    selectedBindingIndex.value = -1;
   }
 }
 function removeElement(array, element) {
@@ -466,6 +467,16 @@ function setCommandDefaults(action) {
   for (const argumentMeta of arguments_) {
     if (!(argumentMeta.name in action)) {
       action[argumentMeta.name] = argumentMeta.default || "";
+    }
+  }
+
+  // Remove any args that are not in the metadata
+  for (const argName in action) {
+    if (argName == "command") {
+      continue;
+    }
+    if (!(argName in arguments_)) {
+      delete action[argName];
     }
   }
 }
