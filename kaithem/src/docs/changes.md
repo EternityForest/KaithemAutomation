@@ -7,6 +7,7 @@ Change Log
 * [bug] Fix chandler rule trigger editor not appearing in some cases after deleting a rule
 * [bug] Fix annoying error loop with empty goto rule
 * [bug] Fix leftover params when changing command type* [sparkles] Newly created chandler rules start with a continue_if block instead of a goto, as most rules probably need a continue_if.
+* [coffin] script.poll is deprecated but not removed. Don't use it if you can.
 
 ### 0.97.0
 

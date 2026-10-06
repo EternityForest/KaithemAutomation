@@ -1636,6 +1636,11 @@ class Group:
             if not self.script_context:
                 self.script_context = self.make_script_context()
 
+            if rulesFrom:
+                self.script_context.set_poll_rate(rulesFrom.rules_poll_rate)
+            else:
+                self.script_context.set_poll_rate(1.0)
+
             self.script_context.clearBindings()
 
             self.script_context.setVar("GROUP", self.name)

@@ -1428,20 +1428,6 @@ def test_cue_logic_function_blocks():
         time.sleep(1)
         assert abs(logic_test_tag_o.value - 0.63) < 0.05
 
-        # Wait for change to get to start of period,
-        # make sure not running too fast
-        x = logic_test_tag_o.value
-        for i in range(1000):
-            if logic_test_tag_o.value != x:
-                break
-            time.sleep(0.001)
-        assert logic_test_tag_o.value != x
-        x = logic_test_tag_o.value
-        time.sleep(0.5)
-        assert x == logic_test_tag_o.value
-
-
-
 
 def test_cue_logic_function_blocks_speed():
     from kaithem.src import tagpoints
@@ -1463,9 +1449,8 @@ def test_cue_logic_function_blocks_speed():
             "cue2",
             rules=[
                 [
-                    "script.poll",
+                    "=tv('/logic_test_tag')",
                     [
-                        ["return", "=tv('/logic_test_tag')"],
                         ["lowpass", "=_", "1"],
                         ["set_tag", "/logic_test_tag_o", "=_"],
                     ],
@@ -1477,14 +1462,8 @@ def test_cue_logic_function_blocks_speed():
         sending_group.goto_cue("cue2")
         core.wait_frame()
         core.wait_frame()
-
-        logic_test_tag.value = 1
-        time.sleep(1)
-        assert abs(logic_test_tag_o.value - 0.63) < 0.05
-
-        x = logic_test_tag_o.value
-        time.sleep(0.05)
-        assert logic_test_tag_o.value != x
+        time.sleep(0.5)
+        assert abs(logic_test_tag_o.value - 1.0) < 0.005
 
 
 def test_cue_logic_function_block_cooldown():

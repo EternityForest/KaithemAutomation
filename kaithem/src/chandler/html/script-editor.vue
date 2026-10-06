@@ -56,10 +56,12 @@ p.small {
       <div class="flex-row gaps">
         <div
           class="card paper margin col-3 card min-h-24rem w-full"
+          style="width: 98%"
           popover
           id="blockInspectorEvent"
           ontoggle="globalThis.handleDialogState(event)"
-          v-if="selectedCommand == 0 && selectedBinding">
+          v-if="selectedCommandIndex == -1 && rules?.[selectedBindingIndex]"
+        >
           <header>
             <div class="tool-bar">
               <h4>Event Inspector</h4>
@@ -68,7 +70,8 @@ p.small {
                 type="button"
                 data-testid="close-event-inspector"
                 popovertarget="blockInspectorEvent"
-                popovertargetaction="hide">
+                popovertargetaction="hide"
+              >
                 <i class="mdi mdi-close"></i>Close
               </button>
             </div>
@@ -82,7 +85,8 @@ p.small {
               <option
                 v-for="(v, _i) in props.example_events"
                 v-bind:value="v[0]"
-                v-bind:key="v[0]">
+                v-bind:key="v[0]"
+              >
                 {{ v[1] }}
               </option>
             </datalist>
@@ -90,20 +94,20 @@ p.small {
               >Run on(type to search)
               <input
                 :disabled="disabled"
-                v-model="selectedBinding.event"
+                v-model="rules[selectedBindingIndex].event"
                 list=" props.example_events"
                 v-on:change="
-                  selectedBinding.event = $event.target.value;
-                  $nextTick(() => {
-                    $emit('update:modelValue', rules);
-                  });
-                " />
+                  rules[selectedBindingIndex].event = $event.target.value;
+                  $emit('update:modelValue', rules);
+                "
+              />
             </label>
           </div>
           <h4>Delete</h4>
           <button
             :disabled="disabled"
-            v-on:click="deleteBinding(selectedBinding)">
+            v-on:click="deleteBinding(rules[selectedBindingIndex])"
+          >
             Remove binding and all actions
           </button>
         </div>
@@ -113,7 +117,8 @@ p.small {
           popover
           ontoggle="globalThis.handleDialogState(event)"
           id="blockInspectorCommand"
-          v-if="selectedCommand">
+          v-if="rules?.[selectedBindingIndex]?.commands?.[selectedCommandIndex]"
+        >
           <header>
             <div class="tool-bar">
               <h4>Command Inspector</h4>
@@ -122,7 +127,8 @@ p.small {
                 data-testid="close-command-inspector"
                 type="button"
                 popovertarget="blockInspectorCommand"
-                popovertargetaction="hide">
+                popovertargetaction="hide"
+              >
                 <i class="mdi mdi-close"></i>Close
               </button>
             </div>
@@ -131,41 +137,43 @@ p.small {
           Type
           <combo-box
             :disabled="disabled"
-            v-model="selectedCommand.command"
+            v-model="rules[selectedBindingIndex].commands[selectedCommandIndex].command"
             v-bind:options="getPossibleActions()"
-            @update:modelValue="setCommandDefaults(selectedCommand)"
             v-on:change="
-              selectedCommand.command = $event;
-              setCommandDefaults(selectedCommand);
-              $nextTick(() => {
-                $emit('update:modelValue', rules);
-              });
-            "></combo-box>
-          <div v-if="commands[selectedCommand.command]">
+              rules[selectedBindingIndex].commands[
+                selectedCommandIndex
+              ].command = $event;
+              setCommandDefaults(
+                rules[selectedBindingIndex].commands[selectedCommandIndex]
+              );
+              $emit('update:modelValue', rules);
+            "
+          ></combo-box>
+          <div v-if="commands?.[rules?.[selectedBindingIndex]?.commands?.[selectedCommandIndex]?.command]">
             <div class="stacked-form">
               <label
-                v-for="(argMeta, i) in commands[selectedCommand.command].args"
-                v-bind:key="i">
+                v-for="(argMeta, i) in commands[rules[selectedBindingIndex].commands[selectedCommandIndex].command].args"
+                v-bind:key="i"
+              >
                 {{ argMeta.name }}
                 <combo-box
                   :disabled="disabled"
                   :testid="'command-arg-' + argMeta.name"
-                  v-model="selectedCommand[argMeta.name]"
+                  v-model="rules[selectedBindingIndex].commands[selectedCommandIndex][argMeta.name]"
                   v-on:change="
-                    rules[selectedBindingIndex].commands[
-                      selectedCommandIndex
-                    ][argMeta.name] = $event;
+                    rules[selectedBindingIndex].commands[selectedCommandIndex][
+                      argMeta.name
+                    ] = $event;
                     $emit('update:modelValue', rules);
                   "
-                  :options="
-                    getCompletions(selectedCommand, argMeta.name)
-                  "></combo-box>
+                  :options="getCompletions(rules[selectedBindingIndex].commands[selectedCommandIndex], argMeta.name)"
+                ></combo-box>
               </label>
             </div>
             <h5>Docs</h5>
 
             <pre style="white-space: pre-wrap">{{
-              commands[selectedCommand.command].doc
+              commands[rules[selectedBindingIndex].commands[selectedCommandIndex].command].doc
             }}</pre>
           </div>
 
@@ -177,7 +185,8 @@ p.small {
               );
               selectedCommandIndex -= 1;
               $emit('update:modelValue', rules);
-            ">
+            "
+          >
             Delete Command
           </button>
           <button
@@ -191,14 +200,15 @@ p.small {
               );
               selectedCommandIndex -= 1;
               $emit('update:modelValue', rules);
-            ">
+            "
+          >
             Move Back
           </button>
           <button
             :disabled="disabled"
             v-if="
               selectedCommandIndex <
-              rules[selectedBindingIndex].commands.length - 1
+              rules?.[selectedBindingIndex]?.commands?.length - 1
             "
             v-on:click="
               swapArrayElements(
@@ -208,7 +218,8 @@ p.small {
               );
               selectedCommandIndex += 1;
               $emit('update:modelValue', rules);
-            ">
+            "
+          >
             Move Forward
           </button>
         </div>
@@ -218,24 +229,27 @@ p.small {
             v-for="(rule, rule_idx) in rules"
             class="w-sm-double card"
             data-testid="rule-box-row"
-            :key="rule_idx">
+            :key="rule_idx"
+          >
             <header>
               <div class="tool-bar">
                 <button
                   data-testid="rule-trigger"
                   popovertarget="blockInspectorEvent"
-                  v-bind:class="{ highlight: selectedBinding == rule }"
+                  v-bind:class="{ highlight: rules?.[selectedBindingIndex] == rule }"
                   style="flex-grow: 50"
                   v-on:click="
-                    selectedBindingIndex = rules.indexOf(rule);
+                    selectedBindingIndex = parseInt(rule_idx);
                     selectedCommandIndex = -1;
-                  ">
+                  "
+                >
                   <b>On {{ rule.event }}</b>
                 </button>
 
                 <button
                   :disabled="disabled"
-                  v-on:click="moveCueRuleDown(rule_idx)">
+                  v-on:click="moveCueRuleDown(rule_idx)"
+                >
                   Move down
                 </button>
               </div>
@@ -247,27 +261,30 @@ p.small {
                 data-testid="rule-command"
                 :key="action_idx"
                 style="display: flex"
-                class="nogrow">
+                class="nogrow"
+              >
                 <button
                   style="align-content: flex-start"
                   popovertarget="blockInspectorCommand"
                   v-bind:class="{
-                    'action': 1,
+                    action: 1,
                     'flex-row': 1,
-                    'selected':
-                      (selectedBinding == rule) & (selectedCommand == action),
+                    selected:
+                      (rules?.[selectedBindingIndex] == rule) && (rules?.[selectedBindingIndex]?.commands?.[selectedCommandIndex] == action),
                   }"
                   v-on:click="
-                    selectedCommandIndex = action_idx;
-                    selectedBindingIndex = rules.indexOf(rule);
-                  ">
+                    selectedCommandIndex = parseInt(action_idx);
+                    selectedBindingIndex = parseInt(rule_idx);
+                  "
+                >
                   <div class="w-full h-min-content">
                     <b>{{ action.command }}</b>
                   </div>
 
                   <template v-for="(i, argName) of action" :key="i">
                     <template
-                      v-if="argName != 'command' && i != '=_' && i != '=GROUP'">
+                      v-if="argName != 'command' && i != '=_' && i != '=GROUP'"
+                    >
                       <div class="nogrow h-min-content" style="margin: 2px">
                         {{ action[argName] }}
                       </div>
@@ -277,14 +294,16 @@ p.small {
                   <template v-if="!(action.command in commands)">
                     <div
                       class="nogrow h-min-content warning"
-                      style="margin: 2px">
+                      style="margin: 2px"
+                    >
                       Command <b>{{ action.command }}</b> not found
                     </div>
                   </template>
                 </button>
                 <i
                   class="mdi mdi-arrow-right"
-                  style="align-self: center; text-align: center"></i>
+                  style="align-self: center; text-align: center"
+                ></i>
               </div>
               <div style="align-self: stretch">
                 <button
@@ -294,7 +313,8 @@ p.small {
                   v-on:click="
                     rule.commands.push({ command: 'pass' });
                     $emit('update:modelValue', rules);
-                  ">
+                  "
+                >
                   <b>Add Action</b>
                 </button>
               </div>
@@ -305,12 +325,13 @@ p.small {
             :disabled="disabled"
             title="Add a rule that the group should do something when an event fires"
             v-on:click="
-              rules.push({
+              rules?.push({
                 event: 'cue.enter',
-                commands: [{ command: 'continue_if', v:'=_'}],
+                commands: [{ command: 'continue_if', v: '=_' }],
               });
               $emit('update:modelValue', rules);
-            ">
+            "
+          >
             <b>Add Rule</b>
           </button>
         </div>
@@ -320,9 +341,9 @@ p.small {
 </template>
 
 <script setup>
-import { computed, watchEffect, ref } from "vue";
+import {watchEffect, ref } from 'vue';
 
-import ComboBox from "../../vue/combo-box.vue";
+import ComboBox from '../../vue/combo-box.vue';
 const props = defineProps({
   modelValue: Object,
   commands: Object,
@@ -331,7 +352,7 @@ const props = defineProps({
   example_events: Array,
 });
 
-const emit = defineEmits(["update:modelValue"]);
+const emit = defineEmits(['update:modelValue']);
 
 let rules = props.modelValue;
 let disabled = props.disabled;
@@ -347,33 +368,11 @@ let argcompleters = props.completers || {};
 let selectedCommandIndex = ref(-1);
 let selectedBindingIndex = ref(-1);
 
-const selectedBinding = computed(() => {
-  if (selectedBindingIndex.value == -1) {
-    return 0;
-  }
-  return rules[selectedBindingIndex.value];
-});
 
-const selectedCommand = computed(() => {
-  if (selectedBindingIndex.value == -1) {
-    return 0;
-  }
-  if (selectedCommandIndex.value == -1) {
-    return 0;
-  }
-  if (rules[selectedBindingIndex.value]) {
-    const rule = rules[selectedBindingIndex.value];
-    const actions = rule.commands || [];
-    if (actions[selectedCommandIndex.value]) {
-      return actions[selectedCommandIndex.value];
-    }
-  }
-  return 0;
-});
 
 function getArgMetadata(commandName, argumentName) {
   if (commandName in props.commands) {
-    for(var i in props.commands[commandName].args) {
+    for (var i in props.commands[commandName].args) {
       if (props.commands[commandName].args[i].name == argumentName) {
         return props.commands[commandName].args[i];
       }
@@ -388,7 +387,7 @@ function getCompletions(actionObject, argumentName) {
   const argumentMetadata = getArgMetadata(cmdName, argumentName);
 
   if (!argumentMetadata) {
-    return argcompleters["defaultExpressionCompleter"](actionObject);
+    return argcompleters['defaultExpressionCompleter'](actionObject);
   }
 
   if (argcompleters[argumentMetadata.type]) {
@@ -399,7 +398,7 @@ function getCompletions(actionObject, argumentName) {
       return [];
     }
   }
-  return argcompleters["defaultExpressionCompleter"](actionObject);
+  return argcompleters['defaultExpressionCompleter'](actionObject);
 }
 
 function moveCueRuleDown(index) {
@@ -410,7 +409,7 @@ function moveCueRuleDown(index) {
     rules[index + 1] = rules[index];
     rules[index] = t;
   }
-  emit("update:modelValue", rules);
+  emit('update:modelValue', rules);
 }
 
 function swapArrayElements(array, indexA, indexB) {
@@ -423,18 +422,18 @@ function getPossibleActions() {
   var l = [];
   for (var i in props.commands) {
     if (props.commands[i] == null) {
-      console.log("Warning: Null entry for command info for" + i);
+      console.log('Warning: Null entry for command info for' + i);
     } else {
-      l.push([i, props.commands[i].doc || ""]);
+      l.push([i, props.commands[i].doc || '']);
     }
   }
   return l;
 }
 
 function deleteBinding(b) {
-  if (confirm("Really delete binding?")) {
+  if (confirm('Really delete binding?')) {
     removeElement(rules, b);
-    emit("update:modelValue", rules);
+    emit('update:modelValue', rules);
     selectedBindingIndex.value = -1;
   }
 }
@@ -443,8 +442,8 @@ function removeElement(array, element) {
   if (index > -1) {
     array.splice(index, 1);
   } else {
-    console.log("Element not found in array");
-    alert("Element not found in array");
+    console.log('Element not found in array');
+    alert('Element not found in array');
   }
 }
 function setCommandDefaults(action) {
@@ -458,24 +457,33 @@ function setCommandDefaults(action) {
   }
 
   // If we don't know this command, nothing to do
+  // but still need cleanup old args
   if (!metadata) {
-    return;
+    metadata = { args: [] };
   }
 
   // Set default values for all args
   const arguments_ = metadata.args || [];
   for (const argumentMeta of arguments_) {
     if (!(argumentMeta.name in action)) {
-      action[argumentMeta.name] = argumentMeta.default || "";
+      action[argumentMeta.name] = argumentMeta.default || '';
     }
   }
 
   // Remove any args that are not in the metadata
   for (const argName in action) {
-    if (argName == "command") {
+    if (argName == 'command') {
       continue;
     }
-    if (!(argName in arguments_)) {
+
+    let found = false;
+    for (const argumentMeta of arguments_) {
+      if (argumentMeta.name == argName) {
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
       delete action[argName];
     }
   }

@@ -54,7 +54,7 @@
             props.setcueproperty(
               props.currentcue.id,
               'rulesPollRate',
-              $event.target.value
+              parseFloat($event.target.value)
             )
           " />
       </label>

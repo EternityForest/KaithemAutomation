@@ -1450,7 +1450,7 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
         self.tagHandlers = {}
         self.tagpoints: dict[str, tagpoints.GenericTagPointClass[Any]] = {}
 
-        self.pollrate = 1
+        self.pollrate = 1.0
 
         def tagpoint(t):
             tagName = self.canGetTagpoint(t)

@@ -195,6 +195,9 @@ class ConsoleNotificationCommand(CueLogicStatelessFunction):
     args = [{"name": "text", "type": "str", "default": ""}]
 
     def call(self, text: str = ""):
+        # Stringify in case number is passed
+        # pyrefly: ignore [unnecessary-type-conversion]
+        text = str(text)[:1024]
         for board in core.iter_boards():
             if len(board.newDataFunctions) < 100:
                 board.newDataFunctions.append(

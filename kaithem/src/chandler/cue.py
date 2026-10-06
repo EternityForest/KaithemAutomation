@@ -736,6 +736,8 @@ class Cue:
 
     @rules_poll_rate.setter
     def rules_poll_rate(self, val: float):
+        val = float(val)
+        self._rules_poll_rate = val
         if self.is_active:
             self.getGroup().refresh_rules()
 
