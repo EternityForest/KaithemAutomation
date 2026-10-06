@@ -6,9 +6,7 @@ Change Log
 * [bug] iot_devices: fix gpiodevice
 * [bug] Fix chandler rule trigger editor not appearing in some cases after deleting a rule
 * [bug] Fix annoying error loop with empty goto rule
-* [bug] Fix leftover params when changing command type
-* [coffin] BREAKING remove redundant returnvalue command
-* [sparkles] Newly created chandler rules start with a continue_if block instead of a goto, as most rules probably need a continue_if.
+* [bug] Fix leftover params when changing command type* [sparkles] Newly created chandler rules start with a continue_if block instead of a goto, as most rules probably need a continue_if.
 
 ### 0.97.0
 

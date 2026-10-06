@@ -53,6 +53,7 @@ stored_as_property = [
     "length_randomize",
     "rules",
     "inherit_rules",
+    "rules_poll_rate",
     "length",
     "schedule_at",
     "sound_loops",
@@ -322,6 +323,7 @@ class Cue:
         self._length: float | str = 0
         self.rel_length: bool = False
         self._length_randomize: float
+        self._rules_poll_rate: float = 1.0
         self.next_cue: str
         self._track: bool = False
         self._shortcut: str
@@ -725,6 +727,15 @@ class Cue:
     def inherit_rules(self, r: str):
         r = r.strip()
         self._inherit_rules = r
+        if self.is_active:
+            self.getGroup().refresh_rules()
+
+    @property
+    def rules_poll_rate(self) -> float:
+        return self._rules_poll_rate
+
+    @rules_poll_rate.setter
+    def rules_poll_rate(self, val: float):
         if self.is_active:
             self.getGroup().refresh_rules()
 

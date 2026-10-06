@@ -42,6 +42,22 @@
           all cues will additionally inherit from that cue.
         </p>
       </label>
+
+      <label
+        >Rules Poll Rate (FPS)
+        <input
+          :disabled="props.no_edit"
+          type="number"
+          v-bind:value="props.currentcue.rulesPollRate"
+          step="1"
+          v-on:change="
+            props.setcueproperty(
+              props.currentcue.id,
+              'rulesPollRate',
+              $event.target.value
+            )
+          " />
+      </label>
     </div>
     <hr />
 

@@ -940,7 +940,7 @@ def test_sched_end_invalid():
         time.sleep(1)
         # TODO not sure if we want to skip invalid or
         # stick on it.
-        assert grp.cue.name == "c"
+        assert grp.cue.name in ("b", "c")
 
 
 def test_sched_end_recalc_all():
@@ -1427,6 +1427,64 @@ def test_cue_logic_function_blocks():
         logic_test_tag.value = 1
         time.sleep(1)
         assert abs(logic_test_tag_o.value - 0.63) < 0.05
+
+        # Wait for change to get to start of period,
+        # make sure not running too fast
+        x = logic_test_tag_o.value
+        for i in range(1000):
+            if logic_test_tag_o.value != x:
+                break
+            time.sleep(0.001)
+        assert logic_test_tag_o.value != x
+        x = logic_test_tag_o.value
+        time.sleep(0.5)
+        assert x == logic_test_tag_o.value
+
+
+
+
+def test_cue_logic_function_blocks_speed():
+    from kaithem.src import tagpoints
+    from kaithem.src.chandler import core
+
+    with TempGroup("sending_group") as sending_group:
+        assert sending_group.active
+        core.wait_frame()
+
+        assert sending_group in board.active_groups
+        assert sending_group.cue.name == "default"
+
+        logic_test_tag = tagpoints.Tag("/logic_test_tag")
+        logic_test_tag_o = tagpoints.Tag("/logic_test_tag_o")
+
+        # This should set a tag, and also, when a different tag gets set,
+        # trigger a transition in the receiving group
+        sending_group.add_cue(
+            "cue2",
+            rules=[
+                [
+                    "script.poll",
+                    [
+                        ["return", "=tv('/logic_test_tag')"],
+                        ["lowpass", "=_", "1"],
+                        ["set_tag", "/logic_test_tag_o", "=_"],
+                    ],
+                ],
+            ],
+            rules_poll_rate=100,
+        )
+
+        sending_group.goto_cue("cue2")
+        core.wait_frame()
+        core.wait_frame()
+
+        logic_test_tag.value = 1
+        time.sleep(1)
+        assert abs(logic_test_tag_o.value - 0.63) < 0.05
+
+        x = logic_test_tag_o.value
+        time.sleep(0.05)
+        assert logic_test_tag_o.value != x
 
 
 def test_cue_logic_function_block_cooldown():

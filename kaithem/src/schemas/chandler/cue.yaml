@@ -125,6 +125,11 @@ properties:
     section: rules
     icon: script-text-outline
 
+  rules_poll_rate:
+    type: number
+    default: 1
+    description: How often to poll for changes in the rules, in FPS. Tag changes always trigger a poll cycle.
+
   rules:
     type: array
     default: []

@@ -1193,7 +1193,7 @@ class GenericTagPointClass(Generic[T]):
     def value(self, v: T):
         self.set_claim_val("default", v, time.time(), "Set via value property")
 
-    def pull(self, sync=False) -> None:
+    def pull(self, sync: bool = False) -> None:
         """
         Request that any getter in the active claim produce
          a new value if it has a getter.
@@ -1224,7 +1224,7 @@ class GenericTagPointClass(Generic[T]):
         finally:
             self._lock.release()
 
-    def get_vta(self, force=False) -> tuple[T, float, Any]:
+    def get_vta(self, force: bool = False) -> tuple[T, float, Any]:
         """Get the current value, timestamp and annotation.
         If force is true and the value is a getter, then force a new update.
         """

@@ -491,6 +491,14 @@ class ContinueIf(StatelessFunction):
         return v if v else None
 
 
+class Return(StatelessFunction):
+    doc = "Return the input value"
+    args = [{"name": "v", "type": "str", "default": ""}]
+
+    def call(self, v):
+        return v
+
+
 class SetTag(FunctionBlock):
     doc = (
         "Set a Tagpoint. If a priority is given, set the given claim priority."
@@ -607,6 +615,7 @@ context_info = threading.local()
 predefinedcommands: dict[str, type[FunctionBlock]] = {
     "pass": PassAction,
     "maybe": Maybe,
+    "return": Return,
     "continue_if": ContinueIf,
     "on_change": OnChangeBlock,
     "lowpass": LowPassFilterBlock,
@@ -1206,6 +1215,17 @@ class BaseChandlerScriptContext:
 
         return result
 
+    def set_poll_rate(self, hz: float):
+        if hz > 1000:
+            hz = 1000
+        if hz < 1:
+            hz = 1
+
+        self.pollrate = hz
+        if not self.slowpoller:
+            return
+        self.slowpoller.interval = 1.0 / hz
+
     def _import_dict_bindings(self, rules: list[EventBindingPipelineConfig]):
         """Import dict-format bindings directly.
 
@@ -1309,7 +1329,7 @@ class BaseChandlerScriptContext:
                     if not self.slowpoller:
                         needCheck = True
                         self.slowpoller = scheduler.schedule_repeating(
-                            self.checkPollEvents, 1.0
+                            self.checkPollEvents, 1.0 / self.pollrate
                         )
 
             # Run right away for faster response
@@ -1429,6 +1449,8 @@ class ChandlerScriptContext(BaseChandlerScriptContext):
 
         self.tagHandlers = {}
         self.tagpoints: dict[str, tagpoints.GenericTagPointClass[Any]] = {}
+
+        self.pollrate = 1
 
         def tagpoint(t):
             tagName = self.canGetTagpoint(t)
