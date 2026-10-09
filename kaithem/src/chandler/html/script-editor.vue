@@ -134,11 +134,12 @@ p.small {
             </div>
           </header>
 
-          Type
+          <label>Type
           <combo-box
             :disabled="disabled"
             v-model="rules[selectedBindingIndex].commands[selectedCommandIndex].command"
             v-bind:options="getPossibleActions()"
+            :testid="'command-type'"
             v-on:change="
               rules[selectedBindingIndex].commands[
                 selectedCommandIndex
@@ -148,7 +149,7 @@ p.small {
               );
               $emit('update:modelValue', rules);
             "
-          ></combo-box>
+          ></combo-box></label>
           <div v-if="commands?.[rules?.[selectedBindingIndex]?.commands?.[selectedCommandIndex]?.command]">
             <div class="stacked-form">
               <label

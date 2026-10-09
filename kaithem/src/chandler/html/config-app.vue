@@ -525,6 +525,7 @@
               <select
                 v-on:change="
                   chTypeChanged(i);
+                  fixtureClasses[selectedFixtureClass].channels[i].type = $event.target.value;
                   pushfixture(selectedFixtureClass);
                 "
                 v-model="fixtureClasses[selectedFixtureClass].channels[i].type"
@@ -791,7 +792,7 @@
             <td>
               <select
                 v-model="newfixtype"
-                data-testid="new-fixture-type-select"
+                data-testid="new-fixture-assignment-type-select"
               >
                 <option
                   v-for="(v, i) in fixtureClasses"

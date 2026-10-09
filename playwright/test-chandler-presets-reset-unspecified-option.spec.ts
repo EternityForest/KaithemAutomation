@@ -38,6 +38,7 @@ test("test", async ({ page }) => {
   await waitForTasks(page);
 
   await page.getByLabel("Type:").nth(1).selectOption("uv");
+  await waitForTasks(page);
 
   await page.getByRole("button", { name: "Fixtures" }).click();
   await waitForTasks(page);
@@ -54,7 +55,11 @@ test("test", async ({ page }) => {
     .getByRole("row", { name: "Name", exact: true })
     .getByRole("textbox")
     .fill("testwuv");
-  await page.getByTestId("new-fixture-type-select").selectOption("testwithuv");
+  
+  await waitForTasks(page);
+
+  await page.getByTestId("new-fixture-assignment-type-select").selectOption("testwithuv");
+
   await page
     .getByRole("row", { name: "Universe", exact: true })
     .getByRole("combobox")

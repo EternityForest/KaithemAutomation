@@ -40,6 +40,8 @@ test("test", async ({ page }) => {
   await waitForTasks(page);
 
   await page.getByLabel("Type:").selectOption("green");
+  await waitForTasks(page);
+
   await page.getByRole("button", { name: "Fixtures" }).click();
   await page
     .getByRole("row", { name: "Name", exact: true })

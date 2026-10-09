@@ -17,7 +17,7 @@ import yaml
 
 if "--collect-only" not in sys.argv:  # pragma: no cover
     from kaithem.src import modules, modules_state
-    from kaithem.src.chandler import WebChandlerConsole, core, cue
+    from kaithem.src.chandler import WebChandlerConsole, core, cue, universes
 
     from . import helpers
 
@@ -30,6 +30,37 @@ if "--collect-only" not in sys.argv:  # pragma: no cover
         )
     board = core.boards["test_chandler_module:test_board"]
     assert isinstance(board, WebChandlerConsole.WebConsole)
+
+
+def test_universe_loading_from_resource():
+    # Bad one creates  an error but doesn't block anything else
+    modules.createResource(
+        "test_chandler_module",
+        "test_board_universes",
+        {
+            "resource": {"type": "chandler_board", "modified": 1777171067},
+            "project": {
+                "groups": {},
+                "setup": {
+                    "fixture_types": {},
+                    "fixture_assignments": {},
+                    "configured_universes": {
+                        "testloadfromresources": {
+                            "type": "dummy",
+                            "channels": 79,
+                        },
+                        "testloadfromresourcesbad": {
+                            "type": "bad",
+                            "channels": 79,
+                        },
+                    },
+                },
+            },
+        },
+    )
+
+    assert len(universes.universes["testloadfromresources"]().values) == 79
+    assert len(universes.universes["testloadfromresources"]().alphas) == 79
 
 
 def test_cue_names():
@@ -117,6 +148,11 @@ class TempGroup:
 
 staticdir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 staticdir = os.path.join(staticdir, "data", "static")
+
+
+def test_bad_console_name():
+    with pytest.raises(ValueError):
+        WebChandlerConsole.WebConsole("bad/name")
 
 
 def test_cue_unique():

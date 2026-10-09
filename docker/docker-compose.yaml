@@ -118,6 +118,9 @@ services:
       - /workspace/uv_cache
       - /workspace/KaithemAutomation/.uv
       - /app-home/.cache
+      - /app-home/Music
+      - /app-home/Videos
+      - /app-home/Pictures
 
   kaithem-kiosk:
     restart: "no"

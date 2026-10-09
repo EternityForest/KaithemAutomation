@@ -27,7 +27,12 @@ test("test", async ({ page }) => {
 
   // Add rule and edit the default example action
   await page.getByRole("button", { name: "Add Rule" }).click();
-  await page.getByRole("button", { name: "goto" }).click();
+  await page.getByRole("button", { name: "continue_if" }).click();
+
+  await waitForTasks(page);
+  await page.getByTestId("command-type").first().fill('goto');
+  await page.getByTestId("command-type").first().blur();
+
 
   // Action params editor has a cue field
   // When we go into default cue it should redirect to c2

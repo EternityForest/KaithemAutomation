@@ -112,7 +112,7 @@ class ChandlerConsole(console_abc.Console_ABC):
         )
 
         def dummy(data: dict[str, Any]):
-            logger.error("No save backend present")
+            logger.error("No save backend present")  # pragma: no-cover
 
         self.ml_save_callback = dummy
         self.should_run = True
@@ -136,29 +136,23 @@ class ChandlerConsole(console_abc.Console_ABC):
                     if u is not None:
                         u.close()
                 except Exception:
-                    logger.exception("Could not close universe")
+                    logger.exception(
+                        "Could not close universe"
+                    )  # pragma: no-cover
 
         try:
             self.autosave_checker.unregister()
         except Exception:
-            logger.exception("Could not close correctly")
+            logger.exception("Could not close correctly")  # pragma: no-cover
 
         self.cl_delete_assigned_fixtures()
 
     @core.cl_context.entry_point
     def cl_load_project(self, data: dict[str, Any]):
-        for i in self.groups:
-            self.groups[i].stop()
-            self.groups[i].close()
-        self.groups = {}
-
-        for i in self.configured_universes:
-            try:
-                u = universes.universes[i]()
-                if u is not None:
-                    u.close()
-            except Exception:
-                logger.exception("Could not close universe")
+        if self.groups:  # pragma: no-cover
+            raise RuntimeError("project groups already loaded")
+        if self.configured_universes:  # pragma: no-cover
+            raise RuntimeError("project configured_universes already loaded")
 
         if "setup" in data:
             data2 = data["setup"]
@@ -190,13 +184,14 @@ class ChandlerConsole(console_abc.Console_ABC):
 
             try:
                 self.cl_create_universes(self.configured_universes)
-            except Exception:
+            except Exception:  # pragma: no-cover
                 logger.exception("Error creating universes")
                 print(traceback.format_exc(6))
 
             self.cl_reload_fixture_assignment_data()
 
-        if "scenes" in data:
+        # TODO: Legacy
+        if "scenes" in data:  # pragma: no-cover
             data["groups"] = data.pop("scenes")
 
         if "groups" in data:
@@ -208,6 +203,10 @@ class ChandlerConsole(console_abc.Console_ABC):
     @override
     @core.cl_context.entry_point
     def cl_setup(self, project: dict[str, Any]):
+        if self.initialized:
+            raise RuntimeError(
+                "Console already initialized"
+            )  # pragma: no-cover
         console_abc.Console_ABC.cl_setup(self, project)
         self.cl_load_project(project)
         self.initialized = True
@@ -220,7 +219,7 @@ class ChandlerConsole(console_abc.Console_ABC):
             for i in self.fixtures:
                 self.fixtures[i].cl_assign(None, None)
                 self.fixtures[i].rm()
-        except Exception:
+        except Exception:  # pragma: no-cover
             self.fixture_errors += (
                 "Error deleting old assignments:\n" + traceback.format_exc()
             )
@@ -238,10 +237,11 @@ class ChandlerConsole(console_abc.Console_ABC):
         self.fixtures = {}
         for key, i in self.fixture_assignments.items():
             try:
-                if not i["name"] == key:
-                    raise RuntimeError("Name does not match key?")
-
-                name = i["name"]
+                name = i.get("name", None) or key
+                if not name == key:  # pragma: no-cover
+                    raise RuntimeError(
+                        f"Name of fixture does not match key {key}"
+                    )
                 count = i.get("count", 1)
 
                 if count > 1:
@@ -325,7 +325,7 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         try:
             universes.cl_discover_color_tag_devices()
-        except Exception:
+        except Exception:  # pragma: no-cover
             async_event("system.error", traceback.format_exc())
             print(traceback.format_exc())
 
@@ -354,10 +354,8 @@ class ChandlerConsole(console_abc.Console_ABC):
                     self.cl_set_fixture_type(i, data["fixture_types"][i])
 
         if universes:
-            if "universes" in data:
-                for i in data["universes"]:
-                    self.configured_universes[i] = data["universes"][i]
-                self.cl_create_universes(self.configured_universes)
+            if "universes" in data:  # pragma: no-cover
+                data["configured_universes"].update(data.pop("universes"))
 
             if "configured_universes" in data:
                 for i in data["configured_universes"]:
@@ -368,11 +366,11 @@ class ChandlerConsole(console_abc.Console_ABC):
 
         if fixture_assignments:
             # Compatibility with a legacy typo
-            if "fixures" in data:
-                data["fixture_assignments"] = data["fixures"]
+            if "fixures" in data:  # pragma: no-cover
+                data["fixture_assignments"] = data.pop("fixures")
 
-            if "fixtures" in data:
-                data["fixture_assignments"] = data["fixtures"]
+            if "fixtures" in data:  # pragma: no-cover
+                data["fixture_assignments"] = data.pop("fixtures")
 
             if "fixture_assignments" in data:
                 for i in data["fixture_assignments"]:
@@ -392,20 +390,20 @@ class ChandlerConsole(console_abc.Console_ABC):
 
     def get_file_timestamp_if_exists(self, filename: str) -> str:
         try:
-            if not filename:
+            if not filename:  # pragma: no-cover
                 return ""
             filename = core.resolve_sound(
                 filename, extra_folders=self.media_folders
             )
-            if not filename:
+            if not filename:  # pragma: no-cover
                 return ""
             if os.path.isfile(filename):
                 return str(os.stat(filename).st_mtime * 10)
             else:
                 return ""
-        except (FileNotFoundError, ValueError):
+        except (FileNotFoundError, ValueError):  # pragma: no-cover
             return ""
-        except Exception:
+        except Exception:  # pragma: no-cover
             logger.exception("Failed to get file timestamp")
             return ""
 
@@ -418,37 +416,6 @@ class ChandlerConsole(console_abc.Console_ABC):
             "fixture_presets": self.fixture_presets,
             "media_folders": self.media_folders,
         }
-
-    @core.cl_context.entry_point
-    def cl_load_group_file(
-        self,
-        data_str: str,
-        filename: str,
-        errs: bool = False,
-        clear_old: bool = True,
-    ):
-        data = yaml.load(data_str, Loader=yaml.SafeLoader)
-
-        data = snake_compat.snakify_dict_keys(data)
-
-        # Detect if the user is trying to upload a single groupfile,
-        # if so, wrap it in a multi-dict of groups to keep the reading code
-        # The same for both
-        if "uuid" in data and isinstance(data["uuid"], str):
-            # Remove the .yaml
-            data = {filename[:-5]: data}
-
-        g = copy.copy(self.groups)
-
-        if clear_old:
-            for i in g:
-                if clear_old or (i in data):
-                    g[i].stop()
-                    g[i].close()
-
-            self.groups = {}
-
-        self.cl_load_groups_from_dict(data, errs)
 
     @core.cl_context.entry_point
     def cl_load_groups_from_dict(
@@ -581,7 +548,7 @@ class ChandlerConsole(console_abc.Console_ABC):
                             ],
                         ]
                     )
-                except Exception:
+                except Exception:  # pragma: no-cover
                     if time.monotonic() - self.last_logged_gui_send_error < 60:
                         logger.exception(
                             "Error when reporting event. (Log ratelimit: 30)"

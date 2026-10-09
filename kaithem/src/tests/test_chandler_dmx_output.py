@@ -1,5 +1,7 @@
 import os
 import pty
+import socket
+import struct
 import sys
 import time
 
@@ -149,3 +151,158 @@ async def test_fixtures_to_dmx():
     finally:
         os.close(master_fd)
         os.close(slave_fd)
+
+
+async def test_artnet_universe():
+    """Create an Art-Net universe and a fixture, then verify that
+    ArtDMX packets with the right header and channel data show up on a
+    basic local UDP listener standing in for a physical node.
+
+    The universe is pointed at a loopback address:port instead of the
+    default 255.255.255.255:6454 broadcast, so the test is deterministic
+    in a sandbox. The packet format is identical either way."""
+
+    # Basic listener standing in for a physical Art-Net node.
+    listener = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    listener.bind(("", 0))
+    listener.setblocking(False)
+    port = listener.getsockname()[1]
+
+    try:
+        u = {
+            "artnet_test": {
+                "channels": 128,
+                "framerate": 44,
+                "number": 7,
+                "type": "artnet",
+                "interface": f"127.0.0.1:{port}",
+            }
+        }
+        fixtype = {
+            "channels": [
+                {"name": "red", "type": "red"},
+                {"name": "green", "type": "green"},
+                {"name": "blue", "type": "blue"},
+            ]
+        }
+        assignment = {
+            "addr": 1,
+            "name": "artnetTestFixture",
+            "type": "ArtNetTestFixtureType",
+            "universe": "artnet_test",
+        }
+
+        test_chandler.board._onmsg("__admin__", ["setconfuniverses", u], "test")
+
+        tc = await make_client()
+        await tc.put(
+            f"/chandler/api/set-fixture-class/{test_chandler.board.name}"
+            "/ArtNetTestFixtureType",
+            json=fixtype,
+        )
+
+        test_chandler.board._onmsg(
+            "__admin__",
+            ["setFixtureAssignment", "artnetTestFixture", assignment],
+            "test",
+        )
+
+        def latest_payload():
+            """Drain every queued ArtDMX packet and return the payload of
+            the newest one.
+
+            The sender streams at a fixed framerate, so we must drain the
+            backlog to see the current values instead of stale ones."""
+            payload = None
+            start = time.time()
+            while True:
+                if time.time() - start > 5:  # Timeout after 5 seconds
+                    raise TimeoutError(
+                        "Timeout waiting for latest Art-Net payload"
+                    )
+                try:
+                    pkt = listener.recv(4096)
+                except BlockingIOError:
+                    break
+                assert pkt[:8] == b"Art-Net\x00"
+                # OpCode ArtDMX (0x5000), little endian
+                assert pkt[8:10] == b"\x00\x50"
+                # Protocol version 14
+                assert pkt[10:12] == b"\x00\x0e"
+                # Physical + SubUniverse, little endian
+                assert struct.unpack("<H", pkt[14:16])[0] == 7
+                # Length field matches the universe channel count
+                assert struct.unpack(">H", pkt[16:18])[0] == len(
+                    universes.universes["artnet_test"]().values
+                )
+                # DMX starts at channel 1, so payload[0] is universe index 1
+                payload = pkt[18:]
+            return payload
+
+        with TempGroup() as grp:
+            cid = grp.cue.id
+
+            test_chandler.board._onmsg(
+                "__admin__",
+                ["add_cuef", cid, "default", "artnetTestFixture"],
+                "test",
+            )
+            core.wait_frame()
+
+            test_chandler.board._onmsg(
+                "__admin__",
+                ["scv", cid, "default", "@artnetTestFixture", "red", 11],
+                "test",
+            )
+            test_chandler.board._onmsg(
+                "__admin__",
+                ["scv", cid, "default", "@artnetTestFixture", "green", 22],
+                "test",
+            )
+            test_chandler.board._onmsg(
+                "__admin__",
+                ["scv", cid, "default", "@artnetTestFixture", "blue", 33],
+                "test",
+            )
+
+            core.wait_frame()
+
+            assert universes.universes["artnet_test"]().values[1] == 11
+
+            # The set values should show up in the Art-Net payload.
+            for attempt in stamina.retry_context(on=AssertionError):
+                with attempt:
+                    payload = latest_payload()
+                    assert payload is not None
+                    assert payload[0:3] == bytes([11, 22, 33])
+
+            # Changing a value should update the output
+            test_chandler.board._onmsg(
+                "__admin__",
+                ["scv", cid, "default", "@artnetTestFixture", "green", 44],
+                "test",
+            )
+
+            for attempt in stamina.retry_context(on=AssertionError):
+                with attempt:
+                    payload = latest_payload()
+                    assert payload is not None
+                    assert payload[0:3] == bytes([11, 44, 33])
+
+            # Make sure it keeps sending
+            for attempt in stamina.retry_context(on=AssertionError):
+                with attempt:
+                    assert latest_payload() is not None
+                    time.sleep(0.1)
+                    assert latest_payload() is not None
+
+    finally:
+        # Stop the sender / clean up the universe we added.
+        try:
+            test_chandler.board._onmsg(
+                "__admin__", ["setconfuniverses", {}], "test"
+            )
+        except Exception:
+            pass
+        listener.close()
