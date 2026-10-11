@@ -1661,7 +1661,7 @@ wheels = [
 
 [[package]]
 name = "kaithem"
-version = "0.97.0"
+version = "0.98.0"
 source = { editable = "." }
 dependencies = [
     { name = "apprise" },
