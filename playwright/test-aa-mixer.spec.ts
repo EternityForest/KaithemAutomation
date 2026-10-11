@@ -38,6 +38,7 @@ test('test', async ({ page }) => {
     .getByTestId('channel-box-testchannel')
     .getByTestId('channel-fader')
     .fill('-14.5');
+  await sleep(100);
 
   // Make new channel, turn it up
   await page.getByTestId('new-channel-name').fill('testchannel2');
@@ -52,6 +53,8 @@ test('test', async ({ page }) => {
     .getByTestId('channel-box-testchannel2')
     .getByTestId('channel-fader')
     .fill('-8.5');
+  await sleep(100);
+
   await page.getByTestId('channel-box-testchannel2').getByText('Setup').click();
 
   // Set second channel inut to first channel output

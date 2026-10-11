@@ -32,11 +32,13 @@ test("test", async ({ page }) => {
   await waitForTasks(page);
   await page.getByTestId("command-type").first().fill('goto');
   await page.getByTestId("command-type").first().blur();
-
+  await waitForTasks(page);
 
   // Action params editor has a cue field
   // When we go into default cue it should redirect to c2
   await page.getByTestId("command-arg-cue").fill("c2");
+  await waitForTasks(page);
+
   //Dismiss popup selecter by clicking outside
   await page.getByRole("heading", { name: "Automation Logic" }).click();
 
@@ -45,6 +47,7 @@ test("test", async ({ page }) => {
   // Go on default cue
   await page.getByRole("button", { name: "Go", exact: true }).first().click();
 
+  await waitForTasks(page);
   // Check that worked
   await expect(page.getByRole("article")).toContainText("c2");
 
