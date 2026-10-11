@@ -289,7 +289,7 @@ from within this function.
 
 #### *property* value *: [T](../plugins/index.md#kaithem.api.plugins.T)*
 
-#### pull(sync=False) → None
+#### pull(sync: bool = False) → None
 
 Request that any getter in the active claim produce
 : a new value if it has a getter.
@@ -298,7 +298,7 @@ Note that we do not automatically poll or
 run the getters anymore,
 getters must be explicitly requested.
 
-#### get_vta(force=False) → tuple[[T](../plugins/index.md#kaithem.api.plugins.T), [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float), Any]
+#### get_vta(force: bool = False) → tuple[[T](../plugins/index.md#kaithem.api.plugins.T), [float](../../src/chandler/groups/index.md#kaithem.src.chandler.groups.float), Any]
 
 Get the current value, timestamp and annotation.
 If force is true and the value is a getter, then force a new update.
