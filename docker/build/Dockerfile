@@ -85,6 +85,7 @@ RUN --mount=type=cache,id=root-npm-${TARGETARCH},target=/root/.npm \
     --mount=type=cache,target=/workspace/KaithemAutomation/wasm_kegs/__pycache__ \
     --mount=type=cache,target=/workspace/Dashbeard/.npm \
     --mount=type=cache,target=/workspace/Dashbeard/dist \
+    rm -rf /workspace/build/* && \
     cd /workspace/Dashbeard && npm install && npm run build ; \
     cd /workspace/KaithemAutomation && UV_LINK_MODE=copy make dev-build && \
     cp /workspace/KaithemAutomation/dist/*.whl /workspace/build

@@ -248,7 +248,7 @@ dev-build-docker-production:
 	@mkdir -p ${DOCKER_BUILD_DIR}
 	@BUILDX_BUILDER=kaithem-multiarch-builder docker buildx bake -f docker-compose.yaml -f docker-bake.hcl --progress=plain
 
-# 	@echo "Pushing images to local registry on port 5000"
+	@echo "Pushing images to local registry on port 5000"
 	@skopeo copy --multi-arch all oci-archive:${DOCKER_BUILD_DIR}/kaithem-${KAITHEM_VERSION}.tar docker://localhost:5000/cooperskeep/kaithem:${KAITHEM_VERSION} --dest-tls-verify=false
 	@skopeo copy --multi-arch all oci-archive:${DOCKER_BUILD_DIR}/kaithem-kiosk-${KAITHEM_VERSION}.tar docker://localhost:5000/cooperskeep/kaithem-kiosk:${KAITHEM_VERSION} --dest-tls-verify=false
 	@skopeo copy --multi-arch all oci-archive:${DOCKER_BUILD_DIR}/kaithem-dev-${KAITHEM_VERSION}.tar docker://localhost:5000/cooperskeep/kaithem-dev:${KAITHEM_VERSION} --dest-tls-verify=false
@@ -257,8 +257,14 @@ dev-build-docker-production:
 	@docker pull localhost:5000/cooperskeep/kaithem-kiosk:${KAITHEM_VERSION}
 	@docker pull localhost:5000/cooperskeep/kaithem-dev:${KAITHEM_VERSION}
 
-# Upload with command like:
-# skopeo copy --multi-arch all oci-archive:docker-build/kaithem-0.97.0.tar docker://docker.io/cooperskeep/kaithem:0.97.0
+
+dev-docker-upload-main-project:
+	@echo "Uploading image to local registry on port 5000, expecting credentials in env vars"
+	@sleep 5
+	@echo "$DOCKER_PASSWORD" | skopeo login -u "$DOCKER_USERNAME" --password-stdin docker.io
+	@skopeo copy --multi-arch all oci-archive:docker-build/kaithem-${KAITHEM_VERSION}.tar docker://docker.io/cooperskeep/kaithem:${KAITHEM_VERSION}
+	@echo "Upload complete"
+	@skopeo logout docker.io
 
 
 dev-docker-shell: export IMAGE_PREFIX=localhost:5000/
