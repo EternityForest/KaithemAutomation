@@ -5,3 +5,5 @@ vendor
 .venv
 .test_venvs
 __pycache__
+.buildx-cache
+docker-build
