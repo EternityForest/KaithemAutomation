@@ -10,7 +10,7 @@ group "default" {
   targets = ["kaithem", "kaithem-kiosk", "kaithem-dev"]
 }
 variable "CACHE_DIR" {
-  default = "${BAKE_CMD_CONTEXT}/.buildx-cache"
+  default = "$HOME/kaithem-buildx-cache"
 }
 
 
