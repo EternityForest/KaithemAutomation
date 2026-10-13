@@ -1,13 +1,15 @@
 Change Log
 ----------
 
-### Dev
+### 0.98.0
 * [sparkles] Improve the corner dragging in projection mapping
 * [bug] iot_devices: fix gpiodevice
 * [bug] Fix chandler rule trigger editor not appearing in some cases after deleting a rule
 * [bug] Fix annoying error loop with empty goto rule
 * [bug] Fix leftover params when changing command type* [sparkles] Newly created chandler rules start with a continue_if block instead of a goto, as most rules probably need a continue_if.
 * [coffin] script.poll is deprecated but not removed. Don't use it if you can.
+* [sparkles] Projection Mapper Wake Locks
+* [coffin] Remove chandler 1Hz rerender that breaks some tag point patterns.
 
 ### 0.97.0
 

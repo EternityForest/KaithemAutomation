@@ -502,6 +502,31 @@ class ProjectionEditor extends LitElement {
       parameters.has('fullscreen') ||
       parameters.has('viewer') ||
       parameters.get('edit') != 'true';
+
+    if (this.isViewerMode) {
+      // The wake lock sentinel.
+      let wakeLock: WakeLockSentinel|null = null;
+
+      // Function that attempts to request a screen wake lock.
+      const requestWakeLock = async () => {
+        try {
+          wakeLock = await navigator.wakeLock.request();
+          if (wakeLock) {
+            wakeLock.addEventListener('release', () => {
+              console.log('Screen Wake Lock released status:', wakeLock.released);
+            });
+            console.log('Screen Wake Lock released status:', wakeLock.released);
+          }
+          else {
+            console.warn('Screen Wake Lock request failed');
+          }
+        } catch (error) {
+          console.error(error.message);
+        }
+      };
+      // Request a screen wake lock…
+      requestWakeLock();
+    }
   }
 
   setInitialState(
@@ -1144,7 +1169,8 @@ class ProjectionEditor extends LitElement {
 
     // if corner would be constrained against wall,
     // don't pull others
-    if (this.draggingCorner == 'tl' && 
+    if (
+      this.draggingCorner == 'tl' &&
       source.transform.corners['bl'].x + deltaX > 0 &&
       source.transform.corners['bl'].y + deltaY > 0
     ) {
@@ -1782,7 +1808,10 @@ class ProjectionEditor extends LitElement {
         </div>
 
         <div class="editor-main">
-          <div class="editor-canvas-area" style="margin:15px; border: 2px dashed rgba(30,30,30,0.2);">
+          <div
+            class="editor-canvas-area"
+            style="margin:15px; border: 2px dashed rgba(30,30,30,0.2);"
+          >
             <canvas id="preview-canvas"></canvas>
             <div id="preview-sources"></div>
           </div>

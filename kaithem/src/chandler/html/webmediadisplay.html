@@ -241,23 +241,27 @@
 
     setInterval(f2, 60000);
 
-    // The wake lock sentinel.
-    let wakeLock = null;
+      // The wake lock sentinel.
+      let wakeLock = null;
 
-    // Function that attempts to request a screen wake lock.
-    const requestWakeLock = async () => {
-      try {
-        wakeLock = await navigator.wakeLock.request();
-        wakeLock.addEventListener("release", () => {
-          console.log("Screen Wake Lock released:", wakeLock.released);
-        });
-        console.log("Screen Wake Lock released:", wakeLock.released);
-      } catch (err) {
-        console.error(err.message);
-      }
-    };
-
-    // Request a screen wake lock…
-    requestWakeLock();
+      // Function that attempts to request a screen wake lock.
+      const requestWakeLock = async () => {
+        try {
+          wakeLock = await navigator.wakeLock.request();
+          if (wakeLock) {
+            wakeLock.addEventListener('release', () => {
+              console.log('Screen Wake Lock released status:', wakeLock.released);
+            });
+            console.log('Screen Wake Lock released status:', wakeLock.released);
+          }
+          else {
+            console.warn('Screen Wake Lock request failed');
+          }
+        } catch (error) {
+          console.error(error.message);
+        }
+      };
+      // Request a screen wake lock…
+      requestWakeLock();
   </script>
 </html>
