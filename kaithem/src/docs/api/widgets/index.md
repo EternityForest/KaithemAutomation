@@ -19,11 +19,11 @@
 
 ### *class* kaithem.api.widgets.PeerInfo
 
-#### address *: [str](../../src/pages/index.md#kaithem.src.pages.str)*
+#### address *: str*
 
-#### battery *: [str](../../src/pages/index.md#kaithem.src.pages.str) | None*
+#### battery *: str | None*
 
-### kaithem.api.widgets.peer_info_for_connection(connection_id: [str](../../src/pages/index.md#kaithem.src.pages.str))
+### kaithem.api.widgets.peer_info_for_connection(connection_id: str)
 
 Get the peer address for a connection
 
