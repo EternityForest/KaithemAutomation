@@ -111,6 +111,22 @@ The docker build command will:
 When in the daemon, they get prefixed with localhost:5000, which is what
 we run.
 
+## Dockerignore
+
+Put something like this in the folder with your Kaithem and Dashbeard clones,
+or else building may tke way too long.
+
+```
+node_modules
+vendor
+.git
+*.log
+.venv
+.test_venvs
+__pycache__
+.buildx-cache
+docker-build
+```
 
 ### Code style
 

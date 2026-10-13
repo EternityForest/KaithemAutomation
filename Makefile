@@ -138,7 +138,7 @@ dev-run: # Run kaithem with throwaway user data folder
 
 .PHONY: dev-publish-to-pypi
 dev-publish-to-pypi: dev-build # Publish to PyPi. Do NOT directly build and publish without the frozen wheel script
-	@twine upload dist/*
+	@confirm-env --provider kaithem-twine-upload --title "Kaithem -> PyPi" twine upload dist/*
 
 .PHONY: dev-import-16_9_buttons
 dev-import-16_9_buttons: 
@@ -261,7 +261,8 @@ dev-build-docker-production:
 dev-docker-upload-main-project:
 	@echo "Uploading image to local registry on port 5000, expecting credentials in env vars"
 	@sleep 5
-	@echo "$DOCKER_PASSWORD" | skopeo login -u "$DOCKER_USERNAME" --password-stdin docker.io
+	@confirm-env --provider kaithem-dockerhub-upload --title "Kaithem -> Docker Hub" \
+	bash -c "echo "$DOCKER_PASSWORD" | skopeo login -u "$DOCKER_USERNAME" --password-stdin docker.io"
 	@skopeo copy --multi-arch all oci-archive:docker-build/kaithem-${KAITHEM_VERSION}.tar docker://docker.io/cooperskeep/kaithem:${KAITHEM_VERSION}
 	@echo "Upload complete"
 	@skopeo logout docker.io

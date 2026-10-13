@@ -11,7 +11,7 @@ import threading
 import time
 import traceback
 import weakref
-from typing import Any
+from typing import Any, override
 
 import colorzero
 import numpy
@@ -616,14 +616,17 @@ class EnttecUniverse(Universe):
 
         self.hidden = False
 
+    @override
     def onFrame(self):
         data = message(self.values)
         self.sender.onFrame(data)
 
+    @override
     def __del__(self):
         # Stop the thread when this gets deleted
         self.sender.onFrame(None)
 
+    @override
     @core.cl_context.required
     def close(self):
         try:
@@ -813,14 +816,17 @@ class ArtNetUniverse(Universe):
 
         self.hidden = False
 
+    @override
     def onFrame(self):
         data = self.values
         self.sender.onFrame(data, None, self.number)
 
+    @override
     def __del__(self):
         # Stop the thread when this gets deleted
         self.sender.onFrame(None)
 
+    @override
     @core.cl_context.required
     def close(self):
         try:
@@ -955,14 +961,17 @@ class EnttecOpenUniverse(Universe):
         self.sender.connect()
         self.hidden = False
 
+    @override
     def onFrame(self):
         data = rawmessage(self.values)
         self.sender.onFrame(data)
 
+    @override
     def __del__(self):
         # Stop the thread when this gets deleted
         self.sender.onFrame(None)
 
+    @override
     @core.cl_context.required
     def close(self):
         try:
@@ -1244,6 +1253,7 @@ class ColorTagUniverse(Universe):
             self.fadeTag = None
             self.local_fading = True
 
+    @override
     def onFrame(self):
         def f():
             if self.lock.acquire(timeout=1):
@@ -1285,19 +1295,20 @@ class OneTagpoint(Universe):
     refresh_on_create = False
 
     def __init__(
-        self, name, channels=3, tagpoints={}, framerate=44.0, number=0
+        self,
+        name: str,
     ):
         self.ok = True
         self.status = "OK"
-        self.number = number
+        self.number = 0
         self.statusChanged = {}
         self.tagpoint = tags.NumericTag(name)
-        self.claim = None
+        self.claim: tags.ClaimClass[float] | None = None
 
         self.count = 3
         self.hidden = True
 
-        self.prev = (-1, -1)
+        self.prev: tuple[float, float] = (-1, -1)
 
         self.channelInfoByUniverseAndNumber = {"value": 1}
 
@@ -1306,6 +1317,7 @@ class OneTagpoint(Universe):
 
         Universe.__init__(self, name, self.count)
 
+    @override
     def onFrame(self):
         try:
             x = float(self.values[1])
