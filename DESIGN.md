@@ -126,6 +126,15 @@ vendor
 __pycache__
 .buildx-cache
 docker-build
+
+**/docker-build
+**/.venv
+**/.git
+**/__pycache__
+**/.buildx-cache
+**/.test_venvs
+**/node_modules
+**/dist
 ```
 
 ### Code style
