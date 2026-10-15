@@ -73,6 +73,7 @@ RUN --mount=type=cache,id=root-npm-${TARGETARCH},target=/root/.npm \
     --mount=type=cache,target=/workspace/KaithemAutomation/__pycache__ \
     cd /workspace/KaithemAutomation && UV_LINK_MODE=copy uv sync
 
+
 RUN mkdir -p /workspace/build  
 RUN --mount=type=cache,id=root-npm-${TARGETARCH},target=/root/.npm \
     --mount=type=cache,id=cache-uv-${TARGETARCH},target=/root/.cache/uv \ 
@@ -87,7 +88,7 @@ RUN --mount=type=cache,id=root-npm-${TARGETARCH},target=/root/.npm \
     --mount=type=cache,target=/workspace/Dashbeard/dist \
     rm -rf /workspace/build/* && \
     cd /workspace/Dashbeard && npm install && npm run build ; \
-    cd /workspace/KaithemAutomation && UV_LINK_MODE=copy make dev-build && \
+    cd /workspace/KaithemAutomation && npm install && UV_LINK_MODE=copy make dev-build && \
     cp /workspace/KaithemAutomation/dist/*.whl /workspace/build
 
 
