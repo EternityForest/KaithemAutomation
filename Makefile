@@ -239,7 +239,10 @@ dev-create-producton-buildx-context:
 
 .PHONY: dev-clear-docker-production-cache
 dev-clear-docker-production-cache:
-	@BUILDX_BUILDER=kaithem-multiarch-builder docker buildx prune --all
+	@BUILDX_BUILDER= docker buildx prune --all
+	@docker buildx rm kaithem-multiarch-builder
+	@docker buildx create --name kaithem-multiarch-builder --driver docker-container
+	@docker buildx inspect kaithem-multiarch-builder --bootstrap
 
 .PHONY: dev-build-docker-production
 dev-build-docker-production:
