@@ -36,6 +36,7 @@
 </div>
 <table border="1" class="w-full">
 <tr><th>Document Name</th>
+    <th>Version</th>
     <th>Doc Size (bytes)</th>
     <th>State Vector Size (bytes)</th>
     <th>Read Permissions</th>
@@ -44,6 +45,7 @@
 {% for doc in docs_data %}
 <tr>
     <td style="word-wrap: break-word;">{{ doc.name|escape }}</td>
+    <td>{{ doc.version or 0 }}</td>
     <td>{{ doc.doc_size }}</td>
     <td>{{ doc.sv_size }}</td>
     <td>{{ doc.read_perms|join(', ') }}</td>

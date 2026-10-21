@@ -3,6 +3,7 @@
 import time
 
 import pycrdt
+import pytest
 import stamina
 
 from kaithem.src import auth, syncdb
@@ -490,5 +491,229 @@ def test_syncdb_awareness_e2e_reverse():
                 if "user" in db1.awareness.states[i]:
                     id = i
             assert db1.awareness.states[id]["user"]["name"] == "Jane Doe"
+
+    client2.close()
+
+
+def test_syncdb_version_defaults_to_zero():
+    """A fresh database has version 0 and sends that in its handshake."""
+    from kaithem.src import syncdb
+
+    name = _get_test_name("/test/syncdb_version_default")
+
+    db = syncdb.SyncDatabase.get(name)
+
+    assert db.version == 0
+    assert syncdb.encode_version(db.version) == b"\x00" * 8
+
+
+def test_syncdb_version_encode_decode_roundtrip():
+    """Versions are unsigned 64 bit and must survive big timestamps."""
+    from kaithem.src import syncdb
+
+    for version in [0, 1, 65_536, 2**32, 2**52, 2**63 + 12_345]:
+        encoded = syncdb.encode_version(version)
+        assert len(encoded) == syncdb.VERSION_PAYLOAD_SIZE
+        assert syncdb.decode_version(encoded) == version
+
+    with pytest.raises(ValueError):
+        syncdb.encode_version(-1)
+
+    with pytest.raises(ValueError):
+        syncdb.decode_version(b"\x00")
+
+
+def test_syncdb_version_is_sane():
+    """Versions more than an hour in the future are rejected."""
+    from kaithem.src import syncdb
+
+    now = int(time.time() * 1000)
+
+    assert syncdb.version_is_sane(0)
+    assert syncdb.version_is_sane(now - 1000)
+    assert syncdb.version_is_sane(now + 30 * 60 * 1000)
+
+    # Clearly beyond the one hour allowance.
+    assert not syncdb.version_is_sane(
+        now + syncdb.MAX_VERSION_FUTURE_MS + 60_000
+    )
+    assert not syncdb.version_is_sane(now + syncdb.MAX_VERSION_FUTURE_MS * 2)
+
+
+def test_syncdb_version_message_sent_first():
+    """A new subscriber must see the version before anything else."""
+    from kaithem.src import syncdb
+
+    name = _get_test_name("/test/syncdb_version_first")
+
+    db = syncdb.SyncDatabase.get(name)
+
+    sent = []
+
+    def record_send(value, target=None, **kw):
+        sent.append(value)
+
+    db.widget.send_to = record_send
+
+    db.widget.on_new_subscriber("user", "conn1")
+
+    assert len(sent) == 2
+    first = sent[0]
+    assert first[:4] == syncdb.MSG_VERSION
+    assert syncdb.decode_version(first[4:]) == db.version
+    # The session ID must follow the version.
+    assert sent[1]["session"] == db.document_session_id
+
+
+def test_syncdb_begin_migration():
+    """begin_migration seeds, migrates, saves and notifies listeners."""
+    from kaithem.src import syncdb
+
+    name = _get_test_name("/test/syncdb_migrate")
+
+    calls = []
+
+    def on_migration(old_db, old_version, new_db, new_version):
+        calls.append((old_db, old_version, new_db, new_version))
+        # Move application level data that can be merged.
+        new_db.get("shared", type=pycrdt.Map)["carried"] = "yes"
+
+    db = syncdb.SyncDatabase.get(name, on_migration=on_migration)
+
+    old_doc = db.crdt
+    old_session = db.document_session_id
+
+    listener_calls = []
+    db.add_document_listener(lambda: listener_calls.append("called"))
+
+    assert db.version == 0
+
+    new_version = int(time.time() * 1000)
+
+    db.begin_migration(new_version, {"seeded": {"a": 1}})
+
+    assert db.version == new_version
+
+    assert len(calls) == 1
+    old_db, old_version, new_db, migrated_version = calls[0]
+    assert old_db is old_doc
+    assert old_version == 0
+    assert new_db is db.crdt
+    assert migrated_version == new_version
+
+    # The snapshot seeded the new document.
+    assert db.crdt.get("seeded", type=pycrdt.Map)["a"] == 1
+    # The callback contributed application level data.
+    assert db.crdt.get("shared", type=pycrdt.Map)["carried"] == "yes"
+    # The session changed so clients know to refetch.
+    assert db.document_session_id != old_session
+    # Listeners were notified exactly once.
+    assert listener_calls == ["called"]
+
+
+def test_syncdb_begin_migration_rejects_bad_versions():
+    """begin_migration refuses stale or implausible versions."""
+    from kaithem.src import syncdb
+
+    name = _get_test_name("/test/syncdb_migrate_bad")
+
+    db = syncdb.SyncDatabase.get(name)
+
+    now = int(time.time() * 1000)
+
+    # Must be greater than the current version of 0.
+    with pytest.raises(ValueError):
+        db.begin_migration(0, {"seeded": {}})
+
+    db.begin_migration(now, {"seeded": {}})
+
+    # Equal to the current version is still not an upgrade.
+    with pytest.raises(ValueError):
+        db.begin_migration(now, {"seeded": {}})
+
+    # Anything an hour or more ahead of the clock is an error.
+    with pytest.raises(ValueError):
+        db.begin_migration(
+            now + syncdb.MAX_VERSION_FUTURE_MS + 60_000, {"seeded": {}}
+        )
+
+    # A failed migration must not have changed anything.
+    assert db.version == now
+
+
+def test_syncdb_begin_migration_requires_shared_types():
+    """Top level snapshot values must be maps or lists."""
+    from kaithem.src import syncdb
+
+    name = _get_test_name("/test/syncdb_migrate_types")
+
+    db = syncdb.SyncDatabase.get(name)
+
+    new_version = int(time.time() * 1000)
+
+    with pytest.raises(TypeError):
+        db.begin_migration(new_version, {"scalar": 12})
+
+    # The failed migration must not have advanced the version.
+    assert db.version == 0
+
+
+def test_syncdb_incoming_migration_without_callback():
+    """An incoming migration is ignored if no callback is configured."""
+    from kaithem.src import syncdb
+
+    name = _get_test_name("/test/syncdb_migrate_nocb")
+
+    db = syncdb.SyncDatabase.get(name)
+
+    new_version = int(time.time() * 1000)
+
+    db._incoming_migration(new_version)
+
+    assert db.version == 0
+
+
+def test_syncdb_migration_syncs_over_websocket():
+    """A client on a newer version forces the server to migrate."""
+    from kaithem.src import auth, syncdb
+
+    auth.add_user("admin", "test-admin-password")
+    auth.add_user_to_group("admin", "Administrators")
+
+    server_url = "http://localhost:8002"
+
+    name = _get_test_name("/test/syncdb_migrate_e2e")
+
+    server_migrations = []
+
+    def server_on_migration(old_db, old_version, new_db, new_version):
+        server_migrations.append((old_version, new_version))
+
+    db1 = syncdb.SyncDatabase.get(name, on_migration=server_on_migration)
+
+    db2 = syncdb.SyncDatabase.get(name + "_mirror")
+
+    new_version = int(time.time() * 1000)
+
+    # Pretend the client has already migrated to a newer schema.
+    db2.version = new_version
+
+    client2 = syncdb.WebsocketClient(
+        db2,
+        server_url,
+        "admin",
+        "test-admin-password",
+        server_side_db_name=db1.name,
+    )
+
+    for attempt in stamina.retry_context(on=AssertionError):
+        with attempt:
+            assert client2.is_connected()
+
+    for attempt in stamina.retry_context(on=AssertionError):
+        with attempt:
+            assert db1.version == new_version
+
+    assert server_migrations == [(0, new_version)]
 
     client2.close()

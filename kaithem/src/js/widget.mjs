@@ -1,6 +1,11 @@
 import { encode, decode } from './thirdparty/msgpackr.esm.js';
 import picodash from '/static/js/thirdparty/picodash/picodash-base.esm.js';
 
+// Binary values (such as YJS updates) can not survive JSON.stringify,
+// so a batch containing any of them must go out as msgpack.
+const _isBinaryValue = (value) =>
+  value instanceof Uint8Array || value instanceof ArrayBuffer;
+
 try {
   // eslint-disable-next-line @typescript-eslint/no-unused-expressions
   globalThis.kaithemapi;
@@ -192,7 +197,12 @@ if (globalThis.kaithemapi == undefined) {
         //Don't bother sending if we aren'y connected
         if (this.connection.readyState == 1 && this.toSend.length > 0) {
           var toSend = { upd: this.toSend };
-          if (this.use_mp0) {
+          // Binary values (like YJS updates) must go out as msgpack.
+          // JSON.stringify would turn a Uint8Array into an object map.
+          if (
+            this.use_mp0 ||
+            this.toSend.some((m) => _isBinaryValue(m[1]))
+          ) {
             const j = new Blob([encode(toSend)]);
             this.connection.send(j);
           } else {
