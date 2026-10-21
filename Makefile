@@ -262,10 +262,9 @@ dev-build-docker-production:
 
 
 dev-docker-upload-main-project:
-	@echo "Uploading image to local registry on port 5000, expecting credentials in env vars"
-	@sleep 5
+	@echo "Uploading image to Docker Hub for Kaithem ${KAITHEM_VERSION}"
 	@confirm-env --provider kaithem-dockerhub-upload --title "Kaithem -> Docker Hub" \
-	bash -c "echo "$DOCKER_PASSWORD" | skopeo login -u "$DOCKER_USERNAME" --password-stdin docker.io"
+	bash -c 'echo $$DOCKER_PASSWORD | skopeo login -u $$DOCKER_USERNAME --password-stdin docker.io'
 	@skopeo copy --multi-arch all oci-archive:docker-build/kaithem-${KAITHEM_VERSION}.tar docker://docker.io/cooperskeep/kaithem:${KAITHEM_VERSION}
 	@echo "Upload complete"
 	@skopeo logout docker.io

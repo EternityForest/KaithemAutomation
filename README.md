@@ -44,7 +44,7 @@ You might see some warnings on the command line about the hardware it can't acce
 --set-admin-password is NOT meant for normal use, and will always set the password to test-admin-password, it only exists for demos.
 
 ```bash
-mkdir -p kaithem-test && docker run --rm -v ./kaithem-test:/app-home/ -p 8002:8002 -u "$(id -u):$(id -g)" -e USER=$(id -un) -e LOGNAME=$(id -un)  cooperskeep/kaithem:0.97.0 --set-admin-password test-admin-password
+mkdir -p kaithem-test && docker run --rm -v ./kaithem-test:/app-home/ -p 8002:8002 -u "$(id -u):$(id -g)" -e USER=$(id -un) -e LOGNAME=$(id -un)  cooperskeep/kaithem:0.98.0 --set-admin-password test-admin-password
 ```
 
 ## UV Installation 🌲
