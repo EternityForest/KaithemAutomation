@@ -78,7 +78,9 @@ def _sync_alerts_to_yjs():
                 for key in list(alerts_map.keys()):
                     del alerts_map[key]
 
-                for alert_ref in active.values():
+                for alert_ref in list(active.values()) + list(
+                    unacknowledged.values()
+                ):
                     alert = alert_ref()
                     if alert:
                         alerts_map[alert.id] = {

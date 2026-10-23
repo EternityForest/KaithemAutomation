@@ -168,16 +168,7 @@ export class KaithemAlerts extends LitElement {
             <div style="display: flex; align-items: center; gap: 8px;" class="no-grow">
               <span class="alert-state">${alert.state}</span>
 
-
-
-
-
-
-
-
-
-
-              ${this.showAckButton && this._canAck && alert.state === 'active'
+              ${this.showAckButton && this._canAck && (alert.state == 'active' || alert.state=="cleared")
                 ? html`
                     <button
                       class="ack-button"

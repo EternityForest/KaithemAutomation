@@ -1,6 +1,12 @@
 Change Log
 ----------
 
+### Dev
+
+* [bug] Main page now shows all alerts in any state other than normal.
+
+
+
 ### 0.98.0
 * [sparkles] Improve the corner dragging in projection mapping
 * [bug] iot_devices: fix gpiodevice
