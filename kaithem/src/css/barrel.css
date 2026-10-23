@@ -374,6 +374,8 @@ html {
   min-height: 100vh;
   padding: 0px;
   margin: 0px;
+  overscroll-behavior-y: contain;
+  overscroll-behavior-x: contain;
 }
 
 body,
