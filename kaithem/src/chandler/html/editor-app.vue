@@ -405,7 +405,7 @@
           position: fixed;
           width: 90vw;
           max-width: 48rem;
-          height: 90vh;
+          height: 90dvh;
           top: 5vh;
           left: 5vw;
           z-index: 100;
@@ -438,7 +438,7 @@
         popover
         ontoggle="globalThis.handleDialogState(event)"
         id="selectedGroupWindow"
-        style="min-height: 90vh"
+        style="min-height: 90dvh"
         class="modal window paper margin w-full"
         v-if="editingGroup && cuemeta[editingGroup.cue]">
         <header>

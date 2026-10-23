@@ -13,7 +13,7 @@ if (urlParameters.get("ratio_guide")) {
   guide.style.display = "block";
   guide.style.aspectRatio = urlParameters.get("ratio_guide").replace("_", "/");
 }
-var excalidrawAPI, setExcalidrawAPI;
+let excalidrawAPI, setExcalidrawAPI;
 
 function appStateDefault() {
   return {
@@ -44,15 +44,15 @@ function appStateOpt() {
 }
 
 function post(url, dat, callback) {
-  let data = new FormData();
-  for (var k in dat) {
+  const data = new FormData();
+  for (const k in dat) {
     data.append(k, dat[k]);
   }
 
-  let head = new Headers();
+  const head = new Headers();
   head.append("Access-Control-Allow-Origin", "*");
 
-  let options = { method: "post", headers: head, mode: "cors", body: data };
+  const options = { method: "post", headers: head, mode: "cors", body: data };
   fetch(url, options)
     .then((e) => e.text())
     .then((text) => {
@@ -192,7 +192,7 @@ function INIT(library, scene) {
       null,
       React.createElement(
         "div",
-        { style: { height: "100vh" } },
+        { style: { height: "100dvh" } },
         React.createElement(
           Excalidraw,
           options,
@@ -226,7 +226,7 @@ const App = () => {
     null,
     React.createElement(
       "div",
-      { style: { height: "100vh" } },
+      { style: { height: "100dvh" } },
       React.createElement(
         Excalidraw,
         options,
@@ -238,15 +238,15 @@ const App = () => {
 
 function FETCH(url, dat, callback) {
   url = url + "?cache_fix=" + Date.now();
-  let data = new FormData();
-  for (var k in dat) {
+  const data = new FormData();
+  for (const k in dat) {
     data.append(k, dat[k]);
   }
 
-  let head = new Headers();
+  const head = new Headers();
   head.append("Access-Control-Allow-Origin", "*");
 
-  let options = { method: "get", headers: head, mode: "cors" };
+  const options = { method: "get", headers: head, mode: "cors" };
   fetch(url, options)
     .then((e) => e.blob())
     .then((text) => {

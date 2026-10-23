@@ -8,7 +8,7 @@
         position: fixed;
         width: 90vw;
         max-width: 48rem;
-        height: 90vh;
+        height: 90dvh;
         top: 5vh;
         left: 5vw;
         z-index: 100;

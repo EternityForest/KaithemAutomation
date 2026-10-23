@@ -337,7 +337,7 @@ input[type='range'],
 }
 
 [popover] {
-  max-height: 100vh;
+  max-height: 100dvh;
   overflow: scroll;
 }
 
@@ -371,7 +371,7 @@ html {
   /*This might not all be needed on new browsers*/
   background-size: cover, unset;
   background-repeat: repeat, repeat;
-  min-height: 100vh;
+  min-height: 100dvh;
   padding: 0px;
   margin: 0px;
   overscroll-behavior-y: contain;
@@ -1531,7 +1531,7 @@ A little smaller in flex to allow for expansion or fitting lots on a row*/
 }
 
 .h-full {
-  height: 100vh;
+  height: 100dvh;
 }
 
 .h-half {

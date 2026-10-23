@@ -10,7 +10,7 @@
       background: var(--alt-control-bg);
       position: fixed;
       width: 98vw;
-      height: 90vh;
+      height: 90dvh;
       top: 1vh;
       left: 1vw;
       z-index: 100;

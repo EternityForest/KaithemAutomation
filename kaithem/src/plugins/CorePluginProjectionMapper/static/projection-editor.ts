@@ -141,7 +141,7 @@ class ProjectionEditor extends LitElement {
       display: flex;
       flex-direction: column;
       width: 100%;
-      height: 100vh;
+      height: 100dvh;
       background: #1a1a1a;
       color: #fff;
       font-family:
@@ -1789,7 +1789,7 @@ class ProjectionEditor extends LitElement {
         <div class="projection-editor viewer-mode">
           <div
             class="editor-canvas-area viewer-mode"
-            style="width: 100%; height: 100vh; overflow: hidden;"
+            style="width: 100%; height: 100dvh; overflow: hidden;"
           >
             <canvas id="preview-canvas"></canvas>
             <div id="preview-sources"></div>
@@ -1865,7 +1865,7 @@ class ProjectionEditor extends LitElement {
                   data-testid="size-width"
                   min="320"
                   value="1920"
-                />
+                >
               </div>
               <div class="form-group">
                 <label>Height (px)</label>
@@ -1875,7 +1875,7 @@ class ProjectionEditor extends LitElement {
                   data-testid="size-height"
                   min="240"
                   value="1080"
-                />
+                >
               </div>
             </div>
 
@@ -1897,7 +1897,7 @@ class ProjectionEditor extends LitElement {
                     step="0.01"
                     value="1"
                     style="flex: 1;"
-                  />
+                  >
                   <span id="opacity-val">1.00</span>
                 </div>
               </div>
@@ -1910,7 +1910,7 @@ class ProjectionEditor extends LitElement {
                   data-testid="opacity-tag"
                   placeholder="/path/to/tag"
                   list="available-tags"
-                />
+                >
                 <datalist id="available-tags"></datalist>
                 <datalist id="available-fonts"></datalist>
               </div>
@@ -1935,7 +1935,7 @@ class ProjectionEditor extends LitElement {
                   data-testid="rotation"
                   value="0"
                   step="1"
-                />
+                >
               </div>
 
               <div class="form-group">
@@ -1949,14 +1949,14 @@ class ProjectionEditor extends LitElement {
                       data-corner="tl"
                       data-testid="corner-x-tl"
                       placeholder="X"
-                    />
+                    >
                     <input
                       type="number"
                       class="corner-y"
                       data-corner="tl"
                       data-testid="corner-y-tl"
                       placeholder="Y"
-                    />
+                    >
                   </div>
                   <div>
                     <label>Top-Right</label>
@@ -1966,14 +1966,14 @@ class ProjectionEditor extends LitElement {
                       data-corner="tr"
                       data-testid="corner-x-tr"
                       placeholder="X"
-                    />
+                    >
                     <input
                       type="number"
                       class="corner-y"
                       data-corner="tr"
                       data-testid="corner-y-tr"
                       placeholder="Y"
-                    />
+                    >
                   </div>
                   <div>
                     <label>Bottom-Left</label>
@@ -1983,14 +1983,14 @@ class ProjectionEditor extends LitElement {
                       data-corner="bl"
                       data-testid="corner-x-bl"
                       placeholder="X"
-                    />
+                    >
                     <input
                       type="number"
                       class="corner-y"
                       data-corner="bl"
                       data-testid="corner-y-bl"
                       placeholder="Y"
-                    />
+                    >
                   </div>
                   <div>
                     <label>Bottom-Right</label>
@@ -2000,14 +2000,14 @@ class ProjectionEditor extends LitElement {
                       data-corner="br"
                       data-testid="corner-x-br"
                       placeholder="X"
-                    />
+                    >
                     <input
                       type="number"
                       class="corner-y"
                       data-corner="br"
                       data-testid="corner-y-br"
                       placeholder="Y"
-                    />
+                    >
                   </div>
                 </div>
               </div>

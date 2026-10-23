@@ -42,7 +42,7 @@ a {
 html {
   opacity: 0.95;
   background-size: 20px 20px;
-  min-height: 100vh;
+  min-height: 100dvh;
   padding: 0px;
   margin: 0px;
   box-sizing: border-box;
