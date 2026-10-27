@@ -14,7 +14,7 @@ import traceback
 import warnings
 import weakref
 from collections.abc import Callable, Mapping
-from typing import Any
+from typing import Any, override
 
 import iot_devices.device
 import iot_devices.host
@@ -393,6 +393,7 @@ class DeviceRuntimeState(iot_devices.host.DeviceHostContainer):
             str, Callable[[iot_devices.device.DataRequest], Any] | None
         ] = {}
 
+    @override
     def on_device_ready(self, device: iot_devices.device.Device):
         super().on_device_ready(device)
 
@@ -436,6 +437,7 @@ class DeviceRuntimeState(iot_devices.host.DeviceHostContainer):
             .get("use_default_alerts")
         )
 
+    @override
     def on_after_device_removed(self):
         for i in self.tagpointhandlerfunctions:
             f = self.tagpointhandlerfunctions[i]
@@ -1146,9 +1148,23 @@ def updateDevice(
             gc.collect()
             time.sleep(0.01)
             gc.collect()
-            makeDevice(
-                name, savable_data, None, newparent_module, newparent_resource
-            )
+            try:
+                makeDevice(
+                    name,
+                    savable_data,
+                    None,
+                    newparent_module,
+                    newparent_resource,
+                )
+            except Exception:
+                makeDevice(
+                    name,
+                    savable_data,
+                    UnsupportedDevice,
+                    newparent_module,
+                    newparent_resource,
+                    err=traceback.format_exc(),
+                )
         else:
             kwargs["is_subdevice"] = True
 
@@ -1246,9 +1262,8 @@ def makeDevice(
     cls: type[iot_devices.device.Device] | None,
     module: str,
     resource: str,
+    err: str | None = None,
 ) -> DeviceRuntimeState:
-    err = None
-
     data = copy.deepcopy(data)
     data["name"] = name
 

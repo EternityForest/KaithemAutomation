@@ -31,8 +31,6 @@
 <script src="/static/js/thirdparty/showdown.min.js"></script>
 
 
-<link rel="stylesheet" href="/static/js/thirdparty/editTable/editTable.min.css">
-
 <datalist id="k_modules">
     {% for i in modules_state.ActiveModules %}
     <option>{{ i| escape }}</option>
@@ -144,11 +142,12 @@
 
                 <input id="jsoninput" type="hidden" name="json">
                 <script src="/static/js/thirdparty/jsoneditor.min.js"></script>
+                <script src="/static/js/json-schema-examples.js"></script>
                 <div id="editor-container"></div>
 
                <script>
                 const config = {
-                    schema: {{json.dumps(obj.device.get_full_schema() if (obj and obj.device) else {'type':'object'})}},
+                    schema: kaithemAddExampleDatalists({{json.dumps(obj.device.get_full_schema() if (obj and obj.device) else {'type':'object'})}}),
                     disable_array_delete_all_rows: true,
                     array_controls_top: true,
                     disable_array_delete_last_row: true,
