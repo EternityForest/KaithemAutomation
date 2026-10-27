@@ -2,6 +2,8 @@
 // the server.  It never sends slides back; every connected viewer receives
 // the same load/stop/next/prev/goto commands.
 
+import 'pptx-vanilla-viewer/styles.css';
+
 import { LitElement, html } from 'lit';
 import { createPptxViewer } from 'pptx-vanilla-viewer';
 import type { PptxViewerInstance } from 'pptx-vanilla-viewer';

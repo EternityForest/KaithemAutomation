@@ -2,6 +2,8 @@
 // lets the admin edit it with the real PowerPoint engine, and pushes the
 // in-memory deck back to the folder.
 
+import 'pptx-vanilla-viewer/styles.css';
+
 import { LitElement, html } from 'lit';
 import { createPptxViewer } from 'pptx-vanilla-viewer';
 import type { PptxViewerInstance } from 'pptx-vanilla-viewer';
@@ -87,7 +89,9 @@ export class PresentationEditor extends LitElement {
       editable: true,
       showToolbar: true,
       showThumbnails: true,
-      showInspector: false,
+      // The property inspector stays enabled: it is the only way to adjust
+      // position/size/fill/line, and hiding it left its toggle dead.
+      inspectorInitiallyOpen: true,
       // The built-in File tab would offer Download/Open; saving is handled
       // by this page's own Save button instead.
       hiddenActions: ['file', 'record', 'share', 'broadcast', 'export', 'help'],
@@ -113,30 +117,34 @@ export class PresentationEditor extends LitElement {
         this.setError(message);
       },
     });
-  
-
-  
 
     if (!this.filename) {
-      const f = async () => {
-        this.filename = 'Untitled.pptx';
-        const { handler, data } = await PptxHandler.create({
-          title: 'New Presentation',
-          creator: 'Author Name'
-        });
-
-        if (this.viewer) {
-          await this.viewer.loadFile(await handler.save(
-              data.slides
-          ));
-          this.dirty = true;
-          this.setStatus('New presentation created');
-        }
-      };
-      f();
+      void this.startNewDeck();
     }
   }
 
+  /**
+   * Seed the editor with a blank deck so a brand-new presentation can be
+   * saved straight into the screen's content folder.
+   */
+  private async startNewDeck(): Promise<void> {
+    this.filename = 'Untitled.pptx';
+    this.requestUpdate();
+    try {
+      const { handler, data } = await PptxHandler.create({
+        title: 'New Presentation',
+        creator: '',
+      });
+      if (!this.viewer) {
+        return;
+      }
+      await this.viewer.loadFile(await handler.save(data.slides));
+      this.dirty = true;
+      this.setStatus('New presentation created');
+    } catch (error) {
+      this.setError(`Could not create a new deck: ${errorMessage(error)}`);
+    }
+  }
 
   private setStatus(message: string): void {
     this.status = message;
@@ -171,7 +179,8 @@ export class PresentationEditor extends LitElement {
       }
       const name = validatePptxFilename(this.filename);
 
-      const pptxBlob = await this.viewer.getContent(); // or access the active presentation model
+      // Serialises the in-memory deck back to PPTX bytes.
+      const pptxBlob = await this.viewer.getContent();
 
       await saveFile(this.ref, name, new Uint8Array(pptxBlob));
       this.filename = name;

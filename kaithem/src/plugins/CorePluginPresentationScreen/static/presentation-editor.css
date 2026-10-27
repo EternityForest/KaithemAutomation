@@ -1,0 +1,174 @@
+/* Styling for the presentation editor page.
+ *
+ * The editor deliberately does NOT load Kaithem's barrel.css: the PowerPoint
+ * engine owns the whole viewport and its own look, and the site theme fights
+ * with it. Every value here is therefore self-contained.
+ */
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+presentation-editor {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.ps-editor {
+  --ps-bg: #ffffff;
+  --ps-fg: #1c1c1c;
+  --ps-muted-fg: #5c555d;
+  --ps-alt-bg: #efedea;
+  --ps-control-bg: #f7f6f3;
+  --ps-border-color: #c9c5bd;
+  --ps-accent: #283766;
+  --ps-danger: #c92a2a;
+  --ps-warning: #9a5b00;
+  --ps-gap: 0.6rem;
+  --ps-thin-border: 1px solid var(--ps-border-color);
+  --ps-radius: 0.6rem;
+  --ps-control-radius: 0.35rem;
+  --ps-mono-font: ui-monospace, sfmono-regular, menlo, consolas, monospace;
+
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100dvh;
+  box-sizing: border-box;
+  overflow: hidden;
+  background: var(--ps-bg);
+  color: var(--ps-fg);
+  font-family: system-ui, sans-serif;
+  font-size: 14px;
+}
+
+/* ---------------------------------------------------------------- toolbar */
+
+.ps-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ps-gap);
+  padding: var(--ps-gap);
+  background: var(--ps-alt-bg);
+  border-bottom: var(--ps-thin-border);
+}
+
+.ps-toolbar__back {
+  color: var(--ps-accent);
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.ps-toolbar__back:hover {
+  text-decoration: underline;
+}
+
+.ps-toolbar__title {
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.ps-toolbar__field {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.ps-toolbar__field input {
+  min-width: 18rem;
+  padding: 0.2rem 0.4rem;
+  border: var(--ps-thin-border);
+  border-radius: var(--ps-control-radius);
+  background: var(--ps-bg);
+  color: var(--ps-fg);
+  font-family: var(--ps-mono-font);
+  font-size: inherit;
+}
+
+.ps-toolbar button {
+  padding: 0.25rem 0.7rem;
+  border: var(--ps-thin-border);
+  border-radius: var(--ps-control-radius);
+  background: var(--ps-control-bg);
+  color: var(--ps-fg);
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+}
+
+.ps-toolbar button:hover:not(:disabled) {
+  background: var(--ps-bg);
+}
+
+.ps-toolbar button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.ps-toolbar .ps-primary {
+  border-color: var(--ps-accent);
+  background: var(--ps-accent);
+  color: #ffffff;
+  font-weight: bold;
+}
+
+.ps-toolbar .ps-primary:hover:not(:disabled) {
+  background: var(--ps-accent);
+  filter: brightness(1.15);
+}
+
+.ps-toolbar__meta {
+  margin-left: auto;
+  color: var(--ps-muted-fg);
+  white-space: nowrap;
+}
+
+/* ----------------------------------------------------------------- status */
+
+.ps-status {
+  margin: 0;
+  min-height: 1.4rem;
+  font-size: 0.9rem;
+  color: var(--ps-muted-fg);
+}
+
+.ps-status--error {
+  color: var(--ps-danger);
+}
+
+.ps-badge {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border: var(--ps-thin-border);
+  border-radius: 999px;
+  background: var(--ps-control-bg);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.ps-badge--dirty {
+  color: var(--ps-warning);
+  border-color: var(--ps-warning);
+}
+
+/* ------------------------------------------------------------------ stage */
+
+.ps-editor__stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: #1a1a1a;
+}
+
+.ps-editor__stage > * {
+  width: 100%;
+  height: 100%;
+}

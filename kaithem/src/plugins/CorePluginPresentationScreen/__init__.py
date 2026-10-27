@@ -17,7 +17,7 @@ import os
 import shutil
 import tempfile
 from typing import Any, override
-from urllib.parse import quote
+from urllib.parse import quote, urlencode
 
 import quart
 import structlog
@@ -290,10 +290,13 @@ async def admin_page(module: str, resource: str):
 @quart_app.route("/presentation-screen/editor/<module>/<resource>")
 async def presentation_editor_page(module: str, resource: str):
     web.require("system_admin")
+    params = {"module": module, "resource": resource}
+    requested = quart.request.args.get("file")
+    if requested:
+        params["file"] = requested
     return quart.redirect(
         "/static/vite/kaithem/src/plugins/"
-        "CorePluginPresentationScreen/html/editor.html"
-        f"?module={quote(module)}&resource={quote(resource)}"
+        "CorePluginPresentationScreen/html/editor.html?" + urlencode(params)
     )
 
 

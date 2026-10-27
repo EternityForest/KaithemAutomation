@@ -1,4 +1,10 @@
-/* Shared styling for the presentation screen admin, editor and viewer. */
+/* Shared styling for the presentation screen admin and viewer pages.
+ *
+ * Relies on Kaithem's barrel.css for theme variables. The editor has its own
+ * stylesheet (presentation-editor.css) because it deliberately runs without
+ * the site theme, and the pptx-* token bridge lives in presentation-theme.css
+ * so every page can pull in exactly what it needs.
+ */
 
 html,
 body {
@@ -8,72 +14,11 @@ body {
   height: 100%;
 }
 
-.ps-editor,
 .ps-admin,
 .ps-viewer {
   width: 100%;
   height: 100dvh;
   box-sizing: border-box;
-}
-
-/* ---------------------------------------------------------------- editor */
-
-.ps-editor {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: var(--bg);
-  color: var(--fg);
-}
-
-.ps-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--gap);
-  padding: var(--gap);
-  background: var(--alt-control-bg);
-  border-bottom: var(--thin-border);
-}
-
-.ps-toolbar__back {
-  color: var(--accent-color);
-  white-space: nowrap;
-}
-
-.ps-toolbar__title {
-  font-weight: bold;
-  white-space: nowrap;
-}
-
-.ps-toolbar__field {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-}
-
-.ps-toolbar__field input {
-  min-width: 18rem;
-  font-family: var(--mono-font);
-}
-
-.ps-toolbar__meta {
-  margin-left: auto;
-  opacity: 0.75;
-  white-space: nowrap;
-}
-
-.ps-editor__stage {
-  position: relative;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  background: #1a1a1a;
-}
-
-.ps-editor__stage > * {
-  width: 100%;
-  height: 100%;
 }
 
 /* ------------------------------------------------------------------ admin */

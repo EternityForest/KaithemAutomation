@@ -306,3 +306,24 @@ async def test_websocket_viewing_respects_locked_setting():
     async with locked:
         pass
     assert locked.accepted is False
+
+
+async def test_editor_redirect_preserves_file_parameter():
+    module, _ = _make_screen()
+    client = await make_client()
+
+    response = await client.get(
+        f"/presentation-screen/editor/{module}/screen?file=deck.pptx",
+        follow_redirects=False,
+    )
+    assert response.status_code in (301, 302, 303, 307, 308)
+    location = response.headers["Location"]
+    assert "file=deck.pptx" in location
+    assert "module=" + module in location
+
+    response = await client.get(
+        f"/presentation-screen/editor/{module}/screen",
+        follow_redirects=False,
+    )
+    assert response.status_code in (301, 302, 303, 307, 308)
+    assert "file=" not in response.headers["Location"]

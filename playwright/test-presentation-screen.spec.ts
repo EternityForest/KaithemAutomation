@@ -22,7 +22,8 @@ const FIXTURE = path.join(
   "minimal.pptx"
 );
 
-const adminUrl = `http://localhost:8002/presentation-screen/admin/${MODULE}/${RESOURCE}`;
+const adminUrl =
+  `http://localhost:8002/presentation-screen/admin/${MODULE}/${RESOURCE}`;
 const apiUrl = `http://localhost:8002/presentation-screen/api`;
 
 async function createScreen(page: Page, name: string) {
@@ -82,11 +83,43 @@ test("admin file list, editor link, controls and delete", async ({ page }) => {
   await expect(page.getByTestId("file-row")).toHaveCount(1);
   await expect(page.getByTestId("file-name")).toHaveText("deck.pptx");
 
-  // The editor is prefilled from the ?file= URL parameter.
+  // The editor is prefilled from the ?file= URL parameter and really fetches
+  // that deck instead of falling back to the engine's built-in default.
+  const deckRequest = page.waitForRequest(
+    (request) =>
+      request.url().includes(`/presentation-screen/api/file/${MODULE}/`) &&
+      request.url().endsWith("/deck.pptx"),
+    { timeout: 10_000 }
+  );
   await page.getByTestId("file-edit").click();
   await expect(page.getByTestId("editor-filename")).toHaveValue(
     "deck.pptx"
   );
+  await deckRequest;
+
+  // The engine stylesheet must be present, otherwise the chrome renders with
+  // undefined --pptx-* theme tokens.
+  const popoverToken = await page.evaluate(() =>
+    getComputedStyle(document.documentElement)
+      .getPropertyValue("--pptx-popover")
+      .trim()
+  );
+  expect(popoverToken).not.toBe("");
+
+  // The editor deliberately does not load the site theme.
+  const stylesheetHrefs = await page.evaluate(() =>
+    [...document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]')].map((link) => link.href)
+  );
+  expect(stylesheetHrefs.some((href) => href.includes("barrel.css"))).toBe(
+    false
+  );
+
+  // The property inspector is enabled (it used to be disabled, which left
+  // its toggle button doing nothing).
+  await expect(
+    page.locator(".ps-editor__stage .pptxv-inspector").first()
+  ).toBeVisible();
+
   await page.goto(adminUrl);
   await expect(page.getByTestId("admin-refresh")).toBeVisible();
 
