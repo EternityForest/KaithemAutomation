@@ -82,6 +82,18 @@ export default defineConfig({
           __dirname,
           "kaithem/src/plugins/CorePluginMapView/index.html"
         ),
+        presentationscreen_admin: resolve(
+          __dirname,
+          "kaithem/src/plugins/CorePluginPresentationScreen/html/admin.html"
+        ),
+        presentationscreen_editor: resolve(
+          __dirname,
+          "kaithem/src/plugins/CorePluginPresentationScreen/html/editor.html"
+        ),
+        presentationscreen_viewer: resolve(
+          __dirname,
+          "kaithem/src/plugins/CorePluginPresentationScreen/html/viewer.html"
+        ),
       },
       output: {
         assetFileNames: "assets/[name]-[hash][extname]",

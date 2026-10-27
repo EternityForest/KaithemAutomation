@@ -27,15 +27,16 @@ backround_import_count = threading.Semaphore(max_background_import_threads)
 def import_in_thread(module_name: str):
     def f():
         start_time = time.time()
+        evt = threading.Event()
+        watchdog(evt, f"Timed out importing {module_name}")
         try:
             backround_import_count.acquire()
-            evt = threading.Event()
-            watchdog(evt, f"Timed out importing {module_name}")
+
             importlib.import_module(module_name)
-            evt.set()
         except Exception:
             _logger.exception(f"Error importing {module_name}")
         finally:
+            evt.set()
             backround_import_count.release()
         taken = round(time.time() - start_time, 2)
         if taken > 0.1:
