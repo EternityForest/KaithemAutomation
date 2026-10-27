@@ -123,15 +123,41 @@ test("admin file list, editor link, controls and delete", async ({ page }) => {
   await page.goto(adminUrl);
   await expect(page.getByTestId("admin-refresh")).toBeVisible();
 
-  // Play pushes a load command to the viewer websocket.
+  // Nothing is playing yet, so the state dump says so.
+  await expect(page.getByTestId("state-current")).toContainText("none");
+
+  // Starting a presentation is disruptive, so it asks first.
+  page.once("dialog", (dialog) => {
+    expect(dialog.message()).toContain("deck.pptx");
+    dialog.accept().catch(() => {});
+  });
   await page.getByTestId("file-play").click();
   await expect(page.getByTestId("admin-status")).toContainText(
     "Playing",
     { timeout: 10_000 }
   );
+  await expect(page.getByTestId("state-current")).toContainText(
+    "deck.pptx"
+  );
 
-  // Navigational controls are disabled without a file, present otherwise.
+  // Next/prev replace the whole server state.
   await expect(page.getByTestId("control-next")).toBeEnabled();
+  await page.getByTestId("control-next").click();
+  await expect(page.getByTestId("state-current")).toContainText(
+    "slide 1"
+  );
+
+  // Storing the current state as the default only writes the resource.
+  await page.getByTestId("admin-set-default").click();
+  await expect(page.getByTestId("state-default")).toContainText(
+    "deck.pptx"
+  );
+
+  // Stopping is disruptive too.
+  page.once("dialog", (dialog) => {
+    expect(dialog.message()).toContain("Stop");
+    dialog.accept().catch(() => {});
+  });
   await page.getByTestId("control-stop").click();
   await expect(page.getByTestId("admin-status")).toContainText("stop");
 

@@ -54,8 +54,8 @@ body {
 
 .ps-admin__main {
   display: flex;
-  min-width: 24rem;
   flex-direction: column;
+  flex: 1;
   min-width: 0;
   min-height: 0;
   background: #1a1a1a;
@@ -98,6 +98,39 @@ body {
 .ps-panel h3 {
   margin: 0.3rem;
   font-size: 1rem;
+}
+
+/* Read-only state dumps: one row per field, name on the left. */
+
+.ps-kv-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.ps-kv-group__label {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+}
+
+.ps-kv {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.15rem 0.75rem;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.ps-kv dt {
+  opacity: 0.7;
+}
+
+.ps-kv dd {
+  margin: 0;
+  font-family: var(--mono-font);
+  overflow-wrap: anywhere;
 }
 
 .ps-panel__head {
@@ -275,12 +308,18 @@ body {
 
 @media (max-width: 900px) {
   .ps-admin {
-    grid-template-columns: 1fr;
-    grid-template-rows: minmax(0, 45%) 1fr;
+    flex-direction: column;
   }
 
   .ps-admin__side {
+    min-width: 0;
+    flex: 0 0 auto;
+    max-height: 50%;
     border-right: 0;
     border-bottom: var(--thin-border);
+  }
+
+  .ps-admin__main {
+    flex: 1 1 auto;
   }
 }

@@ -1,7 +1,11 @@
-// Admin page for a presentation screen: file list, playback controls,
-// viewing settings, and an embedded viewer.
+// Admin page for a presentation screen: file list, playback state, viewing
+// settings, and an embedded viewer.
+//
+// The server owns one playback state; this page replaces it wholesale.  The
+// viewer only mirrors it, so next/prev here move the whole screen.
 
 import { LitElement, html } from 'lit';
+import type { TemplateResult } from 'lit';
 
 import {
   deleteFile,
@@ -9,14 +13,22 @@ import {
   errorMessage,
   formatBytes,
   getConfig,
+  getState,
   getStatus,
   listFiles,
+  normalizeState,
   screenRefFromUrl,
-  sendCommand,
   setConfig,
+  setDefaultState,
+  setState,
+  stoppedState,
   viewerUrl,
 } from './presentation-api.ts';
-import type { PresentationFileInfo, ScreenRef } from './presentation-api.ts';
+import type {
+  PresentationFileInfo,
+  PresentationState,
+  ScreenRef,
+} from './presentation-api.ts';
 
 const STATUS_POLL_MS = 5000;
 
@@ -28,14 +40,18 @@ export class PresentationAdmin extends LitElement {
   private requiresAdmin = false;
   private files: PresentationFileInfo[] = [];
   private connected = 0;
-  private slideNumber = 1;
+
+  private currentState: PresentationState = stoppedState();
+  private defaultState: PresentationState = stoppedState();
+  private slideDraft = '1';
 
   private status = '';
   private statusIsError = false;
   private loading = false;
   private savingSettings = false;
+  private busy = false;
 
-  private pollTimer: number | null = null;
+  private pollTimer: ReturnType<typeof setInterval> | null = null;
 
   override createRenderRoot(): HTMLElement {
     return this;
@@ -50,7 +66,7 @@ export class PresentationAdmin extends LitElement {
     }
     void this.refresh(true);
     this.pollTimer = globalThis.setInterval(() => {
-      void this.refreshStatus();
+      void this.poll();
     }, STATUS_POLL_MS);
   }
 
@@ -74,6 +90,15 @@ export class PresentationAdmin extends LitElement {
     this.requestUpdate();
   }
 
+  private applyState(state: PresentationState): void {
+    this.currentState = normalizeState(state);
+    this.slideDraft =
+      this.currentState.type === 'pptx'
+        ? String(this.currentState.slide + 1)
+        : '1';
+    this.requestUpdate();
+  }
+
   private async refresh(includeFiles = false): Promise<void> {
     if (!this.ref) {
       return;
@@ -88,7 +113,7 @@ export class PresentationAdmin extends LitElement {
       if (includeFiles) {
         this.files = await listFiles(this.ref);
       }
-      await this.refreshStatus();
+      await this.poll();
     } catch (error) {
       this.setError(errorMessage(error));
     } finally {
@@ -97,16 +122,26 @@ export class PresentationAdmin extends LitElement {
     }
   }
 
-  private async refreshStatus(): Promise<void> {
+  /** Light periodic sync of the viewer count and the shared state. */
+  private async poll(): Promise<void> {
     if (!this.ref) {
       return;
     }
     try {
-      const status = await getStatus(this.ref);
+      const [status, state] = await Promise.all([
+        getStatus(this.ref),
+        getState(this.ref),
+      ]);
       this.connected = status.connected;
-      this.requestUpdate();
+      this.defaultState = state.default_state;
+      // Do not stomp on a half-typed slide number while an edit is pending.
+      if (!this.busy) {
+        this.applyState(state.state);
+      } else {
+        this.requestUpdate();
+      }
     } catch {
-      // A transient status failure must not disturb the page.
+      // A transient poll failure must not disturb the page.
     }
   }
 
@@ -133,25 +168,87 @@ export class PresentationAdmin extends LitElement {
     }
   }
 
-  private async command(
-    action: 'load' | 'stop' | 'next' | 'prev' | 'goto',
-    file?: string,
-    slide?: number
+  /** Replace the server state and let the poll pick up the echo. */
+  private async commitState(
+    state: PresentationState,
+    message: string
   ): Promise<void> {
     if (!this.ref) {
       return;
     }
+    this.busy = true;
     try {
-      await sendCommand(this.ref, { action, file, slide });
-      if (action === 'load' && file) {
-        this.setStatus(`Playing ${file}`);
-      } else if (action === 'goto' && slide !== undefined) {
-        this.setStatus(`Moved to slide ${slide + 1}`);
-      } else if (action !== 'load') {
-        this.setStatus(`Sent ${action}`);
-      }
+      await setState(this.ref, state);
+      this.applyState(state);
+      this.setStatus(message);
     } catch (error) {
-      this.setError(`Command failed: ${errorMessage(error)}`);
+      this.setError(`Could not update the screen: ${errorMessage(error)}`);
+    } finally {
+      this.busy = false;
+    }
+  }
+
+  private playPresentation(file: PresentationFileInfo): void {
+    const confirmed = globalThis.confirm(
+      `Start presenting "${file.name}" on every viewer?`
+    );
+    if (!confirmed) {
+      return;
+    }
+    void this.commitState(
+      { type: 'pptx', file: file.name, slide: 0 },
+      `Playing ${file.name}`
+    );
+  }
+
+  private stopPresentation(): void {
+    const confirmed = globalThis.confirm(
+      'Stop the presentation on every viewer?'
+    );
+    if (!confirmed) {
+      return;
+    }
+    void this.commitState(stoppedState(), 'Stopped');
+  }
+
+  private stepSlide(delta: number): void {
+    if (this.currentState.type !== 'pptx') {
+      return;
+    }
+    const slide = Math.max(0, this.currentState.slide + delta);
+    void this.commitState(
+      { ...this.currentState, slide },
+      `Moved to slide ${slide + 1}`
+    );
+  }
+
+  private updateSlideNumber(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.slideDraft = input.value;
+    this.requestUpdate();
+  }
+
+  private goToSlide(): void {
+    if (this.currentState.type !== 'pptx') {
+      return;
+    }
+    const parsed = Number.parseInt(this.slideDraft, 10);
+    const slide = Math.max(0, (Number.isNaN(parsed) ? 1 : parsed) - 1);
+    void this.commitState(
+      { ...this.currentState, slide },
+      `Moved to slide ${slide + 1}`
+    );
+  }
+
+  private async saveDefaultState(): Promise<void> {
+    if (!this.ref) {
+      return;
+    }
+    try {
+      this.defaultState = await setDefaultState(this.ref);
+      this.setStatus('Default start state updated');
+    } catch (error) {
+      this.setError(`Could not save the default: ${errorMessage(error)}`);
     }
   }
 
@@ -174,18 +271,6 @@ export class PresentationAdmin extends LitElement {
     }
   }
 
-  private updateSlideNumber(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const value = Number.parseInt(input.value, 10);
-    this.slideNumber = Number.isNaN(value) ? 1 : Math.max(1, value);
-    this.requestUpdate();
-  }
-
-  private goToSlide(): void {
-    const slide = Math.max(1, Math.floor(this.slideNumber));
-    void this.command('goto', undefined, slide - 1);
-  }
-
   private updateTitle(event: Event): void {
     this.titleDraft = (event.target as HTMLInputElement).value;
     this.requestUpdate();
@@ -194,6 +279,29 @@ export class PresentationAdmin extends LitElement {
   private updateRequiresAdmin(event: Event): void {
     this.requiresAdmin = (event.target as HTMLInputElement).checked;
     this.requestUpdate();
+  }
+
+  private renderStateList(
+    state: PresentationState,
+    testId: string
+  ): TemplateResult {
+    const rows: [string, string][] =
+      state.type === 'pptx'
+        ? [
+            ['type', state.type],
+            ['file', state.file],
+            ['slide', `${state.slide} (slide ${state.slide + 1})`],
+          ]
+        : [['type', state.type]];
+    return html`
+      <dl class="ps-kv" data-testid="${testId}">
+        ${rows.map(
+          ([key, value]) =>
+            html`<dt>${key}</dt>
+              <dd>${value}</dd>`
+        )}
+      </dl>
+    `;
   }
 
   private renderFile(file: PresentationFileInfo) {
@@ -215,7 +323,7 @@ export class PresentationAdmin extends LitElement {
           <button
             data-testid="file-play"
             title="Play on the viewer"
-            @click="${() => this.command('load', file.name)}"
+            @click="${() => this.playPresentation(file)}"
           >
             ▶ Play
           </button>
@@ -243,12 +351,33 @@ export class PresentationAdmin extends LitElement {
       return html`<div class="ps-admin ps-admin--error">${this.status}</div>`;
     }
 
+    const playing = this.currentState.type === 'pptx';
+
     return html`
       <div class="ps-admin">
         <aside class="ps-admin__side">
           <h2 class="ps-admin__title" data-testid="admin-title">
             ${this.screenTitle}
           </h2>
+
+          <section class="ps-panel">
+            <h3>State</h3>
+            <div class="ps-kv-group">
+              <span class="ps-kv-group__label">Current</span>
+              ${this.renderStateList(this.currentState, 'state-current')}
+            </div>
+            <div class="ps-kv-group">
+              <span class="ps-kv-group__label">Default</span>
+              ${this.renderStateList(this.defaultState, 'state-default')}
+            </div>
+            <button
+              data-testid="admin-set-default"
+              title="Save the current state as the start state"
+              @click="${this.saveDefaultState}"
+            >
+              Set current state as default
+            </button>
+          </section>
 
           <section class="ps-panel">
             <h3>Settings</h3>
@@ -325,14 +454,16 @@ export class PresentationAdmin extends LitElement {
             <button
               data-testid="control-prev"
               title="Previous slide"
-              @click="${() => this.command('prev')}"
+              ?disabled="${!playing || this.busy}"
+              @click="${() => this.stepSlide(-1)}"
             >
               ◀ Prev
             </button>
             <button
               data-testid="control-next"
               title="Next slide"
-              @click="${() => this.command('next')}"
+              ?disabled="${!playing || this.busy}"
+              @click="${() => this.stepSlide(1)}"
             >
               Next ▶
             </button>
@@ -340,7 +471,8 @@ export class PresentationAdmin extends LitElement {
               data-testid="control-stop"
               class="ps-danger"
               title="Stop the presentation"
-              @click="${() => this.command('stop')}"
+              ?disabled="${!playing}"
+              @click="${this.stopPresentation}"
             >
               ■ Stop
             </button>
@@ -351,7 +483,8 @@ export class PresentationAdmin extends LitElement {
                 type="number"
                 min="1"
                 step="1"
-                .value="${String(this.slideNumber)}"
+                .value="${this.slideDraft}"
+                ?disabled="${!playing}"
                 @input="${this.updateSlideNumber}"
                 @keydown="${(event: KeyboardEvent) => {
                   if (event.key === 'Enter') {
@@ -360,7 +493,11 @@ export class PresentationAdmin extends LitElement {
                 }}"
               >
             </label>
-            <button data-testid="control-goto" @click="${this.goToSlide}">
+            <button
+              data-testid="control-goto"
+              ?disabled="${!playing || this.busy}"
+              @click="${this.goToSlide}"
+            >
               Go
             </button>
             <span class="grow"></span>
@@ -372,7 +509,7 @@ export class PresentationAdmin extends LitElement {
               target="_blank"
               rel="noopener"
               >Open viewer</a
-            >            
+            >
             <p data-testid="admin-viewer-count">
               (${this.connected} viewer${this.connected === 1 ? '' : 's'})
             </p>

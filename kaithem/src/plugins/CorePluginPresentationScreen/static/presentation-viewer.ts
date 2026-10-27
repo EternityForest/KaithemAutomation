@@ -1,6 +1,6 @@
-// Presentation viewer: a bare PPTX canvas driven entirely by commands from
-// the server.  It never sends slides back; every connected viewer receives
-// the same load/stop/next/prev/goto commands.
+// Presentation viewer: a bare PPTX canvas that mirrors the server's playback
+// state.  It never writes state back: next/prev move the local view only, and
+// any server-side change replaces the local state wholesale.
 
 import 'pptx-vanilla-viewer/styles.css';
 
@@ -11,12 +11,21 @@ import type { PptxViewerInstance } from 'pptx-vanilla-viewer';
 import {
   errorMessage,
   fileUrl,
+  normalizeState,
   screenRefFromUrl,
-} from './presentation-api';
-import type { ScreenRef, ViewerCommand } from './presentation-api';
+  stoppedState,
+} from './presentation-api.ts';
+import type {
+  PresentationState,
+  ScreenRef,
+  ViewerMessage,
+} from './presentation-api.ts';
 
 const RECONNECT_MIN_MS = 1000;
 const RECONNECT_MAX_MS = 10_000;
+
+const NEXT_KEYS = new Set(['ArrowRight', 'ArrowDown', 'PageDown', ' ', 'Enter']);
+const PREV_KEYS = new Set(['ArrowLeft', 'ArrowUp', 'PageUp', 'Backspace']);
 
 export class PresentationViewer extends LitElement {
   private ref: ScreenRef | null = null;
@@ -24,19 +33,37 @@ export class PresentationViewer extends LitElement {
   private container: HTMLElement | null = null;
 
   private socket: WebSocket | null = null;
-  private reconnectTimer: number | null = null;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private reconnectDelay = RECONNECT_MIN_MS;
   private shuttingDown = false;
   private denied = false;
 
   private connected = false;
-  private playingFile = '';
+  private state: PresentationState = stoppedState();
+  private slideCount = 0;
   private errorText = '';
   private loading = false;
   private loadToken = 0;
 
   override createRenderRoot(): HTMLElement {
     return this;
+  }
+
+  override connectedCallback(): void {
+    super.connectedCallback();
+    globalThis.addEventListener('keydown', this.onKeyDown);
+  }
+
+  override disconnectedCallback(): void {
+    super.disconnectedCallback();
+    globalThis.removeEventListener('keydown', this.onKeyDown);
+    this.shuttingDown = true;
+    this.clearReconnect();
+    if (this.socket) {
+      this.socket.close(1000);
+      this.socket = null;
+    }
+    this.destroyViewer();
   }
 
   override firstUpdated(): void {
@@ -58,16 +85,28 @@ export class PresentationViewer extends LitElement {
     this.connect();
   }
 
-  override disconnectedCallback(): void {
-    super.disconnectedCallback();
-    this.shuttingDown = true;
-    this.clearReconnect();
-    if (this.socket) {
-      this.socket.close(1000);
-      this.socket = null;
+  /**
+   * Local-only slide navigation.  The server never learns about these
+   * keypresses, so the screen keeps whatever state it already had.
+   */
+  private onKeyDown = (event: KeyboardEvent): void => {
+    if (event.altKey || event.ctrlKey || event.metaKey) {
+      return;
     }
-    this.destroyViewer();
-  }
+    if (NEXT_KEYS.has(event.key)) {
+      event.preventDefault();
+      this.stepSlide(1);
+    } else if (PREV_KEYS.has(event.key)) {
+      event.preventDefault();
+      this.stepSlide(-1);
+    } else if (event.key === 'Home') {
+      event.preventDefault();
+      this.showSlide(0);
+    } else if (event.key === 'End') {
+      event.preventDefault();
+      this.showSlide(Number.MAX_SAFE_INTEGER);
+    }
+  };
 
   // -- WebSocket ---------------------------------------------------------
 
@@ -91,18 +130,16 @@ export class PresentationViewer extends LitElement {
     });
 
     socket.addEventListener('message', (event) => {
-      let command: ViewerCommand;
+      let message: ViewerMessage;
       try {
-        command = JSON.parse(event.data as string) as ViewerCommand;
+        message = JSON.parse(event.data as string) as ViewerMessage;
       } catch {
         return;
       }
-      if (command.action === 'ready') {
+      if (message.action === 'state') {
         this.connected = true;
-        this.requestUpdate();
-        return;
+        void this.applyState(normalizeState(message.state));
       }
-      void this.handleCommand(command);
     });
 
     socket.addEventListener('close', (event) => {
@@ -146,41 +183,48 @@ export class PresentationViewer extends LitElement {
     }
   }
 
-  // -- Commands ----------------------------------------------------------
+  // -- State -------------------------------------------------------------
 
-  private async handleCommand(command: ViewerCommand): Promise<void> {
-    try {
-      switch (command.action) {
-        case 'load': {
-          await this.load(command.file ?? '');
-          break;
-        }
-        case 'stop': {
-          this.stop();
-          break;
-        }
-        case 'next': {
-          this.viewer?.next();
-          break;
-        }
-        case 'prev': {
-          this.viewer?.prev();
-          break;
-        }
-        case 'goto': {
-          if (typeof command.slide === 'number') {
-            this.viewer?.goToSlide(command.slide);
-          }
-          break;
-        }
-        default: {
-          break;
-        }
-      }
-    } catch (error) {
-      this.errorText = errorMessage(error);
-      this.requestUpdate();
+  /** Adopt the server's state in full, then show it. */
+  private async applyState(state: PresentationState): Promise<void> {
+    if (state.type === 'none') {
+      this.state = stoppedState();
+      this.stop();
+      return;
     }
+
+    if (state.file !== this.playingFile()) {
+      this.state = state;
+      await this.load(state.file);
+      return;
+    }
+
+    this.state = state;
+    this.showSlide(state.slide);
+  }
+
+  private playingFile(): string {
+    return this.state.type === 'pptx' ? this.state.file : '';
+  }
+
+  /** Local-only navigation; the server is not told about it. */
+  private stepSlide(delta: number): void {
+    if (this.state.type !== 'pptx') {
+      return;
+    }
+    this.showSlide(this.state.slide + delta);
+  }
+
+  /** Clamp to the deck length and move both the engine and local state. */
+  private showSlide(index: number): void {
+    if (this.state.type !== 'pptx' || !this.viewer) {
+      return;
+    }
+    const last = Math.max(0, this.slideCount - 1);
+    const target = Math.min(Math.max(0, Math.floor(index)), last);
+    this.state = { ...this.state, slide: target };
+    this.viewer.goToSlide(target);
+    this.requestUpdate();
   }
 
   private ensureViewer(): PptxViewerInstance {
@@ -195,8 +239,12 @@ export class PresentationViewer extends LitElement {
       readOnly: true,
       showToolbar: false,
       showThumbnails: false,
-      showInspector: false,
+      showFormatToolbar: false,
       showCompatibilityToasts: false,
+      // No chrome and no decorative margin: the slide fills the letterboxed
+      // black stage as large as it can and is centred.
+      fitPadding: { horizontal: 0, vertical: 0 },
+      maxFitScale: null,
       customization: {
         hiddenPanels: [
           'titleBar',
@@ -211,6 +259,13 @@ export class PresentationViewer extends LitElement {
           'comparePane',
         ],
       },
+      onLoad: ({ slideCount }) => {
+        this.slideCount = slideCount;
+        if (this.state.type === 'pptx') {
+          this.showSlide(this.state.slide);
+        }
+        this.requestUpdate();
+      },
       onError: (message) => {
         this.errorText = message;
         this.requestUpdate();
@@ -223,16 +278,11 @@ export class PresentationViewer extends LitElement {
     if (!this.ref) {
       return;
     }
-    if (!filename) {
-      this.errorText = 'Load command did not include a file.';
-      this.requestUpdate();
-      return;
-    }
 
     const token = ++this.loadToken;
     this.loading = true;
     this.errorText = '';
-    this.playingFile = filename;
+    this.slideCount = 0;
     this.requestUpdate();
 
     try {
@@ -241,7 +291,7 @@ export class PresentationViewer extends LitElement {
       if (token !== this.loadToken) {
         return;
       }
-      viewer.goToSlide(0);
+      this.showSlide(this.state.type === 'pptx' ? this.state.slide : 0);
     } catch (error) {
       if (token === this.loadToken) {
         this.errorText = `Could not load ${filename}: ${errorMessage(error)}`;
@@ -257,7 +307,7 @@ export class PresentationViewer extends LitElement {
   private stop(): void {
     this.loadToken += 1;
     this.loading = false;
-    this.playingFile = '';
+    this.slideCount = 0;
     this.errorText = '';
     this.destroyViewer();
     this.requestUpdate();
@@ -280,11 +330,11 @@ export class PresentationViewer extends LitElement {
   // -- Rendering ---------------------------------------------------------
 
   override render() {
-    const showPlaceholder = !this.playingFile && !this.errorText;
+    const idle = this.state.type === 'none' && !this.errorText;
     return html`
       <div class="ps-viewer">
         <div class="ps-viewer__stage"></div>
-        ${showPlaceholder
+        ${idle
           ? html`<div class="ps-viewer__empty" data-testid="viewer-idle">
               Waiting for a presentation…
             </div>`

@@ -131,9 +131,12 @@ export class PresentationEditor extends LitElement {
     this.filename = 'Untitled.pptx';
     this.requestUpdate();
     try {
+      // Without initialSlideCount the builder produces a zero-slide deck,
+      // which the editor cannot render (and shows no editing chrome for).
       const { handler, data } = await PptxHandler.create({
         title: 'New Presentation',
         creator: '',
+        initialSlideCount: 1,
       });
       if (!this.viewer) {
         return;

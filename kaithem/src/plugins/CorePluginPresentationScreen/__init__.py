@@ -6,9 +6,14 @@ A ``presentation_screen`` resource owns a FileData folder named
 upload, list, edit, and delete those files; viewing may be opened to
 guests via the ``view_requires_admin`` setting.
 
-Viewer pages keep a WebSocket open and receive playback commands
-(load / stop / next / prev / goto).  Every connected viewer receives the
-same command, broadcast through the message bus.
+The server holds one playback state per screen (which file and which
+slide).  Viewer pages keep a WebSocket open and mirror that state, so every
+connected viewer shows the same slide.  Admins replace the whole state
+through the REST API and the new state is broadcast through the message
+bus; viewers never write state back.
+
+Each screen also stores a default start state in its resource data, which
+is used until an admin sets a live state (and again after a restart).
 """
 
 import asyncio
@@ -70,14 +75,28 @@ def _view_is_open(data: dict[str, Any]) -> bool:
     return not bool(data.get("view_requires_admin", False))
 
 
-def _require_view_access(module: str, resource: str) -> dict[str, Any] | None:
-    """Allow guests when viewing is open, otherwise require admin."""
+def _check_admin() -> tuple[Any, int] | None:
+    """Return a 403 response unless the caller is a system admin."""
+    if web.has_permission("system_admin"):
+        return None
+    return quart.jsonify({"error": "forbidden"}), 403
+
+
+def _check_view_access(
+    module: str,
+    resource: str,
+) -> tuple[dict[str, Any] | None, tuple[Any, int] | None]:
+    """Return the resource data, or an error response if access is denied.
+
+    Unlike ``web.require`` this never redirects to the login page; API and
+    page callers get an explicit 403/404 so failures are unambiguous.
+    """
     data = _resource_data(module, resource)
     if data is None:
-        return None
-    if not _view_is_open(data):
-        web.require("system_admin")
-    return data
+        return None, (quart.jsonify({"error": "not_found"}), 404)
+    if not _view_is_open(data) and not web.has_permission("system_admin"):
+        return None, (quart.jsonify({"error": "forbidden"}), 403)
+    return data, None
 
 
 def _ws_can_view(module: str, resource: str) -> bool:
@@ -142,6 +161,77 @@ def _broadcast(module: str, resource: str, payload: dict[str, Any]) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Playback state
+# ---------------------------------------------------------------------------
+
+# (module, resource) -> current state.  A missing entry means "use the
+# resource's default_state", so a restart falls back to the configured start.
+_current_states: dict[tuple[str, str], dict[str, Any]] = {}
+
+
+def _empty_state() -> dict[str, Any]:
+    return {"type": "none"}
+
+
+def _parse_pptx_state(raw: dict[str, Any]) -> dict[str, Any]:
+    """Validate the ``pptx`` members of a state object."""
+    try:
+        filename = sanitize_pptx_filename(str(raw.get("file", "")))
+    except ValueError as exc:
+        raise ValueError("State needs a valid .pptx file") from exc
+
+    slide = raw.get("slide", 0)
+    if isinstance(slide, bool) or not isinstance(slide, int) or slide < 0:
+        raise ValueError("Slide must be a non-negative integer")
+    return {"type": "pptx", "file": filename, "slide": slide}
+
+
+def _normalize_state(module: str, resource: str, raw: Any) -> dict[str, Any]:
+    """Turn client input into a state, or raise ``ValueError``.
+
+    The file must exist: the viewer would otherwise sit on a broken state.
+    """
+    if not isinstance(raw, dict):
+        raise TypeError("State must be an object")
+
+    state_type = raw.get("type", "none")
+    if state_type == "none":
+        return _empty_state()
+    if state_type != "pptx":
+        raise ValueError("Unknown state type")
+
+    state = _parse_pptx_state(raw)
+    if not os.path.isfile(_file_path(module, resource, state["file"])):
+        raise FileNotFoundError(state["file"])
+    return state
+
+
+def _default_state(data: dict[str, Any]) -> dict[str, Any]:
+    """The start state stored in the resource, or ``{"type": "none"}``."""
+    raw = data.get("default_state")
+    if not isinstance(raw, dict) or raw.get("type") != "pptx":
+        return _empty_state()
+    try:
+        return _parse_pptx_state(raw)
+    except ValueError:
+        return _empty_state()
+
+
+def _effective_state(
+    module: str, resource: str, data: dict[str, Any]
+) -> dict[str, Any]:
+    """Current state if one was set, else the resource's default."""
+    state = _current_states.get((module, resource))
+    return dict(state) if state is not None else _default_state(data)
+
+
+def _publish_state(module: str, resource: str, state: dict[str, Any]) -> None:
+    """Make ``state`` the current state and push it to every viewer."""
+    _current_states[(module, resource)] = state
+    _broadcast(module, resource, {"action": "state", "state": state})
+
+
+# ---------------------------------------------------------------------------
 # Resource type
 # ---------------------------------------------------------------------------
 
@@ -162,6 +252,11 @@ class PresentationScreenType(resource_types.ResourceType):
                     "type": "boolean",
                     "title": "Viewing requires admin",
                     "default": False,
+                },
+                "default_state": {
+                    "type": "object",
+                    "title": "Default start state",
+                    "default": {"type": "none"},
                 },
             },
         }
@@ -209,6 +304,7 @@ class PresentationScreenType(resource_types.ResourceType):
             "resource": {"type": self.type},
             "title": kwargs.get("title") or "Presentation Screen",
             "view_requires_admin": False,
+            "default_state": _empty_state(),
         }
 
     @override
@@ -227,7 +323,6 @@ class PresentationScreenType(resource_types.ResourceType):
                 resource,
             )
 
-    @override
     @override
     def edit_page(
         self,
@@ -256,6 +351,7 @@ class PresentationScreenType(resource_types.ResourceType):
         resource: str,
         data: modules_state.ResourceDictType,
     ) -> None:
+        _current_states.pop((module, resource), None)
         try:
             path = _content_dir(module, resource)
             if os.path.isdir(path):
@@ -302,7 +398,9 @@ async def presentation_editor_page(module: str, resource: str):
 
 @quart_app.route("/presentation-screen/viewer/<module>/<resource>")
 async def presentation_viewer_page(module: str, resource: str):
-    _require_view_access(module, resource)
+    _data, error = _check_view_access(module, resource)
+    if error is not None:
+        return error
     return quart.redirect(
         "/static/vite/kaithem/src/plugins/"
         "CorePluginPresentationScreen/html/viewer.html"
@@ -323,7 +421,9 @@ api_bp = Blueprint(
 
 @api_bp.route("/files/<module>/<resource>", methods=["GET"])
 async def presentation_list_files(module: str, resource: str):
-    web.require("system_admin")
+    error = _check_admin()
+    if error is not None:
+        return error
     if _resource_data(module, resource) is None:
         return quart.jsonify({"error": "not_found"}), 404
 
@@ -356,8 +456,9 @@ async def presentation_list_files(module: str, resource: str):
 
 @api_bp.route("/file/<module>/<resource>/<filename>", methods=["GET"])
 async def presentation_get_file(module: str, resource: str, filename: str):
-    if _require_view_access(module, resource) is None:
-        return quart.jsonify({"error": "not_found"}), 404
+    _data, error = _check_view_access(module, resource)
+    if error is not None:
+        return error
 
     try:
         path = _file_path(module, resource, filename)
@@ -377,7 +478,9 @@ async def presentation_get_file(module: str, resource: str, filename: str):
     methods=["POST"],
 )
 async def presentation_save_file(module: str, resource: str, filename: str):
-    web.require("system_admin")
+    error = _check_admin()
+    if error is not None:
+        return error
     if _resource_data(module, resource) is None:
         return quart.jsonify({"error": "not_found"}), 404
 
@@ -409,7 +512,9 @@ async def presentation_save_file(module: str, resource: str, filename: str):
     methods=["POST"],
 )
 async def presentation_delete_file(module: str, resource: str, filename: str):
-    web.require("system_admin")
+    error = _check_admin()
+    if error is not None:
+        return error
     if _resource_data(module, resource) is None:
         return quart.jsonify({"error": "not_found"}), 404
 
@@ -426,6 +531,12 @@ async def presentation_delete_file(module: str, resource: str, filename: str):
     except OSError:
         logger.exception("Could not delete presentation file")
         return quart.jsonify({"error": "delete_failed"}), 500
+
+    key = (module, resource)
+    state = _current_states.get(key)
+    if state is not None and state.get("file") == os.path.basename(path):
+        fallback = _default_state(_resource_data(module, resource) or {})
+        _publish_state(module, resource, fallback)
 
     return quart.jsonify({"status": "ok"})
 
@@ -445,7 +556,9 @@ async def presentation_get_config(module: str, resource: str):
 
 @api_bp.route("/config/<module>/<resource>", methods=["POST"])
 async def presentation_set_config(module: str, resource: str):
-    web.require("system_admin")
+    error = _check_admin()
+    if error is not None:
+        return error
     data = _resource_data(module, resource)
     if data is None:
         return quart.jsonify({"error": "not_found"}), 404
@@ -477,49 +590,64 @@ async def presentation_set_config(module: str, resource: str):
 
 @api_bp.route("/status/<module>/<resource>", methods=["GET"])
 async def presentation_get_status(module: str, resource: str):
-    web.require("system_admin")
+    error = _check_admin()
+    if error is not None:
+        return error
     if _resource_data(module, resource) is None:
         return quart.jsonify({"error": "not_found"}), 404
     clients = _connections.get((module, resource), set())
     return quart.jsonify({"connected": len(clients)})
 
 
-@api_bp.route("/command/<module>/<resource>", methods=["POST"])
-async def presentation_send_command(module: str, resource: str):
-    web.require("system_admin")
+@api_bp.route("/state/<module>/<resource>", methods=["GET"])
+async def presentation_get_state(module: str, resource: str):
+    data, error = _check_view_access(module, resource)
+    if error is not None:
+        return error
+    return quart.jsonify(
+        {
+            "state": _effective_state(module, resource, data),
+            "default_state": _default_state(data),
+        }
+    )
+
+
+@api_bp.route("/state/<module>/<resource>", methods=["POST"])
+async def presentation_set_state(module: str, resource: str):
+    """Replace the whole current state; this is the only way to change it."""
+    error = _check_admin()
+    if error is not None:
+        return error
     if _resource_data(module, resource) is None:
         return quart.jsonify({"error": "not_found"}), 404
 
     body = await quart.request.get_json(force=True, silent=True) or {}
-    if not isinstance(body, dict):
-        return quart.jsonify({"error": "invalid_body"}), 400
+    try:
+        state = _normalize_state(module, resource, body)
+    except FileNotFoundError:
+        return quart.jsonify({"error": "file_not_found"}), 404
+    except (TypeError, ValueError) as exc:
+        return quart.jsonify({"error": str(exc)}), 400
 
-    action = body.get("action")
-    if action not in ("load", "stop", "next", "prev", "goto"):
-        return quart.jsonify({"error": "invalid_action"}), 400
+    _publish_state(module, resource, state)
+    return quart.jsonify({"status": "ok", "state": state})
 
-    payload: dict[str, Any] = {"action": action}
 
-    if action == "load":
-        try:
-            filename = sanitize_pptx_filename(str(body.get("file", "")))
-        except ValueError as exc:
-            return quart.jsonify({"error": str(exc)}), 400
-        path = os.path.join(_content_dir(module, resource), filename)
-        if not os.path.isfile(path):
-            return quart.jsonify({"error": "file_not_found"}), 404
-        payload["file"] = filename
+@api_bp.route("/state-default/<module>/<resource>", methods=["POST"])
+async def presentation_set_default_state(module: str, resource: str):
+    """Copy the current state into the resource as its start state."""
+    error = _check_admin()
+    if error is not None:
+        return error
+    data = _resource_data(module, resource)
+    if data is None:
+        return quart.jsonify({"error": "not_found"}), 404
 
-    if action == "goto":
-        slide = body.get("slide")
-        if not isinstance(slide, int) or isinstance(slide, bool):
-            return quart.jsonify({"error": "invalid_slide"}), 400
-        if slide < 0:
-            return quart.jsonify({"error": "invalid_slide"}), 400
-        payload["slide"] = slide
-
-    _broadcast(module, resource, payload)
-    return quart.jsonify({"status": "ok"})
+    default_state = _effective_state(module, resource, data)
+    result = modules.mutable_copy_resource(data)
+    result["default_state"] = default_state
+    modules_state.raw_insert_resource(module, resource, result)
+    return quart.jsonify({"status": "ok", "default_state": default_state})
 
 
 quart_app.register_blueprint(api_bp)
@@ -554,7 +682,14 @@ async def presentation_ws_viewer(module: str, resource: str):
     messagebus.subscribe(topic, on_command)
 
     try:
-        await ws.send(json.dumps({"action": "ready"}))
+        # Every new connection starts from the server's state, so a refresh
+        # picks the show back up where the server says it is.
+        data = _resource_data(module, resource) or {}
+        initial = {
+            "action": "state",
+            "state": _effective_state(module, resource, data),
+        }
+        await ws.send(json.dumps(initial))
         while True:
             try:
                 queued = queue.get_nowait()

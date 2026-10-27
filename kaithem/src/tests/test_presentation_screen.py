@@ -1,3 +1,4 @@
+import json
 import os
 import time
 
@@ -27,12 +28,18 @@ def _make_screen(title: str = "Test Screen", name: str = "screen"):
         modules_state.raw_insert_resource(module, name, data)
     resource_type.on_load(module, name, data)
 
-    path = modules.filename_for_file_resource(module, name + ".content")
+    path = modules_api.filename_for_file_resource(module, name + ".content")
     return module, path
 
 
 def _api(module: str, suffix: str) -> str:
+    """URL for an endpoint keyed only by module and resource."""
     return f"/presentation-screen/api{suffix}/{module}/screen"
+
+
+def _file_api(module: str, verb: str, filename: str) -> str:
+    """URL for an endpoint that also takes a filename."""
+    return f"/presentation-screen/api/{verb}/{module}/screen/{filename}"
 
 
 async def test_resource_creates_content_folder():
@@ -49,7 +56,9 @@ async def test_save_list_get_delete_roundtrip():
     assert (await response.get_json())["files"] == []
 
     payload = b"PK\x03\x04fake-pptx-body"
-    response = await client.post(_api(module, "/save/deck.pptx"), data=payload)
+    response = await client.post(
+        _file_api(module, "save", "deck.pptx"), data=payload
+    )
     assert response.status_code == 200
 
     response = await client.get(_api(module, "/files"))
@@ -59,16 +68,16 @@ async def test_save_list_get_delete_roundtrip():
 
     assert os.path.isfile(os.path.join(path, "deck.pptx"))
 
-    response = await client.get(_api(module, "/file/deck.pptx"))
+    response = await client.get(_file_api(module, "file", "deck.pptx"))
     assert response.status_code == 200
     assert await response.get_data() == payload
     assert response.headers["Cache-Control"] == "no-store"
 
-    response = await client.post(_api(module, "/delete/deck.pptx"))
+    response = await client.post(_file_api(module, "delete", "deck.pptx"))
     assert response.status_code == 200
     assert not os.path.exists(os.path.join(path, "deck.pptx"))
 
-    response = await client.get(_api(module, "/file/deck.pptx"))
+    response = await client.get(_file_api(module, "file", "deck.pptx"))
     assert response.status_code == 404
 
 
@@ -76,17 +85,23 @@ async def test_save_rejects_bad_input():
     module, _ = _make_screen()
     client = await make_client()
 
-    response = await client.post(_api(module, "/save/notes.txt"), data=b"PK")
-    assert response.status_code == 400
-
-    response = await client.post(_api(module, "/save/../evil.pptx"), data=b"PK")
-    assert response.status_code in (400, 404)
-
-    response = await client.post(_api(module, "/save/empty.pptx"), data=b"")
+    response = await client.post(
+        _file_api(module, "save", "notes.txt"), data=b"PK"
+    )
     assert response.status_code == 400
 
     response = await client.post(
-        _api(module, "/save/notzip.pptx"), data=b"not a zip"
+        _file_api(module, "save", "../evil.pptx"), data=b"PK"
+    )
+    assert response.status_code in (400, 404)
+
+    response = await client.post(
+        _file_api(module, "save", "empty.pptx"), data=b""
+    )
+    assert response.status_code == 400
+
+    response = await client.post(
+        _file_api(module, "save", "notzip.pptx"), data=b"not a zip"
     )
     assert response.status_code == 400
 
@@ -101,10 +116,16 @@ async def test_config_defaults_open_and_admin_can_lock():
     assert (await response.get_json())["view_requires_admin"] is False
 
     # Open viewing: guests may fetch files (once one exists).
-    response = await admin.post(_api(module, "/save/guest.pptx"), data=b"PKok")
+    response = await admin.post(
+        _file_api(module, "save", "guest.pptx"), data=b"PKok"
+    )
     assert response.status_code == 200
-    response = await guest.get(_api(module, "/file/guest.pptx"))
+    response = await guest.get(_file_api(module, "file", "guest.pptx"))
     assert response.status_code == 200
+    # Viewers need the state to know what to show.
+    response = await guest.get(_api(module, "/state"))
+    assert response.status_code == 200
+    assert (await response.get_json())["state"] == {"type": "none"}
 
     response = await admin.post(
         _api(module, "/config"),
@@ -113,13 +134,15 @@ async def test_config_defaults_open_and_admin_can_lock():
     assert response.status_code == 200
     assert (await response.get_json())["view_requires_admin"] is True
 
-    response = await guest.get(_api(module, "/file/guest.pptx"))
+    response = await guest.get(_file_api(module, "file", "guest.pptx"))
     assert response.status_code in (401, 403)
     response = await guest.get(_api(module, "/files"))
     assert response.status_code in (401, 403)
+    response = await guest.get(_api(module, "/state"))
+    assert response.status_code in (401, 403)
 
     # Admin keeps access.
-    response = await admin.get(_api(module, "/file/guest.pptx"))
+    response = await admin.get(_file_api(module, "file", "guest.pptx"))
     assert response.status_code == 200
 
     # And can unlock again.
@@ -150,66 +173,125 @@ async def test_guest_cannot_save_or_delete():
     module, _ = _make_screen()
     guest = _guest_client()
 
-    response = await guest.post(_api(module, "/save/x.pptx"), data=b"PK")
+    response = await guest.post(_file_api(module, "save", "x.pptx"), data=b"PK")
     assert response.status_code in (401, 403)
 
-    response = await guest.post(_api(module, "/delete/x.pptx"))
+    response = await guest.post(_file_api(module, "delete", "x.pptx"))
+    assert response.status_code in (401, 403)
+
+    response = await guest.post(_api(module, "/state"), json={"type": "none"})
+    assert response.status_code in (401, 403)
+
+    response = await guest.post(_api(module, "/state-default"))
     assert response.status_code in (401, 403)
 
 
-async def test_commands_validate_and_broadcast(monkeypatch):
+def _squash_state_broadcasts(monkeypatch):
+    """Collect state broadcasts instead of putting them on the message bus."""
+    from kaithem.src.plugins import CorePluginPresentationScreen as plugin
+
+    sent: list[dict] = []
+    monkeypatch.setattr(
+        plugin, "_broadcast", lambda _m, _r, payload: sent.append(payload)
+    )
+    return sent
+
+
+async def test_state_endpoint_replaces_the_whole_state(monkeypatch):
+    module, _ = _make_screen()
+    client = await make_client()
+    sent = _squash_state_broadcasts(monkeypatch)
+
+    response = await client.get(_api(module, "/state"))
+    body = await response.get_json()
+    assert body["state"] == {"type": "none"}
+    assert body["default_state"] == {"type": "none"}
+
+    response = await client.post(
+        _file_api(module, "save", "deck.pptx"), data=b"PKok"
+    )
+    assert response.status_code == 200
+
+    playing = {"type": "pptx", "file": "deck.pptx", "slide": 2}
+    response = await client.post(_api(module, "/state"), json=playing)
+    assert response.status_code == 200
+    assert sent == [{"action": "state", "state": playing}]
+
+    body = await (await client.get(_api(module, "/state"))).get_json()
+    assert body["state"] == playing
+
+    # Replacement is total: stopping drops the file and the slide.
+    response = await client.post(_api(module, "/state"), json={"type": "none"})
+    assert response.status_code == 200
+    assert sent[-1] == {"action": "state", "state": {"type": "none"}}
+    body = await (await client.get(_api(module, "/state"))).get_json()
+    assert body["state"] == {"type": "none"}
+
+    for body in (
+        {"type": "bogus"},
+        {"type": "pptx"},
+        {"type": "pptx", "file": "deck.pptx", "slide": -1},
+        {"type": "pptx", "file": "deck.pptx", "slide": "2"},
+        {"type": "pptx", "file": "deck.pptx", "slide": True},
+        {"type": "pptx", "file": "../deck.pptx"},
+        ["nope"],
+    ):
+        response = await client.post(_api(module, "/state"), json=body)
+        assert response.status_code == 400
+
+    response = await client.post(
+        _api(module, "/state"),
+        json={"type": "pptx", "file": "missing.pptx", "slide": 0},
+    )
+    assert response.status_code == 404
+
+    # Nothing invalid was published.
+    assert len(sent) == 2
+
+
+async def test_default_state_is_stored_in_the_resource(monkeypatch):
+    from kaithem.src import modules_state
     from kaithem.src.plugins import CorePluginPresentationScreen as plugin
 
     module, _ = _make_screen()
     client = await make_client()
+    _squash_state_broadcasts(monkeypatch)
 
-    sent: list[dict] = []
+    await client.post(_file_api(module, "save", "deck.pptx"), data=b"PKok")
 
-    def fake_broadcast(_module, _resource, payload):
-        sent.append(payload)
-
-    monkeypatch.setattr(plugin, "_broadcast", fake_broadcast)
-
-    response = await client.post(_api(module, "/save/deck.pptx"), data=b"PKok")
+    response = await client.post(_api(module, "/state-default"))
     assert response.status_code == 200
+    assert (await response.get_json())["default_state"] == {"type": "none"}
 
-    for action in ("next", "prev", "stop"):
-        response = await client.post(
-            _api(module, "/command"), json={"action": action}
-        )
-        assert response.status_code == 200
+    playing = {"type": "pptx", "file": "deck.pptx", "slide": 3}
+    await client.post(_api(module, "/state"), json=playing)
 
-    response = await client.post(
-        _api(module, "/command"), json={"action": "load", "file": "deck.pptx"}
-    )
+    response = await client.post(_api(module, "/state-default"))
     assert response.status_code == 200
+    assert (await response.get_json())["default_state"] == playing
+    stored = modules_state.ActiveModules[module]["screen"]
+    assert stored["default_state"] == playing
 
-    response = await client.post(
-        _api(module, "/command"), json={"action": "goto", "slide": 3}
-    )
+    # Without a live state (e.g. after a restart) the default is used.
+    plugin._current_states.pop((module, "screen"), None)
+    body = await (await client.get(_api(module, "/state"))).get_json()
+    assert body["state"] == playing
+    assert body["default_state"] == playing
+
+
+async def test_deleting_the_playing_file_falls_back_to_the_default(monkeypatch):
+    module, _ = _make_screen()
+    client = await make_client()
+    sent = _squash_state_broadcasts(monkeypatch)
+
+    await client.post(_file_api(module, "save", "deck.pptx"), data=b"PKok")
+    playing = {"type": "pptx", "file": "deck.pptx", "slide": 1}
+    await client.post(_api(module, "/state"), json=playing)
+    assert len(sent) == 1
+
+    response = await client.post(_file_api(module, "delete", "deck.pptx"))
     assert response.status_code == 200
-
-    assert sent == [
-        {"action": "next"},
-        {"action": "prev"},
-        {"action": "stop"},
-        {"action": "load", "file": "deck.pptx"},
-        {"action": "goto", "slide": 3},
-    ]
-
-    # Invalid inputs never broadcast.
-    for body in (
-        {"action": "bogus"},
-        {"action": "goto", "slide": -1},
-        {"action": "goto", "slide": "2"},
-        {"action": "load"},
-        {"action": "load", "file": "missing.pptx"},
-        {"action": "load", "file": "../deck.pptx"},
-    ):
-        response = await client.post(_api(module, "/command"), json=body)
-        assert response.status_code in (400, 404)
-
-    assert len(sent) == 5
+    assert sent[-1] == {"action": "state", "state": {"type": "none"}}
 
 
 def test_sanitize_pptx_filename():
@@ -247,37 +329,37 @@ def test_delete_removes_content_folder():
     assert not os.path.exists(path)
 
 
-async def test_websocket_broadcasts_commands_to_all_viewers():
-    import json
-
+async def test_websocket_broadcasts_state_to_all_viewers():
     module, _ = _make_screen()
     admin = await make_client()
-    response = await admin.post(_api(module, "/save/deck.pptx"), data=b"PKok")
+    response = await admin.post(
+        _file_api(module, "save", "deck.pptx"), data=b"PKok"
+    )
     assert response.status_code == 200
 
+    stopped = {"action": "state", "state": {"type": "none"}}
     url = f"/presentation-screen/ws/{module}/screen"
     async with admin.websocket(url) as first:
-        assert json.loads(await first.receive()) == {"action": "ready"}
+        # A fresh viewer starts from the server's state.
+        assert json.loads(await first.receive()) == stopped
 
         async with admin.websocket(url) as second:
-            assert json.loads(await second.receive()) == {"action": "ready"}
+            assert json.loads(await second.receive()) == stopped
 
-            response = await admin.post(
-                _api(module, "/command"),
-                json={"action": "load", "file": "deck.pptx"},
-            )
+            playing = {"type": "pptx", "file": "deck.pptx", "slide": 0}
+            response = await admin.post(_api(module, "/state"), json=playing)
             assert response.status_code == 200
 
-            expected = {"action": "load", "file": "deck.pptx"}
+            expected = {"action": "state", "state": playing}
             assert json.loads(await first.receive()) == expected
             assert json.loads(await second.receive()) == expected
 
-            response = await admin.post(
-                _api(module, "/command"), json={"action": "next"}
-            )
+            moved = {"type": "pptx", "file": "deck.pptx", "slide": 1}
+            response = await admin.post(_api(module, "/state"), json=moved)
             assert response.status_code == 200
-            assert json.loads(await first.receive()) == {"action": "next"}
-            assert json.loads(await second.receive()) == {"action": "next"}
+            expected = {"action": "state", "state": moved}
+            assert json.loads(await first.receive()) == expected
+            assert json.loads(await second.receive()) == expected
 
             response = await admin.get(_api(module, "/status"))
             assert (await response.get_json())["connected"] == 2
@@ -292,9 +374,13 @@ async def test_websocket_viewing_respects_locked_setting():
     guest = _guest_client()
     url = f"/presentation-screen/ws/{module}/screen"
 
-    # Open by default: guests are accepted.
+    # Open by default: guests are accepted and receive the current state.
     connection = guest.websocket(url)
     async with connection:
+        assert json.loads(await connection.receive()) == {
+            "action": "state",
+            "state": {"type": "none"},
+        }
         assert connection.accepted is True
 
     response = await admin.post(

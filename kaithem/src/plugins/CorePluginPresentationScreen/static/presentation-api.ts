@@ -3,12 +3,49 @@
 // Every page (admin, editor, viewer) talks to the same endpoints, so the
 // URL building and error handling live here instead of being duplicated.
 
-export type ViewerAction = 'load' | 'stop' | 'next' | 'prev' | 'goto';
+/**
+ * One screen-wide playback state.  The server is the single source of truth:
+ * the admin page replaces it wholesale, and viewers only mirror it.
+ *
+ * ``slide`` is a zero-based index.  A viewer showing a longer deck than the
+ * state implies clamps to its own last slide.
+ */
+export type PresentationState =
+  | { type: 'none' }
+  | { type: 'pptx'; file: string; slide: number };
 
-export interface ViewerCommand {
-  action: ViewerAction | 'ready' | 'pong';
-  file?: string;
-  slide?: number;
+export interface PresentationStateResponse {
+  state: PresentationState;
+  default_state: PresentationState;
+}
+
+export interface ViewerMessage {
+  action: 'state' | 'pong';
+  state?: PresentationState;
+}
+
+export function stoppedState(): PresentationState {
+  return { type: 'none' };
+}
+
+/** Coerce whatever the server sent into a well-formed state. */
+export function normalizeState(raw: unknown): PresentationState {
+  if (!raw || typeof raw !== 'object') {
+    return stoppedState();
+  }
+  const value = raw as { type?: unknown; file?: unknown; slide?: unknown };
+  if (
+    value.type !== 'pptx' ||
+    typeof value.file !== 'string' ||
+    !value.file
+  ) {
+    return stoppedState();
+  }
+  const slide =
+    typeof value.slide === 'number' && Number.isFinite(value.slide)
+      ? Math.max(0, Math.floor(value.slide))
+      : 0;
+  return { type: 'pptx', file: value.file, slide };
 }
 
 export interface PresentationFileInfo {
@@ -107,15 +144,40 @@ export async function getStatus(
   return fetchJson<PresentationStatus>(apiUrl(ref, 'status'));
 }
 
-export async function sendCommand(
+export async function getState(
+  ref: ScreenRef
+): Promise<PresentationStateResponse> {
+  const data = await fetchJson<{
+    state: unknown;
+    default_state: unknown;
+  }>(apiUrl(ref, 'state'));
+  return {
+    state: normalizeState(data.state),
+    default_state: normalizeState(data.default_state),
+  };
+}
+
+/** Replace the server's whole playback state and notify every viewer. */
+export async function setState(
   ref: ScreenRef,
-  command: ViewerCommand
+  state: PresentationState
 ): Promise<void> {
-  await fetchJson(apiUrl(ref, 'command'), {
+  await fetchJson(apiUrl(ref, 'state'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(command),
+    body: JSON.stringify(state),
   });
+}
+
+/** Store the current state in the resource as its start state. */
+export async function setDefaultState(
+  ref: ScreenRef
+): Promise<PresentationState> {
+  const data = await fetchJson<{ default_state: unknown }>(
+    apiUrl(ref, 'state-default'),
+    { method: 'POST' }
+  );
+  return normalizeState(data.default_state);
 }
 
 export async function saveFile(
