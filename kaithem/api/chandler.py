@@ -3,6 +3,7 @@ from typing import Any
 from kaithem.src.chandler import global_actions as _global_actions
 from kaithem.src.chandler import groups as _groups
 from kaithem.src.chandler.core import serialized_async_with_core_lock
+from kaithem.src.chandler.global_actions import ShortcutCodeListener
 from kaithem.src.scriptbindings import StatelessFunction
 
 
@@ -30,3 +31,12 @@ def shortcut(s: str):
         _global_actions.cl_trigger_shortcut_code(s)
 
     serialized_async_with_core_lock(f)
+
+
+__all__ = [
+    "add_command",
+    "trigger_event",
+    "shortcut",
+    "ShortcutCodeListener",
+    "StatelessFunction",
+]

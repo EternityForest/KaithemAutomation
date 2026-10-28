@@ -361,7 +361,8 @@ export class PresentationAdmin extends LitElement {
           </h2>
 
           <section class="ps-panel">
-            <h3>State</h3>
+            <details>
+            <summary><h3>State</h3></summary>
             <div class="ps-kv-group">
               <span class="ps-kv-group__label">Current</span>
               ${this.renderStateList(this.currentState, 'state-current')}
@@ -377,6 +378,7 @@ export class PresentationAdmin extends LitElement {
             >
               Set current state as default
             </button>
+            </details>
           </section>
 
           <section class="ps-panel">
@@ -500,7 +502,6 @@ export class PresentationAdmin extends LitElement {
             >
               Go
             </button>
-            <span class="grow"></span>
 
             <a
               class="button"

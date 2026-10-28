@@ -1389,7 +1389,7 @@ class Group:
             if sc:
 
                 def f():
-                    cl_trigger_shortcut_code(sc, exclude=self)
+                    cl_trigger_shortcut_code(sc, {"exclude": self.name})
 
                 core.serialized_async_with_core_lock(f)
 
