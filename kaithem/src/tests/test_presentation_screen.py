@@ -413,3 +413,264 @@ async def test_editor_redirect_preserves_file_parameter():
     )
     assert response.status_code in (301, 302, 303, 307, 308)
     assert "file=" not in response.headers["Location"]
+
+
+# ---------------------------------------------------------------------------
+# Bookmarks
+# ---------------------------------------------------------------------------
+
+
+def _bookmarks_api(module: str) -> str:
+    """URL for the whole bookmark collection of a screen."""
+    return f"/presentation-screen/api/bookmarks/{module}/screen"
+
+
+def _bookmark_api(module: str, name: str, verb: str) -> str:
+    """URL for one bookmark action (save/goto/meta/delete)."""
+    return f"{_bookmarks_api(module)}/{name}/{verb}"
+
+
+async def _save_deck(client, module: str, filename: str = "deck.pptx"):
+    response = await client.post(
+        _file_api(module, "save", filename), data=b"PKok"
+    )
+    assert response.status_code == 200
+
+
+async def test_bookmark_save_list_goto_delete_roundtrip(monkeypatch):
+    module, _ = _make_screen()
+    client = await make_client()
+    sent = _squash_state_broadcasts(monkeypatch)
+    await _save_deck(client, module)
+
+    playing = {"type": "pptx", "file": "deck.pptx", "slide": 2}
+    await client.post(_api(module, "/state"), json=playing)
+    sent.clear()
+
+    response = await client.post(_bookmark_api(module, "opening", "save"))
+    assert response.status_code == 200
+    bookmark = (await response.get_json())["bookmark"]
+    assert bookmark["state"] == playing
+    assert bookmark["meta"] == {}
+
+    response = await client.get(_bookmarks_api(module))
+    bookmarks = (await response.get_json())["bookmarks"]
+    assert set(bookmarks) == {"opening"}
+    assert bookmarks["opening"]["state"] == playing
+    assert bookmarks["opening"]["meta"] == {}
+
+    # Move the live show elsewhere, then jump back through the bookmark.
+    await client.post(_api(module, "/state"), json={"type": "none"})
+    sent.clear()
+    response = await client.post(_bookmark_api(module, "opening", "goto"))
+    assert response.status_code == 200
+    assert sent == [{"action": "state", "state": playing}]
+
+    response = await client.post(_bookmark_api(module, "opening", "delete"))
+    assert response.status_code == 200
+    response = await client.get(_bookmarks_api(module))
+    assert (await response.get_json())["bookmarks"] == {}
+
+    response = await client.post(_bookmark_api(module, "opening", "goto"))
+    assert response.status_code == 404
+
+
+async def test_bookmark_overwrite_updates_state_but_keeps_meta(monkeypatch):
+    module, _ = _make_screen()
+    client = await make_client()
+    _squash_state_broadcasts(monkeypatch)
+    await _save_deck(client, module)
+
+    response = await client.post(_bookmark_api(module, "opening", "save"))
+    assert response.status_code == 200
+
+    meta = {"shortcut": "7", "note": "keep me"}
+    response = await client.post(
+        _bookmark_api(module, "opening", "meta"), json={"meta": meta}
+    )
+    assert response.status_code == 200
+    assert (await response.get_json())["bookmark"]["meta"] == meta
+
+    playing = {"type": "pptx", "file": "deck.pptx", "slide": 4}
+    await client.post(_api(module, "/state"), json=playing)
+
+    response = await client.post(_bookmark_api(module, "opening", "save"))
+    assert response.status_code == 200
+    bookmark = (await response.get_json())["bookmark"]
+    assert bookmark["state"] == playing
+    # The meta must survive an overwrite of the state.
+    assert bookmark["meta"] == meta
+
+    # Tidy up: deleting the bookmark also drops its shortcut listener.
+    await client.post(_bookmark_api(module, "opening", "delete"))
+
+
+async def test_goto_bookmark_excludes_meta_from_state(monkeypatch):
+    module, _ = _make_screen()
+    client = await make_client()
+    sent = _squash_state_broadcasts(monkeypatch)
+    await _save_deck(client, module)
+
+    playing = {"type": "pptx", "file": "deck.pptx", "slide": 1}
+    await client.post(_api(module, "/state"), json=playing)
+    await client.post(_bookmark_api(module, "opening", "save"))
+    await client.post(
+        _bookmark_api(module, "opening", "meta"),
+        json={"meta": {"shortcut": "9", "colour": "red"}},
+    )
+
+    sent.clear()
+    response = await client.post(_bookmark_api(module, "opening", "goto"))
+    assert response.status_code == 200
+    assert (await response.get_json())["state"] == playing
+    assert sent == [{"action": "state", "state": playing}]
+    # Meta is book-keeping and never leaks into the played state.
+    assert "meta" not in sent[0]["state"]
+
+    # Tidy up: deleting the bookmark also drops its shortcut listener.
+    await client.post(_bookmark_api(module, "opening", "delete"))
+
+
+async def test_bookmark_meta_validation(monkeypatch):
+    module, _ = _make_screen()
+    client = await make_client()
+    _squash_state_broadcasts(monkeypatch)
+
+    # Meta on a bookmark that does not exist.
+    response = await client.post(
+        _bookmark_api(module, "nope", "meta"), json={"meta": {}}
+    )
+    assert response.status_code == 404
+
+    await client.post(_bookmark_api(module, "opening", "save"))
+
+    response = await client.post(
+        _bookmark_api(module, "opening", "meta"), json={"meta": ["x"]}
+    )
+    assert response.status_code == 400
+
+    response = await client.post(
+        _bookmark_api(module, "opening", "meta"),
+        json={"meta": {"shortcut": "1" * 65}},
+    )
+    assert response.status_code == 400
+
+
+async def test_bookmark_shortcut_registers_updates_and_closes(monkeypatch):
+    from kaithem.src.chandler import global_actions
+    from kaithem.src.plugins import CorePluginPresentationScreen as plugin
+
+    module, _ = _make_screen()
+    client = await make_client()
+    sent = _squash_state_broadcasts(monkeypatch)
+    await _save_deck(client, module)
+
+    key = (module, "screen", "opening")
+
+    playing = {"type": "pptx", "file": "deck.pptx", "slide": 3}
+    await client.post(_api(module, "/state"), json=playing)
+    await client.post(_bookmark_api(module, "opening", "save"))
+
+    # Editing meta to add a shortcut registers a live listener.
+    await client.post(
+        _bookmark_api(module, "opening", "meta"),
+        json={"meta": {"shortcut": "42"}},
+    )
+    assert key in plugin._bookmark_listeners
+    assert plugin._bookmark_listeners[key].code == "42"
+
+    # Triggering the shortcut plays the bookmark's state.
+    await client.post(_api(module, "/state"), json={"type": "none"})
+    sent.clear()
+    global_actions.cl_trigger_shortcut_code("42")
+    assert sent == [{"action": "state", "state": playing}]
+
+    # The callback re-reads the bookmark, so an overwrite takes effect
+    # without touching the listener.
+    moved = {"type": "pptx", "file": "deck.pptx", "slide": 5}
+    await client.post(_api(module, "/state"), json=moved)
+    await client.post(_bookmark_api(module, "opening", "save"))
+
+    old_listener = plugin._bookmark_listeners[key]
+    # Changing the shortcut closes the old listener and opens a new one.
+    await client.post(
+        _bookmark_api(module, "opening", "meta"),
+        json={"meta": {"shortcut": "43"}},
+    )
+    assert old_listener.closed is True
+    assert plugin._bookmark_listeners[key].code == "43"
+
+    sent.clear()
+    global_actions.cl_trigger_shortcut_code("42")
+    assert sent == []
+    global_actions.cl_trigger_shortcut_code("43")
+    assert sent == [{"action": "state", "state": moved}]
+
+    # Clearing the shortcut removes the listener entirely.
+    await client.post(
+        _bookmark_api(module, "opening", "meta"), json={"meta": {}}
+    )
+    assert key not in plugin._bookmark_listeners
+
+    sent.clear()
+    global_actions.cl_trigger_shortcut_code("43")
+    assert sent == []
+
+
+async def test_delete_bookmark_closes_its_listener(monkeypatch):
+    from kaithem.src.plugins import CorePluginPresentationScreen as plugin
+
+    module, _ = _make_screen()
+    client = await make_client()
+    _squash_state_broadcasts(monkeypatch)
+
+    await client.post(_bookmark_api(module, "opening", "save"))
+    await client.post(
+        _bookmark_api(module, "opening", "meta"),
+        json={"meta": {"shortcut": "11"}},
+    )
+    key = (module, "screen", "opening")
+    listener = plugin._bookmark_listeners[key]
+
+    response = await client.post(_bookmark_api(module, "opening", "delete"))
+    assert response.status_code == 200
+    assert key not in plugin._bookmark_listeners
+    assert listener.closed is True
+
+
+async def test_missing_file_bookmark_still_lists(monkeypatch):
+    """A bookmark whose file was deleted must not break the list view."""
+    module, _ = _make_screen()
+    client = await make_client()
+    _squash_state_broadcasts(monkeypatch)
+    await _save_deck(client, module)
+
+    await client.post(
+        _api(module, "/state"),
+        json={"type": "pptx", "file": "deck.pptx", "slide": 0},
+    )
+    await client.post(_bookmark_api(module, "opening", "save"))
+    await client.post(_file_api(module, "delete", "deck.pptx"))
+
+    # The list still renders the bookmark (it must not raise on the stale
+    # file), but jumping to it now fails loudly.
+    response = await client.get(_bookmarks_api(module))
+    assert response.status_code == 200
+    state = (await response.get_json())["bookmarks"]["opening"]["state"]
+    assert state == {"type": "pptx", "file": "deck.pptx", "slide": 0}
+
+    response = await client.post(_bookmark_api(module, "opening", "goto"))
+    assert response.status_code == 404
+
+
+def test_sanitize_bookmark_name():
+    from kaithem.src.plugins.CorePluginPresentationScreen import (
+        sanitize_bookmark_name,
+    )
+
+    assert sanitize_bookmark_name("  opening  ") == "opening"
+    assert sanitize_bookmark_name("Scene 1") == "Scene 1"
+
+    for bad in ("", "   ", "a/b", "a\\b", "x" * 65, "tab\there"):
+        with pytest.raises(ValueError):
+            sanitize_bookmark_name(bad)

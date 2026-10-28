@@ -19,6 +19,16 @@ export interface PresentationStateResponse {
   default_state: PresentationState;
 }
 
+/**
+ * A named, saved state.  ``meta`` is book-keeping that never becomes part
+ * of the played state; it survives overwriting the bookmark's state.
+ */
+export interface PresentationBookmark {
+  name: string;
+  state: PresentationState;
+  meta: Record<string, unknown>;
+}
+
 export interface ViewerMessage {
   action: 'state' | 'pong';
   state?: PresentationState;
@@ -178,6 +188,87 @@ export async function setDefaultState(
     { method: 'POST' }
   );
   return normalizeState(data.default_state);
+}
+
+/** The shortcut code carried in a bookmark's meta, or an empty string. */
+export function bookmarkShortcut(
+  meta: Record<string, unknown>
+): string {
+  const shortcut = meta['shortcut'];
+  return typeof shortcut === 'string' ? shortcut : '';
+}
+
+function normalizeBookmark(
+  name: string,
+  raw: unknown
+): PresentationBookmark {
+  const value = (raw ?? {}) as { state?: unknown; meta?: unknown };
+  const meta =
+    value.meta && typeof value.meta === 'object'
+      ? (value.meta as Record<string, unknown>)
+      : {};
+  return { name, state: normalizeState(value.state), meta };
+}
+
+export async function listBookmarks(
+  ref: ScreenRef
+): Promise<PresentationBookmark[]> {
+  const data = await fetchJson<{ bookmarks?: Record<string, unknown> }>(
+    apiUrl(ref, 'bookmarks')
+  );
+  return Object.entries(data.bookmarks ?? {})
+    .map(([name, raw]) => normalizeBookmark(name, raw))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** Save the current state under ``name``; existing meta is preserved. */
+export async function saveBookmark(
+  ref: ScreenRef,
+  name: string
+): Promise<PresentationBookmark> {
+  const data = await fetchJson<{ bookmark: unknown }>(
+    apiUrl(ref, 'bookmarks', `/${encodeURIComponent(name)}/save`),
+    { method: 'POST' }
+  );
+  return normalizeBookmark(name, data.bookmark);
+}
+
+/** Play the state stored in a bookmark (its meta is not part of it). */
+export async function gotoBookmark(
+  ref: ScreenRef,
+  name: string
+): Promise<void> {
+  await fetchJson(
+    apiUrl(ref, 'bookmarks', `/${encodeURIComponent(name)}/goto`),
+    { method: 'POST' }
+  );
+}
+
+/** Replace a bookmark's meta, re-running its server change handlers. */
+export async function setBookmarkMeta(
+  ref: ScreenRef,
+  name: string,
+  meta: Record<string, unknown>
+): Promise<PresentationBookmark> {
+  const data = await fetchJson<{ bookmark: unknown }>(
+    apiUrl(ref, 'bookmarks', `/${encodeURIComponent(name)}/meta`),
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ meta }),
+    }
+  );
+  return normalizeBookmark(name, data.bookmark);
+}
+
+export async function deleteBookmark(
+  ref: ScreenRef,
+  name: string
+): Promise<void> {
+  await fetchJson(
+    apiUrl(ref, 'bookmarks', `/${encodeURIComponent(name)}/delete`),
+    { method: 'POST' }
+  );
 }
 
 export async function saveFile(

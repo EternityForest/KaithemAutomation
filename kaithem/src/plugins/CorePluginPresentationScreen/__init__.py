@@ -14,6 +14,14 @@ bus; viewers never write state back.
 
 Each screen also stores a default start state in its resource data, which
 is used until an admin sets a live state (and again after a restart).
+
+Beyond that, a screen may hold any number of bookmarked states, stored in
+the resource as ``bookmarks: {name: {"state": ..., "meta": ...}}``.  The
+``meta`` sub-dict never becomes part of the played state, so a bookmark can
+carry a ``shortcut`` code without polluting the state.  Each bookmark whose
+meta has a shortcut registers a Chandler ``ShortcutCodeListener`` that jumps
+to (publishes) the bookmark's state; the live listeners are tracked in
+``_bookmark_listeners`` and rebuilt whenever a bookmark's meta changes.
 """
 
 import asyncio
@@ -21,6 +29,7 @@ import json
 import os
 import shutil
 import tempfile
+import threading
 from typing import Any, override
 from urllib.parse import quote, urlencode
 
@@ -28,6 +37,7 @@ import quart
 import structlog
 from quart import Blueprint
 
+from kaithem.api import chandler as chandler_api
 from kaithem.api import modules, resource_types, web
 from kaithem.api.web import quart_app
 from kaithem.api.web.dialogs import SimpleDialog
@@ -208,13 +218,171 @@ def _normalize_state(module: str, resource: str, raw: Any) -> dict[str, Any]:
 
 def _default_state(data: dict[str, Any]) -> dict[str, Any]:
     """The start state stored in the resource, or ``{"type": "none"}``."""
-    raw = data.get("default_state")
+    return _coerce_state(data.get("default_state"))
+
+
+def _coerce_state(raw: Any) -> dict[str, Any]:
+    """Best-effort conversion of stored state data to a valid state.
+
+    Unlike ``_normalize_state`` this never raises: stored bookmarks may
+    reference a file that has since been deleted, and the list view must
+    still render them.
+    """
     if not isinstance(raw, dict) or raw.get("type") != "pptx":
         return _empty_state()
     try:
         return _parse_pptx_state(raw)
     except ValueError:
         return _empty_state()
+
+
+def sanitize_bookmark_name(name: str) -> str:
+    """Return a safe, non-empty bookmark key or raise ``ValueError``."""
+    if not isinstance(name, str):
+        raise ValueError("Bookmark name must be text")
+    stripped = name.strip()
+    if not stripped:
+        raise ValueError("Bookmark name is empty")
+    if len(stripped) > 64:
+        raise ValueError("Bookmark name is too long")
+    if any(ord(char) < 32 or ord(char) == 127 for char in stripped):
+        raise ValueError("Bookmark name contains control characters")
+    if "/" in stripped or "\\" in stripped:
+        raise ValueError("Bookmark name must not contain a path")
+    return stripped
+
+
+def _bookmarks(data: dict[str, Any]) -> dict[str, Any]:
+    """The well-formed bookmarks stored in a resource, keyed by name."""
+    raw = data.get("bookmarks", {})
+    if not isinstance(raw, dict):
+        return {}
+    return {
+        name: bookmark
+        for name, bookmark in raw.items()
+        if isinstance(name, str) and isinstance(bookmark, dict)
+    }
+
+
+def _bookmark_meta(bookmark: Any) -> dict[str, Any]:
+    """The ``meta`` sub-dict of a bookmark, or an empty dict."""
+    if not isinstance(bookmark, dict):
+        return {}
+    meta = bookmark.get("meta")
+    return dict(meta) if isinstance(meta, dict) else {}
+
+
+def _shortcut_of(meta: dict[str, Any]) -> str:
+    """The normalized shortcut code stored in a bookmark's meta, or ``""``."""
+    shortcut = meta.get("shortcut")
+    if not isinstance(shortcut, str):
+        return ""
+    return shortcut.strip()
+
+
+# ---------------------------------------------------------------------------
+# Bookmark shortcut listeners
+# ---------------------------------------------------------------------------
+
+# (module, resource, bookmark name) -> ShortcutCodeListener.  Only bookmarks
+# whose meta carries a non-empty "shortcut" appear here.
+_bookmark_listeners: dict[tuple[str, str, str], Any] = {}
+_bookmark_lock = threading.Lock()
+
+
+def _make_bookmark_callback(module: str, resource: str, name: str):
+    """Build the shortcut callback for a bookmark.
+
+    The callback re-reads the bookmark at trigger time so that overwriting a
+    bookmark with a new state takes effect without touching the listener.
+    """
+
+    def callback(code: str, t: float, props: dict[str, Any]) -> None:
+        data = _resource_data(module, resource)
+        if data is None:
+            return
+        bookmark = _bookmarks(data).get(name)
+        if bookmark is None:
+            return
+        _publish_state(module, resource, _coerce_state(bookmark.get("state")))
+
+    return callback
+
+
+def _close_bookmark_listener(module: str, resource: str, name: str) -> None:
+    with _bookmark_lock:
+        listener = _bookmark_listeners.pop((module, resource, name), None)
+    if listener is not None:
+        try:
+            listener.close()
+        except Exception:
+            logger.debug(
+                "Could not close bookmark shortcut listener",
+                exc_info=True,
+            )
+
+
+def _sync_bookmark_listener(
+    module: str, resource: str, name: str, meta: dict[str, Any]
+) -> None:
+    """(Re)register the shortcut listener for one bookmark from its meta.
+
+    Any previously registered listener is closed first, so this is the
+    bookmark "change handler" that runs whenever meta changes.
+    """
+    _close_bookmark_listener(module, resource, name)
+    shortcut = _shortcut_of(meta)
+    if not shortcut:
+        return
+    try:
+        listener = chandler_api.ShortcutCodeListener(
+            shortcut,
+            _make_bookmark_callback(module, resource, name),
+            description=f"Presentation bookmark {name}",
+        )
+    except Exception:
+        logger.exception(
+            "Could not register shortcut for bookmark %s/%s/%s",
+            module,
+            resource,
+            name,
+        )
+        return
+    with _bookmark_lock:
+        _bookmark_listeners[(module, resource, name)] = listener
+
+
+def _sync_bookmark_listeners(
+    module: str, resource: str, bookmarks: dict[str, Any]
+) -> None:
+    """Reconcile every listener for a resource with its stored bookmarks."""
+    keep: set[str] = set()
+    for name, bookmark in bookmarks.items():
+        meta = _bookmark_meta(bookmark)
+        if _shortcut_of(meta):
+            keep.add(name)
+        _sync_bookmark_listener(module, resource, name, meta)
+
+    with _bookmark_lock:
+        stale = [
+            key
+            for key in _bookmark_listeners
+            if key[0] == module and key[1] == resource and key[2] not in keep
+        ]
+    for key in stale:
+        _close_bookmark_listener(*key)
+
+
+def _close_all_bookmark_listeners(module: str, resource: str | None = None):
+    """Close every listener for a resource, or a whole module."""
+    with _bookmark_lock:
+        keys = [
+            key
+            for key in _bookmark_listeners
+            if key[0] == module and (resource is None or key[1] == resource)
+        ]
+    for key in keys:
+        _close_bookmark_listener(*key)
 
 
 def _effective_state(
@@ -257,6 +425,15 @@ class PresentationScreenType(resource_types.ResourceType):
                     "type": "object",
                     "title": "Default start state",
                     "default": {"type": "none"},
+                },
+                "bookmarks": {
+                    "type": "object",
+                    "title": "Bookmarked states",
+                    "description": (
+                        "Named states, each {name: {state, meta}}.  meta "
+                        "never becomes part of the played state."
+                    ),
+                    "default": {},
                 },
             },
         }
@@ -305,6 +482,7 @@ class PresentationScreenType(resource_types.ResourceType):
             "title": kwargs.get("title") or "Presentation Screen",
             "view_requires_admin": False,
             "default_state": _empty_state(),
+            "bookmarks": {},
         }
 
     @override
@@ -322,6 +500,16 @@ class PresentationScreenType(resource_types.ResourceType):
                 module,
                 resource,
             )
+        _sync_bookmark_listeners(module, resource, _bookmarks(data))
+
+    @override
+    def on_update(
+        self,
+        module: str,
+        resource: str,
+        data: modules_state.ResourceDictType,
+    ) -> None:
+        _sync_bookmark_listeners(module, resource, _bookmarks(data))
 
     @override
     def edit_page(
@@ -345,6 +533,19 @@ class PresentationScreenType(resource_types.ResourceType):
         return result
 
     @override
+    def on_unload(
+        self,
+        module: str,
+        resource: str,
+        data: modules_state.ResourceDictType,
+    ) -> None:
+        _close_all_bookmark_listeners(module, resource)
+
+    @override
+    def on_delete_module(self, module: str) -> None:
+        _close_all_bookmark_listeners(module)
+
+    @override
     def on_delete(
         self,
         module: str,
@@ -352,6 +553,7 @@ class PresentationScreenType(resource_types.ResourceType):
         data: modules_state.ResourceDictType,
     ) -> None:
         _current_states.pop((module, resource), None)
+        _close_all_bookmark_listeners(module, resource)
         try:
             path = _content_dir(module, resource)
             if os.path.isdir(path):
@@ -648,6 +850,151 @@ async def presentation_set_default_state(module: str, resource: str):
     result["default_state"] = default_state
     modules_state.raw_insert_resource(module, resource, result)
     return quart.jsonify({"status": "ok", "default_state": default_state})
+
+
+@api_bp.route("/bookmarks/<module>/<resource>", methods=["GET"])
+async def presentation_list_bookmarks(module: str, resource: str):
+    """Every bookmark on a screen: its state and its meta."""
+    error = _check_admin()
+    if error is not None:
+        return error
+    data = _resource_data(module, resource)
+    if data is None:
+        return quart.jsonify({"error": "not_found"}), 404
+
+    bookmarks = {
+        name: {
+            "state": _coerce_state(bookmark.get("state")),
+            "meta": _bookmark_meta(bookmark),
+        }
+        for name, bookmark in _bookmarks(data).items()
+    }
+    return quart.jsonify({"bookmarks": bookmarks})
+
+
+def _write_bookmarks(
+    module: str, resource: str, data: dict[str, Any], bookmarks: dict[str, Any]
+) -> None:
+    result = modules.mutable_copy_resource(data)
+    result["bookmarks"] = bookmarks
+    modules_state.raw_insert_resource(module, resource, result)
+
+
+@api_bp.route("/bookmarks/<module>/<resource>/<name>/save", methods=["POST"])
+async def presentation_save_bookmark(module: str, resource: str, name: str):
+    """Store the current state under ``name``; existing meta is kept."""
+    error = _check_admin()
+    if error is not None:
+        return error
+    data = _resource_data(module, resource)
+    if data is None:
+        return quart.jsonify({"error": "not_found"}), 404
+
+    try:
+        clean_name = sanitize_bookmark_name(name)
+    except ValueError as exc:
+        return quart.jsonify({"error": str(exc)}), 400
+
+    state = _effective_state(module, resource, data)
+    bookmarks = dict(_bookmarks(data))
+    existing = bookmarks.get(clean_name)
+    meta = _bookmark_meta(existing) if existing is not None else {}
+    bookmarks[clean_name] = {"state": state, "meta": meta}
+    _write_bookmarks(module, resource, data, bookmarks)
+    return quart.jsonify({"status": "ok", "bookmark": bookmarks[clean_name]})
+
+
+@api_bp.route("/bookmarks/<module>/<resource>/<name>/goto", methods=["POST"])
+async def presentation_goto_bookmark(module: str, resource: str, name: str):
+    """Publish the state stored in a bookmark, excluding its meta."""
+    error = _check_admin()
+    if error is not None:
+        return error
+    data = _resource_data(module, resource)
+    if data is None:
+        return quart.jsonify({"error": "not_found"}), 404
+
+    try:
+        clean_name = sanitize_bookmark_name(name)
+    except ValueError as exc:
+        return quart.jsonify({"error": str(exc)}), 400
+
+    bookmark = _bookmarks(data).get(clean_name)
+    if bookmark is None:
+        return quart.jsonify({"error": "not_found"}), 404
+
+    try:
+        state = _normalize_state(module, resource, bookmark.get("state"))
+    except FileNotFoundError:
+        return quart.jsonify({"error": "file_not_found"}), 404
+    except (TypeError, ValueError) as exc:
+        return quart.jsonify({"error": str(exc)}), 400
+
+    _publish_state(module, resource, state)
+    return quart.jsonify({"status": "ok", "state": state})
+
+
+@api_bp.route("/bookmarks/<module>/<resource>/<name>/meta", methods=["POST"])
+async def presentation_set_bookmark_meta(module: str, resource: str, name: str):
+    """Replace a bookmark's meta and re-run its change handlers."""
+    error = _check_admin()
+    if error is not None:
+        return error
+    data = _resource_data(module, resource)
+    if data is None:
+        return quart.jsonify({"error": "not_found"}), 404
+
+    try:
+        clean_name = sanitize_bookmark_name(name)
+    except ValueError as exc:
+        return quart.jsonify({"error": str(exc)}), 400
+
+    bookmarks = dict(_bookmarks(data))
+    bookmark = bookmarks.get(clean_name)
+    if bookmark is None:
+        return quart.jsonify({"error": "not_found"}), 404
+
+    body = await quart.request.get_json(force=True, silent=True) or {}
+    meta = body.get("meta") if isinstance(body, dict) else None
+    if not isinstance(meta, dict):
+        return quart.jsonify({"error": "invalid_meta"}), 400
+
+    shortcut = _shortcut_of(meta)
+    if len(shortcut) > 64:
+        return quart.jsonify({"error": "shortcut_too_long"}), 400
+
+    bookmarks[clean_name] = {
+        "state": _coerce_state(bookmark.get("state")),
+        "meta": dict(meta),
+    }
+    _write_bookmarks(module, resource, data, bookmarks)
+    _sync_bookmark_listener(module, resource, clean_name, dict(meta))
+    return quart.jsonify({"status": "ok", "bookmark": bookmarks[clean_name]})
+
+
+@api_bp.route("/bookmarks/<module>/<resource>/<name>/delete", methods=["POST"])
+async def presentation_delete_bookmark(module: str, resource: str, name: str):
+    """Remove a bookmark and tear down its shortcut listener."""
+    error = _check_admin()
+    if error is not None:
+        return error
+    data = _resource_data(module, resource)
+    if data is None:
+        return quart.jsonify({"error": "not_found"}), 404
+
+    try:
+        clean_name = sanitize_bookmark_name(name)
+    except ValueError as exc:
+        return quart.jsonify({"error": str(exc)}), 400
+
+    bookmarks = dict(_bookmarks(data))
+    if clean_name not in bookmarks:
+        return quart.jsonify({"error": "not_found"}), 404
+
+    del bookmarks[clean_name]
+    _write_bookmarks(module, resource, data, bookmarks)
+    _close_bookmark_listener(module, resource, clean_name)
+    return quart.jsonify({"status": "ok"})
 
 
 quart_app.register_blueprint(api_bp)

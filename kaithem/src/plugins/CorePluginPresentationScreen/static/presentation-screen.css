@@ -217,6 +217,61 @@ body {
   align-items: center;
 }
 
+.ps-bookmark-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  overflow-y: auto;
+}
+
+.ps-bookmark {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.4rem;
+  background: var(--control-bg);
+  border: var(--thin-border);
+  border-radius: var(--control-border-radius);
+}
+
+.ps-bookmark__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--gap);
+}
+
+.ps-bookmark__name {
+  font-family: var(--mono-font);
+  overflow-wrap: anywhere;
+}
+
+.ps-bookmark__state {
+  font-size: 0.8rem;
+  opacity: 0.75;
+  text-align: right;
+}
+
+.ps-bookmark__actions {
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+
+.ps-bookmark-add {
+  display: flex;
+  gap: 0.3rem;
+  align-items: center;
+}
+
+.ps-bookmark-add input {
+  flex: 1;
+  min-width: 0;
+}
+
 .ps-empty {
   opacity: 0.75;
 }

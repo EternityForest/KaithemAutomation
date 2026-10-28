@@ -139,7 +139,8 @@ class SimpleDialog:
             return s
 
     def is_disabled_by_default(self):
-        """If an element does not specify whether it is disabled, this is called.
+        """If an element does not specify
+        whether it is disabled, this is called.
         You can subclass it, by default it checks system_admin.
         """
         return not pages.canUserDoThis("system_admin")
@@ -158,9 +159,9 @@ class SimpleDialog:
         *,
         title: str | None = None,
         default: str | int | float = "",
-        disabled=None,
+        disabled: bool | None = None,
         suggestions: list[tuple[str, str]] | None = None,
-        multiline=False,
+        multiline: bool = False,
     ):
         default = str(default)
         self.default_return_value[name] = default or ""
@@ -175,18 +176,19 @@ class SimpleDialog:
         if disabled is None:
             disabled = self.is_disabled_by_default()
 
-        disabled = " disabled" if disabled else ""
+        disabled_str = " disabled" if disabled else ""
 
         if multiline:
-            x = f"""<textarea name="{name}" {disabled} class="max-h-24rem"
+            x = f"""<textarea name="{name}" {disabled_str} class="max-h-24rem"
             oninput='this.style.height = "";
-            this.style.height = this.scrollHeight + "px"'>{html.escape(default)}</textarea>"""
+            this.style.height = this.scrollHeight + "px"'>{html.escape(default)}</textarea>"""  # noqa: E501
             self.items.append((title, x))
         else:
             self.items.append(
                 (
                     title,
-                    f'<input name="{name}" list="x{id(suggestions)}"  value="{html.escape(default)}" {disabled}>',
+                    f"""<input name="{name}" list="x{id(suggestions)}"
+                    value="{html.escape(default)}" {disabled}>""",
                 )
             )
 
@@ -212,8 +214,8 @@ class SimpleDialog:
         name: str,
         *,
         title: str | None = None,
-        default=False,
-        disabled=None,
+        default: bool = False,
+        disabled: bool | None = None,
     ):
         "Add a checkbox"
         title = title or self.name_to_title(name)
@@ -224,13 +226,14 @@ class SimpleDialog:
         if disabled is None:
             disabled = self.is_disabled_by_default()
 
-        disabled = " disabled" if disabled else ""
+        disabled_str = " disabled" if disabled else ""
         checked = "checked" if default else ""
 
         self.items.append(
             (
                 title,
-                f'<input type="checkbox" name="{name}" {checked} {disabled}>',
+                f"""<input type="checkbox" name="{name}"
+                {checked} {disabled_str}>""",
             )
         )
 

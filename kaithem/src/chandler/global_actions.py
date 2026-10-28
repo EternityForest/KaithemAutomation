@@ -1,21 +1,21 @@
 from __future__ import annotations
-import threading
-from kaithem.src.chandler import thread
 
-from structlog import get_logger
+import threading
+import time
 
 # This file provides the shortcut code and event functions
 import traceback
-from typing import TYPE_CHECKING, Any
 from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 from weakref import ref
-import time
+
+from iot_devices.device import pydantic
+from structlog import get_logger
 
 from . import core
 
 if TYPE_CHECKING:
-    from .cue import Cue
-    from .groups import Group
+    pass
 
 _logger = get_logger()
 _sc_code_lock = threading.Lock()
@@ -24,11 +24,14 @@ _shortcut_codes: dict[str, list[ref[ShortcutCodeListener]]] = {}
 
 
 class ShortcutCodeListener:
+    @pydantic.validate_call
     def __init__(
-        self, code: str, 
+        self,
+        code: str,
         callback: Callable[[str, float, dict[str, Any]], None],
-        description:str=""
+        description: str = "",
     ):
+        code = normalize_shortcut(code)
         self.closed = False
         self.code = code
         self.description = description
@@ -51,8 +54,8 @@ class ShortcutCodeListener:
 
             if not _shortcut_codes[self.code]:
                 del _shortcut_codes[self.code]
-    
-    def go(self, t: float|None=None, props: dict[str, Any]|None=None):
+
+    def go(self, t: float | None = None, props: dict[str, Any] | None = None):
         self._callback(self.code, t or time.time(), props or {})
 
     def __del__(self):
@@ -73,15 +76,14 @@ def normalize_shortcut(code: str | int | float) -> str:
     except Exception:
         pass
 
-    x =  str(code)
-    if len(x)>64:
+    x = str(code)
+    if len(x) > 64:
         raise ValueError("Shortcut code too long")
     return x
 
 
 @core.cl_context.entry_point
-def cl_trigger_shortcut_code(
-    code: str, props: dict[str, Any] = {})
+def cl_trigger_shortcut_code(code: str, props: dict[str, Any] = {}):
     "API to activate a cue by it's shortcut code"
 
     code = normalize_shortcut(code)
@@ -102,7 +104,7 @@ def cl_trigger_shortcut_code(
             x = i()
             if x:
                 x.go()
-                
+
         except Exception:
             print(traceback.format_exc())
 

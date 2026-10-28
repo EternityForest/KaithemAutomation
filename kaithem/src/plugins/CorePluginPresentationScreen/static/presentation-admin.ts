@@ -8,6 +8,8 @@ import { LitElement, html } from 'lit';
 import type { TemplateResult } from 'lit';
 
 import {
+  bookmarkShortcut,
+  deleteBookmark,
   deleteFile,
   editorUrl,
   errorMessage,
@@ -15,9 +17,13 @@ import {
   getConfig,
   getState,
   getStatus,
+  gotoBookmark,
+  listBookmarks,
   listFiles,
   normalizeState,
+  saveBookmark,
   screenRefFromUrl,
+  setBookmarkMeta,
   setConfig,
   setDefaultState,
   setState,
@@ -25,6 +31,7 @@ import {
   viewerUrl,
 } from './presentation-api.ts';
 import type {
+  PresentationBookmark,
   PresentationFileInfo,
   PresentationState,
   ScreenRef,
@@ -44,6 +51,9 @@ export class PresentationAdmin extends LitElement {
   private currentState: PresentationState = stoppedState();
   private defaultState: PresentationState = stoppedState();
   private slideDraft = '1';
+
+  private bookmarks: PresentationBookmark[] = [];
+  private newBookmarkName = '';
 
   private status = '';
   private statusIsError = false;
@@ -112,6 +122,7 @@ export class PresentationAdmin extends LitElement {
       this.requiresAdmin = config.view_requires_admin;
       if (includeFiles) {
         this.files = await listFiles(this.ref);
+        this.bookmarks = await listBookmarks(this.ref);
       }
       await this.poll();
     } catch (error) {
@@ -135,10 +146,10 @@ export class PresentationAdmin extends LitElement {
       this.connected = status.connected;
       this.defaultState = state.default_state;
       // Do not stomp on a half-typed slide number while an edit is pending.
-      if (!this.busy) {
-        this.applyState(state.state);
-      } else {
+      if (this.busy) {
         this.requestUpdate();
+      } else {
+        this.applyState(state.state);
       }
     } catch {
       // A transient poll failure must not disturb the page.
@@ -252,6 +263,188 @@ export class PresentationAdmin extends LitElement {
     }
   }
 
+  private stateSummary(state: PresentationState): string {
+    return state.type === 'pptx'
+      ? `${state.file} · slide ${state.slide + 1}`
+      : 'stopped';
+  }
+
+  private findBookmark(name: string): PresentationBookmark | undefined {
+    return this.bookmarks.find((bookmark) => bookmark.name === name);
+  }
+
+  private async loadBookmarks(): Promise<void> {
+    if (!this.ref) {
+      return;
+    }
+    this.bookmarks = await listBookmarks(this.ref);
+    this.requestUpdate();
+  }
+
+  private updateBookmarkDraft(event: Event): void {
+    this.newBookmarkName = (event.target as HTMLInputElement).value;
+    this.requestUpdate();
+  }
+
+  /** Bookmark the current state under a fresh name. */
+  private async addBookmark(): Promise<void> {
+    if (!this.ref) {
+      return;
+    }
+    const name = this.newBookmarkName.trim();
+    if (!name) {
+      this.setError('Enter a bookmark name');
+      return;
+    }
+    try {
+      await saveBookmark(this.ref, name);
+      this.newBookmarkName = '';
+      await this.loadBookmarks();
+      this.setStatus(`Bookmarked ${name}`);
+    } catch (error) {
+      this.setError(`Could not save the bookmark: ${errorMessage(error)}`);
+    }
+  }
+
+  /** Replace a bookmark's state with the current one; its meta is kept. */
+  private async overwriteBookmark(name: string): Promise<void> {
+    if (!this.ref) {
+      return;
+    }
+    try {
+      await saveBookmark(this.ref, name);
+      await this.loadBookmarks();
+      this.setStatus(`Updated ${name} (meta kept)`);
+    } catch (error) {
+      this.setError(`Could not update ${name}: ${errorMessage(error)}`);
+    }
+  }
+
+  private async goToBookmark(name: string): Promise<void> {
+    if (!this.ref) {
+      return;
+    }
+    try {
+      await gotoBookmark(this.ref, name);
+      this.setStatus(`Went to ${name}`);
+      await this.poll();
+    } catch (error) {
+      this.setError(`Could not go to ${name}: ${errorMessage(error)}`);
+    }
+  }
+
+  private async deleteBookmarkRow(name: string): Promise<void> {
+    if (!this.ref) {
+      return;
+    }
+    const confirmed = globalThis.confirm(`Delete bookmark "${name}"?`);
+    if (!confirmed) {
+      return;
+    }
+    try {
+      await deleteBookmark(this.ref, name);
+      this.bookmarks = this.bookmarks.filter(
+        (bookmark) => bookmark.name !== name
+      );
+      this.setStatus(`Deleted bookmark ${name}`);
+    } catch (error) {
+      this.setError(`Could not delete ${name}: ${errorMessage(error)}`);
+    }
+  }
+
+  /** Edit just the shortcut in meta; the server re-runs its handlers. */
+  private async updateBookmarkShortcut(
+    name: string,
+    value: string
+  ): Promise<void> {
+    if (!this.ref) {
+      return;
+    }
+    const bookmark = this.findBookmark(name);
+    if (!bookmark) {
+      return;
+    }
+    const meta = { ...bookmark.meta };
+    const shortcut = value.trim();
+    if (shortcut) {
+      meta['shortcut'] = shortcut;
+    } else {
+      delete meta['shortcut'];
+    }
+    try {
+      const updated = await setBookmarkMeta(this.ref, name, meta);
+      this.bookmarks = this.bookmarks.map((item) =>
+        item.name === name ? updated : item
+      );
+      this.setStatus(
+        shortcut
+          ? `Shortcut for ${name} set to ${shortcut}`
+          : `Cleared the shortcut for ${name}`
+      );
+    } catch (error) {
+      this.setError(`Could not update meta for ${name}: ${errorMessage(error)}`);
+    }
+    this.requestUpdate();
+  }
+
+  private renderBookmark(bookmark: PresentationBookmark) {
+    return html`
+      <li
+        class="ps-bookmark"
+        data-testid="bookmark-row"
+        data-bookmark="${bookmark.name}"
+      >
+        <div class="ps-bookmark__head">
+          <span class="ps-bookmark__name" data-testid="bookmark-name"
+            >${bookmark.name}</span
+          >
+          <span class="ps-bookmark__state" data-testid="bookmark-state"
+            >${this.stateSummary(bookmark.state)}</span
+          >
+        </div>
+        <div class="ps-bookmark__actions">
+          <button
+            data-testid="bookmark-goto"
+            title="Play this bookmark's state"
+            @click="${() => this.goToBookmark(bookmark.name)}"
+          >
+            Go
+          </button>
+          <button
+            data-testid="bookmark-save"
+            title="Overwrite with the current state (meta kept)"
+            @click="${() => this.overwriteBookmark(bookmark.name)}"
+          >
+            Overwrite
+          </button>
+          <button
+            class="ps-danger"
+            data-testid="bookmark-delete"
+            title="Delete this bookmark"
+            @click="${() => this.deleteBookmarkRow(bookmark.name)}"
+          >
+            Delete
+          </button>
+        </div>
+        <label class="ps-field">
+          <span>Shortcut</span>
+          <input
+            type="text"
+            data-testid="bookmark-shortcut"
+            placeholder="e.g. 123"
+            .value="${bookmarkShortcut(bookmark.meta)}"
+            @change="${(event: Event) => {
+              void this.updateBookmarkShortcut(
+                bookmark.name,
+                (event.target as HTMLInputElement).value
+              );
+            }}"
+          >
+        </label>
+      </li>
+    `;
+  }
+
   private async deletePresentation(file: PresentationFileInfo): Promise<void> {
     if (!this.ref) {
       return;
@@ -362,22 +555,58 @@ export class PresentationAdmin extends LitElement {
 
           <section class="ps-panel">
             <details>
-            <summary><h3>State</h3></summary>
-            <div class="ps-kv-group">
-              <span class="ps-kv-group__label">Current</span>
-              ${this.renderStateList(this.currentState, 'state-current')}
-            </div>
-            <div class="ps-kv-group">
-              <span class="ps-kv-group__label">Default</span>
-              ${this.renderStateList(this.defaultState, 'state-default')}
-            </div>
-            <button
-              data-testid="admin-set-default"
-              title="Save the current state as the start state"
-              @click="${this.saveDefaultState}"
-            >
-              Set current state as default
-            </button>
+              <summary><h3>State</h3></summary>
+              <div class="ps-kv-group">
+                <span class="ps-kv-group__label">Current</span>
+                ${this.renderStateList(this.currentState, 'state-current')}
+              </div>
+              <div class="ps-kv-group">
+                <span class="ps-kv-group__label">Default</span>
+                ${this.renderStateList(this.defaultState, 'state-default')}
+              </div>
+              <button
+                data-testid="admin-set-default"
+                title="Save the current state as the start state"
+                @click="${this.saveDefaultState}"
+              >
+                Set current state as default
+              </button>
+            </details>
+          </section>
+
+          <section class="ps-panel">
+            <details open>
+              <summary><h3>Bookmarks</h3></summary>
+              ${this.bookmarks.length > 0
+                ? html`<ul class="ps-bookmark-list">
+                    ${this.bookmarks.map((bookmark) =>
+                      this.renderBookmark(bookmark)
+                    )}
+                  </ul>`
+                : html`<p class="ps-empty" data-testid="admin-no-bookmarks">
+                    No bookmarks yet.
+                  </p>`}
+              <div class="ps-bookmark-add">
+                <input
+                  type="text"
+                  data-testid="bookmark-new-name"
+                  placeholder="New bookmark name"
+                  .value="${this.newBookmarkName}"
+                  @input="${this.updateBookmarkDraft}"
+                  @keydown="${(event: KeyboardEvent) => {
+                    if (event.key === 'Enter') {
+                      void this.addBookmark();
+                    }
+                  }}"
+                >
+                <button
+                  data-testid="bookmark-add"
+                  ?disabled="${!this.newBookmarkName.trim()}"
+                  @click="${this.addBookmark}"
+                >
+                  Bookmark current state
+                </button>
+              </div>
             </details>
           </section>
 

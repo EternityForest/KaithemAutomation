@@ -213,3 +213,61 @@ test("config toggle persists and locks viewing", async ({ page }) => {
   );
   expect(open.status()).toBe(200);
 });
+
+test("bookmarks save, overwrite, goto, shortcut and delete", async ({
+  page,
+}) => {
+  await login(page);
+  await makeModule(page, MODULE);
+  await createScreen(page, RESOURCE);
+  await uploadDeck(page, "deck.pptx");
+  await openAdmin(page);
+  await page.getByTestId("admin-refresh").click();
+
+  // Start with an empty collection, then bookmark the stopped state.
+  await expect(page.getByTestId("admin-no-bookmarks")).toBeVisible();
+  await page.getByTestId("bookmark-new-name").fill("opening");
+  await page.getByTestId("bookmark-add").click();
+  await expect(page.getByTestId("bookmark-row")).toHaveCount(1);
+  await expect(page.getByTestId("bookmark-name")).toHaveText("opening");
+  await expect(page.getByTestId("bookmark-state")).toContainText("stopped");
+
+  // Play the deck and advance a slide.
+  page.once("dialog", (dialog) => {
+    dialog.accept().catch(() => {});
+  });
+  await page.getByTestId("file-play").click();
+  await expect(page.getByTestId("state-current")).toContainText("deck.pptx");
+  await page.getByTestId("control-next").click();
+  await expect(page.getByTestId("state-current")).toContainText("slide 1");
+
+  // The shortcut is stored in the bookmark's meta.
+  await page.getByTestId("bookmark-shortcut").fill("123");
+  await page.getByTestId("bookmark-shortcut").blur();
+  await expect(page.getByTestId("admin-status")).toContainText("Shortcut");
+
+  // Overwriting replaces the state but keeps the meta.
+  await page.getByTestId("bookmark-save").click();
+  await expect(page.getByTestId("admin-status")).toContainText("meta kept");
+  await expect(page.getByTestId("bookmark-state")).toContainText("deck.pptx");
+
+  // Stop the show, then jump back to the bookmarked state with Go.
+  page.once("dialog", (dialog) => {
+    dialog.accept().catch(() => {});
+  });
+  await page.getByTestId("control-stop").click();
+  await expect(page.getByTestId("state-current")).toContainText("none");
+  await page.getByTestId("bookmark-goto").click();
+  await expect(page.getByTestId("state-current")).toContainText("slide 1");
+
+  // The shortcut survived the state overwrite.
+  await expect(page.getByTestId("bookmark-shortcut")).toHaveValue("123");
+
+  // Deleting a bookmark asks first.
+  page.once("dialog", (dialog) => {
+    dialog.accept().catch(() => {});
+  });
+  await page.getByTestId("bookmark-delete").click();
+  await expect(page.getByTestId("admin-no-bookmarks")).toBeVisible();
+  await expect(page.getByTestId("bookmark-row")).toHaveCount(0);
+});
