@@ -7,6 +7,9 @@ import 'pptx-vanilla-viewer/styles.css';
 import { LitElement, html } from 'lit';
 import { createPptxViewer } from 'pptx-vanilla-viewer';
 import type { PptxViewerInstance } from 'pptx-vanilla-viewer';
+// The engine only plays slide transitions in fullscreen presentation mode, so
+// this mirrored screen drives the engine's own overlay helper directly.
+import { playTransitionOverlay } from 'pptx-vanilla-viewer/internals';
 
 import {
   errorMessage,
@@ -44,6 +47,10 @@ export class PresentationViewer extends LitElement {
   private errorText = '';
   private loading = false;
   private loadToken = 0;
+  /** Slide already placed on screen, or null right after a deck loads. */
+  private shownIndex: number | null = null;
+  /** Tears down a still-playing transition overlay. */
+  private transitionCancel: (() => void) | null = null;
 
   override createRenderRoot(): HTMLElement {
     return this;
@@ -225,13 +232,64 @@ export class PresentationViewer extends LitElement {
     this.state = { ...this.state, slide: target };
 
     const current = this.viewer.getCurrentSlide();
+    // Mirror the engine's own rule: forward replays the incoming slide's
+    // transition, backward the outgoing slide's.  Nothing animates on the
+    // first placement of a freshly-loaded deck.
+    const animating = this.shownIndex !== null && target !== current;
+    const wrap = animating ? this.stageWrap() : null;
+    const outgoing = wrap ? this.stageNode(wrap) : null;
+    const transition = animating
+      ? this.viewer.getSlide(target > current ? target : current)?.transition
+      : undefined;
+
+    this.cancelTransition();
+
     if (target === current + 1) {
       this.viewer.goNext();
     }
     else {
       this.viewer.goToSlide(target);
     }
+
+    // Navigation re-renders the stage synchronously: the node captured above
+    // is now detached, and the live stage is the freshly-rendered one.
+    if (wrap && outgoing && transition?.type && transition.type !== 'none') {
+      const incoming = this.stageNode(wrap);
+      if (incoming) {
+        this.transitionCancel = playTransitionOverlay({
+          doc: document,
+          stageWrap: wrap,
+          outgoing,
+          incoming: incoming.cloneNode(true) as HTMLElement,
+          transition,
+          outgoingSlide: this.viewer.getSlide(current),
+          incomingSlide: this.viewer.getSlide(target),
+          onDone: () => {
+            this.transitionCancel = null;
+          },
+        });
+      }
+    }
+
+    this.shownIndex = target;
     this.requestUpdate();
+  }
+
+  private stageWrap(): HTMLElement | null {
+    return (
+      this.container?.querySelector<HTMLElement>('.pptxv-stage-wrap') ?? null
+    );
+  }
+
+  private stageNode(wrap: HTMLElement): HTMLElement | null {
+    return wrap.querySelector<HTMLElement>('.pptxv-stage');
+  }
+
+  private cancelTransition(): void {
+    if (this.transitionCancel) {
+      this.transitionCancel();
+      this.transitionCancel = null;
+    }
   }
 
   private ensureViewer(): PptxViewerInstance {
@@ -290,6 +348,8 @@ export class PresentationViewer extends LitElement {
     this.loading = true;
     this.errorText = '';
     this.slideCount = 0;
+    this.cancelTransition();
+    this.shownIndex = null;
     this.requestUpdate();
 
     try {
@@ -321,6 +381,8 @@ export class PresentationViewer extends LitElement {
   }
 
   private destroyViewer(): void {
+    this.cancelTransition();
+    this.shownIndex = null;
     if (this.viewer) {
       try {
         this.viewer.destroy();
