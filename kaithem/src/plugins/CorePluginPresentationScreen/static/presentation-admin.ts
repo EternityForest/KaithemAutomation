@@ -427,8 +427,9 @@ export class PresentationAdmin extends LitElement {
           </button>
         </div>
         <label class="ps-field">
-          <span>Shortcut</span>
+          <span>Chandler Shortcut</span>
           <input
+            title="Chandler shortcut code to instantly jump to this slide"
             type="text"
             data-testid="bookmark-shortcut"
             placeholder="e.g. 123"

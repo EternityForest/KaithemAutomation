@@ -223,7 +223,14 @@ export class PresentationViewer extends LitElement {
     const last = Math.max(0, this.slideCount - 1);
     const target = Math.min(Math.max(0, Math.floor(index)), last);
     this.state = { ...this.state, slide: target };
-    this.viewer.goToSlide(target);
+
+    const current = this.viewer.getCurrentSlide();
+    if (target === current + 1) {
+      this.viewer.goNext();
+    }
+    else {
+      this.viewer.goToSlide(target);
+    }
     this.requestUpdate();
   }
 
