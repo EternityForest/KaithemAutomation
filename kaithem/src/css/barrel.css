@@ -1064,9 +1064,11 @@ table {
   flex-basis: fit-content;
   border-color: var(--border-color);
 }
-details:only-child {
+
+details :only-child {
   display: inline-block;
 }
+
 .accordion details[open] summary::before {
   transform: rotate(90deg);
 }
