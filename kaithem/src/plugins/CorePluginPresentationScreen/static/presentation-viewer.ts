@@ -9,7 +9,10 @@ import { createPptxViewer } from 'pptx-vanilla-viewer';
 import type { PptxViewerInstance } from 'pptx-vanilla-viewer';
 // The engine only plays slide transitions in fullscreen presentation mode, so
 // this mirrored screen drives the engine's own overlay helper directly.
-import { playTransitionOverlay } from 'pptx-vanilla-viewer/internals';
+import {
+  playTransitionOverlay,
+  resolveTransitionDurationMs,
+} from 'pptx-vanilla-viewer/internals';
 
 import {
   errorMessage,
@@ -51,6 +54,8 @@ export class PresentationViewer extends LitElement {
   private shownIndex: number | null = null;
   /** Tears down a still-playing transition overlay. */
   private transitionCancel: (() => void) | null = null;
+  /** Local auto-advance timer for the current slide's own timing. */
+  private advanceTimer: ReturnType<typeof setTimeout> | null = null;
 
   override createRenderRoot(): HTMLElement {
     return this;
@@ -273,6 +278,7 @@ export class PresentationViewer extends LitElement {
 
     this.shownIndex = target;
     this.requestUpdate();
+    this.scheduleAutoAdvance();
   }
 
   private stageWrap(): HTMLElement | null {
@@ -289,6 +295,44 @@ export class PresentationViewer extends LitElement {
     if (this.transitionCancel) {
       this.transitionCancel();
       this.transitionCancel = null;
+    }
+  }
+
+  /**
+   * Auto-advance from the slide's own "advance after" timing.  Like manual
+   * navigation this moves the local view only: the server is never told, so
+   * no state is broadcast to the other screens.
+   */
+  private scheduleAutoAdvance(): void {
+    this.cancelAutoAdvance();
+    if (this.state.type !== 'pptx' || !this.viewer) {
+      return;
+    }
+    // The engine stops at the end of the show instead of looping.
+    if (this.state.slide >= this.slideCount - 1) {
+      return;
+    }
+    const transition = this.viewer.getSlide(this.state.slide)?.transition;
+    const advanceAfterMs = transition?.advanceAfterMs;
+    if (
+      typeof advanceAfterMs !== 'number' ||
+      !Number.isFinite(advanceAfterMs) ||
+      advanceAfterMs < 0
+    ) {
+      return;
+    }
+    // Match the engine: the slide sits for its transition, then the delay.
+    const delay = advanceAfterMs + resolveTransitionDurationMs(transition);
+    this.advanceTimer = globalThis.setTimeout(() => {
+      this.advanceTimer = null;
+      this.stepSlide(1);
+    }, delay);
+  }
+
+  private cancelAutoAdvance(): void {
+    if (this.advanceTimer !== null) {
+      globalThis.clearTimeout(this.advanceTimer);
+      this.advanceTimer = null;
     }
   }
 
@@ -349,6 +393,7 @@ export class PresentationViewer extends LitElement {
     this.errorText = '';
     this.slideCount = 0;
     this.cancelTransition();
+    this.cancelAutoAdvance();
     this.shownIndex = null;
     this.requestUpdate();
 
@@ -382,6 +427,7 @@ export class PresentationViewer extends LitElement {
 
   private destroyViewer(): void {
     this.cancelTransition();
+    this.cancelAutoAdvance();
     this.shownIndex = null;
     if (this.viewer) {
       try {
