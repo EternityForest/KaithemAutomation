@@ -66,7 +66,7 @@ export interface PresentationFileInfo {
 
 export interface PresentationConfig {
   title: string;
-  view_requires_admin: boolean;
+  view_permission: string;
 }
 
 export interface PresentationStatus {

@@ -171,14 +171,14 @@ test("admin file list, editor link, controls and delete", async ({ page }) => {
   await expect(page.getByTestId("file-row")).toHaveCount(0);
 });
 
-test("config toggle persists and locks viewing", async ({ page }) => {
+test("config permission persists and locks viewing", async ({ page }) => {
   await login(page);
   await makeModule(page, MODULE);
   await createScreen(page, RESOURCE);
   await uploadDeck(page, "deck.pptx");
   await openAdmin(page);
 
-  await page.getByTestId("admin-requires-admin").check();
+  await page.getByTestId("admin-view-permission").fill("system_admin");
   await page.getByTestId("admin-save-settings").click();
   await expect(page.getByTestId("admin-status")).toContainText(
     "saved"
@@ -186,12 +186,14 @@ test("config toggle persists and locks viewing", async ({ page }) => {
 
   // Reopening shows the persisted setting.
   await page.reload();
-  await expect(page.getByTestId("admin-requires-admin")).toBeChecked();
+  await expect(page.getByTestId("admin-view-permission")).toHaveValue(
+    "system_admin"
+  );
 
   const config = await (
     await page.request.get(`${apiUrl}/config/${MODULE}/${RESOURCE}`)
   ).json();
-  expect(config.view_requires_admin).toBe(true);
+  expect(config.view_permission).toBe("system_admin");
 
   // While locked, anonymous clients cannot fetch the file.
   const cookies = await page.context().cookies();
@@ -202,11 +204,11 @@ test("config toggle persists and locks viewing", async ({ page }) => {
   expect([401, 403]).toContain(locked.status());
   await page.context().addCookies(cookies);
 
-  // Unlocking again restores open viewing.
+  // Clearing the permission restores open viewing.
   await page.reload();
-  await page.getByTestId("admin-requires-admin").uncheck();
+  await page.getByTestId("admin-view-permission").fill("");
   await page.getByTestId("admin-save-settings").click();
-  await expect(page.getByTestId("admin-requires-admin")).not.toBeChecked();
+  await expect(page.getByTestId("admin-view-permission")).toHaveValue("");
 
   const open = await page.request.get(
     `${apiUrl}/file/${MODULE}/${RESOURCE}/deck.pptx`

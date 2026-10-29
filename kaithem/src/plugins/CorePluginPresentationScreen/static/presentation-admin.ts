@@ -44,7 +44,7 @@ export class PresentationAdmin extends LitElement {
 
   private screenTitle = 'Presentation Screen';
   private titleDraft = '';
-  private requiresAdmin = false;
+  private viewPermission = '';
   private files: PresentationFileInfo[] = [];
   private connected = 0;
 
@@ -119,7 +119,7 @@ export class PresentationAdmin extends LitElement {
       const config = await getConfig(this.ref);
       this.screenTitle = config.title;
       this.titleDraft = config.title;
-      this.requiresAdmin = config.view_requires_admin;
+      this.viewPermission = config.view_permission;
       if (includeFiles) {
         this.files = await listFiles(this.ref);
         this.bookmarks = await listBookmarks(this.ref);
@@ -166,7 +166,7 @@ export class PresentationAdmin extends LitElement {
       const title = this.titleDraft.trim() || 'Presentation Screen';
       await setConfig(this.ref, {
         title,
-        view_requires_admin: this.requiresAdmin,
+        view_permission: this.viewPermission.trim(),
       });
       this.screenTitle = title;
       this.titleDraft = title;
@@ -470,8 +470,8 @@ export class PresentationAdmin extends LitElement {
     this.requestUpdate();
   }
 
-  private updateRequiresAdmin(event: Event): void {
-    this.requiresAdmin = (event.target as HTMLInputElement).checked;
+  private updateViewPermission(event: Event): void {
+    this.viewPermission = (event.target as HTMLInputElement).value;
     this.requestUpdate();
   }
 
@@ -622,17 +622,19 @@ export class PresentationAdmin extends LitElement {
                 @input="${this.updateTitle}"
               >
             </label>
-            <label class="ps-checkbox">
+            <label class="ps-field">
+              <span>View permission</span>
               <input
-                data-testid="admin-requires-admin"
-                type="checkbox"
-                .checked="${this.requiresAdmin}"
-                @change="${this.updateRequiresAdmin}"
+                data-testid="admin-view-permission"
+                type="text"
+                placeholder="e.g. system_admin"
+                .value="${this.viewPermission}"
+                @input="${this.updateViewPermission}"
               >
-              <span>Require admin login to view</span>
             </label>
             <p class="ps-hint">
-              When unchecked, anyone with the viewer link can watch.
+              Permission a viewer must hold. Leave empty to let anyone with
+              the viewer link watch.
             </p>
             <button
               class="ps-primary"

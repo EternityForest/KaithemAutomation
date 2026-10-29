@@ -4,7 +4,8 @@
 A ``presentation_screen`` resource owns a FileData folder named
 ``<resource>.content`` holding plain ``.pptx`` files.  Admin users can
 upload, list, edit, and delete those files; viewing may be opened to
-guests via the ``view_requires_admin`` setting.
+guests by leaving the ``view_permission`` setting empty, or restricted to
+viewers holding an arbitrary permission by naming it there.
 
 The server holds one playback state per screen (which file and which
 slide).  Viewer pages keep a WebSocket open and mirror that state, so every
@@ -81,8 +82,18 @@ def _resource_data(module: str, resource: str) -> dict[str, Any] | None:
         return None
 
 
-def _view_is_open(data: dict[str, Any]) -> bool:
-    return not bool(data.get("view_requires_admin", False))
+def _view_permission(data: dict[str, Any]) -> str:
+    """The permission required to watch a screen, or ``""`` for guest view.
+
+    Legacy screens stored a boolean ``view_requires_admin``; treat it as
+    requiring ``system_admin`` so they keep their previous access rules.
+    """
+    permission = data.get("view_permission")
+    if isinstance(permission, str) and permission.strip():
+        return permission.strip()
+    if data.get("view_requires_admin"):
+        return "system_admin"
+    return ""
 
 
 def _check_admin() -> tuple[Any, int] | None:
@@ -104,7 +115,8 @@ def _check_view_access(
     data = _resource_data(module, resource)
     if data is None:
         return None, (quart.jsonify({"error": "not_found"}), 404)
-    if not _view_is_open(data) and not web.has_permission("system_admin"):
+    permission = _view_permission(data)
+    if permission and not web.has_permission(permission):
         return None, (quart.jsonify({"error": "forbidden"}), 403)
     return data, None
 
@@ -118,10 +130,11 @@ def _ws_can_view(module: str, resource: str) -> bool:
     data = _resource_data(module, resource)
     if data is None:
         return False
-    if _view_is_open(data):
+    permission = _view_permission(data)
+    if not permission:
         return True
     scope: Any = quart.websocket.scope
-    return web.has_permission("system_admin", asgi=scope)
+    return web.has_permission(permission, asgi=scope)
 
 
 def sanitize_pptx_filename(name: str) -> str:
@@ -416,10 +429,14 @@ class PresentationScreenType(resource_types.ResourceType):
                     "title": "Title",
                     "default": "Presentation Screen",
                 },
-                "view_requires_admin": {
-                    "type": "boolean",
-                    "title": "Viewing requires admin",
-                    "default": False,
+                "view_permission": {
+                    "type": "string",
+                    "title": "Viewing permission",
+                    "description": (
+                        "Permission a viewer must hold to watch.  Leave "
+                        "empty to allow guests."
+                    ),
+                    "default": "",
                 },
                 "default_state": {
                     "type": "object",
@@ -480,7 +497,7 @@ class PresentationScreenType(resource_types.ResourceType):
         return {
             "resource": {"type": self.type},
             "title": kwargs.get("title") or "Presentation Screen",
-            "view_requires_admin": False,
+            "view_permission": "",
             "default_state": _empty_state(),
             "bookmarks": {},
         }
@@ -751,7 +768,7 @@ async def presentation_get_config(module: str, resource: str):
     return quart.jsonify(
         {
             "title": data.get("title", "Presentation Screen"),
-            "view_requires_admin": not _view_is_open(data),
+            "view_permission": _view_permission(data),
         }
     )
 
@@ -777,15 +794,22 @@ async def presentation_set_config(module: str, resource: str):
         if len(title) > 200:
             return quart.jsonify({"error": "title_too_long"}), 400
         result["title"] = title.strip()
-    if "view_requires_admin" in body:
-        result["view_requires_admin"] = bool(body["view_requires_admin"])
+    if "view_permission" in body:
+        permission = body["view_permission"]
+        if not isinstance(permission, str):
+            return quart.jsonify({"error": "invalid_view_permission"}), 400
+        permission = permission.strip()
+        if len(permission) > 100:
+            return quart.jsonify({"error": "view_permission_too_long"}), 400
+        result["view_permission"] = permission
+        result.pop("view_requires_admin", None)
 
     modules_state.raw_insert_resource(module, resource, result)
     return quart.jsonify(
         {
             "status": "ok",
             "title": result["title"],
-            "view_requires_admin": result["view_requires_admin"],
+            "view_permission": _view_permission(result),
         }
     )
 

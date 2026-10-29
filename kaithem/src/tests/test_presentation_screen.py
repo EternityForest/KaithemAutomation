@@ -113,7 +113,7 @@ async def test_config_defaults_open_and_admin_can_lock():
 
     response = await guest.get(_api(module, "/config"))
     assert response.status_code == 200
-    assert (await response.get_json())["view_requires_admin"] is False
+    assert (await response.get_json())["view_permission"] == ""
 
     # Open viewing: guests may fetch files (once one exists).
     response = await admin.post(
@@ -127,12 +127,13 @@ async def test_config_defaults_open_and_admin_can_lock():
     assert response.status_code == 200
     assert (await response.get_json())["state"] == {"type": "none"}
 
+    # The permission is stripped before being stored.
     response = await admin.post(
         _api(module, "/config"),
-        json={"view_requires_admin": True},
+        json={"view_permission": "  system_admin  "},
     )
     assert response.status_code == 200
-    assert (await response.get_json())["view_requires_admin"] is True
+    assert (await response.get_json())["view_permission"] == "system_admin"
 
     response = await guest.get(_file_api(module, "file", "guest.pptx"))
     assert response.status_code in (401, 403)
@@ -148,11 +149,11 @@ async def test_config_defaults_open_and_admin_can_lock():
     # And can unlock again.
     response = await admin.post(
         _api(module, "/config"),
-        json={"view_requires_admin": False, "title": "Renamed"},
+        json={"view_permission": "", "title": "Renamed"},
     )
     assert response.status_code == 200
     body = await response.get_json()
-    assert body["view_requires_admin"] is False
+    assert body["view_permission"] == ""
     assert body["title"] == "Renamed"
 
 
@@ -384,7 +385,7 @@ async def test_websocket_viewing_respects_locked_setting():
         assert connection.accepted is True
 
     response = await admin.post(
-        _api(module, "/config"), json={"view_requires_admin": True}
+        _api(module, "/config"), json={"view_permission": "system_admin"}
     )
     assert response.status_code == 200
 

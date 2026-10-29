@@ -152,16 +152,6 @@ body {
   gap: 0.2rem;
 }
 
-.ps-checkbox {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.ps-checkbox input {
-  width: auto;
-}
-
 .ps-hint {
   margin: 0;
   font-size: 0.85rem;
