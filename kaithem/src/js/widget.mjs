@@ -146,6 +146,8 @@ if (globalThis.kaithemapi == undefined) {
           console.error(error_);
         }
 
+        error = globalThis.location.href.split("?")[0] + '\n' + error;
+
         this.sendValue('__ERROR__', error);
       },
 

@@ -390,11 +390,11 @@ def checkDmesg():
     if first_j[0]:
         first_j[0] = False
         t = subprocess.check_output(
-            ["journalctl", "-k", "--no-pager", "-p", "4"]
+            ["journalctl", "-k", "--no-pager", "-p", "3"]
         ).decode()
     else:
         t = subprocess.check_output(
-            ["journalctl", "-k", "--no-pager", "-e", "-p", "4"]
+            ["journalctl", "-k", "--no-pager", "-e", "-p", "3"]
         ).decode()
     if "i/o error" in t.lower():
         errtag.value = 1
