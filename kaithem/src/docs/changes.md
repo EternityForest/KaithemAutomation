@@ -4,6 +4,8 @@ Change Log
 ### Dev
 
 * [bug] Main page now shows all alerts in any state other than normal.
+* [sparkles] Web based .pptx signage with editing and admin UI.
+
 
 
 

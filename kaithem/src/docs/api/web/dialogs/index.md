@@ -38,7 +38,8 @@ called to create one fron the control’s name
 
 #### is_disabled_by_default()
 
-If an element does not specify whether it is disabled, this is called.
+If an element does not specify
+whether it is disabled, this is called.
 You can subclass it, by default it checks system_admin.
 
 #### text(s: str)
@@ -47,13 +48,13 @@ Add some help text
 
 #### link(s: str, url: str)
 
-#### text_input(name: str, , title: str | None = None, default: str | int | float = '', disabled=None, suggestions: list[tuple[str, str]] | None = None, multiline=False)
+#### text_input(name: str, , title: str | None = None, default: str | int | float = '', disabled: bool | None = None, suggestions: list[tuple[str, str]] | None = None, multiline: bool = False)
 
 #### begin_section(title: str)
 
 #### end_section()
 
-#### checkbox(name: str, , title: str | None = None, default=False, disabled=None)
+#### checkbox(name: str, , title: str | None = None, default: bool = False, disabled: bool | None = None)
 
 Add a checkbox
 
