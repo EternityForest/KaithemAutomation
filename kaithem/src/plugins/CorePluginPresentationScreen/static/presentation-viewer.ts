@@ -6,7 +6,11 @@ import 'pptx-vanilla-viewer/styles.css';
 
 import { LitElement, html } from 'lit';
 import { createPptxViewer } from 'pptx-vanilla-viewer';
-import type { PptxViewerInstance } from 'pptx-vanilla-viewer';
+import type {
+  PptxViewerInstance,
+  Store,
+  ViewerState,
+} from 'pptx-vanilla-viewer';
 // The engine only plays slide transitions in fullscreen presentation mode, so
 // this mirrored screen drives the engine's own overlay helper directly.
 import {
@@ -228,7 +232,7 @@ export class PresentationViewer extends LitElement {
   }
 
   /** Clamp to the deck length and move both the engine and local state. */
-  private showSlide(index: number): void {
+  private showSlide(index: number, forceForward = false): void {
     if (this.state.type !== 'pptx' || !this.viewer) {
       return;
     }
@@ -239,12 +243,14 @@ export class PresentationViewer extends LitElement {
     const current = this.viewer.getCurrentSlide();
     // Mirror the engine's own rule: forward replays the incoming slide's
     // transition, backward the outgoing slide's.  Nothing animates on the
-    // first placement of a freshly-loaded deck.
+    // first placement of a freshly-loaded deck.  A loop wrap drops the index
+    // to 0 but is still a forward move, so it uses the incoming transition.
     const animating = this.shownIndex !== null && target !== current;
+    const forward = forceForward || target > current;
     const wrap = animating ? this.stageWrap() : null;
     const outgoing = wrap ? this.stageNode(wrap) : null;
     const transition = animating
-      ? this.viewer.getSlide(target > current ? target : current)?.transition
+      ? this.viewer.getSlide(forward ? target : current)?.transition
       : undefined;
 
     this.cancelTransition();
@@ -299,6 +305,18 @@ export class PresentationViewer extends LitElement {
   }
 
   /**
+   * Whether the deck's own slide-show settings ask to loop continuously (the
+   * "loop continuously" flag or kiosk mode).  The public viewer API does not
+   * surface presentation properties, so read them off the engine's store.
+   */
+  private loopsContinuously(): boolean {
+    const store = (this.viewer as unknown as { store?: Store<ViewerState> })
+      .store;
+    const props = store?.get().presentationProperties;
+    return Boolean(props?.loopContinuously) || props?.showType === 'kiosk';
+  }
+
+  /**
    * Auto-advance from the slide's own "advance after" timing.  Like manual
    * navigation this moves the local view only: the server is never told, so
    * no state is broadcast to the other screens.
@@ -308,8 +326,8 @@ export class PresentationViewer extends LitElement {
     if (this.state.type !== 'pptx' || !this.viewer) {
       return;
     }
-    // The engine stops at the end of the show instead of looping.
-    if (this.state.slide >= this.slideCount - 1) {
+    // The engine stops at the end of the show, unless the deck loops.
+    if (this.state.slide >= this.slideCount - 1 && !this.loopsContinuously()) {
       return;
     }
     const transition = this.viewer.getSlide(this.state.slide)?.transition;
@@ -325,7 +343,15 @@ export class PresentationViewer extends LitElement {
     const delay = advanceAfterMs + resolveTransitionDurationMs(transition);
     this.advanceTimer = globalThis.setTimeout(() => {
       this.advanceTimer = null;
-      this.stepSlide(1);
+      if (this.state.type !== 'pptx') {
+        return;
+      }
+      if (this.state.slide >= this.slideCount - 1) {
+        // Loop back to the top; still a local-only move.
+        this.showSlide(0, true);
+      } else {
+        this.stepSlide(1);
+      }
     }, delay);
   }
 
