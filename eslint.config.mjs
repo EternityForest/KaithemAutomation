@@ -67,6 +67,7 @@ export default [
     rules: {
       "import/no-unresolved": "error",
       "@html-eslint/attrs-newline": "off",
+      "@html-eslint/element-newline": "off",
       "vue/no-undef-properties": "error",
       "unicorn/no-null": "off",
       "typescript-eslint/require-await": "off",

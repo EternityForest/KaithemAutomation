@@ -1330,6 +1330,14 @@ def test_shortcuts():
         core.wait_frame()
         assert grp.cue.name == "default"
 
+        # Ensure the shortcut group exclude works
+        global_actions.cl_trigger_shortcut_code("shortcut2",
+        {"exclude": grp.name})
+        core.wait_frame()
+        core.wait_frame()
+        assert grp.cue.name == "default"
+
+
         # Ensure the new shortcut works
         global_actions.cl_trigger_shortcut_code("shortcut2")
         core.wait_frame()

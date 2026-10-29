@@ -13,7 +13,6 @@ import copy
 import datetime
 import json
 import logging
-import random
 import time
 import traceback
 import uuid
@@ -30,7 +29,7 @@ from kaithem.src.validation_util import validate_args
 from .. import schemas, scriptbindings, util
 from . import core
 from .core import disallow_special
-from .global_actions import normalize_shortcut, shortcut_codes
+from .global_actions import ShortcutCodeListener, normalize_shortcut
 
 if TYPE_CHECKING:
     from .groups import Group
@@ -68,7 +67,7 @@ slots = list(cue_schema["properties"].keys()) + [
     "inherit",
     "onEnter",
     "onExit",
-    "error_lockout",
+    "shortcut_listernererror_lockout",
     "scheduler_object",
     "_scheduled_func",
     "_provider",
@@ -303,6 +302,8 @@ class Cue:
         # declare vars.
         # Cannot enter cue because it loaded with errors
         self.error_lockout: bool = False
+
+        self.shortcut_listener: ShortcutCodeListener | None = None
 
         # Used for the deletion cleanup, mostly
         # Just for shortcuts.
@@ -756,13 +757,15 @@ class Cue:
                 g.recalc_randomize_modifier()
             self.push(["length_randomize"])
 
-    def goto_if_scene_active(self, ts: float | None = None):
+    def goto_if_scene_active(
+        self, ts: float | None = None, cause: str = "generic"
+    ):
         """Go to this cue if the scene it belongs to is active"""
         if ts is None:
             ts = time.time()
         x = self.getGroup()
         if x and x.is_active():
-            x.goto_cue(self.name, ts)
+            x.goto_cue(self.name, ts, cause=cause)
 
     @property
     def schedule_at(self):
@@ -902,6 +905,16 @@ class Cue:
         if self._shortcut:
             self.shortcut = ""
 
+    def on_shortcut_called(self, code: str, time: float, props: dict[str, Any]):
+        x = self.getGroup()
+
+        exclude = props.get("exclude", "")
+
+        if x.name == exclude:
+            return
+
+        self.goto_if_scene_active(ts=time, cause="shortcut")
+
     @property
     def shortcut(self):
         return self._shortcut
@@ -915,37 +928,13 @@ class Cue:
         if code == "__generate__from__number__":
             code = number_to_shortcut(self.number)
 
-        old_code = self._shortcut
-
-        # There's a brief time window before this works
-        # but that is perfectly fine
         def f():
-            if old_code in shortcut_codes:
-                try:
-                    shortcut_codes[old_code].remove(self)
-                except ValueError:
-                    pass
-                except Exception:
-                    print(traceback.format_exc())
+            if self.shortcut_listener:
+                self.shortcut_listener.close()
 
-            if random.random() < 1:
-                # Do a full GC pass of the shortcut codes list
-                to_rm = []
-                for i in shortcut_codes:
-                    if not shortcut_codes[i]:
-                        to_rm.append(i)
-                    else:
-                        for j in list(shortcut_codes[i]):
-                            if not j.group():
-                                shortcut_codes[i].remove(j)
-                for i in to_rm:
-                    del shortcut_codes[i]
-
-            if code:
-                if code in shortcut_codes:
-                    shortcut_codes[code].append(self)
-                else:
-                    shortcut_codes[code] = [self]
+            self.shortcut_listener = ShortcutCodeListener(
+                code, self.on_shortcut_called
+            )
 
         if not code == self._shortcut:
             core.serialized_async_with_core_lock(f)

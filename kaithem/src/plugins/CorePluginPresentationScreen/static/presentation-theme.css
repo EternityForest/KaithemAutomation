@@ -1,0 +1,31 @@
+/* Theme bridge for pptx-vanilla-viewer.
+ *
+ * The engine's chrome reads `--pptx-*` custom properties from its host. When
+ * the page also loads Kaithem's barrel.css those resolve to the site theme;
+ * on pages that deliberately do not load barrel.css (the editor pulls in its
+ * own neutral styling) the fallbacks below keep the engine self-consistent.
+ */
+
+:root {
+  --pptx-background: var(--bg, #ffffff);
+  --pptx-foreground: var(--fg, #1c1c1c);
+  --pptx-card: var(--box-bg, #f1f1f1);
+  --pptx-card-foreground: var(--fg, #1c1c1c);
+  --pptx-popover: var(--box-bg, #ffffff);
+  --pptx-popover-foreground: var(--fg, #1c1c1c);
+  --pptx-primary: var(--accent-color, #283766);
+  --pptx-primary-foreground: #ffffff;
+  --pptx-secondary: var(--grey-2, #f1f1f1);
+  --pptx-secondary-foreground: var(--fg, #1c1c1c);
+  --pptx-muted: var(--grey-2, #f1f1f1);
+  --pptx-muted-foreground: var(--graphical-fg, #5c555d);
+  --pptx-accent: var(--highlight-color, #66beb3);
+  --pptx-accent-foreground: var(--fg, #1c1c1c);
+  --pptx-destructive: var(--danger-color, #e03131);
+  --pptx-destructive-foreground: #ffffff;
+  --pptx-border: var(--border-color, #c9c5bd);
+  --pptx-input: var(--border-color, #c9c5bd);
+  --pptx-ring: var(--highlight-color, #66beb3);
+  --pptx-radius: var(--border-radius, 0.6rem);
+  --pptx-font: var(--main-font, system-ui, sans-serif);
+}

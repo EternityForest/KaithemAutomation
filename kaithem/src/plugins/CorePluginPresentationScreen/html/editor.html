@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Deliberately no barrel.css: the editor is themed by the pptx engine
+         and our own presentation-editor.css instead of the site theme. -->
+    <link rel="stylesheet" href="../static/presentation-theme.css" />
+    <link rel="stylesheet" href="../static/presentation-editor.css" />
+    <link rel="stylesheet" href="pptx-vanilla-viewer/styles.css" />
+    <title>Presentation Editor</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      presentation-editor {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <presentation-editor></presentation-editor>
+    <script type="module" src="../static/presentation-editor.ts"></script>
+  </body>
+</html>

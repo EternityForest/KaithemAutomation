@@ -1,17 +1,67 @@
 from __future__ import annotations
 
+import threading
+import time
+
 # This file provides the shortcut code and event functions
 import traceback
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
+from weakref import ref
+
+from iot_devices.device import pydantic
+from structlog import get_logger
 
 from . import core
 
 if TYPE_CHECKING:
-    from .cue import Cue
-    from .groups import Group
+    pass
 
+_logger = get_logger()
+_sc_code_lock = threading.Lock()
 # Index Cues by codes that we use to jump to them. This is a dict of lists of cues with that short code,
-shortcut_codes: dict[str, list[Cue]] = {}
+_shortcut_codes: dict[str, list[ref[ShortcutCodeListener]]] = {}
+
+
+class ShortcutCodeListener:
+    @pydantic.validate_call
+    def __init__(
+        self,
+        code: str,
+        callback: Callable[[str, float, dict[str, Any]], None],
+        description: str = "",
+    ):
+        code = normalize_shortcut(code)
+        self.closed = False
+        self.code = code
+        self.description = description
+        self._callback = callback
+        with _sc_code_lock:
+            if code in _shortcut_codes:
+                _shortcut_codes[code].append(ref(self))
+            else:
+                _shortcut_codes[code] = [ref(self)]
+
+            self._callback = callback
+
+    def close(self):
+        self.closed = True
+        with _sc_code_lock:
+            try:
+                _shortcut_codes[self.code].remove(ref(self))
+            except ValueError:
+                pass
+
+            if not _shortcut_codes[self.code]:
+                del _shortcut_codes[self.code]
+
+    def go(self, t: float | None = None, props: dict[str, Any] | None = None):
+        self._callback(self.code, t or time.time(), props or {})
+
+    def __del__(self):
+        if not self.closed:  # coverage: ignore
+            _logger.warning("Shortcut code listener not closed", code=self.code)
+            self.close()
 
 
 def normalize_shortcut(code: str | int | float) -> str:
@@ -26,49 +76,37 @@ def normalize_shortcut(code: str | int | float) -> str:
     except Exception:
         pass
 
-    return str(code)
+    x = str(code)
+    if len(x) > 64:
+        raise ValueError("Shortcut code too long")
+    return x
 
 
 @core.cl_context.entry_point
-def cl_trigger_shortcut_code(
-    code: str, limitGroup: Group | None = None, exclude: Group | None = None
-):
+def cl_trigger_shortcut_code(code: str, props: dict[str, Any] = {}):
     "API to activate a cue by it's shortcut code"
 
     code = normalize_shortcut(code)
 
-    if not limitGroup:
-        cl_event("shortcut." + str(code)[:64], None)
+    cl_event("shortcut." + code, None)
 
     go_list = []
     event_list = []
 
-    if code in shortcut_codes:
-        for i in shortcut_codes[code]:
-            try:
-                # TODO: Is this check needed?
-                # Not in the cues list yet means it doesn't really exist
-                # if i.id not in cues:
-                #     continue
+    with _sc_code_lock:
+        if code in _shortcut_codes:
+            handlers = list(_shortcut_codes[code])
+        else:
+            handlers: list[ref[ShortcutCodeListener]] = []
 
-                x = i.group()
-                if not x:
-                    continue
+    for i in handlers:
+        try:
+            x = i()
+            if x:
+                x.go()
 
-                if limitGroup:
-                    if (x is not limitGroup) and not (x.name == limitGroup):
-                        print("skip " + x.name, limitGroup)
-                        continue
-                    if x is not exclude:
-                        # x.event("shortcut." + str(code)[:64])
-                        event_list.append((x, str(code)[:64]))
-                else:
-                    if x and x is not exclude:
-                        # x.go()
-                        # x.goto_cue(i.name, cause="manual")
-                        go_list.append((x, i.name))
-            except Exception:
-                print(traceback.format_exc())
+        except Exception:
+            print(traceback.format_exc())
 
     for i in go_list:
         i[0].goto_cue(i[1], cause="shortcut")

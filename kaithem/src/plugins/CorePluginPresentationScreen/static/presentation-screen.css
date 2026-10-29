@@ -1,0 +1,370 @@
+/* Shared styling for the presentation screen admin and viewer pages.
+ *
+ * Relies on Kaithem's barrel.css for theme variables. The editor has its own
+ * stylesheet (presentation-editor.css) because it deliberately runs without
+ * the site theme, and the pptx-* token bridge lives in presentation-theme.css
+ * so every page can pull in exactly what it needs.
+ */
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.ps-admin,
+.ps-viewer {
+  width: 100%;
+  height: 100dvh;
+  box-sizing: border-box;
+}
+
+/* ------------------------------------------------------------------ admin */
+
+.ps-admin {
+  display: flex;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.ps-admin--error {
+  display: block;
+  padding: 1rem;
+  color: var(--danger-fg);
+}
+
+.ps-admin__side {
+  display: flex;
+  flex-direction: column;
+  min-width: 24rem;
+  gap: var(--gap);
+  padding: var(--gap);
+  min-height: 0;
+  overflow-y: auto;
+  border-right: var(--thin-border);
+}
+
+.ps-admin__title {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.ps-admin__main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  background: #1a1a1a;
+}
+
+.ps-admin__iframe {
+  flex: 1;
+  width: 100%;
+  border: 0;
+  min-height: 0;
+  background: #1a1a1a;
+}
+
+
+.ps-goto {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.ps-goto input {
+  width: 5rem;
+}
+
+.ps-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  padding: var(--gap);
+  background: var(--box-bg);
+  border: var(--thin-border);
+  border-radius: var(--border-radius);
+}
+
+.ps-panel--grow {
+  flex: 1;
+  min-height: 12rem;
+}
+
+.ps-panel h3 {
+  margin: 0.3rem;
+  font-size: 1rem;
+}
+
+/* Read-only state dumps: one row per field, name on the left. */
+
+.ps-kv-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.ps-kv-group__label {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+}
+
+.ps-kv {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.15rem 0.75rem;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.ps-kv dt {
+  opacity: 0.7;
+}
+
+.ps-kv dd {
+  margin: 0;
+  font-family: var(--mono-font);
+  overflow-wrap: anywhere;
+}
+
+.ps-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap);
+}
+
+.ps-panel__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--gap);
+}
+
+.ps-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.ps-hint {
+  margin: 0;
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+.ps-file-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  overflow-y: auto;
+}
+
+.ps-file {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap);
+  padding: 0.4rem;
+  background: var(--control-bg);
+  border: var(--thin-border);
+  border-radius: var(--control-border-radius);
+}
+
+.ps-file__info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ps-file__name {
+  font-family: var(--mono-font);
+  overflow-wrap: anywhere;
+}
+
+.ps-file__meta {
+  font-size: 0.8rem;
+  opacity: 0.75;
+}
+
+.ps-file__actions {
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.ps-file__actions .button {
+  display: inline-flex;
+  align-items: center;
+}
+
+.ps-bookmark-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  overflow-y: auto;
+}
+
+.ps-bookmark {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.4rem;
+  background: var(--control-bg);
+  border: var(--thin-border);
+  border-radius: var(--control-border-radius);
+}
+
+.ps-bookmark__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--gap);
+}
+
+.ps-bookmark__name {
+  font-family: var(--mono-font);
+  overflow-wrap: anywhere;
+}
+
+.ps-bookmark__state {
+  font-size: 0.8rem;
+  opacity: 0.75;
+  text-align: right;
+}
+
+.ps-bookmark__actions {
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+
+.ps-bookmark-add {
+  display: flex;
+  gap: 0.3rem;
+  align-items: center;
+}
+
+.ps-bookmark-add input {
+  flex: 1;
+  min-width: 0;
+}
+
+.ps-empty {
+  opacity: 0.75;
+}
+
+.ps-status {
+  margin: 0;
+  min-height: 1.4rem;
+  font-size: 0.9rem;
+}
+
+.ps-status--error {
+  color: var(--danger-fg);
+}
+
+.ps-badge {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border: var(--thin-border);
+  border-radius: 999px;
+  background: var(--control-bg);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.ps-badge--dirty {
+  color: var(--warning-fg);
+  border-color: var(--warning-color);
+}
+
+.ps-primary {
+  font-weight: bold;
+}
+
+.ps-danger {
+  color: var(--danger-fg);
+}
+
+/* ----------------------------------------------------------------- viewer */
+
+.ps-viewer {
+  position: relative;
+  overflow: hidden;
+  background: #000;
+}
+
+.ps-viewer__stage {
+  position: absolute;
+  inset: 0;
+}
+
+.ps-viewer__stage > * {
+  width: 100%;
+  height: 100%;
+}
+
+.ps-viewer__empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #777;
+  font-size: 1.4rem;
+  pointer-events: none;
+}
+
+.ps-viewer__error {
+  position: absolute;
+  left: 50%;
+  top: 1rem;
+  transform: translateX(-50%);
+  max-width: 80%;
+  padding: 0.6rem 1rem;
+  border-radius: var(--border-radius);
+  background: rgb(0 0 0 / 80%);
+  color: #ff8080;
+}
+
+.ps-viewer__badge {
+  position: absolute;
+  right: 0.75rem;
+  bottom: 0.75rem;
+  padding: 0.2rem 0.7rem;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 70%);
+  color: #ddd;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 900px) {
+  .ps-admin {
+    flex-direction: column;
+  }
+
+  .ps-admin__side {
+    min-width: 0;
+    flex: 0 0 auto;
+    max-height: 50%;
+    border-right: 0;
+    border-bottom: var(--thin-border);
+  }
+
+  .ps-admin__main {
+    flex: 1 1 auto;
+  }
+}
