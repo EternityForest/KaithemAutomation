@@ -21,5 +21,5 @@ x42-plugins gstreamer1.0-vaapi gstreamer1.0-pipewire \
 pipewire-jack gir1.2-gtk-3.0 \
 python3-venv gstreamer1.0-libav network-manager libnss-mdns ffmpeg rsync \
 libjack-jackd2-0 jack-example-tools brightnessctl podman \
-lsp-plugins-lv2
+lsp-plugins-lv2 bluez
 

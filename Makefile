@@ -162,6 +162,11 @@ dev-install-dev-tools:
 
 dev-run-all-tests: export IMAGE_PREFIX=localhost:5000/
 
+.PHONY: dev-build-docker-playwright
+dev-build-docker-playwright:
+	@cd ./docker/
+	@docker compose build playwright
+
 .PHONY: dev-run-all-tests
 dev-run-all-tests:
 	@bash scripts/render-compose-override.sh
