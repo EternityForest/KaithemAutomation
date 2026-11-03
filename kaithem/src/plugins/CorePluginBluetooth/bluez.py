@@ -35,7 +35,12 @@ from dbus_fast.annotations import (
     DBusUInt16,
     DBusUInt32,
 )
-from dbus_fast.service import ServiceInterface, method
+from dbus_fast.service import (
+    PropertyAccess,
+    ServiceInterface,
+    dbus_property,
+    method,
+)
 from dbus_fast.unpack import unpack_variants
 
 logger = logging.getLogger(__name__)
@@ -43,6 +48,7 @@ logger = logging.getLogger(__name__)
 BLUEZ_SERVICE = "org.bluez"
 BLUEZ_ROOT = "/org/bluez"
 AGENT_PATH = "/org/kaithem/bluetooth/agent1"
+ADVERTISEMENT_ROOT = "/org/kaithem/bluetooth/advertisement"
 AGENT_TIMEOUT = 90.0
 PAIR_TIMEOUT = AGENT_TIMEOUT + 30.0
 CALL_TIMEOUT = 20.0
@@ -50,8 +56,22 @@ CALL_TIMEOUT = 20.0
 _DEVICE_INTERFACE = "org.bluez.Device1"
 _ADAPTER_INTERFACE = "org.bluez.Adapter1"
 _BATTERY_INTERFACE = "org.bluez.Battery1"
+_LE_ADVERTISING_INTERFACE = "org.bluez.LEAdvertisingManager1"
+_ADVERTISEMENT_INTERFACE = "org.bluez.LEAdvertisement1"
 _PROPERTIES_INTERFACE = "org.freedesktop.DBus.Properties"
 _OBJECT_MANAGER_INTERFACE = "org.freedesktop.DBus.ObjectManager"
+
+# Adapter1 properties the console is allowed to write, with their D-Bus
+# signature.  BlueZ exposes Name as read-only; Alias is the writable name.
+_ADAPTER_WRITABLE_PROPERTIES: dict[str, str] = {
+    "Powered": "b",
+    "Discoverable": "b",
+    "Pairable": "b",
+    "Alias": "s",
+    "DiscoverableTimeout": "u",
+    "PairableTimeout": "u",
+}
+_ADVERTISING_PROPERTY = "Advertising"
 
 AgentListener = Callable[[dict[str, Any]], None]
 
@@ -126,6 +146,7 @@ class BluezManager:
         self._pending: dict[str, _PendingAgentRequest] = {}
         self._active_operations = 0
         self._refresh_task: asyncio.Task[None] | None = None
+        self._advertisements: dict[str, _LeAdvertisement] = {}
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -181,6 +202,7 @@ class BluezManager:
             with self._lock:
                 self._loop = None
                 self._bus = None
+                self._advertisements.clear()
 
     async def _async_main(self) -> None:
         self._stop_event = asyncio.Event()
@@ -188,40 +210,100 @@ class BluezManager:
         while not self._stop_event.is_set():
             try:
                 await self._connect_and_setup()
-                break
             except Exception as exc:
                 logger.warning("Could not connect to BlueZ: %s", exc)
-                with self._lock:
-                    bus = self._bus
-                    self._bus = None
-                    self._available = False
-                    self._error = str(exc) or exc.__class__.__name__
-                    self._snapshot = self._empty_snapshot(
-                        self._error, self._agent_registered, self._agent_error
-                    )
-                if bus is not None:
-                    try:
-                        bus.disconnect()
-                    except Exception:
-                        pass
+                self._teardown_bus(str(exc) or exc.__class__.__name__)
                 if first_attempt:
                     self._ready.set()
                     first_attempt = False
-                try:
-                    await asyncio.wait_for(
-                        self._stop_event.wait(), timeout=10.0
-                    )
-                except TimeoutError:
-                    pass
+                await self._wait_or_stop(10.0)
+                continue
+
+            if first_attempt:
+                self._ready.set()
+                first_attempt = False
+
+            # Stay connected until shutdown or BlueZ goes away.  bluetoothd
+            # restarts (and system-bus connections drop) when adapters are
+            # powered down, so keep reconnecting instead of going dead.
+            stop_waiter = asyncio.create_task(self._stop_event.wait())
+            disconnect_waiter = asyncio.create_task(self._wait_for_disconnect())
+            done, pending = await asyncio.wait(
+                {stop_waiter, disconnect_waiter},
+                return_when=asyncio.FIRST_COMPLETED,
+            )
+            for task in pending:
+                task.cancel()
+            await asyncio.gather(*pending, return_exceptions=True)
+            if self._stop_event.is_set():
+                break
+            logger.warning("Lost connection to BlueZ; reconnecting")
+            self._teardown_bus("BlueZ connection lost")
+
         if first_attempt:
             self._ready.set()
+        self._teardown_bus(None)
         if not self._stop_event.is_set():
             await self._stop_event.wait()
+
+    async def _wait_for_disconnect(self) -> None:
+        bus = self._bus
+        if bus is None:
+            return
+        try:
+            await bus.wait_for_disconnect()
+        except Exception:
+            pass
+
+    async def _wait_or_stop(self, timeout: float) -> None:
+        try:
+            await asyncio.wait_for(self._stop_event.wait(), timeout=timeout)
+        except TimeoutError:
+            pass
+
+    def _teardown_bus(self, error: str | None) -> None:
+        """Drop the bus connection and publish an unavailable snapshot."""
+        refresh_task = self._refresh_task
+        self._refresh_task = None
+        if refresh_task is not None and not refresh_task.done():
+            refresh_task.cancel()
+        with self._lock:
+            bus = self._bus
+            self._bus = None
+            self._available = False
+            if error is not None:
+                self._error = error
+            self._agent_registered = False
+            self._advertisements.clear()
+            self._snapshot_signature = ""
+            snapshot = self._empty_snapshot(
+                self._error, self._agent_registered, self._agent_error
+            )
+            changed = snapshot != self._snapshot
+            self._snapshot = snapshot
+            event = None
+            if changed:
+                self._revision += 1
+                self._snapshot["revision"] = self._revision
+                event = {
+                    "type": "snapshot",
+                    "snapshot": copy.deepcopy(self._snapshot),
+                    "revision": self._revision,
+                }
+        if bus is not None:
+            try:
+                bus.disconnect()
+            except Exception:
+                pass
+        if event is not None:
+            self._notify(event)
 
     async def _connect_and_setup(self) -> None:
         bus = await MessageBus(bus_type=BusType.SYSTEM).connect()
         with self._lock:
             self._bus = bus
+            self._error = None
+            self._advertisements.clear()
         bus.add_message_handler(self._on_message)
 
         self._agent_registered = await self._register_agent()
@@ -255,6 +337,21 @@ class BluezManager:
 
     def set_discovering(self, discovering: bool) -> dict[str, Any]:
         self._run(self._async_set_discovering(discovering), CALL_TIMEOUT)
+        return self.snapshot()
+
+    def set_adapter_properties(
+        self, identifier: str, values: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Set writable Adapter1 properties and/or LE advertising.
+
+        ``identifier`` is an adapter address or D-Bus object path.  Supported
+        keys are ``Powered``, ``Discoverable``, ``Pairable``, ``Alias``,
+        ``DiscoverableTimeout``, ``PairableTimeout``, and the pseudo-property
+        ``Advertising``.
+        """
+        self._run(
+            self._async_set_adapter_properties(identifier, values), CALL_TIMEOUT
+        )
         return self.snapshot()
 
     def pair(self, address: str) -> dict[str, Any]:
@@ -341,16 +438,22 @@ class BluezManager:
         bus = self._bus
         if bus is None:
             raise BluezUnavailableError("BlueZ is not available")
-        reply = await bus.call(
-            Message(
-                destination=destination,
-                path=path,
-                interface=interface,
-                member=member,
-                signature=signature,
-                body=body or [],
+        try:
+            reply = await bus.call(
+                Message(
+                    destination=destination,
+                    path=path,
+                    interface=interface,
+                    member=member,
+                    signature=signature,
+                    body=body or [],
+                )
             )
-        )
+        except BluezError:
+            raise
+        except Exception as exc:
+            # A dropped bus connection surfaces as plain asyncio/EOF errors.
+            raise BluezError(exc.__class__.__name__, str(exc)) from exc
         if reply.message_type == MessageType.ERROR:
             message = reply.body[0] if reply.body else ""
             raise BluezError(reply.error_name or "UnknownError", str(message))
@@ -374,6 +477,7 @@ class BluezManager:
             _DEVICE_INTERFACE,
             _ADAPTER_INTERFACE,
             _BATTERY_INTERFACE,
+            _LE_ADVERTISING_INTERFACE,
         ):
             return False
         if message.member not in (
@@ -434,13 +538,17 @@ class BluezManager:
             return
 
         adapters, devices, device_paths = self._parse_objects(objects)
+        primary = next(
+            (a for a in adapters if a.get("powered")),
+            adapters[0] if adapters else None,
+        )
         payload = {
             "available": True,
             "error": None,
             "agent_registered": self._agent_registered,
             "agent_error": self._agent_error,
             "adapters": adapters,
-            "adapter": adapters[0] if adapters else None,
+            "adapter": primary,
             "devices": devices,
         }
         signature = json.dumps(payload, sort_keys=True, default=str)
@@ -480,15 +588,48 @@ class BluezManager:
         for path, interfaces in objects.items():
             adapter = interfaces.get(_ADAPTER_INTERFACE)
             if isinstance(adapter, dict):
+                le_manager = interfaces.get(_LE_ADVERTISING_INTERFACE)
+                le_supported = isinstance(le_manager, dict)
+                active_instances = (
+                    le_manager.get("ActiveInstances")
+                    if isinstance(le_manager, dict)
+                    else None
+                )
+                supported_instances = (
+                    le_manager.get("SupportedInstances")
+                    if isinstance(le_manager, dict)
+                    else None
+                )
+                with self._lock:
+                    advertising = path in self._advertisements
+                    if advertising and not active_instances:
+                        # BlueZ dropped it (e.g. the adapter was powered off).
+                        self._advertisements.pop(path, None)
+                        advertising = False
                 adapters.append(
                     {
                         "path": path,
                         "address": adapter.get("Address"),
+                        "address_type": adapter.get("AddressType"),
                         "name": adapter.get("Name"),
                         "alias": adapter.get("Alias"),
-                        "powered": adapter.get("Powered", False),
-                        "discovering": adapter.get("Discovering", False),
-                        "discoverable": adapter.get("Discoverable", False),
+                        "class": adapter.get("Class"),
+                        "powered": bool(adapter.get("Powered", False)),
+                        "discovering": bool(adapter.get("Discovering", False)),
+                        "discoverable": bool(
+                            adapter.get("Discoverable", False)
+                        ),
+                        "discoverable_timeout": adapter.get(
+                            "DiscoverableTimeout"
+                        ),
+                        "pairable": bool(adapter.get("Pairable", False)),
+                        "pairable_timeout": adapter.get("PairableTimeout"),
+                        "roles": list(adapter.get("Roles") or []),
+                        "uuids": list(adapter.get("UUIDs") or []),
+                        "le_advertising": le_supported,
+                        "advertising": advertising,
+                        "active_instances": active_instances,
+                        "supported_instances": supported_instances,
                     }
                 )
 
@@ -584,6 +725,27 @@ class BluezManager:
         powered = [a for a in adapters if a.get("powered")]
         return (powered or adapters)[0]["path"]
 
+    def _resolve_adapter_path(self, identifier: str) -> str:
+        """Resolve an adapter address, short name, or object path to its path."""
+        with self._lock:
+            adapters = self._snapshot.get("adapters") or []
+        if identifier.startswith("/"):
+            for adapter in adapters:
+                if adapter["path"] == identifier:
+                    return identifier
+        else:
+            for adapter in adapters:
+                address = adapter.get("address") or ""
+                short_name = adapter["path"].rsplit("/", 1)[-1]
+                if (
+                    address.upper() == identifier.upper()
+                    or short_name == identifier
+                ):
+                    return adapter["path"]
+        raise BluezError(
+            "NotFound", f"No Bluetooth adapter matching {identifier}"
+        )
+
     async def _async_set_discovering(self, discovering: bool) -> None:
         adapter_path = self._adapter_path()
         member = "StartDiscovery" if discovering else "StopDiscovery"
@@ -654,6 +816,156 @@ class BluezManager:
             body=[path],
         )
         await self._refresh()
+
+    async def _async_set_adapter_properties(
+        self, identifier: str, values: dict[str, Any]
+    ) -> None:
+        adapter_path = self._resolve_adapter_path(identifier)
+        advertising_requested: bool | None = None
+        normalized: list[tuple[str, str, Any]] = []
+
+        for key, raw in values.items():
+            if key == _ADVERTISING_PROPERTY:
+                if not isinstance(raw, bool):
+                    raise BluezError(
+                        "InvalidArguments",
+                        f"Adapter property {key} must be a boolean",
+                    )
+                advertising_requested = raw
+                continue
+            signature = _ADAPTER_WRITABLE_PROPERTIES.get(key)
+            if signature is None:
+                raise BluezError(
+                    "InvalidArguments",
+                    f"Adapter property {key} is not writable",
+                )
+            if signature == "b":
+                if not isinstance(raw, bool):
+                    raise BluezError(
+                        "InvalidArguments",
+                        f"Adapter property {key} must be a boolean",
+                    )
+                value: Any = raw
+            elif signature == "s":
+                if not isinstance(raw, str):
+                    raise BluezError(
+                        "InvalidArguments",
+                        f"Adapter property {key} must be a string",
+                    )
+                value = raw
+            else:  # "u"
+                if isinstance(raw, bool) or not isinstance(raw, int):
+                    raise BluezError(
+                        "InvalidArguments",
+                        f"Adapter property {key} must be an integer",
+                    )
+                if raw < 0 or raw > 0xFFFFFFFF:
+                    raise BluezError(
+                        "InvalidArguments",
+                        f"Adapter property {key} is out of range",
+                    )
+                value = raw
+            normalized.append((key, signature, value))
+
+        powering_off = any(
+            key == "Powered" and value is False
+            for key, _signature, value in normalized
+        )
+        if powering_off:
+            if advertising_requested:
+                raise BluezError(
+                    "InvalidArguments",
+                    "An adapter cannot advertise while being powered off",
+                )
+            # bluetoothd on this system crashes if an adapter is powered off
+            # while one of our advertisements is still registered.
+            await self._async_set_advertising(adapter_path, False)
+
+        # Power on first so the remaining properties apply to a live adapter.
+        normalized.sort(key=lambda item: item[0] != "Powered")
+        for key, signature, value in normalized:
+            await self._call(
+                _PROPERTIES_INTERFACE,
+                "Set",
+                adapter_path,
+                signature="ssv",
+                body=[_ADAPTER_INTERFACE, key, Variant(signature, value)],
+            )
+
+        if advertising_requested is not None:
+            await self._async_set_advertising(
+                adapter_path, advertising_requested
+            )
+        await self._refresh()
+
+    async def _async_set_advertising(
+        self, adapter_path: str, enabled: bool
+    ) -> None:
+        with self._lock:
+            currently = adapter_path in self._advertisements
+        if currently == enabled:
+            return
+
+        bus = self._bus
+        if bus is None:
+            raise BluezUnavailableError("BlueZ is not available")
+        path = self._advertisement_path(adapter_path)
+
+        if enabled:
+            advertisement = _LeAdvertisement(self, adapter_path)
+            bus.export(path, advertisement)
+            try:
+                await self._call(
+                    _LE_ADVERTISING_INTERFACE,
+                    "RegisterAdvertisement",
+                    adapter_path,
+                    signature="oa{sv}",
+                    body=[path, {}],
+                )
+            except BluezError:
+                self._unexport_quietly(path)
+                raise
+            with self._lock:
+                self._advertisements[adapter_path] = advertisement
+            return
+
+        with self._lock:
+            self._advertisements.pop(adapter_path, None)
+        try:
+            await self._call(
+                _LE_ADVERTISING_INTERFACE,
+                "UnregisterAdvertisement",
+                adapter_path,
+                signature="o",
+                body=[path],
+            )
+        except BluezError as exc:
+            if exc.name not in (
+                "org.bluez.Error.DoesNotExist",
+                "org.bluez.Error.NotReady",
+                "org.bluez.Error.Failed",
+            ):
+                raise
+        finally:
+            self._unexport_quietly(path)
+
+    def _advertisement_path(self, adapter_path: str) -> str:
+        suffix = adapter_path.rsplit("/", 1)[-1] or "adapter"
+        return f"{ADVERTISEMENT_ROOT}/{suffix}"
+
+    def _unexport_quietly(self, path: str) -> None:
+        bus = self._bus
+        if bus is None:
+            return
+        try:
+            bus.unexport(path)
+        except Exception:
+            pass
+
+    def _on_advertisement_released(self, adapter_path: str) -> None:
+        with self._lock:
+            self._advertisements.pop(adapter_path, None)
+        self._schedule_refresh()
 
     async def _run_agent_operation(self, coro: Any) -> None:
         with self._lock:
@@ -928,3 +1240,29 @@ class _BluezAgent(ServiceInterface):
         await self.manager._agent_request(
             "authorize_service", device, uuid_value=uuid
         )
+
+
+class _LeAdvertisement(ServiceInterface):
+    """Minimal org.bluez.LEAdvertisement1 object used for connectability.
+
+    Registering this with ``LEAdvertisingManager1`` makes the adapter emit an
+    advertising packet that includes the local name, which is what a peer needs
+    to discover and initiate a connection.
+    """
+
+    def __init__(self, manager: BluezManager, adapter_path: str) -> None:
+        super().__init__(_ADVERTISEMENT_INTERFACE)
+        self.manager = manager
+        self.adapter_path = adapter_path
+
+    @dbus_property(access=PropertyAccess.READ)
+    def Type(self) -> "s":
+        return "peripheral"
+
+    @dbus_property(access=PropertyAccess.READ)
+    def Includes(self) -> "as":
+        return ["local-name"]
+
+    @method()
+    def Release(self) -> None:
+        self.manager._on_advertisement_released(self.adapter_path)

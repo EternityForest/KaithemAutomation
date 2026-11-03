@@ -13,11 +13,14 @@ import {
   forgetDevice,
   pairDevice,
   refreshSnapshot,
+  setAdapterProperties,
   setDiscovering,
   setTrusted,
 } from './bluetooth-api.ts';
 import type {
+  AdapterPropertyValue,
   AgentRequest,
+  BluetoothAdapter,
   BluetoothDevice,
   BluetoothSnapshot,
 } from './bluetooth-api.ts';
@@ -241,6 +244,49 @@ export class BluetoothConsole extends LitElement {
     );
   }
 
+  private setAdapterFlag(
+    adapter: BluetoothAdapter,
+    key: 'Powered' | 'Discoverable' | 'Pairable' | 'Advertising',
+    value: boolean,
+  ): void {
+    void this.run(`adapter:${adapter.path}:${key}`, () =>
+      setAdapterProperties(this.adapterId(adapter), { [key]: value }),
+    );
+  }
+
+  private makeConnectable(adapter: BluetoothAdapter): void {
+    const values: Record<string, AdapterPropertyValue> = {
+      Powered: true,
+      Discoverable: true,
+      Pairable: true,
+    };
+    if (adapter.le_advertising) {
+      values.Advertising = true;
+    }
+    void this.run(`connectable:${adapter.path}`, () =>
+      setAdapterProperties(this.adapterId(adapter), values),
+    );
+  }
+
+  private renameAdapter(adapter: BluetoothAdapter): void {
+    const current = adapter.alias || adapter.name || '';
+    const next = globalThis.prompt('Controller name', current);
+    if (next === null) {
+      return;
+    }
+    const trimmed = next.trim();
+    if (trimmed === '' || trimmed === current) {
+      return;
+    }
+    void this.run(`rename:${adapter.path}`, () =>
+      setAdapterProperties(this.adapterId(adapter), { Alias: trimmed }),
+    );
+  }
+
+  private adapterId(adapter: BluetoothAdapter): string {
+    return adapter.address || adapter.path;
+  }
+
   private setPromptValue(request: AgentRequest, value: string): void {
     this.promptValues.set(request.id, value);
     this.requestUpdate();
@@ -309,7 +355,7 @@ export class BluetoothConsole extends LitElement {
 
         ${this.error ? html`<p class="bt-error">${this.error}</p>` : nothing}
         ${this.renderUnavailable()}
-        ${this.renderAdapter()}
+        ${this.renderControllers()}
         ${this.renderToolbar()}
         ${this.renderDevices()}
       </main>
@@ -330,24 +376,21 @@ export class BluetoothConsole extends LitElement {
     `;
   }
 
-  private renderAdapter(): TemplateResult | typeof nothing {
-    const adapter = this.snapshot.adapter;
-    if (!adapter) {
-      return nothing;
+  private renderControllers(): TemplateResult {
+    if (this.snapshot.adapters.length === 0) {
+      return html`
+        <section class="bt-notice">
+          <strong>No Bluetooth controllers found.</strong>
+          <span>BlueZ did not report any adapters.</span>
+        </section>
+      `;
     }
     return html`
-      <section class="bt-adapter">
-        <div class="bt-adapter-identity">
-          <span class="bt-adapter-name">
-            ${adapter.alias || adapter.name || 'Adapter'}
-          </span>
-          <code>${adapter.address || adapter.path}</code>
-        </div>
-        <div class="bt-badges">
-          ${this.badge(adapter.powered ? 'Powered' : 'Off', adapter.powered)}
-          ${this.badge(
-            adapter.discovering ? 'Scanning' : 'Not scanning',
-            adapter.discovering,
+      <section class="bt-controllers">
+        <h2 class="bt-section-title">Controllers</h2>
+        <div class="bt-controller-list">
+          ${this.snapshot.adapters.map((adapter) =>
+            this.renderController(adapter),
           )}
         </div>
       </section>
@@ -362,6 +405,107 @@ export class BluetoothConsole extends LitElement {
               </span>
             </section>
           `}
+    `;
+  }
+
+  private renderController(adapter: BluetoothAdapter): TemplateResult {
+    const label = adapter.alias || adapter.name || 'Controller';
+    return html`
+      <article class="bt-controller ${adapter.powered ? 'powered' : ''}">
+        <div class="bt-controller-head">
+          <div class="bt-controller-identity">
+            <strong>${label}</strong>
+            <code>${adapter.address || adapter.path}</code>
+            <span class="bt-controller-path">${adapter.path}</span>
+          </div>
+          <div class="bt-badges">
+            ${this.badge(adapter.powered ? 'Powered' : 'Off', adapter.powered)}
+            ${this.badge(
+              adapter.discovering ? 'Scanning' : 'Not scanning',
+              adapter.discovering,
+            )}
+            ${adapter.le_advertising
+              ? this.badge('LE advertising', adapter.advertising)
+              : nothing}
+          </div>
+        </div>
+        <div class="bt-controller-flags">
+          ${this.renderFlag(adapter, 'Powered', 'Powered', adapter.powered, false)}
+          ${this.renderFlag(
+            adapter,
+            'Discoverable',
+            'Discoverable',
+            adapter.discoverable,
+            false,
+          )}
+          ${this.renderFlag(
+            adapter,
+            'Pairable',
+            'Pairable',
+            adapter.pairable,
+            false,
+          )}
+          ${this.renderFlag(
+            adapter,
+            'Advertising',
+            'Advertising',
+            adapter.advertising,
+            !adapter.le_advertising,
+          )}
+        </div>
+        <div class="bt-controller-actions">
+          <button
+            class="btn primary"
+            ?disabled="${this.busy === `connectable:${adapter.path}`}"
+            @click="${() => this.makeConnectable(adapter)}"
+          >
+            ${this.busy === `connectable:${adapter.path}`
+              ? 'Applying…'
+              : 'Make connectable'}
+          </button>
+          <button
+            class="btn"
+            ?disabled="${this.busy === `rename:${adapter.path}`}"
+            @click="${() => this.renameAdapter(adapter)}"
+          >
+            ${this.busy === `rename:${adapter.path}` ? 'Renaming…' : 'Set name'}
+          </button>
+        </div>
+        ${adapter.le_advertising
+          ? nothing
+          : html`
+              <p class="bt-controller-note">
+                This controller has no LE advertising manager, so it cannot
+                advertise.
+              </p>
+            `}
+      </article>
+    `;
+  }
+
+  private renderFlag(
+    adapter: BluetoothAdapter,
+    key: 'Powered' | 'Discoverable' | 'Pairable' | 'Advertising',
+    label: string,
+    checked: boolean,
+    disabled: boolean,
+  ): TemplateResult {
+    const busyKey = `adapter:${adapter.path}:${key}`;
+    return html`
+      <label class="bt-flag">
+        <input
+          type="checkbox"
+          .checked="${checked}"
+          ?disabled="${disabled || this.busy === busyKey}"
+          @change="${(event: Event) =>
+            this.setAdapterFlag(
+              adapter,
+              key,
+              (event.target as HTMLInputElement).checked,
+            )}"
+        >
+        <span>${label}</span>
+      </label>
     `;
   }
 
@@ -409,6 +553,9 @@ export class BluetoothConsole extends LitElement {
 
   private renderDevice(device: BluetoothDevice): TemplateResult {
     const label = device.alias || device.name || 'Unknown device';
+    const controller = this.snapshot.adapters.find(
+      (adapter) => adapter.path === device.adapter,
+    );
     return html`
       <article class="bt-device ${device.connected ? 'connected' : ''}">
         <div class="bt-device-body">
@@ -444,6 +591,14 @@ export class BluetoothConsole extends LitElement {
             <div>
               <dt>Services</dt>
               <dd>${device.uuids.length}</dd>
+            </div>
+            <div>
+              <dt>Controller</dt>
+              <dd>
+                ${controller
+                  ? controller.alias || controller.name || controller.path
+                  : '—'}
+              </dd>
             </div>
           </dl>
         </div>

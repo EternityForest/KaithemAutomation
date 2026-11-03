@@ -3,11 +3,22 @@
 export interface BluetoothAdapter {
   path: string;
   address: string | null;
+  address_type: string | null;
   name: string | null;
   alias: string | null;
+  class: number | null;
   powered: boolean;
   discovering: boolean;
   discoverable: boolean;
+  discoverable_timeout: number | null;
+  pairable: boolean;
+  pairable_timeout: number | null;
+  roles: string[];
+  uuids: string[];
+  le_advertising: boolean;
+  advertising: boolean;
+  active_instances: number | null;
+  supported_instances: number | null;
 }
 
 export interface BluetoothDevice {
@@ -121,6 +132,20 @@ export async function setDiscovering(
       method: 'POST',
       body: JSON.stringify({ discovering }),
     }),
+  );
+}
+
+export type AdapterPropertyValue = boolean | string | number;
+
+export async function setAdapterProperties(
+  identifier: string,
+  values: Record<string, AdapterPropertyValue>,
+): Promise<BluetoothSnapshot> {
+  return snapshotFrom(
+    await request<{ snapshot: BluetoothSnapshot }>(
+      `/adapters/${encodeURIComponent(identifier)}/properties`,
+      { method: 'POST', body: JSON.stringify(values) },
+    ),
   );
 }
 

@@ -16,6 +16,7 @@ without it.
 | GET | `/bluetooth/api/snapshot` | -- |
 | POST | `/bluetooth/api/refresh` | -- |
 | POST | `/bluetooth/api/discovering` | `{"discovering": bool}` |
+| POST | `/bluetooth/api/adapters/<address-or-path>/properties` | see below |
 | POST | `/bluetooth/api/devices/<address>/pair` | -- |
 | POST | `/bluetooth/api/devices/<address>/connect` | -- |
 | POST | `/bluetooth/api/devices/<address>/disconnect` | -- |
@@ -24,6 +25,32 @@ without it.
 
 Mutating calls return `{"status": "ok", "snapshot": {...}}`.  Errors return
 `{"error": "<dbus error name>", "message": "..."}`.
+
+### Adapter properties
+
+`POST /bluetooth/api/adapters/<address-or-path>/properties` writes writable
+BlueZ `Adapter1` properties (and LE advertising) on any controller:
+
+| Key | Type | Notes |
+| --- | --- | --- |
+| `Powered` | bool | Applied first, before other properties. |
+| `Discoverable` | bool | |
+| `Pairable` | bool | |
+| `Alias` | string | User-facing name; BlueZ `Name` is read-only. |
+| `DiscoverableTimeout` | int | Seconds. |
+| `PairableTimeout` | int | Seconds. |
+| `Advertising` | bool | Pseudo-property using `LEAdvertisingManager1`. |
+
+Example: make the virtual controller connectable.
+
+```json
+{"Powered": true, "Discoverable": true, "Pairable": true, "Advertising": true}
+```
+
+`Advertising` registers a minimal `org.bluez.LEAdvertisement1` object with
+`Type="peripheral"` and `Includes=["local-name"]`.  Adapters without an
+`LEAdvertisingManager1` reject it.  The snapshot reports `le_advertising`,
+`advertising`, `active_instances`, and `supported_instances` per adapter.
 
 ## WebSocket
 
@@ -52,6 +79,13 @@ from kaithem.src.plugins.CorePluginBluetooth import manager
 manager.snapshot()                 # cached state, starts the D-Bus thread
 manager.connect("AA:BB:CC:DD:EE:FF")
 manager.disconnect("AA:BB:CC:DD:EE:FF")
+manager.set_adapter_properties("hci1", {"Pairable": True})
+manager.set_adapter_properties("hci1", {"Advertising": False})
+```
+
+Virtual controllers (`btvirt`) are created outside the plugin because that
+requires root; point the console at any existing adapter by address or object
+path.
 ```
 
 Use the plugin's `manager` singleton from server-side features so there is only

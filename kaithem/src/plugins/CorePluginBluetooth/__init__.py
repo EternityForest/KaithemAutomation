@@ -104,6 +104,29 @@ async def bluetooth_set_discovering():
     return _ok(snapshot)
 
 
+@api_bp.route("/adapters/<path:identifier>/properties", methods=["POST"])
+async def bluetooth_set_adapter_properties(identifier: str):
+    """Set writable adapter properties (Powered, Discoverable, etc.).
+
+    ``identifier`` may be the adapter address or its D-Bus object path.  The
+    body is a mapping of property names to values; ``Advertising`` is a
+    pseudo-property handled through ``LEAdvertisingManager1``.
+    """
+    error = _check_admin()
+    if error is not None:
+        return error
+    body = await quart.request.get_json(force=True, silent=True) or {}
+    if not isinstance(body, dict) or not body:
+        return quart.jsonify({"error": "invalid_request"}), 400
+    try:
+        snapshot = await asyncio.to_thread(
+            manager.set_adapter_properties, identifier, body
+        )
+    except BluezError as exc:
+        return _error_response(exc)
+    return _ok(snapshot)
+
+
 @api_bp.route("/devices/<address>/pair", methods=["POST"])
 async def bluetooth_pair(address: str):
     error = _check_admin()
@@ -266,6 +289,10 @@ async def bluetooth_websocket():
         )
         for task in pending:
             task.cancel()
+        if pending:
+            # Await cancellation so the loop does not later report
+            # "Task was destroyed but it is pending".
+            await asyncio.gather(*pending, return_exceptions=True)
         for task in done:
             if task.cancelled():
                 continue
