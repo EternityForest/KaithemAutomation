@@ -300,7 +300,7 @@ class Recorder(Pipeline):
         channels: int = 2,
         pattern: str = "mixer_",
     ):
-        Pipeline.__init__(self, name, realtime=70)
+        Pipeline.__init__(self, realtime=70)
         self.src = self.add_element(
             SOURCE_ELEMENT,
             client_name=f"{name}_in",
@@ -361,9 +361,9 @@ class Recorder(Pipeline):
 class ChannelStrip(Pipeline, BaseChannel):
     def __init__(
         self,
-        name,
+        name: str,
         board: MixingBoard,
-        channels=2,
+        channels: int = 2,
         input=None,
         outputs=[],
         soundFuse=3,
@@ -1203,8 +1203,12 @@ class MixingBoard:
         self.resourcedata: modules_state.ResourceDictType = data or {
             "presets": {}
         }
+
+        modules_state.mutable_copy_resource(self.resourcedata)
+
         if "presets" not in self.resourcedata:
             self.resourcedata["presets"] = {}
+
         self.api = WrappedLink()
         self.api.require("system_admin")
         self.api.attach(self.f)

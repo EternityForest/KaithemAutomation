@@ -5,6 +5,7 @@ Change Log
 
 * [bug] Main page now shows all alerts in any state other than normal.
 * [sparkles] Web based .pptx signage with editing and admin UI.
+* [sparkles] Log the hash of the codebase and all dirs on path at boot
 
 
 

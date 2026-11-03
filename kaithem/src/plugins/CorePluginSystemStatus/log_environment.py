@@ -1,14 +1,18 @@
 """Logs changes in the environment such as package versions"""
 
-import difflib
 import os
 import subprocess
+import sys
 import time
+from typing import Any
 
+import jsonpatch
 import structlog
 import yaml
 
-from kaithem.api.util import get_logdir
+from kaithem.api.util import bip39_hash, get_logdir
+
+from . import code_hash
 
 logger = structlog.get_logger(__name__)
 
@@ -35,13 +39,13 @@ important_envars = [
 ]
 
 
-def which(p) -> bool:
+def which(p: str) -> bool:
     return (
         subprocess.run(["which", p], stdout=subprocess.DEVNULL).returncode == 0
     )
 
 
-def list_deb_packages():
+def list_deb_packages() -> list[str]:
     if which("apt"):
         r: str = subprocess.check_output(
             ["apt", "list", "--installed"], stderr=subprocess.DEVNULL
@@ -53,11 +57,11 @@ def list_deb_packages():
     return []
 
 
-def get_important_envars():
+def get_important_envars() -> dict[str, str]:
     return {i: os.environ[i] for i in important_envars if i in os.environ}
 
 
-def list_usb_devices():
+def list_usb_devices() -> list[str]:
     if which("lsusb"):
         r: str = subprocess.check_output(
             ["lsusb"], stderr=subprocess.DEVNULL
@@ -70,7 +74,7 @@ def list_usb_devices():
     return []
 
 
-def list_rpm_packages():
+def list_rpm_packages() -> list[str]:
     if which("rpm"):
         r: str = subprocess.check_output(
             ["rpm", "-qa"], stderr=subprocess.DEVNULL
@@ -82,7 +86,22 @@ def list_rpm_packages():
     return []
 
 
-def get_pip_freeze_versions():
+def scan_py_path() -> dict[str, str]:
+    op = {}
+    for i in sys.path:
+        if not i:
+            continue
+        if not os.path.exists(i):
+            continue
+        if not os.path.isdir(i):
+            continue
+        op[i] = bip39_hash(
+            code_hash.hash_dir(i, i).hexdigest(), num_words=6, separator="-"
+        )
+    return op
+
+
+def get_pip_freeze_versions() -> dict[str, str]:
     try:
         if which("uv"):
             r: str = subprocess.check_output(
@@ -123,13 +142,20 @@ def get_pip_freeze_versions():
 
         return versions
 
+    return {}
+
 
 def build_environment():
-    e = {}
+    e: dict[str, Any] = {}
 
+    e["app-code-hash"] = bip39_hash(
+        code_hash.get_code_hash(), num_words=6, separator="-"
+    )
     e["env-vars"] = get_important_envars()
 
     e["pip-versions"] = get_pip_freeze_versions()
+
+    e["python-path-dirs-state"] = scan_py_path()
 
     d = list_deb_packages()
     if d:
@@ -148,17 +174,18 @@ def build_environment():
         e["usb-devices"] = d
 
     if os.path.exists("/etc/os-release"):
-        e["os-release"] = {}
+        osrelease: dict[str, str] = {}
         with open("/etc/os-release") as f:
-            for i in f.readlines():
+            for i in f:
                 k, v = i.strip().split("=")
-                e["os-release"][k] = v
+                osrelease[k] = v
+        e["os-release"] = osrelease
 
     return e
 
 
 def go():
-    current_env = yaml.dump(build_environment(), sort_keys=True)
+    current_env = build_environment()
 
     ld = get_logdir()
     snapshot_fn = os.path.join(ld, "environment-snapshot.yaml")
@@ -167,7 +194,10 @@ def go():
     old = ""
     if os.path.exists(snapshot_fn):
         with open(snapshot_fn) as f:
-            old = f.read()
+            try:
+                old = yaml.load(f.read(), Loader=yaml.SafeLoader)
+            except Exception:
+                logger.exception("Failed to read environment snapshot")
 
     old_log = ""
     if os.path.exists(log_fn):
@@ -180,20 +210,15 @@ def go():
             f.write(old_log)
 
     if old != current_env:
-        diff = list(
-            difflib.unified_diff(
-                old.split("\n"),
-                current_env.split("\n"),
-                fromfile="old",
-                tofile="new",
-            )
-        )
+        diff = jsonpatch.make_patch(old, current_env)
+        if diff:
+            with open(snapshot_fn, "w") as f:
+                f.write(yaml.dump(current_env, sort_keys=False))
 
-        with open(snapshot_fn, "w") as f:
-            f.write(current_env)
-
-        if old:
-            with open(log_fn, "a") as f:
-                f.write("\n\n")
-                f.write("Date: " + time.strftime("%Y-%m-%d %H:%M:%S") + "\n")
-                f.write("\n".join(diff))
+            if old:
+                with open(log_fn, "a") as f:
+                    f.write(
+                        "Date: " + time.strftime("%Y-%m-%d %H:%M:%S") + "\n"
+                    )
+                    f.write(diff.to_string())
+                    f.write("\n\n")
