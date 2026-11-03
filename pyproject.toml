@@ -93,6 +93,7 @@ dependencies = [
     "urllib3-future",
     "scipy-stubs",
     "jsonpatch>=1.38",
+    "dbus-fast>=5.0.0; sys_platform == 'linux'",
 ]
 
 [build-system]
