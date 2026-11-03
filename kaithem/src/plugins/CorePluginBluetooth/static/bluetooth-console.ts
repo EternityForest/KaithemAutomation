@@ -9,6 +9,7 @@ import type { TemplateResult } from 'lit';
 
 import {
   connectDevice,
+  deleteDeviceConfig,
   disconnectDevice,
   forgetDevice,
   pairDevice,
@@ -303,6 +304,21 @@ export class BluetoothConsole extends LitElement {
     });
   }
 
+  private removeSettings(device: BluetoothDevice): void {
+    const label = this.deviceLabel(device);
+    if (
+      !globalThis.confirm(
+        `Remove saved settings for ${label}? This deletes its ` +
+          'auto-connect, alerts, and local name configuration.',
+      )
+    ) {
+      return;
+    }
+    void this.run(`settings:${device.address}`, () =>
+      deleteDeviceConfig(device.address),
+    );
+  }
+
   private deviceLabel(device: BluetoothDevice): string {
     return (
       device.config?.name || device.alias || device.name || 'Unknown device'
@@ -407,7 +423,6 @@ export class BluetoothConsole extends LitElement {
         <header class="bt-header">
           <div>
             <h1>Bluetooth</h1>
-            <p class="bt-subtitle">BlueZ devices and pairing</p>
           </div>
           <span class="bt-connection ${this.wsStatus}">
             ${this.wsStatus === 'connected'
@@ -623,11 +638,15 @@ export class BluetoothConsole extends LitElement {
     );
     const config = device.config;
     return html`
-      <article class="bt-device ${device.connected ? 'connected' : ''}">
+      <article
+        class="bt-device ${device.connected ? 'connected' : ''}
+        ${device.seen ? '' : 'unseen'}"
+      >
         <div class="bt-device-body">
           <div class="bt-device-title">
             <strong>${label}</strong>
             ${device.connected ? this.badge('Connected', true) : nothing}
+            ${device.seen ? nothing : this.badge('Not seen', false)}
             ${device.paired ? this.badge('Paired', true) : nothing}
             ${device.trusted ? this.badge('Trusted', true) : nothing}
             ${device.blocked ? this.badge('Blocked', false) : nothing}
@@ -672,7 +691,7 @@ export class BluetoothConsole extends LitElement {
               <input
                 type="checkbox"
                 .checked="${config.auto_connect}"
-                ?disabled="${!device.paired ||
+                ?disabled="${(device.seen && !device.paired) ||
                 this.busy === `config:${device.address}:auto_connect`}"
                 @change="${(event: Event) =>
                   this.setDeviceFlag(
@@ -712,56 +731,78 @@ export class BluetoothConsole extends LitElement {
           </div>
         </div>
         <div class="bt-actions">
-          ${device.paired
-            ? nothing
-            : html`
-                <button
-                  class="btn"
-                  ?disabled="${this.busy === `pair:${device.address}`}"
-                  @click="${() => this.pair(device)}"
-                >
-                  ${this.busy === `pair:${device.address}`
-                    ? 'Pairing…'
-                    : 'Pair'}
-                </button>
-              `}
-          <button
-            class="btn"
-            ?disabled="${this.busy === `trust:${device.address}`}"
-            @click="${() => this.toggleTrust(device)}"
-          >
-            ${device.trusted ? 'Untrust' : 'Trust'}
-          </button>
-          ${device.connected
+          ${device.seen
             ? html`
+                ${device.paired
+                  ? nothing
+                  : html`
+                      <button
+                        class="btn"
+                        ?disabled="${this.busy === `pair:${device.address}`}"
+                        @click="${() => this.pair(device)}"
+                      >
+                        ${this.busy === `pair:${device.address}`
+                          ? 'Pairing…'
+                          : 'Pair'}
+                      </button>
+                    `}
                 <button
                   class="btn"
-                  ?disabled="${this.busy === `disconnect:${device.address}`}"
-                  @click="${() => this.disconnect(device)}"
+                  ?disabled="${this.busy === `trust:${device.address}`}"
+                  @click="${() => this.toggleTrust(device)}"
                 >
-                  ${this.busy === `disconnect:${device.address}`
-                    ? 'Disconnecting…'
-                    : 'Disconnect'}
+                  ${device.trusted ? 'Untrust' : 'Trust'}
+                </button>
+                ${device.connected
+                  ? html`
+                      <button
+                        class="btn"
+                        ?disabled="${this.busy ===
+                        `disconnect:${device.address}`}"
+                        @click="${() => this.disconnect(device)}"
+                      >
+                        ${this.busy === `disconnect:${device.address}`
+                          ? 'Disconnecting…'
+                          : 'Disconnect'}
+                      </button>
+                    `
+                  : html`
+                      <button
+                        class="btn"
+                        ?disabled="${this.busy ===
+                        `connect:${device.address}`}"
+                        @click="${() => this.connect(device)}"
+                      >
+                        ${this.busy === `connect:${device.address}`
+                          ? 'Connecting…'
+                          : 'Connect'}
+                      </button>
+                    `}
+                <button
+                  class="btn danger"
+                  ?disabled="${this.busy === `forget:${device.address}`}"
+                  @click="${() => this.forget(device)}"
+                >
+                  ${this.busy === `forget:${device.address}`
+                    ? 'Forgetting…'
+                    : 'Forget'}
                 </button>
               `
             : html`
+                <p class="bt-unseen-note">
+                  Out of range or unknown to BlueZ. Only the saved settings
+                  can be changed here.
+                </p>
                 <button
-                  class="btn"
-                  ?disabled="${this.busy === `connect:${device.address}`}"
-                  @click="${() => this.connect(device)}"
+                  class="btn danger"
+                  ?disabled="${this.busy === `settings:${device.address}`}"
+                  @click="${() => this.removeSettings(device)}"
                 >
-                  ${this.busy === `connect:${device.address}`
-                    ? 'Connecting…'
-                    : 'Connect'}
+                  ${this.busy === `settings:${device.address}`
+                    ? 'Removing…'
+                    : 'Remove settings'}
                 </button>
               `}
-          <button
-            class="btn danger"
-            ?disabled="${this.busy === `forget:${device.address}`}"
-            @click="${() => this.forget(device)}"
-          >
-            ${this.busy === `forget:${device.address}` ? 'Forgetting…' : 'Forget'}
-          </button>
         </div>
       </article>
     `;

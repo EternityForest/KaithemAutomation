@@ -47,6 +47,8 @@ export interface BluetoothDevice {
   services_resolved: boolean;
   uuids: string[];
   config: BluetoothDeviceConfig;
+  // False for configured devices that BlueZ does not currently report.
+  seen: boolean;
 }
 
 export interface BluetoothSnapshot {

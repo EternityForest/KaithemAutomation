@@ -72,9 +72,7 @@ class FakeAlertFactory:
     def __init__(self) -> None:
         self.created: list[FakeAlert] = []
 
-    def __call__(
-        self, name: str, priority: str, description: str
-    ) -> FakeAlert:
+    def __call__(self, name: str, priority: str, description: str) -> FakeAlert:
         alert = FakeAlert(name, priority, description)
         self.created.append(alert)
         return alert
@@ -354,7 +352,33 @@ class TestBluetoothSupervisor:
         supervisor, _ = _supervisor(tmp_path, [_device()])
         decorated = supervisor.decorate_snapshot(supervisor.manager.snapshot())
         assert decorated["devices"][0]["config"] == default_device_config()
+        assert decorated["devices"][0]["seen"] is True
         assert "config" not in supervisor.manager.snapshot()["devices"][0]
+
+    def test_unseen_configured_device_is_included(self, tmp_path) -> None:
+        supervisor, _ = _supervisor(tmp_path, [])
+        supervisor.update_device_config(ADDRESS, {"name": "headphones"})
+
+        decorated = supervisor.decorate_snapshot(supervisor.manager.snapshot())
+        devices = {device["address"]: device for device in decorated["devices"]}
+        assert set(devices) == {ADDRESS}
+        placeholder = devices[ADDRESS]
+        assert placeholder["seen"] is False
+        assert placeholder["connected"] is False
+        assert placeholder["config"] == {
+            "auto_connect": False,
+            "alerts": False,
+            "name": "headphones",
+        }
+
+    def test_seen_device_is_not_duplicated(self, tmp_path) -> None:
+        supervisor, _ = _supervisor(tmp_path, [_device()])
+        supervisor.update_device_config(ADDRESS, {"auto_connect": True})
+
+        decorated = supervisor.decorate_snapshot(supervisor.manager.snapshot())
+        assert len(decorated["devices"]) == 1
+        assert decorated["devices"][0]["seen"] is True
+        assert decorated["devices"][0]["config"]["auto_connect"] is True
 
     def test_config_events_carry_config(self, tmp_path) -> None:
         supervisor, _ = _supervisor(tmp_path, [_device()])
@@ -362,7 +386,8 @@ class TestBluetoothSupervisor:
         supervisor.add_listener(events.append)
 
         supervisor.update_device_config(ADDRESS, {"auto_connect": True})
-        assert events[-1] == {
+        config_events = [event for event in events if event["type"] == "config"]
+        assert config_events[-1] == {
             "type": "config",
             "address": ADDRESS,
             "config": {
@@ -371,9 +396,14 @@ class TestBluetoothSupervisor:
                 "name": None,
             },
         }
+        snapshot_events = [
+            event for event in events if event["type"] == "snapshot"
+        ]
+        assert snapshot_events[-1]["snapshot"]["devices"][0]["seen"] is True
 
         supervisor.remove_device(ADDRESS)
-        assert events[-1]["config"] == default_device_config()
+        config_events = [event for event in events if event["type"] == "config"]
+        assert config_events[-1]["config"] == default_device_config()
         assert supervisor.get_device_config(ADDRESS) is None
 
     def test_forget_clears_alerts(self, tmp_path) -> None:
@@ -420,9 +450,7 @@ class TestBluetoothSupervisor:
         assert manager.connect_calls == []
 
     def test_auto_connect_respects_cooldown(self, tmp_path) -> None:
-        supervisor, manager = _supervisor(
-            tmp_path, [_device()]
-        )
+        supervisor, manager = _supervisor(tmp_path, [_device()])
         supervisor.connect_cooldown = 3600.0
         supervisor.update_device_config(ADDRESS, {"auto_connect": True})
 
@@ -462,6 +490,14 @@ class TestConfigApi:
             default_device_config() | {"auto_connect": True}
         )
         assert payload["snapshot"]["available"] in (True, False)
+        # The fake address is not reported by BlueZ, but its saved settings
+        # still put it in the snapshot as an unseen device.
+        snapshot_devices = {
+            device["address"]: device
+            for device in payload["snapshot"]["devices"]
+        }
+        assert snapshot_devices[ADDRESS]["seen"] is False
+        assert snapshot_devices[ADDRESS]["config"]["auto_connect"] is True
 
         response = await client.get(path)
         assert (await response.get_json())["config"] == (
@@ -484,8 +520,5 @@ class TestConfigApi:
         from kaithem.src import quart_app
 
         client = quart_app.app.test_client(use_cookies=True)
-        response = await client.get(
-            f"/bluetooth/api/devices/{ADDRESS}/config"
-        )
+        response = await client.get(f"/bluetooth/api/devices/{ADDRESS}/config")
         assert response.status_code == 403
-

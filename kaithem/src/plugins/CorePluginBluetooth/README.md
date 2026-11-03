@@ -43,6 +43,12 @@ object:
 | `alerts` | bool | Trip Kaithem alerts on low battery, weak signal, disconnect. |
 | `name` | string or null | Local name; must be a Python identifier. |
 
+Each device also has a `seen` flag.  Configured devices stay in every snapshot
+even when BlueZ does not report them, as placeholders with `seen: false`, so
+their settings can be inspected, edited, or deleted.  Such devices cannot be
+paired, trusted, connected, or forgotten because BlueZ has no object path for
+them.
+
 `POST .../config` accepts any subset of those keys.  Setting `name` to `null`
 or `""` clears it, and names must be unique (case-insensitively) across
 devices.  Forgetting a device deletes its settings.
@@ -57,7 +63,6 @@ The supervisor thread ticks every 5 seconds and:
 
 Alerts are named `Bluetooth <ADDRESS>: <title>` and are cleared or closed when
 the condition goes away or the device is forgotten.
-
 
 ### Adapter properties
 

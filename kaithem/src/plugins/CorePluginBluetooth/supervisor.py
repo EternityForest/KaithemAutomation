@@ -24,7 +24,6 @@ import tempfile
 import threading
 import time
 from collections.abc import Callable
-from dataclasses import dataclass
 from typing import Any, Protocol, TypedDict
 
 from kaithem.api.util import get_vardir
@@ -69,7 +68,13 @@ def default_device_config() -> DeviceConfig:
 def _default_alert_factory(
     name: str, priority: str, description: str
 ) -> AlertLike:
-    return alerts.Alert(name, priority=priority, description=description)
+    return alerts.Alert(
+        name,
+        priority=priority,
+        description=description,
+        trip_delay=10,
+        auto_ack=True,
+    )
 
 
 def _normalize_address(address: str) -> str:
@@ -81,8 +86,7 @@ def _valid_address(address: str) -> bool:
         return False
     parts = address.split(":")
     return len(parts) == 6 and all(
-        len(part) == 2
-        and all(char in "0123456789ABCDEF" for char in part)
+        len(part) == 2 and all(char in "0123456789ABCDEF" for char in part)
         for part in parts
     )
 
@@ -278,15 +282,6 @@ def default_settings_path() -> str:
     )
 
 
-@dataclass
-class DeviceTransition:
-    """Connection state change detected for one device."""
-
-    first_observation: bool = False
-    became_connected: bool = False
-    became_disconnected: bool = False
-
-
 class DeviceSupervisor:
     """Track one configured device's config and connection state."""
 
@@ -305,21 +300,6 @@ class DeviceSupervisor:
         with self._lock:
             self._config = copy.deepcopy(config)
 
-    def process_device(
-        self, device: dict[str, Any] | None
-    ) -> DeviceTransition:
-        """Parse the latest device state and report connection changes."""
-        with self._lock:
-            connected = bool(device and device.get("connected"))
-            previous = self._connected
-            self._connected = connected
-            if previous is None:
-                return DeviceTransition(first_observation=True)
-            return DeviceTransition(
-                became_connected=connected and not previous,
-                became_disconnected=not connected and previous,
-            )
-
 
 class DeviceAlertsManager:
     """Turn device metadata and transitions into Kaithem alerts."""
@@ -335,7 +315,6 @@ class DeviceAlertsManager:
         address: str,
         label: str,
         device: dict[str, Any] | None,
-        transition: DeviceTransition,
         enabled: bool,
     ) -> None:
         """Trip or clear alerts for one metadata update."""
@@ -348,15 +327,14 @@ class DeviceAlertsManager:
             if device is None:
                 self._clear_alert(normalized, "battery")
                 self._clear_alert(normalized, "rssi")
-                if transition.became_disconnected:
-                    self._trip(
-                        normalized,
-                        "disconnected",
-                        "error",
-                        f"{label} disconnected",
-                        "The device is no longer connected.",
-                        "Bluetooth device disconnected",
-                    )
+                self._trip(
+                    normalized,
+                    "disconnected",
+                    "error",
+                    f"{label} disconnected",
+                    "The device is no longer connected.",
+                    "Bluetooth device disconnected",
+                )
                 return
 
             battery = device.get("battery")
@@ -369,8 +347,7 @@ class DeviceAlertsManager:
                     "battery",
                     "warning",
                     f"{label} battery low",
-                    f"Battery is at {battery}% (below "
-                    f"{LOW_BATTERY_PERCENT}%).",
+                    f"Battery is at {battery}% (below {LOW_BATTERY_PERCENT}%).",
                     "Low Bluetooth device battery",
                 )
             else:
@@ -394,7 +371,7 @@ class DeviceAlertsManager:
             else:
                 self._clear_alert(normalized, "rssi")
 
-            if transition.became_disconnected:
+            if not connected:
                 self._trip(
                     normalized,
                     "disconnected",
@@ -403,7 +380,7 @@ class DeviceAlertsManager:
                     "The device is no longer connected.",
                     "Bluetooth device disconnected",
                 )
-            elif transition.became_connected:
+            else:
                 self._clear_alert(normalized, "disconnected")
 
     def clear_address(self, address: str) -> None:
@@ -573,9 +550,7 @@ class BluetoothSupervisor:
         if not config["alerts"]:
             self.alerts.clear_address(normalized)
         self._wake_event.set()
-        self._notify(
-            {"type": "config", "address": normalized, "config": config}
-        )
+        self._notify_config(normalized, config)
         return config
 
     def remove_device(self, address: str) -> bool:
@@ -587,24 +562,45 @@ class BluetoothSupervisor:
             self._last_attempt.pop(normalized, None)
         self.alerts.clear_address(normalized)
         self._wake_event.set()
-        self._notify(
-            {
-                "type": "config",
-                "address": normalized,
-                "config": default_device_config(),
-            }
-        )
+        self._notify_config(normalized, default_device_config())
         return removed
 
+    def _notify_config(self, address: str, config: DeviceConfig) -> None:
+        """Broadcast a config change followed by a full snapshot.
+
+        The snapshot lets clients add or drop placeholders for configured
+        devices that BlueZ does not report.
+        """
+        self._notify({"type": "config", "address": address, "config": config})
+        self._notify(
+            {
+                "type": "snapshot",
+                "snapshot": self.decorate_snapshot(self.manager.snapshot()),
+            }
+        )
+
     def decorate_snapshot(self, snapshot: dict[str, Any]) -> dict[str, Any]:
-        """Attach the local device config to every device in a snapshot."""
+        """Attach config to every device and add unseen configured devices.
+
+        Devices that BlueZ does not currently report still appear so their
+        settings can be inspected or cleared, with ``seen`` set to ``False``.
+        """
         result = copy.deepcopy(snapshot)
         configs = self.settings.configs()
-        for device in result.get("devices", []):
+        devices = result.get("devices")
+        if not isinstance(devices, list):
+            devices = []  # type: ignore
+            result["devices"] = devices
+        seen: set[str] = set()
+        for device in devices:
             address = _normalize_address(str(device.get("address", "")))
+            seen.add(address)
             device["config"] = copy.deepcopy(
                 configs.get(address) or default_device_config()
             )
+            device["seen"] = True
+        for address in sorted(set(configs) - seen):
+            devices.append(_unseen_device(address, configs[address]))
         return result
 
     # ------------------------------------------------------------------
@@ -626,10 +622,9 @@ class BluetoothSupervisor:
         for address, supervisor in supervisors:
             device = devices.get(address)
             config = supervisor.config
-            transition = supervisor.process_device(device)
             label = _device_label(address, device, config)
             self.alerts.process_device_metadata(
-                address, label, device, transition, config["alerts"]
+                address, label, device, config["alerts"]
             )
             if config["auto_connect"] and self._should_auto_connect(device):
                 self._maybe_connect(address)
@@ -696,6 +691,32 @@ class BluetoothSupervisor:
             with self._lock:
                 self._attempting.discard(address)
             self._wake_event.set()
+
+
+def _unseen_device(address: str, config: DeviceConfig) -> dict[str, Any]:
+    """Placeholder device for a configured address BlueZ cannot report."""
+    return {
+        "path": "",
+        "adapter": None,
+        "address": address,
+        "name": None,
+        "alias": None,
+        "paired": False,
+        "bonded": False,
+        "trusted": False,
+        "connected": False,
+        "blocked": False,
+        "rssi": None,
+        "tx_power": None,
+        "battery": None,
+        "address_type": None,
+        "icon": None,
+        "class": None,
+        "services_resolved": False,
+        "uuids": [],
+        "seen": False,
+        "config": copy.deepcopy(config),
+    }
 
 
 def _device_label(
