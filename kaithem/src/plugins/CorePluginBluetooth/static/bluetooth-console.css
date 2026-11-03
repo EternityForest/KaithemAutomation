@@ -249,6 +249,20 @@ body {
   margin: 0;
 }
 
+.bt-device-config {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1.25rem;
+  margin-top: 0.75rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border);
+}
+
+.bt-device-config .btn {
+  margin-left: auto;
+}
+
 .bt-actions {
   display: flex;
   flex-wrap: wrap;

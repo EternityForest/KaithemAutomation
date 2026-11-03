@@ -21,6 +21,12 @@ export interface BluetoothAdapter {
   supported_instances: number | null;
 }
 
+export interface BluetoothDeviceConfig {
+  auto_connect: boolean;
+  alerts: boolean;
+  name: string | null;
+}
+
 export interface BluetoothDevice {
   path: string;
   adapter: string | null;
@@ -40,6 +46,7 @@ export interface BluetoothDevice {
   class: number | null;
   services_resolved: boolean;
   uuids: string[];
+  config: BluetoothDeviceConfig;
 }
 
 export interface BluetoothSnapshot {
@@ -195,6 +202,41 @@ export async function forgetDevice(address: string): Promise<BluetoothSnapshot> 
     await request<{ snapshot: BluetoothSnapshot }>(
       `/devices/${encodeURIComponent(address)}/forget`,
       { method: 'POST' },
+    ),
+  );
+}
+
+export interface DeviceConfigResult {
+  config: BluetoothDeviceConfig;
+  snapshot: BluetoothSnapshot;
+}
+
+export async function fetchDeviceConfig(
+  address: string,
+): Promise<BluetoothDeviceConfig> {
+  const payload = await request<{ config: BluetoothDeviceConfig }>(
+    `/devices/${encodeURIComponent(address)}/config`,
+  );
+  return payload.config;
+}
+
+export async function setDeviceConfig(
+  address: string,
+  values: Partial<BluetoothDeviceConfig>,
+): Promise<DeviceConfigResult> {
+  return request<DeviceConfigResult>(
+    `/devices/${encodeURIComponent(address)}/config`,
+    { method: 'POST', body: JSON.stringify(values) },
+  );
+}
+
+export async function deleteDeviceConfig(
+  address: string,
+): Promise<BluetoothSnapshot> {
+  return snapshotFrom(
+    await request<{ snapshot: BluetoothSnapshot }>(
+      `/devices/${encodeURIComponent(address)}/config`,
+      { method: 'DELETE' },
     ),
   );
 }

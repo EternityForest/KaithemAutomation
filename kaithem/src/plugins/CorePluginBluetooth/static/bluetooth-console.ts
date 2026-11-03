@@ -14,6 +14,7 @@ import {
   pairDevice,
   refreshSnapshot,
   setAdapterProperties,
+  setDeviceConfig,
   setDiscovering,
   setTrusted,
 } from './bluetooth-api.ts';
@@ -22,6 +23,7 @@ import type {
   AgentRequest,
   BluetoothAdapter,
   BluetoothDevice,
+  BluetoothDeviceConfig,
   BluetoothSnapshot,
 } from './bluetooth-api.ts';
 
@@ -42,6 +44,8 @@ type SocketMessage = {
   snapshot?: BluetoothSnapshot;
   agent_requests?: AgentRequest[];
   request?: AgentRequest;
+  address?: string;
+  config?: BluetoothDeviceConfig;
   id?: string;
   accepted?: boolean;
 };
@@ -152,6 +156,21 @@ export class BluetoothConsole extends LitElement {
       if (Array.isArray(message.agent_requests)) {
         this.agentRequests = message.agent_requests;
       }
+    } else if (
+      message.type === 'config' &&
+      typeof message.address === 'string' &&
+      message.config
+    ) {
+      const address = message.address.toUpperCase();
+      const config = message.config;
+      this.snapshot = {
+        ...this.snapshot,
+        devices: this.snapshot.devices.map((device) =>
+          device.address.toUpperCase() === address
+            ? { ...device, config }
+            : device,
+        ),
+      };
     } else if (message.type === 'agent_request' && message.request) {
       const request = message.request;
       if (!this.agentRequests.some((item) => item.id === request.id)) {
@@ -235,12 +254,58 @@ export class BluetoothConsole extends LitElement {
   }
 
   private forget(device: BluetoothDevice): void {
-    const label = device.alias || device.name || device.address;
-    if (!globalThis.confirm(`Forget ${label}? The pairing will be removed.`)) {
+    const label = this.deviceLabel(device);
+    if (
+      !globalThis.confirm(
+        `Forget ${label}? The pairing and its saved settings will be removed.`,
+      )
+    ) {
       return;
     }
     void this.run(`forget:${device.address}`, () =>
       forgetDevice(device.address),
+    );
+  }
+
+  private setDeviceFlag(
+    device: BluetoothDevice,
+    key: 'auto_connect' | 'alerts',
+    value: boolean,
+  ): void {
+    const values: Partial<BluetoothDeviceConfig> =
+      key === 'auto_connect'
+        ? { auto_connect: value }
+        : { alerts: value };
+    void this.run(`config:${device.address}:${key}`, async () => {
+      const result = await setDeviceConfig(device.address, values);
+      return result.snapshot;
+    });
+  }
+
+  private renameDevice(device: BluetoothDevice): void {
+    const current = device.config?.name ?? '';
+    const next = globalThis.prompt(
+      `Local name for ${this.deviceLabel(device)} (blank to clear)`,
+      current,
+    );
+    if (next === null) {
+      return;
+    }
+    const trimmed = next.trim();
+    if (trimmed === current) {
+      return;
+    }
+    void this.run(`name:${device.address}`, async () => {
+      const result = await setDeviceConfig(device.address, {
+        name: trimmed === '' ? null : trimmed,
+      });
+      return result.snapshot;
+    });
+  }
+
+  private deviceLabel(device: BluetoothDevice): string {
+    return (
+      device.config?.name || device.alias || device.name || 'Unknown device'
     );
   }
 
@@ -552,10 +617,11 @@ export class BluetoothConsole extends LitElement {
   }
 
   private renderDevice(device: BluetoothDevice): TemplateResult {
-    const label = device.alias || device.name || 'Unknown device';
+    const label = this.deviceLabel(device);
     const controller = this.snapshot.adapters.find(
       (adapter) => adapter.path === device.adapter,
     );
+    const config = device.config;
     return html`
       <article class="bt-device ${device.connected ? 'connected' : ''}">
         <div class="bt-device-body">
@@ -601,6 +667,49 @@ export class BluetoothConsole extends LitElement {
               </dd>
             </div>
           </dl>
+          <div class="bt-device-config">
+            <label class="bt-flag">
+              <input
+                type="checkbox"
+                .checked="${config.auto_connect}"
+                ?disabled="${!device.paired ||
+                this.busy === `config:${device.address}:auto_connect`}"
+                @change="${(event: Event) =>
+                  this.setDeviceFlag(
+                    device,
+                    'auto_connect',
+                    (event.target as HTMLInputElement).checked,
+                  )}"
+              >
+              <span>Auto-connect</span>
+            </label>
+            <label class="bt-flag">
+              <input
+                type="checkbox"
+                .checked="${config.alerts}"
+                ?disabled="${this.busy === `config:${device.address}:alerts`}"
+                @change="${(event: Event) =>
+                  this.setDeviceFlag(
+                    device,
+                    'alerts',
+                    (event.target as HTMLInputElement).checked,
+                  )}"
+              >
+              <span>Alerts</span>
+            </label>
+            <button
+              class="btn"
+              style="flex-basis:fit-content"
+              ?disabled="${this.busy === `name:${device.address}`}"
+              @click="${() => this.renameDevice(device)}"
+            >
+              ${this.busy === `name:${device.address}`
+                ? 'Saving…'
+                : config.name
+                  ? 'Rename'
+                  : 'Local name'}
+            </button>
+          </div>
         </div>
         <div class="bt-actions">
           ${device.paired

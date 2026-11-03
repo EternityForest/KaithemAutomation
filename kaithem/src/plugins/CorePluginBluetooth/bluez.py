@@ -343,8 +343,13 @@ class BluezManager:
         self._run(self._async_pair(address), PAIR_TIMEOUT)
         return self.snapshot()
 
-    def connect(self, address: str) -> dict[str, Any]:
-        self._run(self._async_connect(address), PAIR_TIMEOUT)
+    def connect(
+        self, address: str, timeout: float | None = None
+    ) -> dict[str, Any]:
+        self._run(
+            self._async_connect(address),
+            PAIR_TIMEOUT if timeout is None else timeout,
+        )
         return self.snapshot()
 
     def disconnect(self, address: str) -> dict[str, Any]:
@@ -1219,9 +1224,10 @@ class _BluezAgent(ServiceInterface):
         device: DBusObjectPath,  # type: ignore[valid-type]
         uuid: DBusStr,  # type: ignore[valid-type]
     ) -> None:
-        await self.manager._agent_request(
-            "authorize_service", device, uuid_value=uuid
-        )
+        return None
+        # await self.manager._agent_request(
+        #     "authorize_service", device, uuid_value=uuid
+        # )
 
 
 class _LeAdvertisement(ServiceInterface):

@@ -23,12 +23,17 @@ from kaithem.api.lifespan import at_shutdown
 from kaithem.api.web import quart_app
 
 from .bluez import BluezError, BluezManager, BluezUnavailableError
+from .supervisor import BluetoothSupervisor, default_device_config
 
 logger = logging.getLogger(__name__)
 
 manager = BluezManager()
+supervisor = BluetoothSupervisor(manager)
 
+at_shutdown(supervisor.stop)
 at_shutdown(manager.stop)
+
+supervisor.start()
 
 api_bp = Blueprint(
     "bluetooth_console_api",
@@ -55,7 +60,12 @@ def _error_response(exc: BluezError) -> tuple[quart.Response, int]:
 
 
 def _ok(snapshot: dict) -> quart.Response:
-    return quart.jsonify({"status": "ok", "snapshot": snapshot})
+    return quart.jsonify(
+        {
+            "status": "ok",
+            "snapshot": supervisor.decorate_snapshot(snapshot),
+        }
+    )
 
 
 @api_bp.route("/snapshot", methods=["GET"])
@@ -64,10 +74,11 @@ async def bluetooth_snapshot():
     if error is not None:
         return error
     snapshot = await asyncio.to_thread(manager.snapshot)
+    decorated = await asyncio.to_thread(supervisor.decorate_snapshot, snapshot)
     return quart.jsonify(
         {
             "status": "ok",
-            "snapshot": snapshot,
+            "snapshot": decorated,
             "agent_requests": manager.pending_agent_requests(),
         }
     )
@@ -180,6 +191,55 @@ async def bluetooth_set_trusted(address: str):
     return _ok(snapshot)
 
 
+@api_bp.route("/devices/<address>/config", methods=["GET"])
+async def bluetooth_get_device_config(address: str):
+    error = _check_admin()
+    if error is not None:
+        return error
+    config = await asyncio.to_thread(supervisor.get_device_config, address)
+    return quart.jsonify(
+        {
+            "status": "ok",
+            "config": config or default_device_config(),
+        }
+    )
+
+
+@api_bp.route("/devices/<address>/config", methods=["POST"])
+async def bluetooth_set_device_config(address: str):
+    """Apply a partial per-device config update (auto_connect/alerts/name)."""
+    error = _check_admin()
+    if error is not None:
+        return error
+    body = await quart.request.get_json(force=True, silent=True) or {}
+    if not isinstance(body, dict) or not body:
+        return quart.jsonify({"error": "invalid_request"}), 400
+    try:
+        config = await asyncio.to_thread(
+            supervisor.update_device_config, address, body
+        )
+    except BluezError as exc:
+        return _error_response(exc)
+    snapshot = await asyncio.to_thread(manager.snapshot)
+    return quart.jsonify(
+        {
+            "status": "ok",
+            "config": config,
+            "snapshot": supervisor.decorate_snapshot(snapshot),
+        }
+    )
+
+
+@api_bp.route("/devices/<address>/config", methods=["DELETE"])
+async def bluetooth_delete_device_config(address: str):
+    error = _check_admin()
+    if error is not None:
+        return error
+    await asyncio.to_thread(supervisor.remove_device, address)
+    snapshot = await asyncio.to_thread(manager.snapshot)
+    return _ok(snapshot)
+
+
 @api_bp.route("/devices/<address>/forget", methods=["POST"])
 async def bluetooth_forget(address: str):
     error = _check_admin()
@@ -189,6 +249,7 @@ async def bluetooth_forget(address: str):
         snapshot = await asyncio.to_thread(manager.forget, address)
     except BluezError as exc:
         return _error_response(exc)
+    await asyncio.to_thread(supervisor.remove_device, address)
     return _ok(snapshot)
 
 
@@ -221,18 +282,29 @@ async def bluetooth_websocket():
 
     def on_event(event: dict) -> None:
         try:
+            if event.get("type") == "snapshot" and isinstance(
+                event.get("snapshot"), dict
+            ):
+                event = dict(event)
+                event["snapshot"] = supervisor.decorate_snapshot(
+                    event["snapshot"]
+                )
             loop.call_soon_threadsafe(put_event, event)
         except RuntimeError:
             pass
 
     manager.add_listener(on_event)
+    supervisor.add_listener(on_event)
     try:
         snapshot = await asyncio.to_thread(manager.snapshot)
+        decorated = await asyncio.to_thread(
+            supervisor.decorate_snapshot, snapshot
+        )
         await ws.send(
             json.dumps(
                 {
                     "type": "snapshot",
-                    "snapshot": snapshot,
+                    "snapshot": decorated,
                     "agent_requests": manager.pending_agent_requests(),
                 }
             )
@@ -305,6 +377,7 @@ async def bluetooth_websocket():
         logger.exception("Bluetooth WebSocket failed")
     finally:
         manager.remove_listener(on_event)
+        supervisor.remove_listener(on_event)
 
 
 app = kaithem.api.apps_page.App(
