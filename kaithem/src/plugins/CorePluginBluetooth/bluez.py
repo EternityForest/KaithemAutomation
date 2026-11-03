@@ -1,21 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Pure BlueZ D-Bus wrapper for the Bluetooth console.
 
-This module has no Quart or Kaithem imports on purpose.  It exposes a small,
-thread-safe, synchronous API (:class:`BluezManager`) so that other server-side
-code -- e.g. programmatic connection control -- can drive Bluetooth without
-going through the web UI.  The web layer lives in ``__init__.py``.
-
-All D-Bus work happens on one dedicated asyncio thread.  The public methods
-block the calling thread and are safe to call from Kaithem's worker threads
-(``asyncio.to_thread``).  Live state is cached in a snapshot which is updated
-from BlueZ signals; listeners are notified when the meaningful parts change.
-
-Interactive pairing (PINs, passkeys, confirmations) is handled by exporting an
-``org.bluez.Agent1`` object.  Agent callbacks turn into events delivered to
-listeners (the WebSocket) and wait for a matching response from
-:meth:`BluezManager.respond_to_agent_request`.
-"""
 
 import asyncio
 import copy
@@ -257,6 +241,7 @@ class BluezManager:
 
     async def _wait_or_stop(self, timeout: float) -> None:
         try:
+            assert self._stop_event
             await asyncio.wait_for(self._stop_event.wait(), timeout=timeout)
         except TimeoutError:
             pass
@@ -438,22 +423,16 @@ class BluezManager:
         bus = self._bus
         if bus is None:
             raise BluezUnavailableError("BlueZ is not available")
-        try:
-            reply = await bus.call(
-                Message(
-                    destination=destination,
-                    path=path,
-                    interface=interface,
-                    member=member,
-                    signature=signature,
-                    body=body or [],
-                )
+        reply = await bus.call(
+            Message(
+                destination=destination,
+                path=path,
+                interface=interface,
+                member=member,
+                signature=signature,
+                body=body or [],
             )
-        except BluezError:
-            raise
-        except Exception as exc:
-            # A dropped bus connection surfaces as plain asyncio/EOF errors.
-            raise BluezError(exc.__class__.__name__, str(exc)) from exc
+        )
         if reply.message_type == MessageType.ERROR:
             message = reply.body[0] if reply.body else ""
             raise BluezError(reply.error_name or "UnknownError", str(message))
@@ -550,6 +529,8 @@ class BluezManager:
             "adapters": adapters,
             "adapter": primary,
             "devices": devices,
+            "revision": self._revision,
+            "updated": time.time(),
         }
         signature = json.dumps(payload, sort_keys=True, default=str)
         with self._lock:
@@ -726,7 +707,8 @@ class BluezManager:
         return (powered or adapters)[0]["path"]
 
     def _resolve_adapter_path(self, identifier: str) -> str:
-        """Resolve an adapter address, short name, or object path to its path."""
+        """Resolve an adapter address, short name,
+        or object path to its path."""
         with self._lock:
             adapters = self._snapshot.get("adapters") or []
         if identifier.startswith("/"):
@@ -792,7 +774,7 @@ class BluezManager:
             "Set",
             path,
             signature="ssv",
-            body=[_DEVICE_INTERFACE, "Trusted", Variant("b", bool(trusted))],
+            body=[_DEVICE_INTERFACE, "Trusted", Variant("b", trusted)],
         )
         await self._refresh()
 
@@ -1002,7 +984,7 @@ class BluezManager:
                 body=[AGENT_PATH],
             )
             self._agent_error = None
-            return True
+            return True  # noqa: TRY300
         except BluezError as exc:
             self._agent_error = exc.message or exc.name
             logger.warning(
@@ -1079,7 +1061,7 @@ class BluezManager:
         if not has_listener:
             raise DBusError(
                 "org.bluez.Error.Rejected",
-                "Rejected: no Bluetooth console is connected to answer the prompt",
+                "Rejected: no Bluetooth console is connected",
             )
 
         request = _PendingAgentRequest(
@@ -1256,11 +1238,13 @@ class _LeAdvertisement(ServiceInterface):
         self.adapter_path = adapter_path
 
     @dbus_property(access=PropertyAccess.READ)
-    def Type(self) -> "s":
+    # pyrefly: ignore [unknown-name]
+    def Type(self) -> "s":  # noqa: F821
         return "peripheral"
 
     @dbus_property(access=PropertyAccess.READ)
-    def Includes(self) -> "as":
+    # pyrefly: ignore [not-a-type]
+    def Includes(self) -> "as":  # noqa: F722
         return ["local-name"]
 
     @method()
