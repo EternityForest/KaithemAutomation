@@ -598,7 +598,7 @@ test('test', async ({ page }) => {
     .getByTestId('effect-box-3beq')
     .getByTestId('effect-title-id')
     .click();
-  await page.getByText('3 Band EQ').click();
+  
   await page.getByTestId('param-row-0:gain').getByRole('slider').fill('5');
   await page.getByTestId('param-row-1:gain').getByRole('slider').fill('3');
   await page.getByRole('checkbox').check();

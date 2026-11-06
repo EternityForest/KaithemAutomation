@@ -1687,6 +1687,7 @@ source = { editable = "." }
 dependencies = [
     { name = "apprise" },
     { name = "argon2-cffi" },
+    { name = "asgiref" },
     { name = "attrs" },
     { name = "colorzero" },
     { name = "dbus-fast", marker = "sys_platform == 'linux'" },
@@ -1724,7 +1725,6 @@ dependencies = [
     { name = "pygrep" },
     { name = "pyserial" },
     { name = "python-dateutil" },
-    { name = "python-mpv-jsonipc" },
     { name = "pytz" },
     { name = "pyyaml" },
     { name = "quart", version = "0.22.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.13'" },
@@ -1783,6 +1783,7 @@ test = [
 requires-dist = [
     { name = "apprise" },
     { name = "argon2-cffi" },
+    { name = "asgiref" },
     { name = "attrs", specifier = ">=23.2.0" },
     { name = "colorzero" },
     { name = "dbus-fast", marker = "sys_platform == 'linux'", specifier = ">=5.0.0" },
@@ -1820,7 +1821,6 @@ requires-dist = [
     { name = "pygrep" },
     { name = "pyserial" },
     { name = "python-dateutil" },
-    { name = "python-mpv-jsonipc" },
     { name = "pytz" },
     { name = "pyyaml" },
     { name = "quart", specifier = ">=0.20.0" },
@@ -3256,15 +3256,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/55/0e/ea175a671bd3324da7a51374639e7ada1c85b2746b72238948139d1014c4/python_matter_server-8.1.2.tar.gz", hash = "sha256:9af42cafe3331a843fa6bed52bbf59381350660a7764a97ed5b9e66f46af0b14", size = 153831, upload-time = "2025-12-15T14:56:47.81Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/01/da/b1c4c3b5626470354c1a199124f65b07526f84f4063b28f2d490611d28a7/python_matter_server-8.1.2-py3-none-any.whl", hash = "sha256:eccd1ef6deccd7dbcba21835e727d701d75e12c98a62cd30bf765e53cf3afe16", size = 169131, upload-time = "2025-12-15T14:56:46.695Z" },
-]
-
-[[package]]
-name = "python-mpv-jsonipc"
-version = "1.4.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/ac/4e/c06216fa976833e84ea941c0d8c96211abcb0d30220ffaa68a5fe6d30db4/python_mpv_jsonipc-1.4.0.tar.gz", hash = "sha256:63f014e6c142894a3efcc65f6d86863bb593cc3148d6a4577a3d4c63fbed2cbd", size = 36526, upload-time = "2026-09-01T03:11:46.664Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/ba/b0/8685d026cd7b4ac509214e1adad5bedda348ca000c43bffdf1469050a72b/python_mpv_jsonipc-1.4.0-py3-none-any.whl", hash = "sha256:809322f476e164f4391452940eb00c6b8bb221eb05f72dc7dc595c98b164115f", size = 20955, upload-time = "2026-09-01T03:11:45.643Z" },
 ]
 
 [[package]]
