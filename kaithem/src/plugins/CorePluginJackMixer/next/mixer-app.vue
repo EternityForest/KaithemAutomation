@@ -253,7 +253,7 @@
                 :key="effect.id || index"
                 class="effect"
                 :data-testid="'effect-box-' + effect.type">
-                <details class="undecorated">
+                <details class="undecorated w-full">
                   <summary data-testid="effect-title-id">
                     <div class="menubar tool-bar inline" style="width: 85%">
                       <p :title="effect.id">

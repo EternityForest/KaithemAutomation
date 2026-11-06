@@ -19,8 +19,13 @@ if TYPE_CHECKING:
 
 _logger = get_logger()
 _sc_code_lock = threading.Lock()
-# Index Cues by codes that we use to jump to them. This is a dict of lists of cues with that short code,
 _shortcut_codes: dict[str, list[ref[ShortcutCodeListener]]] = {}
+
+
+def get_sc_codes() -> list[str]:
+    "Return a list of all shortcut codes that have listeners"
+    with _sc_code_lock:
+        return list(_shortcut_codes.keys())
 
 
 class ShortcutCodeListener:
@@ -116,7 +121,9 @@ def cl_trigger_shortcut_code(code: str, props: dict[str, Any] = {}):
 
 
 @core.cl_context.entry_point
-def cl_event(s: str, value: Any = None, info: str = "", ts=None) -> None:
+def cl_event(
+    s: str, value: Any = None, info: str = "", ts: float | None = None
+) -> None:
     "THIS IS THE ONLY TIME THE INFO THING DOES ANYTHING"
     # disallow_special(s, allow=".")
     event_list = []

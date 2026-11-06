@@ -8,17 +8,22 @@
 
 ## Functions
 
-| [`lorem`](#kaithem.api.util.lorem)(→ str)                             | Return a random sentence from the quotes.yaml file   |
-|-----------------------------------------------------------------------|------------------------------------------------------|
-| [`get_logdir`](#kaithem.api.util.get_logdir)(→ str)                   | Get the user and machine specific log directory      |
-| [`get_vardir`](#kaithem.api.util.get_vardir)(→ str)                   | Get the main kaithem storage dir                     |
-| [`get_builtin_datadir`](#kaithem.api.util.get_builtin_datadir)(→ str) | Get the builtin data dir.                            |
+| [`bip39_hash`](#kaithem.api.util.bip39_hash)(→ str)                   | Return a bip39 hash of a string or bytes object    |
+|-----------------------------------------------------------------------|----------------------------------------------------|
+| [`lorem`](#kaithem.api.util.lorem)(→ str)                             | Return a random sentence from the quotes.yaml file |
+| [`get_logdir`](#kaithem.api.util.get_logdir)(→ str)                   | Get the user and machine specific log directory    |
+| [`get_vardir`](#kaithem.api.util.get_vardir)(→ str)                   | Get the main kaithem storage dir                   |
+| [`get_builtin_datadir`](#kaithem.api.util.get_builtin_datadir)(→ str) | Get the builtin data dir.                          |
 
 ## Module Contents
 
 ### kaithem.api.util.sentences *: list[str]* *= []*
 
 ### kaithem.api.util.sentences
+
+### kaithem.api.util.bip39_hash(input: str | bytes, num_words: int = 4, separator: str = ' ') → str
+
+Return a bip39 hash of a string or bytes object
 
 ### kaithem.api.util.lorem() → str
 

@@ -266,7 +266,7 @@ class WebConsole(ChandlerConsole.ChandlerConsole):
 
         sc = []
 
-        for i in global_actions.shortcut_codes:
+        for i in global_actions.get_sc_codes():
             if not i.isdecimal():
                 sc.append(i)
 
