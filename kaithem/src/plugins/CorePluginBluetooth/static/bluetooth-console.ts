@@ -56,7 +56,8 @@ export class BluetoothConsole extends LitElement {
   private ws: WebSocket | null = null;
   private wsStatus: 'connecting' | 'connected' | 'disconnected' = 'connecting';
   private reconnectDelay = 2000;
-  private reconnectTimer: ReturnType<typeof globalThis.setTimeout> | null = null;
+  private reconnectTimer: ReturnType<typeof globalThis.setTimeout> | null =
+    null;
   private destroyed = false;
 
   private busy = '';
@@ -95,7 +96,7 @@ export class BluetoothConsole extends LitElement {
     }
     const protocol = globalThis.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const socket = new WebSocket(
-      `${protocol}//${globalThis.location.host}/bluetooth/ws`,
+      `${protocol}//${globalThis.location.host}/bluetooth/ws`
     );
     this.ws = socket;
     this.wsStatus = 'connecting';
@@ -169,7 +170,7 @@ export class BluetoothConsole extends LitElement {
         devices: this.snapshot.devices.map((device) =>
           device.address.toUpperCase() === address
             ? { ...device, config }
-            : device,
+            : device
         ),
       };
     } else if (message.type === 'agent_request' && message.request) {
@@ -183,13 +184,16 @@ export class BluetoothConsole extends LitElement {
       this.displays = [
         ...this.displays.filter(
           (item) =>
-            !(item.kind === request.kind && item.device_path === request.device_path),
+            !(
+              item.kind === request.kind &&
+              item.device_path === request.device_path
+            )
         ),
         request,
       ].slice(-5);
     } else if (message.type === 'agent_resolved' && message.id) {
       this.agentRequests = this.agentRequests.filter(
-        (item) => item.id !== message.id,
+        (item) => item.id !== message.id
       );
       this.displays = this.displays.filter((item) => item.id !== message.id);
       this.promptValues.delete(message.id);
@@ -205,7 +209,7 @@ export class BluetoothConsole extends LitElement {
 
   private async run(
     key: string,
-    action: () => Promise<BluetoothSnapshot>,
+    action: () => Promise<BluetoothSnapshot>
   ): Promise<void> {
     this.busy = key;
     this.error = '';
@@ -220,12 +224,10 @@ export class BluetoothConsole extends LitElement {
     }
   }
 
-  private toggleScan(): void {
-    const adapter = this.snapshot.adapter;
-    if (!adapter) {
-      return;
-    }
-    void this.run('scan', () => setDiscovering(!adapter.discovering));
+  private toggleScan(adapter: BluetoothAdapter): void {
+    void this.run(`scan:${adapter.path}`, () =>
+      setDiscovering(!adapter.discovering, this.adapterId(adapter))
+    );
   }
 
   private refresh(): void {
@@ -238,19 +240,19 @@ export class BluetoothConsole extends LitElement {
 
   private connect(device: BluetoothDevice): void {
     void this.run(`connect:${device.address}`, () =>
-      connectDevice(device.address),
+      connectDevice(device.address)
     );
   }
 
   private disconnect(device: BluetoothDevice): void {
     void this.run(`disconnect:${device.address}`, () =>
-      disconnectDevice(device.address),
+      disconnectDevice(device.address)
     );
   }
 
   private toggleTrust(device: BluetoothDevice): void {
     void this.run(`trust:${device.address}`, () =>
-      setTrusted(device.address, !device.trusted),
+      setTrusted(device.address, !device.trusted)
     );
   }
 
@@ -258,25 +260,23 @@ export class BluetoothConsole extends LitElement {
     const label = this.deviceLabel(device);
     if (
       !globalThis.confirm(
-        `Forget ${label}? The pairing and its saved settings will be removed.`,
+        `Forget ${label}? The pairing and its saved settings will be removed.`
       )
     ) {
       return;
     }
     void this.run(`forget:${device.address}`, () =>
-      forgetDevice(device.address),
+      forgetDevice(device.address)
     );
   }
 
   private setDeviceFlag(
     device: BluetoothDevice,
     key: 'auto_connect' | 'alerts',
-    value: boolean,
+    value: boolean
   ): void {
     const values: Partial<BluetoothDeviceConfig> =
-      key === 'auto_connect'
-        ? { auto_connect: value }
-        : { alerts: value };
+      key === 'auto_connect' ? { auto_connect: value } : { alerts: value };
     void this.run(`config:${device.address}:${key}`, async () => {
       const result = await setDeviceConfig(device.address, values);
       return result.snapshot;
@@ -287,7 +287,7 @@ export class BluetoothConsole extends LitElement {
     const current = device.config?.name ?? '';
     const next = globalThis.prompt(
       `Local name for ${this.deviceLabel(device)} (blank to clear)`,
-      current,
+      current
     );
     if (next === null) {
       return;
@@ -309,13 +309,13 @@ export class BluetoothConsole extends LitElement {
     if (
       !globalThis.confirm(
         `Remove saved settings for ${label}? This deletes its ` +
-          'auto-connect, alerts, and local name configuration.',
+          'auto-connect, alerts, and local name configuration.'
       )
     ) {
       return;
     }
     void this.run(`settings:${device.address}`, () =>
-      deleteDeviceConfig(device.address),
+      deleteDeviceConfig(device.address)
     );
   }
 
@@ -328,10 +328,10 @@ export class BluetoothConsole extends LitElement {
   private setAdapterFlag(
     adapter: BluetoothAdapter,
     key: 'Powered' | 'Discoverable' | 'Pairable' | 'Advertising',
-    value: boolean,
+    value: boolean
   ): void {
     void this.run(`adapter:${adapter.path}:${key}`, () =>
-      setAdapterProperties(this.adapterId(adapter), { [key]: value }),
+      setAdapterProperties(this.adapterId(adapter), { [key]: value })
     );
   }
 
@@ -345,7 +345,7 @@ export class BluetoothConsole extends LitElement {
       values.Advertising = true;
     }
     void this.run(`connectable:${adapter.path}`, () =>
-      setAdapterProperties(this.adapterId(adapter), values),
+      setAdapterProperties(this.adapterId(adapter), values)
     );
   }
 
@@ -360,7 +360,7 @@ export class BluetoothConsole extends LitElement {
       return;
     }
     void this.run(`rename:${adapter.path}`, () =>
-      setAdapterProperties(this.adapterId(adapter), { Alias: trimmed }),
+      setAdapterProperties(this.adapterId(adapter), { Alias: trimmed })
     );
   }
 
@@ -399,10 +399,10 @@ export class BluetoothConsole extends LitElement {
         id: request.id,
         accepted,
         value,
-      }),
+      })
     );
     this.agentRequests = this.agentRequests.filter(
-      (item) => item.id !== request.id,
+      (item) => item.id !== request.id
     );
     this.promptValues.delete(request.id);
     this.requestUpdate();
@@ -433,14 +433,13 @@ export class BluetoothConsole extends LitElement {
           </span>
         </header>
 
-        ${this.error ? html`<p class="bt-error">${this.error}</p>` : nothing}
-        ${this.renderUnavailable()}
-        ${this.renderControllers()}
-        ${this.renderToolbar()}
-        ${this.renderDevices()}
+        ${this.error
+          ? html`<p class="bt-error" data-testid="bt-error">${this.error}</p>`
+          : nothing}
+        ${this.renderUnavailable()} ${this.renderControllers()}
+        ${this.renderToolbar()} ${this.renderDevices()}
       </main>
-      ${this.renderPrompts()}
-      ${this.renderDisplays()}
+      ${this.renderPrompts()} ${this.renderDisplays()}
     `;
   }
 
@@ -451,7 +450,9 @@ export class BluetoothConsole extends LitElement {
     return html`
       <section class="bt-notice error">
         <strong>Bluetooth is not available.</strong>
-        <span>${this.snapshot.error || 'Could not reach BlueZ over D-Bus.'}</span>
+        <span
+          >${this.snapshot.error || 'Could not reach BlueZ over D-Bus.'}</span
+        >
       </section>
     `;
   }
@@ -470,7 +471,7 @@ export class BluetoothConsole extends LitElement {
         <h2 class="bt-section-title">Controllers</h2>
         <div class="bt-controller-list">
           ${this.snapshot.adapters.map((adapter) =>
-            this.renderController(adapter),
+            this.renderController(adapter)
           )}
         </div>
       </section>
@@ -491,51 +492,86 @@ export class BluetoothConsole extends LitElement {
   private renderController(adapter: BluetoothAdapter): TemplateResult {
     const label = adapter.alias || adapter.name || 'Controller';
     return html`
-      <article class="bt-controller ${adapter.powered ? 'powered' : ''}">
+      <article
+        class="bt-controller ${adapter.powered ? 'powered' : ''}"
+        data-testid="bt-controller"
+        data-address="${adapter.address ?? ''}"
+        data-path="${adapter.path}"
+      >
         <div class="bt-controller-head">
           <div class="bt-controller-identity">
-            <strong>${label}</strong>
-            <code>${adapter.address || adapter.path}</code>
+            <strong data-testid="bt-controller-name">${label}</strong>
+            <code data-testid="bt-controller-address">
+              ${adapter.address || adapter.path}
+            </code>
             <span class="bt-controller-path">${adapter.path}</span>
           </div>
           <div class="bt-badges">
-            ${this.badge(adapter.powered ? 'Powered' : 'Off', adapter.powered)}
+            ${this.badge(
+              adapter.powered ? 'Powered' : 'Off',
+              adapter.powered,
+              'bt-controller-powered'
+            )}
             ${this.badge(
               adapter.discovering ? 'Scanning' : 'Not scanning',
               adapter.discovering,
+              'bt-controller-scanning'
             )}
             ${adapter.le_advertising
-              ? this.badge('LE advertising', adapter.advertising)
+              ? this.badge(
+                  'LE advertising',
+                  adapter.advertising,
+                  'bt-controller-advertising'
+                )
               : nothing}
           </div>
         </div>
         <div class="bt-controller-flags">
-          ${this.renderFlag(adapter, 'Powered', 'Powered', adapter.powered, false)}
+          ${this.renderFlag(
+            adapter,
+            'Powered',
+            'Powered',
+            adapter.powered,
+            false
+          )}
           ${this.renderFlag(
             adapter,
             'Discoverable',
             'Discoverable',
             adapter.discoverable,
-            false,
+            false
           )}
           ${this.renderFlag(
             adapter,
             'Pairable',
             'Pairable',
             adapter.pairable,
-            false,
+            false
           )}
           ${this.renderFlag(
             adapter,
             'Advertising',
             'Advertising',
             adapter.advertising,
-            !adapter.le_advertising,
+            !adapter.le_advertising
           )}
         </div>
         <div class="bt-controller-actions">
           <button
             class="btn primary"
+            data-testid="bt-scan"
+            ?disabled="${this.busy === `scan:${adapter.path}`}"
+            @click="${() => this.toggleScan(adapter)}"
+          >
+            ${this.busy === `scan:${adapter.path}`
+              ? 'Working…'
+              : adapter.discovering
+                ? 'Stop scan'
+                : 'Scan for devices'}
+          </button>
+          <button
+            class="btn"
+            data-testid="bt-connectable"
             ?disabled="${this.busy === `connectable:${adapter.path}`}"
             @click="${() => this.makeConnectable(adapter)}"
           >
@@ -545,6 +581,7 @@ export class BluetoothConsole extends LitElement {
           </button>
           <button
             class="btn"
+            data-testid="bt-rename-controller"
             ?disabled="${this.busy === `rename:${adapter.path}`}"
             @click="${() => this.renameAdapter(adapter)}"
           >
@@ -568,44 +605,35 @@ export class BluetoothConsole extends LitElement {
     key: 'Powered' | 'Discoverable' | 'Pairable' | 'Advertising',
     label: string,
     checked: boolean,
-    disabled: boolean,
+    disabled: boolean
   ): TemplateResult {
     const busyKey = `adapter:${adapter.path}:${key}`;
     return html`
       <label class="bt-flag">
         <input
           type="checkbox"
+          data-testid="bt-controller-flag"
+          data-key="${key}"
           .checked="${checked}"
           ?disabled="${disabled || this.busy === busyKey}"
           @change="${(event: Event) =>
             this.setAdapterFlag(
               adapter,
               key,
-              (event.target as HTMLInputElement).checked,
+              (event.target as HTMLInputElement).checked
             )}"
-        >
+        />
         <span>${label}</span>
       </label>
     `;
   }
 
   private renderToolbar(): TemplateResult {
-    const adapter = this.snapshot.adapter;
     return html`
       <section class="bt-toolbar">
         <button
           class="btn"
-          ?disabled="${!adapter || this.busy === 'scan'}"
-          @click="${this.toggleScan}"
-        >
-          ${this.busy === 'scan'
-            ? 'Working…'
-            : adapter?.discovering
-              ? 'Stop scan'
-              : 'Scan for devices'}
-        </button>
-        <button
-          class="btn"
+          data-testid="bt-refresh"
           ?disabled="${this.busy === 'refresh'}"
           @click="${this.refresh}"
         >
@@ -618,7 +646,7 @@ export class BluetoothConsole extends LitElement {
   private renderDevices(): TemplateResult {
     if (this.snapshot.devices.length === 0) {
       return html`
-        <section class="bt-empty">
+        <section class="bt-empty" data-testid="bt-empty">
           <p>No Bluetooth devices are known yet.</p>
           <p>Start a scan to discover nearby devices.</p>
         </section>
@@ -634,28 +662,42 @@ export class BluetoothConsole extends LitElement {
   private renderDevice(device: BluetoothDevice): TemplateResult {
     const label = this.deviceLabel(device);
     const controller = this.snapshot.adapters.find(
-      (adapter) => adapter.path === device.adapter,
+      (adapter) => adapter.path === device.adapter
     );
     const config = device.config;
     return html`
       <article
         class="bt-device ${device.connected ? 'connected' : ''}
         ${device.seen ? '' : 'unseen'}"
+        data-testid="bt-device"
+        data-address="${device.address}"
       >
         <div class="bt-device-body">
           <div class="bt-device-title">
-            <strong>${label}</strong>
-            ${device.connected ? this.badge('Connected', true) : nothing}
-            ${device.seen ? nothing : this.badge('Not seen', false)}
-            ${device.paired ? this.badge('Paired', true) : nothing}
-            ${device.trusted ? this.badge('Trusted', true) : nothing}
-            ${device.blocked ? this.badge('Blocked', false) : nothing}
+            <strong data-testid="bt-device-name">${label}</strong>
+            ${device.connected
+              ? this.badge('Connected', true, 'bt-status-connected')
+              : nothing}
+            ${device.seen
+              ? nothing
+              : this.badge('Not seen', false, 'bt-status-unseen')}
+            ${device.paired
+              ? this.badge('Paired', true, 'bt-status-paired')
+              : nothing}
+            ${device.trusted
+              ? this.badge('Trusted', true, 'bt-status-trusted')
+              : nothing}
+            ${device.blocked
+              ? this.badge('Blocked', false, 'bt-status-blocked')
+              : nothing}
           </div>
-          <code class="bt-address">${device.address}</code>
+          <code class="bt-address" data-testid="bt-address">
+            ${device.address}
+          </code>
           <dl class="bt-details">
             <div>
               <dt>Battery</dt>
-              <dd>
+              <dd data-testid="bt-battery">
                 ${device.battery === null ? '—' : `${device.battery}%`}
               </dd>
             </div>
@@ -690,6 +732,7 @@ export class BluetoothConsole extends LitElement {
             <label class="bt-flag">
               <input
                 type="checkbox"
+                data-testid="bt-auto-connect"
                 .checked="${config.auto_connect}"
                 ?disabled="${(device.seen && !device.paired) ||
                 this.busy === `config:${device.address}:auto_connect`}"
@@ -697,27 +740,29 @@ export class BluetoothConsole extends LitElement {
                   this.setDeviceFlag(
                     device,
                     'auto_connect',
-                    (event.target as HTMLInputElement).checked,
+                    (event.target as HTMLInputElement).checked
                   )}"
-              >
+              />
               <span>Auto-connect</span>
             </label>
             <label class="bt-flag">
               <input
                 type="checkbox"
+                data-testid="bt-alerts"
                 .checked="${config.alerts}"
                 ?disabled="${this.busy === `config:${device.address}:alerts`}"
                 @change="${(event: Event) =>
                   this.setDeviceFlag(
                     device,
                     'alerts',
-                    (event.target as HTMLInputElement).checked,
+                    (event.target as HTMLInputElement).checked
                   )}"
-              >
+              />
               <span>Alerts</span>
             </label>
             <button
               class="btn"
+              data-testid="bt-local-name"
               style="flex-basis:fit-content"
               ?disabled="${this.busy === `name:${device.address}`}"
               @click="${() => this.renameDevice(device)}"
@@ -738,6 +783,7 @@ export class BluetoothConsole extends LitElement {
                   : html`
                       <button
                         class="btn"
+                        data-testid="bt-pair"
                         ?disabled="${this.busy === `pair:${device.address}`}"
                         @click="${() => this.pair(device)}"
                       >
@@ -748,6 +794,7 @@ export class BluetoothConsole extends LitElement {
                     `}
                 <button
                   class="btn"
+                  data-testid="bt-trust"
                   ?disabled="${this.busy === `trust:${device.address}`}"
                   @click="${() => this.toggleTrust(device)}"
                 >
@@ -757,6 +804,7 @@ export class BluetoothConsole extends LitElement {
                   ? html`
                       <button
                         class="btn"
+                        data-testid="bt-disconnect"
                         ?disabled="${this.busy ===
                         `disconnect:${device.address}`}"
                         @click="${() => this.disconnect(device)}"
@@ -769,8 +817,8 @@ export class BluetoothConsole extends LitElement {
                   : html`
                       <button
                         class="btn"
-                        ?disabled="${this.busy ===
-                        `connect:${device.address}`}"
+                        data-testid="bt-connect"
+                        ?disabled="${this.busy === `connect:${device.address}`}"
                         @click="${() => this.connect(device)}"
                       >
                         ${this.busy === `connect:${device.address}`
@@ -780,6 +828,7 @@ export class BluetoothConsole extends LitElement {
                     `}
                 <button
                   class="btn danger"
+                  data-testid="bt-forget"
                   ?disabled="${this.busy === `forget:${device.address}`}"
                   @click="${() => this.forget(device)}"
                 >
@@ -790,11 +839,12 @@ export class BluetoothConsole extends LitElement {
               `
             : html`
                 <p class="bt-unseen-note">
-                  Out of range or unknown to BlueZ. Only the saved settings
-                  can be changed here.
+                  Out of range or unknown to BlueZ. Only the saved settings can
+                  be changed here.
                 </p>
                 <button
                   class="btn danger"
+                  data-testid="bt-remove-settings"
                   ?disabled="${this.busy === `settings:${device.address}`}"
                   @click="${() => this.removeSettings(device)}"
                 >
@@ -823,7 +873,7 @@ export class BluetoothConsole extends LitElement {
     const value = this.promptValues.get(request.id) ?? '';
     const deviceLabel = request.name || request.address || 'Unknown device';
     return html`
-      <section class="bt-modal">
+      <section class="bt-modal" data-testid="bt-prompt">
         <h2>${this.promptTitle(request)}</h2>
         <p class="bt-modal-device">
           ${deviceLabel}
@@ -833,7 +883,9 @@ export class BluetoothConsole extends LitElement {
           ? nothing
           : html`<p class="bt-passkey">${request.passkey}</p>`}
         ${request.uuid
-          ? html`<p class="bt-modal-detail">Service: <code>${request.uuid}</code></p>`
+          ? html`<p class="bt-modal-detail">
+              Service: <code>${request.uuid}</code>
+            </p>`
           : nothing}
         ${request.kind === 'pin' || request.kind === 'passkey'
           ? html`
@@ -841,6 +893,7 @@ export class BluetoothConsole extends LitElement {
                 <span>${request.kind === 'pin' ? 'PIN code' : 'Passkey'}</span>
                 <input
                   class="bt-input"
+                  data-testid="bt-prompt-input"
                   type="${request.kind === 'passkey' ? 'number' : 'text'}"
                   inputmode="${request.kind === 'passkey' ? 'numeric' : 'text'}"
                   autocomplete="off"
@@ -848,18 +901,23 @@ export class BluetoothConsole extends LitElement {
                   @input="${(event: Event) =>
                     this.setPromptValue(
                       request,
-                      (event.target as HTMLInputElement).value,
+                      (event.target as HTMLInputElement).value
                     )}"
-                >
+                />
               </label>
             `
           : nothing}
         <div class="bt-modal-actions">
-          <button class="btn" @click="${() => this.respond(request, false)}">
+          <button
+            class="btn"
+            data-testid="bt-prompt-cancel"
+            @click="${() => this.respond(request, false)}"
+          >
             Cancel
           </button>
           <button
             class="btn primary"
+            data-testid="bt-prompt-accept"
             @click="${() => this.respond(request, true)}"
           >
             Accept
@@ -880,9 +938,7 @@ export class BluetoothConsole extends LitElement {
             <section class="bt-display">
               <div>
                 <strong>${this.displayTitle(request)}</strong>
-                <p>
-                  ${request.name || request.address || request.device_path}
-                </p>
+                <p>${request.name || request.address || request.device_path}</p>
                 <p class="bt-passkey">
                   ${request.pin ?? request.passkey ?? '—'}
                   ${request.entered === null
@@ -890,11 +946,14 @@ export class BluetoothConsole extends LitElement {
                     : html`<small>${request.entered} digits entered</small>`}
                 </p>
               </div>
-              <button class="btn" @click="${() => this.dismissDisplay(request)}">
+              <button
+                class="btn"
+                @click="${() => this.dismissDisplay(request)}"
+              >
                 Dismiss
               </button>
             </section>
-          `,
+          `
         )}
       </div>
     `;
@@ -937,8 +996,19 @@ export class BluetoothConsole extends LitElement {
     }
   }
 
-  private badge(text: string, positive: boolean): TemplateResult {
-    return html`<span class="bt-badge ${positive ? 'on' : 'off'}">${text}</span>`;
+  private badge(
+    text: string,
+    positive: boolean,
+    testId?: string
+  ): TemplateResult {
+    return html`
+      <span
+        class="bt-badge ${positive ? 'on' : 'off'}"
+        data-testid="${testId ?? nothing}"
+      >
+        ${text}
+      </span>
+    `;
   }
 }
 

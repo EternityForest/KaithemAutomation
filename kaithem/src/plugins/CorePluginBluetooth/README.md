@@ -129,7 +129,17 @@ supervisor.update_device_config(
 
 Virtual controllers (`btvirt`) are created outside the plugin because that
 requires root; point the console at any existing adapter by address or object
-path.
+path.  Use `btvirt -l1 -L`, never the default dual-mode `-l` alone:
+`-L` only marks an emulator as LE-only, it does not create one.  A BR/EDR
+controller makes BlueZ register the audio profiles, so the virtual controller
+shows up as a Bluetooth speaker in the system audio stack.  `make
+dev-run-bluetooth-test` creates and tears down two LE-only controllers via
+`scripts/virtual-bluetooth-setup.sh`; their addresses are assigned by btvirt
+and published in `env.json`, because a vhci controller has no supported way to
+set its address.  Setup writes a `kaithem-virtual-adapter` marker into each
+controller's `/var/lib/bluetooth/<address>` directory, and setup and teardown
+delete the marked settings of adapters that are gone, so cleanup never depends
+on knowing an address in advance and does not require pinning one.
 
 Use the plugin's `manager` singleton from server-side features so there is only
 one D-Bus thread and one pairing agent.  Constructing a separate

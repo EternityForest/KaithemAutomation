@@ -86,7 +86,7 @@ export class ApiError extends Error {
   constructor(
     message: string,
     readonly status: number,
-    readonly code: string,
+    readonly code: string
   ) {
     super(message);
   }
@@ -110,13 +110,15 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new ApiError(
       data?.message || data?.error || response.statusText,
       response.status,
-      data?.error || 'error',
+      data?.error || 'error'
     );
   }
   return payload as T;
 }
 
-function snapshotFrom(payload: { snapshot: BluetoothSnapshot }): BluetoothSnapshot {
+function snapshotFrom(payload: {
+  snapshot: BluetoothSnapshot;
+}): BluetoothSnapshot {
   return payload.snapshot;
 }
 
@@ -129,18 +131,23 @@ export async function fetchSnapshot(): Promise<{
 
 export async function refreshSnapshot(): Promise<BluetoothSnapshot> {
   return snapshotFrom(
-    await request<{ snapshot: BluetoothSnapshot }>('/refresh', { method: 'POST' }),
+    await request<{ snapshot: BluetoothSnapshot }>('/refresh', {
+      method: 'POST',
+    })
   );
 }
 
 export async function setDiscovering(
   discovering: boolean,
+  adapter?: string
 ): Promise<BluetoothSnapshot> {
   return snapshotFrom(
     await request<{ snapshot: BluetoothSnapshot }>('/discovering', {
       method: 'POST',
-      body: JSON.stringify({ discovering }),
-    }),
+      body: JSON.stringify(
+        adapter === undefined ? { discovering } : { discovering, adapter }
+      ),
+    })
   );
 }
 
@@ -148,13 +155,13 @@ export type AdapterPropertyValue = boolean | string | number;
 
 export async function setAdapterProperties(
   identifier: string,
-  values: Record<string, AdapterPropertyValue>,
+  values: Record<string, AdapterPropertyValue>
 ): Promise<BluetoothSnapshot> {
   return snapshotFrom(
     await request<{ snapshot: BluetoothSnapshot }>(
       `/adapters/${encodeURIComponent(identifier)}/properties`,
-      { method: 'POST', body: JSON.stringify(values) },
-    ),
+      { method: 'POST', body: JSON.stringify(values) }
+    )
   );
 }
 
@@ -162,49 +169,53 @@ export async function pairDevice(address: string): Promise<BluetoothSnapshot> {
   return snapshotFrom(
     await request<{ snapshot: BluetoothSnapshot }>(
       `/devices/${encodeURIComponent(address)}/pair`,
-      { method: 'POST' },
-    ),
+      { method: 'POST' }
+    )
   );
 }
 
-export async function connectDevice(address: string): Promise<BluetoothSnapshot> {
+export async function connectDevice(
+  address: string
+): Promise<BluetoothSnapshot> {
   return snapshotFrom(
     await request<{ snapshot: BluetoothSnapshot }>(
       `/devices/${encodeURIComponent(address)}/connect`,
-      { method: 'POST' },
-    ),
+      { method: 'POST' }
+    )
   );
 }
 
 export async function disconnectDevice(
-  address: string,
+  address: string
 ): Promise<BluetoothSnapshot> {
   return snapshotFrom(
     await request<{ snapshot: BluetoothSnapshot }>(
       `/devices/${encodeURIComponent(address)}/disconnect`,
-      { method: 'POST' },
-    ),
+      { method: 'POST' }
+    )
   );
 }
 
 export async function setTrusted(
   address: string,
-  trusted: boolean,
+  trusted: boolean
 ): Promise<BluetoothSnapshot> {
   return snapshotFrom(
     await request<{ snapshot: BluetoothSnapshot }>(
       `/devices/${encodeURIComponent(address)}/trust`,
-      { method: 'POST', body: JSON.stringify({ trusted }) },
-    ),
+      { method: 'POST', body: JSON.stringify({ trusted }) }
+    )
   );
 }
 
-export async function forgetDevice(address: string): Promise<BluetoothSnapshot> {
+export async function forgetDevice(
+  address: string
+): Promise<BluetoothSnapshot> {
   return snapshotFrom(
     await request<{ snapshot: BluetoothSnapshot }>(
       `/devices/${encodeURIComponent(address)}/forget`,
-      { method: 'POST' },
-    ),
+      { method: 'POST' }
+    )
   );
 }
 
@@ -214,31 +225,31 @@ export interface DeviceConfigResult {
 }
 
 export async function fetchDeviceConfig(
-  address: string,
+  address: string
 ): Promise<BluetoothDeviceConfig> {
   const payload = await request<{ config: BluetoothDeviceConfig }>(
-    `/devices/${encodeURIComponent(address)}/config`,
+    `/devices/${encodeURIComponent(address)}/config`
   );
   return payload.config;
 }
 
 export async function setDeviceConfig(
   address: string,
-  values: Partial<BluetoothDeviceConfig>,
+  values: Partial<BluetoothDeviceConfig>
 ): Promise<DeviceConfigResult> {
   return request<DeviceConfigResult>(
     `/devices/${encodeURIComponent(address)}/config`,
-    { method: 'POST', body: JSON.stringify(values) },
+    { method: 'POST', body: JSON.stringify(values) }
   );
 }
 
 export async function deleteDeviceConfig(
-  address: string,
+  address: string
 ): Promise<BluetoothSnapshot> {
   return snapshotFrom(
     await request<{ snapshot: BluetoothSnapshot }>(
       `/devices/${encodeURIComponent(address)}/config`,
-      { method: 'DELETE' },
-    ),
+      { method: 'DELETE' }
+    )
   );
 }

@@ -167,6 +167,8 @@ dev-build-docker-playwright:
 	@cd ./docker/
 	@docker compose build playwright
 
+
+
 .PHONY: dev-run-all-tests
 dev-run-all-tests:
 	@bash scripts/render-compose-override.sh
@@ -177,6 +179,7 @@ dev-run-all-tests:
 	@killall -9 coverage
 	@sleep 1
 	@ ${IN_DEV_DOCKER} uv run coverage erase
+	@sudo bash scripts/virtual-bluetooth-setup.sh
 	@ ${IN_DEV_DOCKER} pw-jack uv run coverage run testing_server.py --process-title kmakefiletest > /dev/shm/kmakefiletest.log &
 	@echo "Waiting for server to start"
 	@sleep 5
@@ -190,6 +193,7 @@ dev-run-all-tests:
 	@sleep 1
 	@killall -w kmakefiletest
 	@sleep 10
+	@sudo bash scripts/virtual-bluetooth-teardown.sh
 	@${IN_DEV_DOCKER} uv run coverage run --append -m pytest
 	@${IN_DEV_DOCKER} uv run coverage html -i
 	@open htmlcov/index.html

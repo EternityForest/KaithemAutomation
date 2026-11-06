@@ -68,11 +68,14 @@ def default_device_config() -> DeviceConfig:
 def _default_alert_factory(
     name: str, priority: str, description: str
 ) -> AlertLike:
+    # Error-level alerts (e.g. unexpected disconnects) must become active
+    # immediately; auto-connect may resolve them within one supervisor tick,
+    # which would otherwise clear the alert before its trip delay elapsed.
     return alerts.Alert(
         name,
         priority=priority,
         description=description,
-        trip_delay=10,
+        trip_delay=0 if priority == "error" else 10,
         auto_ack=True,
     )
 

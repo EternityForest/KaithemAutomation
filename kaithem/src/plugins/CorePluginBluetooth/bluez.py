@@ -320,8 +320,17 @@ class BluezManager:
         self._run(self._refresh(), CALL_TIMEOUT)
         return self.snapshot()
 
-    def set_discovering(self, discovering: bool) -> dict[str, Any]:
-        self._run(self._async_set_discovering(discovering), CALL_TIMEOUT)
+    def set_discovering(
+        self, discovering: bool, adapter: str | None = None
+    ) -> dict[str, Any]:
+        """Start or stop discovery on one adapter.
+
+        ``adapter`` may be an adapter address, ``hciN`` short name, or D-Bus
+        object path.  When omitted, the first powered adapter is used.
+        """
+        self._run(
+            self._async_set_discovering(discovering, adapter), CALL_TIMEOUT
+        )
         return self.snapshot()
 
     def set_adapter_properties(
@@ -733,8 +742,13 @@ class BluezManager:
             "NotFound", f"No Bluetooth adapter matching {identifier}"
         )
 
-    async def _async_set_discovering(self, discovering: bool) -> None:
-        adapter_path = self._adapter_path()
+    async def _async_set_discovering(
+        self, discovering: bool, adapter: str | None = None
+    ) -> None:
+        if adapter:
+            adapter_path = self._resolve_adapter_path(adapter)
+        else:
+            adapter_path = self._adapter_path()
         member = "StartDiscovery" if discovering else "StopDiscovery"
         try:
             await self._call(_ADAPTER_INTERFACE, member, adapter_path)

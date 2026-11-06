@@ -106,9 +106,12 @@ async def bluetooth_set_discovering():
         body.get("discovering"), bool
     ):
         return quart.jsonify({"error": "invalid_request"}), 400
+    adapter = body.get("adapter")
+    if adapter is not None and not isinstance(adapter, str):
+        return quart.jsonify({"error": "invalid_request"}), 400
     try:
         snapshot = await asyncio.to_thread(
-            manager.set_discovering, body["discovering"]
+            manager.set_discovering, body["discovering"], adapter
         )
     except BluezError as exc:
         return _error_response(exc)
