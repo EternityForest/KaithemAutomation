@@ -358,17 +358,22 @@ async def bluetooth_websocket():
 
         send_task = asyncio.create_task(send_loop())
         receive_task = asyncio.create_task(receive_loop())
-        done, pending = await asyncio.wait(
-            {send_task, receive_task},
-            return_when=asyncio.FIRST_COMPLETED,
-        )
-        for task in pending:
-            task.cancel()
-        if pending:
-            # Await cancellation so the loop does not later report
-            # "Task was destroyed but it is pending".
-            await asyncio.gather(*pending, return_exceptions=True)
-        for task in done:
+        try:
+            await asyncio.wait(
+                {send_task, receive_task},
+                return_when=asyncio.FIRST_COMPLETED,
+            )
+        finally:
+            # The handler itself can be cancelled inside ``wait``.  Left
+            # alone, the orphaned task would be garbage collected in the
+            # BlueZ thread and its suspended queue.get() would complain
+            # about being closed from another event loop.
+            for task in (send_task, receive_task):
+                task.cancel()
+            await asyncio.gather(
+                send_task, receive_task, return_exceptions=True
+            )
+        for task in (send_task, receive_task):
             if task.cancelled():
                 continue
             exc = task.exception()

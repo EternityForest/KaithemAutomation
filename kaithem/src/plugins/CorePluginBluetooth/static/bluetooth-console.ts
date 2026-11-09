@@ -226,7 +226,7 @@ export class BluetoothConsole extends LitElement {
 
   private toggleScan(adapter: BluetoothAdapter): void {
     void this.run(`scan:${adapter.path}`, () =>
-      setDiscovering(!adapter.discovering, this.adapterId(adapter))
+      setDiscovering(!adapter.discovering_owned, this.adapterId(adapter))
     );
   }
 
@@ -512,11 +512,7 @@ export class BluetoothConsole extends LitElement {
               adapter.powered,
               'bt-controller-powered'
             )}
-            ${this.badge(
-              adapter.discovering ? 'Scanning' : 'Not scanning',
-              adapter.discovering,
-              'bt-controller-scanning'
-            )}
+            ${this.scanBadge(adapter)}
             ${adapter.le_advertising
               ? this.badge(
                   'LE advertising',
@@ -565,7 +561,7 @@ export class BluetoothConsole extends LitElement {
           >
             ${this.busy === `scan:${adapter.path}`
               ? 'Working…'
-              : adapter.discovering
+              : adapter.discovering_owned
                 ? 'Stop scan'
                 : 'Scan for devices'}
           </button>
@@ -588,6 +584,14 @@ export class BluetoothConsole extends LitElement {
             ${this.busy === `rename:${adapter.path}` ? 'Renaming…' : 'Set name'}
           </button>
         </div>
+        ${adapter.discovering && !adapter.discovering_owned
+          ? html`
+              <p class="bt-controller-note" data-testid="bt-foreign-scan">
+                Another application is scanning on this controller. BlueZ shares
+                one discovery flag between all clients.
+              </p>
+            `
+          : nothing}
         ${adapter.le_advertising
           ? nothing
           : html`
@@ -994,6 +998,23 @@ export class BluetoothConsole extends LitElement {
         return 'Pairing code';
       }
     }
+  }
+
+  private scanBadge(adapter: BluetoothAdapter): TemplateResult {
+    const text = adapter.discovering_owned
+      ? 'Scanning'
+      : adapter.discovering
+        ? 'Scanning (another app)'
+        : 'Not scanning';
+    return html`
+      <span
+        class="bt-badge ${adapter.discovering ? 'on' : 'off'}"
+        data-testid="bt-controller-scanning"
+        data-owned="${adapter.discovering_owned ? 'true' : 'false'}"
+      >
+        ${text}
+      </span>
+    `;
   }
 
   private badge(

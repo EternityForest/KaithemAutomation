@@ -6,6 +6,10 @@
 #   host   - controller that runs the scan/pairing side
 #   target - controller that advertises a battery GATT service
 #
+# Both controllers come from one btvirt process.  The emulator keeps its
+# controllers in a process-local table and only forwards radio traffic between
+# them there, so two separate btvirt processes would never discover each other.
+#
 # Both are LE-only on purpose.  A dual-mode (BR/EDR) controller makes BlueZ
 # register the audio profiles, which surfaces the virtual controller as a
 # Bluetooth speaker in the system audio stack and can disturb other tests.
@@ -24,10 +28,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 RUNTIME_DIR="${KAITHEM_BT_RUNTIME_DIR:-/tmp/kaithem-bt}"
-HOST_NAME="km-bt-host"
-TARGET_NAME="km-bt-target"
 PYTHON="${KAITHEM_PYTHON:-$ROOT_DIR/.venv/bin/python}"
-BTMGMT_TIMEOUT=15
 
 # shellcheck source=scripts/virtual-bluetooth-common.sh
 . "$ROOT_DIR/scripts/virtual-bluetooth-common.sh"
@@ -50,6 +51,20 @@ if [ ! -e /dev/vhci ]; then
     exit 1
 fi
 
+# True while any emulator this harness may have started is still running.
+controllers_running() {
+    if pgrep -x btvirt >/dev/null 2>&1; then
+        return 0
+    fi
+    local name
+    for name in "$CONTROLLERS_NAME" $LEGACY_CONTROLLER_NAMES; do
+        if pgrep -x "$name" >/dev/null 2>&1; then
+            return 0
+        fi
+    done
+    return 1
+}
+
 # Stop controllers left over from an earlier run and delete the BlueZ
 # settings they created.  Leftovers are the usual reason the system shows
 # virtual Bluetooth speakers: btvirt is dual-mode by default, so BlueZ
@@ -64,20 +79,18 @@ stop_leftover_controllers() {
         pgrep -a -x btvirt >&2 || true
     fi
     # Our own controllers run under a symlink name, so `killall btvirt` does
-    # not match them.
-    killall -q btvirt "$HOST_NAME" "$TARGET_NAME" 2>/dev/null || true
+    # not match them.  The legacy names come from setups that predate the
+    # single-process emulator.
+    killall -q btvirt "$CONTROLLERS_NAME" $LEGACY_CONTROLLER_NAMES \
+        2>/dev/null || true
     local attempt
     for attempt in $(seq 1 50); do
-        if ! pgrep -x btvirt >/dev/null 2>&1 &&
-            ! pgrep -x "$HOST_NAME" >/dev/null 2>&1 &&
-            ! pgrep -x "$TARGET_NAME" >/dev/null 2>&1; then
+        if ! controllers_running; then
             break
         fi
         sleep 0.1
     done
-    if pgrep -x btvirt >/dev/null 2>&1 ||
-        pgrep -x "$HOST_NAME" >/dev/null 2>&1 ||
-        pgrep -x "$TARGET_NAME" >/dev/null 2>&1; then
+    if controllers_running; then
         echo "could not stop the leftover virtual controllers" >&2
         return 1
     fi
@@ -103,8 +116,10 @@ cleanup_on_error() {
         if [ -n "$GATT_PID" ]; then
             kill "$GATT_PID" 2>/dev/null || true
         fi
-        killall -q "$HOST_NAME" "$TARGET_NAME" 2>/dev/null || true
-        killall -q -w "$HOST_NAME" "$TARGET_NAME" 2>/dev/null || true
+        killall -q "$CONTROLLERS_NAME" $LEGACY_CONTROLLER_NAMES \
+            2>/dev/null || true
+        killall -q -w "$CONTROLLERS_NAME" $LEGACY_CONTROLLER_NAMES \
+            2>/dev/null || true
         # Nothing may be left behind for a later run to trip over.
         wait_for_virtual_adapters_to_disappear
         remove_marked_adapter_settings
@@ -113,33 +128,46 @@ cleanup_on_error() {
 }
 trap cleanup_on_error EXIT
 
-ln -s "$(command -v btvirt)" "$RUNTIME_DIR/bin/$HOST_NAME"
-ln -s "$(command -v btvirt)" "$RUNTIME_DIR/bin/$TARGET_NAME"
+ln -s "$(command -v btvirt)" "$RUNTIME_DIR/bin/$CONTROLLERS_NAME"
 
-start_controller() {
-    local name="$1"
-    # -l1 selects one local emulator; -L makes that emulator LE-only.  The two
-    # are not interchangeable: plain "-L" creates no controller at all and
-    # btvirt exits with "No emulator specified".
-    nohup bash -c 'exec -a "$0" "$0" -l1 -L' "$RUNTIME_DIR/bin/$name" \
-        >"$RUNTIME_DIR/log/$name.log" 2>&1 &
+start_controllers() {
+    # One process, two controllers.  btvirt keeps its emulated controllers in a
+    # process-local table, so controllers started by separate processes are on
+    # isolated radios and would never discover each other.  -l2 selects two
+    # local emulators; -L makes them LE-only.  The two options are not
+    # interchangeable: plain "-L" creates no controller at all and btvirt exits
+    # with "No emulator specified".
+    nohup bash -c 'exec -a "$0" "$0" -l2 -L' \
+        "$RUNTIME_DIR/bin/$CONTROLLERS_NAME" \
+        >"$RUNTIME_DIR/log/$CONTROLLERS_NAME.log" 2>&1 &
     echo "$!"
 }
 
-new_adapter() {
+new_adapters() {
     local existing="$1"
     comm -13 <(printf '%s\n' "$existing") <(list_adapters)
 }
 
-wait_for_adapter() {
+count_lines() {
+    local text="$1"
+    if [ -z "$text" ]; then
+        echo 0
+        return 0
+    fi
+    printf '%s\n' "$text" | grep -c .
+}
+
+# Print the names of the adapters created since the given listing, in the order
+# the kernel registered them.
+wait_for_adapters() {
     local existing="$1"
-    local name="$2"
+    local expected="$2"
     local pid="$3"
-    local index
-    for _ in $(seq 1 100); do
-        index="$(new_adapter "$existing")"
-        if [ -n "$index" ]; then
-            printf '%s\n' "$index" | head -n 1
+    local adapters attempt
+    for attempt in $(seq 1 100); do
+        adapters="$(new_adapters "$existing")"
+        if [ "$(count_lines "$adapters")" -ge "$expected" ]; then
+            printf '%s\n' "$adapters" | head -n "$expected"
             return 0
         fi
         if ! kill -0 "$pid" 2>/dev/null; then
@@ -147,64 +175,48 @@ wait_for_adapter() {
         fi
         sleep 0.1
     done
-    echo "the $name controller did not appear:" >&2
-    cat "$RUNTIME_DIR/log/$name.log" >&2
+    echo "the virtual controllers did not appear:" >&2
+    cat "$RUNTIME_DIR/log/$CONTROLLERS_NAME.log" >&2
     return 1
 }
 
 configure_adapter() {
-    local index="$1"
-    # The address btvirt assigned is the one the test uses; there is no
-    # supported way to override it (see list_virtual_adapters).
-    timeout "$BTMGMT_TIMEOUT" btmgmt --index "$index" power on \
-        >/dev/null 2>&1 || true
+    local name="$1"
+    # Bringing the controller up makes the kernel wait for its pending
+    # initialisation and then complete it, so the local features are read.  The
+    # address btvirt assigned is the one the test uses; there is no supported
+    # way to override it (see list_virtual_adapters).
+    hciconfig "$name" up >/dev/null 2>&1 || true
 }
 
 # Teardown deletes the BlueZ settings of every adapter on the virtual bus, so
 # make sure these controllers really are virtual before the test starts.
 assert_virtual_bus() {
-    local index="$1"
+    local name="$1"
     local bus
-    bus="$(adapter_bus "$index")"
+    bus="$(adapter_bus "$name")"
     if [ "$bus" != "Virtual" ]; then
-        echo "hci$index is not on the virtual HCI bus ($bus)" >&2
-        return 1
-    fi
-}
-
-# Abort unless the controller really is BR/EDR-less.  A controller that
-# supports BR/EDR makes BlueZ register the audio profiles, and the host then
-# discovers the other virtual controller as a Bluetooth speaker with A2DP
-# UUIDs.  That is the system state we must never create.
-assert_le_only() {
-    local index="$1"
-    local info
-    info="$(timeout 10 btmgmt --index "$index" info 2>/dev/null || true)"
-    if [ -z "$info" ]; then
-        echo "could not read the settings of hci$index" >&2
-        return 1
-    fi
-    if printf '%s\n' "$info" | grep -q 'br/edr'; then
-        echo "hci$index supports BR/EDR instead of being LE-only:" >&2
-        printf '%s\n' "$info" >&2
+        echo "$name is not on the virtual HCI bus ($bus)" >&2
         return 1
     fi
 }
 
 BEFORE="$(list_adapters)"
-HOST_PID="$(start_controller "$HOST_NAME")"
-HOST_INDEX="$(wait_for_adapter "$BEFORE" "$HOST_NAME" "$HOST_PID")" || exit 1
+CONTROLLERS_PID="$(start_controllers)"
+ADAPTER_LIST="$(wait_for_adapters "$BEFORE" 2 "$CONTROLLERS_PID")" || exit 1
+# `mapfile` keeps the kernel's registration order, which is also btvirt's
+# creation order, so the host can never be swapped with the target.
+mapfile -t ADAPTERS <<<"$ADAPTER_LIST"
+HOST_INDEX="${ADAPTERS[0]}"
+TARGET_INDEX="${ADAPTERS[1]}"
 
-BEFORE="$(list_adapters)"
-TARGET_PID="$(start_controller "$TARGET_NAME")"
-TARGET_INDEX="$(wait_for_adapter "$BEFORE" "$TARGET_NAME" \
-    "$TARGET_PID")" || exit 1
+# Refuse to power anything up, or to delete settings for it later, before both
+# controllers are known to be ours.
+assert_virtual_bus "$HOST_INDEX"
+assert_virtual_bus "$TARGET_INDEX"
 
-HOST_NUM="${HOST_INDEX#hci}"
-TARGET_NUM="${TARGET_INDEX#hci}"
-
-configure_adapter "$HOST_NUM"
-configure_adapter "$TARGET_NUM"
+configure_adapter "$HOST_INDEX"
+configure_adapter "$TARGET_INDEX"
 HOST_ADDRESS="$(adapter_address "$HOST_INDEX")"
 TARGET_ADDRESS="$(adapter_address "$TARGET_INDEX")"
 
@@ -213,10 +225,11 @@ if [ -z "$HOST_ADDRESS" ] || [ -z "$TARGET_ADDRESS" ]; then
     exit 1
 fi
 
-assert_le_only "$HOST_NUM"
-assert_le_only "$TARGET_NUM"
-assert_virtual_bus "$HOST_INDEX"
-assert_virtual_bus "$TARGET_INDEX"
+# A controller that keeps BR/EDR support would make BlueZ register the audio
+# profiles, and the host would then see the other virtual controller as a
+# Bluetooth speaker.  Never let the run get that far.
+assert_le_only "$HOST_INDEX"
+assert_le_only "$TARGET_INDEX"
 
 # From here on the settings directories are ours and can be deleted by a later
 # run even if this one dies without tearing anything down.
@@ -247,6 +260,8 @@ if ! grep -q '^ready' "$RUNTIME_DIR/log/gatt.log" 2>/dev/null; then
     exit 1
 fi
 
+echo "Writing $RUNTIME_DIR/env.json with the virtual controller addresses"
+echo "and PIDs"
 cat >"$RUNTIME_DIR/env.json" <<EOF
 {
   "host_index": "$HOST_INDEX",
@@ -255,8 +270,7 @@ cat >"$RUNTIME_DIR/env.json" <<EOF
   "target_index": "$TARGET_INDEX",
   "target_address": "$TARGET_ADDRESS",
   "target_path": "/org/bluez/$TARGET_INDEX",
-  "host_pid": $HOST_PID,
-  "target_pid": $TARGET_PID,
+  "controllers_pid": $CONTROLLERS_PID,
   "gatt_pid": $GATT_PID,
   "battery": 42
 }

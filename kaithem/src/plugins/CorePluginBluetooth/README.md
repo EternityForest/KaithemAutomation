@@ -136,10 +136,26 @@ shows up as a Bluetooth speaker in the system audio stack.  `make
 dev-run-bluetooth-test` creates and tears down two LE-only controllers via
 `scripts/virtual-bluetooth-setup.sh`; their addresses are assigned by btvirt
 and published in `env.json`, because a vhci controller has no supported way to
-set its address.  Setup writes a `kaithem-virtual-adapter` marker into each
+set its address.  Both controllers come from a single `btvirt -l2 -L`: the
+emulator keeps its controllers in a process-local table and only forwards radio
+traffic between controllers of the same process, so two separate `btvirt`
+processes produce controllers that can never discover each other.  Setup writes
+a `kaithem-virtual-adapter` marker into each
 controller's `/var/lib/bluetooth/<address>` directory, and setup and teardown
 delete the marked settings of adapters that are gone, so cleanup never depends
 on knowing an address in advance and does not require pinning one.
+
+Playwright runs in a container when invoked through the Makefile, and a
+container has its own `/tmp`.  The `playwright` service therefore mounts
+`${KAITHEM_BT_RUNTIME_DIR:-/tmp/kaithem-bt}` at `/tmp/kaithem-bt`, the path the
+test reads; without that mount the test reports the runtime file as missing
+even though it exists on the host.
+
+Setup powers each controller up with `hciconfig up` instead of using `btmgmt`:
+the kernel assumes BR/EDR support until its asynchronous initialisation has
+read the local features, so only a powered-up controller can be checked for
+the "BR/EDR not supported" bit that makes it LE-only.  A controller that fails
+that check aborts the run before anything is paired.
 
 Use the plugin's `manager` singleton from server-side features so there is only
 one D-Bus thread and one pairing agent.  Constructing a separate

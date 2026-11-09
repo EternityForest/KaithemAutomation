@@ -305,7 +305,7 @@ class DeviceSupervisor:
 
 
 class DeviceAlertsManager:
-    """Turn device metadata and transitions into Kaithem alerts."""
+    """Trip and release device alerts from the latest device metadata."""
 
     def __init__(self, alert_factory: AlertFactory | None = None) -> None:
         self._lock = threading.RLock()

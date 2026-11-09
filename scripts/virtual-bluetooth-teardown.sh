@@ -12,8 +12,6 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 RUNTIME_DIR="${KAITHEM_BT_RUNTIME_DIR:-/tmp/kaithem-bt}"
-HOST_NAME="km-bt-host"
-TARGET_NAME="km-bt-target"
 
 # shellcheck source=scripts/virtual-bluetooth-common.sh
 . "$ROOT_DIR/scripts/virtual-bluetooth-common.sh"
@@ -53,12 +51,13 @@ if [ -f "$RUNTIME_DIR/gatt.pid" ]; then
     kill "$(cat "$RUNTIME_DIR/gatt.pid")" 2>/dev/null || true
 fi
 
-# The symlink names are the process names (comm), so killall finds them.
-killall -q "$HOST_NAME" "$TARGET_NAME" 2>/dev/null || true
+# The symlink name is the process name (comm), so killall finds it.  The legacy
+# names cover installs from before the single-process emulator.
+killall -q "$CONTROLLERS_NAME" $LEGACY_CONTROLLER_NAMES 2>/dev/null || true
 # Leftover controllers from an earlier run are dual-mode by default, so they
 # pollute the system with audio profiles.  Nothing else runs btvirt.
 killall -q btvirt 2>/dev/null || true
-killall -q -w "$HOST_NAME" "$TARGET_NAME" 2>/dev/null || true
+killall -q -w "$CONTROLLERS_NAME" $LEGACY_CONTROLLER_NAMES 2>/dev/null || true
 
 wait_for_virtual_adapters_to_disappear
 wait_for_adapters_to_settle

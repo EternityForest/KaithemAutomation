@@ -19,7 +19,6 @@ from kaithem.src.plugins.CorePluginBluetooth.supervisor import (
     BluetoothSupervisor,
     DeviceAlertsManager,
     DeviceSupervisor,
-    DeviceTransition,
     default_device_config,
     validate_local_name,
 )
@@ -236,26 +235,6 @@ class TestBluetoothSettings:
 
 
 class TestDeviceSupervisor:
-    def test_reports_transitions(self) -> None:
-        supervisor = DeviceSupervisor(ADDRESS, default_device_config())
-        first = supervisor.process_device(_device())
-        assert first.first_observation
-        assert not first.became_connected
-
-        connected = supervisor.process_device(_device(connected=True))
-        assert connected.became_connected
-        assert not connected.became_disconnected
-
-        same = supervisor.process_device(_device(connected=True))
-        assert not same.became_connected
-        assert not same.became_disconnected
-
-        gone = supervisor.process_device(_device(connected=False))
-        assert gone.became_disconnected
-
-        missing = supervisor.process_device(None)
-        assert not missing.became_disconnected
-
     def test_config_copy_isolation(self) -> None:
         config = default_device_config()
         supervisor = DeviceSupervisor(ADDRESS, config)
@@ -265,24 +244,13 @@ class TestDeviceSupervisor:
         assert supervisor.config["name"] is None
 
 
-def _device_transition(**kwargs: bool) -> DeviceTransition:
-    return DeviceTransition(**kwargs)
-
-
 def _process_metadata(
     alerts: DeviceAlertsManager,
-    device: dict[str, Any],
+    device: dict[str, Any] | None,
     *,
-    transition: DeviceTransition | None = None,
     enabled: bool = True,
 ) -> None:
-    alerts.process_device_metadata(
-        ADDRESS,
-        "headphones",
-        device,
-        transition or _device_transition(),
-        enabled,
-    )
+    alerts.process_device_metadata(ADDRESS, "headphones", device, enabled)
 
 
 class TestDeviceAlerts:
@@ -299,50 +267,53 @@ class TestDeviceAlerts:
     def test_battery_alert_trips_once_and_clears(self) -> None:
         factory = FakeAlertFactory()
         alerts = DeviceAlertsManager(factory)
-        _process_metadata(alerts, _device(battery=10))
+        _process_metadata(alerts, _device(battery=10, connected=True))
         alert = factory.by_key("battery low")
         assert alert.priority == "warning"
         assert len(alert.messages) == 1
 
-        _process_metadata(alerts, _device(battery=8))
+        _process_metadata(alerts, _device(battery=8, connected=True))
         assert len(alert.messages) == 1
 
-        _process_metadata(alerts, _device(battery=80))
+        _process_metadata(alerts, _device(battery=80, connected=True))
         assert alert.cleared == 1
 
     def test_rssi_alert_requires_connection(self) -> None:
         factory = FakeAlertFactory()
         alerts = DeviceAlertsManager(factory)
         _process_metadata(alerts, _device(rssi=-90, connected=False))
-        assert factory.created == []
+        assert not any("signal weak" in alert.name for alert in factory.created)
 
         _process_metadata(alerts, _device(rssi=-90, connected=True))
         assert factory.by_key("signal weak").priority == "warning"
 
-    def test_disconnect_alert_is_error(self) -> None:
+    def test_disconnect_alert_follows_connection_state(self) -> None:
         factory = FakeAlertFactory()
         alerts = DeviceAlertsManager(factory)
-        _process_metadata(
-            alerts,
-            _device(connected=False),
-            transition=_device_transition(became_disconnected=True),
-        )
+        _process_metadata(alerts, _device(connected=False))
         alert = factory.by_key("disconnected")
         assert alert.priority == "error"
+        assert len(alert.messages) == 1
 
-        _process_metadata(
-            alerts,
-            _device(connected=True),
-            transition=_device_transition(became_connected=True),
-        )
+        # Repeated updates must not re-trip an alert that is already active.
+        _process_metadata(alerts, _device(connected=False))
+        assert len(alert.messages) == 1
+
+        _process_metadata(alerts, _device(connected=True))
         assert alert.cleared == 1
+
+        # A device BlueZ stops reporting counts as disconnected too.
+        _process_metadata(alerts, None)
+        assert len(alert.messages) == 2
 
     def test_disabling_alerts_closes_them(self) -> None:
         factory = FakeAlertFactory()
         alerts = DeviceAlertsManager(factory)
-        _process_metadata(alerts, _device(battery=10))
+        _process_metadata(alerts, _device(battery=10, connected=True))
         alert = factory.by_key("battery low")
-        _process_metadata(alerts, _device(battery=10), enabled=False)
+        _process_metadata(
+            alerts, _device(battery=10, connected=True), enabled=False
+        )
         assert alert.closed == 1
         assert factory.created == [alert]
 

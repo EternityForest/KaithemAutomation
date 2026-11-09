@@ -12,7 +12,7 @@ import asyncio
 import logging
 import signal
 
-from dbus_fast import BusType, Message, MessageType, Variant
+from dbus_fast import BusType, Message, MessageType, Variant, unpack_variants
 from dbus_fast.aio import MessageBus
 from dbus_fast.service import (
     PropertyAccess,
@@ -28,7 +28,6 @@ ADAPTER_INTERFACE = "org.bluez.Adapter1"
 AGENT_INTERFACE = "org.bluez.Agent1"
 BATTERY_SERVICE_UUID = "0000180f-0000-1000-8000-00805f9b34fb"
 BATTERY_LEVEL_UUID = "00002a19-0000-1000-8000-00805f9b34fb"
-LOCAL_NAME = "KaithemBT"
 REGISTER_TIMEOUT = 20.0
 
 
@@ -91,7 +90,9 @@ class BatteryLevel(ServiceInterface):
     @method()
     def ReadValue(self, options: "a{sv}") -> "ay":  # noqa: F722, F821
         logger.info("Battery level read: %s%%", self._level)
-        return [self._level]
+        # BlueZ marshals this as an ``ay`` (byte array); dbus-fast rejects
+        # lists and needs an immutable ``bytes`` object.
+        return bytes([self._level])
 
     @method()
     def StartNotify(self) -> None:
@@ -102,46 +103,14 @@ class BatteryLevel(ServiceInterface):
         pass
 
 
-class Advertisement(ServiceInterface):
-    """Minimal LE advertisement for the battery peripheral.
-
-    Only the Battery Service and the generic (unknown) appearance are
-    advertised.  Audio UUIDs or an audio appearance would make the virtual
-    device show up as a Bluetooth speaker in the host's audio stack.
-    """
-
-    def __init__(self):
-        super().__init__("org.bluez.LEAdvertisement1")
-
-    @dbus_property(access=PropertyAccess.READ)
-    def Type(self) -> "s":  # noqa: F821
-        return "peripheral"
-
-    @dbus_property(access=PropertyAccess.READ)
-    def Appearance(self) -> "q":  # noqa: F821
-        # Generic "unknown" appearance.  Never advertise an audio appearance:
-        # desktop audio stacks would surface the virtual device as a speaker.
-        return 0
-
-    @dbus_property(access=PropertyAccess.READ)
-    def LocalName(self) -> "s":  # noqa: F821
-        return LOCAL_NAME
-
-    @dbus_property(access=PropertyAccess.READ)
-    def ServiceUUIDs(self) -> "as":  # noqa: F722
-        return [BATTERY_SERVICE_UUID]
-
-    @method()
-    def Release(self) -> None:
-        logger.info("Advertisement released")
-
-
 class AutoAcceptAgent(ServiceInterface):
     """Pairing agent for the peripheral side of the virtual link.
 
-    BlueZ registers a default agent when none is present, but registering one
-    explicitly makes the test independent of that default and documents the
-    capability we rely on.
+    The agent answers the prompts BlueZ routes to this D-Bus sender while the
+    virtual peripheral is being paired.  It deliberately does not request the
+    default-agent role: whichever process registers last would own every
+    pairing prompt on the system, silently auto-accepting the prompts the
+    console is supposed to show to the user.
     """
 
     def __init__(self):
@@ -211,17 +180,15 @@ async def set_property(
 
 
 async def configure_adapter(bus: MessageBus, adapter_path: str) -> None:
-    """Power the peripheral and make it discoverable and pairable.
+    """Power the peripheral so its GATT application can be registered.
 
-    BlueZ may not have exported the freshly created adapter yet, so retry
-    until the properties can be written.
+    Discoverability, pairability, and advertising are deliberately left to the
+    console under test: the E2E clicks "Make connectable" on this controller,
+    which is the behaviour being verified.  BlueZ may not have exported the
+    freshly created adapter yet, so retry until the property can be written.
     """
     deadline = asyncio.get_running_loop().time() + REGISTER_TIMEOUT
-    properties = (
-        ("Powered", Variant("b", True)),
-        ("Discoverable", Variant("b", True)),
-        ("Pairable", Variant("b", True)),
-    )
+    properties = (("Powered", Variant("b", True)),)
     for name, value in properties:
         while True:
             try:
@@ -236,13 +203,12 @@ async def configure_adapter(bus: MessageBus, adapter_path: str) -> None:
                 await asyncio.sleep(0.25)
 
 
-async def register(
-    bus: MessageBus, adapter_path: str, app_path: str, adv_path: str
-) -> None:
-    """Register the GATT application and advertisement.
+async def register(bus: MessageBus, adapter_path: str, app_path: str) -> None:
+    """Register the GATT application.
 
     BlueZ may not have exported the freshly created adapter yet, so retry
-    until it appears.
+    until it appears.  BlueZ keeps the application registered across adapter
+    power cycles, so nothing has to be done when the adapter comes back.
     """
     deadline = asyncio.get_running_loop().time() + REGISTER_TIMEOUT
     while True:
@@ -257,44 +223,78 @@ async def register(
             )
         )
         if reply.message_type != MessageType.ERROR:
-            break
+            return
         if asyncio.get_running_loop().time() >= deadline:
-            raise RuntimeError(f"RegisterApplication failed: {reply.body}")
+            raise RuntimeError(
+                f"RegisterApplication failed: {reply.error_name}"
+            )
         logger.info("Waiting for adapter %s", adapter_path)
         await asyncio.sleep(0.25)
 
+
+async def register_agent(bus: MessageBus, agent_path: str) -> None:
+    """Register an auto-accepting agent for this connection only.
+
+    ``RequestDefaultAgent`` is intentionally absent: the console registers
+    itself as the default agent so it can show pairing prompts to the user,
+    and a second default agent would silently answer them instead.
+    """
     reply = await bus.call(
         Message(
             destination=BLUEZ_SERVICE,
-            path=adapter_path,
-            interface="org.bluez.LEAdvertisingManager1",
-            member="RegisterAdvertisement",
-            signature="oa{sv}",
-            body=[adv_path, {}],
+            path="/org/bluez",
+            interface="org.bluez.AgentManager1",
+            member="RegisterAgent",
+            signature="os",
+            body=[agent_path, "NoInputNoOutput"],
         )
     )
     if reply.message_type == MessageType.ERROR:
-        raise RuntimeError(f"RegisterAdvertisement failed: {reply.body}")
+        logger.warning("RegisterAgent failed: %s", reply.error_name)
 
 
-async def register_agent(bus: MessageBus, agent_path: str) -> None:
-    """Register an auto-accepting agent so the peripheral can be paired."""
-    for member, signature, body in (
-        ("RegisterAgent", "os", [agent_path, "NoInputNoOutput"]),
-        ("RequestDefaultAgent", "o", [agent_path]),
-    ):
-        reply = await bus.call(
+async def clear_peer_bonds(bus: MessageBus, adapter_path: str) -> None:
+    """Forget peers this adapter still has a bond with.
+
+    BlueZ keeps the pairing keys on both ends of a link.  When the host side
+    forgets the device but the peripheral side keeps its bond, every later
+    pairing attempt fails with ``Authentication Failed``: the peripheral tries
+    to encrypt with keys the host has already discarded.  The virtual
+    peripheral exists only for this test, so its peer list is always ours to
+    clear.
+    """
+    reply = await bus.call(
+        Message(
+            destination=BLUEZ_SERVICE,
+            path="/",
+            interface="org.freedesktop.DBus.ObjectManager",
+            member="GetManagedObjects",
+        )
+    )
+    if reply.message_type == MessageType.ERROR:
+        raise RuntimeError(f"GetManagedObjects failed: {reply.error_name}")
+    objects = unpack_variants(reply.body[0])
+    prefix = f"{adapter_path}/"
+    for path, interfaces in objects.items():
+        if not path.startswith(prefix):
+            continue
+        if "org.bluez.Device1" not in interfaces:
+            continue
+        logger.info("Forgetting leftover peer %s", path)
+        removal = await bus.call(
             Message(
                 destination=BLUEZ_SERVICE,
-                path="/org/bluez",
-                interface="org.bluez.AgentManager1",
-                member=member,
-                signature=signature,
-                body=body,
+                path=adapter_path,
+                interface=ADAPTER_INTERFACE,
+                member="RemoveDevice",
+                signature="o",
+                body=[path],
             )
         )
-        if reply.message_type == MessageType.ERROR:
-            logger.warning("%s failed: %s", member, reply.error_name)
+        if removal.message_type == MessageType.ERROR:
+            raise RuntimeError(
+                f"RemoveDevice failed for {path}: {removal.error_name}"
+            )
 
 
 async def main() -> None:
@@ -309,7 +309,6 @@ async def main() -> None:
     app_path = "/org/kaithem/test/battery"
     service_path = f"{app_path}/service0"
     characteristic_path = f"{service_path}/char0"
-    adv_path = f"{app_path}/advertisement0"
     agent_path = "/org/kaithem/test/agent"
 
     bus = await MessageBus(bus_type=BusType.SYSTEM).connect()
@@ -318,11 +317,11 @@ async def main() -> None:
     bus.export(
         characteristic_path, BatteryLevel(service_path, arguments.battery)
     )
-    bus.export(adv_path, Advertisement())
     bus.export(agent_path, AutoAcceptAgent())
 
     await configure_adapter(bus, arguments.adapter)
-    await register(bus, arguments.adapter, app_path, adv_path)
+    await clear_peer_bonds(bus, arguments.adapter)
+    await register(bus, arguments.adapter, app_path)
     await register_agent(bus, agent_path)
     print(f"ready {arguments.adapter} battery={arguments.battery}", flush=True)
 

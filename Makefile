@@ -169,6 +169,21 @@ dev-build-docker-playwright:
 
 
 
+.PHONY: bluetooth-virtual-setup
+bluetooth-virtual-setup: # Create two LE-only virtual Bluetooth controllers
+	@sudo bash scripts/virtual-bluetooth-setup.sh
+
+
+.PHONY: bluetooth-virtual-teardown
+bluetooth-virtual-teardown: # Remove virtual controllers and their settings
+	@sudo bash scripts/virtual-bluetooth-teardown.sh
+
+
+.PHONY: dev-run-bluetooth-test
+dev-run-bluetooth-test: # Run only the Bluetooth console Playwright test
+	@bash scripts/run-bluetooth-test.sh
+
+
 .PHONY: dev-run-all-tests
 dev-run-all-tests:
 	@bash scripts/render-compose-override.sh
@@ -179,6 +194,7 @@ dev-run-all-tests:
 	@killall -9 coverage
 	@sleep 1
 	@ ${IN_DEV_DOCKER} uv run coverage erase
+	@sudo bash scripts/virtual-bluetooth-teardown.sh
 	@sudo bash scripts/virtual-bluetooth-setup.sh
 	@ ${IN_DEV_DOCKER} pw-jack uv run coverage run testing_server.py --process-title kmakefiletest > /dev/shm/kmakefiletest.log &
 	@echo "Waiting for server to start"

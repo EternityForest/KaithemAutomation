@@ -9,6 +9,7 @@ export interface BluetoothAdapter {
   class: number | null;
   powered: boolean;
   discovering: boolean;
+  discovering_owned: boolean;
   discoverable: boolean;
   discoverable_timeout: number | null;
   pairable: boolean;

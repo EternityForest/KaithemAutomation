@@ -42,6 +42,12 @@ wait_for_server() {
     local attempt
     for attempt in $(seq 1 120); do
         if curl -fsS --max-time 2 "$SERVER_URL" >/dev/null 2>&1; then
+            # Another process must not be the one answering the probe.
+            if ! kill -0 "$SERVER_PID" 2>/dev/null; then
+                echo "another process answered on $SERVER_URL:" >&2
+                tail -n 50 "$SERVER_LOG" >&2
+                return 1
+            fi
             return 0
         fi
         if ! kill -0 "$SERVER_PID" 2>/dev/null; then
@@ -61,11 +67,21 @@ if [ ! -x "$PYTHON" ]; then
     exit 1
 fi
 
+# A server left running from an earlier run answers the readiness probe while
+# holding a stale BlueZ connection, so the test would exercise a plugin that
+# never saw the current controllers come up.  Clear our own leftover server
+# first, then refuse to start if anything else is still listening.
+killall -q "$SERVER_TITLE" 2>/dev/null || true
+if curl -fsS --max-time 2 "$SERVER_URL" >/dev/null 2>&1; then
+    echo "something is already serving $SERVER_URL" >&2
+    echo "stop it before running the Bluetooth test" >&2
+    exit 1
+fi
+
 echo "Starting virtual Bluetooth controllers"
 sudo bash "$ROOT_DIR/scripts/virtual-bluetooth-setup.sh"
 
 echo "Starting the test server"
-killall -q "$SERVER_TITLE" 2>/dev/null || true
 "$PYTHON" "$ROOT_DIR/testing_server.py" --process-title "$SERVER_TITLE" \
     >"$SERVER_LOG" 2>&1 &
 SERVER_PID=$!

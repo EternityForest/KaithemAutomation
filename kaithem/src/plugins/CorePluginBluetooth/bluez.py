@@ -37,6 +37,35 @@ AGENT_TIMEOUT = 90.0
 PAIR_TIMEOUT = AGENT_TIMEOUT + 30.0
 CALL_TIMEOUT = 20.0
 
+# Broadcast signals are only routed to a connection that subscribed to them
+# with AddMatch; without these rules BlueZ's changes never reach us.
+# BlueZ's ObjectManager root is "/", above the org.bluez device tree, so the
+# Interfaces* rules must not be restricted to the /org/bluez namespace.
+# NameOwnerChanged is how we notice that bluetoothd restarted: the system bus
+# connection survives a daemon restart, but the daemon forgets every agent and
+# advertisement registration it was holding for us.
+_SIGNAL_MATCH_RULES = (
+    "type='signal',sender='org.bluez',"
+    "interface='org.freedesktop.DBus.Properties',"
+    "member='PropertiesChanged',path_namespace='/org/bluez'",
+    "type='signal',sender='org.bluez',"
+    "interface='org.freedesktop.DBus.ObjectManager',"
+    "member='InterfacesAdded'",
+    "type='signal',sender='org.bluez',"
+    "interface='org.freedesktop.DBus.ObjectManager',"
+    "member='InterfacesRemoved'",
+    "type='signal',sender='org.freedesktop.DBus',"
+    "interface='org.freedesktop.DBus',member='NameOwnerChanged',"
+    "arg0='org.bluez'",
+)
+
+# Signals are the primary update path.  Polling is only a safety net for
+# changes BlueZ does not announce, so it slows down when nothing is happening.
+IDLE_REFRESH_INTERVAL = 30.0
+DISCOVERING_REFRESH_INTERVAL = 3.0
+# Device properties arrive in bursts while scanning; coalesce them.
+REFRESH_COALESCE_DELAY = 0.25
+
 _DEVICE_INTERFACE = "org.bluez.Device1"
 _ADAPTER_INTERFACE = "org.bluez.Adapter1"
 _BATTERY_INTERFACE = "org.bluez.Battery1"
@@ -44,6 +73,7 @@ _LE_ADVERTISING_INTERFACE = "org.bluez.LEAdvertisingManager1"
 _ADVERTISEMENT_INTERFACE = "org.bluez.LEAdvertisement1"
 _PROPERTIES_INTERFACE = "org.freedesktop.DBus.Properties"
 _OBJECT_MANAGER_INTERFACE = "org.freedesktop.DBus.ObjectManager"
+_DBUS_INTERFACE = "org.freedesktop.DBus"
 
 # Adapter1 properties the console is allowed to write, with their D-Bus
 # signature.  BlueZ exposes Name as read-only; Alias is the writable name.
@@ -77,6 +107,20 @@ class BluezUnavailableError(BluezError):
 
     def __init__(self, message: str = "Bluetooth is not available") -> None:
         super().__init__("BluezUnavailable", message)
+
+
+def _snapshot_signature(payload: dict[str, Any]) -> str:
+    """Fingerprint the parts of a snapshot that represent actual state.
+
+    ``updated`` and ``revision`` change on every poll, so including them would
+    make every refresh look like a state change.
+    """
+    comparable = {
+        key: value
+        for key, value in payload.items()
+        if key not in ("updated", "revision")
+    }
+    return json.dumps(comparable, sort_keys=True, default=str)
 
 
 class _PendingAgentRequest:
@@ -130,7 +174,20 @@ class BluezManager:
         self._pending: dict[str, _PendingAgentRequest] = {}
         self._active_operations = 0
         self._refresh_task: asyncio.Task[None] | None = None
+        self._refresh_lock: asyncio.Lock | None = None
+        self._refresh_pending = False
         self._advertisements: dict[str, _LeAdvertisement] = {}
+        # Adapters where the user asked this plugin to advertise.  The
+        # registration itself lives in bluetoothd's memory, so the request has
+        # to outlive a daemon restart for us to be able to restore it.
+        self._advertising_adapters: set[str] = set()
+        # Set by the org.bluez NameOwnerChanged signal so the connection loop
+        # can rebuild everything the old bluetoothd process was holding.
+        self._bluez_changed: asyncio.Event | None = None
+        # Adapters where this connection holds its own discovery session.
+        # BlueZ tracks discovery per D-Bus sender, so stopping discovery only
+        # cancels our request and leaves other applications' scans running.
+        self._discovery_adapters: set[str] = set()
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -165,6 +222,8 @@ class BluezManager:
     def _thread_main(self) -> None:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
+        self._refresh_lock = asyncio.Lock()
+        self._refresh_pending = False
         with self._lock:
             self._loop = loop
         try:
@@ -207,13 +266,17 @@ class BluezManager:
                 self._ready.set()
                 first_attempt = False
 
-            # Stay connected until shutdown or BlueZ goes away.  bluetoothd
-            # restarts (and system-bus connections drop) when adapters are
-            # powered down, so keep reconnecting instead of going dead.
+            # Stay connected until shutdown, BlueZ goes away, or bluetoothd is
+            # replaced by a new process.  bluetoothd restarts (and system-bus
+            # connections drop) when adapters are powered down, so keep
+            # reconnecting instead of going dead.
+            assert self._bluez_changed is not None
             stop_waiter = asyncio.create_task(self._stop_event.wait())
             disconnect_waiter = asyncio.create_task(self._wait_for_disconnect())
+            restart_waiter = asyncio.create_task(self._bluez_changed.wait())
+            poll_waiter = asyncio.create_task(self._poll_loop())
             done, pending = await asyncio.wait(
-                {stop_waiter, disconnect_waiter},
+                {stop_waiter, disconnect_waiter, restart_waiter, poll_waiter},
                 return_when=asyncio.FIRST_COMPLETED,
             )
             for task in pending:
@@ -221,7 +284,13 @@ class BluezManager:
             await asyncio.gather(*pending, return_exceptions=True)
             if self._stop_event.is_set():
                 break
-            logger.warning("Lost connection to BlueZ; reconnecting")
+            if restart_waiter in done:
+                logger.warning(
+                    "BlueZ restarted; re-registering the agent and "
+                    "advertisements"
+                )
+            else:
+                logger.warning("Lost connection to BlueZ; reconnecting")
             self._teardown_bus("BlueZ connection lost")
 
         if first_attempt:
@@ -239,6 +308,29 @@ class BluezManager:
         except Exception:
             pass
 
+    async def _poll_loop(self) -> None:
+        """Refresh periodically so changes never depend on signals alone."""
+        while True:
+            try:
+                await asyncio.sleep(self._poll_interval())
+                await self._refresh()
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                logger.exception("Periodic BlueZ refresh failed")
+
+    def _poll_interval(self) -> float:
+        with self._lock:
+            discovering = any(
+                adapter.get("discovering")
+                for adapter in self._snapshot.get("adapters", [])
+            )
+        return (
+            DISCOVERING_REFRESH_INTERVAL
+            if discovering
+            else IDLE_REFRESH_INTERVAL
+        )
+
     async def _wait_or_stop(self, timeout: float) -> None:
         try:
             assert self._stop_event
@@ -255,26 +347,16 @@ class BluezManager:
         with self._lock:
             bus = self._bus
             self._bus = None
+            self._bluez_changed = None
             self._available = False
             if error is not None:
                 self._error = error
             self._agent_registered = False
             self._advertisements.clear()
-            self._snapshot_signature = ""
             snapshot = self._empty_snapshot(
                 self._error, self._agent_registered, self._agent_error
             )
-            changed = snapshot != self._snapshot
-            self._snapshot = snapshot
-            event = None
-            if changed:
-                self._revision += 1
-                self._snapshot["revision"] = self._revision
-                event = {
-                    "type": "snapshot",
-                    "snapshot": copy.deepcopy(self._snapshot),
-                    "revision": self._revision,
-                }
+            event = self._publish_locked(snapshot)
         if bus is not None:
             try:
                 bus.disconnect()
@@ -289,10 +371,38 @@ class BluezManager:
             self._bus = bus
             self._error = None
             self._advertisements.clear()
+        self._bluez_changed = asyncio.Event()
         bus.add_message_handler(self._on_message)
+        await self._subscribe_signals(bus)
 
         self._agent_registered = await self._register_agent()
         await self._refresh()
+        await self._restore_advertisements()
+
+    async def _subscribe_signals(self, bus: MessageBus) -> None:
+        """Ask the bus daemon to route BlueZ change signals to this connection.
+
+        ``add_message_handler`` only sees messages the daemon already sent us;
+        broadcast signals need a matching ``AddMatch`` rule.  Without this the
+        cached snapshot only changes when something calls ``refresh()``.
+        """
+        for rule in _SIGNAL_MATCH_RULES:
+            reply = await bus.call(
+                Message(
+                    destination="org.freedesktop.DBus",
+                    path="/org/freedesktop/DBus",
+                    interface="org.freedesktop.DBus",
+                    member="AddMatch",
+                    signature="s",
+                    body=[rule],
+                )
+            )
+            if reply.message_type == MessageType.ERROR:
+                message = reply.body[0] if reply.body else ""
+                raise BluezError(
+                    reply.error_name or "AddMatchFailed",
+                    f"Could not subscribe to BlueZ signals: {message}",
+                )
 
     def _stop_loop(self) -> None:
         if self._stop_event is not None:
@@ -323,7 +433,12 @@ class BluezManager:
     def set_discovering(
         self, discovering: bool, adapter: str | None = None
     ) -> dict[str, Any]:
-        """Start or stop discovery on one adapter.
+        """Start or stop this plugin's discovery session on one adapter.
+
+        BlueZ tracks discovery per D-Bus sender, so stopping only ends the
+        session opened by this manager.  Another application may keep the
+        adapter's ``Discovering`` property set; snapshots expose that
+        distinction as ``discovering_owned``.
 
         ``adapter`` may be an adapter address, ``hciN`` short name, or D-Bus
         object path.  When omitted, the first powered adapter is used.
@@ -461,9 +576,8 @@ class BluezManager:
     def _on_message(self, message: Message) -> bool:
         if message.message_type != MessageType.SIGNAL:
             return False
-        path = message.path or ""
-        if not path.startswith(BLUEZ_ROOT + "/") and path != BLUEZ_ROOT:
-            return False
+        if message.interface == _DBUS_INTERFACE:
+            return self._handle_name_owner_changed(message)
         if message.interface not in (
             _OBJECT_MANAGER_INTERFACE,
             _PROPERTIES_INTERFACE,
@@ -479,7 +593,33 @@ class BluezManager:
             "PropertiesChanged",
         ):
             return False
+        path = message.path or ""
+        if message.interface == _OBJECT_MANAGER_INTERFACE:
+            # BlueZ's object manager root is "/", above the /org/bluez tree.
+            if path != "/":
+                return False
+        elif path != BLUEZ_ROOT and not path.startswith(BLUEZ_ROOT + "/"):
+            return False
         self._schedule_refresh()
+        return True
+
+    def _handle_name_owner_changed(self, message: Message) -> bool:
+        """Notice that bluetoothd was restarted or stopped.
+
+        The system-bus connection outlives the daemon, so only this signal
+        reveals that the agent and advertisement registrations held by the old
+        process are gone.
+        """
+        if message.member != "NameOwnerChanged":
+            return False
+        body = message.body
+        if len(body) < 3 or body[0] != BLUEZ_SERVICE:
+            return False
+        event = self._bluez_changed
+        loop = self._loop
+        if event is None or loop is None or loop.is_closed():
+            return True
+        loop.call_soon_threadsafe(event.set)
         return True
 
     def _schedule_refresh(self) -> None:
@@ -492,19 +632,31 @@ class BluezManager:
             pass
 
     def _queue_refresh(self) -> None:
+        self._refresh_pending = True
         if self._refresh_task is not None and not self._refresh_task.done():
             return
         self._refresh_task = asyncio.create_task(self._delayed_refresh())
 
     async def _delayed_refresh(self) -> None:
-        # Device properties often arrive in bursts; coalesce them.
-        await asyncio.sleep(0.25)
         try:
-            await self._refresh()
+            while self._refresh_pending:
+                self._refresh_pending = False
+                # Device properties often arrive in bursts; coalesce them.
+                await asyncio.sleep(REFRESH_COALESCE_DELAY)
+                await self._refresh()
+        except asyncio.CancelledError:
+            raise
         except Exception:
             logger.exception("Failed to refresh BlueZ state")
 
     async def _refresh(self) -> None:
+        lock = self._refresh_lock
+        if lock is None:
+            raise RuntimeError("BlueZ refresh lock is not initialised")
+        async with lock:
+            await self._refresh_locked()
+
+    async def _refresh_locked(self) -> None:
         try:
             objects = await self._get_managed_objects()
         except BluezError as exc:
@@ -514,18 +666,7 @@ class BluezManager:
                 snapshot = self._empty_snapshot(
                     self._error, self._agent_registered, self._agent_error
                 )
-                changed = snapshot != self._snapshot
-                self._snapshot = snapshot
-                if changed:
-                    self._revision += 1
-                    self._snapshot["revision"] = self._revision
-                    event = {
-                        "type": "snapshot",
-                        "snapshot": copy.deepcopy(self._snapshot),
-                        "revision": self._revision,
-                    }
-                else:
-                    event = None
+                event = self._publish_locked(snapshot)
             if event is not None:
                 self._notify(event)
             return
@@ -543,35 +684,32 @@ class BluezManager:
             "adapters": adapters,
             "adapter": primary,
             "devices": devices,
-            "revision": self._revision,
             "updated": time.time(),
         }
-        signature = json.dumps(payload, sort_keys=True, default=str)
         with self._lock:
             self._available = True
             self._error = None
-            changed = signature != self._snapshot_signature
-            self._snapshot_signature = signature
             self._device_paths = device_paths
-            if changed:
-                self._revision += 1
-                payload["revision"] = self._revision
-                payload["updated"] = time.time()
-                self._snapshot = payload
-                event = {
-                    "type": "snapshot",
-                    "snapshot": copy.deepcopy(payload),
-                    "revision": self._revision,
-                }
-            else:
-                self._snapshot = payload
-                self._snapshot["revision"] = self._revision
-                self._snapshot["updated"] = self._snapshot.get(
-                    "updated", time.time()
-                )
-                event = None
+            event = self._publish_locked(payload)
         if event is not None:
             self._notify(event)
+
+    def _publish_locked(self, payload: dict[str, Any]) -> dict[str, Any] | None:
+        """Store a snapshot and return a change event, if its state changed."""
+        signature = _snapshot_signature(payload)
+        changed = signature != self._snapshot_signature
+        self._snapshot_signature = signature
+        if changed:
+            self._revision += 1
+        payload["revision"] = self._revision
+        self._snapshot = copy.deepcopy(payload)
+        if not changed:
+            return None
+        return {
+            "type": "snapshot",
+            "snapshot": copy.deepcopy(self._snapshot),
+            "revision": self._revision,
+        }
 
     def _parse_objects(
         self, objects: dict[str, Any]
@@ -579,6 +717,7 @@ class BluezManager:
         adapters: list[dict[str, Any]] = []
         devices: list[dict[str, Any]] = []
         device_paths: dict[str, str] = {}
+        released_advertisements: list[str] = []
 
         for path, interfaces in objects.items():
             adapter = interfaces.get(_ADAPTER_INTERFACE)
@@ -599,8 +738,23 @@ class BluezManager:
                     advertising = path in self._advertisements
                     if advertising and not active_instances:
                         # BlueZ dropped it (e.g. the adapter was powered off).
+                        logger.info(
+                            "Advertisement on %s vanished (ActiveInstances=%s)",
+                            path,
+                            active_instances,
+                        )
                         self._advertisements.pop(path, None)
+                        released_advertisements.append(
+                            self._advertisement_path(path)
+                        )
                         advertising = False
+                    powered = bool(adapter.get("Powered", False))
+                    discovering = bool(adapter.get("Discovering", False))
+                    if not (powered and discovering):
+                        # BlueZ ends discovery when the adapter powers off
+                        # or is removed, so forget the stale session.
+                        self._discovery_adapters.discard(path)
+                    discovering_owned = path in self._discovery_adapters
                 adapters.append(
                     {
                         "path": path,
@@ -609,8 +763,9 @@ class BluezManager:
                         "name": adapter.get("Name"),
                         "alias": adapter.get("Alias"),
                         "class": adapter.get("Class"),
-                        "powered": bool(adapter.get("Powered", False)),
-                        "discovering": bool(adapter.get("Discovering", False)),
+                        "powered": powered,
+                        "discovering": discovering,
+                        "discovering_owned": discovering_owned,
                         "discoverable": bool(
                             adapter.get("Discoverable", False)
                         ),
@@ -661,6 +816,11 @@ class BluezManager:
             }
             devices.append(entry)
             device_paths[address.upper()] = path
+
+        for released_path in released_advertisements:
+            # dbus-fast refuses to export a path twice, so a stale object
+            # must go before advertising can be enabled again.
+            self._unexport_quietly(released_path)
 
         adapters.sort(key=lambda a: a["path"])
         devices.sort(
@@ -745,45 +905,121 @@ class BluezManager:
     async def _async_set_discovering(
         self, discovering: bool, adapter: str | None = None
     ) -> None:
+        """Start or stop this connection's own discovery session.
+
+        BlueZ keeps one discovery session per D-Bus sender, and the adapter's
+        ``Discovering`` property is true while *any* application scans.  This
+        method therefore tracks the sessions it owns instead of trusting
+        ``StopDiscovery`` to clear the adapter-wide flag.
+        """
         if adapter:
             adapter_path = self._resolve_adapter_path(adapter)
         else:
             adapter_path = self._adapter_path()
-        member = "StartDiscovery" if discovering else "StopDiscovery"
+        with self._lock:
+            owned = adapter_path in self._discovery_adapters
+
+        if discovering == owned:
+            await self._refresh()
+            return
+
+        if discovering:
+            try:
+                await self._call(
+                    _ADAPTER_INTERFACE, "StartDiscovery", adapter_path
+                )
+            except BluezError as exc:
+                # InProgress means this connection already owns a session,
+                # which is exactly the state we want.
+                if exc.name != "org.bluez.Error.InProgress":
+                    raise
+            with self._lock:
+                self._discovery_adapters.add(adapter_path)
+            await self._refresh()
+            with self._lock:
+                entry = next(
+                    (
+                        item
+                        for item in self._snapshot.get("adapters") or []
+                        if item.get("path") == adapter_path
+                    ),
+                    None,
+                )
+            if entry is None or not entry.get("discovering"):
+                with self._lock:
+                    self._discovery_adapters.discard(adapter_path)
+                raise BluezError(
+                    "Failed",
+                    f"BlueZ did not start discovery on {adapter_path}",
+                )
+            return
+
         try:
-            await self._call(_ADAPTER_INTERFACE, member, adapter_path)
+            await self._call(_ADAPTER_INTERFACE, "StopDiscovery", adapter_path)
         except BluezError as exc:
-            # Already in the requested state is not an error for the UI.
-            ignored = (
-                {"org.bluez.Error.InProgress", "org.bluez.Error.AlreadyExists"}
-                if discovering
-                else {
-                    "org.bluez.Error.NotReady",
-                    "org.bluez.Error.Failed",
-                    "org.bluez.Error.NotConnected",
-                }
+            # Only a missing session is benign; BlueZ may have dropped ours
+            # when the adapter powered off.  Other failures are real.
+            no_session = (
+                exc.name == "org.bluez.Error.Failed"
+                and exc.message == "No discovery started"
             )
-            if exc.name not in ignored:
+            if not (no_session or exc.name == "org.bluez.Error.NotReady"):
                 raise
+        with self._lock:
+            self._discovery_adapters.discard(adapter_path)
         await self._refresh()
 
     async def _async_pair(self, address: str) -> None:
-        path = self._device_path(address)
-        await self._run_agent_operation(
-            self._call(_DEVICE_INTERFACE, "Pair", path)
-        )
-        await self._refresh()
+        await self._run_device_operation("Pair", address)
 
     async def _async_connect(self, address: str) -> None:
-        path = self._device_path(address)
-        await self._run_agent_operation(
-            self._call(_DEVICE_INTERFACE, "Connect", path)
-        )
-        await self._refresh()
+        await self._run_device_operation("Connect", address)
 
     async def _async_disconnect(self, address: str) -> None:
+        await self._run_device_operation("Disconnect", address)
+
+    async def _run_device_operation(self, member: str, address: str) -> None:
+        """Call a Device1 method and log how it ended.
+
+        BlueZ blocks a Pair call until every pairing agent it asked has
+        answered, so a prompt routed to another process looks like a hang.
+        Recording the duration and outcome here is what makes that visible in
+        the server log instead of only in the browser.
+        """
         path = self._device_path(address)
-        await self._call(_DEVICE_INTERFACE, "Disconnect", path)
+        started = time.monotonic()
+        logger.info("%s starting for %s (%s)", member, address, path)
+        try:
+            if member == "Disconnect":
+                await self._call(_DEVICE_INTERFACE, member, path)
+            else:
+                await self._run_agent_operation(
+                    self._call(_DEVICE_INTERFACE, member, path)
+                )
+        except BluezError as exc:
+            logger.warning(
+                "%s failed for %s after %.1fs: %s (%s)",
+                member,
+                address,
+                time.monotonic() - started,
+                exc.name,
+                exc.message,
+            )
+            raise
+        except Exception:
+            logger.exception(
+                "%s failed for %s after %.1fs",
+                member,
+                address,
+                time.monotonic() - started,
+            )
+            raise
+        logger.info(
+            "%s finished for %s in %.1fs",
+            member,
+            address,
+            time.monotonic() - started,
+        )
         await self._refresh()
 
     async def _async_set_trusted(self, address: str, trusted: bool) -> None:
@@ -809,6 +1045,7 @@ class BluezManager:
                 None,
             )
         adapter_path = (device or {}).get("adapter") or self._adapter_path()
+        logger.info("Removing %s (%s) from %s", address, path, adapter_path)
         await self._call(
             _ADAPTER_INTERFACE,
             "RemoveDevice",
@@ -817,6 +1054,10 @@ class BluezManager:
             body=[path],
         )
         await self._refresh()
+        # Removing a device can stop a peer adapter's advertisement while
+        # BlueZ still counts the registration, which leaves the peer
+        # undiscoverable.  Re-assert every advertisement we own.
+        await self._async_reassert_advertisements()
 
     async def _async_set_adapter_properties(
         self, identifier: str, values: dict[str, Any]
@@ -902,34 +1143,56 @@ class BluezManager:
     async def _async_set_advertising(
         self, adapter_path: str, enabled: bool
     ) -> None:
-        with self._lock:
-            currently = adapter_path in self._advertisements
-        if currently == enabled:
+        if not enabled:
+            with self._lock:
+                self._advertising_adapters.discard(adapter_path)
+            await self._async_unregister_advertisement(adapter_path)
             return
+
+        with self._lock:
+            self._advertising_adapters.add(adapter_path)
+        # The adapter may already advertise: BlueZ can keep counting a
+        # registration while the radio stopped transmitting it.  Cycling the
+        # advertisement is the only way to re-assert it, and it is cheap.
+        await self._async_unregister_advertisement(adapter_path)
 
         bus = self._bus
         if bus is None:
             raise BluezUnavailableError("BlueZ is not available")
         path = self._advertisement_path(adapter_path)
 
-        if enabled:
-            advertisement = _LeAdvertisement(self, adapter_path)
+        advertisement = _LeAdvertisement(self, adapter_path)
+        try:
             bus.export(path, advertisement)
-            try:
-                await self._call(
-                    _LE_ADVERTISING_INTERFACE,
-                    "RegisterAdvertisement",
-                    adapter_path,
-                    signature="oa{sv}",
-                    body=[path, {}],
-                )
-            except BluezError:
+        except ValueError:
+            # A stale object is still exported because a previous
+            # registration ended without cleanup.  Replace it.
+            self._unexport_quietly(path)
+            bus.export(path, advertisement)
+        try:
+            await self._call(
+                _LE_ADVERTISING_INTERFACE,
+                "RegisterAdvertisement",
+                adapter_path,
+                signature="oa{sv}",
+                body=[path, {}],
+            )
+        except BluezError as exc:
+            if exc.name != "org.bluez.Error.AlreadyExists":
                 self._unexport_quietly(path)
                 raise
-            with self._lock:
-                self._advertisements[adapter_path] = advertisement
-            return
+        with self._lock:
+            self._advertisements[adapter_path] = advertisement
 
+    async def _async_unregister_advertisement(self, adapter_path: str) -> None:
+        with self._lock:
+            registered = adapter_path in self._advertisements
+        if not registered:
+            return
+        bus = self._bus
+        if bus is None:
+            raise BluezUnavailableError("BlueZ is not available")
+        path = self._advertisement_path(adapter_path)
         with self._lock:
             self._advertisements.pop(adapter_path, None)
         try:
@@ -950,6 +1213,46 @@ class BluezManager:
         finally:
             self._unexport_quietly(path)
 
+    async def _async_reassert_advertisements(self) -> None:
+        """Re-register every advertisement this connection registered.
+
+        BlueZ normally reports a dropped advertisement through ``Release()``,
+        but a controller can stop transmitting while BlueZ still counts the
+        registration.  Removing a device can leave a peer adapter in that
+        state, so callers cycle the advertisements to restore them.
+        """
+        with self._lock:
+            adapter_paths = list(self._advertisements)
+        for adapter_path in adapter_paths:
+            try:
+                await self._async_set_advertising(adapter_path, True)
+            except BluezError as exc:
+                logger.warning(
+                    "Could not re-register the advertisement on %s: %s",
+                    adapter_path,
+                    exc,
+                )
+
+    async def _restore_advertisements(self) -> None:
+        """Re-apply advertising requests that outlived a bluetoothd restart.
+
+        The registration is stored inside the daemon, so a restarted daemon
+        silently drops it while the console still shows the adapter as
+        advertising.
+        """
+        with self._lock:
+            requested = set(self._advertising_adapters)
+            live = {a["path"] for a in self._snapshot.get("adapters", [])}
+        for adapter_path in sorted(requested & live):
+            try:
+                await self._async_set_advertising(adapter_path, True)
+            except BluezError as exc:
+                logger.warning(
+                    "Could not restore the advertisement on %s: %s",
+                    adapter_path,
+                    exc,
+                )
+
     def _advertisement_path(self, adapter_path: str) -> str:
         suffix = adapter_path.rsplit("/", 1)[-1] or "adapter"
         return f"{ADVERTISEMENT_ROOT}/{suffix}"
@@ -964,9 +1267,22 @@ class BluezManager:
             pass
 
     def _on_advertisement_released(self, adapter_path: str) -> None:
+        logger.info("BlueZ released advertisement on %s", adapter_path)
         with self._lock:
             self._advertisements.pop(adapter_path, None)
+        # BlueZ calls Release from a method handler on this object, so defer
+        # the unexport until the reply has been sent.  A re-registration may
+        # have exported a fresh object at the same path by then.
+        loop = self._loop
+        if loop is not None:
+            loop.call_soon_threadsafe(self._unexport_released, adapter_path)
         self._schedule_refresh()
+
+    def _unexport_released(self, adapter_path: str) -> None:
+        with self._lock:
+            if adapter_path in self._advertisements:
+                return
+        self._unexport_quietly(self._advertisement_path(adapter_path))
 
     async def _run_agent_operation(self, coro: Any) -> None:
         with self._lock:
@@ -1003,6 +1319,7 @@ class BluezManager:
                 body=[AGENT_PATH],
             )
             self._agent_error = None
+            logger.info("Registered BlueZ pairing agent at %s", AGENT_PATH)
             return True  # noqa: TRY300
         except BluezError as exc:
             self._agent_error = exc.message or exc.name
@@ -1073,11 +1390,21 @@ class BluezManager:
             active = self._active_operations > 0
             has_listener = bool(self._listeners)
         if not active:
+            logger.info(
+                "Rejecting %s for %s: no pairing or connection in progress",
+                kind,
+                device_path,
+            )
             raise DBusError(
                 "org.bluez.Error.Rejected",
                 "Rejected: no pairing or connection operation is in progress",
             )
         if not has_listener:
+            logger.info(
+                "Rejecting %s for %s: no Bluetooth console is connected",
+                kind,
+                device_path,
+            )
             raise DBusError(
                 "org.bluez.Error.Rejected",
                 "Rejected: no Bluetooth console is connected",
