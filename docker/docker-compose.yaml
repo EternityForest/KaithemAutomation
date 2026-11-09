@@ -24,6 +24,10 @@ services:
 
     volumes:
       - ./../../KaithemAutomation:/work
+      # The virtual Bluetooth setup writes controller addresses to the host
+      # runtime dir; the container gets its own /tmp, so mount it at the
+      # default path the test resolves.
+      - ${KAITHEM_BT_RUNTIME_DIR:-/tmp/kaithem-bt}:/tmp/kaithem-bt:ro
 
     working_dir: /work
     network_mode: host

@@ -161,7 +161,7 @@ def has_permission(permission: str, asgi=None, user: str | None = None) -> bool:
     """
     if user:
         return _pages.canUserDoThis(permission, user)
-    return _pages.canUserDoThis(permission, asgi)
+    return _pages.canUserDoThis(permission, asgi=asgi)
 
 
 def require(permission: str):
