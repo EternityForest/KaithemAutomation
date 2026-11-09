@@ -113,11 +113,11 @@
 
                 {% endif %}
 
-                {% if obj and hasattr(obj.device,'readme') and obj.device.readme %}
+                {% if obj and hasattr(obj.device,'dynamic_readme') and obj.device.dynamic_readme() %}
                 <h3>Readme</h3>
 
                 <div class="max-h-12rem scroll border" id='readme'>
-                    {{ obj.device.readme| escape }}
+                    {{ obj.device.dynamic_readme()| escape }}
                 </div>
 
                 <script>

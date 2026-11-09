@@ -274,6 +274,18 @@ except Exception:
             <td>${time.strftime(settings_overrides.get_val('core/strftime_string'),time.localtime(systasks.systemStarted))}</td>
         </tr>
         <tr>
+            <td>Current Time</td>
+            <td>${time.strftime(settings_overrides.get_val('core/strftime_string'),time.localtime(time.time()))}</td>
+        </tr>
+        <tr>
+            <td>Current User</td>
+            <td>${get_user().decode("utf-8")|h}</td>
+        </tr>
+        <tr>
+            <td>Process ID</td>
+            <td>${os.getpid()}</td>
+        </tr>
+        <tr>
             <td>Thread pool latency</td>
             <td>
                 %try:

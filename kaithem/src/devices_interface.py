@@ -113,7 +113,7 @@ def report():
 
 
 @app.route("/device/<path:name>/manage")
-def device_manage(name):
+def device_manage(name: str):
     try:
         pages.require("enumerate_endpoints")
     except PermissionError:

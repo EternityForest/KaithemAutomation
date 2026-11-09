@@ -67,7 +67,7 @@ slots = list(cue_schema["properties"].keys()) + [
     "inherit",
     "onEnter",
     "onExit",
-    "shortcut_listerner",
+    "shortcut_listener",
     "error_lockout",
     "scheduler_object",
     "_scheduled_func",
