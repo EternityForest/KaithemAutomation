@@ -23,6 +23,7 @@ import shutil
 import subprocess
 import threading
 import time
+import traceback
 from typing import Any, BinaryIO
 
 import structlog
@@ -85,13 +86,21 @@ def _podman(*args: str) -> list[str]:
 
 def _podman_run(
     *args: str, env: dict[str, str] | None = None, **kwargs: Any
-) -> subprocess.CompletedProcess[bytes]:
-    return subprocess.run(
+) -> subprocess.Popen[bytes]:
+    return subprocess.Popen(
         _podman(*args),
-        capture_output=True,
         env={**os.environ, **env_extras, **(env or {})},
         **kwargs,
     )
+
+
+def _podman_quick_run(*args: str) -> str:
+    p = _podman_run(*args)
+    o, e = p.communicate()
+    if not p.returncode == 0:
+        raise RuntimeError(e[-1024:].decode("utf-8", errors="ignore"))
+
+    return o.decode()
 
 
 def _alert(name: str, priority: str, description: str) -> None:
@@ -122,13 +131,10 @@ def _pull_image(image: str) -> None:
     )
     alert.trip()
 
-    r = _podman_run("pull", image)
-    if r.returncode != 0:
-        _alert(
-            f"podman_pull_{image}",
-            "error",
-            f"Failed to pull {image}: {r.stderr.decode(errors='replace')}",
-        )
+    try:
+        _podman_quick_run("pull", image)
+    except Exception:
+        _alert(f"podman_pull_{image}", "error", traceback.format_exc())
         raise RuntimeError(f"Failed to pull image {image}")
     else:
         alert.clear()
@@ -227,7 +233,7 @@ def stop_container(name: str) -> None:
 def _cleanup() -> None:
     """Delete containers with our prefix that haven't been touched in a year."""
     try:
-        r = _podman_run(
+        r = _podman_quick_run(
             "ps",
             "-a",
             "--filter",
@@ -235,30 +241,30 @@ def _cleanup() -> None:
             "--format",
             "{{.Names}}",
         )
-        if r.returncode != 0:
-            return
-        for line in r.stdout.decode().splitlines():
+
+        for line in r.splitlines():
             line = line.strip()
             if not line.startswith(CONTAINER_PREFIX):
                 continue
             try:
-                inspect = _podman_run(
+                inspect = _podman_quick_run(
                     "container",
                     "inspect",
                     "--format",
                     "{{.Created}}",
                     line,
                 )
-                if inspect.returncode != 0:
-                    continue
-                created = inspect.stdout.decode().strip()
+
+                created = inspect.strip()
                 if (
                     time.time() - time.mktime(time.strptime(created))
                     > CLEANUP_MAX_AGE
                 ):
                     _podman_run("rm", "-f", line)
+
             except Exception:
-                logger.exception("Failed to cleanup container %s", line)
+                logger.exception("Cleanup error")
+
     except Exception:
         logger.exception("Failed to cleanup podman containers")
 
