@@ -65,6 +65,9 @@ cfg = {
     "location": "0.123,0.456",
     "log_format": "normal",
     "local_access_only": True,
+    # Allow running the tests while a dev instance already holds the
+    # default port.
+    "http_port": int(os.environ.get("KAITHEM_TEST_HTTP_PORT", "8002")),
 }
 
 # This object is the same as the "kaithem" object in pages and events
