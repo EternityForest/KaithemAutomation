@@ -90,6 +90,9 @@ def _podman_run(
     return subprocess.Popen(
         _podman(*args),
         env={**os.environ, **env_extras, **(env or {})},
+        stdout=subprocess.PIPE,
+        stdin=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         **kwargs,
     )
 
@@ -161,7 +164,6 @@ def run_container(
     bindings: dict of host_path -> container_path
     Returns a Popen handle if not detached, else None.
     """
-    _pull_image(image)
 
     if bindings:
         for host in bindings:
