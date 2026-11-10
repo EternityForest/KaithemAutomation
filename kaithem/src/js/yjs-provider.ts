@@ -24,7 +24,7 @@
  */
 
 import * as Y from 'yjs';
-import { Awareness } from 'y-protocols/awareness';
+import { Awareness, encodeAwarenessUpdate,applyAwarenessUpdate } from 'y-protocols/awareness';
 
 import { kaithemapi } from './widget.mjs';
 import picodash from '/static/js/thirdparty/picodash/picodash-base.esm.js';
@@ -260,7 +260,7 @@ export class SyncDatabase {
         if (changedClients.length === 0) {
           return;
         }
-        const update = Awareness.encodeAwarenessUpdate(
+        const update = encodeAwarenessUpdate(
           this.awareness,
           changedClients
         );
@@ -347,7 +347,7 @@ export class SyncDatabase {
         if (_bytesEqual(msgType, MSG_UPDATE)) {
           Y.applyUpdate(this.doc, payload);
         } else if (_bytesEqual(msgType, MSG_AWARENESS)) {
-          Awareness.applyUpdate(this.awareness, payload);
+          applyAwarenessUpdate(this.awareness, payload,"server");
         }
         return;
       }
