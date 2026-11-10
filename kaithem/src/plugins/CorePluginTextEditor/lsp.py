@@ -6,17 +6,21 @@ A fixed dict maps languages to image names.  Containers are named
 ``lsp-LANG-N`` using the smallest unused number, so the container's
 on-disk metadata structures are reused across loads.
 
-The websocket route in the text editor plugin proxies messages between
-the browser editor and the LSP container over stdio.  Paths are remapped
-between the host workspace root and the container's /workspace mount.
+Each browser connection that wants LSP gets its own dedicated
+``LanguageServer`` (one container per connection).  The plugin's LSP
+websocket route pipes raw JSON-RPC messages straight between the browser
+and the container's stdio: the browser (via ace-linters) speaks the
+protocol and owns the ``initialize`` handshake, so the backend must not
+inject or interpret any messages of its own.
+
+The workspace is always mounted at ``/workspace`` inside the container,
+so the client addresses files with ``file:///workspace/<path>`` URIs and
+no backend path remapping is needed.
 """
 
-import asyncio
-import json
 import os
 import subprocess
 import threading
-from typing import Any
 
 import structlog
 
@@ -53,11 +57,11 @@ MARKER_FILES = [
 WORKSPACE_MARKER = "lsp-workspace.json"
 
 
-def detect_workspace(path: str) -> str | None:
+def detect_workspace(path: str) -> str:
     """Look for marker files in increasingly outer dirs.
 
     Returns the path of the outermost directory that contains a marker
-    file, or None if no workspace is detected.
+    file, or the starting directory if no workspace is detected.
     """
     path = os.path.abspath(path)
     if not os.path.isdir(path):
@@ -79,36 +83,15 @@ def detect_workspace(path: str) -> str | None:
     return best
 
 
-def _language_for_file(path: str) -> str | None:
-    """Map a filename to a language key in LANGUAGE_IMAGES, or None."""
-    ext = os.path.splitext(path)[1].lower()
-    return {
-        ".py": "python",
-        ".ts": "typescript",
-        ".tsx": "typescript",
-        ".js": "javascript",
-        ".jsx": "javascript",
-        ".mjs": "javascript",
-        ".cjs": "javascript",
-        ".json": "json",
-        ".css": "css",
-        ".html": "html",
-        ".htm": "html",
-        ".yaml": "yaml",
-        ".yml": "yaml",
-        ".md": "markdown",
-        ".go": "go",
-        ".rs": "rust",
-        ".lua": "lua",
-        ".sh": "bash",
-    }.get(ext)
-
-
-class LSPPeer:
+class LanguageServer:
     """One LSP server process for one language, one workspace.
 
-    Communicates over stdio with the container.  The websocket proxy in
-    the plugin forwards messages between the browser and this peer.
+    Communicates over stdio with the container.  Messages are passed
+    through transparently: the caller feeds raw JSON-RPC message bodies
+    from the browser via ``send_raw`` and receives the server's raw
+    JSON-RPC message bodies (without Content-Length framing) via the sink
+    callback set with ``set_sink``.  No ``initialize`` is sent here; the
+    browser client owns the whole handshake.
     """
 
     def __init__(self, language: str, workspace_root: str):
@@ -117,24 +100,13 @@ class LSPPeer:
         self.container_name = _find_container_name(language)
         self.lock = threading.RLock()
         self.proc: subprocess.Popen[bytes] | None = None
-        self.msg_id = 0
-        self.pending: dict[int, threading.Event] = {}
-        self.results: dict[int, Any] = {}
         self.closed = False
-        self.client_count = 0
-        # Websocket bridge: the LSP reader thread pushes server messages into
-        # these asyncio queues, and each connected websocket drains its own
-        # queue on the event loop.  The loop reference is needed because the
-        # reader thread is not an asyncio thread.
-        self._ws_send_queues: list[asyncio.Queue[dict[str, Any]]] = []
-        self._ws_send_loop: asyncio.AbstractEventLoop | None = None
+        self._sink = None
 
         image = LANGUAGE_IMAGES[language]
         # ``run_container`` starts ``podman run --interactive`` and returns the
         # Popen whose stdin/stdout are wired straight to the container's stdio,
-        # so the language server's LSP stream is on that pipe.  We must keep
-        # this handle; there is no separate exec needed (and ``podman exec``
-        # with no command is rejected by podman).
+        # so the language server's LSP stream is on that pipe.
         self.proc = podman_util.run_container(
             image,
             name=self.container_name,
@@ -150,13 +122,13 @@ class LSPPeer:
         )
         self._reader.start()
 
-        # Initialize the LSP session.
-        self._initialize()
+    def set_sink(self, sink) -> None:
+        """Set the callback invoked with each raw JSON-RPC body from the server.
 
-    def increment_client_count(self, delta: int) -> None:
-        """Increment the number of connected clients for this session."""
-        with self.lock:
-            self.client_count += delta
+        Called from the reader thread.  The sink is expected to be
+        thread-safe (e.g. it hops onto the websocket's event loop).
+        """
+        self._sink = sink
 
     def _read_loop(self) -> None:
         assert self.proc and self.proc.stdout
@@ -179,161 +151,37 @@ class LSPPeer:
                 if length <= 0:
                     return
                 body = f.read(length)
-                msg = json.loads(body.decode("utf-8"))
-
-                self._handle_message(msg)
+                if len(body) < length:
+                    return
+                text = body.decode("utf-8")
             except Exception:
                 logger.exception("Error reading LSP message")
                 return
 
-    def _handle_message(self, msg: dict[str, Any]) -> None:
-        if "id" in msg and ("result" in msg or "error" in msg):
-            with self.lock:
-                ev = self.pending.pop(msg["id"], None)
-                if ev:
-                    self.results[msg["id"]] = msg
-                    ev.set()
-            return
-        # Notifications and server requests are forwarded to the client
-        # via a callback set by the websocket proxy.
-        cb = self._on_message
-        if cb:
+            sink = self._sink
+            if sink is not None:
+                try:
+                    sink(text)
+                except Exception:
+                    logger.exception("Error in LSP message sink")
+
+    def send_raw(self, text: str | bytes) -> None:
+        """Send a raw JSON-RPC message body to the server, adding framing."""
+        body = text.encode("utf-8") if isinstance(text, str) else text
+        with self.lock:
+            if self.closed or not self.proc or not self.proc.stdin:
+                return
             try:
-                cb(msg)
+                self.proc.stdin.write(
+                    f"Content-Length: {len(body)}\r\n\r\n".encode() + body
+                )
+                self.proc.stdin.flush()
             except Exception:
-                logger.exception("Error in LSP message callback")
-
-    _on_message: Any = None
-
-    def _send(self, msg: dict[str, Any]) -> None:
-        assert self.proc and self.proc.stdin
-        body = json.dumps(msg).encode("utf-8")
-        with self.lock:
-            self.proc.stdin.write(
-                f"Content-Length: {len(body)}\r\n\r\n".encode() + body
-            )
-            self.proc.stdin.flush()
-
-    def _initialize(self) -> None:
-        self.msg_id += 1
-        msg_id = self.msg_id
-        ev = threading.Event()
-        with self.lock:
-            self.pending[msg_id] = ev
-
-        self._send(
-            {
-                "jsonrpc": "2.0",
-                "id": msg_id,
-                "method": "initialize",
-                "params": {
-                    "processId": None,
-                    "rootUri": "file:///workspace",
-                    "rootPath": "/workspace",
-                    "capabilities": {
-                        "textDocument": {
-                            "completion": {
-                                "completionItem": {
-                                    "snippetSupport": True,
-                                    "resolveSupport": {
-                                        "properties": [
-                                            "documentation",
-                                            "detail",
-                                        ]
-                                    },
-                                }
-                            },
-                            "hover": {
-                                "contentFormat": ["markdown", "plaintext"]
-                            },
-                            "signatureHelp": {},
-                        }
-                    },
-                    "workspaceFolders": [
-                        {"uri": "file:///workspace", "name": "workspace"}
-                    ],
-                },
-            }
-        )
-
-        ev.wait(timeout=30)
-        with self.lock:
-            self.results.pop(msg_id, None)
-
-        self._send(
-            {
-                "jsonrpc": "2.0",
-                "method": "initialized",
-                "params": {},
-            }
-        )
-
-    def _remap_path(self, path: str) -> str:
-        """Map a host path to the container's /workspace path."""
-        rel = os.path.relpath(path, self.workspace_root)
-        return "file:///workspace/" + rel.replace(os.sep, "/")
-
-    def _unmap_path(self, uri: str) -> str:
-        """Map a container path back to the host workspace."""
-        if uri.startswith("file:///workspace/"):
-            rel = uri[len("file:///workspace/") :]
-            return os.path.join(self.workspace_root, rel)
-        return uri
-
-    def remap_message(self, msg: dict[str, Any]) -> dict[str, Any]:
-        """Remap all paths in a message between host and container."""
-
-        def walk(v: Any) -> Any:
-            if isinstance(v, dict):
-                return {
-                    k: self._unmap_path(val)
-                    if isinstance(val, str) and val.startswith("file:///")
-                    else walk(val)
-                    for k, val in v.items()
-                }
-            if isinstance(v, list):
-                return [walk(i) for i in v]
-            return v
-
-        return walk(msg)
-
-    def send_client_message(self, msg: dict[str, Any]) -> None:
-        """Forward a message from the browser to the LSP server."""
-
-        # Remap any URIs from host paths to container paths.
-        def walk(v: Any) -> Any:
-            if isinstance(v, dict):
-                return {
-                    k: self._remap_path(val)
-                    if isinstance(val, str) and val.startswith("file:///")
-                    else walk(val)
-                    for k, val in v.items()
-                }
-            if isinstance(v, list):
-                return [walk(i) for i in v]
-            return v
-
-        self._send(walk(msg))
-
-    def release_session(self) -> None:
-        """Release this session, decrementing the client count.
-
-        If the client count reaches zero, the session is closed and the
-        container is stopped.
-        """
-        with self.lock:
-            self.client_count -= 1
-            should_close = self.client_count <= 0
-        if should_close:
-            self.close()
-            # Drop the closed peer so a later connection starts a fresh
-            # container instead of reusing a dead one.  Take _sessions_lock
-            # only after releasing self.lock to keep a consistent lock order
-            # with get_lsp_peer().
-            with _sessions_lock:
-                _sessions.pop((self.language, self.workspace_root), None)
+                logger.exception("Error writing LSP message")
 
     def close(self) -> None:
+        if self.closed:
+            return
         self.closed = True
         # Removing the container also makes the attached ``podman run``
         # client (self.proc) exit.
@@ -346,16 +194,16 @@ def _find_container_name(language: str) -> str:
     # ``run_container`` prefixes every container name with CONTAINER_PREFIX,
     # so the name we look for on disk is prefixed too.
     full_prefix = podman_util.CONTAINER_PREFIX + prefix
-    r = podman_util._podman_run(
-        "ps",
-        "-a",
-        "--format",
-        "{{.Names}}",
-    )
-    if r.returncode != 0:
+    try:
+        # ``_podman_quick_run`` waits for the process and returns its stdout,
+        # which ``_podman_run`` (a bare Popen) would not have collected yet.
+        out = podman_util._podman_quick_run(
+            "ps", "-a", "--format", "{{.Names}}"
+        )
+    except Exception:
         return f"{prefix}1"
     used = set()
-    for line in r.stdout.decode().splitlines():
+    for line in out.splitlines():
         line = line.strip()
         if line.startswith(full_prefix):
             try:
@@ -368,59 +216,55 @@ def _find_container_name(language: str) -> str:
     return f"{prefix}{i}"
 
 
-# Active LSP sessions by (language, workspace_root)
-_sessions: dict[tuple[str, str], LSPPeer] = {}
-_sessions_lock = threading.RLock()
+# Active language servers, tracked so they can be shut off at exit.
+_servers: set[LanguageServer] = set()
+_servers_lock = threading.RLock()
+# Serialises name allocation and container start so two connections for the
+# same language cannot race and pick the same lsp-LANG-N name.
+_start_lock = threading.RLock()
 
 
-def get_lsp_peer(language: str, workspace_root: str) -> LSPPeer | None:
-    """Get or create an LSP session for a language and workspace.
+def start_language_server(language: str, workspace_root: str) -> LanguageServer:
+    """Start a dedicated language server and track it for shutdown."""
+    with _start_lock:
+        server = LanguageServer(language, workspace_root)
+        with _servers_lock:
+            _servers.add(server)
+    return server
 
-    Returns None if the language has no image configured.
-    """
-    if language not in LANGUAGE_IMAGES:
-        return None
-    key = (language, os.path.abspath(workspace_root))
-    with _sessions_lock:
-        if key in _sessions:
-            peer = _sessions[key]
-            peer.increment_client_count(1)
-            return peer
-        try:
-            peer = LSPPeer(language, workspace_root)
-        except Exception:
-            logger.exception("Failed to start LSP server for %s", language)
-            return None
-        _sessions[key] = peer
-        peer.increment_client_count(1)
-        return peer
+
+def stop_language_server(server: LanguageServer) -> None:
+    """Stop a language server and forget about it."""
+    with _servers_lock:
+        _servers.discard(server)
+    server.close()
 
 
 def shutdown_all() -> None:
-    with _sessions_lock:
-        peers = list(_sessions.values())
-        _sessions.clear()
-    for peer in peers:
-        peer.close()
+    with _servers_lock:
+        servers = list(_servers)
+        _servers.clear()
+    for server in servers:
+        server.close()
 
 
 def shutdown_all_containers() -> None:
     """Stop all lsp containers at exit."""
     shutdown_all()
     prefix = podman_util.CONTAINER_PREFIX + "lsp-"
-    r = podman_util._podman_run(
-        "ps",
-        "-a",
-        "--filter",
-        f"name={prefix}",
-        "--format",
-        "{{.Names}}",
-    )
-    if r.returncode == 0:
-        for line in r.stdout.decode().splitlines():
-            line = line.strip()
-            if line.startswith(prefix):
-                podman_util._podman_run("rm", "-f", line)
+    try:
+        out = podman_util._podman_quick_run(
+            "ps", "-a", "--filter", f"name={prefix}", "--format", "{{.Names}}"
+        )
+    except Exception:
+        return
+    for line in out.splitlines():
+        line = line.strip()
+        if line.startswith(prefix):
+            try:
+                podman_util._podman_quick_run("rm", "-f", line)
+            except Exception:
+                pass
 
 
 lifespan.at_shutdown(shutdown_all_containers)

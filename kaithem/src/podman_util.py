@@ -41,7 +41,7 @@ CLEANUP_MAX_AGE = 60 * 60 * 24 * 365
 
 
 try:
-    v = get_vardir()
+    v = os.path.expandvars("$HOME/.local/share/kaithem-containers/")
     os.makedirs(os.path.join(v, "podman", "conf"), exist_ok=True)
     os.makedirs(os.path.join(v, "podman", "graph"), exist_ok=True)
     os.makedirs(os.path.join(v, "podman", "containers"), exist_ok=True)
@@ -59,6 +59,9 @@ try:
                 'graphroot = "$KAITHEM_PODMAN_GRAPH"\n'
                 'runroot = "$KAITHEM_PODMAN_RUN"\n'
                 'driver = "overlay"\n'
+                '[storage.options.pull_options]\n"'
+                'use_hard_links="true"\n'
+                'enable_partial_images="true"\n'
             )
 
 except Exception:

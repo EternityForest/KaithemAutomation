@@ -5,10 +5,12 @@ A micro version of vs code, for editing any plain text file resource.
 Accessible from any file using the file actions system like Excalidraw.
 
 REST APIs for reading/writing/renaming/deleting/creating files and
-folders, and a websocket for the LSP proxy.
+folders, a websocket for live file updates, and a dedicated websocket
+that bridges the browser editor to a language server.
 """
 
 import asyncio
+import functools
 import os
 import shutil
 import threading
@@ -28,12 +30,35 @@ from kaithem.api.web import (
     quart_app,
     require,
 )
+from kaithem.src import pages
 
 from . import lsp
 
 logger = __import__("structlog").get_logger(__name__)
 
 MAX_FILE_BYTES = 5 * 1024 * 1024
+
+
+def _admin_api(f):
+    """Require the ``system_admin`` permission for an HTTP API handler.
+
+    Unlike the default ``require`` behavior, an authentication failure is
+    returned as JSON instead of a login redirect, so the frontend can show
+    its own full-screen "not logged in" splash rather than silently
+    following a redirect and receiving a login page.
+    """
+
+    @functools.wraps(f)
+    async def wrapper(*args, **kwargs):
+        try:
+            require("system_admin")
+        except pages.KaithemUserPermissionError:
+            if pages.getAcessingUser() == "__guest__":
+                return quart.jsonify({"error": "not_logged_in"}), 401
+            return quart.jsonify({"error": "forbidden"}), 403
+        return await f(*args, **kwargs)
+
+    return wrapper
 
 
 def _resolve(module: str, resource: str) -> str:
@@ -203,8 +228,8 @@ async def text_editor_edit():
 
 
 @quart_app.route("/text-editor-plugin/api/list", methods=["GET"])
+@_admin_api
 async def api_list():
-    require("system_admin")
     module = quart.request.args["module"]
     resource = quart.request.args.get("resource", "")
 
@@ -247,8 +272,8 @@ def _list_dir(module: str, root: str) -> list[dict[str, Any]]:
 
 
 @quart_app.route("/text-editor-plugin/api/read", methods=["GET"])
+@_admin_api
 async def api_read():
-    require("system_admin")
     module = quart.request.args["module"]
     resource = quart.request.args["resource"]
 
@@ -269,8 +294,8 @@ async def api_read():
 
 
 @quart_app.route("/text-editor-plugin/api/write", methods=["POST"])
+@_admin_api
 async def api_write():
-    require("system_admin")
     kw = dict(await quart.request.form)
     module = kw["module"]
     resource = kw["resource"]
@@ -290,8 +315,8 @@ async def api_write():
 
 
 @quart_app.route("/text-editor-plugin/api/rename", methods=["POST"])
+@_admin_api
 async def api_rename():
-    require("system_admin")
     kw = dict(await quart.request.form)
     module = kw["module"]
     resource = kw["resource"]
@@ -314,8 +339,8 @@ async def api_rename():
 
 
 @quart_app.route("/text-editor-plugin/api/delete", methods=["POST"])
+@_admin_api
 async def api_delete():
-    require("system_admin")
     kw = dict(await quart.request.form)
     module = kw["module"]
     resource = kw["resource"]
@@ -336,8 +361,8 @@ async def api_delete():
 
 
 @quart_app.route("/text-editor-plugin/api/new_file", methods=["POST"])
+@_admin_api
 async def api_new_file():
-    require("system_admin")
     kw = dict(await quart.request.form)
     module = kw["module"]
     resource = kw["resource"]
@@ -355,8 +380,8 @@ async def api_new_file():
 
 
 @quart_app.route("/text-editor-plugin/api/new_folder", methods=["POST"])
+@_admin_api
 async def api_new_folder():
-    require("system_admin")
     kw = dict(await quart.request.form)
     module = kw["module"]
     resource = kw["resource"]
@@ -372,24 +397,51 @@ async def api_new_folder():
     return await quart.utils.run_sync(f)()
 
 
-@quart_app.route("/text-editor-plugin/api/detect_workspace", methods=["GET"])
-async def api_detect_workspace():
-    require("system_admin")
+@quart_app.route("/text-editor-plugin/api/lsp_info", methods=["GET"])
+@_admin_api
+async def api_lsp_info():
+    """Describe the language servers available for a module.
+
+    Returns the set of languages the backend can serve, plus the workspace
+    layout the client needs to build file URIs.  This is per-module, not
+    per-file: the client opens one socket per language on demand.
+    """
     module = quart.request.args["module"]
-    resource = quart.request.args["resource"]
 
     def f():
-        fn = _resolve(module, resource)
-        ws = lsp.detect_workspace(fn)
-        if ws is None:
-            return quart.jsonify({"workspace": None})
-        return quart.jsonify({"workspace": ws})
+        module_root = filename_for_file_resource(module, "")
+        workspace = lsp.detect_workspace(module_root)
+        # The container always mounts the workspace at /workspace, so the
+        # client must build file:///workspace/<rel-to-workspace> URIs.  That
+        # only works if the module's file data lives inside the workspace.
+        try:
+            rel = os.path.relpath(os.path.abspath(module_root), workspace)
+        except ValueError:
+            rel = ".."
+        if rel.startswith(".."):
+            return quart.jsonify(
+                {"languages": [], "workspaceUri": None, "moduleBaseRel": None}
+            )
+        if rel == ".":
+            rel = ""
+        return quart.jsonify(
+            {
+                "languages": sorted(lsp.LANGUAGE_IMAGES),
+                "workspaceUri": "file:///workspace",
+                "moduleBaseRel": rel.replace(os.sep, "/"),
+            }
+        )
 
     return await quart.utils.run_sync(f)()
 
 
 @quart_app.websocket("/text-editor-plugin/ws/<module>/<path:resource>")
 async def text_editor_ws(module: str, resource: str):
+    """Live file update notifications for the text editor.
+
+    Only carries the ``watch``/``unwatch`` control messages and the
+    ``file-changed`` notifications; LSP traffic has its own socket.
+    """
     require("system_admin")
 
     ws = quart.websocket
@@ -415,29 +467,6 @@ async def text_editor_ws(module: str, resource: str):
             return None
         return full
 
-    # Optional LSP session for this file.
-    peer = None
-    try:
-        fn = _resolve(module, resource)
-        language = lsp._language_for_file(fn)
-        workspace = lsp.detect_workspace(fn)
-    except Exception:
-        language = None
-        workspace = None
-
-    if language and workspace:
-        peer = lsp.get_lsp_peer(language, workspace)
-
-    if peer is not None:
-        peer._ws_send_loop = loop
-        peer._ws_send_queues.append(send_queue)
-        peer._on_message = lambda msg: _ws_send(peer, msg)
-        await ws.send_json({"type": "lsp", "status": "connected"})
-    else:
-        # No LSP support for this file or no workspace detected, but the
-        # socket stays open so live file updates keep working.
-        await ws.send_json({"type": "lsp", "status": "unavailable"})
-
     try:
         while True:
             msg = await ws.receive_json()
@@ -450,40 +479,88 @@ async def text_editor_ws(module: str, resource: str):
                 abs_path = _resource_abs_path(msg.get("resource", ""))
                 if abs_path is not None:
                     manager.unsubscribe(abs_path, send_queue)
-            elif peer is not None:
-                peer.send_client_message(msg)
     except Exception:
         pass
     finally:
         forward_task.cancel()
         manager.unsubscribe_all(send_queue)
-        if peer is not None:
-            try:
-                peer._ws_send_queues.remove(send_queue)
-            except ValueError:
-                pass
-            peer.release_session()
 
 
-def _ws_send(peer: lsp.LSPPeer, msg: dict) -> None:
-    """Forward a server message to every connected websocket.
+@quart_app.websocket("/text-editor-plugin/lsp-ws/<module>/<language>")
+async def text_editor_lsp_ws(module: str, language: str):
+    """Dedicated, transparent JSON-RPC bridge to a language server.
 
-    Called from the LSP reader thread, so we cannot await directly; we hop
-    onto the event loop that owns the websocket queues.
+    One socket bridges one language for one module.  Each connection gets
+    its own language server container.  Only raw JSON-RPC bodies are
+    exchanged: the browser client (ace-linters) sends and receives exactly
+    what the language server does, so this backend must never send a
+    message of its own (not even a status message) or it would corrupt the
+    protocol stream.
+
+    If the language is unknown or no workspace could be resolved the socket
+    is closed immediately with code 4004, which the client treats as
+    "unavailable".
     """
+    require("system_admin")
+
+    ws = quart.websocket
+    loop = asyncio.get_running_loop()
+
+    if language not in lsp.LANGUAGE_IMAGES:
+        await ws.close(4004, "no_lsp")
+        return
+
+    # The workspace is always mounted at /workspace in the container, so
+    # the client mirrors this layout with file:///workspace/... URIs.  That
+    # only works if the module's file data lives inside the workspace.
+    module_root = filename_for_file_resource(module, "")
+    workspace = lsp.detect_workspace(module_root)
     try:
-        loop = peer._ws_send_loop
-        if loop is None:
-            return
-        remapped = peer.remap_message(msg)
-        wrapped = {"type": "lsp-server", "message": remapped}
-        for q in list(peer._ws_send_queues):
-            try:
-                loop.call_soon_threadsafe(q.put_nowait, wrapped)
-            except Exception:
-                pass
+        rel = os.path.relpath(os.path.abspath(module_root), workspace)
+    except ValueError:
+        rel = ".."
+    if rel.startswith(".."):
+        await ws.close(4004, "no_lsp")
+        return
+
+    try:
+        server = lsp.start_language_server(language, workspace)
     except Exception:
-        logger.exception("Error sending LSP message to websocket")
+        logger.exception("Failed to start language server")
+        await ws.close(4005, "lsp_start_failed")
+        return
+
+    out_queue: asyncio.Queue[str] = asyncio.Queue()
+
+    def _on_server_message(text: str) -> None:
+        # Called from the language server's reader thread; hop onto the
+        # event loop that owns the websocket.
+        try:
+            loop.call_soon_threadsafe(out_queue.put_nowait, text)
+        except Exception:
+            pass
+
+    server.set_sink(_on_server_message)
+
+    async def _pump_to_ws() -> None:
+        while True:
+            text = await out_queue.get()
+            await ws.send(text)
+
+    pump_task = asyncio.create_task(_pump_to_ws())
+    try:
+        while True:
+            data = await ws.receive()
+            if data is None:
+                break
+            if isinstance(data, bytes):
+                data = data.decode("utf-8")
+            server.send_raw(data)
+    except Exception:
+        pass
+    finally:
+        pump_task.cancel()
+        lsp.stop_language_server(server)
 
 
 def filter_text_editor_resources(

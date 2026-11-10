@@ -43,6 +43,7 @@
     "@types/geojson": "^7946.0.16",
     "@types/strftime": "^0.9.8",
     "ace-builds": "^1.36.0",
+    "ace-linters": "^2.2.1",
     "dashbeard": "file:../Dashbeard",
     "eslint": "^9.39.2",
     "handlebars": "^4.7.9",

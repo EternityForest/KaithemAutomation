@@ -45,13 +45,24 @@ import 'ace-builds/src-noconflict/mode-lua';
 import 'ace-builds/src-noconflict/mode-sh';
 import 'ace-builds/src-noconflict/mode-text';
 import 'ace-builds/src-noconflict/ext-searchbox';
+// ext-language_tools defines editor.completers and enableBasicAutocompletion.
+// ace-linters pushes its completer into editor.completers, which only exists
+// once this extension is loaded, so without it LSP completion silently does
+// nothing.
+import 'ace-builds/src-noconflict/ext-language_tools';
 import 'ace-builds/src-noconflict/theme-chrome';
+
+// ace-linters connects Ace to a language server over a websocket and wires
+// up completions, hover, diagnostics, etc. It is self-contained and does not
+// import ace-builds at runtime.
+import { AceLanguageClient } from 'ace-linters/build/ace-language-client';
 
 interface Tab {
   path: string;
   content: string;
   dirty: boolean;
   ace: Editor | null;
+  lspRegistered?: boolean;
 }
 
 interface FileNode {
@@ -73,6 +84,7 @@ class TextEditorPage extends LitElement {
     tree: { state: true },
     lspStatus: { state: true },
     contextMenu: { state: true },
+    authRequired: { state: true },
   };
 
   override createRenderRoot() {
@@ -94,6 +106,7 @@ class TextEditorPage extends LitElement {
     path: string;
     isDir: boolean;
   } | null;
+  declare authRequired: boolean;
 
   constructor() {
     super();
@@ -103,9 +116,19 @@ class TextEditorPage extends LitElement {
     this.tree = [];
     this.lspStatus = 'unavailable';
     this.contextMenu = null;
+    this.authRequired = false;
   }
 
   private ws: WebSocket | null = null;
+  private lspProvider: any = null;
+  // One websocket (and one backend language server) per language, created
+  // lazily the first time a document of that language needs the server.
+  private _lspSockets = new Map<string, WebSocket>();
+  private _lspReady = new Set<string>();
+  private _lspLanguages: string[] = [];
+  private _lspInitialized = false;
+  private _lspWorkspaceUri = '';
+  private _lspModuleBaseRel = '';
   private _isMobile = globalThis.matchMedia('(max-width: 768px)').matches;
   private _watchedResources = new Set<string>();
   private _applyingRemote = false;
@@ -116,7 +139,8 @@ class TextEditorPage extends LitElement {
     document.addEventListener('click', this._onDocumentClick);
     this._refreshTree();
     this._openFile(RESOURCE);
-    this._connectLsp();
+    this._connectWatch();
+    this._initLsp();
   }
 
   override disconnectedCallback() {
@@ -124,6 +148,9 @@ class TextEditorPage extends LitElement {
     window.removeEventListener('beforeunload', this._beforeUnload);
     document.removeEventListener('click', this._onDocumentClick);
     this.ws?.close();
+    for (const socket of this._lspSockets.values()) socket.close();
+    this._lspSockets.clear();
+    this._lspReady.clear();
   }
 
   private _onDocumentClick = () => {
@@ -164,9 +191,36 @@ class TextEditorPage extends LitElement {
     const r = await fetch(url, opts);
     if (!r.ok) {
       const j = await r.json().catch(() => ({ error: 'error' }));
+      // The backend returns 401 not_logged_in (instead of redirecting to the
+      // login page) when the user is not authenticated, so we can show a
+      // full-screen splash rather than silently rendering a login page.
+      if (r.status === 401 && j.error === 'not_logged_in') {
+        this.authRequired = true;
+      }
       throw new Error(j.error || 'error');
     }
     return r.json();
+  }
+
+  private _b64(value: string): string {
+    const bytes = new TextEncoder().encode(value);
+    let bin = '';
+    for (const b of bytes) bin += String.fromCharCode(b);
+    return btoa(bin);
+  }
+
+  private _login() {
+    // Send the user to the login page and come back here afterwards.
+    globalThis.location.href =
+      '/login?go=' + encodeURIComponent(this._b64(globalThis.location.href));
+  }
+
+  private _retry() {
+    this.authRequired = false;
+    this._refreshTree();
+    this._openFile(RESOURCE);
+    if (!this.ws || this.ws.readyState === WebSocket.CLOSED) this._connectWatch();
+    if (!this._lspInitialized) this._initLsp();
   }
 
   private _wsSend(msg: object) {
@@ -262,6 +316,12 @@ class TextEditorPage extends LitElement {
         useSoftTabs: true,
         printMargin: false,
       });
+
+      ed.setOptions({
+          enableBasicAutocompletion: true,
+          enableLiveAutocompletion: false
+      });
+    
       // Ace injects its base editor CSS into document.head by default. Inside
       // a shadow root that CSS is invisible to the editor, leaving .ace_scroller
       // position:static and all layers off-screen. Inject the base CSS into the
@@ -278,6 +338,7 @@ class TextEditorPage extends LitElement {
         this.tabs = [...this.tabs];
       });
       tab.ace = ed;
+      this._registerLspEditor(tab);
       this.tabs = [...this.tabs];
     });
   }
@@ -340,6 +401,7 @@ class TextEditorPage extends LitElement {
   private _closeTab(path: string) {
     const tab = this.tabs.find((t) => t.path === path);
     if (tab?.dirty && !confirm('Unsaved changes in ' + path + '. Close anyway?')) return;
+    this._unregisterLspEditor(tab);
     this.tabs = this.tabs.filter((t) => t.path !== path);
     this._unwatchResource(path);
     if (this.activeTab === path) {
@@ -347,12 +409,11 @@ class TextEditorPage extends LitElement {
     }
   }
 
-  private _connectLsp() {
+  private _connectWatch() {
     this.ws = new WebSocket(
       `/text-editor-plugin/ws/${encodeURIComponent(MODULE)}/${encodeURIComponent(RESOURCE)}`
     );
     this.ws.addEventListener('open', () => {
-      this.lspStatus = 'connecting';
       // (Re)subscribe to any files opened before the socket was ready.
       for (const r of this._watchedResources) {
         this._wsSend({ type: 'watch', resource: r });
@@ -360,35 +421,127 @@ class TextEditorPage extends LitElement {
     });
     this.ws.onmessage = (ev) => {
       const msg = JSON.parse(ev.data);
-      switch (msg.type) {
-      case 'lsp': {
-        this.lspStatus = msg.status;
-      
-      break;
-      }
-      case 'lsp-server': {
-        // Forward to the Ace editor for LSP features.
-        this._handleLspMessage(msg);
-      
-      break;
-      }
-      case 'file-changed': {
+      if (msg.type === 'file-changed') {
         this._applyRemoteContent(msg.resource, msg.content);
-      
-      break;
-      }
-      // No default
       }
     };
-    this.ws.addEventListener('close', () => {
-      this.lspStatus = 'unavailable';
-    });
   }
 
-  private _handleLspMessage(msg: any) {
-    // Placeholder for now; LSP features (completions, hovers) are wired
-    // into the Ace editor in a later pass.
-    console.log('LSP message', msg);
+  private async _initLsp() {
+    if (this._lspInitialized) return;
+    try {
+      const info = await this._api('GET', 'lsp_info', { module: MODULE });
+      this._lspLanguages = info.languages || [];
+      if (!this._lspLanguages.length || !info.workspaceUri) {
+        this.lspStatus = 'unavailable';
+        return;
+      }
+      this._lspWorkspaceUri = info.workspaceUri;
+      this._lspModuleBaseRel = info.moduleBaseRel || '';
+      this.lspStatus = 'connecting';
+
+      // A single provider serves every language: ace-linters keys every
+      // request callback by the provider instance, so calling for() more
+      // than once would make responses go to the wrong editor. Each language
+      // gets its own server (and its own socket) via the config array; the
+      // socket is created lazily by _lspSocketFor the first time the
+      // language is actually used.
+      const self = this;
+      this.lspProvider = AceLanguageClient.for(
+        this._lspLanguages.map((lang: string) => ({
+          serviceName: lang,
+          module: () => import('ace-linters/build/language-client'),
+          modes: lang,
+          type: 'socket' as const,
+          get socket() {
+            return self._lspSocketFor(lang);
+          },
+        })),
+        { workspacePath: this._lspWorkspaceUri }
+      );
+      this.lspProvider.changeWorkspaceFolder(this._lspWorkspaceUri);
+      this._lspInitialized = true;
+      this._registerAllLspEditors();
+      this._refreshLspStatus();
+    } catch (error) {
+      this.lspStatus = 'unavailable';
+      console.error(error);
+    }
+  }
+
+  private _lspSocketFor(lang: string): WebSocket {
+    const existing = this._lspSockets.get(lang);
+    if (existing) return existing;
+    const socket = new WebSocket(
+      `/text-editor-plugin/lsp-ws/${encodeURIComponent(MODULE)}/${encodeURIComponent(lang)}`
+    );
+    this._lspSockets.set(lang, socket);
+    // Use addEventListener (not onopen/onclose) because ace-linters assigns
+    // the socket's on* properties itself.
+    socket.addEventListener('open', () => {
+      this._lspReady.add(lang);
+      this._refreshLspStatus();
+    });
+    socket.addEventListener('close', () => {
+      this._lspReady.delete(lang);
+      this._lspSockets.delete(lang);
+      this._refreshLspStatus();
+    });
+    return socket;
+  }
+
+  private _refreshLspStatus() {
+    if (this._lspReady.size > 0) this.lspStatus = 'connected';
+    else if (this._lspSockets.size > 0) this.lspStatus = 'connecting';
+    else this.lspStatus = 'unavailable';
+  }
+
+  private _lspUriFor(path: string): string {
+    const rel = this._lspModuleBaseRel
+      ? this._lspModuleBaseRel + '/' + path
+      : path;
+    const encoded = rel
+      .split('/')
+      .map((s) => encodeURIComponent(s))
+      .join('/');
+    return this._lspWorkspaceUri + '/' + encoded;
+  }
+
+  private _languageForPath(path: string): string | null {
+    const mode = this._aceMode(path).slice('ace/mode/'.length);
+    return this._lspLanguages.includes(mode) ? mode : null;
+  }
+
+  private _registerAllLspEditors() {
+    for (const t of this.tabs) {
+      if (t.ace) this._registerLspEditor(t);
+    }
+  }
+
+  private _registerLspEditor(tab: Tab) {
+    if (!this.lspProvider || !tab.ace || tab.lspRegistered) return;
+    // Languages without a configured server (e.g. .go, .lua, .sh) are not
+    // in _lspLanguages; registering them would create a socket for a
+    // language the backend has no image for.
+    if (!this._languageForPath(tab.path)) return;
+    try {
+      this.lspProvider.registerEditor(tab.ace, {
+        filePath: this._lspUriFor(tab.path),
+      });
+      tab.lspRegistered = true;
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  private _unregisterLspEditor(tab: Tab | undefined) {
+    if (!this.lspProvider || !tab?.ace || !tab.lspRegistered) return;
+    try {
+      this.lspProvider.unregisterEditor(tab.ace, true);
+    } catch (error) {
+      console.error(error);
+    }
+    tab.lspRegistered = false;
   }
 
   private _renderTree(nodes: FileNode[], depth = 0, parentPath = ''): any {
@@ -479,6 +632,25 @@ class TextEditorPage extends LitElement {
   }
 
   render() {
+    if (this.authRequired) {
+      return html`
+        <div class="splash" data-testid="auth-splash">
+          <div class="splash-box">
+            <div class="splash-icon mdi mdi-lock-outline"></div>
+            <h1>Not logged in</h1>
+            <p>You need to sign in to use the text editor.</p>
+            <div class="splash-actions">
+              <button data-testid="auth-login" @click="${this._login}">
+                Log in
+              </button>
+              <button data-testid="auth-retry" @click="${this._retry}">
+                Retry
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
     return html`
       <header>
         <button

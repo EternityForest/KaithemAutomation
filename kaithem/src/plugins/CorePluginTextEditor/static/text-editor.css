@@ -127,6 +127,42 @@ header {
 .contextmenu button:hover {
     background: rgba(0, 0, 0, 0.08);
 }
+.splash {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg, #fff);
+    color: var(--fg, #1c1c1c);
+    z-index: 100;
+}
+.splash-box {
+    text-align: center;
+    padding: 2rem;
+    max-width: 24rem;
+}
+.splash-icon {
+    font-size: 3rem;
+    opacity: 0.7;
+}
+.splash-box h1 {
+    font-size: 1.4rem;
+    margin: 0.5rem 0;
+}
+.splash-box p {
+    opacity: 0.8;
+}
+.splash-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    margin-top: 1rem;
+}
+.splash-actions button {
+    padding: 0.4rem 1rem;
+    cursor: pointer;
+}
 @media (max-width: 768px) {
     .sidebar {
     width: 100%;
