@@ -14,6 +14,7 @@ import functools
 import os
 import shutil
 import threading
+from collections.abc import Callable
 from typing import Any
 from urllib.parse import quote_plus
 
@@ -39,7 +40,7 @@ logger = __import__("structlog").get_logger(__name__)
 MAX_FILE_BYTES = 5 * 1024 * 1024
 
 
-def _admin_api(f):
+def _admin_api(f: Callable[..., Any]) -> Callable[..., Any]:
     """Require the ``system_admin`` permission for an HTTP API handler.
 
     Unlike the default ``require`` behavior, an authentication failure is
@@ -49,14 +50,15 @@ def _admin_api(f):
     """
 
     @functools.wraps(f)
-    async def wrapper(*args, **kwargs):
+    # pyrefly: ignore [implicit-any-parameter]
+    async def wrapper(*arg, **kwargs):
         try:
             require("system_admin")
         except pages.KaithemUserPermissionError:
             if pages.getAcessingUser() == "__guest__":
                 return quart.jsonify({"error": "not_logged_in"}), 401
             return quart.jsonify({"error": "forbidden"}), 403
-        return await f(*args, **kwargs)
+        return await f(*arg, **kwargs)  # noqa: F821
 
     return wrapper
 
@@ -116,12 +118,20 @@ class _FileWatchManager:
         )
         self._thread.start()
 
-    def subscribe(self, abs_path: str, queue, module_root, loop) -> None:
+    def subscribe(
+        self,
+        abs_path: str,
+        queue: asyncio.queues.Queue[dict[str, Any]],
+        module_root: str,
+        loop: asyncio.AbstractEventLoop,
+    ) -> None:
         with self._lock:
             self._subs.setdefault(abs_path, {})[queue] = (module_root, loop)
         self._ensure_started()
 
-    def unsubscribe(self, abs_path, queue) -> None:
+    def unsubscribe(
+        self, abs_path: str, queue: asyncio.queues.Queue[dict[str, Any]]
+    ) -> None:
         with self._lock:
             subs = self._subs.get(abs_path)
             if not subs:
@@ -149,7 +159,7 @@ class _FileWatchManager:
     # -- background thread --
 
     def _poll_loop(self) -> None:
-        last: dict[str, tuple] = {}
+        last: dict[str, tuple[int, int]] = {}
         while not self._stop.wait(_POLL_INTERVAL_S):
             with self._lock:
                 paths = list(self._subs)
