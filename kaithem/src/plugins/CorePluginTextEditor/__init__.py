@@ -11,11 +11,17 @@ folders, and a websocket for the LSP proxy.
 import asyncio
 import os
 import shutil
+import threading
+from typing import Any
 from urllib.parse import quote_plus
 
+import inotify.adapters
+import inotify.calls
+import inotify.constants as C
 import quart
 import quart.utils
 
+from kaithem.api import lifespan
 from kaithem.api.modules import (
     filename_for_file_resource,
     scan_file_resources,
@@ -48,6 +54,242 @@ def _safe_path(module: str, resource: str) -> str:
     if not os.path.realpath(fn).startswith(os.path.realpath(root)):
         raise ValueError("Path outside module file data")
     return fn
+
+
+# Live file updates ---------------------------------------------------------
+
+# A single inotify instance is shared by every websocket connection.  The
+# per-user limit on inotify instances (fs.inotify.max_user_instances) is
+# small, so creating one per connection quickly exhausts it and breaks
+# unrelated applications.  If the process cannot create an inotify instance
+# at all (the user's instance budget is already spent by other apps), the
+# manager transparently falls back to polling the subscribed files so live
+# updates keep working.
+_POLL_INTERVAL_S = 1.0
+_RELEVANT_INOTIFY_EVENTS = {
+    "IN_CLOSE_WRITE",
+    "IN_MOVED_TO",
+    "IN_CREATE",
+    "IN_DELETE",
+}
+
+
+class _FileWatchManager:
+    """Process-wide live file change notifications.
+
+    A single daemon thread owns one inotify instance and reports changes to
+    the files that websocket clients have subscribed to.  Subscriptions are
+    added/removed from the event loop thread; notifications are delivered by
+    enqueuing onto each subscriber's asyncio queue via ``call_soon_threadsafe``.
+    Keeping one shared instance means the process never needs more than one
+    inotify instance no matter how many connections or tabs are open.
+    """
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        # abs_path -> {queue: (module_root, loop)}
+        self._subs = {}
+        # abs_path -> last content sent, to suppress duplicate notifications
+        self._last: dict[str, str] = {}
+        # directory -> set of abs_paths that require it to be watched
+        self._dirs: dict[str, set[str]] = {}
+        # inotify watch descriptor -> directory
+        self._wd_to_dir: dict[int, str] = {}
+        self._inotify: inotify.adapters.Inotify | None = None
+        self._started = False
+        self._stop = threading.Event()
+        self._thread: threading.Thread | None = None
+
+    def _ensure_started(self) -> None:
+        if self._started:
+            return
+        self._started = True
+        self._thread = threading.Thread(
+            target=self._run, daemon=True, name="text-editor-file-watch"
+        )
+        self._thread.start()
+
+    def subscribe(self, abs_path: str, queue, module_root, loop) -> None:
+        with self._lock:
+            self._subs.setdefault(abs_path, {})[queue] = (module_root, loop)
+            self._add_watch(abs_path)
+        self._ensure_started()
+
+    def unsubscribe(self, abs_path, queue) -> None:
+        with self._lock:
+            subs = self._subs.get(abs_path)
+            if not subs:
+                return
+            subs.pop(queue, None)
+            if not subs:
+                self._subs.pop(abs_path, None)
+                self._last.pop(abs_path, None)
+                self._remove_watch(abs_path)
+
+    def unsubscribe_all(self, queue: asyncio.Queue[dict[str, Any]]) -> None:
+        """Drop every subscription belonging to one connection's queue."""
+        with self._lock:
+            for abs_path in list(self._subs):
+                subs = self._subs[abs_path]
+                subs.pop(queue, None)
+                if not subs:
+                    self._subs.pop(abs_path, None)
+                    self._last.pop(abs_path, None)
+                    self._remove_watch(abs_path)
+
+    def stop(self) -> None:
+        self._stop.set()
+        if self._thread is not None:
+            self._thread.join(timeout=3)
+
+    # -- watch bookkeeping (must be called with self._lock held) --
+
+    def _add_watch(self, abs_path: str) -> None:
+        d = os.path.dirname(abs_path)
+        paths = self._dirs.setdefault(d, set())
+        first = not paths
+        paths.add(abs_path)
+        if first and self._inotify is not None:
+            self._watch_dir(d)
+
+    def _remove_watch(self, abs_path: str) -> None:
+        d = os.path.dirname(abs_path)
+        paths = self._dirs.get(d)
+        if paths is None:
+            return
+        paths.discard(abs_path)
+        if paths:
+            return
+        self._dirs.pop(d, None)
+        if self._inotify is None:
+            return
+        try:
+            self._inotify.remove_watch(d)
+        except Exception:
+            pass
+        self._wd_to_dir = {
+            wd: dd for wd, dd in self._wd_to_dir.items() if dd != d
+        }
+
+    def _watch_dir(self, d: str) -> None:
+        mask = C.IN_CLOSE_WRITE | C.IN_MOVED_TO | C.IN_CREATE | C.IN_DELETE
+        try:
+            wd = self._inotify.add_watch(d, mask)
+            self._wd_to_dir[wd] = d
+        except Exception:
+            logger.exception("Could not watch %s", d)
+
+    # -- background thread --
+
+    def _run(self) -> None:
+        if not self._start_inotify():
+            self._poll_loop()
+            return
+        try:
+            for event in self._inotify.event_gen(yield_nones=True):
+                if self._stop.is_set():
+                    return
+                if event is None:
+                    # Periodic wakeup so the stop flag is checked promptly.
+                    continue
+                _header, type_names, path, filename = event
+                if "IN_ISDIR" in type_names:
+                    continue
+                if not _RELEVANT_INOTIFY_EVENTS.intersection(type_names):
+                    continue
+                self._dispatch(os.path.join(path, filename))
+        except Exception:
+            logger.exception("File watcher stopped")
+
+    def _start_inotify(self) -> bool:
+        # Probe first: constructing adapters.Inotify when the per-user
+        # instance budget is exhausted leaves a half-built object whose
+        # __del__ prints a confusing traceback.  The probe keeps logs clean.
+        try:
+            probe_fd = inotify.calls.inotify_init()
+        except Exception:
+            logger.exception(
+                "inotify failed (fs.inotify.max_user_instances "
+                "exhausted?); falling back to polling for live file updates"
+            )
+            return False
+        os.close(probe_fd)
+
+        try:
+            inst = inotify.adapters.Inotify(block_duration_s=0.5)
+        except Exception:
+            logger.warning(
+                "inotify unavailable; falling back to polling for live "
+                "file updates"
+            )
+            return False
+        with self._lock:
+            self._inotify = inst
+            for d in list(self._dirs):
+                self._watch_dir(d)
+        return True
+
+    def _poll_loop(self) -> None:
+        last: dict[str, tuple] = {}
+        while not self._stop.wait(_POLL_INTERVAL_S):
+            with self._lock:
+                paths = list(self._subs)
+            for abs_path in paths:
+                try:
+                    st = os.stat(abs_path)
+                except OSError:
+                    last.pop(abs_path, None)
+                    continue
+                sig = (st.st_mtime_ns, st.st_size)
+                if last.get(abs_path) == sig:
+                    continue
+                last[abs_path] = sig
+                self._dispatch(abs_path)
+
+    def _dispatch(self, abs_path: str) -> None:
+        with self._lock:
+            if abs_path not in self._subs:
+                return
+        try:
+            if os.path.getsize(abs_path) >= MAX_FILE_BYTES:
+                return
+            with open(abs_path, "rb") as f:
+                content = f.read().decode("utf-8")
+        except (OSError, UnicodeDecodeError):
+            # File removed, replaced by a directory, or no longer text.
+            return
+        with self._lock:
+            if self._last.get(abs_path) == content:
+                return
+            self._last[abs_path] = content
+            targets = list(self._subs.get(abs_path, {}).items())
+        for queue, (module_root, loop) in targets:
+            resource = os.path.relpath(abs_path, module_root).replace(
+                os.sep, "/"
+            )
+            try:
+                loop.call_soon_threadsafe(
+                    queue.put_nowait,
+                    {
+                        "type": "file-changed",
+                        "resource": resource,
+                        "content": content,
+                    },
+                )
+            except Exception:
+                pass
+
+
+_watch_manager: _FileWatchManager | None = None
+_watch_manager_lock = threading.Lock()
+
+
+def _get_watch_manager() -> _FileWatchManager:
+    global _watch_manager
+    with _watch_manager_lock:
+        if _watch_manager is None:
+            _watch_manager = _FileWatchManager()
+        return _watch_manager
 
 
 @quart_app.route("/text-editor-plugin/edit", methods=["GET"])
@@ -85,8 +327,8 @@ async def api_list():
     return await quart.utils.run_sync(f)()
 
 
-def _list_dir(module: str, root: str) -> list[dict]:
-    out = []
+def _list_dir(module: str, root: str) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
     for name in sorted(os.listdir(root)):
         if name.startswith("."):
             continue
@@ -211,8 +453,7 @@ async def api_new_file():
         if os.path.exists(fn):
             return quart.jsonify({"error": "exists"}), 400
         os.makedirs(os.path.dirname(fn), exist_ok=True)
-        with open(fn, "w") as f:
-            pass
+        open(fn, "w").close()
         scan_file_resources(module)
         return quart.jsonify({"status": "ok"})
 
@@ -259,6 +500,29 @@ async def text_editor_ws(module: str, resource: str):
 
     ws = quart.websocket
 
+    loop = asyncio.get_running_loop()
+    send_queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
+
+    async def _forward() -> None:
+        while True:
+            msg = await send_queue.get()
+            await ws.send_json(msg)
+
+    forward_task = asyncio.create_task(_forward())
+
+    root = filename_for_file_resource(module, "")
+    manager = _get_watch_manager()
+
+    def _resource_abs_path(res: str) -> str | None:
+        """Resolve a subscribed resource to an absolute path inside root."""
+        real_root = os.path.realpath(root)
+        full = os.path.realpath(os.path.join(root, res))
+        if full != real_root and not full.startswith(real_root + os.sep):
+            return None
+        return full
+
+    # Optional LSP session for this file.
+    peer = None
     try:
         fn = _resolve(module, resource)
         language = lsp._language_for_file(fn)
@@ -267,47 +531,44 @@ async def text_editor_ws(module: str, resource: str):
         language = None
         workspace = None
 
-    if language is None or workspace is None:
-        # No LSP support for this file or no workspace detected.
+    if language and workspace:
+        peer = lsp.get_lsp_peer(language, workspace)
+
+    if peer is not None:
+        peer._ws_send_loop = loop
+        peer._ws_send_queues.append(send_queue)
+        peer._on_message = lambda msg: _ws_send(peer, msg)
+        await ws.send_json({"type": "lsp", "status": "connected"})
+    else:
+        # No LSP support for this file or no workspace detected, but the
+        # socket stays open so live file updates keep working.
         await ws.send_json({"type": "lsp", "status": "unavailable"})
-        await ws.close(1000)
-        return
-
-    peer = lsp.get_lsp_peer(language, workspace)
-    if peer is None:
-        await ws.send_json({"type": "lsp", "status": "unavailable"})
-        await ws.close(1000)
-        return
-
-    loop = asyncio.get_running_loop()
-    send_queue: asyncio.Queue = asyncio.Queue()
-
-    peer._ws_send_loop = loop
-    peer._ws_send_queues.append(send_queue)
-    peer._on_message = lambda msg: _ws_send(peer, msg)
-
-    async def _forward() -> None:
-        while True:
-            msg = await send_queue.get()
-            await ws.send_json({"type": "lsp-server", "message": msg})
-
-    forward_task = asyncio.create_task(_forward())
 
     try:
-        await ws.send_json({"type": "lsp", "status": "connected"})
-
         while True:
             msg = await ws.receive_json()
-            peer.send_client_message(msg)
+            mtype = msg.get("type") if isinstance(msg, dict) else None
+            if mtype == "watch":
+                abs_path = _resource_abs_path(msg.get("resource", ""))
+                if abs_path is not None:
+                    manager.subscribe(abs_path, send_queue, root, loop)
+            elif mtype == "unwatch":
+                abs_path = _resource_abs_path(msg.get("resource", ""))
+                if abs_path is not None:
+                    manager.unsubscribe(abs_path, send_queue)
+            elif peer is not None:
+                peer.send_client_message(msg)
     except Exception:
         pass
     finally:
         forward_task.cancel()
-        try:
-            peer._ws_send_queues.remove(send_queue)
-        except ValueError:
-            pass
-        peer.release_session()
+        manager.unsubscribe_all(send_queue)
+        if peer is not None:
+            try:
+                peer._ws_send_queues.remove(send_queue)
+            except ValueError:
+                pass
+            peer.release_session()
 
 
 def _ws_send(peer: lsp.LSPPeer, msg: dict) -> None:
@@ -321,9 +582,10 @@ def _ws_send(peer: lsp.LSPPeer, msg: dict) -> None:
         if loop is None:
             return
         remapped = lsp.remap_message(peer, msg)
+        wrapped = {"type": "lsp-server", "message": remapped}
         for q in list(peer._ws_send_queues):
             try:
-                loop.call_soon_threadsafe(q.put_nowait, remapped)
+                loop.call_soon_threadsafe(q.put_nowait, wrapped)
             except Exception:
                 pass
     except Exception:
@@ -351,3 +613,11 @@ def filter_text_editor_resources(
 
 
 add_file_resource_link(filter_text_editor_resources)
+
+
+def _stop_watch_manager() -> None:
+    if _watch_manager is not None:
+        _watch_manager.stop()
+
+
+lifespan.at_shutdown(_stop_watch_manager)

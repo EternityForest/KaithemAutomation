@@ -26,8 +26,10 @@ import time
 from typing import Any, BinaryIO
 
 import structlog
+from scullery import messagebus
 
 from kaithem.api.lifespan import at_shutdown
+from kaithem.api.util import get_vardir
 from kaithem.src import alerts
 
 logger = structlog.get_logger(__name__)
@@ -35,6 +37,43 @@ logger = structlog.get_logger(__name__)
 CONTAINER_PREFIX = "kaithem-temp-"
 CLEANUP_INTERVAL = 60 * 60
 CLEANUP_MAX_AGE = 60 * 60 * 24 * 365
+
+
+try:
+    v = get_vardir()
+    os.makedirs(os.path.join(v, "podman", "conf"), exist_ok=True)
+    os.makedirs(os.path.join(v, "podman", "graph"), exist_ok=True)
+    os.makedirs(os.path.join(v, "podman", "containers"), exist_ok=True)
+
+    if not os.path.exists(os.path.join(v, "podman", "conf", "registries.conf")):
+        with open(
+            os.path.join(v, "podman", "conf", "registries.conf"), "w"
+        ) as f:
+            f.write("unqualified-search-registries = ['docker.io']\n")
+
+    if not os.path.exists(os.path.join(v, "podman", "conf", "storage.conf")):
+        with open(os.path.join(v, "podman", "conf", "storage.conf"), "w") as f:
+            f.write(
+                "[storage]\n"
+                'graphroot = "$KAITHEM_PODMAN_GRAPH"\n'
+                'runroot = "$KAITHEM_PODMAN_RUN"\n'
+                'driver = "overlay"\n'
+            )
+
+except Exception:
+    logger.exception("Failed to create dir for podman_util")
+
+
+env_extras = {
+    "CONTAINERS_REGISTRIES_CONF": os.path.join(
+        get_vardir(), "podman", "conf", "registries.conf"
+    ),
+    "KAITHEM_PODMAN_GRAPH": os.path.join(get_vardir(), "podman", "graph"),
+    "KAITHEM_PODMAN_RUN": os.path.join(get_vardir(), "podman", "containers"),
+    "CONTAINERS_STORAGE_CONF": os.path.join(
+        get_vardir(), "podman", "conf", "storage.conf"
+    ),
+}
 
 
 def _podman(*args: str) -> list[str]:
@@ -45,11 +84,12 @@ def _podman(*args: str) -> list[str]:
 
 
 def _podman_run(
-    *args: str, **kwargs: Any
+    *args: str, env: dict[str, str] | None = None, **kwargs: Any
 ) -> subprocess.CompletedProcess[bytes]:
     return subprocess.run(
         _podman(*args),
         capture_output=True,
+        env={**os.environ, **env_extras, **(env or {})},
         **kwargs,
     )
 
@@ -57,11 +97,10 @@ def _podman_run(
 def _alert(name: str, priority: str, description: str) -> None:
     """Raise an alert with the given priority."""
     try:
-        alerts.Alert(
-            name,
-            priority=priority,
-            description=description,
-        ).trip()
+        messagebus.post_message(
+            "/system/notifications/errors",
+            f"Podman alert: {description}",
+        )
     except Exception:
         logger.exception("Failed to raise alert")
 
@@ -93,39 +132,6 @@ def _pull_image(image: str) -> None:
         raise RuntimeError(f"Failed to pull image {image}")
     else:
         alert.clear()
-
-
-def _make_overlayfs(host: str) -> str:
-    """Make a writable overlayfs mount for a host dir, so it works rootless."""
-    if not os.path.isdir(host):
-        raise RuntimeError(f"Binding dir {host} does not exist")
-
-    os.makedirs("/tmp/kaithem-overlayfs", exist_ok=True)
-    merged = os.path.join(
-        "/tmp/kaithem-overlayfs", f"{os.path.basename(host)}-{os.getpid()}"
-    )
-    os.makedirs(merged, exist_ok=True)
-    os.makedirs(os.path.join(merged, "upper"), exist_ok=True)
-    os.makedirs(os.path.join(merged, "work"), exist_ok=True)
-    os.makedirs(os.path.join(merged, "merged"), exist_ok=True)
-
-    r = subprocess.run(
-        [
-            "mount",
-            "-t",
-            "overlay",
-            "overlay",
-            "-o",
-            f"lowerdir={host},upperdir={os.path.join(merged, 'upper')},workdir={os.path.join(merged, 'work')}",
-            os.path.join(merged, "merged"),
-        ],
-        capture_output=True,
-    )
-    if r.returncode != 0:
-        raise RuntimeError(
-            f"Failed to mount overlayfs: {r.stderr.decode(errors='replace')}"
-        )
-    return os.path.join(merged, "merged")
 
 
 def _container_name(name: str) -> str:
@@ -164,6 +170,7 @@ def run_container(
     cmd = _podman(
         "run",
         "--name",
+        "--storage-driver=overlay",
         _container_name(name),
         "--rm",
         "--detach" if detach else "--interactive",
@@ -171,9 +178,7 @@ def run_container(
         workdir,
     )
     for host, ctr in (bindings or {}).items():
-        # Use overlayfs to make it work rootless
-        merged = _make_overlayfs(host)
-        cmd += ["--mount", f"type=bind,src={merged},dst={ctr}"]
+        cmd += ["--mount", f"type=bind,src={host},dst={ctr}"]
     for k, v in (env or {}).items():
         cmd += ["--env", f"{k}={v}"]
     cmd += [image]

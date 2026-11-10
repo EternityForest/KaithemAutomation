@@ -94,6 +94,7 @@ dependencies = [
     "scipy-stubs",
     "jsonpatch>=1.38",
     "dbus-fast>=5.0.0; sys_platform == 'linux'",
+    "inotify>=0.2.12",
 ]
 
 [build-system]

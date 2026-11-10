@@ -27,18 +27,15 @@ logger = structlog.get_logger(__name__)
 
 # Language -> lspcontainers image name
 LANGUAGE_IMAGES: dict[str, str] = {
-    "python": "lspcontainers/lspcontainers:python-lsp",
-    "typescript": "lspcontainers/lspcontainers:typescript-language-server",
-    "javascript": "lspcontainers/lspcontainers:typescript-language-server",
-    "json": "lspcontainers/lspcontainers:json-lsp",
-    "css": "lspcontainers/lspcontainers:css-lsp",
-    "html": "lspcontainers/lspcontainers:html-lsp",
-    "yaml": "lspcontainers/lspcontainers:yaml-lsp",
-    "markdown": "lspcontainers/lspcontainers:markdown-lsp",
-    "go": "lspcontainers/lspcontainers:go-lsp",
-    "rust": "lspcontainers/lspcontainers:rust-analyzer",
-    "lua": "lspcontainers/lspcontainers:lua-lsp",
-    "bash": "lspcontainers/lspcontainers:bash-lsp",
+    "python": "lspcontainers/pyright-langserver:latest",
+    "typescript": "lspcontainers/typescript-language-server:latest",  # noqa: E501
+    "javascript": "lspcontainers/typescript-language-server:latest",  # noqa: E501
+    "json": "lspcontainers/json-lsp:latest",
+    "css": "lspcontainers/css-lsp:latest",
+    "html": "lspcontainers/html-lsp:latest",
+    "yaml": "lspcontainers/yaml-lsp:latest",
+    "markdown": "lspcontainers/markdown-lsp:latest",
+    "rust": "lspcontainers/rust-analyzer:latest",
 }
 
 # Marker files that signal a workspace root, in increasing order of
@@ -66,7 +63,7 @@ def detect_workspace(path: str) -> str | None:
     if not os.path.isdir(path):
         path = os.path.dirname(path)
 
-    best = None
+    best = path
     cur = path
     while True:
         for marker in MARKER_FILES:
@@ -129,7 +126,7 @@ class LSPPeer:
         # these asyncio queues, and each connected websocket drains its own
         # queue on the event loop.  The loop reference is needed because the
         # reader thread is not an asyncio thread.
-        self._ws_send_queues: list[asyncio.Queue] = []
+        self._ws_send_queues: list[asyncio.Queue[dict[str, Any]]] = []
         self._ws_send_loop: asyncio.AbstractEventLoop | None = None
 
         image = LANGUAGE_IMAGES[language]

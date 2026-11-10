@@ -153,4 +153,68 @@ test.describe("Text Editor Plugin", () => {
     await expect(badge).toBeVisible();
     await expect(badge).toContainText("LSP");
   });
+
+  test("context menu dismisses when clicking outside", async ({ page }) => {
+    await openEditor(page, MOD, "files/hello.txt");
+    const host = page.locator("text-editor-page");
+    await host.locator('[data-testid="sidebar-toggle"]').click();
+    await page.waitForTimeout(500);
+
+    const item = host.locator(".tree-item", { hasText: "hello.txt" });
+    await item.click({ button: "right" });
+    const newFileBtn = host.locator('[data-testid="ctx-new-file"]');
+    await expect(newFileBtn).toBeVisible();
+
+    // The dismiss guard ignores clicks immediately after opening, so wait.
+    await page.waitForTimeout(500);
+    await host.locator(".statusbar").click();
+    await expect(newFileBtn).toBeHidden();
+  });
+
+  test("live updates apply remote changes when tab is clean", async ({ page }) => {
+    await openEditor(page, MOD, "files/hello.txt");
+    // Give the websocket time to open and subscribe to the file.
+    await page.waitForTimeout(1000);
+
+    await createFileViaApi(page, MOD, "files/hello.txt", "Changed on server\n");
+
+    await expect
+      .poll(
+        async () =>
+          page.evaluate(() => {
+            const h = document.querySelector("text-editor-page") as any;
+            return h?.tabs?.[0]?.ace?.getValue();
+          }),
+        { timeout: 10_000 }
+      )
+      .toContain("Changed on server");
+
+    const dirty = await page.evaluate(() => {
+      const h = document.querySelector("text-editor-page") as any;
+      return h?.tabs?.[0]?.dirty;
+    });
+    expect(dirty).toBe(false);
+  });
+
+  test("live updates do not clobber dirty tabs", async ({ page }) => {
+    await openEditor(page, MOD, "files/hello.txt");
+    await page.waitForTimeout(1000);
+
+    const host = page.locator("text-editor-page");
+    const aceEl = host.locator('[data-testid="ace-files/hello.txt"]');
+    await aceEl.click({ position: { x: 60, y: 20 } });
+    await page.keyboard.type("LOCALEDIT");
+    await page.waitForTimeout(300);
+
+    await createFileViaApi(page, MOD, "files/hello.txt", "Remote overwrite\n");
+    await page.waitForTimeout(2000);
+
+    const state = await page.evaluate(() => {
+      const h = document.querySelector("text-editor-page") as any;
+      const ed = h?.tabs?.[0]?.ace;
+      return { value: ed ? ed.getValue() : null, dirty: h?.tabs?.[0]?.dirty };
+    });
+    expect(state.value).toContain("LOCALEDIT");
+    expect(state.dirty).toBe(true);
+  });
 });

@@ -47,8 +47,6 @@ import 'ace-builds/src-noconflict/mode-text';
 import 'ace-builds/src-noconflict/ext-searchbox';
 import 'ace-builds/src-noconflict/theme-chrome';
 
-const MAX_FILE_BYTES = 5 * 1024 * 1024;
-
 interface Tab {
   path: string;
   content: string;
@@ -63,7 +61,7 @@ interface FileNode {
   children?: FileNode[];
 }
 
-const params = new URLSearchParams(window.location.search);
+const params = new URLSearchParams(globalThis.location.search);
 const MODULE = params.get('module') || '';
 const RESOURCE = params.get('resource') || '';
 
@@ -77,143 +75,9 @@ class TextEditorPage extends LitElement {
     contextMenu: { state: true },
   };
 
-  static override styles = css`
-    :host {
-      display: flex;
-      flex-direction: column;
-      height: 100dvh;
-      width: 100%;
-      overflow: hidden;
-      font-family: inherit;
-      background: var(--bg, #fff);
-      color: var(--fg, #1c1c1c);
-    }
-    header {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.25rem 0.5rem;
-      background: var(--bg2, #e1ded7);
-      flex-shrink: 0;
-    }
-    .tabbar {
-      display: flex;
-      overflow-x: auto;
-      flex-shrink: 0;
-      background: var(--bg2, #e1ded7);
-      border-bottom: 1px solid #ccc;
-      scrollbar-width: thin;
-    }
-    .tab {
-      display: flex;
-      align-items: center;
-      gap: 0.25rem;
-      padding: 0.25rem 0.6rem;
-      cursor: pointer;
-      white-space: nowrap;
-      border-right: 1px solid #ccc;
-      font-size: 0.85rem;
-    }
-    .tab.active {
-      background: var(--bg, #fff);
-    }
-    .tab .close {
-      opacity: 0.6;
-      cursor: pointer;
-      padding: 0 0.2rem;
-    }
-    .main {
-      display: flex;
-      flex: 1;
-      overflow: hidden;
-      position: relative;
-    }
-    .sidebar {
-      width: 260px;
-      background: var(--bg2, #e1ded7);
-      border-right: 1px solid #ccc;
-      overflow-y: auto;
-      flex-shrink: 0;
-      font-size: 0.85rem;
-    }
-    .sidebar.mobile {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      z-index: 10;
-      background: var(--bg2, #e1ded7);
-    }
-    .editor {
-      flex: 1;
-      overflow: hidden;
-    }
-    .editor .ace {
-      width: 100%;
-      height: 100%;
-    }
-    .statusbar {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.1rem 0.5rem;
-      font-size: 0.75rem;
-      background: var(--bg2, #e1ded7);
-      flex-shrink: 0;
-    }
-    .badge {
-      border-radius: 4px;
-      padding: 0 0.35rem;
-      font-size: 0.7rem;
-    }
-    .badge.connected {
-      background: #2e7d32;
-      color: #fff;
-    }
-    .badge.unavailable {
-      background: #ddd;
-      color: #555;
-    }
-    .tree-root {
-      min-height: 100%;
-      min-width: 100%;
-    }
-    .tree-item {
-      padding: 0.15rem 0.5rem;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-    .tree-item:hover {
-      background: rgba(0, 0, 0, 0.08);
-    }
-    .contextmenu {
-      position: fixed;
-      z-index: 20;
-      background: #fff;
-      border: 1px solid #ccc;
-      padding: 0.2rem;
-      min-width: 140px;
-    }
-    .contextmenu button {
-      display: block;
-      width: 100%;
-      text-align: left;
-      background: none;
-      border: none;
-      color: inherit;
-      padding: 0.3rem 0.6rem;
-      cursor: pointer;
-      font-size: 0.85rem;
-    }
-    .contextmenu button:hover {
-      background: rgba(0, 0, 0, 0.08);
-    }
-    @media (max-width: 768px) {
-      .sidebar {
-        width: 100%;
-      }
-    }
-  `;
-
+  override createRenderRoot() {
+    return this;
+  }
   // tsconfig has useDefineForClassFields on: plain field initializers would
   // create own instance properties that shadow the accessors Lit installs for
   // static properties, so assignments would never schedule a re-render and
@@ -242,10 +106,14 @@ class TextEditorPage extends LitElement {
   }
 
   private ws: WebSocket | null = null;
-  private _isMobile = window.matchMedia('(max-width: 768px)').matches;
+  private _isMobile = globalThis.matchMedia('(max-width: 768px)').matches;
+  private _watchedResources = new Set<string>();
+  private _applyingRemote = false;
+  private _contextMenuOpenedAt = 0;
 
   override firstUpdated() {
     window.addEventListener('beforeunload', this._beforeUnload);
+    document.addEventListener('click', this._onDocumentClick);
     this._refreshTree();
     this._openFile(RESOURCE);
     this._connectLsp();
@@ -254,7 +122,22 @@ class TextEditorPage extends LitElement {
   override disconnectedCallback() {
     super.disconnectedCallback();
     window.removeEventListener('beforeunload', this._beforeUnload);
+    document.removeEventListener('click', this._onDocumentClick);
     this.ws?.close();
+  }
+
+  private _onDocumentClick = () => {
+    if (!this.contextMenu) return;
+    // Some touch devices emit a synthetic click right after a long-press
+    // opens the menu; ignore it so the menu is not dismissed instantly.
+    if (Date.now() - this._contextMenuOpenedAt < 350) return;
+    this.contextMenu = null;
+  };
+
+  private _openContextMenu(e: MouseEvent, path: string, isDir: boolean) {
+    e.preventDefault();
+    this._contextMenuOpenedAt = Date.now();
+    this.contextMenu = { x: e.clientX, y: e.clientY, path, isDir };
   }
 
   private _beforeUnload = (e: BeforeUnloadEvent) => {
@@ -286,11 +169,41 @@ class TextEditorPage extends LitElement {
     return r.json();
   }
 
+  private _wsSend(msg: object) {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify(msg));
+    }
+  }
+
+  private _watchResource(path: string) {
+    this._watchedResources.add(path);
+    this._wsSend({ type: 'watch', resource: path });
+  }
+
+  private _unwatchResource(path: string) {
+    this._watchedResources.delete(path);
+    this._wsSend({ type: 'unwatch', resource: path });
+  }
+
+  private _applyRemoteContent(resource: string, content: string) {
+    const tab = this.tabs.find((t) => t.path === resource);
+    // Never clobber unsaved local edits, and skip no-op updates (e.g. the
+    // echo of our own save).
+    if (!tab || tab.dirty || tab.content === content) return;
+    tab.content = content;
+    if (tab.ace) {
+      this._applyingRemote = true;
+      tab.ace.setValue(content, -1);
+      this._applyingRemote = false;
+    }
+    this.tabs = [...this.tabs];
+  }
+
   private async _refreshTree() {
     try {
       this.tree = await this._api('GET', 'list', { module: MODULE, resource: '' });
-    } catch (e) {
-      console.error(e);
+    } catch (error) {
+      console.error(error);
     }
   }
 
@@ -308,18 +221,30 @@ class TextEditorPage extends LitElement {
       this.tabs = [...this.tabs, tab];
       this.activeTab = path;
       this._mountAce(path);
-    } catch (e) {
-      const msg = (e as Error).message;
-      if (msg === 'too_large') {
+      this._watchResource(path);
+    } catch (error) {
+      const msg = (error as Error).message;
+      switch (msg) {
+      case 'too_large': {
         alert('This file is 5MB or larger and cannot be opened.');
-      } else if (msg === 'binary') {
+      
+      break;
+      }
+      case 'binary': {
         alert('This file is not a plain text file.');
-      } else if (msg === 'not_a_file') {
+      
+      break;
+      }
+      case 'not_a_file': {
         alert('That path is not a file.');
-      } else {
+      
+      break;
+      }
+      default: {
         alert('Could not open file: ' + msg);
       }
-      console.error(e);
+      }
+      console.error(error);
     }
   }
 
@@ -343,7 +268,12 @@ class TextEditorPage extends LitElement {
       // shadow root that actually contains the editor element.
       (ed.renderer as any).attachToShadowRoot();
       ed.session.on('change', () => {
-        tab.content = ed.getValue();
+        if (this._applyingRemote) return;
+        const value = ed.getValue();
+        // Ignore the echo of a remote apply if the change event fires
+        // asynchronously (after _applyingRemote was cleared).
+        if (value === tab.content) return;
+        tab.content = value;
         tab.dirty = true;
         this.tabs = [...this.tabs];
       });
@@ -396,25 +326,24 @@ class TextEditorPage extends LitElement {
       tab.content = content;
       tab.dirty = false;
       this.tabs = [...this.tabs];
-    } catch (e) {
-      const msg = (e as Error).message;
+    } catch (error) {
+      const msg = (error as Error).message;
       if (msg === 'too_large') {
         alert('This file is 5MB or larger and cannot be saved.');
       } else {
         alert('Could not save file: ' + msg);
       }
-      console.error(e);
+      console.error(error);
     }
   }
 
   private _closeTab(path: string) {
     const tab = this.tabs.find((t) => t.path === path);
-    if (tab?.dirty) {
-      if (!confirm('Unsaved changes in ' + path + '. Close anyway?')) return;
-    }
+    if (tab?.dirty && !confirm('Unsaved changes in ' + path + '. Close anyway?')) return;
     this.tabs = this.tabs.filter((t) => t.path !== path);
+    this._unwatchResource(path);
     if (this.activeTab === path) {
-      this.activeTab = this.tabs[this.tabs.length - 1]?.path || null;
+      this.activeTab = this.tabs.at(-1)?.path || null;
     }
   }
 
@@ -422,21 +351,38 @@ class TextEditorPage extends LitElement {
     this.ws = new WebSocket(
       `/text-editor-plugin/ws/${encodeURIComponent(MODULE)}/${encodeURIComponent(RESOURCE)}`
     );
-    this.ws.onopen = () => {
+    this.ws.addEventListener('open', () => {
       this.lspStatus = 'connecting';
-    };
+      // (Re)subscribe to any files opened before the socket was ready.
+      for (const r of this._watchedResources) {
+        this._wsSend({ type: 'watch', resource: r });
+      }
+    });
     this.ws.onmessage = (ev) => {
       const msg = JSON.parse(ev.data);
-      if (msg.type === 'lsp') {
+      switch (msg.type) {
+      case 'lsp': {
         this.lspStatus = msg.status;
-      } else if (msg.type === 'lsp-server') {
+      
+      break;
+      }
+      case 'lsp-server': {
         // Forward to the Ace editor for LSP features.
         this._handleLspMessage(msg);
+      
+      break;
+      }
+      case 'file-changed': {
+        this._applyRemoteContent(msg.resource, msg.content);
+      
+      break;
+      }
+      // No default
       }
     };
-    this.ws.onclose = () => {
+    this.ws.addEventListener('close', () => {
       this.lspStatus = 'unavailable';
-    };
+    });
   }
 
   private _handleLspMessage(msg: any) {
@@ -452,18 +398,11 @@ class TextEditorPage extends LitElement {
         <div
           class="tree-item"
           style="padding-left: ${0.5 + depth * 0.75}rem"
-          @click=${() => {
+          @click="${() => {
             if (n.type === 'file') this._openFile(fullPath);
-          }}
-          @contextmenu=${(e: Event) => {
-            e.preventDefault();
-            this.contextMenu = {
-              x: (e as MouseEvent).clientX,
-              y: (e as MouseEvent).clientY,
-              path: fullPath,
-              isDir: n.type === 'dir',
-            };
-          }}
+          }}"
+          @contextmenu="${(e: Event) =>
+            this._openContextMenu(e as MouseEvent, fullPath, n.type === 'dir')}"
         >
           ${n.type === 'dir' ? '📁 ' : '📄 '}${n.name}
         </div>
@@ -482,7 +421,8 @@ class TextEditorPage extends LitElement {
     const dir = cm.isDir ? path : path.split('/').slice(0, -1).join('/');
 
     try {
-      if (action === 'newfile') {
+      switch (action) {
+      case 'newfile': {
         const name = prompt('New file name');
         if (name) {
           await this._api('POST', 'new_file', undefined, {
@@ -491,7 +431,10 @@ class TextEditorPage extends LitElement {
           });
           this._refreshTree();
         }
-      } else if (action === 'newfolder') {
+      
+      break;
+      }
+      case 'newfolder': {
         const name = prompt('New folder name');
         if (name) {
           await this._api('POST', 'new_folder', undefined, {
@@ -500,7 +443,10 @@ class TextEditorPage extends LitElement {
           });
           this._refreshTree();
         }
-      } else if (action === 'rename') {
+      
+      break;
+      }
+      case 'rename': {
         const oldName = path.split('/').pop();
         const name = prompt('New name', oldName);
         if (name) {
@@ -511,7 +457,10 @@ class TextEditorPage extends LitElement {
           });
           this._refreshTree();
         }
-      } else if (action === 'delete') {
+      
+      break;
+      }
+      case 'delete': {
         if (confirm('Delete ' + path + '?')) {
           await this._api('POST', 'delete', undefined, {
             module: MODULE,
@@ -519,9 +468,13 @@ class TextEditorPage extends LitElement {
           });
           this._refreshTree();
         }
+      
+      break;
       }
-    } catch (e) {
-      alert('Error: ' + (e as Error).message);
+      // No default
+      }
+    } catch (error) {
+      alert('Error: ' + (error as Error).message);
     }
   }
 
@@ -529,13 +482,13 @@ class TextEditorPage extends LitElement {
     return html`
       <header>
         <button
-          @click=${() => (this.sidebarOpen = !this.sidebarOpen)}
+          @click="${() => (this.sidebarOpen = !this.sidebarOpen)}"
           data-testid="sidebar-toggle"
         >
           <span class="mdi mdi-file-tree"></span>
         </button>
         <span class="mdi mdi-content-save"></span>
-        <button @click=${this._save} data-testid="save-btn">Save</button>
+        <button @click="${this._save}" data-testid="save-btn">Save</button>
         <span style="flex:1"></span>
         <span>${this.activeTab?.split('/').pop() || ''}</span>
       </header>
@@ -544,18 +497,18 @@ class TextEditorPage extends LitElement {
           (t) => html`
             <div
               class="tab ${t.path === this.activeTab ? 'active' : ''}"
-              @click=${() => {
+              @click="${() => {
                 this.activeTab = t.path;
                 this._focusTab();
-              }}
+              }}"
             >
               <span>${t.path.split('/').pop()}${t.dirty ? ' •' : ''}</span>
               <span
                 class="close"
-                @click=${(e: Event) => {
+                @click="${(e: Event) => {
                   e.stopPropagation();
                   this._closeTab(t.path);
-                }}
+                }}"
                 >✕</span
               >
             </div>
@@ -569,15 +522,8 @@ class TextEditorPage extends LitElement {
                 <div
                   class="tree-root"
                   data-testid="tree-root"
-                  @contextmenu=${(e: Event) => {
-                    e.preventDefault();
-                    this.contextMenu = {
-                      x: (e as MouseEvent).clientX,
-                      y: (e as MouseEvent).clientY,
-                      path: '',
-                      isDir: true,
-                    };
-                  }}
+                  @contextmenu="${(e: Event) =>
+                    this._openContextMenu(e as MouseEvent, '', true)}"
                 >
                   ${this.tree.length === 0
                     ? html`<div class="tree-item">Right-click to create a file</div>`
@@ -604,18 +550,18 @@ class TextEditorPage extends LitElement {
               <div
                 class="contextmenu"
                 style="left: ${this.contextMenu.x}px; top: ${this.contextMenu.y}px"
-                @click=${() => (this.contextMenu = null)}
+                @click="${() => (this.contextMenu = null)}"
               >
                 ${this.contextMenu.isDir
                   ? html`
-                      <button data-testid="ctx-new-file" @click=${() => this._ctxAction('newfile')}>New file</button>
-                      <button data-testid="ctx-new-folder" @click=${() => this._ctxAction('newfolder')}>New folder</button>
-                      <button data-testid="ctx-rename" @click=${() => this._ctxAction('rename')}>Rename</button>
-                      <button data-testid="ctx-delete" @click=${() => this._ctxAction('delete')}>Delete</button>
+                      <button data-testid="ctx-new-file" @click="${() => this._ctxAction('newfile')}">New file</button>
+                      <button data-testid="ctx-new-folder" @click="${() => this._ctxAction('newfolder')}">New folder</button>
+                      <button data-testid="ctx-rename" @click="${() => this._ctxAction('rename')}">Rename</button>
+                      <button data-testid="ctx-delete" @click="${() => this._ctxAction('delete')}">Delete</button>
                     `
                   : html`
-                      <button data-testid="ctx-rename" @click=${() => this._ctxAction('rename')}>Rename</button>
-                      <button data-testid="ctx-delete" @click=${() => this._ctxAction('delete')}>Delete</button>
+                      <button data-testid="ctx-rename" @click="${() => this._ctxAction('rename')}">Rename</button>
+                      <button data-testid="ctx-delete" @click="${() => this._ctxAction('delete')}">Delete</button>
                     `}
               </div>
             `
