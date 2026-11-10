@@ -309,6 +309,16 @@ class TextEditorPage extends LitElement {
       this.activeTab = path;
       this._mountAce(path);
     } catch (e) {
+      const msg = (e as Error).message;
+      if (msg === 'too_large') {
+        alert('This file is 5MB or larger and cannot be opened.');
+      } else if (msg === 'binary') {
+        alert('This file is not a plain text file.');
+      } else if (msg === 'not_a_file') {
+        alert('That path is not a file.');
+      } else {
+        alert('Could not open file: ' + msg);
+      }
       console.error(e);
     }
   }
@@ -327,6 +337,11 @@ class TextEditorPage extends LitElement {
         useSoftTabs: true,
         printMargin: false,
       });
+      // Ace injects its base editor CSS into document.head by default. Inside
+      // a shadow root that CSS is invisible to the editor, leaving .ace_scroller
+      // position:static and all layers off-screen. Inject the base CSS into the
+      // shadow root that actually contains the editor element.
+      (ed.renderer as any).attachToShadowRoot();
       ed.session.on('change', () => {
         tab.content = ed.getValue();
         tab.dirty = true;
@@ -370,13 +385,26 @@ class TextEditorPage extends LitElement {
   private async _save() {
     const tab = this.tabs.find((t) => t.path === this.activeTab);
     if (!tab) return;
-    await this._api('POST', 'write', undefined, {
-      module: MODULE,
-      resource: tab.path,
-      content: tab.content,
-    });
-    tab.dirty = false;
-    this.tabs = [...this.tabs];
+    // Read the live value straight from Ace so we never save a stale buffer.
+    const content = tab.ace ? tab.ace.getValue() : tab.content;
+    try {
+      await this._api('POST', 'write', undefined, {
+        module: MODULE,
+        resource: tab.path,
+        content,
+      });
+      tab.content = content;
+      tab.dirty = false;
+      this.tabs = [...this.tabs];
+    } catch (e) {
+      const msg = (e as Error).message;
+      if (msg === 'too_large') {
+        alert('This file is 5MB or larger and cannot be saved.');
+      } else {
+        alert('Could not save file: ' + msg);
+      }
+      console.error(e);
+    }
   }
 
   private _closeTab(path: string) {
@@ -417,30 +445,33 @@ class TextEditorPage extends LitElement {
     console.log('LSP message', msg);
   }
 
-  private _renderTree(nodes: FileNode[], depth = 0): any {
-    return nodes.map((n) =>
-      html`
+  private _renderTree(nodes: FileNode[], depth = 0, parentPath = ''): any {
+    return nodes.map((n) => {
+      const fullPath = parentPath ? parentPath + '/' + n.name : n.name;
+      return html`
         <div
           class="tree-item"
           style="padding-left: ${0.5 + depth * 0.75}rem"
           @click=${() => {
-            if (n.type === 'file') this._openFile(n.name);
+            if (n.type === 'file') this._openFile(fullPath);
           }}
           @contextmenu=${(e: Event) => {
             e.preventDefault();
             this.contextMenu = {
               x: (e as MouseEvent).clientX,
               y: (e as MouseEvent).clientY,
-              path: n.name,
+              path: fullPath,
               isDir: n.type === 'dir',
             };
           }}
         >
           ${n.type === 'dir' ? '📁 ' : '📄 '}${n.name}
         </div>
-        ${n.type === 'dir' && n.children ? this._renderTree(n.children, depth + 1) : nothing}
-      `
-    );
+        ${n.type === 'dir' && n.children
+          ? this._renderTree(n.children, depth + 1, fullPath)
+          : nothing}
+      `;
+    });
   }
 
   private async _ctxAction(action: string) {
@@ -501,7 +532,7 @@ class TextEditorPage extends LitElement {
           @click=${() => (this.sidebarOpen = !this.sidebarOpen)}
           data-testid="sidebar-toggle"
         >
-          <span class="mdi mdi-menu"></span>
+          <span class="mdi mdi-file-tree"></span>
         </button>
         <span class="mdi mdi-content-save"></span>
         <button @click=${this._save} data-testid="save-btn">Save</button>

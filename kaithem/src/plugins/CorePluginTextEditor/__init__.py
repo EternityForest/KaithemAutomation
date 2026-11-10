@@ -8,6 +8,7 @@ REST APIs for reading/writing/renaming/deleting/creating files and
 folders, and a websocket for the LSP proxy.
 """
 
+import asyncio
 import os
 import shutil
 from urllib.parse import quote_plus
@@ -252,7 +253,7 @@ async def api_detect_workspace():
     return await quart.utils.run_sync(f)()
 
 
-@quart_app.websocket("/text-editor-plugin/ws/<module>/<resource>")
+@quart_app.websocket("/text-editor-plugin/ws/<module>/<path:resource>")
 async def text_editor_ws(module: str, resource: str):
     require("system_admin")
 
@@ -278,9 +279,19 @@ async def text_editor_ws(module: str, resource: str):
         await ws.close(1000)
         return
 
-    key = (language, workspace)
+    loop = asyncio.get_running_loop()
+    send_queue: asyncio.Queue = asyncio.Queue()
 
+    peer._ws_send_loop = loop
+    peer._ws_send_queues.append(send_queue)
     peer._on_message = lambda msg: _ws_send(peer, msg)
+
+    async def _forward() -> None:
+        while True:
+            msg = await send_queue.get()
+            await ws.send_json({"type": "lsp-server", "message": msg})
+
+    forward_task = asyncio.create_task(_forward())
 
     try:
         await ws.send_json({"type": "lsp", "status": "connected"})
@@ -291,13 +302,30 @@ async def text_editor_ws(module: str, resource: str):
     except Exception:
         pass
     finally:
+        forward_task.cancel()
+        try:
+            peer._ws_send_queues.remove(send_queue)
+        except ValueError:
+            pass
         peer.release_session()
 
 
 def _ws_send(peer: lsp.LSPPeer, msg: dict) -> None:
-    """Forward a server message to the connected websocket(s)."""
+    """Forward a server message to every connected websocket.
+
+    Called from the LSP reader thread, so we cannot await directly; we hop
+    onto the event loop that owns the websocket queues.
+    """
     try:
-        peer._ws_send_queue.put_nowait(lsp.remap_message(peer, msg))
+        loop = peer._ws_send_loop
+        if loop is None:
+            return
+        remapped = lsp.remap_message(peer, msg)
+        for q in list(peer._ws_send_queues):
+            try:
+                loop.call_soon_threadsafe(q.put_nowait, remapped)
+            except Exception:
+                pass
     except Exception:
         logger.exception("Error sending LSP message to websocket")
 

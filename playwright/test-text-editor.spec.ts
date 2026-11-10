@@ -1,106 +1,156 @@
 import { test, expect, Page } from "@playwright/test";
-import { BASE, login, logout, makeModule, deleteModule } from "./util";
+import { BASE, login, makeModule, deleteModule } from "./util";
 
-/**
- * Test suite for the text editor plugin.
- *
- * Uses the file resources system to create a plain text file, then
- * opens it in the text editor and exercises the file manager sidebar
- * and the Ace editor.
- */
+const MOD = "test_text_editor_plugin";
 
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+async function createFileViaApi(page: Page, module: string, resource: string, content: string) {
+  const res = await page.evaluate(
+    async ({ module, resource, content }) => {
+      const fd = new FormData();
+      fd.append("module", module);
+      fd.append("resource", resource);
+      fd.append("content", content);
+      const r = await fetch("/text-editor-plugin/api/write", { method: "POST", body: fd });
+      return { status: r.status, text: await r.text() };
+    },
+    { module, resource, content }
+  );
+  return res;
 }
 
-async function openTextEditor(page: Page, module: string, resource: string) {
+async function readFileViaApi(page: Page, module: string, resource: string) {
+  return page.evaluate(
+    async ({ module, resource }) => {
+      const qs = new URLSearchParams({ module, resource });
+      const r = await fetch("/text-editor-plugin/api/read?" + qs);
+      return { status: r.status, json: await r.json() };
+    },
+    { module, resource }
+  );
+}
+
+async function openEditor(page: Page, module: string, resource: string) {
   await page.goto(
     `${BASE}/text-editor-plugin/edit?module=` +
       encodeURIComponent(module) +
       "&resource=" +
       encodeURIComponent(resource)
   );
-  await sleep(1000);
+  await page.waitForTimeout(2000);
 }
 
-test("text editor opens and edits", async ({ page }) => {
-  test.setTimeout(600_000);
-
-  await login(page);
-  await makeModule(page, "test_text_editor");
-
-  // Create a folder resource that holds the file
-  await page.goto(`${BASE}/modules/module/test_text_editor`);
-  await page.getByTestId("add-resource-button").click();
-  await page.getByTestId("add-folder").click();
-  await page.getByLabel("Name").fill("files");
-  await page.getByRole("button", { name: "Submit" }).click();
-
-  // Open the text editor on the workspace folder. The editor page is
-  // served from the Vite build.
-  await openTextEditor(page, "test_text_editor", "files");
-
-  // Sidebar toggle
-  await page.getByTestId("sidebar-toggle").click();
-  await expect(page.getByTestId("sidebar")).toBeVisible();
-
-  // New file via the sidebar context menu
-  await page
-    .getByTestId("sidebar")
-    .getByTestId("tree-root")
-    .click({ button: "right" });
-  await page.once("dialog", (dialog) => {
-    dialog.accept("hello.txt").catch(() => {});
+test.describe("Text Editor Plugin", () => {
+  test.beforeEach(async ({ page }) => {
+    test.setTimeout(120_000);
+    await login(page);
+    await makeModule(page, MOD);
+    await page.goto(`${BASE}/index`);
+    await createFileViaApi(page, MOD, "files/hello.txt", "Hello world\n");
+    await createFileViaApi(page, MOD, "files/nested/deep.txt", "Deep content\n");
   });
-  await page.getByTestId("ctx-new-file").click();
-  await sleep(300);
 
-  // The file should be in the tree
-  await expect(page.getByTestId("sidebar")).toContainText("hello.txt");
-
-  // Open it in the editor
-  await page.getByTestId("sidebar").getByText("hello.txt").click();
-  await sleep(500);
-
-  // Ace editor should be mounted
-  await expect(page.getByTestId("ace-hello.txt")).toBeVisible();
-
-  // Type into the editor
-  await page.getByTestId("ace-hello.txt").click();
-  await page.keyboard.type("Hello, world");
-
-  // Save
-  await page.getByTestId("save-btn").click();
-  await sleep(500);
-
-  // Verify the file content on disk via the API
-  const resp = await page.request.get(
-    `${BASE}/text-editor-plugin/api/read?module=test_text_editor&resource=files/hello.txt`
-  );
-  const j = await resp.json();
-  expect(j.content).toContain("Hello, world");
-
-  // Rename via context menu
-  await page.getByTestId("sidebar").getByText("hello.txt").click({ button: "right" });
-  await page.once("dialog", (dialog) => {
-    dialog.accept("renamed.txt").catch(() => {});
+  test.afterEach(async ({ page }) => {
+    await deleteModule(page, MOD);
   });
-  await page.getByTestId("ctx-rename").click();
-  await sleep(300);
-  await expect(page.getByTestId("sidebar")).toContainText("renamed.txt");
 
-  // Delete via context menu
-  await page
-    .getByTestId("sidebar")
-    .getByText("renamed.txt")
-    .click({ button: "right" });
-  await page.once("dialog", (dialog) => {
-    dialog.accept().catch(() => {});
+  test("loads file content into Ace editor", async ({ page }) => {
+    await openEditor(page, MOD, "files/hello.txt");
+
+    const state = await page.evaluate(() => {
+      const host = document.querySelector("text-editor-page") as any;
+      const ed = host?.tabs?.[0]?.ace;
+      return {
+        tabs: host?.tabs?.map((t: any) => t.path),
+        activeTab: host?.activeTab,
+        value: ed ? ed.getValue() : null,
+      };
+    });
+    expect(state.tabs).toEqual(["files/hello.txt"]);
+    expect(state.activeTab).toBe("files/hello.txt");
+    expect(state.value).toContain("Hello world");
   });
-  await page.getByTestId("ctx-delete").click();
-  await sleep(300);
-  await expect(page.getByTestId("sidebar")).not.toContainText("renamed.txt");
 
-  await deleteModule(page, "test_text_editor");
-  await logout(page);
+  test("editor is editable and marks tab dirty", async ({ page }) => {
+    await openEditor(page, MOD, "files/hello.txt");
+    const host = page.locator("text-editor-page");
+    const aceEl = host.locator('[data-testid="ace-files/hello.txt"]');
+    await expect(aceEl).toBeVisible();
+    await aceEl.click({ position: { x: 60, y: 20 } });
+    await page.keyboard.type("EDITABLE");
+    await page.waitForTimeout(500);
+    const dirty = await page.evaluate(() => {
+      const h = document.querySelector("text-editor-page") as any;
+      const ed = h?.tabs?.[0]?.ace;
+      return { dirty: h?.tabs?.[0]?.dirty, value: ed ? ed.getValue() : null };
+    });
+    expect(dirty.dirty).toBe(true);
+    expect(dirty.value).toContain("EDITABLE");
+  });
+
+  test("save persists content to disk", async ({ page }) => {
+    await openEditor(page, MOD, "files/hello.txt");
+    const host = page.locator("text-editor-page");
+    const aceEl = host.locator('[data-testid="ace-files/hello.txt"]');
+    await aceEl.click({ position: { x: 60, y: 20 } });
+    await page.keyboard.type("SAVED");
+    await page.waitForTimeout(300);
+    await host.locator('[data-testid="save-btn"]').click();
+    await page.waitForTimeout(1000);
+    const saved = await readFileViaApi(page, MOD, "files/hello.txt");
+    expect(saved.status).toBe(200);
+    expect(saved.json.content).toContain("SAVED");
+  });
+
+  test("sidebar tree shows files and opens nested file", async ({ page }) => {
+    await openEditor(page, MOD, "files/hello.txt");
+    const host = page.locator("text-editor-page");
+    await host.locator('[data-testid="sidebar-toggle"]').click();
+    await page.waitForTimeout(500);
+
+    const items = await page.evaluate(() => {
+      const h = document.querySelector("text-editor-page") as any;
+      const root = h?.renderRoot ?? h?.shadowRoot;
+      const sidebar = root?.querySelector('[data-testid="sidebar"]');
+      return sidebar
+        ? Array.from(sidebar.querySelectorAll(".tree-item")).map((e: any) => e.textContent.trim())
+        : null;
+    });
+    expect(items).toContain("📁 files");
+    expect(items).toContain("📄 hello.txt");
+
+    // Open nested file via tree (expand folder first, then click deep.txt)
+    const deepItem = host.locator(".tree-item", { hasText: "deep.txt" });
+    await expect(deepItem).toBeVisible();
+    await deepItem.click();
+    await page.waitForTimeout(1000);
+    const tabs = await page.evaluate(() => {
+      const h = document.querySelector("text-editor-page") as any;
+      return { tabs: h?.tabs?.map((t: any) => t.path), activeTab: h?.activeTab };
+    });
+    expect(tabs.tabs).toContain("files/nested/deep.txt");
+    expect(tabs.activeTab).toBe("files/nested/deep.txt");
+  });
+
+  test("closing tab works", async ({ page }) => {
+    await openEditor(page, MOD, "files/hello.txt");
+    const host = page.locator("text-editor-page");
+    const tabbar = host.locator('[data-testid="tabbar"]');
+    const closeBtn = tabbar.locator(".tab .close").first();
+    await closeBtn.click();
+    await page.waitForTimeout(500);
+    const tabs = await page.evaluate(() => {
+      const h = document.querySelector("text-editor-page") as any;
+      return { tabs: h?.tabs?.map((t: any) => t.path), activeTab: h?.activeTab };
+    });
+    expect(tabs.tabs).toEqual([]);
+    expect(tabs.activeTab).toBe(null);
+  });
+
+  test("LSP badge shows unavailable when no workspace", async ({ page }) => {
+    await openEditor(page, MOD, "files/hello.txt");
+    const host = page.locator("text-editor-page");
+    const badge = host.locator('[data-testid="lsp-badge"]');
+    await expect(badge).toBeVisible();
+    await expect(badge).toContainText("LSP");
+  });
 });

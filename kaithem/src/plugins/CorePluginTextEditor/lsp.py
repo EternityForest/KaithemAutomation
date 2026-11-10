@@ -11,6 +11,7 @@ the browser editor and the LSP container over stdio.  Paths are remapped
 between the host workspace root and the container's /workspace mount.
 """
 
+import asyncio
 import json
 import os
 import subprocess
@@ -124,6 +125,12 @@ class LSPPeer:
         self.results: dict[int, Any] = {}
         self.closed = False
         self.client_count = 0
+        # Websocket bridge: the LSP reader thread pushes server messages into
+        # these asyncio queues, and each connected websocket drains its own
+        # queue on the event loop.  The loop reference is needed because the
+        # reader thread is not an asyncio thread.
+        self._ws_send_queues: list[asyncio.Queue] = []
+        self._ws_send_loop: asyncio.AbstractEventLoop | None = None
 
         image = LANGUAGE_IMAGES[language]
         podman_util.run_container(
@@ -329,8 +336,15 @@ class LSPPeer:
         """
         with self.lock:
             self.client_count -= 1
-            if self.client_count <= 0:
-                self.close()
+            should_close = self.client_count <= 0
+        if should_close:
+            self.close()
+            # Drop the closed peer so a later connection starts a fresh
+            # container instead of reusing a dead one.  Take _sessions_lock
+            # only after releasing self.lock to keep a consistent lock order
+            # with get_lsp_peer().
+            with _sessions_lock:
+                _sessions.pop((self.language, self.workspace_root), None)
 
     def close(self) -> None:
         self.closed = True
@@ -383,7 +397,9 @@ def get_lsp_peer(language: str, workspace_root: str) -> LSPPeer | None:
     key = (language, os.path.abspath(workspace_root))
     with _sessions_lock:
         if key in _sessions:
-            return _sessions[key]
+            peer = _sessions[key]
+            peer.increment_client_count(1)
+            return peer
         try:
             peer = LSPPeer(language, workspace_root)
         except Exception:
