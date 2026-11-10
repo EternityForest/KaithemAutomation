@@ -130,7 +130,12 @@ class LSPPeer:
         self._ws_send_loop: asyncio.AbstractEventLoop | None = None
 
         image = LANGUAGE_IMAGES[language]
-        podman_util.run_container(
+        # ``run_container`` starts ``podman run --interactive`` and returns the
+        # Popen whose stdin/stdout are wired straight to the container's stdio,
+        # so the language server's LSP stream is on that pipe.  We must keep
+        # this handle; there is no separate exec needed (and ``podman exec``
+        # with no command is rejected by podman).
+        self.proc = podman_util.run_container(
             image,
             name=self.container_name,
             bindings={self.workspace_root: "/workspace"},
@@ -139,8 +144,7 @@ class LSPPeer:
             stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL,
         )
-
-        self.proc = self._attach_stdio()
+        assert self.proc is not None
         self._reader = threading.Thread(
             target=self._read_loop, daemon=True, name=f"lsp-{language}"
         )
@@ -153,20 +157,6 @@ class LSPPeer:
         """Increment the number of connected clients for this session."""
         with self.lock:
             self.client_count += delta
-
-    def _attach_stdio(self) -> subprocess.Popen[bytes]:
-        # Attach to the container's stdio using podman exec.
-        podman = podman_util._podman(
-            "exec",
-            "--interactive",
-            podman_util._container_name(self.container_name),
-        )
-        proc = subprocess.Popen(
-            podman,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-        )
-        return proc
 
     def _read_loop(self) -> None:
         assert self.proc and self.proc.stdout
@@ -345,18 +335,17 @@ class LSPPeer:
 
     def close(self) -> None:
         self.closed = True
-        try:
-            if self.proc:
-                self.proc.terminate()
-                self.proc.wait(timeout=5)
-        except Exception:
-            pass
+        # Removing the container also makes the attached ``podman run``
+        # client (self.proc) exit.
         podman_util.stop_container(self.container_name)
 
 
 def _find_container_name(language: str) -> str:
     """Find the smallest unused number for lsp-LANG-N."""
     prefix = f"lsp-{language}-"
+    # ``run_container`` prefixes every container name with CONTAINER_PREFIX,
+    # so the name we look for on disk is prefixed too.
+    full_prefix = podman_util.CONTAINER_PREFIX + prefix
     r = podman_util._podman_run(
         "ps",
         "-a",
@@ -364,19 +353,19 @@ def _find_container_name(language: str) -> str:
         "{{.Names}}",
     )
     if r.returncode != 0:
-        return "1"
+        return f"{prefix}1"
     used = set()
     for line in r.stdout.decode().splitlines():
         line = line.strip()
-        if line.startswith(prefix):
+        if line.startswith(full_prefix):
             try:
-                used.add(int(line[len(prefix) :]))
+                used.add(int(line[len(full_prefix) :]))
             except ValueError:
                 pass
     i = 1
     while i in used:
         i += 1
-    return str(i)
+    return f"{prefix}{i}"
 
 
 # Active LSP sessions by (language, workspace_root)
@@ -418,18 +407,19 @@ def shutdown_all() -> None:
 def shutdown_all_containers() -> None:
     """Stop all lsp containers at exit."""
     shutdown_all()
+    prefix = podman_util.CONTAINER_PREFIX + "lsp-"
     r = podman_util._podman_run(
         "ps",
         "-a",
         "--filter",
-        "name=lsp-",
+        f"name={prefix}",
         "--format",
         "{{.Names}}",
     )
     if r.returncode == 0:
         for line in r.stdout.decode().splitlines():
             line = line.strip()
-            if line.startswith("lsp-"):
+            if line.startswith(prefix):
                 podman_util._podman_run("rm", "-f", line)
 
 

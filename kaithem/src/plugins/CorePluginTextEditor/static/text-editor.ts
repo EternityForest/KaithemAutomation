@@ -3,7 +3,7 @@
 // Uses Ace editor, compiled with Vite.
 // Lit component, no shadow DOM, works with the global barrel.css theme.
 
-import { LitElement, html, css, nothing } from 'lit';
+import { LitElement, html, nothing } from 'lit';
 import * as ace from 'ace-builds';
 // The ace-builds webpack-resolver is webpack-only and breaks under Vite
 // (it uses require('file-loader?...') specifiers that cannot be resolved).
@@ -487,8 +487,10 @@ class TextEditorPage extends LitElement {
         >
           <span class="mdi mdi-file-tree"></span>
         </button>
-        <span class="mdi mdi-content-save"></span>
-        <button @click="${this._save}" data-testid="save-btn">Save</button>
+        
+        <button @click="${this._save}" data-testid="save-btn">
+        <span class="mdi mdi-content-save"></span>Save
+        </button>
         <span style="flex:1"></span>
         <span>${this.activeTab?.split('/').pop() || ''}</span>
       </header>

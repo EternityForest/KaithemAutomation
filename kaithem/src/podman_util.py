@@ -178,8 +178,8 @@ def run_container(
     cmd = _podman(
         "run",
         "--name",
-        "--storage-driver=overlay",
         _container_name(name),
+        "--storage-driver=overlay",
         "--rm",
         "--detach" if detach else "--interactive",
         "--workdir",
@@ -228,7 +228,7 @@ def stop_container(name: str) -> None:
             p.terminate()
             p.wait(timeout=10)
         except Exception:
-            logger.exception("Failed to stop container %s", name)
+            logger.exception("Failed to stop container %s, retrying", name)
             _podman_run("kill", _container_name(name))
 
 

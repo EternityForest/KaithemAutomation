@@ -15,9 +15,6 @@ import threading
 from typing import Any
 from urllib.parse import quote_plus
 
-import inotify.adapters
-import inotify.calls
-import inotify.constants as C
 import quart
 import quart.utils
 
@@ -58,31 +55,21 @@ def _safe_path(module: str, resource: str) -> str:
 
 # Live file updates ---------------------------------------------------------
 
-# A single inotify instance is shared by every websocket connection.  The
-# per-user limit on inotify instances (fs.inotify.max_user_instances) is
-# small, so creating one per connection quickly exhausts it and breaks
-# unrelated applications.  If the process cannot create an inotify instance
-# at all (the user's instance budget is already spent by other apps), the
-# manager transparently falls back to polling the subscribed files so live
-# updates keep working.
+# A single process-wide manager polls the subscribed files for changes.  We
+# deliberately use polling only: inotify needs a per-user instance
+# (fs.inotify.max_user_instances), which is a small shared budget that other
+# applications rely on, and the extra code path buys nothing for a simple
+# text editor.
 _POLL_INTERVAL_S = 1.0
-_RELEVANT_INOTIFY_EVENTS = {
-    "IN_CLOSE_WRITE",
-    "IN_MOVED_TO",
-    "IN_CREATE",
-    "IN_DELETE",
-}
 
 
 class _FileWatchManager:
     """Process-wide live file change notifications.
 
-    A single daemon thread owns one inotify instance and reports changes to
-    the files that websocket clients have subscribed to.  Subscriptions are
-    added/removed from the event loop thread; notifications are delivered by
-    enqueuing onto each subscriber's asyncio queue via ``call_soon_threadsafe``.
-    Keeping one shared instance means the process never needs more than one
-    inotify instance no matter how many connections or tabs are open.
+    A single daemon thread polls the files that websocket clients have
+    subscribed to.  Subscriptions are added/removed from the event loop
+    thread; notifications are delivered by enqueuing onto each subscriber's
+    asyncio queue via ``call_soon_threadsafe``.
     """
 
     def __init__(self) -> None:
@@ -91,11 +78,6 @@ class _FileWatchManager:
         self._subs = {}
         # abs_path -> last content sent, to suppress duplicate notifications
         self._last: dict[str, str] = {}
-        # directory -> set of abs_paths that require it to be watched
-        self._dirs: dict[str, set[str]] = {}
-        # inotify watch descriptor -> directory
-        self._wd_to_dir: dict[int, str] = {}
-        self._inotify: inotify.adapters.Inotify | None = None
         self._started = False
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
@@ -105,14 +87,13 @@ class _FileWatchManager:
             return
         self._started = True
         self._thread = threading.Thread(
-            target=self._run, daemon=True, name="text-editor-file-watch"
+            target=self._poll_loop, daemon=True, name="text-editor-file-watch"
         )
         self._thread.start()
 
     def subscribe(self, abs_path: str, queue, module_root, loop) -> None:
         with self._lock:
             self._subs.setdefault(abs_path, {})[queue] = (module_root, loop)
-            self._add_watch(abs_path)
         self._ensure_started()
 
     def unsubscribe(self, abs_path, queue) -> None:
@@ -124,7 +105,6 @@ class _FileWatchManager:
             if not subs:
                 self._subs.pop(abs_path, None)
                 self._last.pop(abs_path, None)
-                self._remove_watch(abs_path)
 
     def unsubscribe_all(self, queue: asyncio.Queue[dict[str, Any]]) -> None:
         """Drop every subscription belonging to one connection's queue."""
@@ -135,99 +115,13 @@ class _FileWatchManager:
                 if not subs:
                     self._subs.pop(abs_path, None)
                     self._last.pop(abs_path, None)
-                    self._remove_watch(abs_path)
 
     def stop(self) -> None:
         self._stop.set()
         if self._thread is not None:
             self._thread.join(timeout=3)
 
-    # -- watch bookkeeping (must be called with self._lock held) --
-
-    def _add_watch(self, abs_path: str) -> None:
-        d = os.path.dirname(abs_path)
-        paths = self._dirs.setdefault(d, set())
-        first = not paths
-        paths.add(abs_path)
-        if first and self._inotify is not None:
-            self._watch_dir(d)
-
-    def _remove_watch(self, abs_path: str) -> None:
-        d = os.path.dirname(abs_path)
-        paths = self._dirs.get(d)
-        if paths is None:
-            return
-        paths.discard(abs_path)
-        if paths:
-            return
-        self._dirs.pop(d, None)
-        if self._inotify is None:
-            return
-        try:
-            self._inotify.remove_watch(d)
-        except Exception:
-            pass
-        self._wd_to_dir = {
-            wd: dd for wd, dd in self._wd_to_dir.items() if dd != d
-        }
-
-    def _watch_dir(self, d: str) -> None:
-        mask = C.IN_CLOSE_WRITE | C.IN_MOVED_TO | C.IN_CREATE | C.IN_DELETE
-        try:
-            wd = self._inotify.add_watch(d, mask)
-            self._wd_to_dir[wd] = d
-        except Exception:
-            logger.exception("Could not watch %s", d)
-
     # -- background thread --
-
-    def _run(self) -> None:
-        if not self._start_inotify():
-            self._poll_loop()
-            return
-        try:
-            for event in self._inotify.event_gen(yield_nones=True):
-                if self._stop.is_set():
-                    return
-                if event is None:
-                    # Periodic wakeup so the stop flag is checked promptly.
-                    continue
-                _header, type_names, path, filename = event
-                if "IN_ISDIR" in type_names:
-                    continue
-                if not _RELEVANT_INOTIFY_EVENTS.intersection(type_names):
-                    continue
-                self._dispatch(os.path.join(path, filename))
-        except Exception:
-            logger.exception("File watcher stopped")
-
-    def _start_inotify(self) -> bool:
-        # Probe first: constructing adapters.Inotify when the per-user
-        # instance budget is exhausted leaves a half-built object whose
-        # __del__ prints a confusing traceback.  The probe keeps logs clean.
-        try:
-            probe_fd = inotify.calls.inotify_init()
-        except Exception:
-            logger.exception(
-                "inotify failed (fs.inotify.max_user_instances "
-                "exhausted?); falling back to polling for live file updates"
-            )
-            return False
-        os.close(probe_fd)
-
-        try:
-            inst = inotify.adapters.Inotify(block_duration_s=0.5)
-        except Exception:
-            logger.warning(
-                "inotify unavailable; falling back to polling for live "
-                "file updates"
-            )
-            return False
-        with self._lock:
-            self._inotify = inst
-            for d in list(self._dirs):
-                self._watch_dir(d)
-        return True
 
     def _poll_loop(self) -> None:
         last: dict[str, tuple] = {}
@@ -581,7 +475,7 @@ def _ws_send(peer: lsp.LSPPeer, msg: dict) -> None:
         loop = peer._ws_send_loop
         if loop is None:
             return
-        remapped = lsp.remap_message(peer, msg)
+        remapped = peer.remap_message(msg)
         wrapped = {"type": "lsp-server", "message": remapped}
         for q in list(peer._ws_send_queues):
             try:
