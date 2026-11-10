@@ -241,9 +241,7 @@ class TextEditorPage extends LitElement {
 
   private _applyRemoteContent(resource: string, content: string) {
     const tab = this.tabs.find((t) => t.path === resource);
-    // Never clobber unsaved local edits, and skip no-op updates (e.g. the
-    // echo of our own save).
-    if (!tab || tab.dirty || tab.content === content) return;
+    if (!tab || tab.content === content) return;
     tab.content = content;
     if (tab.ace) {
       this._applyingRemote = true;

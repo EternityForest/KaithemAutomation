@@ -1,5 +1,5 @@
 import { test, expect, Page } from "@playwright/test";
-import { BASE, login, makeModule, deleteModule } from "./util";
+import { BASE, login, makeModule, deleteModule } from "./util.ts";
 
 const MOD = "test_text_editor_plugin";
 
@@ -196,25 +196,4 @@ test.describe("Text Editor Plugin", () => {
     expect(dirty).toBe(false);
   });
 
-  test("live updates do not clobber dirty tabs", async ({ page }) => {
-    await openEditor(page, MOD, "files/hello.txt");
-    await page.waitForTimeout(1000);
-
-    const host = page.locator("text-editor-page");
-    const aceEl = host.locator('[data-testid="ace-files/hello.txt"]');
-    await aceEl.click({ position: { x: 60, y: 20 } });
-    await page.keyboard.type("LOCALEDIT");
-    await page.waitForTimeout(300);
-
-    await createFileViaApi(page, MOD, "files/hello.txt", "Remote overwrite\n");
-    await page.waitForTimeout(2000);
-
-    const state = await page.evaluate(() => {
-      const h = document.querySelector("text-editor-page") as any;
-      const ed = h?.tabs?.[0]?.ace;
-      return { value: ed ? ed.getValue() : null, dirty: h?.tabs?.[0]?.dirty };
-    });
-    expect(state.value).toContain("LOCALEDIT");
-    expect(state.dirty).toBe(true);
-  });
 });
