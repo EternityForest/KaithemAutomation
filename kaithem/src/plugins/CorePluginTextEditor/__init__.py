@@ -524,7 +524,11 @@ async def text_editor_lsp_ws(module: str, language: str):
         return
 
     try:
-        server = lsp.start_language_server(language, workspace)
+        # Starting the container may pull the image, so keep it off the
+        # event loop.
+        server = await asyncio.to_thread(
+            lsp.start_language_server, language, workspace
+        )
     except Exception:
         logger.exception("Failed to start language server")
         await ws.close(4005, "lsp_start_failed")

@@ -30,7 +30,6 @@ import structlog
 from scullery import messagebus
 
 from kaithem.api.lifespan import at_shutdown
-from kaithem.api.util import get_vardir
 from kaithem.src import alerts
 
 logger = structlog.get_logger(__name__)
@@ -39,9 +38,9 @@ CONTAINER_PREFIX = "kaithem-temp-"
 CLEANUP_INTERVAL = 60 * 60
 CLEANUP_MAX_AGE = 60 * 60 * 24 * 365
 
+v = os.path.expandvars("$HOME/.local/share/kaithem-containers/")
 
 try:
-    v = os.path.expandvars("$HOME/.local/share/kaithem-containers/")
     os.makedirs(os.path.join(v, "podman", "conf"), exist_ok=True)
     os.makedirs(os.path.join(v, "podman", "graph"), exist_ok=True)
     os.makedirs(os.path.join(v, "podman", "containers"), exist_ok=True)
@@ -59,7 +58,7 @@ try:
                 'graphroot = "$KAITHEM_PODMAN_GRAPH"\n'
                 'runroot = "$KAITHEM_PODMAN_RUN"\n'
                 'driver = "overlay"\n'
-                '[storage.options.pull_options]\n"'
+                "[storage.options.pull_options]\n"
                 'use_hard_links="true"\n'
                 'enable_partial_images="true"\n'
             )
@@ -70,12 +69,12 @@ except Exception:
 
 env_extras = {
     "CONTAINERS_REGISTRIES_CONF": os.path.join(
-        get_vardir(), "podman", "conf", "registries.conf"
+        v, "podman", "conf", "registries.conf"
     ),
-    "KAITHEM_PODMAN_GRAPH": os.path.join(get_vardir(), "podman", "graph"),
-    "KAITHEM_PODMAN_RUN": os.path.join(get_vardir(), "podman", "containers"),
+    "KAITHEM_PODMAN_GRAPH": os.path.join(v, "podman", "graph"),
+    "KAITHEM_PODMAN_RUN": os.path.join(v, "podman", "containers"),
     "CONTAINERS_STORAGE_CONF": os.path.join(
-        get_vardir(), "podman", "conf", "storage.conf"
+        v, "podman", "conf", "storage.conf"
     ),
 }
 
@@ -122,6 +121,7 @@ def _alert(name: str, priority: str, description: str) -> None:
 
 def _image_exists(image: str) -> bool:
     r = _podman_run("image", "exists", image)
+    r.communicate()
     return r.returncode == 0
 
 
@@ -178,6 +178,8 @@ def run_container(
                 )
                 raise RuntimeError(f"Binding path {host} does not exist")
 
+    _pull_image(image)
+
     cmd = _podman(
         "run",
         "--name",
@@ -199,6 +201,7 @@ def run_container(
     try:
         p = subprocess.Popen(
             cmd,
+            env={**os.environ, **env_extras},
             stdin=stdin,
             stdout=stdout,
             stderr=stderr,
@@ -226,13 +229,25 @@ _running_lock = threading.RLock()
 def stop_container(name: str) -> None:
     with _running_lock:
         p = _running.pop(name, None)
-    if p is not None:
+
+    # Signalling the ``podman run`` client does not reliably stop the
+    # container it started, so remove the container itself; the attached
+    # client then exits on its own.
+    if p is None or p.poll() is not None:
+        return
+    try:
+        _podman_quick_run("rm", "--force", _container_name(name))
+    except Exception:
+        logger.exception("Failed to remove container %s", name)
+        p.terminate()
+    try:
+        p.wait(timeout=10)
+    except Exception:
+        logger.exception("Failed to stop container %s", name)
         try:
-            p.terminate()
-            p.wait(timeout=10)
+            p.kill()
         except Exception:
-            logger.exception("Failed to stop container %s, retrying", name)
-            _podman_run("kill", _container_name(name))
+            pass
 
 
 def _cleanup() -> None:
@@ -256,16 +271,13 @@ def _cleanup() -> None:
                     "container",
                     "inspect",
                     "--format",
-                    "{{.Created}}",
+                    "{{.Created.Unix}}",
                     line,
                 )
 
-                created = inspect.strip()
-                if (
-                    time.time() - time.mktime(time.strptime(created))
-                    > CLEANUP_MAX_AGE
-                ):
-                    _podman_run("rm", "-f", line)
+                created = int(inspect.strip())
+                if time.time() - created > CLEANUP_MAX_AGE:
+                    _podman_quick_run("rm", "--force", line)
 
             except Exception:
                 logger.exception("Cleanup error")
