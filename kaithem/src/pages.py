@@ -118,25 +118,41 @@ def get_bar_plugins():
         yield i[1]
 
 
-def getSubdomain():
-    x = quart.request.base_url.split("://", 1)[-1]
+def parse_subdomain(host: str) -> list[str]:
+    """Given a hostname (which may include a scheme, port, and path),
+    return the subdomain labels in left-to-right order, excluding the
+    registrable host and TLD.
 
-    sdpath = x.split(".")
+    Examples:
+        "testproxy.localhost:8002" -> ["testproxy"]
+        "a.b.example.com" -> ["a", "b"]
+        "localhost" -> []
+        "127.0.0.1" -> []
+    """
+    # Strip any scheme and path so we are left with host[:port]
+    if "://" in host:
+        host = host.split("://", 1)[-1]
+    host = host.split("/", 1)[0]
 
-    x = []
-    for i in sdpath:
-        if not i:
+    parts: list[str] = []
+    for label in host.split("."):
+        if not label:
             continue
-        x.append(i)
+        parts.append(label)
         # Only put one part of the ip addr, host,tld need to be exactly
         # 2 entries
-        if i.isnumeric() or i.startswith("localhost:") or "[" in i:
+        if label.isnumeric() or label.startswith("localhost:") or "[" in label:
             # Pad with fake TLD for numeric ip addr
-            x.append(".faketld")
+            parts.append(".faketld")
             break
 
     # Get rid of last two parts, the host and tld
-    return list(reversed(x[:-2]))
+    return parts[:-2]
+
+
+def getSubdomain():
+    x = quart.request.base_url.split("://", 1)[-1]
+    return list(reversed(parse_subdomain(x)))
 
 
 def postOnly():

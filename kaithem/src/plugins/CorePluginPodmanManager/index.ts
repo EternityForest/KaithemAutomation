@@ -304,7 +304,7 @@ export class PodmanManager extends LitElement {
               this.requestUpdate();
             }}"
           >
-            Prune older than 1 week
+            Prune Old
           </button>
         </div>
       </section>
@@ -351,30 +351,32 @@ export class PodmanManager extends LitElement {
         <td><code title="${image.id}">${shortId(image.id)}</code></td>
         <td>${formatDate(image.created)}</td>
         <td class="pm-actions">
-          ${name
-            ? html`
-                <a
-                  class="button"
-                  data-testid="pm-export"
-                  href="${exportUrl(name)}"
-                  >Export</a
-                >
-                <button
-                  class="btn"
-                  data-testid="pm-add-tag"
-                  @click="${() => this.openTagDialog(name)}"
-                >
-                  Add tag
-                </button>
-                <button
-                  class="btn danger"
-                  data-testid="pm-delete"
-                  @click="${() => this.openDeleteDialog(name)}"
-                >
-                  Delete
-                </button>
-              `
-            : nothing}
+          <div>
+            ${name
+              ? html`
+                  <a
+                    class="button"
+                    data-testid="pm-export"
+                    href="${exportUrl(name)}"
+                    >Export</a
+                  >
+                  <button
+                    class="btn"
+                    data-testid="pm-add-tag"
+                    @click="${() => this.openTagDialog(name)}"
+                  >
+                    Add tag
+                  </button>
+                  <button
+                    class="btn danger"
+                    data-testid="pm-delete"
+                    @click="${() => this.openDeleteDialog(name)}"
+                  >
+                    Delete
+                  </button>
+                `
+              : nothing}
+          </div>
         </td>
       </tr>
     `;

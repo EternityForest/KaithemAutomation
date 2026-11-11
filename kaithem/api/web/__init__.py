@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib as _importlib
 import os as _os
 import socket as _socket
+import weakref as _weakref
 from collections.abc import Callable
 from typing import Any
 
@@ -20,6 +21,13 @@ nav_bar_plugins = _pages.nav_bar_plugins
 
 _asgi_apps = []
 _wsgi_apps = []
+
+# Maps a subdomain (like "myapp") to the ASGI application that should
+# handle all requests arriving on that subdomain.  Weak values so that
+# an application is automatically unmounted when nothing references it.
+_subdomain_apps: _weakref.WeakValueDictionary[str, Any] = (
+    _weakref.WeakValueDictionary()
+)
 
 _module_plugin_links = []
 _file_resource_links = []
@@ -89,16 +97,37 @@ def render_html_string(body: str, title: str = "Kaithem"):
 
 def add_asgi_app(prefix: str, app, permission="system_admin"):
     "Mount an ASGI application to handle all URLs matching the prefix"
-    if prefix.endswith(".*"):
-        prefix = prefix[:-2]
+    prefix = prefix.removesuffix(".*")
     _asgi_apps.append((prefix, app, permission))
 
 
 def add_wsgi_app(prefix: str, app, permission="system_admin"):
     "Mount a WSGI application to handle all URLs matching the prefix"
-    if prefix.endswith(".*"):
-        prefix = prefix[:-2]
+    prefix = prefix.removesuffix(".*")
     _wsgi_apps.append((prefix, app, permission))
+
+
+def add_subdomain_app(subdomain: str, app: Any) -> None:
+    """Mount an ASGI application to handle all requests arriving on the
+    given subdomain (for example "myapp" handles "myapp.example.com").
+    The subdomain must be a single DNS label with no dots.
+    """
+    if not subdomain or "." in subdomain:
+        raise ValueError(
+            f"Subdomain must be a single DNS label, got {subdomain!r}"
+        )
+    if subdomain in _subdomain_apps:
+        raise ValueError(f"Subdomain {subdomain!r} is already in use")
+    _subdomain_apps[subdomain] = app
+
+
+def remove_subdomain_app(subdomain: str, app: Any) -> None:
+    """Unmount an ASGI application previously added with
+    add_subdomain_app.  Does nothing if the subdomain is not currently
+    mapped to the given app.
+    """
+    if _subdomain_apps.get(subdomain) is app:
+        del _subdomain_apps[subdomain]
 
 
 def add_module_plugin_link(link: str, destination: str):
