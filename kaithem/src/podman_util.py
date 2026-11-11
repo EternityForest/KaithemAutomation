@@ -76,6 +76,13 @@ env_extras = {
 }
 
 
+def resolve_image_name(image: str):
+    if ":" not in image:
+        return f"{image}:latest"
+
+    raise RuntimeError(f"Unsupported image name {image}")
+
+
 def _podman(*args: str) -> list[str]:
     podman = shutil.which("podman")
     if not podman:
@@ -84,10 +91,11 @@ def _podman(*args: str) -> list[str]:
 
 
 def _podman_run(
-    *args: str, env: dict[str, str] | None = None, **kwargs: Any
+    img: str, *args: str, env: dict[str, str] | None = None, **kwargs: Any
 ) -> subprocess.Popen[bytes]:
-    return subprocess.Popen(
-        _podman(*args),
+    image = resolve_image_name(img)
+    return subprocess.Popen[bytes](
+        _podman(image, *args),
         env={**os.environ, **env_extras, **(env or {})},
         stdout=subprocess.PIPE,
         stdin=subprocess.PIPE,
@@ -117,6 +125,7 @@ def _alert(name: str, priority: str, description: str) -> None:
 
 
 def _image_exists(image: str) -> bool:
+    image = resolve_image_name(image)
     r = _podman_run("image", "exists", image)
     r.communicate()
     return r.returncode == 0
@@ -124,13 +133,13 @@ def _image_exists(image: str) -> bool:
 
 def _pull_image(image: str) -> None:
     """Pull the image if missing, raising an info alert while downloading."""
-    if _image_exists(image):
-        return
+    image = resolve_image_name(image)
 
     alert = alerts.Alert(
         f"podman_pull_{image}",
         priority="info",
         description=f"Pulling image {image}",
+        trip_delay=1,
     )
     alert.trip()
 
@@ -165,6 +174,7 @@ def run_container(
     Returns a Popen handle if not detached, else None.
     """
 
+    image = resolve_image_name(image)
     if bindings:
         for host in bindings:
             if not os.path.exists(host):
@@ -174,8 +184,6 @@ def run_container(
                     f"Binding path {host} does not exist",
                 )
                 raise RuntimeError(f"Binding path {host} does not exist")
-
-    _pull_image(image)
 
     cmd = _podman(
         "run",
