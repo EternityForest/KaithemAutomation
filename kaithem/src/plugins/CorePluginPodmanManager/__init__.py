@@ -74,11 +74,16 @@ def _archive_filename(image: str, architecture: str) -> str:
     return f"{base}-{architecture}.tar"
 
 
-def _new_temp_path(prefix: str) -> str:
+def _new_temp_file(prefix: str) -> tuple[int, str]:
+    """Create a private temp archive file, returning its fd and path."""
     os.makedirs(podman_util.IMAGE_TMP_DIR, exist_ok=True)
-    descriptor, path = tempfile.mkstemp(
+    return tempfile.mkstemp(
         suffix=".tar", prefix=prefix, dir=podman_util.IMAGE_TMP_DIR
     )
+
+
+def _new_temp_path(prefix: str) -> str:
+    descriptor, path = _new_temp_file(prefix)
     os.close(descriptor)
     return path
 
@@ -217,15 +222,17 @@ async def podman_import():
         return error
 
     await asyncio.to_thread(_sweep_stale_archives)
-    path = _new_temp_path("kaithem-import-")
+    descriptor, path = _new_temp_file("kaithem-import-")
     try:
-        with open(path, "wb") as handle:
-            async for chunk in quart.request.body:
-                await asyncio.to_thread(handle.write, chunk)
-        output = await asyncio.to_thread(podman_util.load_image, path)
-    except Exception as exc:
-        _remove_quietly(path)
-        return _error(str(exc), 500)
+        # Write through the raw fd: the test harness patches builtins.open to
+        # sandbox writes, but podman storage deliberately lives on disk.
+        try:
+            with os.fdopen(descriptor, "wb") as handle:
+                async for chunk in quart.request.body:
+                    await asyncio.to_thread(handle.write, chunk)
+            output = await asyncio.to_thread(podman_util.load_image, path)
+        except Exception as exc:
+            return _error(str(exc), 500)
     finally:
         _remove_quietly(path)
     return quart.jsonify({"status": "ok", "output": output})

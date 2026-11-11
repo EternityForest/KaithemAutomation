@@ -5,6 +5,7 @@
 
 import { LitElement, html, nothing } from 'lit';
 import type { TemplateResult } from 'lit';
+import { createRef, ref } from 'lit/directives/ref.js';
 
 import {
   ApiError,
@@ -58,6 +59,7 @@ export class PodmanManager extends LitElement {
 
   private pullValue = '';
   private selectedFile: File | null = null;
+  private readonly fileInput = createRef<HTMLInputElement>();
   private pruneOpen = false;
   private pruneResult: PruneResult | null = null;
   private tagTarget: string | null = null;
@@ -186,6 +188,10 @@ export class PodmanManager extends LitElement {
     void this.run('import', async () => {
       const output = await importImage(file);
       this.selectedFile = null;
+      // Reset the picker so selecting the same archive fires change again.
+      if (this.fileInput.value) {
+        this.fileInput.value.value = '';
+      }
       this.notice = output.trim() || `Imported ${file.name}.`;
       await this.load();
     });
@@ -221,6 +227,7 @@ export class PodmanManager extends LitElement {
           </div>
           <button
             class="btn"
+            data-testid="pm-refresh"
             ?disabled="${this.loading || this.busy !== ''}"
             @click="${() => void this.load()}"
           >
@@ -228,8 +235,14 @@ export class PodmanManager extends LitElement {
           </button>
         </header>
 
-        ${this.error ? html`<p class="pm-error">${this.error}</p>` : nothing}
-        ${this.notice ? html`<p class="pm-notice">${this.notice}</p>` : nothing}
+        ${this.error
+          ? html`<p class="pm-error" data-testid="pm-error">${this.error}</p>`
+          : nothing}
+        ${this.notice
+          ? html`<p class="pm-notice" data-testid="pm-notice">
+              ${this.notice}
+            </p>`
+          : nothing}
         ${this.renderToolbar()} ${this.renderTable()}
         ${this.renderPruneResult()}
       </main>
@@ -244,6 +257,7 @@ export class PodmanManager extends LitElement {
         <div class="pm-pull">
           <input
             type="text"
+            data-testid="pm-pull-input"
             placeholder="Image tag to pull, e.g. docker.io/library/alpine:latest"
             .value="${this.pullValue}"
             @input="${(event: Event) =>
@@ -253,9 +267,10 @@ export class PodmanManager extends LitElement {
                 this.handlePull();
               }
             }}"
-          >
+          />
           <button
             class="btn primary"
+            data-testid="pm-pull"
             ?disabled="${this.busy !== ''}"
             @click="${() => this.handlePull()}"
           >
@@ -266,12 +281,15 @@ export class PodmanManager extends LitElement {
         <div class="pm-import">
           <input
             type="file"
+            data-testid="pm-file-input"
+            ${ref(this.fileInput)}
             accept=".tar,application/x-tar"
             ?disabled="${this.busy !== ''}"
             @change="${this.handleFileSelected}"
-          >
+          />
           <button
             class="btn"
+            data-testid="pm-upload"
             ?disabled="${this.busy !== '' || this.selectedFile === null}"
             @click="${() => this.handleUpload()}"
           >
@@ -279,6 +297,7 @@ export class PodmanManager extends LitElement {
           </button>
           <button
             class="btn danger"
+            data-testid="pm-prune"
             ?disabled="${this.busy !== ''}"
             @click="${() => {
               this.pruneOpen = true;
@@ -296,13 +315,13 @@ export class PodmanManager extends LitElement {
     const rows = this.rows();
     if (rows.length === 0) {
       return html`
-        <section class="pm-empty">
+        <section class="pm-empty" data-testid="pm-empty">
           ${this.loading ? 'Loading images…' : 'No images found.'}
         </section>
       `;
     }
     return html`
-      <table class="pm-table">
+      <table class="pm-table" data-testid="pm-table">
         <thead>
           <tr>
             <th>Tag</th>
@@ -322,7 +341,7 @@ export class PodmanManager extends LitElement {
   private renderRow(row: ImageRow): TemplateResult {
     const { image, name } = row;
     return html`
-      <tr>
+      <tr data-testid="pm-row" data-tag="${name ?? image.id}">
         <td>
           ${name
             ? html`<code class="pm-tag">${name}</code>`
@@ -334,12 +353,22 @@ export class PodmanManager extends LitElement {
         <td class="pm-actions">
           ${name
             ? html`
-                <a class="button" href="${exportUrl(name)}">Export</a>
-                <button class="btn" @click="${() => this.openTagDialog(name)}">
+                <a
+                  class="button"
+                  data-testid="pm-export"
+                  href="${exportUrl(name)}"
+                  >Export</a
+                >
+                <button
+                  class="btn"
+                  data-testid="pm-add-tag"
+                  @click="${() => this.openTagDialog(name)}"
+                >
                   Add tag
                 </button>
                 <button
                   class="btn danger"
+                  data-testid="pm-delete"
                   @click="${() => this.openDeleteDialog(name)}"
                 >
                   Delete
@@ -373,12 +402,13 @@ export class PodmanManager extends LitElement {
     }
     const busy = this.busy === 'tag';
     return html`
-      <div class="pm-modal-backdrop">
+      <div class="pm-modal-backdrop" data-testid="pm-tag-dialog">
         <section class="pm-modal">
           <h2>Add a tag</h2>
           <p>New tag pointing at <code>${this.tagTarget}</code>:</p>
           <input
             type="text"
+            data-testid="pm-tag-input"
             .value="${this.tagValue}"
             @input="${(event: Event) =>
               (this.tagValue = (event.target as HTMLInputElement).value)}"
@@ -387,10 +417,11 @@ export class PodmanManager extends LitElement {
                 this.submitTag();
               }
             }}"
-          >
+          />
           <div class="pm-modal-actions">
             <button
               class="btn"
+              data-testid="pm-tag-cancel"
               ?disabled="${busy}"
               @click="${() => {
                 this.tagTarget = null;
@@ -401,6 +432,7 @@ export class PodmanManager extends LitElement {
             </button>
             <button
               class="btn primary"
+              data-testid="pm-tag-submit"
               ?disabled="${busy || !this.tagValue.trim()}"
               @click="${() => this.submitTag()}"
             >
@@ -455,7 +487,7 @@ export class PodmanManager extends LitElement {
     }
     const busy = this.busy === 'delete';
     return html`
-      <div class="pm-modal-backdrop">
+      <div class="pm-modal-backdrop" data-testid="pm-delete-dialog">
         <section class="pm-modal">
           <h2>Delete image?</h2>
           <p>
@@ -466,6 +498,7 @@ export class PodmanManager extends LitElement {
           <div class="pm-modal-actions">
             <button
               class="btn"
+              data-testid="pm-delete-cancel"
               ?disabled="${busy}"
               @click="${() => {
                 this.deleteTarget = null;
@@ -476,6 +509,7 @@ export class PodmanManager extends LitElement {
             </button>
             <button
               class="btn danger"
+              data-testid="pm-delete-confirm"
               ?disabled="${busy}"
               @click="${() => this.confirmDelete()}"
             >
