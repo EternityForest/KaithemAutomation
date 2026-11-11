@@ -79,6 +79,7 @@ env_extras = {
 def resolve_image_name(image: str):
     if ":" not in image:
         return f"{image}:latest"
+    return image
 
     raise RuntimeError(f"Unsupported image name {image}")
 
