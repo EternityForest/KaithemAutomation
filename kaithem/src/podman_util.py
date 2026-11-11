@@ -15,9 +15,12 @@ this module handles image pulling, failure alerts, and container cleanup.
 - Containers get stdin and stdout exposed as pipes.
 - Containers registered with this module are shut off at exit via the
   kaithem.api lifespan hook.
+- Helpers for listing, tagging, pulling, removing, pruning, exporting, and
+  loading images back these tasks in the podman manager UI.
 - Only rootless podman is supported (running as a normal user).
 """
 
+import json
 import os
 import shutil
 import subprocess
@@ -38,11 +41,19 @@ CONTAINER_PREFIX = "kaithem-temp-"
 CLEANUP_INTERVAL = 60 * 60
 CLEANUP_MAX_AGE = 60 * 60 * 24 * 365
 
+# Anything older than this is considered stale by ``prune``.  One week.
+PRUNE_MAX_AGE = "168h"
+
 v = os.path.expandvars("$HOME/.local/share/kaithem-containers/")
+
+# Scratch space for image archives.  Deliberately on disk (not the vardir,
+# which may be tmpfs) because exported images can be large.
+IMAGE_TMP_DIR = os.path.join(v, "tmp")
 
 try:
     os.makedirs(os.path.join(v, "podman", "conf"), exist_ok=True)
     os.makedirs(os.path.join(v, "podman", "storage"), exist_ok=True)
+    os.makedirs(IMAGE_TMP_DIR, exist_ok=True)
 
     if not os.path.exists(os.path.join(v, "podman", "conf", "registries.conf")):
         with open(
@@ -148,6 +159,120 @@ def _pull_image(image: str) -> None:
         raise RuntimeError(f"Failed to pull image {image}")
     else:
         alert.clear()
+
+
+def list_images() -> list[dict[str, Any]]:
+    """Return local images grouped by image ID.
+
+    Podman prints one row per tag and repeats the image's full tag list in
+    every row, so rows are grouped by ID and their names unioned.
+
+    Each entry is ``{"id", "names", "size", "created"}``.
+    """
+    out = _podman_quick_run("images", "--format", "json")
+    try:
+        raw = json.loads(out)
+    except ValueError as e:
+        raise RuntimeError(f"Could not parse podman image list: {e}")
+
+    images: dict[str, dict[str, Any]] = {}
+    for row in raw:
+        image_id = row.get("Id")
+        if not image_id:
+            continue
+        entry = images.setdefault(
+            image_id,
+            {
+                "id": image_id,
+                "names": [],
+                "size": row.get("Size", 0),
+                "created": row.get("Created", 0),
+            },
+        )
+        for name in row.get("Names") or []:
+            if name not in entry["names"]:
+                entry["names"].append(name)
+    return list(images.values())
+
+
+def image_architecture(image: str) -> str:
+    """Return the architecture (e.g. ``amd64``) of a local image."""
+    if not image:
+        raise ValueError("Image must be provided")
+    out = _podman_quick_run(
+        "image", "inspect", "--format", "{{.Architecture}}", image
+    )
+    return out.strip()
+
+
+def add_image_tag(image: str, new_tag: str) -> None:
+    """Add another tag pointing at an existing local image."""
+    if not image:
+        raise ValueError("Image must be provided")
+    if not new_tag:
+        raise ValueError("New tag must be provided")
+    _podman_quick_run("tag", image, new_tag)
+
+
+def pull_image(image: str) -> None:
+    """Pull the latest version of an image by tag, showing a progress alert."""
+    if not image:
+        raise ValueError("Image must be provided")
+    _pull_image(image)
+
+
+def prune(max_age: str = PRUNE_MAX_AGE) -> dict[str, str]:
+    """Remove stopped containers and unused images older than ``max_age``.
+
+    ``max_age`` is a podman duration such as ``"168h"`` (one week).  Running
+    containers are never pruned.  Returns the podman output for each step.
+    """
+    return {
+        "containers": _podman_quick_run(
+            "container", "prune", "--force", "--filter", f"until={max_age}"
+        ),
+        "images": _podman_quick_run(
+            "image", "prune", "--all", "--force", "--filter", f"until={max_age}"
+        ),
+    }
+
+
+def export_image(image: str, path: str) -> None:
+    """Write ``image`` to ``path`` as an OCI archive with zstd:chunked layers.
+
+    The image's reference is preserved inside the archive so ``load_image``
+    can restore the tag.
+    """
+    if not image:
+        raise ValueError("Image must be provided")
+    if not path:
+        raise ValueError("Destination path must be provided")
+    _podman_quick_run(
+        "push",
+        "--compression-format",
+        "zstd:chunked",
+        f"containers-storage:{image}",
+        f"oci-archive:{path}:{image}",
+    )
+
+
+def load_image(path: str) -> str:
+    """Load an image from an archive produced by :func:`export_image`."""
+    if not path:
+        raise ValueError("Archive path must be provided")
+    return _podman_quick_run("load", "-i", path)
+
+
+def remove_image(image: str) -> str:
+    """Remove a local image by reference (tag or ID).
+
+    If the image still has other tags, only the given reference is removed
+    and the underlying image is kept; it is deleted once its last tag goes
+    away.  Podman refuses to remove an image in use by a container.
+    """
+    if not image:
+        raise ValueError("Image must be provided")
+    return _podman_quick_run("rmi", image)
 
 
 def _container_name(name: str) -> str:
