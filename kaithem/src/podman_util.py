@@ -42,8 +42,7 @@ v = os.path.expandvars("$HOME/.local/share/kaithem-containers/")
 
 try:
     os.makedirs(os.path.join(v, "podman", "conf"), exist_ok=True)
-    os.makedirs(os.path.join(v, "podman", "graph"), exist_ok=True)
-    os.makedirs(os.path.join(v, "podman", "containers"), exist_ok=True)
+    os.makedirs(os.path.join(v, "podman", "storage"), exist_ok=True)
 
     if not os.path.exists(os.path.join(v, "podman", "conf", "registries.conf")):
         with open(
@@ -55,8 +54,7 @@ try:
         with open(os.path.join(v, "podman", "conf", "storage.conf"), "w") as f:
             f.write(
                 "[storage]\n"
-                'graphroot = "$KAITHEM_PODMAN_GRAPH"\n'
-                'runroot = "$KAITHEM_PODMAN_RUN"\n'
+                'rootless_storage_path = "$KAITHEM_PODMAN_STORAGE"\n'
                 'driver = "overlay"\n'
                 "[storage.options.pull_options]\n"
                 'use_hard_links="true"\n'
@@ -71,8 +69,7 @@ env_extras = {
     "CONTAINERS_REGISTRIES_CONF": os.path.join(
         v, "podman", "conf", "registries.conf"
     ),
-    "KAITHEM_PODMAN_GRAPH": os.path.join(v, "podman", "graph"),
-    "KAITHEM_PODMAN_RUN": os.path.join(v, "podman", "containers"),
+    "KAITHEM_PODMAN_STORAGE": os.path.join(v, "podman", "storage"),
     "CONTAINERS_STORAGE_CONF": os.path.join(
         v, "podman", "conf", "storage.conf"
     ),
