@@ -81,8 +81,6 @@ def resolve_image_name(image: str):
         return f"{image}:latest"
     return image
 
-    raise RuntimeError(f"Unsupported image name {image}")
-
 
 def _podman(*args: str) -> list[str]:
     podman = shutil.which("podman")
@@ -92,11 +90,10 @@ def _podman(*args: str) -> list[str]:
 
 
 def _podman_run(
-    img: str, *args: str, env: dict[str, str] | None = None, **kwargs: Any
+    *args: str, env: dict[str, str] | None = None, **kwargs: Any
 ) -> subprocess.Popen[bytes]:
-    image = resolve_image_name(img)
     return subprocess.Popen[bytes](
-        _podman(image, *args),
+        _podman(*args),
         env={**os.environ, **env_extras, **(env or {})},
         stdout=subprocess.PIPE,
         stdin=subprocess.PIPE,
@@ -192,6 +189,7 @@ def run_container(
         _container_name(name),
         "--storage-driver=overlay",
         "--rm",
+        "--replace",
         "--detach" if detach else "--interactive",
         "--workdir",
         workdir,
