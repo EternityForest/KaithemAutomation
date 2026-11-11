@@ -98,6 +98,10 @@ export default defineConfig({
           __dirname,
           "kaithem/src/plugins/CorePluginPresentationScreen/html/viewer.html"
         ),
+        text_editor: resolve(
+          __dirname,
+          "kaithem/src/plugins/CorePluginTextEditor/html/index.html"
+        ),
       },
       output: {
         assetFileNames: "assets/[name]-[hash][extname]",

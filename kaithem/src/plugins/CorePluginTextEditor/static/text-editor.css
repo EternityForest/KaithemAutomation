@@ -1,0 +1,170 @@
+text-editor-page {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    width: 100%;
+    overflow: hidden;
+    font-family: inherit;
+    background: var(--bg, #fff);
+    color: var(--fg, #1c1c1c);
+}
+header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0.5rem;
+    background: var(--bg2, #e1ded7);
+    flex-shrink: 0;
+}
+.tabbar {
+    display: flex;
+    overflow-x: auto;
+    flex-shrink: 0;
+    background: var(--bg2, #e1ded7);
+    border-bottom: 1px solid #ccc;
+    scrollbar-width: thin;
+}
+.tab {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.6rem;
+    cursor: pointer;
+    white-space: nowrap;
+    border-right: 1px solid #ccc;
+    font-size: 0.85rem;
+}
+.tab.active {
+    background: var(--bg, #fff);
+}
+.tab .close {
+    opacity: 0.6;
+    cursor: pointer;
+    padding: 0 0.2rem;
+}
+.main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+}
+.sidebar {
+    width: 260px;
+    background: var(--bg2, #e1ded7);
+    border-right: 1px solid #ccc;
+    overflow-y: auto;
+    flex-shrink: 0;
+    font-size: 0.85rem;
+}
+.sidebar.mobile {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    z-index: 10;
+    background: var(--bg2, #e1ded7);
+}
+.editor {
+    flex: 1;
+    overflow: hidden;
+}
+.editor .ace {
+    width: 100%;
+    height: 100%;
+}
+.statusbar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.1rem 0.5rem;
+    font-size: 0.75rem;
+    background: var(--bg2, #e1ded7);
+    flex-shrink: 0;
+}
+.badge {
+    border-radius: 4px;
+    padding: 0 0.35rem;
+    font-size: 0.7rem;
+}
+.badge.connected {
+    background: #2e7d32;
+    color: #fff;
+}
+.badge.unavailable {
+    background: #ddd;
+    color: #555;
+}
+.tree-root {
+    min-height: 100%;
+    min-width: 100%;
+}
+.tree-item {
+    padding: 0.15rem 0.5rem;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.tree-item:hover {
+    background: rgba(0, 0, 0, 0.08);
+}
+.contextmenu {
+    position: fixed;
+    z-index: 20;
+    background: #fff;
+    border: 1px solid #ccc;
+    padding: 0.2rem;
+    min-width: 140px;
+}
+.contextmenu button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    color: inherit;
+    padding: 0.3rem 0.6rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+.contextmenu button:hover {
+    background: rgba(0, 0, 0, 0.08);
+}
+.splash {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg, #fff);
+    color: var(--fg, #1c1c1c);
+    z-index: 100;
+}
+.splash-box {
+    text-align: center;
+    padding: 2rem;
+    max-width: 24rem;
+}
+.splash-icon {
+    font-size: 3rem;
+    opacity: 0.7;
+}
+.splash-box h1 {
+    font-size: 1.4rem;
+    margin: 0.5rem 0;
+}
+.splash-box p {
+    opacity: 0.8;
+}
+.splash-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    margin-top: 1rem;
+}
+.splash-actions button {
+    padding: 0.4rem 1rem;
+    cursor: pointer;
+}
+@media (max-width: 768px) {
+    .sidebar {
+    width: 100%;
+    }
+}

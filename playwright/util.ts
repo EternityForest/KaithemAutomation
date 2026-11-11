@@ -1,11 +1,14 @@
 import { Page, expect } from '@playwright/test';
+// Tests normally run against the testing_server.py instance. Set
+// KAITHEM_BASE_URL to point elsewhere (e.g. a testing server on a non-default port).
+export const BASE = process.env.KAITHEM_BASE_URL || 'http://localhost:8002';
 
 function sleep(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 async function login(page: Page) {
-    await page.goto('http://localhost:8002/index');
+    await page.goto(`${BASE}/index`);
 
     // Might already be logged in
     if (await page.getByRole('button', { name: 'Logout(' }).isVisible()) {
@@ -24,7 +27,7 @@ async function login(page: Page) {
 }
 
 async function login_as(page: Page, username: string, password: string) {
-    await page.goto('http://localhost:8002/index');
+    await page.goto(`${BASE}/index`);
 
     // Might already be logged in
     if (await page.getByRole('button', { name: 'Logout(' }).isVisible()) {
@@ -45,13 +48,13 @@ async function login_as(page: Page, username: string, password: string) {
 
 
 async function logout(page: Page) {
-    await page.goto('http://localhost:8002/index');
+    await page.goto(`${BASE}/index`);
 
     await page.getByRole('button', { name: 'Logout(' }).click();
 }
 
 async function deleteModuleIfExist(page: Page, name: string) {
-    await page.goto('http://localhost:8002/index');
+    await page.goto(`${BASE}/index`);
 
     await page.getByRole('link', { name: 'Modules' }).click();
 
@@ -75,7 +78,7 @@ async function makeModule(page: Page, name: string) {
 
 async function deleteModule(page: Page, name: string) {
     await sleep(100); // Why???
-    await page.goto('http://localhost:8002/');
+    await page.goto(`${BASE}/`);
 
     await page.getByRole('link', { name: 'Modules' }).click();
     await page.getByRole('link', { name: 'Delete' }).click();
@@ -85,7 +88,7 @@ async function deleteModule(page: Page, name: string) {
 }
 
 async function makeTagPoint(page: Page, module: string, name: string) {
-    await page.goto('http://localhost:8002/index');
+    await page.goto(`${BASE}/index`);
 
     if (name[0] == '/') {
         name = name.slice(1);
