@@ -31,15 +31,10 @@ logger = structlog.get_logger(__name__)
 
 # Language -> lspcontainers image name
 LANGUAGE_IMAGES: dict[str, str] = {
-    "python": "lspcontainers/pyright-langserver:latest",
-    "typescript": "lspcontainers/typescript-language-server:latest",  # noqa: E501
-    "javascript": "lspcontainers/typescript-language-server:latest",  # noqa: E501
-    "json": "lspcontainers/json-lsp:latest",
-    "css": "lspcontainers/css-lsp:latest",
-    "html": "lspcontainers/html-lsp:latest",
-    "yaml": "lspcontainers/yaml-lsp:latest",
-    "markdown": "lspcontainers/markdown-lsp:latest",
-    "rust": "lspcontainers/rust-analyzer:latest",
+    "python": "lspcontainers/pyright-langserver:1.1.377",
+    "typescript": "lspcontainers/typescript-language-server:4.3.4",  # noqa: E501
+    "javascript": "lspcontainers/typescript-language-server:4.3.4",  # noqa: E501
+    "html": "lspcontainers/html-language-server:1.4.0",
 }
 
 # Marker files that signal a workspace root, in increasing order of
