@@ -1302,7 +1302,7 @@ def test_shortcuts():
         core.wait_frame()
         core.wait_frame()
 
-        assert len(global_actions.shortcut_codes[cue2.shortcut]) == 1
+        assert cue2.shortcut in global_actions.get_sc_codes()
 
         # Todo maybe we shouldn't store numbers as ints with a multiplier
         global_actions.cl_trigger_shortcut_code(str(int(cue2.number / 1000)))
@@ -1331,12 +1331,12 @@ def test_shortcuts():
         assert grp.cue.name == "default"
 
         # Ensure the shortcut group exclude works
-        global_actions.cl_trigger_shortcut_code("shortcut2",
-        {"exclude": grp.name})
+        global_actions.cl_trigger_shortcut_code(
+            "shortcut2", {"exclude": grp.name}
+        )
         core.wait_frame()
         core.wait_frame()
         assert grp.cue.name == "default"
-
 
         # Ensure the new shortcut works
         global_actions.cl_trigger_shortcut_code("shortcut2")
@@ -1345,9 +1345,7 @@ def test_shortcuts():
         assert grp.cue.name == "cue2"
 
     # Make sure the shortcut was removed
-    assert ("shortcut2" not in global_actions.shortcut_codes) or (
-        len(global_actions.shortcut_codes["shortcut2"]) == 0
-    )
+    assert "shortcut2" not in global_actions.get_sc_codes()
 
 
 def test_cue_logic():
