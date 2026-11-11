@@ -1352,13 +1352,10 @@ export async function awaitMessage() {
   }
 }
 
-function handleServerMessage(v) {
+
+
+function _handleServerMessage(v) {
   let c = v[0];
-
-  if (awaitMessageChecker != null && awaitMessageChecker(v)) {
-    awaitMessageChecker = null;
-  }
-
   if (c == 'soundfolders') {
     soundfolders.value = v[1];
   } else if (c == 'ui_alert') {
@@ -1588,6 +1585,13 @@ function handleServerMessage(v) {
     midiInputs.value = v[1];
   } else if (c == 'blendModes') {
     blendModes.value = v[1];
+  }
+}
+
+function handleServerMessage(v){
+  _handleServerMessage(v);
+    if (awaitMessageChecker != null && awaitMessageChecker(v)) {
+    awaitMessageChecker = null;
   }
 }
 

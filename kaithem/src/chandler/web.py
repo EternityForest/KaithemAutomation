@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import datetime
-import hashlib
 import os
 import time
 from typing import TYPE_CHECKING
@@ -37,7 +36,7 @@ get_template = _Lookup.get_template
 
 
 @quart_app.app.route("/chandler/universe_info/<universe>")
-def debug_universe_values(universe):
+def debug_universe_values(universe: str):
     pages.require("chandler_operator")
     u = universes.universes[universe]
     if u:
@@ -124,7 +123,7 @@ async def get_file_thumbnail():
 
 
 @quart_app.app.route("/chandler/static/<fn>")
-async def static_file(fn):
+async def static_file(fn: str):
     if ".." in fn or "/" in fn or "\\" in fn:
         return quart.abort(404)
     return await quart.send_file(
@@ -167,7 +166,7 @@ async def media():
     kwargs = quart.request.args
 
     @quart.ctx.copy_current_request_context
-    def get_file():
+    def get_file() -> str | bytes:
         if "labelImg" in kwargs:
             pages.require("enumerate_endpoints")
             pages.require("chandler_operator")
@@ -207,11 +206,9 @@ async def media():
                     "ai_default_album_art.jpg",
                 )
 
-            return t
+            return t.data
 
         else:
-            # TODO: Is the timing attack resistance here enough?
-
             if kwargs.get("file") == "1x1.png":
                 return os.path.join(directories.datadir, "static/img/1x1.png")
 
@@ -242,13 +239,9 @@ async def media():
                     board = core.boards[kwargs["board"]]
 
                     f = core.resolve_sound(kwargs["file"], board.media_folders)
+                    return f
 
-                # Resist discovering what scenes exist
-                time.sleep(
-                    hashlib.md5(kwargs["group"].encode("utf-8")).digest()[0]
-                    / 1000
-                )
-                return f
+        raise RuntimeError("No file could be found from specifiers")
 
     r = await get_file()
     if isinstance(r, str):

@@ -202,7 +202,7 @@ dev-run-all-tests:
 	@echo "wgetting server to make sure it is up, this may take a minute"
 	@wget --retry-connrefused --waitretry=1 --read-timeout=20 --quiet --timeout=15 -t 0 http://localhost:8002
 	@echo "Running playwright tests"
-	@${PLAYWRIGHT} test --reporter=html  --workers 1 --max-failures 1
+	@${PLAYWRIGHT} test ${PLAYWRIGHT_RUN_ONLY} --reporter=html  --workers 1 --max-failures 3
 	@sleep 5
 	@echo "Stopping server"
 	@killall kmakefiletest
@@ -225,7 +225,7 @@ dev-run-all-tests:
 
 	@UV_PROJECT_ENVIRONMENT=.test_venvs/.venv_clean_no_dev  pw-jack  uv run --python=/usr/bin/python3 --no-dev testing_server.py --process-title kmakefiletest  &
 	@wget --retry-connrefused --waitretry=1 --read-timeout=20 --quiet --timeout=15 -t 0 http://localhost:8002
-	@${PLAYWRIGHT} test --reporter=html  --workers 1 --max-failures 1
+	@${PLAYWRIGHT} test --reporter=html  --workers 1 --max-failures 3
 
 	@echo "Finished running Kaithem test suite"
 	@echo "Stopping server"

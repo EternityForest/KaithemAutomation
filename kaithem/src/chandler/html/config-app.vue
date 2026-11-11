@@ -938,7 +938,6 @@ function chTypeChanged(i) {
     fixtureClasses.value[selectedFixtureClass.value].channels[i].ranges =
       undefined;
   }
-  this.pushfixture(selectedFixtureClass.value);
 }
 function addFixtureAssignment(name, t, univ, addr, spacing, count) {
   if (!name) {

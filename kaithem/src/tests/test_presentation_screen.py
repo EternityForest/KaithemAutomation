@@ -1,3 +1,4 @@
+import itertools
 import json
 import os
 import time
@@ -5,6 +6,8 @@ import time
 import pytest
 
 from .helpers import make_client
+
+_screen_counter = itertools.count()
 
 
 def _guest_client():
@@ -18,7 +21,9 @@ def _make_screen(title: str = "Test Screen", name: str = "screen"):
     from kaithem.api import modules as modules_api
     from kaithem.src import modules, modules_state
 
-    module = "testpresentation" + str(time.time()).replace(".", "_")
+    module = f"testpresentation{next(_screen_counter)}_" + str(
+        time.time()
+    ).replace(".", "_")
     modules.newModule(module)
 
     resource_type = modules_state.resource_types["presentation_screen"]
@@ -32,6 +37,28 @@ def _make_screen(title: str = "Test Screen", name: str = "screen"):
     return module, path
 
 
+def _delete_screen(module: str):
+    """Delete a screen and its module, tolerating an already-deleted screen."""
+    from kaithem.src import modules
+
+    try:
+        modules.rmResource(module, "screen")
+    except KeyError:
+        pass
+    try:
+        modules.rmModule(module)
+    except KeyError:
+        pass
+
+
+@pytest.fixture
+def screen():
+    """A presentation screen that is always deleted after the test."""
+    module, path = _make_screen()
+    yield module, path
+    _delete_screen(module)
+
+
 def _api(module: str, suffix: str) -> str:
     """URL for an endpoint keyed only by module and resource."""
     return f"/presentation-screen/api{suffix}/{module}/screen"
@@ -42,13 +69,13 @@ def _file_api(module: str, verb: str, filename: str) -> str:
     return f"/presentation-screen/api/{verb}/{module}/screen/{filename}"
 
 
-async def test_resource_creates_content_folder():
-    _, path = _make_screen()
+async def test_resource_creates_content_folder(screen):
+    _, path = screen
     assert os.path.isdir(path)
 
 
-async def test_save_list_get_delete_roundtrip():
-    module, path = _make_screen()
+async def test_save_list_get_delete_roundtrip(screen):
+    module, path = screen
     client = await make_client()
 
     response = await client.get(_api(module, "/files"))
@@ -81,8 +108,8 @@ async def test_save_list_get_delete_roundtrip():
     assert response.status_code == 404
 
 
-async def test_save_rejects_bad_input():
-    module, _ = _make_screen()
+async def test_save_rejects_bad_input(screen):
+    module, _ = screen
     client = await make_client()
 
     response = await client.post(
@@ -106,8 +133,8 @@ async def test_save_rejects_bad_input():
     assert response.status_code == 400
 
 
-async def test_config_defaults_open_and_admin_can_lock():
-    module, _ = _make_screen()
+async def test_config_defaults_open_and_admin_can_lock(screen):
+    module, _ = screen
     admin = await make_client()
     guest = _guest_client()
 
@@ -157,8 +184,8 @@ async def test_config_defaults_open_and_admin_can_lock():
     assert body["title"] == "Renamed"
 
 
-async def test_set_config_validates_title():
-    module, _ = _make_screen()
+async def test_set_config_validates_title(screen):
+    module, _ = screen
     client = await make_client()
 
     response = await client.post(_api(module, "/config"), json={"title": ""})
@@ -170,8 +197,8 @@ async def test_set_config_validates_title():
     assert response.status_code == 400
 
 
-async def test_guest_cannot_save_or_delete():
-    module, _ = _make_screen()
+async def test_guest_cannot_save_or_delete(screen):
+    module, _ = screen
     guest = _guest_client()
 
     response = await guest.post(_file_api(module, "save", "x.pptx"), data=b"PK")
@@ -198,8 +225,8 @@ def _squash_state_broadcasts(monkeypatch):
     return sent
 
 
-async def test_state_endpoint_replaces_the_whole_state(monkeypatch):
-    module, _ = _make_screen()
+async def test_state_endpoint_replaces_the_whole_state(monkeypatch, screen):
+    module, _ = screen
     client = await make_client()
     sent = _squash_state_broadcasts(monkeypatch)
 
@@ -250,11 +277,11 @@ async def test_state_endpoint_replaces_the_whole_state(monkeypatch):
     assert len(sent) == 2
 
 
-async def test_default_state_is_stored_in_the_resource(monkeypatch):
+async def test_default_state_is_stored_in_the_resource(monkeypatch, screen):
     from kaithem.src import modules_state
     from kaithem.src.plugins import CorePluginPresentationScreen as plugin
 
-    module, _ = _make_screen()
+    module, _ = screen
     client = await make_client()
     _squash_state_broadcasts(monkeypatch)
 
@@ -280,8 +307,10 @@ async def test_default_state_is_stored_in_the_resource(monkeypatch):
     assert body["default_state"] == playing
 
 
-async def test_deleting_the_playing_file_falls_back_to_the_default(monkeypatch):
-    module, _ = _make_screen()
+async def test_deleting_the_playing_file_falls_back_to_the_default(
+    monkeypatch, screen
+):
+    module, _ = screen
     client = await make_client()
     sent = _squash_state_broadcasts(monkeypatch)
 
@@ -317,10 +346,10 @@ def test_sanitize_pptx_filename():
             sanitize_pptx_filename(bad)
 
 
-def test_delete_removes_content_folder():
+def test_delete_removes_content_folder(screen):
     from kaithem.src import modules_state
 
-    module, path = _make_screen()
+    module, path = screen
     assert os.path.isdir(path)
 
     resource_type = modules_state.resource_types["presentation_screen"]
@@ -330,8 +359,8 @@ def test_delete_removes_content_folder():
     assert not os.path.exists(path)
 
 
-async def test_websocket_broadcasts_state_to_all_viewers():
-    module, _ = _make_screen()
+async def test_websocket_broadcasts_state_to_all_viewers(screen):
+    module, _ = screen
     admin = await make_client()
     response = await admin.post(
         _file_api(module, "save", "deck.pptx"), data=b"PKok"
@@ -369,8 +398,8 @@ async def test_websocket_broadcasts_state_to_all_viewers():
     assert (await response.get_json())["connected"] == 0
 
 
-async def test_websocket_viewing_respects_locked_setting():
-    module, _ = _make_screen()
+async def test_websocket_viewing_respects_locked_setting(screen):
+    module, _ = screen
     admin = await make_client()
     guest = _guest_client()
     url = f"/presentation-screen/ws/{module}/screen"
@@ -395,8 +424,8 @@ async def test_websocket_viewing_respects_locked_setting():
     assert locked.accepted is False
 
 
-async def test_editor_redirect_preserves_file_parameter():
-    module, _ = _make_screen()
+async def test_editor_redirect_preserves_file_parameter(screen):
+    module, _ = screen
     client = await make_client()
 
     response = await client.get(
@@ -438,8 +467,8 @@ async def _save_deck(client, module: str, filename: str = "deck.pptx"):
     assert response.status_code == 200
 
 
-async def test_bookmark_save_list_goto_delete_roundtrip(monkeypatch):
-    module, _ = _make_screen()
+async def test_bookmark_save_list_goto_delete_roundtrip(monkeypatch, screen):
+    module, _ = screen
     client = await make_client()
     sent = _squash_state_broadcasts(monkeypatch)
     await _save_deck(client, module)
@@ -476,8 +505,10 @@ async def test_bookmark_save_list_goto_delete_roundtrip(monkeypatch):
     assert response.status_code == 404
 
 
-async def test_bookmark_overwrite_updates_state_but_keeps_meta(monkeypatch):
-    module, _ = _make_screen()
+async def test_bookmark_overwrite_updates_state_but_keeps_meta(
+    monkeypatch, screen
+):
+    module, _ = screen
     client = await make_client()
     _squash_state_broadcasts(monkeypatch)
     await _save_deck(client, module)
@@ -506,8 +537,8 @@ async def test_bookmark_overwrite_updates_state_but_keeps_meta(monkeypatch):
     await client.post(_bookmark_api(module, "opening", "delete"))
 
 
-async def test_goto_bookmark_excludes_meta_from_state(monkeypatch):
-    module, _ = _make_screen()
+async def test_goto_bookmark_excludes_meta_from_state(monkeypatch, screen):
+    module, _ = screen
     client = await make_client()
     sent = _squash_state_broadcasts(monkeypatch)
     await _save_deck(client, module)
@@ -532,8 +563,8 @@ async def test_goto_bookmark_excludes_meta_from_state(monkeypatch):
     await client.post(_bookmark_api(module, "opening", "delete"))
 
 
-async def test_bookmark_meta_validation(monkeypatch):
-    module, _ = _make_screen()
+async def test_bookmark_meta_validation(monkeypatch, screen):
+    module, _ = screen
     client = await make_client()
     _squash_state_broadcasts(monkeypatch)
 
@@ -557,11 +588,13 @@ async def test_bookmark_meta_validation(monkeypatch):
     assert response.status_code == 400
 
 
-async def test_bookmark_shortcut_registers_updates_and_closes(monkeypatch):
+async def test_bookmark_shortcut_registers_updates_and_closes(
+    monkeypatch, screen
+):
     from kaithem.src.chandler import global_actions
     from kaithem.src.plugins import CorePluginPresentationScreen as plugin
 
-    module, _ = _make_screen()
+    module, _ = screen
     client = await make_client()
     sent = _squash_state_broadcasts(monkeypatch)
     await _save_deck(client, module)
@@ -618,10 +651,10 @@ async def test_bookmark_shortcut_registers_updates_and_closes(monkeypatch):
     assert sent == []
 
 
-async def test_delete_bookmark_closes_its_listener(monkeypatch):
+async def test_delete_bookmark_closes_its_listener(monkeypatch, screen):
     from kaithem.src.plugins import CorePluginPresentationScreen as plugin
 
-    module, _ = _make_screen()
+    module, _ = screen
     client = await make_client()
     _squash_state_broadcasts(monkeypatch)
 
@@ -639,9 +672,9 @@ async def test_delete_bookmark_closes_its_listener(monkeypatch):
     assert listener.closed is True
 
 
-async def test_missing_file_bookmark_still_lists(monkeypatch):
+async def test_missing_file_bookmark_still_lists(monkeypatch, screen):
     """A bookmark whose file was deleted must not break the list view."""
-    module, _ = _make_screen()
+    module, _ = screen
     client = await make_client()
     _squash_state_broadcasts(monkeypatch)
     await _save_deck(client, module)

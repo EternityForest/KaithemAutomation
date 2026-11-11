@@ -66,12 +66,12 @@ test('test', async ({ page }) => {
   await page.getByRole('button', { name: '󰏫 Fixture Types' }).click();
 
   page.once('dialog', (dialog) => {
-    dialog.accept('textfixtype').catch(() => {});
+    dialog.accept('testfixtype').catch(() => {});
   });
 
   await page.getByRole('button', { name: '󰐕 New' }).click();
 
-  await page.getByTestId('fixture-type-to-edit').selectOption('textfixtype');
+  await page.getByTestId('fixture-type-to-edit').selectOption('testfixtype');
 
   await waitForTasks(page);
 
@@ -111,7 +111,7 @@ test('test', async ({ page }) => {
   await sleep(200);
 
   await page.getByRole('button', { name: 'Fixtures' }).click();
-  await page.locator('select').selectOption('textfixtype');
+  await page.locator('select').selectOption('testfixtype');
   await waitForTasks(page);
   await sleep(200);
 

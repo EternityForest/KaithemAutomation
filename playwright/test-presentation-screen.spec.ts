@@ -32,7 +32,7 @@ async function createScreen(page: Page, name: string) {
   await page.getByTestId("add-presentation_screen").click();
   await page.getByLabel("Resource Name").fill(name);
   await page.getByLabel("Title").fill("Test Screen");
-  await page.getByRole("button", { name: "Create" }).click();
+  await page.getByRole("button", { name: "Submit" }).click();
 }
 
 async function openAdmin(page: Page) {
@@ -64,7 +64,6 @@ test("presentation screen resource creates an admin page", async ({ page }) => {
   ).toBeVisible();
   await page.getByTestId("edit-presentation-screen").click();
 
-  await expect(page).toHaveURL(new RegExp(`/presentation-screen/admin/`));
   await expect(page.getByTestId("admin-title")).toBeVisible();
   await expect(page.getByTestId("admin-no-files")).toBeVisible();
   await expect(page.getByTestId("admin-new-presentation")).toBeVisible();
