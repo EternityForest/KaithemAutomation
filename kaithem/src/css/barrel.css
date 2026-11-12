@@ -2111,6 +2111,7 @@ input:invalid:not(.specificity_hack) {
   width: unset;
 }
 
+
 .tool-bar,
 .pagination {
   --tool-bar-element-border: var(--control-border);
@@ -2205,7 +2206,7 @@ input:invalid:not(.specificity_hack) {
     display: flex;
     flex-basis: fit-content;
     border: none !important;
-    border-radius: var(--control-border-radius);
+    border-radius: inherit;
   }
 
   & form :is(button, input[type='button'], select) {
@@ -2380,8 +2381,10 @@ input:invalid:not(.specificity_hack) {
   & :first-child:not(:last-child) > :first-child,
   & :first-child:not(:last-child) > :first-child > :first-child {
     &:not(.toggle):not(i) {
-      border-radius: var(--control-border-radius) 0px 0px
-        var(--control-border-radius);
+           border-top-left-radius:inherit;
+      border-bottom-left-radius:inherit;
+      border-top-right-radius:0px;
+      border-bottom-right-radius:0px;
     }
   }
 
@@ -2389,8 +2392,10 @@ input:invalid:not(.specificity_hack) {
   & :last-child:not(:first-child) > :last-child,
   :last-child:not(:first-child) > :last-child > :last-child {
     &:not(.toggle):not(i) {
-      border-radius: 0px var(--control-border-radius)
-        var(--control-border-radius) 0px;
+      border-top-left-radius:0px;
+      border-bottom-left-radius:0px;
+      border-top-right-radius:inherit;
+      border-bottom-right-radius:inherit;
     }
     margin-inline-end: 0px;
   }
@@ -2399,8 +2404,7 @@ input:invalid:not(.specificity_hack) {
   & > :only-child > :only-child,
   & > :only-child > :only-child > :only-child {
     &:not(.toggle) {
-      border-radius: var(--control-border-radius) var(--control-border-radius)
-        var(--control-border-radius) var(--control-border-radius);
+      border-radius: inherit;
     }
   }
 
@@ -2446,6 +2450,17 @@ input:invalid:not(.specificity_hack) {
     flex-grow: 1;
   }
 }
+
+.tool-bar.w-full{
+  border-radius: inherit;
+  &>:first-child{
+    border-left:none;
+  }
+  &>:last-child{
+    border-right:none;
+  }
+}
+
 
 .flex-col > .tool-bar {
   flex-grow: 0;
