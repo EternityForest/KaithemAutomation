@@ -24,7 +24,9 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import threading
 import time
+from collections.abc import Callable
 from typing import Any
 from urllib.parse import quote, urlparse
 
@@ -72,6 +74,14 @@ _AUTH_COOKIE_NAME = "kaithem_auth"
 
 # Chunk size used when streaming proxied responses.
 _STREAM_CHUNK_SIZE = 64 * 1024
+
+# A hook that may inspect or rewrite the headers sent to the backend.
+# It receives the ASGI scope, the authenticated username, and the headers
+# that would otherwise be forwarded, and may return a replacement dict.
+# Returning ``None`` leaves the headers unchanged.
+HeaderInterceptor = Callable[
+    [dict[str, Any], str, dict[str, str]], "dict[str, str] | None"
+]
 
 
 def _validate_subdomain(subdomain: str) -> str:
@@ -238,6 +248,7 @@ class Proxy:
         permissions: list[str] | None = None,
         module: str | None = None,
         resource: str | None = None,
+        request_header_interceptors: list[HeaderInterceptor] | None = None,
     ):
         """Create and register a proxy.
 
@@ -252,6 +263,9 @@ class Proxy:
                 backend.  An empty list allows any user.
             module: Module name, used for the apps page icon.
             resource: Resource name, used for the apps page icon.
+            request_header_interceptors: Hooks that may add to or rewrite
+                the headers forwarded to the backend.  They run in order
+                after the standard headers are built.
         """
         self.subdomain = _validate_subdomain(subdomain)
         self.target = target
@@ -260,6 +274,9 @@ class Proxy:
         self.permissions = list(permissions or [])
         self.module = module
         self.resource = resource
+        self.request_header_interceptors = list(
+            request_header_interceptors or []
+        )
 
         self._session: niquests.AsyncSession | None = None
         self._closed = False
@@ -404,6 +421,10 @@ class Proxy:
         headers["x-kaithem-is-admin"] = (
             "true" if pages.canUserDoThis("system_admin", user) else "false"
         )
+        for interceptor in self.request_header_interceptors:
+            replacement = interceptor(scope, user, headers)
+            if replacement is not None:
+                headers = replacement
         return headers
 
     def _build_response_headers(

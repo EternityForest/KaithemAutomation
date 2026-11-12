@@ -15,6 +15,9 @@ is the stable import surface for other code::
     proxy.close()
 """
 
-from kaithem.src.plugins.CorePluginProxies.proxy import Proxy
+from kaithem.src.plugins.CorePluginProxies.proxy import (
+    HeaderInterceptor,
+    Proxy,
+)
 
-__all__ = ["Proxy"]
+__all__ = ["Proxy", "HeaderInterceptor"]
