@@ -147,6 +147,7 @@ def initialize(config: dict[str, Any] | None = None):
         modules,  # noqa: F401
         notifications,  # noqa: F401
         plugin_system,  # noqa: F401
+        rest,  # noqa: F401
         settings,  # noqa: F401
         signalhandlers,  # noqa: F401
         systasks,  # noqa: F401

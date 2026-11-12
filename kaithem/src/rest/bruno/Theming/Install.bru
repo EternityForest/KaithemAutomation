@@ -1,0 +1,29 @@
+meta {
+  name: Install
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/theming/install.css
+  body: none
+  auth: none
+}
+
+docs {
+  Server-wide stylesheet, imported by ``style.css`` between the base
+  sheets and the theme.
+
+  Implementation detail of ``style.css``.  Do not link it directly.
+}
+
+tests {
+  test("returns CSS", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getHeader("content-type")).to.include("text/css");
+  });
+
+  test("sets the main font", function () {
+    expect(res.getBody()).to.include("--main-font:");
+  });
+}

@@ -1,0 +1,54 @@
+meta {
+  name: Style
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/theming/style.css
+  body: none
+  auth: none
+}
+
+params:query {
+  v: 0
+}
+
+docs {
+  All stylesheets a page needs, as a single import.
+
+  Returns CSS made only of ``@import`` lines, in an order that lets
+  later sheets override earlier ones:
+
+      base -> install -> theme
+
+  Query parameters:
+
+  * ``theme``: Barrel theme name or stylesheet URL, overriding the
+    system theme for this page only.
+  * ``v``: Ignored.  A cache-busting version supplied by the page.
+
+  Public and stable.  Use this, never the individual sheets.
+}
+
+tests {
+  test("returns CSS", function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getHeader("content-type")).to.include("text/css");
+  });
+
+  test("imports the base sheets first", function () {
+    const css = res.getBody();
+    expect(css).to.include('@import url("/static/css/barrel.css")');
+    expect(css).to.include('@import url("/static/css/kaithem.css")');
+    expect(css.indexOf("barrel.css"))
+      .to.be.lessThan(css.indexOf("kaithem.css"));
+  });
+
+  test("is only imports", function () {
+    const lines = res.getBody().split("\n").filter((l) => l.trim());
+    lines.forEach((line) => {
+      expect(line).to.match(/^@import url\(".+"\);$/);
+    });
+  });
+}

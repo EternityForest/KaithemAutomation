@@ -74,6 +74,21 @@ There is the kaithem.api module that defines the stable public interface.
 
 Everything that can, should use this API.
 
+### The public HTTP API
+
+Stable HTTP endpoints live in the `kaithem.src.rest` package, are
+served under `/api/`, and are registered on import.
+
+* One endpoint per resource, GET unless it changes state.
+* Prefer one endpoint that returns everything a client needs over
+  several the client must combine.
+* Describe every endpoint, with its parameters and assertions, in the
+  Bruno collection at `kaithem/src/rest/bruno`.
+
+For example, a page loads all of its CSS from a single
+`/api/theming/style.css` link instead of several stylesheet tags; its
+`theme` parameter overrides the system theme for that page only.
+
 
 ### Core Plugins
 

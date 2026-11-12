@@ -1,0 +1,33 @@
+meta {
+  name: Style With Theme
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/theming/style.css
+  body: none
+  auth: none
+}
+
+params:query {
+  theme: nord
+  v: 0
+}
+
+docs {
+  Same as ``Style``, but ``theme`` overrides the system theme for this
+  page only.
+
+  ``theme`` accepts either a registered Barrel theme name or a
+  stylesheet URL.
+}
+
+tests {
+  test("imports the requested theme last", function () {
+    const css = res.getBody();
+    expect(css).to.include('@import url("/static/css/nord.css")');
+    expect(css.indexOf("nord.css"))
+      .to.be.greaterThan(css.indexOf("kaithem.css"));
+  });
+}

@@ -9,7 +9,7 @@ from scullery import persist
 
 from kaithem.api import settings
 
-from . import directories, quart_app, settings_overrides
+from . import directories, settings_overrides
 from .config import config
 
 fn = os.path.join(directories.vardir, "core.settings", "theming.toml")
@@ -101,25 +101,3 @@ def handleThemeChange(*a, **k):
 
 settings.subscribe_to_changes("core/css_theme", handleThemeChange)
 settings.subscribe_to_changes("core/body_font", handleThemeChange)
-
-
-@quart_app.app.route("/dynamic.css/<version>", methods=["GET"])
-async def dynamicCSS(version):
-    rules = []
-
-    rules.append(
-        f"--main-font: {settings_overrides.get_val('core/ui_font') or 'AtkinsonHyperlegible'};"
-    )
-
-    rules2 = "\n".join(rules)
-
-    x = f"""
-:root{{
-    {rules2}
-}}
-    """
-
-    y = await quart_app.app.make_response(x)
-    y.mimetype = "text/css"
-
-    return y

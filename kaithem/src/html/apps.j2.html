@@ -11,12 +11,13 @@
     aspect-ratio: 16/9;
     overflow: hidden;
     height: auto;
-    flex-grow: 0;
+    flex-grow: 1;
     padding: 0px;
     position: relative;
     z-index: 1001;
     background: var(--box-bg);
     border-radius: var(--control-border-radius);
+
 
     &>img {
         position: absolute;
@@ -46,6 +47,8 @@
         position: absolute;
         z-index: 1002;
         opacity: 0.85;
+        border-radius: 0px;
+        padding-left: 3px;
     }
     &>.label-bottom {
         width: 100%;
@@ -64,17 +67,6 @@
     }
 
 
-    &>.sheen {
-        pointer-events: none;
-        width: 100%;
-        height: 100%;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        position: absolute;
-        z-index: 1003;
-        background: radial-gradient(circle, rgba(255, 255, 255, 0.082) 58%, rgb(0 0 0 / 0%) 85%, rgba(0, 0, 0, 0.363) 100%) !important;
-    }
 }
 
 .popup{
@@ -103,11 +95,17 @@
     }
 }
 
+.apps{
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px; /* Adds spacing between rows and columns */
+}
+
 </style>
 <main>
     <h2>Apps</h2>
     <div class="window paper">
-        <div class="flex-row gaps noselect">
+        <div class="flex-row gaps noselect apps">
             {% for app in sorted(list(apps.keys())) %}
             {{ apps[app].render() }}
             {% endfor %}
