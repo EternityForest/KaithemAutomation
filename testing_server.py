@@ -76,6 +76,21 @@ api = kaithem.initialize_app(cfg)
 # This causes problems if imported before the app is initialized
 from kaithem.src import auth, directories  # noqa
 
+# Run a loopback fake of the OpenRouter API and point the AI settings at
+# it, so the conversation feature can be tested end to end without ever
+# reaching a paid provider.  The mock echoes whatever it is sent.
+from kaithem.src.tests.ai_mock import start_ai_mock  # noqa: E402
+
+ai_mock = start_ai_mock()
+from kaithem.src import settings_overrides  # noqa: E402
+
+for _ai_key, _ai_value in {
+    "core/ai/openrouter_api_base": ai_mock.api_base,
+    "core/ai/openrouter_api_key": "playwright-test-key",
+    "core/ai/conversations_dir": "/dev/shm/kaithem_test_env/conversations",
+}.items():
+    settings_overrides.add_val(_ai_key, _ai_value, "<playwright test>", 100)
+
 # Fake map tile to make sure we are reading from the cache
 os.makedirs(
     "/dev/shm/kaithem_test_env/maptiles/openstreetmap/0/0/", exist_ok=True

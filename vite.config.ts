@@ -87,6 +87,10 @@ export default defineConfig({
           __dirname,
           'kaithem/src/plugins/CorePluginBluetooth/html/index.html'
         ),
+        conversation_chat: resolve(
+          __dirname,
+          'kaithem/src/plugins/CorePluginPydanticConversation/html/index.html'
+        ),
         presentationscreen_admin: resolve(
           __dirname,
           'kaithem/src/plugins/CorePluginPresentationScreen/html/admin.html'

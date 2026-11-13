@@ -412,6 +412,41 @@ def system():
 
 
 @legacy_route
+def ai(**kwargs):
+    """View and edit the server level AI provider settings."""
+    from . import ai_settings
+
+    try:
+        pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+
+    if quart.request.method == "POST":
+        pages.postOnly()
+        for key in ai_settings.DEFAULTS:
+            if key in kwargs:
+                ai_settings.set_value(key, kwargs[key])
+        messagebus.post_message(
+            "/system/settings/changedai", pages.getAcessingUser()
+        )
+        return quart.redirect("/settings/ai")
+
+    fields = [
+        {
+            "key": key,
+            "label": ai_settings.LABELS.get(key, key),
+            "description": ai_settings.DESCRIPTIONS.get(key, ""),
+            "value": ai_settings.get_value(key),
+            "secret": key.endswith("api_key"),
+        }
+        for key in ai_settings.DEFAULTS
+    ]
+    return pages.render_jinja_template(
+        "settings/ai_settings.j2.html", fields=fields
+    )
+
+
+@legacy_route
 def changesettingstarget(**kwargs):
     try:
         pages.require("system_admin")

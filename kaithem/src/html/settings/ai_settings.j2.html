@@ -1,0 +1,37 @@
+{% extends "pagetemplate.j2.html" %}
+
+{% block body %}
+
+<title>AI Settings</title>
+
+<h1>AI Settings</h1>
+<div class="window paper">
+<details class="help"><summary><i class="mdi mdi-help-circle-outline"></i></summary>
+    These settings drive every plugin that talks to an AI provider.  They
+    apply to the whole server.  The API key is stored on the server with
+    owner only permissions and is never shown in logs.
+</details>
+
+<form method="POST" action="/settings/ai">
+<table class="w-full">
+{% for field in fields %}
+<tr>
+    <td>{{ field.label|escape }}</td>
+    <td>
+    {% if field.secret %}
+        <input type="password" name="{{ field.key|escape }}"
+               value="{{ field.value|escape }}" autocomplete="off" size="48">
+    {% else %}
+        <input name="{{ field.key|escape }}"
+               value="{{ field.value|escape }}" size="48">
+    {% endif %}
+    <div class="small">{{ field.description|escape }}</div>
+    </td>
+</tr>
+{% endfor %}
+</table>
+<button type="submit">Save</button>
+</form>
+</div>
+
+{% endblock %}

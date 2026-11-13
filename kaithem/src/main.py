@@ -219,6 +219,10 @@ def initialize(config: dict[str, Any] | None = None):
     except Exception:
         logging.exception("error creating test admin user")
 
+    # Register the server level AI settings defaults before any plugin that
+    # might read them is imported.
+    from . import ai_settings as _ai_settings  # noqa: F401
+
     # MUST be after auth because auth plugins
     # exist
     plugin_system.load_plugins()
