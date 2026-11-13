@@ -444,14 +444,24 @@ def exec_container(
     stdout: BinaryIO | int | None = None,
     stderr: BinaryIO | int | None = None,
     detach: bool = False,
+    tty: bool = False,
 ) -> subprocess.Popen[bytes]:
     """Run a command inside an already-running container.
 
     Uses ``podman exec`` so repeated commands share one container's
     writable layer rather than paying to create a fresh container each
     time.  The container must already be running.
+
+    Set ``tty`` to allocate a pseudo terminal for the command.  Without
+    one the command's stdout is a pipe, so most runtimes buffer their
+    output and it only arrives when the command exits; with a TTY they
+    line buffer it instead.  Use it whenever the output is streamed
+    live.  The caller owns any cleanup, but note that killing the
+    returned ``podman`` client now hangs up the command.
     """
     cmd = _podman("exec", "--detach" if detach else "--interactive")
+    if tty and not detach:
+        cmd.append("--tty")
     if workdir:
         cmd += ["--workdir", workdir]
     for k, v in (env or {}).items():

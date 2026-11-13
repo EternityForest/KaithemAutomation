@@ -165,7 +165,7 @@ class ContainerAppResource(ResourceTypeRuntimeObject):
         self.data = data
         self.error: str | None = None
         self.config: ContainerAppConfig | None = None
-        self.runtime: ContainerRuntime | None = None
+        self.sandbox_runtime: ContainerRuntime | None = None
         self.api_key: api_keys.EphemeralApiKey | None = None
         self.proxy: PathProxy | StaticFilesApp | None = None
         self._dev = False
@@ -177,7 +177,7 @@ class ContainerAppResource(ResourceTypeRuntimeObject):
 
         os.makedirs(self.project_folder, exist_ok=True)
         _register_directory_resources(module, resource, ["app"])
-        self._load_config()
+        self._load_sandbox_runtime()
 
     # -- Setup ----------------------------------------------------------
 
@@ -192,7 +192,7 @@ class ContainerAppResource(ResourceTypeRuntimeObject):
             self.resource + DEV_PATH_SUFFIX, "Dev path"
         )
 
-    def _load_config(self) -> None:
+    def _load_sandbox_runtime(self) -> None:
         """(Re)read ``container-app.toml`` and rebuild the runtime."""
         self._close_runtime()
         try:
@@ -205,14 +205,14 @@ class ContainerAppResource(ResourceTypeRuntimeObject):
         owner = f"app:{self.module}:{self.resource}"
         self.config = config
         self.error = None
-        self.runtime = ContainerRuntime(
+        self.sandbox_runtime = ContainerRuntime(
             owner_id=owner,
             project_folder=self.project_folder,
             data_dir=sandbox_dir(owner),
             base_path=self.dev_prefix,
         )
         self.api_key = api_keys.add_ephemeral_api_key(self.service_user)
-        self.runtime.api_key = self.api_key.key
+        self.sandbox_runtime.api_key = self.api_key.key
 
     @property
     def service_user(self) -> str:
@@ -224,12 +224,12 @@ class ContainerAppResource(ResourceTypeRuntimeObject):
 
     def _close_runtime(self) -> None:
         self._unmount()
-        if self.runtime is not None:
+        if self.sandbox_runtime is not None:
             try:
-                self.runtime.close()
+                self.sandbox_runtime.close()
             except Exception:
                 logger.exception("Failed to close container app runtime")
-            self.runtime = None
+            self.sandbox_runtime = None
         if self.api_key is not None:
             self.api_key.remove()
             self.api_key = None
@@ -245,7 +245,7 @@ class ContainerAppResource(ResourceTypeRuntimeObject):
 
     def _require_runtime(self) -> ContainerRuntime:
         """Gets a runtime and unsures config is new"""
-        rt = self.runtime
+        rt = self.sandbox_runtime
         if rt is None:
             raise RuntimeError(self.error or "Container app is not set up")
         rt.reload_config()
@@ -257,9 +257,9 @@ class ContainerAppResource(ResourceTypeRuntimeObject):
     def status(self) -> str:
         if self._dev:
             return "dev"
-        if self.runtime is None:
+        if self.sandbox_runtime is None:
             return "stopped"
-        return self.runtime.status
+        return self.sandbox_runtime.status
 
     @property
     def is_dev(self) -> bool:
@@ -273,9 +273,9 @@ class ContainerAppResource(ResourceTypeRuntimeObject):
 
     @property
     def scripts(self) -> list[str]:
-        if self.runtime is None:
+        if self.sandbox_runtime is None:
             return []
-        return sorted(self.runtime.scripts)
+        return sorted(self.sandbox_runtime.scripts)
 
     def is_empty(self) -> bool:
         """Return whether the app folder has no project files yet."""
@@ -285,20 +285,22 @@ class ContainerAppResource(ResourceTypeRuntimeObject):
             return True
 
     def is_built(self) -> bool:
-        return bool(self.runtime and self.runtime.is_built())
+        return bool(self.sandbox_runtime and self.sandbox_runtime.is_built())
 
     def supports_build(self) -> bool:
-        return bool(self.runtime and self.runtime.supports_build)
+        return bool(
+            self.sandbox_runtime and self.sandbox_runtime.supports_build
+        )
 
     def get_log(self) -> list[str]:
-        if self.runtime is None:
+        if self.sandbox_runtime is None:
             return []
-        return self.runtime.get_log()
+        return self.sandbox_runtime.get_log()
 
     def get_environment(self) -> dict[str, str]:
-        if self.runtime is None:
+        if self.sandbox_runtime is None:
             return {}
-        return self.runtime.get_environment()
+        return self.sandbox_runtime.get_environment()
 
     def instances(self) -> list[ContainerAppInstanceResource]:
         """Return every loaded instance that runs this app."""
@@ -337,9 +339,9 @@ class ContainerAppResource(ResourceTypeRuntimeObject):
 
     def stop_dev(self) -> None:
         """Stop the dev runtime and unmount its preview path."""
-        if self.runtime is not None:
+        if self.sandbox_runtime is not None:
             try:
-                self.runtime.stop()
+                self.sandbox_runtime.stop()
             except Exception:
                 logger.exception("Failed to stop container app dev runtime")
         self._unmount()
@@ -358,7 +360,7 @@ class ContainerAppResource(ResourceTypeRuntimeObject):
         """Re-read the project config and remount."""
         if self._dev:
             self.stop_dev()
-        self._load_config()
+        self._load_sandbox_runtime()
 
     def copy_template(self) -> None:
         """Copy the shipped starter project into an empty app folder."""

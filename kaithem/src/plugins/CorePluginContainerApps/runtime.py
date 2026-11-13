@@ -203,8 +203,14 @@ class ContainerSession:
         stdin: int | None = None,
         stdout: int | None = None,
         stderr: int | None = None,
+        tty: bool = False,
     ) -> subprocess.Popen[bytes]:
-        """Run a command in the container, starting it first if needed."""
+        """Run a command in the container, starting it first if needed.
+
+        ``tty`` allocates a pseudo terminal so the command line buffers
+        its output instead of block buffering it; use it for commands
+        whose output is streamed live.
+        """
         if not args:
             raise ValueError("args is required")
         with self._lock:
@@ -217,6 +223,7 @@ class ContainerSession:
             stdin=stdin,
             stdout=stdout,
             stderr=stderr,
+            tty=tty,
         )
 
     def stop(self) -> None:
@@ -522,6 +529,7 @@ class ContainerRuntime:
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
+            tty=True,
         )
         assert proc.stdout is not None
         with self._state_lock:
@@ -540,7 +548,7 @@ class ContainerRuntime:
         stdout = proc.stdout
         assert stdout is not None
         for raw in stdout:
-            self.on_message(raw.decode("utf-8", "replace").rstrip("\n"))
+            self.on_message(raw.decode("utf-8", "replace").rstrip("\r\n"))
         code = proc.wait()
 
         with self._state_lock:
@@ -662,10 +670,11 @@ class ContainerRuntime:
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
+            tty=True,
         )
         assert proc.stdout is not None
         for raw in proc.stdout:
-            self.on_message(raw.decode("utf-8", "replace").rstrip("\n"))
+            self.on_message(raw.decode("utf-8", "replace").rstrip("\r\n"))
         return proc.wait()
 
     def run_script(self, name: str) -> None:

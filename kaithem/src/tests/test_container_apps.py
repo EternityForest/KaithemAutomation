@@ -16,6 +16,7 @@ import os
 import pytest
 
 from kaithem.api import resource_types
+from kaithem.src import podman_util
 from kaithem.src.plugins import CorePluginContainerApps as plugin
 from kaithem.src.plugins.CorePluginContainerApps import appconfig
 
@@ -230,3 +231,42 @@ def test_template_has_expected_files():
     for name in expected:
         path = os.path.join(plugin.TEMPLATE_DIR, *name.split("/"))
         assert os.path.isfile(path), f"missing template file {name}"
+
+
+# -- Streaming execs ----------------------------------------------------
+
+
+class _FakePopen:
+    """Stand-in for the ``podman`` client started by ``exec_container``."""
+
+
+def _exec_command(monkeypatch, **kwargs) -> list[str]:
+    """Return the ``podman`` command ``exec_container`` would run."""
+    captured: dict[str, list[str]] = {}
+
+    def fake_popen(cmd, **_kwargs):
+        captured["cmd"] = list(cmd)
+        return _FakePopen()
+
+    monkeypatch.setattr(podman_util, "_podman", lambda *a: ["podman", *a])
+    monkeypatch.setattr(podman_util.subprocess, "Popen", fake_popen)
+    podman_util.exec_container("demo", ["echo", "hi"], **kwargs)
+    return captured["cmd"]
+
+
+def test_exec_allocates_a_tty_when_requested(monkeypatch):
+    """A TTY makes the command line-buffer its output, so logs stream."""
+    cmd = _exec_command(monkeypatch, tty=True)
+    assert "--tty" in cmd
+    assert "--interactive" in cmd
+
+
+def test_exec_has_no_tty_by_default(monkeypatch):
+    assert "--tty" not in _exec_command(monkeypatch)
+
+
+def test_detached_exec_ignores_tty(monkeypatch):
+    """A detached exec has no output to stream, so no TTY is needed."""
+    cmd = _exec_command(monkeypatch, tty=True, detach=True)
+    assert "--detach" in cmd
+    assert "--tty" not in cmd
