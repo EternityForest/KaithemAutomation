@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib as _importlib
 import os as _os
 import socket as _socket
+import threading as _threading
 import weakref as _weakref
 from collections.abc import Callable
 from typing import Any
@@ -28,6 +29,17 @@ _wsgi_apps = []
 _subdomain_apps: _weakref.WeakValueDictionary[str, Any] = (
     _weakref.WeakValueDictionary()
 )
+
+# Maps a path prefix (like "/apps/myapp") to the ASGI application that
+# should handle every request under it.  Unlike _asgi_apps, which is read
+# once when the server starts, this registry can be changed at any time,
+# so resources can mount and unmount applications as they load.  Guarded
+# by _path_apps_lock because resources load on their own threads while the
+# server serves requests on the event loop thread.
+_path_apps: _weakref.WeakValueDictionary[str, Any] = (
+    _weakref.WeakValueDictionary()
+)
+_path_apps_lock = _threading.Lock()
 
 _module_plugin_links = []
 _file_resource_links = []
@@ -128,6 +140,58 @@ def remove_subdomain_app(subdomain: str, app: Any) -> None:
     """
     if _subdomain_apps.get(subdomain) is app:
         del _subdomain_apps[subdomain]
+
+
+def add_path_app(prefix: str, app: Any) -> None:
+    """Mount a dynamic ASGI application to handle every request whose
+    path is exactly ``prefix`` or starts with ``prefix`` followed by a
+    slash (for example ``"/apps/myapp"``).  The longest matching prefix
+    wins, so more specific mounts take precedence.
+
+    Unlike :func:`add_asgi_app`, which is only consulted once when the
+    server starts, this can be called at any time.  The mount is released
+    either with :func:`remove_path_app` or automatically when nothing
+    references ``app`` any more.
+    """
+    if not prefix.startswith("/"):
+        raise ValueError(f"Path prefix must start with '/', got {prefix!r}")
+    prefix = prefix.rstrip("/")
+    if not prefix:
+        raise ValueError("Path prefix must not be empty")
+    with _path_apps_lock:
+        if prefix in _path_apps:
+            raise ValueError(f"Path prefix {prefix!r} is already in use")
+        _path_apps[prefix] = app
+
+
+def remove_path_app(prefix: str, app: Any) -> None:
+    """Unmount an application previously added with add_path_app.
+
+    Does nothing if the prefix is not currently mapped to the given app.
+    """
+    prefix = prefix.rstrip("/")
+    with _path_apps_lock:
+        if _path_apps.get(prefix) is app:
+            del _path_apps[prefix]
+
+
+def lookup_path_app(path: str) -> Any | None:
+    """Return the application mounted for ``path``, or None.
+
+    Chooses the longest registered prefix that matches; a prefix matches
+    when the path equals it or continues past it with a ``/`` boundary, so
+    a mount at ``/apps/app`` never captures ``/apps/app2``.
+    """
+    with _path_apps_lock:
+        prefixes = list(_path_apps.keys())
+        best = None
+        for prefix in prefixes:
+            if path == prefix or path.startswith(prefix + "/"):
+                if best is None or len(prefix) > len(best):
+                    best = prefix
+        if best is None:
+            return None
+        return _path_apps.get(best)
 
 
 def add_module_plugin_link(link: str, destination: str):

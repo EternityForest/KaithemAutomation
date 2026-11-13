@@ -54,9 +54,6 @@ def print_thread_tracebacks(reason: str = ""):
                 is_daemon = thread.daemon
                 break
 
-        if is_daemon:
-            continue
-
         if thread_name is None:
             thread_name = f"Unknown (ID: {thread_id})"
 

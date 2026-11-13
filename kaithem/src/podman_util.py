@@ -301,6 +301,8 @@ def run_container(
     detach: bool = False,
     publish: list[tuple[int, int]] | None = None,
     track: bool = False,
+    remove_on_exit: bool = True,
+    entrypoint: str | None = None,
 ) -> subprocess.Popen[bytes] | None:
     """Start a container with the settings and bindings you pass to it.
 
@@ -309,6 +311,12 @@ def run_container(
     detach: run in the background and return None
     track: remember a detached container so ``stop_container`` can stop it.
         Attached containers are always tracked.
+    remove_on_exit: add podman's ``--rm`` so an exited container is deleted
+        at once.  Pass False to keep a stopped container around so its logs
+        can still be read after a crash; ``stop_container``/``remove_container``
+        delete it either way.
+    entrypoint: override the image's ENTRYPOINT, so a keepalive container
+        can run something reliable regardless of the image's default.
 
     Returns a Popen handle if not detached, else None.
     """
@@ -329,12 +337,15 @@ def run_container(
         "--name",
         _container_name(name),
         "--storage-driver=overlay",
-        "--rm",
         "--replace",
         "--detach" if detach else "--interactive",
         "--workdir",
         workdir,
     )
+    if entrypoint is not None:
+        cmd += ["--entrypoint", entrypoint]
+    if remove_on_exit:
+        cmd.append("--rm")
     for host, ctr in (bindings or {}).items():
         cmd += ["--mount", f"type=bind,src={host},dst={ctr}"]
     for host_port, ctr_port in publish or []:
@@ -391,6 +402,68 @@ def container_status(name: str) -> str:
     except Exception:
         return "missing"
     return out.strip()
+
+
+def container_running(name: str) -> bool:
+    """Return whether a container is currently running."""
+    return container_status(name) == "running"
+
+
+def start_container(name: str, track: bool = True) -> None:
+    """Start an existing, stopped container by name.
+
+    Unlike :func:`run_container` this never recreates the container, so a
+    container kept around from an earlier run keeps its writable layer.
+    """
+    _podman_quick_run("start", _container_name(name))
+    if track:
+        with _running_lock:
+            _running_names.add(name)
+
+
+def stop_keep(name: str) -> None:
+    """Stop a container but keep it, and its writable layer, around.
+
+    Use this to shut a service off without losing whatever the container
+    wrote to its own filesystem.  :func:`stop_container` removes instead.
+    """
+    try:
+        _podman_quick_run("stop", _container_name(name))
+    except Exception:
+        logger.debug("Container %s was not running", name)
+    with _running_lock:
+        _running.pop(name, None)
+
+
+def exec_container(
+    name: str,
+    args: list[str],
+    env: dict[str, str] | None = None,
+    workdir: str | None = None,
+    stdin: BinaryIO | int | None = None,
+    stdout: BinaryIO | int | None = None,
+    stderr: BinaryIO | int | None = None,
+    detach: bool = False,
+) -> subprocess.Popen[bytes]:
+    """Run a command inside an already-running container.
+
+    Uses ``podman exec`` so repeated commands share one container's
+    writable layer rather than paying to create a fresh container each
+    time.  The container must already be running.
+    """
+    cmd = _podman("exec", "--detach" if detach else "--interactive")
+    if workdir:
+        cmd += ["--workdir", workdir]
+    for k, v in (env or {}).items():
+        cmd += ["--env", f"{k}={v}"]
+    cmd += [_container_name(name), *args]
+    return subprocess.Popen(
+        cmd,
+        env={**os.environ, **env_extras},
+        stdin=stdin,
+        stdout=stdout,
+        stderr=stderr,
+    )
 
 
 def container_logs(name: str, follow: bool = False) -> subprocess.Popen[bytes]:

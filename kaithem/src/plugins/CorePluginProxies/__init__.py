@@ -17,7 +17,12 @@ import html
 from typing import Any
 
 from kaithem.api import resource_types
-from kaithem.api.proxies import Proxy
+
+# Import from the implementation module, not ``kaithem.api.proxies``: the
+# public API module imports this package's ``proxy`` submodule, so going
+# through it here would be a circular import when this package is loaded
+# before ``kaithem.api.proxies``.
+from .proxy import Proxy
 
 #: JSON schema describing the proxy resource's data.
 SCHEMA: dict[str, Any] = {

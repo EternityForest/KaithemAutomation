@@ -1,0 +1,17 @@
+{
+  "name": "kaithem-container-app",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "ci": "bun install --ignore-scripts && bun run scripts/check-platform.ts && vite build",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "lit": "^3.1.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.9",
+    "typescript": "^5.5.2",
+    "vite": "^5.4.0"
+  }
+}

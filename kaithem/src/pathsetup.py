@@ -20,13 +20,16 @@ def setupPath():
     setup = True
 
     global startupPluginsPath
-    # There are some libraries that are actually different for 3 and 2, so we use the appropriate one
+    # There are some libraries that are actually different for 3 and 2,
+    #  so we use the appropriate one
     # By changing the pathe to include the proper ones.
 
-    # Also, when we install on linux, everything gets moved around, so we change the paths accordingly.
+    # Also, when we install on linux, everything gets moved around,
+    # so we change the paths accordingly.
 
     x = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    # This is ow we detect if we are running in "unzip+run mode" or installed on linux.
+    # This is ow we detect if we are running in "unzip+run mode"
+    # or installed on linux.
     # If we are installed, then src is found in /usr/lib/kaithem
 
     x = os.path.join(x, "src")
@@ -52,7 +55,11 @@ def setupPath():
             )
             s = "/usr/lib/python3/dist-packages/gi"
 
-            if os.path.exists(s) and (not os.path.exists(p)):
+            if (
+                os.path.exists(s)
+                and os.path.exists(en)
+                and (not os.path.exists(p))
+            ):
                 os.symlink(s, p)
     except Exception:  # pragma: no cover
         logger.exception("Failed to do the gstreamer hack")

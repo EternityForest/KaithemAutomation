@@ -3,7 +3,9 @@
 
 A :class:`Proxy` exposes a backend HTTP server (or a Unix domain socket)
 on its own subdomain, appears on the apps page, requires a configurable
-set of permissions, and transparently supports websockets.
+set of permissions, and transparently supports websockets.  A
+:class:`PathProxy` does the same under a path prefix on the Kaithem host
+instead of a subdomain.
 
 Proxies are normally created programmatically::
 
@@ -232,33 +234,33 @@ class ProxyApp(apps_page.App):
         pass
 
 
-class Proxy:
-    """Expose a backend server on a Kaithem subdomain.
+class ProxyBase:
+    """Shared behaviour for proxies that expose a backend server.
 
-    The proxy registers itself on creation and must be closed with
-    :meth:`close` when it is no longer needed.  Dropping a live proxy
-    without closing it logs a warning (except during shutdown).
+    Subclasses decide how the proxy is addressed -- :class:`Proxy` uses a
+    subdomain and :class:`PathProxy` a path prefix -- by implementing
+    :meth:`_register`, :meth:`_unregister` and
+    :meth:`_login_redirect_target`.  Everything else (header handling,
+    HTTP and websocket relaying, target switching and teardown) lives
+    here so both kinds behave identically.
     """
 
     def __init__(
         self,
-        subdomain: str,
         target: str,
-        title: str | None = None,
+        title: str,
         permissions: list[str] | None = None,
         module: str | None = None,
         resource: str | None = None,
         request_header_interceptors: list[HeaderInterceptor] | None = None,
+        permissions_provider: Callable[[], list[str]] | None = None,
     ):
-        """Create and register a proxy.
+        """Create a proxy to ``target``.
 
         Args:
-            subdomain: A single DNS label such as ``"myapp"``.  The proxy
-                is reachable at ``<subdomain>.<kaithem host>``.
             target: The backend to forward to.  Either an ``http://`` or
                 ``https://`` URL, or ``unix:///path/to.sock``.
-            title: Title shown on the apps page.  Defaults to the
-                subdomain.
+            title: Human readable title shown on the apps page.
             permissions: Permissions a user must have to reach the
                 backend.  An empty list allows any user.
             module: Module name, used for the apps page icon.
@@ -266,12 +268,19 @@ class Proxy:
             request_header_interceptors: Hooks that may add to or rewrite
                 the headers forwarded to the backend.  They run in order
                 after the standard headers are built.
+            permissions_provider: Optional callback returning additional
+                permissions, evaluated on every request.  Use this when
+                the required permissions can change while the proxy is
+                mounted; the result is merged with ``permissions``.
         """
-        self.subdomain = _validate_subdomain(subdomain)
         self.target = target
         self.kind, self.target_value = _parse_target(target)
-        self.title = title or self.subdomain
+        # Guards ``target``/``kind``/``target_value`` so a live target
+        # switch never exposes a half-updated pair to a request handler.
+        self._target_lock = threading.Lock()
+        self.title = title
         self.permissions = list(permissions or [])
+        self.permissions_provider = permissions_provider
         self.module = module
         self.resource = resource
         self.request_header_interceptors = list(
@@ -280,24 +289,15 @@ class Proxy:
 
         self._session: niquests.AsyncSession | None = None
         self._closed = False
-        self._app: ProxyApp | None = ProxyApp(
-            self.subdomain, self.title, module, resource
-        )
+        self._app: apps_page.App | None = None
 
-        # Register with the subdomain dispatcher first, so a failure to
-        # register the app entry does not leave a half built proxy.
-        web.add_subdomain_app(self.subdomain, self)
-        try:
-            apps_page.add_app(self._app)
-        except Exception:
-            web.remove_subdomain_app(self.subdomain, self)
-            self._app = None
-            raise
+        # Subclasses register themselves here once they are fully built.
+        self._register()
 
     def __del__(self) -> None:
         try:
             closed = self._closed
-            subdomain = self.subdomain
+            title = self.title
         except Exception:  # pragma: no cover - partially constructed object
             return
         if closed:
@@ -305,10 +305,24 @@ class Proxy:
         if lifespan.is_shutting_down:
             return
         logger.warning(
-            "Proxy for subdomain %r was garbage collected without being "
-            "closed; call close() to release it",
-            subdomain,
+            "Proxy for %r was garbage collected without being closed; "
+            "call close() to release it",
+            title,
         )
+
+    # -- Registration hooks -------------------------------------------
+
+    def _register(self) -> None:
+        """Mount the proxy so requests reach it.  Subclass provided."""
+        raise NotImplementedError
+
+    def _unregister(self) -> None:
+        """Undo :meth:`_register`.  Subclass provided."""
+        raise NotImplementedError
+
+    def _login_redirect_target(self, scope: dict[str, Any], url: str) -> str:
+        """Return where to send an unauthorized caller to log in."""
+        raise NotImplementedError
 
     # -- Public API ---------------------------------------------------
 
@@ -317,27 +331,39 @@ class Proxy:
         if permission not in self.permissions:
             self.permissions.append(permission)
 
+    def set_target(self, target: str) -> None:
+        """Point the proxy at a different backend, atomically.
+
+        The new target is validated before anything changes, so an invalid
+        target leaves the proxy forwarding to the old backend.  In-flight
+        requests keep the target they started with; subsequent requests and
+        websockets use the new one.
+        """
+        kind, value = _parse_target(target)
+        with self._target_lock:
+            self.target = target
+            self.kind = kind
+            self.target_value = value
+
     def close(self) -> None:
         """Unregister the proxy.  Safe to call more than once."""
         if self._closed:
             return
         self._closed = True
 
-        if self._app is not None:
-            apps_page.remove_app(self._app)
-            self._app = None
-        web.remove_subdomain_app(self.subdomain, self)
+        self._unregister()
 
         session = self._session
         self._session = None
         if session is not None:
             self._close_session(session)
 
-    def apps_page_url(self) -> str:
-        """Return the URL the apps page links to for this proxy."""
-        return _apps_page_url(self.subdomain)
-
     # -- Internals ----------------------------------------------------
+
+    def _target_snapshot(self) -> tuple[str, str]:
+        """Return a consistent ``(kind, target_value)`` pair."""
+        with self._target_lock:
+            return (self.kind, self.target_value)
 
     def _close_session(self, session: niquests.AsyncSession) -> None:
         loop = getattr(quart.app, "main_web_loop", None)
@@ -350,36 +376,49 @@ class Proxy:
 
     def _get_session(self) -> niquests.AsyncSession:
         if self._session is None:
-            session = niquests.AsyncSession()
-            if self.kind == "unix":
-                from niquests.extensions.unixsocket._async import (
-                    AsyncUnixAdapter,
-                )
+            self._session = niquests.AsyncSession()
+        # Mounting is idempotent, so ensure the unix adapter is present
+        # whenever the current target is a unix socket.  This lets a live
+        # set_target() switch an existing session between TCP and unix.
+        if self.kind == "unix":
+            from niquests.extensions.unixsocket._async import (
+                AsyncUnixAdapter,
+            )
 
-                session.mount("http+unix://", AsyncUnixAdapter())
-            self._session = session
+            self._session.mount("http+unix://", AsyncUnixAdapter())
         return self._session
 
+    def _current_permissions(self) -> list[str]:
+        """Return the required permissions, including any dynamic ones."""
+        permissions = list(self.permissions)
+        if self.permissions_provider is not None:
+            permissions.extend(self.permissions_provider() or [])
+        return permissions
+
     def _is_authorized(self, user: str) -> bool:
-        if not self.permissions:
+        permissions = self._current_permissions()
+        if not permissions:
             return True
-        return pages.canUserDoThis(self.permissions, user)
+        return pages.canUserDoThis(permissions, user)
 
     def _upstream_host(self) -> str:
-        if self.kind == "unix":
+        kind, value = self._target_snapshot()
+        if kind == "unix":
             return "localhost"
-        return self.target_value
+        return value
 
     def _upstream_origin(self) -> str:
-        if self.kind == "unix":
+        kind, value = self._target_snapshot()
+        if kind == "unix":
             return "http://localhost"
-        return f"{self.kind}://{self.target_value}"
+        return f"{kind}://{value}"
 
     def _upstream_url(self, path: str, query: str) -> str:
-        if self.kind == "unix":
-            base = "http+unix://" + quote(self.target_value, safe="")
+        kind, value = self._target_snapshot()
+        if kind == "unix":
+            base = "http+unix://" + quote(value, safe="")
         else:
-            base = f"{self.kind}://{self.target_value}"
+            base = f"{kind}://{value}"
         url = base + path
         if query:
             url += "?" + query
@@ -484,13 +523,7 @@ class Proxy:
             await send({"type": "http.response.body", "body": body})
             return
 
-        parent = _parent_host(_host(scope), self.subdomain)
-        target = (
-            f"//{parent}/login?go="
-            + base64.b64encode(url.encode()).decode()
-            + "&maxgotime-"
-            + str(time.time() + 300)
-        )
+        target = self._login_redirect_target(scope, url)
         await send(
             {
                 "type": "http.response.start",
@@ -580,9 +613,10 @@ class Proxy:
             await resp.close()
 
     def _websocket_uri(self, scope: dict[str, Any]) -> str:
-        secure = scope.get("scheme") == "wss" or self.kind == "https"
+        kind, value = self._target_snapshot()
+        secure = scope.get("scheme") == "wss" or kind == "https"
         scheme = "wss" if secure else "ws"
-        host = "localhost" if self.kind == "unix" else self.target_value
+        host = "localhost" if kind == "unix" else value
         path = scope.get("path", "/")
         query = scope.get("query_string", b"").decode("latin-1")
         uri = f"{scheme}://{host}{path}"
@@ -654,9 +688,10 @@ class Proxy:
             connect_kwargs["subprotocols"] = subprotocols
 
         try:
-            if self.kind == "unix":
+            kind, value = self._target_snapshot()
+            if kind == "unix":
                 backend = await ws_unix_connect(
-                    path=self.target_value, uri=uri, **connect_kwargs
+                    path=value, uri=uri, **connect_kwargs
                 )
             else:
                 backend = await ws_connect(uri, **connect_kwargs)
@@ -691,3 +726,186 @@ class Proxy:
             raise RuntimeError(
                 f"Proxy cannot handle scope type {scope['type']!r}"
             )
+
+
+def _validate_prefix(prefix: str) -> str:
+    """Validate and normalize a URL path prefix, raising on bad input.
+
+    The result always starts with ``/`` and never ends with one, so it can
+    be compared directly against ASGI paths.
+    """
+    if not isinstance(prefix, str) or not prefix:
+        raise ValueError("Path prefix must be a non-empty string")
+    prefix = prefix.strip()
+    if not prefix.startswith("/"):
+        raise ValueError(f"Path prefix {prefix!r} must start with '/'")
+    prefix = prefix.rstrip("/")
+    if not prefix:
+        raise ValueError("Path prefix must not be the root path")
+    if any(char in prefix for char in "?#"):
+        raise ValueError(
+            f"Path prefix {prefix!r} must not contain a query or fragment"
+        )
+    return prefix
+
+
+def _login_redirect(path: str, url: str) -> str:
+    """Build a login redirect that returns the user to ``url``.
+
+    ``path`` is the login page on the host the user is already on; for a
+    path proxy that is a plain ``/login`` and for a subdomain proxy it is
+    ``//parent/login``.
+    """
+    return (
+        path
+        + "?go="
+        + base64.b64encode(url.encode()).decode()
+        + "&maxgotime-"
+        + str(time.time() + 300)
+    )
+
+
+class Proxy(ProxyBase):
+    """Expose a backend server on its own Kaithem subdomain.
+
+    This is the original proxy flavour: the backend is reachable at
+    ``<subdomain>.<kaithem host>``.  See :class:`PathProxy` for the
+    path-addressed equivalent.
+    """
+
+    def __init__(
+        self,
+        subdomain: str,
+        target: str,
+        title: str | None = None,
+        permissions: list[str] | None = None,
+        module: str | None = None,
+        resource: str | None = None,
+        request_header_interceptors: list[HeaderInterceptor] | None = None,
+        permissions_provider: Callable[[], list[str]] | None = None,
+    ):
+        """Create and register a proxy on ``subdomain``.
+
+        Args:
+            subdomain: A single DNS label such as ``"myapp"``.  The proxy
+                is reachable at ``<subdomain>.<kaithem host>``.
+            title: Title shown on the apps page.  Defaults to the
+                subdomain.
+            target, permissions, module, resource,
+                request_header_interceptors, permissions_provider: See
+                :class:`ProxyBase`.
+        """
+        # _register() runs at the end of ProxyBase.__init__, so the
+        # subdomain has to be set before calling it.
+        self.subdomain = _validate_subdomain(subdomain)
+        super().__init__(
+            target=target,
+            title=title or self.subdomain,
+            permissions=permissions,
+            module=module,
+            resource=resource,
+            request_header_interceptors=request_header_interceptors,
+            permissions_provider=permissions_provider,
+        )
+
+    def _register(self) -> None:
+        app = ProxyApp(self.subdomain, self.title, self.module, self.resource)
+        # Register with the subdomain dispatcher first, so a failure to
+        # register the app entry does not leave a half built proxy.
+        web.add_subdomain_app(self.subdomain, self)
+        try:
+            apps_page.add_app(app)
+        except Exception:
+            web.remove_subdomain_app(self.subdomain, self)
+            raise
+        self._app = app
+
+    def _unregister(self) -> None:
+        web.remove_subdomain_app(self.subdomain, self)
+        if self._app is not None:
+            apps_page.remove_app(self._app)
+            self._app = None
+
+    def _login_redirect_target(self, scope: dict[str, Any], url: str) -> str:
+        parent = _parent_host(_host(scope), self.subdomain)
+        return _login_redirect(f"//{parent}/login", url)
+
+    def apps_page_url(self) -> str:
+        """Return the URL the apps page links to for this proxy."""
+        return _apps_page_url(self.subdomain)
+
+
+class PathProxy(ProxyBase):
+    """Expose a backend server under a path prefix on the Kaithem host.
+
+    Requests whose path is ``prefix`` or starts with ``prefix`` followed
+    by a slash are forwarded to the backend with the path untouched, so
+    the backend must know its own prefix (typically from an env var such
+    as ``BASE_PATH``) to generate correct links.
+    """
+
+    def __init__(
+        self,
+        prefix: str,
+        target: str,
+        title: str | None = None,
+        permissions: list[str] | None = None,
+        module: str | None = None,
+        resource: str | None = None,
+        request_header_interceptors: list[HeaderInterceptor] | None = None,
+        permissions_provider: Callable[[], list[str]] | None = None,
+    ):
+        """Create and register a proxy at ``prefix``.
+
+        Args:
+            prefix: The absolute path to mount at, for example
+                ``"/apps/myapp"``.  Requests under it are forwarded to
+                the backend unchanged.
+            title: Title shown on the apps page.  Defaults to the
+                prefix.
+            target, permissions, module, resource,
+                request_header_interceptors, permissions_provider: See
+                :class:`ProxyBase`.
+        """
+        # _register() runs at the end of ProxyBase.__init__, so the
+        # prefix has to be set before calling it.
+        self.prefix = _validate_prefix(prefix)
+        super().__init__(
+            target=target,
+            title=title or self.prefix,
+            permissions=permissions,
+            module=module,
+            resource=resource,
+            request_header_interceptors=request_header_interceptors,
+            permissions_provider=permissions_provider,
+        )
+
+    def _register(self) -> None:
+        slug = self.prefix.strip("/").replace("/", "_")
+        app = apps_page.App(
+            id="proxy_path_" + slug,
+            title=self.title,
+            url=self.prefix + "/",
+            module=self.module,
+            resource=self.resource,
+        )
+        web.add_path_app(self.prefix, self)
+        try:
+            apps_page.add_app(app)
+        except Exception:
+            web.remove_path_app(self.prefix, self)
+            raise
+        self._app = app
+
+    def _unregister(self) -> None:
+        web.remove_path_app(self.prefix, self)
+        if self._app is not None:
+            apps_page.remove_app(self._app)
+            self._app = None
+
+    def _login_redirect_target(self, scope: dict[str, Any], url: str) -> str:
+        return _login_redirect("/login", url)
+
+    def apps_page_url(self) -> str:
+        """Return the path the apps page links to for this proxy."""
+        return self.prefix + "/"

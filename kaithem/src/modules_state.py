@@ -241,16 +241,33 @@ def importFiledataFolderStructure(module: str) -> None:
 
         if os.path.exists(folder):
             for root, dirs, files in os.walk(folder):
+                # Prune as we go so we don't descend into folders that are
+                # ignored or that belong to a resource.
+                descended = []
                 for i in dirs:
-                    if "." in i:
+                    if i.startswith("."):
                         continue
 
                     relfn = os.path.relpath(os.path.join(root, i), folder)
+                    name = util.unurl(relfn)
+
+                    # A folder that shares its name with a non-directory
+                    # resource is that resource's private storage, not a
+                    # directory resource, and must not be descended into.
+                    existing = ActiveModules[module].get(name)
+                    if existing is not None and (
+                        existing["resource"]["type"] != "directory"
+                    ):
+                        continue
+
+                    descended.append(i)
 
                     # Create a directory resource for the directory
-                    ActiveModules[module][util.unurl(relfn)] = {
+                    ActiveModules[module][name] = {
                         "resource": {"type": "directory"}
                     }
+
+                dirs[:] = descended
 
 
 @validate_args
@@ -627,7 +644,13 @@ def deterministic_walk(
     sld = sorted(os.listdir(d))
 
     for i in sld:
-        if os.path.isdir(os.path.join(d, i)):
+        path = os.path.join(d, i)
+        # Never follow symlinks.  A symlink could point outside the module,
+        # loop back on itself, or (as with a portable ``node_modules``
+        # symlink) duplicate a directory that is also walked directly.
+        if os.path.islink(path):
+            continue
+        if os.path.isdir(path):
             dirs.append(i)
         else:
             files.append(i)

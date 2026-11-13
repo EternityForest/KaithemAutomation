@@ -468,6 +468,80 @@ def test_proxy_unix_socket(echo_backend):
 
 
 # ---------------------------------------------------------------------------
+# Target switching
+# ---------------------------------------------------------------------------
+
+
+def test_proxy_set_target_switches_backend(echo_backend):
+    from kaithem.api.proxies import Proxy
+
+    subdomain = _unique_subdomain()
+    proxy = Proxy(subdomain=subdomain, target=echo_backend["http_target"])
+    try:
+        host = f"{subdomain}.localhost:8002"
+        http_host = echo_backend["http_target"].split("//")[1]
+
+        # Starts out talking to the TCP backend: the upstream Host header
+        # is the TCP authority.
+        body = _backend_json(_request(host, "/"))
+        assert body["headers"]["host"] == http_host
+
+        # Switch to the unix socket.  Reusing the same proxy and its
+        # already-created session must still reach the unix backend.
+        proxy.set_target(echo_backend["unix_target"])
+        assert proxy.target == echo_backend["unix_target"]
+        body = _backend_json(_request(host, "/"))
+        assert body["headers"]["host"] == "localhost"
+
+        # And switch back to TCP again.
+        proxy.set_target(echo_backend["http_target"])
+        assert proxy.target == echo_backend["http_target"]
+        body = _backend_json(_request(host, "/"))
+        assert body["headers"]["host"] == http_host
+    finally:
+        proxy.close()
+
+
+def test_proxy_set_target_rejects_invalid(echo_backend):
+    from kaithem.api.proxies import Proxy
+
+    subdomain = _unique_subdomain()
+    proxy = Proxy(subdomain=subdomain, target=echo_backend["http_target"])
+    try:
+        with pytest.raises(ValueError):
+            proxy.set_target("ftp://127.0.0.1:1")
+        # A rejected target leaves the working one in place.
+        assert proxy.target == echo_backend["http_target"]
+        host = f"{subdomain}.localhost:8002"
+        http_host = echo_backend["http_target"].split("//")[1]
+        body = _backend_json(_request(host, "/"))
+        assert body["headers"]["host"] == http_host
+    finally:
+        proxy.close()
+
+
+def test_proxy_set_target_websocket(echo_backend):
+    from kaithem.api.proxies import Proxy
+
+    subdomain = _unique_subdomain()
+    token = _admin_token()
+    proxy = Proxy(subdomain=subdomain, target=echo_backend["http_target"])
+    try:
+        proxy.set_target(echo_backend["unix_target"])
+        uri = f"ws://{subdomain}.localhost:8002/ws"
+        with sync_ws_connect(
+            uri,
+            sock=_ws_socket(),
+            additional_headers={"Cookie": f"kaithem_auth={token}"},
+            proxy=None,
+        ) as ws:
+            ws.send("switch")
+            assert ws.recv() == "echo:switch"
+    finally:
+        proxy.close()
+
+
+# ---------------------------------------------------------------------------
 # Websockets
 # ---------------------------------------------------------------------------
 
@@ -628,3 +702,133 @@ def test_proxy_resource_type_rejects_invalid_data():
                 "data": json.dumps({"subdomain": "bad.name", "target": ""}),
             },
         )
+
+
+# ---------------------------------------------------------------------------
+# Path proxies
+# ---------------------------------------------------------------------------
+
+
+def _unique_prefix() -> str:
+    global _counter
+    _counter += 1
+    return f"/apps/tstpath{os.getpid()}{_counter}"
+
+
+def test_path_proxy_registers_and_closes(echo_backend):
+    from kaithem.api.proxies import PathProxy
+    from kaithem.api.web import _path_apps
+    from kaithem.src.apps_page import all_apps
+
+    prefix = _unique_prefix()
+    token = _admin_token()
+    proxy = PathProxy(
+        prefix=prefix,
+        target=echo_backend["http_target"],
+        title="Path Echo",
+    )
+
+    assert _path_apps.get(prefix) is proxy
+    assert all_apps.get("proxy_path_" + prefix.strip("/").replace("/", "_"))
+
+    # Paths under the prefix reach the backend unchanged.
+    body = _backend_json(_request("localhost:8002", prefix + "/deep/path"))
+    assert body["path"] == prefix + "/deep/path"
+
+    # The prefix itself is served too, and the apps page links to it.
+    response = _request("localhost:8002", "/apps", token=token)
+    assert response.status_code == 200
+    assert f'"{prefix}/"' in response.text or prefix in response.text
+
+    proxy.close()
+
+    assert _path_apps.get(prefix) is None
+    assert (
+        all_apps.get("proxy_path_" + prefix.strip("/").replace("/", "_"))
+        is None
+    )
+
+    # The mount is gone, so the path falls through to the ordinary router.
+    response = _request("localhost:8002", prefix + "/deep/path")
+    assert response.status_code == 404
+
+    proxy.close()
+
+
+def test_path_proxy_does_not_match_sibling_prefix(echo_backend):
+    from kaithem.api.proxies import PathProxy
+    from kaithem.src.apps_page import all_apps
+
+    prefix = _unique_prefix()
+    proxy = PathProxy(prefix=prefix, target=echo_backend["http_target"])
+    try:
+        # A longer name sharing the prefix text must not be captured.
+        assert _request("localhost:8002", prefix + "x").status_code == 404
+        assert _request("localhost:8002", prefix + "/ok").status_code == 200
+    finally:
+        proxy.close()
+        assert (
+            all_apps.get("proxy_path_" + prefix.strip("/").replace("/", "_"))
+            is None
+        )
+
+
+def test_path_proxy_login_redirect_is_root_relative(echo_backend):
+    from kaithem.api.proxies import PathProxy
+
+    prefix = _unique_prefix()
+    proxy = PathProxy(
+        prefix=prefix,
+        target=echo_backend["http_target"],
+        permissions=["system_admin"],
+    )
+    try:
+        response = _request("localhost:8002", prefix + "/secret")
+        assert response.status_code == 302
+        assert response.headers["location"].startswith("/login?go=")
+
+        # A URL containing "login" gets a plain 403 instead of a loop.
+        assert _request("localhost:8002", prefix + "/login").status_code == 403
+    finally:
+        proxy.close()
+
+
+def test_path_proxy_websocket(echo_backend):
+    from kaithem.api.proxies import PathProxy
+
+    prefix = _unique_prefix()
+    token = _admin_token()
+    proxy = PathProxy(prefix=prefix, target=echo_backend["http_target"])
+    try:
+        uri = f"ws://localhost:8002{prefix}/ws"
+        with sync_ws_connect(
+            uri,
+            sock=_ws_socket(),
+            additional_headers={"Cookie": f"kaithem_auth={token}"},
+            proxy=None,
+        ) as ws:
+            ws.send("path-hello")
+            assert ws.recv() == "echo:path-hello"
+    finally:
+        proxy.close()
+
+
+def test_path_proxy_duplicate_prefix_rejected(echo_backend):
+    from kaithem.api.proxies import PathProxy
+
+    prefix = _unique_prefix()
+    first = PathProxy(prefix=prefix, target=echo_backend["http_target"])
+    try:
+        with pytest.raises(ValueError):
+            PathProxy(prefix=prefix, target=echo_backend["http_target"])
+    finally:
+        first.close()
+
+
+def test_path_proxy_validates_prefix(echo_backend):
+    from kaithem.api.proxies import PathProxy
+
+    target = echo_backend["http_target"]
+    for bad in ("", "apps/x", "/", "relative"):
+        with pytest.raises(ValueError):
+            PathProxy(prefix=bad, target=target)

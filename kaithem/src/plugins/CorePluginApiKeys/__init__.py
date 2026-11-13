@@ -20,6 +20,19 @@ from kaithem.src.auth import (
 )
 
 
+def _synthesize_admin() -> User:
+    """Return an in-memory ``__admin__`` user.
+
+    ``__admin__`` is a virtual user that is never stored in the user
+    database, so it is not in :data:`Users`.  Building it on the fly keeps
+    the API key path working without writing anything to disk.
+    """
+    user = User({"username": "__admin__", "groups": []})
+    user.permissions = {"__all_permissions__"}
+    user.limits = {}
+    return user
+
+
 class ApiKeyAuthenticationPlugin(BaseAuthenticationPlugin):
     """Resolve a user from the ``x-kaithem-api-key`` header."""
 
@@ -28,6 +41,8 @@ class ApiKeyAuthenticationPlugin(BaseAuthenticationPlugin):
         username = api_keys.username_from_headers(headers)
         if username is None:
             return None
+        if username == "__admin__":
+            return _synthesize_admin()
         return Users.get(username)
 
 
