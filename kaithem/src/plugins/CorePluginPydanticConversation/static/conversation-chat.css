@@ -229,6 +229,8 @@ conversation-chat {
   flex: 1 1 auto;
   overflow-y: auto;
   padding: 0.8rem;
+  flex-basis: 12rem;
+  flex-grow: 1;
 }
 
 .chat-empty {

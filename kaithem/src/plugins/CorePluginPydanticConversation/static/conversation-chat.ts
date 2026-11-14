@@ -536,9 +536,9 @@ export class ConversationChat extends LitElement {
               this.requestUpdate();
             }}"
           ></div>
-          <main class="chat-main">
+          <div class="chat-main">
             ${this.renderMessages()} ${this.renderComposer()}
-          </main>
+          </div>
         </div>
       </div>
     `;
