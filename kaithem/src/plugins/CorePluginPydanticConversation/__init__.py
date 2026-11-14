@@ -27,6 +27,7 @@ from kaithem.api.lifespan import at_shutdown
 from kaithem.api.web import quart_app
 
 from . import conversation as registry
+from . import tools
 from .models import ConversationConfig
 
 # Importing the resource type module registers the "conversation" type.
@@ -106,6 +107,7 @@ def _open_workspace_conversation(workspace: str):
                 model="code",
                 permissions=["system_admin"],
                 workspace=path,
+                tools={name: True for name in tools.ADMIN_WORKSPACE_TOOLS},
             )
         )
     return quart.redirect(

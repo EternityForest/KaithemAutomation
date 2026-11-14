@@ -74,10 +74,11 @@ dependencies = [
     "attrs>=23.2.0",
     "pydantic>=2.7.2",
     # The agentic conversation runtime.  Capabilities are composed from the
-    # harness (FileSystem, argument repair); the "openai" extra of slim
-    # provides the client the OpenRouter model talks to.
-    "pydantic-ai-harness[coder]>=0.66.0",
-    "pydantic-ai-slim[openai]>=2.66.0",
+    # harness (FileSystem, argument repair, CodeMode); the "openai" extra of
+    # slim provides the client the OpenRouter model talks to, and the
+    # "duckduckgo"/"web-fetch" extras back the web tools.
+    "pydantic-ai-harness[coder,code-mode]>=0.66.0",
+    "pydantic-ai-slim[openai,duckduckgo,web-fetch]>=2.66.0",
     "types-jsonschema",
     "stamina>=24.2.0",
     "stream-zip>=0.0.83",

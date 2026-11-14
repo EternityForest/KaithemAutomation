@@ -49,6 +49,7 @@ from .storage import (
     load_conversation_config,
     write_conversation_config,
 )
+from .tools import ToolContext, build_tools
 
 logger = structlog.get_logger(__name__)
 
@@ -281,18 +282,24 @@ class Conversation:
 
     def _build_agent(self):
         """Build the pydantic-ai agent for the next turn of this thread."""
+        api_base = ai.get_api_base()
+        api_key = ai.get_api_key()
+        workspace = self.config.workspace
+        context = ToolContext(
+            api_base=api_base, api_key=api_key, workspace=workspace
+        )
+        extras = build_tools(self.config.tools, context)
+        extras.extend(get_capabilities(self.id))
         return build_agent(
             model_id=ai.resolve_model(self.config.model),
-            api_base=ai.get_api_base(),
-            api_key=ai.get_api_key(),
+            api_base=api_base,
+            api_key=api_key,
             system_prompt=self.config.system_prompt,
-            workspace=self.config.workspace,
-            extras=get_capabilities(self.id),
+            workspace=workspace,
+            extras=extras,
         )
 
-    def _emit_delta(
-        self, user: str, slug: str, kind: str, text: str
-    ) -> None:
+    def _emit_delta(self, user: str, slug: str, kind: str, text: str) -> None:
         self._emit(
             {"type": "delta", "thread": slug, "kind": kind, "text": text},
             user,

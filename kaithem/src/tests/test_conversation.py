@@ -16,10 +16,12 @@ import shutil
 import tempfile
 import time
 import uuid
+from datetime import UTC, datetime
 from urllib.parse import quote, unquote
 
 import pytest
 from pydantic_ai import Tool
+from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import (
     ModelRequest,
     ModelResponse,
@@ -37,6 +39,9 @@ from kaithem.src.plugins.CorePluginPydanticConversation import (
 from kaithem.src.plugins.CorePluginPydanticConversation import (
     conversation as registry,
 )
+from kaithem.src.plugins.CorePluginPydanticConversation import (
+    tools as tools_module,
+)
 from kaithem.src.plugins.CorePluginPydanticConversation.models import (
     DEFAULT_USER,
     ActionEntry,
@@ -49,7 +54,9 @@ from kaithem.src.plugins.CorePluginPydanticConversation.models import (
     parse_entry,
 )
 from kaithem.src.plugins.CorePluginPydanticConversation.resource_type import (
+    ConversationType,
     parse_permissions,
+    parse_stored_tools,
 )
 from kaithem.src.plugins.CorePluginPydanticConversation.storage import (
     ConversationStorage,
@@ -322,6 +329,161 @@ def test_resolve_model_tags():
     assert ai.resolve_model("vendor/model") == "vendor/model"
 
 
+def test_media_model_tags_resolve():
+    assert ai.resolve_model("image") == "meta/muse-image"
+    assert ai.resolve_model("speech") == "bytedance-seed/seed-audio-1-0"
+    assert ai.resolve_model("sound_effects") == "bytedance-seed/seed-audio-1-0"
+
+
+# -- tool registry --------------------------------------------------------
+
+
+def test_default_and_admin_tool_lists_are_registered():
+    known = set(tools_module.known_tools())
+    assert set(tools_module.DEFAULT_TOOLS) <= known
+    assert set(tools_module.ADMIN_WORKSPACE_TOOLS) <= known
+    # The admin workspace set is a strict superset of the defaults.
+    assert set(tools_module.DEFAULT_TOOLS) < set(
+        tools_module.ADMIN_WORKSPACE_TOOLS
+    )
+    assert {"image_gen", "speech", "web_search", "web_fetch"} <= set(
+        tools_module.ADMIN_WORKSPACE_TOOLS
+    )
+
+
+def test_resolve_tool_names_defaults_and_overrides():
+    # With no selection the default list applies.
+    assert tools_module.resolve_tool_names({}) == list(
+        tools_module.DEFAULT_TOOLS
+    )
+    assert tools_module.resolve_tool_names(None) == list(
+        tools_module.DEFAULT_TOOLS
+    )
+    # A True adds a tool that is not on by default.
+    names = tools_module.resolve_tool_names({"image_gen": True})
+    assert "image_gen" in names
+    assert "time" in names
+    # A False turns a default tool off.
+    names = tools_module.resolve_tool_names({"time": False})
+    assert "time" not in names
+    assert "code_mode" in names
+    # Unknown names are ignored and leave the defaults alone.
+    names = tools_module.resolve_tool_names({"no_such_tool": True})
+    assert "no_such_tool" not in names
+    assert set(names) == set(tools_module.DEFAULT_TOOLS)
+    # The order follows the registry, not the selection dict.
+    names = tools_module.resolve_tool_names({"code_mode": True, "time": True})
+    assert names == [
+        name for name in tools_module.known_tools() if name in set(names)
+    ]
+
+
+def test_build_tools_builds_only_selected():
+    extras = tools_module.build_tools(
+        {"time": True, "code_mode": False}, tools_module.ToolContext()
+    )
+    assert [extra.name for extra in extras] == ["time"]
+
+
+def test_build_tools_skips_a_failing_factory(monkeypatch):
+    def boom(_context):
+        raise RuntimeError("no dependency")
+
+    monkeypatch.setitem(
+        tools_module._registry,
+        "boom",
+        tools_module.ToolSpec(
+            name="boom", label="Boom", description="", factory=boom
+        ),
+    )
+    extras = tools_module.build_tools(
+        {"time": True, "code_mode": False, "boom": True},
+        tools_module.ToolContext(),
+    )
+    # The broken tool is skipped, the good one still builds.
+    assert [extra.name for extra in extras] == ["time"]
+
+
+# -- the time tool --------------------------------------------------------
+
+
+def test_time_payload_for_named_timezone():
+    payload = tools_module._time_payload("America/Denver")
+    assert set(payload) == {
+        "utc_iso",
+        "local_iso",
+        "timezone",
+        "day_of_week",
+        "human_readable",
+    }
+    assert payload["timezone"] == "America/Denver"
+    local = datetime.fromisoformat(payload["local_iso"])
+    utc = datetime.strptime(payload["utc_iso"], "%Y-%m-%dT%H:%M:%SZ").replace(
+        tzinfo=UTC
+    )
+    # The two fields describe the same instant.
+    assert abs((local.astimezone(UTC) - utc).total_seconds()) < 1
+    assert payload["day_of_week"] == local.strftime("%A")
+    assert payload["day_of_week"] in payload["human_readable"]
+
+
+def test_time_payload_uses_server_time_by_default():
+    payload = tools_module._time_payload("")
+    assert payload["timezone"]
+    assert payload["utc_iso"].endswith("Z")
+
+
+def test_time_payload_rejects_unknown_timezone():
+    with pytest.raises(ModelRetry):
+        tools_module._time_payload("Not/AZone")
+
+
+# -- file producing tools need a workspace --------------------------------
+
+
+async def test_image_tool_needs_a_workspace():
+    tool = tools_module._build_image_gen(tools_module.ToolContext())
+    with pytest.raises(ModelRetry):
+        await tool.function(prompt="a cat")
+
+
+async def test_audio_tool_needs_a_workspace():
+    tool = tools_module._build_speech(tools_module.ToolContext())
+    with pytest.raises(ModelRetry):
+        await tool.function(text="hello")
+
+
+# -- stored tool selection ------------------------------------------------
+
+
+def test_parse_stored_tools():
+    assert parse_stored_tools(None) == {}
+    assert parse_stored_tools("nope") == {}
+    assert parse_stored_tools({"time": 1, "image_gen": 0}) == {
+        "time": True,
+        "image_gen": False,
+    }
+
+
+def test_conversation_config_tolerates_unknown_tools():
+    config = ConversationConfig(
+        id="x", tools={"time": False, "some_future_tool": True}
+    )
+    assert config.tools == {"time": False, "some_future_tool": True}
+
+
+def test_request_data_merges_tool_checkboxes():
+    raw = ConversationType()._request_data(
+        {"data": {"id": "x", "tools": {"some_future_tool": True}}},
+        {"tools__time": "on"},
+    )
+    assert raw["tools"]["time"] is True
+    # A known tool that was not checked is stored as explicitly off.
+    assert raw["tools"]["code_mode"] is False
+    # An unknown name already stored is preserved.
+    assert raw["tools"]["some_future_tool"] is True
+
+
 # -- message replay -------------------------------------------------------
 
 
@@ -512,7 +674,9 @@ async def test_tool_call_is_logged(ai_mock):
 
     conversation_id = uuid.uuid4().hex
     registry.register_config(
-        ConversationConfig(id=conversation_id, model="chat")
+        ConversationConfig(
+            id=conversation_id, model="chat", tools={"code_mode": False}
+        )
     )
     _register_tool(conversation_id, echo, "test_echo")
     conversation = registry.get_conversation(conversation_id)
@@ -714,7 +878,9 @@ async def test_tool_result_is_replayed_to_provider(ai_mock):
 
     conversation_id = uuid.uuid4().hex
     registry.register_config(
-        ConversationConfig(id=conversation_id, model="chat")
+        ConversationConfig(
+            id=conversation_id, model="chat", tools={"code_mode": False}
+        )
     )
     _register_tool(conversation_id, echo, "replay_echo")
     conversation = registry.get_conversation(conversation_id)
@@ -815,6 +981,9 @@ async def test_workspace_route_creates_the_conversation(ai_mock, workspace):
         assert config is not None
         assert config.workspace == path
         assert config.permissions == ["system_admin"]
+        # The auto-created admin conversation gets the central tool set.
+        assert set(config.tools) == set(tools_module.ADMIN_WORKSPACE_TOOLS)
+        assert all(config.tools.values())
         # The redirect points the chat page at the auto-created id.
         assert quote(conversation_id, safe="") in response.headers["location"]
         # Asking again reuses the same conversation.

@@ -38,6 +38,9 @@ DEFAULTS: dict[str, str] = {
     "core/ai/openrouter_api_base": "https://openrouter.ai/api/v1",
     "core/ai/model_code": "z-ai/glm-5.3-flash",
     "core/ai/model_chat": "google/gemini-3.1-flash-lite",
+    "core/ai/model_image": "meta/muse-image",
+    "core/ai/model_speech": "bytedance-seed/seed-audio-1-0",
+    "core/ai/model_sound_effects": "bytedance-seed/seed-audio-1-0",
     "core/ai/conversations_dir": "~/.local/kaithem/conversations",
     "core/ai/unload_conversations_when_idle": "true",
 }
@@ -48,6 +51,9 @@ LABELS: dict[str, str] = {
     "core/ai/openrouter_api_base": "OpenRouter API Base URL",
     "core/ai/model_code": 'Default "code" model',
     "core/ai/model_chat": 'Default "chat" model',
+    "core/ai/model_image": 'Default "image" model',
+    "core/ai/model_speech": 'Default "speech" model',
+    "core/ai/model_sound_effects": 'Default "sound_effects" model',
     "core/ai/conversations_dir": "Conversation storage folder",
     "core/ai/unload_conversations_when_idle": "Unload idle conversations",
 }
@@ -68,6 +74,15 @@ DESCRIPTIONS: dict[str, str] = {
     "core/ai/model_chat": (
         'Model id used when a conversation asks for the "chat" tag.'
     ),
+    "core/ai/model_image": (
+        'Image generation model used when a tool asks for the "image" tag.'
+    ),
+    "core/ai/model_speech": (
+        'Text to speech model used when a tool asks for the "speech" tag.'
+    ),
+    "core/ai/model_sound_effects": (
+        "Model used for the sound_effects mode of the audio generation tool."
+    ),
     "core/ai/conversations_dir": (
         "Where append only conversation history lives.  Defaults to the "
         "user's home folder, deliberately outside the Kaithem var dir."
@@ -80,10 +95,14 @@ DESCRIPTIONS: dict[str, str] = {
 
 #: Tags that stand in for a provider specific model id.  Setting a
 #: conversation's model to one of these resolves through the setting on the
-#: right.  Only "code" and "chat" currently have a setting.
+#: right.  "image", "speech", and "sound_effects" are used by the media
+#: generation tools rather than by the chat model itself.
 MODEL_TAGS: dict[str, str] = {
     "code": "core/ai/model_code",
     "chat": "core/ai/model_chat",
+    "image": "core/ai/model_image",
+    "speech": "core/ai/model_speech",
+    "sound_effects": "core/ai/model_sound_effects",
 }
 
 #: Boolean settings that read as true.

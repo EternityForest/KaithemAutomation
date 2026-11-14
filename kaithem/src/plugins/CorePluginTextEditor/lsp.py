@@ -65,6 +65,16 @@ def detect_workspace(path: str) -> str:
     if not os.path.isdir(path):
         path = os.path.dirname(path)
 
+    # Git repos take precedence over anything else
+    cur = path
+    while True:
+        if os.path.exists(os.path.join(cur, ".git")):
+            return cur
+        parent = os.path.dirname(cur)
+        if parent == cur:
+            break
+        cur = parent
+
     cur = path
     while True:
         for marker in MARKER_FILES:
@@ -74,6 +84,7 @@ def detect_workspace(path: str) -> str:
         if parent == cur:
             break
         cur = parent
+
     return path
 
 

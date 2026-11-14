@@ -173,3 +173,8 @@ class ConversationConfig(BaseModel):
     #: Absolute path of the folder the model may read and edit.  When
     #: empty, the conversation has no file tools and only chats.
     workspace: str = ""
+    #: Which named tools to build, as ``{name: enabled}``.  The default tool
+    #: list always applies, then an entry here turns a tool on (``True``) or
+    #: off (``False``).  Unknown names are ignored, so a config that asks for
+    #: a tool this build does not know still validates.
+    tools: dict[str, bool] = Field(default_factory=dict)

@@ -22,6 +22,7 @@ from kaithem.api import ai, resource_types
 from kaithem.api.web import dialogs
 
 from . import conversation as conversation_registry
+from . import tools
 from .models import ConversationConfig
 
 logger = structlog.get_logger(__name__)
@@ -49,6 +50,28 @@ def parse_permissions(value: Any) -> list[str]:
         if part and part not in result:
             result.append(part)
     return result or ["system_admin"]
+
+
+def parse_stored_tools(value: Any) -> dict[str, bool]:
+    """Coerce a stored ``tools`` value into a ``{name: enabled}`` dict."""
+    if not isinstance(value, dict):
+        return {}
+    return {str(key): bool(enabled) for key, enabled in value.items()}
+
+
+def _tools_from_request(
+    existing: Any, kwargs: dict[str, Any]
+) -> dict[str, bool]:
+    """Merge the tool checkboxes into the stored selection.
+
+    Unknown names already stored are kept, so a config that asks for a tool
+    this build does not know still round trips.  Every known tool is set
+    from its checkbox, present meaning enabled.
+    """
+    result = parse_stored_tools(existing)
+    for spec in tools.all_specs():
+        result[spec.name] = f"tools__{spec.name}" in kwargs
+    return result
 
 
 def _model_suggestions() -> list[tuple[str, str]]:
@@ -89,7 +112,21 @@ class ConversationType(resource_types.ResourceType):
             persistent=bool(raw.get("persistent", True)),
             system_prompt=str(raw.get("system_prompt") or ""),
             workspace=str(raw.get("workspace") or "").strip(),
+            tools=parse_stored_tools(raw.get("tools")),
         )
+
+    def _add_tool_checkboxes(
+        self, d: dialogs.SimpleDialog, current: dict[str, bool]
+    ) -> None:
+        """One checkbox per registered tool, defaulting to the tool set."""
+        d.text("Tools")
+        for spec in tools.all_specs():
+            enabled = current.get(spec.name, spec.name in tools.DEFAULT_TOOLS)
+            d.checkbox(
+                f"tools__{spec.name}",
+                title=spec.label,
+                default=bool(enabled),
+            )
 
     # -- lifecycle --------------------------------------------------------
 
@@ -148,6 +185,7 @@ class ConversationType(resource_types.ResourceType):
             suggestions=[("", "none (chat only)")],
         )
         d.text_input("system_prompt", title="System Prompt", multiline=True)
+        self._add_tool_checkboxes(d, {})
         d.submit_button("Save")
         return d.render(self.get_create_target(module, path))
 
@@ -186,6 +224,7 @@ class ConversationType(resource_types.ResourceType):
             default=str(raw.get("system_prompt") or ""),
             multiline=True,
         )
+        self._add_tool_checkboxes(d, parse_stored_tools(raw.get("tools")))
         conversation_id = str(raw.get("id") or "")
         if conversation_id:
             d.link("Open Chat", f"/conversations/{conversation_id}")
@@ -212,6 +251,7 @@ class ConversationType(resource_types.ResourceType):
         raw["persistent"] = bool(kwargs.get("persistent"))
         raw["system_prompt"] = str(kwargs.get("system_prompt") or "").strip()
         raw["workspace"] = str(kwargs.get("workspace") or "").strip()
+        raw["tools"] = _tools_from_request(raw.get("tools"), kwargs)
         return raw
 
     def on_create_request(self, module, resource, kwargs):

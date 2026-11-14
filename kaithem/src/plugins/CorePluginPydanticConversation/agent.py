@@ -86,7 +86,7 @@ def build_agent(
     capabilities: list[Any] = []
     if workspace:
         capabilities.append(LocalWorkspace(workspace))
-        capabilities.append(FileSystem(root_dir=workspace, cwd=workspace))
+        capabilities.append(FileSystem(root_dir=workspace))
     for extra in extras:
         if isinstance(extra, Tool):
             tools.append(extra)
@@ -159,9 +159,7 @@ def to_model_messages(history: Sequence[Entry]) -> list[ModelMessage]:
                 if not parts:
                     continue
                 messages.append(
-                    ModelResponse(
-                        parts=parts, model_name=entry.model or None
-                    )
+                    ModelResponse(parts=parts, model_name=entry.model or None)
                 )
         elif isinstance(entry, ActionEntry):
             messages.append(
@@ -274,14 +272,10 @@ def to_entries(
                         thread=thread,
                         name=call.name if call else part.tool_name,
                         arguments=(
-                            _arguments_to_dict(call.arguments)
-                            if call
-                            else {}
+                            _arguments_to_dict(call.arguments) if call else {}
                         ),
                         tool_call_id=part.tool_call_id,
-                        status=(
-                            "ok" if part.outcome == "success" else "error"
-                        ),
+                        status=("ok" if part.outcome == "success" else "error"),
                         result=_content_to_str(part.content),
                         duration=max(_timestamp(part.timestamp) - begin, 0.0),
                     )
