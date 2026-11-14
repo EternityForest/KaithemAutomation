@@ -31,13 +31,31 @@ from kaithem.api.web import (
     quart_app,
     require,
 )
-from kaithem.src import pages
+from kaithem.src import modules_state, pages
 
 from . import lsp
 
 logger = __import__("structlog").get_logger(__name__)
 
+_VITE_PAGE = (
+    "/static/vite/kaithem/src/plugins/CorePluginTextEditor/html/index.html"
+)
+
 MAX_FILE_BYTES = 5 * 1024 * 1024
+
+# Directory names that are never worth listing in the tree: build outputs
+# and dependency caches can be huge and only slow the editor down.  Names
+# starting with a dot are skipped too (see _list_dir).
+PRUNED_DIRS = {
+    "node_modules",
+    "bower_components",
+    "dist",
+    "build",
+    "target",
+    "venv",
+    "__pycache__",
+    "__pypackages__",
+}
 
 
 def _admin_api(f: Callable[..., Any]) -> Callable[..., Any]:
@@ -63,21 +81,86 @@ def _admin_api(f: Callable[..., Any]) -> Callable[..., Any]:
     return wrapper
 
 
-def _resolve(module: str, resource: str) -> str:
-    """Resolve a module/resource path and return the absolute file path."""
-    fn = filename_for_file_resource(module, resource)
-    if not os.path.exists(fn):
-        raise FileNotFoundError(f"File {module}/{resource} does not exist")
+def _workspace_root(workspace: str) -> str:
+    """Validate a workspace path and return its real absolute path."""
+    if not workspace:
+        raise ValueError("Missing workspace")
+    root = os.path.realpath(workspace)
+    if not os.path.isdir(root):
+        raise ValueError("Workspace is not a directory")
+    return root
+
+
+def _workspace_path(workspace: str, path: str) -> str:
+    """Resolve a workspace-relative path, rejecting escapes.
+
+    Filenames are always relative to the workspace root, so ``..`` cannot
+    walk out of the folder the editor was opened on.  Raises ``ValueError``
+    for anything that resolves outside the workspace.
+    """
+    root = _workspace_root(workspace)
+    fn = os.path.realpath(os.path.join(root, path))
+    if fn != root and not fn.startswith(root + os.sep):
+        raise ValueError("Path outside workspace")
     return fn
 
 
-def _safe_path(module: str, resource: str) -> str:
-    """Resolve a path, but only allow paths inside the module's file data."""
-    root = filename_for_file_resource(module, "")
-    fn = filename_for_file_resource(module, resource)
-    if not os.path.realpath(fn).startswith(os.path.realpath(root)):
-        raise ValueError("Path outside module file data")
-    return fn
+def _rel_path(path: str) -> str:
+    """Reject an empty workspace-relative path.
+
+    An empty path would silently mean "the workspace root" to
+    ``_workspace_path``, which is never what a create/rename/delete call
+    wants, so treat it as a client error instead.
+    """
+    if not path:
+        raise ValueError("Missing path")
+    return path
+
+
+async def _run(job: Callable[[], Any]) -> Any:
+    """Run a blocking filesystem job off the event loop.
+
+    Path validation failures arrive as ``ValueError``; they are answered
+    as 400 so a rejected path is a client error, not a server crash.
+    """
+
+    def wrapped() -> Any:
+        try:
+            return job()
+        except ValueError as e:
+            return (
+                quart.jsonify({"error": "bad_request", "message": str(e)}),
+                400,
+            )
+
+    return await quart.utils.run_sync(wrapped)()
+
+
+def _rescan_module(abs_path: str) -> None:
+    """Refresh Kaithem's file resource index for the owning module.
+
+    Files the editor writes may live inside a module's file data folder,
+    where Kaithem caches an index of file resources.  Rescan the module
+    that owns ``abs_path`` (if any) so that index stays current; files
+    outside every module are simply ignored.
+    """
+    real = os.path.realpath(abs_path)
+    module = None
+    with modules_state.modulesLock:
+        for name in modules_state.ActiveModules:
+            try:
+                root = os.path.realpath(filename_for_file_resource(name, ""))
+            except Exception:
+                continue
+            if real == root or real.startswith(root + os.sep):
+                module = name
+                break
+    if module is None:
+        return
+    try:
+        scan_file_resources(module)
+    except Exception:
+        logger.exception("Failed to rescan module after edit")
 
 
 # Live file updates ---------------------------------------------------------
@@ -101,7 +184,7 @@ class _FileWatchManager:
 
     def __init__(self) -> None:
         self._lock = threading.Lock()
-        # abs_path -> {queue: (module_root, loop)}
+        # abs_path -> {queue: (workspace_root, loop)}
         self._subs = {}
         # abs_path -> last content sent, to suppress duplicate notifications
         self._last: dict[str, str] = {}
@@ -122,11 +205,14 @@ class _FileWatchManager:
         self,
         abs_path: str,
         queue: asyncio.queues.Queue[dict[str, Any]],
-        module_root: str,
+        workspace_root: str,
         loop: asyncio.AbstractEventLoop,
     ) -> None:
         with self._lock:
-            self._subs.setdefault(abs_path, {})[queue] = (module_root, loop)
+            self._subs.setdefault(abs_path, {})[queue] = (
+                workspace_root,
+                loop,
+            )
         self._ensure_started()
 
     def unsubscribe(
@@ -192,16 +278,14 @@ class _FileWatchManager:
                 return
             self._last[abs_path] = content
             targets = list(self._subs.get(abs_path, {}).items())
-        for queue, (module_root, loop) in targets:
-            resource = os.path.relpath(abs_path, module_root).replace(
-                os.sep, "/"
-            )
+        for queue, (workspace_root, loop) in targets:
+            rel = os.path.relpath(abs_path, workspace_root).replace(os.sep, "/")
             try:
                 loop.call_soon_threadsafe(
                     queue.put_nowait,
                     {
                         "type": "file-changed",
-                        "resource": resource,
+                        "path": rel,
                         "content": content,
                     },
                 )
@@ -223,16 +307,26 @@ def _get_watch_manager() -> _FileWatchManager:
 
 @quart_app.route("/text-editor-plugin/edit", methods=["GET"])
 async def text_editor_edit():
+    """Redirect to the editor, rooted at the opened file's workspace.
+
+    The workspace is the innermost folder around the clicked file that
+    looks like a project (see ``lsp.detect_workspace``); the file tree,
+    chat, snapshots, and LSP are all rooted there.
+    """
     require("system_admin")
     module = quart.request.args["module"]
     resource = quart.request.args["resource"]
 
+    fn = os.path.abspath(filename_for_file_resource(module, resource))
+    workspace = lsp.detect_workspace(fn)
+    rel = os.path.relpath(fn, workspace).replace(os.sep, "/")
+
     url = (
-        "/static/vite/kaithem/src/plugins/CorePluginTextEditor/html/index.html"
-        + "?module="
-        + quote_plus(module, safe="")
-        + "&resource="
-        + quote_plus(resource, safe="")
+        _VITE_PAGE
+        + "?workspace="
+        + quote_plus(workspace, safe="")
+        + "&file="
+        + quote_plus(rel, safe="")
     )
     return quart.redirect(url)
 
@@ -240,55 +334,60 @@ async def text_editor_edit():
 @quart_app.route("/text-editor-plugin/api/list", methods=["GET"])
 @_admin_api
 async def api_list():
-    module = quart.request.args["module"]
-    resource = quart.request.args.get("resource", "")
+    workspace = quart.request.args.get("workspace", "")
+    path = quart.request.args.get("path", "")
 
     def f():
-        root = _safe_path(module, resource)
+        root = _workspace_path(workspace, path)
         if not os.path.isdir(root):
-            # Modules that have never had a file resource created have no
-            # __filedata__ dir on disk yet (directory resources are virtual),
-            # so an empty tree is the right answer.
+            # A missing folder just means "nothing here yet" for the tree.
             return quart.jsonify([])
-        out = _list_dir(module, root)
-        return quart.jsonify(out)
+        return quart.jsonify(_list_dir(root))
 
-    return await quart.utils.run_sync(f)()
+    return await _run(f)
 
 
-def _list_dir(module: str, root: str) -> list[dict[str, Any]]:
+def _list_dir(root: str) -> list[dict[str, Any]]:
+    """List one directory level, recursively, pruning noise.
+
+    Hidden entries (leading dot) and the build/dependency folders in
+    ``PRUNED_DIRS`` are skipped.  Symlinked directories are shown as
+    files so a link back up the tree cannot loop forever.
+    """
     out: list[dict[str, Any]] = []
-    for name in sorted(os.listdir(root)):
-        if name.startswith("."):
+    try:
+        names = sorted(os.listdir(root))
+    except OSError:
+        return out
+    for name in names:
+        if name.startswith(".") or name in PRUNED_DIRS:
             continue
         p = os.path.join(root, name)
-        if os.path.isdir(p):
+        if os.path.isdir(p) and not os.path.islink(p):
             out.append(
                 {
                     "name": name,
                     "type": "dir",
-                    "children": _list_dir(module, p),
+                    "children": _list_dir(p),
                 }
             )
         else:
-            out.append(
-                {
-                    "name": name,
-                    "type": "file",
-                    "size": os.path.getsize(p),
-                }
-            )
+            try:
+                size = os.path.getsize(p)
+            except OSError:
+                size = 0
+            out.append({"name": name, "type": "file", "size": size})
     return out
 
 
 @quart_app.route("/text-editor-plugin/api/read", methods=["GET"])
 @_admin_api
 async def api_read():
-    module = quart.request.args["module"]
-    resource = quart.request.args["resource"]
+    workspace = quart.request.args.get("workspace", "")
+    path = quart.request.args.get("path", "")
 
     def f():
-        fn = _resolve(module, resource)
+        fn = _workspace_path(workspace, _rel_path(path))
         if not os.path.isfile(fn):
             return quart.jsonify({"error": "not_a_file"}), 400
         if os.path.getsize(fn) >= MAX_FILE_BYTES:
@@ -300,169 +399,157 @@ async def api_read():
         except UnicodeDecodeError:
             return quart.jsonify({"error": "binary"}), 400
 
-    return await quart.utils.run_sync(f)()
+    return await _run(f)
 
 
 @quart_app.route("/text-editor-plugin/api/write", methods=["POST"])
 @_admin_api
 async def api_write():
     kw = dict(await quart.request.form)
-    module = kw["module"]
-    resource = kw["resource"]
-    content = kw["content"]
+    workspace = kw.get("workspace", "")
+    path = kw.get("path", "")
+    content = kw.get("content", "")
     if len(content.encode("utf-8")) >= MAX_FILE_BYTES:
         return quart.jsonify({"error": "too_large"}), 400
 
     def f():
-        fn = _safe_path(module, resource)
+        fn = _workspace_path(workspace, _rel_path(path))
         os.makedirs(os.path.dirname(fn), exist_ok=True)
         with open(fn, "w", encoding="utf-8") as f:
             f.write(content)
-        scan_file_resources(module)
+        _rescan_module(fn)
         return quart.jsonify({"status": "ok"})
 
-    return await quart.utils.run_sync(f)()
+    return await _run(f)
 
 
 @quart_app.route("/text-editor-plugin/api/rename", methods=["POST"])
 @_admin_api
 async def api_rename():
     kw = dict(await quart.request.form)
-    module = kw["module"]
-    resource = kw["resource"]
-    new_name = kw["new_name"]
+    workspace = kw.get("workspace", "")
+    path = kw.get("path", "")
+    new_name = kw.get("new_name", "")
 
-    if "/" in new_name or new_name.startswith("."):
+    if not new_name or "/" in new_name or new_name.startswith("."):
         return quart.jsonify({"error": "invalid_name"}), 400
 
     def f():
-        fn = _safe_path(module, resource)
-        parent = os.path.dirname(fn)
-        new_fn = os.path.join(parent, new_name)
+        fn = _workspace_path(workspace, _rel_path(path))
+        new_fn = os.path.join(os.path.dirname(fn), new_name)
         if os.path.exists(new_fn):
             return quart.jsonify({"error": "exists"}), 400
         os.rename(fn, new_fn)
-        scan_file_resources(module)
+        _rescan_module(new_fn)
         return quart.jsonify({"status": "ok"})
 
-    return await quart.utils.run_sync(f)()
+    return await _run(f)
 
 
 @quart_app.route("/text-editor-plugin/api/delete", methods=["POST"])
 @_admin_api
 async def api_delete():
     kw = dict(await quart.request.form)
-    module = kw["module"]
-    resource = kw["resource"]
+    workspace = kw.get("workspace", "")
+    path = kw.get("path", "")
 
     def f():
-        fn = _safe_path(module, resource)
-        root = filename_for_file_resource(module, "")
-        if os.path.realpath(fn) == os.path.realpath(root):
+        root = _workspace_root(workspace)
+        fn = _workspace_path(workspace, path)
+        if fn == root:
             return quart.jsonify({"error": "cannot_delete_root"}), 400
         if os.path.isdir(fn):
             shutil.rmtree(fn)
         else:
             os.unlink(fn)
-        scan_file_resources(module)
+        _rescan_module(os.path.dirname(fn))
         return quart.jsonify({"status": "ok"})
 
-    return await quart.utils.run_sync(f)()
+    return await _run(f)
 
 
 @quart_app.route("/text-editor-plugin/api/new_file", methods=["POST"])
 @_admin_api
 async def api_new_file():
     kw = dict(await quart.request.form)
-    module = kw["module"]
-    resource = kw["resource"]
+    workspace = kw.get("workspace", "")
+    path = kw.get("path", "")
 
     def f():
-        fn = _safe_path(module, resource)
+        fn = _workspace_path(workspace, _rel_path(path))
         if os.path.exists(fn):
             return quart.jsonify({"error": "exists"}), 400
         os.makedirs(os.path.dirname(fn), exist_ok=True)
         open(fn, "w").close()
-        scan_file_resources(module)
+        _rescan_module(fn)
         return quart.jsonify({"status": "ok"})
 
-    return await quart.utils.run_sync(f)()
+    return await _run(f)
 
 
 @quart_app.route("/text-editor-plugin/api/new_folder", methods=["POST"])
 @_admin_api
 async def api_new_folder():
     kw = dict(await quart.request.form)
-    module = kw["module"]
-    resource = kw["resource"]
+    workspace = kw.get("workspace", "")
+    path = kw.get("path", "")
 
     def f():
-        fn = _safe_path(module, resource)
+        fn = _workspace_path(workspace, _rel_path(path))
         if os.path.exists(fn):
             return quart.jsonify({"error": "exists"}), 400
         os.makedirs(fn)
-        scan_file_resources(module)
+        _rescan_module(fn)
         return quart.jsonify({"status": "ok"})
 
-    return await quart.utils.run_sync(f)()
+    return await _run(f)
 
 
 @quart_app.route("/text-editor-plugin/api/lsp_info", methods=["GET"])
 @_admin_api
 async def api_lsp_info():
-    """Describe the language servers available for a module.
+    """Describe the language servers available for a workspace.
 
-    Returns the set of languages the backend can serve, plus the workspace
-    layout the client needs to build file URIs.  This is per-module, not
-    per-file: the client opens one socket per language on demand.
+    The workspace folder is always mounted at ``/workspace`` in the
+    container, so the client addresses files with
+    ``file:///workspace/<workspace-relative path>`` URIs and only needs
+    the list of languages plus the workspace path back.  This is
+    per-workspace, not per-file: the client opens one socket per language
+    on demand.
     """
-    module = quart.request.args["module"]
+    workspace = quart.request.args.get("workspace", "")
 
     def f():
-        module_root = filename_for_file_resource(module, "")
-        workspace = lsp.detect_workspace(module_root)
-        # The container always mounts the workspace at /workspace, so the
-        # client must build file:///workspace/<rel-to-workspace> URIs.  That
-        # only works if the module's file data lives inside the workspace.
-        try:
-            rel = os.path.relpath(os.path.abspath(module_root), workspace)
-        except ValueError:
-            rel = ".."
-        if rel.startswith(".."):
-            return quart.jsonify(
-                {
-                    "languages": [],
-                    "workspaceUri": None,
-                    "moduleBaseRel": None,
-                    "workspacePath": workspace,
-                }
-            )
-        if rel == ".":
-            rel = ""
+        root = _workspace_root(workspace)
         return quart.jsonify(
             {
                 "languages": sorted(lsp.LANGUAGE_IMAGES),
-                "workspaceUri": "file:///workspace",
-                "moduleBaseRel": rel.replace(os.sep, "/"),
-                "workspacePath": workspace,
+                "workspacePath": root,
             }
         )
 
-    return await quart.utils.run_sync(f)()
+    return await _run(f)
 
 
-@quart_app.websocket("/text-editor-plugin/ws/<module>/<path:resource>")
-async def text_editor_ws(module: str, resource: str):
+@quart_app.websocket("/text-editor-plugin/ws")
+async def text_editor_ws():
     """Live file update notifications for the text editor.
 
-    Only carries the ``watch``/``unwatch`` control messages and the
-    ``file-changed`` notifications; LSP traffic has its own socket.
+    The workspace comes in as a query argument.  Only the
+    ``watch``/``unwatch`` control messages and the ``file-changed``
+    notifications travel here; LSP traffic has its own socket.
     """
     require("system_admin")
 
     ws = quart.websocket
-
     loop = asyncio.get_running_loop()
+
+    try:
+        root = _workspace_root(ws.args.get("workspace", ""))
+    except ValueError:
+        await ws.close(4004, "no_workspace")
+        return
+
     send_queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
 
     async def _forward() -> None:
@@ -471,15 +558,12 @@ async def text_editor_ws(module: str, resource: str):
             await ws.send_json(msg)
 
     forward_task = asyncio.create_task(_forward())
-
-    root = filename_for_file_resource(module, "")
     manager = _get_watch_manager()
 
-    def _resource_abs_path(res: str) -> str | None:
-        """Resolve a subscribed resource to an absolute path inside root."""
-        real_root = os.path.realpath(root)
-        full = os.path.realpath(os.path.join(root, res))
-        if full != real_root and not full.startswith(real_root + os.sep):
+    def _path_abs(p: str) -> str | None:
+        """Resolve a subscribed path to an absolute path inside root."""
+        full = os.path.realpath(os.path.join(root, p))
+        if full != root and not full.startswith(root + os.sep):
             return None
         return full
 
@@ -488,11 +572,11 @@ async def text_editor_ws(module: str, resource: str):
             msg = await ws.receive_json()
             mtype = msg.get("type") if isinstance(msg, dict) else None
             if mtype == "watch":
-                abs_path = _resource_abs_path(msg.get("resource", ""))
+                abs_path = _path_abs(msg.get("path", ""))
                 if abs_path is not None:
                     manager.subscribe(abs_path, send_queue, root, loop)
             elif mtype == "unwatch":
-                abs_path = _resource_abs_path(msg.get("resource", ""))
+                abs_path = _path_abs(msg.get("path", ""))
                 if abs_path is not None:
                     manager.unsubscribe(abs_path, send_queue)
     except Exception:
@@ -502,19 +586,19 @@ async def text_editor_ws(module: str, resource: str):
         manager.unsubscribe_all(send_queue)
 
 
-@quart_app.websocket("/text-editor-plugin/lsp-ws/<module>/<language>")
-async def text_editor_lsp_ws(module: str, language: str):
+@quart_app.websocket("/text-editor-plugin/lsp-ws")
+async def text_editor_lsp_ws():
     """Dedicated, transparent JSON-RPC bridge to a language server.
 
-    One socket bridges one language for one module.  Each connection gets
-    its own language server container.  Only raw JSON-RPC bodies are
-    exchanged: the browser client (ace-linters) sends and receives exactly
-    what the language server does, so this backend must never send a
-    message of its own (not even a status message) or it would corrupt the
-    protocol stream.
+    One socket bridges one language for one workspace folder; each
+    connection gets its own language server container.  Only raw JSON-RPC
+    bodies are exchanged: the browser client (ace-linters) sends and
+    receives exactly what the language server does, so this backend must
+    never send a message of its own (not even a status message) or it
+    would corrupt the protocol stream.
 
-    If the language is unknown or no workspace could be resolved the socket
-    is closed immediately with code 4004, which the client treats as
+    If the language is unknown or the workspace is unusable the socket is
+    closed immediately with code 4004, which the client treats as
     "unavailable".
     """
     require("system_admin")
@@ -522,20 +606,14 @@ async def text_editor_lsp_ws(module: str, language: str):
     ws = quart.websocket
     loop = asyncio.get_running_loop()
 
+    language = ws.args.get("language", "")
     if language not in lsp.LANGUAGE_IMAGES:
         await ws.close(4004, "no_lsp")
         return
 
-    # The workspace is always mounted at /workspace in the container, so
-    # the client mirrors this layout with file:///workspace/... URIs.  That
-    # only works if the module's file data lives inside the workspace.
-    module_root = filename_for_file_resource(module, "")
-    workspace = lsp.detect_workspace(module_root)
     try:
-        rel = os.path.relpath(os.path.abspath(module_root), workspace)
+        root = _workspace_root(ws.args.get("workspace", ""))
     except ValueError:
-        rel = ".."
-    if rel.startswith(".."):
         await ws.close(4004, "no_lsp")
         return
 
@@ -543,7 +621,7 @@ async def text_editor_lsp_ws(module: str, language: str):
         # Starting the container may pull the image, so keep it off the
         # event loop.
         server = await asyncio.to_thread(
-            lsp.start_language_server, language, workspace
+            lsp.start_language_server, language, root
         )
     except Exception:
         logger.exception("Failed to start language server")

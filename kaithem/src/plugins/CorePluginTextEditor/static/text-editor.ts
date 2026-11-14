@@ -73,8 +73,12 @@ interface FileNode {
 }
 
 const params = new URLSearchParams(globalThis.location.search);
-const MODULE = params.get('module') || '';
-const RESOURCE = params.get('resource') || '';
+// Absolute server path of the workspace folder the editor is rooted at,
+// plus the workspace-relative path of the file to open first. Both are
+// chosen by the /text-editor-plugin/edit redirect, which roots the editor
+// at lsp.detect_workspace() of the clicked file.
+const WORKSPACE = params.get('workspace') || '';
+const FILE = params.get('file') || '';
 
 class TextEditorPage extends LitElement {
   static override properties = {
@@ -131,20 +135,20 @@ class TextEditorPage extends LitElement {
   private _lspLanguages: string[] = [];
   private _lspInitialized = false;
   private _lspWorkspaceUri = '';
-  private _lspModuleBaseRel = '';
   // Absolute server path of the workspace folder, used to link the chat
-  // and snapshot side panels at the folder the editor considers its root.
-  private _workspacePath = '';
+  // and snapshot side panels, and as the LSP container mount root.
+  private _workspacePath = WORKSPACE;
   private _isMobile = globalThis.matchMedia('(max-width: 768px)').matches;
-  private _watchedResources = new Set<string>();
+  private _watchedPaths = new Set<string>();
   private _applyingRemote = false;
   private _contextMenuOpenedAt = 0;
 
   override firstUpdated() {
     window.addEventListener('beforeunload', this._beforeUnload);
     document.addEventListener('click', this._onDocumentClick);
+    if (!WORKSPACE) return;
     this._refreshTree();
-    this._openFile(RESOURCE);
+    this._openFile(FILE);
     this._connectWatch();
     this._initLsp();
   }
@@ -187,7 +191,8 @@ class TextEditorPage extends LitElement {
     body?: Record<string, string>
   ): Promise<any> {
     const qs = new URLSearchParams(params || {});
-    const url = '/text-editor-plugin/api/' + path + (qs.toString() ? '?' + qs : '');
+    const url =
+      '/text-editor-plugin/api/' + path + (qs.toString() ? '?' + qs : '');
     const opts: RequestInit = { method };
     if (body) {
       const f = new FormData();
@@ -224,8 +229,9 @@ class TextEditorPage extends LitElement {
   private _retry() {
     this.authRequired = false;
     this._refreshTree();
-    this._openFile(RESOURCE);
-    if (!this.ws || this.ws.readyState === WebSocket.CLOSED) this._connectWatch();
+    this._openFile(FILE);
+    if (!this.ws || this.ws.readyState === WebSocket.CLOSED)
+      this._connectWatch();
     if (!this._lspInitialized) this._initLsp();
   }
 
@@ -255,18 +261,18 @@ class TextEditorPage extends LitElement {
     }
   }
 
-  private _watchResource(path: string) {
-    this._watchedResources.add(path);
-    this._wsSend({ type: 'watch', resource: path });
+  private _watchPath(path: string) {
+    this._watchedPaths.add(path);
+    this._wsSend({ type: 'watch', path });
   }
 
-  private _unwatchResource(path: string) {
-    this._watchedResources.delete(path);
-    this._wsSend({ type: 'unwatch', resource: path });
+  private _unwatchPath(path: string) {
+    this._watchedPaths.delete(path);
+    this._wsSend({ type: 'unwatch', path });
   }
 
-  private _applyRemoteContent(resource: string, content: string) {
-    const tab = this.tabs.find((t) => t.path === resource);
+  private _applyRemoteContent(path: string, content: string) {
+    const tab = this.tabs.find((t) => t.path === path);
     if (!tab || tab.content === content) return;
     tab.content = content;
     if (tab.ace) {
@@ -279,7 +285,10 @@ class TextEditorPage extends LitElement {
 
   private async _refreshTree() {
     try {
-      this.tree = await this._api('GET', 'list', { module: MODULE, resource: '' });
+      this.tree = await this._api('GET', 'list', {
+        workspace: WORKSPACE,
+        path: '',
+      });
     } catch (error) {
       console.error(error);
     }
@@ -294,33 +303,36 @@ class TextEditorPage extends LitElement {
     }
 
     try {
-      const j = await this._api('GET', 'read', { module: MODULE, resource: path });
+      const j = await this._api('GET', 'read', {
+        workspace: WORKSPACE,
+        path,
+      });
       const tab: Tab = { path, content: j.content, dirty: false, ace: null };
       this.tabs = [...this.tabs, tab];
       this.activeTab = path;
       this._mountAce(path);
-      this._watchResource(path);
+      this._watchPath(path);
     } catch (error) {
       const msg = (error as Error).message;
       switch (msg) {
-      case 'too_large': {
-        alert('This file is 5MB or larger and cannot be opened.');
-      
-      break;
-      }
-      case 'binary': {
-        alert('This file is not a plain text file.');
-      
-      break;
-      }
-      case 'not_a_file': {
-        alert('That path is not a file.');
-      
-      break;
-      }
-      default: {
-        alert('Could not open file: ' + msg);
-      }
+        case 'too_large': {
+          alert('This file is 5MB or larger and cannot be opened.');
+
+          break;
+        }
+        case 'binary': {
+          alert('This file is not a plain text file.');
+
+          break;
+        }
+        case 'not_a_file': {
+          alert('That path is not a file.');
+
+          break;
+        }
+        default: {
+          alert('Could not open file: ' + msg);
+        }
       }
       console.error(error);
     }
@@ -342,10 +354,10 @@ class TextEditorPage extends LitElement {
       });
 
       ed.setOptions({
-          enableBasicAutocompletion: true,
-          enableLiveAutocompletion: false
+        enableBasicAutocompletion: true,
+        enableLiveAutocompletion: false,
       });
-    
+
       // Ace injects its base editor CSS into document.head by default. Inside
       // a shadow root that CSS is invisible to the editor, leaving .ace_scroller
       // position:static and all layers off-screen. Inject the base CSS into the
@@ -369,25 +381,27 @@ class TextEditorPage extends LitElement {
 
   private _aceMode(path: string): string {
     const ext = path.split('.').pop()?.toLowerCase();
-    return {
-      py: 'ace/mode/python',
-      ts: 'ace/mode/typescript',
-      tsx: 'ace/mode/typescript',
-      js: 'ace/mode/javascript',
-      jsx: 'ace/mode/javascript',
-      mjs: 'ace/mode/javascript',
-      json: 'ace/mode/json',
-      css: 'ace/mode/css',
-      html: 'ace/mode/html',
-      htm: 'ace/mode/html',
-      yaml: 'ace/mode/yaml',
-      yml: 'ace/mode/yaml',
-      md: 'ace/mode/markdown',
-      go: 'ace/mode/golang',
-      rs: 'ace/mode/rust',
-      lua: 'ace/mode/lua',
-      sh: 'ace/mode/sh',
-    }[ext || ''] || 'ace/mode/text';
+    return (
+      {
+        py: 'ace/mode/python',
+        ts: 'ace/mode/typescript',
+        tsx: 'ace/mode/typescript',
+        js: 'ace/mode/javascript',
+        jsx: 'ace/mode/javascript',
+        mjs: 'ace/mode/javascript',
+        json: 'ace/mode/json',
+        css: 'ace/mode/css',
+        html: 'ace/mode/html',
+        htm: 'ace/mode/html',
+        yaml: 'ace/mode/yaml',
+        yml: 'ace/mode/yaml',
+        md: 'ace/mode/markdown',
+        go: 'ace/mode/golang',
+        rs: 'ace/mode/rust',
+        lua: 'ace/mode/lua',
+        sh: 'ace/mode/sh',
+      }[ext || ''] || 'ace/mode/text'
+    );
   }
 
   private _focusTab() {
@@ -404,8 +418,8 @@ class TextEditorPage extends LitElement {
     const content = tab.ace ? tab.ace.getValue() : tab.content;
     try {
       await this._api('POST', 'write', undefined, {
-        module: MODULE,
-        resource: tab.path,
+        workspace: WORKSPACE,
+        path: tab.path,
         content,
       });
       tab.content = content;
@@ -424,29 +438,32 @@ class TextEditorPage extends LitElement {
 
   private _closeTab(path: string) {
     const tab = this.tabs.find((t) => t.path === path);
-    if (tab?.dirty && !confirm('Unsaved changes in ' + path + '. Close anyway?')) return;
+    if (
+      tab?.dirty &&
+      !confirm('Unsaved changes in ' + path + '. Close anyway?')
+    )
+      return;
     this._unregisterLspEditor(tab);
     this.tabs = this.tabs.filter((t) => t.path !== path);
-    this._unwatchResource(path);
+    this._unwatchPath(path);
     if (this.activeTab === path) {
       this.activeTab = this.tabs.at(-1)?.path || null;
     }
   }
 
   private _connectWatch() {
-    this.ws = new WebSocket(
-      `/text-editor-plugin/ws/${encodeURIComponent(MODULE)}/${encodeURIComponent(RESOURCE)}`
-    );
+    const qs = new URLSearchParams({ workspace: WORKSPACE });
+    this.ws = new WebSocket('/text-editor-plugin/ws?' + qs);
     this.ws.addEventListener('open', () => {
       // (Re)subscribe to any files opened before the socket was ready.
-      for (const r of this._watchedResources) {
-        this._wsSend({ type: 'watch', resource: r });
+      for (const p of this._watchedPaths) {
+        this._wsSend({ type: 'watch', path: p });
       }
     });
     this.ws.onmessage = (ev) => {
       const msg = JSON.parse(ev.data);
       if (msg.type === 'file-changed') {
-        this._applyRemoteContent(msg.resource, msg.content);
+        this._applyRemoteContent(msg.path, msg.content);
       }
     };
   }
@@ -454,15 +471,16 @@ class TextEditorPage extends LitElement {
   private async _initLsp() {
     if (this._lspInitialized) return;
     try {
-      const info = await this._api('GET', 'lsp_info', { module: MODULE });
+      const info = await this._api('GET', 'lsp_info', {
+        workspace: WORKSPACE,
+      });
       this._lspLanguages = info.languages || [];
       this._workspacePath = info.workspacePath || '';
-      if (!this._lspLanguages.length || !info.workspaceUri) {
+      this._lspWorkspaceUri = 'file:///workspace';
+      if (!this._lspLanguages.length) {
         this.lspStatus = 'unavailable';
         return;
       }
-      this._lspWorkspaceUri = info.workspaceUri;
-      this._lspModuleBaseRel = info.moduleBaseRel || '';
       this.lspStatus = 'connecting';
 
       // A single provider serves every language: ace-linters keys every
@@ -497,9 +515,8 @@ class TextEditorPage extends LitElement {
   private _lspSocketFor(lang: string): WebSocket {
     const existing = this._lspSockets.get(lang);
     if (existing) return existing;
-    const socket = new WebSocket(
-      `/text-editor-plugin/lsp-ws/${encodeURIComponent(MODULE)}/${encodeURIComponent(lang)}`
-    );
+    const qs = new URLSearchParams({ workspace: WORKSPACE, language: lang });
+    const socket = new WebSocket('/text-editor-plugin/lsp-ws?' + qs);
     this._lspSockets.set(lang, socket);
     // Use addEventListener (not onopen/onclose) because ace-linters assigns
     // the socket's on* properties itself.
@@ -522,10 +539,9 @@ class TextEditorPage extends LitElement {
   }
 
   private _lspUriFor(path: string): string {
-    const rel = this._lspModuleBaseRel
-      ? this._lspModuleBaseRel + '/' + path
-      : path;
-    const encoded = rel
+    // The workspace is always mounted at /workspace in the container, so
+    // a workspace-relative path maps straight onto the file URI.
+    const encoded = path
       .split('/')
       .map((s) => encodeURIComponent(s))
       .join('/');
@@ -600,56 +616,56 @@ class TextEditorPage extends LitElement {
 
     try {
       switch (action) {
-      case 'newfile': {
-        const name = prompt('New file name');
-        if (name) {
-          await this._api('POST', 'new_file', undefined, {
-            module: MODULE,
-            resource: dir ? dir + '/' + name : name,
-          });
-          this._refreshTree();
+        case 'newfile': {
+          const name = prompt('New file name');
+          if (name) {
+            await this._api('POST', 'new_file', undefined, {
+              workspace: WORKSPACE,
+              path: dir ? dir + '/' + name : name,
+            });
+            this._refreshTree();
+          }
+
+          break;
         }
-      
-      break;
-      }
-      case 'newfolder': {
-        const name = prompt('New folder name');
-        if (name) {
-          await this._api('POST', 'new_folder', undefined, {
-            module: MODULE,
-            resource: dir ? dir + '/' + name : name,
-          });
-          this._refreshTree();
+        case 'newfolder': {
+          const name = prompt('New folder name');
+          if (name) {
+            await this._api('POST', 'new_folder', undefined, {
+              workspace: WORKSPACE,
+              path: dir ? dir + '/' + name : name,
+            });
+            this._refreshTree();
+          }
+
+          break;
         }
-      
-      break;
-      }
-      case 'rename': {
-        const oldName = path.split('/').pop();
-        const name = prompt('New name', oldName);
-        if (name) {
-          await this._api('POST', 'rename', undefined, {
-            module: MODULE,
-            resource: path,
-            new_name: name,
-          });
-          this._refreshTree();
+        case 'rename': {
+          const oldName = path.split('/').pop();
+          const name = prompt('New name', oldName);
+          if (name) {
+            await this._api('POST', 'rename', undefined, {
+              workspace: WORKSPACE,
+              path,
+              new_name: name,
+            });
+            this._refreshTree();
+          }
+
+          break;
         }
-      
-      break;
-      }
-      case 'delete': {
-        if (confirm('Delete ' + path + '?')) {
-          await this._api('POST', 'delete', undefined, {
-            module: MODULE,
-            resource: path,
-          });
-          this._refreshTree();
+        case 'delete': {
+          if (confirm('Delete ' + path + '?')) {
+            await this._api('POST', 'delete', undefined, {
+              workspace: WORKSPACE,
+              path,
+            });
+            this._refreshTree();
+          }
+
+          break;
         }
-      
-      break;
-      }
-      // No default
+        // No default
       }
     } catch (error) {
       alert('Error: ' + (error as Error).message);
@@ -676,6 +692,20 @@ class TextEditorPage extends LitElement {
         </div>
       `;
     }
+    if (!WORKSPACE) {
+      return html`
+        <div class="splash" data-testid="no-workspace-splash">
+          <div class="splash-box">
+            <div class="splash-icon mdi mdi-folder-off-outline"></div>
+            <h1>No folder to edit</h1>
+            <p>
+              This editor works on a folder. Open it from a file's actions menu
+              so the folder can be detected.
+            </p>
+          </div>
+        </div>
+      `;
+    }
     return html`
       <header>
         <button
@@ -684,9 +714,9 @@ class TextEditorPage extends LitElement {
         >
           <span class="mdi mdi-file-tree"></span>
         </button>
-        
+
         <button @click="${this._save}" data-testid="save-btn">
-        <span class="mdi mdi-content-save"></span>Save
+          <span class="mdi mdi-content-save"></span>Save
         </button>
         <button
           @click="${() => this._togglePanel('chat')}"
@@ -731,7 +761,10 @@ class TextEditorPage extends LitElement {
       <div class="main">
         ${this.sidebarOpen
           ? html`
-              <div class="sidebar ${this._isMobile ? 'mobile' : ''}" data-testid="sidebar">
+              <div
+                class="sidebar ${this._isMobile ? 'mobile' : ''}"
+                data-testid="sidebar"
+              >
                 <div
                   class="tree-root"
                   data-testid="tree-root"
@@ -739,7 +772,9 @@ class TextEditorPage extends LitElement {
                     this._openContextMenu(e as MouseEvent, '', true)}"
                 >
                   ${this.tree.length === 0
-                    ? html`<div class="tree-item">Right-click to create a file</div>`
+                    ? html`<div class="tree-item">
+                        Right-click to create a file
+                      </div>`
                     : nothing}
                   ${this._renderTree(this.tree)}
                 </div>
@@ -796,19 +831,50 @@ class TextEditorPage extends LitElement {
           ? html`
               <div
                 class="contextmenu"
-                style="left: ${this.contextMenu.x}px; top: ${this.contextMenu.y}px"
+                style="left: ${this.contextMenu.x}px; top: ${this.contextMenu
+                  .y}px"
                 @click="${() => (this.contextMenu = null)}"
               >
                 ${this.contextMenu.isDir
                   ? html`
-                      <button data-testid="ctx-new-file" @click="${() => this._ctxAction('newfile')}">New file</button>
-                      <button data-testid="ctx-new-folder" @click="${() => this._ctxAction('newfolder')}">New folder</button>
-                      <button data-testid="ctx-rename" @click="${() => this._ctxAction('rename')}">Rename</button>
-                      <button data-testid="ctx-delete" @click="${() => this._ctxAction('delete')}">Delete</button>
+                      <button
+                        data-testid="ctx-new-file"
+                        @click="${() => this._ctxAction('newfile')}"
+                      >
+                        New file
+                      </button>
+                      <button
+                        data-testid="ctx-new-folder"
+                        @click="${() => this._ctxAction('newfolder')}"
+                      >
+                        New folder
+                      </button>
+                      <button
+                        data-testid="ctx-rename"
+                        @click="${() => this._ctxAction('rename')}"
+                      >
+                        Rename
+                      </button>
+                      <button
+                        data-testid="ctx-delete"
+                        @click="${() => this._ctxAction('delete')}"
+                      >
+                        Delete
+                      </button>
                     `
                   : html`
-                      <button data-testid="ctx-rename" @click="${() => this._ctxAction('rename')}">Rename</button>
-                      <button data-testid="ctx-delete" @click="${() => this._ctxAction('delete')}">Delete</button>
+                      <button
+                        data-testid="ctx-rename"
+                        @click="${() => this._ctxAction('rename')}"
+                      >
+                        Rename
+                      </button>
+                      <button
+                        data-testid="ctx-delete"
+                        @click="${() => this._ctxAction('delete')}"
+                      >
+                        Delete
+                      </button>
                     `}
               </div>
             `
@@ -816,7 +882,9 @@ class TextEditorPage extends LitElement {
       </div>
       <div class="statusbar">
         <span
-          class="badge ${this.lspStatus === 'connected' ? 'connected' : 'unavailable'}"
+          class="badge ${this.lspStatus === 'connected'
+            ? 'connected'
+            : 'unavailable'}"
           data-testid="lsp-badge"
         >
           LSP ${this.lspStatus}

@@ -37,9 +37,11 @@ LANGUAGE_IMAGES: dict[str, str] = {
     "html": "lspcontainers/html-language-server:1.4.0",
 }
 
-# Marker files that signal a workspace root, in increasing order of
-# preference per level.
+# Marker files that signal a project root.  ``lsp-workspace.json`` is
+# Kaithem's own marker for a folder that is not a project of its own kind,
+# so it counts like any of the others.
 MARKER_FILES = [
+    "lsp-workspace.json",
     "package.json",
     "pyproject.toml",
     "setup.py",
@@ -49,33 +51,30 @@ MARKER_FILES = [
     "tsconfig.json",
 ]
 
-WORKSPACE_MARKER = "lsp-workspace.json"
-
 
 def detect_workspace(path: str) -> str:
-    """Look for marker files in increasingly outer dirs.
+    """Find the innermost directory that holds a project marker file.
 
-    Returns the path of the outermost directory that contains a marker
-    file, or the starting directory if no workspace is detected.
+    Walks from ``path`` (or its directory, when it names a file) outward
+    and stops at the first directory containing any marker file, so
+    nested projects each get their own workspace.  When nothing is found
+    the starting directory is returned, which for a single opened file is
+    the folder containing it.
     """
     path = os.path.abspath(path)
     if not os.path.isdir(path):
         path = os.path.dirname(path)
 
-    best = path
     cur = path
     while True:
         for marker in MARKER_FILES:
             if os.path.isfile(os.path.join(cur, marker)):
-                best = cur
-                break
-        if os.path.isfile(os.path.join(cur, WORKSPACE_MARKER)):
-            return cur
+                return cur
         parent = os.path.dirname(cur)
         if parent == cur:
             break
         cur = parent
-    return best
+    return path
 
 
 class LanguageServer:
