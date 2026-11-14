@@ -88,6 +88,7 @@ class ConversationType(resource_types.ResourceType):
             permissions=parse_permissions(raw.get("permissions")),
             persistent=bool(raw.get("persistent", True)),
             system_prompt=str(raw.get("system_prompt") or ""),
+            workspace=str(raw.get("workspace") or "").strip(),
         )
 
     # -- lifecycle --------------------------------------------------------
@@ -140,6 +141,12 @@ class ConversationType(resource_types.ResourceType):
             ],
         )
         d.checkbox("persistent", title="Keep history on disk", default=True)
+        d.text_input(
+            "workspace",
+            title="Workspace Folder",
+            default="",
+            suggestions=[("", "none (chat only)")],
+        )
         d.text_input("system_prompt", title="System Prompt", multiline=True)
         d.submit_button("Save")
         return d.render(self.get_create_target(module, path))
@@ -166,6 +173,12 @@ class ConversationType(resource_types.ResourceType):
             "persistent",
             title="Keep history on disk",
             default=bool(raw.get("persistent", True)),
+        )
+        d.text_input(
+            "workspace",
+            title="Workspace Folder",
+            default=str(raw.get("workspace") or ""),
+            suggestions=[("", "none (chat only)")],
         )
         d.text_input(
             "system_prompt",
@@ -198,6 +211,7 @@ class ConversationType(resource_types.ResourceType):
             raw["permissions"] = parse_permissions(raw.get("permissions"))
         raw["persistent"] = bool(kwargs.get("persistent"))
         raw["system_prompt"] = str(kwargs.get("system_prompt") or "").strip()
+        raw["workspace"] = str(kwargs.get("workspace") or "").strip()
         return raw
 
     def on_create_request(self, module, resource, kwargs):

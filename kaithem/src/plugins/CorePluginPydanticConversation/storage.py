@@ -1,10 +1,15 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Append only LDJSON storage for conversation threads.
 
-Each thread is one file with one JSON object per line.  Malformed lines
-are ignored when reading, so a partial write or a hand edit can never
-break a conversation.  Threads live in
-``<conversations dir>/<id>/<slug>.ldjson``.
+A conversation is shared between users, but each user gets their own
+threads.  Every thread is one file with one JSON object per line, under
+``<conversations dir>/<id>/<user>/<slug>.ldjson``.  Malformed lines are
+ignored when reading, so a partial write or a hand edit can never break a
+conversation.
+
+The conversation level config lives at
+``<conversations dir>/<id>/conversation.json``, deliberately outside any
+user folder because the id, model and permissions are shared.
 
 When a conversation is not persistent the same interface is served from
 memory, so the rest of the code never has to branch on persistence.
@@ -23,6 +28,7 @@ import structlog
 from scullery import persist
 
 from .models import (
+    DEFAULT_USER,
     ChatEntry,
     Entry,
     ThreadHeader,
@@ -37,6 +43,7 @@ _SLUG_RE = re.compile(r"[^a-z0-9]+")
 _MAX_SLUG = 60
 _SUFFIX = ".ldjson"
 _CONFIG_FILE = "conversation.json"
+_FORBIDDEN_IN_NAME = ("/", "\\", "\x00")
 
 
 def slugify(text: str) -> str:
@@ -49,16 +56,31 @@ def _safe_slug(slug: str) -> str:
     """Reject any slug that could escape the conversation directory."""
     if not slug or slug in (".", ".."):
         raise ValueError(f"Invalid thread slug {slug!r}")
-    if "/" in slug or "\\" in slug or "\x00" in slug:
+    if any(char in slug for char in _FORBIDDEN_IN_NAME):
         raise ValueError(f"Invalid thread slug {slug!r}")
     return slug
 
 
-class ConversationStorage:
-    """Storage for every thread belonging to one conversation."""
+def _safe_user(user: str) -> str:
+    """Reject any user name that could escape the conversation directory."""
+    if not user or user in (".", ".."):
+        raise ValueError(f"Invalid conversation user {user!r}")
+    if any(char in user for char in _FORBIDDEN_IN_NAME):
+        raise ValueError(f"Invalid conversation user {user!r}")
+    return user
 
-    def __init__(self, base_dir: str | None, conversation_id: str):
+
+class ConversationStorage:
+    """Storage for every thread belonging to one conversation and user."""
+
+    def __init__(
+        self,
+        base_dir: str | None,
+        conversation_id: str,
+        user: str = DEFAULT_USER,
+    ):
         self.conversation_id = conversation_id
+        self.user = _safe_user(user)
         self.base_dir = base_dir
         self._memory: dict[str, list[Entry]] = {}
         # Reentrant so create_thread -> list_threads -> read can nest.
@@ -72,7 +94,7 @@ class ConversationStorage:
     def directory(self) -> str | None:
         if self.base_dir is None:
             return None
-        return os.path.join(self.base_dir, self.conversation_id)
+        return os.path.join(self.base_dir, self.conversation_id, self.user)
 
     def _path(self, slug: str) -> str:
         directory = self.directory
@@ -212,30 +234,37 @@ class ConversationStorage:
             updated=updated,
         )
 
-    # -- whole conversation ----------------------------------------------
+    # -- whole user -------------------------------------------------------
 
     def delete(self) -> None:
-        """Delete every thread of the conversation.  Irreversible."""
+        """Delete every thread this user has.  Irreversible."""
         with self._lock:
             self._memory.clear()
             directory = self.directory
             if directory and os.path.isdir(directory):
                 shutil.rmtree(directory, ignore_errors=True)
 
-    def write_config(self, data: dict) -> None:
-        """Persist the conversation config next to its history."""
-        directory = self.directory
-        if directory is None:
-            return
-        self._ensure_dir()
-        persist.save(data, os.path.join(directory, _CONFIG_FILE))
+
+def conversation_dir(base_dir: str, conversation_id: str) -> str:
+    """The directory holding one conversation's config and user folders."""
+    return os.path.join(base_dir, conversation_id)
+
+
+def write_conversation_config(
+    base_dir: str, conversation_id: str, data: dict
+) -> None:
+    """Persist the conversation config, shared by every user."""
+    directory = conversation_dir(base_dir, conversation_id)
+    os.makedirs(directory, mode=0o700, exist_ok=True)
+    persist.save(data, os.path.join(directory, _CONFIG_FILE))
 
 
 def load_conversation_config(
     base_dir: str, conversation_id: str
 ) -> dict | None:
     """Read a persisted conversation config, if there is one."""
-    path = os.path.join(base_dir, conversation_id, _CONFIG_FILE)
+    directory = conversation_dir(base_dir, conversation_id)
+    path = os.path.join(directory, _CONFIG_FILE)
     if not os.path.exists(path):
         return None
     try:
@@ -246,3 +275,10 @@ def load_conversation_config(
     if isinstance(data, dict):
         return data
     return None
+
+
+def delete_conversation_dir(base_dir: str, conversation_id: str) -> None:
+    """Delete a conversation's config and the history of every user."""
+    directory = conversation_dir(base_dir, conversation_id)
+    if os.path.isdir(directory):
+        shutil.rmtree(directory, ignore_errors=True)

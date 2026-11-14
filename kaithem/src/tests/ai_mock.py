@@ -93,10 +93,11 @@ def _usage_for(request: dict[str, Any], reply_text: str) -> dict[str, Any]:
 
 
 class _MockServer(ThreadingHTTPServer):
-    """A threaded server that counts how many completions it served.
+    """A threaded server that counts and records completions it served.
 
     The count lets tests prove that a conversation makes no request until
-    something actually needs one.
+    something actually needs one.  The recorded requests let tests assert
+    what history a later turn replayed to the provider.
     """
 
     daemon_threads = True
@@ -104,11 +105,13 @@ class _MockServer(ThreadingHTTPServer):
     def __init__(self, address: tuple[str, int], handler: type) -> None:
         super().__init__(address, handler)
         self.request_count = 0
+        self.requests: list[dict[str, Any]] = []
         self._count_lock = threading.Lock()
 
-    def record_request(self) -> None:
+    def record_request(self, request: dict[str, Any]) -> None:
         with self._count_lock:
             self.request_count += 1
+            self.requests.append(request)
 
 
 class _Handler(BaseHTTPRequestHandler):
@@ -121,15 +124,15 @@ class _Handler(BaseHTTPRequestHandler):
         pass
 
     def do_POST(self) -> None:  # noqa: N802
-        server = self.server
-        if isinstance(server, _MockServer):
-            server.record_request()
         length = int(self.headers.get("Content-Length") or 0)
         raw = self.rfile.read(length) if length else b"{}"
         try:
             request = json.loads(raw or b"{}")
         except ValueError:
             request = {}
+        server = self.server
+        if isinstance(server, _MockServer):
+            server.record_request(request)
         self._respond(request)
 
     def _respond(self, request: dict[str, Any]) -> None:
@@ -179,28 +182,41 @@ def _events(
     else:
         events.extend(_chunked_content(model, reply_text))
         events.append(_finish(model, "stop"))
-    events.append(
-        {
-            "model": model,
-            "choices": [],
-            "usage": _usage_for(request, reply_text),
-        }
-    )
+    # The usage only arrives in a final chunk with no choices, which is
+    # what the OpenAI client expects when the request asks for it.
+    usage = _chunk(model, {}, None)
+    usage["choices"] = []
+    usage["usage"] = _usage_for(request, reply_text)
+    events.append(usage)
     return events
 
 
-def _delta(model: str, delta: dict[str, Any]) -> dict[str, Any]:
+def _chunk(
+    model: str, delta: dict[str, Any], finish: str | None
+) -> dict[str, Any]:
+    """One OpenAI chat completion chunk, as the SDK requires it.
+
+    ``id``, ``object``, ``created`` and ``choices[].index`` are required
+    by the OpenAI client's chunk model, so a fake provider has to send
+    them even though a real one would only ever send them once.
+    """
     return {
+        "id": "chatcmpl-mock",
+        "object": "chat.completion.chunk",
+        "created": 1700000000,
         "model": model,
-        "choices": [{"delta": delta, "finish_reason": None}],
+        "choices": [
+            {"index": 0, "delta": delta, "finish_reason": finish}
+        ],
     }
+
+
+def _delta(model: str, delta: dict[str, Any]) -> dict[str, Any]:
+    return _chunk(model, delta, None)
 
 
 def _finish(model: str, reason: str) -> dict[str, Any]:
-    return {
-        "model": model,
-        "choices": [{"delta": {}, "finish_reason": reason}],
-    }
+    return _chunk(model, {}, reason)
 
 
 def _chunked_content(model: str, text: str) -> list[dict[str, Any]]:
@@ -234,6 +250,12 @@ class AiMock:
     def request_count(self) -> int:
         """How many completions this mock has served."""
         return self._server.request_count
+
+    @property
+    def last_request(self) -> dict[str, Any] | None:
+        """The most recent completion request, or None if none yet."""
+        requests = self._server.requests
+        return requests[-1] if requests else None
 
     def start(self) -> AiMock:
         self._thread.start()

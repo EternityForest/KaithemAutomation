@@ -17,6 +17,11 @@ from pydantic import (
     ValidationError,
 )
 
+#: The user namespace used for programmatic, non web callers.  Threads of a
+#: conversation are stored per user, and callers that do not name a user
+#: keep working against this namespace.
+DEFAULT_USER = "__system__"
+
 
 class Usage(BaseModel):
     """Token counts and the reported cost of one completion."""
@@ -85,7 +90,12 @@ class ChatEntry(BaseModel):
 
 
 class ActionEntry(BaseModel):
-    """A persisted record of one tool call and its outcome."""
+    """A persisted record of one tool call and its outcome.
+
+    This is both the action log entry the UI shows and the ``role: "tool"``
+    message replayed to the model on later turns, so the tool call id is
+    kept to pair each result with the assistant message that asked for it.
+    """
 
     type: Literal["action"] = "action"
     id: str
@@ -93,6 +103,8 @@ class ActionEntry(BaseModel):
     thread: str
     name: str
     arguments: dict[str, Any] = Field(default_factory=dict)
+    #: The tool call id of the assistant message this result answers.
+    tool_call_id: str = ""
     status: Literal["running", "ok", "error"] = "running"
     result: str = ""
     duration: float = 0.0
@@ -158,3 +170,6 @@ class ConversationConfig(BaseModel):
     #: When true, history is written to append only LDJSON files.
     persistent: bool = True
     system_prompt: str = ""
+    #: Absolute path of the folder the model may read and edit.  When
+    #: empty, the conversation has no file tools and only chats.
+    workspace: str = ""

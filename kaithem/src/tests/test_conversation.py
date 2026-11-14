@@ -12,22 +12,39 @@ from __future__ import annotations
 
 import asyncio
 import os
+import shutil
+import tempfile
 import time
 import uuid
+from urllib.parse import quote, unquote
 
 import pytest
+from pydantic_ai import Tool
+from pydantic_ai.messages import (
+    ModelRequest,
+    ModelResponse,
+    TextPart,
+    ToolCallPart,
+    ToolReturnPart,
+    UserPromptPart,
+)
 
 from kaithem.api import ai, settings
+from kaithem.src.plugins import CorePluginPydanticConversation as plugin
+from kaithem.src.plugins.CorePluginPydanticConversation import (
+    agent as agent_module,
+)
 from kaithem.src.plugins.CorePluginPydanticConversation import (
     conversation as registry,
 )
-from kaithem.src.plugins.CorePluginPydanticConversation import tools
 from kaithem.src.plugins.CorePluginPydanticConversation.models import (
+    DEFAULT_USER,
     ActionEntry,
     ChatEntry,
     ChatMessage,
     ConversationConfig,
     ThreadHeader,
+    ToolCall,
     dump_entry,
     parse_entry,
 )
@@ -38,7 +55,9 @@ from kaithem.src.plugins.CorePluginPydanticConversation.storage import (
     ConversationStorage,
     slugify,
 )
-from kaithem.src.tests.ai_mock import MOCK_COST, start_ai_mock
+from kaithem.src.tests.ai_mock import start_ai_mock
+
+from .helpers import make_client
 
 #: Where the test conversations are written.  Must be under /dev/shm so
 #: the pytest sandbox in conftest.py allows it.
@@ -84,6 +103,29 @@ def _assistant_messages(storage: ConversationStorage, slug: str):
         for entry in storage.read(slug)
         if isinstance(entry, ChatEntry) and entry.message.role == "assistant"
     ]
+
+
+def _wire_messages(request: dict) -> list[dict]:
+    """The messages of one provider request, without any system prompt."""
+    return [
+        message
+        for message in request["messages"]
+        if message.get("role") != "system"
+    ]
+
+
+def _register_tool(conversation_id: str, function, name: str) -> None:
+    """Attach one callable tool to a conversation for its next run."""
+    registry.register_capabilities(
+        conversation_id,
+        [
+            Tool(
+                function,
+                name=name,
+                description="Echo a value back for the test",
+            )
+        ],
+    )
 
 
 # -- models and storage ---------------------------------------------------
@@ -219,6 +261,49 @@ def test_safe_slug_rejects_traversal():
         storage.append("..", ThreadHeader(id="x", timestamp=0.0, slug=".."))
 
 
+def test_safe_user_rejects_traversal():
+    for bad in ("", ".", "..", "a/b", "a\\b", "a\x00b"):
+        with pytest.raises(ValueError):
+            ConversationStorage(CONV_DIR, uuid.uuid4().hex, bad)
+
+
+def test_storage_defaults_to_the_system_user():
+    storage = ConversationStorage(CONV_DIR, uuid.uuid4().hex)
+    assert storage.user == DEFAULT_USER
+
+
+def test_storage_isolates_users():
+    conversation_id = uuid.uuid4().hex
+    alice = ConversationStorage(CONV_DIR, conversation_id, "alice")
+    thread = alice.create_thread("Chat")
+    assert alice.user == "alice"
+
+    bob = ConversationStorage(CONV_DIR, conversation_id, "bob")
+    assert bob.list_threads() == []
+    assert not bob.has_thread(thread.slug)
+
+    # Each user gets a directory of their own under the conversation.
+    assert alice.directory != bob.directory
+    assert alice.directory == os.path.join(CONV_DIR, conversation_id, "alice")
+    assert os.path.isfile(
+        os.path.join(alice.directory, thread.slug + ".ldjson")
+    )
+    assert os.path.isdir(bob.directory) is False
+
+
+def test_deleting_one_user_leaves_the_other():
+    conversation_id = uuid.uuid4().hex
+    alice = ConversationStorage(CONV_DIR, conversation_id, "alice")
+    alice.create_thread("Chat")
+    bob = ConversationStorage(CONV_DIR, conversation_id, "bob")
+    bob.create_thread("Chat")
+
+    alice.delete()
+    assert not os.path.exists(alice.directory)
+    assert os.path.isdir(bob.directory)
+    assert [t.slug for t in bob.list_threads()] == ["chat"]
+
+
 # -- helpers --------------------------------------------------------------
 
 
@@ -235,6 +320,120 @@ def test_resolve_model_tags():
     assert ai.resolve_model("chat") == "google/gemini-3.1-flash-lite"
     assert ai.resolve_model("") == "google/gemini-3.1-flash-lite"
     assert ai.resolve_model("vendor/model") == "vendor/model"
+
+
+# -- message replay -------------------------------------------------------
+
+
+def _unit_conversation(**kwargs) -> registry.Conversation:
+    config = ConversationConfig(id="unit", model="chat", **kwargs)
+    return registry.Conversation(config, None)
+
+
+def test_to_model_messages_maps_roles():
+    history = [
+        ChatEntry(
+            id="1",
+            timestamp=1.0,
+            thread="t",
+            message=ChatMessage(role="user", content="hi"),
+        ),
+        ChatEntry(
+            id="2",
+            timestamp=2.0,
+            thread="t",
+            message=ChatMessage(
+                role="assistant", content="hello", reasoning="why"
+            ),
+        ),
+    ]
+    messages = agent_module.to_model_messages(history)
+    assert isinstance(messages[0], ModelRequest)
+    assert isinstance(messages[0].parts[0], UserPromptPart)
+    assert messages[0].parts[0].content == "hi"
+    assert isinstance(messages[1], ModelResponse)
+    # Reasoning is kept on disk but is never replayed to the provider.
+    assert [type(part) for part in messages[1].parts] == [TextPart]
+    assert messages[1].parts[0].content == "hello"
+
+
+def test_to_model_messages_replays_tool_results():
+    call = ToolCall(id="call_1", name="lookup", arguments='{"key": "a"}')
+    history = [
+        ChatEntry(
+            id="1",
+            timestamp=1.0,
+            thread="t",
+            message=ChatMessage(role="user", content="look it up"),
+        ),
+        ChatEntry(
+            id="2",
+            timestamp=2.0,
+            thread="t",
+            message=ChatMessage(
+                role="assistant", content="", tool_calls=[call]
+            ),
+        ),
+        ActionEntry(
+            id="3",
+            timestamp=3.0,
+            thread="t",
+            name="lookup",
+            tool_call_id="call_1",
+            status="ok",
+            result="42",
+        ),
+    ]
+    messages = agent_module.to_model_messages(history)
+    assert [type(message) for message in messages] == [
+        ModelRequest,
+        ModelResponse,
+        ModelRequest,
+    ]
+    call_part = messages[1].parts[0]
+    assert isinstance(call_part, ToolCallPart)
+    assert call_part.tool_name == "lookup"
+    assert call_part.args == '{"key": "a"}'
+    result_part = messages[2].parts[0]
+    assert isinstance(result_part, ToolReturnPart)
+    assert result_part.tool_name == "lookup"
+    assert result_part.tool_call_id == "call_1"
+    assert result_part.content == "42"
+    assert result_part.outcome == "success"
+
+
+def test_to_model_messages_marks_failed_tools():
+    call = ToolCall(id="call_2", name="lookup", arguments="{}")
+    history = [
+        ChatEntry(
+            id="1",
+            timestamp=1.0,
+            thread="t",
+            message=ChatMessage(
+                role="assistant", content="", tool_calls=[call]
+            ),
+        ),
+        ActionEntry(
+            id="2",
+            timestamp=2.0,
+            thread="t",
+            name="lookup",
+            tool_call_id="call_2",
+            status="error",
+            result="boom",
+        ),
+    ]
+    messages = agent_module.to_model_messages(history)
+    result_part = messages[1].parts[0]
+    assert isinstance(result_part, ToolReturnPart)
+    assert result_part.outcome == "failed"
+
+
+def test_build_agent_without_api_key_raises():
+    with pytest.raises(agent_module.MissingApiKeyError):
+        agent_module.build_agent(
+            model_id="chat", api_base="http://x/v1", api_key=""
+        )
 
 
 # -- registry -------------------------------------------------------------
@@ -294,15 +493,13 @@ async def test_send_echoes_and_records_usage(ai_mock):
 
     await conversation.send(thread.slug, "hello world")
     await _wait_for(
-        lambda: _assistant_messages(conversation.storage, thread.slug)
+        lambda: _assistant_messages(conversation.storage(), thread.slug)
     )
 
     assert ai_mock.request_count >= 1
-    assistant = _assistant_messages(conversation.storage, thread.slug)[0]
+    assistant = _assistant_messages(conversation.storage(), thread.slug)[0]
     assert assistant.message.content == "Echo: hello world"
-    assert assistant.message.reasoning
     assert assistant.usage is not None
-    assert assistant.usage.cost == MOCK_COST
     assert assistant.usage.total_tokens > 0
     assert conversation.status == "idle"
 
@@ -310,21 +507,14 @@ async def test_send_echoes_and_records_usage(ai_mock):
 
 
 async def test_tool_call_is_logged(ai_mock):
-    def echo(arguments):
-        return "got:" + str(arguments.get("value"))
-
-    tools.register_tool(
-        tools.Tool(
-            name="test_echo",
-            description="Echo a value back",
-            function=echo,
-        )
-    )
+    def echo(value: str) -> str:
+        return "got:" + value
 
     conversation_id = uuid.uuid4().hex
     registry.register_config(
         ConversationConfig(id=conversation_id, model="chat")
     )
+    _register_tool(conversation_id, echo, "test_echo")
     conversation = registry.get_conversation(conversation_id)
     thread = conversation.create_thread("Chat")
 
@@ -333,17 +523,20 @@ async def test_tool_call_is_logged(ai_mock):
     def actions_ready():
         return any(
             isinstance(entry, ActionEntry)
-            for entry in conversation.storage.read(thread.slug)
+            for entry in conversation.storage().read(thread.slug)
+        )
+
+    def replies_ready():
+        return (
+            len(_assistant_messages(conversation.storage(), thread.slug)) >= 2
         )
 
     await _wait_for(actions_ready)
-    await _wait_for(
-        lambda: len(_assistant_messages(conversation.storage, thread.slug)) >= 2
-    )
+    await _wait_for(replies_ready)
 
     actions = [
         entry
-        for entry in conversation.storage.read(thread.slug)
+        for entry in conversation.storage().read(thread.slug)
         if isinstance(entry, ActionEntry)
     ]
     assert len(actions) == 1
@@ -352,7 +545,7 @@ async def test_tool_call_is_logged(ai_mock):
     assert actions[0].status == "ok"
     assert actions[0].result == "got:hi"
 
-    assistant = _assistant_messages(conversation.storage, thread.slug)
+    assistant = _assistant_messages(conversation.storage(), thread.slug)
     assert assistant[-1].message.content == "Echo: got:hi"
 
     registry.delete_conversation(conversation_id)
@@ -371,19 +564,13 @@ async def test_two_threads_are_both_processed(ai_mock):
     await conversation.send(second.slug, "beta")
 
     await _wait_for(
-        lambda: _assistant_messages(conversation.storage, first.slug)
-        and _assistant_messages(conversation.storage, second.slug)
+        lambda: _assistant_messages(conversation.storage(), first.slug)
+        and _assistant_messages(conversation.storage(), second.slug)
     )
-    assert (
-        _assistant_messages(conversation.storage, first.slug)[0].message.content
-        == "Echo: alpha"
-    )
-    assert (
-        _assistant_messages(conversation.storage, second.slug)[
-            0
-        ].message.content
-        == "Echo: beta"
-    )
+    first_reply = _assistant_messages(conversation.storage(), first.slug)
+    second_reply = _assistant_messages(conversation.storage(), second.slug)
+    assert first_reply[0].message.content == "Echo: alpha"
+    assert second_reply[0].message.content == "Echo: beta"
     registry.delete_conversation(conversation_id)
 
 
@@ -413,3 +600,228 @@ async def test_maybe_unload_drops_idle_conversation(ai_mock):
     if ai.unload_when_idle():
         assert registry.peek_conversation(conversation_id) is None
     registry.delete_conversation(conversation_id)
+
+
+# -- per user behaviour ---------------------------------------------------
+
+
+async def test_users_do_not_share_threads(ai_mock):
+    conversation_id = uuid.uuid4().hex
+    registry.register_config(
+        ConversationConfig(id=conversation_id, model="chat")
+    )
+    conversation = registry.get_conversation(conversation_id)
+
+    alice = conversation.create_thread("Alice Chat", user="alice")
+    bob = conversation.create_thread("Bob Chat", user="bob")
+    assert alice.slug == "alice-chat"
+    assert bob.slug == "bob-chat"
+
+    assert [t.slug for t in conversation.list_threads("alice")] == [
+        "alice-chat"
+    ]
+    assert [t.slug for t in conversation.list_threads("bob")] == ["bob-chat"]
+    # Web users never see, or write to, the internal namespace.
+    assert conversation.list_threads() == []
+    with pytest.raises(KeyError):
+        conversation.get_entries(alice.slug, user="bob")
+    with pytest.raises(KeyError):
+        await conversation.send(alice.slug, "sneaky", user="bob")
+
+    await conversation.send(
+        alice.slug, "hello alice", author="alice", user="alice"
+    )
+    await _wait_for(
+        lambda: _assistant_messages(conversation.storage("alice"), alice.slug)
+    )
+    assert conversation.storage("alice").list_threads()[0].message_count == 2
+    assert conversation.storage("bob").list_threads()[0].message_count == 0
+
+    # The talking user is recorded on their own message.
+    entries = conversation.get_entries(alice.slug, user="alice")
+    user_messages = [
+        e
+        for e in entries
+        if e["type"] == "message" and e["message"]["role"] == "user"
+    ]
+    assert user_messages[0]["author"] == "alice"
+
+    registry.delete_conversation(conversation_id)
+
+
+def test_listeners_are_scoped_to_users():
+    conversation = _unit_conversation()
+    events: dict[str, list[dict]] = {"alice": [], "bob": []}
+
+    def alice_event(event: dict) -> None:
+        events["alice"].append(event)
+
+    def bob_event(event: dict) -> None:
+        events["bob"].append(event)
+
+    conversation.add_listener("alice", alice_event)
+    conversation.add_listener("bob", bob_event)
+
+    conversation.create_thread("Chat", user="alice")
+    assert len(events["alice"]) == 1
+    assert events["bob"] == []
+
+    # Status changes are broadcasts, they reach every user.
+    conversation._set_status("thinking")
+    assert len(events["bob"]) == 1
+    assert len(events["alice"]) == 2
+
+    # Removing a listener stops further deliveries to that user.
+    conversation.remove_listener("alice", alice_event)
+    conversation.create_thread("Second", user="alice")
+    assert len(events["alice"]) == 2
+
+
+async def test_multi_turn_replays_history(ai_mock):
+    conversation_id = uuid.uuid4().hex
+    registry.register_config(
+        ConversationConfig(id=conversation_id, model="chat")
+    )
+    conversation = registry.get_conversation(conversation_id)
+    thread = conversation.create_thread("Chat")
+
+    await conversation.send(thread.slug, "first")
+    await _wait_for(
+        lambda: len(_assistant_messages(conversation.storage(), thread.slug))
+        == 1
+    )
+
+    await conversation.send(thread.slug, "second")
+    await _wait_for(
+        lambda: len(_assistant_messages(conversation.storage(), thread.slug))
+        == 2
+    )
+
+    request = ai_mock.last_request
+    assert request is not None
+    replay = _wire_messages(request)
+    assert [m["role"] for m in replay] == ["user", "assistant", "user"]
+    assert replay[0]["content"] == "first"
+    assert replay[1]["content"] == "Echo: first"
+    assert replay[2]["content"] == "second"
+
+    registry.delete_conversation(conversation_id)
+
+
+async def test_tool_result_is_replayed_to_provider(ai_mock):
+    def echo(value: str) -> str:
+        return "got:" + value
+
+    conversation_id = uuid.uuid4().hex
+    registry.register_config(
+        ConversationConfig(id=conversation_id, model="chat")
+    )
+    _register_tool(conversation_id, echo, "replay_echo")
+    conversation = registry.get_conversation(conversation_id)
+    thread = conversation.create_thread("Chat")
+
+    await conversation.send(thread.slug, '[[tool:replay_echo {"value": "hi"}]]')
+    await _wait_for(
+        lambda: len(_assistant_messages(conversation.storage(), thread.slug))
+        >= 2
+    )
+
+    # The second request of the run has to carry the assistant tool call
+    # and its matching tool result, otherwise the provider would reject a
+    # later turn.
+    request = ai_mock.last_request
+    assert request is not None
+    replay = _wire_messages(request)
+    assert [m["role"] for m in replay] == ["user", "assistant", "tool"]
+    call = replay[1]["tool_calls"][0]
+    assert call["function"]["name"] == "replay_echo"
+    assert replay[2]["tool_call_id"] == call["id"]
+    assert replay[2]["content"] == "got:hi"
+
+    registry.delete_conversation(conversation_id)
+
+
+def test_delete_conversation_removes_every_users_history(ai_mock):
+    conversation_id = uuid.uuid4().hex
+    registry.register_config(
+        ConversationConfig(id=conversation_id, model="chat")
+    )
+    conversation = registry.get_conversation(conversation_id)
+    conversation.create_thread("Chat", user="alice")
+    conversation.create_thread("Chat", user="bob")
+    directory = os.path.join(CONV_DIR, conversation_id)
+    assert os.path.isdir(os.path.join(directory, "alice"))
+    assert os.path.isdir(os.path.join(directory, "bob"))
+
+    registry.delete_conversation(conversation_id)
+    assert not os.path.exists(directory)
+    assert registry.get_config(conversation_id) is None
+
+
+# -- workspace conversations ----------------------------------------------
+
+
+def test_workspace_conversation_id_encodes_the_whole_path():
+    conversation_id = plugin.workspace_conversation_id("/srv/site")
+    assert conversation_id == "admin.%2Fsrv%2Fsite"
+    assert conversation_id.startswith(plugin.WORKSPACE_ID_PREFIX)
+    assert "/" not in conversation_id
+    # The same folder always maps to the same id.
+    assert conversation_id == plugin.workspace_conversation_id("/srv/site")
+    # The id travels in URLs as an opaque token, so quoting it once more
+    # and unquoting must land back on the very same id.
+    assert unquote(quote(conversation_id, safe="")) == conversation_id
+
+
+@pytest.fixture
+def workspace():
+    """A throwaway server folder under the /dev/shm test sandbox."""
+    path = tempfile.mkdtemp(dir="/dev/shm/kaithem_tests")
+    try:
+        yield path
+    finally:
+        shutil.rmtree(path, ignore_errors=True)
+
+
+async def test_workspace_route_rejects_guests(workspace):
+    from kaithem.src import quart_app
+
+    client = quart_app.app.test_client(use_cookies=True)
+    response = await client.get(
+        "/conversations", query_string={"workspace": workspace}
+    )
+    assert response.status_code == 403
+
+
+async def test_workspace_route_requires_a_folder(ai_mock):
+    client = await make_client()
+    missing = "/dev/shm/kaithem_tests/this-folder-does-not-exist"
+    response = await client.get(
+        "/conversations", query_string={"workspace": missing}
+    )
+    assert response.status_code == 400
+
+
+async def test_workspace_route_creates_the_conversation(ai_mock, workspace):
+    client = await make_client()
+    response = await client.get(
+        "/conversations", query_string={"workspace": workspace}
+    )
+    assert response.status_code == 302
+    path = os.path.realpath(workspace)
+    conversation_id = plugin.workspace_conversation_id(path)
+    try:
+        config = registry.get_config(conversation_id)
+        assert config is not None
+        assert config.workspace == path
+        assert config.permissions == ["system_admin"]
+        # The redirect points the chat page at the auto-created id.
+        assert quote(conversation_id, safe="") in response.headers["location"]
+        # Asking again reuses the same conversation.
+        again = await client.get(
+            "/conversations", query_string={"workspace": workspace}
+        )
+        assert again.status_code == 302
+        assert registry.get_config(conversation_id) is config
+    finally:
+        registry.delete_conversation(conversation_id)

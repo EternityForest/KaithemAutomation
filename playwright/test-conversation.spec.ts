@@ -10,11 +10,19 @@
 
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
+import fs from 'node:fs';
+import path from 'node:path';
 
 import { BASE, login, makeModule, deleteModule } from './util';
 
 const MODULE = 'TestConversation';
 const RESOURCE = 'chat1';
+
+// Where testing_server.py keeps conversation history.  Each user gets
+// their own folder under the conversation id.
+const CONVERSATIONS_DIR =
+  process.env.KAITHEM_CONVERSATIONS_DIR ||
+  '/dev/shm/kaithem_test_env/conversations';
 
 /** Create a conversation resource through the schema based dialog. */
 async function createConversation(page: Page): Promise<void> {
@@ -60,6 +68,18 @@ test('conversation chat lifecycle', async ({ page }) => {
   await expect(messages).toContainText('Echo: Hello there', {
     timeout: 30_000
   });
+
+  // History is stored per user, so it lands under the logged in user's
+  // folder: <dir>/<uuid>/<user>/<thread>.ldjson.
+  const userDir = path.join(CONVERSATIONS_DIR, uuid, 'admin');
+  await expect
+    .poll(
+      () =>
+        fs.existsSync(userDir) &&
+        fs.readdirSync(userDir).some(name => name.endsWith('.ldjson')),
+      { timeout: 10_000 }
+    )
+    .toBe(true);
 
   // The assistant message shows token counts and a cost.
   const usage = page.getByTestId('chat-usage').first();
