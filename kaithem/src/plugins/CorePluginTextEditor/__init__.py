@@ -430,7 +430,12 @@ async def api_lsp_info():
             rel = ".."
         if rel.startswith(".."):
             return quart.jsonify(
-                {"languages": [], "workspaceUri": None, "moduleBaseRel": None}
+                {
+                    "languages": [],
+                    "workspaceUri": None,
+                    "moduleBaseRel": None,
+                    "workspacePath": workspace,
+                }
             )
         if rel == ".":
             rel = ""
@@ -439,6 +444,7 @@ async def api_lsp_info():
                 "languages": sorted(lsp.LANGUAGE_IMAGES),
                 "workspaceUri": "file:///workspace",
                 "moduleBaseRel": rel.replace(os.sep, "/"),
+                "workspacePath": workspace,
             }
         )
 

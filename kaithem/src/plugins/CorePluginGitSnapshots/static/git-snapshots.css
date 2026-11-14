@@ -1,0 +1,225 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+/* Snapshot backup layout, on top of the global barrel.css theme.
+ *
+ * Mobile first: the design assumes it may be embedded in a narrow
+ * sidebar iframe, so it is a single column that simply fills its host. */
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--main-font);
+}
+
+git-snapshots {
+  display: block;
+  height: 100%;
+}
+
+.snap-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+}
+
+/* -- Header ---------------------------------------------------------- */
+
+.snap-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.8rem;
+  border-bottom: var(--border);
+  background: var(--box-bg);
+}
+
+.snap-heading {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.snap-heading h1 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.snap-folder {
+  margin: 0.15rem 0 0;
+  font-size: 0.78rem;
+  opacity: 0.7;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* -- Buttons --------------------------------------------------------- */
+
+.snap-ghost,
+.snap-primary,
+.snap-danger {
+  flex: 0 0 auto;
+  padding: 0.35rem 0.7rem;
+  border: var(--border);
+  border-radius: var(--control-border-radius);
+  background: var(--control-bg);
+  color: var(--fg);
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.snap-primary {
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+}
+
+.snap-danger {
+  border-color: var(--danger-color);
+  color: var(--danger-color);
+}
+
+.snap-ghost:active,
+.snap-primary:active,
+.snap-danger:active {
+  transform: translateY(1px);
+}
+
+.snap-ghost:disabled,
+.snap-primary:disabled,
+.snap-danger:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* -- Banners --------------------------------------------------------- */
+
+.snap-banner {
+  margin: 0;
+  padding: 0.55rem 0.9rem;
+  border-bottom: var(--border);
+  font-size: 0.83rem;
+}
+
+.snap-error {
+  background: color-mix(in srgb, var(--danger-color) 18%, var(--bg));
+  color: var(--danger-color);
+}
+
+.snap-notice {
+  background: color-mix(in srgb, var(--success-color) 18%, var(--bg));
+  color: var(--fg);
+}
+
+/* -- Body ------------------------------------------------------------ */
+
+.snap-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.7rem;
+}
+
+.snap-empty {
+  margin: 1.5rem 0.5rem;
+  text-align: center;
+  opacity: 0.6;
+  font-size: 0.85rem;
+}
+
+.snap-info-box {
+  padding: 0.8rem;
+  border: 1px dashed var(--border-color);
+  border-radius: var(--control-border-radius);
+  font-size: 0.85rem;
+}
+
+.snap-info-box p {
+  margin: 0 0 0.5rem;
+}
+
+.snap-info-box p:last-child {
+  margin-bottom: 0;
+}
+
+/* -- Take snapshot form ---------------------------------------------- */
+
+.snap-take {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.8rem;
+}
+
+.snap-message {
+  flex: 1 1 10rem;
+  min-width: 0;
+  padding: 0.4rem 0.55rem;
+  border: var(--border);
+  border-radius: var(--control-border-radius);
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+/* -- Snapshot list --------------------------------------------------- */
+
+.snap-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.snap-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.55rem 0.1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.snap-item:last-child {
+  border-bottom: none;
+}
+
+.snap-item-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.snap-subject {
+  display: block;
+  overflow-wrap: anywhere;
+  font-size: 0.88rem;
+}
+
+.snap-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.2rem;
+  font-size: 0.72rem;
+  opacity: 0.65;
+}
+
+.snap-sha {
+  font-family: var(--mono-font, monospace);
+}
+
+.snap-confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  flex: 0 0 auto;
+}
+
+.snap-confirm-text {
+  font-size: 0.78rem;
+  color: var(--danger-color);
+}

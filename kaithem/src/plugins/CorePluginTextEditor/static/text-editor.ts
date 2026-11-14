@@ -85,6 +85,7 @@ class TextEditorPage extends LitElement {
     lspStatus: { state: true },
     contextMenu: { state: true },
     authRequired: { state: true },
+    panel: { state: true },
   };
 
   override createRenderRoot() {
@@ -107,6 +108,7 @@ class TextEditorPage extends LitElement {
     isDir: boolean;
   } | null;
   declare authRequired: boolean;
+  declare panel: 'chat' | 'snapshots' | null;
 
   constructor() {
     super();
@@ -117,6 +119,7 @@ class TextEditorPage extends LitElement {
     this.lspStatus = 'unavailable';
     this.contextMenu = null;
     this.authRequired = false;
+    this.panel = null;
   }
 
   private ws: WebSocket | null = null;
@@ -129,6 +132,9 @@ class TextEditorPage extends LitElement {
   private _lspInitialized = false;
   private _lspWorkspaceUri = '';
   private _lspModuleBaseRel = '';
+  // Absolute server path of the workspace folder, used to link the chat
+  // and snapshot side panels at the folder the editor considers its root.
+  private _workspacePath = '';
   private _isMobile = globalThis.matchMedia('(max-width: 768px)').matches;
   private _watchedResources = new Set<string>();
   private _applyingRemote = false;
@@ -221,6 +227,26 @@ class TextEditorPage extends LitElement {
     this._openFile(RESOURCE);
     if (!this.ws || this.ws.readyState === WebSocket.CLOSED) this._connectWatch();
     if (!this._lspInitialized) this._initLsp();
+  }
+
+  private _togglePanel(which: 'chat' | 'snapshots') {
+    this.panel = this.panel === which ? null : which;
+  }
+
+  private _panelTitle(): string {
+    return this.panel === 'chat' ? 'AI Chat' : 'Snapshot backup';
+  }
+
+  private _panelUrl(): string {
+    if (!this._workspacePath) return '';
+    const workspace = encodeURIComponent(this._workspacePath);
+    if (this.panel === 'chat') {
+      return '/conversations?workspace=' + workspace;
+    }
+    if (this.panel === 'snapshots') {
+      return '/git-snapshots?workspace=' + workspace;
+    }
+    return '';
   }
 
   private _wsSend(msg: object) {
@@ -430,6 +456,7 @@ class TextEditorPage extends LitElement {
     try {
       const info = await this._api('GET', 'lsp_info', { module: MODULE });
       this._lspLanguages = info.languages || [];
+      this._workspacePath = info.workspacePath || '';
       if (!this._lspLanguages.length || !info.workspaceUri) {
         this.lspStatus = 'unavailable';
         return;
@@ -661,6 +688,20 @@ class TextEditorPage extends LitElement {
         <button @click="${this._save}" data-testid="save-btn">
         <span class="mdi mdi-content-save"></span>Save
         </button>
+        <button
+          @click="${() => this._togglePanel('chat')}"
+          data-testid="chat-toggle"
+          title="AI chat for this workspace"
+        >
+          <span class="mdi mdi-robot"></span>Chat
+        </button>
+        <button
+          @click="${() => this._togglePanel('snapshots')}"
+          data-testid="snapshots-toggle"
+          title="Snapshot backup for this workspace"
+        >
+          <span class="mdi mdi-history"></span>Snapshots
+        </button>
         <span style="flex:1"></span>
         <span>${this.activeTab?.split('/').pop() || ''}</span>
       </header>
@@ -717,6 +758,40 @@ class TextEditorPage extends LitElement {
             `
           )}
         </div>
+        ${this.panel
+          ? html`
+              <div
+                class="panel ${this._isMobile ? 'mobile' : ''}"
+                data-testid="panel"
+              >
+                <div class="panel-head">
+                  <span class="panel-title">${this._panelTitle()}</span>
+                  <button
+                    class="panel-close"
+                    data-testid="panel-close"
+                    @click="${() => (this.panel = null)}"
+                  >
+                    ✕
+                  </button>
+                </div>
+                ${this._workspacePath
+                  ? html`
+                      <iframe
+                        class="panel-frame"
+                        data-testid="panel-frame"
+                        title="${this._panelTitle()}"
+                        src="${this._panelUrl()}"
+                      ></iframe>
+                    `
+                  : html`
+                      <div class="panel-empty" data-testid="panel-empty">
+                        This file is not inside a workspace folder, so there is
+                        nothing to show here.
+                      </div>
+                    `}
+              </div>
+            `
+          : nothing}
         ${this.contextMenu
           ? html`
               <div

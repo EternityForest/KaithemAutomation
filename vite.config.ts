@@ -91,6 +91,10 @@ export default defineConfig({
           __dirname,
           'kaithem/src/plugins/CorePluginPydanticConversation/html/index.html'
         ),
+        git_snapshots: resolve(
+          __dirname,
+          'kaithem/src/plugins/CorePluginGitSnapshots/html/index.html'
+        ),
         presentationscreen_admin: resolve(
           __dirname,
           'kaithem/src/plugins/CorePluginPresentationScreen/html/admin.html'
