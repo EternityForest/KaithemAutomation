@@ -2,15 +2,15 @@
 """Proxy management for Kaithem.
 
 A :class:`Proxy` exposes a backend HTTP server (or a Unix domain socket)
-on its own subdomain, appears on the apps page, requires a configurable
-set of permissions, and transparently supports websockets.
+at a path on the Kaithem host, appears on the apps page, requires a
+configurable set of permissions, and transparently supports websockets.
 
 Proxies are normally created programmatically::
 
     from kaithem.api.proxies import Proxy
 
     proxy = Proxy(
-        subdomain="myapp",
+        path="/myapp",
         target="http://127.0.0.1:8080",
         permissions=["view_status"],
     )
@@ -74,30 +74,6 @@ _AUTH_COOKIE_NAME = "kaithem_auth"
 _STREAM_CHUNK_SIZE = 64 * 1024
 
 
-def _validate_subdomain(subdomain: str) -> str:
-    """Validate and normalize a subdomain label, raising on bad input."""
-    if not isinstance(subdomain, str) or not subdomain:
-        raise ValueError("Subdomain must be a non-empty string")
-    subdomain = subdomain.strip()
-    if subdomain != subdomain.lower():
-        raise ValueError(f"Subdomain {subdomain!r} must be lowercase")
-    if "." in subdomain:
-        raise ValueError(
-            f"Subdomain {subdomain!r} must be a single DNS label, without dots"
-        )
-    allowed = set("abcdefghijklmnopqrstuvwxyz0123456789-")
-    if any(char not in allowed for char in subdomain):
-        raise ValueError(
-            f"Subdomain {subdomain!r} may only contain letters, digits, "
-            "and hyphens"
-        )
-    if subdomain.startswith("-") or subdomain.endswith("-"):
-        raise ValueError(
-            f"Subdomain {subdomain!r} may not start or end with a hyphen"
-        )
-    return subdomain
-
-
 def _parse_target(target: str) -> tuple[str, str]:
     """Parse a proxy target into a ``(kind, value)`` pair.
 
@@ -139,27 +115,6 @@ def _host(scope: dict[str, Any]) -> str:
     return ""
 
 
-def _parent_host(host: str, subdomain: str) -> str:
-    """Return ``host`` with the leading ``subdomain.`` label removed."""
-    prefix = subdomain + "."
-    if host.startswith(prefix):
-        return host[len(prefix) :]
-    return host
-
-
-def _apps_page_url(subdomain: str) -> str:
-    """Return the absolute URL for a proxy subdomain.
-
-    Uses the host of the current request when one is active so the link
-    points at the same deployment the user is already browsing.
-    """
-    try:
-        host = quart.request.host
-    except RuntimeError:
-        return f"//{subdomain}/"
-    return f"//{subdomain}.{_parent_host(host, subdomain)}/"
-
-
 def _request_url(scope: dict[str, Any]) -> str:
     """Rebuild the full URL a client requested, as seen by the proxy."""
     scheme = scope.get("scheme", "http")
@@ -194,27 +149,27 @@ def _get_subprotocols(scope: dict[str, Any]) -> list[str]:
 
 
 class ProxyApp(apps_page.App):
-    """An apps page entry that links straight to a proxy's subdomain."""
+    """An apps page entry that links straight to a proxy's mount path."""
 
     def __init__(
         self,
-        subdomain: str,
+        path: str,
         title: str,
         module: str | None = None,
         resource: str | None = None,
     ):
         super().__init__(
-            id="proxy_" + subdomain,
+            id="proxy" + path,
             title=title,
             url="",
             module=module,
             resource=resource,
         )
-        self.subdomain = subdomain
+        self.path = path
 
     @property
     def url(self) -> str:
-        return _apps_page_url(self.subdomain)
+        return self.path
 
     @url.setter
     def url(self, value: str) -> None:
@@ -223,7 +178,7 @@ class ProxyApp(apps_page.App):
 
 
 class Proxy:
-    """Expose a backend server on a Kaithem subdomain.
+    """Expose a backend server at a path on the Kaithem host.
 
     The proxy registers itself on creation and must be closed with
     :meth:`close` when it is no longer needed.  Dropping a live proxy
@@ -232,7 +187,7 @@ class Proxy:
 
     def __init__(
         self,
-        subdomain: str,
+        path: str,
         target: str,
         title: str | None = None,
         permissions: list[str] | None = None,
@@ -242,21 +197,21 @@ class Proxy:
         """Create and register a proxy.
 
         Args:
-            subdomain: A single DNS label such as ``"myapp"``.  The proxy
-                is reachable at ``<subdomain>.<kaithem host>``.
+            path: The URL path to serve the backend at, for example
+                ``"/myapp"``.  Requests to ``/myapp`` and anything below
+                it are forwarded to the backend with the prefix removed.
             target: The backend to forward to.  Either an ``http://`` or
                 ``https://`` URL, or ``unix:///path/to.sock``.
-            title: Title shown on the apps page.  Defaults to the
-                subdomain.
+            title: Title shown on the apps page.  Defaults to the path.
             permissions: Permissions a user must have to reach the
                 backend.  An empty list allows any user.
             module: Module name, used for the apps page icon.
             resource: Resource name, used for the apps page icon.
         """
-        self.subdomain = _validate_subdomain(subdomain)
+        self.path = path
         self.target = target
         self.kind, self.target_value = _parse_target(target)
-        self.title = title or self.subdomain
+        self.title = title or path
         self.permissions = list(permissions or [])
         self.module = module
         self.resource = resource
@@ -264,23 +219,23 @@ class Proxy:
         self._session: niquests.AsyncSession | None = None
         self._closed = False
         self._app: ProxyApp | None = ProxyApp(
-            self.subdomain, self.title, module, resource
+            self.path, self.title, module, resource
         )
 
-        # Register with the subdomain dispatcher first, so a failure to
+        # Register with the path dispatcher first, so a failure to
         # register the app entry does not leave a half built proxy.
-        web.add_subdomain_app(self.subdomain, self)
+        web.add_path_app(self.path, self)
         try:
             apps_page.add_app(self._app)
         except Exception:
-            web.remove_subdomain_app(self.subdomain, self)
+            web.remove_path_app(self.path, self)
             self._app = None
             raise
 
     def __del__(self) -> None:
         try:
             closed = self._closed
-            subdomain = self.subdomain
+            path = self.path
         except Exception:  # pragma: no cover - partially constructed object
             return
         if closed:
@@ -288,9 +243,9 @@ class Proxy:
         if lifespan.is_shutting_down:
             return
         logger.warning(
-            "Proxy for subdomain %r was garbage collected without being "
+            "Proxy for path %r was garbage collected without being "
             "closed; call close() to release it",
-            subdomain,
+            path,
         )
 
     # -- Public API ---------------------------------------------------
@@ -309,7 +264,7 @@ class Proxy:
         if self._app is not None:
             apps_page.remove_app(self._app)
             self._app = None
-        web.remove_subdomain_app(self.subdomain, self)
+        web.remove_path_app(self.path, self)
 
         session = self._session
         self._session = None
@@ -318,7 +273,7 @@ class Proxy:
 
     def apps_page_url(self) -> str:
         """Return the URL the apps page links to for this proxy."""
-        return _apps_page_url(self.subdomain)
+        return self.path
 
     # -- Internals ----------------------------------------------------
 
@@ -367,6 +322,14 @@ class Proxy:
         if query:
             url += "?" + query
         return url
+
+    def _backend_path(self, scope: dict[str, Any]) -> str:
+        """Return the request path with the mount prefix removed."""
+        path = scope.get("path", "/")
+        if path == self.path:
+            return "/"
+        remainder = path[len(self.path) :]
+        return remainder if remainder.startswith("/") else "/"
 
     def _build_request_headers(
         self,
@@ -463,9 +426,8 @@ class Proxy:
             await send({"type": "http.response.body", "body": body})
             return
 
-        parent = _parent_host(_host(scope), self.subdomain)
         target = (
-            f"//{parent}/login?go="
+            "/login?go="
             + base64.b64encode(url.encode()).decode()
             + "&maxgotime-"
             + str(time.time() + 300)
@@ -503,11 +465,7 @@ class Proxy:
         method = scope["method"]
         headers = self._build_request_headers(scope, user)
 
-        raw_path = scope.get("raw_path")
-        if raw_path:
-            path = raw_path.decode("latin-1")
-        else:
-            path = quote(scope.get("path", "/"))
+        path = quote(self._backend_path(scope))
         query = scope.get("query_string", b"").decode("latin-1")
         url = self._upstream_url(path, query)
 
@@ -562,7 +520,7 @@ class Proxy:
         secure = scope.get("scheme") == "wss" or self.kind == "https"
         scheme = "wss" if secure else "ws"
         host = "localhost" if self.kind == "unix" else self.target_value
-        path = scope.get("path", "/")
+        path = self._backend_path(scope)
         query = scope.get("query_string", b"").decode("latin-1")
         uri = f"{scheme}://{host}{path}"
         if query:
