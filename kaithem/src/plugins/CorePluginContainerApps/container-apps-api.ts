@@ -12,8 +12,8 @@ export interface BaseSnapshot {
   error: string | null;
   built: boolean;
   kind: string | null;
-  build_image: string | null;
-  run_image: string | null;
+  build_images: string[];
+  run_images: string[];
   log: string[];
   environment: Record<string, string>;
 }

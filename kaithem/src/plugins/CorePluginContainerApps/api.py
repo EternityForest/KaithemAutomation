@@ -96,8 +96,8 @@ def _app_snapshot(app: ContainerAppResource) -> dict[str, Any]:
         "kind": app.app_kind,
         "scripts": app.scripts,
         "dev_url": app.dev_prefix,
-        "build_image": runtime.build_image if runtime else None,
-        "run_image": runtime.run_image if runtime else None,
+        "build_images": runtime.build_images if runtime else [],
+        "run_images": runtime.run_images if runtime else [],
         "log": app.get_log(),
         "environment": app.get_environment(),
     }
@@ -123,8 +123,8 @@ def _instance_snapshot(
         "kind": instance.app_kind,
         "app": app_ref,
         "url": instance.base_path,
-        "build_image": runtime.build_image if runtime else None,
-        "run_image": runtime.run_image if runtime else None,
+        "build_images": runtime.build_images if runtime else [],
+        "run_images": runtime.run_images if runtime else [],
         "log": instance.get_log(),
         "environment": instance.get_environment(),
     }

@@ -2,10 +2,12 @@
 """Container backed app runtimes.
 
 A container app project describes itself with a ``container-app.toml``
-file (see :mod:`appconfig`).  Each command it defines is ``podman exec``'d
-into a long lived "keepalive" container, so running several commands in
-turn reuses one container and its writable layer instead of paying to
-create a fresh container every time.
+file (see :mod:`appconfig`).  Every script is a list of command steps that
+run in series, so a build can use one image for one step and a different
+image for the next.  Each command is ``podman exec``'d into a long lived
+"keepalive" container, so running several commands in turn reuses one
+container and its writable layer instead of paying to create a fresh
+container every time.
 
 A container is named from the owning resource id and the image it runs,
 so a :class:`ContainerRuntime` that asks for the same image under the same
@@ -37,7 +39,13 @@ import structlog
 from kaithem.api.util import get_vardir
 from kaithem.src import podman_util
 
-from .appconfig import CommandApp, ContainerAppConfig, ScriptConfig, load_config
+from .appconfig import (
+    CommandApp,
+    CommandStep,
+    ContainerAppConfig,
+    ScriptConfig,
+    load_config,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -89,6 +97,15 @@ def kaithem_local_address() -> str:
 
 def _owner_digest(owner_id: str) -> str:
     return hashlib.sha256(owner_id.encode("utf-8")).hexdigest()
+
+
+def _step_images(steps: list[CommandStep]) -> list[str]:
+    """Return the distinct images used by steps, in first-seen order."""
+    images: list[str] = []
+    for step in steps:
+        if step["image"] not in images:
+            images.append(step["image"])
+    return images
 
 
 def container_name(owner_id: str, image: str) -> str:
@@ -333,16 +350,20 @@ class ContainerRuntime:
         return self.config["app"]["kind"]
 
     @property
-    def build_image(self) -> str | None:
+    def build_images(self) -> list[str]:
+        """Distinct images used by the build steps, in order."""
         build = self.config["build"]
-        return build["image"] if build else None
+        if build is None:
+            return []
+        return _step_images(build["steps"])
 
     @property
-    def run_image(self) -> str | None:
+    def run_images(self) -> list[str]:
+        """Distinct images used by the run steps, in order."""
         app = self.config["app"]
-        if app["kind"] == "command":
-            return app["image"]
-        return None
+        if app["kind"] != "command":
+            return []
+        return _step_images(app["steps"])
 
     @property
     def scripts(self) -> dict[str, ScriptConfig]:
@@ -460,9 +481,8 @@ class ContainerRuntime:
         return True
 
     def _write_build_marker(self) -> None:
-        build = self.config["build"]
         data = {
-            "build_image": build["image"] if build else None,
+            "build_images": self.build_images,
             "time": int(time.time()),
         }
         with open(self._marker_path(), "w", encoding="utf-8") as handle:
@@ -521,9 +541,20 @@ class ContainerRuntime:
         self.set_error_state(None)
 
     def _launch(self, app: CommandApp) -> None:
-        session = self._session(app["image"])
+        """Run the setup steps, then keep the final step running."""
+        steps = app["steps"]
+        for step in steps[:-1]:
+            code = self._run_attached(step["image"], step["command"])
+            if code != 0:
+                raise RuntimeError(
+                    f"Setup command failed with exit code {code}"
+                )
+        self._launch_persistent(steps[-1])
+
+    def _launch_persistent(self, step: CommandStep) -> None:
+        session = self._session(step["image"])
         proc = session.exec(
-            list(app["command"]),
+            list(step["command"]),
             env=self.get_environment(),
             workdir="/app",
             stdin=subprocess.DEVNULL,
@@ -538,13 +569,15 @@ class ContainerRuntime:
         self._set_status(status)
         threading.Thread(
             target=self._monitor,
-            args=(proc,),
+            args=(proc, step),
             daemon=True,
             name=f"capp-mon-{session.name}",
         ).start()
 
-    def _monitor(self, proc: subprocess.Popen[bytes]) -> None:
-        """Stream an app command's output and restart it if it dies."""
+    def _monitor(
+        self, proc: subprocess.Popen[bytes], step: CommandStep
+    ) -> None:
+        """Stream the app's output and restart it if it dies."""
         stdout = proc.stdout
         assert stdout is not None
         for raw in stdout:
@@ -570,9 +603,7 @@ class ContainerRuntime:
                 self._set_status("stopped")
                 return
         try:
-            app = self.config["app"]
-            assert app["kind"] == "command"
-            self._launch(app)
+            self._launch_persistent(step)
         except Exception as exc:
             logger.exception("Failed to restart container app")
             self.set_error_state(str(exc))
@@ -622,10 +653,10 @@ class ContainerRuntime:
             self._sessions.clear()
 
     def build(self) -> None:
-        """Run the project's build command, restarting the app afterwards.
+        """Run every build step in order, restarting the app afterwards.
 
-        A build happens in the build image and must only ever produce
-        platform independent output inside ``/app``.
+        Each step may use a different image.  A build must only ever
+        produce platform independent output inside ``/app``.
         """
         build = self.config["build"]
         if build is None:
@@ -637,10 +668,10 @@ class ContainerRuntime:
             was_dev = self._dev
             self.stop()
             self._set_status("loading")
-            self.on_message(f"Building with {build['image']}")
+            self.on_message("Building with " + ", ".join(self.build_images))
             try:
                 self._prepare_dirs()
-                code = self._run_attached(build["image"], build["command"])
+                code = self._run_steps(build["steps"])
                 if code != 0:
                     raise RuntimeError(
                         f"Build command failed with exit code {code}"
@@ -658,6 +689,18 @@ class ContainerRuntime:
                 self.start(dev=was_dev)
             else:
                 self._set_status("stopped")
+
+    def _run_steps(self, steps: list[CommandStep]) -> int:
+        """Run steps in order, stopping at the first failure.
+
+        Returns the exit code of the first failing step, or 0 when every
+        step succeeded.
+        """
+        for step in steps:
+            code = self._run_attached(step["image"], step["command"])
+            if code != 0:
+                return code
+        return 0
 
     def _run_attached(self, image: str, command: list[str]) -> int:
         """Run a command to completion, streaming its output to the log."""
@@ -704,7 +747,7 @@ class ContainerRuntime:
     def _run_script_thread(self, script: ScriptConfig) -> None:
         try:
             self.on_message(f"Running action {script['name']}")
-            code = self._run_attached(script["image"], script["command"])
+            code = self._run_steps(script["steps"])
             self.on_message(f"Action {script['name']} exited with code {code}")
         except Exception as exc:
             logger.exception("Container app action failed")

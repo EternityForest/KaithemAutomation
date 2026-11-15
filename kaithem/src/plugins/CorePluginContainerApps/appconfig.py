@@ -13,10 +13,14 @@ Example::
     [scripts]
     image = "docker.io/oven/bun:1.4.4-slim"
 
-    [scripts.build]
+    [[scripts.build]]
+    image = "docker.io/library/rust:1.80-slim"
+    command = ["cargo", "build", "--release"]
+
+    [[scripts.build]]
     command = ["bun", "install"]
 
-    [app]
+    [[app.command]]
     command = ["bun", "run", "start"]
 
 or, for a project that only builds static files::
@@ -24,12 +28,17 @@ or, for a project that only builds static files::
     [scripts]
     image = "docker.io/library/nginx:1.27-alpine"
 
-    [scripts.build]
+    [[scripts.build]]
     command = ["sh", "-c", "cp -r src/* dist/"]
 
     [app]
     type = "staticfiles"
     source = "dist"
+
+Every script is a list of command steps that run in series.  Each step
+may name its own ``image``; a step without one uses the ``[scripts]``
+default.  The app's run command is a list too: the final step is the long
+running process, and the steps before it run to completion first.
 
 Parsing and validation are kept completely separate from running
 anything, so a broken config fails loudly on load instead of at build
@@ -64,20 +73,29 @@ class ConfigError(ValueError):
     """Raised when a ``container-app.toml`` is missing or invalid."""
 
 
-class ScriptConfig(TypedDict):
-    """One named command that can be exec'd inside a container."""
+class CommandStep(TypedDict):
+    """One command in a script, run in the order it is listed."""
 
-    name: str
     image: str
     command: list[str]
+
+
+class ScriptConfig(TypedDict):
+    """A named sequence of command steps run one after another."""
+
+    name: str
+    steps: list[CommandStep]
 
 
 class CommandApp(TypedDict):
-    """An app served by a long running command inside a container."""
+    """An app served by a long running command inside a container.
+
+    Only the final step stays running; the steps before it run to
+    completion to set the container up.
+    """
 
     kind: Literal["command"]
-    image: str
-    command: list[str]
+    steps: list[CommandStep]
 
 
 class StaticFilesApp(TypedDict):
@@ -162,17 +180,38 @@ def _resolve_image(
     )
 
 
+def _parse_step(
+    value: object, where: str, default_image: str | None
+) -> CommandStep:
+    table = _require_table(value, where)
+    _reject_unknown(table, {"command", "image"}, where)
+    command = _require_command(table.get("command"), f"{where}.command")
+    image = _resolve_image(table, where, default_image)
+    return {"image": image, "command": command}
+
+
+def _parse_steps(
+    value: object, where: str, default_image: str | None
+) -> list[CommandStep]:
+    """Parse a non-empty list of command steps that run in order."""
+    if not isinstance(value, list) or not value:
+        raise ConfigError(
+            f"'{where}' must be a non-empty list of [[{where}]] tables"
+        )
+    return [
+        _parse_step(entry, f"{where}[{index}]", default_image)
+        for index, entry in enumerate(value)
+    ]
+
+
 def _parse_script(
     name: str, value: object, default_image: str | None
 ) -> ScriptConfig:
     if name == DEFAULT_IMAGE_KEY:
         raise ConfigError(f"'{DEFAULT_IMAGE_KEY}' is a reserved script name")
     where = f"scripts.{name}"
-    table = _require_table(value, where)
-    _reject_unknown(table, {"command", "image"}, where)
-    command = _require_command(table.get("command"), f"{where}.command")
-    image = _resolve_image(table, where, default_image)
-    return {"name": name, "image": image, "command": command}
+    steps = _parse_steps(value, where, default_image)
+    return {"name": name, "steps": steps}
 
 
 def _parse_app(value: object, default_image: str | None) -> AppConfig:
@@ -206,9 +245,9 @@ def _parse_app(value: object, default_image: str | None) -> AppConfig:
             raise ConfigError(
                 "[app] cannot combine a run command with a static source"
             )
-        command = _require_command(table.get("command"), "app.command")
-        image = _resolve_image(table, where, default_image)
-        return {"kind": "command", "image": image, "command": command}
+        app_default = _optional_string(table, "image", where) or default_image
+        steps = _parse_steps(table.get("command"), "app.command", app_default)
+        return {"kind": "command", "steps": steps}
 
     if has_command:
         raise ConfigError("A staticfiles app cannot also have a run command")

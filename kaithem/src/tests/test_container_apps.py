@@ -18,7 +18,7 @@ import pytest
 from kaithem.api import resource_types
 from kaithem.src import podman_util
 from kaithem.src.plugins import CorePluginContainerApps as plugin
-from kaithem.src.plugins.CorePluginContainerApps import appconfig
+from kaithem.src.plugins.CorePluginContainerApps import appconfig, runtime
 
 APP_TYPE = "container_app"
 INSTANCE_TYPE = "container_app_instance"
@@ -98,7 +98,7 @@ def test_app_rejects_unknown_key():
 STATIC_APP = {
     "scripts": {
         "image": "docker.io/oven/bun:1-slim",
-        "build": {"command": ["bun", "run", "ci"]},
+        "build": [{"command": ["bun", "run", "ci"]}],
     },
     "app": {"type": "staticfiles", "source": "dist"},
 }
@@ -108,8 +108,9 @@ def test_parse_staticfiles_app():
     config = appconfig.parse_config(STATIC_APP)
     assert config["app"] == {"kind": "staticfiles", "source": "dist"}
     assert config["build"] is not None
-    assert config["build"]["image"] == "docker.io/oven/bun:1-slim"
-    assert config["build"]["command"] == ["bun", "run", "ci"]
+    assert config["build"]["steps"] == [
+        {"image": "docker.io/oven/bun:1-slim", "command": ["bun", "run", "ci"]}
+    ]
 
 
 def test_build_is_kept_out_of_user_scripts():
@@ -122,22 +123,29 @@ def test_parse_command_app_infers_type():
     config = appconfig.parse_config(
         {
             "scripts": {"image": "docker.io/library/python:3-slim"},
-            "app": {"command": ["python", "main.py"]},
+            "app": {"command": [{"command": ["python", "main.py"]}]},
         }
     )
     assert config["app"]["kind"] == "command"
-    assert config["app"]["image"] == "docker.io/library/python:3-slim"
-    assert config["app"]["command"] == ["python", "main.py"]
+    assert config["app"]["steps"] == [
+        {
+            "image": "docker.io/library/python:3-slim",
+            "command": ["python", "main.py"],
+        }
+    ]
 
 
 def test_app_can_override_image():
     config = appconfig.parse_config(
         {
             "scripts": {"image": "docker.io/library/python:3-slim"},
-            "app": {"command": ["python", "main.py"], "image": "custom:1"},
+            "app": {
+                "image": "custom:1",
+                "command": [{"command": ["python", "main.py"]}],
+            },
         }
     )
-    assert config["app"]["image"] == "custom:1"
+    assert config["app"]["steps"][0]["image"] == "custom:1"
 
 
 def test_named_scripts_are_parsed():
@@ -145,15 +153,86 @@ def test_named_scripts_are_parsed():
         {
             "scripts": {
                 "image": "docker.io/library/python:3-slim",
-                "migrate": {"command": ["python", "migrate.py"]},
+                "migrate": [{"command": ["python", "migrate.py"]}],
             },
-            "app": {"command": ["python", "main.py"]},
+            "app": {"command": [{"command": ["python", "main.py"]}]},
         }
     )
     assert set(config["scripts"]) == {"migrate"}
-    assert config["scripts"]["migrate"]["image"] == (
+    assert config["scripts"]["migrate"]["steps"][0]["image"] == (
         "docker.io/library/python:3-slim"
     )
+
+
+def test_multi_step_build_keeps_order_and_images():
+    """A build can mix images; steps run in the order they are listed."""
+    config = appconfig.parse_config(
+        {
+            "scripts": {
+                "image": "docker.io/oven/bun:1-slim",
+                "build": [
+                    {
+                        "image": "docker.io/library/rust:1.80-slim",
+                        "command": ["cargo", "build", "--release"],
+                    },
+                    {"command": ["bun", "run", "ci"]},
+                ],
+            },
+            "app": {"type": "staticfiles", "source": "dist"},
+        }
+    )
+    assert config["build"] is not None
+    assert config["build"]["steps"] == [
+        {
+            "image": "docker.io/library/rust:1.80-slim",
+            "command": ["cargo", "build", "--release"],
+        },
+        {
+            "image": "docker.io/oven/bun:1-slim",
+            "command": ["bun", "run", "ci"],
+        },
+    ]
+
+
+def test_app_steps_keep_order():
+    """The app command is a step list; the last step is the long runner."""
+    config = appconfig.parse_config(
+        {
+            "scripts": {"image": "docker.io/oven/bun:1-slim"},
+            "app": {
+                "type": "command",
+                "command": [
+                    {"command": ["bun", "install"]},
+                    {"command": ["bun", "run", "start"]},
+                ],
+            },
+        }
+    )
+    assert config["app"]["kind"] == "command"
+    assert [step["command"] for step in config["app"]["steps"]] == [
+        ["bun", "install"],
+        ["bun", "run", "start"],
+    ]
+
+
+def test_empty_step_list_is_rejected():
+    with pytest.raises(appconfig.ConfigError):
+        appconfig.parse_config(
+            {
+                "scripts": {"image": "x"},
+                "app": {"command": []},
+            }
+        )
+
+
+def test_empty_build_step_list_is_rejected():
+    with pytest.raises(appconfig.ConfigError):
+        appconfig.parse_config(
+            {
+                "scripts": {"image": "x", "build": []},
+                "app": {"type": "staticfiles", "source": "dist"},
+            }
+        )
 
 
 def test_unknown_key_is_rejected():
@@ -165,7 +244,7 @@ def test_unknown_key_is_rejected():
 
 def test_missing_image_is_rejected():
     with pytest.raises(appconfig.ConfigError):
-        appconfig.parse_config({"app": {"command": ["run"]}})
+        appconfig.parse_config({"app": {"command": [{"command": ["run"]}]}})
 
 
 def test_staticfiles_app_needs_no_image():
@@ -178,7 +257,7 @@ def test_command_and_source_conflict():
         appconfig.parse_config(
             {
                 "scripts": {"image": "x"},
-                "app": {"command": ["run"], "source": "dist"},
+                "app": {"command": [{"command": ["run"]}], "source": "dist"},
             }
         )
 
@@ -193,7 +272,7 @@ def test_empty_command_is_rejected():
         appconfig.parse_config(
             {
                 "scripts": {"image": "x"},
-                "app": {"command": []},
+                "app": {"command": [{"command": []}]},
             }
         )
 
@@ -206,6 +285,21 @@ def test_default_image_must_be_a_string():
                 "app": {"source": "dist"},
             }
         )
+
+
+# -- Container naming ---------------------------------------------------
+
+
+def test_container_name_depends_on_owner_and_image():
+    """Same owner and image share a container; either one differs."""
+    shared = runtime.container_name("app:m:r", "docker.io/oven/bun:1")
+    assert shared == runtime.container_name("app:m:r", "docker.io/oven/bun:1")
+    assert shared != runtime.container_name(
+        "app:m:r", "docker.io/library/rust:1"
+    )
+    assert shared != runtime.container_name(
+        "instance:m:r", "docker.io/oven/bun:1"
+    )
 
 
 # -- Shipped template ---------------------------------------------------

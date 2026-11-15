@@ -8,7 +8,7 @@
 [scripts]
 image = "docker.io/oven/bun:1-slim"
 
-[scripts.build]
+[[scripts.build]]
 command = ["bun", "run", "ci"]
 
 [app]

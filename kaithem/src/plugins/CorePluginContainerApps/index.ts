@@ -32,6 +32,11 @@ import type {
 
 const MAX_LOG_LINES = 2000;
 
+/** Render a step image list, or an em dash when there are none. */
+function formatImages(images: string[]): string {
+  return images.length > 0 ? images.join(', ') : '—';
+}
+
 interface ConfirmRequest {
   action: AppAction | InstanceAction;
   title: string;
@@ -479,10 +484,14 @@ export class ContainerAppAdmin extends LitElement {
         <dl>
           <dt>App type</dt>
           <dd data-testid="ca-kind">${snapshot.kind ?? '—'}</dd>
-          <dt>Run image</dt>
-          <dd data-testid="ca-run-image">${snapshot.run_image ?? '—'}</dd>
-          <dt>Build image</dt>
-          <dd data-testid="ca-build-image">${snapshot.build_image ?? '—'}</dd>
+          <dt>Run images</dt>
+          <dd data-testid="ca-run-image">
+            ${formatImages(snapshot.run_images)}
+          </dd>
+          <dt>Build images</dt>
+          <dd data-testid="ca-build-image">
+            ${formatImages(snapshot.build_images)}
+          </dd>
           ${this.renderExtraDetails(snapshot)}
         </dl>
         <h2>Environment</h2>
