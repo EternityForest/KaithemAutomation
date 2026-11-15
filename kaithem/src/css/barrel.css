@@ -2451,7 +2451,8 @@ input:invalid:not(.specificity_hack) {
   }
 }
 
-.tool-bar.w-full{
+.tool-bar.w-full:is(:first-child,
+  :last-child){
   border-radius: inherit;
   &>:first-child{
     border-left:none;

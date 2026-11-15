@@ -15,7 +15,7 @@ Two resource types work together:
     and is reachable at ``/apps/<name>`` on the Kaithem host.
 
 Creating a ``container_app`` interactively also creates a matching
-``container_app_instance`` named ``<app>-default`` so there is always
+``container_app_instance`` named ``<app>_default`` so there is always
 something to start as soon as the project is built.  Building an app stops
 every instance, rebuilds, and starts the instances that were running
 before, so a rebuild never serves a half written build.
@@ -33,12 +33,9 @@ from urllib.parse import quote
 
 import structlog
 from asgiref.typing import (
-    ASGIReceiveCallable,
-    ASGISendCallable,
-    HTTPScope,
     Scope,
-    WebSocketScope,
 )
+
 from kaithem.api import api_keys
 from kaithem.api.proxies import PathProxy
 from kaithem.api.resource_types import (
@@ -262,9 +259,9 @@ class ContainerAppResource(ResourceTypeRuntimeObject):
     @property
     def status(self) -> str:
         if self._dev:
-            return "dev"
+            return "dev running"
         if self.sandbox_runtime is None:
-            return "stopped"
+            return "dev idle"
         return self.sandbox_runtime.status
 
     @property
@@ -734,7 +731,7 @@ def _app_after_create(
     # importing the modules API at that point would be circular.
     from kaithem.api import modules as modules_api
 
-    instance_name = f"{resource}-default"
+    instance_name = f"{resource}_default"
     with modules_api.modules_lock:
         if instance_name in modules_state.ActiveModules.get(module, {}):
             return
@@ -763,8 +760,8 @@ def _app_blurb(obj: ContainerAppResource, module: str, resource: str) -> str:
     """Render the module page summary for a container app."""
     parts = [
         '<div class="container-app-blurb">',
-        '<span data-testid="container-app-status">'
-        f"Status: {html.escape(obj.status)}</span>",
+        '<p data-testid="container-app-status">'
+        f"Status: {html.escape(obj.status)}</p>",
     ]
     if obj.error:
         parts.append(
@@ -772,7 +769,7 @@ def _app_blurb(obj: ContainerAppResource, module: str, resource: str) -> str:
             f"{html.escape(obj.error)}</div>"
         )
     url = f"/containerapps/app/{quote(module, safe='')}/{quote(resource, safe='')}"  # noqa: E501
-    parts.append(f'<a href="{url}" data-testid="container-app-open">Open</a>')
+    parts.append(f'<a href="{url}" data-testid="container-app-open">Admin</a>')
     parts.append("</div>")
     return "".join(parts)
 
@@ -783,14 +780,14 @@ def _instance_blurb(
     """Render the module page summary for a container app instance."""
     parts = [
         '<div class="container-app-instance-blurb">',
-        '<span data-testid="container-app-instance-status">'
-        f"Status: {html.escape(obj.status)}</span>",
+        '<p data-testid="container-app-instance-status">'
+        f"Status: {html.escape(obj.status)}</p>",
     ]
     if obj.app_module is not None:
         parts.append(
-            '<span data-testid="container-app-instance-app">'
+            '<p data-testid="container-app-instance-app">'
             f"App: {html.escape(obj.app_module)}:{html.escape(obj.app_resource or '')}"  # noqa: E501
-            "</span>"
+            "</p>"
         )
     if obj.error:
         parts.append(
@@ -802,7 +799,7 @@ def _instance_blurb(
         f"/{quote(resource, safe='')}"
     )
     parts.append(
-        f'<a href="{url}" data-testid="container-app-instance-open">Open</a>'
+        f'<a href="{url}" data-testid="container-app-instance-open">Admin</a>'
     )
     parts.append("</div>")
     return "".join(parts)
