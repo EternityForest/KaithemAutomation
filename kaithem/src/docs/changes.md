@@ -6,8 +6,8 @@ Change Log
 * [bug] Main page now shows all alerts in any state other than normal.
 * [sparkles] Web based .pptx signage with editing and admin UI.
 * [sparkles] Log the hash of the codebase and all dirs on path at boot
-
-
+* [sparkles] New improved web text editor with folder snapshot/restore and Pydantic powered agentic coding(OpenRouter Key required)
+* [sparkles] New resource type: AI Conversatio
 
 
 ### 0.98.0

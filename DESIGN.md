@@ -86,8 +86,9 @@ served under `/api/`, and are registered on import.
   Bruno collection at `kaithem/src/rest/bruno`.
 
 For example, a page loads all of its CSS from a single
-`/api/theming/style.css` link instead of several stylesheet tags; its
-`theme` parameter overrides the system theme for that page only.
+`/api/theming/style.css` link instead of several stylesheet tags; its `theme` parameter overrides the system theme for that page only.
+
+This endpoint automatically gives you the Barrel.css framework in addition to configured theming.
 
 
 ### Core Plugins

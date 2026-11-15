@@ -32,7 +32,13 @@ from typing import Any, override
 from urllib.parse import quote
 
 import structlog
-
+from asgiref.typing import (
+    ASGIReceiveCallable,
+    ASGISendCallable,
+    HTTPScope,
+    Scope,
+    WebSocketScope,
+)
 from kaithem.api import api_keys
 from kaithem.api.proxies import PathProxy
 from kaithem.api.resource_types import (
@@ -515,6 +521,7 @@ class ContainerAppInstanceResource(ResourceTypeRuntimeObject):
         if self.config["app"]["kind"] == "command":
             self.proxy = PathProxy(
                 prefix=self.base_path,
+                rewrite=[("^/$", "/index")],
                 target=runtime.unix_target(),
                 title=title,
                 module=self.module,
@@ -533,8 +540,13 @@ class ContainerAppInstanceResource(ResourceTypeRuntimeObject):
             )
 
     def _inject_api_key(
-        self, scope: dict[str, Any], user: str, headers: dict[str, str]
+        self,
+        scope: Scope,
+        user: str,
+        headers: dict[str, str],
     ) -> dict[str, str] | None:
+        if scope["type"] == "lifespan":
+            return None
         if self.api_key is None:
             return None
         new_headers = dict(headers)

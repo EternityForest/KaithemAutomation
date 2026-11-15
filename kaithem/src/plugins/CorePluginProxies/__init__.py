@@ -2,19 +2,19 @@
 """``proxy`` resource type for the proxy management framework.
 
 A ``proxy`` resource exposes a backend HTTP server (or Unix domain
-socket) on a subdomain of the Kaithem host.  Creating, editing, and
-deleting the resource registers and unregisters the proxy through the
-public :class:`kaithem.api.proxies.Proxy` API.
+socket) at a path on the Kaithem host.  Creating, editing, and deleting
+the resource registers and unregisters the proxy through the public
+:class:`kaithem.api.proxies.Proxy` API.
 
 The runtime object wraps a live proxy.  If the resource data is invalid
-(for example an unusable subdomain) the error is captured and shown on
-the module page instead of breaking module loading.
+(for example an unusable path) the error is captured and shown on the
+module page instead of breaking module loading.
 """
 
 from __future__ import annotations
 
 import html
-from typing import Any
+from typing import Any, override
 
 from kaithem.api import resource_types
 
@@ -22,20 +22,20 @@ from kaithem.api import resource_types
 # public API module imports this package's ``proxy`` submodule, so going
 # through it here would be a circular import when this package is loaded
 # before ``kaithem.api.proxies``.
-from .proxy import Proxy
+from .proxy import PathProxy
 
 #: JSON schema describing the proxy resource's data.
 SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
-        "subdomain": {
+        "path": {
             "type": "string",
-            "title": "Subdomain",
+            "title": "Path",
             "description": (
-                "A single DNS label, for example 'myapp'.  The backend "
-                "is served at '<subdomain>.<kaithem host>'."
+                "The URL path to serve the backend at, for example "
+                "'/myapp'.  Must start with '/' and not end with '/'."
             ),
-            "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$",
+            "pattern": "^/[^?#]*[^/?#]$",
         },
         "target": {
             "type": "string",
@@ -48,9 +48,7 @@ SCHEMA: dict[str, Any] = {
         "title": {
             "type": "string",
             "title": "Title",
-            "description": (
-                "Shown on the apps page.  Defaults to the subdomain."
-            ),
+            "description": ("Shown on the apps page.  Defaults to the path."),
         },
         "permissions": {
             "type": "array",
@@ -62,13 +60,13 @@ SCHEMA: dict[str, Any] = {
             "items": {"type": "string"},
         },
     },
-    "required": ["subdomain", "target"],
+    "required": ["path", "target"],
 }
 
 #: Default resource data.  Must satisfy ``SCHEMA`` because the framework
 #: validates it while registering the type.
 DEFAULT: dict[str, Any] = {
-    "subdomain": "example",
+    "path": "/example",
     "target": "http://127.0.0.1:8080",
     "title": "",
     "permissions": [],
@@ -81,13 +79,13 @@ class ProxyResource(resource_types.ResourceTypeRuntimeObject):
     def __init__(self, module: str, resource: str, data: dict[str, Any]):
         self.module = module
         self.resource = resource
-        self.proxy: Proxy | None = None
+        self.proxy: PathProxy | None = None
         self.error: str | None = None
         try:
-            self.proxy = Proxy(
-                subdomain=data["subdomain"],
+            self.proxy = PathProxy(
+                prefix=data["path"],
                 target=data["target"],
-                title=data.get("title") or None,
+                title=data.get("title") or "Untitled",
                 permissions=list(data.get("permissions") or []),
                 module=module,
                 resource=resource,
@@ -96,6 +94,7 @@ class ProxyResource(resource_types.ResourceTypeRuntimeObject):
             # Bad data should be visible, not fatal to module loading.
             self.error = str(exc)
 
+    @override
     def close(self) -> None:
         if self.proxy is not None:
             self.proxy.close()

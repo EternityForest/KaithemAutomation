@@ -78,7 +78,7 @@ def version(distribution_name: str) -> str:
     x = v(distribution_name)
     if not x:
         raise importlib.metadata.PackageNotFoundError()
-    return distribution_name
+    return x
 
 
 importlib.metadata.version = version

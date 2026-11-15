@@ -169,10 +169,10 @@ def echo_backend():
 _counter = 0
 
 
-def _unique_subdomain() -> str:
+def _unique_path() -> str:
     global _counter
     _counter += 1
-    return f"tstproxy{os.getpid()}{_counter}"
+    return f"/tstproxy{os.getpid()}{_counter}"
 
 
 def _admin_token() -> str:
@@ -189,15 +189,14 @@ def _worker_token() -> str:
 
 
 def _request(
-    host: str,
     path: str,
     method: str = "GET",
     token: str | None = None,
     data: Any = None,
     headers: dict[str, str] | None = None,
 ) -> niquests.Response:
-    """Send a real HTTP request to the Kaithem server with a custom Host."""
-    request_headers = {"Host": host}
+    """Send a real HTTP request to the Kaithem server."""
+    request_headers = {}
     if token is not None:
         request_headers["Cookie"] = f"kaithem_auth={token}"
     if headers:
@@ -228,46 +227,45 @@ def _backend_json(response: niquests.Response) -> dict[str, Any]:
 
 def test_proxy_registers_and_closes(echo_backend):
     from kaithem.api.proxies import Proxy
-    from kaithem.api.web import _subdomain_apps
+    from kaithem.api.web import _path_apps
     from kaithem.src.apps_page import all_apps
 
-    subdomain = _unique_subdomain()
+    path = _unique_path()
     token = _admin_token()
     proxy = Proxy(
-        subdomain=subdomain,
+        path=path,
         target=echo_backend["http_target"],
         title="Echo Proxy",
     )
 
-    assert _subdomain_apps.get(subdomain) is proxy
-    assert all_apps.get("proxy_" + subdomain) is not None
+    assert _path_apps.get(path) is proxy
+    assert all_apps.get(("proxy" + path).replace("/", "_")) is not None
 
-    # The apps page links straight to the proxy subdomain on the parent
-    # host the user is currently browsing.
-    response = _request("localhost:8002", "/apps", token=token)
+    # The apps page links straight to the proxy path.
+    response = _request("/apps", token=token)
     assert response.status_code == 200
-    assert f"//{subdomain}.localhost:8002/" in response.text
+    assert f'href="{path}"' in response.text
 
     proxy.close()
 
-    assert _subdomain_apps.get(subdomain) is None
-    assert all_apps.get("proxy_" + subdomain) is None
+    assert _path_apps.get(path) is None
+    assert all_apps.get(("proxy" + path).replace("/", "_")) is None
 
-    response = _request("localhost:8002", "/apps", token=token)
-    assert f"//{subdomain}.localhost:8002/" not in response.text
+    response = _request("/apps", token=token)
+    assert f'href="{path}"' not in response.text
 
     # close() is idempotent.
     proxy.close()
 
 
-def test_proxy_subdomain_is_unique(echo_backend):
+def test_proxy_path_is_unique(echo_backend):
     from kaithem.api.proxies import Proxy
 
-    subdomain = _unique_subdomain()
-    first = Proxy(subdomain=subdomain, target=echo_backend["http_target"])
+    path = _unique_path()
+    first = Proxy(path=path, target=echo_backend["http_target"])
     try:
         with pytest.raises(ValueError):
-            Proxy(subdomain=subdomain, target=echo_backend["http_target"])
+            Proxy(path=path, target=echo_backend["http_target"])
     finally:
         first.close()
 
@@ -276,15 +274,15 @@ def test_proxy_validates_arguments():
     from kaithem.api.proxies import Proxy
 
     with pytest.raises(ValueError):
-        Proxy(subdomain="bad.subdomain", target="http://127.0.0.1:1")
+        Proxy(path="no-leading-slash", target="http://127.0.0.1:1")
     with pytest.raises(ValueError):
-        Proxy(subdomain="UPPER", target="http://127.0.0.1:1")
+        Proxy(path="/trailing/", target="http://127.0.0.1:1")
     with pytest.raises(ValueError):
-        Proxy(subdomain="ok", target="ftp://127.0.0.1:1")
+        Proxy(path="/ok", target="ftp://127.0.0.1:1")
     with pytest.raises(ValueError):
-        Proxy(subdomain="ok", target="http://127.0.0.1:1/path")
+        Proxy(path="/ok", target="http://127.0.0.1:1/path")
     with pytest.raises(ValueError):
-        Proxy(subdomain="ok", target="unix:relative.sock")
+        Proxy(path="/ok", target="unix:relative.sock")
 
 
 # ---------------------------------------------------------------------------
@@ -295,14 +293,12 @@ def test_proxy_validates_arguments():
 def test_proxy_forwards_request_and_sets_user_headers(echo_backend):
     from kaithem.api.proxies import Proxy
 
-    subdomain = _unique_subdomain()
+    path = _unique_path()
     token = _admin_token()
-    proxy = Proxy(subdomain=subdomain, target=echo_backend["http_target"])
+    proxy = Proxy(path=path, target=echo_backend["http_target"])
     try:
-        host = f"{subdomain}.localhost:8002"
         response = _request(
-            host,
-            "/some/path?q=1",
+            f"{path}/some/path?q=1",
             method="POST",
             token=token,
             data=b"payload-body",
@@ -323,17 +319,27 @@ def test_proxy_forwards_request_and_sets_user_headers(echo_backend):
         proxy.close()
 
 
+def test_proxy_bare_path_maps_to_root(echo_backend):
+    from kaithem.api.proxies import Proxy
+
+    path = _unique_path()
+    proxy = Proxy(path=path, target=echo_backend["http_target"])
+    try:
+        body = _backend_json(_request(path))
+        assert body["path"] == "/"
+    finally:
+        proxy.close()
+
+
 def test_proxy_strips_kaithem_auth_and_client_headers(echo_backend):
     from kaithem.api.proxies import Proxy
 
-    subdomain = _unique_subdomain()
+    path = _unique_path()
     token = _admin_token()
-    proxy = Proxy(subdomain=subdomain, target=echo_backend["http_target"])
+    proxy = Proxy(path=path, target=echo_backend["http_target"])
     try:
-        host = f"{subdomain}.localhost:8002"
         response = _request(
-            host,
-            "/",
+            path + "/",
             token=token,
             headers={
                 "x-kaithem-username": "bad",
@@ -356,14 +362,12 @@ def test_proxy_strips_kaithem_auth_and_client_headers(echo_backend):
 def test_proxy_keeps_other_cookies(echo_backend):
     from kaithem.api.proxies import Proxy
 
-    subdomain = _unique_subdomain()
+    path = _unique_path()
     token = _admin_token()
-    proxy = Proxy(subdomain=subdomain, target=echo_backend["http_target"])
+    proxy = Proxy(path=path, target=echo_backend["http_target"])
     try:
-        host = f"{subdomain}.localhost:8002"
         response = _request(
-            host,
-            "/",
+            path + "/",
             headers={
                 "Cookie": f"kaithem_auth={token}; app_session=keepme",
             },
@@ -378,12 +382,11 @@ def test_proxy_keeps_other_cookies(echo_backend):
 def test_proxy_is_admin_false_for_plain_user(echo_backend):
     from kaithem.api.proxies import Proxy
 
-    subdomain = _unique_subdomain()
+    path = _unique_path()
     token = _worker_token()
-    proxy = Proxy(subdomain=subdomain, target=echo_backend["http_target"])
+    proxy = Proxy(path=path, target=echo_backend["http_target"])
     try:
-        host = f"{subdomain}.localhost:8002"
-        response = _request(host, "/", token=token)
+        response = _request(path + "/", token=token)
         headers = _backend_json(response)["headers"]
         assert headers["x-kaithem-username"] == "worker"
         assert headers["x-kaithem-is-admin"] == "false"
@@ -399,33 +402,31 @@ def test_proxy_is_admin_false_for_plain_user(echo_backend):
 def test_proxy_requires_permission(echo_backend):
     from kaithem.api.proxies import Proxy
 
-    subdomain = _unique_subdomain()
+    path = _unique_path()
     admin = _admin_token()
     proxy = Proxy(
-        subdomain=subdomain,
+        path=path,
         target=echo_backend["http_target"],
         permissions=["system_admin"],
     )
     try:
-        host = f"{subdomain}.localhost:8002"
-
-        # Guest is redirected to the login page on the parent host.
-        response = _request(host, "/")
+        # Guest is redirected to the login page.
+        response = _request(path + "/")
         assert response.status_code == 302
         location = response.headers["location"]
-        assert location.startswith("//localhost:8002/login?go=")
+        assert location.startswith("/login?go=")
 
         # A URL containing "login" gets a plain 403 instead of a loop.
-        response = _request(host, "/login")
+        response = _request(path + "/login")
         assert response.status_code == 403
 
         # A user without the permission is also denied.
         worker = _worker_token()
-        response = _request(host, "/", token=worker)
+        response = _request(path + "/", token=worker)
         assert response.status_code == 302
 
         # The admin reaches the backend.
-        response = _request(host, "/", token=admin)
+        response = _request(path + "/", token=admin)
         assert response.status_code == 200
     finally:
         proxy.close()
@@ -434,15 +435,14 @@ def test_proxy_requires_permission(echo_backend):
 def test_proxy_add_permission(echo_backend):
     from kaithem.api.proxies import Proxy
 
-    subdomain = _unique_subdomain()
+    path = _unique_path()
     worker = _worker_token()
-    proxy = Proxy(subdomain=subdomain, target=echo_backend["http_target"])
+    proxy = Proxy(path=path, target=echo_backend["http_target"])
     try:
-        host = f"{subdomain}.localhost:8002"
-        assert _request(host, "/", token=worker).status_code == 200
+        assert _request(path + "/", token=worker).status_code == 200
 
         proxy.add_permission("system_admin")
-        assert _request(host, "/", token=worker).status_code == 302
+        assert _request(path + "/", token=worker).status_code == 302
     finally:
         proxy.close()
 
@@ -455,11 +455,10 @@ def test_proxy_add_permission(echo_backend):
 def test_proxy_unix_socket(echo_backend):
     from kaithem.api.proxies import Proxy
 
-    subdomain = _unique_subdomain()
-    proxy = Proxy(subdomain=subdomain, target=echo_backend["unix_target"])
+    path = _unique_path()
+    proxy = Proxy(path=path, target=echo_backend["unix_target"])
     try:
-        host = f"{subdomain}.localhost:8002"
-        response = _request(host, "/unix-path?x=2")
+        response = _request(f"{path}/unix-path?x=2")
         body = _backend_json(response)
         assert body["path"] == "/unix-path"
         assert body["query"] == "x=2"
@@ -553,11 +552,11 @@ def _ws_socket() -> socket.socket:
 def test_proxy_websocket(echo_backend):
     from kaithem.api.proxies import Proxy
 
-    subdomain = _unique_subdomain()
+    path = _unique_path()
     token = _admin_token()
-    proxy = Proxy(subdomain=subdomain, target=echo_backend["http_target"])
+    proxy = Proxy(path=path, target=echo_backend["http_target"])
     try:
-        uri = f"ws://{subdomain}.localhost:8002/ws"
+        uri = f"ws://{SERVER_HOST}{path}/ws"
         with sync_ws_connect(
             uri,
             sock=_ws_socket(),
@@ -577,14 +576,14 @@ def test_proxy_websocket_denied(echo_backend):
 
     from kaithem.api.proxies import Proxy
 
-    subdomain = _unique_subdomain()
+    path = _unique_path()
     proxy = Proxy(
-        subdomain=subdomain,
+        path=path,
         target=echo_backend["http_target"],
         permissions=["system_admin"],
     )
     try:
-        uri = f"ws://{subdomain}.localhost:8002/ws"
+        uri = f"ws://{SERVER_HOST}{path}/ws"
         with pytest.raises(InvalidStatus):
             with sync_ws_connect(uri, sock=_ws_socket(), proxy=None):
                 pass
@@ -595,10 +594,10 @@ def test_proxy_websocket_denied(echo_backend):
 def test_proxy_unix_websocket(echo_backend):
     from kaithem.api.proxies import Proxy
 
-    subdomain = _unique_subdomain()
-    proxy = Proxy(subdomain=subdomain, target=echo_backend["unix_target"])
+    path = _unique_path()
+    proxy = Proxy(path=path, target=echo_backend["unix_target"])
     try:
-        uri = f"ws://{subdomain}.localhost:8002/ws"
+        uri = f"ws://{SERVER_HOST}{path}/ws"
         with sync_ws_connect(uri, sock=_ws_socket(), proxy=None) as ws:
             ws.send("over-unix")
             assert ws.recv() == "echo:over-unix"
@@ -627,19 +626,15 @@ def test_gc_without_close_warns(monkeypatch, echo_backend):
     fake = FakeLogger()
     monkeypatch.setattr(proxy_module, "logger", fake)
 
-    subdomain = _unique_subdomain()
-    leaked = proxy_module.Proxy(
-        subdomain=subdomain, target=echo_backend["http_target"]
-    )
+    path = _unique_path()
+    leaked = proxy_module.Proxy(path=path, target=echo_backend["http_target"])
     del leaked
     gc.collect()
     assert fake.warnings
 
     fake.warnings.clear()
-    subdomain = _unique_subdomain()
-    closed = proxy_module.Proxy(
-        subdomain=subdomain, target=echo_backend["http_target"]
-    )
+    path = _unique_path()
+    closed = proxy_module.Proxy(path=path, target=echo_backend["http_target"])
     closed.close()
     del closed
     gc.collect()
@@ -653,10 +648,10 @@ def test_gc_without_close_warns(monkeypatch, echo_backend):
 
 def test_proxy_resource_type_lifecycle(echo_backend):
     from kaithem.api import modules as modules_api
-    from kaithem.api.web import _subdomain_apps
+    from kaithem.api.web import _path_apps
     from kaithem.src import modules, modules_state
 
-    subdomain = _unique_subdomain()
+    path = _unique_path()
     module = "testproxies" + str(time.time()).replace(".", "_")
     modules.newModule(module)
 
@@ -668,7 +663,7 @@ def test_proxy_resource_type_lifecycle(echo_backend):
             "name": "p1",
             "data": json.dumps(
                 {
-                    "subdomain": subdomain,
+                    "path": path,
                     "target": echo_backend["http_target"],
                     "title": "",
                     "permissions": [],
@@ -681,10 +676,10 @@ def test_proxy_resource_type_lifecycle(echo_backend):
         modules_state.raw_insert_resource(module, "p1", data)
     resource_type.on_load(module, "p1", data)
 
-    assert _subdomain_apps.get(subdomain) is not None
+    assert _path_apps.get(path) is not None
 
     resource_type.on_delete(module, "p1", data)
-    assert _subdomain_apps.get(subdomain) is None
+    assert _path_apps.get(path) is None
 
     modules.rmModule(module)
 
@@ -699,7 +694,7 @@ def test_proxy_resource_type_rejects_invalid_data():
             "p1",
             {
                 "name": "p1",
-                "data": json.dumps({"subdomain": "bad.name", "target": ""}),
+                "data": json.dumps({"path": "bad.path", "target": ""}),
             },
         )
 

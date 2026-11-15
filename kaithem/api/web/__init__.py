@@ -23,10 +23,11 @@ nav_bar_plugins = _pages.nav_bar_plugins
 _asgi_apps = []
 _wsgi_apps = []
 
-# Maps a subdomain (like "myapp") to the ASGI application that should
-# handle all requests arriving on that subdomain.  Weak values so that
-# an application is automatically unmounted when nothing references it.
-_subdomain_apps: _weakref.WeakValueDictionary[str, Any] = (
+# Maps a URL path prefix (like "/myapp") to the ASGI application that
+# should handle all requests for that path and everything below it.
+# Weak values so that an application is automatically unmounted when
+# nothing references it.
+_path_apps: _weakref.WeakValueDictionary[str, Any] = (
     _weakref.WeakValueDictionary()
 )
 
@@ -119,27 +120,17 @@ def add_wsgi_app(prefix: str, app, permission="system_admin"):
     _wsgi_apps.append((prefix, app, permission))
 
 
-def add_subdomain_app(subdomain: str, app: Any) -> None:
-    """Mount an ASGI application to handle all requests arriving on the
-    given subdomain (for example "myapp" handles "myapp.example.com").
-    The subdomain must be a single DNS label with no dots.
-    """
-    if not subdomain or "." in subdomain:
-        raise ValueError(
-            f"Subdomain must be a single DNS label, got {subdomain!r}"
-        )
-    if subdomain in _subdomain_apps:
-        raise ValueError(f"Subdomain {subdomain!r} is already in use")
-    _subdomain_apps[subdomain] = app
-
-
-def remove_subdomain_app(subdomain: str, app: Any) -> None:
-    """Unmount an ASGI application previously added with
-    add_subdomain_app.  Does nothing if the subdomain is not currently
-    mapped to the given app.
-    """
-    if _subdomain_apps.get(subdomain) is app:
-        del _subdomain_apps[subdomain]
+def _validate_path(path: str) -> str:
+    """Validate a mount path, returning it normalized, raising on bad input."""
+    if not isinstance(path, str) or not path:
+        raise ValueError("Path must be a non-empty string")
+    if not path.startswith("/"):
+        raise ValueError(f"Path {path!r} must start with '/'")
+    if path != "/" and path.endswith("/"):
+        raise ValueError(f"Path {path!r} must not end with '/'")
+    if "?" in path or "#" in path:
+        raise ValueError(f"Path {path!r} must not contain a query or fragment")
+    return path
 
 
 def add_path_app(prefix: str, app: Any) -> None:

@@ -73,6 +73,9 @@ logger.setLevel(logging.INFO)
 logger = logging.getLogger("httpx")
 logger.setLevel(logging.WARNING)
 
+logger = logging.getLogger("httpcore")
+logger.setLevel(logging.WARNING)
+
 # Suppress low level from these outrageously chatty things
 excludeDebug = {
     "zeep.xsd.schema": 1,

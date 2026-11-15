@@ -15,10 +15,14 @@ import os
 import time
 from collections.abc import Callable
 from posixpath import normpath
-from typing import Any
 from urllib.parse import unquote
 
 import structlog
+from asgiref.typing import (
+    ASGIReceiveCallable,
+    ASGISendCallable,
+    Scope,
+)
 from starlette.responses import FileResponse
 
 import kaithem.api.apps_page as apps_page
@@ -28,18 +32,18 @@ from kaithem.src import pages
 logger = structlog.get_logger(__name__)
 
 
-def _host(scope: dict[str, Any]) -> str:
-    for key, value in scope.get("headers", []):
+def _host(scope: Scope) -> str:
+    for key, value in scope.get("headers", []):  # type: ignore
         if key == b"host":
             return value.decode("latin-1")
     return ""
 
 
-def _request_url(scope: dict[str, Any]) -> str:
+def _request_url(scope: Scope) -> str:
     """Rebuild the full URL a client requested, as seen by the app."""
     scheme = scope.get("scheme", "http")
     path = scope.get("path", "/")
-    query = scope.get("query_string", b"").decode("latin-1")
+    query = scope.get("query_string", b"").decode("latin-1")  # type: ignore
     url = f"{scheme}://{_host(scope)}{path}"
     if query:
         url += "?" + query
@@ -56,7 +60,7 @@ def _login_redirect(url: str) -> str:
     )
 
 
-async def _send_text(send, status: int, text: str) -> None:
+async def _send_text(send: ASGISendCallable, status: int, text: str) -> None:
     body = text.encode()
     await send(
         {
@@ -66,9 +70,10 @@ async def _send_text(send, status: int, text: str) -> None:
                 (b"content-type", b"text/plain; charset=utf-8"),
                 (b"content-length", str(len(body)).encode()),
             ],
+            "trailers": False,
         }
     )
-    await send({"type": "http.response.body", "body": body})
+    await send({"type": "http.response.body", "body": body, "more_body": False})
 
 
 class StaticFilesApp:
@@ -202,10 +207,19 @@ class StaticFilesApp:
                 return index
         return None
 
-    async def __call__(self, scope, receive, send) -> None:
+    async def __call__(
+        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+    ) -> None:
         if scope["type"] == "websocket":
             # Nothing to upgrade to; the frontend is served as files.
-            await send({"type": "websocket.close"})
+            await send(
+                {
+                    "type": "websocket.close",
+                    "code": 1003,
+                    "reason": "Not supported on a static file server",
+                }
+            )
+
             return
         if scope["type"] != "http":  # pragma: no cover - dispatcher
             raise RuntimeError(
@@ -220,9 +234,12 @@ class StaticFilesApp:
                     "type": "http.response.start",
                     "status": 302,
                     "headers": [(b"location", location.encode("latin-1"))],
+                    "trailers": False,
                 }
             )
-            await send({"type": "http.response.body", "body": b""})
+            await send(
+                {"type": "http.response.body", "body": b"", "more_body": False}
+            )
             return
 
         target = self._find_file(scope.get("path", "/"))
@@ -231,4 +248,4 @@ class StaticFilesApp:
             return
 
         response = FileResponse(target)
-        await response(scope, receive, send)
+        await response(scope, receive, send)  # type: ignore

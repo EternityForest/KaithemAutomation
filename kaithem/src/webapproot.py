@@ -24,8 +24,7 @@ from kaithem.src import (
 from kaithem.src.asgimiddleware.auth import SimpleUserAuthMiddleware
 from kaithem.src.asgimiddleware.contentsize import ContentSizeLimitMiddleware
 from kaithem.src.asgimiddleware.dispatcher import AsgiDispatcher
-from kaithem.src.asgimiddleware.path_apps import PathDispatcher
-from kaithem.src.asgimiddleware.subdomain import SubdomainDispatcher
+from kaithem.src.asgimiddleware.path import PathDispatcher
 from kaithem.src.chandler import web  # noqa: F401
 
 from . import (
@@ -330,9 +329,7 @@ def startServer(handle_signals=True):
         loop.add_signal_handler(signal.SIGTERM, _signal_handler)
         loop.add_signal_handler(signal.SIGINT, _signal_handler)
 
-    wrapped_app = SubdomainDispatcher(
-        PathDispatcher(ContentSizeLimitMiddleware(dispatcher_app))
-    )
+    wrapped_app = PathDispatcher(ContentSizeLimitMiddleware(dispatcher_app))
 
     async def f2():
         # from pyinstrument import Profiler
