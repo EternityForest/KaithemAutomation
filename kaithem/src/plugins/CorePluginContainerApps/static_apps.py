@@ -226,6 +226,26 @@ class StaticFilesApp:
                 f"Static file mount cannot handle scope {scope['type']!r}"
             )
 
+        # A request for the bare mount prefix (no trailing slash) is not a
+        # valid file path, so send a 301 to the canonical directory URL.
+        if scope.get("path", "/") == self.prefix:
+            query = scope.get("query_string", b"").decode("latin-1")
+            location = self.prefix + "/"
+            if query:
+                location += "?" + query
+            await send(
+                {
+                    "type": "http.response.start",
+                    "status": 301,
+                    "headers": [(b"location", location.encode("latin-1"))],
+                    "trailers": False,
+                }
+            )
+            await send(
+                {"type": "http.response.body", "body": b"", "more_body": False}
+            )
+            return
+
         user = pages.getAcessingUser(asgi=scope)
         if not self._is_authorized(user):
             location = _login_redirect(_request_url(scope))

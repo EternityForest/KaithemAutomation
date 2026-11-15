@@ -890,6 +890,31 @@ class PathProxy(Proxy):
         return _login_redirect("/login", url)
 
     @override
+    async def __call__(
+        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+    ) -> None:
+        # A request for the bare mount prefix (no trailing slash) cannot be
+        # forwarded usefully, so send a 301 to the canonical directory URL.
+        if scope["type"] == "http" and scope.get("path", "/") == self.prefix:
+            query = scope.get("query_string", b"").decode("latin-1")
+            location = self.prefix + "/"
+            if query:
+                location += "?" + query
+            await send(
+                {
+                    "type": "http.response.start",
+                    "status": 301,
+                    "headers": [(b"location", location.encode("latin-1"))],
+                    "trailers": False,
+                }
+            )
+            await send(
+                {"type": "http.response.body", "body": b"", "more_body": False}
+            )
+            return
+        await super().__call__(scope, receive, send)
+
+    @override
     def apps_page_url(self) -> str:
         """Return the path the apps page links to for this proxy."""
         return self.prefix + "/"
