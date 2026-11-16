@@ -14,12 +14,14 @@ import asyncio
 import os
 import shutil
 import tempfile
+import threading
 import time
 import uuid
 from datetime import UTC, datetime
 from urllib.parse import quote, unquote
 
 import pytest
+from pydantic import BaseModel
 from pydantic_ai import Tool
 from pydantic_ai.exceptions import ModelRetry
 from pydantic_ai.messages import (
@@ -32,6 +34,7 @@ from pydantic_ai.messages import (
 )
 
 from kaithem.api import ai, settings
+from kaithem.api.modules import filename_for_file_resource
 from kaithem.src.plugins import CorePluginPydanticConversation as plugin
 from kaithem.src.plugins.CorePluginPydanticConversation import (
     agent as agent_module,
@@ -55,8 +58,10 @@ from kaithem.src.plugins.CorePluginPydanticConversation.models import (
 )
 from kaithem.src.plugins.CorePluginPydanticConversation.resource_type import (
     ConversationType,
+    parse_agent_id,
     parse_permissions,
     parse_stored_tools,
+    resolve_workspace,
 )
 from kaithem.src.plugins.CorePluginPydanticConversation.storage import (
     ConversationStorage,
@@ -77,7 +82,7 @@ def ai_mock():
     mock = start_ai_mock()
     overrides = {
         "core/ai/openrouter_api_base": mock.api_base,
-        "core/ai/openrouter_api_key": "test-key",
+        "core/ai/openrouter_api_key": "test-key",  # pragma: allowlist secret
         "core/ai/conversations_dir": CONV_DIR,
     }
     for key, value in overrides.items():
@@ -484,6 +489,72 @@ def test_request_data_merges_tool_checkboxes():
     assert raw["tools"]["some_future_tool"] is True
 
 
+# -- agent id and workspace resolution ------------------------------------
+
+
+def test_parse_agent_id_accepts_safe_ids():
+    assert parse_agent_id(None) == ""
+    assert parse_agent_id("") == ""
+    assert parse_agent_id("   ") == ""
+    # Surrounding whitespace is trimmed, the rest is kept verbatim.
+    assert parse_agent_id(" my-agent_1.2 ") == "my-agent_1.2"
+
+
+@pytest.mark.parametrize(
+    "value",
+    ["bad id", "a/b", "a\\b", "a:b", ".", "..", "...", "x" * 129],
+)
+def test_parse_agent_id_rejects_bad_ids(value):
+    with pytest.raises(ValueError):
+        parse_agent_id(value)
+
+
+def test_resolve_workspace_empty_disables_it():
+    assert resolve_workspace("folder", "aiAgent", "") == ""
+    assert resolve_workspace("folder", "aiAgent", None) == ""
+    assert resolve_workspace("folder", "aiAgent", "   ") == ""
+
+
+def test_resolve_workspace_absolute_is_used_as_given():
+    expected = os.path.realpath("/srv/data")
+    assert resolve_workspace("folder", "aiAgent", "/srv/data") == expected
+
+
+def test_resolve_workspace_relative_lands_in_the_resource_folder():
+    base = filename_for_file_resource("folder", "aiAgent")
+    expected = os.path.realpath(os.path.join(base, "notes"))
+    assert resolve_workspace("folder", "aiAgent", "notes") == expected
+    # The default "." is the resource's own file data folder.
+    assert resolve_workspace("folder", "aiAgent", ".") == os.path.realpath(base)
+
+
+def test_config_resolves_the_workspace_against_the_resource_folder():
+    data = {"data": {"id": "x", "workspace": "notes"}}
+    config = ConversationType()._config("folder", "aiAgent", data)
+    base = filename_for_file_resource("folder", "aiAgent")
+    assert config.workspace == os.path.realpath(os.path.join(base, "notes"))
+
+
+def test_request_data_honours_a_free_agent_id():
+    raw = ConversationType()._request_data(
+        {}, {"id": "reviewer", "name": "Reviewer"}
+    )
+    assert raw["id"] == "reviewer"
+
+
+def test_request_data_generates_an_id_when_invalid():
+    raw = ConversationType()._request_data({}, {"id": "not a valid id"})
+    assert raw["id"] != "not a valid id"
+    # A generated id is a bare uuid4 hex string.
+    assert len(raw["id"]) == 32
+
+
+def test_request_data_keeps_the_existing_id_on_update():
+    existing = {"data": {"id": "keep-me"}}
+    raw = ConversationType()._request_data(existing, {"id": "different"})
+    assert raw["id"] == "keep-me"
+
+
 # -- message replay -------------------------------------------------------
 
 
@@ -594,8 +665,88 @@ def test_to_model_messages_marks_failed_tools():
 def test_build_agent_without_api_key_raises():
     with pytest.raises(agent_module.MissingApiKeyError):
         agent_module.build_agent(
-            model_id="chat", api_base="http://x/v1", api_key=""
+            model_id="chat",
+            api_base="http://x/v1",
+            api_key="",  # pragma: allowlist secret
         )
+
+
+def test_workspace_context_capabilities_include_skills_and_agents_md():
+    capabilities = agent_module.workspace_context_capabilities()
+    names = {type(capability).__name__ for capability in capabilities}
+    assert names == {"Skills", "RepoContext"}
+
+
+def test_build_agent_creates_a_missing_workspace_folder(workspace):
+    target = os.path.join(workspace, "nested", "deep")
+    assert not os.path.exists(target)
+    agent_module.build_agent(
+        model_id="openai/gpt-4o",
+        api_base="http://x/v1",
+        api_key="test-key",  # pragma: allowlist secret
+        workspace=target,
+    )
+    assert os.path.isdir(target)
+
+
+def _capability_names(agent) -> set[str]:
+    return {type(cap).__name__ for cap in agent.root_capability.capabilities}
+
+
+def test_build_agent_with_a_workspace_gets_file_tools(workspace):
+    agent = agent_module.build_agent(
+        model_id="openai/gpt-4o",
+        api_base="http://x/v1",
+        api_key="test-key",  # pragma: allowlist secret
+        workspace=workspace,
+    )
+    names = _capability_names(agent)
+    # The file tools plus the workspace's own context sources.
+    assert {"FileSystem", "Skills", "RepoContext"} <= names
+
+
+def test_build_agent_without_a_workspace_has_no_file_tools():
+    agent = agent_module.build_agent(
+        model_id="openai/gpt-4o",
+        api_base="http://x/v1",
+        api_key="test-key",  # pragma: allowlist secret
+        workspace="",
+    )
+    names = _capability_names(agent)
+    assert "FileSystem" not in names
+    assert "Skills" not in names
+    assert "RepoContext" not in names
+
+
+async def test_build_agent_loads_only_the_root_agents_md(ai_mock, workspace):
+    with open(os.path.join(workspace, "AGENTS.md"), "w") as handle:
+        handle.write("ROOT-AGENTS-MARKER")
+    nested = os.path.join(workspace, "sub")
+    os.makedirs(nested)
+    with open(os.path.join(nested, "AGENTS.md"), "w") as handle:
+        handle.write("NESTED-AGENTS-MARKER")
+
+    agent = agent_module.build_agent(
+        model_id=ai.resolve_model("chat"),
+        api_base=ai.get_api_base(),
+        api_key=ai.get_api_key(),
+        workspace=workspace,
+    )
+
+    async def handler(ctx, events):
+        async for _event in events:
+            pass
+
+    await agent.run("hello", event_stream_handler=handler)
+
+    system = " ".join(
+        str(message.get("content") or "")
+        for message in ai_mock.last_request["messages"]
+        if message.get("role") == "system"
+    )
+    assert "ROOT-AGENTS-MARKER" in system
+    # Only the workspace root is read, never a nested file.
+    assert "NESTED-AGENTS-MARKER" not in system
 
 
 # -- registry -------------------------------------------------------------
@@ -994,3 +1145,99 @@ async def test_workspace_route_creates_the_conversation(ai_mock, workspace):
         assert registry.get_config(conversation_id) is config
     finally:
         registry.delete_conversation(conversation_id)
+
+
+# -- ephemeral agent queries ----------------------------------------------
+
+
+def _register_agent(conversation_id: str, **kwargs) -> None:
+    registry.register_config(
+        ConversationConfig(id=conversation_id, model="chat", **kwargs)
+    )
+
+
+def test_agent_query_runs_synchronously_and_persists_nothing(ai_mock):
+    conversation_id = uuid.uuid4().hex
+    _register_agent(conversation_id)
+    try:
+        output = ai.agent_query(conversation_id, "hello world")
+        assert output == "Echo: hello world"
+        # The ephemeral call builds no live conversation and writes no
+        # history, even though the resource is persistent.
+        assert registry.peek_conversation(conversation_id) is None
+        storage = ConversationStorage(CONV_DIR, conversation_id)
+        assert storage.list_threads() == []
+        assert not os.path.isdir(storage.directory)
+    finally:
+        registry.delete_conversation(conversation_id)
+
+
+def test_agent_query_supports_structured_output(ai_mock):
+    class Answer(BaseModel):
+        answer: str
+
+    conversation_id = uuid.uuid4().hex
+    _register_agent(conversation_id)
+    try:
+        output = ai.agent_query(
+            conversation_id,
+            '[[tool:final_result {"answer": "42"}]]',
+            output_type=Answer,
+        )
+        assert isinstance(output, Answer)
+        assert output.answer == "42"
+    finally:
+        registry.delete_conversation(conversation_id)
+
+
+def test_agent_query_reports_through_the_callback(ai_mock):
+    conversation_id = uuid.uuid4().hex
+    _register_agent(conversation_id)
+    done = threading.Event()
+    box: dict = {}
+
+    def callback(output, info):
+        box["output"] = output
+        box["info"] = info
+        done.set()
+
+    try:
+        assert ai.agent_query(conversation_id, "hi", callback=callback) is None
+        assert done.wait(10)
+        assert box["output"] == "Echo: hi"
+        info = box["info"]
+        assert info.agent_id == conversation_id
+        assert info.error is None
+        assert info.usage is not None
+        assert info.usage.total_tokens > 0
+    finally:
+        registry.delete_conversation(conversation_id)
+
+
+def test_agent_query_reports_errors_through_the_callback(ai_mock):
+    done = threading.Event()
+    box: dict = {}
+
+    def callback(output, info):
+        box["output"] = output
+        box["info"] = info
+        done.set()
+
+    ai.agent_query("no-such-agent", "hi", callback=callback)
+    assert done.wait(10)
+    assert box["output"] is None
+    assert box["info"].error is not None
+
+
+def test_agent_query_unknown_agent_raises(ai_mock):
+    with pytest.raises(KeyError):
+        ai.agent_query("no-such-agent", "hi")
+
+
+def test_agent_query_is_exposed_on_the_public_api():
+    from kaithem.api import ai as public_ai
+    from kaithem.src.plugins.CorePluginPydanticConversation import agent_api
+
+    # The facade lives in the public module and defers to the plugin.
+    assert public_ai.agent_query.__module__ == public_ai.__name__
+    assert public_ai.AgentRunInfo is agent_api.AgentRunInfo

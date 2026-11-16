@@ -2,23 +2,30 @@
 """``conversation`` resource type.
 
 A ``conversation`` resource owns one agentic conversation.  The resource
-data holds the conversation id (a UUID), the model tag, the permissions
-required to read and write it, and whether history is persisted.
+data holds the conversation id, the model tag, the permissions required to
+read and write it, the workspace folder the model may edit, and whether
+history is persisted.
 
-Creating the resource generates the id and registers the config with the
-conversation registry.  Deleting the resource deletes the conversation's
+Creating the resource picks the id -- the one the user typed, or a UUID --
+and registers the config with the conversation registry.  A relative
+workspace is resolved against the resource's own file data folder, so the
+agent's files live with the resource that defines it; an absolute path is
+used as given.  Deleting the resource deletes the conversation's
 persistent history.
 """
 
 from __future__ import annotations
 
 import html
+import os
+import re
 import uuid
 from typing import Any
 
 import structlog
 
 from kaithem.api import ai, resource_types
+from kaithem.api.modules import filename_for_file_resource
 from kaithem.api.web import dialogs
 
 from . import conversation as conversation_registry
@@ -30,6 +37,15 @@ logger = structlog.get_logger(__name__)
 RESOURCE_TYPE = "conversation"
 
 _SEPARATORS = ", \t\n"
+
+#: The workspace setting shown for a resource that has not set one.  It is
+#: relative, so it resolves to the resource's own file data folder.
+DEFAULT_WORKSPACE = "."
+
+#: Characters an agent id may use.  The id names a storage directory and
+#: travels in URLs, so it stays deliberately conservative.
+_AGENT_ID_RE = re.compile(r"[A-Za-z0-9._-]+")
+_MAX_AGENT_ID = 128
 
 
 def parse_permissions(value: Any) -> list[str]:
@@ -57,6 +73,47 @@ def parse_stored_tools(value: Any) -> dict[str, bool]:
     if not isinstance(value, dict):
         return {}
     return {str(key): bool(enabled) for key, enabled in value.items()}
+
+
+def parse_agent_id(value: Any) -> str:
+    """Validate a requested agent id, returning "" when none was given.
+
+    The id names the conversation's storage directory and travels in URLs,
+    so it is held to a conservative character set and length.  An empty
+    value means "no id was requested", which the caller replaces with a
+    generated one.
+    """
+    value = str(value or "").strip()
+    if not value:
+        return ""
+    if len(value) > _MAX_AGENT_ID:
+        raise ValueError(f"Agent id may be at most {_MAX_AGENT_ID} characters")
+    if not _AGENT_ID_RE.fullmatch(value):
+        raise ValueError(
+            "Agent id may only use letters, digits, '.', '_' and '-'"
+        )
+    if not value.strip("."):
+        # The id is a directory name, so "." and ".." must never be used.
+        raise ValueError("Agent id cannot be made only of dots")
+    return value
+
+
+def resolve_workspace(module: str, resource: str, value: Any) -> str:
+    """Absolute path of a conversation's workspace, or "" for none.
+
+    A relative setting is resolved against the resource's own file data
+    folder, so ``workspace = "notes"`` on resource ``folder/agent`` means
+    ``<moduledir>/__filedata__/folder/agent/notes``.  An absolute setting
+    is used as given.  An empty setting disables the workspace entirely,
+    which leaves the conversation with no file tools at all.
+    """
+    value = str(value or "").strip()
+    if not value:
+        return ""
+    if os.path.isabs(value):
+        return os.path.realpath(value)
+    base = filename_for_file_resource(module, resource)
+    return os.path.realpath(os.path.join(base, value))
 
 
 def _tools_from_request(
@@ -111,7 +168,7 @@ class ConversationType(resource_types.ResourceType):
             permissions=parse_permissions(raw.get("permissions")),
             persistent=bool(raw.get("persistent", True)),
             system_prompt=str(raw.get("system_prompt") or ""),
-            workspace=str(raw.get("workspace") or "").strip(),
+            workspace=resolve_workspace(module, resource, raw.get("workspace")),
             tools=parse_stored_tools(raw.get("tools")),
         )
 
@@ -163,6 +220,11 @@ class ConversationType(resource_types.ResourceType):
         d.text_input("name", title="Resource Name")
         d.text_input("title", title="Conversation Title")
         d.text_input(
+            "id",
+            title="Agent ID",
+            suggestions=[("", "generated (UUID)")],
+        )
+        d.text_input(
             "model",
             title="Model",
             default="chat",
@@ -181,8 +243,16 @@ class ConversationType(resource_types.ResourceType):
         d.text_input(
             "workspace",
             title="Workspace Folder",
-            default="",
-            suggestions=[("", "none (chat only)")],
+            default=DEFAULT_WORKSPACE,
+            suggestions=[
+                (".", "this resource's folder"),
+                ("", "none (chat only)"),
+            ],
+        )
+        d.text(
+            "A relative workspace is inside this resource's own folder; an "
+            "absolute path is used as given. Leave it empty for a chat only "
+            "agent with no file access."
         )
         d.text_input("system_prompt", title="System Prompt", multiline=True)
         self._add_tool_checkboxes(d, {})
@@ -192,6 +262,16 @@ class ConversationType(resource_types.ResourceType):
     def edit_page(self, module, resource, data):
         raw = dict(data.get("data") or {})
         d = dialogs.SimpleDialog("Editing Conversation")
+        conversation_id = str(raw.get("id") or "")
+        if conversation_id:
+            # The id names the storage directory, so it is fixed once the
+            # resource exists and is only shown for reference here.
+            d.text_input(
+                "id",
+                title="Agent ID",
+                default=conversation_id,
+                disabled=True,
+            )
         d.text_input(
             "model",
             title="Model",
@@ -216,7 +296,10 @@ class ConversationType(resource_types.ResourceType):
             "workspace",
             title="Workspace Folder",
             default=str(raw.get("workspace") or ""),
-            suggestions=[("", "none (chat only)")],
+            suggestions=[
+                (".", "this resource's folder"),
+                ("", "none (chat only)"),
+            ],
         )
         d.text_input(
             "system_prompt",
@@ -225,18 +308,33 @@ class ConversationType(resource_types.ResourceType):
             multiline=True,
         )
         self._add_tool_checkboxes(d, parse_stored_tools(raw.get("tools")))
-        conversation_id = str(raw.get("id") or "")
         if conversation_id:
             d.link("Open Chat", f"/conversations/{conversation_id}")
         d.submit_button("Save")
         return d.render(self.get_update_target(module, resource))
+
+    def _new_agent_id(self, requested: Any) -> str:
+        """The id for a new conversation: the requested one, or a UUID.
+
+        An id is only honoured when it is valid and not already taken by
+        another conversation; otherwise a fresh UUID is generated, so a
+        bad or clashing request never blocks creating the resource.
+        """
+        try:
+            candidate = parse_agent_id(requested)
+        except ValueError:
+            logger.warning("Rejecting invalid agent id %r", requested)
+            candidate = ""
+        if candidate and conversation_registry.get_config(candidate) is None:
+            return candidate
+        return uuid.uuid4().hex
 
     def _request_data(
         self, existing: Any, kwargs: dict[str, Any]
     ) -> dict[str, Any]:
         kwargs = dict(kwargs)
         raw = dict((existing or {}).get("data") or {})
-        raw["id"] = str(raw.get("id") or uuid.uuid4().hex)
+        raw["id"] = str(raw.get("id") or self._new_agent_id(kwargs.get("id")))
         raw["title"] = str(
             kwargs.get("title") or kwargs.get("name") or raw.get("title") or ""
         ).strip()

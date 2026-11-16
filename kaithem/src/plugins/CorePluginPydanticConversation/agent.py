@@ -57,6 +57,26 @@ class MissingApiKeyError(Exception):
     """No OpenRouter API key is configured for this server."""
 
 
+def workspace_context_capabilities() -> list[Any]:
+    """Capabilities that read a workspace's own context for the model.
+
+    ``Skills`` offers any ``.agents/skills/<name>/SKILL.md`` libraries the
+    workspace holds.  ``RepoContext`` loads the workspace's own
+    ``AGENTS.md`` into the system prompt; with the default ``home_dir`` of
+    ``None`` it reads the workspace root only, never a nested or parent
+    file.  Both are optional: a harness build without them still runs,
+    just without the extra context.
+    """
+    try:
+        from pydantic_ai_harness import RepoContext, Skills
+    except ImportError:  # pragma: no cover - harness without these
+        return []
+    return [
+        Skills(".agents/skills", missing_directories="skip"),
+        RepoContext(filenames=("AGENTS.md",)),
+    ]
+
+
 def build_agent(
     *,
     model_id: str,
@@ -65,14 +85,20 @@ def build_agent(
     system_prompt: str = "",
     workspace: str = "",
     extras: Sequence[Any] = (),
-) -> Agent[Any, str]:
+    output_type: Any = None,
+) -> Agent[Any, Any]:
     """Build one pydantic-ai agent for a single run of a conversation.
 
     When the conversation has a ``workspace``, the file system harness is
-    pointed at it so the model can read and edit files there.  ``extras``
-    is what the embedding code attached with ``register_capabilities``:
-    a pydantic-ai ``Tool`` is handed to the agent as a tool, and anything
-    else is treated as a capability.
+    pointed at it so the model can read and edit files there, and the
+    workspace's own ``AGENTS.md`` and ``.agents/skills`` libraries are
+    offered to the model.  ``extras`` is what the embedding code attached
+    with ``register_capabilities``: a pydantic-ai ``Tool`` is handed to
+    the agent as a tool, and anything else is treated as a capability.
+
+    ``output_type`` is passed straight through to pydantic-ai, so any
+    output spec its ``Agent`` accepts works; ``None`` keeps the default
+    of plain text.
     """
     if not api_key:
         raise MissingApiKeyError(
@@ -85,18 +111,26 @@ def build_agent(
     tools: list[Any] = []
     capabilities: list[Any] = []
     if workspace:
+        # A workspace the user configured relative to a resource may not
+        # exist yet, and both capabilities below want a real directory.
+        os.makedirs(workspace, exist_ok=True)
         capabilities.append(LocalWorkspace(workspace))
         capabilities.append(FileSystem(root_dir=workspace))
+        capabilities.extend(workspace_context_capabilities())
     for extra in extras:
         if isinstance(extra, Tool):
             tools.append(extra)
         else:
             capabilities.append(extra)
+    options: dict[str, Any] = {}
+    if output_type is not None:
+        options["output_type"] = output_type
     return Agent(
         model,
         system_prompt=system_prompt.strip(),
         tools=tools,
         capabilities=capabilities,
+        **options,
     )
 
 
@@ -189,8 +223,8 @@ def _content_to_str(content: Any) -> str:
     return str(content)
 
 
-def _usage_from(usage: Any) -> Usage | None:
-    """Map a pydantic-ai request usage onto our persisted usage model."""
+def usage_from(usage: Any) -> Usage | None:
+    """Map a pydantic-ai usage object onto our persisted usage model."""
     if usage is None:
         return None
     cost = usage.cost
@@ -255,7 +289,7 @@ def to_entries(
                         tool_calls=tool_calls,
                     ),
                     model=message.model_name or "",
-                    usage=_usage_from(message.usage),
+                    usage=usage_from(message.usage),
                 )
             )
         elif isinstance(message, ModelRequest):
