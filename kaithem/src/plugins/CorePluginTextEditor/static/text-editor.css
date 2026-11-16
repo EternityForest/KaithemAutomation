@@ -5,37 +5,10 @@ text-editor-page {
     width: 100%;
     overflow: hidden;
     font-family: inherit;
-    background: var(--bg, #fff);
-    color: var(--fg, #1c1c1c);
 }
-header {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.25rem 0.5rem;
-    background: var(--bg2, #e1ded7);
-    flex-shrink: 0;
-}
-.tabbar {
-    display: flex;
-    overflow-x: auto;
-    flex-shrink: 0;
-    background: var(--bg2, #e1ded7);
-    border-bottom: 1px solid #ccc;
-    scrollbar-width: thin;
-}
-.tab {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 0.25rem 0.6rem;
-    cursor: pointer;
-    white-space: nowrap;
-    border-right: 1px solid #ccc;
-    font-size: 0.85rem;
-}
+
 .tab.active {
-    background: var(--bg, #fff);
+    font-weight: bold;
 }
 .tab .close {
     opacity: 0.6;
@@ -50,8 +23,6 @@ header {
 }
 .sidebar {
     width: 260px;
-    background: var(--bg2, #e1ded7);
-    border-right: 1px solid #ccc;
     overflow-y: auto;
     flex-shrink: 0;
     font-size: 0.85rem;
@@ -61,15 +32,13 @@ header {
     inset: 0;
     width: 100%;
     z-index: 10;
-    background: var(--bg2, #e1ded7);
 }
 .panel {
     width: 380px;
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
-    background: var(--bg, #fff);
-    border-left: 1px solid #ccc;
+    border-left: 1px solid;
 }
 .panel.mobile {
     position: absolute;
@@ -83,14 +52,15 @@ header {
     justify-content: space-between;
     gap: 0.5rem;
     padding: 0.25rem 0.5rem;
-    background: var(--bg2, #e1ded7);
-    border-bottom: 1px solid #ccc;
+    border-bottom: 1px solid;
     font-size: 0.85rem;
     flex-shrink: 0;
 }
+
 .panel-title {
     font-weight: 600;
 }
+
 .panel-close {
     background: none;
     border: none;
@@ -98,6 +68,7 @@ header {
     cursor: pointer;
     padding: 0 0.3rem;
 }
+
 .panel-frame {
     flex: 1;
     width: 100%;
@@ -122,7 +93,6 @@ header {
     gap: 0.5rem;
     padding: 0.1rem 0.5rem;
     font-size: 0.75rem;
-    background: var(--bg2, #e1ded7);
     flex-shrink: 0;
 }
 .badge {
@@ -130,14 +100,7 @@ header {
     padding: 0 0.35rem;
     font-size: 0.7rem;
 }
-.badge.connected {
-    background: #2e7d32;
-    color: #fff;
-}
-.badge.unavailable {
-    background: #ddd;
-    color: #555;
-}
+
 .tree-root {
     min-height: 100%;
     min-width: 100%;
@@ -148,13 +111,13 @@ header {
     white-space: nowrap;
 }
 .tree-item:hover {
-    background: rgba(0, 0, 0, 0.08);
+    background: var(--box-bg);
 }
 .contextmenu {
     position: fixed;
     z-index: 20;
-    background: #fff;
-    border: 1px solid #ccc;
+    background: var(--box-bg);
+    border: 1px solid;
     padding: 0.2rem;
     min-width: 140px;
 }
@@ -170,7 +133,7 @@ header {
     font-size: 0.85rem;
 }
 .contextmenu button:hover {
-    background: rgba(0, 0, 0, 0.08);
+    background: var(--box-bg);
 }
 .splash {
     position: fixed;

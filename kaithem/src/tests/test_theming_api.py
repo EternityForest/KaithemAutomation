@@ -7,7 +7,7 @@ from kaithem.src.tests.helpers import make_client
 
 async def test_style_css_is_only_imports_in_order():
     client = await make_client()
-    response = await client.get("/api/theming/style.css")
+    response = await client.get("/api/style/style.css")
 
     assert response.status_code == 200
     assert response.mimetype == "text/css"
@@ -24,7 +24,7 @@ async def test_style_css_is_only_imports_in_order():
 
 async def test_style_css_theme_param_overrides_system_theme():
     client = await make_client()
-    response = await client.get("/api/theming/style.css?theme=nord")
+    response = await client.get("/api/style/style.css?theme=nord")
 
     css = (await response.get_data()).decode()
     assert '"/static/css/nord.css"' in css
@@ -33,8 +33,8 @@ async def test_style_css_theme_param_overrides_system_theme():
 
 async def test_style_css_empty_theme_falls_back_to_system_theme():
     client = await make_client()
-    fallback = await client.get("/api/theming/style.css")
-    empty = await client.get("/api/theming/style.css?theme=")
+    fallback = await client.get("/api/style/style.css")
+    empty = await client.get("/api/style/style.css?theme=")
 
     assert await empty.get_data() == await fallback.get_data()
 
@@ -42,7 +42,7 @@ async def test_style_css_empty_theme_falls_back_to_system_theme():
 async def test_style_css_rejects_unsafe_theme():
     client = await make_client()
     response = await client.get(
-        "/api/theming/style.css",
+        "/api/style/style.css",
         query_string={"theme": 'x"); body { display: none }'},
     )
 
@@ -74,7 +74,7 @@ async def test_page_template_links_one_stylesheet():
             _k_usr_page_theme="/static/css/nord.css",
         )
 
-    assert html.count("/api/theming/style.css") == 1
+    assert html.count("/api/style/style.css") == 1
     assert "/dynamic.css/" not in html
     assert 'src="/static/js/style.mjs"' in html
     assert "nord.css" in html

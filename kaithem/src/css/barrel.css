@@ -2122,7 +2122,7 @@ input:invalid:not(.specificity_hack) {
   align-items: stretch;
   border-radius: var(--control-border-radius);
   min-height: var(--control-height);
-  flex-grow: 1;
+  flex-grow: 0;
   vertical-align: middle;
   height: fit-content;
   align-items: flex-start;

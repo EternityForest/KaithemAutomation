@@ -57,7 +57,7 @@ async def theming_install_css():
     return response
 
 
-@app.route("/api/theming/style.css", methods=["GET"])
+@app.route("/api/style/style.css", methods=["GET"])
 async def theming_style_css():
     """Every stylesheet a page needs, as a single import.
 

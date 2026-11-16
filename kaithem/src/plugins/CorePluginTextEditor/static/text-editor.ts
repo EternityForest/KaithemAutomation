@@ -708,34 +708,34 @@ class TextEditorPage extends LitElement {
     }
     return html`
       <header>
-        <button
-          @click="${() => (this.sidebarOpen = !this.sidebarOpen)}"
-          data-testid="sidebar-toggle"
-        >
-          <span class="mdi mdi-file-tree"></span>
-        </button>
+        <tool-bar>
+          <button
+            @click="${() => (this.sidebarOpen = !this.sidebarOpen)}"
+            data-testid="sidebar-toggle"
+          >
+            <span class="mdi mdi-file-tree"></span>
+          </button>
 
-        <button @click="${this._save}" data-testid="save-btn">
-          <span class="mdi mdi-content-save"></span>Save
-        </button>
-        <button
-          @click="${() => this._togglePanel('chat')}"
-          data-testid="chat-toggle"
-          title="AI chat for this workspace"
-        >
-          <span class="mdi mdi-robot"></span>Chat
-        </button>
-        <button
-          @click="${() => this._togglePanel('snapshots')}"
-          data-testid="snapshots-toggle"
-          title="Snapshot backup for this workspace"
-        >
-          <span class="mdi mdi-history"></span>Snapshots
-        </button>
-        <span style="flex:1"></span>
-        <span>${this.activeTab?.split('/').pop() || ''}</span>
+          <button @click="${this._save}" data-testid="save-btn">
+            <span class="mdi mdi-content-save"></span>Save
+          </button>
+          <button
+            @click="${() => this._togglePanel('chat')}"
+            data-testid="chat-toggle"
+            title="AI chat for this workspace"
+          >
+            <span class="mdi mdi-robot"></span>Chat
+          </button>
+          <button
+            @click="${() => this._togglePanel('snapshots')}"
+            data-testid="snapshots-toggle"
+            title="Snapshot backup for this workspace"
+          >
+            <span class="mdi mdi-history"></span>Snapshots
+          </button>
+        </tool-bar>
       </header>
-      <div class="tabbar" data-testid="tabbar">
+      <div class="tool-bar" data-testid="tabbar">
         ${this.tabs.map(
           (t) => html`
             <div
@@ -762,7 +762,7 @@ class TextEditorPage extends LitElement {
         ${this.sidebarOpen
           ? html`
               <div
-                class="sidebar ${this._isMobile ? 'mobile' : ''}"
+                class="sidebar h-pane paper ${this._isMobile ? 'mobile' : ''}"
                 data-testid="sidebar"
               >
                 <div
@@ -796,7 +796,7 @@ class TextEditorPage extends LitElement {
         ${this.panel
           ? html`
               <div
-                class="panel ${this._isMobile ? 'mobile' : ''}"
+                class="panel paper h-pane ${this._isMobile ? 'mobile' : ''}"
                 data-testid="panel"
               >
                 <div class="panel-head">
@@ -883,8 +883,8 @@ class TextEditorPage extends LitElement {
       <div class="statusbar">
         <span
           class="badge ${this.lspStatus === 'connected'
-            ? 'connected'
-            : 'unavailable'}"
+            ? 'success'
+            : ''}"
           data-testid="lsp-badge"
         >
           LSP ${this.lspStatus}

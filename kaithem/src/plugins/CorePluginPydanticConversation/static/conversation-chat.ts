@@ -41,8 +41,11 @@ export class ConversationChat extends LitElement {
   private snapshot: ConversationSnapshot | null = null;
   private entries: EntryInfo[] = [];
   private activeThread = '';
-  private streaming: { thread: string; content: string; reasoning: string } =
-    { thread: '', content: '', reasoning: '' };
+  private streaming: { thread: string; content: string; reasoning: string } = {
+    thread: '',
+    content: '',
+    reasoning: '',
+  };
 
   private expandedThoughts = new Set<string>();
   private expandedActions = new Set<string>();
@@ -108,8 +111,7 @@ export class ConversationChat extends LitElement {
     if (this.destroyed) {
       return;
     }
-    const protocol =
-      globalThis.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const protocol = globalThis.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const url =
       `${protocol}//${globalThis.location.host}/conversations/ws/` +
       encodeURIComponent(this.conversationId);
@@ -156,10 +158,7 @@ export class ConversationChat extends LitElement {
       return;
     }
     const delay = this.reconnectDelay;
-    this.reconnectDelay = Math.min(
-      this.reconnectDelay * 1.7,
-      RECONNECT_MAX
-    );
+    this.reconnectDelay = Math.min(this.reconnectDelay * 1.7, RECONNECT_MAX);
     this.reconnectTimer = globalThis.setTimeout(() => {
       this.reconnectTimer = null;
       this.connectSocket();
@@ -340,13 +339,16 @@ export class ConversationChat extends LitElement {
     if (this.streaming.thread !== thread) {
       this.streaming = { thread, content: '', reasoning: '' };
     }
-    this.streaming = kind === 'reasoning' ? {
-        ...this.streaming,
-        reasoning: this.streaming.reasoning + text,
-      } : {
-        ...this.streaming,
-        content: this.streaming.content + text,
-      };
+    this.streaming =
+      kind === 'reasoning'
+        ? {
+            ...this.streaming,
+            reasoning: this.streaming.reasoning + text,
+          }
+        : {
+            ...this.streaming,
+            content: this.streaming.content + text,
+          };
     this.stickToBottom = true;
   }
 
@@ -498,8 +500,7 @@ export class ConversationChat extends LitElement {
     if (!(list instanceof HTMLElement)) {
       return;
     }
-    const remaining =
-      list.scrollHeight - list.scrollTop - list.clientHeight;
+    const remaining = list.scrollHeight - list.scrollTop - list.clientHeight;
     this.stickToBottom = remaining < 80;
   }
 
@@ -525,8 +526,7 @@ export class ConversationChat extends LitElement {
     }
     return html`
       <div class="chat-shell">
-        ${this.renderHeader()}
-        ${this.renderError()}
+        ${this.renderHeader()} ${this.renderError()}
         <div class="chat-body">
           ${this.renderSidebar()}
           <div
@@ -550,6 +550,13 @@ export class ConversationChat extends LitElement {
     const status = this.snapshot?.status ?? 'idle';
     return html`
       <header class="chat-header">
+        <h1>${title}</h1>            
+        
+        ${model ? html`<p class="chat-badge">${model}</p>` : nothing}
+        <p class="chat-badge status-${status}">${status}</p>
+        <p class="chat-badge conn-${this.wsState}">
+          ${this.wsState}
+        </p>
         <button
           class="chat-menu-btn"
           data-testid="chat-menu"
@@ -559,29 +566,22 @@ export class ConversationChat extends LitElement {
             this.requestUpdate();
           }}"
         >
+          <span class="mdi mdi-list-box"></span>
           Threads
         </button>
-        <div class="chat-heading">
-          <h1>${title}</h1>
-          <div class="chat-meta">
-            ${model
-              ? html`<span class="chat-badge">${model}</span>`
-              : nothing}
-            <span class="chat-badge status-${status}">${status}</span>
-            <span class="chat-badge conn-${this.wsState}">
-              ${this.wsState}
-            </span>
-          </div>
+
         </div>
-        ${status === 'thinking'
-          ? html`<button
-              class="chat-interrupt"
-              data-testid="chat-interrupt"
-              @click="${() => void this.interrupt()}"
-            >
-              Stop
-            </button>`
-          : nothing}
+        ${
+          status === 'thinking'
+            ? html`<button
+                class="chat-interrupt"
+                data-testid="chat-interrupt"
+                @click="${() => void this.interrupt()}"
+              >
+                Stop
+              </button>`
+            : nothing
+        }
       </header>
     `;
   }
@@ -698,8 +698,7 @@ export class ConversationChat extends LitElement {
                   (${formatCount(reasoning.length)} chars)
                 </button>
                 ${expanded
-                  ? html`<pre class="chat-thoughts-body">
-${reasoning}</pre>`
+                  ? html`<pre class="chat-thoughts-body">${reasoning}</pre>`
                   : nothing}
               </div>`
             : nothing}
@@ -715,9 +714,7 @@ ${reasoning}</pre>`
       return nothing;
     }
     return html`<div class="chat-usage" data-testid="chat-usage">
-      <span title="Input tokens"
-        >${formatCount(usage.prompt_tokens)} in</span
-      >
+      <span title="Input tokens">${formatCount(usage.prompt_tokens)} in</span>
       <span title="Output tokens"
         >${formatCount(usage.completion_tokens)} out</span
       >
@@ -733,8 +730,7 @@ ${reasoning}</pre>`
       <div class="chat-msg role-assistant streaming">
         <div class="chat-bubble">
           ${reasoning
-            ? html`<pre class="chat-thoughts-body">
-${reasoning}</pre>`
+            ? html`<pre class="chat-thoughts-body">${reasoning}</pre>`
             : nothing}
           <div class="chat-text">
             ${this.streaming.content}<span class="chat-cursor">▌</span>
@@ -754,17 +750,13 @@ ${reasoning}</pre>`
         >
           <span class="chat-action-name">${entry.name}</span>
           <span class="chat-action-status">${entry.status}</span>
-          <span class="chat-action-time"
-            >${entry.duration.toFixed(2)}s</span
-          >
+          <span class="chat-action-time">${entry.duration.toFixed(2)}s</span>
         </button>
         ${expanded
           ? html`<div class="chat-action-body">
-              <pre class="chat-action-args">${JSON.stringify(
-                entry.arguments,
-                null,
-                2
-              )}</pre>
+              <pre class="chat-action-args">
+${JSON.stringify(entry.arguments, null, 2)}</pre
+              >
               <pre class="chat-action-result">${entry.result}</pre>
             </div>`
           : nothing}
@@ -797,8 +789,7 @@ ${reasoning}</pre>`
               this.requestUpdate();
             }
           }}"
-          @keydown="${(event: KeyboardEvent) =>
-            this.onComposerKeydown(event)}"
+          @keydown="${(event: KeyboardEvent) => this.onComposerKeydown(event)}"
         ></textarea>
         <button
           class="chat-send"

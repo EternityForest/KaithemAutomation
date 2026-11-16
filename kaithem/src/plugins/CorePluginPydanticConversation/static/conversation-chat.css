@@ -51,40 +51,6 @@ conversation-chat {
   text-overflow: ellipsis;
 }
 
-.chat-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-  margin-top: 0.25rem;
-}
-
-.chat-badge {
-  padding: 0.05rem 0.45rem;
-  border: 1px solid var(--border-color);
-  border-radius: 999px;
-  font-size: 0.72rem;
-  opacity: 0.85;
-  white-space: nowrap;
-}
-
-.chat-badge.status-thinking {
-  border-color: var(--accent-color);
-  color: var(--accent-color);
-  opacity: 1;
-}
-
-.chat-badge.status-error {
-  border-color: var(--danger-color);
-  color: var(--danger-color);
-  opacity: 1;
-}
-
-.chat-badge.conn-disconnected {
-  border-color: var(--danger-color);
-  color: var(--danger-color);
-  opacity: 1;
-}
-
 .chat-menu-btn,
 .chat-interrupt,
 .chat-new-thread,
