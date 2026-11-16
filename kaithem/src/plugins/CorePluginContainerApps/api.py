@@ -1,4 +1,26 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
+from __future__ import annotations
+
+import asyncio
+import json
+from collections.abc import Callable
+from typing import Any
+from urllib.parse import quote
+
+import quart
+import structlog
+from quart import Blueprint
+
+from kaithem.api import web
+from kaithem.api.web import quart_app
+
+from .resource_types import (
+    ContainerAppInstanceResource,
+    ContainerAppResource,
+    app_resource_type,
+    instance_resource_type,
+)
+
 """REST and websocket API for the container app resources.
 
 Two management surfaces share this module:
@@ -17,26 +39,6 @@ the app itself.  The app is reached through its path proxy under
 ``/apps/<name>``.
 """
 
-from __future__ import annotations
-
-import asyncio
-import json
-from typing import TYPE_CHECKING, Any
-from urllib.parse import quote
-
-import quart
-import structlog
-from quart import Blueprint
-
-from kaithem.api import web
-from kaithem.api.web import quart_app
-from kaithem.src import modules_state
-
-from .constants import APP_RESOURCE_TYPE, INSTANCE_RESOURCE_TYPE
-
-if TYPE_CHECKING:
-    from . import ContainerAppInstanceResource, ContainerAppResource
-
 logger = structlog.get_logger(__name__)
 
 api_bp = Blueprint(
@@ -53,19 +55,13 @@ PAGE_URL = "/static/vite/kaithem/src/plugins/CorePluginContainerApps/index.html"
 
 
 def _get_app(module: str, resource: str) -> ContainerAppResource | None:
-    resource_type = modules_state.resource_types.get(APP_RESOURCE_TYPE)
-    if resource_type is None:
-        return None
-    return resource_type.runtime_objects.get((module, resource))
+    return app_resource_type.runtime_objects.get((module, resource))
 
 
 def _get_instance(
     module: str, resource: str
 ) -> ContainerAppInstanceResource | None:
-    resource_type = modules_state.resource_types.get(INSTANCE_RESOURCE_TYPE)
-    if resource_type is None:
-        return None
-    return resource_type.runtime_objects.get((module, resource))
+    return instance_resource_type.runtime_objects.get((module, resource))
 
 
 def _require_admin() -> tuple[quart.Response, int] | None:
@@ -82,7 +78,7 @@ def _error(message: str, status: int = 400):
 
 
 def _app_snapshot(app: ContainerAppResource) -> dict[str, Any]:
-    runtime = app.runtime
+    runtime = app.sandbox_runtime
     return {
         "type": "app",
         "module": app.module,
@@ -140,7 +136,9 @@ def _script_name(body: dict[str, Any]) -> str:
     return name.strip()
 
 
-APP_ACTIONS: dict[str, Any] = {
+APP_ACTIONS: dict[
+    str, Callable[[ContainerAppResource, dict[str, Any]], None]
+] = {
     "build": lambda app, body: app.build(),
     "dev": lambda app, body: app.start_dev(),
     "stop-dev": lambda app, body: app.stop_dev(),
@@ -151,7 +149,9 @@ APP_ACTIONS: dict[str, Any] = {
     "run-script": lambda app, body: app.run_script(_script_name(body)),
 }
 
-INSTANCE_ACTIONS: dict[str, Any] = {
+INSTANCE_ACTIONS: dict[
+    str, Callable[[ContainerAppInstanceResource, dict[str, Any]], None]
+] = {
     "start": lambda instance, body: instance.start(),
     "stop": lambda instance, body: instance.stop(),
     "reload": lambda instance, body: instance.reload(),
@@ -169,17 +169,26 @@ async def _read_body() -> dict[str, Any]:
     except json.JSONDecodeError:
         raise ValueError("Body must be valid JSON") from None
     if not isinstance(body, dict):
-        raise ValueError("Body must be a JSON object")
+        raise TypeError("Body must be a JSON object")
     return body
 
 
-async def _run_action(handler, target, action: str):
+async def _run_action(
+    handler: Callable[[ContainerAppResource, dict[str, Any]], None]
+    | Callable[
+        [ContainerAppInstanceResource, dict[str, Any]],
+        None,
+    ],
+    target: ContainerAppResource | ContainerAppInstanceResource,
+    action: str,
+):
     try:
         body = await _read_body()
     except ValueError as exc:
         return _error(str(exc), 400)
     try:
-        await asyncio.to_thread(handler, target, body)
+        # todo bad typing practice
+        await asyncio.to_thread(handler, target, body)  # type: ignore
     except KeyError as exc:
         return _error(str(exc), 404)
     except Exception as exc:
@@ -253,9 +262,17 @@ async def instance_action(module: str, resource: str, action: str):
 # -- Websocket monitor --------------------------------------------------
 
 
-async def _monitor(target, snapshot_fn) -> None:
+async def _monitor(
+    target: ContainerAppResource | ContainerAppInstanceResource,
+    snapshot_fn: Callable[[], dict[str, Any]],
+) -> None:
     """Stream a target's log and status changes over the websocket."""
-    runtime = target.runtime
+    if hasattr(target, "runtime"):
+        runtime = target.runtime
+    elif hasattr(target, "sandbox_runtime"):
+        runtime = target.sandbox_runtime
+    else:
+        raise TypeError("Object has no runtime to monitor")
     ws = quart.websocket
     loop = asyncio.get_running_loop()
     queue: asyncio.Queue[str] = asyncio.Queue(maxsize=1000)

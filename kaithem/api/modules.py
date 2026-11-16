@@ -1,10 +1,11 @@
 import logging
 import os
 from typing import Any
+from urllib.parse import quote
 
 from scullery import workers
 
-from kaithem.src import modules, modules_state, util
+from kaithem.src import modules, modules_state
 from kaithem.src.modules_state import ResourceDictType
 
 # This lock can be used to synchronize access to modules
@@ -43,7 +44,7 @@ def filename_for_resource(module: str, resource: str) -> str:
 
 
 def admin_url_for_file_resource(module: str, resource: str) -> str:
-    return f"/modules/module/{util.url(module)}/getfileresource/{resource}"
+    return f"/modules/module/{quote(module, '')}/getfileresource/{resource}"
 
 
 def scan_file_resources(module: str):

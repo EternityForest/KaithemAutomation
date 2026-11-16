@@ -317,7 +317,7 @@ def resource_type_from_schema(
     after_create: Callable[[ResourceTypeRuntimeObjectTypeVar, str, str], None]
     | None = None,
     priority: int | float = 50.0,
-):
+) -> BasicResourceType:
     """Create a new resource type from a JSON schema, and an object
      that represents the runtime state of the resource.
 
