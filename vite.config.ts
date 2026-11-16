@@ -83,6 +83,10 @@ export default defineConfig({
           __dirname,
           'kaithem/src/plugins/CorePluginPodmanManager/index.html'
         ),
+        container_apps: resolve(
+          __dirname,
+          'kaithem/src/plugins/CorePluginContainerApps/index.html'
+        ),
         bluetooth_console: resolve(
           __dirname,
           'kaithem/src/plugins/CorePluginBluetooth/html/index.html'

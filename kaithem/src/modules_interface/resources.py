@@ -188,6 +188,7 @@ async def addresourcetarget(module, rtype, path=""):
         def insertResource(r: modules_state.ResourceDictType):
             modules_state.raw_insert_resource(root, name_with_path, r)
 
+        created = None
         with modules_state.modulesLock:
             # Check if a resource by that name is already there
             if name_with_path in modules_state.ActiveModules[root]:
@@ -215,6 +216,7 @@ async def addresourcetarget(module, rtype, path=""):
                 if r:
                     insertResource(r)
                     rt.on_load(module, name_with_path, r)
+                    created = (rt, r)
 
             messagebus.post_message(
                 "/system/notifications",
@@ -227,10 +229,25 @@ async def addresourcetarget(module, rtype, path=""):
                 + " to module "
                 + root,
             )
-            # Take the user straight to the resource page
-            return quart.redirect(
-                f"/modules/module/{util.url(module)}/resource/{util.url(name_with_path)}"
-            )
+
+        # Run the after_create hook with the lock released, so a hook that
+        # touches other resources cannot deadlock on the modules lock.  A
+        # failing hook must never break creating the resource itself.
+        if created is not None:
+            rt, r = created
+            try:
+                rt.after_create(module, name_with_path, r)
+            except Exception:
+                logger.exception(
+                    "after_create hook failed for %s/%s",
+                    module,
+                    name_with_path,
+                )
+
+        # Take the user straight to the resource page
+        return quart.redirect(
+            f"/modules/module/{util.url(module)}/resource/{util.url(name_with_path)}"
+        )
 
     return await f()
 

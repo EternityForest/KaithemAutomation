@@ -14,10 +14,15 @@ module page instead of breaking module loading.
 from __future__ import annotations
 
 import html
-from typing import Any
+from typing import Any, override
 
 from kaithem.api import resource_types
-from kaithem.api.proxies import Proxy
+
+# Import from the implementation module, not ``kaithem.api.proxies``: the
+# public API module imports this package's ``proxy`` submodule, so going
+# through it here would be a circular import when this package is loaded
+# before ``kaithem.api.proxies``.
+from .proxy import PathProxy
 
 #: JSON schema describing the proxy resource's data.
 SCHEMA: dict[str, Any] = {
@@ -43,9 +48,7 @@ SCHEMA: dict[str, Any] = {
         "title": {
             "type": "string",
             "title": "Title",
-            "description": (
-                "Shown on the apps page.  Defaults to the path."
-            ),
+            "description": ("Shown on the apps page.  Defaults to the path."),
         },
         "permissions": {
             "type": "array",
@@ -76,13 +79,13 @@ class ProxyResource(resource_types.ResourceTypeRuntimeObject):
     def __init__(self, module: str, resource: str, data: dict[str, Any]):
         self.module = module
         self.resource = resource
-        self.proxy: Proxy | None = None
+        self.proxy: PathProxy | None = None
         self.error: str | None = None
         try:
-            self.proxy = Proxy(
-                path=data["path"],
+            self.proxy = PathProxy(
+                prefix=data["path"],
                 target=data["target"],
-                title=data.get("title") or None,
+                title=data.get("title") or "Untitled",
                 permissions=list(data.get("permissions") or []),
                 module=module,
                 resource=resource,
@@ -91,6 +94,7 @@ class ProxyResource(resource_types.ResourceTypeRuntimeObject):
             # Bad data should be visible, not fatal to module loading.
             self.error = str(exc)
 
+    @override
     def close(self) -> None:
         if self.proxy is not None:
             self.proxy.close()

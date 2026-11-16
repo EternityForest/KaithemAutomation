@@ -207,6 +207,19 @@ class ResourceType:
         """Called when loaded from disk, or otherwise
         created for the first time."""
 
+    def after_create(
+        self, module: str, resource: str, data: ResourceDictType
+    ):  # pragma: no cover
+        """Called only when a user creates the resource interactively.
+
+        Unlike :meth:`on_load` this is *not* called when a module is
+        loaded, imported from a zip, or otherwise restored from disk, so
+        it is the right place for one-off side effects such as creating a
+        companion resource.  It is called with the modules lock released
+        and any exception it raises is logged and swallowed so it can
+        never break the create transaction.
+        """
+
     def on_finished_loading(self, module: str | None):  # pragma: no cover
         """Called with module name when every resource
         has finished loading with onload(),
@@ -288,6 +301,10 @@ ResourceTypeRuntimeObjectTypeVar = TypeVar(
 )
 
 
+class BasicResourceType(ResourceType):
+    runtime_objects: dict[tuple[str, str], Any] = {}
+
+
 def resource_type_from_schema(
     resource_type: str,
     title: str,
@@ -297,6 +314,9 @@ def resource_type_from_schema(
     default: dict[str, Any] = {},
     blurb: Callable[[ResourceTypeRuntimeObjectTypeVar, str, str], str]
     | str = "",
+    after_create: Callable[[ResourceTypeRuntimeObjectTypeVar, str, str], None]
+    | None = None,
+    priority: int | float = 50.0,
 ):
     """Create a new resource type from a JSON schema, and an object
      that represents the runtime state of the resource.
@@ -308,6 +328,13 @@ def resource_type_from_schema(
 
     blurb(obj, module, resource) will be passed the runtime object
     and must return some HTML for the module page.
+
+    after_create(obj, module, resource) is called, with the runtime
+    object, only when a user creates the resource interactively.  It is
+    not called when a module is loaded or imported from a zip.
+
+    Lower ``priority`` values load first, so a resource type that depends
+    on another at load time should use a higher number.
     """
 
     if not hasattr(runtime_object_cls, "close"):
@@ -327,7 +354,8 @@ def resource_type_from_schema(
 
     validator.validate(default)
 
-    class BasicResourceType(ResourceType):
+    class BasicResourceTypeSubclass(BasicResourceType):
+        # Make sure not all objects share the same dict!!!!
         runtime_objects: dict[tuple[str, str], Any] = {}
 
         @override
@@ -430,6 +458,17 @@ def resource_type_from_schema(
             return self.runtime_objects[(module, resource)]
 
         @override
+        def after_create(
+            self, module: str, resource: str, data: Mapping[str, Any]
+        ):
+            if after_create is None:
+                return
+            obj = self.runtime_objects.get((module, resource))
+            if obj is None:
+                return
+            after_create(obj, module, resource)
+
+        @override
         def on_update(
             self, module: str, resource: str, data: Mapping[str, Any]
         ):
@@ -444,6 +483,8 @@ def resource_type_from_schema(
                 self.runtime_objects[(module, resource)].close()
                 del self.runtime_objects[(module, resource)]
 
-    rt = BasicResourceType(resource_type, title=title, mdi_icon=icon)
+    rt = BasicResourceTypeSubclass(
+        resource_type, title=title, mdi_icon=icon, priority=priority
+    )
     register_resource_type(rt)
     return rt

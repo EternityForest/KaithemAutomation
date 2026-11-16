@@ -432,6 +432,14 @@ class BaseAuthenticationPlugin:
         """Look up a user from a token"""
         return None
 
+    def request_to_user(self, headers: dict[str, str]) -> User | None:
+        """Look up a user from request headers, for authentication schemes
+        that are not cookie- or password-based, such as API keys.
+
+        Return ``None`` if this plugin does not recognize the request.
+        """
+        return None
+
     @final
     def get_system_user_db(self) -> dict[str, User]:
         return get_kaithem_configured_user_db()
@@ -511,6 +519,21 @@ def add_auth_plugin(plugin: BaseAuthenticationPlugin):
     with lock:
         auth_plugins.append(plugin)
         auth_plugins.sort(key=lambda x: x.priority)
+
+
+def headers_to_user(headers: dict[str, str]) -> str | None:
+    """Return the username authenticated by the given request headers, using
+    the ``request_to_user`` hook of each authentication plugin, or ``None``
+    if no plugin recognizes the request."""
+    for plugin in auth_plugins:
+        try:
+            user = plugin.request_to_user(headers)
+        except Exception:
+            logger.exception("Error in authentication plugin header hook")
+            continue
+        if user:
+            return user["username"]
+    return None
 
 
 def userLogin(username: str, password: str) -> str:
@@ -739,8 +762,12 @@ def getUserLimit(
             val = maximum
         return min(val, maximum)
     else:
+        if user == "__admin__":
+            return maximum
+
         if user == "__no_request__":
             return maximum
+
         return guestlimit
 
 

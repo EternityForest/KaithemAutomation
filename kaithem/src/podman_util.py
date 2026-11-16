@@ -279,6 +279,15 @@ def _container_name(name: str) -> str:
     return f"{CONTAINER_PREFIX}{name}"
 
 
+# Containers this process started.  Attached runs keep a Popen handle so we
+# can wait on them; detached runs only keep the name.  Either way, stopping
+# means removing the container by name, because signalling the ``podman run``
+# client is not reliable.
+_running: dict[str, subprocess.Popen[bytes]] = {}
+_running_names: set[str] = set()
+_running_lock = threading.RLock()
+
+
 def run_container(
     image: str,
     name: str,
@@ -290,10 +299,25 @@ def run_container(
     stderr: BinaryIO | int | None = None,
     args: list[str] | None = None,
     detach: bool = False,
+    publish: list[tuple[int, int]] | None = None,
+    track: bool = False,
+    remove_on_exit: bool = True,
+    entrypoint: str | None = None,
 ) -> subprocess.Popen[bytes] | None:
     """Start a container with the settings and bindings you pass to it.
 
     bindings: dict of host_path -> container_path
+    publish: list of (host_port, container_port) pairs
+    detach: run in the background and return None
+    track: remember a detached container so ``stop_container`` can stop it.
+        Attached containers are always tracked.
+    remove_on_exit: add podman's ``--rm`` so an exited container is deleted
+        at once.  Pass False to keep a stopped container around so its logs
+        can still be read after a crash; ``stop_container``/``remove_container``
+        delete it either way.
+    entrypoint: override the image's ENTRYPOINT, so a keepalive container
+        can run something reliable regardless of the image's default.
+
     Returns a Popen handle if not detached, else None.
     """
 
@@ -313,14 +337,19 @@ def run_container(
         "--name",
         _container_name(name),
         "--storage-driver=overlay",
-        "--rm",
         "--replace",
         "--detach" if detach else "--interactive",
         "--workdir",
         workdir,
     )
+    if entrypoint is not None:
+        cmd += ["--entrypoint", entrypoint]
+    if remove_on_exit:
+        cmd.append("--rm")
     for host, ctr in (bindings or {}).items():
         cmd += ["--mount", f"type=bind,src={host},dst={ctr}"]
+    for host_port, ctr_port in publish or []:
+        cmd += ["--publish", f"{host_port}:{ctr_port}"]
     for k, v in (env or {}).items():
         cmd += ["--env", f"{k}={v}"]
     cmd += [image]
@@ -344,39 +373,159 @@ def run_container(
         )
         raise
 
-    if not detach:
+    if not detach or track:
         # Track the running container so it can be shut off at exit.
         with _running_lock:
-            _running[name] = p
+            _running_names.add(name)
+            if not detach:
+                _running[name] = p
     return p
 
 
-_running: dict[str, subprocess.Popen[bytes]] = {}
-_running_lock = threading.RLock()
+def container_exists(name: str) -> bool:
+    """Return whether a container with this name exists (any state)."""
+    r = _podman_run("container", "exists", _container_name(name))
+    r.communicate()
+    return r.returncode == 0
+
+
+def container_status(name: str) -> str:
+    """Return podman's status string (e.g. ``running``), or ``missing``."""
+    try:
+        out = _podman_quick_run(
+            "container",
+            "inspect",
+            "--format",
+            "{{.State.Status}}",
+            _container_name(name),
+        )
+    except Exception:
+        return "missing"
+    return out.strip()
+
+
+def container_running(name: str) -> bool:
+    """Return whether a container is currently running."""
+    return container_status(name) == "running"
+
+
+def start_container(name: str, track: bool = True) -> None:
+    """Start an existing, stopped container by name.
+
+    Unlike :func:`run_container` this never recreates the container, so a
+    container kept around from an earlier run keeps its writable layer.
+    """
+    _podman_quick_run("start", _container_name(name))
+    if track:
+        with _running_lock:
+            _running_names.add(name)
+
+
+def stop_keep(name: str) -> None:
+    """Stop a container but keep it, and its writable layer, around.
+
+    Use this to shut a service off without losing whatever the container
+    wrote to its own filesystem.  :func:`stop_container` removes instead.
+    """
+    try:
+        _podman_quick_run("stop", _container_name(name))
+    except Exception:
+        logger.debug("Container %s was not running", name)
+    with _running_lock:
+        _running.pop(name, None)
+
+
+def exec_container(
+    name: str,
+    args: list[str],
+    env: dict[str, str] | None = None,
+    workdir: str | None = None,
+    stdin: BinaryIO | int | None = None,
+    stdout: BinaryIO | int | None = None,
+    stderr: BinaryIO | int | None = None,
+    detach: bool = False,
+    tty: bool = False,
+) -> subprocess.Popen[bytes]:
+    """Run a command inside an already-running container.
+
+    Uses ``podman exec`` so repeated commands share one container's
+    writable layer rather than paying to create a fresh container each
+    time.  The container must already be running.
+
+    Set ``tty`` to allocate a pseudo terminal for the command.  Without
+    one the command's stdout is a pipe, so most runtimes buffer their
+    output and it only arrives when the command exits; with a TTY they
+    line buffer it instead.  Use it whenever the output is streamed
+    live.  The caller owns any cleanup, but note that killing the
+    returned ``podman`` client now hangs up the command.
+    """
+    cmd = _podman("exec", "--detach" if detach else "--interactive")
+    if tty and not detach:
+        cmd.append("--tty")
+    if workdir:
+        cmd += ["--workdir", workdir]
+    for k, v in (env or {}).items():
+        cmd += ["--env", f"{k}={v}"]
+    cmd += [_container_name(name), *args]
+    return subprocess.Popen(
+        cmd,
+        env={**os.environ, **env_extras},
+        stdin=stdin,
+        stdout=stdout,
+        stderr=stderr,
+    )
+
+
+def container_logs(name: str, follow: bool = False) -> subprocess.Popen[bytes]:
+    """Return a Popen streaming a container's logs (stdout+stderr merged)."""
+    cmd = _podman("logs", _container_name(name))
+    if follow:
+        cmd.append("--follow")
+    return subprocess.Popen(
+        cmd,
+        env={**os.environ, **env_extras},
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
+
+
+def remove_container(name: str) -> None:
+    """Remove a container by name.  Missing containers are ignored."""
+    try:
+        _podman_quick_run("rm", "--force", _container_name(name))
+    except Exception:
+        logger.debug("Container %s not present", name)
+    with _running_lock:
+        _running.pop(name, None)
+        _running_names.discard(name)
 
 
 def stop_container(name: str) -> None:
     with _running_lock:
         p = _running.pop(name, None)
+        _running_names.discard(name)
 
     # Signalling the ``podman run`` client does not reliably stop the
     # container it started, so remove the container itself; the attached
-    # client then exits on its own.
-    if p is None or p.poll() is not None:
-        return
+    # client then exits on its own.  A container started in a previous
+    # process has no handle here but still needs removing, so always try.
     try:
         _podman_quick_run("rm", "--force", _container_name(name))
     except Exception:
-        logger.exception("Failed to remove container %s", name)
-        p.terminate()
-    try:
-        p.wait(timeout=10)
-    except Exception:
-        logger.exception("Failed to stop container %s", name)
+        if p is not None:
+            logger.exception("Failed to remove container %s", name)
+            p.terminate()
+
+    if p is not None:
         try:
-            p.kill()
+            p.wait(timeout=10)
         except Exception:
-            pass
+            logger.exception("Failed to stop container %s", name)
+            try:
+                p.kill()
+            except Exception:
+                pass
 
 
 def _cleanup() -> None:
@@ -434,5 +583,6 @@ threading.Thread(
 @at_shutdown
 def _shutdown() -> None:
     with _running_lock:
-        for name in list(_running):
-            stop_container(name)
+        names = set(_running) | set(_running_names)
+    for name in names:
+        stop_container(name)

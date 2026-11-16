@@ -329,9 +329,7 @@ def startServer(handle_signals=True):
         loop.add_signal_handler(signal.SIGTERM, _signal_handler)
         loop.add_signal_handler(signal.SIGINT, _signal_handler)
 
-    wrapped_app = PathDispatcher(
-        ContentSizeLimitMiddleware(dispatcher_app)
-    )
+    wrapped_app = PathDispatcher(ContentSizeLimitMiddleware(dispatcher_app))
 
     async def f2():
         # from pyinstrument import Profiler

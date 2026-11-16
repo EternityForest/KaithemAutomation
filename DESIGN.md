@@ -95,6 +95,22 @@ This endpoint automatically gives you the Barrel.css framework in addition to co
 
 These are always there. They load like plugins, but may access private internal APIs, and other plugins or even the main system itself can depend on them.
 
+### Container apps
+
+A container app's scripts are lists of command steps that run in series.
+Each step runs with `podman exec` in a reusable "keepalive" container, and
+steps that use the same image share that container.
+
+A container name is `capp-` plus the first 12 hex digits of
+`sha256(owner_id + "\n" + resolved_image)`, where `resolved_image` is
+`podman_util.resolve_image_name(image)`. The owner id is
+`app:<module>:<resource>` for an app's dev runtime and
+`instance:<module>:<resource>` for an instance. Within one app every
+command using the same image lands in one container, while a different
+image gets its own. Containers are only stopped and started, never
+recreated, so the writable layer survives a stop/start cycle but is never
+shared between different apps or instances.
+
 
 
 ## Dev Info

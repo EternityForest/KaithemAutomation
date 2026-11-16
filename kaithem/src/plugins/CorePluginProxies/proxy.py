@@ -1,4 +1,34 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
+from __future__ import annotations
+
+import asyncio
+import base64
+import re
+import threading
+import time
+from collections.abc import Callable
+from typing import Any, override
+from urllib.parse import quote, urlparse
+
+import niquests
+import quart
+import structlog
+from asgiref.typing import (
+    ASGIReceiveCallable,
+    ASGISendCallable,
+    HTTPScope,
+    Scope,
+    WebSocketScope,
+)
+from websockets.asyncio.client import ClientConnection
+from websockets.asyncio.client import connect as ws_connect
+from websockets.asyncio.client import unix_connect as ws_unix_connect
+from websockets.exceptions import ConnectionClosed
+
+import kaithem.api.apps_page as apps_page
+from kaithem.api import lifespan, web
+from kaithem.src import pages
+
 """Proxy management for Kaithem.
 
 A :class:`Proxy` exposes a backend HTTP server (or a Unix domain socket)
@@ -19,26 +49,6 @@ Proxies are normally created programmatically::
 
 They can also be created as a ``proxy`` resource from the modules UI.
 """
-
-from __future__ import annotations
-
-import asyncio
-import base64
-import time
-from typing import Any
-from urllib.parse import quote, urlparse
-
-import niquests
-import quart
-import structlog
-from websockets.asyncio.client import connect as ws_connect
-from websockets.asyncio.client import unix_connect as ws_unix_connect
-from websockets.exceptions import ConnectionClosed
-
-import kaithem.api.apps_page as apps_page
-from kaithem.api import lifespan, web
-from kaithem.src import pages
-
 logger = structlog.get_logger(__name__)
 
 # Headers that only apply to a single hop and must never be forwarded.
@@ -72,6 +82,14 @@ _AUTH_COOKIE_NAME = "kaithem_auth"
 
 # Chunk size used when streaming proxied responses.
 _STREAM_CHUNK_SIZE = 64 * 1024
+
+# A hook that may inspect or rewrite the headers sent to the backend.
+# It receives the ASGI scope, the authenticated username, and the headers
+# that would otherwise be forwarded, and may return a replacement dict.
+# Returning ``None`` leaves the headers unchanged.
+HeaderInterceptor = Callable[
+    [Scope, str, dict[str, str]], "dict[str, str] | None"
+]
 
 
 def _parse_target(target: str) -> tuple[str, str]:
@@ -108,18 +126,18 @@ def _parse_target(target: str) -> tuple[str, str]:
     return (parts.scheme, parts.netloc)
 
 
-def _host(scope: dict[str, Any]) -> str:
-    for key, value in scope.get("headers", []):
+def _host(scope: Scope) -> str:
+    for key, value in scope.get("headers", []):  # type: ignore
         if key == b"host":
             return value.decode("latin-1")
     return ""
 
 
-def _request_url(scope: dict[str, Any]) -> str:
+def _request_url(scope: Scope) -> str:
     """Rebuild the full URL a client requested, as seen by the proxy."""
-    scheme = scope.get("scheme", "http")
-    path = scope.get("path", "/")
-    query = scope.get("query_string", b"").decode("latin-1")
+    scheme: str = scope.get("scheme", "http")  # type: ignore
+    path: str = scope.get("path", "/")  # type: ignore
+    query: str = scope.get("query_string", b"").decode("latin-1")  # type: ignore
     url = f"{scheme}://{_host(scope)}{path}"
     if query:
         url += "?" + query
@@ -137,7 +155,7 @@ def _strip_auth_cookie(cookie_header: str) -> str:
     return ";".join(kept).strip()
 
 
-def _get_subprotocols(scope: dict[str, Any]) -> list[str]:
+def _get_subprotocols(scope: HTTPScope | WebSocketScope) -> list[str]:
     for key, value in scope.get("headers", []):
         if key == b"sec-websocket-protocol":
             return [
@@ -168,6 +186,8 @@ class ProxyApp(apps_page.App):
         self.path = path
 
     @property
+    @override
+    # pyrefly: ignore [missing-override-decorator]
     def url(self) -> str:
         return self.path
 
@@ -180,21 +200,27 @@ class ProxyApp(apps_page.App):
 class Proxy:
     """Expose a backend server at a path on the Kaithem host.
 
-    The proxy registers itself on creation and must be closed with
-    :meth:`close` when it is no longer needed.  Dropping a live proxy
-    without closing it logs a warning (except during shutdown).
+    Subclasses decide how the proxy is addressed -- :class:`Proxy` uses a
+    subdomain and :class:`PathProxy` a path prefix -- by implementing
+    :meth:`_register`, :meth:`_unregister` and
+    :meth:`_login_redirect_target`.  Everything else (header handling,
+    HTTP and websocket relaying, target switching and teardown) lives
+    here so both kinds behave identically.
     """
 
     def __init__(
         self,
         path: str,
         target: str,
-        title: str | None = None,
+        title: str,
         permissions: list[str] | None = None,
         module: str | None = None,
         resource: str | None = None,
+        request_header_interceptors: list[HeaderInterceptor] | None = None,
+        permissions_provider: Callable[[], list[str]] | None = None,
+        rewrite: list[tuple[str, str] | list[str]] | None = None,
     ):
-        """Create and register a proxy.
+        """Create a proxy to ``target``.
 
         Args:
             path: The URL path to serve the backend at, for example
@@ -207,14 +233,34 @@ class Proxy:
                 backend.  An empty list allows any user.
             module: Module name, used for the apps page icon.
             resource: Resource name, used for the apps page icon.
+            request_header_interceptors: Hooks that may add to or rewrite
+                the headers forwarded to the backend.  They run in order
+                after the standard headers are built.
+            permissions_provider: Optional callback returning additional
+                permissions, evaluated on every request.  Use this when
+                the required permissions can change while the proxy is
+                mounted; the result is merged with ``permissions``.
+
+            rewrite: A list of rewrite rules to apply to the
+                request URL before forwarding it to the backend.
+                Applied after removing the prefix and before building
+                the target.  They are applied in order with re.sub
+
         """
         self.path = path
+        self._target_lock = threading.Lock()
         self.target = target
         self.kind, self.target_value = _parse_target(target)
         self.title = title or path
         self.permissions = list(permissions or [])
+        self.permissions_provider = permissions_provider
         self.module = module
         self.resource = resource
+        self.request_header_interceptors = list(
+            request_header_interceptors or []
+        )
+
+        self.rewrite = rewrite or [("^/$", "/index")]
 
         self._session: niquests.AsyncSession | None = None
         self._closed = False
@@ -248,12 +294,40 @@ class Proxy:
             path,
         )
 
+    # -- Registration hooks -------------------------------------------
+
+    def _register(self) -> None:
+        """Mount the proxy so requests reach it.  Subclass provided."""
+        raise NotImplementedError
+
+    def _unregister(self) -> None:
+        """Undo :meth:`_register`.  Subclass provided."""
+        raise NotImplementedError
+
+    def _login_redirect_target(self, scope: dict[str, Any], url: str) -> str:
+        """Return where to send an unauthorized caller to log in."""
+        raise NotImplementedError
+
     # -- Public API ---------------------------------------------------
 
     def add_permission(self, permission: str) -> None:
         """Require an additional permission to reach the backend."""
         if permission not in self.permissions:
             self.permissions.append(permission)
+
+    def set_target(self, target: str) -> None:
+        """Point the proxy at a different backend, atomically.
+
+        The new target is validated before anything changes, so an invalid
+        target leaves the proxy forwarding to the old backend.  In-flight
+        requests keep the target they started with; subsequent requests and
+        websockets use the new one.
+        """
+        kind, value = _parse_target(target)
+        with self._target_lock:
+            self.target = target
+            self.kind = kind
+            self.target_value = value
 
     def close(self) -> None:
         """Unregister the proxy.  Safe to call more than once."""
@@ -277,6 +351,11 @@ class Proxy:
 
     # -- Internals ----------------------------------------------------
 
+    def _target_snapshot(self) -> tuple[str, str]:
+        """Return a consistent ``(kind, target_value)`` pair."""
+        with self._target_lock:
+            return (self.kind, self.target_value)
+
     def _close_session(self, session: niquests.AsyncSession) -> None:
         loop = getattr(quart.app, "main_web_loop", None)
         if loop is None or not loop.is_running():
@@ -288,58 +367,77 @@ class Proxy:
 
     def _get_session(self) -> niquests.AsyncSession:
         if self._session is None:
-            session = niquests.AsyncSession()
-            if self.kind == "unix":
-                from niquests.extensions.unixsocket._async import (
-                    AsyncUnixAdapter,
-                )
+            self._session = niquests.AsyncSession()
+        # Mounting is idempotent, so ensure the unix adapter is present
+        # whenever the current target is a unix socket.  This lets a live
+        # set_target() switch an existing session between TCP and unix.
+        if self.kind == "unix":
+            from niquests.extensions.unixsocket._async import (
+                AsyncUnixAdapter,
+            )
 
-                session.mount("http+unix://", AsyncUnixAdapter())
-            self._session = session
+            self._session.mount("http+unix://", AsyncUnixAdapter())
         return self._session
 
+    def _current_permissions(self) -> list[str]:
+        """Return the required permissions, including any dynamic ones."""
+        permissions = list(self.permissions)
+        if self.permissions_provider is not None:
+            permissions.extend(self.permissions_provider() or [])
+        return permissions
+
     def _is_authorized(self, user: str) -> bool:
-        if not self.permissions:
+        permissions = self._current_permissions()
+        if not permissions:
             return True
-        return pages.canUserDoThis(self.permissions, user)
+        return pages.canUserDoThis(permissions, user)
 
     def _upstream_host(self) -> str:
-        if self.kind == "unix":
+        kind, value = self._target_snapshot()
+        if kind == "unix":
             return "localhost"
-        return self.target_value
+        return value
 
     def _upstream_origin(self) -> str:
-        if self.kind == "unix":
+        kind, value = self._target_snapshot()
+        if kind == "unix":
             return "http://localhost"
-        return f"{self.kind}://{self.target_value}"
+        return f"{kind}://{value}"
 
     def _upstream_url(self, path: str, query: str) -> str:
-        if self.kind == "unix":
-            base = "http+unix://" + quote(self.target_value, safe="")
+        kind, value = self._target_snapshot()
+        if kind == "unix":
+            base = "http+unix://" + quote(value, safe="")
         else:
-            base = f"{self.kind}://{self.target_value}"
+            base = f"{kind}://{value}"
         url = base + path
         if query:
             url += "?" + query
         return url
 
-    def _backend_path(self, scope: dict[str, Any]) -> str:
+    def _backend_path(self, scope: HTTPScope | WebSocketScope) -> str:
         """Return the request path with the mount prefix removed."""
         path = scope.get("path", "/")
         if path == self.path:
             return "/"
         remainder = path[len(self.path) :]
-        return remainder if remainder.startswith("/") else "/"
+
+        remainder = remainder if remainder.startswith("/") else "/"
+
+        for i in self.rewrite:
+            remainder = re.sub(i[0], i[1], remainder)
+
+        return remainder
 
     def _build_request_headers(
         self,
-        scope: dict[str, Any],
+        scope: Scope,
         user: str,
         for_websocket: bool = False,
     ) -> dict[str, str]:
         headers: dict[str, str] = {}
         cookie_parts: list[str] = []
-        for key, value in scope.get("headers", []):
+        for key, value in scope.get("headers", []):  # type: ignore
             name = key.decode("latin-1")
             lower = name.lower()
             text = value.decode("latin-1")
@@ -367,6 +465,10 @@ class Proxy:
         headers["x-kaithem-is-admin"] = (
             "true" if pages.canUserDoThis("system_admin", user) else "false"
         )
+        for interceptor in self.request_header_interceptors:
+            replacement = interceptor(scope, user, headers)
+            if replacement is not None:
+                headers = replacement
         return headers
 
     def _build_response_headers(
@@ -392,7 +494,7 @@ class Proxy:
             out.append((key.encode("latin-1"), value.encode("latin-1")))
         return out
 
-    async def _read_body(self, receive) -> bytes:
+    async def _read_body(self, receive: ASGIReceiveCallable) -> bytes:
         chunks: list[bytes] = []
         while True:
             message = await receive()
@@ -404,10 +506,12 @@ class Proxy:
                 break
         return b"".join(chunks)
 
-    async def _deny_http(self, scope: dict[str, Any], send) -> None:
+    async def _deny_http(
+        self, scope: HTTPScope, send: ASGISendCallable
+    ) -> None:
         url = _request_url(scope)
-        check = scope.get("path", "/")
-        query = scope.get("query_string", b"").decode("latin-1")
+        check: str = scope.get("path", "/")
+        query: str = scope.get("query_string", b"").decode("latin-1")
         if query:
             check += "?" + query
 
@@ -421,9 +525,12 @@ class Proxy:
                         (b"content-type", b"text/plain; charset=utf-8"),
                         (b"content-length", str(len(body)).encode()),
                     ],
+                    "trailers": False,
                 }
             )
-            await send({"type": "http.response.body", "body": body})
+            await send(
+                {"type": "http.response.body", "body": body, "more_body": False}
+            )
             return
 
         target = (
@@ -437,11 +544,14 @@ class Proxy:
                 "type": "http.response.start",
                 "status": 302,
                 "headers": [(b"location", target.encode("latin-1"))],
+                "trailers": False,
             }
         )
-        await send({"type": "http.response.body", "body": b""})
+        await send(
+            {"type": "http.response.body", "body": b"", "more_body": False}
+        )
 
-    async def _bad_gateway(self, send) -> None:
+    async def _bad_gateway(self, send: ASGISendCallable) -> None:
         body = b"Bad Gateway"
         await send(
             {
@@ -451,11 +561,19 @@ class Proxy:
                     (b"content-type", b"text/plain; charset=utf-8"),
                     (b"content-length", str(len(body)).encode()),
                 ],
+                "trailers": False,
             }
         )
-        await send({"type": "http.response.body", "body": body})
+        await send(
+            {"type": "http.response.body", "body": body, "more_body": False}
+        )
 
-    async def _handle_http(self, scope, receive, send) -> None:
+    async def _handle_http(
+        self,
+        scope: HTTPScope,
+        receive: ASGIReceiveCallable,
+        send: ASGISendCallable,
+    ) -> None:
         user = pages.getAcessingUser(asgi=scope)
         if not self._is_authorized(user):
             await self._deny_http(scope, send)
@@ -485,6 +603,7 @@ class Proxy:
 
         try:
             status = resp.status_code
+            assert status is not None
             out_headers = self._build_response_headers(resp)
             no_body = method == "HEAD" or status in (204, 304)
             await send(
@@ -492,10 +611,17 @@ class Proxy:
                     "type": "http.response.start",
                     "status": status,
                     "headers": out_headers,
+                    "trailers": False,
                 }
             )
             if no_body:
-                await send({"type": "http.response.body", "body": b""})
+                await send(
+                    {
+                        "type": "http.response.body",
+                        "body": b"",
+                        "more_body": False,
+                    }
+                )
             else:
                 async for chunk in await resp.iter_raw(_STREAM_CHUNK_SIZE):
                     if chunk:
@@ -516,8 +642,9 @@ class Proxy:
         finally:
             await resp.close()
 
-    def _websocket_uri(self, scope: dict[str, Any]) -> str:
-        secure = scope.get("scheme") == "wss" or self.kind == "https"
+    def _websocket_uri(self, scope: HTTPScope | WebSocketScope) -> str:
+        kind, value = self._target_snapshot()
+        secure = scope.get("scheme") == "wss" or kind == "https"
         scheme = "wss" if secure else "ws"
         host = "localhost" if self.kind == "unix" else self.target_value
         path = self._backend_path(scope)
@@ -527,7 +654,12 @@ class Proxy:
             uri += "?" + query
         return uri
 
-    async def _relay_websocket(self, receive, send, backend) -> None:
+    async def _relay_websocket(
+        self,
+        receive: ASGIReceiveCallable,
+        send: ASGISendCallable,
+        backend: ClientConnection,
+    ) -> None:
         async def client_to_backend() -> None:
             while True:
                 message = await receive()
@@ -544,9 +676,9 @@ class Proxy:
             try:
                 async for message in backend:
                     if isinstance(message, str):
-                        await send({"type": "websocket.send", "text": message})
+                        await send({"type": "websocket.send", "text": message})  # type: ignore
                     else:
-                        await send({"type": "websocket.send", "bytes": message})
+                        await send({"type": "websocket.send", "bytes": message})  # type: ignore
             except ConnectionClosed:
                 return
 
@@ -562,11 +694,22 @@ class Proxy:
             await asyncio.gather(*tasks, return_exceptions=True)
 
         try:
-            await send({"type": "websocket.close", "code": 1000})
+            await send(
+                {
+                    "type": "websocket.close",
+                    "code": 1000,
+                    "reason": "Normal closure",
+                }
+            )
         except Exception:  # pragma: no cover - client already gone
             pass
 
-    async def _handle_websocket(self, scope, receive, send) -> None:
+    async def _handle_websocket(
+        self,
+        scope: WebSocketScope,
+        receive: ASGIReceiveCallable,
+        send: ASGISendCallable,
+    ) -> None:
         message = await receive()
         if message["type"] != "websocket.connect":
             return
@@ -591,9 +734,10 @@ class Proxy:
             connect_kwargs["subprotocols"] = subprotocols
 
         try:
-            if self.kind == "unix":
+            kind, value = self._target_snapshot()
+            if kind == "unix":
                 backend = await ws_unix_connect(
-                    path=self.target_value, uri=uri, **connect_kwargs
+                    path=value, uri=uri, **connect_kwargs
                 )
             else:
                 backend = await ws_connect(uri, **connect_kwargs)
@@ -613,13 +757,16 @@ class Proxy:
                 {
                     "type": "websocket.accept",
                     "subprotocol": backend.subprotocol,
+                    "headers": [],
                 }
             )
             await self._relay_websocket(receive, send, backend)
         finally:
             await backend.close()
 
-    async def __call__(self, scope, receive, send) -> None:
+    async def __call__(
+        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+    ) -> None:
         if scope["type"] == "http":
             await self._handle_http(scope, receive, send)
         elif scope["type"] == "websocket":
@@ -628,3 +775,146 @@ class Proxy:
             raise RuntimeError(
                 f"Proxy cannot handle scope type {scope['type']!r}"
             )
+
+
+def _validate_prefix(prefix: str) -> str:
+    """Validate and normalize a URL path prefix, raising on bad input.
+
+    The result always starts with ``/`` and never ends with one, so it can
+    be compared directly against ASGI paths.
+    """
+    if not isinstance(prefix, str) or not prefix:
+        raise ValueError("Path prefix must be a non-empty string")
+    prefix = prefix.strip()
+    if not prefix.startswith("/"):
+        raise ValueError(f"Path prefix {prefix!r} must start with '/'")
+    prefix = prefix.rstrip("/")
+    if not prefix:
+        raise ValueError("Path prefix must not be the root path")
+    if any(char in prefix for char in "?#"):
+        raise ValueError(
+            f"Path prefix {prefix!r} must not contain a query or fragment"
+        )
+    return prefix
+
+
+def _login_redirect(path: str, url: str) -> str:
+    """Build a login redirect that returns the user to ``url``.
+
+    ``path`` is the login page on the host the user is already on; for a
+    path proxy that is a plain ``/login`` and for a subdomain proxy it is
+    ``//parent/login``.
+    """
+    return (
+        path
+        + "?go="
+        + base64.b64encode(url.encode()).decode()
+        + "&maxgotime-"
+        + str(time.time() + 300)
+    )
+
+
+class PathProxy(Proxy):
+    """Expose a backend server under a path prefix on the Kaithem host.
+
+    Requests whose path is ``prefix`` or starts with ``prefix`` followed
+    by a slash are forwarded to the backend with the path untouched, so
+    the backend must know its own prefix (typically from an env var such
+    as ``BASE_PATH``) to generate correct links.
+    """
+
+    def __init__(
+        self,
+        prefix: str,
+        target: str,
+        title: str | None = None,
+        permissions: list[str] | None = None,
+        module: str | None = None,
+        resource: str | None = None,
+        request_header_interceptors: list[HeaderInterceptor] | None = None,
+        permissions_provider: Callable[[], list[str]] | None = None,
+        rewrite: list[tuple[str, str] | list[str]] | None = None,
+    ):
+        """Create and register a proxy at ``prefix``.
+
+        Args:
+            prefix: The absolute path to mount at, for example
+                ``"/apps/myapp"``.  Requests under it are forwarded to
+                the backend unchanged.
+            title: Title shown on the apps page.  Defaults to the
+                prefix.
+            target, permissions, module, resource,
+                request_header_interceptors, permissions_provider: See
+                :class:`ProxyBase`.
+        """
+        # _register() runs at the end of ProxyBase.__init__, so the
+        # prefix has to be set before calling it.
+        self.prefix = _validate_prefix(prefix)
+        super().__init__(
+            target=target,
+            path=self.prefix,
+            title=title or self.prefix,
+            permissions=permissions,
+            module=module,
+            resource=resource,
+            request_header_interceptors=request_header_interceptors,
+            permissions_provider=permissions_provider,
+            rewrite=rewrite,
+        )
+
+    @override
+    def _register(self) -> None:
+        app = ProxyApp(
+            path=self.prefix,
+            title=self.title,
+            module=self.module,
+            resource=self.resource,
+        )
+        web.add_path_app(self.prefix, self)
+        try:
+            apps_page.add_app(app)
+        except Exception:
+            web.remove_path_app(self.prefix, self)
+            raise
+        self._app = app
+
+    @override
+    def _unregister(self) -> None:
+        web.remove_path_app(self.prefix, self)
+        if self._app is not None:
+            apps_page.remove_app(self._app)
+            self._app = None
+
+    @override
+    def _login_redirect_target(self, scope: dict[str, Any], url: str) -> str:
+        return _login_redirect("/login", url)
+
+    @override
+    async def __call__(
+        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+    ) -> None:
+        # A request for the bare mount prefix (no trailing slash) cannot be
+        # forwarded usefully, so send a 301 to the canonical directory URL.
+        if scope["type"] == "http" and scope.get("path", "/") == self.prefix:
+            query = scope.get("query_string", b"").decode("latin-1")
+            location = self.prefix + "/"
+            if query:
+                location += "?" + query
+            await send(
+                {
+                    "type": "http.response.start",
+                    "status": 301,
+                    "headers": [(b"location", location.encode("latin-1"))],
+                    "trailers": False,
+                }
+            )
+            await send(
+                {"type": "http.response.body", "body": b"", "more_body": False}
+            )
+            return
+        await super().__call__(scope, receive, send)
+
+    @override
+    def apps_page_url(self) -> str:
+        """Return the path the apps page links to for this proxy."""
+        return self.prefix + "/"

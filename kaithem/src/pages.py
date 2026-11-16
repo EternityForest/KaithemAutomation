@@ -310,6 +310,17 @@ def strictNoCrossSite():
         )
 
 
+def _header_auth_user(headers: dict[str, str]) -> str:
+    """Return the user authenticated from the request headers (for example
+    an ephemeral API key), or ``__guest__`` if none apply."""
+    try:
+        user = auth.headers_to_user(headers)
+    except Exception:
+        logging.exception("Error resolving user from request headers")
+        return "__guest__"
+    return user or "__guest__"
+
+
 def getAcessingUser(asgi=None, quart_req=None) -> str:
     """Return the username of the user making the request bound to this thread or __guest__ if not logged in.
     The result of this function can be trusted because it uses the authentication token.
@@ -356,7 +367,7 @@ def getAcessingUser(asgi=None, quart_req=None) -> str:
 
     # Handle token based auth
     if "kaithem_auth" not in cookie or (not cookie["kaithem_auth"]):
-        return "__guest__"
+        return _header_auth_user(headers)
     try:
         user = auth.whoHasToken(cookie["kaithem_auth"])
         if not auth.getUserSetting(user, "allow-cors"):
@@ -375,7 +386,7 @@ def getAcessingUser(asgi=None, quart_req=None) -> str:
         return user
 
     except KeyError:
-        return "__guest__"
+        return _header_auth_user(headers)
     except Exception:
         logging.exception("Error in user lookup")
         return "__guest__"
