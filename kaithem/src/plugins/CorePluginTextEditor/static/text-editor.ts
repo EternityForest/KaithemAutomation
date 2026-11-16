@@ -477,7 +477,7 @@ class TextEditorPage extends LitElement {
       this._lspLanguages = info.languages || [];
       this._workspacePath = info.workspacePath || '';
       this._lspWorkspaceUri = 'file:///workspace';
-      if (!this._lspLanguages.length) {
+      if (this._lspLanguages.length === 0) {
         this.lspStatus = 'unavailable';
         return;
       }
