@@ -12,6 +12,8 @@ from weakref import ref
 from iot_devices.device import pydantic
 from structlog import get_logger
 
+import kaithem.api.lifespan as lifespan
+
 from . import core
 
 if TYPE_CHECKING:
@@ -64,8 +66,13 @@ class ShortcutCodeListener:
         self._callback(self.code, t or time.time(), props or {})
 
     def __del__(self):
+        if not hasattr(self, "_callback"):  # coverage: ignore
+            return
         if not self.closed:  # coverage: ignore
-            _logger.warning("Shortcut code listener not closed", code=self.code)
+            if not lifespan.is_shutting_down:
+                _logger.warning(
+                    "Shortcut code listener not closed", code=self.code
+                )
             self.close()
 
 

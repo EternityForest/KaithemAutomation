@@ -13,12 +13,18 @@ Example::
     [scripts]
     image = "docker.io/oven/bun:1.4.4-slim"
 
-    [[scripts.build]]
+    [scripts.build]
+    [[scripts.build.command]]
     image = "docker.io/library/rust:1.80-slim"
     command = ["cargo", "build", "--release"]
 
-    [[scripts.build]]
+    [[scripts.build.command]]
     command = ["bun", "install"]
+
+    [scripts.watch]
+    background = true
+    [[scripts.watch.command]]
+    command = ["bun", "run", "dev"]
 
     [[app.command]]
     command = ["bun", "run", "start"]
@@ -28,17 +34,34 @@ or, for a project that only builds static files::
     [scripts]
     image = "docker.io/library/nginx:1.27-alpine"
 
-    [[scripts.build]]
+    [scripts.build]
+    [[scripts.build.command]]
     command = ["sh", "-c", "cp -r src/* dist/"]
 
     [app]
     type = "staticfiles"
     source = "dist"
 
+or, for a project with no app at all, just manually triggered scripts
+(for example firmware to flash onto a microcontroller)::
+
+    [scripts]
+    image = "docker.io/library/rust:1.80-slim"
+
+    [scripts.flash]
+    [[scripts.flash.command]]
+    command = ["cargo", "run", "--bin", "flash"]
+
 Every script is a list of command steps that run in series.  Each step
 may name its own ``image``; a step without one uses the ``[scripts]``
-default.  The app's run command is a list too: the final step is the long
-running process, and the steps before it run to completion first.
+default.  A script marked ``background = true`` may run alongside other
+commands; a normal script runs on its own and can be cancelled.  The
+legacy ``[[scripts.name]]`` table list is also accepted and means a
+foreground script.
+
+An app is optional.  When present, its run command is a list too: the
+final step is the long running process, and the steps before it run to
+completion first.
 
 Parsing and validation are kept completely separate from running
 anything, so a broken config fails loudly on load instead of at build
@@ -58,9 +81,8 @@ logger = structlog.get_logger(__name__)
 #: Name of the config file, relative to the project folder.
 CONFIG_FILENAME = "container-app.toml"
 
-#: Reserved script name that runs the build.  Kept out of the user
-#: runnable actions so it is never started by accident.
-BUILD_SCRIPT = "build"
+#: Reserved script name used for the app command in snapshots and events.
+APP_SCRIPT_NAME = "app"
 
 #: Key inside ``[scripts]`` that sets the default image.  Not a script.
 DEFAULT_IMAGE_KEY = "image"
@@ -85,6 +107,7 @@ class ScriptConfig(TypedDict):
 
     name: str
     steps: list[CommandStep]
+    background: bool
 
 
 class CommandApp(TypedDict):
@@ -112,9 +135,8 @@ AppConfig = CommandApp | StaticFilesApp
 class ContainerAppConfig(TypedDict):
     """A fully resolved ``container-app.toml``."""
 
-    build: ScriptConfig | None
     scripts: dict[str, ScriptConfig]
-    app: AppConfig
+    app: AppConfig | None
 
 
 def _location(where: str, key: str) -> str:
@@ -204,20 +226,41 @@ def _parse_steps(
     ]
 
 
+def _optional_bool(
+    table: dict[str, object], key: str, where: str, default: bool = False
+) -> bool:
+    if key not in table:
+        return default
+    value = table[key]
+    if not isinstance(value, bool):
+        raise ConfigError(f"'{_location(where, key)}' must be a boolean")
+    return value
+
+
 def _parse_script(
     name: str, value: object, default_image: str | None
 ) -> ScriptConfig:
     if name == DEFAULT_IMAGE_KEY:
         raise ConfigError(f"'{DEFAULT_IMAGE_KEY}' is a reserved script name")
+    if name == APP_SCRIPT_NAME:
+        raise ConfigError(f"'{APP_SCRIPT_NAME}' is a reserved script name")
     where = f"scripts.{name}"
-    steps = _parse_steps(value, where, default_image)
-    return {"name": name, "steps": steps}
+    if isinstance(value, dict):
+        table = _require_table(value, where)
+        _reject_unknown(table, {"background", "command", "image"}, where)
+        background = _optional_bool(table, "background", where)
+        image = _optional_string(table, "image", where) or default_image
+        steps = _parse_steps(table.get("command"), f"{where}.command", image)
+    else:
+        background = False
+        steps = _parse_steps(value, where, default_image)
+    return {"name": name, "steps": steps, "background": background}
 
 
-def _parse_app(value: object, default_image: str | None) -> AppConfig:
+def _parse_app(value: object, default_image: str | None) -> AppConfig | None:
     where = "app"
     if value is None:
-        raise ConfigError("Missing required [app] table")
+        return None
     table = _require_table(value, where)
     _reject_unknown(table, {"type", "command", "source", "image"}, where)
 
@@ -273,10 +316,9 @@ def parse_config(raw: object) -> ContainerAppConfig:
             continue
         scripts[name] = _parse_script(name, value, default_image)
 
-    build = scripts.pop(BUILD_SCRIPT, None)
     app = _parse_app(table.get("app"), default_image)
 
-    return {"build": build, "scripts": scripts, "app": app}
+    return {"scripts": scripts, "app": app}
 
 
 def config_path(project_folder: str) -> str:

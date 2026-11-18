@@ -57,19 +57,20 @@ test('auto-creates a default instance and opens both admin pages', async ({
     `${MODULE}:${APP}`
   );
 
-  // The app dev page loads and offers the template/build actions.
+  // The app dev page loads and offers the template action.  A fresh app
+  // has no container-app.toml yet, so it has no app and no scripts.
   await page.getByTestId('container-app-open').click();
   await expect(page).toHaveURL(/type=app/);
   await expect(page.getByTestId('ca-title')).toHaveText(APP);
   await expect(page.getByTestId('ca-copy-template')).toBeVisible();
-  await expect(page.getByTestId('ca-build')).toBeVisible();
+  await expect(page.getByTestId('ca-kind')).toContainText('scripts only');
 
   // The instance admin page loads and points back at its app.
   await page.goto(`${BASE}/modules/module/${MODULE}`);
   await page.getByTestId('container-app-instance-open').click();
   await expect(page).toHaveURL(/type=instance/);
   await expect(page.getByTestId('ca-app-ref')).toHaveText(`${MODULE}:${APP}`);
-  await expect(page.getByTestId('ca-start')).toBeVisible();
+  await expect(page.getByTestId('ca-start')).toHaveCount(0);
 
   await deleteModule(page, MODULE);
 });

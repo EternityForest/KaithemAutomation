@@ -4,6 +4,16 @@
 // view and the `instance` admin view.  Both are served by
 // /containerapps/api.
 
+export interface CommandSnapshot {
+  /** Script name, or `app` for the project's own long running command. */
+  name: string;
+  background: boolean;
+  /** `stopped`, `running`, `exited` or `failed` (or an app status). */
+  status: string;
+  exit_code: number | null;
+  log: string[];
+}
+
 export interface BaseSnapshot {
   module: string;
   resource: string;
@@ -12,9 +22,8 @@ export interface BaseSnapshot {
   error: string | null;
   built: boolean;
   kind: string | null;
-  build_images: string[];
   run_images: string[];
-  log: string[];
+  commands: CommandSnapshot[];
   environment: Record<string, string>;
 }
 
@@ -22,7 +31,6 @@ export interface AppSnapshot extends BaseSnapshot {
   type: 'app';
   dev: boolean;
   empty: boolean;
-  scripts: string[];
   dev_url: string;
 }
 
@@ -37,16 +45,23 @@ export interface InstanceSnapshot extends BaseSnapshot {
 export type ContainerAppSnapshot = AppSnapshot | InstanceSnapshot;
 
 export type AppAction =
-  | 'build'
   | 'dev'
   | 'stop-dev'
   | 'reload'
-  | 'clean'
   | 'delete-runtime'
   | 'copy-template'
-  | 'run-script';
+  | 'run-script'
+  | 'stop-script'
+  | 'stop-app';
 
-export type InstanceAction = 'start' | 'stop' | 'reload' | 'delete-runtime';
+export type InstanceAction =
+  | 'start'
+  | 'stop'
+  | 'reload'
+  | 'delete-runtime'
+  | 'run-script'
+  | 'stop-script'
+  | 'stop-app';
 
 export type SurfaceKind = 'app' | 'instance';
 
@@ -119,11 +134,15 @@ export async function getInstance(
 export async function runInstanceAction(
   module: string,
   resource: string,
-  action: InstanceAction
+  action: InstanceAction,
+  body?: Record<string, unknown>
 ): Promise<InstanceSnapshot> {
   return request<InstanceSnapshot>(
     `${resourcePath('instance', module, resource)}/${action}`,
-    { method: 'POST' }
+    {
+      method: 'POST',
+      body: body === undefined ? undefined : JSON.stringify(body),
+    }
   );
 }
 

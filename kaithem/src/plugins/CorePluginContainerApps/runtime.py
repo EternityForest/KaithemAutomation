@@ -9,6 +9,10 @@ image for the next.  Each command is ``podman exec``'d into a long lived
 container and its writable layer instead of paying to create a fresh
 container every time.
 
+Foreground scripts run one at a time; background scripts and the app may
+run alongside them.  Every command keeps its own log, tagged with the
+command that produced it, so the UI can route each line to its console.
+
 A container is named from the owning resource id and the image it runs,
 so a :class:`ContainerRuntime` that asks for the same image under the same
 owner shares a container, and one that asks for a different image gets its
@@ -24,15 +28,13 @@ and needs no platform specific data at runtime.
 from __future__ import annotations
 
 import hashlib
-import json
 import os
-import shutil
 import subprocess
 import threading
 import time
 from collections import deque
 from collections.abc import Callable
-from typing import Final, Literal
+from typing import Any, Final, Literal
 
 import structlog
 
@@ -40,6 +42,7 @@ from kaithem.api.util import get_vardir
 from kaithem.src import podman_util
 
 from .appconfig import (
+    APP_SCRIPT_NAME,
     CommandApp,
     CommandStep,
     ContainerAppConfig,
@@ -78,7 +81,43 @@ KEEPALIVE_ENTRYPOINT: Final = "sleep"
 KEEPALIVE_ARGS: Final = ["infinity"]
 
 StatusCallback = Callable[[ContainerStatus], None]
-LogCallback = Callable[[str], None]
+MessageCallback = Callable[[str, str], None]
+CommandCallback = Callable[[str, str, int | None], None]
+
+#: Script name reserved for the app command in snapshots and events.
+APP_COMMAND: Final = APP_SCRIPT_NAME
+
+#: Run status of a manually triggered script.
+CommandStatus = Literal["stopped", "running", "exited", "failed"]
+
+
+class CommandState:
+    """Everything known about one app or script command.
+
+    The runtime keeps one of these per script plus one for the app, so the
+    UI can build its launch buttons and consoles from a single list and
+    every log line can be routed to the console that produced it.
+    """
+
+    def __init__(self, name: str, steps: list[CommandStep], background: bool):
+        self.name = name
+        self.steps = steps
+        self.background = background
+        self.status: str = "stopped"
+        self.exit_code: int | None = None
+        self.proc: subprocess.Popen[bytes] | None = None
+        self.cancel = threading.Event()
+        self.thread: threading.Thread | None = None
+        self.log: deque[str] = deque(maxlen=LOG_BUFFER_LINES)
+
+    def snapshot(self) -> dict[str, Any]:
+        return {
+            "name": self.name,
+            "background": self.background,
+            "status": self.status,
+            "exit_code": self.exit_code,
+            "log": list(self.log),
+        }
 
 
 def kaithem_local_address() -> str:
@@ -286,33 +325,36 @@ class ContainerRuntime:
 
         self.owner_id = owner_id
         self.project_folder = os.path.abspath(project_folder)
-        self.config: ContainerAppConfig
-        self.reload_config()
-
         self.data_dir = os.path.abspath(data_dir)
         self.base_path = base_path
-
         self._ipc_dir = os.path.join(runtime_dir(owner_id), "ipc")
 
-        # Guards ``_status``, ``_error``, ``_app_proc``, ``_want_running``
-        # and ``_dev``; separate from the session locks so a status read
-        # never blocks on container I/O.
+        # Guards ``_status``, ``_error``, ``_want_running`` and ``_dev``;
+        # separate from the other locks so a status read never blocks on
+        # container I/O.
         self._state_lock = threading.RLock()
         self._status: ContainerStatus = "stopped"
         self._error: str | None = None
         self._want_running = False
         self._dev = False
-        self._app_proc: subprocess.Popen[bytes] | None = None
 
         self._sessions: dict[str, ContainerSession] = {}
         self._session_lock = threading.Lock()
-        self._build_lock = threading.Lock()
-        self._action_lock = threading.Lock()
+        # Only one foreground script may run at a time.  Background scripts
+        # and the app never take this lock.
+        self._foreground_lock = threading.Lock()
 
-        self._log: deque[str] = deque(maxlen=LOG_BUFFER_LINES)
-        self._log_callbacks: list[LogCallback] = []
+        # Guards the command states and their logs.
+        self._command_lock = threading.RLock()
+        self._commands: dict[str, CommandState] = {}
+
+        self._message_callbacks: list[MessageCallback] = []
+        self._command_callbacks: list[CommandCallback] = []
         self._status_callbacks: list[StatusCallback] = []
         self._notify_lock = threading.Lock()
+
+        self.config: ContainerAppConfig
+        self.reload_config()
 
         #: Set by the owning resource so the app can call back into
         #: Kaithem.  Apps that never connect to the server ignore it.
@@ -336,32 +378,21 @@ class ContainerRuntime:
             return self._dev
 
     @property
-    def supports_build(self) -> bool:
-        """Whether the project defines a build command."""
-        return self.config["build"] is not None
-
-    @property
     def supports_run(self) -> bool:
         """Whether the app is a command run inside a container."""
-        return self.config["app"]["kind"] == "command"
+        app = self.config["app"]
+        return app is not None and app["kind"] == "command"
 
     @property
-    def app_kind(self) -> str:
-        return self.config["app"]["kind"]
-
-    @property
-    def build_images(self) -> list[str]:
-        """Distinct images used by the build steps, in order."""
-        build = self.config["build"]
-        if build is None:
-            return []
-        return _step_images(build["steps"])
+    def app_kind(self) -> str | None:
+        app = self.config["app"]
+        return None if app is None else app["kind"]
 
     @property
     def run_images(self) -> list[str]:
         """Distinct images used by the run steps, in order."""
         app = self.config["app"]
-        if app["kind"] != "command":
+        if app is None or app["kind"] != "command":
             return []
         return _step_images(app["steps"])
 
@@ -369,6 +400,21 @@ class ContainerRuntime:
     def scripts(self) -> dict[str, ScriptConfig]:
         """Named commands the project exposes as runnable actions."""
         return self.config["scripts"]
+
+    def get_commands(self) -> list[dict[str, Any]]:
+        """Snapshot every command, with the app always first."""
+        with self._command_lock:
+            names: list[str] = []
+            if APP_COMMAND in self._commands:
+                names.append(APP_COMMAND)
+            names.extend(name for name in self._commands if name != APP_COMMAND)
+            return [self._commands[name].snapshot() for name in names]
+
+    def get_command_log(self, name: str) -> list[str]:
+        """Return a copy of one command's buffered log lines."""
+        with self._command_lock:
+            state = self._commands.get(name)
+            return list(state.log) if state is not None else []
 
     @property
     def ipc_dir(self) -> str:
@@ -382,7 +428,7 @@ class ContainerRuntime:
     def static_source_dir(self) -> str:
         """Absolute path of the directory a static app is served from."""
         app = self.config["app"]
-        if app["kind"] != "staticfiles":
+        if app is None or app["kind"] != "staticfiles":
             raise RuntimeError("This project is not a static file app")
         return os.path.join(self.project_folder, app["source"])
 
@@ -401,34 +447,60 @@ class ContainerRuntime:
             env["KAITHEM_API_KEY"] = self.api_key
         return env
 
-    # -- Log plumbing ---------------------------------------------------
+    # -- Log and command plumbing ---------------------------------------
 
-    def on_message(self, message: str) -> None:
-        """Report a line of build or runtime output."""
+    def _emit(self, name: str, message: str) -> None:
+        """Append one output line to a command's log and notify listeners."""
         if not isinstance(message, str):
             raise TypeError("message must be a string")
+        with self._command_lock:
+            state = self._commands.get(name)
+            if state is None:
+                return
+            state.log.append(message)
         with self._notify_lock:
-            self._log.append(message)
-            callbacks = list(self._log_callbacks)
+            callbacks = list(self._message_callbacks)
         for callback in callbacks:
             try:
-                callback(message)
+                callback(name, message)
             except Exception:
                 logger.exception("Container app log callback failed")
 
-    def get_log(self) -> list[str]:
-        """Return a copy of the buffered log lines."""
+    def _set_command_state(
+        self, name: str, status: str, exit_code: int | None = None
+    ) -> None:
+        """Update a command's run status and notify listeners."""
+        with self._command_lock:
+            state = self._commands.get(name)
+            if state is None:
+                return
+            state.status = status
+            state.exit_code = exit_code
         with self._notify_lock:
-            return list(self._log)
+            callbacks = list(self._command_callbacks)
+        for callback in callbacks:
+            try:
+                callback(name, status, exit_code)
+            except Exception:
+                logger.exception("Container app command callback failed")
 
-    def add_log_callback(self, callback: LogCallback) -> None:
+    def add_message_callback(self, callback: MessageCallback) -> None:
         with self._notify_lock:
-            self._log_callbacks.append(callback)
+            self._message_callbacks.append(callback)
 
-    def remove_log_callback(self, callback: LogCallback) -> None:
+    def remove_message_callback(self, callback: MessageCallback) -> None:
         with self._notify_lock:
-            if callback in self._log_callbacks:
-                self._log_callbacks.remove(callback)
+            if callback in self._message_callbacks:
+                self._message_callbacks.remove(callback)
+
+    def add_command_callback(self, callback: CommandCallback) -> None:
+        with self._notify_lock:
+            self._command_callbacks.append(callback)
+
+    def remove_command_callback(self, callback: CommandCallback) -> None:
+        with self._notify_lock:
+            if callback in self._command_callbacks:
+                self._command_callbacks.remove(callback)
 
     def add_status_callback(self, callback: StatusCallback) -> None:
         with self._notify_lock:
@@ -453,43 +525,89 @@ class ContainerRuntime:
             if self._status == status:
                 return
             self._status = status
+        with self._command_lock:
+            app_state = self._commands.get(APP_COMMAND)
+            if app_state is not None:
+                app_state.status = status
         with self._notify_lock:
-            callbacks = list(self._status_callbacks)
-        for callback in callbacks:
+            status_callbacks = list(self._status_callbacks)
+            command_callbacks = list(self._command_callbacks)
+        for callback in status_callbacks:
             try:
                 callback(status)
             except Exception:
                 logger.exception("Container app status callback failed")
+        if app_state is not None:
+            for callback in command_callbacks:
+                try:
+                    callback(APP_COMMAND, status, app_state.exit_code)
+                except Exception:
+                    logger.exception("Container app command callback failed")
 
-    # -- Build state ----------------------------------------------------
-
-    def _marker_path(self) -> str:
-        return os.path.join(self.project_folder, ".kaithem-build.json")
-
-    def is_build_complete(self) -> bool:
-        """Whether the build command (if any) has been run."""
-        if self.config["build"] is None:
-            return True
-        return os.path.exists(self._marker_path())
+    # -- Config state ---------------------------------------------------
 
     def is_built(self) -> bool:
-        """Whether a usable build exists on disk."""
-        if not self.is_build_complete():
+        """Whether a usable app exists on disk.
+
+        Building is a manual developer action, so a command app is always
+        startable; a static app is only usable once its output directory
+        exists.
+        """
+        app = self.config["app"]
+        if app is None:
             return False
-        if self.config["app"]["kind"] == "staticfiles":
+        if app["kind"] == "staticfiles":
             return os.path.isdir(self.static_source_dir())
         return True
 
-    def _write_build_marker(self) -> None:
-        data = {
-            "build_images": self.build_images,
-            "time": int(time.time()),
-        }
-        with open(self._marker_path(), "w", encoding="utf-8") as handle:
-            json.dump(data, handle)
+    def reload_config(self) -> None:
+        config = load_config(self.project_folder)
+        self._sync_commands(config)
+        self.config = config
 
-    def reload_config(self):
-        self.config = load_config(self.project_folder)
+    def _sync_commands(self, config: ContainerAppConfig) -> None:
+        """Match the command states to the scripts in a fresh config."""
+        app = config["app"]
+        desired: dict[str, tuple[list[CommandStep], bool]] = {}
+        if app is not None and app["kind"] == "command":
+            desired[APP_COMMAND] = (app["steps"], True)
+        for name, script in config["scripts"].items():
+            desired[name] = (script["steps"], script["background"])
+
+        stale: list[CommandState] = []
+        with self._command_lock:
+            for name, state in self._commands.items():
+                if name in desired:
+                    state.steps, state.background = desired[name]
+                else:
+                    stale.append(state)
+            for state in stale:
+                self._commands.pop(state.name, None)
+            for name, (steps, background) in desired.items():
+                if name in self._commands:
+                    continue
+                state = CommandState(name, steps, background)
+                if name == APP_COMMAND:
+                    state.status = self._status
+                self._commands[name] = state
+
+        for state in stale:
+            self._cancel_state(state)
+            if state.name == APP_COMMAND:
+                with self._state_lock:
+                    self._want_running = False
+
+    def _cancel_state(self, state: CommandState) -> None:
+        """Ask a running command to stop and kill its exec client."""
+        state.cancel.set()
+        with self._command_lock:
+            proc = state.proc
+        if proc is None:
+            return
+        try:
+            proc.kill()
+        except Exception:
+            logger.debug("Failed to kill command client", exc_info=True)
 
     # -- Lifecycle ------------------------------------------------------
 
@@ -519,12 +637,15 @@ class ContainerRuntime:
     def start(self, dev: bool = False) -> None:
         """Run the app command inside a container.
 
-        Does nothing but launch the command; it never builds.
+        Does nothing but launch the command; it never builds.  Building
+        is always a manual developer action.
         """
         app = self.config["app"]
-        if app["kind"] != "command":
+        if app is None or app["kind"] != "command":
             raise RuntimeError("This project has no run command")
 
+        state = self._app_state()
+        state.cancel.clear()
         with self._state_lock:
             self._want_running = True
             self._dev = dev
@@ -540,18 +661,28 @@ class ContainerRuntime:
             raise
         self.set_error_state(None)
 
+    def _app_state(self) -> CommandState:
+        with self._command_lock:
+            state = self._commands.get(APP_COMMAND)
+        if state is None:
+            raise RuntimeError("This project has no run command")
+        return state
+
     def _launch(self, app: CommandApp) -> None:
         """Run the setup steps, then keep the final step running."""
+        state = self._app_state()
         steps = app["steps"]
         for step in steps[:-1]:
-            code = self._run_attached(step["image"], step["command"])
+            code = self._run_attached(state, step)
             if code != 0:
                 raise RuntimeError(
                     f"Setup command failed with exit code {code}"
                 )
-        self._launch_persistent(steps[-1])
+        self._launch_persistent(state, steps[-1])
 
-    def _launch_persistent(self, step: CommandStep) -> None:
+    def _launch_persistent(
+        self, state: CommandState, step: CommandStep
+    ) -> None:
         session = self._session(step["image"])
         proc = session.exec(
             list(step["command"]),
@@ -563,32 +694,46 @@ class ContainerRuntime:
             tty=True,
         )
         assert proc.stdout is not None
+        with self._command_lock:
+            state.proc = proc
+            state.exit_code = None
         with self._state_lock:
-            self._app_proc = proc
             status: ContainerStatus = "dev" if self._dev else "running"
+        self._set_command_state(APP_COMMAND, status, None)
         self._set_status(status)
-        threading.Thread(
+        thread = threading.Thread(
             target=self._monitor,
-            args=(proc, step),
+            args=(state, proc, step),
             daemon=True,
             name=f"capp-mon-{session.name}",
-        ).start()
+        )
+        with self._command_lock:
+            state.thread = thread
+        thread.start()
 
     def _monitor(
-        self, proc: subprocess.Popen[bytes], step: CommandStep
+        self,
+        state: CommandState,
+        proc: subprocess.Popen[bytes],
+        step: CommandStep,
     ) -> None:
         """Stream the app's output and restart it if it dies."""
         stdout = proc.stdout
         assert stdout is not None
         for raw in stdout:
-            self.on_message(raw.decode("utf-8", "replace").rstrip("\r\n"))
+            self._emit(
+                APP_COMMAND,
+                raw.decode("utf-8", "replace").rstrip("\r\n"),
+            )
         code = proc.wait()
 
-        with self._state_lock:
-            if self._app_proc is not proc:
+        with self._command_lock:
+            if state.proc is not proc:
                 # Superseded by a newer launch or an explicit stop.
                 return
-            self._app_proc = None
+            state.proc = None
+            state.exit_code = code
+        with self._state_lock:
             want_running = self._want_running
 
         if not want_running:
@@ -596,52 +741,68 @@ class ContainerRuntime:
             return
 
         self.set_error_state(f"App exited with code {code}")
-        self.on_message(f"App exited with code {code}; restarting")
+        self._emit(APP_COMMAND, f"App exited with code {code}; restarting")
+        self._set_command_state(APP_COMMAND, state.status, code)
         time.sleep(RESTART_DELAY)
         with self._state_lock:
             if not self._want_running:
                 self._set_status("stopped")
                 return
         try:
-            self._launch_persistent(step)
+            self._launch_persistent(state, step)
         except Exception as exc:
             logger.exception("Failed to restart container app")
             self.set_error_state(str(exc))
             self._set_status("stopped")
 
     def stop(self) -> None:
-        """Stop the app command.  Safe to call when already stopped."""
+        """Stop the app and every script command.
+
+        Safe to call when already stopped.
+        """
         with self._state_lock:
             self._want_running = False
-            proc = self._app_proc
 
+        self._stop_all_commands()
         for session in self._sessions_snapshot():
             try:
                 session.stop()
             except Exception:
                 logger.exception("Failed to stop container session")
 
-        if proc is not None:
-            try:
-                proc.wait(timeout=15)
-            except Exception:
-                logger.debug("Killing stuck exec client", exc_info=True)
+        with self._command_lock:
+            app_state = self._commands.get(APP_COMMAND)
+            if app_state is not None and app_state.proc is not None:
                 try:
-                    proc.kill()
+                    app_state.proc.wait(timeout=15)
                 except Exception:
-                    pass
-        with self._state_lock:
-            self._app_proc = None
+                    logger.debug("Killing stuck exec client", exc_info=True)
+                    try:
+                        app_state.proc.kill()
+                    except Exception:
+                        pass
+                app_state.proc = None
         self._set_status("stopped")
+
+    def _stop_all_commands(self) -> None:
+        """Cancel every running command and wait for its thread."""
+        with self._command_lock:
+            states = list(self._commands.values())
+        for state in states:
+            self._cancel_state(state)
+        for state in states:
+            thread = state.thread
+            if thread is not None and thread.is_alive():
+                thread.join(timeout=10)
 
     def _sessions_snapshot(self) -> list[ContainerSession]:
         with self._session_lock:
             return list(self._sessions.values())
 
     def delete_runtime(self) -> None:
-        """Stop the app and delete its containers.
+        """Stop every command and delete the runtime's containers.
 
-        The project files and build artifacts are left untouched.
+        The project files are left untouched.
         """
         self.stop()
         for session in self._sessions_snapshot():
@@ -652,60 +813,25 @@ class ContainerRuntime:
         with self._session_lock:
             self._sessions.clear()
 
-    def build(self) -> None:
-        """Run every build step in order, restarting the app afterwards.
-
-        Each step may use a different image.  A build must only ever
-        produce platform independent output inside ``/app``.
-        """
-        build = self.config["build"]
-        if build is None:
-            self.on_message("Nothing to build")
-            return
-
-        with self._build_lock:
-            was_running = self.status in ("running", "dev")
-            was_dev = self._dev
-            self.stop()
-            self._set_status("loading")
-            self.on_message("Building with " + ", ".join(self.build_images))
-            try:
-                self._prepare_dirs()
-                code = self._run_steps(build["steps"])
-                if code != 0:
-                    raise RuntimeError(
-                        f"Build command failed with exit code {code}"
-                    )
-                self._write_build_marker()
-                self.set_error_state(None)
-            except Exception as exc:
-                self.on_message(f"Build failed: {exc}")
-                self.set_error_state(str(exc))
-                self._set_status("stopped")
-                raise
-
-            self.on_message("Build complete")
-            if was_running:
-                self.start(dev=was_dev)
-            else:
-                self._set_status("stopped")
-
-    def _run_steps(self, steps: list[CommandStep]) -> int:
-        """Run steps in order, stopping at the first failure.
+    def _run_steps(self, state: CommandState, steps: list[CommandStep]) -> int:
+        """Run steps in order, stopping at the first failure or cancel.
 
         Returns the exit code of the first failing step, or 0 when every
         step succeeded.
         """
         for step in steps:
-            code = self._run_attached(step["image"], step["command"])
-            if code != 0:
+            if state.cancel.is_set():
+                return -1
+            code = self._run_attached(state, step)
+            if code != 0 or state.cancel.is_set():
                 return code
         return 0
 
-    def _run_attached(self, image: str, command: list[str]) -> int:
-        """Run a command to completion, streaming its output to the log."""
-        session = self._session(image)
-        self.on_message(f"$ {' '.join(command)}")
+    def _run_attached(self, state: CommandState, step: CommandStep) -> int:
+        """Run a command to completion, streaming its output to its log."""
+        session = self._session(step["image"])
+        command = step["command"]
+        self._emit(state.name, f"$ {' '.join(command)}")
         proc = session.exec(
             list(command),
             env=self.get_environment(),
@@ -716,57 +842,102 @@ class ContainerRuntime:
             tty=True,
         )
         assert proc.stdout is not None
+        with self._command_lock:
+            state.proc = proc
+            if state.cancel.is_set():
+                proc.kill()
         for raw in proc.stdout:
-            self.on_message(raw.decode("utf-8", "replace").rstrip("\r\n"))
-        return proc.wait()
+            self._emit(
+                state.name,
+                raw.decode("utf-8", "replace").rstrip("\r\n"),
+            )
+        code = proc.wait()
+        with self._command_lock:
+            if state.proc is proc:
+                state.proc = None
+        return code
 
     def run_script(self, name: str) -> None:
-        """Run a named action script in a container.
+        """Start a named script.
 
-        The command runs in the background and streams its output to the
-        log, so the caller is not blocked by a long running script.  Only
-        one action runs at a time.
+        Foreground scripts run one at a time and stream their output to
+        their own log.  A background script may run alongside other
+        commands; starting any script returns immediately.
         """
-        script = self.config["scripts"].get(name)
-        if script is None:
-            raise KeyError(f"No script named {name!r}")
-        if not self._action_lock.acquire(blocking=False):
-            raise RuntimeError("Another action is already running")
+        if name == APP_COMMAND:
+            raise ValueError("'app' is not a script")
+        with self._command_lock:
+            state = self._commands.get(name)
+            if state is None:
+                raise KeyError(f"No script named {name!r}")
+            background = state.background
+            if state.status == "running":
+                raise RuntimeError(f"Script {name!r} is already running")
+
+        if not background:
+            if not self._foreground_lock.acquire(blocking=False):
+                raise RuntimeError(
+                    "Another foreground command is already running"
+                )
         try:
             self._prepare_dirs()
-            threading.Thread(
+            with self._command_lock:
+                if state.status == "running":
+                    raise RuntimeError(f"Script {name!r} is already running")
+                state.cancel.clear()
+                state.exit_code = None
+                state.status = "running"
+                state.log.clear()
+            self._set_command_state(name, "running", None)
+            thread = threading.Thread(
                 target=self._run_script_thread,
-                args=(script,),
+                args=(state, background),
                 daemon=True,
                 name=f"capp-action-{name}",
-            ).start()
+            )
+            with self._command_lock:
+                state.thread = thread
+            thread.start()
         except Exception:
-            self._action_lock.release()
+            if not background:
+                self._foreground_lock.release()
             raise
 
-    def _run_script_thread(self, script: ScriptConfig) -> None:
+    def _run_script_thread(self, state: CommandState, background: bool) -> None:
+        name = state.name
         try:
-            self.on_message(f"Running action {script['name']}")
-            code = self._run_steps(script["steps"])
-            self.on_message(f"Action {script['name']} exited with code {code}")
+            self._emit(name, f"Running action {name}")
+            code = self._run_steps(state, state.steps)
+            if state.cancel.is_set():
+                self._emit(name, f"Action {name} canceled")
+                self._set_command_state(name, "stopped", None)
+            elif code == 0:
+                self._emit(name, f"Action {name} exited with code 0")
+                self._set_command_state(name, "exited", 0)
+            else:
+                self._emit(name, f"Action {name} exited with code {code}")
+                self._set_command_state(name, "failed", code)
         except Exception as exc:
             logger.exception("Container app action failed")
-            self.on_message(f"Action {script['name']} failed: {exc}")
+            self._emit(name, f"Action {name} failed: {exc}")
+            self._set_command_state(name, "failed", None)
         finally:
-            self._action_lock.release()
+            with self._command_lock:
+                state.proc = None
+                state.thread = None
+            if not background:
+                self._foreground_lock.release()
 
-    def clean(self) -> None:
-        """Delete build artifacts, leaving the source project alone."""
-        self.stop()
-        marker = self._marker_path()
-        if os.path.exists(marker):
-            os.remove(marker)
-        if self.config["app"]["kind"] == "staticfiles":
-            source = self.static_source_dir()
-            if os.path.isdir(source) and self.config["build"] is not None:
-                shutil.rmtree(source, ignore_errors=True)
-        self.on_message("Cleaned build artifacts")
-        self._set_status("stopped")
+    def stop_script(self, name: str) -> None:
+        """Cancel a running script, or stop the app by its special name."""
+        if name == APP_COMMAND:
+            self.stop()
+            return
+        with self._command_lock:
+            state = self._commands.get(name)
+        if state is None:
+            raise KeyError(f"No script named {name!r}")
+        self._cancel_state(state)
 
     def close(self) -> None:
         """Stop everything this runtime started and remove its containers."""

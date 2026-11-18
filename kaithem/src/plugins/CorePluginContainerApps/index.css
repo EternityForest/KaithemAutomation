@@ -54,6 +54,16 @@
   color: #fff;
 }
 
+.ca-badge-exited {
+  background: #1b5e20;
+  color: #fff;
+}
+
+.ca-badge-failed {
+  background: #b71c1c;
+  color: #fff;
+}
+
 .ca-actions {
   display: flex;
   flex-wrap: wrap;
@@ -95,7 +105,47 @@
   vertical-align: top;
 }
 
-.ca-log {
+.ca-consoles {
+  display: grid;
+  gap: 1rem;
+}
+
+.ca-empty {
+  opacity: 0.8;
+}
+
+.ca-console {
+  border: 1px solid rgba(128, 128, 128, 0.4);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.ca-console-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding: 0.4rem 0.5rem;
+  background: rgba(128, 128, 128, 0.15);
+}
+
+.ca-console-header h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.ca-console-header .btn {
+  margin-left: auto;
+}
+
+.ca-tag,
+.ca-exit {
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+.ca-console-log {
+  margin: 0;
   max-height: 24rem;
   overflow: auto;
   padding: 0.5rem;

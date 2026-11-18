@@ -5,9 +5,10 @@ Two resource types work together:
 
 ``container_app``
     A project folder holding a ``container-app.toml`` (see
-    :mod:`appconfig`).  It owns the code and the build, and can be started
-    in a throwaway dev mode whose ``/data`` lives in the vardir sandbox
-    instead of the module.
+    :mod:`appconfig`).  It owns the code, the optional app, and any
+    manually triggered scripts, and can be started in a throwaway dev
+    mode whose ``/data`` lives in the vardir sandbox instead of the
+    module.
 
 ``container_app_instance``
     A running instance of a ``container_app``.  It references the app by
@@ -16,9 +17,9 @@ Two resource types work together:
 
 Creating a ``container_app`` interactively also creates a matching
 ``container_app_instance`` named ``<app>_default`` so there is always
-something to start as soon as the project is built.  Building an app stops
-every instance, rebuilds, and starts the instances that were running
-before, so a rebuild never serves a half written build.
+somewhere to run the project.  Building is never automatic: a project
+that needs a build exposes it as an ordinary script the developer runs
+by hand, and a project may have no app at all and only scripts.
 """
 
 from __future__ import annotations

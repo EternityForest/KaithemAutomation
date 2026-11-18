@@ -3,12 +3,17 @@
 // A single page serves both management surfaces, chosen by the `type`
 // query parameter:
 //
-//   type=app       development view: build, dev-run, action scripts
-//   type=instance  admin view: start/stop/adjust one running instance
+//   type=app       development view: dev-run, manual scripts, template
+//   type=instance  admin view: start/stop one running instance
 //
-// The page shows status, environment and the live build/run log, backed
-// by /containerapps/api.  The app itself is reached through its path
-// proxy under /apps/<name>, not this page.
+// Every script in the project config becomes a launch button, and every
+// script plus the app itself gets its own console.  Output lines are
+// tagged with the script that produced them so each console only shows
+// its own output.  Backed by /containerapps/api.  The app itself is
+// reached through its path proxy under /apps/<name>, not this page.
+//
+// Building is never automatic: a build is just an ordinary script the
+// developer runs by hand.
 
 import { LitElement, html, nothing } from 'lit';
 import type { TemplateResult } from 'lit';
@@ -24,6 +29,7 @@ import {
 import type {
   AppAction,
   AppSnapshot,
+  CommandSnapshot,
   ContainerAppSnapshot,
   InstanceAction,
   InstanceSnapshot,
@@ -31,6 +37,9 @@ import type {
 } from './container-apps-api.ts';
 
 const MAX_LOG_LINES = 2000;
+
+/** The script name reserved for the project's own long running command. */
+const APP_COMMAND = 'app';
 
 /** Render a step image list, or an em dash when there are none. */
 function formatImages(images: string[]): string {
@@ -48,13 +57,13 @@ export class ContainerAppAdmin extends LitElement {
   private module = '';
   private resource = '';
   private snapshot: ContainerAppSnapshot | null = null;
-  private logLines: string[] = [];
   private busy = '';
   private error = '';
   private notice = '';
   private confirmRequest: ConfirmRequest | null = null;
   private socket: WebSocket | null = null;
-  private reconnectTimer: number | null = null;
+  private reconnectTimer: ReturnType<typeof globalThis.setTimeout> | null =
+    null;
   private closed = false;
 
   override createRenderRoot(): HTMLElement {
@@ -107,8 +116,13 @@ export class ContainerAppAdmin extends LitElement {
   }
 
   private applySnapshot(snapshot: ContainerAppSnapshot): void {
+    for (const command of snapshot.commands) {
+      command.log =
+        command.log.length > MAX_LOG_LINES
+          ? command.log.slice(-MAX_LOG_LINES)
+          : command.log;
+    }
     this.snapshot = snapshot;
-    this.logLines = snapshot.log.slice(-MAX_LOG_LINES);
     this.requestUpdate();
   }
 
@@ -162,6 +176,17 @@ export class ContainerAppAdmin extends LitElement {
     }
   }
 
+  private appendLog(script: string, line: string): void {
+    const command = this.findCommand(script);
+    if (command === undefined) {
+      return;
+    }
+    command.log.push(line);
+    if (command.log.length > MAX_LOG_LINES) {
+      command.log.splice(0, command.log.length - MAX_LOG_LINES);
+    }
+  }
+
   private handleMessage(raw: unknown): void {
     if (typeof raw !== 'string') {
       return;
@@ -176,18 +201,69 @@ export class ContainerAppAdmin extends LitElement {
       this.applySnapshot(message.snapshot as unknown as ContainerAppSnapshot);
       return;
     }
-    if (message.event === 'log' && typeof message.line === 'string') {
-      this.logLines.push(message.line);
-      if (this.logLines.length > MAX_LOG_LINES) {
-        this.logLines.splice(0, this.logLines.length - MAX_LOG_LINES);
+    if (
+      message.event === 'log' &&
+      typeof message.script === 'string' &&
+      typeof message.line === 'string'
+    ) {
+      this.appendLog(message.script, message.line);
+      this.requestUpdate();
+      return;
+    }
+    if (message.event === 'command' && typeof message.script === 'string') {
+      const command = this.findCommand(message.script);
+      if (command !== undefined) {
+        const status = String(message.status);
+        if (status === 'running' && message.script !== APP_COMMAND) {
+          // The runtime clears a script's buffer on every new run.
+          command.log = [];
+        }
+        command.status = status;
+        command.exit_code =
+          typeof message.exit_code === 'number' ? message.exit_code : null;
       }
       this.requestUpdate();
       return;
     }
     if (message.event === 'status' && this.snapshot) {
-      this.snapshot = { ...this.snapshot, status: String(message.status) };
+      this.snapshot.status = String(message.status);
+      const app = this.findCommand(APP_COMMAND);
+      if (app !== undefined) {
+        app.status = String(message.status);
+      }
       this.requestUpdate();
     }
+  }
+
+  private findCommand(name: string): CommandSnapshot | undefined {
+    return this.snapshot?.commands.find((command) => command.name === name);
+  }
+
+  // ------------------------------------------------------------------
+  // Command helpers
+  // ------------------------------------------------------------------
+
+  private commands(): CommandSnapshot[] {
+    return this.snapshot?.commands ?? [];
+  }
+
+  private scriptCommands(): CommandSnapshot[] {
+    return this.commands().filter((command) => command.name !== APP_COMMAND);
+  }
+
+  private commandStatusOf(name: string): string {
+    return this.findCommand(name)?.status ?? 'stopped';
+  }
+
+  private commandRunning(name: string): boolean {
+    const status = this.commandStatusOf(name);
+    return status === 'running' || status === 'loading' || status === 'dev';
+  }
+
+  private foregroundBusy(): boolean {
+    return this.scriptCommands().some(
+      (command) => !command.background && this.commandRunning(command.name)
+    );
   }
 
   // ------------------------------------------------------------------
@@ -208,7 +284,8 @@ export class ContainerAppAdmin extends LitElement {
           ? await runInstanceAction(
               this.module,
               this.resource,
-              action as InstanceAction
+              action as InstanceAction,
+              body
             )
           : await runAppAction(
               this.module,
@@ -282,7 +359,7 @@ export class ContainerAppAdmin extends LitElement {
             </p>`
           : nothing}
         ${this.renderStatus()} ${this.renderActions()} ${this.renderDetails()}
-        ${this.renderLog()}
+        ${this.renderConsoles()}
       </main>
       ${this.renderConfirmDialog()}
     `;
@@ -301,9 +378,11 @@ export class ContainerAppAdmin extends LitElement {
           data-testid="ca-status"
           >${snapshot.status}</span
         >
-        <span data-testid="ca-built"
-          >${snapshot.built ? 'Built' : 'Not built'}</span
-        >
+        ${snapshot.kind === null
+          ? nothing
+          : html`<span data-testid="ca-built"
+              >${snapshot.built ? 'Built' : 'Not built'}</span
+            >`}
         ${dev ? html`<span data-testid="ca-dev">Dev mode</span>` : nothing}
         ${snapshot.error
           ? html`<span class="ca-error" data-testid="ca-runtime-error"
@@ -323,23 +402,53 @@ export class ContainerAppAdmin extends LitElement {
       : this.renderAppActions();
   }
 
+  private renderScriptButtons(): TemplateResult {
+    const disabled = this.busy !== '';
+    const foregroundBusy = this.foregroundBusy();
+    return html`${this.scriptCommands().map((command) => {
+      const running = this.commandRunning(command.name);
+      if (command.background) {
+        return html`
+          <button
+            class="btn"
+            data-testid="ca-script-${command.name}"
+            ?disabled="${disabled || running}"
+            @click="${() =>
+              void this.perform('run-script', { name: command.name })}"
+          >
+            Start ${command.name}
+          </button>
+          <button
+            class="btn"
+            data-testid="ca-script-${command.name}-stop"
+            ?disabled="${disabled || !running}"
+            @click="${() =>
+              void this.perform('stop-script', { name: command.name })}"
+          >
+            Stop ${command.name}
+          </button>
+        `;
+      }
+      return html`
+        <button
+          class="btn"
+          data-testid="ca-script-${command.name}"
+          ?disabled="${disabled || running || foregroundBusy}"
+          @click="${() =>
+            void this.perform('run-script', { name: command.name })}"
+        >
+          Run ${command.name}
+        </button>
+      `;
+    })}`;
+  }
+
   private renderAppActions(): TemplateResult {
     const snapshot = this.snapshot as AppSnapshot;
     const disabled = this.busy !== '';
     const dev = snapshot.dev;
     const built = snapshot.built;
-    const scriptButtons = snapshot.scripts.map(
-      (name) => html`
-        <button
-          class="btn"
-          data-testid="ca-script-${name}"
-          ?disabled="${disabled}"
-          @click="${() => void this.perform('run-script', { name })}"
-        >
-          Run ${name}
-        </button>
-      `
-    );
+    const hasApp = snapshot.kind !== null;
     return html`
       <section class="ca-actions" data-testid="ca-app-actions">
         <button
@@ -350,30 +459,26 @@ export class ContainerAppAdmin extends LitElement {
         >
           Copy Template
         </button>
-        <button
-          class="btn primary"
-          data-testid="ca-build"
-          ?disabled="${disabled}"
-          @click="${() => void this.perform('build')}"
-        >
-          Build
-        </button>
-        <button
-          class="btn"
-          data-testid="ca-dev-mode"
-          ?disabled="${disabled || dev || !built}"
-          @click="${() => void this.perform('dev')}"
-        >
-          Dev Mode
-        </button>
-        <button
-          class="btn"
-          data-testid="ca-stop-dev"
-          ?disabled="${disabled || !dev}"
-          @click="${() => void this.perform('stop-dev')}"
-        >
-          Stop Dev Mode
-        </button>
+        ${hasApp
+          ? html`
+              <button
+                class="btn"
+                data-testid="ca-dev-mode"
+                ?disabled="${disabled || dev || !built}"
+                @click="${() => void this.perform('dev')}"
+              >
+                Dev Mode
+              </button>
+              <button
+                class="btn"
+                data-testid="ca-stop-dev"
+                ?disabled="${disabled || !dev}"
+                @click="${() => void this.perform('stop-dev')}"
+              >
+                Stop Dev Mode
+              </button>
+            `
+          : nothing}
         <button
           class="btn"
           data-testid="ca-reload"
@@ -381,21 +486,6 @@ export class ContainerAppAdmin extends LitElement {
           @click="${() => void this.perform('reload')}"
         >
           Reload Config
-        </button>
-        <button
-          class="btn"
-          data-testid="ca-clean"
-          ?disabled="${disabled}"
-          @click="${() =>
-            this.requestConfirm({
-              action: 'clean',
-              title: 'Clean build artifacts',
-              message:
-                'Delete the build output and its marker? The source ' +
-                'project is left untouched.',
-            })}"
-        >
-          Clean
         </button>
         <button
           class="btn danger"
@@ -406,13 +496,13 @@ export class ContainerAppAdmin extends LitElement {
               action: 'delete-runtime',
               title: 'Delete runtime containers',
               message:
-                'Delete this app\u2019s containers? Project files and ' +
-                'build artifacts are left untouched.',
+                'Delete this app\u2019s containers? Project files are ' +
+                'left untouched.',
             })}"
         >
           Delete Runtime
         </button>
-        ${scriptButtons}
+        ${this.renderScriptButtons()}
       </section>
     `;
   }
@@ -421,24 +511,29 @@ export class ContainerAppAdmin extends LitElement {
     const snapshot = this.snapshot as InstanceSnapshot;
     const disabled = this.busy !== '';
     const running = snapshot.running;
+    const hasApp = snapshot.kind !== null;
     return html`
       <section class="ca-actions" data-testid="ca-instance-actions">
-        <button
-          class="btn primary"
-          data-testid="ca-start"
-          ?disabled="${disabled || running || !snapshot.built}"
-          @click="${() => void this.perform('start')}"
-        >
-          Start
-        </button>
-        <button
-          class="btn"
-          data-testid="ca-stop"
-          ?disabled="${disabled || !running}"
-          @click="${() => void this.perform('stop')}"
-        >
-          Stop
-        </button>
+        ${hasApp
+          ? html`
+              <button
+                class="btn primary"
+                data-testid="ca-start"
+                ?disabled="${disabled || running || !snapshot.built}"
+                @click="${() => void this.perform('start')}"
+              >
+                Start
+              </button>
+              <button
+                class="btn"
+                data-testid="ca-stop"
+                ?disabled="${disabled || !running}"
+                @click="${() => void this.perform('stop')}"
+              >
+                Stop
+              </button>
+            `
+          : nothing}
         <button
           class="btn"
           data-testid="ca-reload"
@@ -462,6 +557,7 @@ export class ContainerAppAdmin extends LitElement {
         >
           Delete Runtime
         </button>
+        ${this.renderScriptButtons()}
       </section>
     `;
   }
@@ -483,14 +579,10 @@ export class ContainerAppAdmin extends LitElement {
       <section class="ca-details">
         <dl>
           <dt>App type</dt>
-          <dd data-testid="ca-kind">${snapshot.kind ?? '—'}</dd>
+          <dd data-testid="ca-kind">${snapshot.kind ?? 'scripts only'}</dd>
           <dt>Run images</dt>
           <dd data-testid="ca-run-image">
             ${formatImages(snapshot.run_images)}
-          </dd>
-          <dt>Build images</dt>
-          <dd data-testid="ca-build-image">
-            ${formatImages(snapshot.build_images)}
           </dd>
           ${this.renderExtraDetails(snapshot)}
         </dl>
@@ -528,13 +620,75 @@ export class ContainerAppAdmin extends LitElement {
     `;
   }
 
-  private renderLog(): TemplateResult {
+  private renderConsoles(): TemplateResult {
+    if (this.snapshot === null) {
+      return html``;
+    }
+    const consoles = this.commands().filter((command) => {
+      return (
+        command.log.length > 0 || this.commandStatusOf(command.name) !== 'stopped'
+      );
+    });
+    if (consoles.length === 0) {
+      return html`
+        <section class="ca-consoles" data-testid="ca-consoles">
+          <p class="ca-empty">No command output yet.</p>
+        </section>
+      `;
+    }
     return html`
-      <section class="ca-log-section">
-        <h2>Log</h2>
-        <pre class="ca-log" data-testid="ca-log">${this.logLines.join('\n')}</pre>
+      <section class="ca-consoles" data-testid="ca-consoles">
+        ${consoles.map((command) => this.renderConsole(command))}
       </section>
     `;
+  }
+
+  private renderConsole(command: CommandSnapshot): TemplateResult {
+    const name = command.name;
+    const label = name === APP_COMMAND ? 'App' : name;
+    const running = this.commandRunning(name);
+    const exitCode = command.exit_code;
+    return html`
+      <article
+        class="ca-console"
+        data-testid="ca-console-${name}"
+        data-script="${name}"
+      >
+        <header class="ca-console-header">
+          <h2>${label}</h2>
+          <span
+            class="ca-badge ca-badge-${this.commandStatusOf(name)}"
+            data-testid="ca-console-${name}-status"
+            >${this.commandStatusOf(name)}</span
+          >
+          ${exitCode !== null && !running
+            ? html`<span class="ca-exit"
+                >exit ${exitCode}</span
+              >`
+            : nothing}
+          ${command.background
+            ? html`<span class="ca-tag">background</span>`
+            : nothing}
+          <button
+            class="btn danger"
+            data-testid="ca-console-${name}-stop"
+            ?disabled="${this.busy !== '' || !running}"
+            @click="${() => void this.stopCommand(name)}"
+          >
+            Stop
+          </button>
+        </header>
+        <pre class="ca-console-log" data-testid="ca-console-${name}-log"
+        >${command.log.join('\n')}</pre>
+      </article>
+    `;
+  }
+
+  private stopCommand(name: string): Promise<void> {
+    if (name === APP_COMMAND) {
+      return this.perform(this.kind === 'app' ? 'stop-dev' : 'stop-app');
+    }
+    return this.perform('stop-script', { name });
   }
 
   private renderConfirmDialog(): TemplateResult {

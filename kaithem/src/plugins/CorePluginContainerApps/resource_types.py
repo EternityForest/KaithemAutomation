@@ -250,13 +250,13 @@ class ContainerAppResource(ResourceTypeRuntimeObject):
     def app_kind(self) -> str | None:
         if self.config is None:
             return None
-        return self.config["app"]["kind"]
+        app = self.config["app"]
+        return None if app is None else app["kind"]
 
-    @property
-    def scripts(self) -> list[str]:
+    def get_commands(self) -> list[dict[str, Any]]:
         if self.sandbox_runtime is None:
             return []
-        return sorted(self.sandbox_runtime.scripts)
+        return self.sandbox_runtime.get_commands()
 
     def is_empty(self) -> bool:
         """Return whether the app folder has no project files yet."""
@@ -268,15 +268,10 @@ class ContainerAppResource(ResourceTypeRuntimeObject):
     def is_built(self) -> bool:
         return bool(self.sandbox_runtime and self.sandbox_runtime.is_built())
 
-    def supports_build(self) -> bool:
-        return bool(
-            self.sandbox_runtime and self.sandbox_runtime.supports_build
-        )
-
     def get_log(self) -> list[str]:
         if self.sandbox_runtime is None:
             return []
-        return self.sandbox_runtime.get_log()
+        return self.sandbox_runtime.get_command_log("app")
 
     def get_environment(self) -> dict[str, str]:
         if self.sandbox_runtime is None:
@@ -289,33 +284,14 @@ class ContainerAppResource(ResourceTypeRuntimeObject):
 
     # -- Control --------------------------------------------------------
 
-    def build(self) -> None:
-        """Rebuild, stopping and restarting every running instance."""
-        runtime = self._require_runtime()
-        running = [i for i in self.instances() if i.is_running()]
-        for instance in running:
-            try:
-                instance.stop()
-            except Exception:
-                logger.exception("Failed to stop instance for build")
-        try:
-            runtime.build()
-        finally:
-            for instance in running:
-                try:
-                    instance.start()
-                except Exception:
-                    logger.exception("Failed to restart instance after build")
-
     def start_dev(self) -> None:
         """Run the app in dev mode with an ephemeral data folder."""
         runtime = self._require_runtime()
-        if self.app_kind != "command":
-            self._mount()
-            self._dev = True
-            return
+        if self.app_kind is None:
+            raise RuntimeError("This project has no app")
         self._mount()
-        runtime.start(dev=True)
+        if self.app_kind == "command":
+            runtime.start(dev=True)
         self._dev = True
 
     def stop_dev(self) -> None:
@@ -331,8 +307,12 @@ class ContainerAppResource(ResourceTypeRuntimeObject):
     def run_script(self, name: str) -> None:
         self._require_runtime().run_script(name)
 
-    def clean(self) -> None:
-        self._require_runtime().clean()
+    def stop_script(self, name: str) -> None:
+        self._require_runtime().stop_script(name)
+
+    def stop_app(self) -> None:
+        """Stop the app from its console toolbar."""
+        self.stop_dev()
 
     def delete_runtime(self) -> None:
         self._require_runtime().delete_runtime()
@@ -358,9 +338,11 @@ class ContainerAppResource(ResourceTypeRuntimeObject):
             return
         self.config = load_config(self.project_folder)
         runtime = self._require_runtime()
-        assert self.config is not None
+        app = self.config["app"]
+        if app is None:
+            return
         title = f"{self.title} (dev)"
-        if self.config["app"]["kind"] == "command":
+        if app["kind"] == "command":
             self.proxy = PathProxy(
                 prefix=self.dev_prefix,
                 target=runtime.unix_target(),
@@ -492,8 +474,11 @@ class ContainerAppInstanceResource(ResourceTypeRuntimeObject):
         self.config = load_config(self.project_folder)
 
         assert self.config is not None
+        app = self.config["app"]
+        if app is None:
+            return
         title = self.data.get("title") or f"{self.app_resource} ({self.name})"
-        if self.config["app"]["kind"] == "command":
+        if app["kind"] == "command":
             self.proxy = PathProxy(
                 prefix=self.base_path,
                 rewrite=[("^/$", "/index")],
@@ -575,7 +560,8 @@ class ContainerAppInstanceResource(ResourceTypeRuntimeObject):
     def app_kind(self) -> str | None:
         if self.config is None:
             return None
-        return self.config["app"]["kind"]
+        app = self.config["app"]
+        return None if app is None else app["kind"]
 
     @property
     def is_static(self) -> bool:
@@ -599,10 +585,15 @@ class ContainerAppInstanceResource(ResourceTypeRuntimeObject):
     def is_built(self) -> bool:
         return bool(self.runtime and self.runtime.is_built())
 
+    def get_commands(self) -> list[dict[str, Any]]:
+        if self.runtime is None:
+            return []
+        return self.runtime.get_commands()
+
     def get_log(self) -> list[str]:
         if self.runtime is None:
             return []
-        return self.runtime.get_log()
+        return self.runtime.get_command_log("app")
 
     def get_environment(self) -> dict[str, str]:
         if self.runtime is None:
@@ -614,6 +605,8 @@ class ContainerAppInstanceResource(ResourceTypeRuntimeObject):
     def start(self) -> None:
         if self.runtime is None:
             raise RuntimeError(self.error or "Container app is not set up")
+        if self.app_kind is None:
+            raise RuntimeError("This project has no app")
         if self.is_static:
             return
         self.runtime.start(dev=False)
@@ -621,6 +614,17 @@ class ContainerAppInstanceResource(ResourceTypeRuntimeObject):
     def stop(self) -> None:
         if self.runtime is not None:
             self.runtime.stop()
+
+    def stop_app(self) -> None:
+        """Stop the app from its console toolbar."""
+        if self.runtime is not None:
+            self.runtime.stop_script("app")
+
+    def run_script(self, name: str) -> None:
+        self._require_runtime().run_script(name)
+
+    def stop_script(self, name: str) -> None:
+        self._require_runtime().stop_script(name)
 
     def delete_runtime(self) -> None:
         self._require_runtime().delete_runtime()

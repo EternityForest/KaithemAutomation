@@ -7,7 +7,17 @@ Change Log
 * [sparkles] Web based .pptx signage with editing and admin UI.
 * [sparkles] Log the hash of the codebase and all dirs on path at boot
 * [sparkles] New improved web text editor with folder snapshot/restore and Pydantic powered agentic coding(OpenRouter Key required)
-* [sparkles] New resource type: AI Conversatio
+* [sparkles] New resource type: AI Conversation
+* [sparkles] New resource type: Container Apps
+* [sparkles] PC Input devices let you see keyboards/mice/gamepads right on the server
+* [sparkles] gpiodevice rewritten to use platform independent APIs
+* [sparkles] New JSONLines devices for talking to anything that uses JSON lines over UDP or serial ports.
+
+* [coffin] User pages and python events deprecated.
+
+
+
+
 
 
 ### 0.98.0

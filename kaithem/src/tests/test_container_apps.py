@@ -61,33 +61,33 @@ def test_app_loads_before_instance():
 
 
 def test_app_default_is_valid():
-    created = _create(_app_type(), plugin.APP_DEFAULT)
+    created = _create(_app_type(), plugin.resource_types.APP_DEFAULT)
     assert created["data"]["service_user"] == "__guest__"
     assert created["data"]["permissions"] == ["view_status"]
 
 
 def test_instance_default_is_valid():
-    created = _create(_instance_type(), plugin.INSTANCE_DEFAULT)
+    created = _create(_instance_type(), plugin.resource_types.INSTANCE_DEFAULT)
     assert created["data"]["boot"] is True
     assert created["data"]["app"] == ""
 
 
 def test_instance_requires_app():
-    data = dict(plugin.INSTANCE_DEFAULT)
+    data = dict(plugin.resource_types.INSTANCE_DEFAULT)
     del data["app"]
     with pytest.raises(Exception):
         _create(_instance_type(), data)
 
 
 def test_instance_name_must_be_slug():
-    data = dict(plugin.INSTANCE_DEFAULT)
+    data = dict(plugin.resource_types.INSTANCE_DEFAULT)
     data["name"] = "Not A Slug"
     with pytest.raises(Exception):
         _create(_instance_type(), data)
 
 
 def test_app_rejects_unknown_key():
-    data = dict(plugin.APP_DEFAULT)
+    data = dict(plugin.resource_types.APP_DEFAULT)
     data["subdomain"] = "legacy"
     with pytest.raises(Exception):
         _create(_app_type(), data)
@@ -107,16 +107,18 @@ STATIC_APP = {
 def test_parse_staticfiles_app():
     config = appconfig.parse_config(STATIC_APP)
     assert config["app"] == {"kind": "staticfiles", "source": "dist"}
-    assert config["build"] is not None
-    assert config["build"]["steps"] == [
+    build = config["scripts"]["build"]
+    assert build["background"] is False
+    assert build["steps"] == [
         {"image": "docker.io/oven/bun:1-slim", "command": ["bun", "run", "ci"]}
     ]
 
 
-def test_build_is_kept_out_of_user_scripts():
-    """``build`` is reserved, so it never shows up as a runnable action."""
+def test_build_is_an_ordinary_script():
+    """``build`` is never special; it is a script the developer runs."""
     config = appconfig.parse_config(STATIC_APP)
-    assert "build" not in config["scripts"]
+    assert "build" in config["scripts"]
+    assert config["scripts"]["build"]["name"] == "build"
 
 
 def test_parse_command_app_infers_type():
@@ -181,8 +183,7 @@ def test_multi_step_build_keeps_order_and_images():
             "app": {"type": "staticfiles", "source": "dist"},
         }
     )
-    assert config["build"] is not None
-    assert config["build"]["steps"] == [
+    assert config["scripts"]["build"]["steps"] == [
         {
             "image": "docker.io/library/rust:1.80-slim",
             "command": ["cargo", "build", "--release"],
@@ -262,9 +263,87 @@ def test_command_and_source_conflict():
         )
 
 
-def test_missing_app_table_is_rejected():
+def test_app_is_optional():
+    """A project may exist only to offer manually triggered scripts."""
+    config = appconfig.parse_config({"scripts": {"image": "x"}})
+    assert config["app"] is None
+    assert config["scripts"] == {}
+
+
+def test_scripts_only_project_parses():
+    config = appconfig.parse_config(
+        {
+            "scripts": {
+                "image": "docker.io/library/rust:1.80-slim",
+                "flash": [{"command": ["cargo", "run", "--bin", "flash"]}],
+            }
+        }
+    )
+    assert config["app"] is None
+    assert config["scripts"]["flash"]["steps"][0]["command"] == [
+        "cargo",
+        "run",
+        "--bin",
+        "flash",
+    ]
+
+
+def test_background_flag_is_parsed():
+    config = appconfig.parse_config(
+        {
+            "scripts": {
+                "image": "x",
+                "watch": {
+                    "background": True,
+                    "command": [{"command": ["bun", "run", "dev"]}],
+                },
+            }
+        }
+    )
+    assert config["scripts"]["watch"]["background"] is True
+    assert config["scripts"]["watch"]["steps"][0]["command"] == [
+        "bun",
+        "run",
+        "dev",
+    ]
+
+
+def test_background_flag_must_be_boolean():
     with pytest.raises(appconfig.ConfigError):
-        appconfig.parse_config({"scripts": {"image": "x"}})
+        appconfig.parse_config(
+            {
+                "scripts": {
+                    "image": "x",
+                    "watch": {
+                        "background": "yes",
+                        "command": [{"command": ["x"]}],
+                    },
+                }
+            }
+        )
+
+
+def test_app_script_name_is_reserved():
+    with pytest.raises(appconfig.ConfigError):
+        appconfig.parse_config(
+            {"scripts": {"image": "x", "app": [{"command": ["x"]}]}}
+        )
+
+
+def test_script_unknown_key_is_rejected():
+    with pytest.raises(appconfig.ConfigError):
+        appconfig.parse_config(
+            {
+                "scripts": {
+                    "image": "x",
+                    "watch": {
+                        "background": True,
+                        "command": [{"command": ["x"]}],
+                        "daemon": True,
+                    },
+                }
+            }
+        )
 
 
 def test_empty_command_is_rejected():
@@ -307,9 +386,9 @@ def test_container_name_depends_on_owner_and_image():
 
 def test_shipped_template_parses():
     """The bundled starter project must always be valid."""
-    config = appconfig.load_config(plugin.TEMPLATE_DIR)
+    config = appconfig.load_config(plugin.resource_types.TEMPLATE_DIR)
     assert config["app"]["kind"] == "staticfiles"
-    assert config["build"] is not None
+    assert "build" in config["scripts"]
 
 
 def test_template_has_expected_files():
@@ -318,12 +397,14 @@ def test_template_has_expected_files():
         "index.html",
         "package.json",
         "tsconfig.json",
-        "vite.config.ts",
+        "build.ts",
         "src/main.ts",
         "scripts/check-platform.ts",
     ]
     for name in expected:
-        path = os.path.join(plugin.TEMPLATE_DIR, *name.split("/"))
+        path = os.path.join(
+            plugin.resource_types.TEMPLATE_DIR, *name.split("/")
+        )
         assert os.path.isfile(path), f"missing template file {name}"
 
 

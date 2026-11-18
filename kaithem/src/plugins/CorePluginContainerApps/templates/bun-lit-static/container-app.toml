@@ -1,14 +1,17 @@
 # Bun + Lit + Vite starter for a Kaithem container app.
 #
-# The build runs in the Bun image and writes a platform independent
-# static site into ./dist.  Kaithem then serves that directory straight
-# from disk, so the app needs no runtime image and no platform specific
-# data.  See check-platform.ts for the rule against compiled addons.
+# `build` is an ordinary manual script, not a special name: run it from
+# the app admin page whenever you want to rebuild.  It runs in the Bun
+# image and writes a platform independent static site into ./dist.
+# Kaithem then serves that directory straight from disk, so the app needs
+# no runtime image and no platform specific data.  See check-platform.ts
+# for the rule against compiled addons.
 
 [scripts]
 image = "docker.io/oven/bun:1-slim"
 
-[[scripts.build]]
+[scripts.build]
+[[scripts.build.command]]
 command = ["bun", "run", "ci"]
 
 [app]

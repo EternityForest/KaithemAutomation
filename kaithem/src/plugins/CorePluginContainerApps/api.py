@@ -26,13 +26,14 @@ from .resource_types import (
 Two management surfaces share this module:
 
 ``app``
-    The development view of a ``container_app``.  It can build, run the
-    project in throwaway dev mode, run named action scripts, and copy the
-    starter template.
+    The development view of a ``container_app``.  It can run the project
+    in throwaway dev mode, run and stop named scripts, and copy the
+    starter template.  Building is never automatic; a build is just an
+    ordinary script the developer triggers by hand.
 
 ``instance``
     The admin view of a ``container_app_instance``.  It can start and
-    stop the running app and show its output.
+    stop the running app, run and stop scripts, and show their output.
 
 Every endpoint is admin only: these pages manage the app, they are not
 the app itself.  The app is reached through its path proxy under
@@ -90,11 +91,9 @@ def _app_snapshot(app: ContainerAppResource) -> dict[str, Any]:
         "built": app.is_built(),
         "empty": app.is_empty(),
         "kind": app.app_kind,
-        "scripts": app.scripts,
+        "commands": app.get_commands(),
         "dev_url": app.dev_prefix,
-        "build_images": runtime.build_images if runtime else [],
         "run_images": runtime.run_images if runtime else [],
-        "log": app.get_log(),
         "environment": app.get_environment(),
     }
 
@@ -119,9 +118,8 @@ def _instance_snapshot(
         "kind": instance.app_kind,
         "app": app_ref,
         "url": instance.base_path,
-        "build_images": runtime.build_images if runtime else [],
+        "commands": instance.get_commands(),
         "run_images": runtime.run_images if runtime else [],
-        "log": instance.get_log(),
         "environment": instance.get_environment(),
     }
 
@@ -139,14 +137,14 @@ def _script_name(body: dict[str, Any]) -> str:
 APP_ACTIONS: dict[
     str, Callable[[ContainerAppResource, dict[str, Any]], None]
 ] = {
-    "build": lambda app, body: app.build(),
     "dev": lambda app, body: app.start_dev(),
     "stop-dev": lambda app, body: app.stop_dev(),
     "reload": lambda app, body: app.reload(),
-    "clean": lambda app, body: app.clean(),
     "delete-runtime": lambda app, body: app.delete_runtime(),
     "copy-template": lambda app, body: app.copy_template(),
     "run-script": lambda app, body: app.run_script(_script_name(body)),
+    "stop-script": lambda app, body: app.stop_script(_script_name(body)),
+    "stop-app": lambda app, body: app.stop_app(),
 }
 
 INSTANCE_ACTIONS: dict[
@@ -156,6 +154,13 @@ INSTANCE_ACTIONS: dict[
     "stop": lambda instance, body: instance.stop(),
     "reload": lambda instance, body: instance.reload(),
     "delete-runtime": lambda instance, body: instance.delete_runtime(),
+    "run-script": lambda instance, body: instance.run_script(
+        _script_name(body)
+    ),
+    "stop-script": lambda instance, body: instance.stop_script(
+        _script_name(body)
+    ),
+    "stop-app": lambda instance, body: instance.stop_app(),
 }
 
 
@@ -288,14 +293,25 @@ async def _monitor(
 
         loop.call_soon_threadsafe(_put)
 
-    def on_log(line: str) -> None:
-        push({"event": "log", "line": line})
+    def on_message(script: str, line: str) -> None:
+        push({"event": "log", "script": script, "line": line})
+
+    def on_command(script: str, status: str, exit_code: int | None) -> None:
+        push(
+            {
+                "event": "command",
+                "script": script,
+                "status": status,
+                "exit_code": exit_code,
+            }
+        )
 
     def on_status(status: str) -> None:
         push({"event": "status", "status": status})
 
     if runtime is not None:
-        runtime.add_log_callback(on_log)
+        runtime.add_message_callback(on_message)
+        runtime.add_command_callback(on_command)
         runtime.add_status_callback(on_status)
 
     try:
@@ -322,7 +338,8 @@ async def _monitor(
         logger.debug("Container app websocket closed", exc_info=True)
     finally:
         if runtime is not None:
-            runtime.remove_log_callback(on_log)
+            runtime.remove_message_callback(on_message)
+            runtime.remove_command_callback(on_command)
             runtime.remove_status_callback(on_status)
 
 
