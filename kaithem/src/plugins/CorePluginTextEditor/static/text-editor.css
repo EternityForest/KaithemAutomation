@@ -27,12 +27,7 @@ text-editor-page {
     flex-shrink: 0;
     font-size: 0.85rem;
 }
-.sidebar.mobile {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    z-index: 10;
-}
+
 .panel {
     width: 380px;
     display: flex;
@@ -40,12 +35,7 @@ text-editor-page {
     flex-shrink: 0;
     border-left: 1px solid;
 }
-.panel.mobile {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    z-index: 10;
-}
+
 .panel-head {
     display: flex;
     align-items: center;
@@ -177,7 +167,7 @@ text-editor-page {
     padding: 0.4rem 1rem;
     cursor: pointer;
 }
-@media (max-width: 768px) {
+@media (max-width: 460px) {
     .sidebar {
     width: 100%;
     }

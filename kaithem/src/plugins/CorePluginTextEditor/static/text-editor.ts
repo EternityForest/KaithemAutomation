@@ -240,7 +240,6 @@ class TextEditorPage extends LitElement {
   // Absolute server path of the workspace folder, used to link the chat
   // and snapshot side panels, and as the LSP container mount root.
   private _workspacePath = WORKSPACE;
-  private _isMobile = globalThis.matchMedia('(max-width: 768px)').matches;
   private _watchedPaths = new Set<string>();
   private _applyingRemote = false;
   private _contextMenuOpenedAt = 0;
@@ -681,7 +680,7 @@ class TextEditorPage extends LitElement {
           // backend is still starting (and possibly pulling) the podman
           // container, which routinely takes longer. Give it room so the
           // handshake does not abort and leave the client unusable.
-          timeout: 60000,
+          timeout: 60_000,
           extensions: languageServerExtensions(),
         });
         this._lspClients.set(lang, client);
@@ -955,7 +954,7 @@ class TextEditorPage extends LitElement {
         ${this.sidebarOpen
           ? html`
               <div
-                class="sidebar h-pane paper ${this._isMobile ? 'mobile' : ''}"
+                class="sidebar h-pane paper"
                 data-testid="sidebar"
               >
                 <div
@@ -991,7 +990,7 @@ class TextEditorPage extends LitElement {
         ${this.panel
           ? html`
               <div
-                class="panel paper h-pane ${this._isMobile ? 'mobile' : ''}"
+                class="panel paper h-pane"
                 data-testid="panel"
               >
                 <div class="panel-head">
