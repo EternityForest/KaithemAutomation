@@ -107,16 +107,16 @@ test.describe('Text Editor Plugin', () => {
     await deleteModule(page, MOD);
   });
 
-  test('loads file content into Ace editor', async ({ page }) => {
+  test('loads file content into the editor', async ({ page }) => {
     await openEditor(page, MOD, 'files/hello.txt');
 
     const state = await page.evaluate(() => {
       const host = document.querySelector('text-editor-page') as any;
-      const ed = host?.tabs?.[0]?.ace;
+      const view = host?.tabs?.[0]?.view;
       return {
         tabs: host?.tabs?.map((t: any) => t.path),
         activeTab: host?.activeTab,
-        value: ed ? ed.getValue() : null,
+        value: view ? view.state.doc.toString() : null,
       };
     });
     expect(state.tabs).toEqual(['hello.txt']);
@@ -127,15 +127,18 @@ test.describe('Text Editor Plugin', () => {
   test('editor is editable and marks tab dirty', async ({ page }) => {
     await openEditor(page, MOD, 'files/hello.txt');
     const host = page.locator('text-editor-page');
-    const aceEl = host.locator('[data-testid="ace-hello.txt"]');
-    await expect(aceEl).toBeVisible();
-    await aceEl.click({ position: { x: 60, y: 20 } });
+    const editorEl = host.locator('[data-testid="cm-hello.txt"]');
+    await expect(editorEl).toBeVisible();
+    await editorEl.locator('.cm-content').click();
     await page.keyboard.type('EDITABLE');
     await page.waitForTimeout(500);
     const dirty = await page.evaluate(() => {
       const h = document.querySelector('text-editor-page') as any;
-      const ed = h?.tabs?.[0]?.ace;
-      return { dirty: h?.tabs?.[0]?.dirty, value: ed ? ed.getValue() : null };
+      const view = h?.tabs?.[0]?.view;
+      return {
+        dirty: h?.tabs?.[0]?.dirty,
+        value: view ? view.state.doc.toString() : null,
+      };
     });
     expect(dirty.dirty).toBe(true);
     expect(dirty.value).toContain('EDITABLE');
@@ -144,8 +147,8 @@ test.describe('Text Editor Plugin', () => {
   test('save persists content to disk', async ({ page }) => {
     await openEditor(page, MOD, 'files/hello.txt');
     const host = page.locator('text-editor-page');
-    const aceEl = host.locator('[data-testid="ace-hello.txt"]');
-    await aceEl.click({ position: { x: 60, y: 20 } });
+    const editorEl = host.locator('[data-testid="cm-hello.txt"]');
+    await editorEl.locator('.cm-content').click();
     await page.keyboard.type('SAVED');
     await page.waitForTimeout(300);
     await host.locator('[data-testid="save-btn"]').click();
@@ -166,7 +169,7 @@ test.describe('Text Editor Plugin', () => {
       const root = h?.renderRoot ?? h?.shadowRoot;
       const sidebar = root?.querySelector('[data-testid="sidebar"]');
       return sidebar
-        ? Array.from(sidebar.querySelectorAll('.tree-item')).map((e: any) =>
+        ? [...sidebar.querySelectorAll('.tree-item')].map((e: any) =>
             e.textContent.trim()
           )
         : null;
@@ -249,7 +252,8 @@ test.describe('Text Editor Plugin', () => {
         async () =>
           page.evaluate(() => {
             const h = document.querySelector('text-editor-page') as any;
-            return h?.tabs?.[0]?.ace?.getValue();
+            const view = h?.tabs?.[0]?.view;
+            return view ? view.state.doc.toString() : null;
           }),
         { timeout: 10_000 }
       )

@@ -83,9 +83,15 @@ text-editor-page {
     flex: 1;
     overflow: hidden;
 }
-.editor .ace {
-    width: 100%;
+.editor .cm-host {
     height: 100%;
+}
+.editor .cm-editor {
+    height: 100%;
+}
+.editor .cm-scroller {
+    overflow: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 .statusbar {
     display: flex;

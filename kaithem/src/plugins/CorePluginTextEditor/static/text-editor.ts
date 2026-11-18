@@ -1,68 +1,36 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Simple text editor plugin. A micro version of vs code.
-// Uses Ace editor, compiled with Vite.
+// Uses CodeMirror 6, compiled with Vite.
 // Lit component, no shadow DOM, works with the global barrel.css theme.
 
 import { LitElement, html, nothing } from 'lit';
-import * as ace from 'ace-builds';
-// The ace-builds webpack-resolver is webpack-only and breaks under Vite
-// (it uses require('file-loader?...') specifiers that cannot be resolved).
-// Instead, register the worker URLs for the modes we use with Vite's
-// ?worker&url imports, which emit the worker files as assets.
-import javascriptWorkerUrl from 'ace-builds/src-noconflict/worker-javascript?worker&url';
-import cssWorkerUrl from 'ace-builds/src-noconflict/worker-css?worker&url';
-import htmlWorkerUrl from 'ace-builds/src-noconflict/worker-html?worker&url';
-import jsonWorkerUrl from 'ace-builds/src-noconflict/worker-json?worker&url';
-import yamlWorkerUrl from 'ace-builds/src-noconflict/worker-yaml?worker&url';
-import luaWorkerUrl from 'ace-builds/src-noconflict/worker-lua?worker&url';
-
-import type { Editor } from 'ace-builds';
-
-// Register the standalone worker files for every mode that uses a worker.
-// Modes without a listed worker (golang, rust, sh, markdown) run
-// without a background worker and need no URL.
-ace.config.setModuleUrl('ace/mode/javascript_worker', javascriptWorkerUrl);
-ace.config.setModuleUrl('ace/mode/css_worker', cssWorkerUrl);
-ace.config.setModuleUrl('ace/mode/html_worker', htmlWorkerUrl);
-ace.config.setModuleUrl('ace/mode/json_worker', jsonWorkerUrl);
-ace.config.setModuleUrl('ace/mode/yaml_worker', yamlWorkerUrl);
-ace.config.setModuleUrl('ace/mode/lua_worker', luaWorkerUrl);
-
-// Ace resolves modes/themes via its internal AMD loader. Side-effect imports
-// register each module into that registry so ace.edit can find them offline,
-// with no external script fetches needed at runtime.
-import 'ace-builds/src-noconflict/mode-python';
-import 'ace-builds/src-noconflict/mode-typescript';
-import 'ace-builds/src-noconflict/mode-javascript';
-import 'ace-builds/src-noconflict/mode-json';
-import 'ace-builds/src-noconflict/mode-css';
-import 'ace-builds/src-noconflict/mode-html';
-import 'ace-builds/src-noconflict/mode-yaml';
-import 'ace-builds/src-noconflict/mode-markdown';
-import 'ace-builds/src-noconflict/mode-golang';
-import 'ace-builds/src-noconflict/mode-rust';
-import 'ace-builds/src-noconflict/mode-lua';
-import 'ace-builds/src-noconflict/mode-sh';
-import 'ace-builds/src-noconflict/mode-text';
-import 'ace-builds/src-noconflict/ext-searchbox';
-// ext-language_tools defines editor.completers and enableBasicAutocompletion.
-// ace-linters pushes its completer into editor.completers, which only exists
-// once this extension is loaded, so without it LSP completion silently does
-// nothing.
-import 'ace-builds/src-noconflict/ext-language_tools';
-import 'ace-builds/src-noconflict/theme-chrome';
-
-// ace-linters connects Ace to a language server over a websocket and wires
-// up completions, hover, diagnostics, etc. It is self-contained and does not
-// import ace-builds at runtime.
-import { AceLanguageClient } from 'ace-linters/build/ace-language-client';
+import { repeat } from 'lit/directives/repeat.js';
+import { basicSetup } from 'codemirror';
+import { Compartment, EditorState } from '@codemirror/state';
+import { EditorView, keymap } from '@codemirror/view';
+import {
+  LanguageDescription,
+  LanguageSupport,
+  StreamLanguage,
+  indentUnit,
+} from '@codemirror/language';
+import { indentWithTab } from '@codemirror/commands';
+import {
+  LSPClient,
+  languageServerExtensions,
+  type Transport,
+} from '@codemirror/lsp-client';
 
 interface Tab {
   path: string;
   content: string;
   dirty: boolean;
-  ace: Editor | null;
-  lspRegistered?: boolean;
+  view: EditorView | null;
+  // Reconfigured once the language has been lazily loaded and, later, once
+  // an LSP client for the language is available.
+  langCompartment: Compartment;
+  lspCompartment: Compartment;
+  lspAttached: boolean;
 }
 
 interface FileNode {
@@ -79,6 +47,140 @@ const params = new URLSearchParams(globalThis.location.search);
 // at lsp.detect_workspace() of the clicked file.
 const WORKSPACE = params.get('workspace') || '';
 const FILE = params.get('file') || '';
+
+// Languages are described with LanguageDescription so each grammar is only
+// fetched when a file of that language is opened. There is no
+// @codemirror/lang-toml, so TOML (and Lua/Shell) use a legacy stream mode.
+const LANGUAGES: readonly LanguageDescription[] = [
+  LanguageDescription.of({
+    name: 'Python',
+    alias: ['py'],
+    extensions: ['py', 'pyi'],
+    load: () => import('@codemirror/lang-python').then((m) => m.python()),
+  }),
+  LanguageDescription.of({
+    name: 'JavaScript',
+    alias: ['js'],
+    extensions: ['js', 'mjs', 'cjs', 'jsx'],
+    load: () =>
+      import('@codemirror/lang-javascript').then((m) =>
+        m.javascript({ jsx: true })
+      ),
+  }),
+  LanguageDescription.of({
+    name: 'TypeScript',
+    alias: ['ts'],
+    extensions: ['ts', 'tsx'],
+    load: () =>
+      import('@codemirror/lang-javascript').then((m) =>
+        m.javascript({ typescript: true, jsx: true })
+      ),
+  }),
+  LanguageDescription.of({
+    name: 'JSON',
+    extensions: ['json'],
+    load: () => import('@codemirror/lang-json').then((m) => m.json()),
+  }),
+  LanguageDescription.of({
+    name: 'TOML',
+    extensions: ['toml'],
+    load: () =>
+      import('@codemirror/legacy-modes/mode/toml').then(
+        (m) => new LanguageSupport(StreamLanguage.define(m.toml))
+      ),
+  }),
+  LanguageDescription.of({
+    name: 'YAML',
+    extensions: ['yaml', 'yml'],
+    load: () => import('@codemirror/lang-yaml').then((m) => m.yaml()),
+  }),
+  LanguageDescription.of({
+    name: 'C++',
+    alias: ['cpp'],
+    extensions: ['c', 'h', 'cc', 'cpp', 'cxx', 'hpp', 'hh', 'hxx'],
+    load: () => import('@codemirror/lang-cpp').then((m) => m.cpp()),
+  }),
+  LanguageDescription.of({
+    name: 'Markdown',
+    extensions: ['md', 'markdown'],
+    load: () => import('@codemirror/lang-markdown').then((m) => m.markdown()),
+  }),
+  LanguageDescription.of({
+    name: 'Rust',
+    extensions: ['rs'],
+    load: () => import('@codemirror/lang-rust').then((m) => m.rust()),
+  }),
+  LanguageDescription.of({
+    name: 'HTML',
+    extensions: ['html', 'htm'],
+    load: () => import('@codemirror/lang-html').then((m) => m.html()),
+  }),
+  LanguageDescription.of({
+    name: 'CSS',
+    extensions: ['css'],
+    load: () => import('@codemirror/lang-css').then((m) => m.css()),
+  }),
+  LanguageDescription.of({
+    name: 'Lua',
+    extensions: ['lua'],
+    load: () =>
+      import('@codemirror/legacy-modes/mode/lua').then(
+        (m) => new LanguageSupport(StreamLanguage.define(m.lua))
+      ),
+  }),
+  LanguageDescription.of({
+    name: 'Shell',
+    alias: ['sh', 'bash'],
+    extensions: ['sh', 'bash'],
+    load: () =>
+      import('@codemirror/legacy-modes/mode/shell').then(
+        (m) => new LanguageSupport(StreamLanguage.define(m.shell))
+      ),
+  }),
+];
+
+// Extension -> language server id. Only languages the backend has an image
+// for get an LSP client (see lsp.LANGUAGE_IMAGES); the rest are just
+// syntax-highlighted. JS/TS share one image but are separate servers.
+const LSP_LANGUAGE_BY_EXT: Record<string, string> = {
+  py: 'python',
+  js: 'javascript',
+  mjs: 'javascript',
+  cjs: 'javascript',
+  jsx: 'javascript',
+  ts: 'typescript',
+  tsx: 'typescript',
+  html: 'html',
+  htm: 'html',
+};
+
+function _ext(path: string): string {
+  return path.split('.').pop()?.toLowerCase() || '';
+}
+
+// Wrap a websocket as an LSP transport. The messages are raw JSON-RPC
+// bodies with no LSP framing, exactly what the backend bridge and the
+// container's stdio (behind the bridge) exchange.
+function _socketTransport(socket: WebSocket): Transport {
+  const handlers = new Set<(value: string) => void>();
+  socket.addEventListener('message', (ev) => {
+    if (typeof ev.data !== 'string') return;
+    for (const handler of handlers) handler(ev.data);
+  });
+  return {
+    send(message) {
+      if (socket.readyState !== WebSocket.OPEN)
+        throw new Error('LSP socket is not open');
+      socket.send(message);
+    },
+    subscribe(handler) {
+      handlers.add(handler);
+    },
+    unsubscribe(handler) {
+      handlers.delete(handler);
+    },
+  };
+}
 
 class TextEditorPage extends LitElement {
   static override properties = {
@@ -127,10 +229,12 @@ class TextEditorPage extends LitElement {
   }
 
   private ws: WebSocket | null = null;
-  private lspProvider: any = null;
-  // One websocket (and one backend language server) per language, created
-  // lazily the first time a document of that language needs the server.
+  // One websocket, one LSPClient, and one backend language server per
+  // language, created lazily the first time a document of that language
+  // needs the server.
   private _lspSockets = new Map<string, WebSocket>();
+  private _lspClients = new Map<string, LSPClient>();
+  private _lspPending = new Map<string, Promise<LSPClient | null>>();
   private _lspReady = new Set<string>();
   private _lspLanguages: string[] = [];
   private _lspInitialized = false;
@@ -158,6 +262,10 @@ class TextEditorPage extends LitElement {
     window.removeEventListener('beforeunload', this._beforeUnload);
     document.removeEventListener('click', this._onDocumentClick);
     this.ws?.close();
+    for (const tab of this.tabs) tab.view?.destroy();
+    for (const client of this._lspClients.values()) client.disconnect();
+    this._lspClients.clear();
+    this._lspPending.clear();
     for (const socket of this._lspSockets.values()) socket.close();
     this._lspSockets.clear();
     this._lspReady.clear();
@@ -275,9 +383,11 @@ class TextEditorPage extends LitElement {
     const tab = this.tabs.find((t) => t.path === path);
     if (!tab || tab.content === content) return;
     tab.content = content;
-    if (tab.ace) {
+    if (tab.view) {
       this._applyingRemote = true;
-      tab.ace.setValue(content, -1);
+      tab.view.dispatch({
+        changes: { from: 0, to: tab.view.state.doc.length, insert: content },
+      });
       this._applyingRemote = false;
     }
     this.tabs = [...this.tabs];
@@ -307,10 +417,18 @@ class TextEditorPage extends LitElement {
         workspace: WORKSPACE,
         path,
       });
-      const tab: Tab = { path, content: j.content, dirty: false, ace: null };
+      const tab: Tab = {
+        path,
+        content: j.content,
+        dirty: false,
+        view: null,
+        langCompartment: new Compartment(),
+        lspCompartment: new Compartment(),
+        lspAttached: false,
+      };
       this.tabs = [...this.tabs, tab];
       this.activeTab = path;
-      this._mountAce(path);
+      this._mountEditor(path);
       this._watchPath(path);
     } catch (error) {
       const msg = (error as Error).message;
@@ -338,84 +456,83 @@ class TextEditorPage extends LitElement {
     }
   }
 
-  private _mountAce(path: string) {
+  private async _mountEditor(path: string) {
     const tab = this.tabs.find((t) => t.path === path);
-    if (!tab) return;
-    requestAnimationFrame(() => {
-      const el = this.renderRoot.querySelector(`#ace-${CSS.escape(path)}`);
-      if (!el || tab.ace) return;
-      const ed = ace.edit(el as HTMLElement, {
-        mode: this._aceMode(path),
-        theme: 'ace/theme/chrome',
-        value: tab.content,
-        tabSize: 4,
-        useSoftTabs: true,
-        printMargin: false,
-      });
-
-      ed.setOptions({
-        enableBasicAutocompletion: true,
-        enableLiveAutocompletion: false,
-      });
-
-      // Ace injects its base editor CSS into document.head by default. Inside
-      // a shadow root that CSS is invisible to the editor, leaving .ace_scroller
-      // position:static and all layers off-screen. Inject the base CSS into the
-      // shadow root that actually contains the editor element.
-      (ed.renderer as any).attachToShadowRoot();
-      ed.session.on('change', () => {
-        if (this._applyingRemote) return;
-        const value = ed.getValue();
-        // Ignore the echo of a remote apply if the change event fires
-        // asynchronously (after _applyingRemote was cleared).
-        if (value === tab.content) return;
-        tab.content = value;
-        tab.dirty = true;
-        this.tabs = [...this.tabs];
-      });
-      tab.ace = ed;
-      this._registerLspEditor(tab);
-      this.tabs = [...this.tabs];
+    if (!tab || tab.view) return;
+    // The tab's host element only exists once Lit has rendered it.
+    await this.updateComplete;
+    const el = this.renderRoot.querySelector(`#cm-${CSS.escape(path)}`);
+    if (!el || tab.view) return;
+    const view = new EditorView({
+      parent: el as HTMLElement,
+      state: EditorState.create({
+        doc: tab.content,
+        extensions: [
+          basicSetup,
+          EditorState.tabSize.of(4),
+          indentUnit.of('    '),
+          keymap.of([
+            indentWithTab,
+            {
+              key: 'Mod-s',
+              preventDefault: true,
+              run: () => {
+                this._save();
+                return true;
+              },
+            },
+          ]),
+          tab.langCompartment.of([]),
+          tab.lspCompartment.of([]),
+          EditorView.updateListener.of((update) => {
+            if (!update.docChanged || this._applyingRemote) return;
+            const value = update.state.doc.toString();
+            // Ignore the echo of a remote apply if the change event fires
+            // after _applyingRemote was cleared.
+            if (value === tab.content) return;
+            tab.content = value;
+            tab.dirty = true;
+            this.tabs = [...this.tabs];
+          }),
+        ],
+      }),
     });
+    tab.view = view;
+    this._loadLanguage(tab);
+    this._attachLsp(tab);
+    this.tabs = [...this.tabs];
   }
 
-  private _aceMode(path: string): string {
-    const ext = path.split('.').pop()?.toLowerCase();
-    return (
-      {
-        py: 'ace/mode/python',
-        ts: 'ace/mode/typescript',
-        tsx: 'ace/mode/typescript',
-        js: 'ace/mode/javascript',
-        jsx: 'ace/mode/javascript',
-        mjs: 'ace/mode/javascript',
-        json: 'ace/mode/json',
-        css: 'ace/mode/css',
-        html: 'ace/mode/html',
-        htm: 'ace/mode/html',
-        yaml: 'ace/mode/yaml',
-        yml: 'ace/mode/yaml',
-        md: 'ace/mode/markdown',
-        go: 'ace/mode/golang',
-        rs: 'ace/mode/rust',
-        lua: 'ace/mode/lua',
-        sh: 'ace/mode/sh',
-      }[ext || ''] || 'ace/mode/text'
+  private async _loadLanguage(tab: Tab) {
+    const desc = LanguageDescription.matchFilename(
+      LANGUAGES,
+      tab.path.toLowerCase()
     );
+    if (!desc) return;
+    try {
+      const support = await desc.load();
+      if (!tab.view) return;
+      tab.view.dispatch({
+        effects: tab.langCompartment.reconfigure(support),
+      });
+    } catch (error) {
+      console.error(error);
+    }
   }
 
   private _focusTab() {
     requestAnimationFrame(() => {
       const tab = this.tabs.find((t) => t.path === this.activeTab);
-      tab?.ace?.resize();
+      tab?.view?.requestMeasure();
     });
   }
 
   private async _save() {
     const tab = this.tabs.find((t) => t.path === this.activeTab);
     if (!tab) return;
-    // Read the live value straight from Ace so we never save a stale buffer.
-    const content = tab.ace ? tab.ace.getValue() : tab.content;
+    // Read the live value straight from the editor so we never save a
+    // stale buffer.
+    const content = tab.view ? tab.view.state.doc.toString() : tab.content;
     try {
       await this._api('POST', 'write', undefined, {
         workspace: WORKSPACE,
@@ -443,7 +560,11 @@ class TextEditorPage extends LitElement {
       !confirm('Unsaved changes in ' + path + '. Close anyway?')
     )
       return;
-    this._unregisterLspEditor(tab);
+    tab?.view?.destroy();
+    if (tab) {
+      tab.view = null;
+      tab.lspAttached = false;
+    }
     this.tabs = this.tabs.filter((t) => t.path !== path);
     this._unwatchPath(path);
     if (this.activeTab === path) {
@@ -482,29 +603,9 @@ class TextEditorPage extends LitElement {
         return;
       }
       this.lspStatus = 'connecting';
-
-      // A single provider serves every language: ace-linters keys every
-      // request callback by the provider instance, so calling for() more
-      // than once would make responses go to the wrong editor. Each language
-      // gets its own server (and its own socket) via the config array; the
-      // socket is created lazily by _lspSocketFor the first time the
-      // language is actually used.
-      const self = this;
-      this.lspProvider = AceLanguageClient.for(
-        this._lspLanguages.map((lang: string) => ({
-          serviceName: lang,
-          module: () => import('ace-linters/build/language-client'),
-          modes: lang,
-          type: 'socket' as const,
-          get socket() {
-            return self._lspSocketFor(lang);
-          },
-        })),
-        { workspacePath: this._lspWorkspaceUri }
-      );
-      this.lspProvider.changeWorkspaceFolder(this._lspWorkspaceUri);
       this._lspInitialized = true;
-      this._registerAllLspEditors();
+      // Tabs opened before the language list arrived were not attached yet.
+      for (const tab of this.tabs) this._attachLsp(tab);
       this._refreshLspStatus();
     } catch (error) {
       this.lspStatus = 'unavailable';
@@ -518,8 +619,7 @@ class TextEditorPage extends LitElement {
     const qs = new URLSearchParams({ workspace: WORKSPACE, language: lang });
     const socket = new WebSocket('/text-editor-plugin/lsp-ws?' + qs);
     this._lspSockets.set(lang, socket);
-    // Use addEventListener (not onopen/onclose) because ace-linters assigns
-    // the socket's on* properties itself.
+    // Use addEventListener (not onopen/onclose) so nothing else is clobbered.
     socket.addEventListener('open', () => {
       this._lspReady.add(lang);
       this._refreshLspStatus();
@@ -530,6 +630,56 @@ class TextEditorPage extends LitElement {
       this._refreshLspStatus();
     });
     return socket;
+  }
+
+  private _lspClientFor(lang: string): Promise<LSPClient | null> {
+    let pending = this._lspPending.get(lang);
+    if (!pending) {
+      pending = this._connectLspClient(lang);
+      this._lspPending.set(lang, pending);
+    }
+    return pending;
+  }
+
+  private _connectLspClient(lang: string): Promise<LSPClient | null> {
+    const socket = this._lspSocketFor(lang);
+    return new Promise((resolve) => {
+      const start = () => {
+        const client = new LSPClient({
+          rootUri: this._lspWorkspaceUri,
+          extensions: languageServerExtensions(),
+        });
+        client.connect(_socketTransport(socket));
+        this._lspClients.set(lang, client);
+        socket.addEventListener('close', () => {
+          client.disconnect();
+          this._lspClients.delete(lang);
+          this._lspPending.delete(lang);
+        });
+        resolve(client);
+      };
+      if (socket.readyState === WebSocket.OPEN) {
+        start();
+        return;
+      }
+      const onOpen = () => {
+        cleanup();
+        start();
+      };
+      const onFail = () => {
+        cleanup();
+        this._lspPending.delete(lang);
+        resolve(null);
+      };
+      const cleanup = () => {
+        socket.removeEventListener('open', onOpen);
+        socket.removeEventListener('close', onFail);
+        socket.removeEventListener('error', onFail);
+      };
+      socket.addEventListener('open', onOpen);
+      socket.addEventListener('close', onFail);
+      socket.addEventListener('error', onFail);
+    });
   }
 
   private _refreshLspStatus() {
@@ -549,40 +699,29 @@ class TextEditorPage extends LitElement {
   }
 
   private _languageForPath(path: string): string | null {
-    const mode = this._aceMode(path).slice('ace/mode/'.length);
-    return this._lspLanguages.includes(mode) ? mode : null;
+    const lang = LSP_LANGUAGE_BY_EXT[_ext(path)];
+    return lang && this._lspLanguages.includes(lang) ? lang : null;
   }
 
-  private _registerAllLspEditors() {
-    for (const t of this.tabs) {
-      if (t.ace) this._registerLspEditor(t);
-    }
-  }
-
-  private _registerLspEditor(tab: Tab) {
-    if (!this.lspProvider || !tab.ace || tab.lspRegistered) return;
-    // Languages without a configured server (e.g. .go, .lua, .sh) are not
-    // in _lspLanguages; registering them would create a socket for a
-    // language the backend has no image for.
-    if (!this._languageForPath(tab.path)) return;
+  private async _attachLsp(tab: Tab) {
+    if (tab.lspAttached || !tab.view) return;
+    // Languages without a configured server (e.g. .css, .rs, .lua) are not
+    // in _lspLanguages; attaching them would open a socket for a language
+    // the backend has no image for.
+    const lang = this._languageForPath(tab.path);
+    if (!lang) return;
+    const client = await this._lspClientFor(lang);
+    if (!client || !tab.view || tab.lspAttached) return;
     try {
-      this.lspProvider.registerEditor(tab.ace, {
-        filePath: this._lspUriFor(tab.path),
+      tab.view.dispatch({
+        effects: tab.lspCompartment.reconfigure(
+          client.plugin(this._lspUriFor(tab.path), lang)
+        ),
       });
-      tab.lspRegistered = true;
+      tab.lspAttached = true;
     } catch (error) {
       console.error(error);
     }
-  }
-
-  private _unregisterLspEditor(tab: Tab | undefined) {
-    if (!this.lspProvider || !tab?.ace || !tab.lspRegistered) return;
-    try {
-      this.lspProvider.unregisterEditor(tab.ace, true);
-    } catch (error) {
-      console.error(error);
-    }
-    tab.lspRegistered = false;
   }
 
   private _renderTree(nodes: FileNode[], depth = 0, parentPath = ''): any {
@@ -782,13 +921,15 @@ class TextEditorPage extends LitElement {
             `
           : nothing}
         <div class="editor">
-          ${this.tabs.map(
+          ${repeat(
+            this.tabs,
+            (t) => t.path,
             (t) => html`
               <div
-                id="ace-${t.path}"
-                style="display: ${t.path === this.activeTab ? 'block' : 'none'};
-                       height: 100%"
-                data-testid="ace-${t.path}"
+                class="cm-host"
+                id="cm-${t.path}"
+                style="display: ${t.path === this.activeTab ? 'block' : 'none'}"
+                data-testid="cm-${t.path}"
               ></div>
             `
           )}
