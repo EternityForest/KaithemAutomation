@@ -15,11 +15,9 @@ import {
   indentUnit,
 } from '@codemirror/language';
 import { indentWithTab } from '@codemirror/commands';
-import {
-  LSPClient,
-  languageServerExtensions,
-  type Transport,
-} from '@codemirror/lsp-client';
+// The LSP client is pulled in lazily (see _connectLspClient) so its code is
+// not part of the initial bundle; only its types are needed here.
+import type { LSPClient, Transport } from '@codemirror/lsp-client';
 
 interface Tab {
   path: string;
@@ -254,7 +252,27 @@ class TextEditorPage extends LitElement {
     this._refreshTree();
     this._openFile(FILE);
     this._connectWatch();
-    this._initLsp();
+    // Starting an LSP container is heavy, so hold it back until the first
+    // frame has painted and the browser is idle. Attachment is idempotent
+    // and also happens when a tab is opened later.
+    this._afterFirstPaint(() => this._initLsp());
+  }
+
+  // Run fn after the browser has painted at least one frame, and preferably
+  // while it is idle, so deferred work does not delay first render.
+  private _afterFirstPaint(fn: () => void) {
+    requestAnimationFrame(() => {
+      const ric = (
+        globalThis as unknown as {
+          requestIdleCallback?: (
+            cb: () => void,
+            opts?: { timeout: number }
+          ) => void;
+        }
+      ).requestIdleCallback;
+      if (ric) ric(fn, { timeout: 2000 });
+      else globalThis.setTimeout(fn, 1);
+    });
   }
 
   override disconnectedCallback() {
@@ -620,8 +638,9 @@ class TextEditorPage extends LitElement {
     const socket = new WebSocket('/text-editor-plugin/lsp-ws?' + qs);
     this._lspSockets.set(lang, socket);
     // Use addEventListener (not onopen/onclose) so nothing else is clobbered.
+    // "Ready" is not set here: a socket being open says nothing about the
+    // language server having finished its initialize handshake.
     socket.addEventListener('open', () => {
-      this._lspReady.add(lang);
       this._refreshLspStatus();
     });
     socket.addEventListener('close', () => {
@@ -644,19 +663,54 @@ class TextEditorPage extends LitElement {
   private _connectLspClient(lang: string): Promise<LSPClient | null> {
     const socket = this._lspSocketFor(lang);
     return new Promise((resolve) => {
-      const start = () => {
+      const start = async () => {
+        let mod: typeof import('@codemirror/lsp-client');
+        try {
+          mod = await import('@codemirror/lsp-client');
+        } catch (error) {
+          console.error('Failed to load the LSP client', error);
+          this._lspPending.delete(lang);
+          resolve(null);
+          return;
+        }
+        const { LSPClient, languageServerExtensions } = mod;
         const client = new LSPClient({
           rootUri: this._lspWorkspaceUri,
+          // The client defaults every request to a 3s timeout, but
+          // ``initialize`` is sent the moment the socket opens while the
+          // backend is still starting (and possibly pulling) the podman
+          // container, which routinely takes longer. Give it room so the
+          // handshake does not abort and leave the client unusable.
+          timeout: 60000,
           extensions: languageServerExtensions(),
         });
-        client.connect(_socketTransport(socket));
         this._lspClients.set(lang, client);
-        socket.addEventListener('close', () => {
+        const onClose = () => {
           client.disconnect();
           this._lspClients.delete(lang);
           this._lspPending.delete(lang);
-        });
-        resolve(client);
+          this._lspReady.delete(lang);
+          this._refreshLspStatus();
+        };
+        socket.addEventListener('close', onClose);
+        client.connect(_socketTransport(socket));
+        try {
+          // Notifications (didOpen, didChange, ...) and requests wait on
+          // ``initializing``, so the client is only usable once it settles.
+          await client.initializing;
+          this._lspReady.add(lang);
+          this._refreshLspStatus();
+          resolve(client);
+        } catch (error) {
+          console.error('LSP initialize failed for ' + lang, error);
+          socket.removeEventListener('close', onClose);
+          client.disconnect();
+          this._lspClients.delete(lang);
+          // Clear the cached promise so a later attempt can retry.
+          this._lspPending.delete(lang);
+          this._refreshLspStatus();
+          resolve(null);
+        }
       };
       if (socket.readyState === WebSocket.OPEN) {
         start();
