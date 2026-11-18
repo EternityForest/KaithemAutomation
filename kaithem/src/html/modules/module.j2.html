@@ -8,6 +8,27 @@ webapi = imp0rt( 'kaithem.api.web' ) %} {% block body %}
     border-width: 3px;
     padding-left: 1em;
   }
+  .file-drop-target {
+    border: 2px dashed var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 1em;
+    margin: 1em 0;
+    text-align: center;
+    cursor: pointer;
+    color: var(--fg);
+    background: color-mix(in srgb, var(--accent-color) 6%, transparent);
+    transition:
+      background 0.15s,
+      border-color 0.15s;
+  }
+  .file-drop-target > .mdi {
+    font-size: 2.5em;
+    color: var(--accent-color);
+  }
+  .file-drop-target.dragover {
+    border-color: var(--accent-color);
+    background: color-mix(in srgb, var(--accent-color) 20%, transparent);
+  }
 </style>
 <main>
   <h2>Module {{ name| escape }}</h2>
@@ -208,6 +229,26 @@ webapi = imp0rt( 'kaithem.api.web' ) %} {% block body %}
 
     <h3>Files</h3>
 
+    {% if not ro %}
+    <div
+      class="file-drop-target"
+      id="file-drop-target"
+      data-testid="file-drop-target"
+      data-upload-url="/modules/module/{{ url(name) }}/uploadfileresourcetarget"
+      data-exists-url="/modules/module/{{ url(name) }}/fileresourceexists"
+      data-dir="{{ '/'.join(path) | escape }}"
+      role="button"
+      tabindex="0"
+      aria-label="Drop files here or click to add files to this folder">
+      <i class="mdi mdi-cloud-upload-outline"></i>
+      <p>
+        <b>Drop files here</b> or <u>click to browse</u> to add them to this
+        folder.
+      </p>
+      <input type="file" id="file-drop-input" multiple hidden />
+    </div>
+    {% endif %}
+
     <dl>
       {% for i in sorted_module_file_list(name, path) %}
       <dt>
@@ -391,5 +432,109 @@ webapi = imp0rt( 'kaithem.api.web' ) %} {% block body %}
   if (perfEntries.length && perfEntries[0].type === "back_forward") {
     window.location.reload();
   }
+
+  // Drag and drop / click to add file resources
+  (function () {
+    const target = document.getElementById("file-drop-target");
+    if (!target) return;
+
+    const input = document.getElementById("file-drop-input");
+    const uploadUrl = target.dataset.uploadUrl;
+    const existsUrl = target.dataset.existsUrl;
+    const dir = target.dataset.dir || "";
+
+    async function fileExists(name) {
+      const u = new URL(existsUrl, window.location.origin);
+      u.searchParams.set("dir", dir);
+      u.searchParams.set("name", name);
+      try {
+        const r = await fetch(u, { credentials: "same-origin" });
+        if (!r.ok) return false;
+        const j = await r.json();
+        return !!j.exists;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    async function uploadFile(file) {
+      let overwrite = false;
+      if (await fileExists(file.name)) {
+        if (
+          !confirm(
+            'A file named "' +
+              file.name +
+              '" already exists in this folder. Overwrite it?'
+          )
+        ) {
+          return false;
+        }
+        overwrite = true;
+      }
+      const fd = new FormData();
+      fd.append("dir", dir);
+      fd.append("name", file.name);
+      fd.append("file", file);
+      if (overwrite) fd.append("overwrite", "on");
+      const r = await fetch(uploadUrl, {
+        method: "POST",
+        body: fd,
+        credentials: "same-origin",
+      });
+      if (!r.ok) {
+        alert('Failed to upload "' + file.name + '".');
+        return false;
+      }
+      return true;
+    }
+
+    async function handleFiles(files) {
+      let uploaded = false;
+      for (const file of files) {
+        if (await uploadFile(file)) uploaded = true;
+      }
+      if (uploaded) window.location.reload();
+    }
+
+    target.addEventListener("click", (e) => {
+      // Ignore the synthetic click from input.click() so we don't recurse
+      if (e.target === input) return;
+      input.click();
+    });
+    target.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        input.click();
+      }
+    });
+    input.addEventListener("change", () => {
+      handleFiles(input.files);
+      // Clear so re-selecting the same file fires change again
+      input.value = "";
+    });
+
+    ["dragenter", "dragover"].forEach((ev) =>
+      target.addEventListener(ev, (e) => {
+        e.preventDefault();
+        target.classList.add("dragover");
+      })
+    );
+    ["dragleave", "dragend"].forEach((ev) =>
+      target.addEventListener(ev, (e) => {
+        e.preventDefault();
+        target.classList.remove("dragover");
+      })
+    );
+    target.addEventListener("drop", (e) => {
+      e.preventDefault();
+      target.classList.remove("dragover");
+      if (e.dataTransfer && e.dataTransfer.files.length) {
+        handleFiles(e.dataTransfer.files);
+      }
+    });
+    // Stop the browser from navigating away when a file is dropped elsewhere
+    window.addEventListener("dragover", (e) => e.preventDefault());
+    window.addEventListener("drop", (e) => e.preventDefault());
+  })();
 </script>
 {% endblock %}

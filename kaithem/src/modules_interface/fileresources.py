@@ -227,3 +227,26 @@ async def uploadfileresourcetarget(module: str):
             return quart.redirect(f"/modules/module/{util.url(module)}")
 
     return await f()
+
+
+@quart_app.app.route("/modules/module/<module>/fileresourceexists")
+async def fileresourceexists(module: str):
+    """Check whether a file resource already exists, so the UI can prompt
+    before overwriting."""
+    try:
+        pages.require("system_admin")
+    except PermissionError:
+        return pages.loginredirect(pages.geturl())
+
+    path = request.args.get("dir", "")
+    name = request.args.get("name", "")
+    if not name:
+        raise ValueError("name is required")
+
+    d = modules.getModuleDir(module)
+    dataname = name
+    if path:
+        dataname = f"{path}/{dataname}"
+    dataname = os.path.join(d, "__filedata__", dataname)
+
+    return json.dumps({"exists": os.path.exists(dataname)})
