@@ -23,6 +23,7 @@ import {
   getBreakpointLines,
   toggleBreakpoint,
 } from './breakpoints.ts';
+import { execLineExtension, setExecLine } from './exec-line.ts';
 import { DebuggerClient } from './dap.ts';
 import type {
   DapEventBody,
@@ -234,6 +235,7 @@ class TextEditorPage extends LitElement {
     activeTab: { state: true },
     sidebarOpen: { state: true },
     tree: { state: true },
+    collapsed: { state: true },
     lspStatus: { state: true },
     contextMenu: { state: true },
     authRequired: { state: true },
@@ -257,6 +259,10 @@ class TextEditorPage extends LitElement {
   declare activeTab: string | null;
   declare sidebarOpen: boolean;
   declare tree: FileNode[];
+  // Workspace-relative paths of folders the user has collapsed in the
+  // sidebar. Folders are expanded unless their path is in here, so new
+  // folders appear expanded by default.
+  declare collapsed: Set<string>;
   declare lspStatus: 'connected' | 'unavailable' | 'connecting';
   declare contextMenu: {
     x: number;
@@ -278,6 +284,7 @@ class TextEditorPage extends LitElement {
     this.activeTab = null;
     this.sidebarOpen = false;
     this.tree = [];
+    this.collapsed = new Set();
     this.lspStatus = 'unavailable';
     this.contextMenu = null;
     this.authRequired = false;
@@ -316,6 +323,13 @@ class TextEditorPage extends LitElement {
   // Debounces pushing breakpoints to the adapter while the document is
   // edited, so a burst of keystrokes sends a single setBreakpoints.
   private _bpTimer: ReturnType<typeof globalThis.setTimeout> | null = null;
+  // The sources the adapter currently knows breakpoints for, keyed the
+  // same way as the setBreakpoints request.  When a source drops out of
+  // the current set we still have to send it an empty list to clear it.
+  private _bpSentSources = new Map<string, DapSource>();
+  // A trailing line fragment from the adapter's streamed output, held
+  // until its newline arrives so the console does not show blank lines.
+  private _consolePartial = '';
 
   override firstUpdated() {
     window.addEventListener('beforeunload', this._beforeUnload);
@@ -588,6 +602,7 @@ class TextEditorPage extends LitElement {
           EditorState.readOnly.of(tab.readonly),
           EditorView.editable.of(!tab.readonly),
           breakpointGutter,
+          execLineExtension,
           EditorView.updateListener.of((update) => {
             if (this._applyingRemote) return;
             // A breakpoint toggle, or a doc edit that shifts existing
@@ -924,10 +939,11 @@ class TextEditorPage extends LitElement {
       case 'terminated':
       case 'exited': {
         this.debugThreads = [];
+        this._clearExecLine();
         break;
       }
       case 'output': {
-        this._appendConsole('output', body.output ?? '');
+        this._appendOutput(body);
         break;
       }
       // No default
@@ -957,6 +973,11 @@ class TextEditorPage extends LitElement {
         });
       }
       this.debugThreads = stopped;
+      // Show where execution stopped: reveal and highlight the top frame
+      // of the thread that actually hit, if we know which one that is.
+      const hit = stopped.find((t) => t.id === body.threadId) ?? stopped[0];
+      const top = hit?.frames[0];
+      if (top) void this._showFrame(top);
     } catch (error) {
       this._appendConsole('error', (error as Error).message);
     }
@@ -968,6 +989,7 @@ class TextEditorPage extends LitElement {
     try {
       if (this.debugThreads.length > 0) {
         const thread = this.debugThreads[0];
+        this._clearExecLine();
         await this._dap.send('continue', { threadId: thread.id });
       } else {
         await this._dap.send('launch', {});
@@ -983,6 +1005,18 @@ class TextEditorPage extends LitElement {
     if (!thread) return;
     try {
       await this._dap.send(kind, { threadId: thread.id });
+    } catch (error) {
+      this._appendConsole('error', (error as Error).message);
+    }
+  }
+
+  // Pause the running program.  The proxy never lets a thread id through
+  // that could stop the event loop, so no arguments are needed (and none
+  // would be trusted).
+  private async _dapPause() {
+    if (!this._dap || !this._dapInitialized) return;
+    try {
+      await this._dap.send('pause', {});
     } catch (error) {
       this._appendConsole('error', (error as Error).message);
     }
@@ -1031,6 +1065,20 @@ class TextEditorPage extends LitElement {
       entry.lines.push(...lines);
       bySource.set(key, entry);
     }
+    // A source we sent before that no longer has breakpoints has to be
+    // told to clear them, or the adapter keeps pausing there.
+    for (const [key, source] of this._bpSentSources) {
+      if (!bySource.has(key)) {
+        this._dap
+          .send('setBreakpoints', { source, breakpoints: [] })
+          .catch((error: Error) => {
+            console.error('setBreakpoints failed', error);
+          });
+      }
+    }
+    this._bpSentSources = new Map(
+      [...bySource].map(([key, entry]) => [key, entry.source])
+    );
     for (const { source, lines } of bySource.values()) {
       this._dap
         .send('setBreakpoints', {
@@ -1054,18 +1102,47 @@ class TextEditorPage extends LitElement {
 
   private async _jumpToFrame(frame: DapStackFrame) {
     const source = frame.source;
-    if (source?.sourceReference !== undefined) {
+    // Only a positive sourceReference marks a virtual (decompiled) source;
+    // ordinary on-disk files report 0, which is a real path we can open.
+    if (source?.sourceReference) {
       await this._openVirtualSource(source, frame.line);
     } else if (source?.path) {
       await this._openDiskFile(source.path, frame.line);
     }
   }
 
-  private async _openDiskFile(path: string, line: number) {
+  // Reveal the top frame of a stop automatically.  Unlike a frame click
+  // this must never pop an alert or steal focus, so failures are reported
+  // in the console and the editor keeps whatever the user was doing.
+  private async _showFrame(frame: DapStackFrame) {
+    const source = frame.source;
+    try {
+      if (source?.sourceReference) {
+        await this._openVirtualSource(source, frame.line, { silent: true });
+      } else if (source?.path) {
+        await this._openDiskFile(source.path, frame.line, { silent: true });
+      }
+    } catch (error) {
+      this._appendConsole('error', (error as Error).message);
+    }
+  }
+
+  // Clear the stopped-line highlight from every open editor.
+  private _clearExecLine() {
+    for (const tab of this.tabs) {
+      tab.view?.dispatch({ effects: setExecLine.of(null) });
+    }
+  }
+
+  private async _openDiskFile(
+    path: string,
+    line: number,
+    options: { silent?: boolean } = {}
+  ) {
     const existing = this.tabs.find((t) => t.path === path);
     if (existing) {
       this.activeTab = path;
-      this._revealLine(existing, line);
+      this._revealLine(existing, line, !options.silent);
       return;
     }
     try {
@@ -1084,20 +1161,25 @@ class TextEditorPage extends LitElement {
       this.tabs = [...this.tabs, tab];
       this.activeTab = path;
       await this._mountEditor(path);
-      this._revealLine(tab, line);
+      this._revealLine(tab, line, !options.silent);
     } catch (error) {
+      if (options.silent) throw error;
       alert('Could not open source file: ' + (error as Error).message);
     }
   }
 
-  private async _openVirtualSource(source: DapSource, line: number) {
+  private async _openVirtualSource(
+    source: DapSource,
+    line: number,
+    options: { silent?: boolean } = {}
+  ) {
     const ref = source.sourceReference;
     if (ref === undefined || !this._dap) return;
     const path = source.name || 'source-' + ref;
     const existing = this.tabs.find((t) => t.path === path);
     if (existing) {
       this.activeTab = path;
-      this._revealLine(existing, line);
+      this._revealLine(existing, line, !options.silent);
       return;
     }
     try {
@@ -1119,13 +1201,14 @@ class TextEditorPage extends LitElement {
       this.tabs = [...this.tabs, tab];
       this.activeTab = path;
       await this._mountEditor(path);
-      this._revealLine(tab, line);
+      this._revealLine(tab, line, !options.silent);
     } catch (error) {
+      if (options.silent) throw error;
       alert('Could not load source: ' + (error as Error).message);
     }
   }
 
-  private _revealLine(tab: Tab, line: number) {
+  private _revealLine(tab: Tab, line: number, focus = true) {
     requestAnimationFrame(() => {
       const view = tab.view;
       if (!view) return;
@@ -1133,9 +1216,12 @@ class TextEditorPage extends LitElement {
       const info = view.state.doc.line(number);
       view.dispatch({
         selection: { anchor: info.from },
-        effects: EditorView.scrollIntoView(info.from, { y: 'center' }),
+        effects: [
+          EditorView.scrollIntoView(info.from, { y: 'center' }),
+          setExecLine.of(number),
+        ],
       });
-      view.focus();
+      if (focus) view.focus();
     });
   }
 
@@ -1143,6 +1229,21 @@ class TextEditorPage extends LitElement {
     if (!text) return;
     this.consoleLines = [...this.consoleLines, { kind, text }];
     this.updateComplete.then(() => this._scrollConsole());
+  }
+
+  // Adapter output arrives in arbitrary chunks that can split a line in
+  // the middle; hold the trailing fragment until its newline arrives so
+  // the console shows one entry per line instead of a blank line per
+  // chunk.  stderr is shown with the error styling.
+  private _appendOutput(body: DapEventBody) {
+    const text = this._consolePartial + (body.output ?? '');
+    const parts = text.split('\n');
+    this._consolePartial = parts.pop() ?? '';
+    const kind: ConsoleLine['kind'] =
+      body.category === 'stderr' ? 'error' : 'output';
+    for (const part of parts) {
+      if (part.trim()) this._appendConsole(kind, part);
+    }
   }
 
   private _scrollConsole() {
@@ -1154,15 +1255,26 @@ class TextEditorPage extends LitElement {
 
   private _onConsoleKey(e: KeyboardEvent) {
     const input = e.target as HTMLInputElement;
-    if (e.key === 'Enter') {
+    switch (e.key) {
+    case 'Enter': {
       e.preventDefault();
       this._consoleSubmit(input);
-    } else if (e.key === 'ArrowUp') {
+    
+    break;
+    }
+    case 'ArrowUp': {
       e.preventDefault();
       this._consoleRecall(input, -1);
-    } else if (e.key === 'ArrowDown') {
+    
+    break;
+    }
+    case 'ArrowDown': {
       e.preventDefault();
       this._consoleRecall(input, 1);
+    
+    break;
+    }
+    // No default
     }
   }
 
@@ -1203,22 +1315,35 @@ class TextEditorPage extends LitElement {
     }
   }
 
+  private _toggleFolder(path: string) {
+    // Reassign so Lit sees the change; Set mutations are not observed.
+    const next = new Set(this.collapsed);
+    if (next.has(path)) next.delete(path);
+    else next.add(path);
+    this.collapsed = next;
+  }
+
   private _renderTree(nodes: FileNode[], depth = 0, parentPath = ''): any {
     return nodes.map((n) => {
       const fullPath = parentPath ? parentPath + '/' + n.name : n.name;
+      const isDir = n.type === 'dir';
+      const collapsed = isDir && this.collapsed.has(fullPath);
       return html`
         <div
           class="tree-item"
           style="padding-left: ${0.5 + depth * 0.75}rem"
           @click="${() => {
-            if (n.type === 'file') this._openFile(fullPath);
+            if (isDir) this._toggleFolder(fullPath);
+            else this._openFile(fullPath);
           }}"
           @contextmenu="${(e: Event) =>
-            this._openContextMenu(e as MouseEvent, fullPath, n.type === 'dir')}"
+            this._openContextMenu(e as MouseEvent, fullPath, isDir)}"
         >
-          ${n.type === 'dir' ? '📁 ' : '📄 '}${n.name}
+          <span class="tree-chevron"
+            >${isDir ? (collapsed ? '▸' : '▾') : ''}</span
+          >${isDir ? '📁 ' : '📄 '}${n.name}
         </div>
-        ${n.type === 'dir' && n.children
+        ${isDir && !collapsed && n.children
           ? this._renderTree(n.children, depth + 1, fullPath)
           : nothing}
       `;
@@ -1314,6 +1439,10 @@ class TextEditorPage extends LitElement {
             @click="${this._dapRun}">
             <span class="mdi mdi-play"></span>
           </button>
+          <button data-testid="dap-pause" title="Pause"
+            @click="${this._dapPause}">
+            <span class="mdi mdi-pause"></span>
+          </button>
           <button data-testid="dap-step-over" title="Step over"
             @click="${() => this._dapStep('next')}">
             <span class="mdi mdi-debug-step-over"></span>
@@ -1380,7 +1509,7 @@ class TextEditorPage extends LitElement {
             data-testid="dap-console-input"
             placeholder="Console"
             @keydown="${this._onConsoleKey}"
-          />
+          >
         </div>
       </div>
     `;

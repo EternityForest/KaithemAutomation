@@ -359,12 +359,13 @@ input[type='range'],
 
 /*Overall page layout */
 
-main {
+main:not(.w-full, .fullscreen){
   margin: auto;
   width: calc(min(45em, 100vw, 100%));
   max-width: 100%;
   min-width: calc(min(min-content, 100vw));
 }
+
 
 html {
   background: var(--bg);

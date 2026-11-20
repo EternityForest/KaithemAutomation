@@ -20,6 +20,9 @@ for select languages(Dynamically downloaded as Podman containers),
 OpenRouter powered Agentic Chats, and snapshot backups for your projects.
 
 
+We have also removed another of the oldest features, the object inspector that allowed love inspection of the internals.
+
+Replacing it is the brand new debugger, a true DAP debugger that can debug the kaithem process itself, although it cannot debug the main thread(that would block everything).
 
 
 * [bug] Main page now shows all alerts in any state other than normal.

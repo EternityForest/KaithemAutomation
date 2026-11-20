@@ -19,7 +19,7 @@
     "@types/node": "^20.12.12",
     "@types/react": "^19.2.8",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-vue": "^6.0.3",
+    "@vitejs/plugin-vue": "^6.0.11",
     "eslint-config-prettier": "^10.1.8",
     "eslint-import-resolver-alias": "^1.1.2",
     "eslint-import-resolver-node": "^0.3.9",
@@ -34,7 +34,7 @@
     "prettier-plugin-jinja-template": "^2.0.0",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.18.1",
-    "vite": "^7.3.2"
+    "vite": "^8.3.8"
   },
   "dependencies": {
     "@codemirror/lang-cpp": "^6.0.3",

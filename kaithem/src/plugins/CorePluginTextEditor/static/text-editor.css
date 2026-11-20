@@ -109,6 +109,11 @@ text-editor-page {
 .tree-item:hover {
     background: var(--box-bg);
 }
+.tree-chevron {
+    display: inline-block;
+    width: 0.9rem;
+    opacity: 0.7;
+}
 .contextmenu {
     position: fixed;
     z-index: 20;
@@ -178,6 +183,9 @@ text-editor-page {
 .cm-breakpoint-dot {
     color: #e33;
     cursor: pointer;
+}
+.cm-exec-line {
+    background: rgba(255, 213, 0, 0.35);
 }
 .debugger {
     width: 360px;

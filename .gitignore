@@ -17,7 +17,8 @@ result/**
 **/.ruff_cache
 **/.pytest_cache
 **/__pycache__
-
+.test_venvs
+.uv
 node_modules/
 /test-results/
 /playwright-report/

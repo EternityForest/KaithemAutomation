@@ -361,15 +361,20 @@ def _list_dir(root: str) -> list[dict[str, Any]]:
     """
     out: list[dict[str, Any]] = []
     try:
-        names = sorted(os.listdir(root))
+        names = os.listdir(root)
     except OSError:
         return out
+    # Folders first, then files, each alphabetical and case-insensitive,
+    # like the vs code explorer.
+    names.sort(key=lambda n: n.lower())
+    dirs: list[dict[str, Any]] = []
+    files: list[dict[str, Any]] = []
     for name in names:
         if name.startswith(".") or name in PRUNED_DIRS:
             continue
         p = os.path.join(root, name)
         if os.path.isdir(p) and not os.path.islink(p):
-            out.append(
+            dirs.append(
                 {
                     "name": name,
                     "type": "dir",
@@ -381,7 +386,9 @@ def _list_dir(root: str) -> list[dict[str, Any]]:
                 size = os.path.getsize(p)
             except OSError:
                 size = 0
-            out.append({"name": name, "type": "file", "size": size})
+            files.append({"name": name, "type": "file", "size": size})
+    out.extend(dirs)
+    out.extend(files)
     return out
 
 
@@ -743,52 +750,72 @@ async def text_editor_self_debug_ws():
 
     Only one browser may be attached at a time.  Before bridging we turn
     tracing off on the main thread, so a breakpoint can never stop the
-    event loop and wedge the whole server.
+    event loop and wedge the whole server.  When the browser disconnects we
+    detach, ending the pydevd session so a later visit can attach again.
     """
     require("system_admin")
 
     ws = quart.websocket
     loop = asyncio.get_running_loop()
 
+    # Accept before deciding anything, so a refusal reaches the browser as a
+    # real close code instead of an opaque handshake 403.
+    await ws.accept()
+
     if not self_debug.enabled():
         await ws.close(4004, "self_debug_disabled")
         return
 
     proxy = self_debug.get_proxy()
-    if not proxy.armed:
-        await ws.close(4004, "not_armed")
-        return
-
     out_queue: asyncio.Queue[str | None] = asyncio.Queue()
+    # Claim the single browser slot before arming, so no other session can
+    # arm or detach the link while we are bridging it.
     if not proxy.acquire_browser(loop, out_queue):
         await ws.close(4009, "self_debug_busy")
         return
 
-    # The event loop runs on the main thread; make sure breakpoints there
-    # can never suspend it.
-    self_debug.disable_main_thread_tracing(loop)
-
-    async def _pump_to_ws() -> None:
-        while True:
-            text = await out_queue.get()
-            if text is None:
-                await ws.close(4000, "debugger_disconnected")
-                return
-            await ws.send(text)
-
-    pump_task = asyncio.create_task(_pump_to_ws())
     try:
-        while True:
-            data = await ws.receive()
-            if data is None:
-                break
-            if isinstance(data, bytes):
-                data = data.decode("utf-8")
-            proxy.from_browser(data)
-    except Exception:
-        pass
+        if not proxy.armed:
+            # A page reload reconnects without going through the arm route.
+            try:
+                await asyncio.to_thread(proxy.arm)
+            except Exception:
+                logger.exception("Failed to arm the self-debugger")
+                await ws.close(1011, "self_debug_arm_failed")
+                return
+
+        # The event loop runs on the main thread; make sure breakpoints there
+        # can never suspend it.
+        self_debug.disable_main_thread_tracing(loop)
+
+        async def _pump_to_ws() -> None:
+            while True:
+                text = await out_queue.get()
+                if text is None:
+                    await ws.close(4000, "debugger_disconnected")
+                    return
+                await ws.send(text)
+
+        pump_task = asyncio.create_task(_pump_to_ws())
+        try:
+            while True:
+                data = await ws.receive()
+                if data is None:
+                    break
+                if isinstance(data, bytes):
+                    data = data.decode("utf-8")
+                proxy.from_browser(data)
+        except Exception:
+            pass
+        finally:
+            pump_task.cancel()
     finally:
-        pump_task.cancel()
+        # Detach before releasing the slot, so a fast reconnect cannot race a
+        # half-torn-down link, and the next session starts clean.
+        try:
+            await asyncio.to_thread(proxy.detach)
+        except Exception:
+            logger.exception("Failed to detach the self-debugger")
         proxy.release_browser()
 
 

@@ -20,7 +20,7 @@ export default defineConfig({
     assetsInlineLimit: 4 * 1024,
     sourcemap: true,
 
-    rollupOptions: {
+    rolldownOptions: {
       preserveEntrySignatures: 'exports-only',
       external: [
         '/static/js/widget.mjs',
@@ -122,17 +122,12 @@ export default defineConfig({
         footer: '\n//# sourceMappingURL',
       },
       treeshake: {
-        moduleSideEffects: (id) => {
-          // Keep yjs and provider modules
-          if (
-            id.includes('yjs') ||
-            id.includes('yjs-provider') ||
-            id.includes('alerts-component')
-          ) {
-            return true;
-          }
-          return 'no-treeshake';
-        },
+        // Rolldown's treeshake.moduleSideEffects only accepts a boolean.
+        // Older Rollup/Vite used the string 'no-treeshake' to retain whole
+        // modules. The closest equivalent is to treat every module as having
+        // side effects, so yjs providers, the alerts component, etc. are not
+        // dropped from the bundle.
+        moduleSideEffects: () => true,
       },
     },
   },
