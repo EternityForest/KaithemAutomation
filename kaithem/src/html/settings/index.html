@@ -1,5 +1,5 @@
 <%include file="/pageheader.html"/>
-<%from kaithem.src import directories, settings
+<%from kaithem.src import directories, settings, config
 import os%>
 <title>KSettings</title>
 
@@ -92,6 +92,11 @@ import os%>
 
 <dt><a href="/settings/mdns">MDNS</a></dt>
 <dd>View HTTP services on the LAN</dd>
+
+%if config.config.get("self_debug"):
+<dt><a href="/text-editor-plugin/self-debug"><i class="mdi mdi-bug"></i>Debug Kaithem (self-debug)</a></dt>
+<dd>Unsafe last resort: attach a debugger to Kaithem's own process. Disables tracing on the main thread and filters suspend-all breakpoints so the server keeps serving. Permanent until restart.</dd>
+%endif
 
 
 </dl>

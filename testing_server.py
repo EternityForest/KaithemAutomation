@@ -91,6 +91,22 @@ for _ai_key, _ai_value in {
 }.items():
     settings_overrides.add_val(_ai_key, _ai_value, "<playwright test>", 100)
 
+# Run a loopback fake Debug Adapter Protocol server so the text editor's
+# debugger sidebar can be tested without a real debugger.  It listens on
+# a fixed port (see DEFAULT_DAP_MOCK_PORT) because the Playwright
+# container shares the host network but not /dev/shm, so the test cannot
+# read a dynamically chosen port from a file.
+from kaithem.src.tests.dap_mock import (  # noqa: E402
+    DEFAULT_DAP_MOCK_PORT,
+    start_dap_mock,
+)
+
+dap_mock = start_dap_mock(
+    port=int(
+        os.environ.get("KAITHEM_TEST_DAP_PORT", str(DEFAULT_DAP_MOCK_PORT))
+    )
+)
+
 # Fake map tile to make sure we are reading from the cache
 os.makedirs(
     "/dev/shm/kaithem_test_env/maptiles/openstreetmap/0/0/", exist_ok=True

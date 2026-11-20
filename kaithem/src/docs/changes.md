@@ -3,6 +3,25 @@ Change Log
 
 ### Dev
 
+This release starts the process of replacing what was once the central
+feature of the whole system, the web based Python "events" editing.
+
+This was OK in 2013, but now having in process dynamic code, and
+writing plain HTML/JS with no builder is just obnoxious, at least in my opinion.
+
+Replacing it is the new Container Apps system, which is much safer and more powerful.  It builds, runs, and serves things from Podman containers,
+with templates allowing almost the same one click ease of use.
+
+Kaithem container apps are just regular projects in whatever language you
+choose.
+
+Accompanying this is a new text editor, with the Language Server Protocol
+for select languages(Dynamically downloaded as Podman containers),
+OpenRouter powered Agentic Chats, and snapshot backups for your projects.
+
+
+
+
 * [bug] Main page now shows all alerts in any state other than normal.
 * [sparkles] Web based .pptx signage with editing and admin UI.
 * [sparkles] Log the hash of the codebase and all dirs on path at boot

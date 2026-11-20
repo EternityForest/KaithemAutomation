@@ -18,17 +18,62 @@ import { indentWithTab } from '@codemirror/commands';
 // The LSP client is pulled in lazily (see _connectLspClient) so its code is
 // not part of the initial bundle; only its types are needed here.
 import type { LSPClient, Transport } from '@codemirror/lsp-client';
+import {
+  breakpointGutter,
+  getBreakpointLines,
+  toggleBreakpoint,
+} from './breakpoints.ts';
+import { DebuggerClient } from './dap.ts';
+import type {
+  DapEventBody,
+  DapSource,
+  DapStackFrame,
+  DapStatus,
+  DapThread,
+} from './dap.ts';
+
+// How a tab was opened.  Workspace files are editable and watched; disk
+// files (absolute paths outside the workspace) and virtual sources (DAP
+// ``source`` references) are read-only and never saved or watched.
+type TabKind = 'workspace' | 'disk' | 'virtual';
 
 interface Tab {
   path: string;
   content: string;
   dirty: boolean;
   view: EditorView | null;
+  kind: TabKind;
+  readonly: boolean;
+  // Set for virtual sources so their content can be re-fetched and
+  // breakpoints can be set against the right source.
+  sourceReference?: number;
   // Reconfigured once the language has been lazily loaded and, later, once
   // an LSP client for the language is available.
   langCompartment: Compartment;
   lspCompartment: Compartment;
   lspAttached: boolean;
+}
+
+// One thread the debugger is stopped in, with its call stack.
+interface StoppedThread {
+  id: number;
+  name: string;
+  frames: DapStackFrame[];
+}
+
+// One line in the debug console.
+interface ConsoleLine {
+  kind: 'input' | 'output' | 'error';
+  text: string;
+}
+
+// One breakpoint shown in the sidebar list.
+interface BreakpointView {
+  path: string;
+  line: number;
+  // Set for breakpoints in a virtual source, so they can be sent to the
+  // adapter by reference instead of by path.
+  sourceReference?: number;
 }
 
 interface FileNode {
@@ -45,6 +90,9 @@ const params = new URLSearchParams(globalThis.location.search);
 // at lsp.detect_workspace() of the clicked file.
 const WORKSPACE = params.get('workspace') || '';
 const FILE = params.get('file') || '';
+// Raw DAP websocket address of a debug adapter.  When present the
+// debugger sidebar is enabled and the editor connects to it.
+const DAP_URL = params.get('dap') || '';
 
 // Languages are described with LanguageDescription so each grammar is only
 // fetched when a file of that language is opened. There is no
@@ -190,6 +238,11 @@ class TextEditorPage extends LitElement {
     contextMenu: { state: true },
     authRequired: { state: true },
     panel: { state: true },
+    debuggerOpen: { state: true },
+    dapStatus: { state: true },
+    debugThreads: { state: true },
+    consoleLines: { state: true },
+    breakpoints: { state: true },
   };
 
   override createRenderRoot() {
@@ -213,6 +266,11 @@ class TextEditorPage extends LitElement {
   } | null;
   declare authRequired: boolean;
   declare panel: 'chat' | 'snapshots' | null;
+  declare debuggerOpen: boolean;
+  declare dapStatus: DapStatus;
+  declare debugThreads: StoppedThread[];
+  declare consoleLines: ConsoleLine[];
+  declare breakpoints: BreakpointView[];
 
   constructor() {
     super();
@@ -224,6 +282,12 @@ class TextEditorPage extends LitElement {
     this.contextMenu = null;
     this.authRequired = false;
     this.panel = null;
+    // A DAP address in the URL turns the debugger sidebar on by default.
+    this.debuggerOpen = Boolean(DAP_URL);
+    this.dapStatus = 'disconnected';
+    this.debugThreads = [];
+    this.consoleLines = [];
+    this.breakpoints = [];
   }
 
   private ws: WebSocket | null = null;
@@ -243,6 +307,15 @@ class TextEditorPage extends LitElement {
   private _watchedPaths = new Set<string>();
   private _applyingRemote = false;
   private _contextMenuOpenedAt = 0;
+  // The debug adapter connection, plus the console's input history.
+  private _dap: DebuggerClient | null = null;
+  private _dapInitialized = false;
+  private _consoleHistory: string[] = [];
+  private _consoleIndex = 0;
+  private _consoleDraft = '';
+  // Debounces pushing breakpoints to the adapter while the document is
+  // edited, so a burst of keystrokes sends a single setBreakpoints.
+  private _bpTimer: ReturnType<typeof globalThis.setTimeout> | null = null;
 
   override firstUpdated() {
     window.addEventListener('beforeunload', this._beforeUnload);
@@ -251,6 +324,8 @@ class TextEditorPage extends LitElement {
     this._refreshTree();
     this._openFile(FILE);
     this._connectWatch();
+    // The debug adapter is a plain websocket, so connect straight away.
+    if (DAP_URL) this._initDap();
     // Starting an LSP container is heavy, so hold it back until the first
     // frame has painted and the browser is idle. Attachment is idempotent
     // and also happens when a tab is opened later.
@@ -286,6 +361,8 @@ class TextEditorPage extends LitElement {
     for (const socket of this._lspSockets.values()) socket.close();
     this._lspSockets.clear();
     this._lspReady.clear();
+    this._dap?.disconnect();
+    this._dap = null;
   }
 
   private _onDocumentClick = () => {
@@ -362,6 +439,9 @@ class TextEditorPage extends LitElement {
 
   private _togglePanel(which: 'chat' | 'snapshots') {
     this.panel = this.panel === which ? null : which;
+    // The right side of the window is shared, so the debugger and a side
+    // panel are never open at once.
+    if (this.panel) this.debuggerOpen = false;
   }
 
   private _panelTitle(): string {
@@ -439,6 +519,8 @@ class TextEditorPage extends LitElement {
         content: j.content,
         dirty: false,
         view: null,
+        kind: 'workspace',
+        readonly: false,
         langCompartment: new Compartment(),
         lspCompartment: new Compartment(),
         lspAttached: false,
@@ -501,8 +583,22 @@ class TextEditorPage extends LitElement {
           ]),
           tab.langCompartment.of([]),
           tab.lspCompartment.of([]),
+          // Disk and virtual tabs are read-only; only workspace files can
+          // be edited.
+          EditorState.readOnly.of(tab.readonly),
+          EditorView.editable.of(!tab.readonly),
+          breakpointGutter,
           EditorView.updateListener.of((update) => {
-            if (!update.docChanged || this._applyingRemote) return;
+            if (this._applyingRemote) return;
+            // A breakpoint toggle, or a doc edit that shifts existing
+            // breakpoints, means the debug adapter needs a fresh set.
+            const breakpointsChanged =
+              update.docChanged ||
+              update.transactions.some((tr) =>
+                tr.effects.some((e) => e.is(toggleBreakpoint))
+              );
+            if (breakpointsChanged) this._onBreakpointsChanged();
+            if (!update.docChanged) return;
             const value = update.state.doc.toString();
             // Ignore the echo of a remote apply if the change event fires
             // after _applyingRemote was cleared.
@@ -516,7 +612,9 @@ class TextEditorPage extends LitElement {
     });
     tab.view = view;
     this._loadLanguage(tab);
-    this._attachLsp(tab);
+    // The language server only knows workspace-relative files, so it is
+    // never attached to disk or virtual tabs.
+    if (!tab.readonly) this._attachLsp(tab);
     this.tabs = [...this.tabs];
   }
 
@@ -546,7 +644,8 @@ class TextEditorPage extends LitElement {
 
   private async _save() {
     const tab = this.tabs.find((t) => t.path === this.activeTab);
-    if (!tab) return;
+    // Disk and virtual tabs are read-only; only workspace files are saved.
+    if (!tab || tab.readonly) return;
     // Read the live value straight from the editor so we never save a
     // stale buffer.
     const content = tab.view ? tab.view.state.doc.toString() : tab.content;
@@ -583,7 +682,9 @@ class TextEditorPage extends LitElement {
       tab.lspAttached = false;
     }
     this.tabs = this.tabs.filter((t) => t.path !== path);
-    this._unwatchPath(path);
+    // Only workspace files are watched on the server.
+    if (tab && tab.kind === 'workspace') this._unwatchPath(path);
+    this._refreshBreakpointView();
     if (this.activeTab === path) {
       this.activeTab = this.tabs.at(-1)?.path || null;
     }
@@ -777,6 +878,331 @@ class TextEditorPage extends LitElement {
     }
   }
 
+  // Debugger --------------------------------------------------------------
+
+  private _toggleDebugger() {
+    this.debuggerOpen = !this.debuggerOpen;
+    if (this.debuggerOpen) this.panel = null;
+  }
+
+  private _initDap() {
+    this._dap = new DebuggerClient(DAP_URL, {
+      onEvent: (event, body) => this._onDapEvent(event, body),
+      onStatus: (status) => {
+        this.dapStatus = status;
+      },
+    });
+    this._dap
+      .initialize()
+      .then(() => {
+        this._dapInitialized = true;
+        this._syncBreakpoints();
+      })
+      .catch((error: Error) => {
+        this._appendConsole(
+          'error',
+          'Debugger failed to start: ' + error.message
+        );
+      });
+  }
+
+  private _onDapEvent(event: string, body: DapEventBody) {
+    switch (event) {
+      case 'initialized': {
+        // The adapter is ready for configuration; the breakpoints have
+        // already been pushed, so just tell it we are done.
+        this._dap?.send('configurationDone', {}).catch((error: Error) => {
+          console.error('configurationDone failed', error);
+        });
+        break;
+      }
+      case 'stopped': {
+        this._onDapStopped(body);
+        break;
+      }
+      case 'continued':
+      case 'terminated':
+      case 'exited': {
+        this.debugThreads = [];
+        break;
+      }
+      case 'output': {
+        this._appendConsole('output', body.output ?? '');
+        break;
+      }
+      // No default
+    }
+  }
+
+  private async _onDapStopped(body: DapEventBody) {
+    if (!this._dap) return;
+    try {
+      const all =
+        (await this._dap.send<{ threads: DapThread[] }>('threads')).threads ??
+        [];
+      // With allThreadsStopped the whole program is paused; otherwise
+      // only the reported thread is.
+      const wanted = body.allThreadsStopped
+        ? all
+        : all.filter((t) => t.id === body.threadId);
+      const stopped: StoppedThread[] = [];
+      for (const thread of wanted) {
+        const stack = await this._dap.send<{
+          stackFrames: DapStackFrame[];
+        }>('stackTrace', { threadId: thread.id });
+        stopped.push({
+          id: thread.id,
+          name: thread.name,
+          frames: stack.stackFrames ?? [],
+        });
+      }
+      this.debugThreads = stopped;
+    } catch (error) {
+      this._appendConsole('error', (error as Error).message);
+    }
+  }
+
+  private async _dapRun() {
+    if (!this._dap || !this._dapInitialized) return;
+    this._syncBreakpoints();
+    try {
+      if (this.debugThreads.length > 0) {
+        const thread = this.debugThreads[0];
+        await this._dap.send('continue', { threadId: thread.id });
+      } else {
+        await this._dap.send('launch', {});
+      }
+    } catch (error) {
+      this._appendConsole('error', (error as Error).message);
+    }
+  }
+
+  private async _dapStep(kind: 'next' | 'stepIn' | 'stepOut') {
+    if (!this._dap || !this._dapInitialized) return;
+    const thread = this.debugThreads[0];
+    if (!thread) return;
+    try {
+      await this._dap.send(kind, { threadId: thread.id });
+    } catch (error) {
+      this._appendConsole('error', (error as Error).message);
+    }
+  }
+
+  private _onBreakpointsChanged() {
+    this._refreshBreakpointView();
+    // Debounce the network push so a burst of edits sends one request.
+    if (this._bpTimer) globalThis.clearTimeout(this._bpTimer);
+    this._bpTimer = globalThis.setTimeout(() => {
+      this._bpTimer = null;
+      this._syncBreakpoints();
+    }, 200);
+  }
+
+  private _refreshBreakpointView() {
+    const out: BreakpointView[] = [];
+    for (const tab of this.tabs) {
+      if (!tab.view) continue;
+      for (const line of getBreakpointLines(tab.view.state)) {
+        out.push({
+          path: tab.path,
+          line,
+          sourceReference: tab.sourceReference,
+        });
+      }
+    }
+    this.breakpoints = out;
+  }
+
+  private _syncBreakpoints() {
+    if (!this._dap || !this._dapInitialized) return;
+    // Group breakpoints by source: the adapter wants one setBreakpoints
+    // request per file.
+    const bySource = new Map<string, { source: DapSource; lines: number[] }>();
+    for (const tab of this.tabs) {
+      if (!tab.view) continue;
+      const lines = getBreakpointLines(tab.view.state);
+      if (lines.length === 0) continue;
+      const source: DapSource =
+        tab.sourceReference === undefined
+          ? { path: this._absPathFor(tab) }
+          : { name: tab.path, sourceReference: tab.sourceReference };
+      const key = JSON.stringify(source);
+      const entry = bySource.get(key) ?? { source, lines: [] };
+      entry.lines.push(...lines);
+      bySource.set(key, entry);
+    }
+    for (const { source, lines } of bySource.values()) {
+      this._dap
+        .send('setBreakpoints', {
+          source,
+          breakpoints: lines.map((line) => ({ line })),
+        })
+        .catch((error: Error) => {
+          console.error('setBreakpoints failed', error);
+        });
+    }
+  }
+
+  private _absPathFor(tab: Tab): string {
+    // Workspace tabs are stored relative to the workspace root; the
+    // adapter wants a path it can resolve itself.
+    if (tab.kind === 'workspace') {
+      return this._workspacePath.replace(/\/+$/, '') + '/' + tab.path;
+    }
+    return tab.path;
+  }
+
+  private async _jumpToFrame(frame: DapStackFrame) {
+    const source = frame.source;
+    if (source?.sourceReference !== undefined) {
+      await this._openVirtualSource(source, frame.line);
+    } else if (source?.path) {
+      await this._openDiskFile(source.path, frame.line);
+    }
+  }
+
+  private async _openDiskFile(path: string, line: number) {
+    const existing = this.tabs.find((t) => t.path === path);
+    if (existing) {
+      this.activeTab = path;
+      this._revealLine(existing, line);
+      return;
+    }
+    try {
+      const j = await this._api('GET', 'read_abs', { path });
+      const tab: Tab = {
+        path,
+        content: j.content,
+        dirty: false,
+        view: null,
+        kind: 'disk',
+        readonly: true,
+        langCompartment: new Compartment(),
+        lspCompartment: new Compartment(),
+        lspAttached: false,
+      };
+      this.tabs = [...this.tabs, tab];
+      this.activeTab = path;
+      await this._mountEditor(path);
+      this._revealLine(tab, line);
+    } catch (error) {
+      alert('Could not open source file: ' + (error as Error).message);
+    }
+  }
+
+  private async _openVirtualSource(source: DapSource, line: number) {
+    const ref = source.sourceReference;
+    if (ref === undefined || !this._dap) return;
+    const path = source.name || 'source-' + ref;
+    const existing = this.tabs.find((t) => t.path === path);
+    if (existing) {
+      this.activeTab = path;
+      this._revealLine(existing, line);
+      return;
+    }
+    try {
+      const body = await this._dap.send<{ content: string }>('source', {
+        sourceReference: ref,
+      });
+      const tab: Tab = {
+        path,
+        content: body.content ?? '',
+        dirty: false,
+        view: null,
+        kind: 'virtual',
+        readonly: true,
+        sourceReference: ref,
+        langCompartment: new Compartment(),
+        lspCompartment: new Compartment(),
+        lspAttached: false,
+      };
+      this.tabs = [...this.tabs, tab];
+      this.activeTab = path;
+      await this._mountEditor(path);
+      this._revealLine(tab, line);
+    } catch (error) {
+      alert('Could not load source: ' + (error as Error).message);
+    }
+  }
+
+  private _revealLine(tab: Tab, line: number) {
+    requestAnimationFrame(() => {
+      const view = tab.view;
+      if (!view) return;
+      const number = Math.min(Math.max(line, 1), view.state.doc.lines);
+      const info = view.state.doc.line(number);
+      view.dispatch({
+        selection: { anchor: info.from },
+        effects: EditorView.scrollIntoView(info.from, { y: 'center' }),
+      });
+      view.focus();
+    });
+  }
+
+  private _appendConsole(kind: ConsoleLine['kind'], text: string) {
+    if (!text) return;
+    this.consoleLines = [...this.consoleLines, { kind, text }];
+    this.updateComplete.then(() => this._scrollConsole());
+  }
+
+  private _scrollConsole() {
+    const el = this.renderRoot.querySelector(
+      '[data-testid="dap-console-output"]'
+    );
+    if (el) el.scrollTop = el.scrollHeight;
+  }
+
+  private _onConsoleKey(e: KeyboardEvent) {
+    const input = e.target as HTMLInputElement;
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      this._consoleSubmit(input);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      this._consoleRecall(input, -1);
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      this._consoleRecall(input, 1);
+    }
+  }
+
+  private _consoleRecall(input: HTMLInputElement, delta: -1 | 1) {
+    const count = this._consoleHistory.length;
+    if (count === 0) return;
+    // Stepping away from the newest entry keeps whatever was typed.
+    if (this._consoleIndex >= count) this._consoleDraft = input.value;
+    let index = this._consoleIndex + delta;
+    index = Math.min(Math.max(index, 0), count);
+    this._consoleIndex = index;
+    input.value =
+      index >= count ? this._consoleDraft : this._consoleHistory[index];
+    input.setSelectionRange(input.value.length, input.value.length);
+  }
+
+  private async _consoleSubmit(input: HTMLInputElement) {
+    const text = input.value.trim();
+    if (!text) return;
+    this._consoleHistory.push(text);
+    this._consoleIndex = this._consoleHistory.length;
+    this._consoleDraft = '';
+    input.value = '';
+    this._appendConsole('input', text);
+    if (!this._dap || !this._dapInitialized) {
+      this._appendConsole('error', 'Not connected to a debug adapter');
+      return;
+    }
+    try {
+      const body = await this._dap.send<{ result: string }>('evaluate', {
+        expression: text,
+        context: 'repl',
+        frameId: this.debugThreads[0]?.frames[0]?.id,
+      });
+      this._appendConsole('output', body.result ?? '');
+    } catch (error) {
+      this._appendConsole('error', (error as Error).message);
+    }
+  }
+
   private _renderTree(nodes: FileNode[], depth = 0, parentPath = ''): any {
     return nodes.map((n) => {
       const fullPath = parentPath ? parentPath + '/' + n.name : n.name;
@@ -864,6 +1290,102 @@ class TextEditorPage extends LitElement {
     }
   }
 
+  private _renderDebugger() {
+    return html`
+      <div class="panel paper h-pane debugger" data-testid="debugger">
+        <div class="panel-head">
+          <span class="panel-title">Debugger</span>
+          <span
+            class="badge ${this.dapStatus === 'connected' ? 'success' : ''}"
+            data-testid="dap-badge"
+          >
+            ${this.dapStatus}
+          </span>
+          <button
+            class="panel-close"
+            data-testid="debugger-close"
+            @click="${() => (this.debuggerOpen = false)}"
+          >
+            ✕
+          </button>
+        </div>
+        <div class="debug-controls">
+          <button data-testid="dap-run" title="Run / Continue"
+            @click="${this._dapRun}">
+            <span class="mdi mdi-play"></span>
+          </button>
+          <button data-testid="dap-step-over" title="Step over"
+            @click="${() => this._dapStep('next')}">
+            <span class="mdi mdi-debug-step-over"></span>
+          </button>
+          <button data-testid="dap-step-in" title="Step in"
+            @click="${() => this._dapStep('stepIn')}">
+            <span class="mdi mdi-debug-step-into"></span>
+          </button>
+          <button data-testid="dap-step-out" title="Step out"
+            @click="${() => this._dapStep('stepOut')}">
+            <span class="mdi mdi-debug-step-out"></span>
+          </button>
+        </div>
+        <div class="debug-section">
+          <div class="debug-section-title">Breakpoints</div>
+          ${this.breakpoints.length === 0
+            ? html`<div class="debug-empty">No breakpoints</div>`
+            : this.breakpoints.map(
+                (b) => html`
+                  <div class="debug-breakpoint" data-testid="dap-breakpoint">
+                    ${b.path}:${b.line}
+                  </div>
+                `
+              )}
+        </div>
+        <div class="debug-section debug-stacks">
+          <div class="debug-section-title">Call stack</div>
+          ${this.debugThreads.length === 0
+            ? html`<div class="debug-empty">Not stopped</div>`
+            : this.debugThreads.map(
+                (thread) => html`
+                  <div class="debug-thread">${thread.name}</div>
+                  ${thread.frames.map(
+                    (frame) => html`
+                      <div
+                        class="debug-frame"
+                        data-testid="dap-frame"
+                        @click="${() => this._jumpToFrame(frame)}"
+                      >
+                        <span>${frame.name}</span>
+                        <span class="debug-frame-loc">
+                          ${frame.source?.name || frame.source?.path || ''}:
+                          ${frame.line}
+                        </span>
+                      </div>
+                    `
+                  )}
+                `
+              )}
+        </div>
+        <div class="debug-console" data-testid="dap-console">
+          <div
+            class="debug-console-output"
+            data-testid="dap-console-output"
+          >
+            ${this.consoleLines.map(
+              (line) => html`
+                <div class="console-line console-${line.kind}">${line.text}</div>
+              `
+            )}
+          </div>
+          <input
+            class="debug-console-input"
+            data-testid="dap-console-input"
+            placeholder="Console"
+            @keydown="${this._onConsoleKey}"
+          />
+        </div>
+      </div>
+    `;
+  }
+
   render() {
     if (this.authRequired) {
       return html`
@@ -925,6 +1447,17 @@ class TextEditorPage extends LitElement {
           >
             <span class="mdi mdi-history"></span>Snapshots
           </button>
+          ${DAP_URL
+            ? html`
+                <button
+                  @click="${this._toggleDebugger}"
+                  data-testid="debugger-toggle"
+                  title="Debugger"
+                >
+                  <span class="mdi mdi-bug"></span>Debug
+                </button>
+              `
+            : nothing}
         </tool-bar>
       </header>
       <div class="tool-bar" data-testid="tabbar">
@@ -1021,6 +1554,7 @@ class TextEditorPage extends LitElement {
               </div>
             `
           : nothing}
+        ${this.debuggerOpen ? this._renderDebugger() : nothing}
         ${this.contextMenu
           ? html`
               <div

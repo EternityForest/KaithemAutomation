@@ -157,3 +157,12 @@ core_plugin_tts/default_speaker: 0
 #####################MISC#######################################################
 
 get_public_ip: no
+
+#Unsafe last-resort tool. When yes, a system_admin may attach a DAP debugger
+#to Kaithem's own running process from the Tools page.  debugpy reverse-connects
+#through an exclusive loopback listener; tracing is disabled on the main thread
+#and suspend-all breakpoints are filtered out so the server keeps serving.
+#This is process-wide and permanent once used 
+# (the debugger cannot be detached except by restarting the server).,
+#so only enable it on a failed system or a throwaway sandbox.
+self_debug: yes

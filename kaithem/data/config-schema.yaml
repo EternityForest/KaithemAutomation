@@ -155,6 +155,11 @@ properties:
     get_public_ip:
         type: boolean
 
+    self_debug:
+        type: boolean
+        default: false
+        description: "Unsafe last-resort: allow a system_admin to attach a DAP debugger to Kaithem's own process"
+
     process_title:
         type: string
         default: "kaithem"

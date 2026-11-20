@@ -33,7 +33,7 @@ from kaithem.api.web import (
 )
 from kaithem.src import modules_state, pages
 
-from . import lsp
+from . import lsp, self_debug
 
 logger = __import__("structlog").get_logger(__name__)
 
@@ -328,6 +328,11 @@ async def text_editor_edit():
         + "&file="
         + quote_plus(rel, safe="")
     )
+    # A caller (e.g. a debugger) may pass the DAP websocket address to
+    # enable the debugger sidebar; forward it untouched.
+    dap = quart.request.args.get("dap", "")
+    if dap:
+        url += "&dap=" + quote_plus(dap, safe="")
     return quart.redirect(url)
 
 
@@ -388,6 +393,36 @@ async def api_read():
 
     def f():
         fn = _workspace_path(workspace, _rel_path(path))
+        if not os.path.isfile(fn):
+            return quart.jsonify({"error": "not_a_file"}), 400
+        if os.path.getsize(fn) >= MAX_FILE_BYTES:
+            return quart.jsonify({"error": "too_large"}), 400
+        with open(fn, "rb") as f:
+            data = f.read()
+        try:
+            return quart.jsonify({"content": data.decode("utf-8")})
+        except UnicodeDecodeError:
+            return quart.jsonify({"error": "binary"}), 400
+
+    return await _run(f)
+
+
+@quart_app.route("/text-editor-plugin/api/read_abs", methods=["GET"])
+@_admin_api
+async def api_read_abs():
+    """Open any absolute path, read-only.
+
+    A debugger can point at source files that live outside the editor's
+    workspace, so this reads any absolute path the server process can
+    access.  It is deliberately read-only: there is no matching write
+    endpoint, so a debugger may display such a file but never modify it.
+    """
+    path = quart.request.args.get("path", "")
+
+    def f():
+        if not path or not os.path.isabs(path):
+            return quart.jsonify({"error": "bad_request"}), 400
+        fn = os.path.realpath(path)
         if not os.path.isfile(fn):
             return quart.jsonify({"error": "not_a_file"}), 400
         if os.path.getsize(fn) >= MAX_FILE_BYTES:
@@ -659,6 +694,102 @@ async def text_editor_lsp_ws():
     finally:
         pump_task.cancel()
         lsp.stop_language_server(server)
+
+
+# Self-debug ---------------------------------------------------------------
+
+# The folder the editor opens when self-debugging: the project root of the
+# Kaithem package itself.  This file lives four levels below it.
+_KAITHEM_PKG = os.path.dirname(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
+
+
+@quart_app.route("/text-editor-plugin/self-debug", methods=["GET"])
+async def text_editor_self_debug():
+    """Arm the self-debugger and open the editor pointed at it.
+
+    A last-resort tool for a system that is misbehaving in a way logs
+    cannot explain: it reverse-connects a debugger to Kaithem's *own*
+    process.  Refused unless ``self_debug`` is enabled in the config.
+    """
+    require("system_admin")
+    if not self_debug.enabled():
+        return quart.Response("Self-debug is disabled", status=404)
+
+    try:
+        # Arming blocks on the debugpy handshake, so keep it off the loop.
+        await asyncio.to_thread(self_debug.get_proxy().arm)
+    except Exception as e:
+        logger.exception("Failed to arm the self-debugger")
+        return quart.Response(f"Failed to start self-debug: {e}", status=500)
+
+    scheme = "wss" if quart.request.scheme == "https" else "ws"
+    dap = f"{scheme}://{quart.request.host}/text-editor-plugin/self-debug-ws"
+    workspace = lsp.detect_workspace(_KAITHEM_PKG)
+    url = (
+        _VITE_PAGE
+        + "?workspace="
+        + quote_plus(workspace, safe="")
+        + "&dap="
+        + quote_plus(dap, safe="")
+    )
+    return quart.redirect(url)
+
+
+@quart_app.websocket("/text-editor-plugin/self-debug-ws")
+async def text_editor_self_debug_ws():
+    """Bridge the browser debugger to Kaithem's own debugpy session.
+
+    Only one browser may be attached at a time.  Before bridging we turn
+    tracing off on the main thread, so a breakpoint can never stop the
+    event loop and wedge the whole server.
+    """
+    require("system_admin")
+
+    ws = quart.websocket
+    loop = asyncio.get_running_loop()
+
+    if not self_debug.enabled():
+        await ws.close(4004, "self_debug_disabled")
+        return
+
+    proxy = self_debug.get_proxy()
+    if not proxy.armed:
+        await ws.close(4004, "not_armed")
+        return
+
+    out_queue: asyncio.Queue[str | None] = asyncio.Queue()
+    if not proxy.acquire_browser(loop, out_queue):
+        await ws.close(4009, "self_debug_busy")
+        return
+
+    # The event loop runs on the main thread; make sure breakpoints there
+    # can never suspend it.
+    self_debug.disable_main_thread_tracing(loop)
+
+    async def _pump_to_ws() -> None:
+        while True:
+            text = await out_queue.get()
+            if text is None:
+                await ws.close(4000, "debugger_disconnected")
+                return
+            await ws.send(text)
+
+    pump_task = asyncio.create_task(_pump_to_ws())
+    try:
+        while True:
+            data = await ws.receive()
+            if data is None:
+                break
+            if isinstance(data, bytes):
+                data = data.decode("utf-8")
+            proxy.from_browser(data)
+    except Exception:
+        pass
+    finally:
+        pump_task.cancel()
+        proxy.release_browser()
 
 
 def filter_text_editor_resources(
