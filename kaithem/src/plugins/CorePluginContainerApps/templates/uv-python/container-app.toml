@@ -1,0 +1,41 @@
+# UV + Python starter for a UIless Kaithem container app.
+#
+# The app is a plain command that runs automatically when the app starts.
+# It sets `web = false` because a UIless service has no web interface to
+# proxy.  Dependencies are installed by the `sync` script; `sync-offline`
+# installs from the local uv cache when the network is unavailable.
+#
+# The virtualenv and uv cache live inside the project folder so multiple
+# machines can share the project without clobbering each other's Python
+# environments.  The `.venv-${IMAGE_ARCH}` suffix keeps a machine's
+# architecture-specific environment separate from another's.
+
+[scripts]
+image = "docker.io/jfxs/devcontainer-uv:0.13.8-001"
+
+[env]
+UV_PROJECT_ENVIRONMENT = ".venv-${IMAGE_ARCH}"
+UV_CACHE_DIR = ".cache/uv"
+
+[scripts.sync]
+[[scripts.sync.command]]
+command = ["uv", "sync"]
+
+[scripts.sync-offline]
+[[scripts.sync-offline.command]]
+command = ["uv", "sync", "--offline"]
+
+# A debug entry point.  The command is the complete debugger invocation;
+# the launch table tells debugpy which program to run.
+[scripts.debug]
+[[scripts.debug.command]]
+command = ["uv", "run", "--offline", "python", "-m", "debugpy.adapter"]
+dap = true
+launch = { program = "main.py" }
+
+[app]
+type = "command"
+web = false
+
+[[app.command]]
+command = ["uv", "run", "--offline", "python", "main.py"]

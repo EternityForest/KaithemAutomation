@@ -87,6 +87,20 @@ env_extras = {
 }
 
 
+def set_storage(path: str) -> None:
+    """Point rootless podman storage at ``path``.
+
+    The storage.conf installed above reads its location from
+    ``$KAITHEM_PODMAN_STORAGE``, so overriding that env var redirects all
+    subsequent podman calls.  Tests use this to keep a persistent,
+    gitignored storage directory shared across runs, so large images are
+    not refetched every time.
+    """
+    path = os.path.abspath(path)
+    os.makedirs(path, exist_ok=True)
+    env_extras["KAITHEM_PODMAN_STORAGE"] = path
+
+
 def resolve_image_name(image: str):
     if ":" not in image:
         return f"{image}:latest"
@@ -203,6 +217,22 @@ def image_architecture(image: str) -> str:
         "image", "inspect", "--format", "{{.Architecture}}", image
     )
     return out.strip()
+
+
+def get_image_arch(image: str) -> str:
+    """Return an image's architecture, pulling the image if it is missing.
+
+    Unlike :func:`image_architecture` this never fails just because the
+    image has not been downloaded yet; it pulls a missing image first and
+    then reports its architecture.  Used to expand ``${IMAGE_ARCH}`` in a
+    project's ``[env]`` before a command runs.
+    """
+    if not image:
+        raise ValueError("Image must be provided")
+    resolved = resolve_image_name(image)
+    if not _image_exists(resolved):
+        _pull_image(resolved)
+    return image_architecture(resolved)
 
 
 def add_image_tag(image: str, new_tag: str) -> None:
@@ -338,6 +368,9 @@ def run_container(
         _container_name(name),
         "--storage-driver=overlay",
         "--replace",
+        # Only fetch the image if it is not already local; never go
+        # looking for a newer one on every run.
+        "--pull=missing",
         "--detach" if detach else "--interactive",
         "--workdir",
         workdir,

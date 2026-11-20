@@ -205,6 +205,27 @@ function _ext(path: string): string {
   return path.split('.').pop()?.toLowerCase() || '';
 }
 
+// Collapse "." and ".." segments and duplicate slashes so the same file
+// always compares equal no matter how its path was written. Absolute and
+// relative paths are kept distinct; a trailing slash is dropped.
+function normalizePath(path: string): string {
+  const absolute = path.startsWith('/');
+  const out: string[] = [];
+  for (const part of path.split('/')) {
+    if (!part || part === '.') continue;
+    if (part === '..') {
+      // Never step above the root of an absolute path.
+      if (out.length > 0 && out.at(-1) !== '..') out.pop();
+      else if (!absolute) out.push('..');
+      continue;
+    }
+    out.push(part);
+  }
+  const joined = out.join('/');
+  if (absolute) return '/' + joined;
+  return joined || '.';
+}
+
 // Wrap a websocket as an LSP transport. The messages are raw JSON-RPC
 // bodies with no LSP framing, exactly what the backend bridge and the
 // container's stdio (behind the bridge) exchange.
@@ -317,6 +338,9 @@ class TextEditorPage extends LitElement {
   // The debug adapter connection, plus the console's input history.
   private _dap: DebuggerClient | null = null;
   private _dapInitialized = false;
+  // Bumped every time a new connection is opened so late events and status
+  // changes from a torn-down client are ignored.
+  private _dapGeneration = 0;
   private _consoleHistory: string[] = [];
   private _consoleIndex = 0;
   private _consoleDraft = '';
@@ -339,7 +363,7 @@ class TextEditorPage extends LitElement {
     this._openFile(FILE);
     this._connectWatch();
     // The debug adapter is a plain websocket, so connect straight away.
-    if (DAP_URL) this._initDap();
+    if (DAP_URL) this._connectDap();
     // Starting an LSP container is heavy, so hold it back until the first
     // frame has painted and the browser is idle. Attachment is idempotent
     // and also happens when a tab is opened later.
@@ -375,6 +399,7 @@ class TextEditorPage extends LitElement {
     for (const socket of this._lspSockets.values()) socket.close();
     this._lspSockets.clear();
     this._lspReady.clear();
+    this._dapGeneration++;
     this._dap?.disconnect();
     this._dap = null;
   }
@@ -491,7 +516,7 @@ class TextEditorPage extends LitElement {
   }
 
   private _applyRemoteContent(path: string, content: string) {
-    const tab = this.tabs.find((t) => t.path === path);
+    const tab = this.tabs.find((t) => t.path === this._canonicalPath(path));
     if (!tab || tab.content === content) return;
     tab.content = content;
     if (tab.view) {
@@ -515,21 +540,43 @@ class TextEditorPage extends LitElement {
     }
   }
 
-  private async _openFile(path: string) {
-    if (!path) return;
-    if (this.tabs.some((t) => t.path === path)) {
-      this.activeTab = path;
-      this._focusTab();
+  // Resolve a path to the editor's canonical form: a path that lies inside
+  // the workspace collapses to workspace-relative, so the same file opened
+  // as a workspace file or reached through an absolute path (e.g. a
+  // debugger stack frame) maps to one tab and one breakpoint source.
+  private _canonicalPath(path: string): string {
+    const normalized = normalizePath(path);
+    if (!normalized.startsWith('/')) return normalized;
+    const root = normalizePath(this._workspacePath);
+    if (root && root !== '/') {
+      if (normalized === root) return '';
+      if (normalized.startsWith(root + '/'))
+        return normalized.slice(root.length + 1);
+    }
+    return normalized;
+  }
+
+  private async _openFile(
+    path: string,
+    options: { line?: number; silent?: boolean } = {}
+  ) {
+    const key = this._canonicalPath(path);
+    if (!key) return;
+    const existing = this.tabs.find((t) => t.path === key);
+    if (existing) {
+      this.activeTab = key;
+      if (options.line === undefined) this._focusTab();
+      else this._revealLine(existing, options.line, !options.silent);
       return;
     }
 
     try {
       const j = await this._api('GET', 'read', {
         workspace: WORKSPACE,
-        path,
+        path: key,
       });
       const tab: Tab = {
-        path,
+        path: key,
         content: j.content,
         dirty: false,
         view: null,
@@ -540,10 +587,13 @@ class TextEditorPage extends LitElement {
         lspAttached: false,
       };
       this.tabs = [...this.tabs, tab];
-      this.activeTab = path;
-      this._mountEditor(path);
-      this._watchPath(path);
+      this.activeTab = key;
+      this._watchPath(key);
+      await this._mountEditor(key);
+      if (options.line !== undefined)
+        this._revealLine(tab, options.line, !options.silent);
     } catch (error) {
+      if (options.silent) throw error;
       const msg = (error as Error).message;
       switch (msg) {
         case 'too_large': {
@@ -900,25 +950,53 @@ class TextEditorPage extends LitElement {
     if (this.debuggerOpen) this.panel = null;
   }
 
-  private _initDap() {
-    this._dap = new DebuggerClient(DAP_URL, {
-      onEvent: (event, body) => this._onDapEvent(event, body),
+  // Open (or re-open) the debug adapter connection.  The client owns a
+  // single socket, so reconnecting means tearing the old one down and
+  // building a fresh client.  Safe to call repeatedly: each connection is
+  // tagged with a generation so a torn-down client cannot touch the UI.
+  private _connectDap() {
+    this._dap?.disconnect();
+    this._dapInitialized = false;
+    this._bpSentSources.clear();
+    const generation = ++this._dapGeneration;
+    const client = new DebuggerClient(DAP_URL, {
+      onEvent: (event, body) => {
+        if (this._dapGeneration !== generation) return;
+        this._onDapEvent(event, body);
+      },
       onStatus: (status) => {
-        this.dapStatus = status;
+        if (this._dapGeneration !== generation) return;
+        this._onDapStatus(status);
       },
     });
-    this._dap
+    this._dap = client;
+    client
       .initialize()
       .then(() => {
+        if (this._dapGeneration !== generation) return;
         this._dapInitialized = true;
         this._syncBreakpoints();
       })
       .catch((error: Error) => {
+        if (this._dapGeneration !== generation) return;
         this._appendConsole(
           'error',
           'Debugger failed to start: ' + error.message
         );
       });
+  }
+
+  private _onDapStatus(status: DapStatus) {
+    this.dapStatus = status;
+    // A dropped connection ends the session: forget what the adapter was
+    // told so a reconnect sends a clean set of breakpoints, and drop the
+    // now-stale call stack and stopped-line highlight.
+    if (status === 'disconnected') {
+      this._dapInitialized = false;
+      this._bpSentSources.clear();
+      this.debugThreads = [];
+      this._clearExecLine();
+    }
   }
 
   private _onDapEvent(event: string, body: DapEventBody) {
@@ -1034,9 +1112,15 @@ class TextEditorPage extends LitElement {
 
   private _refreshBreakpointView() {
     const out: BreakpointView[] = [];
+    // One entry per file and line, even if the same file is somehow open
+    // in more than one tab.
+    const seen = new Set<string>();
     for (const tab of this.tabs) {
       if (!tab.view) continue;
       for (const line of getBreakpointLines(tab.view.state)) {
+        const key = tab.path + ':' + line;
+        if (seen.has(key)) continue;
+        seen.add(key);
         out.push({
           path: tab.path,
           line,
@@ -1050,8 +1134,8 @@ class TextEditorPage extends LitElement {
   private _syncBreakpoints() {
     if (!this._dap || !this._dapInitialized) return;
     // Group breakpoints by source: the adapter wants one setBreakpoints
-    // request per file.
-    const bySource = new Map<string, { source: DapSource; lines: number[] }>();
+    // request per file, with each line listed once.
+    const bySource = new Map<string, { source: DapSource; lines: Set<number> }>();
     for (const tab of this.tabs) {
       if (!tab.view) continue;
       const lines = getBreakpointLines(tab.view.state);
@@ -1061,8 +1145,8 @@ class TextEditorPage extends LitElement {
           ? { path: this._absPathFor(tab) }
           : { name: tab.path, sourceReference: tab.sourceReference };
       const key = JSON.stringify(source);
-      const entry = bySource.get(key) ?? { source, lines: [] };
-      entry.lines.push(...lines);
+      const entry = bySource.get(key) ?? { source, lines: new Set<number>() };
+      for (const line of lines) entry.lines.add(line);
       bySource.set(key, entry);
     }
     // A source we sent before that no longer has breakpoints has to be
@@ -1083,7 +1167,9 @@ class TextEditorPage extends LitElement {
       this._dap
         .send('setBreakpoints', {
           source,
-          breakpoints: lines.map((line) => ({ line })),
+          breakpoints: [...lines]
+            .sort((a, b) => a - b)
+            .map((line) => ({ line })),
         })
         .catch((error: Error) => {
           console.error('setBreakpoints failed', error);
@@ -1139,16 +1225,23 @@ class TextEditorPage extends LitElement {
     line: number,
     options: { silent?: boolean } = {}
   ) {
-    const existing = this.tabs.find((t) => t.path === path);
+    const key = this._canonicalPath(path);
+    // A path that resolves inside the workspace is an editable workspace
+    // file, so reuse its tab instead of opening a second, read-only one.
+    if (key && !key.startsWith('/')) {
+      await this._openFile(key, { line, silent: options.silent });
+      return;
+    }
+    const existing = this.tabs.find((t) => t.path === key);
     if (existing) {
-      this.activeTab = path;
+      this.activeTab = key;
       this._revealLine(existing, line, !options.silent);
       return;
     }
     try {
-      const j = await this._api('GET', 'read_abs', { path });
+      const j = await this._api('GET', 'read_abs', { path: key });
       const tab: Tab = {
-        path,
+        path: key,
         content: j.content,
         dirty: false,
         view: null,
@@ -1159,8 +1252,8 @@ class TextEditorPage extends LitElement {
         lspAttached: false,
       };
       this.tabs = [...this.tabs, tab];
-      this.activeTab = path;
-      await this._mountEditor(path);
+      this.activeTab = key;
+      await this._mountEditor(key);
       this._revealLine(tab, line, !options.silent);
     } catch (error) {
       if (options.silent) throw error;
@@ -1435,6 +1528,14 @@ class TextEditorPage extends LitElement {
           </button>
         </div>
         <div class="debug-controls">
+          ${this.dapStatus === 'disconnected'
+            ? html`
+                <button data-testid="dap-reconnect" title="Reconnect"
+                  @click="${this._connectDap}">
+                  <span class="mdi mdi-refresh"></span>
+                </button>
+              `
+            : nothing}
           <button data-testid="dap-run" title="Run / Continue"
             @click="${this._dapRun}">
             <span class="mdi mdi-play"></span>

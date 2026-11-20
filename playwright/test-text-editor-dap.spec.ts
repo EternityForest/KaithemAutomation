@@ -247,4 +247,62 @@ test.describe('Text Editor DAP debugger', () => {
     await input.press('ArrowDown');
     await expect(input).toHaveValue('');
   });
+
+  test('reconnects after the socket drops and can run again', async ({
+    page,
+  }) => {
+    const host = await openDebugEditor(page);
+
+    // Simulate the connection dropping: the badge flips to disconnected
+    // and a reconnect control appears.
+    await page.evaluate(() => {
+      const h = document.querySelector('text-editor-page') as any;
+      h._dap.disconnect();
+    });
+    await expect(host.getByTestId('dap-badge')).toHaveText('disconnected');
+    const reconnect = host.getByTestId('dap-reconnect');
+    await expect(reconnect).toBeVisible();
+
+    // Reconnecting opens a fresh session that can run to a stop again.
+    await reconnect.click();
+    await expect(host.getByTestId('dap-badge')).toHaveText('connected');
+    await expect(host.getByTestId('dap-reconnect')).toHaveCount(0);
+    await host.getByTestId('dap-run').click();
+    await expect(host.locator('[data-testid="dap-frame"]')).toHaveCount(4);
+  });
+
+  test('a frame in the workspace reuses the relative tab and breakpoints', async ({
+    page,
+  }) => {
+    const host = await openDebugEditor(page);
+    const editor = host.locator('[data-testid="cm-hello.txt"]');
+    await expect(editor).toBeVisible();
+
+    await toggleBreakpointAtLine(page, editor, 1);
+    await expect(host.locator('[data-testid="dap-breakpoint"]')).toHaveCount(1);
+
+    // A stack frame can report the same file by absolute path.  Opening it
+    // must reuse the existing workspace tab instead of opening a second,
+    // read-only one, and must not duplicate the breakpoint.
+    await page.evaluate((abs) => {
+      const h = document.querySelector('text-editor-page') as any;
+      return h._openDiskFile(abs, 2);
+    }, `${WS}/hello.txt`);
+
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => (document.querySelector('text-editor-page') as any).tabs.length
+        )
+      )
+      .toBe(1);
+    const tab = await activeTabInfo(page);
+    expect(tab.path).toBe('hello.txt');
+    expect(tab.kind).toBe('workspace');
+    expect(tab.readonly).toBe(false);
+    await expect(host.locator('[data-testid="dap-breakpoint"]')).toHaveCount(1);
+    await expect(host.locator('[data-testid="dap-breakpoint"]')).toHaveText(
+      'hello.txt:2'
+    );
+  });
 });

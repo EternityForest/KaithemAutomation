@@ -44,7 +44,6 @@ ADMIN_WORKSPACE_TOOLS: tuple[str, ...] = (
     "image_gen",
     "speech",
     "web_search",
-    "web_fetch",
 )
 
 #: How long a media generation request may take, in seconds.

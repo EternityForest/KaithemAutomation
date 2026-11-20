@@ -68,6 +68,11 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+  align-items: center;
+}
+
+.ca-template {
+  padding: 0.25rem 0.5rem;
 }
 
 .ca-error {

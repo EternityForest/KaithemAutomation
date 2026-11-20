@@ -12,6 +12,10 @@ export interface CommandSnapshot {
   status: string;
   exit_code: number | null;
   log: string[];
+  /** Whether the command has a DAP debug entry point. */
+  dap: boolean;
+  /** Access id of the running DAP bridge, or null when not running. */
+  dap_id: string | null;
 }
 
 export interface BaseSnapshot {
@@ -22,6 +26,8 @@ export interface BaseSnapshot {
   error: string | null;
   built: boolean;
   kind: string | null;
+  /** Whether the app is reachable over the web through a path proxy. */
+  web: boolean;
   run_images: string[];
   commands: CommandSnapshot[];
   environment: Record<string, string>;
@@ -32,6 +38,8 @@ export interface AppSnapshot extends BaseSnapshot {
   dev: boolean;
   empty: boolean;
   dev_url: string;
+  /** Names of the shipped starter projects the Copy Template action offers. */
+  templates: string[];
 }
 
 export interface InstanceSnapshot extends BaseSnapshot {
@@ -155,5 +163,14 @@ export function websocketUrl(
   return (
     `${protocol}//${location.host}/containerapps/ws` +
     resourcePath(kind, module, resource)
+  );
+}
+
+/** Websocket URL for a DAP bridge's access id. */
+export function dapWebsocketUrl(bridgeId: string): string {
+  const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  return (
+    `${protocol}//${location.host}/containerapps/dap/` +
+    encodeURIComponent(bridgeId)
   );
 }

@@ -20,6 +20,7 @@ import type { TemplateResult } from 'lit';
 
 import {
   ApiError,
+  dapWebsocketUrl,
   getApp,
   getInstance,
   runAppAction,
@@ -61,6 +62,7 @@ export class ContainerAppAdmin extends LitElement {
   private error = '';
   private notice = '';
   private confirmRequest: ConfirmRequest | null = null;
+  private selectedTemplate = '';
   private socket: WebSocket | null = null;
   private reconnectTimer: ReturnType<typeof globalThis.setTimeout> | null =
     null;
@@ -123,6 +125,11 @@ export class ContainerAppAdmin extends LitElement {
           : command.log;
     }
     this.snapshot = snapshot;
+    if (snapshot.type === 'app' && !snapshot.templates.includes(
+      this.selectedTemplate
+    )) {
+      this.selectedTemplate = snapshot.templates[0] ?? '';
+    }
     this.requestUpdate();
   }
 
@@ -221,6 +228,8 @@ export class ContainerAppAdmin extends LitElement {
         command.status = status;
         command.exit_code =
           typeof message.exit_code === 'number' ? message.exit_code : null;
+        command.dap_id =
+          typeof message.dap_id === 'string' ? message.dap_id : null;
       }
       this.requestUpdate();
       return;
@@ -263,6 +272,29 @@ export class ContainerAppAdmin extends LitElement {
   private foregroundBusy(): boolean {
     return this.scriptCommands().some(
       (command) => !command.background && this.commandRunning(command.name)
+    );
+  }
+
+  /** Text editor URL for a running DAP bridge, or null when not running. */
+  private debugUrl(command: CommandSnapshot): string | null {
+    if (command.dap_id === null || command.dap_id === undefined) {
+      return null;
+    }
+    let module = this.module;
+    let resource = this.resource;
+    if (this.kind === 'instance' && this.snapshot?.type === 'instance') {
+      const [appModule, appResource] = this.snapshot.app.split(':');
+      if (appModule && appResource) {
+        module = appModule;
+        resource = appResource;
+      }
+    }
+    const fileResource = `${resource}.d/app/container-app.toml`;
+    const dap = dapWebsocketUrl(command.dap_id);
+    return (
+      `/text-editor-plugin/edit?module=${encodeURIComponent(module)}` +
+      `&resource=${encodeURIComponent(fileResource)}` +
+      `&dap=${encodeURIComponent(dap)}`
     );
   }
 
@@ -451,11 +483,32 @@ export class ContainerAppAdmin extends LitElement {
     const hasApp = snapshot.kind !== null;
     return html`
       <section class="ca-actions" data-testid="ca-app-actions">
+        <select
+          class="ca-template"
+          data-testid="ca-template"
+          ?disabled="${disabled || !snapshot.empty}"
+          @change="${(event: Event) => {
+            this.selectedTemplate = (event.target as HTMLSelectElement).value;
+          }}"
+        >
+          ${snapshot.templates.map(
+            (name) =>
+              html`<option
+                value="${name}"
+                ?selected="${name === this.selectedTemplate}"
+              >
+                ${name}
+              </option>`
+          )}
+        </select>
         <button
           class="btn"
           data-testid="ca-copy-template"
-          ?disabled="${disabled || !snapshot.empty}"
-          @click="${() => void this.perform('copy-template')}"
+          ?disabled="${disabled || !snapshot.empty || !this.selectedTemplate}"
+          @click="${() =>
+            void this.perform('copy-template', {
+              template: this.selectedTemplate,
+            })}"
         >
           Copy Template
         </button>
@@ -600,16 +653,19 @@ export class ContainerAppAdmin extends LitElement {
     snapshot: ContainerAppSnapshot
   ): TemplateResult {
     if (snapshot.type === 'instance') {
+      const url = snapshot.web
+        ? html`<a href="${snapshot.url}" data-testid="ca-url"
+            >${snapshot.url}</a
+          >`
+        : '—';
       return html`
         <dt>App</dt>
         <dd data-testid="ca-app-ref">${snapshot.app || '—'}</dd>
         <dt>URL</dt>
-        <dd>
-          <a href="${snapshot.url}" data-testid="ca-url">${snapshot.url}</a>
-        </dd>
+        <dd data-testid="ca-url">${url}</dd>
       `;
     }
-    const preview = snapshot.dev
+    const preview = snapshot.dev && snapshot.web
       ? html`<a href="${snapshot.dev_url}" data-testid="ca-dev-url"
           >${snapshot.dev_url}</a
         >`
@@ -648,6 +704,7 @@ export class ContainerAppAdmin extends LitElement {
     const label = name === APP_COMMAND ? 'App' : name;
     const running = this.commandRunning(name);
     const exitCode = command.exit_code;
+    const debug = this.debugUrl(command);
     return html`
       <article
         class="ca-console"
@@ -668,6 +725,16 @@ export class ContainerAppAdmin extends LitElement {
             : nothing}
           ${command.background
             ? html`<span class="ca-tag">background</span>`
+            : nothing}
+          ${debug !== null
+            ? html`<a
+                class="btn"
+                data-testid="ca-console-${name}-debug"
+                href="${debug}"
+                target="_blank"
+                rel="noopener"
+                >Debug</a
+              >`
             : nothing}
           <button
             class="btn danger"

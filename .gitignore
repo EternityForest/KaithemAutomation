@@ -19,6 +19,7 @@ result/**
 **/__pycache__
 .test_venvs
 .uv
+.kaithem-podman-storage/
 node_modules/
 /test-results/
 /playwright-report/

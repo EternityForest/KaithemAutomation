@@ -14,7 +14,10 @@ from quart import Blueprint
 from kaithem.api import web
 from kaithem.api.web import quart_app
 
+from . import dap_bridge
 from .resource_types import (
+    DEFAULT_TEMPLATE,
+    TEMPLATES,
     ContainerAppInstanceResource,
     ContainerAppResource,
     app_resource_type,
@@ -91,10 +94,12 @@ def _app_snapshot(app: ContainerAppResource) -> dict[str, Any]:
         "built": app.is_built(),
         "empty": app.is_empty(),
         "kind": app.app_kind,
+        "templates": sorted(TEMPLATES),
         "commands": app.get_commands(),
         "dev_url": app.dev_prefix,
         "run_images": runtime.run_images if runtime else [],
         "environment": app.get_environment(),
+        "web": runtime.web_enabled if runtime else False,
     }
 
 
@@ -121,6 +126,7 @@ def _instance_snapshot(
         "commands": instance.get_commands(),
         "run_images": runtime.run_images if runtime else [],
         "environment": instance.get_environment(),
+        "web": runtime.web_enabled if runtime else False,
     }
 
 
@@ -134,6 +140,15 @@ def _script_name(body: dict[str, Any]) -> str:
     return name.strip()
 
 
+def _template_name(body: dict[str, Any]) -> str:
+    name = body.get("template")
+    if name is None:
+        return DEFAULT_TEMPLATE
+    if not isinstance(name, str) or name not in TEMPLATES:
+        raise ValueError(f"Unknown template {name!r}")
+    return name
+
+
 APP_ACTIONS: dict[
     str, Callable[[ContainerAppResource, dict[str, Any]], None]
 ] = {
@@ -141,7 +156,9 @@ APP_ACTIONS: dict[
     "stop-dev": lambda app, body: app.stop_dev(),
     "reload": lambda app, body: app.reload(),
     "delete-runtime": lambda app, body: app.delete_runtime(),
-    "copy-template": lambda app, body: app.copy_template(),
+    "copy-template": lambda app, body: app.copy_template(
+        _template_name(body)
+    ),
     "run-script": lambda app, body: app.run_script(_script_name(body)),
     "stop-script": lambda app, body: app.stop_script(_script_name(body)),
     "stop-app": lambda app, body: app.stop_app(),
@@ -297,12 +314,18 @@ async def _monitor(
         push({"event": "log", "script": script, "line": line})
 
     def on_command(script: str, status: str, exit_code: int | None) -> None:
+        dap_id = (
+            runtime.get_command_dap_id(script)
+            if runtime is not None
+            else None
+        )
         push(
             {
                 "event": "command",
                 "script": script,
                 "status": status,
                 "exit_code": exit_code,
+                "dap_id": dap_id,
             }
         )
 
@@ -369,6 +392,54 @@ async def instance_websocket(module: str, resource: str):
         await quart.websocket.close(1008)
         return
     await _monitor(instance, lambda: _instance_snapshot(instance))
+
+
+# -- DAP websocket ------------------------------------------------------
+
+
+@quart_app.websocket("/containerapps/dap/<bridge_id>")
+async def dap_websocket(bridge_id: str):
+    """Bridge a browser debugger to a container app's DAP adapter.
+
+    Only one browser may be attached at a time; attaching a new one
+    silently detaches the previous one.  The adapter stays running when
+    the browser detaches, so another browser can attach later.
+    """
+    ws = quart.websocket
+    await ws.accept()
+    if not _authorized_ws():
+        await ws.close(1008)
+        return
+    bridge = dap_bridge.get(bridge_id)
+    if bridge is None:
+        await ws.close(4004, "no_dap")
+        return
+    loop = asyncio.get_running_loop()
+    out_queue: asyncio.Queue[str | None] = asyncio.Queue()
+    bridge.acquire_browser(loop, out_queue)
+
+    async def _pump_to_ws() -> None:
+        while True:
+            text = await out_queue.get()
+            if text is None:
+                await ws.close(4000, "debugger_disconnected")
+                return
+            await ws.send(text)
+
+    pump_task = asyncio.create_task(_pump_to_ws())
+    try:
+        while True:
+            data = await ws.receive()
+            if data is None:
+                break
+            if isinstance(data, bytes):
+                data = data.decode("utf-8")
+            bridge.from_browser(data)
+    except Exception:
+        pass
+    finally:
+        pump_task.cancel()
+        bridge.detach()
 
 
 # -- Page redirects -----------------------------------------------------

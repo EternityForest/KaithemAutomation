@@ -43,14 +43,26 @@ with open(
 # Ensure tests don't do anything outside the sandbox
 old_open = open
 
+# Persistent, gitignored podman storage shared between runs so heavy
+# container tests don't refetch images every time.  Lives in the repo dir
+# (not the ephemeral var dir) so it survives across test runs.
+PODMAN_STORAGE_DIR = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), ".kaithem-podman-storage"
+)
+
 
 def open2(path, mode: str = "r", *args, **kwargs):
-    if not (str(path).startswith("/dev/shm/")) and not path == "/dev/null":
+    p = str(path)
+    if (
+        not p.startswith("/dev/shm/")
+        and p != "/dev/null"
+        and not p.startswith(PODMAN_STORAGE_DIR)
+    ):
         if "w" in mode or "a" in mode:
-            if "__pycache__" not in str(path) and "/.cache/" not in str(path):
+            if "__pycache__" not in p and "/.cache/" not in p:
                 raise RuntimeError(  # pragma: no cover
                     "Unit testing is not allowed to write outside of /dev/shm: "
-                    + str(path)
+                    + p
                 )
 
     return old_open(path, mode, *args, **kwargs)
@@ -75,6 +87,12 @@ api = kaithem.initialize_app(cfg)
 
 # This causes problems if imported before the app is initialized
 from kaithem.src import auth, directories  # noqa
+
+# Use persistent storage for podman so heavy container tests don't have to
+# refetch images on every run.
+from kaithem.src import podman_util  # noqa: E402
+
+podman_util.set_storage(PODMAN_STORAGE_DIR)
 
 # Run a loopback fake of the OpenRouter API and point the AI settings at
 # it, so the conversation feature can be tested end to end without ever

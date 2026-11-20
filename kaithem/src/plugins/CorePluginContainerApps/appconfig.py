@@ -61,7 +61,15 @@ foreground script.
 
 An app is optional.  When present, its run command is a list too: the
 final step is the long running process, and the steps before it run to
-completion first.
+completion first.  A command app is reachable over the web through a
+path proxy unless it sets ``[app] web = false``, which is how a UIless
+service is declared; a staticfiles app is always served on the web.
+
+The optional ``[env]`` table adds variables to every script's
+environment.  Values are strings and may reference predefined variables
+with a ``${NAME}`` expansion; the only predefined variable is
+``IMAGE_ARCH``, the architecture (e.g. ``amd64``) of the image a command
+is about to run in.  Unknown references are rejected on load.
 
 Parsing and validation are kept completely separate from running
 anything, so a broken config fails loudly on load instead of at build
@@ -71,8 +79,9 @@ time.
 from __future__ import annotations
 
 import os
+import re
 import tomllib
-from typing import Literal, TypedDict
+from typing import Any, Final, Literal, NotRequired, TypedDict
 
 import structlog
 
@@ -90,16 +99,34 @@ DEFAULT_IMAGE_KEY = "image"
 #: App types understood by the runtime.
 AppType = Literal["command", "staticfiles"]
 
+#: Variables that may be referenced as ``${NAME}`` in an ``[env]`` value.
+#: ``IMAGE_ARCH`` is the architecture (e.g. ``amd64``) of the image a
+#: command is about to run in.
+PREDEFINED_VARS: Final[tuple[str, ...]] = ("IMAGE_ARCH",)
+
+#: Matches ``${NAME}`` references inside an ``[env]`` value.
+_VAR_RE = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}")
+
 
 class ConfigError(ValueError):
     """Raised when a ``container-app.toml`` is missing or invalid."""
 
 
 class CommandStep(TypedDict):
-    """One command in a script, run in the order it is listed."""
+    """One command in a script, run in the order it is listed.
+
+    A step marked ``dap = true`` is a debug entry point: its ``command``
+    is the complete debugger invocation (adapter and all) and must speak
+    DAP over stdio.  The optional ``launch`` table is free-form DAP
+    ``launch`` arguments the bridge merges into the browser's launch
+    request, so a debugger that needs to be told what to debug (such as
+    ``debugpy.adapter``) can be pointed at the target.
+    """
 
     image: str
     command: list[str]
+    dap: bool
+    launch: NotRequired[dict[str, Any]]
 
 
 class ScriptConfig(TypedDict):
@@ -114,11 +141,14 @@ class CommandApp(TypedDict):
     """An app served by a long running command inside a container.
 
     Only the final step stays running; the steps before it run to
-    completion to set the container up.
+    completion to set the container up.  ``web`` says whether the app is
+    reachable over the web through a path proxy; a UIless service sets
+    ``[app] web = false``.
     """
 
     kind: Literal["command"]
     steps: list[CommandStep]
+    web: bool
 
 
 class StaticFilesApp(TypedDict):
@@ -137,6 +167,7 @@ class ContainerAppConfig(TypedDict):
 
     scripts: dict[str, ScriptConfig]
     app: AppConfig | None
+    env: dict[str, str]
 
 
 def _location(where: str, key: str) -> str:
@@ -202,14 +233,42 @@ def _resolve_image(
     )
 
 
+def _optional_bool(
+    table: dict[str, object], key: str, where: str, default: bool = False
+) -> bool:
+    if key not in table:
+        return default
+    value = table[key]
+    if not isinstance(value, bool):
+        raise ConfigError(f"'{_location(where, key)}' must be a boolean")
+    return value
+
+
+def _optional_table(
+    table: dict[str, object], key: str, where: str
+) -> dict[str, object] | None:
+    if key not in table:
+        return None
+    return _require_table(table[key], _location(where, key))
+
+
 def _parse_step(
     value: object, where: str, default_image: str | None
 ) -> CommandStep:
     table = _require_table(value, where)
-    _reject_unknown(table, {"command", "image"}, where)
+    _reject_unknown(table, {"command", "image", "dap", "launch"}, where)
     command = _require_command(table.get("command"), f"{where}.command")
     image = _resolve_image(table, where, default_image)
-    return {"image": image, "command": command}
+    dap = _optional_bool(table, "dap", where)
+    launch = _optional_table(table, "launch", where)
+    if launch is not None and not dap:
+        raise ConfigError(
+            f"'{where}.launch' only applies to a step marked 'dap = true'"
+        )
+    step: CommandStep = {"image": image, "command": command, "dap": dap}
+    if launch is not None:
+        step["launch"] = dict(launch)
+    return step
 
 
 def _parse_steps(
@@ -226,15 +285,44 @@ def _parse_steps(
     ]
 
 
-def _optional_bool(
-    table: dict[str, object], key: str, where: str, default: bool = False
-) -> bool:
-    if key not in table:
-        return default
-    value = table[key]
-    if not isinstance(value, bool):
-        raise ConfigError(f"'{_location(where, key)}' must be a boolean")
+def _validate_template(value: str, where: str) -> str:
+    """Reject ``${NAME}`` references to variables we do not define."""
+    for match in _VAR_RE.finditer(value):
+        name = match.group(1)
+        if name not in PREDEFINED_VARS:
+            raise ConfigError(
+                f"'{where}' references unknown variable '${{{name}}}'; "
+                f"known variables: {', '.join(PREDEFINED_VARS)}"
+            )
     return value
+
+
+def expand_env(value: str, variables: dict[str, str]) -> str:
+    """Expand ``${NAME}`` references in an ``[env]`` value.
+
+    Only the names in :data:`PREDEFINED_VARS` are known; a reference to
+    anything else is a config error.
+    """
+
+    def replace(match: re.Match[str]) -> str:
+        name = match.group(1)
+        if name not in variables:
+            raise ConfigError(f"Unknown variable '${{{name}}}'")
+        return variables[name]
+
+    return _VAR_RE.sub(replace, value)
+
+
+def _parse_env(value: object) -> dict[str, str]:
+    """Parse the ``[env]`` table of extra variables every script gets."""
+    if value is None:
+        return {}
+    table = _require_table(value, "env")
+    env: dict[str, str] = {}
+    for key, raw in table.items():
+        where = _location("env", key)
+        env[key] = _validate_template(_require_string(raw, where), where)
+    return env
 
 
 def _parse_script(
@@ -262,7 +350,7 @@ def _parse_app(value: object, default_image: str | None) -> AppConfig | None:
     if value is None:
         return None
     table = _require_table(value, where)
-    _reject_unknown(table, {"type", "command", "source", "image"}, where)
+    _reject_unknown(table, {"type", "command", "source", "image", "web"}, where)
 
     app_type = _optional_string(table, "type", where)
     if app_type is not None and app_type not in ("command", "staticfiles"):
@@ -290,10 +378,13 @@ def _parse_app(value: object, default_image: str | None) -> AppConfig | None:
             )
         app_default = _optional_string(table, "image", where) or default_image
         steps = _parse_steps(table.get("command"), "app.command", app_default)
-        return {"kind": "command", "steps": steps}
+        web = _optional_bool(table, "web", where, default=True)
+        return {"kind": "command", "steps": steps, "web": web}
 
     if has_command:
         raise ConfigError("A staticfiles app cannot also have a run command")
+    if not _optional_bool(table, "web", where, default=True):
+        raise ConfigError("A staticfiles app is always served on the web")
     source = _require_string(table.get("source"), "app.source")
     return {"kind": "staticfiles", "source": source}
 
@@ -305,7 +396,7 @@ def parse_config(raw: object) -> ContainerAppConfig:
     without touching the disk.
     """
     table = _require_table(raw, "")
-    _reject_unknown(table, {"scripts", "app"}, "")
+    _reject_unknown(table, {"scripts", "app", "env"}, "")
 
     scripts_raw = _require_table(table.get("scripts", {}), "scripts")
     default_image = _optional_string(scripts_raw, DEFAULT_IMAGE_KEY, "scripts")
@@ -317,8 +408,9 @@ def parse_config(raw: object) -> ContainerAppConfig:
         scripts[name] = _parse_script(name, value, default_image)
 
     app = _parse_app(table.get("app"), default_image)
+    env = _parse_env(table.get("env"))
 
-    return {"scripts": scripts, "app": app}
+    return {"scripts": scripts, "app": app, "env": env}
 
 
 def config_path(project_folder: str) -> str:

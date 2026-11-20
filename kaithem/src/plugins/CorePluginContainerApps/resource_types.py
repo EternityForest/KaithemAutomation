@@ -37,10 +37,18 @@ from .static_apps import StaticFilesApp
 
 logger = structlog.get_logger(__name__)
 
-#: Shipped starter project copied by the "Copy Template" action.
-TEMPLATE_DIR = os.path.join(
-    os.path.dirname(__file__), "templates", "bun-lit-static"
-)
+#: Shipped starter projects copied by the "Copy Template" action.
+TEMPLATES: dict[str, str] = {
+    "bun-lit-static": os.path.join(
+        os.path.dirname(__file__), "templates", "bun-lit-static"
+    ),
+    "uv-python": os.path.join(
+        os.path.dirname(__file__), "templates", "uv-python"
+    ),
+}
+
+#: Template used when the client does not name one.
+DEFAULT_TEMPLATE = "bun-lit-static"
 
 #: Legal characters in a URL slug (also the schema pattern below).
 _SLUG_PATTERN = r"^([a-z][a-z0-9-_]*)?$"
@@ -323,12 +331,15 @@ class ContainerAppResource(ResourceTypeRuntimeObject):
             self.stop_dev()
         self._load_sandbox_runtime()
 
-    def copy_template(self) -> None:
-        """Copy the shipped starter project into an empty app folder."""
+    def copy_template(self, name: str = DEFAULT_TEMPLATE) -> None:
+        """Copy a shipped starter project into an empty app folder."""
         if not self.is_empty():
             raise RuntimeError("Project folder is not empty")
+        template_dir = TEMPLATES.get(name)
+        if template_dir is None:
+            raise ValueError(f"Unknown template {name!r}")
         os.makedirs(self.project_folder, exist_ok=True)
-        shutil.copytree(TEMPLATE_DIR, self.project_folder, dirs_exist_ok=True)
+        shutil.copytree(template_dir, self.project_folder, dirs_exist_ok=True)
         self.reload()
 
     # -- Proxy ----------------------------------------------------------
@@ -343,6 +354,8 @@ class ContainerAppResource(ResourceTypeRuntimeObject):
             return
         title = f"{self.title} (dev)"
         if app["kind"] == "command":
+            if not app["web"]:
+                return
             self.proxy = PathProxy(
                 prefix=self.dev_prefix,
                 target=runtime.unix_target(),
@@ -479,6 +492,8 @@ class ContainerAppInstanceResource(ResourceTypeRuntimeObject):
             return
         title = self.data.get("title") or f"{self.app_resource} ({self.name})"
         if app["kind"] == "command":
+            if not app["web"]:
+                return
             self.proxy = PathProxy(
                 prefix=self.base_path,
                 rewrite=[("^/$", "/index")],

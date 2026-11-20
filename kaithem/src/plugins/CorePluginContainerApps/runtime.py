@@ -41,14 +41,17 @@ import structlog
 from kaithem.api.util import get_vardir
 from kaithem.src import podman_util
 
+from . import dap_bridge
 from .appconfig import (
     APP_SCRIPT_NAME,
     CommandApp,
     CommandStep,
     ContainerAppConfig,
     ScriptConfig,
+    expand_env,
     load_config,
 )
+from .dap_bridge import DapBridge
 
 logger = structlog.get_logger(__name__)
 
@@ -109,6 +112,9 @@ class CommandState:
         self.cancel = threading.Event()
         self.thread: threading.Thread | None = None
         self.log: deque[str] = deque(maxlen=LOG_BUFFER_LINES)
+        self.dap = any(step.get("dap", False) for step in steps)
+        self.dap_id: str | None = None
+        self.dap_bridge: DapBridge | None = None
 
     def snapshot(self) -> dict[str, Any]:
         return {
@@ -117,6 +123,8 @@ class CommandState:
             "status": self.status,
             "exit_code": self.exit_code,
             "log": list(self.log),
+            "dap": self.dap,
+            "dap_id": self.dap_id,
         }
 
 
@@ -389,6 +397,20 @@ class ContainerRuntime:
         return None if app is None else app["kind"]
 
     @property
+    def web_enabled(self) -> bool:
+        """Whether this project is reachable over the web.
+
+        A static app always is; a command app may opt out with
+        ``[app] web = false`` to run as a UIless service.
+        """
+        app = self.config["app"]
+        if app is None:
+            return False
+        if app["kind"] == "staticfiles":
+            return True
+        return app["web"]
+
+    @property
     def run_images(self) -> list[str]:
         """Distinct images used by the run steps, in order."""
         app = self.config["app"]
@@ -416,6 +438,12 @@ class ContainerRuntime:
             state = self._commands.get(name)
             return list(state.log) if state is not None else []
 
+    def get_command_dap_id(self, name: str) -> str | None:
+        """Return the access id of a command's DAP bridge, if any."""
+        with self._command_lock:
+            state = self._commands.get(name)
+            return state.dap_id if state is not None else None
+
     @property
     def ipc_dir(self) -> str:
         """Directory bound to ``/ipc``; holds the app's server socket."""
@@ -436,8 +464,15 @@ class ContainerRuntime:
         with self._session_lock:
             return [session.name for session in self._sessions.values()]
 
-    def get_environment(self) -> dict[str, str]:
-        """Return the environment every command runs with."""
+    def get_environment(self, image: str | None = None) -> dict[str, str]:
+        """Return the environment every command runs with.
+
+        The project's ``[env]`` entries may reference predefined
+        variables such as ``${IMAGE_ARCH}``, which are expanded from the
+        image the command is about to run in.  Pass the step's image to
+        expand them; pass ``None`` for a display-only view that leaves
+        the references as written.
+        """
         env: dict[str, str] = {
             "SERVER_ADDRESS": SERVER_SOCKET,
             "BASE_PATH": self.base_path,
@@ -445,6 +480,14 @@ class ContainerRuntime:
         }
         if self.api_key:
             env["KAITHEM_API_KEY"] = self.api_key
+        for key, template in self.config["env"].items():
+            if image is None:
+                env[key] = template
+            else:
+                env[key] = expand_env(
+                    template,
+                    {"IMAGE_ARCH": podman_util.get_image_arch(image)},
+                )
         return env
 
     # -- Log and command plumbing ---------------------------------------
@@ -602,6 +645,12 @@ class ContainerRuntime:
         state.cancel.set()
         with self._command_lock:
             proc = state.proc
+            bridge = state.dap_bridge
+        if bridge is not None:
+            try:
+                bridge.stop()
+            except Exception:
+                logger.debug("Failed to stop DAP bridge", exc_info=True)
         if proc is None:
             return
         try:
@@ -673,12 +722,18 @@ class ContainerRuntime:
         state = self._app_state()
         steps = app["steps"]
         for step in steps[:-1]:
+            if step.get("dap", False):
+                raise RuntimeError("A dap step cannot be a setup step")
             code = self._run_attached(state, step)
             if code != 0:
                 raise RuntimeError(
                     f"Setup command failed with exit code {code}"
                 )
-        self._launch_persistent(state, steps[-1])
+        final = steps[-1]
+        if final.get("dap", False):
+            self._launch_dap(state, final)
+        else:
+            self._launch_persistent(state, final)
 
     def _launch_persistent(
         self, state: CommandState, step: CommandStep
@@ -686,7 +741,7 @@ class ContainerRuntime:
         session = self._session(step["image"])
         proc = session.exec(
             list(step["command"]),
-            env=self.get_environment(),
+            env=self.get_environment(step["image"]),
             workdir="/app",
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
@@ -752,6 +807,73 @@ class ContainerRuntime:
             self._launch_persistent(state, step)
         except Exception as exc:
             logger.exception("Failed to restart container app")
+            self.set_error_state(str(exc))
+            self._set_status("stopped")
+
+    def _launch_dap(self, state: CommandState, step: CommandStep) -> None:
+        """Launch the app's debug entry point and keep the adapter running.
+
+        The adapter stays alive until the app is stopped or the browser
+        explicitly disconnects it; detaching a browser does not stop it.
+        """
+        session = self._session(step["image"])
+        bridge = DapBridge(
+            session,
+            list(step["command"]),
+            self.get_environment(step["image"]),
+            workdir="/app",
+            launch=step.get("launch"),
+        )
+        bridge.start()
+        bridge_id = dap_bridge.register(bridge)
+        with self._command_lock:
+            state.dap_bridge = bridge
+            state.dap_id = bridge_id
+            state.exit_code = None
+        with self._state_lock:
+            status: ContainerStatus = "dev" if self._dev else "running"
+        self._set_command_state(APP_COMMAND, status, None)
+        self._set_status(status)
+        thread = threading.Thread(
+            target=self._monitor_dap,
+            args=(state, bridge, bridge_id),
+            daemon=True,
+            name=f"capp-dap-mon-{session.name}",
+        )
+        with self._command_lock:
+            state.thread = thread
+        thread.start()
+
+    def _monitor_dap(
+        self, state: CommandState, bridge: DapBridge, bridge_id: str
+    ) -> None:
+        """Keep the app's DAP adapter alive and restart it if it dies."""
+        try:
+            while not state.cancel.is_set() and bridge.is_running():
+                time.sleep(0.1)
+        finally:
+            bridge.stop()
+            dap_bridge.unregister(bridge_id)
+            with self._command_lock:
+                if state.dap_bridge is bridge:
+                    state.dap_bridge = None
+                    state.dap_id = None
+        with self._state_lock:
+            want_running = self._want_running
+        if not want_running or state.cancel.is_set():
+            self._set_status("stopped")
+            return
+        self.set_error_state("Debug adapter exited")
+        self._emit(APP_COMMAND, "Debug adapter exited; restarting")
+        time.sleep(RESTART_DELAY)
+        with self._state_lock:
+            if not self._want_running:
+                self._set_status("stopped")
+                return
+        try:
+            self._launch_dap(state, state.steps[-1])
+        except Exception as exc:
+            logger.exception("Failed to restart DAP adapter")
             self.set_error_state(str(exc))
             self._set_status("stopped")
 
@@ -822,6 +944,8 @@ class ContainerRuntime:
         for step in steps:
             if state.cancel.is_set():
                 return -1
+            if step.get("dap", False):
+                return self._run_dap_step(state, step)
             code = self._run_attached(state, step)
             if code != 0 or state.cancel.is_set():
                 return code
@@ -834,7 +958,7 @@ class ContainerRuntime:
         self._emit(state.name, f"$ {' '.join(command)}")
         proc = session.exec(
             list(command),
-            env=self.get_environment(),
+            env=self.get_environment(step["image"]),
             workdir="/app",
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
@@ -856,6 +980,42 @@ class ContainerRuntime:
             if state.proc is proc:
                 state.proc = None
         return code
+
+    def _run_dap_step(self, state: CommandState, step: CommandStep) -> int:
+        """Run a script's debug entry point and bridge its adapter to the UI.
+
+        Blocks until the adapter exits or the command is canceled.  The
+        bridge stays registered so the UI can attach a debugger to it.
+        """
+        session = self._session(step["image"])
+        bridge = DapBridge(
+            session,
+            list(step["command"]),
+            self.get_environment(step["image"]),
+            workdir="/app",
+            launch=step.get("launch"),
+        )
+        bridge.start()
+        bridge_id = dap_bridge.register(bridge)
+        with self._command_lock:
+            state.dap_bridge = bridge
+            state.dap_id = bridge_id
+        self._emit(state.name, "Debug adapter listening")
+        # Re-fire the command state so the UI learns the access id.
+        self._set_command_state(state.name, state.status, state.exit_code)
+        try:
+            while not state.cancel.is_set() and bridge.is_running():
+                time.sleep(0.1)
+        finally:
+            bridge.stop()
+            dap_bridge.unregister(bridge_id)
+            with self._command_lock:
+                if state.dap_bridge is bridge:
+                    state.dap_bridge = None
+                    state.dap_id = None
+        if state.cancel.is_set():
+            return -1
+        return 0
 
     def run_script(self, name: str) -> None:
         """Start a named script.

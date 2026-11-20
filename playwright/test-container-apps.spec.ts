@@ -63,6 +63,9 @@ test('auto-creates a default instance and opens both admin pages', async ({
   await expect(page).toHaveURL(/type=app/);
   await expect(page.getByTestId('ca-title')).toHaveText(APP);
   await expect(page.getByTestId('ca-copy-template')).toBeVisible();
+  await expect(page.getByTestId('ca-template')).toBeVisible();
+  await expect(page.getByTestId('ca-template')).toContainText('bun-lit-static');
+  await expect(page.getByTestId('ca-template')).toContainText('uv-python');
   await expect(page.getByTestId('ca-kind')).toContainText('scripts only');
 
   // The instance admin page loads and points back at its app.
