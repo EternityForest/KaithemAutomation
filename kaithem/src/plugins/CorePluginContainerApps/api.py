@@ -156,9 +156,7 @@ APP_ACTIONS: dict[
     "stop-dev": lambda app, body: app.stop_dev(),
     "reload": lambda app, body: app.reload(),
     "delete-runtime": lambda app, body: app.delete_runtime(),
-    "copy-template": lambda app, body: app.copy_template(
-        _template_name(body)
-    ),
+    "copy-template": lambda app, body: app.copy_template(_template_name(body)),
     "run-script": lambda app, body: app.run_script(_script_name(body)),
     "stop-script": lambda app, body: app.stop_script(_script_name(body)),
     "stop-app": lambda app, body: app.stop_app(),
@@ -310,14 +308,12 @@ async def _monitor(
 
         loop.call_soon_threadsafe(_put)
 
-    def on_message(script: str, line: str) -> None:
-        push({"event": "log", "script": script, "line": line})
+    def on_output(script: str, data: str) -> None:
+        push({"event": "output", "script": script, "data": data})
 
     def on_command(script: str, status: str, exit_code: int | None) -> None:
         dap_id = (
-            runtime.get_command_dap_id(script)
-            if runtime is not None
-            else None
+            runtime.get_command_dap_id(script) if runtime is not None else None
         )
         push(
             {
@@ -333,7 +329,7 @@ async def _monitor(
         push({"event": "status", "status": status})
 
     if runtime is not None:
-        runtime.add_message_callback(on_message)
+        runtime.add_message_callback(on_output)
         runtime.add_command_callback(on_command)
         runtime.add_status_callback(on_status)
 
@@ -361,7 +357,7 @@ async def _monitor(
         logger.debug("Container app websocket closed", exc_info=True)
     finally:
         if runtime is not None:
-            runtime.remove_message_callback(on_message)
+            runtime.remove_message_callback(on_output)
             runtime.remove_command_callback(on_command)
             runtime.remove_status_callback(on_status)
 

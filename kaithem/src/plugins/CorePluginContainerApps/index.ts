@@ -7,10 +7,11 @@
 //   type=instance  admin view: start/stop one running instance
 //
 // Every script in the project config becomes a launch button, and every
-// script plus the app itself gets its own console.  Output lines are
-// tagged with the script that produced them so each console only shows
-// its own output.  Backed by /containerapps/api.  The app itself is
-// reached through its path proxy under /apps/<name>, not this page.
+// script plus the app itself gets its own console.  Output is tagged with
+// the script that produced it so each console only shows its own stream;
+// raw chunks are written to an xterm terminal so ANSI formatting renders.
+// Backed by /containerapps/api.  The app itself is reached through its
+// path proxy under /apps/<name>, not this page.
 //
 // Building is never automatic: a build is just an ordinary script the
 // developer runs by hand.
@@ -36,8 +37,9 @@ import type {
   InstanceSnapshot,
   SurfaceKind,
 } from './container-apps-api.ts';
+import './console.ts';
 
-const MAX_LOG_LINES = 2000;
+const MAX_LOG_CHARS = 200_000;
 
 /** The script name reserved for the project's own long running command. */
 const APP_COMMAND = 'app';
@@ -120,8 +122,8 @@ export class ContainerAppAdmin extends LitElement {
   private applySnapshot(snapshot: ContainerAppSnapshot): void {
     for (const command of snapshot.commands) {
       command.log =
-        command.log.length > MAX_LOG_LINES
-          ? command.log.slice(-MAX_LOG_LINES)
+        command.log.length > MAX_LOG_CHARS
+          ? command.log.slice(-MAX_LOG_CHARS)
           : command.log;
     }
     this.snapshot = snapshot;
@@ -183,14 +185,14 @@ export class ContainerAppAdmin extends LitElement {
     }
   }
 
-  private appendLog(script: string, line: string): void {
+  private appendOutput(script: string, data: string): void {
     const command = this.findCommand(script);
     if (command === undefined) {
       return;
     }
-    command.log.push(line);
-    if (command.log.length > MAX_LOG_LINES) {
-      command.log.splice(0, command.log.length - MAX_LOG_LINES);
+    command.log += data;
+    if (command.log.length > MAX_LOG_CHARS) {
+      command.log = command.log.slice(-MAX_LOG_CHARS);
     }
   }
 
@@ -209,11 +211,11 @@ export class ContainerAppAdmin extends LitElement {
       return;
     }
     if (
-      message.event === 'log' &&
+      message.event === 'output' &&
       typeof message.script === 'string' &&
-      typeof message.line === 'string'
+      typeof message.data === 'string'
     ) {
-      this.appendLog(message.script, message.line);
+      this.appendOutput(message.script, message.data);
       this.requestUpdate();
       return;
     }
@@ -223,7 +225,7 @@ export class ContainerAppAdmin extends LitElement {
         const status = String(message.status);
         if (status === 'running' && message.script !== APP_COMMAND) {
           // The runtime clears a script's buffer on every new run.
-          command.log = [];
+          command.log = '';
         }
         command.status = status;
         command.exit_code =
@@ -726,16 +728,16 @@ export class ContainerAppAdmin extends LitElement {
           ${command.background
             ? html`<span class="ca-tag">background</span>`
             : nothing}
-          ${debug !== null
-            ? html`<a
+          ${debug === null
+            ? nothing
+            : html`<a
                 class="btn"
                 data-testid="ca-console-${name}-debug"
                 href="${debug}"
                 target="_blank"
                 rel="noopener"
                 >Debug</a
-              >`
-            : nothing}
+              >`}
           <button
             class="btn danger"
             data-testid="ca-console-${name}-stop"
@@ -745,8 +747,11 @@ export class ContainerAppAdmin extends LitElement {
             Stop
           </button>
         </header>
-        <pre class="ca-console-log" data-testid="ca-console-${name}-log"
-        >${command.log.join('\n')}</pre>
+        <ca-console
+          class="ca-console-log"
+          data-testid="ca-console-${name}-log"
+          .text="${command.log}"
+        ></ca-console>
       </article>
     `;
   }

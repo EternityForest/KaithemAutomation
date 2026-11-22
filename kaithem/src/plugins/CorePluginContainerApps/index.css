@@ -149,17 +149,20 @@
   opacity: 0.8;
 }
 
-.ca-console-log {
-  margin: 0;
-  max-height: 24rem;
-  overflow: auto;
-  padding: 0.5rem;
-  background: #111;
-  color: #eee;
-  font-family: monospace;
-  font-size: 0.85rem;
-  white-space: pre-wrap;
-  word-break: break-word;
+ca-console.ca-console-log {
+  display: block;
+  height: 24rem;
+  background: #1e1e1e;
+}
+
+ca-console.ca-console-log .ca-console-term {
+  height: 100%;
+}
+
+ca-console.ca-console-log .xterm {
+  height: 100%;
+  padding: 0.4rem;
+  box-sizing: border-box;
 }
 
 .ca-modal-backdrop {

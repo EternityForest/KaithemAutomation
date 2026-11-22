@@ -27,6 +27,7 @@ and needs no platform specific data at runtime.
 
 from __future__ import annotations
 
+import codecs
 import hashlib
 import os
 import subprocess
@@ -65,8 +66,13 @@ _STATUS_VALUES: Final[tuple[ContainerStatus, ...]] = (
     "dev",
 )
 
-#: How many log lines to keep per runtime.
-LOG_BUFFER_LINES: Final = 2000
+#: How many characters of output to keep per command.  Output is streamed
+#: as raw text chunks (it carries ANSI escape codes), so the buffer is
+#: measured in characters rather than lines.
+LOG_BUFFER_CHARS: Final = 200_000
+
+#: Bytes to read from a command's output pipe at a time.
+OUTPUT_CHUNK_SIZE: Final = 4096
 
 #: Prefix for generated container names.  ``podman_util`` adds its own
 #: ``kaithem-temp-`` prefix on top of this.
@@ -84,6 +90,9 @@ KEEPALIVE_ENTRYPOINT: Final = "sleep"
 KEEPALIVE_ARGS: Final = ["infinity"]
 
 StatusCallback = Callable[[ContainerStatus], None]
+#: Called with ``(script_name, chunk)`` for each piece of output as it
+#: arrives.  A chunk is raw terminal text, so it may hold several lines,
+#: a partial line, or ANSI escape codes.
 MessageCallback = Callable[[str, str], None]
 CommandCallback = Callable[[str, str, int | None], None]
 
@@ -111,10 +120,32 @@ class CommandState:
         self.proc: subprocess.Popen[bytes] | None = None
         self.cancel = threading.Event()
         self.thread: threading.Thread | None = None
-        self.log: deque[str] = deque(maxlen=LOG_BUFFER_LINES)
+        # Output chunks, capped at LOG_BUFFER_CHARS.  Kept as chunks rather
+        # than lines so raw terminal output (ANSI codes, carriage returns)
+        # replays faithfully.
+        self.log: deque[str] = deque()
+        self._log_size = 0
         self.dap = any(step.get("dap", False) for step in steps)
         self.dap_id: str | None = None
         self.dap_bridge: DapBridge | None = None
+
+    def append_output(self, chunk: str) -> None:
+        """Append an output chunk, trimming the oldest text past the cap."""
+        if not chunk:
+            return
+        self.log.append(chunk)
+        self._log_size += len(chunk)
+        while self._log_size > LOG_BUFFER_CHARS and len(self.log) > 1:
+            self._log_size -= len(self.log.popleft())
+
+    def clear_output(self) -> None:
+        """Discard all buffered output."""
+        self.log.clear()
+        self._log_size = 0
+
+    def log_text(self) -> str:
+        """Return the buffered output as one string."""
+        return "".join(self.log)
 
     def snapshot(self) -> dict[str, Any]:
         return {
@@ -122,7 +153,7 @@ class CommandState:
             "background": self.background,
             "status": self.status,
             "exit_code": self.exit_code,
-            "log": list(self.log),
+            "log": self.log_text(),
             "dap": self.dap,
             "dap_id": self.dap_id,
         }
@@ -432,11 +463,11 @@ class ContainerRuntime:
             names.extend(name for name in self._commands if name != APP_COMMAND)
             return [self._commands[name].snapshot() for name in names]
 
-    def get_command_log(self, name: str) -> list[str]:
-        """Return a copy of one command's buffered log lines."""
+    def get_command_log(self, name: str) -> str:
+        """Return one command's buffered output as raw terminal text."""
         with self._command_lock:
             state = self._commands.get(name)
-            return list(state.log) if state is not None else []
+            return state.log_text() if state is not None else ""
 
     def get_command_dap_id(self, name: str) -> str | None:
         """Return the access id of a command's DAP bridge, if any."""
@@ -492,22 +523,51 @@ class ContainerRuntime:
 
     # -- Log and command plumbing ---------------------------------------
 
-    def _emit(self, name: str, message: str) -> None:
-        """Append one output line to a command's log and notify listeners."""
-        if not isinstance(message, str):
-            raise TypeError("message must be a string")
+    def _emit(self, name: str, chunk: str) -> None:
+        """Append an output chunk to a command's log and notify listeners."""
+        if not isinstance(chunk, str):
+            raise TypeError("chunk must be a string")
         with self._command_lock:
             state = self._commands.get(name)
             if state is None:
                 return
-            state.log.append(message)
+            state.append_output(chunk)
         with self._notify_lock:
             callbacks = list(self._message_callbacks)
         for callback in callbacks:
             try:
-                callback(name, message)
+                callback(name, chunk)
             except Exception:
                 logger.exception("Container app log callback failed")
+
+    def _emit_line(self, name: str, text: str) -> None:
+        """Emit a synthetic line (a header or status message) to a log."""
+        self._emit(name, text + "\r\n")
+
+    def _stream_output(self, name: str, proc: subprocess.Popen[bytes]) -> None:
+        """Stream a command's output to its log as it is produced.
+
+        Reads raw bytes and decodes incrementally, so multi-byte UTF-8
+        characters split across reads survive, and output is forwarded the
+        moment it arrives rather than one whole line at a time.
+        """
+        stdout = proc.stdout
+        assert stdout is not None
+        decoder = codecs.getincrementaldecoder("utf-8")("replace")
+        fd = stdout.fileno()
+        while True:
+            try:
+                data = os.read(fd, OUTPUT_CHUNK_SIZE)
+            except OSError:
+                break
+            if not data:
+                break
+            text = decoder.decode(data)
+            if text:
+                self._emit(name, text)
+        tail = decoder.decode(b"", True)
+        if tail:
+            self._emit(name, tail)
 
     def _set_command_state(
         self, name: str, status: str, exit_code: int | None = None
@@ -773,13 +833,7 @@ class ContainerRuntime:
         step: CommandStep,
     ) -> None:
         """Stream the app's output and restart it if it dies."""
-        stdout = proc.stdout
-        assert stdout is not None
-        for raw in stdout:
-            self._emit(
-                APP_COMMAND,
-                raw.decode("utf-8", "replace").rstrip("\r\n"),
-            )
+        self._stream_output(APP_COMMAND, proc)
         code = proc.wait()
 
         with self._command_lock:
@@ -796,7 +850,7 @@ class ContainerRuntime:
             return
 
         self.set_error_state(f"App exited with code {code}")
-        self._emit(APP_COMMAND, f"App exited with code {code}; restarting")
+        self._emit_line(APP_COMMAND, f"App exited with code {code}; restarting")
         self._set_command_state(APP_COMMAND, state.status, code)
         time.sleep(RESTART_DELAY)
         with self._state_lock:
@@ -864,7 +918,7 @@ class ContainerRuntime:
             self._set_status("stopped")
             return
         self.set_error_state("Debug adapter exited")
-        self._emit(APP_COMMAND, "Debug adapter exited; restarting")
+        self._emit_line(APP_COMMAND, "Debug adapter exited; restarting")
         time.sleep(RESTART_DELAY)
         with self._state_lock:
             if not self._want_running:
@@ -955,7 +1009,7 @@ class ContainerRuntime:
         """Run a command to completion, streaming its output to its log."""
         session = self._session(step["image"])
         command = step["command"]
-        self._emit(state.name, f"$ {' '.join(command)}")
+        self._emit_line(state.name, f"$ {' '.join(command)}")
         proc = session.exec(
             list(command),
             env=self.get_environment(step["image"]),
@@ -970,11 +1024,7 @@ class ContainerRuntime:
             state.proc = proc
             if state.cancel.is_set():
                 proc.kill()
-        for raw in proc.stdout:
-            self._emit(
-                state.name,
-                raw.decode("utf-8", "replace").rstrip("\r\n"),
-            )
+        self._stream_output(state.name, proc)
         code = proc.wait()
         with self._command_lock:
             if state.proc is proc:
@@ -1000,7 +1050,7 @@ class ContainerRuntime:
         with self._command_lock:
             state.dap_bridge = bridge
             state.dap_id = bridge_id
-        self._emit(state.name, "Debug adapter listening")
+        self._emit_line(state.name, "Debug adapter listening")
         # Re-fire the command state so the UI learns the access id.
         self._set_command_state(state.name, state.status, state.exit_code)
         try:
@@ -1047,7 +1097,7 @@ class ContainerRuntime:
                 state.cancel.clear()
                 state.exit_code = None
                 state.status = "running"
-                state.log.clear()
+                state.clear_output()
             self._set_command_state(name, "running", None)
             thread = threading.Thread(
                 target=self._run_script_thread,
@@ -1066,20 +1116,20 @@ class ContainerRuntime:
     def _run_script_thread(self, state: CommandState, background: bool) -> None:
         name = state.name
         try:
-            self._emit(name, f"Running action {name}")
+            self._emit_line(name, f"Running action {name}")
             code = self._run_steps(state, state.steps)
             if state.cancel.is_set():
-                self._emit(name, f"Action {name} canceled")
+                self._emit_line(name, f"Action {name} canceled")
                 self._set_command_state(name, "stopped", None)
             elif code == 0:
-                self._emit(name, f"Action {name} exited with code 0")
+                self._emit_line(name, f"Action {name} exited with code 0")
                 self._set_command_state(name, "exited", 0)
             else:
-                self._emit(name, f"Action {name} exited with code {code}")
+                self._emit_line(name, f"Action {name} exited with code {code}")
                 self._set_command_state(name, "failed", code)
         except Exception as exc:
             logger.exception("Container app action failed")
-            self._emit(name, f"Action {name} failed: {exc}")
+            self._emit_line(name, f"Action {name} failed: {exc}")
             self._set_command_state(name, "failed", None)
         finally:
             with self._command_lock:

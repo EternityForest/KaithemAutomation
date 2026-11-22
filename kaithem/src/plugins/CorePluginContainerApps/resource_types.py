@@ -276,9 +276,9 @@ class ContainerAppResource(ResourceTypeRuntimeObject):
     def is_built(self) -> bool:
         return bool(self.sandbox_runtime and self.sandbox_runtime.is_built())
 
-    def get_log(self) -> list[str]:
+    def get_log(self) -> str:
         if self.sandbox_runtime is None:
-            return []
+            return ""
         return self.sandbox_runtime.get_command_log("app")
 
     def get_environment(self) -> dict[str, str]:
@@ -605,9 +605,9 @@ class ContainerAppInstanceResource(ResourceTypeRuntimeObject):
             return []
         return self.runtime.get_commands()
 
-    def get_log(self) -> list[str]:
+    def get_log(self) -> str:
         if self.runtime is None:
-            return []
+            return ""
         return self.runtime.get_command_log("app")
 
     def get_environment(self) -> dict[str, str]:

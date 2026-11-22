@@ -4,9 +4,8 @@ Web-based terminal emulator for Kaithem using xterm.js.
 
 ## Features
 
-- **Full terminal emulation** with xterm.js 5.3.0
-- **Image support** via the xterm-addon-image
-- **Clipboard integration** via the xterm-addon-clipboard
+- **Full terminal emulation** with xterm.js (npm package, bundled by Vite)
+- **Image support** via the `@xterm/addon-image` addon
 - **Auto-resizing** terminal that fits the browser window
 - **Clickable web links** in terminal output
 - **Security**: Requires `system_admin` permission - absolutely no access without admin rights
@@ -53,7 +52,13 @@ Both the web page endpoint and the WebSocket endpoint verify admin permissions u
   - **FitAddon**: Auto-resize terminal to fit window
   - **WebLinksAddon**: Make URLs clickable
   - **ImageAddon**: Display images in terminal
-  - **ClipboardAddon**: Enhanced clipboard support
+
+### Build
+
+xterm.js and its addons come from npm (`@xterm/*`), not vendored static
+files. The page entry is `html/index.html` with `static/terminal.ts`; run
+`npm run build` to emit the bundle under `/static/vite/`. The
+`/webconsole` route redirects to that build.
 
 ## Endpoints
 

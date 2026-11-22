@@ -115,6 +115,10 @@ export default defineConfig({
           __dirname,
           'kaithem/src/plugins/CorePluginTextEditor/html/index.html'
         ),
+        webconsole: resolve(
+          __dirname,
+          'kaithem/src/plugins/CorePluginWebConsole/html/index.html'
+        ),
       },
       output: {
         assetFileNames: 'assets/[name]-[hash][extname]',

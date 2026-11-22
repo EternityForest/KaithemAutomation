@@ -9,6 +9,7 @@ import select
 import struct
 import termios
 import threading
+from urllib.parse import urlencode
 
 import quart
 from quart import websocket
@@ -164,20 +165,25 @@ async def terminal_websocket():
     await handle_terminal_websocket()
 
 
+#: Vite build of the web console terminal front end.
+_TERMINAL_PAGE = (
+    "/static/vite/kaithem/src/plugins/CorePluginWebConsole/html/index.html"
+)
+
+
 @quart_app.route("/webconsole")
 async def webconsole_index():
     """Serve the web console terminal UI."""
     require("system_admin")
 
-    # Get the WebSocket URL from query parameter, or default to the built-in terminal
-    ws_url = quart.request.args.get("ws", "/webconsole/terminal")
-
-    # Read the HTML template
-    template_path = os.path.join(os.path.dirname(__file__), "terminal.html")
-    with open(template_path) as f:
-        template_content = f.read()
-
-    return await quart.render_template_string(template_content, ws_url=ws_url)
+    # Pass through the WebSocket URL query parameter.  The front end defaults
+    # to the built-in terminal when it is absent.
+    ws_url = quart.request.args.get("ws")
+    if ws_url:
+        target = _TERMINAL_PAGE + "?" + urlencode({"ws": ws_url})
+    else:
+        target = _TERMINAL_PAGE
+    return quart.redirect(target)
 
 
 app = kaithem.api.apps_page.App(

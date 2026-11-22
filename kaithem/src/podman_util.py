@@ -448,7 +448,7 @@ def start_container(name: str, track: bool = True) -> None:
     Unlike :func:`run_container` this never recreates the container, so a
     container kept around from an earlier run keeps its writable layer.
     """
-    _podman_quick_run("start", _container_name(name))
+    _podman_quick_run("restart", _container_name(name))
     if track:
         with _running_lock:
             _running_names.add(name)

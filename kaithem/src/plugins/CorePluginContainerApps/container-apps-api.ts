@@ -11,7 +11,8 @@ export interface CommandSnapshot {
   /** `stopped`, `running`, `exited` or `failed` (or an app status). */
   status: string;
   exit_code: number | null;
-  log: string[];
+  /** Raw terminal output, including ANSI escape codes. */
+  log: string;
   /** Whether the command has a DAP debug entry point. */
   dap: boolean;
   /** Access id of the running DAP bridge, or null when not running. */
