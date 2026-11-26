@@ -68,16 +68,13 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  align-items: center;
+  align-items: stretch;
 }
 
 .ca-template {
   padding: 0.25rem 0.5rem;
 }
 
-.ca-error {
-  color: #c62828;
-}
 
 .ca-notice {
   color: #2e7d32;

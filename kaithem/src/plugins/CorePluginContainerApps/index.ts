@@ -385,7 +385,7 @@ export class ContainerAppAdmin extends LitElement {
         </header>
 
         ${this.error
-          ? html`<p class="ca-error" data-testid="ca-error">${this.error}</p>`
+          ? html`<p class="error" data-testid="ca-error">${this.error}</p>`
           : nothing}
         ${this.notice
           ? html`<p class="ca-notice" data-testid="ca-notice">
@@ -419,7 +419,7 @@ export class ContainerAppAdmin extends LitElement {
             >`}
         ${dev ? html`<span data-testid="ca-dev">Dev mode</span>` : nothing}
         ${snapshot.error
-          ? html`<span class="ca-error" data-testid="ca-runtime-error"
+          ? html`<span class="error" data-testid="ca-runtime-error"
               >${snapshot.error}</span
             >`
           : nothing}
