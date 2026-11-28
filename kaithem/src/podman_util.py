@@ -44,15 +44,49 @@ CLEANUP_MAX_AGE = 60 * 60 * 24 * 365
 # Anything older than this is considered stale by ``prune``.  One week.
 PRUNE_MAX_AGE = "168h"
 
-v = os.path.expandvars("$HOME/.local/share/kaithem-containers/")
+if os.environ.get("KAITHEM_IS_TESTING") == "y":
+    v = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "../..",
+        ".kaithem-podman-storage",
+    )
+else:
+    v = os.path.expandvars("$HOME/.local/share/kaithem-containers/")
 
+v = os.path.normpath(v)
 # Scratch space for image archives.  Deliberately on disk (not the vardir,
 # which may be tmpfs) because exported images can be large.
 IMAGE_TMP_DIR = os.path.join(v, "tmp")
 
+# Path of the ``storage.conf`` we hand to podman.  Populated by
+# ``_write_storage_conf`` so we can keep rewriting it when the storage
+# location changes without relying on shell-style env var expansion in the
+# conf file.
+_STORAGE_CONF = os.path.join(v, "podman", "conf", "storage.conf")
+
+
+def _write_storage_conf(storage_path: str) -> None:
+    """Write ``storage.conf`` with the resolved ``storage_path`` baked in.
+
+    Podman does not expand shell variables in ``rootless_storage_path``,
+    so embedding the absolute path keeps the storage location correct
+    no matter how the subprocess is launched.  ``set_storage`` rewrites
+    this file every time the storage location changes.
+    """
+    os.makedirs(os.path.dirname(_STORAGE_CONF), exist_ok=True)
+    with open(_STORAGE_CONF, "w") as f:
+        f.write(
+            "[storage]\n"
+            f'rootless_storage_path = "{storage_path}"\n'
+            'driver = "overlay"\n'
+            "[storage.options.pull_options]\n"
+            'use_hard_links="true"\n'
+            'enable_partial_images="true"\n'
+        )
+
+
 try:
     os.makedirs(os.path.join(v, "podman", "conf"), exist_ok=True)
-    os.makedirs(os.path.join(v, "podman", "storage"), exist_ok=True)
     os.makedirs(IMAGE_TMP_DIR, exist_ok=True)
 
     if not os.path.exists(os.path.join(v, "podman", "conf", "registries.conf")):
@@ -61,16 +95,7 @@ try:
         ) as f:
             f.write("unqualified-search-registries = ['docker.io']\n")
 
-    if not os.path.exists(os.path.join(v, "podman", "conf", "storage.conf")):
-        with open(os.path.join(v, "podman", "conf", "storage.conf"), "w") as f:
-            f.write(
-                "[storage]\n"
-                'rootless_storage_path = "$KAITHEM_PODMAN_STORAGE"\n'
-                'driver = "overlay"\n'
-                "[storage.options.pull_options]\n"
-                'use_hard_links="true"\n'
-                'enable_partial_images="true"\n'
-            )
+    _write_storage_conf(os.path.join(v, "podman", "storage"))
 
 except Exception:
     logger.exception("Failed to create dir for podman_util")
@@ -81,24 +106,27 @@ env_extras = {
         v, "podman", "conf", "registries.conf"
     ),
     "KAITHEM_PODMAN_STORAGE": os.path.join(v, "podman", "storage"),
-    "CONTAINERS_STORAGE_CONF": os.path.join(
-        v, "podman", "conf", "storage.conf"
-    ),
+    "CONTAINERS_STORAGE_CONF": _STORAGE_CONF,
 }
 
 
 def set_storage(path: str) -> None:
     """Point rootless podman storage at ``path``.
 
-    The storage.conf installed above reads its location from
-    ``$KAITHEM_PODMAN_STORAGE``, so overriding that env var redirects all
-    subsequent podman calls.  Tests use this to keep a persistent,
-    gitignored storage directory shared across runs, so large images are
-    not refetched every time.
+    Tests use this to keep a persistent, gitignored storage directory
+    shared across runs, so large images are not refetched every time.
+    The storage.conf is rewritten with the resolved path so podman does
+    not have to expand ``$KAITHEM_PODMAN_STORAGE`` itself, and the parent
+    directory is created so the conf and storage tree always exist when
+    podman first runs.
     """
     path = os.path.abspath(path)
+    # Podman reaches into the parent of the storage path during startup
+    # (for example to validate the libpod/overlay layout), so the parent
+    # must exist even when only the leaf is being created fresh.
     os.makedirs(path, exist_ok=True)
     env_extras["KAITHEM_PODMAN_STORAGE"] = path
+    _write_storage_conf(path)
 
 
 def resolve_image_name(image: str):

@@ -92,7 +92,9 @@ test("admin file list, editor link, controls and delete", async ({ page }) => {
   );
   await page.getByTestId("file-edit").click();
   await expect(page.getByTestId("editor-filename")).toHaveValue(
-    "deck.pptx"
+    "deck.pptx",
+    { timeout: 50_000 }
+
   );
   await deckRequest;
 

@@ -13,6 +13,7 @@ import os
 import re
 import tempfile
 import time
+import traceback
 
 import quart
 from quart import Blueprint
@@ -95,8 +96,8 @@ async def podman_list_images():
         return error
     try:
         images = await asyncio.to_thread(podman_util.list_images)
-    except Exception as exc:
-        return _error(str(exc), 500)
+    except Exception:
+        return _error(traceback.format_exc(), 500)
     return quart.jsonify({"images": images})
 
 
@@ -116,8 +117,8 @@ async def podman_add_tag():
         return _error("invalid_request")
     try:
         await asyncio.to_thread(podman_util.add_image_tag, image, new_tag)
-    except Exception as exc:
-        return _error(str(exc), 500)
+    except Exception:
+        return _error(traceback.format_exc(), 500)
     return quart.jsonify({"status": "ok"})
 
 
@@ -135,8 +136,8 @@ async def podman_pull():
         return _error("invalid_request")
     try:
         await asyncio.to_thread(podman_util.pull_image, image)
-    except Exception as exc:
-        return _error(str(exc), 500)
+    except Exception:
+        return _error(traceback.format_exc(), 500)
     return quart.jsonify({"status": "ok"})
 
 
@@ -154,8 +155,8 @@ async def podman_remove():
         return _error("invalid_request")
     try:
         output = await asyncio.to_thread(podman_util.remove_image, image)
-    except Exception as exc:
-        return _error(str(exc), 500)
+    except Exception:
+        return _error(traceback.format_exc(), 500)
     return quart.jsonify({"status": "ok", "output": output})
 
 
@@ -166,8 +167,8 @@ async def podman_prune():
         return error
     try:
         result = await asyncio.to_thread(podman_util.prune)
-    except Exception as exc:
-        return _error(str(exc), 500)
+    except Exception:
+        return _error(traceback.format_exc(), 500)
     return quart.jsonify({"status": "ok", **result})
 
 
@@ -190,9 +191,9 @@ async def podman_export():
         _remove_quietly(path)
         await asyncio.to_thread(podman_util.export_image, image, path)
         size = os.path.getsize(path)
-    except Exception as exc:
+    except Exception:
         _remove_quietly(path)
-        return _error(str(exc), 500)
+        return _error(traceback.format_exc(), 500)
 
     filename = _archive_filename(image, architecture)
 
@@ -231,8 +232,8 @@ async def podman_import():
                 async for chunk in quart.request.body:
                     await asyncio.to_thread(handle.write, chunk)
             output = await asyncio.to_thread(podman_util.load_image, path)
-        except Exception as exc:
-            return _error(str(exc), 500)
+        except Exception:
+            return _error(traceback.format_exc(), 500)
     finally:
         _remove_quietly(path)
     return quart.jsonify({"status": "ok", "output": output})

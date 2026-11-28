@@ -19,6 +19,7 @@ from collections.abc import AsyncIterable, Callable, Coroutine
 from dataclasses import dataclass
 from typing import Any
 
+import pydantic_ai.agent
 import structlog
 
 from kaithem.api import ai
@@ -53,7 +54,9 @@ class AgentRunInfo:
 QueryCallback = Callable[[Any, AgentRunInfo], None]
 
 
-def _build_ephemeral(agent_id: str, output_type: Any) -> tuple[Any, str]:
+def _build_ephemeral(
+    agent_id: str, output_type: Any
+) -> tuple[pydantic_ai.agent.Agent[Any, Any], str]:
     """Build a throwaway pydantic-ai agent from a stored config.
 
     The agent is assembled exactly as a live conversation would build it

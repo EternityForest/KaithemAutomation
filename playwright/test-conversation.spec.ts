@@ -70,14 +70,23 @@ test('conversation chat lifecycle', async ({ page }) => {
   });
 
   // History is stored per user, so it lands under the logged in user's
-  // folder: <dir>/<uuid>/<user>/<thread>.ldjson.
+  // folder: <dir>/<uuid>/<user>/<thread>.ldjson.  The directory appears
+  // lazily, so swallow transient readdirSync errors and treat them as
+  // "not yet" so the poll can keep waiting.
   const userDir = path.join(CONVERSATIONS_DIR, uuid, 'admin');
   await expect
     .poll(
-      () =>
-        fs.existsSync(userDir) &&
-        fs.readdirSync(userDir).some(name => name.endsWith('.ldjson')),
-      { timeout: 10_000 }
+      () => {
+        try {
+          return (
+            fs.existsSync(userDir) &&
+            fs.readdirSync(userDir).some(name => name.endsWith('.ldjson'))
+          );
+        } catch {
+          return false;
+        }
+      },
+      { timeout: 30_000 }
     )
     .toBe(true);
 

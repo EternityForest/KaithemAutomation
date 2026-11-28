@@ -50,6 +50,8 @@ PODMAN_STORAGE_DIR = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), ".kaithem-podman-storage"
 )
 
+os.environ["KAITHEM_IS_TESTING"] = "y"
+
 
 def open2(path, mode: str = "r", *args, **kwargs):
     p = str(path)
@@ -104,7 +106,7 @@ from kaithem.src import settings_overrides  # noqa: E402
 
 for _ai_key, _ai_value in {
     "core/ai/openrouter_api_base": ai_mock.api_base,
-    "core/ai/openrouter_api_key": "playwright-test-key",
+    "core/ai/openrouter_api_key": "playwright-test-key",  # pragma: allowlist secret  # noqa: E501
     "core/ai/conversations_dir": "/dev/shm/kaithem_test_env/conversations",
 }.items():
     settings_overrides.add_val(_ai_key, _ai_value, "<playwright test>", 100)
